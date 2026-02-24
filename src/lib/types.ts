@@ -1,0 +1,143 @@
+// Types mirroring tune-server Pydantic models
+
+// Enums
+export type Source = 'local' | 'tidal' | 'qobuz' | 'youtube' | 'amazon';
+export type AudioFormat = 'flac' | 'wav' | 'mp3' | 'aac' | 'alac' | 'ogg' | 'opus' | 'dsd' | 'aiff' | 'wma';
+export type PlaybackState = 'stopped' | 'playing' | 'paused' | 'buffering';
+export type RepeatMode = 'off' | 'one' | 'all';
+export type OutputType = 'local' | 'dlna' | 'airplay';
+
+// Core domain models
+export interface Artist {
+  id: number | null;
+  name: string;
+  sort_name?: string | null;
+  musicbrainz_id?: string | null;
+  discogs_id?: string | null;
+  bio?: string | null;
+  image_path?: string | null;
+}
+
+export interface Album {
+  id: number | null;
+  title: string;
+  artist_id?: number | null;
+  artist_name?: string | null;
+  year?: number | null;
+  genre?: string | null;
+  disc_count?: number;
+  track_count?: number;
+  cover_path?: string | null;
+  source?: Source;
+  source_id?: string | null;
+}
+
+export interface Track {
+  id: number | null;
+  title: string;
+  album_id?: number | null;
+  album_title?: string | null;
+  artist_id?: number | null;
+  artist_name?: string | null;
+  disc_number?: number;
+  track_number?: number;
+  duration_ms?: number;
+  file_path?: string | null;
+  format?: AudioFormat | null;
+  sample_rate?: number | null;
+  bit_depth?: number | null;
+  channels?: number;
+  source?: Source;
+  source_id?: string | null;
+}
+
+export interface Playlist {
+  id: number | null;
+  name: string;
+  description?: string | null;
+  track_count?: number;
+}
+
+export interface QueueItem {
+  id: number | null;
+  zone_id: number;
+  track_id: number;
+  position: number;
+  track?: Track | null;
+}
+
+export interface Zone {
+  id: number | null;
+  name: string;
+  output_type?: OutputType;
+  output_device_id?: string | null;
+  volume?: number;
+  group_id?: string | null;
+  state?: PlaybackState;
+  current_track?: Track | null;
+  position_ms?: number;
+  queue_length?: number;
+}
+
+export interface DiscoveredDevice {
+  id: string;
+  name: string;
+  type: OutputType;
+  host: string;
+  port: number;
+  available?: boolean;
+  capabilities?: Record<string, any>;
+}
+
+// Request/Response models
+export interface QueueStateResponse {
+  tracks: Track[];
+  position: number;
+  length: number;
+}
+
+export interface SearchResult {
+  tracks: Track[];
+  albums: Album[];
+  artists: Artist[];
+}
+
+export interface FederatedSearchResult {
+  local: SearchResult;
+  services: Record<string, SearchResult>;
+}
+
+export interface StreamingServiceStatus {
+  enabled: boolean;
+  authenticated: boolean;
+}
+
+export interface SystemHealth {
+  status: string;
+  components: Record<string, boolean>;
+}
+
+export interface SystemConfig {
+  music_dirs: string[];
+  api_port: number;
+  stream_port: number;
+  tidal_enabled: boolean;
+  qobuz_enabled: boolean;
+  youtube_enabled: boolean;
+  amazon_music_enabled: boolean;
+  discovery_enabled: boolean;
+}
+
+export interface SystemStats {
+  tracks: number;
+  albums: number;
+  artists: number;
+  zones: number;
+  devices: number;
+}
+
+export interface WSEvent {
+  type: string;
+  data: any;
+  source?: string;
+}

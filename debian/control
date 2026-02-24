@@ -1,0 +1,16 @@
+Source: tune-web-client
+Section: web
+Priority: optional
+Maintainer: renesenses <renesenses@users.noreply.github.com>
+Build-Depends: debhelper-compat (= 13), nodejs (>= 18), npm
+Standards-Version: 4.6.2
+Homepage: https://github.com/renesenses/tune-web-client
+
+Package: tune-web-client
+Architecture: all
+Depends: ${misc:Depends}
+Recommends: tune-server, nginx | caddy | apache2
+Description: Web interface for Tune Server
+ Svelte 5 single-page application providing a rich web interface
+ for controlling Tune Server. Installs pre-built static files
+ to be served by nginx, caddy, or tune-server directly.

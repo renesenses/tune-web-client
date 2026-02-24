@@ -1,0 +1,26 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+export DESTDIR = debian/tune-web-client
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	npm ci --ignore-scripts
+	npm run build
+
+override_dh_auto_install:
+	# Install built static files
+	install -d $(DESTDIR)/usr/share/tune-web-client
+	cp -r dist/* $(DESTDIR)/usr/share/tune-web-client/
+
+	# Install nginx site config
+	install -d $(DESTDIR)/etc/nginx/sites-available
+	install -m 644 nginx/tune-web-client.conf $(DESTDIR)/etc/nginx/sites-available/tune-web-client
+
+override_dh_auto_test:
+	# Skip tests during package build
+
+override_dh_shlibdeps:
+	# Skip shared library dependencies (static files only)

@@ -1,0 +1,45 @@
+services:
+
+  # ── Backend : tune-server (FastAPI) ──────────────────────────
+  tune-server:
+    build:
+      context: ../tune-server
+      dockerfile: ../tune-web-client/tune-server.Dockerfile
+    container_name: tune-server
+    init: true
+    restart: unless-stopped
+    ports:
+      - "8888:8888"   # API + WebSocket
+      - "8080:8080"   # HTTP audio streaming
+    volumes:
+      - tune-data:/data
+      - ${MUSIC_DIR:-~/Music}:/music:ro
+    environment:
+      - TUNE_MUSIC_DIRS=["/music"]
+      - TUNE_DB_PATH=/data/tune_server.db
+      - TUNE_ARTWORK_CACHE_DIR=/data/artwork_cache
+      - TUNE_SCAN_ON_STARTUP=true
+      - TUNE_LOG_FORMAT=json
+      - TUNE_CORS_ORIGINS=["*"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8888/api/v1/system/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Frontend : tune-web-client (nginx + SPA) ────────────────
+  tune-web-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.compose
+    container_name: tune-web-client
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      tune-server:
+        condition: service_healthy
+
+volumes:
+  tune-data:

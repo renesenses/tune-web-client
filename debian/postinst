@@ -1,0 +1,19 @@
+#!/bin/bash
+set -e
+
+case "$1" in
+    configure)
+        echo "tune-web-client installed to /usr/share/tune-web-client/"
+        echo ""
+        echo "To serve with nginx:"
+        echo "  ln -sf /etc/nginx/sites-available/tune-web-client /etc/nginx/sites-enabled/"
+        echo "  systemctl reload nginx"
+        echo ""
+        echo "Or configure tune-server to serve static files from:"
+        echo "  /usr/share/tune-web-client/"
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0
