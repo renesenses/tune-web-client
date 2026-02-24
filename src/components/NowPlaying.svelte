@@ -24,7 +24,7 @@
   {#if zone && track}
     <div class="content-layout" class:wide={isWide}>
       <div class="artwork-container">
-        <AlbumArt coverPath={track.cover_path ?? zone.current_track?.cover_path} size={isWide ? 360 : 400} alt={track.title} />
+        <AlbumArt albumId={track.album_id} size={isWide ? 360 : 400} alt={track.title} />
       </div>
 
       <div class="info-column">

@@ -1,26 +1,38 @@
 <script lang="ts">
-  import { artworkUrl } from '../lib/api';
+  import { artworkUrl, getAlbumCoverPath } from '../lib/api';
 
   interface Props {
     coverPath?: string | null;
+    albumId?: number | null;
     size?: number;
     alt?: string;
   }
 
-  let { coverPath = null, size = 300, alt = 'Album art' }: Props = $props();
+  let { coverPath = null, albumId = null, size = 300, alt = 'Album art' }: Props = $props();
 
   let hasError = $state(false);
+  let resolvedCoverPath = $state<string | null>(null);
 
   function handleError() {
     hasError = true;
   }
 
+  // Fetch cover from album if no direct coverPath provided
   $effect(() => {
-    coverPath;
     hasError = false;
+    if (coverPath) {
+      resolvedCoverPath = coverPath;
+    } else if (albumId) {
+      resolvedCoverPath = null;
+      getAlbumCoverPath(albumId).then((path) => {
+        resolvedCoverPath = path;
+      });
+    } else {
+      resolvedCoverPath = null;
+    }
   });
 
-  let src = $derived(artworkUrl(coverPath));
+  let src = $derived(artworkUrl(resolvedCoverPath));
 </script>
 
 <div class="album-art" style="width: {size}px; height: {size}px;">

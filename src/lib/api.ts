@@ -276,6 +276,34 @@ export function artworkUrl(coverPath: string | null | undefined): string {
   if (coverPath.startsWith('http://') || coverPath.startsWith('https://')) {
     return coverPath;
   }
-  // Local paths go through the artwork endpoint
-  return `${BASE}/library/artwork/${encodeURIComponent(coverPath)}`;
+  // Extract filename from absolute path (e.g. /data/artwork_cache/abc123.jpg -> abc123.jpg)
+  const filename = coverPath.split('/').pop() ?? coverPath;
+  return `${BASE}/library/artwork/${encodeURIComponent(filename)}`;
+}
+
+// --- Album cover cache ---
+
+const albumCoverCache = new Map<number, string | null>();
+const albumCoverPending = new Map<number, Promise<string | null>>();
+
+export async function getAlbumCoverPath(albumId: number): Promise<string | null> {
+  if (albumCoverCache.has(albumId)) {
+    return albumCoverCache.get(albumId)!;
+  }
+  if (albumCoverPending.has(albumId)) {
+    return albumCoverPending.get(albumId)!;
+  }
+  const promise = getAlbum(albumId)
+    .then((album) => {
+      const cover = album.cover_path ?? null;
+      albumCoverCache.set(albumId, cover);
+      albumCoverPending.delete(albumId);
+      return cover;
+    })
+    .catch(() => {
+      albumCoverPending.delete(albumId);
+      return null;
+    });
+  albumCoverPending.set(albumId, promise);
+  return promise;
 }
