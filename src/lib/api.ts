@@ -6,6 +6,7 @@ import type {
   Album,
   Artist,
   Playlist,
+  DiscoveredDevice,
   QueueStateResponse,
   SearchResult,
   FederatedSearchResult,
@@ -14,6 +15,7 @@ import type {
   StreamingServiceStatus,
   Source,
   RepeatMode,
+  OutputType,
 } from './types';
 
 const BASE = '/api/v1';
@@ -49,11 +51,21 @@ export function getZone(id: number) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`);
 }
 
-export function createZone(name: string, outputType = 'local', outputDeviceId?: string) {
+export function createZone(name: string, outputType: OutputType = 'local', outputDeviceId?: string) {
   return fetchJSON<Zone>(`${BASE}/zones`, {
     method: 'POST',
     body: JSON.stringify({ name, output_type: outputType, output_device_id: outputDeviceId }),
   });
+}
+
+// --- Devices ---
+
+export function getDevices() {
+  return fetchJSON<DiscoveredDevice[]>(`${BASE}/devices`);
+}
+
+export function getDevice(id: string) {
+  return fetchJSON<DiscoveredDevice>(`${BASE}/devices/${encodeURIComponent(id)}`);
 }
 
 export function deleteZone(id: number) {

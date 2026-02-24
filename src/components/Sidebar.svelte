@@ -1,8 +1,10 @@
 <script lang="ts">
   import { zones, currentZoneId } from '../lib/stores/zones';
+  import { devices, unboundDevices } from '../lib/stores/devices';
   import { connectionState } from '../lib/stores/connection';
   import { activeView, type View } from '../lib/stores/navigation';
   import * as api from '../lib/api';
+  import type { DiscoveredDevice, OutputType } from '../lib/types';
 
   function handleSelectZone(zoneId: number) {
     currentZoneId.set(zoneId);
@@ -10,17 +12,39 @@
 
   let showCreateZone = $state(false);
   let newZoneName = $state('');
+  let newZoneOutputType = $state<OutputType>('local');
+  let newZoneDeviceId = $state<string | undefined>(undefined);
 
   async function createZone() {
     if (!newZoneName.trim()) return;
     try {
-      const zone = await api.createZone(newZoneName.trim());
+      const zone = await api.createZone(newZoneName.trim(), newZoneOutputType, newZoneDeviceId);
       zones.update((zs) => [...zs, zone]);
       if (zone.id !== null) currentZoneId.set(zone.id);
       newZoneName = '';
+      newZoneOutputType = 'local';
+      newZoneDeviceId = undefined;
       showCreateZone = false;
     } catch (e) {
       console.error('Create zone error:', e);
+    }
+  }
+
+  async function createZoneFromDevice(device: DiscoveredDevice) {
+    try {
+      const zone = await api.createZone(device.name, device.type, device.id);
+      zones.update((zs) => [...zs, zone]);
+      if (zone.id !== null) currentZoneId.set(zone.id);
+    } catch (e) {
+      console.error('Create zone from device error:', e);
+    }
+  }
+
+  function deviceTypeIcon(type: OutputType): string {
+    switch (type) {
+      case 'dlna': return 'DLNA';
+      case 'airplay': return 'AirPlay';
+      default: return 'Local';
     }
   }
 
@@ -99,6 +123,19 @@
           bind:value={newZoneName}
           onkeydown={(e) => e.key === 'Enter' && createZone()}
         />
+        <select class="create-zone-type" bind:value={newZoneOutputType} onchange={() => { newZoneDeviceId = undefined; }}>
+          <option value="local">Local</option>
+          <option value="dlna">DLNA</option>
+          <option value="airplay">AirPlay</option>
+        </select>
+        {#if newZoneOutputType !== 'local'}
+          <select class="create-zone-device" bind:value={newZoneDeviceId}>
+            <option value={undefined}>-- Device --</option>
+            {#each $devices.filter(d => d.type === newZoneOutputType && d.available) as dev}
+              <option value={dev.id}>{dev.name}</option>
+            {/each}
+          </select>
+        {/if}
         <button class="create-zone-confirm" onclick={createZone}>OK</button>
       </div>
     {/if}
@@ -110,15 +147,49 @@
           onclick={() => zone.id !== null && handleSelectZone(zone.id)}
         >
           <span class="zone-name truncate">{zone.name}</span>
-          {#if zone.state === 'playing'}
-            <span class="zone-playing">
-              <svg viewBox="0 0 10 12" fill="currentColor" width="10" height="12"><polygon points="0,0 10,6 0,12" /></svg>
-            </span>
-          {/if}
+          <span class="zone-meta">
+            {#if zone.output_type && zone.output_type !== 'local'}
+              <span class="zone-type-badge">{deviceTypeIcon(zone.output_type)}</span>
+            {/if}
+            {#if zone.state === 'playing'}
+              <span class="zone-playing">
+                <svg viewBox="0 0 10 12" fill="currentColor" width="10" height="12"><polygon points="0,0 10,6 0,12" /></svg>
+              </span>
+            {/if}
+          </span>
         </button>
       {/each}
       {#if $zones.length === 0}
         <div class="empty-state">Aucune zone</div>
+      {/if}
+    </div>
+  </div>
+
+  <div class="devices-section">
+    <span class="section-label">APPAREILS</span>
+    <div class="devices-list">
+      {#each $devices as device}
+        <div class="device-item" class:unavailable={!device.available}>
+          <span class="device-icon">
+            {#if device.type === 'airplay'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1" /><polygon points="12 15 17 21 7 21 12 15" /></svg>
+            {:else if device.type === 'dlna'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><polyline points="17 2 12 7 7 2" /></svg>
+            {:else}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+            {/if}
+          </span>
+          <span class="device-name truncate">{device.name}</span>
+          <span class="device-type-tag">{deviceTypeIcon(device.type)}</span>
+          {#if device.available}
+            <span class="device-status available" title="Disponible">&#x25CF;</span>
+          {:else}
+            <span class="device-status offline" title="Hors ligne">&#x25CB;</span>
+          {/if}
+        </div>
+      {/each}
+      {#if $devices.length === 0}
+        <div class="empty-state">Recherche d'appareils...</div>
       {/if}
     </div>
   </div>
@@ -333,6 +404,110 @@
   .zone-playing svg {
     width: 10px;
     height: 10px;
+  }
+
+  .zone-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .zone-type-badge {
+    font-family: var(--font-label);
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tune-text-muted);
+    background: var(--tune-bg);
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+  }
+
+  .create-zone-type,
+  .create-zone-device {
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 6px;
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 11px;
+    outline: none;
+    max-width: 90px;
+  }
+
+  .create-zone-type:focus,
+  .create-zone-device:focus {
+    border-color: var(--tune-accent);
+  }
+
+  .devices-section {
+    border-top: 1px solid var(--tune-border);
+    padding: var(--space-md) 0 var(--space-sm);
+    overflow-y: auto;
+    flex-shrink: 0;
+    max-height: 200px;
+  }
+
+  .devices-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .device-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 18px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+    transition: opacity 0.12s ease-out;
+  }
+
+  .device-item.unavailable {
+    opacity: 0.4;
+  }
+
+  .device-icon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+
+  .device-name {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .device-type-tag {
+    font-family: var(--font-label);
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tune-text-muted);
+    background: var(--tune-bg);
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+  }
+
+  .device-status {
+    font-size: 8px;
+    flex-shrink: 0;
+  }
+
+  .device-status.available {
+    color: var(--tune-success);
+  }
+
+  .device-status.offline {
+    color: var(--tune-text-muted);
   }
 
   .empty-state {
