@@ -7,7 +7,6 @@
   import { queueTracks, queuePosition, queueLength } from './lib/stores/queue';
   import { connectionState } from './lib/stores/connection';
   import { activeView } from './lib/stores/navigation';
-  import type { DiscoveredDevice, Zone } from './lib/types';
   import * as api from './lib/api';
   import Sidebar from './components/Sidebar.svelte';
   import NowPlaying from './components/NowPlaying.svelte';
@@ -39,54 +38,8 @@
     try {
       const deviceList = await api.getDevices();
       devices.set(deviceList);
-      return deviceList;
     } catch (e) {
       console.error('Fetch devices error:', e);
-      return [];
-    }
-  }
-
-  /**
-   * Auto-create zones for discovered devices that aren't bound to any existing zone.
-   * Called on initial connection and when new devices are discovered.
-   */
-  async function autoCreateZonesForDevices(deviceList?: DiscoveredDevice[]) {
-    const devs = deviceList ?? await fetchDevices();
-    let zoneList: Zone[] = [];
-    zones.subscribe((zs) => (zoneList = zs))();
-
-    const boundDeviceIds = new Set(
-      zoneList.filter((z) => z.output_device_id).map((z) => z.output_device_id)
-    );
-
-    for (const device of devs) {
-      if (!device.available || boundDeviceIds.has(device.id)) continue;
-      try {
-        const newZone = await api.createZone(device.name, device.type, device.id);
-        zoneList = [...zoneList, newZone];
-        zones.set(zoneList);
-        boundDeviceIds.add(device.id);
-        // Auto-select first created zone
-        let curId: number | null = null;
-        currentZoneId.subscribe((v) => (curId = v))();
-        if (curId === null && newZone.id !== null) {
-          currentZoneId.set(newZone.id);
-        }
-      } catch (e) {
-        console.error(`Auto-create zone for device ${device.name} error:`, e);
-      }
-    }
-
-    // If still no zones and no devices, create a local fallback zone
-    zones.subscribe((zs) => (zoneList = zs))();
-    if (zoneList.length === 0) {
-      try {
-        const fallback = await api.createZone('Local', 'local');
-        zones.set([fallback]);
-        if (fallback.id !== null) currentZoneId.set(fallback.id);
-      } catch (e) {
-        console.error('Auto-create local zone fallback error:', e);
-      }
     }
   }
 
@@ -107,7 +60,8 @@
   onMount(() => {
     connectionState.set('connecting');
     tuneWS.connect();
-    fetchZones().then(() => fetchDevices().then((devs) => autoCreateZonesForDevices(devs)));
+    fetchZones();
+    fetchDevices();
 
     tuneWS.onEvent((event) => {
       const type = event.type;
@@ -115,7 +69,8 @@
       // Internal connection events
       if (type === '_connected') {
         connectionState.set('connected');
-        fetchZones().then(() => fetchDevices().then((devs) => autoCreateZonesForDevices(devs)));
+        fetchZones();
+        fetchDevices();
         return;
       }
       if (type === '_disconnected') {
@@ -195,12 +150,7 @@
 
       // Device events
       if (type.startsWith('device.')) {
-        fetchDevices().then((devs) => {
-          if (type === 'device.discovered') {
-            // Auto-create zone for newly discovered device
-            autoCreateZonesForDevices(devs);
-          }
-        });
+        fetchDevices();
         return;
       }
     });

@@ -182,7 +182,9 @@
           <span class="device-name truncate">{device.name}</span>
           <span class="device-type-tag">{deviceTypeIcon(device.type)}</span>
           {#if device.available}
-            <span class="device-status available" title="Disponible">&#x25CF;</span>
+            <button class="device-add-btn" onclick={() => createZoneFromDevice(device)} title="Creer une zone">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            </button>
           {:else}
             <span class="device-status offline" title="Hors ligne">&#x25CB;</span>
           {/if}
@@ -499,13 +501,28 @@
     flex-shrink: 0;
   }
 
+  .device-add-btn {
+    background: none;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-muted);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    padding: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.12s ease-out;
+  }
+
+  .device-add-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
   .device-status {
     font-size: 8px;
     flex-shrink: 0;
-  }
-
-  .device-status.available {
-    color: var(--tune-success);
   }
 
   .device-status.offline {
