@@ -1,6 +1,5 @@
 /* Tune design system — native macOS dark palette */
-
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&family=Inter:wght@400;500;600;700&display=swap');
+/* Fonts loaded via <link> in index.html for non-blocking render */
 
 :root {
   /* Colors — native dark palette */
