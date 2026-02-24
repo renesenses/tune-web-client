@@ -4,7 +4,7 @@ services:
   tune-server:
     build:
       context: ../tune-server
-      dockerfile: ../tune-web-client/tune-server.Dockerfile
+      dockerfile: Dockerfile
     container_name: tune-server
     init: true
     restart: unless-stopped
