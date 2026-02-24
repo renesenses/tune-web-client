@@ -2,9 +2,26 @@
   import { zones, currentZoneId } from '../lib/stores/zones';
   import { connectionState } from '../lib/stores/connection';
   import { activeView, type View } from '../lib/stores/navigation';
+  import * as api from '../lib/api';
 
   function handleSelectZone(zoneId: number) {
     currentZoneId.set(zoneId);
+  }
+
+  let showCreateZone = $state(false);
+  let newZoneName = $state('');
+
+  async function createZone() {
+    if (!newZoneName.trim()) return;
+    try {
+      const zone = await api.createZone(newZoneName.trim());
+      zones.update((zs) => [...zs, zone]);
+      if (zone.id !== null) currentZoneId.set(zone.id);
+      newZoneName = '';
+      showCreateZone = false;
+    } catch (e) {
+      console.error('Create zone error:', e);
+    }
   }
 
   function navigate(view: View) {
@@ -68,7 +85,23 @@
   </nav>
 
   <div class="zones-section">
-    <span class="section-label">ZONES</span>
+    <div class="zones-header">
+      <span class="section-label">ZONES</span>
+      <button class="add-zone-btn" onclick={() => showCreateZone = !showCreateZone} title="Nouvelle zone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+      </button>
+    </div>
+    {#if showCreateZone}
+      <div class="create-zone">
+        <input
+          type="text"
+          placeholder="Nom de la zone"
+          bind:value={newZoneName}
+          onkeydown={(e) => e.key === 'Enter' && createZone()}
+        />
+        <button class="create-zone-confirm" onclick={createZone}>OK</button>
+      </div>
+    {/if}
     <div class="zones-list">
       {#each $zones as zone}
         <button
@@ -189,6 +222,69 @@
     flex: 1;
     overflow-y: auto;
     padding: var(--space-md) 0;
+  }
+
+  .zones-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 18px;
+    margin-bottom: 6px;
+  }
+
+  .zones-header .section-label {
+    margin-bottom: 0;
+  }
+
+  .add-zone-btn {
+    background: none;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-muted);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease-out;
+  }
+
+  .add-zone-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .create-zone {
+    display: flex;
+    gap: 4px;
+    padding: 4px 18px 8px;
+  }
+
+  .create-zone input {
+    flex: 1;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 12px;
+    outline: none;
+  }
+
+  .create-zone input:focus {
+    border-color: var(--tune-accent);
+  }
+
+  .create-zone-confirm {
+    background: var(--tune-accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 12px;
   }
 
   .zones-list {

@@ -20,11 +20,21 @@
 
   async function fetchZones() {
     try {
-      const zoneList = await api.getZones();
+      let zoneList = await api.getZones();
       zones.set(zoneList);
       // Auto-select first zone if none selected
       let curId: number | null = null;
       currentZoneId.subscribe((v) => (curId = v))();
+      // Auto-create a default zone if none exist
+      if (zoneList.length === 0) {
+        try {
+          const newZone = await api.createZone('Local');
+          zoneList = [newZone];
+          zones.set(zoneList);
+        } catch (e) {
+          console.error('Auto-create zone error:', e);
+        }
+      }
       if (curId === null && zoneList.length > 0 && zoneList[0].id !== null) {
         currentZoneId.set(zoneList[0].id);
       }
