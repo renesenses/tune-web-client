@@ -4,7 +4,8 @@
   import { connectionState } from '../lib/stores/connection';
   import { activeView, type View } from '../lib/stores/navigation';
   import * as api from '../lib/api';
-  import type { DiscoveredDevice, OutputType } from '../lib/types';
+  import type { DiscoveredDevice, OutputType, Zone, ZoneGroupResponse } from '../lib/types';
+  import ZoneConfigModal from './ZoneConfigModal.svelte';
 
   function handleSelectZone(zoneId: number) {
     currentZoneId.set(zoneId);
@@ -14,6 +15,67 @@
   let newZoneName = $state('');
   let newZoneOutputType = $state<OutputType>('local');
   let newZoneDeviceId = $state<string | undefined>(undefined);
+
+  let configZone = $state<Zone | null>(null);
+  let zoneGroups = $state<ZoneGroupResponse[]>([]);
+
+  async function fetchGroups() {
+    try {
+      zoneGroups = await api.listGroups();
+    } catch (e) {
+      console.error('Fetch groups error:', e);
+    }
+  }
+
+  // Fetch groups on mount
+  fetchGroups();
+
+  function openConfig(zone: Zone, e: MouseEvent) {
+    e.stopPropagation();
+    configZone = zone;
+    fetchGroups();
+  }
+
+  async function handleDeleteZone(id: number) {
+    try {
+      await api.deleteZone(id);
+      zones.update((zs) => zs.filter((z) => z.id !== id));
+      let curId: number | null = null;
+      currentZoneId.subscribe((v) => (curId = v))();
+      if (curId === id) {
+        const remaining = $zones.filter((z) => z.id !== id);
+        currentZoneId.set(remaining.length > 0 ? remaining[0].id : null);
+      }
+      configZone = null;
+    } catch (e) {
+      console.error('Delete zone error:', e);
+    }
+  }
+
+  async function handleGroupChanged() {
+    await fetchGroups();
+    try {
+      const zoneList = await api.getZones();
+      zones.set(zoneList);
+    } catch (e) {
+      console.error('Refetch zones error:', e);
+    }
+    configZone = null;
+  }
+
+  function getZoneGroupId(zone: Zone): string | null {
+    if (!zone.id) return null;
+    const group = zoneGroups.find(g => g.zone_ids.includes(zone.id!));
+    return group?.group_id ?? zone.group_id ?? null;
+  }
+
+  // Simple color palette for group indicators
+  const groupColors = ['#6366f1', '#f59e0b', '#10b981', '#ec4899', '#8b5cf6', '#14b8a6'];
+  function groupColor(groupId: string): string {
+    let hash = 0;
+    for (let i = 0; i < groupId.length; i++) hash = (hash * 31 + groupId.charCodeAt(i)) | 0;
+    return groupColors[Math.abs(hash) % groupColors.length];
+  }
 
   async function createZone() {
     if (!newZoneName.trim()) return;
@@ -141,11 +203,15 @@
     {/if}
     <div class="zones-list">
       {#each $zones as zone}
+        {@const gid = getZoneGroupId(zone)}
         <button
           class="zone-item"
           class:active={zone.id === $currentZoneId}
           onclick={() => zone.id !== null && handleSelectZone(zone.id)}
         >
+          {#if gid}
+            <span class="zone-group-dot" style="background: {groupColor(gid)}" title="Groupe actif"></span>
+          {/if}
           <span class="zone-name truncate">{zone.name}</span>
           <span class="zone-meta">
             {#if zone.output_type && zone.output_type !== 'local'}
@@ -156,6 +222,10 @@
                 <svg viewBox="0 0 10 12" fill="currentColor" width="10" height="12"><polygon points="0,0 10,6 0,12" /></svg>
               </span>
             {/if}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <span class="zone-config-btn" onclick={(e) => openConfig(zone, e)} title="Configurer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+            </span>
           </span>
         </button>
       {/each}
@@ -196,6 +266,17 @@
     </div>
   </div>
 </aside>
+
+{#if configZone}
+  <ZoneConfigModal
+    zone={configZone}
+    allZones={$zones}
+    groups={zoneGroups}
+    onClose={() => configZone = null}
+    onDelete={handleDeleteZone}
+    onGroupChanged={handleGroupChanged}
+  />
+{/if}
 
 <style>
   .sidebar {
@@ -372,6 +453,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
     padding: 7px 18px;
     background: none;
     border: none;
@@ -534,6 +616,33 @@
     color: var(--tune-text-muted);
     font-family: var(--font-body);
     font-size: 13px;
+  }
+
+  .zone-group-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .zone-config-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tune-text-muted);
+    opacity: 0;
+    transition: opacity 0.12s, color 0.12s;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  .zone-item:hover .zone-config-btn,
+  .zone-item.active .zone-config-btn {
+    opacity: 1;
+  }
+
+  .zone-config-btn:hover {
+    color: var(--tune-accent);
   }
 
   @media (max-width: 768px) {

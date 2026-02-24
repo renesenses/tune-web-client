@@ -136,6 +136,12 @@ export interface SystemStats {
   devices: number;
 }
 
+export interface ZoneGroupResponse {
+  group_id: string;
+  leader_id: number;
+  zone_ids: number[];
+}
+
 export interface WSEvent {
   type: string;
   data: any;

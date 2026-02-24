@@ -13,6 +13,7 @@ import type {
   SystemHealth,
   SystemStats,
   StreamingServiceStatus,
+  ZoneGroupResponse,
   Source,
   RepeatMode,
   OutputType,
@@ -70,6 +71,23 @@ export function getDevice(id: string) {
 
 export function deleteZone(id: number) {
   return fetchVoid(`${BASE}/zones/${id}`, { method: 'DELETE' });
+}
+
+// --- Zone Groups ---
+
+export function groupZones(leaderZoneId: number, zoneIds: number[]) {
+  return fetchJSON<ZoneGroupResponse>(`${BASE}/zones/group`, {
+    method: 'POST',
+    body: JSON.stringify({ leader_id: leaderZoneId, zone_ids: zoneIds }),
+  });
+}
+
+export function ungroupZones(groupId: string) {
+  return fetchVoid(`${BASE}/zones/group/${encodeURIComponent(groupId)}`, { method: 'DELETE' });
+}
+
+export function listGroups() {
+  return fetchJSON<ZoneGroupResponse[]>(`${BASE}/zones/groups/list`);
 }
 
 // --- Playback ---
