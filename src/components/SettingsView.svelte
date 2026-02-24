@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as api from '../lib/api';
+  import { tuneWS } from '../lib/websocket';
   import type { SystemHealth, SystemStats, StreamingServiceStatus } from '../lib/types';
 
   let health: SystemHealth | null = $state(null);
@@ -7,6 +8,8 @@
   let streamingServices: Record<string, StreamingServiceStatus> = $state({});
   let scanning = $state(false);
   let loading = $state(true);
+  let artworkScanning = $state(false);
+  let artworkProgress: { current: number; total: number; found: number } | null = $state(null);
 
   async function loadAll() {
     loading = true;
@@ -37,8 +40,31 @@
     }
   }
 
+  async function handleArtworkRescan() {
+    artworkScanning = true;
+    artworkProgress = null;
+    try {
+      const res = await api.rescanArtwork();
+      if (res.status === 'already_running') {
+        // already in progress, keep indicator
+      }
+    } catch (e) {
+      console.error('Artwork rescan error:', e);
+      artworkScanning = false;
+    }
+  }
+
   $effect(() => {
     loadAll();
+    const unsub = tuneWS.onEvent((event) => {
+      if (event.type === 'library.artwork.progress') {
+        artworkProgress = event.data;
+      } else if (event.type === 'library.artwork.completed') {
+        artworkScanning = false;
+        artworkProgress = null;
+      }
+    });
+    return unsub;
   });
 </script>
 
@@ -98,17 +124,35 @@
         </div>
       {/if}
 
-      <button class="scan-btn" onclick={handleScan} disabled={scanning}>
-        {#if scanning}
-          <div class="spinner small"></div>
-          Scan en cours...
-        {:else}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-            <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-          </svg>
-          Scanner la bibliotheque
-        {/if}
-      </button>
+      <div class="action-buttons">
+        <button class="scan-btn" onclick={handleScan} disabled={scanning}>
+          {#if scanning}
+            <div class="spinner small"></div>
+            Scan en cours...
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+            Scanner la bibliotheque
+          {/if}
+        </button>
+
+        <button class="scan-btn" onclick={handleArtworkRescan} disabled={artworkScanning}>
+          {#if artworkScanning}
+            <div class="spinner small"></div>
+            {#if artworkProgress}
+              Covers {artworkProgress.current}/{artworkProgress.total} ({artworkProgress.found} trouvees)
+            {:else}
+              Recherche de covers...
+            {/if}
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" />
+            </svg>
+            Rechercher les covers manquantes
+          {/if}
+        </button>
+      </div>
     </section>
 
     <!-- Streaming services -->
@@ -246,6 +290,12 @@
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-secondary);
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
   }
 
   .scan-btn {

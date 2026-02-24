@@ -280,6 +280,10 @@ export function getStreamingServices() {
   return fetchJSON<Record<string, StreamingServiceStatus>>(`${BASE}/streaming/services`);
 }
 
+export function rescanArtwork() {
+  return fetchJSON<{ status: string }>(`${BASE}/library/artwork/rescan`, { method: 'POST' });
+}
+
 // --- Artwork ---
 
 export function artworkUrl(coverPath: string | null | undefined): string {
