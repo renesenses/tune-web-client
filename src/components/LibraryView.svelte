@@ -6,11 +6,37 @@
   import type { Album, Artist } from '../lib/types';
 
   let zone = $derived($currentZone);
+  let searchQuery = $state('');
+
+  let filteredAlbums = $derived(
+    searchQuery.trim()
+      ? $albums.filter(a => {
+          const q = searchQuery.toLowerCase();
+          return a.title.toLowerCase().includes(q) || (a.artist_name ?? '').toLowerCase().includes(q);
+        })
+      : $albums
+  );
+
+  let filteredArtists = $derived(
+    searchQuery.trim()
+      ? $artists.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      : $artists
+  );
+
+  let filteredTracks = $derived(
+    searchQuery.trim()
+      ? $tracks.filter(t => {
+          const q = searchQuery.toLowerCase();
+          return t.title.toLowerCase().includes(q) || (t.artist_name ?? '').toLowerCase().includes(q) || (t.album_title ?? '').toLowerCase().includes(q);
+        })
+      : $tracks
+  );
 
   function switchTab(tab: LibraryTab) {
     libraryTab.set(tab);
     selectedAlbum.set(null);
     selectedArtist.set(null);
+    searchQuery = '';
   }
 
   async function loadAlbums() {
@@ -198,10 +224,21 @@
     <!-- Main library view -->
     <div class="library-header">
       <h2>Bibliotheque</h2>
-      <div class="tab-bar">
-        <button class="tab" class:active={$libraryTab === 'albums'} onclick={() => switchTab('albums')}>Albums</button>
-        <button class="tab" class:active={$libraryTab === 'artists'} onclick={() => switchTab('artists')}>Artistes</button>
-        <button class="tab" class:active={$libraryTab === 'tracks'} onclick={() => switchTab('tracks')}>Pistes</button>
+      <div class="library-header-right">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+          <input type="text" placeholder="Rechercher..." bind:value={searchQuery} />
+          {#if searchQuery}
+            <button class="search-clear" onclick={() => searchQuery = ''}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </button>
+          {/if}
+        </div>
+        <div class="tab-bar">
+          <button class="tab" class:active={$libraryTab === 'albums'} onclick={() => switchTab('albums')}>Albums</button>
+          <button class="tab" class:active={$libraryTab === 'artists'} onclick={() => switchTab('artists')}>Artistes</button>
+          <button class="tab" class:active={$libraryTab === 'tracks'} onclick={() => switchTab('tracks')}>Pistes</button>
+        </div>
       </div>
     </div>
 
@@ -212,7 +249,7 @@
       </div>
     {:else if $libraryTab === 'albums'}
       <div class="albums-grid">
-        {#each $albums as album}
+        {#each filteredAlbums as album}
           <button class="album-card" onclick={() => selectAlbumDetail(album)}>
             <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
             <span class="album-card-title truncate">{album.title}</span>
@@ -221,14 +258,14 @@
             {/if}
           </button>
         {/each}
-        {#if $albums.length === 0}
-          <div class="empty">Aucun album dans la bibliotheque</div>
+        {#if filteredAlbums.length === 0}
+          <div class="empty">{searchQuery ? 'Aucun resultat' : 'Aucun album dans la bibliotheque'}</div>
         {/if}
       </div>
 
     {:else if $libraryTab === 'artists'}
       <div class="artists-list">
-        {#each $artists as artist}
+        {#each filteredArtists as artist}
           <button class="artist-item" onclick={() => selectArtistDetail(artist)}>
             <div class="artist-avatar">
               {artist.name.charAt(0).toUpperCase()}
@@ -237,14 +274,14 @@
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
           </button>
         {/each}
-        {#if $artists.length === 0}
-          <div class="empty">Aucun artiste dans la bibliotheque</div>
+        {#if filteredArtists.length === 0}
+          <div class="empty">{searchQuery ? 'Aucun resultat' : 'Aucun artiste dans la bibliotheque'}</div>
         {/if}
       </div>
 
     {:else if $libraryTab === 'tracks'}
       <div class="track-list">
-        {#each $tracks as t, index}
+        {#each filteredTracks as t, index}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="track-item" onclick={() => t.id && playTrack(t.id)}>
@@ -257,8 +294,8 @@
             <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title="Ajouter a la file">+</button>
           </div>
         {/each}
-        {#if $tracks.length === 0}
-          <div class="empty">Aucune piste dans la bibliotheque</div>
+        {#if filteredTracks.length === 0}
+          <div class="empty">{searchQuery ? 'Aucun resultat' : 'Aucune piste dans la bibliotheque'}</div>
         {/if}
       </div>
     {/if}
@@ -288,6 +325,61 @@
     font-size: 28px;
     font-weight: 600;
     letter-spacing: -0.8px;
+  }
+
+  .library-header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    padding: 5px 10px;
+    transition: border-color 0.12s;
+  }
+
+  .search-box:focus-within {
+    border-color: var(--tune-accent);
+  }
+
+  .search-icon {
+    color: var(--tune-text-muted);
+    flex-shrink: 0;
+  }
+
+  .search-box input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    width: 180px;
+  }
+
+  .search-box input::placeholder {
+    color: var(--tune-text-muted);
+  }
+
+  .search-clear {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    border-radius: var(--radius-sm);
+  }
+
+  .search-clear:hover {
+    color: var(--tune-text);
   }
 
   .tab-bar {
