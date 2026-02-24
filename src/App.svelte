@@ -57,6 +57,27 @@
     }
   }
 
+  /**
+   * Refresh zone state from API and sync seek position.
+   * Called on playback events since WS events lack full track/position data.
+   */
+  async function syncZoneState(zoneId: number) {
+    try {
+      const zone = await api.getZone(zoneId);
+      zones.update((zs) =>
+        zs.map((z) => z.id === zoneId ? zone : z)
+      );
+      seekPositionMs.set(zone.position_ms ?? 0);
+      if (zone.state === 'playing') {
+        startSeekTimer();
+      } else {
+        stopSeekTimer();
+      }
+    } catch (e) {
+      console.error('Sync zone state error:', e);
+    }
+  }
+
   onMount(() => {
     connectionState.set('connecting');
     tuneWS.connect();
@@ -78,51 +99,21 @@
         return;
       }
 
-      // Playback events
+      // Playback events — refetch zone state since WS events lack full data
       if (type.startsWith('playback.')) {
+        const zoneId = event.data?.zone_id;
         if (type === 'playback.position' && event.data?.position_ms !== undefined) {
+          // Lightweight position update (no API call)
           seekPositionMs.set(event.data.position_ms);
-        } else if (type === 'playback.started' || type === 'playback.resumed') {
-          if (event.data?.zone_id !== undefined) {
-            zones.update((zs) =>
-              zs.map((z) => z.id === event.data.zone_id ? { ...z, state: 'playing', ...(event.data.track ? { current_track: event.data.track } : {}) } : z)
-            );
-          }
-          if (event.data?.position_ms !== undefined) {
-            seekPositionMs.set(event.data.position_ms);
-          }
-          startSeekTimer();
-        } else if (type === 'playback.paused') {
-          if (event.data?.zone_id !== undefined) {
-            zones.update((zs) =>
-              zs.map((z) => z.id === event.data.zone_id ? { ...z, state: 'paused' } : z)
-            );
-          }
-          if (event.data?.position_ms !== undefined) {
-            seekPositionMs.set(event.data.position_ms);
-          }
-          stopSeekTimer();
-        } else if (type === 'playback.stopped') {
-          if (event.data?.zone_id !== undefined) {
-            zones.update((zs) =>
-              zs.map((z) => z.id === event.data.zone_id ? { ...z, state: 'stopped', current_track: null } : z)
-            );
-          }
-          seekPositionMs.set(0);
-          stopSeekTimer();
-        } else if (type === 'playback.track_changed') {
-          if (event.data?.zone_id !== undefined && event.data?.track) {
-            zones.update((zs) =>
-              zs.map((z) => z.id === event.data.zone_id ? { ...z, current_track: event.data.track } : z)
-            );
-          }
-          if (event.data?.position_ms !== undefined) {
-            seekPositionMs.set(event.data.position_ms);
-          } else {
-            seekPositionMs.set(0);
-          }
         } else if (type === 'playback.queue_changed') {
           fetchQueue();
+          if (zoneId) syncZoneState(zoneId);
+        } else if (zoneId) {
+          // For started/resumed/paused/stopped/track_changed: fetch full zone state
+          syncZoneState(zoneId);
+          if (type === 'playback.started' || type === 'playback.resumed' || type === 'playback.track_changed') {
+            fetchQueue();
+          }
         }
         return;
       }
