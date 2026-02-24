@@ -198,12 +198,13 @@
 <style>
   .sidebar {
     grid-column: 1;
-    grid-row: 1 / 3;
+    grid-row: 1 / -1;
     background: var(--tune-surface);
     border-right: 1px solid var(--tune-border);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    padding-bottom: var(--transport-height);
   }
 
   .sidebar-header {
@@ -290,7 +291,8 @@
   }
 
   .zones-section {
-    flex: 1;
+    flex: 1 1 0;
+    min-height: 60px;
     overflow-y: auto;
     padding: var(--space-md) 0;
   }
@@ -447,8 +449,8 @@
     border-top: 1px solid var(--tune-border);
     padding: var(--space-md) 0 var(--space-sm);
     overflow-y: auto;
-    flex-shrink: 0;
-    max-height: 200px;
+    flex: 0 0 auto;
+    max-height: 35%;
   }
 
   .devices-list {
