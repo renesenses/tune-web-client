@@ -4,7 +4,7 @@
   import { connectionState } from '../lib/stores/connection';
   import { activeView, type View } from '../lib/stores/navigation';
   import * as api from '../lib/api';
-  import type { DiscoveredDevice, OutputType, Zone, ZoneGroupResponse } from '../lib/types';
+  import type { DiscoveredDevice, LocalAudioDevice, OutputType, Zone, ZoneGroupResponse } from '../lib/types';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
 
   function handleSelectZone(zoneId: number) {
@@ -18,6 +18,7 @@
 
   let configZone = $state<Zone | null>(null);
   let zoneGroups = $state<ZoneGroupResponse[]>([]);
+  let audioDevices = $state<LocalAudioDevice[]>([]);
 
   async function fetchGroups() {
     try {
@@ -27,8 +28,17 @@
     }
   }
 
-  // Fetch groups on mount
+  async function fetchAudioDevices() {
+    try {
+      audioDevices = await api.getAudioDevices();
+    } catch (e) {
+      console.error('Fetch audio devices error:', e);
+    }
+  }
+
+  // Fetch groups and audio devices on mount
   fetchGroups();
+  fetchAudioDevices();
 
   function openConfig(zone: Zone, e: MouseEvent) {
     e.stopPropagation();
@@ -92,6 +102,16 @@
     }
   }
 
+  async function createZoneFromAudioDevice(device: LocalAudioDevice) {
+    try {
+      const zone = await api.createZone(device.name, 'local', device.name);
+      zones.update((zs) => [...zs, zone]);
+      if (zone.id !== null) currentZoneId.set(zone.id);
+    } catch (e) {
+      console.error('Create zone from audio device error:', e);
+    }
+  }
+
   async function createZoneFromDevice(device: DiscoveredDevice) {
     try {
       const zone = await api.createZone(device.name, device.type, device.id);
@@ -128,6 +148,25 @@
       case 'connecting': return 'var(--tune-warning)';
       default: return 'var(--tune-text-muted)';
     }
+  }
+
+  // Resizable sidebar
+  let resizing = $state(false);
+
+  function startResize(e: MouseEvent) {
+    e.preventDefault();
+    resizing = true;
+    const onMove = (ev: MouseEvent) => {
+      const w = Math.max(200, Math.min(480, ev.clientX));
+      document.documentElement.style.setProperty('--sidebar-width', `${w}px`);
+    };
+    const onUp = () => {
+      resizing = false;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
   }
 </script>
 
@@ -238,6 +277,18 @@
   <div class="devices-section">
     <span class="section-label">APPAREILS</span>
     <div class="devices-list">
+      {#each audioDevices as audioDevice}
+        <div class="device-item">
+          <span class="device-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" /></svg>
+          </span>
+          <span class="device-name truncate">{audioDevice.name}</span>
+          <span class="device-type-tag">USB</span>
+          <button class="device-add-btn" onclick={() => createZoneFromAudioDevice(audioDevice)} title="Creer une zone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+          </button>
+        </div>
+      {/each}
       {#each $devices as device}
         <div class="device-item" class:unavailable={!device.available}>
           <span class="device-icon">
@@ -260,11 +311,13 @@
           {/if}
         </div>
       {/each}
-      {#if $devices.length === 0}
+      {#if audioDevices.length === 0 && $devices.length === 0}
         <div class="empty-state">Recherche d'appareils...</div>
       {/if}
     </div>
   </div>
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="resize-handle" onmousedown={startResize}></div>
 </aside>
 
 {#if configZone}
@@ -288,6 +341,23 @@
     flex-direction: column;
     overflow: hidden;
     padding-bottom: var(--transport-height);
+    position: relative;
+  }
+
+  .resize-handle {
+    position: absolute;
+    top: 0;
+    right: -3px;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 10;
+  }
+
+  .resize-handle:hover,
+  .resize-handle:active {
+    background: var(--tune-accent);
+    opacity: 0.4;
   }
 
   .sidebar-header {

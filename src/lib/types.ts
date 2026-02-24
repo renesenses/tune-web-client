@@ -89,6 +89,13 @@ export interface DiscoveredDevice {
   capabilities?: Record<string, any>;
 }
 
+export interface LocalAudioDevice {
+  id: string;
+  name: string;
+  channels: number;
+  sample_rate: number;
+}
+
 // Request/Response models
 export interface QueueStateResponse {
   tracks: Track[];

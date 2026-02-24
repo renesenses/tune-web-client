@@ -14,6 +14,7 @@ import type {
   SystemStats,
   StreamingServiceStatus,
   ZoneGroupResponse,
+  LocalAudioDevice,
   Source,
   RepeatMode,
   OutputType,
@@ -67,6 +68,10 @@ export function getDevices() {
 
 export function getDevice(id: string) {
   return fetchJSON<DiscoveredDevice>(`${BASE}/devices/${encodeURIComponent(id)}`);
+}
+
+export function getAudioDevices() {
+  return fetchJSON<LocalAudioDevice[]>(`${BASE}/devices/audio`);
 }
 
 export function deleteZone(id: number) {
