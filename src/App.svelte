@@ -23,8 +23,18 @@
   import HistoryView from './components/HistoryView.svelte';
   import HomeView from './components/HomeView.svelte';
   import StreamingView from './components/StreamingView.svelte';
+  import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
 
   let scanIndicator = $state(false);
+  let playlistModalTrackId = $state<number | null>(null);
+
+  function openPlaylistModal(trackId: number) {
+    playlistModalTrackId = trackId;
+  }
+
+  function closePlaylistModal() {
+    playlistModalTrackId = null;
+  }
 
   async function fetchZones() {
     try {
@@ -192,25 +202,29 @@
   <Sidebar />
 
   <main class="main-content">
-    {#if $activeView === 'home'}
-      <HomeView />
-    {:else if $activeView === 'nowplaying'}
-      <NowPlaying />
-    {:else if $activeView === 'library'}
-      <LibraryView />
-    {:else if $activeView === 'queue'}
-      <QueueView />
-    {:else if $activeView === 'playlists'}
-      <PlaylistsView />
-    {:else if $activeView === 'search'}
-      <SearchView />
-    {:else if $activeView === 'settings'}
-      <SettingsView />
-    {:else if $activeView === 'history'}
-      <HistoryView />
-    {:else if $activeView === 'streaming'}
-      <StreamingView />
-    {/if}
+    {#key $activeView}
+      <div class="view-transition">
+        {#if $activeView === 'home'}
+          <HomeView />
+        {:else if $activeView === 'nowplaying'}
+          <NowPlaying onAddToPlaylist={openPlaylistModal} />
+        {:else if $activeView === 'library'}
+          <LibraryView onAddToPlaylist={openPlaylistModal} />
+        {:else if $activeView === 'queue'}
+          <QueueView onAddToPlaylist={openPlaylistModal} />
+        {:else if $activeView === 'playlists'}
+          <PlaylistsView />
+        {:else if $activeView === 'search'}
+          <SearchView />
+        {:else if $activeView === 'settings'}
+          <SettingsView />
+        {:else if $activeView === 'history'}
+          <HistoryView />
+        {:else if $activeView === 'streaming'}
+          <StreamingView />
+        {/if}
+      </div>
+    {/key}
 
     {#if scanIndicator}
       <div class="scan-indicator">
@@ -222,6 +236,10 @@
 
   <TransportBar />
 </div>
+
+{#if playlistModalTrackId !== null}
+  <AddToPlaylistModal trackId={playlistModalTrackId} onClose={closePlaylistModal} />
+{/if}
 
 <style>
   .app-layout {
@@ -238,6 +256,16 @@
     overflow-y: auto;
     padding: 0;
     position: relative;
+  }
+
+  .view-transition {
+    height: 100%;
+    animation: viewFadeIn 0.15s ease-out;
+  }
+
+  @keyframes viewFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   .scan-indicator {

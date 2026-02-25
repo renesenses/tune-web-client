@@ -6,6 +6,11 @@
   import AlbumArt from './AlbumArt.svelte';
   import type { Album, Artist } from '../lib/types';
 
+  interface Props {
+    onAddToPlaylist?: (trackId: number) => void;
+  }
+  let { onAddToPlaylist }: Props = $props();
+
   let zone = $derived($currentZone);
   let searchQuery = $state('');
   let selectedGenre = $state<string | null>(null);
@@ -224,6 +229,11 @@
                 </div>
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title="Ajouter a la file">+</button>
+                {#if onAddToPlaylist && t.id}
+                  <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t.id!); }} title="Ajouter a une playlist">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
+                  </button>
+                {/if}
               </div>
             {/each}
           </div>
@@ -243,6 +253,11 @@
               </div>
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title="Ajouter a la file">+</button>
+              {#if onAddToPlaylist && t.id}
+                <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t.id!); }} title="Ajouter a une playlist">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
+                </button>
+              {/if}
             </div>
           {/each}
         </div>
@@ -357,6 +372,11 @@
             </div>
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
             <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title="Ajouter a la file">+</button>
+            {#if onAddToPlaylist && t.id}
+              <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t.id!); }} title="Ajouter a une playlist">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
+              </button>
+            {/if}
           </div>
         {/each}
         {#if filteredTracks.length === 0}
@@ -667,11 +687,11 @@
     text-align: left;
     padding: 0;
     color: var(--tune-text);
-    transition: opacity 0.12s ease-out;
+    transition: transform 0.15s ease-out;
   }
 
   .album-card:hover {
-    opacity: 1;
+    transform: translateY(-2px);
   }
 
   .album-card-art {
@@ -847,6 +867,30 @@
   }
 
   .add-queue-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .add-playlist-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease-out;
+    opacity: 0;
+  }
+
+  .track-item:hover .add-playlist-btn {
+    opacity: 1;
+  }
+
+  .add-playlist-btn:hover {
     border-color: var(--tune-accent);
     color: var(--tune-accent);
   }

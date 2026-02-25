@@ -185,6 +185,13 @@ export function jumpInQueue(zoneId: number, position: number) {
   });
 }
 
+export function moveInQueue(zoneId: number, fromPosition: number, toPosition: number) {
+  return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/move`, {
+    method: 'POST',
+    body: JSON.stringify({ from_position: fromPosition, to_position: toPosition }),
+  });
+}
+
 export function clearQueue(zoneId: number) {
   return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/clear`, {
     method: 'POST',

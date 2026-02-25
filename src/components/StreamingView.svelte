@@ -337,7 +337,22 @@
     {:else if showFeatured}
       <!-- Featured sections with carousels -->
       {#if featuredLoading && featuredSections.length === 0}
-        <div class="loading"><div class="spinner"></div>Chargement...</div>
+        <div class="skeleton-sections">
+          {#each [1, 2, 3] as _}
+            <div class="skeleton-section">
+              <div class="skeleton-title"></div>
+              <div class="skeleton-carousel">
+                {#each [1, 2, 3, 4, 5] as __}
+                  <div class="skeleton-card">
+                    <div class="skeleton-art"></div>
+                    <div class="skeleton-text"></div>
+                    <div class="skeleton-text short"></div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/each}
+        </div>
       {:else}
         {#each featuredSections as section}
           {#if featuredData[section.id]?.length}
@@ -512,6 +527,11 @@
     gap: var(--space-xs);
     cursor: pointer;
     color: var(--tune-text);
+    transition: transform 0.15s ease-out;
+  }
+
+  .carousel-card:hover {
+    transform: translateY(-2px);
   }
 
   /* Tab bar */
@@ -664,6 +684,11 @@
     text-align: left;
     padding: 0;
     color: var(--tune-text);
+    transition: transform 0.15s ease-out;
+  }
+
+  .album-card:hover {
+    transform: translateY(-2px);
   }
 
   .album-card-art {
@@ -877,5 +902,66 @@
     font-size: 15px;
     text-align: center;
     padding: var(--space-2xl);
+  }
+
+  /* Skeleton loaders */
+  .skeleton-sections {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+  }
+
+  .skeleton-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .skeleton-title {
+    width: 140px;
+    height: 14px;
+    background: var(--tune-grey2);
+    border-radius: var(--radius-sm);
+    animation: shimmer 1.5s infinite;
+  }
+
+  .skeleton-carousel {
+    display: flex;
+    gap: 16px;
+    overflow: hidden;
+  }
+
+  .skeleton-card {
+    width: 160px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .skeleton-art {
+    width: 160px;
+    height: 160px;
+    background: var(--tune-grey2);
+    border-radius: var(--radius-lg);
+    animation: shimmer 1.5s infinite;
+  }
+
+  .skeleton-text {
+    width: 120px;
+    height: 12px;
+    background: var(--tune-grey2);
+    border-radius: var(--radius-sm);
+    animation: shimmer 1.5s infinite;
+  }
+
+  .skeleton-text.short {
+    width: 80px;
+  }
+
+  @keyframes shimmer {
+    0% { opacity: 0.4; }
+    50% { opacity: 0.7; }
+    100% { opacity: 0.4; }
   }
 </style>

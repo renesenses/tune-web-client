@@ -8,6 +8,11 @@
   import SeekBar from './SeekBar.svelte';
   import type { RepeatMode, Track } from '../lib/types';
 
+  interface Props {
+    onAddToPlaylist?: (trackId: number) => void;
+  }
+  let { onAddToPlaylist }: Props = $props();
+
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
   let state = $derived($playbackState);
@@ -116,6 +121,14 @@
               </svg>
             {/if}
           </button>
+
+          {#if onAddToPlaylist && track?.id}
+            <button class="setting-btn" onclick={() => onAddToPlaylist!(track!.id!)} title="Ajouter a une playlist">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" />
+              </svg>
+            </button>
+          {/if}
 
           <div class="setting-spacer"></div>
 
