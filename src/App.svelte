@@ -9,6 +9,8 @@
   import { activeView } from './lib/stores/navigation';
   import { preferences, applyTheme } from './lib/stores/preferences';
   import { setupKeyboardShortcuts } from './lib/keyboard';
+  import { playbackHistory } from './lib/stores/history';
+  import { get } from 'svelte/store';
   import * as api from './lib/api';
   import Sidebar from './components/Sidebar.svelte';
   import NowPlaying from './components/NowPlaying.svelte';
@@ -18,6 +20,7 @@
   import SearchView from './components/SearchView.svelte';
   import PlaylistsView from './components/PlaylistsView.svelte';
   import SettingsView from './components/SettingsView.svelte';
+  import HistoryView from './components/HistoryView.svelte';
 
   let scanIndicator = $state(false);
 
@@ -131,7 +134,15 @@
           if (zoneId) syncZoneState(zoneId);
         } else if (zoneId) {
           // For started/resumed/paused/stopped/track_changed: fetch full zone state
-          syncZoneState(zoneId);
+          syncZoneState(zoneId).then(() => {
+            // Record to playback history on track start/change
+            if (type === 'playback.started' || type === 'playback.track_changed') {
+              const z = get(currentZone);
+              if (z?.current_track) {
+                playbackHistory.add(z.current_track, z.name);
+              }
+            }
+          });
           if (type === 'playback.started' || type === 'playback.resumed' || type === 'playback.track_changed') {
             fetchQueue();
           }
@@ -191,6 +202,8 @@
       <SearchView />
     {:else if $activeView === 'settings'}
       <SettingsView />
+    {:else if $activeView === 'history'}
+      <HistoryView />
     {/if}
 
     {#if scanIndicator}
