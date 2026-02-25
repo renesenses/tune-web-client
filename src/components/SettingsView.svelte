@@ -65,7 +65,8 @@
         return;
       }
       if (res.verification_url) {
-        tidalVerificationUrl = res.verification_url;
+        const url = res.verification_url;
+        tidalVerificationUrl = url.startsWith('http') ? url : `https://${url}`;
         startTidalPolling();
       } else {
         tidalAuthError = 'Erreur: pas de lien de verification';
