@@ -10,6 +10,9 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />
   </head>
   <body>
+    <script>
+      try{var p=JSON.parse(localStorage.getItem('tune-preferences')||'{}');if(p.theme==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}
+    </script>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

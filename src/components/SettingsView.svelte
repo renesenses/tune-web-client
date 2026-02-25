@@ -1,6 +1,8 @@
 <script lang="ts">
   import * as api from '../lib/api';
   import { tuneWS } from '../lib/websocket';
+  import { zones } from '../lib/stores/zones';
+  import { preferences, applyTheme, type ThemeMode, type VolumeDisplay, type StartupView } from '../lib/stores/preferences';
   import type { SystemHealth, SystemStats, StreamingServiceStatus } from '../lib/types';
 
   let health: SystemHealth | null = $state(null);
@@ -152,6 +154,60 @@
             Rechercher les covers manquantes
           {/if}
         </button>
+      </div>
+    </section>
+
+    <!-- Preferences -->
+    <section class="settings-section">
+      <h3>Interface</h3>
+      <div class="pref-grid">
+        <label class="pref-label" for="pref-theme">Theme</label>
+        <select id="pref-theme" class="pref-select" value={$preferences.theme}
+          onchange={(e) => {
+            const theme = (e.target as HTMLSelectElement).value as ThemeMode;
+            preferences.update((p) => ({ ...p, theme }));
+            applyTheme(theme);
+          }}>
+          <option value="dark">Sombre</option>
+          <option value="light">Clair</option>
+        </select>
+
+        <label class="pref-label" for="pref-startup">Vue de demarrage</label>
+        <select id="pref-startup" class="pref-select" value={$preferences.startupView}
+          onchange={(e) => {
+            const startupView = (e.target as HTMLSelectElement).value as StartupView;
+            preferences.update((p) => ({ ...p, startupView }));
+          }}>
+          <option value="nowplaying">Lecture en cours</option>
+          <option value="library">Bibliotheque</option>
+          <option value="queue">File d'attente</option>
+          <option value="playlists">Playlists</option>
+          <option value="search">Recherche</option>
+          <option value="settings">Parametres</option>
+        </select>
+
+        <label class="pref-label" for="pref-zone">Zone par defaut</label>
+        <select id="pref-zone" class="pref-select" value={$preferences.defaultZoneId ?? ''}
+          onchange={(e) => {
+            const val = (e.target as HTMLSelectElement).value;
+            const defaultZoneId = val ? Number(val) : null;
+            preferences.update((p) => ({ ...p, defaultZoneId }));
+          }}>
+          <option value="">Automatique (premiere zone)</option>
+          {#each $zones as z}
+            <option value={z.id}>{z.name}</option>
+          {/each}
+        </select>
+
+        <label class="pref-label" for="pref-volume">Affichage volume</label>
+        <select id="pref-volume" class="pref-select" value={$preferences.volumeDisplay}
+          onchange={(e) => {
+            const volumeDisplay = (e.target as HTMLSelectElement).value as VolumeDisplay;
+            preferences.update((p) => ({ ...p, volumeDisplay }));
+          }}>
+          <option value="percent">Pourcentage (0-100)</option>
+          <option value="dB">Decibels (dB)</option>
+        </select>
       </div>
     </section>
 
@@ -402,6 +458,36 @@
   .spinner.small {
     width: 14px;
     height: 14px;
+  }
+
+  .pref-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md) var(--space-lg);
+    align-items: center;
+  }
+
+  .pref-label {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text-secondary);
+  }
+
+  .pref-select {
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-md);
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.12s ease-out;
+  }
+
+  .pref-select:focus {
+    border-color: var(--tune-accent);
   }
 
   @keyframes spin {

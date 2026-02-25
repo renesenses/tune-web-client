@@ -7,6 +7,7 @@
   import { queueTracks, queuePosition, queueLength } from './lib/stores/queue';
   import { connectionState } from './lib/stores/connection';
   import { activeView } from './lib/stores/navigation';
+  import { preferences, applyTheme } from './lib/stores/preferences';
   import * as api from './lib/api';
   import Sidebar from './components/Sidebar.svelte';
   import NowPlaying from './components/NowPlaying.svelte';
@@ -23,11 +24,15 @@
     try {
       const zoneList = await api.getZones();
       zones.set(zoneList);
-      // Auto-select first zone if none selected
+      // Auto-select default zone from preferences, or first zone
       let curId: number | null = null;
       currentZoneId.subscribe((v) => (curId = v))();
-      if (curId === null && zoneList.length > 0 && zoneList[0].id !== null) {
-        currentZoneId.set(zoneList[0].id);
+      if (curId === null && zoneList.length > 0) {
+        let defaultId: number | null = null;
+        preferences.subscribe((p) => (defaultId = p.defaultZoneId))();
+        const defaultZone = defaultId !== null ? zoneList.find((z) => z.id === defaultId) : null;
+        const target = defaultZone ?? zoneList[0];
+        if (target?.id !== null) currentZoneId.set(target.id!);
       }
     } catch (e) {
       console.error('Fetch zones error:', e);
@@ -79,6 +84,19 @@
   }
 
   onMount(() => {
+    // Apply saved preferences
+    const unsub = preferences.subscribe((prefs) => {
+      applyTheme(prefs.theme);
+    });
+    unsub(); // Read once, theme is applied
+
+    // Apply startup view
+    let prefs: { startupView?: string; defaultZoneId?: number | null } = {};
+    preferences.subscribe((p) => (prefs = p))();
+    if (prefs.startupView) {
+      activeView.set(prefs.startupView as any);
+    }
+
     connectionState.set('connecting');
     tuneWS.connect();
     fetchZones();

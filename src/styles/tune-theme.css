@@ -114,3 +114,28 @@ body {
 .pulse {
   animation: pulse 2s ease-in-out infinite;
 }
+
+/* Light theme overrides */
+[data-theme="light"] {
+  --tune-bg: #F5F5F5;
+  --tune-surface: #FFFFFF;
+  --tune-footer: #F0F0F0;
+  --tune-text: #1A1A1A;
+  --tune-text-secondary: #555555;
+  --tune-text-muted: #999999;
+  --tune-border: rgba(0, 0, 0, 0.12);
+  --tune-surface-hover: rgba(0, 0, 0, 0.04);
+  --tune-surface-selected: rgba(0, 0, 0, 0.08);
+  --tune-grey2: #E8E8E8;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #C0C0C0;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #A0A0A0;
+}
