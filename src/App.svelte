@@ -22,6 +22,7 @@
   import SettingsView from './components/SettingsView.svelte';
   import HistoryView from './components/HistoryView.svelte';
   import HomeView from './components/HomeView.svelte';
+  import StreamingView from './components/StreamingView.svelte';
 
   let scanIndicator = $state(false);
 
@@ -207,6 +208,8 @@
       <SettingsView />
     {:else if $activeView === 'history'}
       <HistoryView />
+    {:else if $activeView === 'streaming'}
+      <StreamingView />
     {/if}
 
     {#if scanIndicator}

@@ -1,0 +1,757 @@
+<script lang="ts">
+  import { activeStreamingService } from '../lib/stores/streaming';
+  import { currentZone } from '../lib/stores/zones';
+  import * as api from '../lib/api';
+  import { formatTime } from '../lib/utils';
+  import AlbumArt from './AlbumArt.svelte';
+  import type { Album, Artist, Track, SearchResult } from '../lib/types';
+
+  type StreamingTab = 'search' | 'albums' | 'artists' | 'tracks';
+
+  let service = $derived($activeStreamingService);
+  let zone = $derived($currentZone);
+  let tab = $state<StreamingTab>('search');
+  let searchQuery = $state('');
+  let searching = $state(false);
+  let results: SearchResult | null = $state(null);
+
+  let selectedAlbum = $state<Album | null>(null);
+  let albumTracks = $state<Track[]>([]);
+  let selectedArtist = $state<Artist | null>(null);
+  let artistAlbums = $state<Album[]>([]);
+  let loading = $state(false);
+
+  function serviceName(s: string): string {
+    const names: Record<string, string> = {
+      tidal: 'TIDAL',
+      qobuz: 'Qobuz',
+      youtube: 'YouTube Music',
+      amazon: 'Amazon Music',
+    };
+    return names[s] ?? s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  async function search() {
+    if (!service || !searchQuery.trim()) return;
+    searching = true;
+    results = null;
+    try {
+      results = await api.searchStreaming(service, searchQuery.trim());
+    } catch (e) {
+      console.error('Streaming search error:', e);
+    }
+    searching = false;
+  }
+
+  function handleSearchKey(e: KeyboardEvent) {
+    if (e.key === 'Enter') search();
+  }
+
+  async function selectAlbum(album: Album) {
+    if (!service || !album.source_id) return;
+    selectedAlbum = album;
+    selectedArtist = null;
+    loading = true;
+    try {
+      albumTracks = await api.getStreamingAlbumTracks(service, album.source_id);
+    } catch (e) {
+      console.error('Get streaming album tracks error:', e);
+    }
+    loading = false;
+  }
+
+  async function selectArtist(artist: Artist) {
+    if (!service || !artist.musicbrainz_id && !artist.discogs_id) return;
+    const artistId = artist.musicbrainz_id ?? artist.discogs_id ?? '';
+    selectedArtist = artist;
+    selectedAlbum = null;
+    loading = true;
+    try {
+      artistAlbums = await api.getStreamingArtistAlbums(service, artistId);
+    } catch (e) {
+      console.error('Get streaming artist albums error:', e);
+    }
+    loading = false;
+  }
+
+  function goBack() {
+    selectedAlbum = null;
+    selectedArtist = null;
+    albumTracks = [];
+    artistAlbums = [];
+  }
+
+  async function playStreamingTrack(track: Track) {
+    if (!zone?.id || !service || !track.source_id) return;
+    try {
+      await api.play(zone.id, { source: track.source as any, source_id: track.source_id });
+    } catch (e) {
+      console.error('Play streaming track error:', e);
+    }
+  }
+
+  async function playStreamingAlbum(album: Album) {
+    if (!zone?.id || !service || !album.source_id) return;
+    try {
+      await api.play(zone.id, { source: album.source as any, source_id: album.source_id });
+    } catch (e) {
+      console.error('Play streaming album error:', e);
+    }
+  }
+
+  async function addStreamingTrackToQueue(track: Track) {
+    if (!zone?.id || !service || !track.source_id) return;
+    try {
+      await api.addToQueue(zone.id, { source: track.source as any, source_id: track.source_id });
+    } catch (e) {
+      console.error('Add streaming track to queue error:', e);
+    }
+  }
+</script>
+
+<div class="streaming-view">
+  {#if !service}
+    <div class="empty-center">
+      <p>Selectionnez un service de streaming dans la barre laterale</p>
+    </div>
+  {:else if selectedAlbum}
+    <!-- Album detail -->
+    <div class="detail-header">
+      <button class="back-btn" onclick={goBack}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
+        Retour
+      </button>
+    </div>
+    <div class="album-detail-header">
+      <AlbumArt coverPath={selectedAlbum.cover_path} size={280} alt={selectedAlbum.title} />
+      <div class="album-detail-info">
+        <span class="source-badge">{serviceName(service)}</span>
+        <h2>{selectedAlbum.title}</h2>
+        {#if selectedAlbum.artist_name}
+          <p class="detail-artist">{selectedAlbum.artist_name}</p>
+        {/if}
+        {#if selectedAlbum.year}
+          <p class="detail-meta">{selectedAlbum.year}</p>
+        {/if}
+        <button class="play-all-btn" onclick={() => selectedAlbum && playStreamingAlbum(selectedAlbum)}>
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
+          Lire
+        </button>
+      </div>
+    </div>
+    {#if loading}
+      <div class="loading"><div class="spinner"></div>Chargement...</div>
+    {:else}
+      <div class="track-list">
+        {#each albumTracks as t, index}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="track-item" onclick={() => playStreamingTrack(t)}>
+            <span class="track-num">{t.track_number ?? index + 1}</span>
+            <div class="track-info">
+              <span class="track-title truncate">{t.title}</span>
+              {#if t.artist_name}
+                <span class="track-artist truncate">{t.artist_name}</span>
+              {/if}
+            </div>
+            <span class="track-duration">{formatTime(t.duration_ms)}</span>
+            <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title="Ajouter a la file">+</button>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
+  {:else if selectedArtist}
+    <!-- Artist detail -->
+    <div class="detail-header">
+      <button class="back-btn" onclick={goBack}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
+        Retour
+      </button>
+      <h2>{selectedArtist.name}</h2>
+      <span class="source-badge">{serviceName(service)}</span>
+    </div>
+    {#if loading}
+      <div class="loading"><div class="spinner"></div>Chargement...</div>
+    {:else}
+      <div class="albums-grid">
+        {#each artistAlbums as album}
+          <button class="album-card" onclick={() => selectAlbum(album)}>
+            <div class="album-card-art">
+              <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+              <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingAlbum(album); }} title="Lire l'album">
+                <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
+              </button>
+            </div>
+            <span class="album-card-title truncate">{album.title}</span>
+            {#if album.year}
+              <span class="album-card-year">{album.year}</span>
+            {/if}
+          </button>
+        {/each}
+      </div>
+    {/if}
+
+  {:else}
+    <!-- Main search/browse view -->
+    <div class="streaming-header">
+      <h2>{serviceName(service)}</h2>
+    </div>
+
+    <div class="search-row">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+        <input
+          type="text"
+          placeholder="Rechercher sur {serviceName(service)}..."
+          bind:value={searchQuery}
+          onkeydown={handleSearchKey}
+        />
+        {#if searchQuery}
+          <button class="search-clear" onclick={() => { searchQuery = ''; results = null; }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        {/if}
+      </div>
+      <button class="search-btn" onclick={search} disabled={searching || !searchQuery.trim()}>
+        {#if searching}
+          <div class="spinner small"></div>
+        {:else}
+          Rechercher
+        {/if}
+      </button>
+    </div>
+
+    {#if results}
+      <div class="tab-bar">
+        {#if results.albums.length > 0}
+          <button class="tab" class:active={tab === 'albums'} onclick={() => tab = 'albums'}>Albums ({results.albums.length})</button>
+        {/if}
+        {#if results.artists.length > 0}
+          <button class="tab" class:active={tab === 'artists'} onclick={() => tab = 'artists'}>Artistes ({results.artists.length})</button>
+        {/if}
+        {#if results.tracks.length > 0}
+          <button class="tab" class:active={tab === 'tracks'} onclick={() => tab = 'tracks'}>Pistes ({results.tracks.length})</button>
+        {/if}
+      </div>
+
+      {#if tab === 'albums' && results.albums.length > 0}
+        <div class="albums-grid">
+          {#each results.albums as album}
+            <button class="album-card" onclick={() => selectAlbum(album)}>
+              <div class="album-card-art">
+                <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+                <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingAlbum(album); }} title="Lire l'album">
+                  <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
+                </button>
+              </div>
+              <span class="album-card-title truncate">{album.title}</span>
+              {#if album.artist_name}
+                <span class="album-card-artist truncate">{album.artist_name}</span>
+              {/if}
+            </button>
+          {/each}
+        </div>
+
+      {:else if tab === 'artists' && results.artists.length > 0}
+        <div class="artists-list">
+          {#each results.artists as artist}
+            <button class="artist-item" onclick={() => selectArtist(artist)}>
+              <div class="artist-avatar">{artist.name.charAt(0).toUpperCase()}</div>
+              <span class="artist-name">{artist.name}</span>
+              <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
+            </button>
+          {/each}
+        </div>
+
+      {:else if tab === 'tracks' && results.tracks.length > 0}
+        <div class="track-list">
+          {#each results.tracks as t, index}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="track-item" onclick={() => playStreamingTrack(t)}>
+              <span class="track-num">{index + 1}</span>
+              <div class="track-info">
+                <span class="track-title truncate">{t.title}</span>
+                <span class="track-artist truncate">{t.artist_name ?? ''} {t.album_title ? `- ${t.album_title}` : ''}</span>
+              </div>
+              <span class="track-duration">{formatTime(t.duration_ms)}</span>
+              <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title="Ajouter a la file">+</button>
+            </div>
+          {/each}
+        </div>
+      {/if}
+
+      {#if results.albums.length === 0 && results.artists.length === 0 && results.tracks.length === 0}
+        <div class="empty-center">Aucun resultat</div>
+      {/if}
+    {:else if !searching}
+      <div class="empty-center">
+        <p>Recherchez des albums, artistes ou pistes sur {serviceName(service)}</p>
+      </div>
+    {/if}
+  {/if}
+</div>
+
+<style>
+  .streaming-view {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-lg) 28px;
+    overflow-y: auto;
+  }
+
+  .streaming-header {
+    margin-bottom: var(--space-lg);
+  }
+
+  .streaming-header h2 {
+    font-family: var(--font-label);
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.8px;
+  }
+
+  .search-row {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+  }
+
+  .search-box {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    padding: 8px 14px;
+    transition: border-color 0.12s;
+  }
+
+  .search-box:focus-within {
+    border-color: var(--tune-accent);
+  }
+
+  .search-icon {
+    color: var(--tune-text-muted);
+    flex-shrink: 0;
+  }
+
+  .search-box input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 14px;
+  }
+
+  .search-box input::placeholder {
+    color: var(--tune-text-muted);
+  }
+
+  .search-clear {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    border-radius: var(--radius-sm);
+  }
+
+  .search-clear:hover {
+    color: var(--tune-text);
+  }
+
+  .search-btn {
+    padding: 8px 20px;
+    background: var(--tune-accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 700;
+    transition: background 0.12s;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .search-btn:hover:not(:disabled) {
+    background: var(--tune-accent-hover);
+  }
+
+  .search-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .tab-bar {
+    display: flex;
+    gap: 2px;
+    background: var(--tune-grey2);
+    border-radius: var(--radius-md);
+    padding: 2px;
+    margin-bottom: var(--space-lg);
+    width: fit-content;
+  }
+
+  .tab {
+    padding: var(--space-xs) var(--space-md);
+    background: none;
+    border: none;
+    color: var(--tune-text-secondary);
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.12s ease-out;
+  }
+
+  .tab:hover {
+    color: var(--tune-text);
+  }
+
+  .tab.active {
+    background: var(--tune-surface-selected);
+    color: var(--tune-text);
+  }
+
+  .detail-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+  }
+
+  .detail-header h2 {
+    font-family: var(--font-label);
+    font-size: 28px;
+    font-weight: 600;
+  }
+
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-secondary);
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 13px;
+    transition: all 0.12s ease-out;
+  }
+
+  .back-btn:hover {
+    border-color: var(--tune-text-muted);
+    color: var(--tune-text);
+  }
+
+  .album-detail-header {
+    display: flex;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    align-items: flex-start;
+  }
+
+  .album-detail-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .album-detail-info h2 {
+    font-family: var(--font-label);
+    font-size: 28px;
+    font-weight: 600;
+  }
+
+  .detail-artist {
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--tune-text-secondary);
+  }
+
+  .detail-meta {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text-muted);
+  }
+
+  .source-badge {
+    display: inline-block;
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    background: rgba(87, 198, 185, 0.15);
+    color: var(--tune-accent);
+    width: fit-content;
+  }
+
+  .play-all-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--tune-accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 700;
+    transition: background 0.12s ease-out;
+  }
+
+  .play-all-btn:hover {
+    background: var(--tune-accent-hover);
+  }
+
+  .albums-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: var(--space-lg);
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .album-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    padding: 0;
+    color: var(--tune-text);
+  }
+
+  .album-card-art {
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+    border: none;
+    cursor: pointer;
+    border-radius: var(--radius-lg);
+  }
+
+  .album-card-art:hover .play-overlay {
+    opacity: 1;
+  }
+
+  .album-card-title {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 700;
+    max-width: 160px;
+  }
+
+  .album-card-artist, .album-card-year {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+    max-width: 160px;
+  }
+
+  .artists-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .artist-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 0;
+    background: none;
+    border: none;
+    color: var(--tune-text);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s ease-out;
+  }
+
+  .artist-item:hover {
+    background: var(--tune-surface-hover);
+  }
+
+  .artist-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--tune-grey2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-label);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+    flex-shrink: 0;
+  }
+
+  .artist-name {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .chevron {
+    color: var(--tune-text-muted);
+  }
+
+  .track-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .track-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 8px 0;
+    cursor: pointer;
+    transition: background 0.12s ease-out;
+  }
+
+  .track-item:hover {
+    background: var(--tune-surface-hover);
+  }
+
+  .track-num {
+    width: 28px;
+    text-align: center;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .track-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .track-title {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .track-artist {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-secondary);
+  }
+
+  .track-duration {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .add-queue-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease-out;
+    opacity: 0;
+  }
+
+  .track-item:hover .add-queue-btn {
+    opacity: 1;
+  }
+
+  .add-queue-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .loading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+    padding: var(--space-xl);
+    justify-content: center;
+  }
+
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--tune-border);
+    border-top-color: var(--tune-accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .spinner.small {
+    width: 14px;
+    height: 14px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .empty-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+    font-size: 15px;
+    text-align: center;
+    padding: var(--space-2xl);
+  }
+</style>

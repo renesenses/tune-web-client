@@ -307,6 +307,28 @@ export function rescanArtwork() {
   return fetchJSON<{ status: string }>(`${BASE}/library/artwork/rescan`, { method: 'POST' });
 }
 
+// --- Streaming ---
+
+export function searchStreaming(service: string, q: string, limit = 50) {
+  return fetchJSON<SearchResult>(`${BASE}/streaming/${encodeURIComponent(service)}/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+}
+
+export function getStreamingAlbum(service: string, albumId: string) {
+  return fetchJSON<Album>(`${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}`);
+}
+
+export function getStreamingAlbumTracks(service: string, albumId: string) {
+  return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}/tracks`);
+}
+
+export function getStreamingArtist(service: string, artistId: string) {
+  return fetchJSON<Artist>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}`);
+}
+
+export function getStreamingArtistAlbums(service: string, artistId: string) {
+  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/albums`);
+}
+
 // --- Artwork ---
 
 export function artworkUrl(coverPath: string | null | undefined): string {

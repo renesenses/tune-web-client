@@ -3,8 +3,9 @@
   import { devices, unboundDevices } from '../lib/stores/devices';
   import { connectionState } from '../lib/stores/connection';
   import { activeView, type View } from '../lib/stores/navigation';
+  import { activeStreamingService } from '../lib/stores/streaming';
   import * as api from '../lib/api';
-  import type { DiscoveredDevice, LocalAudioDevice, OutputType, Zone, ZoneGroupResponse } from '../lib/types';
+  import type { DiscoveredDevice, LocalAudioDevice, OutputType, Zone, ZoneGroupResponse, StreamingServiceStatus } from '../lib/types';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
 
   function handleSelectZone(zoneId: number) {
@@ -36,9 +37,39 @@
     }
   }
 
-  // Fetch groups and audio devices on mount
+  let streamingServices = $state<Record<string, StreamingServiceStatus>>({});
+
+  async function fetchStreamingServices() {
+    try {
+      streamingServices = await api.getStreamingServices();
+    } catch { /* ignore */ }
+  }
+
+  let activeServices = $derived(
+    Object.entries(streamingServices)
+      .filter(([, s]) => s.enabled && s.authenticated)
+      .map(([name]) => name)
+  );
+
+  function streamingLabel(name: string): string {
+    const labels: Record<string, string> = {
+      tidal: 'TIDAL',
+      qobuz: 'Qobuz',
+      youtube: 'YouTube',
+      amazon: 'Amazon',
+    };
+    return labels[name] ?? name.charAt(0).toUpperCase() + name.slice(1);
+  }
+
+  function navigateStreaming(service: string) {
+    activeStreamingService.set(service);
+    activeView.set('streaming');
+  }
+
+  // Fetch groups, audio devices, and streaming services on mount
   fetchGroups();
   fetchAudioDevices();
+  fetchStreamingServices();
 
   function openConfig(zone: Zone, e: MouseEvent) {
     e.stopPropagation();
@@ -216,6 +247,22 @@
       Parametres
     </button>
   </nav>
+
+  {#if activeServices.length > 0}
+    <nav class="nav-section services-section">
+      <span class="section-label">SERVICES</span>
+      {#each activeServices as svc}
+        <button
+          class="nav-item"
+          class:active={$activeView === 'streaming' && $activeStreamingService === svc}
+          onclick={() => navigateStreaming(svc)}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+          {streamingLabel(svc)}
+        </button>
+      {/each}
+    </nav>
+  {/if}
 
   <div class="zones-section">
     <div class="zones-header">
@@ -449,6 +496,11 @@
     height: 16px;
     flex-shrink: 0;
     opacity: 0.8;
+  }
+
+  .services-section {
+    border-top: 1px solid var(--tune-border);
+    padding-top: var(--space-md);
   }
 
   .zones-section {
