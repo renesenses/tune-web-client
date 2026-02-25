@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import * as api from '../lib/api';
   import { tuneWS } from '../lib/websocket';
   import { zones } from '../lib/stores/zones';
@@ -103,6 +104,18 @@
     }
   }
 
+  async function handleDisconnect(serviceName: string) {
+    try {
+      await api.disconnectStreaming(serviceName);
+      $streamingServicesStore = {
+        ...$streamingServicesStore,
+        [serviceName]: { ...$streamingServicesStore[serviceName], authenticated: false },
+      };
+    } catch (e) {
+      console.error('Disconnect error:', e);
+    }
+  }
+
   async function loadAll() {
     loading = true;
     try {
@@ -175,8 +188,10 @@
   }
 
   $effect(() => {
-    loadAll();
-    fetchAudioDevices();
+    untrack(() => {
+      loadAll();
+      fetchAudioDevices();
+    });
     const unsub = tuneWS.onEvent((event) => {
       if (event.type === 'library.artwork.progress') {
         artworkProgress = event.data;
@@ -383,11 +398,14 @@
             <div class="service-card">
               <div class="service-header">
                 <span class="service-name">{name.charAt(0).toUpperCase() + name.slice(1)}</span>
-                {#if status.authenticated}
-                  <span class="badge auth">Connecte</span>
-                {:else}
-                  <span class="badge noauth">Non connecte</span>
-                {/if}
+                <div class="service-header-actions">
+                  {#if status.authenticated}
+                    <span class="badge auth">Connecte</span>
+                    <button class="disconnect-btn" onclick={() => handleDisconnect(name)}>Deconnecter</button>
+                  {:else}
+                    <span class="badge noauth">Non connecte</span>
+                  {/if}
+                </div>
               </div>
 
               {#if status.enabled && !status.authenticated}
@@ -619,6 +637,29 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+
+  .service-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .disconnect-btn {
+    background: none;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+    font-size: 12px;
+    padding: 2px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.12s ease-out;
+  }
+
+  .disconnect-btn:hover {
+    border-color: var(--tune-warning);
+    color: var(--tune-warning);
   }
 
   .service-name {

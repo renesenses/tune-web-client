@@ -114,6 +114,11 @@ export interface FederatedSearchResult {
   services: Record<string, SearchResult>;
 }
 
+export interface FeaturedSection {
+  id: string;
+  name: string;
+}
+
 export interface StreamingServiceStatus {
   enabled: boolean;
   authenticated: boolean;

@@ -4,7 +4,7 @@
   import * as api from '../lib/api';
   import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
-  import type { Album, Artist, Track, SearchResult } from '../lib/types';
+  import type { Album, Artist, Track, SearchResult, FeaturedSection } from '../lib/types';
 
   type StreamingTab = 'search' | 'albums' | 'artists' | 'tracks';
 
@@ -20,6 +20,45 @@
   let selectedArtist = $state<Artist | null>(null);
   let artistAlbums = $state<Album[]>([]);
   let loading = $state(false);
+
+  let featuredSections = $state<FeaturedSection[]>([]);
+  let featuredData = $state<Record<string, Album[]>>({});
+  let featuredLoading = $state(false);
+
+  $effect(() => {
+    const s = service;
+    if (s) {
+      loadFeatured(s);
+    } else {
+      featuredSections = [];
+      featuredData = {};
+    }
+  });
+
+  async function loadFeatured(s: string) {
+    featuredLoading = true;
+    try {
+      const sections = await api.getStreamingFeaturedSections(s);
+      featuredSections = sections;
+      const data: Record<string, Album[]> = {};
+      const promises = sections.map(async (sec) => {
+        try {
+          data[sec.id] = await api.getStreamingFeatured(s, sec.id);
+        } catch {
+          data[sec.id] = [];
+        }
+      });
+      await Promise.all(promises);
+      if (service === s) {
+        featuredData = data;
+      }
+    } catch (e) {
+      console.error('Load featured error:', e);
+    }
+    featuredLoading = false;
+  }
+
+  let showFeatured = $derived(!searchQuery.trim() && !results);
 
   function serviceName(s: string): string {
     const names: Record<string, string> = {
@@ -45,6 +84,11 @@
 
   function handleSearchKey(e: KeyboardEvent) {
     if (e.key === 'Enter') search();
+  }
+
+  function clearSearch() {
+    searchQuery = '';
+    results = null;
   }
 
   async function selectAlbum(album: Album) {
@@ -210,7 +254,7 @@
           onkeydown={handleSearchKey}
         />
         {#if searchQuery}
-          <button class="search-clear" onclick={() => { searchQuery = ''; results = null; }}>
+          <button class="search-clear" onclick={clearSearch}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         {/if}
@@ -289,10 +333,41 @@
       {#if results.albums.length === 0 && results.artists.length === 0 && results.tracks.length === 0}
         <div class="empty-center">Aucun resultat</div>
       {/if}
-    {:else if !searching}
-      <div class="empty-center">
-        <p>Recherchez des albums, artistes ou pistes sur {serviceName(service)}</p>
-      </div>
+
+    {:else if showFeatured}
+      <!-- Featured sections with carousels -->
+      {#if featuredLoading && featuredSections.length === 0}
+        <div class="loading"><div class="spinner"></div>Chargement...</div>
+      {:else}
+        {#each featuredSections as section}
+          {#if featuredData[section.id]?.length}
+            <div class="featured-section">
+              <h3 class="featured-section-title">{section.name}</h3>
+              <div class="carousel">
+                {#each featuredData[section.id] as album}
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div class="carousel-card" onclick={() => selectAlbum(album)}>
+                    <div class="album-card-art">
+                      <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+                      <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingAlbum(album); }} title="Lire l'album">
+                        <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
+                      </button>
+                    </div>
+                    <span class="album-card-title truncate">{album.title}</span>
+                    {#if album.artist_name}
+                      <span class="album-card-artist truncate">{album.artist_name}</span>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+        {/each}
+      {/if}
+
+    {:else if searching}
+      <div class="loading"><div class="spinner"></div>Recherche...</div>
     {/if}
   {/if}
 </div>
@@ -397,6 +472,49 @@
     opacity: 0.5;
     cursor: default;
   }
+
+  /* Featured sections */
+
+  .featured-section {
+    margin-bottom: var(--space-xl);
+  }
+
+  .featured-section-title {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--tune-text-muted);
+    margin-bottom: var(--space-md);
+  }
+
+  .carousel {
+    display: flex;
+    overflow-x: auto;
+    gap: 16px;
+    scroll-snap-type: x mandatory;
+    padding-bottom: var(--space-sm);
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .carousel::-webkit-scrollbar {
+    display: none;
+  }
+
+  .carousel-card {
+    width: 160px;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    cursor: pointer;
+    color: var(--tune-text);
+  }
+
+  /* Tab bar */
 
   .tab-bar {
     display: flex;

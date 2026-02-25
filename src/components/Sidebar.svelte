@@ -272,6 +272,7 @@
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
           {streamingLabel(svc)}
+          <span class="connected-dot"></span>
         </button>
       {/each}
     </nav>
@@ -515,6 +516,15 @@
   .services-section {
     border-top: 1px solid var(--tune-border);
     padding-top: var(--space-md);
+  }
+
+  .connected-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4ade80;
+    flex-shrink: 0;
+    margin-left: auto;
   }
 
   .zones-section {

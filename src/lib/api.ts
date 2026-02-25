@@ -10,6 +10,7 @@ import type {
   QueueStateResponse,
   SearchResult,
   FederatedSearchResult,
+  FeaturedSection,
   SystemHealth,
   SystemStats,
   StreamingServiceStatus,
@@ -318,6 +319,12 @@ export function authenticateStreaming(service: string, body?: { username?: strin
   });
 }
 
+export function disconnectStreaming(service: string) {
+  return fetchJSON<{ disconnected: boolean }>(`${BASE}/streaming/${encodeURIComponent(service)}/disconnect`, {
+    method: 'POST',
+  });
+}
+
 export function getStreamingServiceStatus(service: string) {
   return fetchJSON<StreamingServiceStatus>(`${BASE}/streaming/${encodeURIComponent(service)}/status`);
 }
@@ -346,6 +353,14 @@ export function getStreamingArtist(service: string, artistId: string) {
 
 export function getStreamingArtistAlbums(service: string, artistId: string) {
   return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/albums`);
+}
+
+export function getStreamingFeaturedSections(service: string) {
+  return fetchJSON<FeaturedSection[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured/sections`);
+}
+
+export function getStreamingFeatured(service: string, section: string, limit = 20) {
+  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured/${encodeURIComponent(section)}?limit=${limit}`);
 }
 
 // --- Artwork ---
