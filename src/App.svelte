@@ -8,6 +8,7 @@
   import { connectionState } from './lib/stores/connection';
   import { activeView } from './lib/stores/navigation';
   import { preferences, applyTheme } from './lib/stores/preferences';
+  import { setupKeyboardShortcuts } from './lib/keyboard';
   import * as api from './lib/api';
   import Sidebar from './components/Sidebar.svelte';
   import NowPlaying from './components/NowPlaying.svelte';
@@ -97,6 +98,8 @@
       activeView.set(prefs.startupView as any);
     }
 
+    const cleanupKeyboard = setupKeyboardShortcuts();
+
     connectionState.set('connecting');
     tuneWS.connect();
     fetchZones();
@@ -166,6 +169,7 @@
   });
 
   onDestroy(() => {
+    cleanupKeyboard();
     tuneWS.disconnect();
     stopSeekTimer();
   });
