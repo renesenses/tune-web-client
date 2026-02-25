@@ -8,9 +8,11 @@
   import { connectionState } from './lib/stores/connection';
   import { activeView } from './lib/stores/navigation';
   import { preferences, applyTheme } from './lib/stores/preferences';
+  import { locale } from './lib/i18n';
   import { setupKeyboardShortcuts } from './lib/keyboard';
   import { playbackHistory } from './lib/stores/history';
   import { get } from 'svelte/store';
+  import { t } from './lib/i18n';
   import * as api from './lib/api';
   import Sidebar from './components/Sidebar.svelte';
   import NowPlaying from './components/NowPlaying.svelte';
@@ -100,9 +102,10 @@
   }
 
   onMount(() => {
-    // Apply saved preferences
+    // Apply saved preferences (theme + language)
     const unsub = preferences.subscribe((prefs) => {
       applyTheme(prefs.theme);
+      locale.set(prefs.language ?? 'fr');
     });
     unsub(); // Read once, theme is applied
 
@@ -229,7 +232,7 @@
     {#if scanIndicator}
       <div class="scan-indicator">
         <div class="scan-spinner"></div>
-        Scan en cours...
+        {$t('settings.scanning')}
       </div>
     {/if}
   </main>

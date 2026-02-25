@@ -4,6 +4,7 @@
   import { playbackHistory } from '../lib/stores/history';
   import { currentZone } from '../lib/stores/zones';
   import { formatNumber } from '../lib/utils';
+  import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import type { Album } from '../lib/types';
@@ -16,9 +17,9 @@
 
   function greeting(): string {
     const h = new Date().getHours();
-    if (h < 12) return 'Bonjour';
-    if (h < 18) return 'Bon apres-midi';
-    return 'Bonsoir';
+    if (h < 12) return $t('home.morning');
+    if (h < 18) return $t('home.afternoon');
+    return $t('home.evening');
   }
 
   async function loadStats() {
@@ -68,19 +69,32 @@
   }
 
   // Derive unique recently played albums from history
+  // Use a string key to dedupe: "local:{album_id}" or "streaming:{source}:{source_id}"
   let recentlyPlayed = $derived.by(() => {
-    const seen = new Set<number>();
-    const albums: { id: number; title: string; artist_name: string; cover_path?: string | null; album_id?: number | null }[] = [];
+    const seen = new Set<string>();
+    const albums: { id: number | null; title: string; artist_name: string; cover_path?: string | null; source?: string | null; source_id?: string | null }[] = [];
     for (const entry of $playbackHistory) {
-      const albumId = entry.track.album_id;
-      if (albumId && !seen.has(albumId)) {
-        seen.add(albumId);
-        albums.push({
-          id: albumId,
-          title: entry.track.album_title ?? entry.track.title,
-          artist_name: entry.track.artist_name ?? '',
-        });
+      const t = entry.track;
+      const albumId = t.album_id;
+      // Build a dedup key — prefer album_id for local, fallback to source+album_title for streaming
+      let key: string | null = null;
+      if (albumId) {
+        key = `local:${albumId}`;
+      } else if (t.source && t.album_title) {
+        key = `stream:${t.source}:${t.album_title}`;
+      } else if (t.source && t.source_id) {
+        key = `stream:${t.source}:${t.source_id}`;
       }
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      albums.push({
+        id: albumId ?? null,
+        title: t.album_title ?? t.title,
+        artist_name: t.artist_name ?? '',
+        cover_path: t.cover_path ?? null,
+        source: t.source ?? null,
+        source_id: t.source_id ?? null,
+      });
       if (albums.length >= 20) break;
     }
     return albums;
@@ -108,15 +122,15 @@
     <div class="stats-cards">
       <button class="stat-card" onclick={() => goToLibrary('albums')}>
         <span class="stat-number">{formatNumber(stats.albums)}</span>
-        <span class="stat-name">Albums</span>
+        <span class="stat-name">{$t('common.albums')}</span>
       </button>
       <button class="stat-card" onclick={() => goToLibrary('artists')}>
         <span class="stat-number">{formatNumber(stats.artists)}</span>
-        <span class="stat-name">Artistes</span>
+        <span class="stat-name">{$t('common.artists')}</span>
       </button>
       <button class="stat-card" onclick={() => goToLibrary('tracks')}>
         <span class="stat-number">{formatNumber(stats.tracks)}</span>
-        <span class="stat-name">Pistes</span>
+        <span class="stat-name">{$t('home.tracks')}</span>
       </button>
     </div>
   {/if}
@@ -126,7 +140,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
     <input
       type="text"
-      placeholder="Rechercher dans la bibliotheque..."
+      placeholder={$t('home.searchPlaceholder')}
       bind:value={searchQuery}
       onkeydown={(e) => e.key === 'Enter' && handleSearch()}
     />
@@ -136,10 +150,10 @@
   <div class="recent-section">
     <div class="recent-tabs">
       <button class="recent-tab" class:active={recentTab === 'played'} onclick={() => recentTab = 'played'}>
-        Recemment joue
+        {$t('home.recentlyPlayed')}
       </button>
       <button class="recent-tab" class:active={recentTab === 'added'} onclick={() => recentTab = 'added'}>
-        Recemment ajoute
+        {$t('home.recentlyAdded')}
       </button>
     </div>
 
@@ -151,8 +165,8 @@
           </button>
           <div class="carousel" bind:this={playedCarousel}>
             {#each recentlyPlayed as album}
-              <button class="carousel-card" onclick={() => playAlbum(album.id)}>
-                <AlbumArt albumId={album.id} size={160} alt={album.title} />
+              <button class="carousel-card" onclick={() => album.id && playAlbum(album.id)}>
+                <AlbumArt coverPath={album.cover_path} albumId={album.id} size={160} alt={album.title} />
                 <span class="carousel-title truncate">{album.title}</span>
                 <span class="carousel-artist truncate">{album.artist_name}</span>
               </button>
@@ -163,7 +177,7 @@
           </button>
         </div>
       {:else}
-        <p class="empty-recent">Aucun historique de lecture</p>
+        <p class="empty-recent">{$t('home.noHistory')}</p>
       {/if}
 
     {:else}
@@ -186,7 +200,7 @@
           </button>
         </div>
       {:else}
-        <p class="empty-recent">Aucun album</p>
+        <p class="empty-recent">{$t('home.noAlbums')}</p>
       {/if}
     {/if}
   </div>

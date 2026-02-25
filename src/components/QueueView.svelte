@@ -4,6 +4,7 @@
   import { currentTrack } from '../lib/stores/nowPlaying';
   import * as api from '../lib/api';
   import { formatTime } from '../lib/utils';
+  import { t } from '../lib/i18n';
   import AlbumArt from './AlbumArt.svelte';
 
   interface Props {
@@ -109,16 +110,16 @@
 
 <div class="queue-view">
   <div class="queue-header">
-    <h2>File d'attente</h2>
+    <h2>{$t('queue.title')}</h2>
     {#if zone}
       <span class="queue-zone">{zone.name}</span>
     {/if}
-    <span class="queue-count">{$queueTracks.length} pistes</span>
+    <span class="queue-count">{$queueTracks.length} {$t('common.tracks')}</span>
   </div>
 
   {#if $queueTracks.length === 0}
     <div class="empty">
-      <p>La file d'attente est vide</p>
+      <p>{$t('queue.empty')}</p>
     </div>
   {:else}
     <div class="queue-list">
@@ -158,11 +159,11 @@
             <span class="queue-duration">{formatTime(queueTrack.duration_ms)}</span>
           </button>
           {#if onAddToPlaylist && queueTrack.id}
-            <button class="action-btn playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(queueTrack.id!); }} title="Ajouter a une playlist">
+            <button class="action-btn playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(queueTrack.id!); }} title={$t('queue.addToPlaylist')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </button>
           {/if}
-          <button class="action-btn remove-btn" onclick={(e) => { e.stopPropagation(); removeFromQueue(index); }} title="Retirer de la file">
+          <button class="action-btn remove-btn" onclick={(e) => { e.stopPropagation(); removeFromQueue(index); }} title={$t('queue.removeFromQueue')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>

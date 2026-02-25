@@ -4,6 +4,7 @@
   import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import type { Playlist, Track } from '../lib/types';
+  import { t as tr } from '../lib/i18n';
 
   let zone = $derived($currentZone);
 
@@ -105,23 +106,23 @@
     <div class="detail-header">
       <button class="back-btn" onclick={goBack}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
-        Retour
+        {$tr('common.back')}
       </button>
       <div class="playlist-detail-info">
         <h2>{selectedPlaylist.name}</h2>
         {#if selectedPlaylist.description}
           <p class="playlist-desc">{selectedPlaylist.description}</p>
         {/if}
-        <span class="playlist-count">{playlistTracks.length} pistes</span>
+        <span class="playlist-count">{playlistTracks.length} {$tr('common.tracks')}</span>
       </div>
       <button class="play-all-btn" onclick={() => selectedPlaylist?.id && playPlaylist(selectedPlaylist.id)}>
         <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
-        Lire
+        {$tr('common.play')}
       </button>
     </div>
 
     {#if loading}
-      <div class="loading"><div class="spinner"></div>Chargement...</div>
+      <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
     {:else}
       <div class="track-list">
         {#each playlistTracks as t, index}
@@ -134,7 +135,7 @@
               </div>
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
             </button>
-            <button class="remove-btn" onclick={() => t.id && removeTrack(t.id)} title="Retirer">
+            <button class="remove-btn" onclick={() => t.id && removeTrack(t.id)} title={$tr('playlist.remove')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
@@ -144,28 +145,28 @@
 
   {:else}
     <div class="playlists-header">
-      <h2>Playlists</h2>
+      <h2>{$tr('playlist.title')}</h2>
       <button class="create-btn" onclick={() => showCreate = true}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-        Nouvelle playlist
+        {$tr('playlist.new')}
       </button>
     </div>
 
     {#if showCreate}
       <div class="create-form">
-        <input type="text" placeholder="Nom de la playlist" bind:value={newName} />
-        <input type="text" placeholder="Description (optionnel)" bind:value={newDescription} />
+        <input type="text" placeholder={$tr('playlist.name')} bind:value={newName} />
+        <input type="text" placeholder={$tr('playlist.description')} bind:value={newDescription} />
         <div class="form-actions">
-          <button class="cancel-btn" onclick={() => showCreate = false}>Annuler</button>
-          <button class="confirm-btn" onclick={createPlaylist}>Creer</button>
+          <button class="cancel-btn" onclick={() => showCreate = false}>{$tr('common.cancel')}</button>
+          <button class="confirm-btn" onclick={createPlaylist}>{$tr('common.create')}</button>
         </div>
       </div>
     {/if}
 
     {#if loading}
-      <div class="loading"><div class="spinner"></div>Chargement...</div>
+      <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
     {:else if playlists.length === 0}
-      <div class="empty">Aucune playlist</div>
+      <div class="empty">{$tr('playlist.noPlaylists')}</div>
     {:else}
       <div class="playlist-list">
         {#each playlists as pl}
@@ -176,11 +177,11 @@
               </div>
               <div class="playlist-info">
                 <span class="playlist-name">{pl.name}</span>
-                <span class="playlist-meta">{pl.track_count ?? 0} pistes</span>
+                <span class="playlist-meta">{pl.track_count ?? 0} {$tr('common.tracks')}</span>
               </div>
               <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
             </button>
-            <button class="delete-btn" onclick={() => pl.id && deletePlaylist(pl.id)} title="Supprimer">
+            <button class="delete-btn" onclick={() => pl.id && deletePlaylist(pl.id)} title={$tr('common.delete')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
             </button>
           </div>

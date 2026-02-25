@@ -2,6 +2,7 @@
   import { playbackHistory, type HistoryEntry } from '../lib/stores/history';
   import { currentZone } from '../lib/stores/zones';
   import { formatTime } from '../lib/utils';
+  import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
 
@@ -30,10 +31,10 @@
 
 <div class="history-view">
   <div class="history-header">
-    <h2>Historique</h2>
-    <span class="history-count">{$playbackHistory.length} lectures</span>
+    <h2>{$t('history.title')}</h2>
+    <span class="history-count">{$playbackHistory.length} {$t('history.plays')}</span>
     {#if $playbackHistory.length > 0}
-      <button class="clear-btn" onclick={() => playbackHistory.clear()}>Vider</button>
+      <button class="clear-btn" onclick={() => playbackHistory.clear()}>{$t('history.clear')}</button>
     {/if}
   </div>
 
@@ -42,7 +43,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
         <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
       </svg>
-      <p>Aucun historique de lecture</p>
+      <p>{$t('history.noHistory')}</p>
     </div>
   {:else}
     <div class="history-list">

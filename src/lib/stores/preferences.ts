@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import type { Locale } from '../i18n';
 
 export type ThemeMode = 'dark' | 'light';
 export type VolumeDisplay = 'percent' | 'dB';
@@ -6,6 +7,7 @@ export type StartupView = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlis
 
 export interface Preferences {
   theme: ThemeMode;
+  language: Locale;
   volumeDisplay: VolumeDisplay;
   startupView: StartupView;
   defaultZoneId: number | null;
@@ -16,6 +18,7 @@ const STORAGE_KEY = 'tune-preferences';
 
 const defaults: Preferences = {
   theme: 'dark',
+  language: 'fr',
   volumeDisplay: 'percent',
   startupView: 'home',
   defaultZoneId: null,

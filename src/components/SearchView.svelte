@@ -6,6 +6,7 @@
   import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import type { FederatedSearchResult, Track, Album, Artist } from '../lib/types';
+  import { t } from '../lib/i18n';
 
   let zone = $derived($currentZone);
   let searchQuery = $state('');
@@ -74,35 +75,35 @@
 
 <div class="search-view">
   <div class="search-header">
-    <h2>Recherche</h2>
+    <h2>{$t('search.title')}</h2>
     <div class="search-bar">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
       <input
         type="text"
-        placeholder="Rechercher dans toutes les sources..."
+        placeholder={$t('search.placeholder')}
         bind:value={searchQuery}
         onkeydown={(e) => e.key === 'Enter' && handleSearch()}
       />
-      <button class="search-btn" onclick={handleSearch}>Rechercher</button>
+      <button class="search-btn" onclick={handleSearch}>{$t('common.search')}</button>
     </div>
   </div>
 
   {#if loading}
     <div class="loading">
       <div class="spinner"></div>
-      Recherche en cours...
+      {$t('search.searching')}
     </div>
   {:else if results}
     {@const sources = allSources(results)}
     {#if sources.length === 0}
-      <div class="empty">Aucun resultat pour "{searchQuery}"</div>
+      <div class="empty">{$t('search.noResults').replace('{query}', searchQuery)}</div>
     {:else}
       {#each sources as source}
         <div class="source-section">
           <h3 class="source-title">{source.name}</h3>
 
           {#if source.data.albums.length > 0}
-            <h4 class="subsection-title">Albums</h4>
+            <h4 class="subsection-title">{$t('common.albums')}</h4>
             <div class="albums-row">
               {#each source.data.albums as album}
                 <button class="album-card" onclick={() => album.id && playAlbum(album.id)}>
@@ -117,7 +118,7 @@
           {/if}
 
           {#if source.data.tracks.length > 0}
-            <h4 class="subsection-title">Pistes</h4>
+            <h4 class="subsection-title">{$t('home.tracks')}</h4>
             <div class="track-list">
               {#each source.data.tracks as t}
                 <button class="track-item" onclick={() => t.id && playTrack(t.id)}>
@@ -132,7 +133,7 @@
           {/if}
 
           {#if source.data.artists.length > 0}
-            <h4 class="subsection-title">Artistes</h4>
+            <h4 class="subsection-title">{$t('common.artists')}</h4>
             <div class="artist-list">
               {#each source.data.artists as artist}
                 <button class="artist-chip" onclick={() => selectArtist(artist)}>
@@ -146,7 +147,7 @@
       {/each}
     {/if}
   {:else}
-    <div class="empty">Tapez un terme de recherche pour commencer</div>
+    <div class="empty">{$t('search.hint')}</div>
   {/if}
 </div>
 

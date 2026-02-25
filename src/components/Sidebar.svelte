@@ -5,6 +5,7 @@
   import { activeView, type View } from '../lib/stores/navigation';
   import { activeStreamingService, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { preferences } from '../lib/stores/preferences';
+  import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import type { DiscoveredDevice, LocalAudioDevice, OutputType, Zone, ZoneGroupResponse, StreamingServiceStatus } from '../lib/types';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
@@ -226,44 +227,44 @@
   </div>
 
   <nav class="nav-section">
-    <span class="section-label">NAVIGATION</span>
+    <span class="section-label">{$t('nav.navigation')}</span>
     <button class="nav-item" class:active={$activeView === 'home'} onclick={() => navigate('home')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-      Accueil
+      {$t('nav.home')}
     </button>
     <button class="nav-item" class:active={$activeView === 'nowplaying'} onclick={() => navigate('nowplaying')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-      Lecture en cours
+      {$t('nav.nowplaying')}
     </button>
     <button class="nav-item" class:active={$activeView === 'library'} onclick={() => navigate('library')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-      Bibliotheque
+      {$t('nav.library')}
     </button>
     <button class="nav-item" class:active={$activeView === 'queue'} onclick={() => navigate('queue')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-      File d'attente
+      {$t('nav.queue')}
     </button>
     <button class="nav-item" class:active={$activeView === 'playlists'} onclick={() => navigate('playlists')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-      Playlists
+      {$t('nav.playlists')}
     </button>
     <button class="nav-item" class:active={$activeView === 'history'} onclick={() => navigate('history')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-      Historique
+      {$t('nav.history')}
     </button>
     <button class="nav-item" class:active={$activeView === 'search'} onclick={() => navigate('search')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      Recherche
+      {$t('nav.search')}
     </button>
     <button class="nav-item" class:active={$activeView === 'settings'} onclick={() => navigate('settings')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-      Parametres
+      {$t('nav.settings')}
     </button>
   </nav>
 
   {#if activeServices.length > 0}
     <nav class="nav-section services-section">
-      <span class="section-label">SERVICES</span>
+      <span class="section-label">{$t('nav.services')}</span>
       {#each activeServices as svc}
         <button
           class="nav-item"
@@ -280,8 +281,8 @@
 
   <div class="zones-section">
     <div class="zones-header">
-      <span class="section-label">ZONES</span>
-      <button class="add-zone-btn" onclick={() => showCreateZone = !showCreateZone} title="Nouvelle zone">
+      <span class="section-label">{$t('zone.zones')}</span>
+      <button class="add-zone-btn" onclick={() => showCreateZone = !showCreateZone} title={$t('zone.newZone')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
       </button>
     </div>
@@ -289,7 +290,7 @@
       <div class="create-zone">
         <input
           type="text"
-          placeholder="Nom de la zone"
+          placeholder={$t('zone.zoneName')}
           bind:value={newZoneName}
           onkeydown={(e) => e.key === 'Enter' && createZone()}
         />
@@ -300,7 +301,7 @@
         </select>
         {#if newZoneOutputType !== 'local'}
           <select class="create-zone-device" bind:value={newZoneDeviceId}>
-            <option value={undefined}>-- Device --</option>
+            <option value={undefined}>{$t('zone.selectDevice')}</option>
             {#each $devices.filter(d => d.type === newZoneOutputType && d.available) as dev}
               <option value={dev.id}>{dev.name}</option>
             {/each}
@@ -318,7 +319,7 @@
           onclick={() => zone.id !== null && handleSelectZone(zone.id)}
         >
           {#if gid}
-            <span class="zone-group-dot" style="background: {groupColor(gid)}" title="Groupe actif"></span>
+            <span class="zone-group-dot" style="background: {groupColor(gid)}" title={$t('zone.activeGroup')}></span>
           {/if}
           <span class="zone-name truncate">{zone.name}</span>
           <span class="zone-meta">
@@ -331,20 +332,20 @@
               </span>
             {/if}
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <span class="zone-config-btn" onclick={(e) => openConfig(zone, e)} title="Configurer">
+            <span class="zone-config-btn" onclick={(e) => openConfig(zone, e)} title={$t('zone.configure')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
             </span>
           </span>
         </button>
       {/each}
       {#if $zones.length === 0}
-        <div class="empty-state">Aucune zone</div>
+        <div class="empty-state">{$t('zone.noZone')}</div>
       {/if}
     </div>
   </div>
 
   <div class="devices-section">
-    <span class="section-label">APPAREILS</span>
+    <span class="section-label">{$t('zone.devices')}</span>
     <div class="devices-list">
       {#each visibleAudioDevices as audioDevice}
         <div class="device-item">
@@ -352,8 +353,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" /></svg>
           </span>
           <span class="device-name truncate">{audioDevice.name}</span>
-          <span class="device-type-tag">USB</span>
-          <button class="device-add-btn" onclick={() => createZoneFromAudioDevice(audioDevice)} title="Creer une zone">
+          <span class="device-type-tag">{$t('settings.usb')}</span>
+          <button class="device-add-btn" onclick={() => createZoneFromAudioDevice(audioDevice)} title={$t('zone.createZone')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
           </button>
         </div>
@@ -372,16 +373,16 @@
           <span class="device-name truncate">{device.name}</span>
           <span class="device-type-tag">{deviceTypeIcon(device.type)}</span>
           {#if device.available}
-            <button class="device-add-btn" onclick={() => createZoneFromDevice(device)} title="Creer une zone">
+            <button class="device-add-btn" onclick={() => createZoneFromDevice(device)} title={$t('zone.createZone')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </button>
           {:else}
-            <span class="device-status offline" title="Hors ligne">&#x25CB;</span>
+            <span class="device-status offline" title={$t('zone.offline')}>&#x25CB;</span>
           {/if}
         </div>
       {/each}
       {#if visibleAudioDevices.length === 0 && visibleNetDevices.length === 0}
-        <div class="empty-state">Recherche d'appareils...</div>
+        <div class="empty-state">{$t('zone.searchingDevices')}</div>
       {/if}
     </div>
   </div>
@@ -528,9 +529,7 @@
   }
 
   .zones-section {
-    flex: 1 1 0;
-    min-height: 60px;
-    overflow-y: auto;
+    flex: 0 0 auto;
     padding: var(--space-md) 0;
   }
 
@@ -687,8 +686,8 @@
     border-top: 1px solid var(--tune-border);
     padding: var(--space-md) 0 var(--space-sm);
     overflow-y: auto;
-    flex: 0 0 auto;
-    max-height: 35%;
+    flex: 1 1 0;
+    min-height: 40px;
   }
 
   .devices-list {

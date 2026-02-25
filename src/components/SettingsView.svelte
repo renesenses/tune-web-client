@@ -1,5 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
+  import { get } from 'svelte/store';
   import * as api from '../lib/api';
   import { tuneWS } from '../lib/websocket';
   import { zones } from '../lib/stores/zones';
@@ -7,6 +8,7 @@
   import { preferences, applyTheme, type ThemeMode, type VolumeDisplay, type StartupView } from '../lib/stores/preferences';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import type { SystemHealth, SystemStats, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice } from '../lib/types';
+  import { t, locale, localeNames, type Locale } from '../lib/i18n';
 
   let health: SystemHealth | null = $state(null);
   let stats: SystemStats | null = $state(null);
@@ -42,10 +44,10 @@
         };
         qobuzPassword = '';
       } else {
-        qobuzAuthError = 'Identifiants incorrects';
+        qobuzAuthError = get(t)('settings.wrongCredentials');
       }
     } catch (e) {
-      qobuzAuthError = 'Erreur de connexion';
+      qobuzAuthError = get(t)('settings.connectionError');
     }
     qobuzAuthLoading = false;
   }
@@ -69,11 +71,11 @@
         tidalVerificationUrl = url.startsWith('http') ? url : `https://${url}`;
         startTidalPolling();
       } else {
-        tidalAuthError = 'Erreur: pas de lien de verification';
+        tidalAuthError = get(t)('settings.tidalNoLink');
         tidalAuthLoading = false;
       }
     } catch (e) {
-      tidalAuthError = 'Erreur de connexion';
+      tidalAuthError = get(t)('settings.connectionError');
       tidalAuthLoading = false;
     }
   }
@@ -209,27 +211,27 @@
 </script>
 
 <div class="settings-view">
-  <h2>Parametres</h2>
+  <h2>{$t('settings.title')}</h2>
 
   {#if loading}
     <div class="loading">
       <div class="spinner"></div>
-      Chargement...
+      {$t('common.loading')}
     </div>
   {:else}
     <!-- Server health -->
     <section class="settings-section">
-      <h3>Sante du serveur</h3>
+      <h3>{$t('settings.serverHealth')}</h3>
       {#if health}
         <div class="health-status" class:ok={health.status === 'ok'} class:degraded={health.status === 'degraded'}>
           <span class="health-dot"></span>
-          {health.status === 'ok' ? 'Operationnel' : 'Degrade'}
+          {health.status === 'ok' ? $t('settings.operational') : $t('settings.degraded')}
         </div>
         <div class="component-list">
           {#each Object.entries(health.components) as [name, ok]}
             <div class="component-item">
               <span class="component-name">{name}</span>
-              <span class="component-status" class:ok={ok} class:error={!ok}>{ok ? 'OK' : 'Erreur'}</span>
+              <span class="component-status" class:ok={ok} class:error={!ok}>{ok ? $t('common.ok') : $t('common.error')}</span>
             </div>
           {/each}
         </div>
@@ -238,28 +240,28 @@
 
     <!-- Library stats -->
     <section class="settings-section">
-      <h3>Bibliotheque</h3>
+      <h3>{$t('settings.library')}</h3>
       {#if stats}
         <div class="stats-grid">
           <div class="stat-item">
             <span class="stat-value">{stats.tracks}</span>
-            <span class="stat-label">Pistes</span>
+            <span class="stat-label">{$t('settings.tracks')}</span>
           </div>
           <div class="stat-item">
             <span class="stat-value">{stats.albums}</span>
-            <span class="stat-label">Albums</span>
+            <span class="stat-label">{$t('settings.albums')}</span>
           </div>
           <div class="stat-item">
             <span class="stat-value">{stats.artists}</span>
-            <span class="stat-label">Artistes</span>
+            <span class="stat-label">{$t('settings.artists')}</span>
           </div>
           <div class="stat-item">
             <span class="stat-value">{stats.zones}</span>
-            <span class="stat-label">Zones</span>
+            <span class="stat-label">{$t('settings.zones')}</span>
           </div>
           <div class="stat-item">
             <span class="stat-value">{stats.devices}</span>
-            <span class="stat-label">Appareils</span>
+            <span class="stat-label">{$t('settings.devices')}</span>
           </div>
         </div>
       {/if}
@@ -268,12 +270,12 @@
         <button class="scan-btn" onclick={handleScan} disabled={scanning}>
           {#if scanning}
             <div class="spinner small"></div>
-            Scan en cours...
+            {$t('settings.scanning')}
           {:else}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
               <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
             </svg>
-            Scanner la bibliotheque
+            {$t('settings.scanLibrary')}
           {/if}
         </button>
 
@@ -281,15 +283,15 @@
           {#if artworkScanning}
             <div class="spinner small"></div>
             {#if artworkProgress}
-              Covers {artworkProgress.current}/{artworkProgress.total} ({artworkProgress.found} trouvees)
+              {$t('settings.coversProgress').replace('{current}', String(artworkProgress.current)).replace('{total}', String(artworkProgress.total)).replace('{found}', String(artworkProgress.found))}
             {:else}
-              Recherche de covers...
+              {$t('settings.searchingCovers')}
             {/if}
           {:else}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
               <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" />
             </svg>
-            Rechercher les covers manquantes
+            {$t('settings.searchMissingCovers')}
           {/if}
         </button>
       </div>
@@ -297,10 +299,10 @@
 
     <!-- Device visibility -->
     <section class="settings-section">
-      <h3>Appareils</h3>
+      <h3>{$t('settings.devices')}</h3>
       <div class="devices-actions">
-        <button class="scan-btn small" onclick={showAllDevices}>Tout afficher</button>
-        <button class="scan-btn small" onclick={hideAllDevices}>Tout masquer</button>
+        <button class="scan-btn small" onclick={showAllDevices}>{$t('settings.showAll')}</button>
+        <button class="scan-btn small" onclick={hideAllDevices}>{$t('settings.hideAll')}</button>
       </div>
       <div class="device-toggle-list">
         {#each audioDevices as device}
@@ -312,7 +314,7 @@
               onchange={() => toggleDevice(prefId)}
             />
             <span class="device-toggle-name">{device.name}</span>
-            <span class="device-toggle-tag">USB</span>
+            <span class="device-toggle-tag">{$t('settings.usb')}</span>
           </label>
         {/each}
         {#each $devices as device}
@@ -328,71 +330,83 @@
           </label>
         {/each}
         {#if audioDevices.length === 0 && $devices.length === 0}
-          <p class="muted">Aucun appareil detecte</p>
+          <p class="muted">{$t('settings.noDevices')}</p>
         {/if}
       </div>
     </section>
 
     <!-- Preferences -->
     <section class="settings-section">
-      <h3>Interface</h3>
+      <h3>{$t('settings.interface')}</h3>
       <div class="pref-grid">
-        <label class="pref-label" for="pref-theme">Theme</label>
+        <label class="pref-label" for="pref-theme">{$t('settings.theme')}</label>
         <select id="pref-theme" class="pref-select" value={$preferences.theme}
           onchange={(e) => {
             const theme = (e.target as HTMLSelectElement).value as ThemeMode;
             preferences.update((p) => ({ ...p, theme }));
             applyTheme(theme);
           }}>
-          <option value="dark">Sombre</option>
-          <option value="light">Clair</option>
+          <option value="dark">{$t('settings.dark')}</option>
+          <option value="light">{$t('settings.light')}</option>
         </select>
 
-        <label class="pref-label" for="pref-startup">Vue de demarrage</label>
+        <label class="pref-label" for="pref-lang">{$t('settings.language')}</label>
+        <select id="pref-lang" class="pref-select" value={$preferences.language ?? 'fr'}
+          onchange={(e) => {
+            const language = (e.target as HTMLSelectElement).value as Locale;
+            preferences.update((p) => ({ ...p, language }));
+            locale.set(language);
+          }}>
+          {#each Object.entries(localeNames) as [code, name]}
+            <option value={code}>{name}</option>
+          {/each}
+        </select>
+
+        <label class="pref-label" for="pref-startup">{$t('settings.startupView')}</label>
         <select id="pref-startup" class="pref-select" value={$preferences.startupView}
           onchange={(e) => {
             const startupView = (e.target as HTMLSelectElement).value as StartupView;
             preferences.update((p) => ({ ...p, startupView }));
           }}>
-          <option value="home">Accueil</option>
-          <option value="nowplaying">Lecture en cours</option>
-          <option value="library">Bibliotheque</option>
-          <option value="queue">File d'attente</option>
-          <option value="playlists">Playlists</option>
-          <option value="search">Recherche</option>
-          <option value="settings">Parametres</option>
+          <option value="home">{$t('nav.home')}</option>
+          <option value="nowplaying">{$t('nav.nowplaying')}</option>
+          <option value="library">{$t('nav.library')}</option>
+          <option value="queue">{$t('nav.queue')}</option>
+          <option value="playlists">{$t('nav.playlists')}</option>
+          <option value="search">{$t('nav.search')}</option>
+          <option value="settings">{$t('nav.settings')}</option>
         </select>
 
-        <label class="pref-label" for="pref-zone">Zone par defaut</label>
+        <label class="pref-label" for="pref-zone">{$t('settings.defaultZone')}</label>
         <select id="pref-zone" class="pref-select" value={$preferences.defaultZoneId ?? ''}
           onchange={(e) => {
             const val = (e.target as HTMLSelectElement).value;
             const defaultZoneId = val ? Number(val) : null;
             preferences.update((p) => ({ ...p, defaultZoneId }));
           }}>
-          <option value="">Automatique (premiere zone)</option>
+          <option value="">{$t('settings.autoZone')}</option>
           {#each $zones as z}
             <option value={z.id}>{z.name}</option>
           {/each}
         </select>
 
-        <label class="pref-label" for="pref-volume">Affichage volume</label>
+        <label class="pref-label" for="pref-volume">{$t('settings.volumeDisplay')}</label>
         <select id="pref-volume" class="pref-select" value={$preferences.volumeDisplay}
           onchange={(e) => {
             const volumeDisplay = (e.target as HTMLSelectElement).value as VolumeDisplay;
             preferences.update((p) => ({ ...p, volumeDisplay }));
           }}>
-          <option value="percent">Pourcentage (0-100)</option>
-          <option value="dB">Decibels (dB)</option>
+          <option value="percent">{$t('settings.percent')}</option>
+          <option value="dB">{$t('settings.decibels')}</option>
         </select>
       </div>
     </section>
 
     <!-- Streaming services -->
     <section class="settings-section">
-      <h3>Services de streaming</h3>
+      <h3>{$t('settings.streaming')}</h3>
       {#if Object.keys($streamingServicesStore).length === 0}
-        <p class="muted">Aucun service configure</p>
+        <p class="muted">{$t('settings.noService')}</p>
       {:else}
         <div class="service-list">
           {#each Object.entries($streamingServicesStore) as [name, status]}
@@ -401,10 +415,10 @@
                 <span class="service-name">{name.charAt(0).toUpperCase() + name.slice(1)}</span>
                 <div class="service-header-actions">
                   {#if status.authenticated}
-                    <span class="badge auth">Connecte</span>
-                    <button class="disconnect-btn" onclick={() => handleDisconnect(name)}>Deconnecter</button>
+                    <span class="badge auth">{$t('settings.connected')}</span>
+                    <button class="disconnect-btn" onclick={() => handleDisconnect(name)}>{$t('settings.disconnect')}</button>
                   {:else}
-                    <span class="badge noauth">Non connecte</span>
+                    <span class="badge noauth">{$t('settings.notConnected')}</span>
                   {/if}
                 </div>
               </div>
@@ -415,14 +429,14 @@
                     <input
                       type="email"
                       class="auth-input"
-                      placeholder="Email"
+                      placeholder={$t('settings.email')}
                       bind:value={qobuzUsername}
                       disabled={qobuzAuthLoading}
                     />
                     <input
                       type="password"
                       class="auth-input"
-                      placeholder="Mot de passe"
+                      placeholder={$t('settings.password')}
                       bind:value={qobuzPassword}
                       disabled={qobuzAuthLoading}
                       onkeydown={(e) => { if (e.key === 'Enter') handleQobuzAuth(); }}
@@ -437,22 +451,22 @@
                     >
                       {#if qobuzAuthLoading}
                         <div class="spinner small"></div>
-                        Connexion...
+                        {$t('settings.connecting')}
                       {:else}
-                        Connexion
+                        {$t('settings.connect')}
                       {/if}
                     </button>
                   </div>
                 {:else if name === 'tidal'}
                   <div class="service-auth-form">
                     {#if tidalVerificationUrl}
-                      <p class="auth-hint">Ouvrez ce lien pour vous connecter :</p>
+                      <p class="auth-hint">{$t('settings.tidalLink')}</p>
                       <a href={tidalVerificationUrl} target="_blank" rel="noopener noreferrer" class="auth-link">
                         {tidalVerificationUrl}
                       </a>
                       <div class="auth-waiting">
                         <div class="spinner small"></div>
-                        En attente de confirmation...
+                        {$t('settings.tidalWaiting')}
                       </div>
                     {:else}
                       {#if tidalAuthError}
@@ -465,9 +479,9 @@
                       >
                         {#if tidalAuthLoading}
                           <div class="spinner small"></div>
-                          Connexion...
+                          {$t('settings.connecting')}
                         {:else}
-                          Connecter a Tidal
+                          {$t('settings.tidalConnect')}
                         {/if}
                       </button>
                     {/if}

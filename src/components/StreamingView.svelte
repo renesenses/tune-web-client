@@ -5,6 +5,7 @@
   import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import type { Album, Artist, Track, SearchResult, FeaturedSection } from '../lib/types';
+  import { t as tr } from '../lib/i18n';
 
   type StreamingTab = 'search' | 'albums' | 'artists' | 'tracks';
 
@@ -156,14 +157,14 @@
 <div class="streaming-view">
   {#if !service}
     <div class="empty-center">
-      <p>Selectionnez un service de streaming dans la barre laterale</p>
+      <p>{$tr('streaming.selectService')}</p>
     </div>
   {:else if selectedAlbum}
     <!-- Album detail -->
     <div class="detail-header">
       <button class="back-btn" onclick={goBack}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
-        Retour
+        {$tr('common.back')}
       </button>
     </div>
     <div class="album-detail-header">
@@ -179,12 +180,12 @@
         {/if}
         <button class="play-all-btn" onclick={() => selectedAlbum && playStreamingAlbum(selectedAlbum)}>
           <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
-          Lire
+          {$tr('common.play')}
         </button>
       </div>
     </div>
     {#if loading}
-      <div class="loading"><div class="spinner"></div>Chargement...</div>
+      <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
     {:else}
       <div class="track-list">
         {#each albumTracks as t, index}
@@ -199,7 +200,7 @@
               {/if}
             </div>
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
-            <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title="Ajouter a la file">+</button>
+            <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
           </div>
         {/each}
       </div>
@@ -210,13 +211,13 @@
     <div class="detail-header">
       <button class="back-btn" onclick={goBack}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
-        Retour
+        {$tr('common.back')}
       </button>
       <h2>{selectedArtist.name}</h2>
       <span class="source-badge">{serviceName(service)}</span>
     </div>
     {#if loading}
-      <div class="loading"><div class="spinner"></div>Chargement...</div>
+      <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
     {:else}
       <div class="albums-grid">
         {#each artistAlbums as album}
@@ -225,7 +226,7 @@
         <div class="album-card" onclick={() => selectAlbum(album)}>
             <div class="album-card-art">
               <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
-              <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingAlbum(album); }} title="Lire l'album">
+              <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingAlbum(album); }} title={$tr('library.playAlbum')}>
                 <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
               </button>
             </div>
@@ -249,7 +250,7 @@
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
         <input
           type="text"
-          placeholder="Rechercher sur {serviceName(service)}..."
+          placeholder={$tr('streaming.searchOn').replace('{service}', serviceName(service))}
           bind:value={searchQuery}
           onkeydown={handleSearchKey}
         />
@@ -263,7 +264,7 @@
         {#if searching}
           <div class="spinner small"></div>
         {:else}
-          Rechercher
+          {$tr('common.search')}
         {/if}
       </button>
     </div>
@@ -271,13 +272,13 @@
     {#if results}
       <div class="tab-bar">
         {#if results.albums.length > 0}
-          <button class="tab" class:active={tab === 'albums'} onclick={() => tab = 'albums'}>Albums ({results.albums.length})</button>
+          <button class="tab" class:active={tab === 'albums'} onclick={() => tab = 'albums'}>{$tr('common.albums')} ({results.albums.length})</button>
         {/if}
         {#if results.artists.length > 0}
-          <button class="tab" class:active={tab === 'artists'} onclick={() => tab = 'artists'}>Artistes ({results.artists.length})</button>
+          <button class="tab" class:active={tab === 'artists'} onclick={() => tab = 'artists'}>{$tr('common.artists')} ({results.artists.length})</button>
         {/if}
         {#if results.tracks.length > 0}
-          <button class="tab" class:active={tab === 'tracks'} onclick={() => tab = 'tracks'}>Pistes ({results.tracks.length})</button>
+          <button class="tab" class:active={tab === 'tracks'} onclick={() => tab = 'tracks'}>{$tr('home.tracks')} ({results.tracks.length})</button>
         {/if}
       </div>
 
@@ -289,7 +290,7 @@
         <div class="album-card" onclick={() => selectAlbum(album)}>
               <div class="album-card-art">
                 <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
-                <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingAlbum(album); }} title="Lire l'album">
+                <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingAlbum(album); }} title={$tr('library.playAlbum')}>
                   <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                 </button>
               </div>
@@ -324,14 +325,14 @@
                 <span class="track-artist truncate">{t.artist_name ?? ''} {t.album_title ? `- ${t.album_title}` : ''}</span>
               </div>
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
-              <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title="Ajouter a la file">+</button>
+              <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
             </div>
           {/each}
         </div>
       {/if}
 
       {#if results.albums.length === 0 && results.artists.length === 0 && results.tracks.length === 0}
-        <div class="empty-center">Aucun resultat</div>
+        <div class="empty-center">{$tr('common.noResult')}</div>
       {/if}
 
     {:else if showFeatured}
@@ -365,7 +366,7 @@
                   <div class="carousel-card" onclick={() => selectAlbum(album)}>
                     <div class="album-card-art">
                       <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
-                      <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingAlbum(album); }} title="Lire l'album">
+                      <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingAlbum(album); }} title={$tr('library.playAlbum')}>
                         <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                       </button>
                     </div>
@@ -382,7 +383,7 @@
       {/if}
 
     {:else if searching}
-      <div class="loading"><div class="spinner"></div>Recherche...</div>
+      <div class="loading"><div class="spinner"></div>{$tr('common.searching')}</div>
     {/if}
   {/if}
 </div>

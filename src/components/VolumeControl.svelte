@@ -2,6 +2,7 @@
   import { currentZone } from '../lib/stores/zones';
   import { zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
   import { preferences } from '../lib/stores/preferences';
+  import { t } from '../lib/i18n';
   import * as api from '../lib/api';
 
   let zone = $derived($currentZone);
@@ -39,7 +40,7 @@
 </script>
 
 <div class="volume-control">
-  <button class="volume-btn" class:muted={isMuted} onclick={toggleMute} title="Volume (M pour couper)">
+  <button class="volume-btn" class:muted={isMuted} onclick={toggleMute} title={$t('volume.title')}>
     {#if isMuted || vol === 0}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />

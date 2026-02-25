@@ -6,6 +6,7 @@
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import SeekBar from './SeekBar.svelte';
+  import { t } from '../lib/i18n';
   import type { RepeatMode, Track } from '../lib/types';
 
   interface Props {
@@ -104,12 +105,12 @@
 
         <!-- Settings row: shuffle, repeat -->
         <div class="settings-row" class:center={!isWide}>
-          <button class="setting-btn" class:active={$shuffleEnabled} onclick={toggleShuffle} title="Aleatoire">
+          <button class="setting-btn" class:active={$shuffleEnabled} onclick={toggleShuffle} title={$t('transport.shuffle')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
               <polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" />
             </svg>
           </button>
-          <button class="setting-btn" class:active={$repeatMode !== 'off'} onclick={cycleRepeat} title="Repeter">
+          <button class="setting-btn" class:active={$repeatMode !== 'off'} onclick={cycleRepeat} title={$t('transport.repeat')}>
             {#if $repeatMode === 'one'}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                 <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
@@ -123,7 +124,7 @@
           </button>
 
           {#if onAddToPlaylist && track?.id}
-            <button class="setting-btn" onclick={() => onAddToPlaylist!(track!.id!)} title="Ajouter a une playlist">
+            <button class="setting-btn" onclick={() => onAddToPlaylist!(track!.id!)} title={$t('nowplaying.addToPlaylist')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                 <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" />
               </svg>
@@ -147,7 +148,7 @@
         <!-- Up Next -->
         {#if $upNextTracks.length > 0}
           <div class="up-next">
-            <span class="up-next-label">A suivre</span>
+            <span class="up-next-label">{$t('nowplaying.upNext')}</span>
             <div class="up-next-list">
               {#each $upNextTracks as nextTrack, i}
                 <button class="up-next-item" onclick={() => jumpToUpNext(nextTrack, i)}>
@@ -171,9 +172,9 @@
           <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
         </svg>
       </div>
-      <p>Aucune lecture en cours</p>
+      <p>{$t('nowplaying.noPlayback')}</p>
       {#if !zone}
-        <p class="hint">En attente de connexion au serveur Tune...</p>
+        <p class="hint">{$t('nowplaying.waitingServer')}</p>
       {/if}
     </div>
   {/if}

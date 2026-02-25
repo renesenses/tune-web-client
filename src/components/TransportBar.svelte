@@ -4,6 +4,7 @@
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import VolumeControl from './VolumeControl.svelte';
+  import { t } from '../lib/i18n';
   import type { RepeatMode } from '../lib/types';
 
   let zone = $derived($currentZone);
@@ -62,7 +63,7 @@
       class="control-btn small"
       class:active={$shuffleEnabled}
       onclick={toggleShuffle}
-      title="Shuffle"
+      title={$t('transport.shuffle')}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" />
@@ -73,7 +74,7 @@
       class="control-btn"
       disabled={state === 'stopped'}
       onclick={handlePrevious}
-      title="Precedent"
+      title={$t('transport.previous')}
     >
       <svg viewBox="0 0 24 24" fill="currentColor">
         <path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z" />
@@ -83,7 +84,7 @@
     <button
       class="control-btn play-btn"
       onclick={togglePlayPause}
-      title={state === 'playing' ? 'Pause' : 'Lecture'}
+      title={state === 'playing' ? $t('common.pause') : $t('common.play')}
     >
       {#if state === 'playing'}
         <svg viewBox="0 0 24 24" fill="currentColor">
@@ -100,7 +101,7 @@
       class="control-btn"
       disabled={state === 'stopped'}
       onclick={handleNext}
-      title="Suivant"
+      title={$t('transport.next')}
     >
       <svg viewBox="0 0 24 24" fill="currentColor">
         <path d="M6 18l8.5-6L6 6v12zm10-12v12h2V6h-2z" />
@@ -111,7 +112,7 @@
       class="control-btn small"
       class:active={$repeatMode !== 'off'}
       onclick={cycleRepeat}
-      title="Repeter"
+      title={$t('transport.repeat')}
     >
       {#if $repeatMode === 'one'}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -128,8 +129,8 @@
 
   <div class="transport-right">
     <div class="zone-selector">
-      <button class="zone-selector-btn" onclick={() => showZoneDropdown = !showZoneDropdown} title="Changer de zone">
-        <span class="truncate">{zone?.name ?? 'Aucune zone'}</span>
+      <button class="zone-selector-btn" onclick={() => showZoneDropdown = !showZoneDropdown} title={$t('zone.switchZone')}>
+        <span class="truncate">{zone?.name ?? $t('zone.noZone')}</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9" /></svg>
       </button>
       {#if showZoneDropdown}

@@ -5,6 +5,7 @@
   import { formatTime, formatDuration } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import type { Album, Artist } from '../lib/types';
+  import { t as tr } from '../lib/i18n';
 
   interface Props {
     onAddToPlaylist?: (trackId: number) => void;
@@ -178,7 +179,7 @@
     <div class="detail-header">
       <button class="back-btn" onclick={goBack}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
-        Retour
+        {$tr('common.back')}
       </button>
     </div>
     <div class="album-detail">
@@ -197,7 +198,7 @@
               <span>{$selectedAlbum.genre}</span>
             {/if}
             {#if $albumTracks.length > 0}
-              <span>{$albumTracks.length} pistes</span>
+              <span>{$albumTracks.length} {$tr('common.tracks')}</span>
             {/if}
             {#if albumTotalDuration > 0}
               <span>{formatDuration(albumTotalDuration)}</span>
@@ -208,13 +209,13 @@
           {/if}
           <button class="play-all-btn" onclick={() => $selectedAlbum?.id && playAlbum($selectedAlbum.id)}>
             <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
-            Lire l'album
+            {$tr('library.playAlbum')}
           </button>
         </div>
       </div>
       {#if hasMultipleDiscs}
         {#each tracksByDisc as [discNum, discTracks]}
-          <div class="disc-header">Disque {discNum}</div>
+          <div class="disc-header">{$tr('library.disc').replace('{num}', String(discNum))}</div>
           <div class="track-list">
             {#each discTracks as t, index}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -228,9 +229,9 @@
                   {/if}
                 </div>
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
-                <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title="Ajouter a la file">+</button>
+                <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title={$tr('queue.addToQueue')}>+</button>
                 {#if onAddToPlaylist && t.id}
-                  <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t.id!); }} title="Ajouter a une playlist">
+                  <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t.id!); }} title={$tr('nowplaying.addToPlaylist')}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
                   </button>
                 {/if}
@@ -252,9 +253,9 @@
                 {/if}
               </div>
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
-              <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title="Ajouter a la file">+</button>
+              <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title={$tr('queue.addToQueue')}>+</button>
               {#if onAddToPlaylist && t.id}
-                <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t.id!); }} title="Ajouter a une playlist">
+                <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t.id!); }} title={$tr('nowplaying.addToPlaylist')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
                 </button>
               {/if}
@@ -269,7 +270,7 @@
     <div class="detail-header">
       <button class="back-btn" onclick={goBack}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
-        Retour
+        {$tr('common.back')}
       </button>
       <h2>{$selectedArtist.name}</h2>
     </div>
@@ -280,7 +281,7 @@
         <div class="album-card" onclick={() => selectAlbumDetail(album)}>
           <div class="album-card-art">
             <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
-            <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title="Lire l'album">
+            <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
               <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
             </button>
           </div>
@@ -295,11 +296,11 @@
   {:else}
     <!-- Main library view -->
     <div class="library-header">
-      <h2>Bibliotheque</h2>
+      <h2>{$tr('library.title')}</h2>
       <div class="library-header-right">
         <div class="search-box">
           <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-          <input type="text" placeholder="Rechercher..." bind:value={searchQuery} />
+          <input type="text" placeholder={$tr('library.searchPlaceholder')} bind:value={searchQuery} />
           {#if searchQuery}
             <button class="search-clear" onclick={() => searchQuery = ''}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
@@ -307,10 +308,10 @@
           {/if}
         </div>
         <div class="tab-bar">
-          <button class="tab" class:active={$libraryTab === 'albums'} onclick={() => switchTab('albums')}>Albums</button>
-          <button class="tab" class:active={$libraryTab === 'artists'} onclick={() => switchTab('artists')}>Artistes</button>
-          <button class="tab" class:active={$libraryTab === 'tracks'} onclick={() => switchTab('tracks')}>Pistes</button>
-          <button class="tab" class:active={$libraryTab === 'genres'} onclick={() => switchTab('genres')}>Genres</button>
+          <button class="tab" class:active={$libraryTab === 'albums'} onclick={() => switchTab('albums')}>{$tr('common.albums')}</button>
+          <button class="tab" class:active={$libraryTab === 'artists'} onclick={() => switchTab('artists')}>{$tr('common.artists')}</button>
+          <button class="tab" class:active={$libraryTab === 'tracks'} onclick={() => switchTab('tracks')}>{$tr('home.tracks')}</button>
+          <button class="tab" class:active={$libraryTab === 'genres'} onclick={() => switchTab('genres')}>{$tr('common.genres')}</button>
         </div>
       </div>
     </div>
@@ -318,7 +319,7 @@
     {#if $libraryLoading}
       <div class="loading">
         <div class="spinner"></div>
-        Chargement...
+        {$tr('common.loading')}
       </div>
     {:else if $libraryTab === 'albums'}
       <div class="albums-grid">
@@ -328,7 +329,7 @@
           <div class="album-card" onclick={() => selectAlbumDetail(album)}>
             <div class="album-card-art">
               <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
-              <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title="Lire l'album">
+              <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                 <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
               </button>
             </div>
@@ -339,7 +340,7 @@
           </div>
         {/each}
         {#if filteredAlbums.length === 0}
-          <div class="empty">{searchQuery ? 'Aucun resultat' : 'Aucun album dans la bibliotheque'}</div>
+          <div class="empty">{searchQuery ? $tr('common.noResult') : $tr('library.noAlbums')}</div>
         {/if}
       </div>
 
@@ -355,7 +356,7 @@
           </button>
         {/each}
         {#if filteredArtists.length === 0}
-          <div class="empty">{searchQuery ? 'Aucun resultat' : 'Aucun artiste dans la bibliotheque'}</div>
+          <div class="empty">{searchQuery ? $tr('common.noResult') : $tr('library.noArtists')}</div>
         {/if}
       </div>
 
@@ -371,16 +372,16 @@
               <span class="track-artist truncate">{t.artist_name ?? ''} {t.album_title ? `- ${t.album_title}` : ''}</span>
             </div>
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
-            <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title="Ajouter a la file">+</button>
+            <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title={$tr('queue.addToQueue')}>+</button>
             {#if onAddToPlaylist && t.id}
-              <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t.id!); }} title="Ajouter a une playlist">
+              <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t.id!); }} title={$tr('nowplaying.addToPlaylist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
               </button>
             {/if}
           </div>
         {/each}
         {#if filteredTracks.length === 0}
-          <div class="empty">{searchQuery ? 'Aucun resultat' : 'Aucune piste dans la bibliotheque'}</div>
+          <div class="empty">{searchQuery ? $tr('common.noResult') : $tr('library.noTracks')}</div>
         {/if}
       </div>
 
@@ -390,10 +391,10 @@
         <div class="genre-detail-header">
           <button class="back-btn" onclick={() => selectedGenre = null}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
-            Genres
+            {$tr('common.genres')}
           </button>
           <h3 class="genre-detail-title">{selectedGenre}</h3>
-          <span class="genre-detail-count">{genreAlbums.length} album{genreAlbums.length > 1 ? 's' : ''}</span>
+          <span class="genre-detail-count">{genreAlbums.length} {genreAlbums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
         </div>
         <div class="albums-grid">
           {#each genreAlbums as album}
@@ -402,7 +403,7 @@
             <div class="album-card" onclick={() => selectAlbumDetail(album)}>
               <div class="album-card-art">
                 <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
-                <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title="Lire l'album">
+                <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                   <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                 </button>
               </div>
@@ -419,11 +420,11 @@
           {#each $genres as g}
             <button class="genre-card" onclick={() => selectedGenre = g.name}>
               <span class="genre-card-name">{g.name}</span>
-              <span class="genre-card-count">{g.count} album{g.count > 1 ? 's' : ''}</span>
+              <span class="genre-card-count">{g.count} {g.count > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
             </button>
           {/each}
           {#if $genres.length === 0}
-            <div class="empty">Aucun genre dans la bibliotheque</div>
+            <div class="empty">{$tr('library.noGenres')}</div>
           {/if}
         </div>
       {/if}

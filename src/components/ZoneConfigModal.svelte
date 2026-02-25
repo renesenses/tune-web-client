@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Zone, ZoneGroupResponse } from '../lib/types';
   import * as api from '../lib/api';
+  import { t } from '../lib/i18n';
+  import { get } from 'svelte/store';
 
   interface Props {
     zone: Zone;
@@ -49,7 +51,7 @@
       await api.renameZone(zone.id, editName.trim());
       onRenamed(zone.id, editName.trim());
     } catch (e: any) {
-      error = e.message || 'Erreur lors du renommage';
+      error = e.message || get(t)('zone.renameError');
     } finally {
       renaming = false;
     }
@@ -100,7 +102,7 @@
       }
       onGroupChanged();
     } catch (e: any) {
-      error = e.message || 'Erreur lors du groupement';
+      error = e.message || get(t)('zone.groupError');
     } finally {
       loading = false;
     }
@@ -114,7 +116,7 @@
       await api.ungroupZones(currentGroup.group_id);
       onGroupChanged();
     } catch (e: any) {
-      error = e.message || 'Erreur lors du degroupement';
+      error = e.message || get(t)('zone.ungroupError');
     } finally {
       loading = false;
     }
@@ -153,14 +155,14 @@
         />
         {#if editName.trim() && editName.trim() !== zone.name}
           <button class="btn btn-primary btn-sm" onclick={handleRename} disabled={renaming}>
-            {renaming ? '...' : 'Renommer'}
+            {renaming ? '...' : $t('zone.rename')}
           </button>
         {/if}
         {#if zone.output_type && zone.output_type !== 'local'}
           <span class="type-badge">{deviceTypeLabel(zone)}</span>
         {/if}
       </div>
-      <button class="close-btn" onclick={onClose} title="Fermer">
+      <button class="close-btn" onclick={onClose} title={$t('common.close')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
       </button>
     </div>
@@ -170,11 +172,11 @@
     {/if}
 
     <div class="modal-section">
-      <h3 class="section-title">Lecture groupee</h3>
-      <p class="section-desc">Selectionner les zones a synchroniser avec {zone.name}</p>
+      <h3 class="section-title">{$t('zone.groupedPlayback')}</h3>
+      <p class="section-desc">{$t('zone.selectZonesToSync').replace('{name}', zone.name)}</p>
 
       {#if otherZones.length === 0}
-        <p class="empty-hint">Aucune autre zone disponible</p>
+        <p class="empty-hint">{$t('zone.noOtherZone')}</p>
       {:else}
         <div class="zone-checklist">
           {#each otherZones as otherZone}
@@ -190,7 +192,7 @@
                 <span class="check-zone-badge">{deviceTypeLabel(otherZone)}</span>
               {/if}
               {#if otherZone.group_id && (!currentGroup || otherZone.group_id !== currentGroup.group_id)}
-                <span class="check-zone-grouped" title="Deja dans un autre groupe">
+                <span class="check-zone-grouped" title={$t('zone.alreadyInGroup')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
                 </span>
               {/if}
@@ -204,7 +206,7 @@
             onclick={applyGroup}
             disabled={!hasGroupChanges || loading}
           >
-            {loading ? 'Application...' : 'Appliquer'}
+            {loading ? $t('common.applying') : $t('common.apply')}
           </button>
           {#if currentGroup}
             <button
@@ -212,7 +214,7 @@
               onclick={handleUngroup}
               disabled={loading}
             >
-              Degrouper tout
+              {$t('zone.ungroupAll')}
             </button>
           {/if}
         </div>
@@ -220,16 +222,16 @@
     </div>
 
     <div class="modal-section danger-section">
-      <h3 class="section-title">Actions</h3>
+      <h3 class="section-title">{$t('zone.actions')}</h3>
       {#if !confirmDelete}
         <button class="btn btn-danger" onclick={() => confirmDelete = true}>
-          Supprimer cette zone
+          {$t('zone.deleteZone')}
         </button>
       {:else}
         <div class="confirm-delete">
-          <span class="confirm-text">Confirmer la suppression ?</span>
-          <button class="btn btn-danger" onclick={handleDelete}>Supprimer</button>
-          <button class="btn btn-secondary" onclick={() => confirmDelete = false}>Annuler</button>
+          <span class="confirm-text">{$t('zone.confirmDelete')}</span>
+          <button class="btn btn-danger" onclick={handleDelete}>{$t('common.delete')}</button>
+          <button class="btn btn-secondary" onclick={() => confirmDelete = false}>{$t('common.cancel')}</button>
         </div>
       {/if}
     </div>

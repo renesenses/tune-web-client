@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as api from '../lib/api';
   import type { Playlist } from '../lib/types';
+  import { t } from '../lib/i18n';
 
   interface Props {
     trackId: number;
@@ -71,11 +72,11 @@
     {#if success}
       <div class="success-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><polyline points="20 6 9 17 4 12" /></svg>
-        <p>Ajoutee a <strong>{success}</strong></p>
+        <p>{@html $t('playlist.addedTo').replace('{name}', success)}</p>
       </div>
     {:else}
       <div class="modal-header">
-        <h3>Ajouter a une playlist</h3>
+        <h3>{$t('playlist.addToPlaylist')}</h3>
         <button class="close-btn" onclick={onClose}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
@@ -97,7 +98,7 @@
                 </div>
                 <div class="pl-info">
                   <span class="pl-name">{pl.name}</span>
-                  <span class="pl-count">{pl.track_count ?? 0} pistes</span>
+                  <span class="pl-count">{pl.track_count ?? 0} {$t('common.tracks')}</span>
                 </div>
                 {#if adding === pl.id}
                   <div class="spinner small"></div>
@@ -107,7 +108,7 @@
           </div>
 
           {#if playlists.length === 0}
-            <p class="empty-hint">Aucune playlist existante</p>
+            <p class="empty-hint">{$t('playlist.noExisting')}</p>
           {/if}
         {/if}
       </div>
@@ -117,11 +118,11 @@
           <div class="create-row">
             <input
               type="text"
-              placeholder="Nom de la playlist..."
+              placeholder={$t('playlist.namePlaceholder')}
               bind:value={newName}
               onkeydown={(e) => e.key === 'Enter' && createAndAdd()}
             />
-            <button class="create-confirm" onclick={createAndAdd} disabled={!newName.trim()}>Creer</button>
+            <button class="create-confirm" onclick={createAndAdd} disabled={!newName.trim()}>{$t('common.create')}</button>
             <button class="create-cancel" onclick={() => { showCreate = false; newName = ''; }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
@@ -129,7 +130,7 @@
         {:else}
           <button class="new-playlist-btn" onclick={() => showCreate = true}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-            Nouvelle playlist
+            {$t('playlist.newPlaylist')}
           </button>
         {/if}
       </div>
