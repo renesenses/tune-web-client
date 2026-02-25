@@ -1,13 +1,14 @@
 <script lang="ts">
-  import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, type LibraryTab } from '../lib/stores/library';
+  import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, type LibraryTab } from '../lib/stores/library';
   import { currentZone } from '../lib/stores/zones';
   import * as api from '../lib/api';
-  import { formatTime } from '../lib/utils';
+  import { formatTime, formatDuration } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import type { Album, Artist } from '../lib/types';
 
   let zone = $derived($currentZone);
   let searchQuery = $state('');
+  let selectedGenre = $state<string | null>(null);
 
   let filteredAlbums = $derived(
     searchQuery.trim()
@@ -33,10 +34,31 @@
       : $tracks
   );
 
+  let genreAlbums = $derived(
+    selectedGenre ? $albums.filter(a => a.genre === selectedGenre) : []
+  );
+
+  let albumTotalDuration = $derived(
+    $albumTracks.reduce((sum, t) => sum + (t.duration_ms ?? 0), 0)
+  );
+
+  let tracksByDisc = $derived.by(() => {
+    const map = new Map<number, typeof $albumTracks>();
+    for (const t of $albumTracks) {
+      const disc = t.disc_number ?? 1;
+      if (!map.has(disc)) map.set(disc, []);
+      map.get(disc)!.push(t);
+    }
+    return [...map.entries()].sort((a, b) => a[0] - b[0]);
+  });
+
+  let hasMultipleDiscs = $derived(tracksByDisc.length > 1);
+
   function switchTab(tab: LibraryTab) {
     libraryTab.set(tab);
     selectedAlbum.set(null);
     selectedArtist.set(null);
+    selectedGenre = null;
     searchQuery = '';
   }
 
@@ -141,6 +163,7 @@
     if (tab === 'albums' && $albums.length === 0) loadAlbums();
     if (tab === 'artists' && $artists.length === 0) loadArtists();
     if (tab === 'tracks' && $tracks.length === 0) loadTracks();
+    if (tab === 'genres' && $albums.length === 0) loadAlbums();
   });
 </script>
 
@@ -155,17 +178,28 @@
     </div>
     <div class="album-detail">
       <div class="album-detail-header">
-        <AlbumArt coverPath={$selectedAlbum.cover_path} size={200} alt={$selectedAlbum.title} />
+        <AlbumArt coverPath={$selectedAlbum.cover_path} size={320} alt={$selectedAlbum.title} />
         <div class="album-detail-info">
           <h2>{$selectedAlbum.title}</h2>
           {#if $selectedAlbum.artist_name}
             <p class="detail-artist">{$selectedAlbum.artist_name}</p>
           {/if}
-          {#if $selectedAlbum.year}
-            <p class="detail-year">{$selectedAlbum.year}</p>
-          {/if}
-          {#if $selectedAlbum.genre}
-            <p class="detail-genre">{$selectedAlbum.genre}</p>
+          <div class="detail-meta">
+            {#if $selectedAlbum.year}
+              <span>{$selectedAlbum.year}</span>
+            {/if}
+            {#if $selectedAlbum.genre}
+              <span>{$selectedAlbum.genre}</span>
+            {/if}
+            {#if $albumTracks.length > 0}
+              <span>{$albumTracks.length} pistes</span>
+            {/if}
+            {#if albumTotalDuration > 0}
+              <span>{formatDuration(albumTotalDuration)}</span>
+            {/if}
+          </div>
+          {#if $selectedAlbum.source && $selectedAlbum.source !== 'local'}
+            <span class="source-badge">{$selectedAlbum.source}</span>
           {/if}
           <button class="play-all-btn" onclick={() => $selectedAlbum?.id && playAlbum($selectedAlbum.id)}>
             <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
@@ -173,23 +207,46 @@
           </button>
         </div>
       </div>
-      <div class="track-list">
-        {#each $albumTracks as t, index}
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="track-item" onclick={() => t.id && playTrack(t.id)}>
-            <span class="track-num">{t.track_number ?? index + 1}</span>
-            <div class="track-info">
-              <span class="track-title truncate">{t.title}</span>
-              {#if t.artist_name}
-                <span class="track-artist truncate">{t.artist_name}</span>
-              {/if}
-            </div>
-            <span class="track-duration">{formatTime(t.duration_ms)}</span>
-            <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title="Ajouter a la file">+</button>
+      {#if hasMultipleDiscs}
+        {#each tracksByDisc as [discNum, discTracks]}
+          <div class="disc-header">Disque {discNum}</div>
+          <div class="track-list">
+            {#each discTracks as t, index}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="track-item" onclick={() => t.id && playTrack(t.id)}>
+                <span class="track-num">{t.track_number ?? index + 1}</span>
+                <div class="track-info">
+                  <span class="track-title truncate">{t.title}</span>
+                  {#if t.artist_name}
+                    <span class="track-artist truncate">{t.artist_name}</span>
+                  {/if}
+                </div>
+                <span class="track-duration">{formatTime(t.duration_ms)}</span>
+                <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title="Ajouter a la file">+</button>
+              </div>
+            {/each}
           </div>
         {/each}
-      </div>
+      {:else}
+        <div class="track-list">
+          {#each $albumTracks as t, index}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="track-item" onclick={() => t.id && playTrack(t.id)}>
+              <span class="track-num">{t.track_number ?? index + 1}</span>
+              <div class="track-info">
+                <span class="track-title truncate">{t.title}</span>
+                {#if t.artist_name}
+                  <span class="track-artist truncate">{t.artist_name}</span>
+                {/if}
+              </div>
+              <span class="track-duration">{formatTime(t.duration_ms)}</span>
+              <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title="Ajouter a la file">+</button>
+            </div>
+          {/each}
+        </div>
+      {/if}
     </div>
 
   {:else if $selectedArtist}
@@ -236,6 +293,7 @@
           <button class="tab" class:active={$libraryTab === 'albums'} onclick={() => switchTab('albums')}>Albums</button>
           <button class="tab" class:active={$libraryTab === 'artists'} onclick={() => switchTab('artists')}>Artistes</button>
           <button class="tab" class:active={$libraryTab === 'tracks'} onclick={() => switchTab('tracks')}>Pistes</button>
+          <button class="tab" class:active={$libraryTab === 'genres'} onclick={() => switchTab('genres')}>Genres</button>
         </div>
       </div>
     </div>
@@ -301,6 +359,48 @@
           <div class="empty">{searchQuery ? 'Aucun resultat' : 'Aucune piste dans la bibliotheque'}</div>
         {/if}
       </div>
+
+    {:else if $libraryTab === 'genres'}
+      {#if selectedGenre}
+        <!-- Genre filtered albums -->
+        <div class="genre-detail-header">
+          <button class="back-btn" onclick={() => selectedGenre = null}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
+            Genres
+          </button>
+          <h3 class="genre-detail-title">{selectedGenre}</h3>
+          <span class="genre-detail-count">{genreAlbums.length} album{genreAlbums.length > 1 ? 's' : ''}</span>
+        </div>
+        <div class="albums-grid">
+          {#each genreAlbums as album}
+            <button class="album-card" onclick={() => selectAlbumDetail(album)}>
+              <div class="album-card-art">
+                <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+                <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title="Lire l'album">
+                  <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
+                </button>
+              </div>
+              <span class="album-card-title truncate">{album.title}</span>
+              {#if album.artist_name}
+                <span class="album-card-artist truncate">{album.artist_name}</span>
+              {/if}
+            </button>
+          {/each}
+        </div>
+      {:else}
+        <!-- Genre grid -->
+        <div class="genres-grid">
+          {#each $genres as g}
+            <button class="genre-card" onclick={() => selectedGenre = g.name}>
+              <span class="genre-card-name">{g.name}</span>
+              <span class="genre-card-count">{g.count} album{g.count > 1 ? 's' : ''}</span>
+            </button>
+          {/each}
+          {#if $genres.length === 0}
+            <div class="empty">Aucun genre dans la bibliotheque</div>
+          {/if}
+        </div>
+      {/if}
     {/if}
   {/if}
 </div>
@@ -473,10 +573,52 @@
     color: var(--tune-text-secondary);
   }
 
-  .detail-year, .detail-genre {
+  .detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs) var(--space-md);
     font-family: var(--font-body);
     font-size: 14px;
     color: var(--tune-text-muted);
+  }
+
+  .detail-meta span:not(:last-child)::after {
+    content: '·';
+    margin-left: var(--space-md);
+    color: var(--tune-text-muted);
+    opacity: 0.5;
+  }
+
+  .source-badge {
+    display: inline-block;
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    background: rgba(87, 198, 185, 0.15);
+    color: var(--tune-accent);
+    margin-top: var(--space-xs);
+    width: fit-content;
+  }
+
+  .disc-header {
+    font-family: var(--font-label);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+    padding: var(--space-md) 28px var(--space-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-top: 1px solid var(--tune-border);
+    margin-top: var(--space-sm);
+  }
+
+  .disc-header:first-of-type {
+    border-top: none;
+    margin-top: 0;
   }
 
   .play-all-btn {
@@ -724,6 +866,65 @@
 
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  /* Genres grid */
+  .genres-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-md);
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .genre-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-lg);
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.12s ease-out;
+    color: var(--tune-text);
+  }
+
+  .genre-card:hover {
+    border-color: var(--tune-accent);
+    background: var(--tune-surface-hover);
+  }
+
+  .genre-card-name {
+    font-family: var(--font-label);
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .genre-card-count {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+  }
+
+  .genre-detail-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+  }
+
+  .genre-detail-title {
+    font-family: var(--font-label);
+    font-size: 22px;
+    font-weight: 600;
+  }
+
+  .genre-detail-count {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text-muted);
   }
 
   .empty {
