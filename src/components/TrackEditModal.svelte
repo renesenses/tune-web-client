@@ -10,10 +10,15 @@
   }
   let { track, onClose, onSaved }: Props = $props();
 
+  // svelte-ignore state_referenced_locally
   let title = $state(track.title);
+  // svelte-ignore state_referenced_locally
   let trackNumber = $state<number | null>(track.track_number ?? null);
+  // svelte-ignore state_referenced_locally
   let discNumber = $state<number | null>(track.disc_number ?? null);
+  // svelte-ignore state_referenced_locally
   let artistId = $state<number | null>(track.artist_id ?? null);
+  // svelte-ignore state_referenced_locally
   let albumId = $state<number | null>(track.album_id ?? null);
 
   let artists = $state<Artist[]>([]);
@@ -82,7 +87,7 @@
     {:else}
       <div class="modal-header">
         <h3>{$t('metadata.editTrack')}</h3>
-        <button class="close-btn" onclick={onClose}>
+        <button class="close-btn" onclick={onClose} aria-label="Close">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>
