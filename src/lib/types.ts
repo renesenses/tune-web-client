@@ -119,6 +119,11 @@ export interface StreamingServiceStatus {
   authenticated: boolean;
 }
 
+export interface StreamingAuthResponse {
+  authenticated: boolean;
+  verification_url?: string | null;
+}
+
 export interface SystemHealth {
   status: string;
   components: Record<string, boolean>;

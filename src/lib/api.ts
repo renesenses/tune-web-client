@@ -13,6 +13,7 @@ import type {
   SystemHealth,
   SystemStats,
   StreamingServiceStatus,
+  StreamingAuthResponse,
   ZoneGroupResponse,
   LocalAudioDevice,
   Source,
@@ -57,6 +58,13 @@ export function createZone(name: string, outputType: OutputType = 'local', outpu
   return fetchJSON<Zone>(`${BASE}/zones`, {
     method: 'POST',
     body: JSON.stringify({ name, output_type: outputType, output_device_id: outputDeviceId }),
+  });
+}
+
+export function renameZone(id: number, name: string) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name }),
   });
 }
 
@@ -301,6 +309,17 @@ export function getScanStatus() {
 
 export function getStreamingServices() {
   return fetchJSON<Record<string, StreamingServiceStatus>>(`${BASE}/streaming/services`);
+}
+
+export function authenticateStreaming(service: string, body?: { username?: string; password?: string }) {
+  return fetchJSON<StreamingAuthResponse>(`${BASE}/streaming/${encodeURIComponent(service)}/auth`, {
+    method: 'POST',
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
+export function getStreamingServiceStatus(service: string) {
+  return fetchJSON<StreamingServiceStatus>(`${BASE}/streaming/${encodeURIComponent(service)}/status`);
 }
 
 export function rescanArtwork() {

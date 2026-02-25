@@ -9,9 +9,10 @@
     onClose: () => void;
     onDelete: (id: number) => void;
     onGroupChanged: () => void;
+    onRenamed: (id: number, name: string) => void;
   }
 
-  let { zone, allZones, groups, onClose, onDelete, onGroupChanged }: Props = $props();
+  let { zone, allZones, groups, onClose, onDelete, onGroupChanged, onRenamed }: Props = $props();
 
   // Find the group this zone belongs to (if any)
   let currentGroup = $derived(groups.find(g => zone.id !== null && g.zone_ids.includes(zone.id)));
@@ -33,9 +34,30 @@
     selectedZoneIds = ids;
   });
 
+  let editName = $state(zone.name);
+  let renaming = $state(false);
+
   let confirmDelete = $state(false);
   let loading = $state(false);
   let error = $state('');
+
+  async function handleRename() {
+    if (zone.id === null || !editName.trim() || editName.trim() === zone.name) return;
+    renaming = true;
+    error = '';
+    try {
+      await api.renameZone(zone.id, editName.trim());
+      onRenamed(zone.id, editName.trim());
+    } catch (e: any) {
+      error = e.message || 'Erreur lors du renommage';
+    } finally {
+      renaming = false;
+    }
+  }
+
+  function handleNameKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter') handleRename();
+  }
 
   function toggleZone(zoneId: number) {
     const next = new Set(selectedZoneIds);
@@ -121,7 +143,19 @@
   <div class="modal-panel">
     <div class="modal-header">
       <div class="modal-title-row">
-        <h2 class="modal-title">{zone.name}</h2>
+        <input
+          class="rename-input"
+          type="text"
+          bind:value={editName}
+          onkeydown={handleNameKeydown}
+          onblur={handleRename}
+          disabled={renaming}
+        />
+        {#if editName.trim() && editName.trim() !== zone.name}
+          <button class="btn btn-primary btn-sm" onclick={handleRename} disabled={renaming}>
+            {renaming ? '...' : 'Renommer'}
+          </button>
+        {/if}
         {#if zone.output_type && zone.output_type !== 'local'}
           <span class="type-badge">{deviceTypeLabel(zone)}</span>
         {/if}
@@ -239,15 +273,28 @@
     min-width: 0;
   }
 
-  .modal-title {
+  .rename-input {
     font-family: var(--font-label);
     font-size: 16px;
     font-weight: 600;
     color: var(--tune-text);
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    padding: 2px 8px;
+    min-width: 0;
+    flex: 1;
+    outline: none;
+  }
+
+  .rename-input:focus {
+    border-color: var(--tune-accent);
+  }
+
+  .btn-sm {
+    padding: 3px 10px;
+    font-size: 11px;
+    flex-shrink: 0;
   }
 
   .type-badge {

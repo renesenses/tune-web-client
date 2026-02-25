@@ -3,7 +3,7 @@
   import { devices, unboundDevices } from '../lib/stores/devices';
   import { connectionState } from '../lib/stores/connection';
   import { activeView, type View } from '../lib/stores/navigation';
-  import { activeStreamingService } from '../lib/stores/streaming';
+  import { activeStreamingService, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { preferences } from '../lib/stores/preferences';
   import * as api from '../lib/api';
   import type { DiscoveredDevice, LocalAudioDevice, OutputType, Zone, ZoneGroupResponse, StreamingServiceStatus } from '../lib/types';
@@ -45,16 +45,14 @@
     }
   }
 
-  let streamingServices = $state<Record<string, StreamingServiceStatus>>({});
-
   async function fetchStreamingServices() {
     try {
-      streamingServices = await api.getStreamingServices();
+      streamingServicesStore.set(await api.getStreamingServices());
     } catch { /* ignore */ }
   }
 
   let activeServices = $derived(
-    Object.entries(streamingServices)
+    Object.entries($streamingServicesStore)
       .filter(([, s]) => s.enabled && s.authenticated)
       .map(([name]) => name)
   );
@@ -98,6 +96,13 @@
       configZone = null;
     } catch (e) {
       console.error('Delete zone error:', e);
+    }
+  }
+
+  function handleZoneRenamed(id: number, name: string) {
+    zones.update((zs) => zs.map((z) => z.id === id ? { ...z, name } : z));
+    if (configZone && configZone.id === id) {
+      configZone = { ...configZone, name };
     }
   }
 
@@ -391,6 +396,7 @@
     onClose={() => configZone = null}
     onDelete={handleDeleteZone}
     onGroupChanged={handleGroupChanged}
+    onRenamed={handleZoneRenamed}
   />
 {/if}
 

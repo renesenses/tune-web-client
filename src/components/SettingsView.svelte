@@ -4,16 +4,104 @@
   import { zones } from '../lib/stores/zones';
   import { devices } from '../lib/stores/devices';
   import { preferences, applyTheme, type ThemeMode, type VolumeDisplay, type StartupView } from '../lib/stores/preferences';
-  import type { SystemHealth, SystemStats, StreamingServiceStatus, LocalAudioDevice } from '../lib/types';
+  import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
+  import type { SystemHealth, SystemStats, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice } from '../lib/types';
 
   let health: SystemHealth | null = $state(null);
   let stats: SystemStats | null = $state(null);
-  let streamingServices: Record<string, StreamingServiceStatus> = $state({});
   let scanning = $state(false);
   let loading = $state(true);
   let artworkScanning = $state(false);
   let audioDevices = $state<LocalAudioDevice[]>([]);
   let artworkProgress: { current: number; total: number; found: number } | null = $state(null);
+
+  // Streaming auth state
+  let qobuzUsername = $state('');
+  let qobuzPassword = $state('');
+  let qobuzAuthLoading = $state(false);
+  let qobuzAuthError: string | null = $state(null);
+
+  let tidalAuthLoading = $state(false);
+  let tidalVerificationUrl: string | null = $state(null);
+  let tidalPollingInterval: ReturnType<typeof setInterval> | null = $state(null);
+  let tidalAuthError: string | null = $state(null);
+
+  async function handleQobuzAuth() {
+    qobuzAuthLoading = true;
+    qobuzAuthError = null;
+    try {
+      const res = await api.authenticateStreaming('qobuz', {
+        username: qobuzUsername,
+        password: qobuzPassword,
+      });
+      if (res.authenticated) {
+        $streamingServicesStore = {
+          ...$streamingServicesStore,
+          qobuz: { ...$streamingServicesStore['qobuz'], authenticated: true },
+        };
+        qobuzPassword = '';
+      } else {
+        qobuzAuthError = 'Identifiants incorrects';
+      }
+    } catch (e) {
+      qobuzAuthError = 'Erreur de connexion';
+    }
+    qobuzAuthLoading = false;
+  }
+
+  async function handleTidalAuth() {
+    tidalAuthLoading = true;
+    tidalAuthError = null;
+    tidalVerificationUrl = null;
+    try {
+      const res = await api.authenticateStreaming('tidal');
+      if (res.authenticated) {
+        $streamingServicesStore = {
+          ...$streamingServicesStore,
+          tidal: { ...$streamingServicesStore['tidal'], authenticated: true },
+        };
+        tidalAuthLoading = false;
+        return;
+      }
+      if (res.verification_url) {
+        tidalVerificationUrl = res.verification_url;
+        startTidalPolling();
+      } else {
+        tidalAuthError = 'Erreur: pas de lien de verification';
+        tidalAuthLoading = false;
+      }
+    } catch (e) {
+      tidalAuthError = 'Erreur de connexion';
+      tidalAuthLoading = false;
+    }
+  }
+
+  function startTidalPolling() {
+    stopTidalPolling();
+    tidalPollingInterval = setInterval(async () => {
+      try {
+        const status = await api.getStreamingServiceStatus('tidal');
+        if (status.authenticated) {
+          stopTidalPolling();
+          tidalVerificationUrl = null;
+          tidalAuthLoading = false;
+          $streamingServicesStore = {
+            ...$streamingServicesStore,
+            tidal: { ...$streamingServicesStore['tidal'], authenticated: true },
+          };
+        }
+      } catch {
+        // ignore polling errors
+      }
+    }, 3000);
+  }
+
+  function stopTidalPolling() {
+    if (tidalPollingInterval) {
+      clearInterval(tidalPollingInterval);
+      tidalPollingInterval = null;
+    }
+  }
 
   async function loadAll() {
     loading = true;
@@ -26,7 +114,7 @@
       ]);
       health = h;
       stats = s;
-      streamingServices = ss as Record<string, StreamingServiceStatus>;
+      $streamingServicesStore = ss as Record<string, StreamingServiceStatus>;
       scanning = sc.scanning;
     } catch (e) {
       console.error('Settings load error:', e);
@@ -97,7 +185,10 @@
         artworkProgress = null;
       }
     });
-    return unsub;
+    return () => {
+      unsub();
+      stopTidalPolling();
+    };
   });
 </script>
 
@@ -284,23 +375,86 @@
     <!-- Streaming services -->
     <section class="settings-section">
       <h3>Services de streaming</h3>
-      {#if Object.keys(streamingServices).length === 0}
+      {#if Object.keys($streamingServicesStore).length === 0}
         <p class="muted">Aucun service configure</p>
       {:else}
         <div class="service-list">
-          {#each Object.entries(streamingServices) as [name, status]}
-            <div class="service-item">
-              <span class="service-name">{name.charAt(0).toUpperCase() + name.slice(1)}</span>
-              <div class="service-badges">
-                <span class="badge" class:enabled={status.enabled} class:disabled={!status.enabled}>
-                  {status.enabled ? 'Active' : 'Desactive'}
-                </span>
-                {#if status.enabled}
-                  <span class="badge" class:auth={status.authenticated} class:noauth={!status.authenticated}>
-                    {status.authenticated ? 'Connecte' : 'Non connecte'}
-                  </span>
+          {#each Object.entries($streamingServicesStore) as [name, status]}
+            <div class="service-card">
+              <div class="service-header">
+                <span class="service-name">{name.charAt(0).toUpperCase() + name.slice(1)}</span>
+                {#if status.authenticated}
+                  <span class="badge auth">Connecte</span>
+                {:else}
+                  <span class="badge noauth">Non connecte</span>
                 {/if}
               </div>
+
+              {#if status.enabled && !status.authenticated}
+                {#if name === 'qobuz'}
+                  <div class="service-auth-form">
+                    <input
+                      type="email"
+                      class="auth-input"
+                      placeholder="Email"
+                      bind:value={qobuzUsername}
+                      disabled={qobuzAuthLoading}
+                    />
+                    <input
+                      type="password"
+                      class="auth-input"
+                      placeholder="Mot de passe"
+                      bind:value={qobuzPassword}
+                      disabled={qobuzAuthLoading}
+                      onkeydown={(e) => { if (e.key === 'Enter') handleQobuzAuth(); }}
+                    />
+                    {#if qobuzAuthError}
+                      <p class="auth-error">{qobuzAuthError}</p>
+                    {/if}
+                    <button
+                      class="scan-btn"
+                      onclick={handleQobuzAuth}
+                      disabled={qobuzAuthLoading || !qobuzUsername || !qobuzPassword}
+                    >
+                      {#if qobuzAuthLoading}
+                        <div class="spinner small"></div>
+                        Connexion...
+                      {:else}
+                        Connexion
+                      {/if}
+                    </button>
+                  </div>
+                {:else if name === 'tidal'}
+                  <div class="service-auth-form">
+                    {#if tidalVerificationUrl}
+                      <p class="auth-hint">Ouvrez ce lien pour vous connecter :</p>
+                      <a href={tidalVerificationUrl} target="_blank" rel="noopener noreferrer" class="auth-link">
+                        {tidalVerificationUrl}
+                      </a>
+                      <div class="auth-waiting">
+                        <div class="spinner small"></div>
+                        En attente de confirmation...
+                      </div>
+                    {:else}
+                      {#if tidalAuthError}
+                        <p class="auth-error">{tidalAuthError}</p>
+                      {/if}
+                      <button
+                        class="scan-btn"
+                        onclick={handleTidalAuth}
+                        disabled={tidalAuthLoading}
+                      >
+                        {#if tidalAuthLoading}
+                          <div class="spinner small"></div>
+                          Connexion...
+                        {:else}
+                          Connecter a Tidal
+                        {/if}
+                      </button>
+                    {/if}
+                  </div>
+                {/if}
+              {/if}
             </div>
           {/each}
         </div>
@@ -452,14 +606,19 @@
   .service-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
+    gap: var(--space-md);
   }
 
-  .service-item {
+  .service-card {
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+  }
+
+  .service-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-sm) 0;
   }
 
   .service-name {
@@ -468,9 +627,61 @@
     font-weight: 700;
   }
 
-  .service-badges {
+  .service-auth-form {
     display: flex;
+    flex-direction: column;
     gap: var(--space-sm);
+    margin-top: var(--space-md);
+  }
+
+  .auth-input {
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-md);
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.12s ease-out;
+  }
+
+  .auth-input:focus {
+    border-color: var(--tune-accent);
+  }
+
+  .auth-input:disabled {
+    opacity: 0.6;
+  }
+
+  .auth-error {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-warning);
+    margin: 0;
+  }
+
+  .auth-hint {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-secondary);
+    margin: 0;
+  }
+
+  .auth-link {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-accent);
+    word-break: break-all;
+  }
+
+  .auth-waiting {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
   }
 
   .badge {
