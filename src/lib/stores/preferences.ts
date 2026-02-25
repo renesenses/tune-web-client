@@ -9,6 +9,7 @@ export interface Preferences {
   volumeDisplay: VolumeDisplay;
   startupView: StartupView;
   defaultZoneId: number | null;
+  hiddenDeviceIds: string[];
 }
 
 const STORAGE_KEY = 'tune-preferences';
@@ -18,6 +19,7 @@ const defaults: Preferences = {
   volumeDisplay: 'percent',
   startupView: 'home',
   defaultZoneId: null,
+  hiddenDeviceIds: [],
 };
 
 function loadPrefs(): Preferences {

@@ -4,6 +4,7 @@
   import { connectionState } from '../lib/stores/connection';
   import { activeView, type View } from '../lib/stores/navigation';
   import { activeStreamingService } from '../lib/stores/streaming';
+  import { preferences } from '../lib/stores/preferences';
   import * as api from '../lib/api';
   import type { DiscoveredDevice, LocalAudioDevice, OutputType, Zone, ZoneGroupResponse, StreamingServiceStatus } from '../lib/types';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
@@ -20,6 +21,13 @@
   let configZone = $state<Zone | null>(null);
   let zoneGroups = $state<ZoneGroupResponse[]>([]);
   let audioDevices = $state<LocalAudioDevice[]>([]);
+
+  let visibleAudioDevices = $derived(
+    audioDevices.filter(d => !$preferences.hiddenDeviceIds.includes(`audio:${d.id}`))
+  );
+  let visibleNetDevices = $derived(
+    $devices.filter(d => !$preferences.hiddenDeviceIds.includes(`net:${d.id}`))
+  );
 
   async function fetchGroups() {
     try {
@@ -332,7 +340,7 @@
   <div class="devices-section">
     <span class="section-label">APPAREILS</span>
     <div class="devices-list">
-      {#each audioDevices as audioDevice}
+      {#each visibleAudioDevices as audioDevice}
         <div class="device-item">
           <span class="device-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" /></svg>
@@ -344,7 +352,7 @@
           </button>
         </div>
       {/each}
-      {#each $devices as device}
+      {#each visibleNetDevices as device}
         <div class="device-item" class:unavailable={!device.available}>
           <span class="device-icon">
             {#if device.type === 'airplay'}
@@ -366,7 +374,7 @@
           {/if}
         </div>
       {/each}
-      {#if audioDevices.length === 0 && $devices.length === 0}
+      {#if visibleAudioDevices.length === 0 && visibleNetDevices.length === 0}
         <div class="empty-state">Recherche d'appareils...</div>
       {/if}
     </div>

@@ -2,8 +2,9 @@
   import * as api from '../lib/api';
   import { tuneWS } from '../lib/websocket';
   import { zones } from '../lib/stores/zones';
+  import { devices } from '../lib/stores/devices';
   import { preferences, applyTheme, type ThemeMode, type VolumeDisplay, type StartupView } from '../lib/stores/preferences';
-  import type { SystemHealth, SystemStats, StreamingServiceStatus } from '../lib/types';
+  import type { SystemHealth, SystemStats, StreamingServiceStatus, LocalAudioDevice } from '../lib/types';
 
   let health: SystemHealth | null = $state(null);
   let stats: SystemStats | null = $state(null);
@@ -11,6 +12,7 @@
   let scanning = $state(false);
   let loading = $state(true);
   let artworkScanning = $state(false);
+  let audioDevices = $state<LocalAudioDevice[]>([]);
   let artworkProgress: { current: number; total: number; found: number } | null = $state(null);
 
   async function loadAll() {
@@ -30,6 +32,34 @@
       console.error('Settings load error:', e);
     }
     loading = false;
+  }
+
+  async function fetchAudioDevices() {
+    try {
+      audioDevices = await api.getAudioDevices();
+    } catch (e) {
+      console.error('Fetch audio devices error:', e);
+    }
+  }
+
+  function toggleDevice(prefixedId: string) {
+    preferences.update((p) => {
+      const ids = p.hiddenDeviceIds;
+      const hidden = ids.includes(prefixedId);
+      return { ...p, hiddenDeviceIds: hidden ? ids.filter(id => id !== prefixedId) : [...ids, prefixedId] };
+    });
+  }
+
+  function showAllDevices() {
+    preferences.update((p) => ({ ...p, hiddenDeviceIds: [] }));
+  }
+
+  function hideAllDevices() {
+    const allIds = [
+      ...audioDevices.map(d => `audio:${d.id}`),
+      ...$devices.map(d => `net:${d.id}`),
+    ];
+    preferences.update((p) => ({ ...p, hiddenDeviceIds: allIds }));
   }
 
   async function handleScan() {
@@ -58,6 +88,7 @@
 
   $effect(() => {
     loadAll();
+    fetchAudioDevices();
     const unsub = tuneWS.onEvent((event) => {
       if (event.type === 'library.artwork.progress') {
         artworkProgress = event.data;
@@ -154,6 +185,44 @@
             Rechercher les covers manquantes
           {/if}
         </button>
+      </div>
+    </section>
+
+    <!-- Device visibility -->
+    <section class="settings-section">
+      <h3>Appareils</h3>
+      <div class="devices-actions">
+        <button class="scan-btn small" onclick={showAllDevices}>Tout afficher</button>
+        <button class="scan-btn small" onclick={hideAllDevices}>Tout masquer</button>
+      </div>
+      <div class="device-toggle-list">
+        {#each audioDevices as device}
+          {@const prefId = `audio:${device.id}`}
+          <label class="device-toggle-item">
+            <input
+              type="checkbox"
+              checked={!$preferences.hiddenDeviceIds.includes(prefId)}
+              onchange={() => toggleDevice(prefId)}
+            />
+            <span class="device-toggle-name">{device.name}</span>
+            <span class="device-toggle-tag">USB</span>
+          </label>
+        {/each}
+        {#each $devices as device}
+          {@const prefId = `net:${device.id}`}
+          <label class="device-toggle-item">
+            <input
+              type="checkbox"
+              checked={!$preferences.hiddenDeviceIds.includes(prefId)}
+              onchange={() => toggleDevice(prefId)}
+            />
+            <span class="device-toggle-name">{device.name}</span>
+            <span class="device-toggle-tag">{device.type === 'airplay' ? 'AirPlay' : device.type === 'dlna' ? 'DLNA' : device.type}</span>
+          </label>
+        {/each}
+        {#if audioDevices.length === 0 && $devices.length === 0}
+          <p class="muted">Aucun appareil detecte</p>
+        {/if}
       </div>
     </section>
 
@@ -489,6 +558,66 @@
 
   .pref-select:focus {
     border-color: var(--tune-accent);
+  }
+
+  .devices-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+  }
+
+  .scan-btn.small {
+    padding: var(--space-xs) var(--space-md);
+    font-size: 12px;
+  }
+
+  .device-toggle-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .device-toggle-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) 0;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text);
+    cursor: pointer;
+  }
+
+  .device-toggle-item:hover {
+    color: var(--tune-accent);
+  }
+
+  .device-toggle-item input[type="checkbox"] {
+    accent-color: var(--tune-accent);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+
+  .device-toggle-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .device-toggle-tag {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tune-text-muted);
+    background: var(--tune-bg);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
   }
 
   @keyframes spin {

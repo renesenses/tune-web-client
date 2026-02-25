@@ -1,5 +1,7 @@
 <script lang="ts">
   import { currentZone } from '../lib/stores/zones';
+  import { activeView } from '../lib/stores/navigation';
+  import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading } from '../lib/stores/library';
   import * as api from '../lib/api';
   import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
@@ -38,6 +40,22 @@
     } catch (e) {
       console.error('Play album error:', e);
     }
+  }
+
+  async function selectArtist(artist: Artist) {
+    if (!artist.id) return;
+    selectedArtist.set(artist);
+    selectedAlbum.set(null);
+    libraryTab.set('artists');
+    libraryLoading.set(true);
+    activeView.set('library');
+    try {
+      const result = await api.getArtistAlbums(artist.id);
+      artistAlbums.set(result);
+    } catch (e) {
+      console.error('Load artist albums error:', e);
+    }
+    libraryLoading.set(false);
   }
 
   function allSources(results: FederatedSearchResult): { name: string; data: { tracks: Track[]; albums: Album[]; artists: Artist[] } }[] {
@@ -117,10 +135,10 @@
             <h4 class="subsection-title">Artistes</h4>
             <div class="artist-list">
               {#each source.data.artists as artist}
-                <div class="artist-chip">
+                <button class="artist-chip" onclick={() => selectArtist(artist)}>
                   <div class="artist-avatar">{artist.name.charAt(0).toUpperCase()}</div>
                   <span>{artist.name}</span>
-                </div>
+                </button>
               {/each}
             </div>
           {/if}
@@ -325,10 +343,17 @@
     gap: var(--space-sm);
     padding: var(--space-xs) var(--space-md);
     background: var(--tune-grey2);
+    border: none;
     border-radius: var(--radius-xl);
     font-family: var(--font-body);
     font-size: 13px;
     color: var(--tune-text);
+    cursor: pointer;
+    transition: background 0.12s ease-out;
+  }
+
+  .artist-chip:hover {
+    background: var(--tune-surface-hover);
   }
 
   .artist-avatar {
