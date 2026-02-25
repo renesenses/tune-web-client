@@ -1,6 +1,7 @@
 <script lang="ts">
   import { currentZone } from '../lib/stores/zones';
   import * as api from '../lib/api';
+  import { formatTime } from '../lib/utils';
 
   interface Props {
     positionMs: number;
@@ -20,14 +21,6 @@
       dragPositionMs = positionMs;
     }
   });
-
-  function formatTime(ms: number): string {
-    if (!ms || ms < 0) return '0:00';
-    const totalSeconds = Math.floor(ms / 1000);
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  }
 
   function handleClick(e: MouseEvent) {
     if (!enabled || !durationMs || !zone?.id) return;

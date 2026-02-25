@@ -2,6 +2,7 @@
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, type LibraryTab } from '../lib/stores/library';
   import { currentZone } from '../lib/stores/zones';
   import * as api from '../lib/api';
+  import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import type { Album, Artist } from '../lib/types';
 
@@ -134,14 +135,6 @@
     }
   }
 
-  function formatTime(ms: number | undefined): string {
-    if (!ms || ms < 0) return '';
-    const totalSeconds = Math.floor(ms / 1000);
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  }
-
   // Auto-load on tab switch
   $effect(() => {
     const tab = $libraryTab;
@@ -211,7 +204,12 @@
     <div class="albums-grid">
       {#each $artistAlbums as album}
         <button class="album-card" onclick={() => selectAlbumDetail(album)}>
-          <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+          <div class="album-card-art">
+            <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+            <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title="Lire l'album">
+              <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
+            </button>
+          </div>
           <span class="album-card-title truncate">{album.title}</span>
           {#if album.year}
             <span class="album-card-year">{album.year}</span>
@@ -251,7 +249,12 @@
       <div class="albums-grid">
         {#each filteredAlbums as album}
           <button class="album-card" onclick={() => selectAlbumDetail(album)}>
-            <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+            <div class="album-card-art">
+              <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+              <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title="Lire l'album">
+                <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
+              </button>
+            </div>
             <span class="album-card-title truncate">{album.title}</span>
             {#if album.artist_name}
               <span class="album-card-artist truncate">{album.artist_name}</span>
@@ -520,7 +523,31 @@
   }
 
   .album-card:hover {
-    opacity: 0.85;
+    opacity: 1;
+  }
+
+  .album-card-art {
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+    border: none;
+    cursor: pointer;
+    border-radius: var(--radius-lg);
+  }
+
+  .album-card-art:hover .play-overlay {
+    opacity: 1;
   }
 
   .album-card-title {

@@ -3,6 +3,7 @@
   import { currentZone } from '../lib/stores/zones';
   import { currentTrack } from '../lib/stores/nowPlaying';
   import * as api from '../lib/api';
+  import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
 
   let zone = $derived($currentZone);
@@ -19,14 +20,6 @@
     } catch (e) {
       console.error('Jump in queue error:', e);
     }
-  }
-
-  function formatTime(ms: number | undefined): string {
-    if (!ms || ms < 0) return '';
-    const totalSeconds = Math.floor(ms / 1000);
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
   }
 </script>
 

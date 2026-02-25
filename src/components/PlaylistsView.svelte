@@ -1,6 +1,7 @@
 <script lang="ts">
   import { currentZone } from '../lib/stores/zones';
   import * as api from '../lib/api';
+  import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import type { Playlist, Track } from '../lib/types';
 
@@ -92,14 +93,6 @@
     } catch (e) {
       console.error('Remove track error:', e);
     }
-  }
-
-  function formatTime(ms: number | undefined): string {
-    if (!ms || ms < 0) return '';
-    const totalSeconds = Math.floor(ms / 1000);
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
   }
 
   $effect(() => {

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { currentZone } from '../lib/stores/zones';
   import * as api from '../lib/api';
+  import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import type { FederatedSearchResult, Track, Album, Artist } from '../lib/types';
 
@@ -37,14 +38,6 @@
     } catch (e) {
       console.error('Play album error:', e);
     }
-  }
-
-  function formatTime(ms: number | undefined): string {
-    if (!ms || ms < 0) return '';
-    const totalSeconds = Math.floor(ms / 1000);
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
   }
 
   function allSources(results: FederatedSearchResult): { name: string; data: { tracks: Track[]; albums: Album[]; artists: Artist[] } }[] {
