@@ -1,9 +1,7 @@
 import { get } from 'svelte/store';
 import { currentZone } from './stores/zones';
-import { playbackState, seekPositionMs } from './stores/nowPlaying';
+import { playbackState, seekPositionMs, mutedVolume } from './stores/nowPlaying';
 import * as api from './api';
-
-let preMuteVolume: number | null = null;
 
 export function setupKeyboardShortcuts(): () => void {
   function handler(e: KeyboardEvent) {
@@ -62,12 +60,13 @@ export function setupKeyboardShortcuts(): () => void {
       case 'KeyM': {
         if (e.metaKey || e.ctrlKey) break;
         const vol = zone.volume ?? 0.5;
+        const savedMute = get(mutedVolume);
         if (vol > 0) {
-          preMuteVolume = vol;
+          mutedVolume.set(vol);
           api.setVolume(zone.id, 0);
-        } else if (preMuteVolume !== null) {
-          api.setVolume(zone.id, preMuteVolume);
-          preMuteVolume = null;
+        } else if (savedMute !== null) {
+          mutedVolume.set(null);
+          api.setVolume(zone.id, savedMute);
         } else {
           api.setVolume(zone.id, 0.5);
         }

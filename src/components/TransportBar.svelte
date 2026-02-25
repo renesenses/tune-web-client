@@ -1,8 +1,9 @@
 <script lang="ts">
   import { zones, currentZone, currentZoneId } from '../lib/stores/zones';
-  import { currentTrack, playbackState, shuffleEnabled, repeatMode, zoneVolume } from '../lib/stores/nowPlaying';
+  import { currentTrack, playbackState, shuffleEnabled, repeatMode } from '../lib/stores/nowPlaying';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
+  import VolumeControl from './VolumeControl.svelte';
   import type { RepeatMode } from '../lib/types';
 
   let zone = $derived($currentZone);
@@ -42,12 +43,6 @@
     const next = modes[(idx + 1) % modes.length];
     const result = await api.setRepeat(zone.id, next);
     repeatMode.set(result.repeat);
-  }
-
-  async function handleVolume(e: Event) {
-    if (!zone?.id) return;
-    const target = e.target as HTMLInputElement;
-    await api.setVolume(zone.id, Number(target.value));
   }
 </script>
 
@@ -159,23 +154,7 @@
         </div>
       {/if}
     </div>
-    <div class="volume-control">
-      <button class="volume-btn" title="Volume (M pour couper)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-        </svg>
-      </button>
-      <input
-        type="range"
-        class="volume-slider"
-        min="0"
-        max="1"
-        step="0.01"
-        value={$zoneVolume}
-        oninput={handleVolume}
-      />
-      <span class="volume-value">{Math.round($zoneVolume * 100)}</span>
-    </div>
+    <VolumeControl />
   </div>
 </div>
 
@@ -370,71 +349,6 @@
     display: flex;
     align-items: center;
     flex-shrink: 0;
-  }
-
-  .volume-control {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-  }
-
-  .volume-btn {
-    background: none;
-    border: none;
-    color: var(--tune-text-secondary);
-    cursor: pointer;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    transition: color 0.12s ease-out;
-  }
-
-  .volume-btn:hover {
-    color: var(--tune-text);
-  }
-
-  .volume-btn svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  .volume-slider {
-    width: 100px;
-    height: 4px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: var(--tune-border);
-    border-radius: 2px;
-    outline: none;
-  }
-
-  .volume-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--tune-accent);
-    cursor: pointer;
-  }
-
-  .volume-slider::-moz-range-thumb {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--tune-accent);
-    border: none;
-    cursor: pointer;
-  }
-
-  .volume-value {
-    font-family: var(--font-body);
-    font-size: 12px;
-    color: var(--tune-text-secondary);
-    min-width: 24px;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
   }
 
   @media (max-width: 768px) {

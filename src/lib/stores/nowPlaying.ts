@@ -9,6 +9,9 @@ export const seekPositionMs = writable<number>(0);
 export const shuffleEnabled = writable<boolean>(false);
 export const repeatMode = writable<RepeatMode>('off');
 
+// Mute: stores the pre-mute volume (null = not muted)
+export const mutedVolume = writable<number | null>(null);
+
 // Derived from current zone
 export const currentTrack = derived(currentZone, ($zone) => $zone?.current_track ?? null);
 export const playbackState = derived(currentZone, ($zone): PlaybackState => ($zone?.state as PlaybackState) ?? 'stopped');
