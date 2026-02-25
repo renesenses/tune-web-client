@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 
 export type ThemeMode = 'dark' | 'light';
 export type VolumeDisplay = 'percent' | 'dB';
-export type StartupView = 'nowplaying' | 'library' | 'queue' | 'playlists' | 'search' | 'settings';
+export type StartupView = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'search' | 'settings';
 
 export interface Preferences {
   theme: ThemeMode;
@@ -16,7 +16,7 @@ const STORAGE_KEY = 'tune-preferences';
 const defaults: Preferences = {
   theme: 'dark',
   volumeDisplay: 'percent',
-  startupView: 'nowplaying',
+  startupView: 'home',
   defaultZoneId: null,
 };
 

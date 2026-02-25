@@ -1,4 +1,4 @@
 import { writable } from 'svelte/store';
 
-export type View = 'nowplaying' | 'library' | 'queue' | 'playlists' | 'search' | 'settings' | 'history';
-export const activeView = writable<View>('nowplaying');
+export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'search' | 'settings' | 'history';
+export const activeView = writable<View>('home');

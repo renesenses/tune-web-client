@@ -21,6 +21,7 @@
   import PlaylistsView from './components/PlaylistsView.svelte';
   import SettingsView from './components/SettingsView.svelte';
   import HistoryView from './components/HistoryView.svelte';
+  import HomeView from './components/HomeView.svelte';
 
   let scanIndicator = $state(false);
 
@@ -190,7 +191,9 @@
   <Sidebar />
 
   <main class="main-content">
-    {#if $activeView === 'nowplaying'}
+    {#if $activeView === 'home'}
+      <HomeView />
+    {:else if $activeView === 'nowplaying'}
       <NowPlaying />
     {:else if $activeView === 'library'}
       <LibraryView />

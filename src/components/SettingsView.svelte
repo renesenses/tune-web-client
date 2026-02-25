@@ -178,6 +178,7 @@
             const startupView = (e.target as HTMLSelectElement).value as StartupView;
             preferences.update((p) => ({ ...p, startupView }));
           }}>
+          <option value="home">Accueil</option>
           <option value="nowplaying">Lecture en cours</option>
           <option value="library">Bibliotheque</option>
           <option value="queue">File d'attente</option>
