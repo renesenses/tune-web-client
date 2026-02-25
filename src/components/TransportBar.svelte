@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { currentZone } from '../lib/stores/zones';
+  import { zones, currentZone, currentZoneId } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, zoneVolume } from '../lib/stores/nowPlaying';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
@@ -8,6 +8,7 @@
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
   let state = $derived($playbackState);
+  let showZoneDropdown = $state(false);
 
   async function togglePlayPause() {
     if (!zone?.id) return;
@@ -131,6 +132,33 @@
   </div>
 
   <div class="transport-right">
+    <div class="zone-selector">
+      <button class="zone-selector-btn" onclick={() => showZoneDropdown = !showZoneDropdown} title="Changer de zone">
+        <span class="truncate">{zone?.name ?? 'Aucune zone'}</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9" /></svg>
+      </button>
+      {#if showZoneDropdown}
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="zone-dropdown-backdrop" onclick={() => showZoneDropdown = false}></div>
+        <div class="zone-dropdown">
+          {#each $zones as z}
+            <button
+              class="zone-dropdown-item"
+              class:active={z.id === $currentZoneId}
+              onclick={() => { if (z.id !== null) currentZoneId.set(z.id); showZoneDropdown = false; }}
+            >
+              <span class="truncate">{z.name}</span>
+              {#if z.state === 'playing'}
+                <span class="zone-playing-indicator">
+                  <svg viewBox="0 0 10 12" fill="currentColor" width="8" height="10"><polygon points="0,0 10,6 0,12" /></svg>
+                </span>
+              {/if}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
     <div class="volume-control">
       <button class="volume-btn" title="Volume (M pour couper)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -261,6 +289,87 @@
     display: flex;
     justify-content: flex-end;
     align-items: center;
+    gap: var(--space-md);
+  }
+
+  .zone-selector {
+    position: relative;
+  }
+
+  .zone-selector-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-secondary);
+    padding: 4px 10px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 12px;
+    max-width: 140px;
+    transition: all 0.12s ease-out;
+  }
+
+  .zone-selector-btn:hover {
+    border-color: var(--tune-text-muted);
+    color: var(--tune-text);
+  }
+
+  .zone-dropdown-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+  }
+
+  .zone-dropdown {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    right: 0;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    min-width: 180px;
+    max-height: 240px;
+    overflow-y: auto;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    padding: 4px 0;
+  }
+
+  .zone-dropdown-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding: 8px 14px;
+    background: none;
+    border: none;
+    color: var(--tune-text-secondary);
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.1s;
+  }
+
+  .zone-dropdown-item:hover {
+    background: var(--tune-surface-hover);
+    color: var(--tune-text);
+  }
+
+  .zone-dropdown-item.active {
+    color: var(--tune-accent);
+  }
+
+  .zone-playing-indicator {
+    color: var(--tune-success);
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
   }
 
   .volume-control {
