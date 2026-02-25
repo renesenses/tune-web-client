@@ -176,7 +176,9 @@
     {:else}
       <div class="albums-grid">
         {#each artistAlbums as album}
-          <button class="album-card" onclick={() => selectAlbum(album)}>
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="album-card" onclick={() => selectAlbum(album)}>
             <div class="album-card-art">
               <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
               <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingAlbum(album); }} title="Lire l'album">
@@ -187,7 +189,7 @@
             {#if album.year}
               <span class="album-card-year">{album.year}</span>
             {/if}
-          </button>
+          </div>
         {/each}
       </div>
     {/if}
@@ -238,7 +240,9 @@
       {#if tab === 'albums' && results.albums.length > 0}
         <div class="albums-grid">
           {#each results.albums as album}
-            <button class="album-card" onclick={() => selectAlbum(album)}>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="album-card" onclick={() => selectAlbum(album)}>
               <div class="album-card-art">
                 <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
                 <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingAlbum(album); }} title="Lire l'album">
@@ -249,7 +253,7 @@
               {#if album.artist_name}
                 <span class="album-card-artist truncate">{album.artist_name}</span>
               {/if}
-            </button>
+            </div>
           {/each}
         </div>
 

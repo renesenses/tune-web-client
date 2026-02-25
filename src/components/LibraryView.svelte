@@ -260,7 +260,9 @@
     </div>
     <div class="albums-grid">
       {#each $artistAlbums as album}
-        <button class="album-card" onclick={() => selectAlbumDetail(album)}>
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="album-card" onclick={() => selectAlbumDetail(album)}>
           <div class="album-card-art">
             <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
             <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title="Lire l'album">
@@ -271,7 +273,7 @@
           {#if album.year}
             <span class="album-card-year">{album.year}</span>
           {/if}
-        </button>
+        </div>
       {/each}
     </div>
 
@@ -306,7 +308,9 @@
     {:else if $libraryTab === 'albums'}
       <div class="albums-grid">
         {#each filteredAlbums as album}
-          <button class="album-card" onclick={() => selectAlbumDetail(album)}>
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="album-card" onclick={() => selectAlbumDetail(album)}>
             <div class="album-card-art">
               <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
               <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title="Lire l'album">
@@ -317,7 +321,7 @@
             {#if album.artist_name}
               <span class="album-card-artist truncate">{album.artist_name}</span>
             {/if}
-          </button>
+          </div>
         {/each}
         {#if filteredAlbums.length === 0}
           <div class="empty">{searchQuery ? 'Aucun resultat' : 'Aucun album dans la bibliotheque'}</div>
@@ -373,7 +377,9 @@
         </div>
         <div class="albums-grid">
           {#each genreAlbums as album}
-            <button class="album-card" onclick={() => selectAlbumDetail(album)}>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="album-card" onclick={() => selectAlbumDetail(album)}>
               <div class="album-card-art">
                 <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
                 <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title="Lire l'album">
@@ -384,7 +390,7 @@
               {#if album.artist_name}
                 <span class="album-card-artist truncate">{album.artist_name}</span>
               {/if}
-            </button>
+            </div>
           {/each}
         </div>
       {:else}
