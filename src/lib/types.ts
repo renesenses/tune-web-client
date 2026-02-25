@@ -47,6 +47,7 @@ export interface Track {
   sample_rate?: number | null;
   bit_depth?: number | null;
   channels?: number;
+  cover_path?: string | null;
   source?: Source;
   source_id?: string | null;
 }
@@ -157,6 +158,20 @@ export interface ZoneGroupResponse {
   group_id: string;
   leader_id: number;
   zone_ids: number[];
+}
+
+export interface CompletenessStats {
+  total_albums: number;
+  albums_without_cover: number;
+  albums_without_genre: number;
+  albums_without_year: number;
+  total_artists: number;
+  artists_without_image: number;
+}
+
+export interface ArtworkRescanResult {
+  status: 'found' | 'not_found';
+  cover_path: string | null;
 }
 
 export interface WSEvent {

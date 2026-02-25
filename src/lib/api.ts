@@ -17,6 +17,8 @@ import type {
   StreamingAuthResponse,
   ZoneGroupResponse,
   LocalAudioDevice,
+  CompletenessStats,
+  ArtworkRescanResult,
   Source,
   RepeatMode,
   OutputType,
@@ -238,6 +240,50 @@ export function searchLibrary(q: string, limit = 50) {
 
 export function getLibraryStats() {
   return fetchJSON<{ tracks: number; albums: number; artists: number }>(`${BASE}/library/stats`);
+}
+
+export function updateAlbum(id: number, data: { title?: string; artist_id?: number; year?: number; genre?: string }) {
+  return fetchJSON<Album>(`${BASE}/library/albums/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateTrack(id: number, data: { title?: string; album_id?: number; artist_id?: number; disc_number?: number; track_number?: number }) {
+  return fetchJSON<Track>(`${BASE}/library/tracks/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateArtist(id: number, data: { name?: string; sort_name?: string; bio?: string }) {
+  return fetchJSON<Artist>(`${BASE}/library/artists/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function uploadAlbumArtwork(albumId: number, file: File): Promise<Album> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch(`${BASE}/library/albums/${albumId}/artwork`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status} ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export function rescanAlbumArtwork(albumId: number) {
+  return fetchJSON<ArtworkRescanResult>(`${BASE}/library/albums/${albumId}/artwork/rescan`, {
+    method: 'POST',
+  });
+}
+
+export function getCompletenessStats() {
+  return fetchJSON<CompletenessStats>(`${BASE}/library/stats/completeness`);
 }
 
 // --- Playlists ---

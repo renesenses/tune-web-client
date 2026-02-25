@@ -25,6 +25,7 @@
   import HistoryView from './components/HistoryView.svelte';
   import HomeView from './components/HomeView.svelte';
   import StreamingView from './components/StreamingView.svelte';
+  import MetadataView from './components/MetadataView.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
 
   let scanIndicator = $state(false);
@@ -225,6 +226,8 @@
           <HistoryView />
         {:else if $activeView === 'streaming'}
           <StreamingView />
+        {:else if $activeView === 'metadata'}
+          <MetadataView />
         {/if}
       </div>
     {/key}

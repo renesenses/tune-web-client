@@ -4,13 +4,38 @@
   import * as api from '../lib/api';
   import { formatTime, formatDuration } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
-  import type { Album, Artist } from '../lib/types';
+  import AlbumEditModal from './AlbumEditModal.svelte';
+  import TrackEditModal from './TrackEditModal.svelte';
+  import type { Album, Artist, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
 
   interface Props {
     onAddToPlaylist?: (trackId: number) => void;
   }
   let { onAddToPlaylist }: Props = $props();
+
+  let editingAlbum = $state<Album | null>(null);
+  let editingTrack = $state<Track | null>(null);
+
+  function openAlbumEdit(e: MouseEvent, album: Album) {
+    e.stopPropagation();
+    editingAlbum = album;
+  }
+
+  function openTrackEdit(e: MouseEvent, track: Track) {
+    e.stopPropagation();
+    editingTrack = track;
+  }
+
+  function handleAlbumSaved(updated: Album) {
+    albums.update(list => list.map(a => a.id === updated.id ? updated : a));
+    if ($selectedAlbum?.id === updated.id) selectedAlbum.set(updated);
+  }
+
+  function handleTrackSaved(updated: Track) {
+    tracks.update(list => list.map(t => t.id === updated.id ? updated : t));
+    albumTracks.update(list => list.map(t => t.id === updated.id ? updated : t));
+  }
 
   let zone = $derived($currentZone);
   let searchQuery = $state('');
@@ -332,6 +357,9 @@
               <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                 <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
               </button>
+              <button class="edit-overlay" onclick={(e) => openAlbumEdit(e, album)} title={$tr('metadata.editAlbum')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+              </button>
             </div>
             <span class="album-card-title truncate">{album.title}</span>
             {#if album.artist_name}
@@ -372,6 +400,9 @@
               <span class="track-artist truncate">{t.artist_name ?? ''} {t.album_title ? `- ${t.album_title}` : ''}</span>
             </div>
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
+            <button class="edit-track-btn" onclick={(e) => openTrackEdit(e, t)} title={$tr('metadata.editTrack')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+            </button>
             <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title={$tr('queue.addToQueue')}>+</button>
             {#if onAddToPlaylist && t.id}
               <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t.id!); }} title={$tr('nowplaying.addToPlaylist')}>
@@ -431,6 +462,22 @@
     {/if}
   {/if}
 </div>
+
+{#if editingAlbum}
+  <AlbumEditModal
+    album={editingAlbum}
+    onClose={() => editingAlbum = null}
+    onSaved={handleAlbumSaved}
+  />
+{/if}
+
+{#if editingTrack}
+  <TrackEditModal
+    track={editingTrack}
+    onClose={() => editingTrack = null}
+    onSaved={handleTrackSaved}
+  />
+{/if}
 
 <style>
   .library-view {
@@ -719,6 +766,32 @@
     opacity: 1;
   }
 
+  .edit-overlay {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+    z-index: 2;
+  }
+
+  .album-card-art:hover .edit-overlay {
+    opacity: 1;
+  }
+
+  .edit-overlay:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
   .album-card-title {
     font-family: var(--font-body);
     font-size: 14px;
@@ -892,6 +965,30 @@
   }
 
   .add-playlist-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .edit-track-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease-out;
+    opacity: 0;
+  }
+
+  .track-item:hover .edit-track-btn {
+    opacity: 1;
+  }
+
+  .edit-track-btn:hover {
     border-color: var(--tune-accent);
     color: var(--tune-accent);
   }
