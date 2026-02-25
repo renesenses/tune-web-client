@@ -680,6 +680,7 @@
     justify-content: center;
     background: rgba(0, 0, 0, 0.5);
     opacity: 0;
+    pointer-events: none;
     transition: opacity 0.15s ease-out;
     border: none;
     cursor: pointer;
@@ -688,6 +689,7 @@
 
   .album-card-art:hover .play-overlay {
     opacity: 1;
+    pointer-events: auto;
   }
 
   .album-card-title {
