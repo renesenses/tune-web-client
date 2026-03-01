@@ -37,6 +37,22 @@
       await api.setVolume(zone.id, 0.5);
     }
   }
+
+  const STEP = 0.02;
+
+  async function stepDown() {
+    if (!zone?.id) return;
+    const next = Math.max(0, vol - STEP);
+    if (next > 0) mutedVolume.set(null);
+    await api.setVolume(zone.id, next);
+  }
+
+  async function stepUp() {
+    if (!zone?.id) return;
+    const next = Math.min(1, vol + STEP);
+    mutedVolume.set(null);
+    await api.setVolume(zone.id, next);
+  }
 </script>
 
 <div class="volume-control">
@@ -58,6 +74,9 @@
       </svg>
     {/if}
   </button>
+  <button class="step-btn" onclick={stepDown} title="-">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12" /></svg>
+  </button>
   <input
     type="range"
     class="volume-slider"
@@ -67,6 +86,9 @@
     value={vol}
     oninput={handleVolume}
   />
+  <button class="step-btn" onclick={stepUp} title="+">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+  </button>
   <span class="volume-value">{volumeDisplay(vol)}</span>
 </div>
 
@@ -101,6 +123,23 @@
   .volume-btn svg {
     width: 18px;
     height: 18px;
+  }
+
+  .step-btn {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.12s ease-out;
+  }
+
+  .step-btn:hover {
+    color: var(--tune-text);
   }
 
   .volume-slider {
