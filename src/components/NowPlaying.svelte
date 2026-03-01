@@ -24,7 +24,9 @@
   // Resolve cover path for blurred background
   let resolvedCoverUrl = $state('');
   $effect(() => {
-    if (track?.album_id) {
+    if (track?.cover_path) {
+      resolvedCoverUrl = api.artworkUrl(track.cover_path);
+    } else if (track?.album_id) {
       api.getAlbumCoverPath(track.album_id).then((path) => {
         resolvedCoverUrl = path ? api.artworkUrl(path) : '';
       });
@@ -78,7 +80,7 @@
   {#if zone && track}
     <div class="content-layout" class:wide={isWide}>
       <div class="artwork-container">
-        <AlbumArt albumId={track.album_id} size={isWide ? 360 : 400} alt={track.title} />
+        <AlbumArt coverPath={track.cover_path} albumId={track.album_id} size={isWide ? 360 : 400} alt={track.title} />
       </div>
 
       <div class="info-column">
@@ -152,7 +154,7 @@
             <div class="up-next-list">
               {#each $upNextTracks as nextTrack, i}
                 <button class="up-next-item" onclick={() => jumpToUpNext(nextTrack, i)}>
-                  <AlbumArt albumId={nextTrack.album_id} size={32} alt={nextTrack.title} />
+                  <AlbumArt coverPath={nextTrack.cover_path} albumId={nextTrack.album_id} size={32} alt={nextTrack.title} />
                   <div class="up-next-info">
                     <span class="up-next-title truncate">{nextTrack.title}</span>
                     <span class="up-next-artist truncate">{nextTrack.artist_name ?? ''}</span>
