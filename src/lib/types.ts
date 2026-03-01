@@ -1,7 +1,7 @@
 // Types mirroring tune-server Pydantic models
 
 // Enums
-export type Source = 'local' | 'tidal' | 'qobuz' | 'youtube' | 'amazon';
+export type Source = 'local' | 'tidal' | 'qobuz' | 'youtube' | 'amazon' | 'radio';
 export type AudioFormat = 'flac' | 'wav' | 'mp3' | 'aac' | 'alac' | 'ogg' | 'opus' | 'dsd' | 'aiff' | 'wma';
 export type PlaybackState = 'stopped' | 'playing' | 'paused' | 'buffering';
 export type RepeatMode = 'off' | 'one' | 'all';
@@ -196,6 +196,25 @@ export interface BrowseResult {
   music_root: string;
   directories: BrowseDirectory[];
   tracks: Track[];
+}
+
+export interface RadioStation {
+  id: number | null;
+  name: string;
+  stream_url: string;
+  logo_url?: string | null;
+  genre?: string | null;
+  tags?: string | null;
+  codec?: string | null;
+  country?: string | null;
+  homepage_url?: string | null;
+  favorite: boolean;
+}
+
+export interface RadioImportResult {
+  imported: number;
+  skipped: number;
+  errors: string[];
 }
 
 export interface WSEvent {

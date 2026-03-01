@@ -252,6 +252,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
       {$t('nav.browse')}
     </button>
+    <button class="nav-item" class:active={$activeView === 'radios'} onclick={() => navigate('radios')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5"></path><line x1="12" y1="19" x2="12" y2="22"></line><path d="M8 22h8"></path></svg>
+      {$t('nav.radios')}
+    </button>
     <button class="nav-item" class:active={$activeView === 'history'} onclick={() => navigate('history')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
       {$t('nav.history')}

@@ -363,8 +363,9 @@ export function getConfig() {
   return fetchJSON<any>(`${BASE}/system/config`);
 }
 
-export function triggerScan() {
-  return fetchJSON<{ status: string; music_dirs: string[] }>(`${BASE}/system/scan`, { method: 'POST' });
+export function triggerScan(path?: string) {
+  const url = path ? `${BASE}/system/scan?path=${encodeURIComponent(path)}` : `${BASE}/system/scan`;
+  return fetchJSON<{ status: string; music_dirs: string[] }>(url, { method: 'POST' });
 }
 
 export function getScanStatus() {
@@ -424,6 +425,55 @@ export function getStreamingFeaturedSections(service: string) {
 
 export function getStreamingFeatured(service: string, section: string, limit = 20) {
   return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured/${encodeURIComponent(section)}?limit=${limit}`);
+}
+
+// --- Radios ---
+
+export function getRadios(params?: { genre?: string; favorite?: boolean; limit?: number; offset?: number }) {
+  const q = new URLSearchParams();
+  if (params?.genre) q.set('genre', params.genre);
+  if (params?.favorite !== undefined) q.set('favorite', String(params.favorite));
+  if (params?.limit) q.set('limit', String(params.limit));
+  if (params?.offset) q.set('offset', String(params.offset));
+  const qs = q.toString();
+  return fetchJSON<import('./types').RadioStation[]>(`${BASE}/radios${qs ? '?' + qs : ''}`);
+}
+
+export function getRadio(id: number) {
+  return fetchJSON<import('./types').RadioStation>(`${BASE}/radios/${id}`);
+}
+
+export function createRadio(data: { name: string; stream_url: string; logo_url?: string; genre?: string; codec?: string; country?: string; homepage_url?: string; favorite?: boolean }) {
+  return fetchJSON<import('./types').RadioStation>(`${BASE}/radios`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateRadio(id: number, data: Partial<{ name: string; stream_url: string; logo_url: string; genre: string; codec: string; country: string; homepage_url: string; favorite: boolean }>) {
+  return fetchJSON<import('./types').RadioStation>(`${BASE}/radios/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteRadio(id: number) {
+  return fetchVoid(`${BASE}/radios/${id}`, { method: 'DELETE' });
+}
+
+export function playRadio(radioId: number, zoneId: number) {
+  return fetchJSON<Zone>(`${BASE}/radios/${radioId}/play/${zoneId}`, { method: 'POST' });
+}
+
+export async function importRadios(file: File): Promise<import('./types').RadioImportResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch(`${BASE}/radios/import`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!response.ok) throw new Error(`API error: ${response.status} ${response.statusText}`);
+  return response.json();
 }
 
 // --- Artwork ---

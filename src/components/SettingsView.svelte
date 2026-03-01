@@ -7,7 +7,7 @@
   import { devices } from '../lib/stores/devices';
   import { preferences, applyTheme, type ThemeMode, type VolumeDisplay, type StartupView } from '../lib/stores/preferences';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
-  import type { SystemHealth, SystemStats, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice } from '../lib/types';
+  import type { SystemHealth, SystemStats, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
 
   let health: SystemHealth | null = $state(null);
@@ -17,6 +17,8 @@
   let artworkScanning = $state(false);
   let audioDevices = $state<LocalAudioDevice[]>([]);
   let artworkProgress: { current: number; total: number; found: number } | null = $state(null);
+  let musicRoots = $state<BrowseRootEntry[]>([]);
+  let scanningPath = $state<string | null>(null);
 
   // Streaming auth state
   let qobuzUsername = $state('');
@@ -122,16 +124,18 @@
   async function loadAll() {
     loading = true;
     try {
-      const [h, s, ss, sc] = await Promise.all([
+      const [h, s, ss, sc, br] = await Promise.all([
         api.getHealth(),
         api.getStats(),
         api.getStreamingServices().catch(() => ({})),
         api.getScanStatus().catch(() => ({ scanning: false })),
+        api.getBrowseRoots().catch(() => ({ roots: [] })),
       ]);
       health = h;
       stats = s;
       $streamingServicesStore = ss as Record<string, StreamingServiceStatus>;
       scanning = sc.scanning;
+      musicRoots = br.roots;
     } catch (e) {
       console.error('Settings load error:', e);
     }
@@ -176,6 +180,16 @@
     }
   }
 
+  async function handleScanPath(path: string) {
+    scanningPath = path;
+    try {
+      await api.triggerScan(path);
+    } catch (e) {
+      console.error('Scan path error:', e);
+      scanningPath = null;
+    }
+  }
+
   async function handleArtworkRescan() {
     artworkScanning = true;
     artworkProgress = null;
@@ -196,7 +210,11 @@
       fetchAudioDevices();
     });
     const unsub = tuneWS.onEvent((event) => {
-      if (event.type === 'library.artwork.progress') {
+      if (event.type === 'library.scan.completed') {
+        scanning = false;
+        scanningPath = null;
+        loadAll();
+      } else if (event.type === 'library.artwork.progress') {
         artworkProgress = event.data;
       } else if (event.type === 'library.artwork.completed') {
         artworkScanning = false;
@@ -295,6 +313,41 @@
           {/if}
         </button>
       </div>
+    </section>
+
+    <!-- Music locations -->
+    <section class="settings-section">
+      <h3>{$t('settings.musicDirs')}</h3>
+      {#if musicRoots.length === 0}
+        <p class="muted">{$t('settings.noMusicDirs')}</p>
+      {:else}
+        <div class="music-dirs-list">
+          {#each musicRoots as root}
+            <div class="music-dir-item">
+              <div class="music-dir-info">
+                <span class="music-dir-name">{root.name}</span>
+                <span class="music-dir-path">{root.path}</span>
+                <span class="music-dir-tracks">{root.track_count} {$t('common.tracks')}</span>
+              </div>
+              <button
+                class="scan-btn small"
+                onclick={() => handleScanPath(root.path)}
+                disabled={scanning || scanningPath !== null}
+              >
+                {#if scanningPath === root.path}
+                  <div class="spinner small"></div>
+                  {$t('settings.scanningPath')}
+                {:else}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                  </svg>
+                  {$t('settings.scanPath')}
+                {/if}
+              </button>
+            </div>
+          {/each}
+        </div>
+      {/if}
     </section>
 
     <!-- Device visibility -->
@@ -885,6 +938,51 @@
     padding: 1px 6px;
     border-radius: var(--radius-sm);
     flex-shrink: 0;
+  }
+
+  .music-dirs-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .music-dir-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+  }
+
+  .music-dir-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .music-dir-name {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--tune-text);
+  }
+
+  .music-dir-path {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .music-dir-tracks {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
   }
 
   @keyframes spin {

@@ -27,6 +27,7 @@
   import StreamingView from './components/StreamingView.svelte';
   import MetadataView from './components/MetadataView.svelte';
   import BrowseView from './components/BrowseView.svelte';
+  import RadiosView from './components/RadiosView.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
 
   let scanIndicator = $state(false);
@@ -229,6 +230,8 @@
           <HistoryView />
         {:else if $activeView === 'streaming'}
           <StreamingView />
+        {:else if $activeView === 'radios'}
+          <RadiosView />
         {:else if $activeView === 'metadata'}
           <MetadataView />
         {/if}
