@@ -465,6 +465,17 @@ export function playRadio(radioId: number, zoneId: number) {
   return fetchJSON<Zone>(`${BASE}/radios/${radioId}/play/${zoneId}`, { method: 'POST' });
 }
 
+export async function uploadRadioCover(radioId: number, file: File): Promise<import('./types').RadioStation> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch(`${BASE}/radios/${radioId}/artwork`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!response.ok) throw new Error(`API error: ${response.status} ${response.statusText}`);
+  return response.json();
+}
+
 export async function importRadios(file: File): Promise<import('./types').RadioImportResult> {
   const formData = new FormData();
   formData.append('file', file);

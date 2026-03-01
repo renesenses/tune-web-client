@@ -232,6 +232,12 @@ export default {
   'radio.imported': '{count} importiert',
   'radio.skipped': '{count} übersprungen (Duplikate)',
   'radio.deleteConfirm': 'Dieses Radio löschen?',
+  'radio.editRadio': 'Radio bearbeiten',
+  'radio.cover': 'Cover',
+  'radio.dropImageHere': 'Bild hierher ziehen',
+  'radio.orClickToUpload': 'oder klicken zum Hochladen',
+  'radio.uploadingCover': 'Wird hochgeladen...',
+  'radio.coverUploaded': 'Cover gespeichert!',
 
   // Volume
   'volume.title': 'Lautstärke (M zum Stummschalten)',

@@ -232,6 +232,12 @@ export default {
   'radio.imported': '已导入{count}个',
   'radio.skipped': '已跳过{count}个（重复）',
   'radio.deleteConfirm': '删除此电台？',
+  'radio.editRadio': '编辑电台',
+  'radio.cover': '封面',
+  'radio.dropImageHere': '拖放图片到这里',
+  'radio.orClickToUpload': '或点击上传',
+  'radio.uploadingCover': '上传中...',
+  'radio.coverUploaded': '封面已保存！',
 
   // Volume
   'volume.title': '音量(M 静音)',

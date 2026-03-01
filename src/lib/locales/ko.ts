@@ -232,6 +232,12 @@ export default {
   'radio.imported': '{count}개 가져옴',
   'radio.skipped': '{count}개 건너뜀 (중복)',
   'radio.deleteConfirm': '이 라디오를 삭제하시겠습니까?',
+  'radio.editRadio': '라디오 편집',
+  'radio.cover': '커버',
+  'radio.dropImageHere': '여기에 이미지를 놓으세요',
+  'radio.orClickToUpload': '또는 클릭하여 업로드',
+  'radio.uploadingCover': '업로드 중...',
+  'radio.coverUploaded': '커버 저장됨!',
 
   // Volume
   'volume.title': '볼륨 (M으로 음소거)',

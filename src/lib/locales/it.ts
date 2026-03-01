@@ -232,6 +232,12 @@ export default {
   'radio.imported': '{count} importate',
   'radio.skipped': '{count} ignorate (duplicati)',
   'radio.deleteConfirm': 'Eliminare questa radio?',
+  'radio.editRadio': 'Modifica radio',
+  'radio.cover': 'Copertina',
+  'radio.dropImageHere': 'Trascina un\'immagine qui',
+  'radio.orClickToUpload': 'o clicca per caricare',
+  'radio.uploadingCover': 'Caricamento...',
+  'radio.coverUploaded': 'Copertina salvata!',
 
   // Volume
   'volume.title': 'Volume (M per disattivare)',

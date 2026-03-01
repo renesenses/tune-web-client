@@ -243,6 +243,12 @@ export default {
   'radio.imported': '{count} importées',
   'radio.skipped': '{count} ignorées (doublons)',
   'radio.deleteConfirm': 'Supprimer cette radio ?',
+  'radio.editRadio': 'Modifier la radio',
+  'radio.cover': 'Cover',
+  'radio.dropImageHere': 'Glissez une image ici',
+  'radio.orClickToUpload': 'ou cliquez pour uploader',
+  'radio.uploadingCover': 'Upload en cours...',
+  'radio.coverUploaded': 'Cover enregistrée !',
 
   // Volume
   'volume.title': 'Volume (M pour couper)',

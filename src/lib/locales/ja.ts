@@ -232,6 +232,12 @@ export default {
   'radio.imported': '{count}件インポート',
   'radio.skipped': '{count}件スキップ（重複）',
   'radio.deleteConfirm': 'このラジオを削除しますか？',
+  'radio.editRadio': 'ラジオを編集',
+  'radio.cover': 'カバー',
+  'radio.dropImageHere': 'ここに画像をドロップ',
+  'radio.orClickToUpload': 'またはクリックしてアップロード',
+  'radio.uploadingCover': 'アップロード中...',
+  'radio.coverUploaded': 'カバーを保存しました！',
 
   // Volume
   'volume.title': 'ボリューム(Mでミュート)',

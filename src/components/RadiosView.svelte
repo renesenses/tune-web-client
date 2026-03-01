@@ -23,6 +23,81 @@
   let newGenre = $state('');
   let importMessage = $state('');
 
+  // Edit modal state
+  let editRadio = $state<RadioStation | null>(null);
+  let editName = $state('');
+  let editUrl = $state('');
+  let editGenre = $state('');
+  let editDragOver = $state(false);
+  let editUploading = $state(false);
+  let editCoverMsg = $state('');
+
+  function openEdit(radio: RadioStation) {
+    editRadio = radio;
+    editName = radio.name;
+    editUrl = radio.stream_url;
+    editGenre = radio.genre || '';
+    editCoverMsg = '';
+  }
+
+  function closeEdit() {
+    editRadio = null;
+    editCoverMsg = '';
+    editUploading = false;
+    editDragOver = false;
+  }
+
+  async function saveEdit() {
+    if (!editRadio?.id) return;
+    try {
+      const updated = await api.updateRadio(editRadio.id, {
+        name: editName.trim(),
+        stream_url: editUrl.trim(),
+        genre: editGenre.trim() || undefined,
+      });
+      radios = radios.map(r => r.id === updated.id ? updated : r);
+      editRadio = updated;
+    } catch (e) {
+      console.error('Update radio error:', e);
+    }
+  }
+
+  async function handleCoverUpload(file: File) {
+    if (!editRadio?.id) return;
+    editUploading = true;
+    editCoverMsg = '';
+    try {
+      const updated = await api.uploadRadioCover(editRadio.id, file);
+      radios = radios.map(r => r.id === updated.id ? updated : r);
+      editRadio = updated;
+      editCoverMsg = 'ok';
+      setTimeout(() => editCoverMsg = '', 3000);
+    } catch (e) {
+      console.error('Upload cover error:', e);
+      editCoverMsg = 'error';
+    }
+    editUploading = false;
+  }
+
+  function onEditDrop(e: DragEvent) {
+    e.preventDefault();
+    editDragOver = false;
+    const file = e.dataTransfer?.files?.[0];
+    if (file && file.type.startsWith('image/')) handleCoverUpload(file);
+  }
+
+  function onEditFileSelect(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) handleCoverUpload(file);
+    input.value = '';
+  }
+
+  function coverUrl(radio: RadioStation): string {
+    if (!radio.logo_url) return '';
+    return api.artworkUrl(radio.logo_url);
+  }
+
   async function loadRadios() {
     loading = true;
     try {
@@ -58,6 +133,7 @@
     try {
       await api.deleteRadio(radio.id);
       radios = radios.filter(r => r.id !== radio.id);
+      if (editRadio?.id === radio.id) closeEdit();
     } catch (e) {
       console.error('Delete radio error:', e);
     }
@@ -152,15 +228,15 @@
     <div class="radios-grid">
       {#each filtered as radio}
         <div class="radio-card">
-          <div class="radio-icon">
-            {#if radio.logo_url}
-              <img src={radio.logo_url} alt={radio.name} />
+          <button class="radio-icon" onclick={() => openEdit(radio)} title={$t('radio.editRadio')}>
+            {#if coverUrl(radio)}
+              <img src={coverUrl(radio)} alt={radio.name} />
             {:else}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5"></path><line x1="12" y1="19" x2="12" y2="22"></line><path d="M8 22h8"></path></svg>
             {/if}
-          </div>
+          </button>
           <div class="radio-info">
-            <span class="radio-name">{radio.name}</span>
+            <button class="radio-name-btn" onclick={() => openEdit(radio)}>{radio.name}</button>
             {#if radio.genre}
               <span class="radio-genre">{radio.genre}</span>
             {/if}
@@ -173,12 +249,88 @@
             <button class="action-btn play-btn" onclick={() => playRadio(radio)} title={$t('radio.play')} disabled={!$currentZoneId}>
               <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3" /></svg>
             </button>
+            <button class="action-btn edit-btn" onclick={() => openEdit(radio)} title={$t('radio.editRadio')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+            </button>
             <button class="action-btn delete-btn" onclick={() => deleteRadio(radio)} title={$t('common.delete')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
             </button>
           </div>
         </div>
       {/each}
+    </div>
+  {/if}
+
+  {#if editRadio}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="modal-backdrop" onclick={closeEdit} onkeydown={(e) => e.key === 'Escape' && closeEdit()}>
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="modal" onclick={(e) => e.stopPropagation()}>
+        <div class="modal-header">
+          <h3>{$t('radio.editRadio')}</h3>
+          <button class="modal-close" onclick={closeEdit}>&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Cover zone -->
+          <div
+            class="cover-zone"
+            class:drag-over={editDragOver}
+            ondragover={(e) => { e.preventDefault(); editDragOver = true; }}
+            ondragleave={() => editDragOver = false}
+            ondrop={onEditDrop}
+          >
+            {#if coverUrl(editRadio)}
+              <img class="cover-preview" src={coverUrl(editRadio)} alt={editRadio.name} />
+              <div class="cover-overlay">
+                <label class="cover-change-btn">
+                  {$t('radio.cover')}
+                  <input type="file" accept="image/*" onchange={onEditFileSelect} hidden />
+                </label>
+              </div>
+            {:else}
+              <div class="cover-placeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+                <span>{$t('radio.dropImageHere')}</span>
+                <label class="cover-upload-btn">
+                  {$t('radio.orClickToUpload')}
+                  <input type="file" accept="image/*" onchange={onEditFileSelect} hidden />
+                </label>
+              </div>
+            {/if}
+            {#if editUploading}
+              <div class="cover-loading">{$t('radio.uploadingCover')}</div>
+            {/if}
+          </div>
+
+          {#if editCoverMsg === 'ok'}
+            <div class="cover-toast success">{$t('radio.coverUploaded')}</div>
+          {:else if editCoverMsg === 'error'}
+            <div class="cover-toast error">{$t('common.error')}</div>
+          {/if}
+
+          <!-- Fields -->
+          <div class="edit-fields">
+            <label class="edit-label">
+              {$t('radio.name')}
+              <input type="text" bind:value={editName} />
+            </label>
+            <label class="edit-label">
+              {$t('radio.streamUrl')}
+              <input type="url" bind:value={editUrl} />
+            </label>
+            <label class="edit-label">
+              {$t('radio.genre')}
+              <input type="text" bind:value={editGenre} />
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick={closeEdit}>{$t('common.cancel')}</button>
+          <button class="btn-confirm" onclick={saveEdit}>{$t('common.apply')}</button>
+        </div>
+      </div>
     </div>
   {/if}
 </div>
@@ -349,6 +501,14 @@
     color: var(--tune-text-muted);
     flex-shrink: 0;
     overflow: hidden;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: opacity 0.12s ease-out;
+  }
+
+  .radio-icon:hover {
+    opacity: 0.8;
   }
 
   .radio-icon img {
@@ -365,7 +525,7 @@
     gap: 2px;
   }
 
-  .radio-name {
+  .radio-name-btn {
     font-family: var(--font-body);
     font-size: 14px;
     font-weight: 500;
@@ -373,6 +533,15 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .radio-name-btn:hover {
+    color: var(--tune-accent);
   }
 
   .radio-genre {
@@ -434,11 +603,216 @@
     color: var(--tune-danger, #ef4444);
   }
 
+  .edit-btn:hover {
+    color: var(--tune-accent);
+  }
+
   .empty-state {
     padding: var(--space-xl, 40px) var(--space-md);
     text-align: center;
     color: var(--tune-text-muted);
     font-family: var(--font-body);
     font-size: 14px;
+  }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal {
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-lg, 12px);
+    width: 420px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--tune-border);
+  }
+
+  .modal-header h3 {
+    font-family: var(--font-label);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--tune-text);
+    margin: 0;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  .modal-close:hover {
+    color: var(--tune-text);
+  }
+
+  .modal-body {
+    padding: 20px;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+    padding: 12px 20px;
+    border-top: 1px solid var(--tune-border);
+  }
+
+  /* Cover zone */
+  .cover-zone {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin: 0 auto 16px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--tune-bg);
+    border: 2px dashed var(--tune-border);
+    transition: border-color 0.15s ease-out;
+  }
+
+  .cover-zone.drag-over {
+    border-color: var(--tune-accent);
+    background: color-mix(in srgb, var(--tune-accent) 10%, var(--tune-bg));
+  }
+
+  .cover-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .cover-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+  }
+
+  .cover-zone:hover .cover-overlay {
+    opacity: 1;
+  }
+
+  .cover-change-btn {
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-md);
+    color: white;
+    font-family: var(--font-body);
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .cover-change-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  .cover-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 8px;
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+    font-size: 12px;
+  }
+
+  .cover-upload-btn {
+    color: var(--tune-accent);
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .cover-upload-btn:hover {
+    text-decoration: underline;
+  }
+
+  .cover-loading {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-family: var(--font-body);
+    font-size: 13px;
+  }
+
+  .cover-toast {
+    text-align: center;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+
+  .cover-toast.success {
+    color: var(--tune-accent);
+  }
+
+  .cover-toast.error {
+    color: var(--tune-danger, #ef4444);
+  }
+
+  /* Edit fields */
+  .edit-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .edit-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+  }
+
+  .edit-label input {
+    padding: 8px 12px;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    outline: none;
+  }
+
+  .edit-label input:focus {
+    border-color: var(--tune-accent);
   }
 </style>
