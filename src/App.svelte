@@ -26,6 +26,7 @@
   import HomeView from './components/HomeView.svelte';
   import StreamingView from './components/StreamingView.svelte';
   import MetadataView from './components/MetadataView.svelte';
+  import BrowseView from './components/BrowseView.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
 
   let scanIndicator = $state(false);
@@ -218,6 +219,8 @@
           <QueueView onAddToPlaylist={openPlaylistModal} />
         {:else if $activeView === 'playlists'}
           <PlaylistsView />
+        {:else if $activeView === 'browse'}
+          <BrowseView />
         {:else if $activeView === 'search'}
           <SearchView />
         {:else if $activeView === 'settings'}

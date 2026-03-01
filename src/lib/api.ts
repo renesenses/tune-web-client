@@ -286,6 +286,16 @@ export function getCompletenessStats() {
   return fetchJSON<CompletenessStats>(`${BASE}/library/stats/completeness`);
 }
 
+// --- Browse (directory navigation) ---
+
+export function getBrowseRoots() {
+  return fetchJSON<import('./types').BrowseRootsResponse>(`${BASE}/library/browse`);
+}
+
+export function browseDirectory(path: string) {
+  return fetchJSON<import('./types').BrowseResult>(`${BASE}/library/browse/dir?path=${encodeURIComponent(path)}`);
+}
+
 // --- Playlists ---
 
 export function getPlaylists(limit = 100, offset = 0) {

@@ -212,6 +212,17 @@ export default {
   'metadata.cover': 'Cover',
   'metadata.noCover': 'Pas de cover',
 
+  // Browse (directory navigation)
+  'nav.browse': 'Répertoires',
+  'browse.title': 'Navigation par répertoire',
+  'browse.roots': 'Emplacements',
+  'browse.noRoots': 'Aucun répertoire musical configuré',
+  'browse.noDirs': 'Aucun sous-répertoire',
+  'browse.noTracks': 'Aucune piste dans ce répertoire',
+  'browse.trackCount': '{count} pistes',
+  'browse.playAll': 'Tout lire',
+  'browse.addAll': 'Tout ajouter',
+
   // Volume
   'volume.title': 'Volume (M pour couper)',
 } as const;

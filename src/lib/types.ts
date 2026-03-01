@@ -174,6 +174,30 @@ export interface ArtworkRescanResult {
   cover_path: string | null;
 }
 
+export interface BrowseRootEntry {
+  name: string;
+  path: string;
+  track_count: number;
+}
+
+export interface BrowseRootsResponse {
+  roots: BrowseRootEntry[];
+}
+
+export interface BrowseDirectory {
+  name: string;
+  path: string;
+  track_count: number;
+}
+
+export interface BrowseResult {
+  path: string;
+  parent: string | null;
+  music_root: string;
+  directories: BrowseDirectory[];
+  tracks: Track[];
+}
+
 export interface WSEvent {
   type: string;
   data: any;

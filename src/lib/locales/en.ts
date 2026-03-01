@@ -212,6 +212,17 @@ export default {
   'metadata.cover': 'Cover',
   'metadata.noCover': 'No cover',
 
+  // Browse (directory navigation)
+  'nav.browse': 'Folders',
+  'browse.title': 'Browse by Folder',
+  'browse.roots': 'Locations',
+  'browse.noRoots': 'No music directories configured',
+  'browse.noDirs': 'No subdirectories',
+  'browse.noTracks': 'No tracks in this directory',
+  'browse.trackCount': '{count} tracks',
+  'browse.playAll': 'Play All',
+  'browse.addAll': 'Add All',
+
   // Volume
   'volume.title': 'Volume (M to mute)',
 } as const;
