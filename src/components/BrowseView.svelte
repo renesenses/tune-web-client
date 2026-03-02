@@ -122,6 +122,15 @@
     rescanning = true;
     try {
       await api.triggerScan(browseResult.path);
+      // Poll until scan is done
+      let scanning = true;
+      while (scanning) {
+        await new Promise(r => setTimeout(r, 2000));
+        const status = await api.getScanStatus();
+        scanning = status.scanning;
+      }
+      // Reload current folder
+      await navigateTo(browseResult.path);
     } catch (e) {
       console.error('Rescan error:', e);
     }

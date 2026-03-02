@@ -12,7 +12,7 @@
   let tracksWithoutArtist = $state<Track[]>([]);
   let tracksWithoutArtistLoaded = $state(false);
   let loading = $state(true);
-  let filter = $state<'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist'>('no_cover');
+  let filter = $state<'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist' | 'unknown'>('no_cover');
 
   let editAlbum = $state<Album | null>(null);
   let rescanningAll = $state(false);
@@ -39,6 +39,14 @@
     loading = false;
   }
 
+  let unknownAlbums = $derived(
+    allAlbums.filter(a => {
+      const title = (a.title ?? '').toLowerCase();
+      const artist = (a.artist_name ?? '').toLowerCase();
+      return title.includes('unknown') || artist.includes('unknown');
+    })
+  );
+
   let filteredAlbums = $derived.by(() => {
     switch (filter) {
       case 'no_cover':
@@ -49,6 +57,8 @@
         return allAlbums.filter(a => !a.year);
       case 'no_artist':
         return [];
+      case 'unknown':
+        return unknownAlbums;
       default:
         return allAlbums;
     }
@@ -277,6 +287,7 @@
       <button class="filter-btn" class:active={filter === 'no_genre'} onclick={() => filter = 'no_genre'}>{$t('metadata.missingGenre')} ({stats.albums_without_genre})</button>
       <button class="filter-btn" class:active={filter === 'no_year'} onclick={() => filter = 'no_year'}>{$t('metadata.missingYear')} ({stats.albums_without_year})</button>
       <button class="filter-btn" class:active={filter === 'no_artist'} onclick={() => filter = 'no_artist'}>{$t('metadata.missingArtist')} ({stats.tracks_without_artist})</button>
+      <button class="filter-btn" class:active={filter === 'unknown'} onclick={() => filter = 'unknown'}>{$t('metadata.unknown')} ({unknownAlbums.length})</button>
     </div>
 
     <!-- Content -->

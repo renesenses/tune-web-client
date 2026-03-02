@@ -235,6 +235,7 @@ export default {
   'metadata.cover': 'Cover',
   'metadata.noCover': 'Pas de cover',
   'metadata.missingArtist': 'Artiste manquant',
+  'metadata.unknown': 'Inconnu',
   'metadata.noMissingArtist': 'Toutes les pistes ont un artiste',
 
   // Backup / Restore

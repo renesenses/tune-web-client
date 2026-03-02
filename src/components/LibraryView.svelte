@@ -9,6 +9,15 @@
   import type { Album, Artist, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
 
+  function observeHeight(node: HTMLElement, callback: (h: number) => void) {
+    const ro = new ResizeObserver(entries => {
+      for (const e of entries) callback(e.contentRect.height);
+    });
+    ro.observe(node);
+    callback(node.clientHeight);
+    return { destroy() { ro.disconnect(); } };
+  }
+
   interface Props {
     onAddToPlaylist?: (trackId: number) => void;
   }
@@ -40,6 +49,29 @@
   let zone = $derived($currentZone);
   let searchQuery = $state('');
   let selectedGenre = $state<string | null>(null);
+  let formatFilter = $state<string | null>(null);
+  let qualityFilter = $state<string | null>(null);
+
+  // Virtual scroll state
+  const TRACK_ROW_HEIGHT = 52;
+  const OVERSCAN = 10;
+  let trackListEl = $state<HTMLDivElement | null>(null);
+  let scrollTop = $state(0);
+  let containerHeight = $state(600);
+  let visibleTracks = $derived.by(() => {
+    const total = filteredTracks.length;
+    const startIdx = Math.max(0, Math.floor(scrollTop / TRACK_ROW_HEIGHT) - OVERSCAN);
+    const endIdx = Math.min(total, Math.ceil((scrollTop + containerHeight) / TRACK_ROW_HEIGHT) + OVERSCAN);
+    return { startIdx, endIdx, totalHeight: total * TRACK_ROW_HEIGHT };
+  });
+
+  type QualityBucket = { key: string; label: string; match: (t: Track) => boolean };
+  const qualityBuckets: QualityBucket[] = [
+    { key: 'dsd', label: 'DSD', match: t => t.format === 'dsd' || t.format === 'dsf' || t.format === 'dff' || (t.file_path ?? '').toLowerCase().endsWith('.dsf') || (t.file_path ?? '').toLowerCase().endsWith('.dff') },
+    { key: 'hires', label: 'Hi-Res', match: t => t.format !== 'dsd' && ((t.sample_rate ?? 0) > 48000 || (t.bit_depth ?? 0) > 16) },
+    { key: 'cd', label: 'CD', match: t => t.format !== 'dsd' && (t.sample_rate ?? 0) <= 48000 && (t.bit_depth ?? 0) <= 16 && !['mp3', 'aac', 'ogg', 'opus', 'wma'].includes(t.format ?? '') },
+    { key: 'lossy', label: 'Lossy', match: t => ['mp3', 'aac', 'ogg', 'opus', 'wma'].includes(t.format ?? '') },
+  ];
 
   let filteredAlbums = $derived(
     searchQuery.trim()
@@ -56,14 +88,35 @@
       : $artists
   );
 
-  let filteredTracks = $derived(
-    searchQuery.trim()
-      ? $tracks.filter(t => {
-          const q = searchQuery.toLowerCase();
-          return t.title.toLowerCase().includes(q) || (t.artist_name ?? '').toLowerCase().includes(q) || (t.album_title ?? '').toLowerCase().includes(q);
-        })
-      : $tracks
+  let availableFormats = $derived(
+    [...new Set($tracks.map(t => t.format).filter(Boolean))].sort() as string[]
   );
+
+  let qualityCounts = $derived.by(() => {
+    const counts: Record<string, number> = {};
+    for (const b of qualityBuckets) {
+      counts[b.key] = $tracks.filter(b.match).length;
+    }
+    return counts;
+  });
+
+  let filteredTracks = $derived.by(() => {
+    let result = $tracks;
+    if (formatFilter) {
+      result = result.filter(t => t.format === formatFilter);
+    }
+    if (qualityFilter) {
+      const bucket = qualityBuckets.find(b => b.key === qualityFilter);
+      if (bucket) result = result.filter(bucket.match);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(t =>
+        t.title.toLowerCase().includes(q) || (t.artist_name ?? '').toLowerCase().includes(q) || (t.album_title ?? '').toLowerCase().includes(q)
+      );
+    }
+    return result;
+  });
 
   let genreAlbums = $derived(
     selectedGenre ? $albums.filter(a => a.genre === selectedGenre) : []
@@ -84,6 +137,12 @@
   });
 
   let hasMultipleDiscs = $derived(tracksByDisc.length > 1);
+
+  function initials(name: string): string {
+    const words = name.split(/\s+/).filter(Boolean);
+    if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+    return name.charAt(0).toUpperCase();
+  }
 
   function switchTab(tab: LibraryTab) {
     libraryTab.set(tab);
@@ -118,7 +177,7 @@
   async function loadTracks() {
     libraryLoading.set(true);
     try {
-      const result = await api.getTracks(500);
+      const result = await api.getAllTracks();
       tracks.set(result);
     } catch (e) {
       console.error('Load tracks error:', e);
@@ -128,14 +187,17 @@
 
   async function selectAlbumDetail(album: Album) {
     if (!album.id) return;
-    selectedAlbum.set(album);
     selectedArtist.set(null);
     libraryLoading.set(true);
     try {
+      // Fetch full album if cover_path is missing (e.g. navigating from tracks view)
+      const full = album.cover_path !== undefined ? album : await api.getAlbum(album.id);
+      selectedAlbum.set(full);
       const result = await api.getAlbumTracks(album.id);
       albumTracks.set(result);
     } catch (e) {
       console.error('Load album tracks error:', e);
+      selectedAlbum.set(album);
     }
     libraryLoading.set(false);
   }
@@ -215,11 +277,11 @@
     </div>
     <div class="album-detail">
       <div class="album-detail-header">
-        <AlbumArt coverPath={$selectedAlbum.cover_path} size={320} alt={$selectedAlbum.title} />
+        <AlbumArt coverPath={$selectedAlbum.cover_path} albumId={$selectedAlbum.id} size={320} alt={$selectedAlbum.title} />
         <div class="album-detail-info">
           <h2>{$selectedAlbum.title}</h2>
           {#if $selectedAlbum.artist_name}
-            <p class="detail-artist">{$selectedAlbum.artist_name}</p>
+            <button class="detail-artist-link" onclick={() => { if ($selectedAlbum?.artist_id) selectArtistDetail({ id: $selectedAlbum.artist_id, name: $selectedAlbum.artist_name! }); }}>{$selectedAlbum.artist_name}</button>
           {/if}
           <div class="detail-meta">
             {#if $selectedAlbum.year}
@@ -238,10 +300,16 @@
           {#if $selectedAlbum.source && $selectedAlbum.source !== 'local'}
             <span class="source-badge">{$selectedAlbum.source}</span>
           {/if}
-          <button class="play-all-btn" onclick={() => $selectedAlbum?.id && playAlbum($selectedAlbum.id)}>
-            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
-            {$tr('library.playAlbum')}
-          </button>
+          <div class="detail-actions">
+            <button class="play-all-btn" onclick={() => $selectedAlbum?.id && playAlbum($selectedAlbum.id)}>
+              <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
+              {$tr('library.playAlbum')}
+            </button>
+            <button class="edit-btn" onclick={(e) => $selectedAlbum && openAlbumEdit(e, $selectedAlbum)} title={$tr('metadata.editAlbum')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+              {$tr('metadata.editAlbum')}
+            </button>
+          </div>
         </div>
       </div>
       {#if hasMultipleDiscs}
@@ -390,7 +458,7 @@
               {#if artist.image_path}
                 <AlbumArt coverPath={artist.image_path} size={100} alt={artist.name} round />
               {:else}
-                {artist.name.charAt(0).toUpperCase()}
+                {initials(artist.name)}
               {/if}
             </div>
             <span class="artist-card-name truncate">{artist.name}</span>
@@ -402,29 +470,56 @@
       </div>
 
     {:else if $libraryTab === 'tracks'}
-      <div class="track-list">
-        {#each filteredTracks as t, index}
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="track-item" onclick={() => t.id && playTrack(t.id)}>
-            <span class="track-num">{index + 1}</span>
-            <div class="track-info">
-              <span class="track-title truncate">{t.title}</span>
-              <span class="track-artist truncate">{t.artist_name ?? ''} {t.album_title ? `- ${t.album_title}` : ''}</span>
-            </div>
-            {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
-            <span class="track-duration">{formatTime(t.duration_ms)}</span>
-            <button class="edit-track-btn" onclick={(e) => openTrackEdit(e, t)} title={$tr('metadata.editTrack')}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-            </button>
-            <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title={$tr('queue.addToQueue')}>+</button>
-            {#if onAddToPlaylist && t.id}
-              <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t.id!); }} title={$tr('nowplaying.addToPlaylist')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
+      <div class="track-filters">
+        {#if availableFormats.length > 1}
+          <div class="format-filters">
+            <span class="filter-label">Format</span>
+            <button class="format-btn" class:active={!formatFilter} onclick={() => formatFilter = null}>{$tr('metadata.all')}</button>
+            {#each availableFormats as fmt}
+              <button class="format-btn" class:active={formatFilter === fmt} onclick={() => formatFilter = fmt}>{fmt.toUpperCase()}</button>
+            {/each}
+          </div>
+        {/if}
+        <div class="format-filters">
+          <span class="filter-label">Qualité</span>
+          <button class="format-btn" class:active={!qualityFilter} onclick={() => qualityFilter = null}>{$tr('metadata.all')}</button>
+          {#each qualityBuckets as bucket}
+            {#if qualityCounts[bucket.key]}
+              <button class="format-btn" class:active={qualityFilter === bucket.key} onclick={() => qualityFilter = bucket.key}>
+                {bucket.label} <span class="badge">{qualityCounts[bucket.key]}</span>
               </button>
             {/if}
-          </div>
-        {/each}
+          {/each}
+        </div>
+        <span class="format-count">{filteredTracks.length} {$tr('common.tracks')}</span>
+      </div>
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="track-list" bind:this={trackListEl}
+        onscroll={(e) => { scrollTop = (e.currentTarget as HTMLDivElement).scrollTop; }}
+        use:observeHeight={(h) => { containerHeight = h; }}>
+        <div style="height:{visibleTracks.totalHeight}px;position:relative;">
+          {#each filteredTracks.slice(visibleTracks.startIdx, visibleTracks.endIdx) as t, i (t.id ?? visibleTracks.startIdx + i)}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <div class="track-item" style="position:absolute;top:{(visibleTracks.startIdx + i) * TRACK_ROW_HEIGHT}px;left:0;right:0;height:{TRACK_ROW_HEIGHT}px;" onclick={() => t.id && playTrack(t.id)}>
+              <span class="track-thumb"><AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.album_title ?? ''} /></span>
+              <div class="track-info">
+                <span class="track-title truncate">{t.title}</span>
+                <span class="track-meta truncate">{#if t.artist_name}<button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.artist_id) selectArtistDetail({ id: t.artist_id, name: t.artist_name! }); }}>{t.artist_name}</button>{/if}{#if t.album_title}<span class="track-sep"> — </span><button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.album_id) selectAlbumDetail({ id: t.album_id, title: t.album_title!, artist_name: t.artist_name } as Album); }}>{t.album_title}</button>{/if}</span>
+              </div>
+              {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
+              <span class="track-duration">{formatTime(t.duration_ms)}</span>
+              <button class="edit-track-btn" onclick={(e) => openTrackEdit(e, t)} title={$tr('metadata.editTrack')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+              </button>
+              <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title={$tr('queue.addToQueue')}>+</button>
+              {#if onAddToPlaylist && t.id}
+                <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t.id!); }} title={$tr('nowplaying.addToPlaylist')}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
+                </button>
+              {/if}
+            </div>
+          {/each}
+        </div>
         {#if filteredTracks.length === 0}
           <div class="empty">{searchQuery ? $tr('common.noResult') : $tr('library.noTracks')}</div>
         {/if}
@@ -655,10 +750,47 @@
     font-weight: 600;
   }
 
-  .detail-artist {
+  .detail-artist-link {
+    background: none;
+    border: none;
+    padding: 0;
     font-family: var(--font-body);
     font-size: 16px;
     color: var(--tune-text-secondary);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .detail-artist-link:hover {
+    color: var(--tune-accent);
+    text-decoration: underline;
+  }
+
+  .detail-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+  }
+
+  .edit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--tune-grey2);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 13px;
+    transition: all 0.12s;
+  }
+
+  .edit-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-text);
   }
 
   .detail-meta {
@@ -713,7 +845,6 @@
     display: inline-flex;
     align-items: center;
     gap: var(--space-sm);
-    margin-top: var(--space-md);
     padding: var(--space-sm) var(--space-lg);
     background: var(--tune-accent);
     color: white;
@@ -867,13 +998,73 @@
     max-width: 140px;
   }
 
-  /* Track list */
-  .track-list {
+  /* Track filters */
+  .track-filters {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 2px;
+    padding: var(--space-sm) 28px;
+  }
+
+  .format-filters {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+  }
+
+  .filter-label {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--tune-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-width: 48px;
+  }
+
+  .format-btn {
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    padding: 3px 10px;
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .format-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-text);
+  }
+
+  .format-btn.active {
+    background: var(--tune-accent);
+    border-color: var(--tune-accent);
+    color: white;
+  }
+
+  .format-btn .badge {
+    font-size: 10px;
+    opacity: 0.7;
+  }
+
+  .format-count {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    margin-left: auto;
+    align-self: flex-end;
+  }
+
+  /* Track list (virtual scroll) */
+  .track-list {
     flex: 1;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .track-item {
@@ -891,6 +1082,14 @@
 
   .track-item:hover {
     background: var(--tune-surface-hover);
+  }
+
+  .track-thumb {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
   }
 
   .track-num {
@@ -916,10 +1115,28 @@
     font-weight: 700;
   }
 
-  .track-artist {
+  .track-meta {
     font-family: var(--font-body);
     font-size: 13px;
     color: var(--tune-text-secondary);
+  }
+
+  .track-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+  }
+
+  .track-link:hover {
+    color: var(--tune-accent);
+    text-decoration: underline;
+  }
+
+  .track-sep {
+    color: var(--tune-text-muted);
   }
 
   .track-duration {

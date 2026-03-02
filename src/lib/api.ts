@@ -241,6 +241,18 @@ export function getTracks(limit = 100, offset = 0) {
   return fetchJSON<Track[]>(`${BASE}/library/tracks?limit=${limit}&offset=${offset}`);
 }
 
+export async function getAllTracks(pageSize = 2000): Promise<Track[]> {
+  const all: Track[] = [];
+  let offset = 0;
+  while (true) {
+    const batch = await fetchJSON<Track[]>(`${BASE}/library/tracks?limit=${pageSize}&offset=${offset}`);
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+    offset += pageSize;
+  }
+  return all;
+}
+
 export function searchLibrary(q: string, limit = 50) {
   return fetchJSON<SearchResult>(`${BASE}/library/search?q=${encodeURIComponent(q)}&limit=${limit}`);
 }

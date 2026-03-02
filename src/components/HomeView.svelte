@@ -1,6 +1,6 @@
 <script lang="ts">
   import { activeView } from '../lib/stores/navigation';
-  import { libraryTab } from '../lib/stores/library';
+  import { libraryTab, selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryLoading } from '../lib/stores/library';
   import { playbackHistory } from '../lib/stores/history';
   import { currentZone } from '../lib/stores/zones';
   import { formatNumber } from '../lib/utils';
@@ -59,6 +59,42 @@
     }
   }
 
+  async function navigateToAlbum(albumId: number) {
+    selectedArtist.set(null);
+    libraryLoading.set(true);
+    try {
+      const [album, tracks] = await Promise.all([
+        api.getAlbum(albumId),
+        api.getAlbumTracks(albumId),
+      ]);
+      selectedAlbum.set(album);
+      albumTracks.set(tracks);
+      libraryTab.set('albums');
+      activeView.set('library');
+    } catch (e) {
+      console.error('Navigate to album error:', e);
+    }
+    libraryLoading.set(false);
+  }
+
+  async function navigateToArtist(artistId: number) {
+    selectedAlbum.set(null);
+    libraryLoading.set(true);
+    try {
+      const [artist, albums] = await Promise.all([
+        api.getArtist(artistId),
+        api.getArtistAlbums(artistId),
+      ]);
+      selectedArtist.set(artist);
+      artistAlbums.set(albums);
+      libraryTab.set('artists');
+      activeView.set('library');
+    } catch (e) {
+      console.error('Navigate to artist error:', e);
+    }
+    libraryLoading.set(false);
+  }
+
   async function playTrack(trackId: number) {
     if (!zone?.id) return;
     try {
@@ -72,7 +108,7 @@
   // Use a string key to dedupe: "local:{album_id}" or "streaming:{source}:{source_id}"
   let recentlyPlayed = $derived.by(() => {
     const seen = new Set<string>();
-    const albums: { id: number | null; title: string; artist_name: string; cover_path?: string | null; source?: string | null; source_id?: string | null }[] = [];
+    const albums: { id: number | null; title: string; artist_id?: number | null; artist_name: string; cover_path?: string | null; source?: string | null; source_id?: string | null }[] = [];
     for (const entry of $playbackHistory) {
       const t = entry.track;
       const albumId = t.album_id;
@@ -90,6 +126,7 @@
       albums.push({
         id: albumId ?? null,
         title: t.album_title ?? t.title,
+        artist_id: t.artist_id ?? null,
         artist_name: t.artist_name ?? '',
         cover_path: t.cover_path ?? null,
         source: t.source ?? null,
@@ -165,11 +202,22 @@
           </button>
           <div class="carousel" bind:this={playedCarousel}>
             {#each recentlyPlayed as album}
-              <button class="carousel-card" onclick={() => album.id && playAlbum(album.id)}>
-                <AlbumArt coverPath={album.cover_path} albumId={album.id} size={160} alt={album.title} />
-                <span class="carousel-title truncate">{album.title}</span>
-                <span class="carousel-artist truncate">{album.artist_name}</span>
-              </button>
+              <div class="carousel-card">
+                <button class="carousel-cover" onclick={() => album.id && playAlbum(album.id)}>
+                  <AlbumArt coverPath={album.cover_path} albumId={album.id} size={160} alt={album.title} />
+                  <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
+                </button>
+                {#if album.id}
+                  <button class="carousel-title truncate" onclick={() => navigateToAlbum(album.id!)}>{album.title}</button>
+                {:else}
+                  <span class="carousel-title truncate">{album.title}</span>
+                {/if}
+                {#if album.artist_id}
+                  <button class="carousel-artist truncate" onclick={() => navigateToArtist(album.artist_id!)}>{album.artist_name}</button>
+                {:else}
+                  <span class="carousel-artist truncate">{album.artist_name}</span>
+                {/if}
+              </div>
             {/each}
           </div>
           <button class="carousel-arrow right" onclick={() => scrollCarousel(playedCarousel, 1)}>
@@ -188,11 +236,22 @@
           </button>
           <div class="carousel" bind:this={addedCarousel}>
             {#each recentAlbums as album}
-              <button class="carousel-card" onclick={() => album.id && playAlbum(album.id)}>
-                <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
-                <span class="carousel-title truncate">{album.title}</span>
-                <span class="carousel-artist truncate">{album.artist_name ?? ''}</span>
-              </button>
+              <div class="carousel-card">
+                <button class="carousel-cover" onclick={() => album.id && playAlbum(album.id)}>
+                  <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+                  <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
+                </button>
+                {#if album.id}
+                  <button class="carousel-title truncate" onclick={() => navigateToAlbum(album.id!)}>{album.title}</button>
+                {:else}
+                  <span class="carousel-title truncate">{album.title}</span>
+                {/if}
+                {#if album.artist_id}
+                  <button class="carousel-artist truncate" onclick={() => navigateToArtist(album.artist_id!)}>{album.artist_name ?? ''}</button>
+                {:else}
+                  <span class="carousel-artist truncate">{album.artist_name ?? ''}</span>
+                {/if}
+              </div>
             {/each}
           </div>
           <button class="carousel-arrow right" onclick={() => scrollCarousel(addedCarousel, 1)}>
@@ -377,19 +436,55 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-xs);
-    background: none;
-    border: none;
-    cursor: pointer;
     text-align: left;
     padding: 0;
     color: var(--tune-text);
     flex-shrink: 0;
     width: 160px;
-    transition: opacity 0.12s;
   }
 
-  .carousel-card:hover {
-    opacity: 0.85;
+  .carousel-cover {
+    position: relative;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+
+  .carousel-cover:hover .play-overlay {
+    opacity: 1;
+  }
+
+  .play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    color: white;
+    opacity: 0;
+    transition: opacity 0.15s;
+    border-radius: var(--radius-sm);
+  }
+
+  button.carousel-title,
+  button.carousel-artist {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  button.carousel-title:hover {
+    color: var(--tune-accent);
+  }
+
+  button.carousel-artist:hover {
+    color: var(--tune-accent);
   }
 
   .carousel-title {
@@ -397,6 +492,7 @@
     font-size: 13px;
     font-weight: 700;
     max-width: 160px;
+    color: var(--tune-text);
   }
 
   .carousel-artist {
