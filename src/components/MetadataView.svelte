@@ -11,6 +11,8 @@
   let allAlbums = $state<Album[]>([]);
   let tracksWithoutArtist = $state<Track[]>([]);
   let tracksWithoutArtistLoaded = $state(false);
+  let unknownTracks = $state<Track[]>([]);
+  let unknownTracksLoaded = $state(false);
   let loading = $state(true);
   let filter = $state<'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist' | 'unknown'>('no_cover');
 
@@ -58,7 +60,7 @@
       case 'no_artist':
         return [];
       case 'unknown':
-        return unknownAlbums;
+        return [];
       default:
         return allAlbums;
     }
@@ -72,6 +74,19 @@
       tracksWithoutArtistLoaded = true;
     } catch (e) {
       console.error('Load tracks error:', e);
+    }
+  }
+
+  async function loadUnknownTracks() {
+    if (unknownTracksLoaded) return;
+    try {
+      const results = await Promise.all(
+        unknownAlbums.map(a => api.getAlbumTracks(a.id))
+      );
+      unknownTracks = results.flat();
+      unknownTracksLoaded = true;
+    } catch (e) {
+      console.error('Load unknown tracks error:', e);
     }
   }
 
@@ -160,6 +175,9 @@
   $effect(() => {
     if (filter === 'no_artist') {
       loadTracksWithoutArtist();
+    }
+    if (filter === 'unknown') {
+      loadUnknownTracks();
     }
   });
 </script>
@@ -299,6 +317,21 @@
           {#each tracksWithoutArtist as track (track.id)}
             <div class="track-row">
               <span class="track-title">{track.title}</span>
+              <span class="track-album">{track.album_title ?? ''}</span>
+              <span class="track-path">{track.file_path ?? ''}</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    {:else if filter === 'unknown'}
+      {#if unknownTracks.length === 0}
+        <div class="empty">{$t('common.noResult')}</div>
+      {:else}
+        <div class="tracks-list">
+          {#each unknownTracks as track (track.id)}
+            <div class="track-row track-row-4col">
+              <span class="track-title">{track.title}</span>
+              <span class="track-artist">{track.artist_name ?? ''}</span>
               <span class="track-album">{track.album_title ?? ''}</span>
               <span class="track-path">{track.file_path ?? ''}</span>
             </div>
@@ -713,6 +746,11 @@
     white-space: nowrap;
   }
 
+  .track-row-4col {
+    grid-template-columns: 1fr 1fr 1fr 2fr;
+  }
+
+  .track-artist,
   .track-album {
     font-family: var(--font-body);
     font-size: 13px;
