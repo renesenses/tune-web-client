@@ -8,6 +8,7 @@
 
   let zone = $derived($currentZone);
   let loading = $state(false);
+  let rescanning = $state(false);
 
   // Navigation state
   let roots = $state<BrowseRootEntry[]>([]);
@@ -116,6 +117,17 @@
     }
   }
 
+  async function rescanFolder() {
+    if (!browseResult?.path || rescanning) return;
+    rescanning = true;
+    try {
+      await api.triggerScan(browseResult.path);
+    } catch (e) {
+      console.error('Rescan error:', e);
+    }
+    rescanning = false;
+  }
+
   // Load roots on mount
   loadRoots();
 </script>
@@ -142,6 +154,15 @@
           {/if}
         {/each}
       </nav>
+      <button class="rescan-btn" onclick={rescanFolder} disabled={rescanning}>
+        {#if rescanning}
+          <div class="spinner small"></div>
+          {$tr('browse.rescanning')}
+        {:else}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+          {$tr('browse.rescan')}
+        {/if}
+      </button>
     </div>
 
     {#if loading}
@@ -314,6 +335,38 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .rescan-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-secondary);
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 13px;
+    transition: all 0.12s ease-out;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  .rescan-btn:hover:not(:disabled) {
+    border-color: var(--tune-text-muted);
+    color: var(--tune-text);
+  }
+
+  .rescan-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .spinner.small {
+    width: 14px;
+    height: 14px;
   }
 
   /* Roots list */

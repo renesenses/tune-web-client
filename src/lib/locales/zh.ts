@@ -253,6 +253,19 @@ export default {
   'radio.uploadingCover': '上传中...',
   'radio.coverUploaded': '封面已保存！',
 
+  // Browse (directory navigation)
+  'nav.browse': '文件夹',
+  'browse.title': '按文件夹浏览',
+  'browse.roots': '位置',
+  'browse.noRoots': '未配置音乐目录',
+  'browse.noDirs': '没有子目录',
+  'browse.noTracks': '此目录中没有曲目',
+  'browse.trackCount': '{count} 首曲目',
+  'browse.playAll': '全部播放',
+  'browse.addAll': '全部添加',
+  'browse.rescan': '重新扫描',
+  'browse.rescanning': '扫描中...',
+
   // Volume
   'volume.title': '音量(M 静音)',
 } as const;

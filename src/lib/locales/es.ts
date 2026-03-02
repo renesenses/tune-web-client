@@ -253,6 +253,19 @@ export default {
   'radio.uploadingCover': 'Subiendo...',
   'radio.coverUploaded': '¡Portada guardada!',
 
+  // Browse (directory navigation)
+  'nav.browse': 'Carpetas',
+  'browse.title': 'Explorar por carpeta',
+  'browse.roots': 'Ubicaciones',
+  'browse.noRoots': 'No hay directorios de música configurados',
+  'browse.noDirs': 'Sin subdirectorios',
+  'browse.noTracks': 'No hay pistas en este directorio',
+  'browse.trackCount': '{count} pistas',
+  'browse.playAll': 'Reproducir todo',
+  'browse.addAll': 'Añadir todo',
+  'browse.rescan': 'Reescanear',
+  'browse.rescanning': 'Escaneando...',
+
   // Volume
   'volume.title': 'Volumen (M para silenciar)',
 } as const;

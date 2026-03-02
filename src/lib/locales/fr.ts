@@ -240,6 +240,8 @@ export default {
   'browse.trackCount': '{count} pistes',
   'browse.playAll': 'Tout lire',
   'browse.addAll': 'Tout ajouter',
+  'browse.rescan': 'Rescanner',
+  'browse.rescanning': 'Scan en cours...',
 
   // Radios
   'nav.radios': 'Radios Live',

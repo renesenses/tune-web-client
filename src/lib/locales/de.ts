@@ -253,6 +253,19 @@ export default {
   'radio.uploadingCover': 'Wird hochgeladen...',
   'radio.coverUploaded': 'Cover gespeichert!',
 
+  // Browse (directory navigation)
+  'nav.browse': 'Ordner',
+  'browse.title': 'Nach Ordner durchsuchen',
+  'browse.roots': 'Speicherorte',
+  'browse.noRoots': 'Keine Musikverzeichnisse konfiguriert',
+  'browse.noDirs': 'Keine Unterverzeichnisse',
+  'browse.noTracks': 'Keine Titel in diesem Verzeichnis',
+  'browse.trackCount': '{count} Titel',
+  'browse.playAll': 'Alle abspielen',
+  'browse.addAll': 'Alle hinzufügen',
+  'browse.rescan': 'Neu scannen',
+  'browse.rescanning': 'Wird gescannt...',
+
   // Volume
   'volume.title': 'Lautstärke (M zum Stummschalten)',
 } as const;

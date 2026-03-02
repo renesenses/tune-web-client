@@ -253,6 +253,19 @@ export default {
   'radio.uploadingCover': 'アップロード中...',
   'radio.coverUploaded': 'カバーを保存しました！',
 
+  // Browse (directory navigation)
+  'nav.browse': 'フォルダ',
+  'browse.title': 'フォルダで閲覧',
+  'browse.roots': '場所',
+  'browse.noRoots': '音楽ディレクトリが設定されていません',
+  'browse.noDirs': 'サブディレクトリなし',
+  'browse.noTracks': 'このディレクトリにトラックはありません',
+  'browse.trackCount': '{count} トラック',
+  'browse.playAll': 'すべて再生',
+  'browse.addAll': 'すべて追加',
+  'browse.rescan': '再スキャン',
+  'browse.rescanning': 'スキャン中...',
+
   // Volume
   'volume.title': 'ボリューム(Mでミュート)',
 } as const;

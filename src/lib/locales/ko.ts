@@ -253,6 +253,19 @@ export default {
   'radio.uploadingCover': '업로드 중...',
   'radio.coverUploaded': '커버 저장됨!',
 
+  // Browse (directory navigation)
+  'nav.browse': '폴더',
+  'browse.title': '폴더별 탐색',
+  'browse.roots': '위치',
+  'browse.noRoots': '음악 디렉토리가 설정되지 않았습니다',
+  'browse.noDirs': '하위 디렉토리 없음',
+  'browse.noTracks': '이 디렉토리에 트랙이 없습니다',
+  'browse.trackCount': '{count} 트랙',
+  'browse.playAll': '모두 재생',
+  'browse.addAll': '모두 추가',
+  'browse.rescan': '다시 스캔',
+  'browse.rescanning': '스캔 중...',
+
   // Volume
   'volume.title': '볼륨 (M으로 음소거)',
 } as const;
