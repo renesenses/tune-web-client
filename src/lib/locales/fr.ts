@@ -53,6 +53,8 @@ export default {
   'zone.noOtherZone': 'Aucune autre zone disponible',
   'zone.alreadyInGroup': 'Déjà dans un autre groupe',
   'zone.ungroupAll': 'Dégrouper tout',
+  'zone.syncOffset': 'Décalage sync',
+  'zone.syncOffsetDesc': 'Ajuster le timing de lecture par rapport au leader du groupe (ms).',
   'zone.actions': 'Actions',
   'zone.deleteZone': 'Supprimer cette zone',
   'zone.confirmDelete': 'Confirmer la suppression ?',

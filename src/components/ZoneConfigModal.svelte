@@ -39,6 +39,9 @@
   let editName = $state(zone.name);
   let renaming = $state(false);
 
+  let editSyncDelay = $state(zone.sync_delay_ms ?? 0);
+  let savingSync = $state(false);
+
   let confirmDelete = $state(false);
   let loading = $state(false);
   let error = $state('');
@@ -125,6 +128,20 @@
   async function handleDelete() {
     if (zone.id === null) return;
     onDelete(zone.id);
+  }
+
+  async function handleSyncSave() {
+    if (zone.id === null) return;
+    savingSync = true;
+    error = '';
+    try {
+      await api.updateZoneSyncDelay(zone.id, editSyncDelay);
+      zone.sync_delay_ms = editSyncDelay;
+    } catch (e: any) {
+      error = e.message || 'Failed to update sync offset';
+    } finally {
+      savingSync = false;
+    }
   }
 
   function handleOverlayClick(e: MouseEvent) {
@@ -219,6 +236,28 @@
           {/if}
         </div>
       {/if}
+    </div>
+
+    <div class="modal-section">
+      <h3 class="section-title">{$t('zone.syncOffset')}</h3>
+      <p class="section-desc">{$t('zone.syncOffsetDesc')}</p>
+      <div class="sync-offset-row">
+        <input
+          class="sync-input"
+          type="number"
+          bind:value={editSyncDelay}
+          min="-10000"
+          max="10000"
+          step="10"
+          disabled={savingSync}
+        />
+        <span class="sync-unit">ms</span>
+        {#if editSyncDelay !== (zone.sync_delay_ms ?? 0)}
+          <button class="btn btn-primary btn-sm" onclick={handleSyncSave} disabled={savingSync}>
+            {savingSync ? '...' : $t('common.apply')}
+          </button>
+        {/if}
+      </div>
     </div>
 
     <div class="modal-section danger-section">
@@ -465,6 +504,34 @@
   .btn-secondary:hover:not(:disabled) {
     background: var(--tune-surface-hover);
     color: var(--tune-text);
+  }
+
+  .sync-offset-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sync-input {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text);
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    width: 100px;
+    outline: none;
+  }
+
+  .sync-input:focus {
+    border-color: var(--tune-accent);
+  }
+
+  .sync-unit {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
   }
 
   .danger-section {

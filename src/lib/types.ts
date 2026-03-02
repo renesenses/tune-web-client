@@ -74,6 +74,7 @@ export interface Zone {
   output_device_id?: string | null;
   volume?: number;
   group_id?: string | null;
+  sync_delay_ms?: number;
   state?: PlaybackState;
   current_track?: Track | null;
   position_ms?: number;

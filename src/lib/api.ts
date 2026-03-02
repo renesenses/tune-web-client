@@ -71,6 +71,13 @@ export function renameZone(id: number, name: string) {
   });
 }
 
+export function updateZoneSyncDelay(id: number, syncDelayMs: number) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ sync_delay_ms: syncDelayMs }),
+  });
+}
+
 // --- Devices ---
 
 export function getDevices() {
