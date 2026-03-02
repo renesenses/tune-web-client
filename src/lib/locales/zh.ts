@@ -189,6 +189,10 @@ export default {
   'settings.spotifyLink': '打开此链接以登录 Spotify：',
   'settings.spotifyOpenAuth': '在 Spotify 上登录',
   'settings.spotifyWaiting': '等待 Spotify 确认...',
+  'settings.deezerConnect': '连接 Deezer',
+  'settings.deezerLink': '打开此链接以登录 Deezer：',
+  'settings.deezerOpenAuth': '在 Deezer 上登录',
+  'settings.deezerWaiting': '等待 Deezer 确认...',
 
   // Metadata / Maintenance
   'metadata.title': '维护',

@@ -190,6 +190,10 @@ export default {
   'settings.spotifyLink': 'Ouvrez ce lien pour vous connecter à Spotify :',
   'settings.spotifyOpenAuth': 'Se connecter sur Spotify',
   'settings.spotifyWaiting': 'En attente de confirmation Spotify...',
+  'settings.deezerConnect': 'Connecter à Deezer',
+  'settings.deezerLink': 'Ouvrez ce lien pour vous connecter à Deezer :',
+  'settings.deezerOpenAuth': 'Se connecter sur Deezer',
+  'settings.deezerWaiting': 'En attente de confirmation Deezer...',
 
   // Metadata / Maintenance
   'metadata.title': 'Maintenance',

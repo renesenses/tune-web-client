@@ -189,6 +189,10 @@ export default {
   'settings.spotifyLink': '이 링크를 열어 Spotify에 로그인하세요:',
   'settings.spotifyOpenAuth': 'Spotify에 로그인',
   'settings.spotifyWaiting': 'Spotify 확인을 기다리는 중...',
+  'settings.deezerConnect': 'Deezer에 연결',
+  'settings.deezerLink': '이 링크를 열어 Deezer에 로그인하세요:',
+  'settings.deezerOpenAuth': 'Deezer에 로그인',
+  'settings.deezerWaiting': 'Deezer 확인을 기다리는 중...',
 
   // Metadata / Maintenance
   'metadata.title': '유지보수',

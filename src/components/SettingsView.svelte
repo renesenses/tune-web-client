@@ -36,6 +36,11 @@
   let spotifyPollingInterval: ReturnType<typeof setInterval> | null = $state(null);
   let spotifyAuthError: string | null = $state(null);
 
+  let deezerAuthLoading = $state(false);
+  let deezerVerificationUrl: string | null = $state(null);
+  let deezerPollingInterval: ReturnType<typeof setInterval> | null = $state(null);
+  let deezerAuthError: string | null = $state(null);
+
   async function handleQobuzAuth() {
     qobuzAuthLoading = true;
     qobuzAuthError = null;
@@ -168,6 +173,60 @@
     }
   }
 
+  async function handleDeezerAuth() {
+    deezerAuthLoading = true;
+    deezerAuthError = null;
+    deezerVerificationUrl = null;
+    try {
+      const res = await api.authenticateStreaming('deezer');
+      if (res.authenticated) {
+        $streamingServicesStore = {
+          ...$streamingServicesStore,
+          deezer: { ...$streamingServicesStore['deezer'], authenticated: true },
+        };
+        deezerAuthLoading = false;
+        return;
+      }
+      if (res.verification_url) {
+        deezerVerificationUrl = res.verification_url;
+        startDeezerPolling();
+      } else {
+        deezerAuthError = get(t)('settings.connectionError');
+        deezerAuthLoading = false;
+      }
+    } catch (e) {
+      deezerAuthError = get(t)('settings.connectionError');
+      deezerAuthLoading = false;
+    }
+  }
+
+  function startDeezerPolling() {
+    stopDeezerPolling();
+    deezerPollingInterval = setInterval(async () => {
+      try {
+        const status = await api.getStreamingServiceStatus('deezer');
+        if (status.authenticated) {
+          stopDeezerPolling();
+          deezerVerificationUrl = null;
+          deezerAuthLoading = false;
+          $streamingServicesStore = {
+            ...$streamingServicesStore,
+            deezer: { ...$streamingServicesStore['deezer'], authenticated: true },
+          };
+        }
+      } catch {
+        // ignore polling errors
+      }
+    }, 3000);
+  }
+
+  function stopDeezerPolling() {
+    if (deezerPollingInterval) {
+      clearInterval(deezerPollingInterval);
+      deezerPollingInterval = null;
+    }
+  }
+
   async function handleDisconnect(serviceName: string) {
     try {
       await api.disconnectStreaming(serviceName);
@@ -284,6 +343,7 @@
       unsub();
       stopTidalPolling();
       stopSpotifyPolling();
+      stopDeezerPolling();
     };
   });
 </script>
@@ -624,6 +684,35 @@
                           {$t('settings.connecting')}
                         {:else}
                           {$t('settings.spotifyConnect')}
+                        {/if}
+                      </button>
+                    {/if}
+                  </div>
+                {:else if name === 'deezer'}
+                  <div class="service-auth-form">
+                    {#if deezerVerificationUrl}
+                      <p class="auth-hint">{$t('settings.deezerLink')}</p>
+                      <a href={deezerVerificationUrl} target="_blank" rel="noopener noreferrer" class="auth-link">
+                        {$t('settings.deezerOpenAuth')}
+                      </a>
+                      <div class="auth-waiting">
+                        <div class="spinner small"></div>
+                        {$t('settings.deezerWaiting')}
+                      </div>
+                    {:else}
+                      {#if deezerAuthError}
+                        <p class="auth-error">{deezerAuthError}</p>
+                      {/if}
+                      <button
+                        class="scan-btn"
+                        onclick={handleDeezerAuth}
+                        disabled={deezerAuthLoading}
+                      >
+                        {#if deezerAuthLoading}
+                          <div class="spinner small"></div>
+                          {$t('settings.connecting')}
+                        {:else}
+                          {$t('settings.deezerConnect')}
                         {/if}
                       </button>
                     {/if}

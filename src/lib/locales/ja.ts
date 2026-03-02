@@ -189,6 +189,10 @@ export default {
   'settings.spotifyLink': 'このリンクを開いてSpotifyにログインしてください：',
   'settings.spotifyOpenAuth': 'Spotifyにログイン',
   'settings.spotifyWaiting': 'Spotifyの確認を待っています...',
+  'settings.deezerConnect': 'Deezerに接続',
+  'settings.deezerLink': 'このリンクを開いてDeezerにログインしてください：',
+  'settings.deezerOpenAuth': 'Deezerにログイン',
+  'settings.deezerWaiting': 'Deezerの確認を待っています...',
 
   // Metadata / Maintenance
   'metadata.title': 'メンテナンス',
