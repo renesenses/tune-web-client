@@ -9,7 +9,8 @@
   let stats = $state<CompletenessStats | null>(null);
   let albumsWithoutCover = $state<Album[]>([]);
   let allAlbums = $state<Album[]>([]);
-  let allTracks = $state<Track[]>([]);
+  let tracksWithoutArtist = $state<Track[]>([]);
+  let tracksWithoutArtistLoaded = $state(false);
   let loading = $state(true);
   let filter = $state<'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist'>('no_cover');
 
@@ -25,14 +26,12 @@
   async function loadData() {
     loading = true;
     try {
-      const [s, albums, tracks] = await Promise.all([
+      const [s, albums] = await Promise.all([
         api.getCompletenessStats(),
         api.getAlbums(500, 0),
-        api.getTracks(5000, 0),
       ]);
       stats = s;
       allAlbums = albums;
-      allTracks = tracks;
       albumsWithoutCover = albums.filter(a => !a.cover_path);
     } catch (e) {
       console.error('Load metadata error:', e);
@@ -55,7 +54,16 @@
     }
   });
 
-  let tracksWithoutArtist = $derived(allTracks.filter(t => !t.artist_id));
+  async function loadTracksWithoutArtist() {
+    if (tracksWithoutArtistLoaded) return;
+    try {
+      const all = await api.getTracks(500, 0);
+      tracksWithoutArtist = all.filter(t => !t.artist_id);
+      tracksWithoutArtistLoaded = true;
+    } catch (e) {
+      console.error('Load tracks error:', e);
+    }
+  }
 
   function completionPercent(missing: number, total: number): number {
     if (total === 0) return 100;
@@ -137,6 +145,12 @@
   $effect(() => {
     loadData();
     loadBackups();
+  });
+
+  $effect(() => {
+    if (filter === 'no_artist') {
+      loadTracksWithoutArtist();
+    }
   });
 </script>
 
