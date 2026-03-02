@@ -20,3 +20,12 @@ export function formatDuration(ms: number): string {
 export function formatNumber(n: number): string {
   return n.toLocaleString('fr-FR');
 }
+
+/** Format audio badge (e.g. "FLAC / 96 kHz / 24-bit") */
+export function formatAudioBadge(track: { format?: string; sample_rate?: number; bit_depth?: number }): string {
+  const parts: string[] = [];
+  if (track.format) parts.push(track.format.toUpperCase());
+  if (track.sample_rate) parts.push(`${(track.sample_rate / 1000).toFixed(track.sample_rate % 1000 === 0 ? 0 : 1)} kHz`);
+  if (track.bit_depth) parts.push(`${track.bit_depth}-bit`);
+  return parts.join(' / ');
+}

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { currentZone } from '../lib/stores/zones';
   import * as api from '../lib/api';
-  import { formatTime } from '../lib/utils';
+  import { formatTime, formatAudioBadge } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import type { BrowseRootEntry, BrowseDirectory, BrowseResult, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
@@ -211,6 +211,7 @@
                   <span class="track-artist truncate">{t.artist_name}</span>
                 {/if}
               </div>
+              {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title={$tr('queue.addToQueue')}>+</button>
             </div>
@@ -595,6 +596,14 @@
     font-size: 12px;
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
+  }
+
+  .audio-format {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
   }
 
   .add-queue-btn {

@@ -2,7 +2,7 @@
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, type LibraryTab } from '../lib/stores/library';
   import { currentZone } from '../lib/stores/zones';
   import * as api from '../lib/api';
-  import { formatTime, formatDuration } from '../lib/utils';
+  import { formatTime, formatDuration, formatAudioBadge } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
   import TrackEditModal from './TrackEditModal.svelte';
@@ -259,6 +259,7 @@
                     <span class="track-artist truncate">{t.artist_name}</span>
                   {/if}
                 </div>
+                {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title={$tr('queue.addToQueue')}>+</button>
                 {#if onAddToPlaylist && t.id}
@@ -283,6 +284,7 @@
                   <span class="track-artist truncate">{t.artist_name}</span>
                 {/if}
               </div>
+              {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title={$tr('queue.addToQueue')}>+</button>
               {#if onAddToPlaylist && t.id}
@@ -405,6 +407,7 @@
               <span class="track-title truncate">{t.title}</span>
               <span class="track-artist truncate">{t.artist_name ?? ''} {t.album_title ? `- ${t.album_title}` : ''}</span>
             </div>
+            {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
             <button class="edit-track-btn" onclick={(e) => openTrackEdit(e, t)} title={$tr('metadata.editTrack')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
@@ -924,6 +927,14 @@
     font-size: 12px;
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
+  }
+
+  .audio-format {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
   }
 
   .add-queue-btn {

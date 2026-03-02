@@ -3,7 +3,7 @@
   import { currentZone } from '../lib/stores/zones';
   import { currentTrack } from '../lib/stores/nowPlaying';
   import * as api from '../lib/api';
-  import { formatTime } from '../lib/utils';
+  import { formatTime, formatAudioBadge } from '../lib/utils';
   import { t } from '../lib/i18n';
   import AlbumArt from './AlbumArt.svelte';
 
@@ -156,6 +156,7 @@
               <span class="queue-title truncate">{queueTrack.title}</span>
               <span class="queue-artist truncate">{queueTrack.artist_name ?? ''}</span>
             </div>
+            {#if queueTrack.format}<span class="audio-format">{formatAudioBadge(queueTrack)}</span>{/if}
             <span class="queue-duration">{formatTime(queueTrack.duration_ms)}</span>
           </button>
           {#if onAddToPlaylist && queueTrack.id}
@@ -352,6 +353,14 @@
     font-size: 12px;
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  .audio-format {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    letter-spacing: 0.3px;
     flex-shrink: 0;
   }
 

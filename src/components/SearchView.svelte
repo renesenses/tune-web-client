@@ -3,7 +3,7 @@
   import { activeView } from '../lib/stores/navigation';
   import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading } from '../lib/stores/library';
   import * as api from '../lib/api';
-  import { formatTime } from '../lib/utils';
+  import { formatTime, formatAudioBadge } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import type { FederatedSearchResult, Track, Album, Artist } from '../lib/types';
   import { t } from '../lib/i18n';
@@ -126,6 +126,7 @@
                     <span class="track-title truncate">{t.title}</span>
                     <span class="track-artist truncate">{t.artist_name ?? ''}{t.album_title ? ` - ${t.album_title}` : ''}</span>
                   </div>
+                  {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
                   <span class="track-duration">{formatTime(t.duration_ms)}</span>
                 </button>
               {/each}
@@ -330,6 +331,14 @@
     font-size: 12px;
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
+  }
+
+  .audio-format {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
   }
 
   .artist-list {

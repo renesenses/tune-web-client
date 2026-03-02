@@ -1,7 +1,7 @@
 <script lang="ts">
   import { playbackHistory, type HistoryEntry } from '../lib/stores/history';
   import { currentZone } from '../lib/stores/zones';
-  import { formatTime } from '../lib/utils';
+  import { formatTime, formatAudioBadge } from '../lib/utils';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
@@ -58,6 +58,7 @@
             <span class="history-zone truncate">{entry.zoneName}</span>
             <span class="history-time">{relativeTime(entry.playedAt)}</span>
           </div>
+          {#if entry.track.format}<span class="audio-format">{formatAudioBadge(entry.track)}</span>{/if}
           <span class="history-duration">{formatTime(entry.track.duration_ms)}</span>
         </button>
       {/each}
@@ -200,5 +201,13 @@
     font-variant-numeric: tabular-nums;
     min-width: 36px;
     text-align: right;
+  }
+
+  .audio-format {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
   }
 </style>

@@ -2,7 +2,7 @@
   import { currentZone } from '../lib/stores/zones';
   import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode } from '../lib/stores/nowPlaying';
   import { upNextTracks } from '../lib/stores/queue';
-  import { formatTime } from '../lib/utils';
+  import { formatTime, formatAudioBadge } from '../lib/utils';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import SeekBar from './SeekBar.svelte';
@@ -34,14 +34,6 @@
       resolvedCoverUrl = '';
     }
   });
-
-  function formatAudioBadge(track: any): string {
-    const parts: string[] = [];
-    if (track.format) parts.push(track.format.toUpperCase());
-    if (track.sample_rate) parts.push(`${(track.sample_rate / 1000).toFixed(track.sample_rate % 1000 === 0 ? 0 : 1)} kHz`);
-    if (track.bit_depth) parts.push(`${track.bit_depth}-bit`);
-    return parts.join(' / ');
-  }
 
   async function toggleShuffle() {
     if (!zone?.id) return;

@@ -2,7 +2,7 @@
   import { currentZone } from '../lib/stores/zones';
   import { playlists as playlistsStore, playlistsLoaded } from '../lib/stores/playlists';
   import * as api from '../lib/api';
-  import { formatTime } from '../lib/utils';
+  import { formatTime, formatAudioBadge } from '../lib/utils';
   import type { Playlist, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
 
@@ -138,6 +138,7 @@
                 <span class="track-title truncate">{t.title}</span>
                 <span class="track-artist truncate">{t.artist_name ?? ''}</span>
               </div>
+              {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
             </button>
             <button class="remove-btn" onclick={() => t.id && removeTrack(t.id)} title={$tr('playlist.remove')}>
@@ -579,6 +580,14 @@
     font-size: 12px;
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
+  }
+
+  .audio-format {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
   }
 
   .remove-btn {
