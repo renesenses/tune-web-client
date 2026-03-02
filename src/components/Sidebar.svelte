@@ -421,13 +421,14 @@
 <style>
   .sidebar {
     grid-column: 1;
-    grid-row: 1;
+    grid-row: 1 / -1;
     background: var(--tune-surface);
     border-right: 1px solid var(--tune-border);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     position: relative;
+    padding-bottom: var(--transport-height);
   }
 
   .resize-handle {
