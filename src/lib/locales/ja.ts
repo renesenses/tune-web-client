@@ -130,6 +130,7 @@ export default {
   'playlist.addedTo': '<strong>{name}</strong>に追加されました',
   'playlist.noExisting': '既存のプレイリストがありません',
   'playlist.newPlaylist': '新しいプレイリスト',
+  'playlist.searchPlaceholder': 'プレイリストを検索...',
 
   // Settings
   'settings.title': '設定',

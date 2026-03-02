@@ -1,31 +1,40 @@
 <script lang="ts">
   import { currentZone } from '../lib/stores/zones';
+  import { playlists as playlistsStore, playlistsLoaded } from '../lib/stores/playlists';
   import * as api from '../lib/api';
   import { formatTime } from '../lib/utils';
-  import AlbumArt from './AlbumArt.svelte';
   import type { Playlist, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
 
   let zone = $derived($currentZone);
 
-  let playlists: Playlist[] = $state([]);
   let selectedPlaylist: Playlist | null = $state(null);
   let playlistTracks: Track[] = $state([]);
   let loading = $state(false);
+  let searchQuery = $state('');
+
+  let filteredPlaylists = $derived(
+    searchQuery.trim()
+      ? $playlistsStore.filter((pl) => {
+          const q = searchQuery.trim().toLowerCase();
+          return pl.name.toLowerCase().includes(q) ||
+            (pl.description?.toLowerCase().includes(q) ?? false);
+        })
+      : $playlistsStore
+  );
 
   // Create dialog
   let showCreate = $state(false);
   let newName = $state('');
   let newDescription = $state('');
 
-  async function loadPlaylists() {
-    loading = true;
+  async function refreshPlaylists() {
     try {
-      playlists = await api.getPlaylists();
+      const list = await api.getPlaylists();
+      playlistsStore.set(list);
     } catch (e) {
-      console.error('Load playlists error:', e);
+      console.error('Refresh playlists error:', e);
     }
-    loading = false;
   }
 
   async function selectPlaylist(pl: Playlist) {
@@ -52,7 +61,7 @@
       showCreate = false;
       newName = '';
       newDescription = '';
-      await loadPlaylists();
+      await refreshPlaylists();
     } catch (e) {
       console.error('Create playlist error:', e);
     }
@@ -62,7 +71,7 @@
     try {
       await api.deletePlaylist(id);
       if (selectedPlaylist?.id === id) goBack();
-      await loadPlaylists();
+      await refreshPlaylists();
     } catch (e) {
       console.error('Delete playlist error:', e);
     }
@@ -95,10 +104,6 @@
       console.error('Remove track error:', e);
     }
   }
-
-  $effect(() => {
-    if (playlists.length === 0) loadPlaylists();
-  });
 </script>
 
 <div class="playlists-view">
@@ -146,10 +151,21 @@
   {:else}
     <div class="playlists-header">
       <h2>{$tr('playlist.title')}</h2>
-      <button class="create-btn" onclick={() => showCreate = true}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-        {$tr('playlist.new')}
-      </button>
+      <div class="playlists-header-right">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+          <input type="text" placeholder={$tr('playlist.searchPlaceholder')} bind:value={searchQuery} />
+          {#if searchQuery}
+            <button class="search-clear" onclick={() => searchQuery = ''}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </button>
+          {/if}
+        </div>
+        <button class="create-btn" onclick={() => showCreate = true}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+          {$tr('playlist.new')}
+        </button>
+      </div>
     </div>
 
     {#if showCreate}
@@ -163,13 +179,13 @@
       </div>
     {/if}
 
-    {#if loading}
+    {#if !$playlistsLoaded}
       <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
-    {:else if playlists.length === 0}
+    {:else if filteredPlaylists.length === 0}
       <div class="empty">{$tr('playlist.noPlaylists')}</div>
     {:else}
       <div class="playlist-list">
-        {#each playlists as pl}
+        {#each filteredPlaylists as pl}
           <div class="playlist-item">
             <button class="playlist-btn" onclick={() => selectPlaylist(pl)}>
               <div class="playlist-icon">
@@ -212,6 +228,60 @@
     font-size: 28px;
     font-weight: 600;
     letter-spacing: -0.8px;
+  }
+
+  .playlists-header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--tune-grey2);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    padding: 4px 10px;
+    transition: border-color 0.12s;
+  }
+
+  .search-box:focus-within {
+    border-color: var(--tune-accent);
+  }
+
+  .search-icon {
+    color: var(--tune-text-muted);
+    flex-shrink: 0;
+  }
+
+  .search-box input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    width: 180px;
+  }
+
+  .search-box input::placeholder {
+    color: var(--tune-text-muted);
+  }
+
+  .search-clear {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-clear:hover {
+    color: var(--tune-text);
   }
 
   .create-btn {

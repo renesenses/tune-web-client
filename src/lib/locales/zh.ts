@@ -130,6 +130,7 @@ export default {
   'playlist.addedTo': '已添加到 <strong>{name}</strong>',
   'playlist.noExisting': '无现有播放列表',
   'playlist.newPlaylist': '新建播放列表',
+  'playlist.searchPlaceholder': '搜索播放列表...',
 
   // Settings
   'settings.title': '设置',

@@ -130,6 +130,7 @@ export default {
   'playlist.addedTo': 'Añadida a <strong>{name}</strong>',
   'playlist.noExisting': 'Sin listas de reproducción existentes',
   'playlist.newPlaylist': 'Nueva lista de reproducción',
+  'playlist.searchPlaceholder': 'Buscar listas...',
 
   // Settings
   'settings.title': 'Configuración',

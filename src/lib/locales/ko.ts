@@ -130,6 +130,7 @@ export default {
   'playlist.addedTo': '<strong>{name}</strong>에 추가됨',
   'playlist.noExisting': '기존 재생목록 없음',
   'playlist.newPlaylist': '새 재생목록',
+  'playlist.searchPlaceholder': '재생목록 검색...',
 
   // Settings
   'settings.title': '설정',

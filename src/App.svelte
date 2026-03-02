@@ -5,6 +5,7 @@
   import { devices } from './lib/stores/devices';
   import { seekPositionMs, startSeekTimer, stopSeekTimer, shuffleEnabled, repeatMode } from './lib/stores/nowPlaying';
   import { queueTracks, queuePosition, queueLength } from './lib/stores/queue';
+  import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
   import { connectionState } from './lib/stores/connection';
   import { activeView } from './lib/stores/navigation';
   import { preferences, applyTheme } from './lib/stores/preferences';
@@ -83,6 +84,16 @@
     }
   }
 
+  async function fetchPlaylists() {
+    try {
+      const list = await api.getPlaylists();
+      playlistsStore.set(list);
+      playlistsLoaded.set(true);
+    } catch (e) {
+      console.error('Fetch playlists error:', e);
+    }
+  }
+
   /**
    * Refresh zone state from API and sync seek position.
    * Called on playback events since WS events lack full track/position data.
@@ -125,6 +136,7 @@
     tuneWS.connect();
     fetchZones();
     fetchDevices();
+    fetchPlaylists();
 
     tuneWS.onEvent((event) => {
       const type = event.type;
@@ -186,6 +198,12 @@
         } else if (type === 'library.scan.completed') {
           scanIndicator = false;
         }
+        return;
+      }
+
+      // Playlist events
+      if (type.startsWith('playlist.')) {
+        fetchPlaylists();
         return;
       }
 
