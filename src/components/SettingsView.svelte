@@ -20,6 +20,11 @@
   let musicRoots = $state<BrowseRootEntry[]>([]);
   let scanningPath = $state<string | null>(null);
 
+  // Music dir management
+  let newMusicDirPath = $state('');
+  let addingMusicDir = $state(false);
+  let removingMusicDir = $state<string | null>(null);
+
   // Streaming auth state
   let qobuzUsername = $state('');
   let qobuzPassword = $state('');
@@ -351,6 +356,34 @@
     preferences.update((p) => ({ ...p, hiddenDeviceIds: allIds }));
   }
 
+  async function handleAddMusicDir() {
+    const path = newMusicDirPath.trim();
+    if (!path) return;
+    addingMusicDir = true;
+    try {
+      await api.addMusicDir(path);
+      newMusicDirPath = '';
+      const br = await api.getBrowseRoots().catch(() => ({ roots: [] }));
+      musicRoots = br.roots;
+    } catch (e: any) {
+      console.error('Add music dir error:', e);
+    }
+    addingMusicDir = false;
+  }
+
+  async function handleRemoveMusicDir(path: string) {
+    if (!confirm(get(t)('settings.removeMusicDirConfirm'))) return;
+    removingMusicDir = path;
+    try {
+      await api.removeMusicDir(path);
+      const br = await api.getBrowseRoots().catch(() => ({ roots: [] }));
+      musicRoots = br.roots;
+    } catch (e: any) {
+      console.error('Remove music dir error:', e);
+    }
+    removingMusicDir = null;
+  }
+
   async function handleScan() {
     scanning = true;
     try {
@@ -502,6 +535,31 @@
     <!-- Music locations -->
     <section class="settings-section">
       <h3>{$t('settings.musicDirs')}</h3>
+      <div class="music-dir-add">
+        <input
+          type="text"
+          class="auth-input"
+          placeholder={$t('settings.addMusicDirPlaceholder')}
+          bind:value={newMusicDirPath}
+          disabled={addingMusicDir}
+          onkeydown={(e) => { if (e.key === 'Enter') handleAddMusicDir(); }}
+        />
+        <button
+          class="scan-btn"
+          onclick={handleAddMusicDir}
+          disabled={addingMusicDir || !newMusicDirPath.trim()}
+        >
+          {#if addingMusicDir}
+            <div class="spinner small"></div>
+            {$t('settings.addingMusicDir')}
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            {$t('settings.addMusicDir')}
+          {/if}
+        </button>
+      </div>
       {#if musicRoots.length === 0}
         <p class="muted">{$t('settings.noMusicDirs')}</p>
       {:else}
@@ -513,21 +571,37 @@
                 <span class="music-dir-path">{root.path}</span>
                 <span class="music-dir-tracks">{root.track_count} {$t('common.tracks')}</span>
               </div>
-              <button
-                class="scan-btn small"
-                onclick={() => handleScanPath(root.path)}
-                disabled={scanning || scanningPath !== null}
-              >
-                {#if scanningPath === root.path}
-                  <div class="spinner small"></div>
-                  {$t('settings.scanningPath')}
-                {:else}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                    <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                  </svg>
-                  {$t('settings.scanPath')}
-                {/if}
-              </button>
+              <div class="music-dir-actions">
+                <button
+                  class="scan-btn small"
+                  onclick={() => handleScanPath(root.path)}
+                  disabled={scanning || scanningPath !== null}
+                >
+                  {#if scanningPath === root.path}
+                    <div class="spinner small"></div>
+                    {$t('settings.scanningPath')}
+                  {:else}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                      <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                    </svg>
+                    {$t('settings.scanPath')}
+                  {/if}
+                </button>
+                <button
+                  class="scan-btn small danger"
+                  onclick={() => handleRemoveMusicDir(root.path)}
+                  disabled={musicRoots.length <= 1 || removingMusicDir !== null}
+                >
+                  {#if removingMusicDir === root.path}
+                    <div class="spinner small"></div>
+                  {:else}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                      <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    {$t('settings.removeMusicDir')}
+                  {/if}
+                </button>
+              </div>
             </div>
           {/each}
         </div>
@@ -1221,6 +1295,33 @@
     padding: 1px 6px;
     border-radius: var(--radius-sm);
     flex-shrink: 0;
+  }
+
+  .music-dir-add {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+  }
+
+  .music-dir-add .auth-input {
+    flex: 1;
+  }
+
+  .music-dir-actions {
+    display: flex;
+    gap: var(--space-xs);
+    flex-shrink: 0;
+  }
+
+  .scan-btn.danger {
+    color: var(--tune-warning);
+    border-color: var(--tune-warning);
+  }
+
+  .scan-btn.danger:hover:not(:disabled) {
+    background: rgba(201, 84, 75, 0.1);
+    border-color: var(--tune-warning);
+    color: var(--tune-warning);
   }
 
   .music-dirs-list {

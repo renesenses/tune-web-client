@@ -394,6 +394,20 @@ export function getConfig() {
   return fetchJSON<any>(`${BASE}/system/config`);
 }
 
+export function addMusicDir(path: string) {
+  return fetchJSON<{ music_dirs: string[] }>(`${BASE}/system/music-dirs`, {
+    method: 'POST',
+    body: JSON.stringify({ path }),
+  });
+}
+
+export function removeMusicDir(path: string) {
+  return fetchJSON<{ music_dirs: string[] }>(`${BASE}/system/music-dirs`, {
+    method: 'DELETE',
+    body: JSON.stringify({ path }),
+  });
+}
+
 export function triggerScan(path?: string) {
   const url = path ? `${BASE}/system/scan?path=${encodeURIComponent(path)}` : `${BASE}/system/scan`;
   return fetchJSON<{ status: string; music_dirs: string[] }>(url, { method: 'POST' });
