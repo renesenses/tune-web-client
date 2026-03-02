@@ -11,6 +11,7 @@ export default {
   'nav.navigation': 'NAVIGATION',
   'nav.services': 'SERVICES',
   'nav.maintenance': 'Maintenance',
+  'nav.genres': 'Genres',
 
   // Common
   'common.play': 'Play',
