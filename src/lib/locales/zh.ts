@@ -219,6 +219,17 @@ export default {
   'metadata.cover': '封面',
   'metadata.noCover': '无封面',
 
+  // Backup / Restore
+  'maintenance.backupRestore': '备份 / 恢复',
+  'maintenance.createBackup': '创建备份',
+  'maintenance.restore': '恢复',
+  'maintenance.noBackups': '没有可用的备份',
+  'maintenance.backupCreated': '备份已创建',
+  'maintenance.backupError': '备份失败',
+  'maintenance.restoreConfirm': '恢复此备份？当前数据库将被替换。',
+  'maintenance.restoreSuccess': '恢复成功',
+  'maintenance.restoreError': '恢复失败',
+
   // Radios
   'nav.radios': '直播电台',
   'radio.title': '我的电台',

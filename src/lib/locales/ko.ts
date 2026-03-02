@@ -219,6 +219,17 @@ export default {
   'metadata.cover': '커버',
   'metadata.noCover': '커버 없음',
 
+  // Backup / Restore
+  'maintenance.backupRestore': '백업 / 복원',
+  'maintenance.createBackup': '백업 생성',
+  'maintenance.restore': '복원',
+  'maintenance.noBackups': '사용 가능한 백업이 없습니다',
+  'maintenance.backupCreated': '백업이 생성되었습니다',
+  'maintenance.backupError': '백업 실패',
+  'maintenance.restoreConfirm': '이 백업을 복원하시겠습니까? 현재 데이터베이스가 교체됩니다.',
+  'maintenance.restoreSuccess': '복원 성공',
+  'maintenance.restoreError': '복원 실패',
+
   // Radios
   'nav.radios': '라이브 라디오',
   'radio.title': '내 라디오',

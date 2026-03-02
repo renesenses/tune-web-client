@@ -219,6 +219,17 @@ export default {
   'metadata.cover': 'Cover',
   'metadata.noCover': 'No cover',
 
+  // Backup / Restore
+  'maintenance.backupRestore': 'Backup / Restore',
+  'maintenance.createBackup': 'Create Backup',
+  'maintenance.restore': 'Restore',
+  'maintenance.noBackups': 'No backups available',
+  'maintenance.backupCreated': 'Backup created',
+  'maintenance.backupError': 'Backup failed',
+  'maintenance.restoreConfirm': 'Restore this backup? The current database will be replaced.',
+  'maintenance.restoreSuccess': 'Restore successful',
+  'maintenance.restoreError': 'Restore failed',
+
   // Browse (directory navigation)
   'nav.browse': 'Folders',
   'browse.title': 'Browse by Folder',

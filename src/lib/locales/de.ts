@@ -219,6 +219,17 @@ export default {
   'metadata.cover': 'Cover',
   'metadata.noCover': 'Kein Cover',
 
+  // Backup / Restore
+  'maintenance.backupRestore': 'Sicherung / Wiederherstellung',
+  'maintenance.createBackup': 'Sicherung erstellen',
+  'maintenance.restore': 'Wiederherstellen',
+  'maintenance.noBackups': 'Keine Sicherungen verfügbar',
+  'maintenance.backupCreated': 'Sicherung erstellt',
+  'maintenance.backupError': 'Sicherung fehlgeschlagen',
+  'maintenance.restoreConfirm': 'Diese Sicherung wiederherstellen? Die aktuelle Datenbank wird ersetzt.',
+  'maintenance.restoreSuccess': 'Wiederherstellung erfolgreich',
+  'maintenance.restoreError': 'Wiederherstellung fehlgeschlagen',
+
   // Radios
   'nav.radios': 'Live-Radios',
   'radio.title': 'Meine Radios',

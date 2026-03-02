@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as api from '../lib/api';
   import { artworkUrl } from '../lib/api';
-  import type { Album, CompletenessStats } from '../lib/types';
+  import type { Album, CompletenessStats, BackupInfo } from '../lib/types';
   import { t } from '../lib/i18n';
   import AlbumArt from './AlbumArt.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
@@ -14,6 +14,12 @@
 
   let editAlbum = $state<Album | null>(null);
   let rescanningAll = $state(false);
+
+  let backups = $state<BackupInfo[]>([]);
+  let backupLoading = $state(false);
+  let backupCreating = $state(false);
+  let restoring = $state<string | null>(null);
+  let backupMessage = $state<{ text: string; type: 'success' | 'error' } | null>(null);
 
   async function loadData() {
     loading = true;
@@ -74,8 +80,56 @@
     api.getCompletenessStats().then(s => stats = s);
   }
 
+  async function loadBackups() {
+    backupLoading = true;
+    try {
+      backups = await api.getBackups();
+    } catch (e) {
+      console.error('Load backups error:', e);
+    }
+    backupLoading = false;
+  }
+
+  async function createBackup() {
+    backupCreating = true;
+    backupMessage = null;
+    try {
+      await api.createBackup();
+      await loadBackups();
+      backupMessage = { text: $t('maintenance.backupCreated'), type: 'success' };
+    } catch (e) {
+      backupMessage = { text: $t('maintenance.backupError'), type: 'error' };
+    }
+    backupCreating = false;
+  }
+
+  async function restoreBackup(filename: string) {
+    if (!confirm($t('maintenance.restoreConfirm'))) return;
+    restoring = filename;
+    backupMessage = null;
+    try {
+      await api.restoreBackup(filename);
+      backupMessage = { text: $t('maintenance.restoreSuccess'), type: 'success' };
+      await loadData();
+    } catch (e) {
+      backupMessage = { text: $t('maintenance.restoreError'), type: 'error' };
+    }
+    restoring = null;
+  }
+
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function formatBackupDate(iso: string): string {
+    return new Date(iso).toLocaleString();
+  }
+
   $effect(() => {
     loadData();
+    loadBackups();
   });
 </script>
 
@@ -135,6 +189,52 @@
         </div>
         <span class="stat-detail">{stats.albums_without_year} / {stats.total_albums} {$t('metadata.missingYear').toLowerCase()}</span>
       </div>
+    </div>
+
+    <!-- Backup / Restore -->
+    <div class="section-divider">
+      <h2 class="section-title">{$t('maintenance.backupRestore')}</h2>
+    </div>
+    <div class="backup-section">
+      <div class="backup-header">
+        <button class="btn-action btn-primary" onclick={createBackup} disabled={backupCreating}>
+          {#if backupCreating}
+            <div class="spinner small"></div>
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
+          {/if}
+          {$t('maintenance.createBackup')}
+        </button>
+        {#if backupMessage}
+          <span class="backup-msg" class:success={backupMessage.type === 'success'} class:error={backupMessage.type === 'error'}>
+            {backupMessage.text}
+          </span>
+        {/if}
+      </div>
+      {#if backupLoading}
+        <div class="loading"><div class="spinner small"></div></div>
+      {:else if backups.length === 0}
+        <p class="backup-empty">{$t('maintenance.noBackups')}</p>
+      {:else}
+        <div class="backup-list">
+          {#each backups as backup}
+            <div class="backup-item">
+              <div class="backup-info">
+                <span class="backup-name">{backup.filename}</span>
+                <span class="backup-meta">{formatBackupDate(backup.created_at)} &middot; {formatFileSize(backup.size)}</span>
+              </div>
+              <button class="btn-restore" onclick={() => restoreBackup(backup.filename)} disabled={restoring !== null}>
+                {#if restoring === backup.filename}
+                  <div class="spinner small"></div>
+                {:else}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg>
+                {/if}
+                {$t('maintenance.restore')}
+              </button>
+            </div>
+          {/each}
+        </div>
+      {/if}
     </div>
 
     <!-- Filters -->
@@ -237,6 +337,124 @@
   }
 
   .btn-action:disabled { opacity: 0.5; cursor: default; }
+
+  .btn-action.btn-primary {
+    background: var(--tune-accent);
+    border-color: var(--tune-accent);
+    color: white;
+  }
+
+  .btn-action.btn-primary:hover:not(:disabled) {
+    background: var(--tune-accent-hover);
+  }
+
+  /* Section divider */
+  .section-divider {
+    margin-top: 8px;
+  }
+
+  .section-title {
+    font-family: var(--font-label);
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--tune-text-muted);
+  }
+
+  /* Backup section */
+  .backup-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .backup-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .backup-msg {
+    font-family: var(--font-body);
+    font-size: 13px;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+  }
+
+  .backup-msg.success {
+    color: var(--tune-success, #4ade80);
+    background: rgba(74, 222, 128, 0.1);
+  }
+
+  .backup-msg.error {
+    color: var(--tune-error, #ef4444);
+    background: rgba(239, 68, 68, 0.1);
+  }
+
+  .backup-empty {
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+    font-size: 13px;
+  }
+
+  .backup-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--tune-border);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .backup-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--tune-surface);
+  }
+
+  .backup-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .backup-name {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .backup-meta {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+  }
+
+  .btn-restore {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    background: var(--tune-grey2);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 12px;
+    transition: all 0.12s;
+  }
+
+  .btn-restore:hover:not(:disabled) {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .btn-restore:disabled { opacity: 0.5; cursor: default; }
 
   /* Stats grid */
   .stats-grid {

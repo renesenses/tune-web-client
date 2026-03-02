@@ -372,6 +372,18 @@ export function getScanStatus() {
   return fetchJSON<{ scanning: boolean }>(`${BASE}/system/scan/status`);
 }
 
+export function getBackups() {
+  return fetchJSON<import('./types').BackupInfo[]>(`${BASE}/system/backups`);
+}
+
+export function createBackup() {
+  return fetchJSON<import('./types').BackupInfo>(`${BASE}/system/backups`, { method: 'POST' });
+}
+
+export function restoreBackup(filename: string) {
+  return fetchJSON<{ restored: boolean }>(`${BASE}/system/backups/${encodeURIComponent(filename)}/restore`, { method: 'POST' });
+}
+
 export function getStreamingServices() {
   return fetchJSON<Record<string, StreamingServiceStatus>>(`${BASE}/streaming/services`);
 }

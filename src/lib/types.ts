@@ -208,6 +208,12 @@ export interface StreamingPlaylist {
   source: Source;
 }
 
+export interface BackupInfo {
+  filename: string;
+  size: number;
+  created_at: string;
+}
+
 export interface RadioStation {
   id: number | null;
   name: string;

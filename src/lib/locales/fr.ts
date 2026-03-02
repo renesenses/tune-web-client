@@ -219,6 +219,17 @@ export default {
   'metadata.cover': 'Cover',
   'metadata.noCover': 'Pas de cover',
 
+  // Backup / Restore
+  'maintenance.backupRestore': 'Sauvegarde / Restauration',
+  'maintenance.createBackup': 'Créer une sauvegarde',
+  'maintenance.restore': 'Restaurer',
+  'maintenance.noBackups': 'Aucune sauvegarde disponible',
+  'maintenance.backupCreated': 'Sauvegarde créée',
+  'maintenance.backupError': 'Erreur lors de la sauvegarde',
+  'maintenance.restoreConfirm': 'Restaurer cette sauvegarde ? La base actuelle sera remplacée.',
+  'maintenance.restoreSuccess': 'Restauration réussie',
+  'maintenance.restoreError': 'Erreur lors de la restauration',
+
   // Browse (directory navigation)
   'nav.browse': 'Répertoires',
   'browse.title': 'Navigation par répertoire',

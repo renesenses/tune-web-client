@@ -219,6 +219,17 @@ export default {
   'metadata.cover': 'カバー',
   'metadata.noCover': 'カバーなし',
 
+  // Backup / Restore
+  'maintenance.backupRestore': 'バックアップ / 復元',
+  'maintenance.createBackup': 'バックアップを作成',
+  'maintenance.restore': '復元',
+  'maintenance.noBackups': 'バックアップがありません',
+  'maintenance.backupCreated': 'バックアップを作成しました',
+  'maintenance.backupError': 'バックアップに失敗しました',
+  'maintenance.restoreConfirm': 'このバックアップを復元しますか？現在のデータベースは置き換えられます。',
+  'maintenance.restoreSuccess': '復元に成功しました',
+  'maintenance.restoreError': '復元に失敗しました',
+
   // Radios
   'nav.radios': 'ライブラジオ',
   'radio.title': 'マイラジオ',

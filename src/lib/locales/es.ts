@@ -219,6 +219,17 @@ export default {
   'metadata.cover': 'Portada',
   'metadata.noCover': 'Sin portada',
 
+  // Backup / Restore
+  'maintenance.backupRestore': 'Copia de seguridad / Restaurar',
+  'maintenance.createBackup': 'Crear copia de seguridad',
+  'maintenance.restore': 'Restaurar',
+  'maintenance.noBackups': 'No hay copias de seguridad',
+  'maintenance.backupCreated': 'Copia de seguridad creada',
+  'maintenance.backupError': 'Error al crear la copia',
+  'maintenance.restoreConfirm': 'Restaurar esta copia? La base de datos actual será reemplazada.',
+  'maintenance.restoreSuccess': 'Restauración exitosa',
+  'maintenance.restoreError': 'Error al restaurar',
+
   // Radios
   'nav.radios': 'Radios en vivo',
   'radio.title': 'Mis radios',
