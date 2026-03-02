@@ -2,7 +2,7 @@
   import { activeStreamingService } from '../lib/stores/streaming';
   import { currentZone } from '../lib/stores/zones';
   import * as api from '../lib/api';
-  import { formatTime } from '../lib/utils';
+  import { formatTime, formatAudioBadge } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import type { Album, Artist, Track, SearchResult, FeaturedSection, StreamingPlaylist } from '../lib/types';
   import { t as tr } from '../lib/i18n';
@@ -241,6 +241,7 @@
                 <span class="track-artist truncate">{t.artist_name}</span>
               {/if}
             </div>
+            {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
             <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
           </div>
@@ -286,6 +287,7 @@
                 <span class="track-artist truncate">{t.artist_name}</span>
               {/if}
             </div>
+            {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
             <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
           </div>
@@ -941,6 +943,14 @@
     font-family: var(--font-body);
     font-size: 13px;
     color: var(--tune-text-secondary);
+  }
+
+  .audio-format {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
   }
 
   .track-duration {

@@ -280,6 +280,7 @@
                   <span class="track-artist truncate">{t.artist_name}</span>
                 {/if}
               </div>
+              {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
             </button>
             <button class="add-queue-btn" onclick={() => addStreamingTrackToQueue(t)} title={$tr('queue.addToQueue')}>+</button>
