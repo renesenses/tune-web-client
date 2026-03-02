@@ -1,10 +1,12 @@
 <script lang="ts">
   import { currentZone } from '../lib/stores/zones';
   import { playlists as playlistsStore, playlistsLoaded } from '../lib/stores/playlists';
+  import { streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
-  import type { Playlist, Track } from '../lib/types';
+  import type { Playlist, Track, StreamingPlaylist } from '../lib/types';
   import { t as tr } from '../lib/i18n';
+  import AlbumArt from './AlbumArt.svelte';
 
   let zone = $derived($currentZone);
 
@@ -12,6 +14,38 @@
   let playlistTracks: Track[] = $state([]);
   let loading = $state(false);
   let searchQuery = $state('');
+
+  // Streaming playlists state
+  let streamingPlaylists = $state<Record<string, StreamingPlaylist[]>>({});
+  let selectedStreamingPl = $state<StreamingPlaylist | null>(null);
+  let streamingPlTracks = $state<Track[]>([]);
+  let selectedService = $state('');
+
+  let authenticatedServices = $derived(
+    Object.entries($streamingServices)
+      .filter(([, status]) => status.authenticated)
+      .map(([name]) => name)
+  );
+
+  $effect(() => {
+    const services = authenticatedServices;
+    for (const svc of services) {
+      loadStreamingPlaylists(svc);
+    }
+  });
+
+  async function loadStreamingPlaylists(service: string) {
+    try {
+      const pls = await api.getStreamingPlaylists(service);
+      streamingPlaylists = { ...streamingPlaylists, [service]: pls };
+    } catch (e) {
+      console.error(`Load ${service} playlists error:`, e);
+    }
+  }
+
+  function serviceName(s: string): string {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
 
   let filteredPlaylists = $derived(
     searchQuery.trim()
@@ -21,6 +55,21 @@
             (pl.description?.toLowerCase().includes(q) ?? false);
         })
       : $playlistsStore
+  );
+
+  let filteredStreamingPlaylists = $derived(
+    Object.fromEntries(
+      Object.entries(streamingPlaylists).map(([svc, pls]) => [
+        svc,
+        searchQuery.trim()
+          ? pls.filter((pl) => pl.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+          : pls,
+      ])
+    )
+  );
+
+  let hasAnyStreamingPlaylists = $derived(
+    Object.values(filteredStreamingPlaylists).some((pls) => pls.length > 0)
   );
 
   // Create dialog
@@ -49,9 +98,24 @@
     loading = false;
   }
 
+  async function selectStreamingPlaylist(service: string, pl: StreamingPlaylist) {
+    selectedStreamingPl = pl;
+    selectedService = service;
+    loading = true;
+    try {
+      streamingPlTracks = await api.getStreamingPlaylistTracks(service, pl.source_id);
+    } catch (e) {
+      console.error('Load streaming playlist tracks error:', e);
+    }
+    loading = false;
+  }
+
   function goBack() {
     selectedPlaylist = null;
+    selectedStreamingPl = null;
     playlistTracks = [];
+    streamingPlTracks = [];
+    selectedService = '';
   }
 
   async function createPlaylist() {
@@ -92,6 +156,33 @@
       await api.play(zone.id, { track_id: trackId });
     } catch (e) {
       console.error('Play track error:', e);
+    }
+  }
+
+  async function playStreamingPlaylist(pl: StreamingPlaylist) {
+    if (!zone?.id) return;
+    try {
+      await api.play(zone.id, { source: pl.source as any, streaming_playlist_id: pl.source_id });
+    } catch (e) {
+      console.error('Play streaming playlist error:', e);
+    }
+  }
+
+  async function playStreamingTrack(t: Track) {
+    if (!zone?.id || !t.source_id) return;
+    try {
+      await api.play(zone.id, { source: t.source as any, source_id: t.source_id });
+    } catch (e) {
+      console.error('Play streaming track error:', e);
+    }
+  }
+
+  async function addStreamingTrackToQueue(t: Track) {
+    if (!zone?.id || !t.source_id) return;
+    try {
+      await api.addToQueue(zone.id, { source: t.source as any, source_id: t.source_id });
+    } catch (e) {
+      console.error('Add streaming track to queue error:', e);
     }
   }
 
@@ -149,6 +240,54 @@
       </div>
     {/if}
 
+  {:else if selectedStreamingPl}
+    <div class="detail-header">
+      <button class="back-btn" onclick={goBack}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
+        {$tr('common.back')}
+      </button>
+      <div class="playlist-detail-info">
+        <span class="source-badge">{serviceName(selectedService)}</span>
+        <h2>{selectedStreamingPl.name}</h2>
+        {#if selectedStreamingPl.description}
+          <p class="playlist-desc">{selectedStreamingPl.description}</p>
+        {/if}
+        <span class="playlist-count">{selectedStreamingPl.track_count} {$tr('common.tracks')}</span>
+      </div>
+      <button class="play-all-btn" onclick={() => selectedStreamingPl && playStreamingPlaylist(selectedStreamingPl)}>
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
+        {$tr('common.play')}
+      </button>
+    </div>
+
+    {#if selectedStreamingPl.cover_path}
+      <div class="streaming-pl-cover">
+        <AlbumArt coverPath={selectedStreamingPl.cover_path} size={200} alt={selectedStreamingPl.name} />
+      </div>
+    {/if}
+
+    {#if loading}
+      <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
+    {:else}
+      <div class="track-list">
+        {#each streamingPlTracks as t, index}
+          <div class="track-item">
+            <button class="track-play" onclick={() => playStreamingTrack(t)}>
+              <span class="track-num">{index + 1}</span>
+              <div class="track-info">
+                <span class="track-title truncate">{t.title}</span>
+                {#if t.artist_name}
+                  <span class="track-artist truncate">{t.artist_name}</span>
+                {/if}
+              </div>
+              <span class="track-duration">{formatTime(t.duration_ms)}</span>
+            </button>
+            <button class="add-queue-btn" onclick={() => addStreamingTrackToQueue(t)} title={$tr('queue.addToQueue')}>+</button>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
   {:else}
     <div class="playlists-header">
       <h2>{$tr('playlist.title')}</h2>
@@ -180,11 +319,44 @@
       </div>
     {/if}
 
+    {#each authenticatedServices as svc}
+      {#if (filteredStreamingPlaylists[svc] ?? []).length > 0}
+        <div class="section-group">
+          <h3 class="section-title">{serviceName(svc)}</h3>
+          <div class="playlist-list">
+            {#each filteredStreamingPlaylists[svc] as pl}
+              <div class="playlist-item">
+                <button class="playlist-btn" onclick={() => selectStreamingPlaylist(svc, pl)}>
+                  <div class="playlist-icon streaming-icon">
+                    {#if pl.cover_path}
+                      <AlbumArt coverPath={pl.cover_path} size={48} alt={pl.name} />
+                    {:else}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13M9 18c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg>
+                    {/if}
+                  </div>
+                  <div class="playlist-info">
+                    <span class="playlist-name">{pl.name}</span>
+                    <span class="playlist-meta">{pl.track_count} {$tr('common.tracks')}</span>
+                  </div>
+                  <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
+                </button>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+    {/each}
+
     {#if !$playlistsLoaded}
       <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
-    {:else if filteredPlaylists.length === 0}
+    {:else if filteredPlaylists.length === 0 && !hasAnyStreamingPlaylists}
       <div class="empty">{$tr('playlist.noPlaylists')}</div>
     {:else}
+      {#if hasAnyStreamingPlaylists && filteredPlaylists.length > 0}
+        <div class="section-group">
+          <h3 class="section-title">{$tr('playlist.localPlaylists')}</h3>
+        </div>
+      {/if}
       <div class="playlist-list">
         {#each filteredPlaylists as pl}
           <div class="playlist-item">
@@ -357,6 +529,35 @@
     font-size: 13px;
   }
 
+  .section-group {
+    margin-bottom: var(--space-sm);
+  }
+
+  .section-title {
+    font-family: var(--font-label);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+    letter-spacing: -0.3px;
+    padding: var(--space-sm) 0;
+    margin-top: var(--space-md);
+  }
+
+  .source-badge {
+    display: inline-block;
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--tune-accent);
+    margin-bottom: 4px;
+  }
+
+  .streaming-pl-cover {
+    margin-bottom: var(--space-lg);
+  }
+
   .detail-header {
     display: flex;
     align-items: center;
@@ -463,6 +664,7 @@
     background: var(--tune-grey2);
     border-radius: var(--radius-sm);
     flex-shrink: 0;
+    overflow: hidden;
   }
 
   .playlist-icon svg {
@@ -607,6 +809,33 @@
 
   .remove-btn:hover {
     color: var(--tune-warning);
+  }
+
+  .add-queue-btn {
+    background: none;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.12s ease-out;
+    margin-right: 8px;
+  }
+
+  .track-item:hover .add-queue-btn {
+    opacity: 1;
+  }
+
+  .add-queue-btn:hover {
+    color: var(--tune-accent);
+    border-color: var(--tune-accent);
   }
 
   .loading {

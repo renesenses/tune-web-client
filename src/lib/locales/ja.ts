@@ -133,6 +133,7 @@ export default {
   'playlist.noExisting': '既存のプレイリストがありません',
   'playlist.newPlaylist': '新しいプレイリスト',
   'playlist.searchPlaceholder': 'プレイリストを検索...',
+  'playlist.localPlaylists': 'マイプレイリスト',
 
   // Settings
   'settings.title': '設定',

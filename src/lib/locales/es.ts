@@ -133,6 +133,7 @@ export default {
   'playlist.noExisting': 'Sin listas de reproducción existentes',
   'playlist.newPlaylist': 'Nueva lista de reproducción',
   'playlist.searchPlaceholder': 'Buscar listas...',
+  'playlist.localPlaylists': 'Mis listas de reproducción',
 
   // Settings
   'settings.title': 'Configuración',

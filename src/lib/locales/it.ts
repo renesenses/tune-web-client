@@ -133,6 +133,7 @@ export default {
   'playlist.noExisting': 'Nessuna playlist esistente',
   'playlist.newPlaylist': 'Nuova playlist',
   'playlist.searchPlaceholder': 'Cerca playlist...',
+  'playlist.localPlaylists': 'Le mie playlist',
 
   // Settings
   'settings.title': 'Impostazioni',

@@ -133,6 +133,7 @@ export default {
   'playlist.noExisting': '기존 재생목록 없음',
   'playlist.newPlaylist': '새 재생목록',
   'playlist.searchPlaceholder': '재생목록 검색...',
+  'playlist.localPlaylists': '내 재생목록',
 
   // Settings
   'settings.title': '설정',
