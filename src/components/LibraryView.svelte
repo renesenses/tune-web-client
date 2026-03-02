@@ -173,7 +173,13 @@
   async function playTrack(trackId: number) {
     if (!zone?.id) return;
     try {
-      await api.play(zone.id, { track_id: trackId });
+      const idx = $albumTracks.findIndex(t => t.id === trackId);
+      if (idx >= 0) {
+        const ids = $albumTracks.slice(idx).map(t => t.id).filter(Boolean) as number[];
+        await api.play(zone.id, { track_ids: ids });
+      } else {
+        await api.play(zone.id, { track_id: trackId });
+      }
     } catch (e) {
       console.error('Play track error:', e);
     }
