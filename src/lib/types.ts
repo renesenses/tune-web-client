@@ -167,6 +167,8 @@ export interface CompletenessStats {
   albums_without_year: number;
   total_artists: number;
   artists_without_image: number;
+  total_tracks: number;
+  tracks_without_artist: number;
 }
 
 export interface ArtworkRescanResult {

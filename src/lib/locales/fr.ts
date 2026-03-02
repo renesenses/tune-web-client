@@ -218,6 +218,8 @@ export default {
   'metadata.rescanAll': 'Rescanner toutes les covers',
   'metadata.cover': 'Cover',
   'metadata.noCover': 'Pas de cover',
+  'metadata.missingArtist': 'Artiste manquant',
+  'metadata.noMissingArtist': 'Toutes les pistes ont un artiste',
 
   // Backup / Restore
   'maintenance.backupRestore': 'Sauvegarde / Restauration',

@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as api from '../lib/api';
   import { artworkUrl } from '../lib/api';
-  import type { Album, CompletenessStats, BackupInfo } from '../lib/types';
+  import type { Album, Track, CompletenessStats, BackupInfo } from '../lib/types';
   import { t } from '../lib/i18n';
   import AlbumArt from './AlbumArt.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
@@ -9,8 +9,9 @@
   let stats = $state<CompletenessStats | null>(null);
   let albumsWithoutCover = $state<Album[]>([]);
   let allAlbums = $state<Album[]>([]);
+  let allTracks = $state<Track[]>([]);
   let loading = $state(true);
-  let filter = $state<'all' | 'no_cover' | 'no_genre' | 'no_year'>('no_cover');
+  let filter = $state<'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist'>('no_cover');
 
   let editAlbum = $state<Album | null>(null);
   let rescanningAll = $state(false);
@@ -24,12 +25,14 @@
   async function loadData() {
     loading = true;
     try {
-      const [s, albums] = await Promise.all([
+      const [s, albums, tracks] = await Promise.all([
         api.getCompletenessStats(),
         api.getAlbums(500, 0),
+        api.getTracks(5000, 0),
       ]);
       stats = s;
       allAlbums = albums;
+      allTracks = tracks;
       albumsWithoutCover = albums.filter(a => !a.cover_path);
     } catch (e) {
       console.error('Load metadata error:', e);
@@ -45,10 +48,14 @@
         return allAlbums.filter(a => !a.genre);
       case 'no_year':
         return allAlbums.filter(a => !a.year);
+      case 'no_artist':
+        return [];
       default:
         return allAlbums;
     }
   });
+
+  let tracksWithoutArtist = $derived(allTracks.filter(t => !t.artist_id));
 
   function completionPercent(missing: number, total: number): number {
     if (total === 0) return 100;
@@ -189,6 +196,17 @@
         </div>
         <span class="stat-detail">{stats.albums_without_year} / {stats.total_albums} {$t('metadata.missingYear').toLowerCase()}</span>
       </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">{$t('metadata.artist')}</span>
+          <span class="stat-value">{completionPercent(stats.tracks_without_artist, stats.total_tracks)}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: {completionPercent(stats.tracks_without_artist, stats.total_tracks)}%"></div>
+        </div>
+        <span class="stat-detail">{stats.tracks_without_artist} / {stats.total_tracks} {$t('metadata.missingArtist').toLowerCase()}</span>
+      </div>
     </div>
 
     <!-- Backup / Restore -->
@@ -244,10 +262,25 @@
       <button class="filter-btn" class:active={filter === 'no_cover'} onclick={() => filter = 'no_cover'}>{$t('metadata.missingCovers')} ({stats.albums_without_cover})</button>
       <button class="filter-btn" class:active={filter === 'no_genre'} onclick={() => filter = 'no_genre'}>{$t('metadata.missingGenre')} ({stats.albums_without_genre})</button>
       <button class="filter-btn" class:active={filter === 'no_year'} onclick={() => filter = 'no_year'}>{$t('metadata.missingYear')} ({stats.albums_without_year})</button>
+      <button class="filter-btn" class:active={filter === 'no_artist'} onclick={() => filter = 'no_artist'}>{$t('metadata.missingArtist')} ({stats.tracks_without_artist})</button>
     </div>
 
-    <!-- Albums grid -->
-    {#if filteredAlbums.length === 0}
+    <!-- Content -->
+    {#if filter === 'no_artist'}
+      {#if tracksWithoutArtist.length === 0}
+        <div class="empty">{$t('metadata.noMissingArtist')}</div>
+      {:else}
+        <div class="tracks-list">
+          {#each tracksWithoutArtist as track (track.id)}
+            <div class="track-row">
+              <span class="track-title">{track.title}</span>
+              <span class="track-album">{track.album_title ?? ''}</span>
+              <span class="track-path">{track.file_path ?? ''}</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    {:else if filteredAlbums.length === 0}
       <div class="empty">
         {#if filter === 'no_cover'}
           {$t('metadata.noMissingCovers')}
@@ -624,6 +657,53 @@
   .tag.missing {
     background: rgba(251, 146, 60, 0.2);
     color: var(--tune-warning, #fb923c);
+  }
+
+  /* Tracks list (no_artist filter) */
+  .tracks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--tune-border);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .track-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--tune-surface);
+    align-items: center;
+  }
+
+  .track-title {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .track-album {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .track-path {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* Empty & loading */
