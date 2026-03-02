@@ -240,7 +240,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
       {$t('nav.library')}
     </button>
-    <button class="nav-item sub" class:active={$activeView === 'genres'} onclick={() => navigate('genres')}>
+    <button class="nav-item" class:active={$activeView === 'genres'} onclick={() => navigate('genres')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       {$t('nav.genres')}
     </button>
@@ -520,16 +520,6 @@
   .nav-item.active {
     background: var(--tune-surface-selected);
     color: var(--tune-text);
-  }
-
-  .nav-item.sub {
-    padding-left: 34px;
-    font-size: 12px;
-  }
-
-  .nav-item.sub svg {
-    width: 14px;
-    height: 14px;
   }
 
   .nav-item svg {
