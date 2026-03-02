@@ -117,6 +117,8 @@ export default {
   // Streaming
   'streaming.selectService': 'Seleziona un servizio di streaming dalla barra laterale',
   'streaming.searchOn': 'Ricerca su {service}...',
+  'streaming.myPlaylists': 'Le mie playlist',
+  'streaming.noPlaylists': 'Nessuna playlist',
 
   // Playlist
   'playlist.title': 'Playlist',

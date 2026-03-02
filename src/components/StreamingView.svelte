@@ -4,7 +4,7 @@
   import * as api from '../lib/api';
   import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
-  import type { Album, Artist, Track, SearchResult, FeaturedSection } from '../lib/types';
+  import type { Album, Artist, Track, SearchResult, FeaturedSection, StreamingPlaylist } from '../lib/types';
   import { t as tr } from '../lib/i18n';
 
   type StreamingTab = 'search' | 'albums' | 'artists' | 'tracks';
@@ -26,13 +26,19 @@
   let featuredData = $state<Record<string, Album[]>>({});
   let featuredLoading = $state(false);
 
+  let userPlaylists = $state<StreamingPlaylist[]>([]);
+  let selectedStreamingPlaylist = $state<StreamingPlaylist | null>(null);
+  let playlistTracks = $state<Track[]>([]);
+
   $effect(() => {
     const s = service;
     if (s) {
       loadFeatured(s);
+      loadUserPlaylists(s);
     } else {
       featuredSections = [];
       featuredData = {};
+      userPlaylists = [];
     }
   });
 
@@ -57,6 +63,17 @@
       console.error('Load featured error:', e);
     }
     featuredLoading = false;
+  }
+
+  async function loadUserPlaylists(s: string) {
+    try {
+      const playlists = await api.getStreamingPlaylists(s);
+      if (service === s) {
+        userPlaylists = playlists;
+      }
+    } catch (e) {
+      console.error('Load user playlists error:', e);
+    }
   }
 
   let showFeatured = $derived(!searchQuery.trim() && !results);
@@ -119,11 +136,36 @@
     loading = false;
   }
 
+  async function selectStreamingPlaylist(playlist: StreamingPlaylist) {
+    if (!service) return;
+    selectedStreamingPlaylist = playlist;
+    selectedAlbum = null;
+    selectedArtist = null;
+    loading = true;
+    try {
+      playlistTracks = await api.getStreamingPlaylistTracks(service, playlist.source_id);
+    } catch (e) {
+      console.error('Get streaming playlist tracks error:', e);
+    }
+    loading = false;
+  }
+
+  async function playStreamingPlaylist(playlist: StreamingPlaylist) {
+    if (!zone?.id || !service) return;
+    try {
+      await api.play(zone.id, { source: playlist.source as any, streaming_playlist_id: playlist.source_id });
+    } catch (e) {
+      console.error('Play streaming playlist error:', e);
+    }
+  }
+
   function goBack() {
     selectedAlbum = null;
     selectedArtist = null;
+    selectedStreamingPlaylist = null;
     albumTracks = [];
     artistAlbums = [];
+    playlistTracks = [];
   }
 
   async function playStreamingTrack(track: Track) {
@@ -193,6 +235,51 @@
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="track-item" onclick={() => playStreamingTrack(t)}>
             <span class="track-num">{t.track_number ?? index + 1}</span>
+            <div class="track-info">
+              <span class="track-title truncate">{t.title}</span>
+              {#if t.artist_name}
+                <span class="track-artist truncate">{t.artist_name}</span>
+              {/if}
+            </div>
+            <span class="track-duration">{formatTime(t.duration_ms)}</span>
+            <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
+  {:else if selectedStreamingPlaylist}
+    <!-- Streaming playlist detail -->
+    <div class="detail-header">
+      <button class="back-btn" onclick={goBack}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
+        {$tr('common.back')}
+      </button>
+    </div>
+    <div class="album-detail-header">
+      <AlbumArt coverPath={selectedStreamingPlaylist.cover_path} size={280} alt={selectedStreamingPlaylist.name} />
+      <div class="album-detail-info">
+        <span class="source-badge">{serviceName(service)}</span>
+        <h2>{selectedStreamingPlaylist.name}</h2>
+        {#if selectedStreamingPlaylist.description}
+          <p class="detail-artist">{selectedStreamingPlaylist.description}</p>
+        {/if}
+        <p class="detail-meta">{selectedStreamingPlaylist.track_count} {$tr('home.tracks').toLowerCase()}</p>
+        <button class="play-all-btn" onclick={() => selectedStreamingPlaylist && playStreamingPlaylist(selectedStreamingPlaylist)}>
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
+          {$tr('common.play')}
+        </button>
+      </div>
+    </div>
+    {#if loading}
+      <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
+    {:else}
+      <div class="track-list">
+        {#each playlistTracks as t, index}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="track-item" onclick={() => playStreamingTrack(t)}>
+            <span class="track-num">{index + 1}</span>
             <div class="track-info">
               <span class="track-title truncate">{t.title}</span>
               {#if t.artist_name}
@@ -336,6 +423,29 @@
       {/if}
 
     {:else if showFeatured}
+      <!-- User playlists carousel -->
+      {#if userPlaylists.length > 0}
+        <div class="featured-section">
+          <h3 class="featured-section-title">{$tr('streaming.myPlaylists')}</h3>
+          <div class="carousel">
+            {#each userPlaylists as playlist}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="carousel-card" onclick={() => selectStreamingPlaylist(playlist)}>
+                <div class="album-card-art">
+                  <AlbumArt coverPath={playlist.cover_path} size={160} alt={playlist.name} />
+                  <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingPlaylist(playlist); }} title={$tr('common.play')}>
+                    <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
+                  </button>
+                </div>
+                <span class="album-card-title truncate">{playlist.name}</span>
+                <span class="album-card-artist truncate">{playlist.track_count} {$tr('home.tracks').toLowerCase()}</span>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
       <!-- Featured sections with carousels -->
       {#if featuredLoading && featuredSections.length === 0}
         <div class="skeleton-sections">

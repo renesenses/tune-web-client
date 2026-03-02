@@ -108,7 +108,7 @@ export function listGroups() {
 
 // --- Playback ---
 
-export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string }) {
+export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_playlist_id?: string }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -425,6 +425,14 @@ export function getStreamingFeaturedSections(service: string) {
 
 export function getStreamingFeatured(service: string, section: string, limit = 20) {
   return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured/${encodeURIComponent(section)}?limit=${limit}`);
+}
+
+export function getStreamingPlaylists(service: string) {
+  return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists`);
+}
+
+export function getStreamingPlaylistTracks(service: string, playlistId: string) {
+  return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(playlistId)}/tracks`);
 }
 
 // --- Radios ---

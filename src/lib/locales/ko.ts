@@ -117,6 +117,8 @@ export default {
   // Streaming
   'streaming.selectService': '사이드바에서 스트리밍 서비스 선택',
   'streaming.searchOn': '{service}에서 검색...',
+  'streaming.myPlaylists': '내 재생목록',
+  'streaming.noPlaylists': '재생목록 없음',
 
   // Playlist
   'playlist.title': '재생목록',

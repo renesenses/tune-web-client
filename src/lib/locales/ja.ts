@@ -117,6 +117,8 @@ export default {
   // Streaming
   'streaming.selectService': 'サイドバーからストリーミングサービスを選択',
   'streaming.searchOn': '{service}を検索...',
+  'streaming.myPlaylists': 'マイプレイリスト',
+  'streaming.noPlaylists': 'プレイリストなし',
 
   // Playlist
   'playlist.title': 'プレイリスト',

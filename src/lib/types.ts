@@ -198,6 +198,16 @@ export interface BrowseResult {
   tracks: Track[];
 }
 
+export interface StreamingPlaylist {
+  source_id: string;
+  name: string;
+  description?: string | null;
+  track_count: number;
+  duration_ms: number;
+  cover_path?: string | null;
+  source: Source;
+}
+
 export interface RadioStation {
   id: number | null;
   name: string;
