@@ -213,6 +213,18 @@ export function getAlbums(limit = 100, offset = 0) {
   return fetchJSON<Album[]>(`${BASE}/library/albums?limit=${limit}&offset=${offset}`);
 }
 
+export async function getAllAlbums(pageSize = 2000): Promise<Album[]> {
+  const all: Album[] = [];
+  let offset = 0;
+  while (true) {
+    const batch = await fetchJSON<Album[]>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}`);
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+    offset += pageSize;
+  }
+  return all;
+}
+
 export function getAlbum(id: number) {
   return fetchJSON<Album>(`${BASE}/library/albums/${id}`);
 }

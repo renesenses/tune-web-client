@@ -155,7 +155,7 @@
   async function loadAlbums() {
     libraryLoading.set(true);
     try {
-      const result = await api.getAlbums(500);
+      const result = await api.getAllAlbums();
       albums.set(result);
     } catch (e) {
       console.error('Load albums error:', e);

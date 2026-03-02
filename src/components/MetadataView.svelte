@@ -28,7 +28,7 @@
     try {
       const [s, albums] = await Promise.all([
         api.getCompletenessStats(),
-        api.getAlbums(500, 0),
+        api.getAllAlbums(),
       ]);
       stats = s;
       allAlbums = albums;
