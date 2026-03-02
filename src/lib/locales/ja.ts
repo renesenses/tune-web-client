@@ -185,6 +185,10 @@ export default {
   'settings.wrongCredentials': '認証情報が正しくありません',
   'settings.connectionError': '接続エラー',
   'settings.tidalNoLink': 'エラー: 検証リンクがありません',
+  'settings.spotifyConnect': 'Spotifyに接続',
+  'settings.spotifyLink': 'このリンクを開いてSpotifyにログインしてください：',
+  'settings.spotifyOpenAuth': 'Spotifyにログイン',
+  'settings.spotifyWaiting': 'Spotifyの確認を待っています...',
 
   // Metadata / Maintenance
   'metadata.title': 'メンテナンス',

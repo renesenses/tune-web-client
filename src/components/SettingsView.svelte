@@ -31,6 +31,11 @@
   let tidalPollingInterval: ReturnType<typeof setInterval> | null = $state(null);
   let tidalAuthError: string | null = $state(null);
 
+  let spotifyAuthLoading = $state(false);
+  let spotifyVerificationUrl: string | null = $state(null);
+  let spotifyPollingInterval: ReturnType<typeof setInterval> | null = $state(null);
+  let spotifyAuthError: string | null = $state(null);
+
   async function handleQobuzAuth() {
     qobuzAuthLoading = true;
     qobuzAuthError = null;
@@ -106,6 +111,60 @@
     if (tidalPollingInterval) {
       clearInterval(tidalPollingInterval);
       tidalPollingInterval = null;
+    }
+  }
+
+  async function handleSpotifyAuth() {
+    spotifyAuthLoading = true;
+    spotifyAuthError = null;
+    spotifyVerificationUrl = null;
+    try {
+      const res = await api.authenticateStreaming('spotify');
+      if (res.authenticated) {
+        $streamingServicesStore = {
+          ...$streamingServicesStore,
+          spotify: { ...$streamingServicesStore['spotify'], authenticated: true },
+        };
+        spotifyAuthLoading = false;
+        return;
+      }
+      if (res.verification_url) {
+        spotifyVerificationUrl = res.verification_url;
+        startSpotifyPolling();
+      } else {
+        spotifyAuthError = get(t)('settings.connectionError');
+        spotifyAuthLoading = false;
+      }
+    } catch (e) {
+      spotifyAuthError = get(t)('settings.connectionError');
+      spotifyAuthLoading = false;
+    }
+  }
+
+  function startSpotifyPolling() {
+    stopSpotifyPolling();
+    spotifyPollingInterval = setInterval(async () => {
+      try {
+        const status = await api.getStreamingServiceStatus('spotify');
+        if (status.authenticated) {
+          stopSpotifyPolling();
+          spotifyVerificationUrl = null;
+          spotifyAuthLoading = false;
+          $streamingServicesStore = {
+            ...$streamingServicesStore,
+            spotify: { ...$streamingServicesStore['spotify'], authenticated: true },
+          };
+        }
+      } catch {
+        // ignore polling errors
+      }
+    }, 3000);
+  }
+
+  function stopSpotifyPolling() {
+    if (spotifyPollingInterval) {
+      clearInterval(spotifyPollingInterval);
+      spotifyPollingInterval = null;
     }
   }
 
@@ -224,6 +283,7 @@
     return () => {
       unsub();
       stopTidalPolling();
+      stopSpotifyPolling();
     };
   });
 </script>
@@ -535,6 +595,35 @@
                           {$t('settings.connecting')}
                         {:else}
                           {$t('settings.tidalConnect')}
+                        {/if}
+                      </button>
+                    {/if}
+                  </div>
+                {:else if name === 'spotify'}
+                  <div class="service-auth-form">
+                    {#if spotifyVerificationUrl}
+                      <p class="auth-hint">{$t('settings.spotifyLink')}</p>
+                      <a href={spotifyVerificationUrl} target="_blank" rel="noopener noreferrer" class="auth-link">
+                        {$t('settings.spotifyOpenAuth')}
+                      </a>
+                      <div class="auth-waiting">
+                        <div class="spinner small"></div>
+                        {$t('settings.spotifyWaiting')}
+                      </div>
+                    {:else}
+                      {#if spotifyAuthError}
+                        <p class="auth-error">{spotifyAuthError}</p>
+                      {/if}
+                      <button
+                        class="scan-btn"
+                        onclick={handleSpotifyAuth}
+                        disabled={spotifyAuthLoading}
+                      >
+                        {#if spotifyAuthLoading}
+                          <div class="spinner small"></div>
+                          {$t('settings.connecting')}
+                        {:else}
+                          {$t('settings.spotifyConnect')}
                         {/if}
                       </button>
                     {/if}

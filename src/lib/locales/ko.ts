@@ -185,6 +185,10 @@ export default {
   'settings.wrongCredentials': '잘못된 자격 증명',
   'settings.connectionError': '연결 오류',
   'settings.tidalNoLink': '오류: 인증 링크 없음',
+  'settings.spotifyConnect': 'Spotify에 연결',
+  'settings.spotifyLink': '이 링크를 열어 Spotify에 로그인하세요:',
+  'settings.spotifyOpenAuth': 'Spotify에 로그인',
+  'settings.spotifyWaiting': 'Spotify 확인을 기다리는 중...',
 
   // Metadata / Maintenance
   'metadata.title': '유지보수',

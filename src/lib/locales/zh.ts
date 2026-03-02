@@ -185,6 +185,10 @@ export default {
   'settings.wrongCredentials': '凭据不正确',
   'settings.connectionError': '连接错误',
   'settings.tidalNoLink': '错误: 无验证链接',
+  'settings.spotifyConnect': '连接 Spotify',
+  'settings.spotifyLink': '打开此链接以登录 Spotify：',
+  'settings.spotifyOpenAuth': '在 Spotify 上登录',
+  'settings.spotifyWaiting': '等待 Spotify 确认...',
 
   // Metadata / Maintenance
   'metadata.title': '维护',

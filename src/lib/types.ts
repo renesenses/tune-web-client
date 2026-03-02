@@ -1,7 +1,7 @@
 // Types mirroring tune-server Pydantic models
 
 // Enums
-export type Source = 'local' | 'tidal' | 'qobuz' | 'youtube' | 'amazon' | 'radio';
+export type Source = 'local' | 'tidal' | 'qobuz' | 'youtube' | 'amazon' | 'spotify' | 'radio';
 export type AudioFormat = 'flac' | 'wav' | 'mp3' | 'aac' | 'alac' | 'ogg' | 'opus' | 'dsd' | 'aiff' | 'wma';
 export type PlaybackState = 'stopped' | 'playing' | 'paused' | 'buffering';
 export type RepeatMode = 'off' | 'one' | 'all';

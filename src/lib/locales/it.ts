@@ -185,6 +185,10 @@ export default {
   'settings.wrongCredentials': 'Credenziali non valide',
   'settings.connectionError': 'Errore di connessione',
   'settings.tidalNoLink': 'Errore: nessun link di verifica',
+  'settings.spotifyConnect': 'Connetti a Spotify',
+  'settings.spotifyLink': 'Apri questo link per connetterti a Spotify:',
+  'settings.spotifyOpenAuth': 'Accedi su Spotify',
+  'settings.spotifyWaiting': 'In attesa di conferma Spotify...',
 
   // Metadata / Maintenance
   'metadata.title': 'Manutenzione',
