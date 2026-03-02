@@ -41,6 +41,12 @@
   let deezerPollingInterval: ReturnType<typeof setInterval> | null = $state(null);
   let deezerAuthError: string | null = $state(null);
 
+  let youtubeAuthLoading = $state(false);
+  let youtubeVerificationUrl: string | null = $state(null);
+  let youtubeUserCode: string | null = $state(null);
+  let youtubePollingInterval: ReturnType<typeof setInterval> | null = $state(null);
+  let youtubeAuthError: string | null = $state(null);
+
   async function handleQobuzAuth() {
     qobuzAuthLoading = true;
     qobuzAuthError = null;
@@ -227,6 +233,63 @@
     }
   }
 
+  async function handleYoutubeAuth() {
+    youtubeAuthLoading = true;
+    youtubeAuthError = null;
+    youtubeVerificationUrl = null;
+    youtubeUserCode = null;
+    try {
+      const res = await api.authenticateStreaming('youtube');
+      if (res.authenticated) {
+        $streamingServicesStore = {
+          ...$streamingServicesStore,
+          youtube: { ...$streamingServicesStore['youtube'], authenticated: true },
+        };
+        youtubeAuthLoading = false;
+        return;
+      }
+      if (res.verification_url) {
+        youtubeVerificationUrl = res.verification_url;
+        youtubeUserCode = res.user_code ?? null;
+        startYoutubePolling();
+      } else {
+        youtubeAuthError = get(t)('settings.connectionError');
+        youtubeAuthLoading = false;
+      }
+    } catch (e) {
+      youtubeAuthError = get(t)('settings.connectionError');
+      youtubeAuthLoading = false;
+    }
+  }
+
+  function startYoutubePolling() {
+    stopYoutubePolling();
+    youtubePollingInterval = setInterval(async () => {
+      try {
+        const status = await api.getStreamingServiceStatus('youtube');
+        if (status.authenticated) {
+          stopYoutubePolling();
+          youtubeVerificationUrl = null;
+          youtubeUserCode = null;
+          youtubeAuthLoading = false;
+          $streamingServicesStore = {
+            ...$streamingServicesStore,
+            youtube: { ...$streamingServicesStore['youtube'], authenticated: true },
+          };
+        }
+      } catch {
+        // ignore polling errors
+      }
+    }, 5000);
+  }
+
+  function stopYoutubePolling() {
+    if (youtubePollingInterval) {
+      clearInterval(youtubePollingInterval);
+      youtubePollingInterval = null;
+    }
+  }
+
   async function handleDisconnect(serviceName: string) {
     try {
       await api.disconnectStreaming(serviceName);
@@ -344,6 +407,7 @@
       stopTidalPolling();
       stopSpotifyPolling();
       stopDeezerPolling();
+      stopYoutubePolling();
     };
   });
 </script>
@@ -717,6 +781,38 @@
                       </button>
                     {/if}
                   </div>
+                {:else if name === 'youtube'}
+                  <div class="service-auth-form">
+                    {#if youtubeVerificationUrl}
+                      <p class="auth-hint">{$t('settings.youtubeLink')}</p>
+                      {#if youtubeUserCode}
+                        <p class="auth-code">{youtubeUserCode}</p>
+                      {/if}
+                      <a href={youtubeVerificationUrl} target="_blank" rel="noopener noreferrer" class="auth-link">
+                        {$t('settings.youtubeOpenAuth')}
+                      </a>
+                      <div class="auth-waiting">
+                        <div class="spinner small"></div>
+                        {$t('settings.youtubeWaiting')}
+                      </div>
+                    {:else}
+                      {#if youtubeAuthError}
+                        <p class="auth-error">{youtubeAuthError}</p>
+                      {/if}
+                      <button
+                        class="scan-btn"
+                        onclick={handleYoutubeAuth}
+                        disabled={youtubeAuthLoading}
+                      >
+                        {#if youtubeAuthLoading}
+                          <div class="spinner small"></div>
+                          {$t('settings.connecting')}
+                        {:else}
+                          {$t('settings.youtubeConnect')}
+                        {/if}
+                      </button>
+                    {/if}
+                  </div>
                 {/if}
               {/if}
             </div>
@@ -952,6 +1048,15 @@
     font-family: var(--font-body);
     font-size: 13px;
     color: var(--tune-text-secondary);
+    margin: 0;
+  }
+
+  .auth-code {
+    font-family: var(--font-label);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--tune-accent);
     margin: 0;
   }
 

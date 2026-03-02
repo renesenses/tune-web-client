@@ -128,6 +128,7 @@ export interface StreamingServiceStatus {
 export interface StreamingAuthResponse {
   authenticated: boolean;
   verification_url?: string | null;
+  user_code?: string | null;
 }
 
 export interface SystemHealth {

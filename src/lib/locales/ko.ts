@@ -193,6 +193,10 @@ export default {
   'settings.deezerLink': '이 링크를 열어 Deezer에 로그인하세요:',
   'settings.deezerOpenAuth': 'Deezer에 로그인',
   'settings.deezerWaiting': 'Deezer 확인을 기다리는 중...',
+  'settings.youtubeConnect': 'YouTube Music에 연결',
+  'settings.youtubeLink': '아래 링크로 이동하여 코드를 입력하세요:',
+  'settings.youtubeOpenAuth': 'Google 인증 열기',
+  'settings.youtubeWaiting': 'YouTube Music 확인을 기다리는 중...',
 
   // Metadata / Maintenance
   'metadata.title': '유지보수',

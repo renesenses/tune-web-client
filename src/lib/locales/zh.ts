@@ -193,6 +193,10 @@ export default {
   'settings.deezerLink': '打开此链接以登录 Deezer：',
   'settings.deezerOpenAuth': '在 Deezer 上登录',
   'settings.deezerWaiting': '等待 Deezer 确认...',
+  'settings.youtubeConnect': '连接 YouTube Music',
+  'settings.youtubeLink': '前往下方链接并输入代码：',
+  'settings.youtubeOpenAuth': '打开 Google 授权',
+  'settings.youtubeWaiting': '等待 YouTube Music 确认...',
 
   // Metadata / Maintenance
   'metadata.title': '维护',

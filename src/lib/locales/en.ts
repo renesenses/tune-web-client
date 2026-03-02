@@ -194,6 +194,10 @@ export default {
   'settings.deezerLink': 'Open this link to connect to Deezer:',
   'settings.deezerOpenAuth': 'Log in on Deezer',
   'settings.deezerWaiting': 'Waiting for Deezer confirmation...',
+  'settings.youtubeConnect': 'Connect to YouTube Music',
+  'settings.youtubeLink': 'Go to the link below and enter the code:',
+  'settings.youtubeOpenAuth': 'Open Google authorization',
+  'settings.youtubeWaiting': 'Waiting for YouTube Music confirmation...',
 
   // Metadata / Maintenance
   'metadata.title': 'Maintenance',
