@@ -6,9 +6,10 @@
     albumId?: number | null;
     size?: number;
     alt?: string;
+    round?: boolean;
   }
 
-  let { coverPath = null, albumId = null, size = 300, alt = 'Album art' }: Props = $props();
+  let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false }: Props = $props();
 
   let hasError = $state(false);
   let resolvedCoverPath = $state<string | null>(null);
@@ -35,7 +36,7 @@
   let src = $derived(artworkUrl(resolvedCoverPath));
 </script>
 
-<div class="album-art" style="width: {size}px; height: {size}px;">
+<div class="album-art" class:round style="width: {size}px; height: {size}px;">
   {#if src && !hasError}
     <img
       {src}
@@ -59,6 +60,10 @@
     overflow: hidden;
     background: var(--tune-grey2);
     flex-shrink: 0;
+  }
+
+  .album-art.round {
+    border-radius: 50%;
   }
 
   img {

@@ -381,15 +381,20 @@
       </div>
 
     {:else if $libraryTab === 'artists'}
-      <div class="artists-list">
+      <div class="artists-grid">
         {#each filteredArtists as artist}
-          <button class="artist-item" onclick={() => selectArtistDetail(artist)}>
-            <div class="artist-avatar">
-              {artist.name.charAt(0).toUpperCase()}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="artist-card" onclick={() => selectArtistDetail(artist)}>
+            <div class="artist-card-avatar">
+              {#if artist.image_path}
+                <AlbumArt coverPath={artist.image_path} size={100} alt={artist.name} round />
+              {:else}
+                {artist.name.charAt(0).toUpperCase()}
+              {/if}
             </div>
-            <span class="artist-name">{artist.name}</span>
-            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
-          </button>
+            <span class="artist-card-name truncate">{artist.name}</span>
+          </div>
         {/each}
         {#if filteredArtists.length === 0}
           <div class="empty">{searchQuery ? $tr('common.noResult') : $tr('library.noArtists')}</div>
@@ -815,56 +820,51 @@
     max-width: 160px;
   }
 
-  /* Artists list */
-  .artists-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
+  /* Artists grid */
+  .artists-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--space-lg);
     flex: 1;
     overflow-y: auto;
   }
 
-  .artist-item {
+  .artist-card {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 14px;
-    padding: 10px 28px;
-    background: none;
-    border: none;
-    color: var(--tune-text);
+    gap: var(--space-sm);
     cursor: pointer;
-    text-align: left;
-    transition: background 0.12s ease-out;
+    padding: var(--space-sm) 0;
+    transition: transform 0.15s ease-out;
   }
 
-  .artist-item:hover {
-    background: var(--tune-surface-hover);
+  .artist-card:hover {
+    transform: translateY(-2px);
   }
 
-  .artist-avatar {
-    width: 40px;
-    height: 40px;
+  .artist-card-avatar {
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
     background: var(--tune-grey2);
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: var(--font-label);
-    font-size: 16px;
+    font-size: 32px;
     font-weight: 600;
     color: var(--tune-text-secondary);
+    overflow: hidden;
     flex-shrink: 0;
   }
 
-  .artist-name {
-    flex: 1;
+  .artist-card-name {
     font-family: var(--font-body);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
-  }
-
-  .chevron {
-    color: var(--tune-text-muted);
+    text-align: center;
+    max-width: 140px;
   }
 
   /* Track list */
