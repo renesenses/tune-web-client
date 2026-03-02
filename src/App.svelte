@@ -75,8 +75,8 @@
     if (zoneId === null) return;
     try {
       const qs = await api.getQueue(zoneId);
-      queueTracks.set(qs.tracks);
       queuePosition.set(qs.position);
+      queueTracks.set(qs.tracks);
       queueLength.set(qs.length);
     } catch (e) {
       console.error('Fetch queue error:', e);
