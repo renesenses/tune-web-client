@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as api from '../lib/api';
   import { artworkUrl } from '../lib/api';
-  import type { Album, Track, CompletenessStats, BackupInfo } from '../lib/types';
+  import type { Album, Artist, Track, CompletenessStats, BackupInfo } from '../lib/types';
   import { t } from '../lib/i18n';
   import AlbumArt from './AlbumArt.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
@@ -13,6 +13,19 @@
   let tracksWithoutArtistLoaded = $state(false);
   let unknownTracks = $state<Track[]>([]);
   let unknownTracksLoaded = $state(false);
+  let selectedTrackIds = $state<Set<number>>(new Set());
+  let artists = $state<Artist[]>([]);
+  let selectedArtistId = $state<number | null>(null);
+  let artistSearch = $state('');
+  let artistDropdownOpen = $state(false);
+  let applying = $state(false);
+  let editingAlbumId = $state<number | null>(null);
+  let editingAlbumTitle = $state('');
+  let editingTrackId = $state<number | null>(null);
+  let editingTrackTitle = $state('');
+  let editingAlbumArtistId = $state<number | null>(null);
+  let albumArtistSearch = $state('');
+  let albumArtistDropdownOpen = $state(false);
   let loading = $state(true);
   let filter = $state<'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist' | 'unknown'>('no_cover');
 
@@ -77,17 +90,217 @@
     }
   }
 
+  let unknownTracksByAlbum = $derived.by(() => {
+    const groups: { album: Album; tracks: Track[] }[] = [];
+    const map = new Map<number, Track[]>();
+    for (const t of unknownTracks) {
+      const aid = t.album_id ?? 0;
+      if (!map.has(aid)) map.set(aid, []);
+      map.get(aid)!.push(t);
+    }
+    for (const a of unknownAlbums) {
+      const tracks = map.get(a.id) ?? [];
+      if (tracks.length > 0) groups.push({ album: a, tracks });
+    }
+    return groups;
+  });
+
+  function toggleAlbumTracks(albumId: number) {
+    const group = unknownTracksByAlbum.find(g => g.album.id === albumId);
+    if (!group) return;
+    const ids = group.tracks.map(t => t.id!);
+    const allSelected = ids.every(id => selectedTrackIds.has(id));
+    const next = new Set(selectedTrackIds);
+    if (allSelected) {
+      ids.forEach(id => next.delete(id));
+    } else {
+      ids.forEach(id => next.add(id));
+    }
+    selectedTrackIds = next;
+  }
+
+  function toggleTrack(id: number) {
+    const next = new Set(selectedTrackIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    selectedTrackIds = next;
+  }
+
+  function isAlbumSelected(albumId: number): boolean {
+    const group = unknownTracksByAlbum.find(g => g.album.id === albumId);
+    if (!group || group.tracks.length === 0) return false;
+    return group.tracks.every(t => selectedTrackIds.has(t.id!));
+  }
+
+  function isAlbumPartial(albumId: number): boolean {
+    const group = unknownTracksByAlbum.find(g => g.album.id === albumId);
+    if (!group || group.tracks.length === 0) return false;
+    const some = group.tracks.some(t => selectedTrackIds.has(t.id!));
+    const all = group.tracks.every(t => selectedTrackIds.has(t.id!));
+    return some && !all;
+  }
+
+  let unknownTracksLoading = $state(false);
+
   async function loadUnknownTracks() {
-    if (unknownTracksLoaded) return;
+    if (unknownTracksLoaded || unknownTracksLoading) return;
+    if (unknownAlbums.length === 0) return;
+    unknownTracksLoading = true;
     try {
+      // Fetch all album tracks in one batch
       const results = await Promise.all(
-        unknownAlbums.map(a => api.getAlbumTracks(a.id))
+        unknownAlbums.map(a => api.getAlbumTracks(a.id!))
       );
       unknownTracks = results.flat();
       unknownTracksLoaded = true;
     } catch (e) {
       console.error('Load unknown tracks error:', e);
     }
+    unknownTracksLoading = false;
+    // Load artists in background for the action bar
+    if (artists.length === 0) {
+      api.getArtists(5000, 0).then(a => {
+        artists = a.sort((x, y) => x.name.localeCompare(y.name));
+      });
+    }
+  }
+
+  let filteredArtists = $derived(
+    artistSearch.length < 1
+      ? artists.slice(0, 20)
+      : artists.filter(a => a.name.toLowerCase().includes(artistSearch.toLowerCase())).slice(0, 20)
+  );
+
+  let filteredAlbumArtists = $derived(
+    albumArtistSearch.length < 1
+      ? artists.slice(0, 20)
+      : artists.filter(a => a.name.toLowerCase().includes(albumArtistSearch.toLowerCase())).slice(0, 20)
+  );
+
+  function startEditAlbumArtist(album: Album) {
+    editingAlbumArtistId = album.id;
+    albumArtistSearch = album.artist_name ?? '';
+    albumArtistDropdownOpen = true;
+  }
+
+  async function selectAlbumArtist(artist: Artist) {
+    if (!editingAlbumArtistId) return;
+    const albumId = editingAlbumArtistId;
+    albumArtistDropdownOpen = false;
+    editingAlbumArtistId = null;
+    try {
+      const group = unknownTracksByAlbum.find(g => g.album.id === albumId);
+      if (group) {
+        // Only update selected tracks in this album (or all if none selected)
+        const albumTrackIds = group.tracks.map(t => t.id!);
+        const selectedInAlbum = albumTrackIds.filter(id => selectedTrackIds.has(id));
+        const idsToUpdate = selectedInAlbum.length > 0 ? selectedInAlbum : albumTrackIds;
+        await Promise.all(idsToUpdate.map(id => api.updateTrack(id, { artist_id: artist.id! })));
+        // Refresh local state only for updated tracks
+        const idsSet = new Set(idsToUpdate);
+        unknownTracks = unknownTracks.map(t =>
+          idsSet.has(t.id!) ? { ...t, artist_id: artist.id, artist_name: artist.name } : t
+        );
+      }
+      // Update album artist if all tracks in album were updated
+      const remaining = unknownTracks.filter(t => t.album_id === albumId && (!t.artist_name || t.artist_name.toLowerCase().includes('unknown')));
+      if (remaining.length === 0) {
+        await api.updateAlbum(albumId, { artist_id: artist.id! });
+        allAlbums = allAlbums.map(a => a.id === albumId ? { ...a, artist_id: artist.id, artist_name: artist.name } : a);
+      }
+    } catch (e) {
+      console.error('Update album artist error:', e);
+    }
+  }
+
+  async function createAndSelectAlbumArtist() {
+    if (!albumArtistSearch.trim() || !editingAlbumArtistId) return;
+    try {
+      const newArtist = await api.createArtist(albumArtistSearch.trim());
+      artists = [...artists, newArtist].sort((a, b) => a.name.localeCompare(b.name));
+      await selectAlbumArtist(newArtist);
+    } catch (e) {
+      console.error('Create artist error:', e);
+    }
+  }
+
+  function selectArtist(artist: Artist) {
+    selectedArtistId = artist.id;
+    artistSearch = artist.name;
+    artistDropdownOpen = false;
+  }
+
+  async function createAndSelectArtist() {
+    if (!artistSearch.trim()) return;
+    try {
+      const newArtist = await api.createArtist(artistSearch.trim());
+      artists = [...artists, newArtist].sort((a, b) => a.name.localeCompare(b.name));
+      selectArtist(newArtist);
+    } catch (e) {
+      console.error('Create artist error:', e);
+    }
+  }
+
+  function startEditAlbum(album: Album) {
+    editingAlbumId = album.id;
+    editingAlbumTitle = album.title;
+  }
+
+  async function saveAlbumTitle() {
+    if (!editingAlbumId || !editingAlbumTitle.trim()) { editingAlbumId = null; return; }
+    try {
+      await api.updateAlbum(editingAlbumId, { title: editingAlbumTitle.trim() });
+      // Update local state
+      unknownTracks = unknownTracks.map(t =>
+        t.album_id === editingAlbumId ? { ...t, album_title: editingAlbumTitle.trim() } : t
+      );
+      allAlbums = allAlbums.map(a =>
+        a.id === editingAlbumId ? { ...a, title: editingAlbumTitle.trim() } : a
+      );
+    } catch (e) {
+      console.error('Update album title error:', e);
+    }
+    editingAlbumId = null;
+  }
+
+  function startEditTrack(track: Track) {
+    editingTrackId = track.id;
+    editingTrackTitle = track.title;
+  }
+
+  async function saveTrackTitle() {
+    if (!editingTrackId || !editingTrackTitle.trim()) { editingTrackId = null; return; }
+    try {
+      await api.updateTrack(editingTrackId, { title: editingTrackTitle.trim() });
+      unknownTracks = unknownTracks.map(t =>
+        t.id === editingTrackId ? { ...t, title: editingTrackTitle.trim() } : t
+      );
+    } catch (e) {
+      console.error('Update track title error:', e);
+    }
+    editingTrackId = null;
+  }
+
+  async function applyArtist() {
+    if (!selectedArtistId || selectedTrackIds.size === 0) return;
+    applying = true;
+    const artistName = artists.find(a => a.id === selectedArtistId)?.name ?? '';
+    const idsToUpdate = [...selectedTrackIds];
+    try {
+      await Promise.all(
+        idsToUpdate.map(id => api.updateTrack(id, { artist_id: selectedArtistId! }))
+      );
+      // Update local state only for the selected tracks
+      const idsSet = new Set(idsToUpdate);
+      unknownTracks = unknownTracks.map(t =>
+        idsSet.has(t.id!) ? { ...t, artist_id: selectedArtistId, artist_name: artistName } : t
+      );
+      selectedTrackIds = new Set();
+      selectedArtistId = null;
+      artistSearch = '';
+    } catch (e) {
+      console.error('Apply artist error:', e);
+    }
+    applying = false;
   }
 
   function completionPercent(missing: number, total: number): number {
@@ -176,7 +389,8 @@
     if (filter === 'no_artist') {
       loadTracksWithoutArtist();
     }
-    if (filter === 'unknown') {
+    // Track unknownAlbums.length so effect re-runs when allAlbums loads
+    if (filter === 'unknown' && unknownAlbums.length > 0) {
       loadUnknownTracks();
     }
   });
@@ -324,19 +538,99 @@
         </div>
       {/if}
     {:else if filter === 'unknown'}
-      {#if unknownTracks.length === 0}
+      {#if unknownTracksLoading}
+        <div class="loading"><div class="spinner"></div></div>
+      {:else if unknownTracksByAlbum.length === 0}
         <div class="empty">{$t('common.noResult')}</div>
       {:else}
-        <div class="tracks-list">
-          {#each unknownTracks as track (track.id)}
-            <div class="track-row track-row-4col">
-              <span class="track-title">{track.title}</span>
-              <span class="track-artist">{track.artist_name ?? ''}</span>
-              <span class="track-album">{track.album_title ?? ''}</span>
-              <span class="track-path">{track.file_path ?? ''}</span>
+        {#each unknownTracksByAlbum as group (group.album.id)}
+          <div class="album-group">
+            <div class="album-group-header">
+              <input
+                type="checkbox"
+                checked={isAlbumSelected(group.album.id)}
+                indeterminate={isAlbumPartial(group.album.id)}
+                onclick={(e) => e.stopPropagation()}
+                onchange={() => toggleAlbumTracks(group.album.id)}
+              />
+              {#if editingAlbumId === group.album.id}
+                <input
+                  class="inline-edit"
+                  type="text"
+                  bind:value={editingAlbumTitle}
+                  onkeydown={(e) => { if (e.key === 'Enter') saveAlbumTitle(); if (e.key === 'Escape') editingAlbumId = null; }}
+                  onblur={saveAlbumTitle}
+                  autofocus
+                  onclick={(e) => e.stopPropagation()}
+                />
+              {:else}
+                <span class="album-group-title editable" onclick={(e) => { e.stopPropagation(); startEditAlbum(group.album); }}>{group.album.title}</span>
+              {/if}
+              <span class="album-group-artist">{group.album.artist_name ?? 'Unknown Artist'}</span>
+              <span class="album-group-count">{group.tracks.length} {group.tracks.length > 1 ? 'tracks' : 'track'}</span>
             </div>
-          {/each}
-        </div>
+            <div class="tracks-list">
+              {#each group.tracks as track (track.id)}
+                <div class="track-row track-row-4col" class:selected={selectedTrackIds.has(track.id!)}>
+                  <input
+                    type="checkbox"
+                    checked={selectedTrackIds.has(track.id!)}
+                    onchange={() => toggleTrack(track.id!)}
+                  />
+                  {#if editingTrackId === track.id}
+                    <input
+                      class="inline-edit"
+                      type="text"
+                      bind:value={editingTrackTitle}
+                      onkeydown={(e) => { if (e.key === 'Enter') saveTrackTitle(); if (e.key === 'Escape') editingTrackId = null; }}
+                      onblur={saveTrackTitle}
+                      autofocus
+                    />
+                  {:else}
+                    <span class="track-title editable" onclick={() => startEditTrack(track)}>{track.title}</span>
+                  {/if}
+                  <span class="track-artist">{track.artist_name ?? ''}</span>
+                  <span class="track-path">{track.file_path ?? ''}</span>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/each}
+        {#if selectedTrackIds.size > 0}
+          <div class="action-bar">
+            <span class="action-count">{selectedTrackIds.size} {selectedTrackIds.size > 1 ? 'tracks' : 'track'}</span>
+            <div class="artist-picker">
+              <input
+                type="text"
+                placeholder={artists.length === 0 ? 'Chargement…' : 'Rechercher un artiste…'}
+                disabled={artists.length === 0}
+                bind:value={artistSearch}
+                onfocus={() => artistDropdownOpen = true}
+                oninput={() => { selectedArtistId = null; artistDropdownOpen = true; }}
+              />
+              {#if artistDropdownOpen && (filteredArtists.length > 0 || artistSearch.trim().length > 0)}
+                <div class="artist-dropdown">
+                  {#each filteredArtists as artist (artist.id)}
+                    <button class="artist-option" onclick={() => selectArtist(artist)}>
+                      {artist.name}
+                    </button>
+                  {/each}
+                  {#if artistSearch.trim().length > 0 && !artists.some(a => a.name.toLowerCase() === artistSearch.trim().toLowerCase())}
+                    <button class="artist-option artist-create" onclick={createAndSelectArtist}>
+                      + Créer « {artistSearch.trim()} »
+                    </button>
+                  {/if}
+                </div>
+              {/if}
+            </div>
+            <button class="btn-action btn-primary" onclick={applyArtist} disabled={!selectedArtistId || applying}>
+              {#if applying}
+                <div class="spinner small"></div>
+              {/if}
+              Appliquer
+            </button>
+          </div>
+        {/if}
       {/if}
     {:else if filteredAlbums.length === 0}
       <div class="empty">
@@ -747,7 +1041,202 @@
   }
 
   .track-row-4col {
-    grid-template-columns: 1fr 1fr 1fr 2fr;
+    grid-template-columns: auto 1fr 1fr 2fr;
+    cursor: pointer;
+  }
+
+  .track-row-4col:hover {
+    background: var(--tune-surface-hover);
+  }
+
+  .track-row.selected {
+    background: rgba(87, 198, 185, 0.08);
+  }
+
+  .track-row-4col input[type="checkbox"] {
+    accent-color: var(--tune-accent);
+    cursor: pointer;
+  }
+
+  /* Album group */
+  .album-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .album-group-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--tune-grey2);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    cursor: pointer;
+    text-align: left;
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    transition: background 0.12s;
+  }
+
+  .album-group-header:hover {
+    background: var(--tune-surface-hover);
+  }
+
+  .album-group-header input[type="checkbox"] {
+    accent-color: var(--tune-accent);
+    cursor: pointer;
+  }
+
+  .album-group-title {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .album-group-artist {
+    font-size: 13px;
+    color: var(--tune-text-muted);
+  }
+
+  .album-group-count {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    font-family: var(--font-label);
+  }
+
+  .album-group .tracks-list {
+    border-top: none;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+  }
+
+  /* Action bar */
+  .action-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-accent);
+    border-radius: var(--radius-md);
+    position: sticky;
+    bottom: 16px;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .action-count {
+    font-family: var(--font-label);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tune-accent);
+    white-space: nowrap;
+  }
+
+  .artist-picker {
+    position: relative;
+    flex: 1;
+    max-width: 300px;
+  }
+
+  .artist-picker input {
+    width: 100%;
+    padding: 6px 10px;
+    background: var(--tune-grey2);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    box-sizing: border-box;
+  }
+
+  .artist-picker input:focus {
+    outline: none;
+    border-color: var(--tune-accent);
+  }
+
+  .artist-picker input:disabled {
+    opacity: 0.5;
+  }
+
+  .artist-dropdown {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-accent);
+    border-radius: var(--radius-md);
+    margin-bottom: 4px;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+  }
+
+  .artist-option {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .artist-option:hover {
+    background: var(--tune-surface-hover);
+  }
+
+  /* Inline editing */
+  .editable {
+    cursor: pointer;
+    border-bottom: 1px dashed transparent;
+    padding: 2px 4px;
+    border-radius: var(--radius-sm);
+  }
+
+  .editable:hover {
+    border-bottom-color: var(--tune-accent);
+    background: rgba(87, 198, 185, 0.08);
+  }
+
+  .inline-edit {
+    padding: 2px 6px;
+    background: var(--tune-grey2);
+    border: 1px solid var(--tune-accent);
+    border-radius: var(--radius-sm);
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    min-width: 100px;
+    outline: none;
+  }
+
+  .album-group-header .inline-edit {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .inline-artist-picker {
+    max-width: 250px;
+  }
+
+  .inline-artist-picker .artist-dropdown {
+    bottom: auto;
+    top: 100%;
+    margin-top: 4px;
+    margin-bottom: 0;
+  }
+
+  .artist-option.artist-create {
+    color: var(--tune-accent);
+    font-weight: 600;
+    border-top: 1px solid var(--tune-border);
   }
 
   .track-artist,

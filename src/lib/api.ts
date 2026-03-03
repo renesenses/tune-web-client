@@ -237,6 +237,13 @@ export function getArtists(limit = 100, offset = 0) {
   return fetchJSON<Artist[]>(`${BASE}/library/artists?limit=${limit}&offset=${offset}`);
 }
 
+export function createArtist(name: string) {
+  return fetchJSON<Artist>(`${BASE}/library/artists`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
 export function getArtist(id: number) {
   return fetchJSON<Artist>(`${BASE}/library/artists/${id}`);
 }
