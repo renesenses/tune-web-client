@@ -8,7 +8,7 @@
   import AlbumArt from './AlbumArt.svelte';
 
   interface Props {
-    onAddToPlaylist?: (trackId: number) => void;
+    onAddToPlaylist?: (track: import('../lib/types').Track) => void;
   }
   let { onAddToPlaylist }: Props = $props();
 
@@ -159,8 +159,8 @@
             {#if queueTrack.format}<span class="audio-format">{formatAudioBadge(queueTrack)}</span>{/if}
             <span class="queue-duration">{formatTime(queueTrack.duration_ms)}</span>
           </button>
-          {#if onAddToPlaylist && queueTrack.id}
-            <button class="action-btn playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(queueTrack.id!); }} title={$t('queue.addToPlaylist')}>
+          {#if onAddToPlaylist && (queueTrack.id || queueTrack.source_id)}
+            <button class="action-btn playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(queueTrack); }} title={$t('queue.addToPlaylist')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </button>
           {/if}

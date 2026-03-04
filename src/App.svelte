@@ -32,15 +32,17 @@
   import GenresView from './components/GenresView.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
 
-  let scanIndicator = $state(false);
-  let playlistModalTrackId = $state<number | null>(null);
+  import type { Track } from './lib/types';
 
-  function openPlaylistModal(trackId: number) {
-    playlistModalTrackId = trackId;
+  let scanIndicator = $state(false);
+  let playlistModalTrack = $state<Track | null>(null);
+
+  function openPlaylistModal(track: Track) {
+    playlistModalTrack = track;
   }
 
   function closePlaylistModal() {
-    playlistModalTrackId = null;
+    playlistModalTrack = null;
   }
 
   async function fetchZones() {
@@ -238,17 +240,17 @@
         {:else if $activeView === 'queue'}
           <QueueView onAddToPlaylist={openPlaylistModal} />
         {:else if $activeView === 'playlists'}
-          <PlaylistsView />
+          <PlaylistsView onAddToPlaylist={openPlaylistModal} />
         {:else if $activeView === 'browse'}
-          <BrowseView />
+          <BrowseView onAddToPlaylist={openPlaylistModal} />
         {:else if $activeView === 'search'}
-          <SearchView />
+          <SearchView onAddToPlaylist={openPlaylistModal} />
         {:else if $activeView === 'settings'}
           <SettingsView />
         {:else if $activeView === 'history'}
           <HistoryView />
         {:else if $activeView === 'streaming'}
-          <StreamingView />
+          <StreamingView onAddToPlaylist={openPlaylistModal} />
         {:else if $activeView === 'radios'}
           <RadiosView />
         {:else if $activeView === 'genres'}
@@ -270,8 +272,8 @@
   <TransportBar />
 </div>
 
-{#if playlistModalTrackId !== null}
-  <AddToPlaylistModal trackId={playlistModalTrackId} onClose={closePlaylistModal} />
+{#if playlistModalTrack !== null}
+  <AddToPlaylistModal track={playlistModalTrack} onClose={closePlaylistModal} />
 {/if}
 
 <style>

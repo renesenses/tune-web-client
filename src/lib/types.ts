@@ -237,6 +237,20 @@ export interface RadioImportResult {
   errors: string[];
 }
 
+export interface StreamingTrackInfo {
+  source: Source;
+  source_id: string;
+  title: string;
+  artist_name?: string | null;
+  album_title?: string | null;
+  duration_ms?: number;
+  format?: AudioFormat | null;
+  sample_rate?: number | null;
+  bit_depth?: number | null;
+  channels?: number;
+  cover_path?: string | null;
+}
+
 export interface WSEvent {
   type: string;
   data: any;

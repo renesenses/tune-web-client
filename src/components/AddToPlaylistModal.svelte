@@ -1,13 +1,13 @@
 <script lang="ts">
   import * as api from '../lib/api';
-  import type { Playlist } from '../lib/types';
+  import type { Playlist, Track, StreamingTrackInfo } from '../lib/types';
   import { t } from '../lib/i18n';
 
   interface Props {
-    trackId: number;
+    track: Track;
     onClose: () => void;
   }
-  let { trackId, onClose }: Props = $props();
+  let { track, onClose }: Props = $props();
 
   let playlists = $state<Playlist[]>([]);
   let loading = $state(true);
@@ -26,11 +26,33 @@
     loading = false;
   }
 
+  function buildAddArgs(): { trackIds: number[]; streamingTracks: StreamingTrackInfo[] | undefined } {
+    if (track.id && (!track.source || track.source === 'local')) {
+      return { trackIds: [track.id], streamingTracks: undefined };
+    }
+    // Streaming track — send as streaming_tracks
+    const st: StreamingTrackInfo = {
+      source: track.source!,
+      source_id: track.source_id!,
+      title: track.title,
+      artist_name: track.artist_name,
+      album_title: track.album_title,
+      duration_ms: track.duration_ms,
+      format: track.format,
+      sample_rate: track.sample_rate,
+      bit_depth: track.bit_depth,
+      channels: track.channels,
+      cover_path: track.cover_path,
+    };
+    return { trackIds: [], streamingTracks: [st] };
+  }
+
   async function addToPlaylist(playlist: Playlist) {
     if (!playlist.id) return;
     adding = playlist.id;
     try {
-      await api.addPlaylistTracks(playlist.id, [trackId]);
+      const { trackIds, streamingTracks } = buildAddArgs();
+      await api.addPlaylistTracks(playlist.id, trackIds, undefined, streamingTracks);
       success = playlist.name;
       setTimeout(() => onClose(), 800);
     } catch (e) {
@@ -44,7 +66,8 @@
     try {
       const pl = await api.createPlaylist(newName.trim());
       if (pl.id) {
-        await api.addPlaylistTracks(pl.id, [trackId]);
+        const { trackIds, streamingTracks } = buildAddArgs();
+        await api.addPlaylistTracks(pl.id, trackIds, undefined, streamingTracks);
         success = pl.name;
         setTimeout(() => onClose(), 800);
       }

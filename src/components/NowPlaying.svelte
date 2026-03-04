@@ -10,7 +10,7 @@
   import type { RepeatMode, Track } from '../lib/types';
 
   interface Props {
-    onAddToPlaylist?: (trackId: number) => void;
+    onAddToPlaylist?: (track: Track) => void;
   }
   let { onAddToPlaylist }: Props = $props();
 
@@ -117,8 +117,8 @@
             {/if}
           </button>
 
-          {#if onAddToPlaylist && track?.id}
-            <button class="setting-btn" onclick={() => onAddToPlaylist!(track!.id!)} title={$t('nowplaying.addToPlaylist')}>
+          {#if onAddToPlaylist && (track?.id || track?.source_id)}
+            <button class="setting-btn" onclick={() => onAddToPlaylist!(track!)} title={$t('nowplaying.addToPlaylist')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                 <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" />
               </svg>

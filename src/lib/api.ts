@@ -366,10 +366,10 @@ export function getPlaylistTracks(id: number) {
   return fetchJSON<Track[]>(`${BASE}/playlists/${id}/tracks`);
 }
 
-export function addPlaylistTracks(id: number, trackIds: number[], position?: number) {
+export function addPlaylistTracks(id: number, trackIds: number[], position?: number, streamingTracks?: import('./types').StreamingTrackInfo[]) {
   return fetchJSON<Playlist>(`${BASE}/playlists/${id}/tracks`, {
     method: 'POST',
-    body: JSON.stringify({ track_ids: trackIds, position }),
+    body: JSON.stringify({ track_ids: trackIds, position, streaming_tracks: streamingTracks }),
   });
 }
 

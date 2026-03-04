@@ -8,7 +8,13 @@
   import type { FederatedSearchResult, Track, Album, Artist } from '../lib/types';
   import { t } from '../lib/i18n';
 
+  interface Props {
+    onAddToPlaylist?: (track: Track) => void;
+  }
+  let { onAddToPlaylist }: Props = $props();
+
   let zone = $derived($currentZone);
+  let addToPlaylistLabel = $derived($t('nowplaying.addToPlaylist'));
   let searchQuery = $state('');
   let loading = $state(false);
   let results: FederatedSearchResult | null = $state(null);
@@ -121,14 +127,21 @@
             <h4 class="subsection-title">{$t('home.tracks')}</h4>
             <div class="track-list">
               {#each source.data.tracks as t}
-                <button class="track-item" onclick={() => t.id && playTrack(t.id)}>
-                  <div class="track-info">
-                    <span class="track-title truncate">{t.title}</span>
-                    <span class="track-artist truncate">{t.artist_name ?? ''}{t.album_title ? ` - ${t.album_title}` : ''}</span>
-                  </div>
-                  {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
-                  <span class="track-duration">{formatTime(t.duration_ms)}</span>
-                </button>
+                <div class="track-item">
+                  <button class="track-play" onclick={() => t.id && playTrack(t.id)}>
+                    <div class="track-info">
+                      <span class="track-title truncate">{t.title}</span>
+                      <span class="track-artist truncate">{t.artist_name ?? ''}{t.album_title ? ` - ${t.album_title}` : ''}</span>
+                    </div>
+                    {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
+                    <span class="track-duration">{formatTime(t.duration_ms)}</span>
+                  </button>
+                  {#if onAddToPlaylist && (t.id || t.source_id)}
+                    <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={addToPlaylistLabel}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
+                    </button>
+                  {/if}
+                </div>
               {/each}
             </div>
           {/if}
@@ -292,6 +305,19 @@
   .track-item {
     display: flex;
     align-items: center;
+    gap: 4px;
+    padding: 0;
+    transition: background 0.12s ease-out;
+  }
+
+  .track-item:hover {
+    background: var(--tune-surface-hover);
+  }
+
+  .track-play {
+    flex: 1;
+    display: flex;
+    align-items: center;
     gap: var(--space-md);
     padding: 8px 0;
     background: none;
@@ -299,11 +325,32 @@
     color: var(--tune-text);
     cursor: pointer;
     text-align: left;
-    transition: background 0.12s ease-out;
+    min-width: 0;
   }
 
-  .track-item:hover {
-    background: var(--tune-surface-hover);
+  .add-playlist-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease-out;
+    opacity: 0;
+    flex-shrink: 0;
+  }
+
+  .track-item:hover .add-playlist-btn {
+    opacity: 1;
+  }
+
+  .add-playlist-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
   }
 
   .track-info {

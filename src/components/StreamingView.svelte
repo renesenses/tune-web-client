@@ -7,6 +7,11 @@
   import type { Album, Artist, Track, SearchResult, FeaturedSection, StreamingPlaylist } from '../lib/types';
   import { t as tr } from '../lib/i18n';
 
+  interface Props {
+    onAddToPlaylist?: (track: Track) => void;
+  }
+  let { onAddToPlaylist }: Props = $props();
+
   type StreamingTab = 'search' | 'albums' | 'artists' | 'tracks';
 
   let service = $derived($activeStreamingService);
@@ -244,6 +249,11 @@
             {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
             <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+            {#if onAddToPlaylist && (t.id || t.source_id)}
+              <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
+              </button>
+            {/if}
           </div>
         {/each}
       </div>
@@ -290,6 +300,11 @@
             {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
             <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+            {#if onAddToPlaylist && (t.id || t.source_id)}
+              <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
+              </button>
+            {/if}
           </div>
         {/each}
       </div>
@@ -415,6 +430,11 @@
               </div>
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+              {#if onAddToPlaylist && (t.id || t.source_id)}
+                <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
+                </button>
+              {/if}
             </div>
           {/each}
         </div>
@@ -981,6 +1001,30 @@
   }
 
   .add-queue-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .add-playlist-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease-out;
+    opacity: 0;
+  }
+
+  .track-item:hover .add-playlist-btn {
+    opacity: 1;
+  }
+
+  .add-playlist-btn:hover {
     border-color: var(--tune-accent);
     color: var(--tune-accent);
   }
