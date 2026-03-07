@@ -280,6 +280,7 @@ export default {
   'radio.streamUrl': 'Stream URL',
   'radio.genre': 'Genre',
   'radio.import': 'Import M3U/PLS',
+  'radio.export': 'Export M3U',
   'radio.imported': '{count} imported',
   'radio.skipped': '{count} skipped (duplicates)',
   'radio.deleteConfirm': 'Delete this radio?',

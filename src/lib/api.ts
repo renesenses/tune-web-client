@@ -559,6 +559,10 @@ export async function importRadios(file: File): Promise<import('./types').RadioI
   return response.json();
 }
 
+export function exportRadiosUrl(): string {
+  return `${BASE}/radios/export.m3u`;
+}
+
 // --- Artwork ---
 
 export function artworkUrl(coverPath: string | null | undefined): string {
