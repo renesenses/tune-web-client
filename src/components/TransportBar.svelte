@@ -50,7 +50,7 @@
 <div class="transport-bar">
   <div class="transport-left">
     {#if track}
-      <AlbumArt albumId={track.album_id} size={56} alt={track.title} />
+      <AlbumArt coverPath={track.cover_path} albumId={track.album_id} size={56} alt={track.title} />
       <div class="track-mini">
         <span class="mini-title truncate">{track.title}</span>
         <span class="mini-artist truncate">{track.artist_name ?? ''}</span>
