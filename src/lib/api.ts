@@ -92,6 +92,17 @@ export function getAudioDevices() {
   return fetchJSON<LocalAudioDevice[]>(`${BASE}/devices/audio`);
 }
 
+export function beginPairing(deviceId: string) {
+  return fetchJSON<{ status: string; device_id: string; message?: string }>(`${BASE}/devices/${encodeURIComponent(deviceId)}/pair`, { method: 'POST' });
+}
+
+export function submitPairingPin(deviceId: string, pin: string) {
+  return fetchJSON<{ status: string; device_id: string; message?: string }>(`${BASE}/devices/${encodeURIComponent(deviceId)}/pair/pin`, {
+    method: 'POST',
+    body: JSON.stringify({ pin }),
+  });
+}
+
 export function deleteZone(id: number) {
   return fetchVoid(`${BASE}/zones/${id}`, { method: 'DELETE' });
 }

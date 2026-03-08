@@ -291,6 +291,16 @@ export default {
   'radio.uploadingCover': 'Uploading...',
   'radio.coverUploaded': 'Cover saved!',
 
+  // Pairing
+  'pairing.pair': 'Pair',
+  'pairing.pairing': 'Pairing...',
+  'pairing.enterPin': 'Enter PIN',
+  'pairing.pinPlaceholder': 'PIN code',
+  'pairing.submit': 'OK',
+  'pairing.cancel': 'Cancel',
+  'pairing.success': 'Paired!',
+  'pairing.error': 'Pairing failed',
+
   // Volume
   'volume.title': 'Volume (M to mute)',
 } as const;

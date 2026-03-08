@@ -25,6 +25,55 @@
   let addingMusicDir = $state(false);
   let removingMusicDir = $state<string | null>(null);
 
+  // AirPlay pairing
+  let pairingDeviceId: string | null = $state(null);
+  let pairingPin = $state('');
+  let pairingLoading = $state(false);
+  let pairingAwaitingPin = $state(false);
+  let pairingMessage: string | null = $state(null);
+
+  async function startPairing(deviceId: string) {
+    pairingDeviceId = deviceId;
+    pairingPin = '';
+    pairingLoading = true;
+    pairingAwaitingPin = false;
+    pairingMessage = null;
+    try {
+      const res = await api.beginPairing(deviceId);
+      if (res.status === 'awaiting_pin') {
+        pairingAwaitingPin = true;
+        pairingMessage = res.message || null;
+      }
+    } catch (e: any) {
+      pairingMessage = get(t)('pairing.error');
+      pairingDeviceId = null;
+    }
+    pairingLoading = false;
+  }
+
+  async function submitPin() {
+    if (!pairingDeviceId || !pairingPin.trim()) return;
+    pairingLoading = true;
+    try {
+      const res = await api.submitPairingPin(pairingDeviceId, pairingPin.trim());
+      if (res.status === 'paired') {
+        pairingMessage = get(t)('pairing.success');
+        setTimeout(() => { pairingDeviceId = null; pairingMessage = null; }, 2000);
+      }
+    } catch (e: any) {
+      pairingMessage = get(t)('pairing.error');
+    }
+    pairingLoading = false;
+    pairingAwaitingPin = false;
+  }
+
+  function cancelPairing() {
+    pairingDeviceId = null;
+    pairingAwaitingPin = false;
+    pairingPin = '';
+    pairingMessage = null;
+  }
+
   // Streaming auth state
   let qobuzUsername = $state('');
   let qobuzPassword = $state('');
@@ -638,6 +687,35 @@
             />
             <span class="device-toggle-name">{device.name}</span>
             <span class="device-toggle-tag">{device.type === 'airplay' ? 'AirPlay' : device.type === 'dlna' ? 'DLNA' : device.type}</span>
+            {#if device.type === 'airplay'}
+              {#if pairingDeviceId === device.id && pairingAwaitingPin}
+                <input
+                  type="text"
+                  class="pairing-pin-input"
+                  placeholder={$t('pairing.pinPlaceholder')}
+                  bind:value={pairingPin}
+                  onkeydown={(e) => { if (e.key === 'Enter') submitPin(); if (e.key === 'Escape') cancelPairing(); }}
+                  disabled={pairingLoading}
+                />
+                <button class="scan-btn small" onclick={submitPin} disabled={pairingLoading || !pairingPin.trim()}>
+                  {$t('pairing.submit')}
+                </button>
+                <button class="scan-btn small" onclick={cancelPairing}>
+                  {$t('pairing.cancel')}
+                </button>
+              {:else if pairingDeviceId === device.id && pairingMessage}
+                <span class="pairing-message">{pairingMessage}</span>
+              {:else}
+                <button class="scan-btn small" onclick={() => startPairing(device.id)} disabled={pairingLoading}>
+                  {#if pairingLoading && pairingDeviceId === device.id}
+                    <div class="spinner small"></div>
+                    {$t('pairing.pairing')}
+                  {:else}
+                    {$t('pairing.pair')}
+                  {/if}
+                </button>
+              {/if}
+            {/if}
           </label>
         {/each}
         {#if audioDevices.length === 0 && $devices.length === 0}
@@ -1295,6 +1373,23 @@
     padding: 1px 6px;
     border-radius: var(--radius-sm);
     flex-shrink: 0;
+  }
+
+  .pairing-pin-input {
+    width: 80px;
+    padding: 3px 8px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: var(--tune-bg);
+    color: var(--tune-text);
+    font-size: 13px;
+    text-align: center;
+    letter-spacing: 2px;
+  }
+
+  .pairing-message {
+    font-size: 12px;
+    color: var(--tune-accent);
   }
 
   .music-dir-add {

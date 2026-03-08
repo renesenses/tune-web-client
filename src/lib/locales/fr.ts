@@ -291,6 +291,16 @@ export default {
   'radio.uploadingCover': 'Upload en cours...',
   'radio.coverUploaded': 'Cover enregistrée !',
 
+  // Pairing
+  'pairing.pair': 'Associer',
+  'pairing.pairing': 'Association...',
+  'pairing.enterPin': 'Entrer le PIN',
+  'pairing.pinPlaceholder': 'Code PIN',
+  'pairing.submit': 'OK',
+  'pairing.cancel': 'Annuler',
+  'pairing.success': 'Associé !',
+  'pairing.error': 'Échec de l\'association',
+
   // Volume
   'volume.title': 'Volume (M pour couper)',
 } as const;
