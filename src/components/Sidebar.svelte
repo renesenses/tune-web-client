@@ -426,8 +426,20 @@
     border-right: 1px solid var(--tune-border);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     position: relative;
+  }
+
+  .sidebar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .sidebar::-webkit-scrollbar-thumb {
+    background: var(--tune-border);
+    border-radius: 2px;
+  }
+  .sidebar::-webkit-scrollbar-track {
+    background: transparent;
   }
 
   .resize-handle {
