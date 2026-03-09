@@ -24,6 +24,7 @@
   let newMusicDirPath = $state('');
   let addingMusicDir = $state(false);
   let removingMusicDir = $state<string | null>(null);
+  let musicDirError = $state<string | null>(null);
 
   // AirPlay pairing
   let pairingDeviceId: string | null = $state(null);
@@ -409,13 +410,14 @@
     const path = newMusicDirPath.trim();
     if (!path) return;
     addingMusicDir = true;
+    musicDirError = null;
     try {
       await api.addMusicDir(path);
       newMusicDirPath = '';
       const br = await api.getBrowseRoots().catch(() => ({ roots: [] }));
       musicRoots = br.roots;
     } catch (e: any) {
-      console.error('Add music dir error:', e);
+      musicDirError = e.message || String(e);
     }
     addingMusicDir = false;
   }
@@ -609,6 +611,9 @@
           {/if}
         </button>
       </div>
+      {#if musicDirError}
+        <div class="music-dir-error">{musicDirError}</div>
+      {/if}
       {#if musicRoots.length === 0}
         <p class="muted">{$t('settings.noMusicDirs')}</p>
       {:else}
@@ -1390,6 +1395,15 @@
   .pairing-message {
     font-size: 12px;
     color: var(--tune-accent);
+  }
+
+  .music-dir-error {
+    color: #e74c3c;
+    font-size: var(--font-sm);
+    margin-bottom: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm);
+    background: rgba(231, 76, 60, 0.1);
+    border-radius: var(--radius-sm);
   }
 
   .music-dir-add {

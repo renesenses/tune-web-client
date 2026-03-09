@@ -26,13 +26,22 @@ import type {
 
 const BASE = '/api/v1';
 
+async function apiError(response: Response): Promise<Error> {
+  let detail = `${response.status} ${response.statusText}`;
+  try {
+    const body = await response.json();
+    if (body.detail) detail = body.detail;
+  } catch { /* ignore */ }
+  return new Error(detail);
+}
+
 async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   });
   if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    throw await apiError(response);
   }
   return response.json();
 }
@@ -43,7 +52,7 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
     ...options,
   });
   if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    throw await apiError(response);
   }
 }
 
@@ -320,7 +329,7 @@ export async function uploadAlbumArtwork(albumId: number, file: File): Promise<A
     body: formData,
   });
   if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    throw await apiError(response);
   }
   return response.json();
 }
@@ -555,7 +564,7 @@ export async function uploadRadioCover(radioId: number, file: File): Promise<imp
     method: 'POST',
     body: formData,
   });
-  if (!response.ok) throw new Error(`API error: ${response.status} ${response.statusText}`);
+  if (!response.ok) throw await apiError(response);
   return response.json();
 }
 
@@ -566,7 +575,7 @@ export async function importRadios(file: File): Promise<import('./types').RadioI
     method: 'POST',
     body: formData,
   });
-  if (!response.ok) throw new Error(`API error: ${response.status} ${response.statusText}`);
+  if (!response.ok) throw await apiError(response);
   return response.json();
 }
 
