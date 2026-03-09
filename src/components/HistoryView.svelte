@@ -49,7 +49,7 @@
     <div class="history-list">
       {#each $playbackHistory as entry}
         <button class="history-item" onclick={() => replay(entry)}>
-          <AlbumArt albumId={entry.track.album_id} size={44} alt={entry.track.title} />
+          <AlbumArt coverPath={entry.track.cover_path} albumId={entry.track.album_id} size={44} alt={entry.track.title} />
           <div class="history-info">
             <span class="history-title truncate">{entry.track.title}</span>
             <span class="history-artist truncate">{entry.track.artist_name ?? ''}</span>
