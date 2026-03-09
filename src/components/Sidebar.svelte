@@ -222,7 +222,7 @@
       <span class="state-dot" style="color: {stateColor($connectionState)}">
         {stateIcon($connectionState)}
       </span>
-      <span class="state-text truncate">{$connectionState}</span>
+      <span class="state-text truncate">{$connectionState === 'connected' ? $t('settings.connected') : $connectionState === 'connecting' ? $t('settings.connecting') : $t('settings.notConnected')}</span>
     </div>
   </div>
 
