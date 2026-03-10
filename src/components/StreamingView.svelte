@@ -185,7 +185,7 @@
   async function playStreamingAlbum(album: Album) {
     if (!zone?.id || !service || !album.source_id) return;
     try {
-      await api.play(zone.id, { source: album.source as any, source_id: album.source_id });
+      await api.play(zone.id, { source: album.source as any, streaming_album_id: album.source_id });
     } catch (e) {
       console.error('Play streaming album error:', e);
     }

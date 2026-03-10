@@ -82,10 +82,12 @@
     }
   }
 
-  async function playTrack(trackId: number) {
-    if (!zone?.id) return;
+  async function playFromTrack(index: number) {
+    if (!zone?.id || !browseResult?.tracks.length) return;
+    const ids = browseResult.tracks.slice(index).filter(t => t.id).map(t => t.id!);
+    if (ids.length === 0) return;
     try {
-      await api.play(zone.id, { track_id: trackId });
+      await api.play(zone.id, { track_ids: ids });
     } catch (e) {
       console.error('Play track error:', e);
     }
@@ -217,7 +219,7 @@
           {#each browseResult.tracks as t, index}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="track-item" onclick={() => t.id && playTrack(t.id)}>
+            <div class="track-item" onclick={() => t.id && playFromTrack(index)}>
               <span class="track-num">{t.track_number ?? index + 1}</span>
               <div class="track-info">
                 <span class="track-title truncate">{t.title}</span>
