@@ -217,7 +217,7 @@
 
 <aside class="sidebar">
   <div class="sidebar-header">
-    <h1 class="logo">Tune</h1>
+    <h1 class="logo">Tune <span class="version">v{__APP_VERSION__}</span></h1>
     <div class="connection-status">
       <span class="state-dot" style="color: {stateColor($connectionState)}">
         {stateIcon($connectionState)}
@@ -470,6 +470,13 @@
     letter-spacing: -0.5px;
     color: var(--tune-text);
     margin-bottom: var(--space-xs);
+  }
+
+  .version {
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.5;
+    vertical-align: middle;
   }
 
   .connection-status {
