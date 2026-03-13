@@ -16,6 +16,7 @@ export interface Artist {
   discogs_id?: string | null;
   bio?: string | null;
   image_path?: string | null;
+  source_id?: string | null;
 }
 
 export interface Album {

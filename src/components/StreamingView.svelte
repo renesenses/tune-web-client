@@ -128,8 +128,8 @@
   }
 
   async function selectArtist(artist: Artist) {
-    if (!service || !artist.musicbrainz_id && !artist.discogs_id) return;
-    const artistId = artist.musicbrainz_id ?? artist.discogs_id ?? '';
+    const artistId = artist.source_id ?? artist.musicbrainz_id ?? artist.discogs_id ?? '';
+    if (!service || !artistId) return;
     selectedArtist = artist;
     selectedAlbum = null;
     loading = true;
