@@ -10,6 +10,7 @@
   import type { Album, Track, Source } from '../lib/types';
 
   let zone = $derived($currentZone);
+  let currentTrack = $derived(zone?.current_track);
   let stats: { tracks: number; albums: number; artists: number } | null = $state(null);
   let recentAlbums: Album[] = $state([]);
   let recentTab = $state<'played' | 'added'>('played');
@@ -142,6 +143,22 @@
     }
   }
 
+  function navigateArtist(album: RecentAlbumEntry) {
+    if (album.artist_id) {
+      navigateToArtist(album.artist_id);
+    } else if (album.source && album.source !== 'local') {
+      activeView.set('streaming');
+    }
+  }
+
+  function isPlaying(album: RecentAlbumEntry): boolean {
+    if (!currentTrack || !zone || zone.state !== 'playing') return false;
+    if (album.id && currentTrack.album_id === album.id) return true;
+    if (album.firstTrack.id && currentTrack.id === album.firstTrack.id) return true;
+    if (album.firstTrack.source_id && currentTrack.source_id === album.firstTrack.source_id && currentTrack.source === album.source) return true;
+    return false;
+  }
+
   // Derive unique recently played albums from history
   // Use a string key to dedupe: "local:{album_id}" or "streaming:{source}:{source_id}"
   let recentlyPlayed = $derived.by(() => {
@@ -241,18 +258,24 @@
           </button>
           <div class="carousel" bind:this={playedCarousel}>
             {#each recentlyPlayed as album}
-              <div class="carousel-card">
+              <div class="carousel-card" class:now-playing={isPlaying(album)}>
                 <button class="carousel-cover" onclick={() => playRecentEntry(album)}>
                   <AlbumArt coverPath={album.cover_path} albumId={album.id} size={160} alt={album.title} />
-                  <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
+                  {#if isPlaying(album)}
+                    <span class="play-overlay playing">
+                      <span class="eq-bars"><span></span><span></span><span></span></span>
+                    </span>
+                  {:else}
+                    <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
+                  {/if}
                 </button>
                 {#if album.id || (album.source && album.source !== 'local')}
                   <button class="carousel-title truncate" onclick={() => navigateRecentEntry(album)}>{album.title}</button>
                 {:else}
                   <span class="carousel-title truncate">{album.title}</span>
                 {/if}
-                {#if album.artist_id}
-                  <button class="carousel-artist truncate" onclick={() => navigateToArtist(album.artist_id!)}>{album.artist_name}</button>
+                {#if album.artist_id || (album.artist_name && album.source && album.source !== 'local')}
+                  <button class="carousel-artist truncate" onclick={() => navigateArtist(album)}>{album.artist_name}</button>
                 {:else}
                   <span class="carousel-artist truncate">{album.artist_name}</span>
                 {/if}
@@ -507,6 +530,39 @@
     opacity: 0;
     transition: opacity 0.15s;
     border-radius: var(--radius-sm);
+  }
+
+  .play-overlay.playing {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .now-playing .carousel-title {
+    color: var(--tune-accent) !important;
+  }
+
+  .eq-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 20px;
+  }
+
+  .eq-bars span {
+    display: block;
+    width: 4px;
+    background: var(--tune-accent);
+    border-radius: 1px;
+    animation: eq-bounce 0.8s ease-in-out infinite alternate;
+  }
+
+  .eq-bars span:nth-child(1) { height: 60%; animation-delay: 0s; }
+  .eq-bars span:nth-child(2) { height: 100%; animation-delay: 0.2s; }
+  .eq-bars span:nth-child(3) { height: 40%; animation-delay: 0.4s; }
+
+  @keyframes eq-bounce {
+    0% { transform: scaleY(0.3); }
+    100% { transform: scaleY(1); }
   }
 
   button.carousel-title,
