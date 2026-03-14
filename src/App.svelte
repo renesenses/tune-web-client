@@ -12,6 +12,7 @@
   import { locale } from './lib/i18n';
   import { setupKeyboardShortcuts } from './lib/keyboard';
   import { playbackHistory } from './lib/stores/history';
+  import { ytPlayerState, pauseVideo, resumeVideo, stopVideo } from './lib/stores/ytPlayer';
   import { get } from 'svelte/store';
   import { t } from './lib/i18n';
   import * as api from './lib/api';
@@ -31,6 +32,7 @@
   import RadiosView from './components/RadiosView.svelte';
   import GenresView from './components/GenresView.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
+  import YTPlayer from './components/YTPlayer.svelte';
 
   import type { Track } from './lib/types';
 
@@ -168,9 +170,27 @@
         } else if (zoneId) {
           // For started/resumed/paused/stopped/track_changed: fetch full zone state
           syncZoneState(zoneId).then(() => {
+            const z = get(currentZone);
+
+            // Sync muted IFrame with backend playback state
+            const yt = get(ytPlayerState);
+            if (yt.active) {
+              if (type === 'playback.paused' || type === 'playback.stopped') {
+                pauseVideo();
+              } else if (type === 'playback.resumed') {
+                resumeVideo();
+              } else if (type === 'playback.started' || type === 'playback.track_changed') {
+                // If the new track is not YouTube, stop the IFrame
+                if (z?.current_track && z.current_track.source !== 'youtube') {
+                  stopVideo();
+                } else if (z?.current_track?.source === 'youtube') {
+                  resumeVideo();
+                }
+              }
+            }
+
             // Record to playback history on track start/change
             if (type === 'playback.started' || type === 'playback.track_changed') {
-              const z = get(currentZone);
               if (z?.current_track) {
                 playbackHistory.add(z.current_track, z.name);
               }
@@ -271,6 +291,9 @@
 
   <TransportBar />
 </div>
+
+<!-- Single persistent YouTube IFrame Player instance (off-screen) -->
+<YTPlayer />
 
 {#if playlistModalTrack !== null}
   <AddToPlaylistModal track={playlistModalTrack} onClose={closePlaylistModal} />

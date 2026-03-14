@@ -1,6 +1,7 @@
 <script lang="ts">
   import { zones, currentZone, currentZoneId } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode } from '../lib/stores/nowPlaying';
+  import { ytPlayerState, pauseVideo, resumeVideo } from '../lib/stores/ytPlayer';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import VolumeControl from './VolumeControl.svelte';
@@ -12,12 +13,23 @@
   let state = $derived($playbackState);
   let showZoneDropdown = $state(false);
 
+  // YouTube IFrame state — for badge display and fallback when no zone
+  let ytActive = $derived($ytPlayerState.active);
+  let ytPlaying = $derived($ytPlayerState.playing);
+  let ytTrack = $derived($ytPlayerState.track);
+
+  // Show zone track when available; fall back to IFrame track while yt-dlp is loading
+  let displayTrack = $derived(track ?? (ytActive ? ytTrack : null));
+  let isPlaying = $derived(state === 'playing' || (ytActive && ytPlaying && state === 'stopped'));
+
   async function togglePlayPause() {
-    if (!zone?.id) return;
-    if (state === 'playing') {
-      await api.pause(zone.id);
-    } else {
-      await api.resume(zone.id);
+    if (zone?.id && state !== 'stopped') {
+      // Zone has an active track — backend controls DLNA, WS events will sync IFrame
+      if (state === 'playing') await api.pause(zone.id);
+      else await api.resume(zone.id);
+    } else if (ytActive) {
+      // yt-dlp still loading or no zone — control IFrame directly as fallback
+      if (ytPlaying) pauseVideo(); else resumeVideo();
     }
   }
 
@@ -49,11 +61,14 @@
 
 <div class="transport-bar">
   <div class="transport-left">
-    {#if track}
-      <AlbumArt coverPath={track.cover_path} albumId={track.album_id} size={56} alt={track.title} />
+    {#if displayTrack}
+      <AlbumArt coverPath={displayTrack.cover_path} albumId={displayTrack.album_id} size={56} alt={displayTrack.title} />
       <div class="track-mini">
-        <span class="mini-title truncate">{track.title}</span>
-        <span class="mini-artist truncate">{track.artist_name ?? ''}</span>
+        <span class="mini-title truncate">{displayTrack.title}</span>
+        <span class="mini-artist truncate">
+          {#if ytActive}<span class="yt-badge">YT</span>{/if}
+          {displayTrack.artist_name ?? ''}
+        </span>
       </div>
     {/if}
   </div>
@@ -72,7 +87,7 @@
 
     <button
       class="control-btn"
-      disabled={state === 'stopped'}
+      disabled={state === 'stopped' && !ytActive}
       onclick={handlePrevious}
       title={$t('transport.previous')}
     >
@@ -84,9 +99,9 @@
     <button
       class="control-btn play-btn"
       onclick={togglePlayPause}
-      title={state === 'playing' ? $t('common.pause') : $t('common.play')}
+      title={isPlaying ? $t('common.pause') : $t('common.play')}
     >
-      {#if state === 'playing'}
+      {#if isPlaying}
         <svg viewBox="0 0 24 24" fill="currentColor">
           <rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" />
         </svg>
@@ -99,7 +114,7 @@
 
     <button
       class="control-btn"
-      disabled={state === 'stopped'}
+      disabled={state === 'stopped' && !ytActive}
       onclick={handleNext}
       title={$t('transport.next')}
     >
@@ -196,6 +211,21 @@
     font-family: var(--font-body);
     font-size: 13px;
     color: var(--tune-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .yt-badge {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #ff0000;
+    color: white;
+    flex-shrink: 0;
+    letter-spacing: 0.3px;
   }
 
   .transport-controls {

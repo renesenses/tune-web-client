@@ -6,6 +6,7 @@
   import AlbumArt from './AlbumArt.svelte';
   import type { Album, Artist, Track, SearchResult, FeaturedSection, StreamingPlaylist } from '../lib/types';
   import { t as tr } from '../lib/i18n';
+  import { playVideo } from '../lib/stores/ytPlayer';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -174,7 +175,21 @@
   }
 
   async function playStreamingTrack(track: Track) {
-    if (!zone?.id || !service || !track.source_id) return;
+    if (!service || !track.source_id) return;
+    if (track.source === 'youtube') {
+      // Muted IFrame for legal compliance + visual context (Phase 6: eye button)
+      playVideo(track.source_id, track);
+      // Backend routes audio via yt-dlp → DLNA zone
+      if (zone?.id) {
+        try {
+          await api.play(zone.id, { source: track.source as any, source_id: track.source_id });
+        } catch (e) {
+          console.error('Play YouTube track (DLNA) error:', e);
+        }
+      }
+      return;
+    }
+    if (!zone?.id) return;
     try {
       await api.play(zone.id, { source: track.source as any, source_id: track.source_id });
     } catch (e) {
