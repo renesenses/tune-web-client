@@ -7,7 +7,7 @@
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
-  import type { Album } from '../lib/types';
+  import type { Album, Track, Source } from '../lib/types';
 
   let zone = $derived($currentZone);
   let stats: { tracks: number; albums: number; artists: number } | null = $state(null);
@@ -104,11 +104,49 @@
     }
   }
 
+  interface RecentAlbumEntry {
+    id: number | null;
+    title: string;
+    artist_id?: number | null;
+    artist_name: string;
+    cover_path?: string | null;
+    source?: string | null;
+    source_id?: string | null;
+    firstTrack: Track;
+  }
+
+  async function playRecentEntry(album: RecentAlbumEntry) {
+    if (!zone?.id) return;
+    try {
+      if (album.id) {
+        await api.play(zone.id, { album_id: album.id });
+      } else if (album.source === 'radio' && album.firstTrack.source_id) {
+        await api.playRadio(parseInt(album.firstTrack.source_id), zone.id);
+      } else if (album.source && album.firstTrack.source_id) {
+        await api.play(zone.id, { source: album.source as Source, source_id: album.firstTrack.source_id });
+      } else if (album.firstTrack.id) {
+        await api.play(zone.id, { track_id: album.firstTrack.id });
+      }
+    } catch (e) {
+      console.error('Play recent entry error:', e);
+    }
+  }
+
+  function navigateRecentEntry(album: RecentAlbumEntry) {
+    if (album.id) {
+      navigateToAlbum(album.id);
+    } else if (album.source === 'radio') {
+      activeView.set('radios');
+    } else if (album.source && album.source !== 'local') {
+      activeView.set('streaming');
+    }
+  }
+
   // Derive unique recently played albums from history
   // Use a string key to dedupe: "local:{album_id}" or "streaming:{source}:{source_id}"
   let recentlyPlayed = $derived.by(() => {
     const seen = new Set<string>();
-    const albums: { id: number | null; title: string; artist_id?: number | null; artist_name: string; cover_path?: string | null; source?: string | null; source_id?: string | null }[] = [];
+    const albums: RecentAlbumEntry[] = [];
     for (const entry of $playbackHistory) {
       const t = entry.track;
       const albumId = t.album_id;
@@ -131,6 +169,7 @@
         cover_path: t.cover_path ?? null,
         source: t.source ?? null,
         source_id: t.source_id ?? null,
+        firstTrack: t,
       });
       if (albums.length >= 20) break;
     }
@@ -203,12 +242,12 @@
           <div class="carousel" bind:this={playedCarousel}>
             {#each recentlyPlayed as album}
               <div class="carousel-card">
-                <button class="carousel-cover" onclick={() => album.id && playAlbum(album.id)}>
+                <button class="carousel-cover" onclick={() => playRecentEntry(album)}>
                   <AlbumArt coverPath={album.cover_path} albumId={album.id} size={160} alt={album.title} />
                   <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
                 </button>
-                {#if album.id}
-                  <button class="carousel-title truncate" onclick={() => navigateToAlbum(album.id!)}>{album.title}</button>
+                {#if album.id || (album.source && album.source !== 'local')}
+                  <button class="carousel-title truncate" onclick={() => navigateRecentEntry(album)}>{album.title}</button>
                 {:else}
                   <span class="carousel-title truncate">{album.title}</span>
                 {/if}
