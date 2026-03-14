@@ -456,7 +456,7 @@
               <div class="carousel-card" onclick={() => selectStreamingPlaylist(playlist)}>
                 <div class="album-card-art">
                   <AlbumArt coverPath={playlist.cover_path} size={160} alt={playlist.name} />
-                  <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingPlaylist(playlist); }} title={$tr('common.play')}>
+                  <button class="play-overlay" onclick={() => playStreamingPlaylist(playlist)} title={$tr('common.play')}>
                     <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                   </button>
                 </div>
