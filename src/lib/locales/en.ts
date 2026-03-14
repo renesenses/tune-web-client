@@ -201,10 +201,11 @@ export default {
   'settings.deezerLink': 'Open this link to connect to Deezer:',
   'settings.deezerOpenAuth': 'Log in on Deezer',
   'settings.deezerWaiting': 'Waiting for Deezer confirmation...',
-  'settings.youtubeConnect': 'Connect to YouTube Music',
+  'settings.youtubeConnect': 'Connect to YouTube',
   'settings.youtubeLink': 'Go to the link below and enter the code:',
   'settings.youtubeOpenAuth': 'Open Google authorization',
-  'settings.youtubeWaiting': 'Waiting for YouTube Music confirmation...',
+  'settings.youtubeWaiting': 'Waiting for Google confirmation...',
+  'settings.youtubeMissingCredentials': 'Google Client ID and Secret are not configured on the server.',
 
   // Metadata / Maintenance
   'metadata.title': 'Maintenance',
