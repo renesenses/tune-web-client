@@ -243,6 +243,17 @@ export default {
   'maintenance.restoreSuccess': '복원 성공',
   'maintenance.restoreError': '복원 실패',
 
+  // Media Servers (UPnP/DLNA)
+  'nav.mediaservers': '미디어 서버',
+  'mediaservers.title': '미디어 서버',
+  'mediaservers.noServers': '네트워크에서 미디어 서버를 찾을 수 없습니다',
+  'mediaservers.searching': '미디어 서버 검색 중...',
+  'mediaservers.unavailable': '사용 불가',
+  'mediaservers.containers': '폴더',
+  'mediaservers.items': '항목',
+  'mediaservers.noContent': '이 컨테이너에 콘텐츠가 없습니다',
+  'mediaservers.refresh': '새로고침',
+
   // Radios
   'nav.radios': '라이브 라디오',
   'radio.title': '내 라디오',

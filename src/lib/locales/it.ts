@@ -243,6 +243,17 @@ export default {
   'maintenance.restoreSuccess': 'Ripristino riuscito',
   'maintenance.restoreError': 'Errore durante il ripristino',
 
+  // Media Servers (UPnP/DLNA)
+  'nav.mediaservers': 'Server multimediali',
+  'mediaservers.title': 'Server multimediali',
+  'mediaservers.noServers': 'Nessun server multimediale trovato sulla rete',
+  'mediaservers.searching': 'Ricerca di server multimediali...',
+  'mediaservers.unavailable': 'Non disponibile',
+  'mediaservers.containers': 'Cartelle',
+  'mediaservers.items': 'Elementi',
+  'mediaservers.noContent': 'Nessun contenuto in questo contenitore',
+  'mediaservers.refresh': 'Aggiorna',
+
   // Radios
   'nav.radios': 'Radio in diretta',
   'radio.title': 'Le mie radio',
