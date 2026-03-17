@@ -162,20 +162,34 @@
     } else if (album.source && album.source !== 'local') {
       activeView.set('streaming');
     } else {
-      // Search local library by album title to find the album_id
-      const title = album.firstTrack?.album_title || album.title;
-      if (title) {
+      // Search local library to find the album — try album_title first, then album.title
+      const candidates = [
+        album.firstTrack?.album_title,
+        album.title,
+        album.firstTrack?.artist_name,
+      ].filter(Boolean) as string[];
+
+      for (const query of candidates) {
         try {
-          const results = await api.searchLibrary(title);
-          const match = results.tracks?.find((t: Track) => t.album_id && t.album_title === title);
+          const results = await api.searchLibrary(query);
+          // Exact album title match
+          const exactTitle = album.firstTrack?.album_title || album.title;
+          const match = results.tracks?.find((t: Track) => t.album_id && t.album_title === exactTitle);
           if (match?.album_id) {
             navigateToAlbum(match.album_id);
+            return;
+          }
+          // Album match from results
+          const albumMatch = results.albums?.find((a: Album) => a.title === exactTitle);
+          if (albumMatch?.id) {
+            navigateToAlbum(albumMatch.id);
             return;
           }
           // Fallback: any track with album_id
           const fallback = results.tracks?.find((t: Track) => t.album_id);
           if (fallback?.album_id) {
             navigateToAlbum(fallback.album_id);
+            return;
           }
         } catch (e) {
           console.error('Navigate recent entry error:', e);
