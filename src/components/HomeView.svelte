@@ -127,20 +127,26 @@
         await api.play(zone.id, { source: album.source as Source, source_id: album.firstTrack.source_id });
       } else if (album.firstTrack.id) {
         await api.play(zone.id, { track_id: album.firstTrack.id });
-      } else if (album.firstTrack.file_path) {
-        await api.play(zone.id, { file_path: album.firstTrack.file_path });
-      } else if (album.title) {
-        // Fallback: search by album title in local library
-        const results = await api.search(album.title);
-        if (results.tracks && results.tracks.length > 0) {
-          const match = results.tracks.find((t: Track) => t.album_id);
-          if (match?.album_id) {
-            await api.play(zone.id, { album_id: match.album_id });
-            return;
+      } else {
+        // No DB id — try search by title first (more reliable than stale URLs)
+        const searchTitle = album.firstTrack.album_title || album.title;
+        if (searchTitle) {
+          const results = await api.search(searchTitle);
+          if (results.tracks && results.tracks.length > 0) {
+            const match = results.tracks.find((t: Track) => t.album_id);
+            if (match?.album_id) {
+              await api.play(zone.id, { album_id: match.album_id });
+              return;
+            }
+            if (results.tracks[0].id) {
+              await api.play(zone.id, { track_id: results.tracks[0].id });
+              return;
+            }
           }
-          if (results.tracks[0].id) {
-            await api.play(zone.id, { track_id: results.tracks[0].id });
-          }
+        }
+        // Last resort: direct file_path (may be stale for media server URLs)
+        if (album.firstTrack.file_path) {
+          await api.play(zone.id, { file_path: album.firstTrack.file_path });
         }
       }
     } catch (e) {

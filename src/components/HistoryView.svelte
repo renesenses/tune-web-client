@@ -24,10 +24,28 @@
     try {
       if (entry.track.id) {
         await api.play(zone.id, { track_id: entry.track.id });
-      } else if (entry.track.source && entry.track.source_id) {
+      } else if (entry.track.source && entry.track.source !== 'local' && entry.track.source_id) {
         await api.play(zone.id, { source: entry.track.source, source_id: entry.track.source_id });
-      } else if (entry.track.file_path) {
-        await api.play(zone.id, { file_path: entry.track.file_path });
+      } else {
+        // No DB id — search by title first (stale media server URLs won't work)
+        const title = entry.track.album_title || entry.track.title;
+        if (title) {
+          const results = await api.search(title);
+          if (results.tracks && results.tracks.length > 0) {
+            const match = results.tracks.find((t: any) => t.album_id);
+            if (match?.album_id) {
+              await api.play(zone.id, { album_id: match.album_id });
+              return;
+            }
+            if (results.tracks[0].id) {
+              await api.play(zone.id, { track_id: results.tracks[0].id });
+              return;
+            }
+          }
+        }
+        if (entry.track.file_path) {
+          await api.play(zone.id, { file_path: entry.track.file_path });
+        }
       }
     } catch (e) {
       console.error('Replay error:', e);
