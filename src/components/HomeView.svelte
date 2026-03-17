@@ -169,7 +169,7 @@
     for (const entry of $playbackHistory) {
       const t = entry.track;
       const albumId = t.album_id;
-      // Build a dedup key — prefer album_id for local, fallback to source+album_title for streaming
+      // Build a dedup key — prefer album_id for local, fallback to source+album_title, file_path, or title
       let key: string | null = null;
       if (albumId) {
         key = `local:${albumId}`;
@@ -177,6 +177,10 @@
         key = `stream:${t.source}:${t.album_title}`;
       } else if (t.source && t.source_id) {
         key = `stream:${t.source}:${t.source_id}`;
+      } else if (t.file_path) {
+        key = `url:${t.file_path}`;
+      } else if (t.title) {
+        key = `title:${t.title}:${t.artist_name ?? ''}`;
       }
       if (!key || seen.has(key)) continue;
       seen.add(key);
