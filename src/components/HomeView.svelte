@@ -123,12 +123,25 @@
         await api.play(zone.id, { album_id: album.id });
       } else if (album.source === 'radio' && album.firstTrack.source_id) {
         await api.playRadio(parseInt(album.firstTrack.source_id), zone.id);
-      } else if (album.source && album.firstTrack.source_id) {
+      } else if (album.source && album.source !== 'local' && album.firstTrack.source_id) {
         await api.play(zone.id, { source: album.source as Source, source_id: album.firstTrack.source_id });
       } else if (album.firstTrack.id) {
         await api.play(zone.id, { track_id: album.firstTrack.id });
       } else if (album.firstTrack.file_path) {
         await api.play(zone.id, { file_path: album.firstTrack.file_path });
+      } else if (album.title) {
+        // Fallback: search by album title in local library
+        const results = await api.search(album.title);
+        if (results.tracks && results.tracks.length > 0) {
+          const match = results.tracks.find((t: Track) => t.album_id);
+          if (match?.album_id) {
+            await api.play(zone.id, { album_id: match.album_id });
+            return;
+          }
+          if (results.tracks[0].id) {
+            await api.play(zone.id, { track_id: results.tracks[0].id });
+          }
+        }
       }
     } catch (e) {
       console.error('Play recent entry error:', e);
