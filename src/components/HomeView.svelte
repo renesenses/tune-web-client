@@ -164,13 +164,33 @@
     }
   }
 
-  function navigateRecentEntry(album: RecentAlbumEntry) {
+  async function navigateRecentEntry(album: RecentAlbumEntry) {
     if (album.id) {
       navigateToAlbum(album.id);
     } else if (album.source === 'radio') {
       activeView.set('radios');
     } else if (album.source && album.source !== 'local') {
       activeView.set('streaming');
+    } else {
+      // Search local library by album title to find the album_id
+      const title = album.firstTrack?.album_title || album.title;
+      if (title) {
+        try {
+          const results = await api.searchLibrary(title);
+          const match = results.tracks?.find((t: Track) => t.album_id && t.album_title === title);
+          if (match?.album_id) {
+            navigateToAlbum(match.album_id);
+            return;
+          }
+          // Fallback: any track with album_id
+          const fallback = results.tracks?.find((t: Track) => t.album_id);
+          if (fallback?.album_id) {
+            navigateToAlbum(fallback.album_id);
+          }
+        } catch (e) {
+          console.error('Navigate recent entry error:', e);
+        }
+      }
     }
   }
 
@@ -304,7 +324,7 @@
                     <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
                   {/if}
                 </button>
-                <button class="carousel-title truncate" onclick={() => playRecentEntry(album)}>{album.title}</button>
+                <button class="carousel-title truncate" onclick={() => navigateRecentEntry(album)}>{album.title}</button>
                 <button class="carousel-artist truncate" onclick={() => navigateArtist(album)}>{album.artist_name}</button>
               </div>
             {/each}
