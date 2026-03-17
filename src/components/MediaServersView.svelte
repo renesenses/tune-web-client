@@ -124,6 +124,39 @@
     }
   }
 
+  async function addItemToQueue(item: MediaServerItem) {
+    if (!zone?.id || !item.res_url) return;
+    try {
+      await api.addToQueue(zone.id, { file_path: item.res_url });
+    } catch (e) {
+      console.error('Add to queue error:', e);
+    }
+  }
+
+  function parseItemFormat(item: MediaServerItem): string {
+    if (!item.res_url) return '';
+    const url = item.res_url.toLowerCase();
+    // Extract format from URL extension
+    let fmt = '';
+    if (url.includes('.flac')) fmt = 'FLAC';
+    else if (url.includes('.wav')) fmt = 'WAV';
+    else if (url.includes('.mp3')) fmt = 'MP3';
+    else if (url.includes('.m4a') || url.includes('.aac')) fmt = 'AAC';
+    else if (url.includes('.ogg')) fmt = 'OGG';
+    else if (url.includes('.dsf') || url.includes('.dsd')) fmt = 'DSD';
+    else if (url.includes('.aiff') || url.includes('.aif')) fmt = 'AIFF';
+
+    // Try to parse Asset UPnP URL pattern: /content/c2/b16/f44100/
+    const match = url.match(/\/c(\d+)\/b(\d+)\/f(\d+)\//);
+    if (match) {
+      const bits = parseInt(match[2]);
+      const rate = parseInt(match[3]);
+      const rateStr = rate >= 1000 ? `${rate / 1000}kHz` : `${rate}Hz`;
+      return `${fmt} ${rateStr}/${bits}bit`.trim();
+    }
+    return fmt;
+  }
+
   // Load servers on mount
   loadServers();
 </script>
@@ -203,8 +236,15 @@
               {#if item.album}
                 <span class="item-album truncate">{item.album}</span>
               {/if}
+              {@const fmt = parseItemFormat(item)}
+              {#if fmt}
+                <span class="item-format">{fmt}</span>
+              {/if}
               {#if item.duration_ms}
                 <span class="item-duration">{formatTime(item.duration_ms)}</span>
+              {/if}
+              {#if item.res_url}
+                <button class="item-add-queue" onclick={(e) => { e.stopPropagation(); addItemToQueue(item); }} title={$tr('queue.addToQueue')}>+</button>
               {/if}
             </div>
           {/each}
@@ -535,12 +575,51 @@
     flex-shrink: 0;
   }
 
+  .item-format {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--tune-accent);
+    background: rgba(107, 110, 217, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
   .item-duration {
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
+  }
+
+  .item-add-queue {
+    background: none;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-muted);
+    font-size: 14px;
+    font-weight: 600;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.12s, color 0.12s, border-color 0.12s;
+  }
+
+  .item-row:hover .item-add-queue {
+    opacity: 1;
+  }
+
+  .item-add-queue:hover {
+    color: var(--tune-accent);
+    border-color: var(--tune-accent);
   }
 
   .item-num {

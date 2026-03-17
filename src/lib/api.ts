@@ -194,7 +194,7 @@ export function getQueue(zoneId: number) {
   return fetchJSON<QueueStateResponse>(`${BASE}/zones/${zoneId}/queue`);
 }
 
-export function addToQueue(zoneId: number, body: { track_id?: number; track_ids?: number[]; album_id?: number; source?: Source; source_id?: string; position?: number }) {
+export function addToQueue(zoneId: number, body: { track_id?: number; track_ids?: number[]; album_id?: number; source?: Source; source_id?: string; file_path?: string; position?: number }) {
   return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/add`, {
     method: 'POST',
     body: JSON.stringify(body),
