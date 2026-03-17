@@ -30,7 +30,7 @@
         // No DB id — search by title first (stale media server URLs won't work)
         const title = entry.track.album_title || entry.track.title;
         if (title) {
-          const results = await api.search(title);
+          const results = await api.searchLibrary(title);
           if (results.tracks && results.tracks.length > 0) {
             const match = results.tracks.find((t: any) => t.album_id);
             if (match?.album_id) {

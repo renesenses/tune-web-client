@@ -131,7 +131,7 @@
         // No DB id — try search by title first (more reliable than stale URLs)
         const searchTitle = album.firstTrack.album_title || album.title;
         if (searchTitle) {
-          const results = await api.search(searchTitle);
+          const results = await api.searchLibrary(searchTitle);
           if (results.tracks && results.tracks.length > 0) {
             const match = results.tracks.find((t: Track) => t.album_id);
             if (match?.album_id) {
