@@ -127,6 +127,8 @@
         await api.play(zone.id, { source: album.source as Source, source_id: album.firstTrack.source_id });
       } else if (album.firstTrack.id) {
         await api.play(zone.id, { track_id: album.firstTrack.id });
+      } else if (album.firstTrack.file_path) {
+        await api.play(zone.id, { file_path: album.firstTrack.file_path });
       }
     } catch (e) {
       console.error('Play recent entry error:', e);

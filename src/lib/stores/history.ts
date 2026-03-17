@@ -30,7 +30,11 @@ function createHistoryStore() {
     add(track: Track, zoneName: string) {
       update((entries) => {
         // Avoid duplicate if same track played consecutively
-        if (entries.length > 0 && entries[0].track.id === track.id) return entries;
+        const prev = entries.length > 0 ? entries[0].track : null;
+        if (prev) {
+          if (track.id && prev.id === track.id) return entries;
+          if (!track.id && prev.file_path && prev.file_path === track.file_path) return entries;
+        }
         const entry: HistoryEntry = { track, playedAt: new Date().toISOString(), zoneName };
         return [entry, ...entries].slice(0, MAX_ENTRIES);
       });

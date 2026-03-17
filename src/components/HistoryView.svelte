@@ -20,9 +20,15 @@
   }
 
   async function replay(entry: HistoryEntry) {
-    if (!zone?.id || !entry.track.id) return;
+    if (!zone?.id) return;
     try {
-      await api.play(zone.id, { track_id: entry.track.id });
+      if (entry.track.id) {
+        await api.play(zone.id, { track_id: entry.track.id });
+      } else if (entry.track.source && entry.track.source_id) {
+        await api.play(zone.id, { source: entry.track.source, source_id: entry.track.source_id });
+      } else if (entry.track.file_path) {
+        await api.play(zone.id, { file_path: entry.track.file_path });
+      }
     } catch (e) {
       console.error('Replay error:', e);
     }
