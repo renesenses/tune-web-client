@@ -118,14 +118,24 @@
 
   async function playRecentEntry(album: RecentAlbumEntry) {
     if (!zone?.id) return;
+    console.log('playRecentEntry', JSON.stringify({
+      albumId: album.id, source: album.source, title: album.title,
+      trackId: album.firstTrack.id, trackSourceId: album.firstTrack.source_id,
+      filePath: album.firstTrack.file_path?.substring(0, 50),
+      albumTitle: album.firstTrack.album_title,
+    }));
     try {
       if (album.id) {
+        console.log('→ play album_id', album.id);
         await api.play(zone.id, { album_id: album.id });
       } else if (album.source === 'radio' && album.firstTrack.source_id) {
+        console.log('→ play radio');
         await api.playRadio(parseInt(album.firstTrack.source_id), zone.id);
       } else if (album.source && album.source !== 'local' && album.firstTrack.source_id) {
+        console.log('→ play streaming');
         await api.play(zone.id, { source: album.source as Source, source_id: album.firstTrack.source_id });
       } else if (album.firstTrack.id) {
+        console.log('→ play track_id', album.firstTrack.id);
         await api.play(zone.id, { track_id: album.firstTrack.id });
       } else {
         // No DB id — try search by title first (more reliable than stale URLs)
