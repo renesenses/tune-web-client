@@ -236,9 +236,8 @@
               {#if item.album}
                 <span class="item-album truncate">{item.album}</span>
               {/if}
-              {@const fmt = parseItemFormat(item)}
-              {#if fmt}
-                <span class="item-format">{fmt}</span>
+              {#if parseItemFormat(item)}
+                <span class="item-format">{parseItemFormat(item)}</span>
               {/if}
               {#if item.duration_ms}
                 <span class="item-duration">{formatTime(item.duration_ms)}</span>
