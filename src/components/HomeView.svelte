@@ -294,16 +294,8 @@
                     <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
                   {/if}
                 </button>
-                {#if album.id || (album.source && album.source !== 'local')}
-                  <button class="carousel-title truncate" onclick={() => navigateRecentEntry(album)}>{album.title}</button>
-                {:else}
-                  <span class="carousel-title truncate">{album.title}</span>
-                {/if}
-                {#if album.artist_id || (album.artist_name && album.source && album.source !== 'local')}
-                  <button class="carousel-artist truncate" onclick={() => navigateArtist(album)}>{album.artist_name}</button>
-                {:else}
-                  <span class="carousel-artist truncate">{album.artist_name}</span>
-                {/if}
+                <button class="carousel-title truncate" onclick={() => playRecentEntry(album)}>{album.title}</button>
+                <button class="carousel-artist truncate" onclick={() => navigateArtist(album)}>{album.artist_name}</button>
               </div>
             {/each}
           </div>
