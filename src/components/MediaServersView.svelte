@@ -224,18 +224,23 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="item-row" class:clickable={!!item.res_url} onclick={() => item.res_url && playItem(item)}>
               <span class="item-num">{index + 1}</span>
-              {#if item.album_art_uri}
-                <img class="item-art" src={item.album_art_uri} alt="" />
-              {/if}
+              <span class="item-thumb">
+                {#if item.album_art_uri}
+                  <img src={item.album_art_uri} alt="" />
+                {:else}
+                  <span class="item-thumb-placeholder">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                  </span>
+                {/if}
+              </span>
               <div class="item-info">
                 <span class="item-title truncate">{item.title}</span>
-                {#if item.artist}
-                  <span class="item-artist truncate">{item.artist}</span>
-                {/if}
+                <span class="item-meta truncate">
+                  {#if item.artist}<span>{item.artist}</span>{/if}
+                  {#if item.artist && item.album}<span class="item-sep"> — </span>{/if}
+                  {#if item.album}<span>{item.album}</span>{/if}
+                </span>
               </div>
-              {#if item.album}
-                <span class="item-album truncate">{item.album}</span>
-              {/if}
               {#if parseItemFormat(item)}
                 <span class="item-format">{parseItemFormat(item)}</span>
               {/if}
@@ -566,12 +571,29 @@
     background: var(--tune-surface-hover);
   }
 
-  .item-art {
+  .item-thumb {
     width: 36px;
     height: 36px;
-    border-radius: var(--radius-sm);
-    object-fit: cover;
     flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+
+  .item-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .item-thumb-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tune-surface);
+    color: var(--tune-text-muted);
+    border-radius: var(--radius-sm);
   }
 
   .item-format {
@@ -640,21 +662,19 @@
 
   .item-title {
     font-family: var(--font-body);
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--tune-text);
   }
 
-  .item-artist {
+  .item-meta {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: 12px;
     color: var(--tune-text-secondary);
   }
 
-  .item-album {
-    font-family: var(--font-body);
-    font-size: 12px;
+  .item-sep {
     color: var(--tune-text-muted);
-    max-width: 200px;
   }
 
   /* Loading / Empty */
