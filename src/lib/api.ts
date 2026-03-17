@@ -354,6 +354,31 @@ export function browseDirectory(path: string) {
   return fetchJSON<import('./types').BrowseResult>(`${BASE}/library/browse/dir?path=${encodeURIComponent(path)}`);
 }
 
+// --- Media Servers (UPnP/DLNA) ---
+
+export function getMediaServers() {
+  return fetchJSON<import('./types').MediaServer[]>(`${BASE}/network/media-servers`);
+}
+
+export function browseMediaServer(serverId: string, objectId: string = '0') {
+  return fetchJSON<import('./types').MediaServerBrowseResult>(
+    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/browse?object_id=${encodeURIComponent(objectId)}`
+  );
+}
+
+export function getMediaServerItemStreamUrl(serverId: string, itemId: string) {
+  return fetchJSON<{ url: string }>(
+    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/item/${encodeURIComponent(itemId)}/stream-url`
+  );
+}
+
+export function playMediaServerItem(serverId: string, itemId: string, zoneId: number) {
+  return fetchJSON<import('./types').Zone>(
+    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/item/${encodeURIComponent(itemId)}/play/${zoneId}`,
+    { method: 'POST' }
+  );
+}
+
 // --- Playlists ---
 
 export function getPlaylists(limit = 100, offset = 0) {

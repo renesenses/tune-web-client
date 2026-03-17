@@ -243,6 +243,17 @@ export default {
   'maintenance.restoreSuccess': '恢复成功',
   'maintenance.restoreError': '恢复失败',
 
+  // Media Servers (UPnP/DLNA)
+  'nav.mediaservers': '媒体服务器',
+  'mediaservers.title': '媒体服务器',
+  'mediaservers.noServers': '未在网络上找到媒体服务器',
+  'mediaservers.searching': '正在搜索媒体服务器...',
+  'mediaservers.unavailable': '不可用',
+  'mediaservers.containers': '文件夹',
+  'mediaservers.items': '项目',
+  'mediaservers.noContent': '此容器中没有内容',
+  'mediaservers.refresh': '刷新',
+
   // Radios
   'nav.radios': '直播电台',
   'radio.title': '我的电台',
