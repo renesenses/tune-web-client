@@ -12,6 +12,7 @@
   import { locale } from './lib/i18n';
   import { setupKeyboardShortcuts } from './lib/keyboard';
   import { playbackHistory } from './lib/stores/history';
+  import { ytPlayerState, ytLoading, playVideo, pauseVideo, resumeVideo, stopVideo, clearYTLoading } from './lib/stores/ytPlayer';
   import { get } from 'svelte/store';
   import { t } from './lib/i18n';
   import * as api from './lib/api';
@@ -31,6 +32,7 @@
   import RadiosView from './components/RadiosView.svelte';
   import GenresView from './components/GenresView.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
+  import YTPlayer from './components/YTPlayer.svelte';
 
   import type { Track } from './lib/types';
 
@@ -107,11 +109,15 @@
       zones.update((zs) =>
         zs.map((z) => z.id === zoneId ? zone : z)
       );
-      seekPositionMs.set(zone.position_ms ?? 0);
-      if (zone.state === 'playing') {
-        startSeekTimer();
-      } else {
-        stopSeekTimer();
+      // Only update seek position and timer for the currently displayed zone.
+      // Events from other zones must not corrupt the active zone's playback state.
+      if (get(currentZone)?.id === zoneId) {
+        seekPositionMs.set(zone.position_ms ?? 0);
+        if (zone.state === 'playing') {
+          startSeekTimer();
+        } else {
+          stopSeekTimer();
+        }
       }
     } catch (e) {
       console.error('Sync zone state error:', e);
@@ -168,9 +174,38 @@
         } else if (zoneId) {
           // For started/resumed/paused/stopped/track_changed: fetch full zone state
           syncZoneState(zoneId).then(() => {
+            // IFrame sync and history only concern the active zone
+            if (get(currentZone)?.id !== zoneId) return;
+
+            const z = get(currentZone);
+
+            // Sync muted IFrame with backend playback state
+            const yt = get(ytPlayerState);
+            if (type === 'playback.paused' || type === 'playback.stopped') {
+              ytLoading.set(false);
+              if (yt.active) pauseVideo();
+            } else if (type === 'playback.resumed') {
+              ytLoading.set(false);
+              if (yt.active) resumeVideo();
+            } else if (type === 'playback.started' || type === 'playback.track_changed') {
+              if (z?.current_track && z.current_track.source !== 'youtube') {
+                // New track is not YouTube — stop IFrame if active
+                if (yt.active) stopVideo();
+              } else if (z?.current_track?.source === 'youtube' && z.current_track.source_id) {
+                const sourceId = z.current_track.source_id;
+                if (yt.active && yt.videoId === sourceId) {
+                  // IFrame already has the right video (single track flow) — just clear loading
+                  clearYTLoading();
+                } else {
+                  // New video (next/previous/playlist) — load it in IFrame; DLNA already started
+                  playVideo(sourceId, z.current_track);
+                  clearYTLoading();
+                }
+              }
+            }
+
             // Record to playback history on track start/change
             if (type === 'playback.started' || type === 'playback.track_changed') {
-              const z = get(currentZone);
               if (z?.current_track) {
                 playbackHistory.add(z.current_track, z.name);
               }
@@ -271,6 +306,9 @@
 
   <TransportBar />
 </div>
+
+<!-- Single persistent YouTube IFrame Player instance (off-screen) -->
+<YTPlayer />
 
 {#if playlistModalTrack !== null}
   <AddToPlaylistModal track={playlistModalTrack} onClose={closePlaylistModal} />

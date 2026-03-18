@@ -308,7 +308,9 @@
         youtubeUserCode = res.user_code ?? null;
         startYoutubePolling();
       } else {
-        youtubeAuthError = get(t)('settings.connectionError');
+        youtubeAuthError = res.error === 'missing_credentials'
+          ? get(t)('settings.youtubeMissingCredentials')
+          : get(t)('settings.connectionError');
         youtubeAuthLoading = false;
       }
     } catch (e) {
@@ -1172,6 +1174,10 @@
     flex-direction: column;
     gap: var(--space-sm);
     margin-top: var(--space-md);
+  }
+
+  .service-auth-form .scan-btn {
+    align-self: flex-start;
   }
 
   .auth-input {

@@ -6,6 +6,7 @@
   import AlbumArt from './AlbumArt.svelte';
   import type { Album, Artist, Track, SearchResult, FeaturedSection, StreamingPlaylist } from '../lib/types';
   import { t as tr } from '../lib/i18n';
+  import { playVideo } from '../lib/stores/ytPlayer';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -128,8 +129,9 @@
   }
 
   async function selectArtist(artist: Artist) {
-    if (!service || !artist.musicbrainz_id && !artist.discogs_id) return;
+    if (!service) return;
     const artistId = artist.musicbrainz_id ?? artist.discogs_id ?? '';
+    if (!artistId) return;
     selectedArtist = artist;
     selectedAlbum = null;
     loading = true;
@@ -174,7 +176,21 @@
   }
 
   async function playStreamingTrack(track: Track) {
-    if (!zone?.id || !service || !track.source_id) return;
+    if (!service || !track.source_id) return;
+    if (track.source === 'youtube') {
+      // Muted IFrame for legal compliance + visual context (Phase 6: eye button)
+      playVideo(track.source_id, track);
+      // Backend routes audio via yt-dlp → DLNA zone
+      if (zone?.id) {
+        try {
+          await api.play(zone.id, { source: track.source as any, source_id: track.source_id });
+        } catch (e) {
+          console.error('Play YouTube track (DLNA) error:', e);
+        }
+      }
+      return;
+    }
+    if (!zone?.id) return;
     try {
       await api.play(zone.id, { source: track.source as any, source_id: track.source_id });
     } catch (e) {
@@ -330,9 +346,11 @@
         <div class="album-card" onclick={() => selectAlbum(album)}>
             <div class="album-card-art">
               <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
-              <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingAlbum(album); }} title={$tr('library.playAlbum')}>
-                <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
-              </button>
+              <div class="art-hover-overlay">
+                <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); selectAlbum(album); }} title={$tr('library.openAlbum')}>
+                  <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M8 5v14l11-7z" /></svg>
+                </button>
+              </div>
             </div>
             <span class="album-card-title truncate">{album.title}</span>
             {#if album.year}
@@ -394,9 +412,11 @@
         <div class="album-card" onclick={() => selectAlbum(album)}>
               <div class="album-card-art">
                 <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
-                <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingAlbum(album); }} title={$tr('library.playAlbum')}>
-                  <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
-                </button>
+                <div class="art-hover-overlay">
+                  <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); selectAlbum(album); }} title={$tr('library.openAlbum')}>
+                    <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M8 5v14l11-7z" /></svg>
+                  </button>
+                </div>
               </div>
               <span class="album-card-title truncate">{album.title}</span>
               {#if album.artist_name}
@@ -456,9 +476,11 @@
               <div class="carousel-card" onclick={() => selectStreamingPlaylist(playlist)}>
                 <div class="album-card-art">
                   <AlbumArt coverPath={playlist.cover_path} size={160} alt={playlist.name} />
-                  <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingPlaylist(playlist); }} title={$tr('common.play')}>
-                    <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
-                  </button>
+                  <div class="art-hover-overlay">
+                    <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); selectStreamingPlaylist(playlist); }} title={$tr('library.openAlbum')}>
+                      <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M8 5v14l11-7z" /></svg>
+                    </button>
+                  </div>
                 </div>
                 <span class="album-card-title truncate">{playlist.name}</span>
                 <span class="album-card-artist truncate">{playlist.track_count} {$tr('home.tracks').toLowerCase()}</span>
@@ -498,9 +520,11 @@
                   <div class="carousel-card" onclick={() => selectAlbum(album)}>
                     <div class="album-card-art">
                       <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
-                      <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playStreamingAlbum(album); }} title={$tr('library.playAlbum')}>
-                        <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
-                      </button>
+                      <div class="art-hover-overlay">
+                        <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); selectAlbum(album); }} title={$tr('library.openAlbum')}>
+                          <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M8 5v14l11-7z" /></svg>
+                        </button>
+                      </div>
                     </div>
                     <span class="album-card-title truncate">{album.title}</span>
                     {#if album.artist_name}
@@ -830,7 +854,8 @@
     overflow: hidden;
   }
 
-  .play-overlay {
+  /* Visual overlay — never intercepts clicks, card onclick handles navigation */
+  .art-hover-overlay {
     position: absolute;
     inset: 0;
     display: flex;
@@ -840,14 +865,31 @@
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.15s ease-out;
-    border: none;
-    cursor: pointer;
     border-radius: var(--radius-lg);
   }
 
-  .album-card-art:hover .play-overlay {
+  .album-card-art:hover .art-hover-overlay {
     opacity: 1;
+  }
+
+  /* Small centered play button — only interactive element */
+  .art-play-btn {
     pointer-events: auto;
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.12s, transform 0.12s;
+  }
+
+  .art-play-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.08);
   }
 
   .album-card-title {
