@@ -106,6 +106,7 @@ export default {
   'library.noTracks': 'No tracks in library',
   'library.noGenres': 'No genres in library',
   'library.playAlbum': 'Play Album',
+  'library.openAlbum': 'Open Album',
   'library.disc': 'Disc {num}',
   'library.album': 'album',
   'library.albumPlural': 'albums',
@@ -206,6 +207,9 @@ export default {
   'settings.youtubeOpenAuth': 'Open Google authorization',
   'settings.youtubeWaiting': 'Waiting for Google confirmation...',
   'settings.youtubeMissingCredentials': 'Google Client ID and Secret are not configured on the server.',
+  'youtube.showVideo': 'Show video',
+  'youtube.hideVideo': 'Hide video',
+  'youtube.openOnYouTube': 'Open on YouTube',
 
   // Metadata / Maintenance
   'metadata.title': 'Maintenance',

@@ -8,6 +8,8 @@
   import SeekBar from './SeekBar.svelte';
   import { t } from '../lib/i18n';
   import type { RepeatMode, Track } from '../lib/types';
+  import { ytPlayerState, ytVideoRect, showYTVideo, hideYTVideo } from '../lib/stores/ytPlayer';
+  import { onDestroy } from 'svelte';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -18,16 +20,39 @@
   let track = $derived($currentTrack);
   let state = $derived($playbackState);
 
+  // Fallback to ytPlayer track when zone has no current_track (yt-dlp loading phase)
+  let ytState = $derived($ytPlayerState);
+  let displayTrack = $derived(track ?? (ytState.active ? ytState.track : null));
+  // Zone playing OR IFrame playing while yt-dlp loads
+  let isEffectivePlaying = $derived(
+    state === 'playing' || (ytState.active && ytState.playing && state === 'stopped')
+  );
+
   let containerWidth = $state(0);
   let isWide = $derived(containerWidth > 700);
+
+  // YouTube video overlay
+  let artworkEl = $state<HTMLElement | null>(null);
+  let ytActive = $derived(ytState.active && displayTrack?.source === 'youtube');
+  let ytShowVideo = $derived(ytState.showVideo);
+
+  function handleShowVideo() {
+    if (!artworkEl) return;
+    const rect = artworkEl.getBoundingClientRect();
+    showYTVideo({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+  }
+
+  onDestroy(() => {
+    hideYTVideo();
+  });
 
   // Resolve cover path for blurred background
   let resolvedCoverUrl = $state('');
   $effect(() => {
-    if (track?.cover_path) {
-      resolvedCoverUrl = api.artworkUrl(track.cover_path);
-    } else if (track?.album_id) {
-      api.getAlbumCoverPath(track.album_id).then((path) => {
+    if (displayTrack?.cover_path) {
+      resolvedCoverUrl = api.artworkUrl(displayTrack.cover_path);
+    } else if (displayTrack?.album_id) {
+      api.getAlbumCoverPath(displayTrack.album_id).then((path) => {
         resolvedCoverUrl = path ? api.artworkUrl(path) : '';
       });
     } else {
@@ -69,31 +94,44 @@
     <div class="bg-blur" style="background-image: url({resolvedCoverUrl})"></div>
   {/if}
 
-  {#if zone && track}
+  {#if zone && displayTrack}
     <div class="content-layout" class:wide={isWide}>
-      <div class="artwork-container">
-        <AlbumArt coverPath={track.cover_path} albumId={track.album_id} size={isWide ? 360 : 400} alt={track.title} />
+      <div class="artwork-container" bind:this={artworkEl}>
+        {#if ytShowVideo}
+          <!-- Placeholder keeping layout while IFrame is rendered on top via position:fixed -->
+          <div class="yt-placeholder"></div>
+        {:else}
+          <AlbumArt coverPath={displayTrack.cover_path} albumId={displayTrack.album_id} size={isWide ? 360 : 400} alt={displayTrack.title} />
+          {#if ytActive}
+            <button class="eye-btn" onclick={handleShowVideo} title={$t('youtube.showVideo')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
+          {/if}
+        {/if}
       </div>
 
       <div class="info-column">
         <div class="track-info" class:center={!isWide}>
-          <h2 class="track-title truncate">{track.title}</h2>
-          {#if track.artist_name}
-            <p class="track-artist truncate">{track.artist_name}</p>
+          <h2 class="track-title truncate">{displayTrack.title}</h2>
+          {#if displayTrack.artist_name}
+            <p class="track-artist truncate">{displayTrack.artist_name}</p>
           {/if}
-          {#if track.album_title}
-            <p class="track-album truncate">{track.album_title}</p>
+          {#if displayTrack.album_title}
+            <p class="track-album truncate">{displayTrack.album_title}</p>
           {/if}
-          {#if track.format || track.sample_rate || track.bit_depth}
-            <p class="audio-badge">{formatAudioBadge(track)}</p>
+          {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth}
+            <p class="audio-badge">{formatAudioBadge(displayTrack)}</p>
           {/if}
         </div>
 
         <div class="seek-container">
           <SeekBar
             positionMs={$seekPositionMs}
-            durationMs={track.duration_ms ?? 0}
-            enabled={state !== 'stopped'}
+            durationMs={displayTrack.duration_ms ?? 0}
+            enabled={isEffectivePlaying}
           />
         </div>
 
@@ -117,8 +155,8 @@
             {/if}
           </button>
 
-          {#if onAddToPlaylist && (track?.id || track?.source_id)}
-            <button class="setting-btn" onclick={() => onAddToPlaylist!(track!)} title={$t('nowplaying.addToPlaylist')}>
+          {#if onAddToPlaylist && (displayTrack?.id || displayTrack?.source_id)}
+            <button class="setting-btn" onclick={() => onAddToPlaylist!(displayTrack!)} title={$t('nowplaying.addToPlaylist')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                 <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" />
               </svg>
@@ -128,8 +166,8 @@
           <div class="setting-spacer"></div>
 
           <span class="zone-label">{zone.name}</span>
-          <span class="playback-indicator" class:playing={state === 'playing'} class:paused={state === 'paused'}>
-            {#if state === 'playing'}
+          <span class="playback-indicator" class:playing={isEffectivePlaying} class:paused={state === 'paused' && !isEffectivePlaying}>
+            {#if isEffectivePlaying}
               <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M8 5v14l11-7z" /></svg>
             {:else if state === 'paused'}
               <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
@@ -173,6 +211,35 @@
     </div>
   {/if}
 </div>
+
+<!-- Video controls rendered in root stacking context (z-index > IFrame) -->
+{#if ytShowVideo && $ytVideoRect}
+  <div
+    class="yt-video-controls-fixed"
+    style="bottom: {window.innerHeight - $ytVideoRect.top - $ytVideoRect.height + 10}px; right: {window.innerWidth - $ytVideoRect.left - $ytVideoRect.width + 10}px;"
+  >
+    <button class="yt-ctrl-btn" onclick={hideYTVideo} title={$t('youtube.hideVideo')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+        <line x1="1" y1="1" x2="23" y2="23" />
+      </svg>
+    </button>
+    {#if $ytPlayerState.videoId}
+      <a
+        class="yt-ctrl-btn"
+        href="https://www.youtube.com/watch?v={$ytPlayerState.videoId}"
+        target="_blank"
+        rel="noopener noreferrer"
+        title={$t('youtube.openOnYouTube')}
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+        </svg>
+      </a>
+    {/if}
+  </div>
+{/if}
 
 <style>
   .now-playing {
@@ -219,6 +286,7 @@
     max-width: 400px;
     aspect-ratio: 1;
     flex-shrink: 0;
+    position: relative;
   }
 
   .content-layout.wide .artwork-container {
@@ -229,6 +297,72 @@
     width: 100% !important;
     height: 100% !important;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Eye button — visible on hover over artwork */
+  .eye-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s ease-out, background 0.12s;
+    backdrop-filter: blur(4px);
+  }
+
+  .artwork-container:hover .eye-btn {
+    opacity: 1;
+  }
+
+  .eye-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  /* Placeholder shown when IFrame is overlaid (keeps layout intact) */
+  .yt-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-lg);
+    background: #000;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Controls fixed above the IFrame (in root stacking context) */
+  .yt-video-controls-fixed {
+    position: fixed;
+    display: flex;
+    gap: 6px;
+    z-index: 201;
+  }
+
+  .yt-ctrl-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: background 0.12s;
+    backdrop-filter: blur(4px);
+  }
+
+  .yt-ctrl-btn:hover {
+    background: rgba(0, 0, 0, 0.9);
   }
 
   .info-column {

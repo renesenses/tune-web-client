@@ -1,12 +1,13 @@
 <script lang="ts">
   import { zones, currentZone, currentZoneId } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode } from '../lib/stores/nowPlaying';
-  import { ytPlayerState, pauseVideo, resumeVideo } from '../lib/stores/ytPlayer';
+  import { ytPlayerState, ytLoading, pauseVideo, resumeVideo } from '../lib/stores/ytPlayer';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import VolumeControl from './VolumeControl.svelte';
   import { t } from '../lib/i18n';
   import type { RepeatMode } from '../lib/types';
+  import { activeView } from '../lib/stores/navigation';
 
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
@@ -17,6 +18,8 @@
   let ytActive = $derived($ytPlayerState.active);
   let ytPlaying = $derived($ytPlayerState.playing);
   let ytTrack = $derived($ytPlayerState.track);
+  // True while yt-dlp is resolving the audio URL (before DLNA zone starts)
+  let ytLoadingState = $derived($ytLoading);
 
   // Show zone track when available; fall back to IFrame track while yt-dlp is loading
   let displayTrack = $derived(track ?? (ytActive ? ytTrack : null));
@@ -25,21 +28,29 @@
   async function togglePlayPause() {
     if (zone?.id && state !== 'stopped') {
       // Zone has an active track — backend controls DLNA, WS events will sync IFrame
+      if (ytActive) ytLoading.set(true);
       if (state === 'playing') await api.pause(zone.id);
       else await api.resume(zone.id);
+    } else if (zone?.id && state === 'stopped' && ytActive && ytTrack?.source_id) {
+      // Zone stopped (e.g. stream ended) but IFrame has a YT track — restart via API
+      // Passing source/source_id forces fresh URL resolution on the backend
+      ytLoading.set(true);
+      await api.play(zone.id, { source: ytTrack.source as any, source_id: ytTrack.source_id });
     } else if (ytActive) {
-      // yt-dlp still loading or no zone — control IFrame directly as fallback
+      // No zone at all — control IFrame directly as fallback
       if (ytPlaying) pauseVideo(); else resumeVideo();
     }
   }
 
   async function handlePrevious() {
     if (!zone?.id) return;
+    if (ytActive) ytLoading.set(true);
     await api.previous(zone.id);
   }
 
   async function handleNext() {
     if (!zone?.id) return;
+    if (ytActive) ytLoading.set(true);
     await api.next(zone.id);
   }
 
@@ -62,13 +73,17 @@
 <div class="transport-bar">
   <div class="transport-left">
     {#if displayTrack}
-      <AlbumArt coverPath={displayTrack.cover_path} albumId={displayTrack.album_id} size={56} alt={displayTrack.title} />
-      <div class="track-mini">
-        <span class="mini-title truncate">{displayTrack.title}</span>
-        <span class="mini-artist truncate">
-          {#if ytActive}<span class="yt-badge">YT</span>{/if}
-          {displayTrack.artist_name ?? ''}
-        </span>
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="track-mini-clickable" onclick={() => activeView.set('nowplaying')}>
+        <AlbumArt coverPath={displayTrack.cover_path} albumId={displayTrack.album_id} size={56} alt={displayTrack.title} />
+        <div class="track-mini">
+          <span class="mini-title truncate">{displayTrack.title}</span>
+          <span class="mini-artist truncate">
+            {#if ytActive}<span class="yt-badge">YT</span>{/if}
+            {displayTrack.artist_name ?? ''}
+          </span>
+        </div>
       </div>
     {/if}
   </div>
@@ -98,10 +113,16 @@
 
     <button
       class="control-btn play-btn"
+      class:loading={ytLoadingState}
       onclick={togglePlayPause}
       title={isPlaying ? $t('common.pause') : $t('common.play')}
     >
-      {#if isPlaying}
+      {#if ytLoadingState}
+        <svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="9" stroke-opacity="0.25" />
+          <path d="M12 3a9 9 0 0 1 9 9" />
+        </svg>
+      {:else if isPlaying}
         <svg viewBox="0 0 24 24" fill="currentColor">
           <rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" />
         </svg>
@@ -192,6 +213,22 @@
     align-items: center;
     gap: var(--space-md);
     min-width: 0;
+  }
+
+  .track-mini-clickable {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    min-width: 0;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    padding: 4px;
+    margin: -4px;
+    transition: background 0.12s ease-out;
+  }
+
+  .track-mini-clickable:hover {
+    background: var(--tune-surface-hover);
   }
 
   .track-mini {
@@ -293,6 +330,19 @@
 
   .play-btn:hover {
     background: var(--tune-accent-hover) !important;
+  }
+
+  .play-btn.loading {
+    opacity: 0.8;
+    cursor: wait;
+  }
+
+  .spin {
+    animation: spin-anim 0.8s linear infinite;
+  }
+
+  @keyframes spin-anim {
+    to { transform: rotate(360deg); }
   }
 
   .transport-right {

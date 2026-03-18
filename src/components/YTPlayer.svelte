@@ -1,16 +1,27 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { ytPlayerState, _registerYTPlayer } from '../lib/stores/ytPlayer';
+  import { ytPlayerState, ytVideoRect, hideYTVideo, _registerYTPlayer } from '../lib/stores/ytPlayer';
 
+  let wrapperDiv: HTMLDivElement;
   let containerDiv: HTMLDivElement;
   let player: any = null;
   let pendingVideoId: string | null = null;
   let progressTimer: ReturnType<typeof setInterval> | null = null;
 
+  // Reactive style for wrapper: off-screen or positioned over NowPlaying artwork
+  let wrapperStyle = $derived.by(() => {
+    const rect = $ytVideoRect;
+    const show = $ytPlayerState.showVideo;
+    if (show && rect) {
+      return `position: fixed; top: ${rect.top}px; left: ${rect.left}px; width: ${rect.width}px; height: ${rect.height}px; z-index: 200; border-radius: var(--radius-lg); overflow: hidden; pointer-events: auto;`;
+    }
+    return 'position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; pointer-events: none; overflow: hidden; z-index: -1;';
+  });
+
   function startProgressTimer() {
     stopProgressTimer();
     progressTimer = setInterval(() => {
-      if (player?.getPlayerState?.() === 1) { // 1 = YT.PlayerState.PLAYING
+      if (player?.getPlayerState?.() === 1) {
         ytPlayerState.update(s => ({
           ...s,
           currentTime: player.getCurrentTime?.() ?? s.currentTime,
@@ -31,8 +42,8 @@
     if (!containerDiv) return;
     const YT = (window as any).YT;
     player = new YT.Player(containerDiv, {
-      width: '1',
-      height: '1',
+      width: '100%',
+      height: '100%',
       playerVars: {
         autoplay: 1,
         controls: 0,
@@ -42,7 +53,7 @@
       },
       events: {
         onReady: () => {
-          player.mute(); // IFrame is visual-only — audio routed via DLNA
+          player.mute(); // Always muted — audio routed via DLNA
           if (pendingVideoId) {
             player.loadVideoById(pendingVideoId);
             pendingVideoId = null;
@@ -93,7 +104,6 @@
       setVolume: (vol: number) => player?.setVolume(vol),
     });
 
-    // Register global callback before loading script
     const prev = (window as any).onYouTubeIframeAPIReady;
     (window as any).onYouTubeIframeAPIReady = () => {
       prev?.();
@@ -101,7 +111,6 @@
     };
 
     if ((window as any).YT?.Player) {
-      // Script already loaded (e.g. hot reload)
       initPlayer();
     } else if (!document.getElementById('yt-iframe-api')) {
       const script = document.createElement('script');
@@ -109,7 +118,6 @@
       script.src = 'https://www.youtube.com/iframe_api';
       document.head.appendChild(script);
     }
-    // else: script already loading, onYouTubeIframeAPIReady will fire
   });
 
   onDestroy(() => {
@@ -119,9 +127,19 @@
   });
 </script>
 
-<!-- Hidden off-screen container — the YT API replaces this div with an iframe -->
-<div
-  bind:this={containerDiv}
-  style="position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; pointer-events: none; overflow: hidden; z-index: -1;"
-  aria-hidden="true"
-></div>
+<!--
+  Wrapper: off-screen when hidden, positioned over NowPlaying artwork when visible.
+  containerDiv is replaced by the YT API with an iframe, but stays inside wrapperDiv.
+-->
+<div bind:this={wrapperDiv} style={wrapperStyle} aria-hidden={!$ytPlayerState.showVideo}>
+  <div bind:this={containerDiv} style="width: 100%; height: 100%;"></div>
+</div>
+
+<style>
+  /* Force the YT-generated iframe to fill its wrapper */
+  div :global(iframe) {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+  }
+</style>
