@@ -272,6 +272,17 @@ export default {
   'browse.rescan': 'Rescan',
   'browse.rescanning': 'Scanning...',
 
+  // Media Servers (UPnP/DLNA)
+  'nav.mediaservers': 'Media Servers',
+  'mediaservers.title': 'Media Servers',
+  'mediaservers.noServers': 'No media servers found on the network',
+  'mediaservers.searching': 'Searching for media servers...',
+  'mediaservers.unavailable': 'Unavailable',
+  'mediaservers.containers': 'Folders',
+  'mediaservers.items': 'Items',
+  'mediaservers.noContent': 'No content in this container',
+  'mediaservers.refresh': 'Refresh',
+
   // Radios
   'nav.radios': 'Live Radios',
   'radio.title': 'My Radios',

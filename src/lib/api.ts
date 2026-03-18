@@ -135,7 +135,7 @@ export function listGroups() {
 
 // --- Playback ---
 
-export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string }) {
+export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; file_path?: string }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -194,7 +194,7 @@ export function getQueue(zoneId: number) {
   return fetchJSON<QueueStateResponse>(`${BASE}/zones/${zoneId}/queue`);
 }
 
-export function addToQueue(zoneId: number, body: { track_id?: number; track_ids?: number[]; album_id?: number; source?: Source; source_id?: string; position?: number }) {
+export function addToQueue(zoneId: number, body: { track_id?: number; track_ids?: number[]; album_id?: number; source?: Source; source_id?: string; file_path?: string; position?: number }) {
   return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/add`, {
     method: 'POST',
     body: JSON.stringify(body),
@@ -352,6 +352,31 @@ export function getBrowseRoots() {
 
 export function browseDirectory(path: string) {
   return fetchJSON<import('./types').BrowseResult>(`${BASE}/library/browse/dir?path=${encodeURIComponent(path)}`);
+}
+
+// --- Media Servers (UPnP/DLNA) ---
+
+export function getMediaServers() {
+  return fetchJSON<import('./types').MediaServer[]>(`${BASE}/network/media-servers`);
+}
+
+export function browseMediaServer(serverId: string, objectId: string = '0') {
+  return fetchJSON<import('./types').MediaServerBrowseResult>(
+    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/browse?object_id=${encodeURIComponent(objectId)}`
+  );
+}
+
+export function getMediaServerItemStreamUrl(serverId: string, itemId: string) {
+  return fetchJSON<{ url: string }>(
+    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/item/${encodeURIComponent(itemId)}/stream-url`
+  );
+}
+
+export function playMediaServerItem(serverId: string, itemId: string, zoneId: number) {
+  return fetchJSON<import('./types').Zone>(
+    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/item/${encodeURIComponent(itemId)}/play/${zoneId}`,
+    { method: 'POST' }
+  );
 }
 
 // --- Playlists ---

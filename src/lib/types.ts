@@ -16,6 +16,7 @@ export interface Artist {
   discogs_id?: string | null;
   bio?: string | null;
   image_path?: string | null;
+  source_id?: string | null;
 }
 
 export interface Album {
@@ -200,6 +201,42 @@ export interface BrowseResult {
   music_root: string;
   directories: BrowseDirectory[];
   tracks: Track[];
+}
+
+// Media Server (UPnP/DLNA) models
+export interface MediaServer {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  manufacturer: string;
+  model: string;
+  available: boolean;
+}
+
+export interface MediaServerContainer {
+  id: string;
+  parent_id: string;
+  title: string;
+  child_count: number;
+}
+
+export interface MediaServerItem {
+  id: string;
+  title: string;
+  artist?: string | null;
+  album?: string | null;
+  res_url?: string | null;
+  duration_ms?: number | null;
+  album_art_uri?: string | null;
+}
+
+export interface MediaServerBrowseResult {
+  object_id: string;
+  containers: MediaServerContainer[];
+  items: MediaServerItem[];
+  total_matches: number;
+  number_returned: number;
 }
 
 export interface StreamingPlaylist {

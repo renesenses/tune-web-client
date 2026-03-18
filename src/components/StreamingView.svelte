@@ -129,9 +129,8 @@
   }
 
   async function selectArtist(artist: Artist) {
-    if (!service) return;
-    const artistId = artist.musicbrainz_id ?? artist.discogs_id ?? '';
-    if (!artistId) return;
+    const artistId = artist.source_id ?? artist.musicbrainz_id ?? artist.discogs_id ?? '';
+    if (!service || !artistId) return;
     selectedArtist = artist;
     selectedAlbum = null;
     loading = true;

@@ -217,7 +217,7 @@
 
 <aside class="sidebar">
   <div class="sidebar-header">
-    <h1 class="logo">Tune <span class="version">v{__APP_VERSION__}</span></h1>
+    <h1 class="logo"><img src="/tune-logo.png" alt="Tune" class="logo-img" /> <span class="version">v{__APP_VERSION__}</span></h1>
     <div class="connection-status">
       <span class="state-dot" style="color: {stateColor($connectionState)}">
         {stateIcon($connectionState)}
@@ -255,6 +255,10 @@
     <button class="nav-item" class:active={$activeView === 'browse'} onclick={() => navigate('browse')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
       {$t('nav.browse')}
+    </button>
+    <button class="nav-item" class:active={$activeView === 'mediaservers'} onclick={() => navigate('mediaservers')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2" /><rect x="2" y="14" width="20" height="8" rx="2" ry="2" /><line x1="6" y1="6" x2="6.01" y2="6" /><line x1="6" y1="18" x2="6.01" y2="18" /></svg>
+      {$t('nav.mediaservers')}
     </button>
     <button class="nav-item" class:active={$activeView === 'radios'} onclick={() => navigate('radios')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5"></path><line x1="12" y1="19" x2="12" y2="22"></line><path d="M8 22h8"></path></svg>
@@ -464,19 +468,23 @@
   }
 
   .logo {
-    font-family: var(--font-label);
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    color: var(--tune-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin-bottom: var(--space-xs);
   }
 
+  .logo-img {
+    height: 28px;
+    width: auto;
+  }
+
   .version {
+    font-family: var(--font-label);
     font-size: 11px;
     font-weight: 400;
     opacity: 0.5;
-    vertical-align: middle;
+    color: var(--tune-text);
   }
 
   .connection-status {

@@ -31,6 +31,7 @@
   import BrowseView from './components/BrowseView.svelte';
   import RadiosView from './components/RadiosView.svelte';
   import GenresView from './components/GenresView.svelte';
+  import MediaServersView from './components/MediaServersView.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
 
@@ -292,6 +293,8 @@
           <GenresView onAddToPlaylist={openPlaylistModal} />
         {:else if $activeView === 'metadata'}
           <MetadataView />
+        {:else if $activeView === 'mediaservers'}
+          <MediaServersView />
         {/if}
       </div>
     {/key}

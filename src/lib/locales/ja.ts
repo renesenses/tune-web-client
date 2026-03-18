@@ -243,6 +243,17 @@ export default {
   'maintenance.restoreSuccess': '復元に成功しました',
   'maintenance.restoreError': '復元に失敗しました',
 
+  // Media Servers (UPnP/DLNA)
+  'nav.mediaservers': 'メディアサーバー',
+  'mediaservers.title': 'メディアサーバー',
+  'mediaservers.noServers': 'ネットワーク上にメディアサーバーが見つかりません',
+  'mediaservers.searching': 'メディアサーバーを検索中...',
+  'mediaservers.unavailable': '利用不可',
+  'mediaservers.containers': 'フォルダ',
+  'mediaservers.items': 'アイテム',
+  'mediaservers.noContent': 'このコンテナにはコンテンツがありません',
+  'mediaservers.refresh': '更新',
+
   // Radios
   'nav.radios': 'ライブラジオ',
   'radio.title': 'マイラジオ',

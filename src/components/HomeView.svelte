@@ -7,9 +7,10 @@
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
-  import type { Album } from '../lib/types';
+  import type { Album, Track, Source } from '../lib/types';
 
   let zone = $derived($currentZone);
+  let currentTrack = $derived(zone?.current_track);
   let stats: { tracks: number; albums: number; artists: number } | null = $state(null);
   let recentAlbums: Album[] = $state([]);
   let recentTab = $state<'played' | 'added'>('played');
@@ -104,15 +105,124 @@
     }
   }
 
+  interface RecentAlbumEntry {
+    id: number | null;
+    title: string;
+    artist_id?: number | null;
+    artist_name: string;
+    cover_path?: string | null;
+    source?: string | null;
+    source_id?: string | null;
+    firstTrack: Track;
+  }
+
+  async function playRecentEntry(album: RecentAlbumEntry) {
+    if (!zone?.id) return;
+    try {
+      if (album.id) {
+        await api.play(zone.id, { album_id: album.id });
+      } else if (album.source === 'radio' && album.firstTrack.source_id) {
+        await api.playRadio(parseInt(album.firstTrack.source_id), zone.id);
+      } else if (album.source && album.source !== 'local' && album.firstTrack.source_id) {
+        await api.play(zone.id, { source: album.source as Source, source_id: album.firstTrack.source_id });
+      } else if (album.firstTrack.id) {
+        await api.play(zone.id, { track_id: album.firstTrack.id });
+      } else {
+        // No DB id — try search by title first (more reliable than stale URLs)
+        const searchTitle = album.firstTrack.album_title || album.title;
+        if (searchTitle) {
+          const results = await api.searchLibrary(searchTitle);
+          if (results.tracks && results.tracks.length > 0) {
+            const match = results.tracks.find((t: Track) => t.album_id);
+            if (match?.album_id) {
+              await api.play(zone.id, { album_id: match.album_id });
+              return;
+            }
+            if (results.tracks[0].id) {
+              await api.play(zone.id, { track_id: results.tracks[0].id });
+              return;
+            }
+          }
+        }
+        // Last resort: direct file_path (may be stale for media server URLs)
+        if (album.firstTrack.file_path) {
+          await api.play(zone.id, { file_path: album.firstTrack.file_path });
+        }
+      }
+    } catch (e) {
+      console.error('Play recent entry error:', e);
+    }
+  }
+
+  async function navigateRecentEntry(album: RecentAlbumEntry) {
+    if (album.id) {
+      navigateToAlbum(album.id);
+    } else if (album.source === 'radio') {
+      activeView.set('radios');
+    } else if (album.source && album.source !== 'local') {
+      activeView.set('streaming');
+    } else {
+      // Search local library to find the album — try album_title first, then album.title
+      const candidates = [
+        album.firstTrack?.album_title,
+        album.title,
+        album.firstTrack?.artist_name,
+      ].filter(Boolean) as string[];
+
+      for (const query of candidates) {
+        try {
+          const results = await api.searchLibrary(query);
+          // Exact album title match
+          const exactTitle = album.firstTrack?.album_title || album.title;
+          const match = results.tracks?.find((t: Track) => t.album_id && t.album_title === exactTitle);
+          if (match?.album_id) {
+            navigateToAlbum(match.album_id);
+            return;
+          }
+          // Album match from results
+          const albumMatch = results.albums?.find((a: Album) => a.title === exactTitle);
+          if (albumMatch?.id) {
+            navigateToAlbum(albumMatch.id);
+            return;
+          }
+          // Fallback: any track with album_id
+          const fallback = results.tracks?.find((t: Track) => t.album_id);
+          if (fallback?.album_id) {
+            navigateToAlbum(fallback.album_id);
+            return;
+          }
+        } catch (e) {
+          console.error('Navigate recent entry error:', e);
+        }
+      }
+    }
+  }
+
+  function navigateArtist(album: RecentAlbumEntry) {
+    if (album.artist_id) {
+      navigateToArtist(album.artist_id);
+    } else if (album.source && album.source !== 'local') {
+      activeView.set('streaming');
+    }
+  }
+
+  function isPlaying(album: RecentAlbumEntry): boolean {
+    if (!currentTrack || !zone || zone.state !== 'playing') return false;
+    if (album.id && currentTrack.album_id === album.id) return true;
+    if (album.firstTrack.id && currentTrack.id === album.firstTrack.id) return true;
+    if (album.firstTrack.source_id && currentTrack.source_id === album.firstTrack.source_id && currentTrack.source === album.source) return true;
+    return false;
+  }
+
   // Derive unique recently played albums from history
   // Use a string key to dedupe: "local:{album_id}" or "streaming:{source}:{source_id}"
   let recentlyPlayed = $derived.by(() => {
     const seen = new Set<string>();
-    const albums: { id: number | null; title: string; artist_id?: number | null; artist_name: string; cover_path?: string | null; source?: string | null; source_id?: string | null }[] = [];
+    const albums: RecentAlbumEntry[] = [];
     for (const entry of $playbackHistory) {
       const t = entry.track;
       const albumId = t.album_id;
-      // Build a dedup key — prefer album_id for local, fallback to source+album_title for streaming
+      // Build a dedup key — prefer album_id for local, fallback to source+album_title, file_path, or title
       let key: string | null = null;
       if (albumId) {
         key = `local:${albumId}`;
@@ -120,6 +230,10 @@
         key = `stream:${t.source}:${t.album_title}`;
       } else if (t.source && t.source_id) {
         key = `stream:${t.source}:${t.source_id}`;
+      } else if (t.file_path) {
+        key = `url:${t.file_path}`;
+      } else if (t.title) {
+        key = `title:${t.title}:${t.artist_name ?? ''}`;
       }
       if (!key || seen.has(key)) continue;
       seen.add(key);
@@ -131,6 +245,7 @@
         cover_path: t.cover_path ?? null,
         source: t.source ?? null,
         source_id: t.source_id ?? null,
+        firstTrack: t,
       });
       if (albums.length >= 20) break;
     }
@@ -202,21 +317,19 @@
           </button>
           <div class="carousel" bind:this={playedCarousel}>
             {#each recentlyPlayed as album}
-              <div class="carousel-card">
-                <button class="carousel-cover" onclick={() => album.id && playAlbum(album.id)}>
+              <div class="carousel-card" class:now-playing={isPlaying(album)}>
+                <button class="carousel-cover" onclick={() => playRecentEntry(album)}>
                   <AlbumArt coverPath={album.cover_path} albumId={album.id} size={160} alt={album.title} />
-                  <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
+                  {#if isPlaying(album)}
+                    <span class="play-overlay playing">
+                      <span class="eq-bars"><span></span><span></span><span></span></span>
+                    </span>
+                  {:else}
+                    <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
+                  {/if}
                 </button>
-                {#if album.id}
-                  <button class="carousel-title truncate" onclick={() => navigateToAlbum(album.id!)}>{album.title}</button>
-                {:else}
-                  <span class="carousel-title truncate">{album.title}</span>
-                {/if}
-                {#if album.artist_id}
-                  <button class="carousel-artist truncate" onclick={() => navigateToArtist(album.artist_id!)}>{album.artist_name}</button>
-                {:else}
-                  <span class="carousel-artist truncate">{album.artist_name}</span>
-                {/if}
+                <button class="carousel-title truncate" onclick={() => navigateRecentEntry(album)}>{album.title}</button>
+                <button class="carousel-artist truncate" onclick={() => navigateArtist(album)}>{album.artist_name}</button>
               </div>
             {/each}
           </div>
@@ -468,6 +581,39 @@
     opacity: 0;
     transition: opacity 0.15s;
     border-radius: var(--radius-sm);
+  }
+
+  .play-overlay.playing {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .now-playing .carousel-title {
+    color: var(--tune-accent) !important;
+  }
+
+  .eq-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 20px;
+  }
+
+  .eq-bars span {
+    display: block;
+    width: 4px;
+    background: var(--tune-accent);
+    border-radius: 1px;
+    animation: eq-bounce 0.8s ease-in-out infinite alternate;
+  }
+
+  .eq-bars span:nth-child(1) { height: 60%; animation-delay: 0s; }
+  .eq-bars span:nth-child(2) { height: 100%; animation-delay: 0.2s; }
+  .eq-bars span:nth-child(3) { height: 40%; animation-delay: 0.4s; }
+
+  @keyframes eq-bounce {
+    0% { transform: scaleY(0.3); }
+    100% { transform: scaleY(1); }
   }
 
   button.carousel-title,

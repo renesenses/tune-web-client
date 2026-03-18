@@ -272,6 +272,17 @@ export default {
   'browse.rescan': 'Rescanner',
   'browse.rescanning': 'Scan en cours...',
 
+  // Media Servers (UPnP/DLNA)
+  'nav.mediaservers': 'Serveurs multimédia',
+  'mediaservers.title': 'Serveurs multimédia',
+  'mediaservers.noServers': 'Aucun serveur multimédia trouvé sur le réseau',
+  'mediaservers.searching': 'Recherche de serveurs multimédia...',
+  'mediaservers.unavailable': 'Indisponible',
+  'mediaservers.containers': 'Dossiers',
+  'mediaservers.items': 'Éléments',
+  'mediaservers.noContent': 'Aucun contenu dans ce conteneur',
+  'mediaservers.refresh': 'Actualiser',
+
   // Radios
   'nav.radios': 'Radios Live',
   'radio.title': 'Mes radios',
