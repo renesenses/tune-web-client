@@ -447,6 +447,7 @@
                 <span class="track-title truncate">{t.title}</span>
                 <span class="track-artist truncate">{t.artist_name ?? ''} {t.album_title ? `- ${t.album_title}` : ''}</span>
               </div>
+              {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               {#if onAddToPlaylist && (t.id || t.source_id)}
