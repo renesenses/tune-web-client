@@ -12,7 +12,7 @@
   import { locale } from './lib/i18n';
   import { setupKeyboardShortcuts } from './lib/keyboard';
   import { playbackHistory } from './lib/stores/history';
-  import { ytPlayerState, pauseVideo, resumeVideo, stopVideo } from './lib/stores/ytPlayer';
+  import { ytPlayerState, ytLoading, playVideo, pauseVideo, resumeVideo, stopVideo, clearYTLoading } from './lib/stores/ytPlayer';
   import { get } from 'svelte/store';
   import { t } from './lib/i18n';
   import * as api from './lib/api';
@@ -109,11 +109,15 @@
       zones.update((zs) =>
         zs.map((z) => z.id === zoneId ? zone : z)
       );
-      seekPositionMs.set(zone.position_ms ?? 0);
-      if (zone.state === 'playing') {
-        startSeekTimer();
-      } else {
-        stopSeekTimer();
+      // Only update seek position and timer for the currently displayed zone.
+      // Events from other zones must not corrupt the active zone's playback state.
+      if (get(currentZone)?.id === zoneId) {
+        seekPositionMs.set(zone.position_ms ?? 0);
+        if (zone.state === 'playing') {
+          startSeekTimer();
+        } else {
+          stopSeekTimer();
+        }
       }
     } catch (e) {
       console.error('Sync zone state error:', e);
@@ -170,21 +174,32 @@
         } else if (zoneId) {
           // For started/resumed/paused/stopped/track_changed: fetch full zone state
           syncZoneState(zoneId).then(() => {
+            // IFrame sync and history only concern the active zone
+            if (get(currentZone)?.id !== zoneId) return;
+
             const z = get(currentZone);
 
             // Sync muted IFrame with backend playback state
             const yt = get(ytPlayerState);
-            if (yt.active) {
-              if (type === 'playback.paused' || type === 'playback.stopped') {
-                pauseVideo();
-              } else if (type === 'playback.resumed') {
-                resumeVideo();
-              } else if (type === 'playback.started' || type === 'playback.track_changed') {
-                // If the new track is not YouTube, stop the IFrame
-                if (z?.current_track && z.current_track.source !== 'youtube') {
-                  stopVideo();
-                } else if (z?.current_track?.source === 'youtube') {
-                  resumeVideo();
+            if (type === 'playback.paused' || type === 'playback.stopped') {
+              ytLoading.set(false);
+              if (yt.active) pauseVideo();
+            } else if (type === 'playback.resumed') {
+              ytLoading.set(false);
+              if (yt.active) resumeVideo();
+            } else if (type === 'playback.started' || type === 'playback.track_changed') {
+              if (z?.current_track && z.current_track.source !== 'youtube') {
+                // New track is not YouTube — stop IFrame if active
+                if (yt.active) stopVideo();
+              } else if (z?.current_track?.source === 'youtube' && z.current_track.source_id) {
+                const sourceId = z.current_track.source_id;
+                if (yt.active && yt.videoId === sourceId) {
+                  // IFrame already has the right video (single track flow) — just clear loading
+                  clearYTLoading();
+                } else {
+                  // New video (next/previous/playlist) — load it in IFrame; DLNA already started
+                  playVideo(sourceId, z.current_track);
+                  clearYTLoading();
                 }
               }
             }
