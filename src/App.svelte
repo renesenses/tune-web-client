@@ -47,7 +47,7 @@
     playlistModalTrack = null;
   }
 
-  async function fetchZones() {
+  async function fetchZones(restoreState = false) {
     try {
       const zoneList = await api.getZones();
       zones.set(zoneList);
@@ -67,25 +67,28 @@
       }
 
       // Restore seek state for the selected zone from the already-fetched data.
-      // This covers hot-reload and WS reconnect where no playback event fires.
-      let selectedId: number | null = null;
-      currentZoneId.subscribe((v) => (selectedId = v))();
-      const selectedZone = zoneList.find((z) => z.id === selectedId);
-      if (selectedZone) {
-        seekPositionMs.set(selectedZone.position_ms ?? 0);
-        if (selectedZone.state === 'playing') {
-          startSeekTimer();
-          // Restore queue display (not fetched by playback events on reconnect)
-          fetchQueue();
-          // Restart the muted IFrame if the active track is a YouTube track
-          const yt = get(ytPlayerState);
-          const track = selectedZone.current_track;
-          if (track?.source === 'youtube' && track.source_id && !yt.active) {
-            playVideo(track.source_id, track);
-            clearYTLoading();
+      // Only on initial load or WS reconnect — not on zone.* events, which would
+      // reset the seek position and break the seek timer on every volume change etc.
+      if (restoreState) {
+        let selectedId: number | null = null;
+        currentZoneId.subscribe((v) => (selectedId = v))();
+        const selectedZone = zoneList.find((z) => z.id === selectedId);
+        if (selectedZone) {
+          seekPositionMs.set(selectedZone.position_ms ?? 0);
+          if (selectedZone.state === 'playing') {
+            startSeekTimer();
+            // Restore queue display (not fetched by playback events on reconnect)
+            fetchQueue();
+            // Restart the muted IFrame if the active track is a YouTube track
+            const yt = get(ytPlayerState);
+            const track = selectedZone.current_track;
+            if (track?.source === 'youtube' && track.source_id && !yt.active) {
+              playVideo(track.source_id, track);
+              clearYTLoading();
+            }
+          } else {
+            stopSeekTimer();
           }
-        } else {
-          stopSeekTimer();
         }
       }
     } catch (e) {
@@ -170,7 +173,7 @@
 
     connectionState.set('connecting');
     tuneWS.connect();
-    fetchZones();
+    fetchZones(true);
     fetchDevices();
     fetchPlaylists();
 
@@ -180,7 +183,7 @@
       // Internal connection events
       if (type === '_connected') {
         connectionState.set('connected');
-        fetchZones();
+        fetchZones(true);
         fetchDevices();
         return;
       }
