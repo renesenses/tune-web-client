@@ -48,19 +48,49 @@
     playlistModalTrack = null;
   }
 
-  async function fetchZones() {
+  async function fetchZones(restoreState = false) {
     try {
       const zoneList = await api.getZones();
       zones.set(zoneList);
-      // Auto-select default zone from preferences, or first zone
+
+      // Zone selection: keep current if already set, otherwise prefer a playing
+      // zone over the default/first so the UI reconnects to active playback.
       let curId: number | null = null;
       currentZoneId.subscribe((v) => (curId = v))();
       if (curId === null && zoneList.length > 0) {
         let defaultId: number | null = null;
         preferences.subscribe((p) => (defaultId = p.defaultZoneId))();
         const defaultZone = defaultId !== null ? zoneList.find((z) => z.id === defaultId) : null;
-        const target = defaultZone ?? zoneList[0];
-        if (target?.id !== null) currentZoneId.set(target.id!);
+        // Prefer the default if it exists, else the first playing zone, else zone[0]
+        const playingZone = zoneList.find((z) => z.state === 'playing');
+        const target = defaultZone ?? playingZone ?? zoneList[0];
+        if (target?.id != null) currentZoneId.set(target.id);
+      }
+
+      // Restore seek state for the selected zone from the already-fetched data.
+      // Only on initial load or WS reconnect — not on zone.* events, which would
+      // reset the seek position and break the seek timer on every volume change etc.
+      if (restoreState) {
+        let selectedId: number | null = null;
+        currentZoneId.subscribe((v) => (selectedId = v))();
+        const selectedZone = zoneList.find((z) => z.id === selectedId);
+        if (selectedZone) {
+          seekPositionMs.set(selectedZone.position_ms ?? 0);
+          if (selectedZone.state === 'playing') {
+            startSeekTimer();
+            // Restore queue display (not fetched by playback events on reconnect)
+            fetchQueue();
+            // Restart the muted IFrame if the active track is a YouTube track
+            const yt = get(ytPlayerState);
+            const track = selectedZone.current_track;
+            if (track?.source === 'youtube' && track.source_id && !yt.active) {
+              playVideo(track.source_id, track);
+              clearYTLoading();
+            }
+          } else {
+            stopSeekTimer();
+          }
+        }
       }
     } catch (e) {
       console.error('Fetch zones error:', e);
@@ -144,7 +174,7 @@
 
     connectionState.set('connecting');
     tuneWS.connect();
-    fetchZones();
+    fetchZones(true);
     fetchDevices();
     fetchPlaylists();
 
@@ -154,7 +184,7 @@
       // Internal connection events
       if (type === '_connected') {
         connectionState.set('connected');
-        fetchZones();
+        fetchZones(true);
         fetchDevices();
         return;
       }
