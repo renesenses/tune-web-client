@@ -40,6 +40,27 @@
   let scanIndicator = $state(false);
   let playlistModalTrack = $state<Track | null>(null);
 
+  // Error toast system
+  let errorMessage = $state<string | null>(null);
+  let errorTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  function showError(msg: string) {
+    errorMessage = msg;
+    if (errorTimeout) clearTimeout(errorTimeout);
+    errorTimeout = setTimeout(() => {
+      errorMessage = null;
+      errorTimeout = null;
+    }, 5000);
+  }
+
+  function dismissError() {
+    errorMessage = null;
+    if (errorTimeout) {
+      clearTimeout(errorTimeout);
+      errorTimeout = null;
+    }
+  }
+
   function openPlaylistModal(track: Track) {
     playlistModalTrack = track;
   }
@@ -196,6 +217,11 @@
       // Playback events — refetch zone state since WS events lack full data
       if (type.startsWith('playback.')) {
         const zoneId = event.data?.zone_id;
+        if (type === 'playback.metadata') {
+          // ICY metadata update (radio stream title change) — refetch zone state
+          if (zoneId) syncZoneState(zoneId);
+          return;
+        }
         if (type === 'playback.position' && event.data?.position_ms !== undefined) {
           // Lightweight position update (no API call)
           seekPositionMs.set(event.data.position_ms);
@@ -338,6 +364,18 @@
   </main>
 
   <TransportBar />
+
+  {#if errorMessage}
+    <div class="error-toast">
+      <svg class="error-toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+      <span class="error-toast-msg">{errorMessage}</span>
+      <button class="error-toast-dismiss" onclick={dismissError}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+      </button>
+    </div>
+  {/if}
 </div>
 
 <!-- Single persistent YouTube IFrame Player instance (off-screen) -->
@@ -402,6 +440,68 @@
 
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  /* Error toast */
+  .error-toast {
+    position: fixed;
+    bottom: calc(var(--transport-height) + 16px);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg);
+    background: #2A1A1A;
+    border: 1px solid #6B2D2D;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: #E8A0A0;
+    z-index: 200;
+    max-width: 500px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    animation: toastSlideIn 0.25s ease-out;
+  }
+
+  .error-toast-icon {
+    flex-shrink: 0;
+    color: #C9544B;
+  }
+
+  .error-toast-msg {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .error-toast-dismiss {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: #E8A0A0;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: opacity 0.12s ease-out;
+  }
+
+  .error-toast-dismiss:hover {
+    opacity: 1;
+  }
+
+  @keyframes toastSlideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
   }
 
   @media (max-width: 768px) {

@@ -19,6 +19,7 @@
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
   let state = $derived($playbackState);
+  let isRadio = $derived(track?.source === 'radio' || (track == null && $ytPlayerState.track?.source === 'radio'));
 
   // Fallback to ytPlayer track when zone has no current_track (yt-dlp loading phase)
   let ytState = $derived($ytPlayerState);
@@ -111,15 +112,33 @@
             </button>
           {/if}
         {/if}
+        {#if isRadio}
+          <div class="art-live-badge"><span class="art-live-dot"></span>LIVE</div>
+        {/if}
       </div>
 
       <div class="info-column">
         <div class="track-info" class:center={!isWide}>
+          {#if isRadio}
+            <div class="radio-live-label">
+              <svg class="radio-antenna-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
+                <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
+                <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4" />
+                <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19" />
+                <circle cx="12" cy="12" r="2" fill="currentColor" />
+              </svg>
+              EN DIRECT
+            </div>
+            <p class="radio-station-name truncate">{displayTrack.album_title || zone?.name || 'Radio'}</p>
+          {/if}
           <h2 class="track-title truncate">{displayTrack.title}</h2>
-          {#if displayTrack.artist_name}
+          {#if displayTrack.artist_name && displayTrack.artist_name !== 'Radio'}
+            <p class="track-artist truncate">{displayTrack.artist_name}</p>
+          {:else if !isRadio && displayTrack.artist_name}
             <p class="track-artist truncate">{displayTrack.artist_name}</p>
           {/if}
-          {#if displayTrack.album_title}
+          {#if !isRadio && displayTrack.album_title}
             <p class="track-album truncate">{displayTrack.album_title}</p>
           {/if}
           {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth}
@@ -127,6 +146,7 @@
           {/if}
         </div>
 
+        {#if !isRadio}
         <div class="seek-container">
           <SeekBar
             positionMs={$seekPositionMs}
@@ -134,6 +154,7 @@
             enabled={isEffectivePlaying}
           />
         </div>
+        {/if}
 
         <!-- Settings row: shuffle, repeat -->
         <div class="settings-row" class:center={!isWide}>
@@ -547,6 +568,66 @@
     font-size: 11px;
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Radio LIVE badge on artwork */
+  .art-live-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: var(--tune-warning);
+    color: white;
+    letter-spacing: 0.8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    z-index: 2;
+  }
+
+  .art-live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: white;
+    animation: live-pulse-np 1.5s ease-in-out infinite;
+  }
+
+  @keyframes live-pulse-np {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Radio live label */
+  .radio-live-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--tune-warning);
+    margin-bottom: var(--space-sm);
+  }
+
+  .radio-antenna-icon {
+    flex-shrink: 0;
+  }
+
+  .radio-station-name {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--tune-text-secondary);
+    margin-bottom: var(--space-xs);
+    line-height: 1.2;
   }
 
   /* Empty state */

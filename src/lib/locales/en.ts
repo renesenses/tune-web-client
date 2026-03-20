@@ -319,6 +319,11 @@ export default {
 
   // Volume
   'volume.title': 'Volume (M to mute)',
+
+  // About
+  'settings.about': 'About',
+  'settings.clientVersion': 'Client version',
+  'settings.serverVersion': 'Server version',
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

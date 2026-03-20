@@ -78,10 +78,20 @@
       <div class="track-mini-clickable" onclick={() => activeView.set('nowplaying')}>
         <AlbumArt coverPath={displayTrack.cover_path} albumId={displayTrack.album_id} size={56} alt={displayTrack.title} />
         <div class="track-mini">
-          <span class="mini-title truncate">{displayTrack.title}</span>
+          <span class="mini-title truncate">
+            {displayTrack.title}
+            {#if displayTrack.source === 'radio'}
+              <span class="live-badge"><span class="live-dot"></span>LIVE</span>
+            {/if}
+          </span>
           <span class="mini-artist truncate">
             {#if ytActive}<span class="yt-badge">YT</span>{/if}
-            {displayTrack.artist_name ?? ''}
+            {#if displayTrack.source === 'radio'}
+              <span class="radio-antenna">&#x1F4E1;</span>
+              {displayTrack.album_title || 'Live Radio'}
+            {:else}
+              {displayTrack.artist_name ?? ''}
+            {/if}
           </span>
         </div>
       </div>
@@ -263,6 +273,41 @@
     color: white;
     flex-shrink: 0;
     letter-spacing: 0.3px;
+  }
+
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-label);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--tune-warning);
+    color: white;
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  .live-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: white;
+    animation: live-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes live-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .radio-antenna {
+    font-size: 11px;
+    flex-shrink: 0;
   }
 
   .transport-controls {

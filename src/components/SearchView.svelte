@@ -2,10 +2,11 @@
   import { currentZone } from '../lib/stores/zones';
   import { activeView } from '../lib/stores/navigation';
   import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading } from '../lib/stores/library';
+  import { streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
-  import type { FederatedSearchResult, Track, Album, Artist } from '../lib/types';
+  import type { FederatedSearchResult, Track, Album, Artist, Playlist, StreamingPlaylist, Source } from '../lib/types';
   import { t } from '../lib/i18n';
 
   interface Props {
@@ -19,16 +20,84 @@
   let loading = $state(false);
   let results: FederatedSearchResult | null = $state(null);
 
+  interface PlaylistMatch {
+    name: string;
+    trackCount: number;
+    source: string;
+    localId?: number;
+    streamingId?: string;
+    streamingSource?: Source;
+  }
+  let playlistMatches = $state<PlaylistMatch[]>([]);
+
   async function handleSearch() {
     if (!searchQuery.trim()) return;
     loading = true;
     results = null;
+    playlistMatches = [];
     try {
-      results = await api.federatedSearch(searchQuery.trim());
+      const query = searchQuery.trim().toLowerCase();
+
+      // Federated search + playlist search in parallel
+      const [federated, localPlaylists] = await Promise.all([
+        api.federatedSearch(searchQuery.trim()),
+        api.getPlaylists().catch(() => [] as Playlist[]),
+      ]);
+      results = federated;
+
+      // Filter local playlists by name
+      const matches: PlaylistMatch[] = localPlaylists
+        .filter((p) => p.name.toLowerCase().includes(query))
+        .map((p) => ({
+          name: p.name,
+          trackCount: p.track_count ?? 0,
+          source: 'Local',
+          localId: p.id ?? undefined,
+        }));
+
+      // Search streaming playlists for each authenticated service
+      const services = $streamingServices;
+      const streamingPromises: Promise<void>[] = [];
+      for (const [service, status] of Object.entries(services)) {
+        if (status.authenticated) {
+          streamingPromises.push(
+            api.getStreamingPlaylists(service)
+              .then((playlists: StreamingPlaylist[]) => {
+                for (const p of playlists) {
+                  if (p.name.toLowerCase().includes(query)) {
+                    matches.push({
+                      name: p.name,
+                      trackCount: p.track_count,
+                      source: service.charAt(0).toUpperCase() + service.slice(1),
+                      streamingId: p.source_id,
+                      streamingSource: p.source,
+                    });
+                  }
+                }
+              })
+              .catch(() => {})
+          );
+        }
+      }
+      await Promise.all(streamingPromises);
+      playlistMatches = matches;
     } catch (e) {
       console.error('Search error:', e);
     }
     loading = false;
+  }
+
+  async function playPlaylist(pl: PlaylistMatch) {
+    if (!zone?.id) return;
+    try {
+      if (pl.localId != null) {
+        await api.play(zone.id, { playlist_id: pl.localId });
+      } else if (pl.streamingId && pl.streamingSource) {
+        await api.play(zone.id, { streaming_playlist_id: pl.streamingId, source: pl.streamingSource });
+      }
+    } catch (e) {
+      console.error('Play playlist error:', e);
+    }
   }
 
   async function playTrack(trackId: number) {
@@ -101,7 +170,24 @@
     </div>
   {:else if results}
     {@const sources = allSources(results)}
-    {#if sources.length === 0}
+    {#if playlistMatches.length > 0}
+      <div class="source-section">
+        <h3 class="source-title">{$t('nav.playlists')}</h3>
+        <div class="playlist-results">
+          {#each playlistMatches as pl}
+            <button class="playlist-result-item" onclick={() => playPlaylist(pl)}>
+              <span class="playlist-icon">&#127925;</span>
+              <div class="playlist-result-info">
+                <span class="playlist-result-name truncate">{pl.name}</span>
+                <span class="playlist-result-meta">{pl.trackCount} {$t('settings.tracks').toLowerCase()}</span>
+              </div>
+              <span class="playlist-source-badge">{pl.source}</span>
+            </button>
+          {/each}
+        </div>
+      </div>
+    {/if}
+    {#if sources.length === 0 && playlistMatches.length === 0}
       <div class="empty">{$t('search.noResults').replace('{query}', searchQuery)}</div>
     {:else}
       {#each sources as source}
@@ -454,5 +540,67 @@
     font-family: var(--font-body);
     text-align: center;
     padding: var(--space-2xl);
+  }
+
+  .playlist-results {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .playlist-result-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 8px 4px;
+    background: none;
+    border: none;
+    color: var(--tune-text);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s ease-out;
+    border-radius: var(--radius-sm);
+  }
+
+  .playlist-result-item:hover {
+    background: var(--tune-surface-hover);
+  }
+
+  .playlist-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    width: 28px;
+    text-align: center;
+  }
+
+  .playlist-result-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .playlist-result-name {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .playlist-result-meta {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+  }
+
+  .playlist-source-badge {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    background: var(--tune-grey2);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    letter-spacing: 0.3px;
   }
 </style>

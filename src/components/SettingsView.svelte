@@ -10,6 +10,9 @@
   import type { SystemHealth, SystemStats, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
 
+  const CLIENT_VERSION = '0.1.6';
+  let serverVersion = $state<string | null>(null);
+
   let health: SystemHealth | null = $state(null);
   let stats: SystemStats | null = $state(null);
   let scanning = $state(false);
@@ -359,6 +362,16 @@
     }
   }
 
+  async function fetchServerVersion() {
+    try {
+      const res = await fetch('/');
+      const data = await res.json();
+      serverVersion = data.version ?? null;
+    } catch {
+      serverVersion = null;
+    }
+  }
+
   async function loadAll() {
     loading = true;
     try {
@@ -475,6 +488,7 @@
     untrack(() => {
       loadAll();
       fetchAudioDevices();
+      fetchServerVersion();
     });
     const unsub = tuneWS.onEvent((event) => {
       if (event.type === 'library.scan.completed') {
@@ -979,6 +993,21 @@
         </div>
       {/if}
     </section>
+
+    <!-- About -->
+    <section class="settings-section">
+      <h3>{$t('settings.about')}</h3>
+      <div class="about-grid">
+        <div class="about-row">
+          <span class="about-label">{$t('settings.clientVersion')}</span>
+          <span class="about-value">{CLIENT_VERSION}</span>
+        </div>
+        <div class="about-row">
+          <span class="about-label">{$t('settings.serverVersion')}</span>
+          <span class="about-value">{serverVersion ?? '...'}</span>
+        </div>
+      </div>
+    </section>
   {/if}
 </div>
 
@@ -1482,6 +1511,31 @@
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-secondary);
+  }
+
+  .about-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .about-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-xs) 0;
+    font-family: var(--font-body);
+    font-size: 13px;
+  }
+
+  .about-label {
+    color: var(--tune-text-secondary);
+  }
+
+  .about-value {
+    color: var(--tune-text);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
   }
 
   @keyframes spin {

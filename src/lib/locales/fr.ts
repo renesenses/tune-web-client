@@ -319,6 +319,11 @@ export default {
 
   // Volume
   'volume.title': 'Volume (M pour couper)',
+
+  // About
+  'settings.about': 'À propos',
+  'settings.clientVersion': 'Version client',
+  'settings.serverVersion': 'Version serveur',
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];
