@@ -394,6 +394,16 @@
     overflow: hidden;
   }
 
+  .app-layout > :global(.sidebar) {
+    grid-column: 1;
+    grid-row: 1 / -1;
+  }
+
+  .app-layout > :global(.transport-bar) {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
   .main-content {
     grid-column: 2;
     grid-row: 1;
@@ -446,7 +456,7 @@
   .error-toast {
     position: fixed;
     bottom: calc(var(--transport-height) + 16px);
-    left: 50%;
+    left: calc(var(--sidebar-width) + (100vw - var(--sidebar-width)) / 2);
     transform: translateX(-50%);
     display: flex;
     align-items: center;
