@@ -374,7 +374,7 @@ export function getMediaServerItemStreamUrl(serverId: string, itemId: string) {
 
 export function playMediaServerItem(serverId: string, itemId: string, zoneId: number) {
   return fetchJSON<import('./types').Zone>(
-    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/item/${encodeURIComponent(itemId)}/play/${zoneId}`,
+    `${BASE}/network/media-servers/${serverId}/item/${itemId}/play/${zoneId}`,
     { method: 'POST' }
   );
 }
