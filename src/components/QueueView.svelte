@@ -151,7 +151,7 @@
           </span>
           <button class="queue-item-play" onclick={() => playFromPosition(index)}>
             <span class="queue-index">{index + 1}</span>
-            <AlbumArt albumId={queueTrack.album_id} size={40} alt={queueTrack.title} />
+            <AlbumArt coverPath={queueTrack.cover_path} albumId={queueTrack.album_id} size={40} alt={queueTrack.title} />
             <div class="queue-info">
               <span class="queue-title truncate">{queueTrack.title}</span>
               <span class="queue-artist truncate">{queueTrack.artist_name ?? ''}</span>
