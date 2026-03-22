@@ -14,7 +14,8 @@
   let hasError = $state(false);
   let resolvedCoverPath = $state<string | null>(null);
 
-  function handleError() {
+  function handleError(e: Event) {
+    console.warn('AlbumArt load error:', coverPath, 'src:', src);
     hasError = true;
   }
 
