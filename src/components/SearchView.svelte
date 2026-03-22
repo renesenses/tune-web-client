@@ -229,6 +229,7 @@
               {#each source.data.tracks as t}
                 <div class="track-item">
                   <button class="track-play" onclick={() => playTrack(t)}>
+                    <AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.title} />
                     <div class="track-info">
                       <span class="track-title truncate">{t.title}</span>
                       <span class="track-artist truncate">{t.artist_name ?? ''}{t.album_title ? ` - ${t.album_title}` : ''}</span>
