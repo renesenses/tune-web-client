@@ -116,9 +116,12 @@
   }
 
   async function playItem(item: MediaServerItem) {
-    if (!zone?.id || !selectedServer) return;
+    if (!zone?.id) return;
     try {
-      await api.playMediaServerItem(selectedServer.id, item.id, zone.id);
+      if (item.res_url) {
+        // Play directly via stream URL
+        await api.play(zone.id, { file_path: item.res_url });
+      }
     } catch (e) {
       console.error('Play media server item error:', e);
     }
