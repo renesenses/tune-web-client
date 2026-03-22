@@ -100,19 +100,27 @@
     }
   }
 
-  async function playTrack(trackId: number) {
+  async function playTrack(track: Track) {
     if (!zone?.id) return;
     try {
-      await api.play(zone.id, { track_id: trackId });
+      if (track.id) {
+        await api.play(zone.id, { track_id: track.id });
+      } else if (track.source && track.source_id) {
+        await api.play(zone.id, { source: track.source, source_id: track.source_id });
+      }
     } catch (e) {
       console.error('Play track error:', e);
     }
   }
 
-  async function playAlbum(albumId: number) {
+  async function playAlbum(album: Album) {
     if (!zone?.id) return;
     try {
-      await api.play(zone.id, { album_id: albumId });
+      if (album.id) {
+        await api.play(zone.id, { album_id: album.id });
+      } else if (album.source && album.source_id) {
+        await api.play(zone.id, { source: album.source, source_id: album.source_id });
+      }
     } catch (e) {
       console.error('Play album error:', e);
     }
@@ -198,7 +206,7 @@
             <h4 class="subsection-title">{$t('common.albums')}</h4>
             <div class="albums-row">
               {#each source.data.albums as album}
-                <button class="album-card" onclick={() => album.id && playAlbum(album.id)}>
+                <button class="album-card" onclick={() => playAlbum(album)}>
                   <AlbumArt coverPath={album.cover_path} size={120} alt={album.title} />
                   <span class="album-card-title truncate">{album.title}</span>
                   {#if album.artist_name}
@@ -214,7 +222,7 @@
             <div class="track-list">
               {#each source.data.tracks as t}
                 <div class="track-item">
-                  <button class="track-play" onclick={() => t.id && playTrack(t.id)}>
+                  <button class="track-play" onclick={() => playTrack(t)}>
                     <div class="track-info">
                       <span class="track-title truncate">{t.title}</span>
                       <span class="track-artist truncate">{t.artist_name ?? ''}{t.album_title ? ` - ${t.album_title}` : ''}</span>
