@@ -219,6 +219,7 @@ export interface MediaServerContainer {
   parent_id: string;
   title: string;
   child_count: number;
+  album_art_uri?: string | null;
 }
 
 export interface MediaServerItem {

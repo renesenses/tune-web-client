@@ -195,22 +195,40 @@
         {$tr('common.loading')}
       </div>
     {:else}
-      <!-- Containers (folders) -->
+      <!-- Containers: grid with covers if albums, list if folders -->
       {#if browseResult.containers.length > 0}
-        <div class="container-list">
-          {#each browseResult.containers as container}
-            <button class="container-item" onclick={() => browseTo(container.id, container.title)}>
-              <svg class="container-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-              </svg>
-              <span class="container-name">{container.title}</span>
-              {#if container.child_count > 0}
-                <span class="container-count">{container.child_count}</span>
-              {/if}
-              <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
-            </button>
-          {/each}
-        </div>
+        {@const hasArt = browseResult.containers.some(c => c.album_art_uri)}
+        {#if hasArt}
+          <div class="album-grid">
+            {#each browseResult.containers as container}
+              <button class="album-grid-card" onclick={() => browseTo(container.id, container.title)}>
+                {#if container.album_art_uri}
+                  <img src={container.album_art_uri} alt="" class="album-grid-art" />
+                {:else}
+                  <div class="album-grid-placeholder">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32" opacity="0.3"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                  </div>
+                {/if}
+                <span class="album-grid-title truncate">{container.title}</span>
+              </button>
+            {/each}
+          </div>
+        {:else}
+          <div class="container-list">
+            {#each browseResult.containers as container}
+              <button class="container-item" onclick={() => browseTo(container.id, container.title)}>
+                <svg class="container-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span class="container-name">{container.title}</span>
+                {#if container.child_count > 0}
+                  <span class="container-count">{container.child_count}</span>
+                {/if}
+                <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
+              </button>
+            {/each}
+          </div>
+        {/if}
       {/if}
 
       <!-- Items (tracks) -->
@@ -476,6 +494,56 @@
 
   .server-status.unavailable {
     color: var(--tune-text-muted);
+  }
+
+  /* Album grid */
+  .album-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+    margin-bottom: var(--space-lg);
+  }
+
+  .album-grid-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    padding: 0;
+    color: var(--tune-text);
+    transition: opacity 0.12s;
+  }
+
+  .album-grid-card:hover {
+    opacity: 0.85;
+  }
+
+  .album-grid-art {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+    background: var(--tune-surface);
+  }
+
+  .album-grid-placeholder {
+    width: 100%;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tune-surface);
+    border-radius: var(--radius-lg);
+    color: var(--tune-text-muted);
+  }
+
+  .album-grid-title {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
   }
 
   /* Container list */
