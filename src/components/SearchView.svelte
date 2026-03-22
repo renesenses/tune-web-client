@@ -101,12 +101,18 @@
   }
 
   async function playTrack(track: Track) {
-    if (!zone?.id) return;
+    if (!zone?.id) {
+      console.warn('No zone selected, cannot play track:', track.title);
+      return;
+    }
     try {
+      console.log('Playing track:', track.title, 'id:', track.id, 'source:', track.source, 'source_id:', track.source_id);
       if (track.id) {
         await api.play(zone.id, { track_id: track.id });
       } else if (track.source && track.source_id) {
         await api.play(zone.id, { source: track.source, source_id: track.source_id });
+      } else {
+        console.error('Track has no id and no source_id:', track);
       }
     } catch (e) {
       console.error('Play track error:', e);
