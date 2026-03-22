@@ -1,6 +1,7 @@
 <script lang="ts">
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, type LibraryTab } from '../lib/stores/library';
   import { currentZone } from '../lib/stores/zones';
+  import { queueTracks, queuePosition } from '../lib/stores/queue';
   import * as api from '../lib/api';
   import { formatTime, formatDuration, formatAudioBadge } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
@@ -255,6 +256,10 @@
       } else if (track.source && track.source_id) {
         await api.addToQueue(zone.id, { source: track.source, source_id: track.source_id });
       }
+      // Refresh queue after add
+      const qs = await api.getQueue(zone.id);
+      queueTracks.set(qs.tracks);
+      queuePosition.set(qs.position);
     } catch (e) {
       console.error('Add to queue error:', e);
     }

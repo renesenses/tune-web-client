@@ -1,6 +1,7 @@
 <script lang="ts">
   import { activeStreamingService } from '../lib/stores/streaming';
   import { currentZone } from '../lib/stores/zones';
+  import { queueTracks, queuePosition } from '../lib/stores/queue';
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
@@ -169,6 +170,10 @@
     if (!zone?.id || !track.source || !track.source_id) return;
     try {
       await api.addToQueue(zone.id, { source: track.source as any, source_id: track.source_id });
+      // Refresh queue after add
+      const qs = await api.getQueue(zone.id);
+      queueTracks.set(qs.tracks);
+      queuePosition.set(qs.position);
     } catch (e) {
       console.error('Add streaming track to queue error:', e);
     }
