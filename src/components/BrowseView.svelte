@@ -93,10 +93,14 @@
     }
   }
 
-  async function addTrackToQueue(trackId: number) {
+  async function addTrackToQueue(track: Track) {
     if (!zone?.id) return;
     try {
-      await api.addToQueue(zone.id, { track_id: trackId });
+      if (track.id) {
+        await api.addToQueue(zone.id, { track_id: track.id });
+      } else if (track.source && track.source_id) {
+        await api.addToQueue(zone.id, { source: track.source, source_id: track.source_id });
+      }
     } catch (e) {
       console.error('Add to queue error:', e);
     }
@@ -229,7 +233,7 @@
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
-              <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title={$tr('queue.addToQueue')}>+</button>
+              <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               {#if onAddToPlaylist && (t.id || t.source_id)}
                 <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>

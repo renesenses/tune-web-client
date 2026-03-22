@@ -98,10 +98,14 @@
     }
   }
 
-  async function addTrackToQueue(trackId: number) {
+  async function addTrackToQueue(track: Track) {
     if (!zone?.id) return;
     try {
-      await api.addToQueue(zone.id, { track_id: trackId });
+      if (track.id) {
+        await api.addToQueue(zone.id, { track_id: track.id });
+      } else if (track.source && track.source_id) {
+        await api.addToQueue(zone.id, { source: track.source, source_id: track.source_id });
+      }
     } catch (e) {
       console.error('Add to queue error:', e);
     }
@@ -229,7 +233,7 @@
                 </div>
                 {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
-                <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title={$tr('queue.addToQueue')}>+</button>
+                <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
                 {#if onAddToPlaylist && (t.id || t.source_id)}
                   <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
@@ -254,7 +258,7 @@
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
-              <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); t.id && addTrackToQueue(t.id); }} title={$tr('queue.addToQueue')}>+</button>
+              <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               {#if onAddToPlaylist && (t.id || t.source_id)}
                 <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
