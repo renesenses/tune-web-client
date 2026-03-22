@@ -165,6 +165,15 @@
     }
   }
 
+  async function addStreamingTrackToQueue(track: Track) {
+    if (!zone?.id || !track.source || !track.source_id) return;
+    try {
+      await api.addToQueue(zone.id, { source: track.source as any, source_id: track.source_id });
+    } catch (e) {
+      console.error('Add streaming track to queue error:', e);
+    }
+  }
+
   function goBack() {
     selectedAlbum = null;
     selectedArtist = null;
