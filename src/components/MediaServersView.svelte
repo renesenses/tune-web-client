@@ -116,12 +116,16 @@
   }
 
   async function playItem(item: MediaServerItem) {
-    if (!zone?.id) return;
+    if (!zone?.id || !item.res_url) return;
     try {
-      if (item.res_url) {
-        // Play directly via stream URL
-        await api.play(zone.id, { file_path: item.res_url });
-      }
+      // Build track with metadata and add to queue then play
+      const body: Record<string, unknown> = { file_path: item.res_url };
+      if (item.title) body.title = item.title;
+      if (item.artist) body.artist_name = item.artist;
+      if (item.album) body.album_title = item.album;
+      if (item.album_art_uri) body.cover_path = item.album_art_uri;
+      if (item.duration_ms) body.duration_ms = item.duration_ms;
+      await api.play(zone.id, body as any);
     } catch (e) {
       console.error('Play media server item error:', e);
     }
