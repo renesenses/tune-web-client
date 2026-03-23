@@ -151,6 +151,34 @@
     }
   }
 
+  async function playAllItems() {
+    if (!zone?.id || !browseResult) return;
+    const items = browseResult.items.filter(i => i.res_url);
+    if (items.length === 0) return;
+    try {
+      // Play first track
+      await playItem(items[0]);
+      // Add rest to queue
+      for (let i = 1; i < items.length; i++) {
+        await addItemToQueue(items[i]);
+      }
+    } catch (e) {
+      console.error('Play all items error:', e);
+    }
+  }
+
+  async function addAllItemsToQueue() {
+    if (!zone?.id || !browseResult) return;
+    const items = browseResult.items.filter(i => i.res_url);
+    try {
+      for (const item of items) {
+        await addItemToQueue(item);
+      }
+    } catch (e) {
+      console.error('Add all to queue error:', e);
+    }
+  }
+
   function parseItemFormat(item: MediaServerItem): string {
     if (!item.res_url) return '';
     const url = item.res_url.toLowerCase();
@@ -253,6 +281,13 @@
       {#if browseResult.items.length > 0}
         <div class="items-header">
           <span class="items-count">{browseResult.items.length} {$tr('mediaservers.items')}</span>
+          <div class="items-actions">
+            <button class="play-all-btn" onclick={() => playAllItems()}>
+              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
+              Lire l'album
+            </button>
+            <button class="add-all-btn" onclick={() => addAllItemsToQueue()}>+ Tout ajouter</button>
+          </div>
         </div>
         <div class="item-list">
           {#each browseResult.items as item, index}
@@ -624,6 +659,12 @@
     padding-top: var(--space-md);
   }
 
+  .items-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
   .items-count {
     font-family: var(--font-label);
     font-size: 13px;
@@ -631,6 +672,48 @@
     color: var(--tune-text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+  }
+
+  .items-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .play-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--tune-accent);
+    color: white;
+    border: none;
+    padding: 6px 16px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.12s;
+  }
+
+  .play-all-btn:hover {
+    opacity: 0.85;
+  }
+
+  .add-all-btn {
+    background: none;
+    color: var(--tune-text-secondary);
+    border: 1px solid var(--tune-border);
+    padding: 6px 14px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .add-all-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
   }
 
   .item-list {
