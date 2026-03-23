@@ -1,5 +1,6 @@
 <script lang="ts">
   import { currentZone } from '../lib/stores/zones';
+  import { queueTracks, queuePosition } from '../lib/stores/queue';
   import * as api from '../lib/api';
   import { t as tr } from '../lib/i18n';
   import { formatTime } from '../lib/utils';
@@ -134,7 +135,17 @@
   async function addItemToQueue(item: MediaServerItem) {
     if (!zone?.id || !item.res_url) return;
     try {
-      await api.addToQueue(zone.id, { file_path: item.res_url });
+      const body: Record<string, unknown> = { file_path: item.res_url };
+      if (item.title) body.title = item.title;
+      if (item.artist) body.artist_name = item.artist;
+      if (item.album) body.album_title = item.album;
+      if (item.album_art_uri) body.cover_path = item.album_art_uri;
+      if (item.duration_ms) body.duration_ms = item.duration_ms;
+      await api.addToQueue(zone.id, body as any);
+      // Refresh queue
+      const qs = await api.getQueue(zone.id);
+      queueTracks.set(qs.tracks);
+      queuePosition.set(qs.position);
     } catch (e) {
       console.error('Add to queue error:', e);
     }
