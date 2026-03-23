@@ -3,7 +3,7 @@
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import * as api from '../lib/api';
   import { t as tr } from '../lib/i18n';
-  import { formatTime } from '../lib/utils';
+  import { formatTime, formatAudioBadge } from '../lib/utils';
   import type { MediaServer, MediaServerBrowseResult, MediaServerItem } from '../lib/types';
 
   let zone = $derived($currentZone);
@@ -179,28 +179,24 @@
     }
   }
 
-  function parseItemFormat(item: MediaServerItem): string {
-    if (!item.res_url) return '';
+  function parseItemAudio(item: MediaServerItem): { format?: string; sample_rate?: number; bit_depth?: number } | null {
+    if (!item.res_url) return null;
     const url = item.res_url.toLowerCase();
-    // Extract format from URL extension
     let fmt = '';
-    if (url.includes('.flac')) fmt = 'FLAC';
-    else if (url.includes('.wav')) fmt = 'WAV';
-    else if (url.includes('.mp3')) fmt = 'MP3';
-    else if (url.includes('.m4a') || url.includes('.aac')) fmt = 'AAC';
-    else if (url.includes('.ogg')) fmt = 'OGG';
-    else if (url.includes('.dsf') || url.includes('.dsd')) fmt = 'DSD';
-    else if (url.includes('.aiff') || url.includes('.aif')) fmt = 'AIFF';
+    if (url.includes('.flac')) fmt = 'flac';
+    else if (url.includes('.wav')) fmt = 'wav';
+    else if (url.includes('.mp3')) fmt = 'mp3';
+    else if (url.includes('.m4a') || url.includes('.aac')) fmt = 'aac';
+    else if (url.includes('.ogg')) fmt = 'ogg';
+    else if (url.includes('.dsf') || url.includes('.dsd')) fmt = 'dsd';
+    else if (url.includes('.aiff') || url.includes('.aif')) fmt = 'aiff';
 
-    // Try to parse Asset UPnP URL pattern: /content/c2/b16/f44100/
+    // Parse Asset UPnP URL pattern: /content/c2/b16/f44100/
     const match = url.match(/\/c(\d+)\/b(\d+)\/f(\d+)\//);
     if (match) {
-      const bits = parseInt(match[2]);
-      const rate = parseInt(match[3]);
-      const rateStr = rate >= 1000 ? `${rate / 1000}kHz` : `${rate}Hz`;
-      return `${fmt} ${rateStr}/${bits}bit`.trim();
+      return { format: fmt || undefined, bit_depth: parseInt(match[2]), sample_rate: parseInt(match[3]) };
     }
-    return fmt;
+    return fmt ? { format: fmt } : null;
   }
 
   // Load servers on mount
@@ -312,8 +308,8 @@
                   {#if item.album}<span>{item.album}</span>{/if}
                 </span>
               </div>
-              {#if parseItemFormat(item)}
-                <span class="item-format">{parseItemFormat(item)}</span>
+              {#if parseItemAudio(item)}
+                <span class="audio-format">{formatAudioBadge(parseItemAudio(item))}</span>
               {/if}
               {#if item.duration_ms}
                 <span class="item-duration">{formatTime(item.duration_ms)}</span>
@@ -765,14 +761,11 @@
     border-radius: var(--radius-sm);
   }
 
-  .item-format {
+  .audio-format {
     font-family: var(--font-label);
-    font-size: 10px;
-    font-weight: 500;
-    color: var(--tune-accent);
-    background: rgba(107, 110, 217, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    letter-spacing: 0.3px;
     flex-shrink: 0;
     white-space: nowrap;
   }
