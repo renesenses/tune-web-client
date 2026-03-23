@@ -239,8 +239,9 @@
     {:else}
       <!-- Containers: grid with covers if albums, list if folders -->
       {#if browseResult.containers.length > 0}
-        {@const categoryNames = new Set(['Album Artist', 'Album', 'Title', 'Composer', 'Genre', 'Dynamic Browsing', 'TuneIn Internet Radio', 'Additional', 'New Albums', 'Jukebox Track Selection', 'Top Artists', 'Top Albums', 'All Albums', 'All Artists'])}
-        {@const isAlbumGrid = browseResult.containers.length > 10 && browseResult.containers.some(c => c.album_art_uri) && !browseResult.containers.some(c => categoryNames.has(c.title))}
+        {@const categoryNames = new Set(['Album Artist', 'Album', 'Title', 'Composer', 'Genre', 'Dynamic Browsing', 'TuneIn Internet Radio', 'Additional', 'New Albums', 'Jukebox Track Selection', 'Top Artists', 'Top Albums', 'All Albums', 'All Artists', '[All Albums]', '[All Artists]'])}
+        {@const isCategoryLevel = browseResult.containers.every(c => categoryNames.has(c.title) || c.title.match(/^\[.*\]$/))}
+        {@const isAlbumGrid = !isCategoryLevel && browseResult.containers.some(c => c.album_art_uri)}
         {#if isAlbumGrid}
           <div class="album-grid">
             {#each browseResult.containers as container}
