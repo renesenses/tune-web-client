@@ -239,8 +239,9 @@
     {:else}
       <!-- Containers: grid with covers if albums, list if folders -->
       {#if browseResult.containers.length > 0}
-        {@const hasArt = browseResult.containers.some(c => c.album_art_uri)}
-        {#if hasArt}
+        {@const categoryNames = new Set(['Album Artist', 'Album', 'Title', 'Composer', 'Genre', 'Dynamic Browsing', 'TuneIn Internet Radio', 'Additional', 'New Albums', 'Jukebox Track Selection', 'Top Artists', 'Top Albums', 'All Albums', 'All Artists'])}
+        {@const isAlbumGrid = browseResult.containers.length > 10 && browseResult.containers.some(c => c.album_art_uri) && !browseResult.containers.some(c => categoryNames.has(c.title))}
+        {#if isAlbumGrid}
           <div class="album-grid">
             {#each browseResult.containers as container}
               <button class="album-grid-card" onclick={() => browseTo(container.id, container.title)}>
