@@ -61,6 +61,33 @@
     }
   });
 
+  // Recording state
+  let isRecording = $state(false);
+
+  async function toggleRecording() {
+    if (!zone?.id) return;
+    try {
+      if (isRecording) {
+        await api.stopRecording(zone.id);
+        isRecording = false;
+      } else {
+        await api.startRecording(zone.id);
+        isRecording = true;
+      }
+    } catch (e) {
+      console.error('Toggle recording error:', e);
+    }
+  }
+
+  // Check recording status on zone change
+  $effect(() => {
+    if (zone?.id) {
+      api.getRecordingStatus(zone.id).then(s => {
+        isRecording = s.state === 'recording';
+      }).catch(() => {});
+    }
+  });
+
   async function toggleShuffle() {
     if (!zone?.id) return;
     const result = await api.setShuffle(zone.id, !$shuffleEnabled);
@@ -174,6 +201,10 @@
                 <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
               </svg>
             {/if}
+          </button>
+
+          <button class="setting-btn record-btn" class:recording={isRecording} onclick={toggleRecording} title={isRecording ? 'Arrêter l\'enregistrement' : 'Enregistrer'}>
+            <span class="rec-circle" class:active={isRecording}></span>
           </button>
 
           {#if onAddToPlaylist && (displayTrack?.id || displayTrack?.source_id)}
@@ -474,6 +505,40 @@
   .setting-btn.active {
     opacity: 1;
     color: var(--tune-accent);
+  }
+
+  /* Record button */
+  .record-btn {
+    opacity: 0.7 !important;
+  }
+
+  .record-btn:hover {
+    opacity: 1 !important;
+  }
+
+  .record-btn.recording {
+    opacity: 1 !important;
+  }
+
+  .rec-circle {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #e53e3e;
+    background: transparent;
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+
+  .rec-circle.active {
+    background: #e53e3e;
+    box-shadow: 0 0 8px rgba(229, 62, 62, 0.6);
+    animation: rec-pulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes rec-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.9); }
   }
 
   .setting-spacer {

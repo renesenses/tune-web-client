@@ -608,6 +608,20 @@ export function exportRadiosUrl(): string {
   return `${BASE}/radios/export.m3u`;
 }
 
+// --- Recording ---
+
+export function startRecording(zoneId: number) {
+  return fetchJSON<{ status: string; zone_id: number }>(`${BASE}/zones/${zoneId}/record/start`, { method: 'POST' });
+}
+
+export function stopRecording(zoneId: number) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/record/stop`, { method: 'POST' });
+}
+
+export function getRecordingStatus(zoneId: number) {
+  return fetchJSON<{ zone_id: number; state: string }>(`${BASE}/zones/${zoneId}/record/status`);
+}
+
 // --- Artwork ---
 
 export function artworkUrl(coverPath: string | null | undefined): string {
