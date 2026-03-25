@@ -10,7 +10,7 @@
   import type { SystemHealth, SystemStats, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
 
-  const CLIENT_VERSION = '0.1.6';
+  const CLIENT_VERSION = __APP_VERSION__;
   let serverVersion = $state<string | null>(null);
 
   let health: SystemHealth | null = $state(null);
