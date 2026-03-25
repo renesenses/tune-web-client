@@ -31,9 +31,11 @@
       if (ytActive) ytLoading.set(true);
       if (state === 'playing') await api.pause(zone.id);
       else await api.resume(zone.id);
+    } else if (zone?.id && state === 'stopped' && track) {
+      // Zone stopped but has a current track (e.g. DLNA write failed) — resume playback
+      await api.play(zone.id);
     } else if (zone?.id && state === 'stopped' && ytActive && ytTrack?.source_id) {
-      // Zone stopped (e.g. stream ended) but IFrame has a YT track — restart via API
-      // Passing source/source_id forces fresh URL resolution on the backend
+      // Zone stopped but IFrame has a YT track — restart via API
       ytLoading.set(true);
       await api.play(zone.id, { source: ytTrack.source as any, source_id: ytTrack.source_id });
     } else if (ytActive) {
@@ -112,7 +114,7 @@
 
     <button
       class="control-btn"
-      disabled={state === 'stopped' && !ytActive}
+      disabled={state === 'stopped' && !ytActive && !track}
       onclick={handlePrevious}
       title={$t('transport.previous')}
     >
@@ -145,7 +147,7 @@
 
     <button
       class="control-btn"
-      disabled={state === 'stopped' && !ytActive}
+      disabled={state === 'stopped' && !ytActive && !track}
       onclick={handleNext}
       title={$t('transport.next')}
     >
