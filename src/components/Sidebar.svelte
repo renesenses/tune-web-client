@@ -840,9 +840,25 @@
     color: var(--tune-accent);
   }
 
-  @media (max-width: 768px) {
+  /* Tablet: sidebar icônes seulement */
+  @media (max-width: 1024px) {
     .sidebar {
-      display: none;
+      width: var(--sidebar-collapsed-width);
+      overflow: hidden;
     }
+    .sidebar-header { padding: var(--space-md) 0; align-items: center; }
+    .logo { justify-content: center; }
+    .logo span, .version, .connection-status .state-text { display: none; }
+    .section-label { display: none; }
+    .nav-item { justify-content: center; padding: 12px 0; font-size: 0; }
+    .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+    .zones-section, .devices-section, .services-section { display: none; }
+    .resize-handle { display: none; }
+    .connected-dot { display: none; }
+  }
+
+  /* Mobile: sidebar cachée (BottomTabBar prend le relais) */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
   }
 </style>

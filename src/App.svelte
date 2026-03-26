@@ -33,7 +33,9 @@
   import GenresView from './components/GenresView.svelte';
   import MediaServersView from './components/MediaServersView.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
+  import BottomTabBar from './components/BottomTabBar.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
+  import { mobileNowPlayingOpen } from './lib/stores/navigation';
 
   import type { Track } from './lib/types';
 
@@ -365,6 +367,19 @@
 
   <TransportBar />
 
+  <BottomTabBar />
+
+  {#if $mobileNowPlayingOpen}
+    <div class="mobile-np-overlay">
+      <button class="mobile-np-close" onclick={() => mobileNowPlayingOpen.set(false)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      <NowPlaying onAddToPlaylist={openPlaylistModal} />
+    </div>
+  {/if}
+
   {#if errorMessage}
     <div class="error-toast">
       <svg class="error-toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
@@ -514,13 +529,72 @@
     }
   }
 
+  /* Tablet: sidebar icônes */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .app-layout {
+      grid-template-columns: var(--sidebar-collapsed-width) 1fr;
+    }
+  }
+
+  /* Mobile: pas de sidebar, tab bar en bas */
   @media (max-width: 768px) {
     .app-layout {
       grid-template-columns: 1fr;
+      grid-template-rows: 1fr var(--mini-player-height);
+      padding-bottom: var(--tab-bar-height);
     }
 
     .main-content {
       grid-column: 1;
+    }
+
+    .app-layout > :global(.transport-bar) {
+      grid-column: 1;
+    }
+
+    .error-toast {
+      left: 50%;
+      bottom: calc(var(--mini-player-height) + var(--tab-bar-height) + 16px);
+    }
+  }
+
+  /* Overlay NowPlaying mobile (plein écran) */
+  .mobile-np-overlay {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .mobile-np-overlay {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 150;
+      background: var(--tune-bg);
+      overflow-y: auto;
+      animation: slideUp 0.25s ease-out;
+    }
+
+    .mobile-np-close {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 151;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--tune-text);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
     }
   }
 </style>

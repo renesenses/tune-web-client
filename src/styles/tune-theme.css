@@ -46,6 +46,22 @@
   /* Layout */
   --transport-height: 90px;
   --sidebar-width: 280px;
+  --sidebar-collapsed-width: 64px;
+  --tab-bar-height: 56px;
+  --mini-player-height: 56px;
+}
+
+/* Tablet: sidebar collapsée */
+@media (max-width: 1024px) {
+  :root { --sidebar-width: var(--sidebar-collapsed-width); }
+}
+
+/* Mobile: pas de sidebar, transport compact */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 0px;
+    --transport-height: var(--mini-player-height);
+  }
 }
 
 /* Global reset */

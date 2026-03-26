@@ -716,4 +716,31 @@
     font-size: 13px;
     opacity: 0.7;
   }
+
+  @media (max-width: 768px) {
+    .now-playing {
+      padding: var(--space-md);
+      padding-top: 56px; /* espace pour le bouton close */
+    }
+
+    .content-layout {
+      max-width: 100%;
+    }
+
+    .artwork-container {
+      max-width: 280px;
+    }
+
+    .track-title {
+      font-size: 24px;
+    }
+
+    .track-artist {
+      font-size: 16px;
+    }
+
+    .track-album {
+      font-size: 13px;
+    }
+  }
 </style>

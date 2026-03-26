@@ -7,7 +7,15 @@
   import VolumeControl from './VolumeControl.svelte';
   import { t } from '../lib/i18n';
   import type { RepeatMode } from '../lib/types';
-  import { activeView } from '../lib/stores/navigation';
+  import { activeView, mobileNowPlayingOpen } from '../lib/stores/navigation';
+
+  function handleBarClick(e: MouseEvent) {
+    if ((e.target as HTMLElement).closest('.control-btn')) return;
+    if ((e.target as HTMLElement).closest('.zone-dropdown')) return;
+    if (window.innerWidth <= 768) {
+      mobileNowPlayingOpen.set(true);
+    }
+  }
 
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
@@ -72,7 +80,9 @@
   }
 </script>
 
-<div class="transport-bar">
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="transport-bar" onclick={handleBarClick}>
   <div class="transport-left">
     {#if displayTrack}
       <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -481,11 +491,43 @@
 
   @media (max-width: 768px) {
     .transport-bar {
-      grid-template-columns: 1fr;
-      padding: var(--space-sm) var(--space-md);
+      grid-template-columns: 1fr auto;
+      padding: var(--space-xs) var(--space-md);
+      gap: var(--space-sm);
+      height: var(--mini-player-height);
+      cursor: pointer;
+      margin-bottom: var(--tab-bar-height);
     }
 
-    .transport-left,
+    .transport-left {
+      display: flex;
+      min-width: 0;
+    }
+
+    .transport-left :global(.album-art) {
+      width: 40px !important;
+      height: 40px !important;
+      min-width: 40px !important;
+      min-height: 40px !important;
+    }
+
+    .transport-controls {
+      gap: 4px;
+    }
+
+    /* Mini-player: seulement play/pause + next */
+    .transport-controls .control-btn.small { display: none; }
+
+    .transport-controls .play-btn {
+      width: 36px;
+      height: 36px;
+    }
+
+    .transport-controls .play-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
     .transport-right {
       display: none;
     }
