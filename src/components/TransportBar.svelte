@@ -99,8 +99,11 @@
           <span class="mini-artist truncate">
             {#if ytActive}<span class="yt-badge">YT</span>{/if}
             {#if displayTrack.source === 'radio'}
-              <span class="radio-antenna">&#x1F4E1;</span>
-              {displayTrack.album_title || 'Live Radio'}
+              {displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title
+                ? displayTrack.artist_name
+                : displayTrack.album_title || 'Live Radio'}
+              <span class="radio-station-sep">·</span>
+              <span class="radio-antenna">&#x1F4E1;</span>{displayTrack.album_title || 'Radio'}
             {:else}
               {displayTrack.artist_name ?? ''}
             {/if}
@@ -320,6 +323,12 @@
   .radio-antenna {
     font-size: 11px;
     flex-shrink: 0;
+    opacity: 0.6;
+  }
+
+  .radio-station-sep {
+    margin: 0 4px;
+    opacity: 0.4;
   }
 
   .transport-controls {

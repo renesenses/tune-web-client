@@ -160,9 +160,7 @@
             <p class="radio-station-name truncate">{displayTrack.album_title || zone?.name || 'Radio'}</p>
           {/if}
           <h2 class="track-title truncate">{displayTrack.title}</h2>
-          {#if displayTrack.artist_name && displayTrack.artist_name !== 'Radio'}
-            <p class="track-artist truncate">{displayTrack.artist_name}</p>
-          {:else if !isRadio && displayTrack.artist_name}
+          {#if displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title}
             <p class="track-artist truncate">{displayTrack.artist_name}</p>
           {/if}
           {#if !isRadio && displayTrack.album_title}
