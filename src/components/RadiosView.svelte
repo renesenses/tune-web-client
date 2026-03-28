@@ -4,11 +4,56 @@
   import * as api from '../lib/api';
   import type { RadioStation } from '../lib/types';
 
+  type Tab = 'stations' | 'saved';
+  let activeTab = $state<Tab>('stations');
+
   let radios = $state<RadioStation[]>([]);
   let loading = $state(true);
   let filterGenre = $state<string | null>(null);
   let filterFavorite = $state(false);
   let genres = $derived([...new Set(radios.map(r => r.genre).filter(Boolean))].sort());
+
+  // Radio favorites (saved tracks)
+  interface RadioFav { id: number; title: string; artist: string; station_name: string; cover_url?: string; stream_url?: string; saved_at: string; }
+  let savedTracks = $state<RadioFav[]>([]);
+  let savedLoading = $state(false);
+  let savedCount = $state(0);
+
+  async function loadSavedTracks() {
+    savedLoading = true;
+    try {
+      savedTracks = await api.apiFetch('/radio-favorites?limit=500');
+      savedCount = savedTracks.length;
+    } catch { savedTracks = []; savedCount = 0; }
+    savedLoading = false;
+  }
+
+  async function removeSavedTrack(fav: RadioFav) {
+    try {
+      await api.apiDelete(`/radio-favorites/${fav.id}`);
+      savedTracks = savedTracks.filter(f => f.id !== fav.id);
+      savedCount = savedTracks.length;
+    } catch (e) { console.error('Delete radio fav:', e); }
+  }
+
+  async function clearAllSaved() {
+    if (!confirm($t('radio.clearConfirm'))) return;
+    try {
+      await api.apiDelete('/radio-favorites');
+      savedTracks = [];
+      savedCount = 0;
+    } catch (e) { console.error('Clear radio favs:', e); }
+  }
+
+  function formatDate(iso: string): string {
+    try { return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+    catch { return iso; }
+  }
+
+  function switchTab(tab: Tab) {
+    activeTab = tab;
+    if (tab === 'saved' && savedTracks.length === 0) loadSavedTracks();
+  }
 
   let filtered = $derived.by(() => {
     let list = radios;
@@ -178,6 +223,21 @@
 <div class="radios-view">
   <header class="radios-header">
     <h2>{$t('radio.title')}</h2>
+    <div class="tab-bar">
+      <button class="tab-btn" class:active={activeTab === 'stations'} onclick={() => switchTab('stations')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5"></path></svg>
+        {$t('radio.stations')}
+      </button>
+      <button class="tab-btn" class:active={activeTab === 'saved'} onclick={() => switchTab('saved')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+        {$t('radio.savedTracks')}
+        {#if savedCount > 0}<span class="tab-badge">{savedCount}</span>{/if}
+      </button>
+    </div>
+  </header>
+
+  {#if activeTab === 'stations'}
+  <div class="stations-actions">
     <div class="header-actions">
       <button class="btn-add" onclick={() => showAdd = !showAdd}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
@@ -193,7 +253,7 @@
         {$t('radio.export')}
       </a>
     </div>
-  </header>
+  </div>
 
   {#if importMessage}
     <div class="import-toast">{importMessage}</div>
@@ -263,6 +323,53 @@
         </div>
       {/each}
     </div>
+  {/if}
+  {/if}
+
+  {#if activeTab === 'saved'}
+  <div class="saved-header">
+    {#if savedCount > 0}
+      <span class="saved-count">{$t('radio.trackCount').replace('{count}', String(savedCount))}</span>
+      <div class="saved-actions">
+        <a class="btn-add" href="/api/v1/radio-favorites/export" download="radio_favorites.csv">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+          {$t('radio.exportCsv')}
+        </a>
+        <button class="btn-danger" onclick={clearAllSaved}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+          {$t('radio.clearAll')}
+        </button>
+      </div>
+    {/if}
+  </div>
+
+  {#if savedLoading}
+    <div class="empty-state">{$t('common.loading')}</div>
+  {:else if savedTracks.length === 0}
+    <div class="empty-state">{$t('radio.noSavedTracks')}</div>
+  {:else}
+    <div class="saved-list">
+      {#each savedTracks as fav}
+        <div class="saved-row">
+          <div class="saved-cover">
+            {#if fav.cover_url}
+              <img src={api.artworkUrl(fav.cover_url)} alt="" />
+            {:else}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><circle cx="12" cy="12" r="10" /><path d="M9 12l2 2 4-4" /></svg>
+            {/if}
+          </div>
+          <div class="saved-info">
+            <span class="saved-title">{fav.title}</span>
+            <span class="saved-artist">{fav.artist}</span>
+            <span class="saved-station">{fav.station_name} · {formatDate(fav.saved_at)}</span>
+          </div>
+          <button class="action-btn delete-btn" onclick={() => removeSavedTrack(fav)} title={$t('common.delete')}>
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+          </button>
+        </div>
+      {/each}
+    </div>
+  {/if}
   {/if}
 
   {#if editRadio}
@@ -357,6 +464,45 @@
     font-size: 24px;
     font-weight: 700;
     color: var(--tune-text);
+  }
+
+  .tab-bar {
+    display: flex;
+    gap: 2px;
+    background: var(--tune-bg);
+    border-radius: var(--radius-md);
+    padding: 2px;
+  }
+
+  .tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--tune-text-secondary);
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.12s ease-out;
+  }
+
+  .tab-btn:hover { color: var(--tune-text); }
+  .tab-btn.active { background: var(--tune-surface); color: var(--tune-text); font-weight: 600; }
+
+  .tab-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: var(--tune-accent);
+    color: white;
+    font-weight: 700;
+  }
+
+  .stations-actions {
+    margin-bottom: var(--space-md);
   }
 
   .header-actions {
@@ -818,5 +964,128 @@
 
   .edit-label input:focus {
     border-color: var(--tune-accent);
+  }
+
+  /* Saved tracks */
+  .saved-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+  }
+
+  .saved-count {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-secondary);
+  }
+
+  .saved-actions {
+    display: flex;
+    gap: var(--space-sm);
+  }
+
+  .btn-danger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.12s ease-out;
+  }
+
+  .btn-danger:hover {
+    border-color: var(--tune-danger, #ef4444);
+    color: var(--tune-danger, #ef4444);
+  }
+
+  .saved-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .saved-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 8px 16px;
+    background: var(--tune-surface);
+    border-radius: var(--radius-md);
+    transition: background 0.12s ease-out;
+  }
+
+  .saved-row:hover {
+    background: var(--tune-surface-hover);
+  }
+
+  .saved-cover {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--tune-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tune-text-muted);
+  }
+
+  .saved-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .saved-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .saved-title {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--tune-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .saved-artist {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .saved-station {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+  }
+
+  .saved-row .delete-btn {
+    color: #e74c6f;
+    opacity: 0.4;
+    transition: opacity 0.12s;
+  }
+
+  .saved-row .delete-btn:hover {
+    opacity: 1;
+    background: none;
+    color: #e74c6f;
   }
 </style>

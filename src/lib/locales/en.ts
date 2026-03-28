@@ -306,6 +306,14 @@ export default {
   'radio.orClickToUpload': 'or click to upload',
   'radio.uploadingCover': 'Uploading...',
   'radio.coverUploaded': 'Cover saved!',
+  'radio.stations': 'Stations',
+  'radio.savedTracks': 'Saved Tracks',
+  'radio.noSavedTracks': 'No tracks saved yet. Use the heart button while listening to a radio.',
+  'radio.savedOn': 'Saved on',
+  'radio.exportCsv': 'Export CSV',
+  'radio.clearAll': 'Clear all',
+  'radio.clearConfirm': 'Delete all saved radio tracks?',
+  'radio.trackCount': '{count} track(s) saved',
 
   // Pairing
   'pairing.pair': 'Pair',

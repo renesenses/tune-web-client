@@ -306,6 +306,14 @@ export default {
   'radio.orClickToUpload': 'ou cliquez pour uploader',
   'radio.uploadingCover': 'Upload en cours...',
   'radio.coverUploaded': 'Cover enregistrée !',
+  'radio.stations': 'Stations',
+  'radio.savedTracks': 'Titres sauvegardés',
+  'radio.noSavedTracks': 'Aucun titre sauvegardé. Utilisez le bouton coeur pendant l\'écoute d\'une radio.',
+  'radio.savedOn': 'Enregistré le',
+  'radio.exportCsv': 'Exporter CSV',
+  'radio.clearAll': 'Tout supprimer',
+  'radio.clearConfirm': 'Supprimer tous les titres radio sauvegardés ?',
+  'radio.trackCount': '{count} titre(s) sauvegardé(s)',
 
   // Pairing
   'pairing.pair': 'Associer',
