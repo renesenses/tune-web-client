@@ -433,14 +433,20 @@
     overflow-x: hidden;
     overflow-y: auto;
     position: relative;
+    /* Firefox / Windows standard scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: var(--tune-border) transparent;
   }
 
   .sidebar::-webkit-scrollbar {
-    width: 4px;
+    width: 6px;
   }
   .sidebar::-webkit-scrollbar-thumb {
-    background: var(--tune-border);
-    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+  }
+  .sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
   }
   .sidebar::-webkit-scrollbar-track {
     background: transparent;
