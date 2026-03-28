@@ -9,6 +9,45 @@
   import type { RepeatMode } from '../lib/types';
   import { activeView, mobileNowPlayingOpen } from '../lib/stores/navigation';
 
+  let isFavorite = $state(false);
+  let favChecking = $state(false);
+
+  // Check if current radio track is a favorite
+  $effect(() => {
+    const track = $currentTrack;
+    if (track?.source === 'radio' && track.title && track.artist_name) {
+      checkFavorite(track.title, track.artist_name);
+    } else {
+      isFavorite = false;
+    }
+  });
+
+  async function checkFavorite(title: string, artist: string) {
+    try {
+      const res = await api.apiFetch(`/radio-favorites/is-favorite?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`);
+      isFavorite = res.is_favorite;
+    } catch { isFavorite = false; }
+  }
+
+  async function toggleFavorite() {
+    if (favChecking) return;
+    favChecking = true;
+    try {
+      if (isFavorite) {
+        // Find and delete
+        const favs = await api.apiFetch('/radio-favorites?limit=500');
+        const track = $currentTrack;
+        const match = favs.find((f: any) => f.title === track?.title && f.artist === track?.artist_name);
+        if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
+        isFavorite = false;
+      } else {
+        await api.apiPost('/radio-favorites/save-current');
+        isFavorite = true;
+      }
+    } catch {}
+    favChecking = false;
+  }
+
   function handleBarClick(e: MouseEvent) {
     if ((e.target as HTMLElement).closest('.control-btn')) return;
     if ((e.target as HTMLElement).closest('.zone-dropdown')) return;
@@ -110,6 +149,13 @@
           </span>
         </div>
       </div>
+      {#if displayTrack.source === 'radio'}
+        <button class="fav-btn control-btn" class:is-fav={isFavorite} onclick={toggleFavorite} title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}>
+          <svg viewBox="0 0 24 24" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="18" height="18">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
+        </button>
+      {/if}
     {/if}
   </div>
 
@@ -329,6 +375,26 @@
   .radio-station-sep {
     margin: 0 4px;
     opacity: 0.4;
+  }
+
+  .fav-btn {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 4px;
+    margin-left: 4px;
+    flex-shrink: 0;
+    transition: color 0.2s, transform 0.15s;
+  }
+
+  .fav-btn:hover {
+    color: var(--tune-text);
+    transform: scale(1.15);
+  }
+
+  .fav-btn.is-fav {
+    color: #e74c6f;
   }
 
   .transport-controls {

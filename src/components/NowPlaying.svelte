@@ -8,6 +8,37 @@
   import SeekBar from './SeekBar.svelte';
   import { t } from '../lib/i18n';
   import type { RepeatMode, Track } from '../lib/types';
+
+  let isFavorite = $state(false);
+  let favChecking = $state(false);
+
+  $effect(() => {
+    const tr = track;
+    if (tr?.source === 'radio' && tr.title && tr.artist_name) {
+      api.apiFetch(`/radio-favorites/is-favorite?title=${encodeURIComponent(tr.title)}&artist=${encodeURIComponent(tr.artist_name)}`)
+        .then((r: any) => { isFavorite = r.is_favorite; })
+        .catch(() => { isFavorite = false; });
+    } else {
+      isFavorite = false;
+    }
+  });
+
+  async function toggleFav() {
+    if (favChecking) return;
+    favChecking = true;
+    try {
+      if (isFavorite) {
+        const favs = await api.apiFetch('/radio-favorites?limit=500');
+        const match = favs.find((f: any) => f.title === track?.title && f.artist === track?.artist_name);
+        if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
+        isFavorite = false;
+      } else {
+        await api.apiPost('/radio-favorites/save-current');
+        isFavorite = true;
+      }
+    } catch {}
+    favChecking = false;
+  }
   import { ytPlayerState, ytVideoRect, showYTVideo, hideYTVideo } from '../lib/stores/ytPlayer';
   import { onDestroy } from 'svelte';
 
@@ -159,7 +190,16 @@
             </div>
             <p class="radio-station-name truncate">{displayTrack.album_title || zone?.name || 'Radio'}</p>
           {/if}
-          <h2 class="track-title truncate">{displayTrack.title}</h2>
+          <div class="track-title-row">
+            <h2 class="track-title truncate">{displayTrack.title}</h2>
+            {#if isRadio}
+              <button class="np-fav-btn" class:is-fav={isFavorite} onclick={toggleFav}>
+                <svg viewBox="0 0 24 24" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="22" height="22">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              </button>
+            {/if}
+          </div>
           {#if displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title}
             <p class="track-artist truncate">{displayTrack.artist_name}</p>
           {/if}
@@ -434,6 +474,12 @@
     text-align: center;
   }
 
+  .track-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   .track-title {
     font-family: var(--font-display);
     font-size: 36px;
@@ -441,6 +487,25 @@
     color: var(--tune-text);
     margin-bottom: var(--space-xs);
     line-height: 1.15;
+  }
+
+  .np-fav-btn {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 4px;
+    flex-shrink: 0;
+    transition: color 0.2s, transform 0.15s;
+  }
+
+  .np-fav-btn:hover {
+    color: var(--tune-text);
+    transform: scale(1.2);
+  }
+
+  .np-fav-btn.is-fav {
+    color: #e74c6f;
   }
 
   .track-artist {

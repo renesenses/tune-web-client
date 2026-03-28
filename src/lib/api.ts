@@ -26,6 +26,29 @@ import type {
 
 const BASE = '/api/v1';
 
+// Generic helpers for radio favorites and custom endpoints
+export async function apiFetch(path: string): Promise<any> {
+  const resp = await fetch(`${BASE}${path}`);
+  if (!resp.ok) throw new Error(`${resp.status}`);
+  return resp.json();
+}
+
+export async function apiPost(path: string, body?: any): Promise<any> {
+  const resp = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: body ? { 'Content-Type': 'application/json' } : {},
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!resp.ok) throw new Error(`${resp.status}`);
+  return resp.json();
+}
+
+export async function apiDelete(path: string): Promise<any> {
+  const resp = await fetch(`${BASE}${path}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(`${resp.status}`);
+  return resp.json();
+}
+
 async function apiError(response: Response): Promise<Error> {
   let detail = `${response.status} ${response.statusText}`;
   try {
