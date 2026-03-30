@@ -678,26 +678,14 @@
       {/if}
     </section>
 
-    <!-- Device visibility -->
+    <!-- Network Devices (DLNA / AirPlay) -->
     <section class="settings-section">
-      <h3>{$t('settings.devices')}</h3>
+      <h3>{$t('settings.networkDevices')}</h3>
       <div class="devices-actions">
         <button class="scan-btn small" onclick={showAllDevices}>{$t('settings.showAll')}</button>
         <button class="scan-btn small" onclick={hideAllDevices}>{$t('settings.hideAll')}</button>
       </div>
       <div class="device-toggle-list">
-        {#each audioDevices as device}
-          {@const prefId = `audio:${device.id}`}
-          <label class="device-toggle-item">
-            <input
-              type="checkbox"
-              checked={!$preferences.hiddenDeviceIds.includes(prefId)}
-              onchange={() => toggleDevice(prefId)}
-            />
-            <span class="device-toggle-name">{device.name}</span>
-            <span class="device-toggle-tag">{$t('settings.usb')}</span>
-          </label>
-        {/each}
         {#each $devices as device}
           {@const prefId = `net:${device.id}`}
           <label class="device-toggle-item">
@@ -706,8 +694,16 @@
               checked={!$preferences.hiddenDeviceIds.includes(prefId)}
               onchange={() => toggleDevice(prefId)}
             />
+            <svg class="device-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              {#if device.type === 'airplay'}
+                <path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1" /><polygon points="12 15 17 21 7 21 12 15" />
+              {:else}
+                <rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><polyline points="17 2 12 7 7 2" />
+              {/if}
+            </svg>
             <span class="device-toggle-name">{device.name}</span>
-            <span class="device-toggle-tag">{device.type === 'airplay' ? 'AirPlay' : device.type === 'dlna' ? 'DLNA' : device.type}</span>
+            <span class="device-toggle-tag {device.type}">{device.type === 'airplay' ? 'AirPlay' : 'DLNA'}</span>
+            {#if device.host}<span class="device-toggle-host">{device.host}</span>{/if}
             {#if device.type === 'airplay'}
               {#if pairingDeviceId === device.id && pairingAwaitingPin}
                 <input
@@ -739,8 +735,33 @@
             {/if}
           </label>
         {/each}
-        {#if audioDevices.length === 0 && $devices.length === 0}
-          <p class="muted">{$t('settings.noDevices')}</p>
+        {#if $devices.length === 0}
+          <p class="muted">{$t('settings.noNetworkDevices')}</p>
+        {/if}
+      </div>
+    </section>
+
+    <!-- Local Audio Outputs -->
+    <section class="settings-section">
+      <h3>{$t('settings.localAudio')}</h3>
+      <div class="device-toggle-list">
+        {#each audioDevices as device}
+          {@const prefId = `audio:${device.id}`}
+          <label class="device-toggle-item">
+            <input
+              type="checkbox"
+              checked={!$preferences.hiddenDeviceIds.includes(prefId)}
+              onchange={() => toggleDevice(prefId)}
+            />
+            <svg class="device-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <rect x="4" y="2" width="16" height="20" rx="2" /><circle cx="12" cy="14" r="4" /><line x1="12" y1="6" x2="12.01" y2="6" />
+            </svg>
+            <span class="device-toggle-name">{device.name}</span>
+            <span class="device-toggle-tag local">{device.channels}ch · {Math.round(device.sample_rate / 1000)} kHz</span>
+          </label>
+        {/each}
+        {#if audioDevices.length === 0}
+          <p class="muted">{$t('settings.noAudioDevices')}</p>
         {/if}
       </div>
     </section>
@@ -1412,6 +1433,23 @@
     background: var(--tune-bg);
     padding: 1px 6px;
     border-radius: var(--radius-sm);
+    flex-shrink: 0;
+  }
+
+  .device-toggle-tag.dlna { color: var(--tune-accent); background: rgba(117,116,243,0.1); }
+  .device-toggle-tag.airplay { color: var(--tune-success, #10b981); background: rgba(16,185,129,0.1); }
+  .device-toggle-tag.local { color: var(--tune-text-secondary); }
+
+  .device-type-icon {
+    flex-shrink: 0;
+    color: var(--tune-text-muted);
+  }
+
+  .device-toggle-host {
+    font-family: var(--font-label);
+    font-size: 10px;
+    color: var(--tune-text-muted);
+    opacity: 0.5;
     flex-shrink: 0;
   }
 
