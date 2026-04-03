@@ -75,16 +75,19 @@
     { key: 'lossy', label: 'Lossy', match: t => ['mp3', 'aac', 'ogg', 'opus', 'wma'].includes(t.format ?? '') },
   ];
 
+  // Albums filtered by search only (for quality chip counts)
+  let searchFilteredAlbums = $derived.by(() => {
+    if (!searchQuery.trim()) return $albums;
+    const q = searchQuery.toLowerCase();
+    return $albums.filter(a => a.title.toLowerCase().includes(q) || (a.artist_name ?? '').toLowerCase().includes(q));
+  });
+
+  // Albums filtered by search + quality (final display)
   let filteredAlbums = $derived.by(() => {
-    let result = $albums;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(a => a.title.toLowerCase().includes(q) || (a.artist_name ?? '').toLowerCase().includes(q));
-    }
     if (albumQualityFilter) {
-      result = result.filter(a => (a as any).quality === albumQualityFilter);
+      return searchFilteredAlbums.filter(a => (a as any).quality === albumQualityFilter);
     }
-    return result;
+    return searchFilteredAlbums;
   });
 
   let filteredArtists = $derived(
@@ -437,20 +440,21 @@
       </div>
     {:else if $libraryTab === 'albums'}
       <div class="quality-filters">
-        <button class="quality-chip" class:active={!albumQualityFilter} onclick={() => albumQualityFilter = null}>Tous ({$albums.length})</button>
-        <button class="quality-chip dsd" class:active={albumQualityFilter === 'dsd'} onclick={() => albumQualityFilter = albumQualityFilter === 'dsd' ? null : 'dsd'}>
-          DSD ({$albums.filter(a => (a as any).quality === 'dsd').length})
-        </button>
-        <button class="quality-chip hi-res" class:active={albumQualityFilter === 'hi-res'} onclick={() => albumQualityFilter = albumQualityFilter === 'hi-res' ? null : 'hi-res'}>
-          Hi-Res ({$albums.filter(a => (a as any).quality === 'hi-res').length})
-        </button>
-        <button class="quality-chip cd" class:active={albumQualityFilter === 'cd'} onclick={() => albumQualityFilter = albumQualityFilter === 'cd' ? null : 'cd'}>
-          CD ({$albums.filter(a => (a as any).quality === 'cd').length})
-        </button>
-        <button class="quality-chip lossy" class:active={albumQualityFilter === 'lossy'} onclick={() => albumQualityFilter = albumQualityFilter === 'lossy' ? null : 'lossy'}>
-          Lossy ({$albums.filter(a => (a as any).quality === 'lossy').length})
-        </button>
-        <span class="quality-count">{filteredAlbums.length} albums</span>
+        <button class="quality-chip" class:active={!albumQualityFilter} onclick={() => albumQualityFilter = null}>Tous ({searchFilteredAlbums.length})</button>
+        {#each [
+          { key: 'dsd', label: 'DSD' },
+          { key: 'hi-res', label: 'Hi-Res' },
+          { key: 'cd', label: 'CD' },
+          { key: 'lossy', label: 'Lossy' },
+        ] as tier}
+          {@const count = searchFilteredAlbums.filter(a => (a as any).quality === tier.key).length}
+          {#if count > 0}
+            <button class="quality-chip {tier.key}" class:active={albumQualityFilter === tier.key} onclick={() => albumQualityFilter = albumQualityFilter === tier.key ? null : tier.key}>
+              {tier.label} ({count})
+            </button>
+          {/if}
+        {/each}
+        <span class="quality-count">{filteredAlbums.length} album{filteredAlbums.length > 1 ? 's' : ''}</span>
       </div>
       <div class="albums-grid">
         {#each filteredAlbums as album}
