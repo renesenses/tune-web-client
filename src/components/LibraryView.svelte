@@ -85,7 +85,7 @@
   // Albums filtered by search + quality (final display)
   let filteredAlbums = $derived.by(() => {
     if (albumQualityFilter) {
-      return searchFilteredAlbums.filter(a => (a as any).quality === albumQualityFilter);
+      return searchFilteredAlbums.filter(a => a.quality === albumQualityFilter);
     }
     return searchFilteredAlbums;
   });
@@ -397,7 +397,7 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="album-card" onclick={() => selectAlbumDetail(album)}>
           <div class="album-card-art">
-            <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+            <img class="album-cover-img" src={api.artworkUrl(album.cover_path)} alt={album.title} onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
             <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
               <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
             </button>
@@ -447,7 +447,7 @@
           { key: 'cd', label: 'CD' },
           { key: 'lossy', label: 'Lossy' },
         ] as tier}
-          {@const count = searchFilteredAlbums.filter(a => (a as any).quality === tier.key).length}
+          {@const count = searchFilteredAlbums.filter(a => a.quality === tier.key).length}
           {#if count > 0}
             <button class="quality-chip {tier.key}" class:active={albumQualityFilter === tier.key} onclick={() => albumQualityFilter = albumQualityFilter === tier.key ? null : tier.key}>
               {tier.label} ({count})
@@ -462,7 +462,7 @@
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="album-card" onclick={() => selectAlbumDetail(album)}>
             <div class="album-card-art">
-              <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+              <img class="album-cover-img" src={api.artworkUrl(album.cover_path)} alt={album.title} onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
               <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                 <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
               </button>
@@ -575,7 +575,7 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="album-card" onclick={() => selectAlbumDetail(album)}>
               <div class="album-card-art">
-                <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+                <img class="album-cover-img" src={api.artworkUrl(album.cover_path)} alt={album.title} onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
                 <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                   <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                 </button>
@@ -954,10 +954,12 @@
 
   .albums-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-auto-rows: min-content;
     gap: var(--space-lg);
     flex: 1;
     overflow-y: auto;
+    align-items: start;
   }
 
   .album-card {
@@ -979,8 +981,18 @@
 
   .album-card-art {
     position: relative;
+    width: 100%;
+    aspect-ratio: 1;
     border-radius: var(--radius-lg);
     overflow: hidden;
+    background: var(--tune-grey2);
+  }
+
+  .album-cover-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .play-overlay {

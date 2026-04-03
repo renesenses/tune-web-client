@@ -31,6 +31,10 @@ export interface Album {
   cover_path?: string | null;
   source?: Source;
   source_id?: string | null;
+  sample_rate?: number | null;
+  bit_depth?: number | null;
+  format?: string | null;
+  quality?: string | null;
 }
 
 export interface Track {

@@ -37,13 +37,13 @@
   let src = $derived(artworkUrl(resolvedCoverPath));
 </script>
 
-<div class="album-art" class:round style="width: {size}px; height: {size}px;">
+<div class="album-art" class:round class:fill={!size} style={size ? `width: ${size}px; height: ${size}px;` : ''}>
   {#if src && !hasError}
     <img
       {src}
       {alt}
-      width={size}
-      height={size}
+      width={size || undefined}
+      height={size || undefined}
       onerror={handleError}
     />
   {:else}
@@ -61,6 +61,11 @@
     overflow: hidden;
     background: var(--tune-grey2);
     flex-shrink: 0;
+  }
+
+  .album-art.fill {
+    width: 100%;
+    aspect-ratio: 1;
   }
 
   .album-art.round {
