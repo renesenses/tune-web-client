@@ -1,0 +1,19 @@
+#!/bin/bash
+# Anti-leak hook: prevent recording/special-edition references in public repo
+FORBIDDEN="recorder|recording|special.edition|tune.special"
+
+# Check staged files only
+MATCHES=$(git diff --cached --name-only -z | xargs -0 grep -rilE "$FORBIDDEN" 2>/dev/null | grep -v '.githooks/' | grep -v 'CLAUDE.md')
+
+if [ -n "$MATCHES" ]; then
+    echo "🚫 BLOCKED: Forbidden terms found in staged files!"
+    echo "   Pattern: $FORBIDDEN"
+    echo ""
+    for f in $MATCHES; do
+        echo "   $f:"
+        git diff --cached -- "$f" | grep -inE "$FORBIDDEN" | head -5 | sed 's/^/      /'
+    done
+    echo ""
+    echo "   Remove these references before committing to the PUBLIC repo."
+    exit 1
+fi
