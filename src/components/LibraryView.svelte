@@ -52,6 +52,7 @@
   let selectedGenre = $state<string | null>(null);
   let formatFilter = $state<string | null>(null);
   let qualityFilter = $state<string | null>(null);
+  let albumQualityFilter = $state<string | null>(null);
 
   // Virtual scroll state
   const TRACK_ROW_HEIGHT = 52;
@@ -74,14 +75,17 @@
     { key: 'lossy', label: 'Lossy', match: t => ['mp3', 'aac', 'ogg', 'opus', 'wma'].includes(t.format ?? '') },
   ];
 
-  let filteredAlbums = $derived(
-    searchQuery.trim()
-      ? $albums.filter(a => {
-          const q = searchQuery.toLowerCase();
-          return a.title.toLowerCase().includes(q) || (a.artist_name ?? '').toLowerCase().includes(q);
-        })
-      : $albums
-  );
+  let filteredAlbums = $derived.by(() => {
+    let result = $albums;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(a => a.title.toLowerCase().includes(q) || (a.artist_name ?? '').toLowerCase().includes(q));
+    }
+    if (albumQualityFilter) {
+      result = result.filter(a => (a as any).quality === albumQualityFilter);
+    }
+    return result;
+  });
 
   let filteredArtists = $derived(
     searchQuery.trim()
@@ -432,6 +436,22 @@
         {$tr('common.loading')}
       </div>
     {:else if $libraryTab === 'albums'}
+      <div class="quality-filters">
+        <button class="quality-chip" class:active={!albumQualityFilter} onclick={() => albumQualityFilter = null}>Tous ({$albums.length})</button>
+        <button class="quality-chip dsd" class:active={albumQualityFilter === 'dsd'} onclick={() => albumQualityFilter = albumQualityFilter === 'dsd' ? null : 'dsd'}>
+          DSD ({$albums.filter(a => (a as any).quality === 'dsd').length})
+        </button>
+        <button class="quality-chip hi-res" class:active={albumQualityFilter === 'hi-res'} onclick={() => albumQualityFilter = albumQualityFilter === 'hi-res' ? null : 'hi-res'}>
+          Hi-Res ({$albums.filter(a => (a as any).quality === 'hi-res').length})
+        </button>
+        <button class="quality-chip cd" class:active={albumQualityFilter === 'cd'} onclick={() => albumQualityFilter = albumQualityFilter === 'cd' ? null : 'cd'}>
+          CD ({$albums.filter(a => (a as any).quality === 'cd').length})
+        </button>
+        <button class="quality-chip lossy" class:active={albumQualityFilter === 'lossy'} onclick={() => albumQualityFilter = albumQualityFilter === 'lossy' ? null : 'lossy'}>
+          Lossy ({$albums.filter(a => (a as any).quality === 'lossy').length})
+        </button>
+        <span class="quality-count">{filteredAlbums.length} albums</span>
+      </div>
       <div class="albums-grid">
         {#each filteredAlbums as album}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -871,6 +891,63 @@
   }
 
   /* Albums grid */
+  .quality-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    flex-shrink: 0;
+  }
+
+  .quality-chip {
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-secondary);
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.12s ease-out;
+  }
+
+  .quality-chip:hover {
+    border-color: var(--tune-text-secondary);
+  }
+
+  .quality-chip.active {
+    background: var(--tune-accent);
+    border-color: var(--tune-accent);
+    color: white;
+  }
+
+  .quality-chip.dsd.active {
+    background: #8e44ad;
+    border-color: #8e44ad;
+  }
+
+  .quality-chip.hi-res.active {
+    background: #e67e22;
+    border-color: #e67e22;
+  }
+
+  .quality-chip.cd.active {
+    background: #27ae60;
+    border-color: #27ae60;
+  }
+
+  .quality-chip.lossy.active {
+    background: #7f8c8d;
+    border-color: #7f8c8d;
+  }
+
+  .quality-count {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    margin-left: auto;
+  }
+
   .albums-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
