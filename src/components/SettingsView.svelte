@@ -7,7 +7,7 @@
   import { devices } from '../lib/stores/devices';
   import { preferences, applyTheme, type ThemeMode, type VolumeDisplay, type StartupView } from '../lib/stores/preferences';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
-  import type { SystemHealth, SystemStats, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry } from '../lib/types';
+  import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry, BackupInfo } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
 
   const CLIENT_VERSION = __APP_VERSION__;
@@ -15,6 +15,8 @@
 
   let health: SystemHealth | null = $state(null);
   let stats: SystemStats | null = $state(null);
+  let config: SystemConfig | null = $state(null);
+  let backups = $state<BackupInfo[]>([]);
   let scanning = $state(false);
   let loading = $state(true);
   let artworkScanning = $state(false);
@@ -375,18 +377,22 @@
   async function loadAll() {
     loading = true;
     try {
-      const [h, s, ss, sc, br] = await Promise.all([
+      const [h, s, ss, sc, br, cfg, bk] = await Promise.all([
         api.getHealth(),
         api.getStats(),
         api.getStreamingServices().catch(() => ({})),
         api.getScanStatus().catch(() => ({ scanning: false })),
         api.getBrowseRoots().catch(() => ({ roots: [] })),
+        api.getConfig().catch(() => null),
+        api.getBackups().catch(() => []),
       ]);
       health = h;
       stats = s;
       $streamingServicesStore = ss as Record<string, StreamingServiceStatus>;
       scanning = sc.scanning;
       musicRoots = br.roots;
+      config = cfg;
+      backups = bk;
     } catch (e) {
       console.error('Settings load error:', e);
     }
@@ -598,6 +604,51 @@
         </button>
       </div>
     </section>
+
+    <!-- Database -->
+    {#if config}
+    <section class="settings-section">
+      <h3>{$t('settings.database')}</h3>
+      <div class="db-info">
+        <div class="db-row">
+          <span class="db-label">{$t('settings.dbEngine')}</span>
+          <span class="badge {config.db_engine === 'sqlite' ? 'db-sqlite' : 'db-postgres'}">
+            {config.db_engine === 'sqlite' ? 'SQLite' : 'PostgreSQL'}
+          </span>
+        </div>
+        <div class="db-row">
+          <span class="db-label">{$t('settings.dbConnected')}</span>
+          <span class="component-status" class:ok={config.db_connected} class:error={!config.db_connected}>
+            {config.db_connected ? $t('common.ok') : $t('common.error')}
+          </span>
+        </div>
+        {#if config.db_engine === 'sqlite' && config.db_path}
+          <div class="db-row">
+            <span class="db-label">{$t('settings.dbPath')}</span>
+            <span class="db-value mono">{config.db_path}</span>
+          </div>
+          <div class="db-row">
+            <span class="db-label">Backups</span>
+            <span class="db-value">{backups.length}</span>
+          </div>
+        {/if}
+        {#if config.db_engine === 'postgres'}
+          <div class="db-row">
+            <span class="db-label">{$t('settings.dbPoolSize')}</span>
+            <span class="db-value">{config.db_pool_min} - {config.db_pool_max}</span>
+          </div>
+        {/if}
+        {#if stats}
+          <div class="db-stats">
+            <span class="db-stat">{stats.tracks} {$t('settings.tracks')}</span>
+            <span class="db-stat">{stats.albums} {$t('settings.albums')}</span>
+            <span class="db-stat">{stats.artists} {$t('settings.artists')}</span>
+          </div>
+        {/if}
+        <p class="db-hint">{$t('settings.dbSwitchInfo')}</p>
+      </div>
+    </section>
+    {/if}
 
     <!-- Music locations -->
     <section class="settings-section">
@@ -1574,6 +1625,72 @@
     color: var(--tune-text);
     font-weight: 600;
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Database section */
+  .db-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .db-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-xs) 0;
+    font-family: var(--font-body);
+    font-size: 13px;
+  }
+
+  .db-label {
+    color: var(--tune-text-secondary);
+  }
+
+  .db-value {
+    color: var(--tune-text);
+    font-weight: 500;
+  }
+
+  .db-value.mono {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  .badge.db-sqlite {
+    background: rgba(87, 198, 185, 0.15);
+    color: var(--tune-success);
+  }
+
+  .badge.db-postgres {
+    background: rgba(117, 116, 243, 0.15);
+    color: var(--tune-accent);
+  }
+
+  .db-stats {
+    display: flex;
+    gap: var(--space-md);
+    padding: var(--space-sm) 0;
+  }
+
+  .db-stat {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+  }
+
+  .db-hint {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    margin: var(--space-sm) 0 0 0;
+    line-height: 1.4;
   }
 
   @keyframes spin {

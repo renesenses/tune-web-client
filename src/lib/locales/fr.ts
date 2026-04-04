@@ -332,6 +332,14 @@ export default {
   // Volume
   'volume.title': 'Volume (M pour couper)',
 
+  // Database
+  'settings.database': 'Base de données',
+  'settings.dbEngine': 'Moteur',
+  'settings.dbPath': 'Chemin de la base',
+  'settings.dbConnected': 'Connectée',
+  'settings.dbPoolSize': 'Pool de connexions',
+  'settings.dbSwitchInfo': 'Pour changer de moteur de base de données, modifiez TUNE_DB_ENGINE dans la configuration du serveur et redémarrez.',
+
   // About
   'settings.about': 'À propos',
   'settings.clientVersion': 'Version client',

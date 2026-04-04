@@ -151,6 +151,12 @@ export interface SystemConfig {
   youtube_enabled: boolean;
   amazon_music_enabled: boolean;
   discovery_enabled: boolean;
+  // Database
+  db_engine: string;
+  db_path?: string | null;
+  db_pool_min?: number | null;
+  db_pool_max?: number | null;
+  db_connected: boolean;
 }
 
 export interface SystemStats {

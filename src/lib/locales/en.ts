@@ -332,6 +332,14 @@ export default {
   // Volume
   'volume.title': 'Volume (M to mute)',
 
+  // Database
+  'settings.database': 'Database',
+  'settings.dbEngine': 'Engine',
+  'settings.dbPath': 'Database path',
+  'settings.dbConnected': 'Connected',
+  'settings.dbPoolSize': 'Connection pool',
+  'settings.dbSwitchInfo': 'To switch database engine, update TUNE_DB_ENGINE in your server configuration and restart.',
+
   // About
   'settings.about': 'About',
   'settings.clientVersion': 'Client version',
