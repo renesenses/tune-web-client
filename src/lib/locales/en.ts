@@ -251,6 +251,18 @@ export default {
   'metadata.missingArtist': 'Missing Artist',
   'metadata.unknown': 'Unknown',
   'metadata.noMissingArtist': 'All tracks have an artist',
+  'metadata.mergeDuplicates': 'Merge {count} duplicates',
+  'metadata.merging': 'Merging...',
+  'metadata.merged': '{count} albums merged',
+  'metadata.noDuplicates': 'No duplicates',
+  'metadata.enrich': 'Enrich from MusicBrainz',
+  'metadata.enrichStarted': 'Enrichment started',
+  'metadata.enriching': 'Enriching...',
+  'metadata.batchGenre': 'Apply Genre',
+  'metadata.batchYear': 'Apply Year',
+  'metadata.selectAll': 'Select All',
+  'metadata.applyingBatch': 'Applying {current}/{total}...',
+  'metadata.batchDone': '{count} albums updated',
 
   // Backup / Restore
   'maintenance.backupRestore': 'Backup / Restore',

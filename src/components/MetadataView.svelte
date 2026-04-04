@@ -32,6 +32,22 @@
   let editAlbum = $state<Album | null>(null);
   let rescanningAll = $state(false);
 
+  // Merge duplicates
+  let merging = $state(false);
+  let mergeMessage = $state<string | null>(null);
+
+  // Enrich
+  let enriching = $state(false);
+  let enrichMessage = $state<string | null>(null);
+
+  // Batch genre/year
+  let batchGenre = $state('');
+  let batchYear = $state<number | null>(null);
+  let batchSelectedIds = $state<Set<number>>(new Set());
+  let batchApplying = $state(false);
+  let batchProgress = $state<{ current: number; total: number } | null>(null);
+  let batchMessage = $state<string | null>(null);
+
   let backups = $state<BackupInfo[]>([]);
   let backupLoading = $state(false);
   let backupCreating = $state(false);
@@ -78,6 +94,132 @@
         return allAlbums;
     }
   });
+
+  // Count duplicate albums (same title, multiple entries)
+  let duplicateCount = $derived.by(() => {
+    const groups = new Map<string, number>();
+    for (const a of allAlbums) {
+      const key = (a.title ?? '').toLowerCase().trim();
+      groups.set(key, (groups.get(key) ?? 0) + 1);
+    }
+    let count = 0;
+    for (const c of groups.values()) {
+      if (c > 1) count += c;
+    }
+    return count;
+  });
+
+  // Available genres from library (distinct, sorted)
+  let availableGenres = $derived.by(() => {
+    const genres = new Set<string>();
+    for (const a of allAlbums) {
+      if (a.genre) genres.add(a.genre);
+    }
+    return [...genres].sort((a, b) => a.localeCompare(b));
+  });
+
+  // Toggle batch selection for a single album
+  function toggleBatchSelect(id: number) {
+    const next = new Set(batchSelectedIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    batchSelectedIds = next;
+  }
+
+  // Toggle select all for the current filtered view
+  function toggleBatchSelectAll() {
+    const ids = filteredAlbums.map(a => a.id!);
+    const allSelected = ids.length > 0 && ids.every(id => batchSelectedIds.has(id));
+    if (allSelected) {
+      batchSelectedIds = new Set();
+    } else {
+      batchSelectedIds = new Set(ids);
+    }
+  }
+
+  let batchAllSelected = $derived(
+    filteredAlbums.length > 0 && filteredAlbums.every(a => batchSelectedIds.has(a.id!))
+  );
+
+  async function applyBatchGenre() {
+    if (!batchGenre.trim() || batchSelectedIds.size === 0) return;
+    batchApplying = true;
+    batchMessage = null;
+    const ids = [...batchSelectedIds];
+    const total = ids.length;
+    let done = 0;
+    try {
+      for (const id of ids) {
+        batchProgress = { current: done + 1, total };
+        await api.updateAlbum(id, { genre: batchGenre.trim() });
+        done++;
+        // Update local state
+        allAlbums = allAlbums.map(a => a.id === id ? { ...a, genre: batchGenre.trim() } : a);
+      }
+      batchMessage = $t('metadata.batchDone').replace('{count}', String(done));
+      batchSelectedIds = new Set();
+      batchGenre = '';
+      api.getCompletenessStats().then(s => stats = s);
+    } catch (e) {
+      console.error('Batch genre error:', e);
+      batchMessage = $t('metadata.saveError');
+    }
+    batchApplying = false;
+    batchProgress = null;
+  }
+
+  async function applyBatchYear() {
+    if (!batchYear || batchSelectedIds.size === 0) return;
+    batchApplying = true;
+    batchMessage = null;
+    const ids = [...batchSelectedIds];
+    const total = ids.length;
+    let done = 0;
+    try {
+      for (const id of ids) {
+        batchProgress = { current: done + 1, total };
+        await api.updateAlbum(id, { year: batchYear });
+        done++;
+        allAlbums = allAlbums.map(a => a.id === id ? { ...a, year: batchYear } : a);
+      }
+      batchMessage = $t('metadata.batchDone').replace('{count}', String(done));
+      batchSelectedIds = new Set();
+      batchYear = null;
+      api.getCompletenessStats().then(s => stats = s);
+    } catch (e) {
+      console.error('Batch year error:', e);
+      batchMessage = $t('metadata.saveError');
+    }
+    batchApplying = false;
+    batchProgress = null;
+  }
+
+  async function mergeDuplicates() {
+    merging = true;
+    mergeMessage = null;
+    try {
+      const result = await api.mergeAlbumDuplicates();
+      mergeMessage = $t('metadata.merged').replace('{count}', String(result.merged));
+      // Reload data
+      await loadData();
+    } catch (e) {
+      console.error('Merge duplicates error:', e);
+      mergeMessage = $t('metadata.saveError');
+    }
+    merging = false;
+  }
+
+  async function triggerEnrich() {
+    enriching = true;
+    enrichMessage = null;
+    try {
+      await api.triggerEnrich();
+      enrichMessage = $t('metadata.enrichStarted');
+    } catch (e) {
+      console.error('Enrich error:', e);
+      enrichMessage = $t('metadata.saveError');
+    }
+    enriching = false;
+  }
 
   async function loadTracksWithoutArtist() {
     if (tracksWithoutArtistLoaded) return;
@@ -393,6 +535,9 @@
     if (filter === 'unknown' && unknownAlbums.length > 0) {
       loadUnknownTracks();
     }
+    // Clear batch selection when changing filters
+    batchSelectedIds = new Set();
+    batchMessage = null;
   });
 </script>
 
@@ -463,6 +608,39 @@
         </div>
         <span class="stat-detail">{stats.tracks_without_artist} / {stats.total_tracks} {$t('metadata.missingArtist').toLowerCase()}</span>
       </div>
+    </div>
+
+    <!-- Actions row: Merge Duplicates + Enrich -->
+    <div class="stats-actions">
+      <button class="btn-action" onclick={mergeDuplicates} disabled={merging || duplicateCount === 0}>
+        {#if merging}
+          <div class="spinner small"></div>
+          {$t('metadata.merging')}
+        {:else}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M16 3h5v5" /><path d="M8 3H3v5" /><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3" /><path d="m15 9 6-6" /></svg>
+          {#if duplicateCount > 0}
+            {$t('metadata.mergeDuplicates').replace('{count}', String(duplicateCount))}
+          {:else}
+            {$t('metadata.noDuplicates')}
+          {/if}
+        {/if}
+      </button>
+      {#if mergeMessage}
+        <span class="inline-message">{mergeMessage}</span>
+      {/if}
+
+      <button class="btn-action" onclick={triggerEnrich} disabled={enriching}>
+        {#if enriching}
+          <div class="spinner small"></div>
+          {$t('metadata.enriching')}
+        {:else}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+          {$t('metadata.enrich')}
+        {/if}
+      </button>
+      {#if enrichMessage}
+        <span class="inline-message success">{enrichMessage}</span>
+      {/if}
     </div>
 
     <!-- Backup / Restore -->
@@ -641,9 +819,76 @@
         {/if}
       </div>
     {:else}
+      <!-- Batch toolbar for no_genre / no_year -->
+      {#if filter === 'no_genre' || filter === 'no_year'}
+        <div class="batch-toolbar">
+          <label class="batch-select-all">
+            <input type="checkbox" checked={batchAllSelected} onchange={toggleBatchSelectAll} />
+            {$t('metadata.selectAll')} ({filteredAlbums.length})
+          </label>
+          {#if filter === 'no_genre'}
+            <div class="batch-input-group">
+              <input
+                type="text"
+                class="batch-input"
+                placeholder={$t('metadata.genre')}
+                bind:value={batchGenre}
+                list="batch-genre-suggestions"
+                autocomplete="off"
+              />
+              <datalist id="batch-genre-suggestions">
+                {#each availableGenres as g}
+                  <option value={g}>{g}</option>
+                {/each}
+              </datalist>
+              <button class="btn-action btn-primary" onclick={applyBatchGenre} disabled={batchApplying || !batchGenre.trim() || batchSelectedIds.size === 0}>
+                {#if batchApplying}
+                  <div class="spinner small"></div>
+                {/if}
+                {#if batchProgress}
+                  {$t('metadata.applyingBatch').replace('{current}', String(batchProgress.current)).replace('{total}', String(batchProgress.total))}
+                {:else}
+                  {$t('metadata.batchGenre')} ({batchSelectedIds.size})
+                {/if}
+              </button>
+            </div>
+          {:else}
+            <div class="batch-input-group">
+              <input
+                type="number"
+                class="batch-input batch-input-narrow"
+                placeholder={$t('metadata.year')}
+                bind:value={batchYear}
+                min="1900"
+                max="2100"
+              />
+              <button class="btn-action btn-primary" onclick={applyBatchYear} disabled={batchApplying || !batchYear || batchSelectedIds.size === 0}>
+                {#if batchApplying}
+                  <div class="spinner small"></div>
+                {/if}
+                {#if batchProgress}
+                  {$t('metadata.applyingBatch').replace('{current}', String(batchProgress.current)).replace('{total}', String(batchProgress.total))}
+                {:else}
+                  {$t('metadata.batchYear')} ({batchSelectedIds.size})
+                {/if}
+              </button>
+            </div>
+          {/if}
+          {#if batchMessage}
+            <span class="inline-message success">{batchMessage}</span>
+          {/if}
+        </div>
+      {/if}
+
       <div class="albums-grid">
         {#each filteredAlbums as album (album.id)}
           <button class="album-card" onclick={() => editAlbum = album}>
+            {#if filter === 'no_genre' || filter === 'no_year'}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <div class="album-card-checkbox" onclick={(e) => { e.stopPropagation(); toggleBatchSelect(album.id!); }}>
+                <input type="checkbox" checked={batchSelectedIds.has(album.id!)} tabindex="-1" />
+              </div>
+            {/if}
             <div class="album-card-art">
               <AlbumArt coverPath={album.cover_path} size={140} />
               {#if !album.cover_path}
@@ -672,6 +917,7 @@
     album={editAlbum}
     onClose={() => editAlbum = null}
     onSaved={handleAlbumSaved}
+    {availableGenres}
   />
 {/if}
 
@@ -1289,5 +1535,113 @@
 
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  /* Stats actions row */
+  .stats-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .inline-message {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    background: rgba(87, 198, 185, 0.1);
+  }
+
+  .inline-message.success {
+    color: var(--tune-success, #4ade80);
+    background: rgba(74, 222, 128, 0.1);
+  }
+
+  /* Batch toolbar */
+  .batch-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    flex-wrap: wrap;
+  }
+
+  .batch-select-all {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .batch-select-all input[type="checkbox"] {
+    accent-color: var(--tune-accent);
+    cursor: pointer;
+  }
+
+  .batch-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .batch-input {
+    flex: 1;
+    padding: 6px 10px;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    outline: none;
+    min-width: 120px;
+  }
+
+  .batch-input:focus {
+    border-color: var(--tune-accent);
+  }
+
+  .batch-input-narrow {
+    max-width: 100px;
+    min-width: 80px;
+    flex: unset;
+  }
+
+  /* Album card checkbox */
+  .album-card-checkbox {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+
+  .album-card-checkbox input[type="checkbox"] {
+    accent-color: var(--tune-accent);
+    cursor: pointer;
+    pointer-events: none;
+  }
+
+  .album-card {
+    position: relative;
   }
 </style>

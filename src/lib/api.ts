@@ -541,6 +541,14 @@ export function rescanArtwork() {
   return fetchJSON<{ status: string }>(`${BASE}/library/artwork/rescan`, { method: 'POST' });
 }
 
+export function mergeAlbumDuplicates() {
+  return fetchJSON<{ merged: number }>(`${BASE}/library/albums/merge-duplicates`, { method: 'POST' });
+}
+
+export function triggerEnrich() {
+  return fetchJSON<{ status: string }>(`${BASE}/system/enrich`, { method: 'POST' });
+}
+
 // --- Streaming ---
 
 export function searchStreaming(service: string, q: string, limit = 50) {

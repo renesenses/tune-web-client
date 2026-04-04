@@ -8,8 +8,9 @@
     album: Album;
     onClose: () => void;
     onSaved?: (album: Album) => void;
+    availableGenres?: string[];
   }
-  let { album, onClose, onSaved }: Props = $props();
+  let { album, onClose, onSaved, availableGenres = [] }: Props = $props();
 
   let title = $state(album.title);
   let year = $state<number | null>(album.year ?? null);
@@ -232,7 +233,14 @@
 
             <label class="field">
               <span class="field-label">{$t('metadata.genre')}</span>
-              <input type="text" bind:value={genre} />
+              <input type="text" bind:value={genre} list="genre-suggestions" autocomplete="off" />
+              {#if availableGenres.length > 0}
+                <datalist id="genre-suggestions">
+                  {#each availableGenres as g}
+                    <option value={g}>{g}</option>
+                  {/each}
+                </datalist>
+              {/if}
             </label>
           </div>
         </div>
