@@ -280,6 +280,18 @@ export function getArtists(limit = 100, offset = 0) {
   return fetchJSON<Artist[]>(`${BASE}/library/artists?limit=${limit}&offset=${offset}`);
 }
 
+export async function getAllArtists(pageSize = 2000): Promise<Artist[]> {
+  const all: Artist[] = [];
+  let offset = 0;
+  while (true) {
+    const batch = await getArtists(pageSize, offset);
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+    offset += pageSize;
+  }
+  return all;
+}
+
 export function createArtist(name: string) {
   return fetchJSON<Artist>(`${BASE}/library/artists`, {
     method: 'POST',

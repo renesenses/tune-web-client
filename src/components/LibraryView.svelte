@@ -174,7 +174,7 @@
   async function loadArtists() {
     libraryLoading.set(true);
     try {
-      const result = await api.getArtists(500);
+      const result = await api.getAllArtists();
       artists.set(result);
     } catch (e) {
       console.error('Load artists error:', e);
