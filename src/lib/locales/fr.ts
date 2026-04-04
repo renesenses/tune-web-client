@@ -10,7 +10,7 @@ export default {
   'nav.settings': 'Paramètres',
   'nav.navigation': 'NAVIGATION',
   'nav.services': 'SERVICES',
-  'nav.maintenance': 'Maintenance',
+  'nav.maintenance': 'Métadonnées',
   'nav.genres': 'Genres',
 
   // Common
@@ -216,7 +216,7 @@ export default {
   'youtube.openOnYouTube': 'Ouvrir sur YouTube',
 
   // Metadata / Maintenance
-  'metadata.title': 'Maintenance',
+  'metadata.title': 'Métadonnées',
   'metadata.dashboard': 'Tableau de bord',
   'metadata.completeness': 'Complétude',
   'metadata.missingCovers': 'Covers manquantes',
