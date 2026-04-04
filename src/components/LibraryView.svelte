@@ -53,6 +53,8 @@
   let formatFilter = $state<string | null>(null);
   let qualityFilter = $state<string | null>(null);
   let albumQualityFilter = $state<string | null>(null);
+  let albumFormatFilter = $state<string | null>(null);
+  let albumSampleRateFilter = $state<number | null>(null);
 
   // Virtual scroll state
   const TRACK_ROW_HEIGHT = 52;
@@ -82,13 +84,22 @@
     return $albums.filter(a => a.title.toLowerCase().includes(q) || (a.artist_name ?? '').toLowerCase().includes(q));
   });
 
-  // Albums filtered by search + quality (final display)
+  // Albums filtered by search + quality + format + sample rate (final display)
   let filteredAlbums = $derived.by(() => {
-    if (albumQualityFilter) {
-      return searchFilteredAlbums.filter(a => a.quality === albumQualityFilter);
-    }
-    return searchFilteredAlbums;
+    let result = searchFilteredAlbums;
+    if (albumQualityFilter) result = result.filter(a => a.quality === albumQualityFilter);
+    if (albumFormatFilter) result = result.filter(a => a.format === albumFormatFilter);
+    if (albumSampleRateFilter) result = result.filter(a => (a.sample_rate ?? 0) >= albumSampleRateFilter);
+    return result;
   });
+
+  let albumFormats = $derived(
+    [...new Set(searchFilteredAlbums.map(a => a.format).filter(Boolean))].sort() as string[]
+  );
+
+  let albumSampleRates = $derived(
+    [...new Set(searchFilteredAlbums.map(a => a.sample_rate).filter(Boolean))].sort((a, b) => (a ?? 0) - (b ?? 0)) as number[]
+  );
 
   let filteredArtists = $derived(
     searchQuery.trim()
@@ -454,6 +465,28 @@
             </button>
           {/if}
         {/each}
+        {#if albumFormats.length > 1}
+          <span class="filter-sep">|</span>
+          {#each albumFormats as fmt}
+            {@const count = searchFilteredAlbums.filter(a => a.format === fmt).length}
+            {#if count > 0}
+              <button class="quality-chip format" class:active={albumFormatFilter === fmt} onclick={() => albumFormatFilter = albumFormatFilter === fmt ? null : fmt}>
+                {fmt.toUpperCase()} ({count})
+              </button>
+            {/if}
+          {/each}
+        {/if}
+        {#if albumSampleRates.length > 1}
+          <span class="filter-sep">|</span>
+          {#each [44100, 48000, 88200, 96000, 176400, 192000] as sr}
+            {@const count = searchFilteredAlbums.filter(a => (a.sample_rate ?? 0) >= sr).length}
+            {#if count > 0 && albumSampleRates.some(r => (r ?? 0) >= sr)}
+              <button class="quality-chip samplerate" class:active={albumSampleRateFilter === sr} onclick={() => albumSampleRateFilter = albumSampleRateFilter === sr ? null : sr}>
+                {sr >= 1000 ? (sr / 1000) + 'kHz' : sr + 'Hz'}+ ({count})
+              </button>
+            {/if}
+          {/each}
+        {/if}
         <span class="quality-count">{filteredAlbums.length} album{filteredAlbums.length > 1 ? 's' : ''}</span>
       </div>
       <div class="albums-grid">
@@ -943,6 +976,23 @@
   .quality-chip.lossy.active {
     background: #7f8c8d;
     border-color: #7f8c8d;
+  }
+
+  .quality-chip.format.active {
+    background: #2980b9;
+    border-color: #2980b9;
+  }
+
+  .quality-chip.samplerate.active {
+    background: #8e44ad;
+    border-color: #8e44ad;
+  }
+
+  .filter-sep {
+    color: var(--tune-text-muted);
+    opacity: 0.3;
+    margin: 0 2px;
+    font-size: 14px;
   }
 
   .quality-count {
