@@ -4,7 +4,7 @@
   import { streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
-  import type { Playlist, Track, StreamingPlaylist, UnifiedPlaylistsResponse, PlaylistTransferResponse, PlaylistDiffResponse } from '../lib/types';
+  import type { Playlist, Track, StreamingPlaylist, UnifiedPlaylistsResponse, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import AlbumArt from './AlbumArt.svelte';
 
@@ -50,6 +50,13 @@
   let diffing = $state(false);
   let diffResult = $state<PlaylistDiffResponse | null>(null);
   let diffLoadingPlaylists = $state(false);
+
+  // Recover dialog
+  let showRecover = $state(false);
+  let recovering = $state(false);
+  let recoverResult = $state<PlaylistRecoverResponse | null>(null);
+  let applyingRecovery = $state<Set<number>>(new Set());
+  let applyingAll = $state(false);
 
   // Create dialog
   let showCreate = $state(false);
@@ -420,6 +427,82 @@
     }
     diffing = false;
   }
+
+  // Recover flow
+  function openRecover() {
+    recoverResult = null;
+    recovering = false;
+    applyingRecovery = new Set();
+    applyingAll = false;
+    showRecover = true;
+    doRecover();
+  }
+
+  function closeRecover() {
+    showRecover = false;
+    recoverResult = null;
+    recovering = false;
+  }
+
+  async function doRecover() {
+    if (!selectedPlaylist?.id) return;
+    recovering = true;
+    try {
+      recoverResult = await api.recoverPlaylist(selectedPlaylist.id);
+    } catch (e) {
+      console.error('Recover playlist error:', e);
+    }
+    recovering = false;
+  }
+
+  async function applyOneRecovery(trackId: number, alt: { service: string; source_id: string }) {
+    if (!selectedPlaylist?.id) return;
+    applyingRecovery = new Set([...applyingRecovery, trackId]);
+    try {
+      await api.applyRecovery(selectedPlaylist.id, [
+        { track_id: trackId, new_source: alt.service, new_source_id: alt.source_id },
+      ]);
+      // Update the result in place
+      if (recoverResult) {
+        recoverResult = {
+          ...recoverResult,
+          tracks: recoverResult.tracks.map((t) =>
+            t.track_id === trackId ? { ...t, status: 'available' as const, alternatives: [] } : t
+          ),
+          recovered: recoverResult.recovered - 1,
+          available: recoverResult.available + 1,
+        };
+      }
+      // Refresh detail tracks
+      detailTracks = await api.getPlaylistTracks(selectedPlaylist.id);
+    } catch (e) {
+      console.error('Apply recovery error:', e);
+    }
+    applyingRecovery = new Set([...applyingRecovery].filter((id) => id !== trackId));
+  }
+
+  async function applyAllRecovery() {
+    if (!selectedPlaylist?.id || !recoverResult) return;
+    const replacements = recoverResult.tracks
+      .filter((t) => t.status === 'recovered' && t.alternatives.length > 0)
+      .map((t) => ({
+        track_id: t.track_id,
+        new_source: t.alternatives[0].service,
+        new_source_id: t.alternatives[0].source_id,
+      }));
+    if (replacements.length === 0) return;
+    applyingAll = true;
+    try {
+      await api.applyRecovery(selectedPlaylist.id, replacements);
+      // Re-run recovery to refresh
+      await doRecover();
+      // Refresh detail tracks
+      detailTracks = await api.getPlaylistTracks(selectedPlaylist.id);
+    } catch (e) {
+      console.error('Apply all recovery error:', e);
+    }
+    applyingAll = false;
+  }
 </script>
 
 <div class="pm-view">
@@ -445,6 +528,12 @@
           <button class="import-btn" onclick={() => openImport(selectedService, selectedStreamingPl!)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
             {$tr('playlist.import')}
+          </button>
+        {/if}
+        {#if selectedPlaylist}
+          <button class="recover-btn" onclick={openRecover}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>
+            {$tr('playlist.recover')}
           </button>
         {/if}
         <button class="transfer-btn" onclick={openTransfer}>
@@ -805,6 +894,91 @@
             {/if}
           </button>
         </div>
+      {/if}
+    </div>
+  </div>
+{/if}
+
+<!-- Recover Dialog Overlay -->
+{#if showRecover}
+  <div class="modal-overlay" onclick={closeRecover}>
+    <div class="modal-content modal-wide" onclick={(e) => e.stopPropagation()}>
+      {#if recovering}
+        <div class="loading"><div class="spinner"></div>{$tr('playlist.recovering')}</div>
+      {:else if recoverResult}
+        {#if recoverResult.unavailable === 0 && recoverResult.recovered === 0}
+          <div class="import-done">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#1DB954" stroke-width="2" width="32" height="32"><path d="M20 6L9 17l-5-5" /></svg>
+            <h3>{$tr('playlist.noIssues')}</h3>
+            <button class="confirm-btn" onclick={closeRecover}>{$tr('common.ok')}</button>
+          </div>
+        {:else}
+          <div class="recover-report">
+            <h3>{recoverResult.playlist_name}</h3>
+            <div class="transfer-summary">
+              <span class="summary-stat matched">{recoverResult.available} {$tr('playlist.available')}</span>
+              {#if recoverResult.recovered > 0}
+                <span class="summary-stat approximate">{recoverResult.recovered} {$tr('playlist.recovered')}</span>
+              {/if}
+              {#if recoverResult.unavailable > 0}
+                <span class="summary-stat not-found">{recoverResult.unavailable} {$tr('playlist.unavailable')}</span>
+              {/if}
+            </div>
+            {#if recoverResult.recovered > 0}
+              <div class="form-actions" style="margin-bottom: var(--space-md); justify-content: flex-start;">
+                <button class="confirm-btn" onclick={applyAllRecovery} disabled={applyingAll}>
+                  {#if applyingAll}
+                    <div class="spinner-small"></div>
+                  {/if}
+                  {$tr('playlist.applyAll')}
+                </button>
+              </div>
+            {/if}
+            <div class="recover-tracks">
+              {#each recoverResult.tracks.filter(t => t.status !== 'available') as track}
+                <div class="recover-track-row status-{track.status === 'recovered' ? 'approximate' : 'not_found'}">
+                  <span class="transfer-status-dot"></span>
+                  <div class="recover-track-info">
+                    <span class="transfer-track-title">{track.title}</span>
+                    {#if track.artist_name}
+                      <span class="transfer-track-artist">{track.artist_name}</span>
+                    {/if}
+                    <span class="recover-source-label">{track.original_source}</span>
+                  </div>
+                  {#if track.status === 'recovered' && track.alternatives.length > 0}
+                    <div class="recover-alternatives">
+                      {#each track.alternatives as alt}
+                        <div class="recover-alt-item">
+                          <span class="source-chip" style="color: {serviceColor(alt.service)}">{alt.service === 'local' ? $tr('playlist.local') : serviceName(alt.service)}</span>
+                          <span class="recover-alt-title">{alt.title}</span>
+                          {#if alt.artist_name}
+                            <span class="recover-alt-artist">{alt.artist_name}</span>
+                          {/if}
+                          <button
+                            class="recover-apply-btn"
+                            onclick={() => applyOneRecovery(track.track_id, alt)}
+                            disabled={applyingRecovery.has(track.track_id)}
+                          >
+                            {#if applyingRecovery.has(track.track_id)}
+                              <div class="spinner-small"></div>
+                            {:else}
+                              {$tr('playlist.applyRecovery')}
+                            {/if}
+                          </button>
+                        </div>
+                      {/each}
+                    </div>
+                  {:else if track.status === 'unavailable'}
+                    <span class="recover-no-alt">{$tr('playlist.unavailable')}</span>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+            <div class="form-actions">
+              <button class="confirm-btn" onclick={closeRecover}>{$tr('common.ok')}</button>
+            </div>
+          </div>
+        {/if}
       {/if}
     </div>
   </div>
@@ -1774,6 +1948,140 @@
     cursor: pointer;
   }
 
+  /* Recover button */
+  .recover-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: none;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 13px;
+    transition: all 0.12s ease-out;
+  }
+
+  .recover-btn:hover {
+    border-color: #FF9800;
+    color: #FF9800;
+  }
+
+  /* Recover report */
+  .recover-tracks {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: var(--space-md);
+  }
+
+  .recover-track-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 13px;
+  }
+
+  .recover-track-row.status-approximate {
+    background: rgba(255, 152, 0, 0.06);
+  }
+
+  .recover-track-row.status-not_found {
+    background: rgba(244, 67, 54, 0.06);
+  }
+
+  .recover-track-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .recover-source-label {
+    font-family: var(--font-label);
+    font-size: 10px;
+    color: var(--tune-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .recover-alternatives {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .recover-alt-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 4px 8px;
+    background: var(--tune-grey2);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+  }
+
+  .recover-alt-title {
+    font-weight: 600;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .recover-alt-artist {
+    color: var(--tune-text-secondary);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .recover-apply-btn {
+    padding: 3px 10px;
+    background: var(--tune-accent);
+    border: none;
+    color: white;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    transition: background 0.12s ease-out;
+  }
+
+  .recover-apply-btn:hover {
+    background: var(--tune-accent-hover);
+  }
+
+  .recover-apply-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .recover-no-alt {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    color: #F44336;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+  }
+
   @media (max-width: 600px) {
     .diff-columns {
       grid-template-columns: 1fr;
@@ -1781,6 +2089,9 @@
     .modal-wide {
       min-width: unset;
       max-width: 95vw;
+    }
+    .recover-track-row {
+      flex-direction: column;
     }
   }
 </style>

@@ -631,6 +631,19 @@ export function diffPlaylists(sourceService: string, sourceId: string, targetSer
   });
 }
 
+export function recoverPlaylist(playlistId: number) {
+  return fetchJSON<import('./types').PlaylistRecoverResponse>(`${BASE}/playlists/${playlistId}/recover`, {
+    method: 'POST',
+  });
+}
+
+export function applyRecovery(playlistId: number, replacements: Array<{ track_id: number; new_source: string; new_source_id: string }>) {
+  return fetchJSON<import('./types').RecoverApplyResponse>(`${BASE}/playlists/${playlistId}/recover/apply`, {
+    method: 'POST',
+    body: JSON.stringify({ replacements }),
+  });
+}
+
 // --- Radios ---
 
 export function getRadios(params?: { genre?: string; favorite?: boolean; limit?: number; offset?: number }) {
@@ -756,7 +769,7 @@ export function checkFavorite(profileId: number, params: { track_id?: number; al
 
 // --- Artwork ---
 
-export function artworkUrl(coverPath: string | null | undefined): string {
+export function artworkUrl(coverPath: string | null | undefined, size?: number): string {
   if (!coverPath) return '';
   // External URLs (http/https) pass through directly
   if (coverPath.startsWith('http://') || coverPath.startsWith('https://')) {
@@ -764,7 +777,8 @@ export function artworkUrl(coverPath: string | null | undefined): string {
   }
   // Extract filename from absolute path (e.g. /data/artwork_cache/abc123.jpg -> abc123.jpg)
   const filename = coverPath.split('/').pop() ?? coverPath;
-  return `${BASE}/library/artwork/${encodeURIComponent(filename)}`;
+  const sizeParam = size ? `?size=${size}` : '';
+  return `${BASE}/library/artwork/${encodeURIComponent(filename)}${sizeParam}`;
 }
 
 // --- Album cover cache ---

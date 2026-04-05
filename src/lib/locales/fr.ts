@@ -164,6 +164,14 @@ export default {
   'playlist.inBoth': 'Dans les deux',
   'playlist.selectTarget': 'Sélectionner le service cible',
   'playlist.selectPlaylist': 'Sélectionner une playlist',
+  'playlist.recover': 'Vérifier la disponibilité',
+  'playlist.recovering': 'Vérification...',
+  'playlist.available': 'Disponible',
+  'playlist.unavailable': 'Indisponible',
+  'playlist.recovered': 'Alternative trouvée',
+  'playlist.applyRecovery': 'Remplacer',
+  'playlist.applyAll': 'Tout remplacer',
+  'playlist.noIssues': 'Toutes les pistes sont disponibles',
 
   // Settings
   'settings.title': 'Paramètres',

@@ -346,6 +346,35 @@ export interface PlaylistDiffResponse {
   in_both: DiffTrackResult[];
 }
 
+export interface RecoverTrackResult {
+  track_id: number;
+  title: string;
+  artist_name?: string | null;
+  status: 'available' | 'unavailable' | 'recovered';
+  original_source: string;
+  alternatives: Array<{
+    service: string;
+    source_id: string;
+    title: string;
+    artist_name?: string | null;
+    quality: string;
+  }>;
+}
+
+export interface PlaylistRecoverResponse {
+  playlist_name: string;
+  total_tracks: number;
+  available: number;
+  unavailable: number;
+  recovered: number;
+  tracks: RecoverTrackResult[];
+}
+
+export interface RecoverApplyResponse {
+  replaced: number;
+  failed: number;
+}
+
 export interface WSEvent {
   type: string;
   data: any;
