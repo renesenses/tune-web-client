@@ -583,6 +583,26 @@ export function getStreamingPlaylists(service: string) {
   return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists`);
 }
 
+// --- Unified Playlist Manager ---
+
+export function getAllPlaylists() {
+  return fetchJSON<import('./types').UnifiedPlaylistsResponse>(`${BASE}/playlists/all`);
+}
+
+export function importPlaylist(service: string, playlistId: string, name?: string) {
+  return fetchJSON<import('./types').PlaylistImportResponse>(`${BASE}/playlists/import`, {
+    method: 'POST',
+    body: JSON.stringify({ service, playlist_id: playlistId, name: name || undefined }),
+  });
+}
+
+export function matchTrack(title: string, artistName: string, services?: string[]) {
+  return fetchJSON<Record<string, import('./types').Track>>(`${BASE}/playlists/match`, {
+    method: 'POST',
+    body: JSON.stringify({ title, artist_name: artistName, services: services ?? [] }),
+  });
+}
+
 export function getStreamingPlaylistTracks(service: string, playlistId: string) {
   return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(playlistId)}/tracks`);
 }

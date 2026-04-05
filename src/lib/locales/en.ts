@@ -138,6 +138,17 @@ export default {
   'playlist.newPlaylist': 'New Playlist',
   'playlist.searchPlaceholder': 'Search playlists...',
   'playlist.localPlaylists': 'My Playlists',
+  'playlist.all': 'All Playlists',
+  'playlist.local': 'Local',
+  'playlist.import': 'Import',
+  'playlist.importing': 'Importing...',
+  'playlist.imported': '{count} tracks imported',
+  'playlist.manager': 'Playlist Manager',
+  'playlist.source': 'Source',
+  'playlist.importConfirm': 'Import this playlist locally?',
+  'playlist.importSuccess': 'Playlist imported successfully',
+  'playlist.importError': 'Import failed',
+  'playlist.filterAll': 'All',
 
   // Settings
   'settings.title': 'Settings',

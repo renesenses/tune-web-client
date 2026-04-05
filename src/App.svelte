@@ -33,6 +33,7 @@
   import GenresView from './components/GenresView.svelte';
   import MediaServersView from './components/MediaServersView.svelte';
   import FavoritesView from './components/FavoritesView.svelte';
+  import PlaylistManagerView from './components/PlaylistManagerView.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
   import BottomTabBar from './components/BottomTabBar.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
@@ -338,6 +339,8 @@
           <QueueView onAddToPlaylist={openPlaylistModal} />
         {:else if $activeView === 'playlists'}
           <PlaylistsView onAddToPlaylist={openPlaylistModal} />
+        {:else if $activeView === 'playlistmanager'}
+          <PlaylistManagerView onAddToPlaylist={openPlaylistModal} />
         {:else if $activeView === 'browse'}
           <BrowseView onAddToPlaylist={openPlaylistModal} />
         {:else if $activeView === 'search'}
