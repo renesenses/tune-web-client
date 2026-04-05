@@ -2,11 +2,13 @@
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, type LibraryTab } from '../lib/stores/library';
   import { currentZone } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
+  import { currentProfileId } from '../lib/stores/profile';
   import * as api from '../lib/api';
   import { formatTime, formatDuration, formatAudioBadge } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
   import TrackEditModal from './TrackEditModal.svelte';
+  import HeartButton from './HeartButton.svelte';
   import type { Album, Artist, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
 
@@ -56,6 +58,31 @@
   let albumFormatFilter = $state<string | null>(null);
   let albumSampleRateFilter = $state<number | null>(null);
 
+  // Favorites filter
+  let albumFavoritesFilter = $state(false);
+  let trackFavoritesFilter = $state(false);
+  let favAlbumIds = $state<Set<number>>(new Set());
+  let favTrackIds = $state<Set<number>>(new Set());
+  let favoritesLoaded = $state(false);
+
+  async function loadFavoriteIds() {
+    const pid = $currentProfileId;
+    if (!pid) return;
+    try {
+      const result = await api.getFavorites(pid);
+      favAlbumIds = new Set((result.albums ?? []).map((a: Album) => a.id).filter(Boolean) as number[]);
+      favTrackIds = new Set((result.tracks ?? []).map((t: Track) => t.id).filter(Boolean) as number[]);
+      favoritesLoaded = true;
+    } catch (e) {
+      console.error('Load favorite IDs error:', e);
+    }
+  }
+
+  $effect(() => {
+    const _pid = $currentProfileId;
+    if (_pid) loadFavoriteIds();
+  });
+
   // Virtual scroll state
   const TRACK_ROW_HEIGHT = 52;
   const OVERSCAN = 10;
@@ -84,12 +111,13 @@
     return $albums.filter(a => a.title.toLowerCase().includes(q) || (a.artist_name ?? '').toLowerCase().includes(q));
   });
 
-  // Albums filtered by search + quality + format + sample rate (final display)
+  // Albums filtered by search + quality + format + sample rate + favorites (final display)
   let filteredAlbums = $derived.by(() => {
     let result = searchFilteredAlbums;
     if (albumQualityFilter) result = result.filter(a => a.quality === albumQualityFilter);
     if (albumFormatFilter) result = result.filter(a => a.format === albumFormatFilter);
     if (albumSampleRateFilter) result = result.filter(a => (a.sample_rate ?? 0) >= albumSampleRateFilter);
+    if (albumFavoritesFilter) result = result.filter(a => a.id !== null && favAlbumIds.has(a.id!));
     return result;
   });
 
@@ -127,6 +155,9 @@
     if (qualityFilter) {
       const bucket = qualityBuckets.find(b => b.key === qualityFilter);
       if (bucket) result = result.filter(bucket.match);
+    }
+    if (trackFavoritesFilter) {
+      result = result.filter(t => t.id !== null && favTrackIds.has(t.id!));
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -487,6 +518,11 @@
             {/if}
           {/each}
         {/if}
+        <span class="filter-sep">|</span>
+        <button class="quality-chip favorites" class:active={albumFavoritesFilter} onclick={() => albumFavoritesFilter = !albumFavoritesFilter}>
+          <svg viewBox="0 0 24 24" fill={albumFavoritesFilter ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          {$tr('favorites.filter')}
+        </button>
         <span class="quality-count">{filteredAlbums.length} album{filteredAlbums.length > 1 ? 's' : ''}</span>
       </div>
       <div class="albums-grid">
@@ -502,6 +538,7 @@
               <button class="edit-overlay" onclick={(e) => openAlbumEdit(e, album)} title={$tr('metadata.editAlbum')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
               </button>
+              <span class="heart-overlay"><HeartButton albumId={album.id} size={14} /></span>
             </div>
             <span class="album-card-title truncate">{album.title}</span>
             {#if album.artist_name}
@@ -557,6 +594,12 @@
             {/if}
           {/each}
         </div>
+        <div class="format-filters">
+          <button class="format-btn favorites-btn" class:active={trackFavoritesFilter} onclick={() => trackFavoritesFilter = !trackFavoritesFilter}>
+            <svg viewBox="0 0 24 24" fill={trackFavoritesFilter ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            {$tr('favorites.filter')}
+          </button>
+        </div>
         <span class="format-count">{filteredTracks.length} {$tr('common.tracks')}</span>
       </div>
       <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -574,6 +617,7 @@
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
+              <HeartButton trackId={t.id} size={14} />
               <button class="edit-track-btn" onclick={(e) => openTrackEdit(e, t)} title={$tr('metadata.editTrack')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
               </button>
@@ -1087,6 +1131,56 @@
 
   .edit-overlay:hover {
     background: rgba(0, 0, 0, 0.8);
+  }
+
+  .heart-overlay {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 2;
+  }
+
+  .heart-overlay :global(.heart-btn) {
+    opacity: 0;
+    color: white;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  }
+
+  .heart-overlay :global(.heart-btn.active) {
+    opacity: 1;
+    color: #ef4444;
+  }
+
+  .album-card-art:hover .heart-overlay :global(.heart-btn) {
+    opacity: 0.8;
+  }
+
+  .heart-overlay :global(.heart-btn:hover) {
+    opacity: 1 !important;
+  }
+
+  .quality-chip.favorites {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .quality-chip.favorites.active {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: white;
+  }
+
+  .format-btn.favorites-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .format-btn.favorites-btn.active {
+    background: #ef4444 !important;
+    border-color: #ef4444;
+    color: white;
   }
 
   .album-card-title {

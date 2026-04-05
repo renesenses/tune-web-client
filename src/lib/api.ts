@@ -652,6 +652,64 @@ export function exportRadiosUrl(): string {
 }
 
 
+// --- Profiles ---
+
+export function getProfiles() {
+  return fetchJSON<any[]>(`${BASE}/profiles`);
+}
+
+export function createProfile(data: { name: string; avatar_color: string }) {
+  return fetchJSON<any>(`${BASE}/profiles`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function getProfile(id: number) {
+  return fetchJSON<any>(`${BASE}/profiles/${id}`);
+}
+
+export function updateProfile(id: number, data: { name?: string; avatar_color?: string }) {
+  return fetchJSON<any>(`${BASE}/profiles/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteProfile(id: number) {
+  return fetchVoid(`${BASE}/profiles/${id}`, { method: 'DELETE' });
+}
+
+// --- Favorites ---
+
+export function getFavorites(profileId: number, type?: 'track' | 'album' | 'artist') {
+  const q = type ? `?type=${type}` : '';
+  return fetchJSON<{ tracks: import('./types').Track[]; albums: import('./types').Album[]; artists: import('./types').Artist[] }>(`${BASE}/profiles/${profileId}/favorites${q}`);
+}
+
+export function addFavorite(profileId: number, body: { track_id?: number; album_id?: number; artist_id?: number }) {
+  return fetchJSON<any>(`${BASE}/profiles/${profileId}/favorites`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function removeFavorite(profileId: number, params: { track_id?: number; album_id?: number; artist_id?: number }) {
+  const q = new URLSearchParams();
+  if (params.track_id !== undefined) q.set('track_id', String(params.track_id));
+  if (params.album_id !== undefined) q.set('album_id', String(params.album_id));
+  if (params.artist_id !== undefined) q.set('artist_id', String(params.artist_id));
+  return fetchVoid(`${BASE}/profiles/${profileId}/favorites?${q.toString()}`, { method: 'DELETE' });
+}
+
+export function checkFavorite(profileId: number, params: { track_id?: number; album_id?: number; artist_id?: number }) {
+  const q = new URLSearchParams();
+  if (params.track_id !== undefined) q.set('track_id', String(params.track_id));
+  if (params.album_id !== undefined) q.set('album_id', String(params.album_id));
+  if (params.artist_id !== undefined) q.set('artist_id', String(params.artist_id));
+  return fetchJSON<{ is_favorite: boolean }>(`${BASE}/profiles/${profileId}/favorites/check?${q.toString()}`);
+}
+
 // --- Artwork ---
 
 export function artworkUrl(coverPath: string | null | undefined): string {

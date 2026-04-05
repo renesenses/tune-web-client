@@ -352,6 +352,21 @@ export default {
   'settings.dbPoolSize': 'Pool de connexions',
   'settings.dbSwitchInfo': 'Pour changer de moteur de base de données, modifiez TUNE_DB_ENGINE dans la configuration du serveur et redémarrez.',
 
+  // Profiles & Favorites
+  'nav.favorites': 'Favoris',
+  'profile.select': 'Choisir un profil',
+  'profile.create': 'Nouveau profil',
+  'profile.name': 'Nom',
+  'profile.delete': 'Supprimer',
+  'profile.profiles': 'PROFILS',
+  'favorites.tracks': 'Pistes',
+  'favorites.albums': 'Albums',
+  'favorites.artists': 'Artistes',
+  'favorites.empty': 'Aucun favori',
+  'favorites.addedToFavorites': 'Ajouté aux favoris',
+  'favorites.removedFromFavorites': 'Retiré des favoris',
+  'favorites.filter': 'Favoris',
+
   // About
   'settings.about': 'À propos',
   'settings.clientVersion': 'Version client',

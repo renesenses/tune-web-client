@@ -32,10 +32,12 @@
   import RadiosView from './components/RadiosView.svelte';
   import GenresView from './components/GenresView.svelte';
   import MediaServersView from './components/MediaServersView.svelte';
+  import FavoritesView from './components/FavoritesView.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
   import BottomTabBar from './components/BottomTabBar.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
+  import { loadProfiles } from './lib/stores/profile';
 
   import type { Track } from './lib/types';
 
@@ -200,6 +202,7 @@
     fetchZones(true);
     fetchDevices();
     fetchPlaylists();
+    loadProfiles();
 
     tuneWS.onEvent((event) => {
       const type = event.type;
@@ -353,6 +356,8 @@
           <MetadataView />
         {:else if $activeView === 'mediaservers'}
           <MediaServersView />
+        {:else if $activeView === 'favorites'}
+          <FavoritesView onAddToPlaylist={openPlaylistModal} />
         {/if}
       </div>
     {/key}
