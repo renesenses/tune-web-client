@@ -607,6 +607,30 @@ export function getStreamingPlaylistTracks(service: string, playlistId: string) 
   return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(playlistId)}/tracks`);
 }
 
+export function transferPlaylist(sourceService: string, sourceId: string, targetService: string, targetName?: string) {
+  return fetchJSON<import('./types').PlaylistTransferResponse>(`${BASE}/playlists/transfer`, {
+    method: 'POST',
+    body: JSON.stringify({
+      source_service: sourceService,
+      source_playlist_id: sourceId,
+      target_service: targetService,
+      target_name: targetName || undefined,
+    }),
+  });
+}
+
+export function diffPlaylists(sourceService: string, sourceId: string, targetService: string, targetId: string) {
+  return fetchJSON<import('./types').PlaylistDiffResponse>(`${BASE}/playlists/diff`, {
+    method: 'POST',
+    body: JSON.stringify({
+      source_service: sourceService,
+      source_playlist_id: sourceId,
+      target_service: targetService,
+      target_playlist_id: targetId,
+    }),
+  });
+}
+
 // --- Radios ---
 
 export function getRadios(params?: { genre?: string; favorite?: boolean; limit?: number; offset?: number }) {

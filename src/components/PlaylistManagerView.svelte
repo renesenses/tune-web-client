@@ -4,7 +4,7 @@
   import { streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
-  import type { Playlist, Track, StreamingPlaylist, UnifiedPlaylistsResponse } from '../lib/types';
+  import type { Playlist, Track, StreamingPlaylist, UnifiedPlaylistsResponse, PlaylistTransferResponse, PlaylistDiffResponse } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import AlbumArt from './AlbumArt.svelte';
 
@@ -34,6 +34,22 @@
   let importName = $state('');
   let importing = $state(false);
   let importResult = $state<{ name: string; count: number } | null>(null);
+
+  // Transfer dialog
+  let showTransfer = $state(false);
+  let transferTargetService = $state('local');
+  let transferName = $state('');
+  let transferring = $state(false);
+  let transferResult = $state<PlaylistTransferResponse | null>(null);
+
+  // Diff dialog
+  let showDiff = $state(false);
+  let diffTargetService = $state('');
+  let diffTargetPlaylistId = $state('');
+  let diffTargetPlaylists = $state<StreamingPlaylist[] | Playlist[]>([]);
+  let diffing = $state(false);
+  let diffResult = $state<PlaylistDiffResponse | null>(null);
+  let diffLoadingPlaylists = $state(false);
 
   // Create dialog
   let showCreate = $state(false);
@@ -309,6 +325,101 @@
       console.error('Remove track error:', e);
     }
   }
+
+  // Transfer flow
+  function openTransfer() {
+    const currentName = selectedPlaylist?.name ?? selectedStreamingPl?.name ?? '';
+    transferName = currentName;
+    transferTargetService = 'local';
+    transferResult = null;
+    transferring = false;
+    showTransfer = true;
+  }
+
+  function closeTransfer() {
+    showTransfer = false;
+    transferResult = null;
+    transferring = false;
+  }
+
+  let transferServices = $derived([
+    'local',
+    ...authenticatedServices.filter((s) => s !== selectedService),
+  ]);
+
+  async function doTransfer() {
+    const sourceId = selectedPlaylist?.id?.toString() ?? selectedStreamingPl?.source_id;
+    if (!sourceId) return;
+    transferring = true;
+    try {
+      transferResult = await api.transferPlaylist(
+        selectedService,
+        sourceId,
+        transferTargetService,
+        transferName || undefined,
+      );
+      await loadAll();
+      const list = await api.getPlaylists();
+      playlistsStore.set(list);
+    } catch (e) {
+      console.error('Transfer playlist error:', e);
+    }
+    transferring = false;
+  }
+
+  // Diff flow
+  function openDiff() {
+    diffResult = null;
+    diffing = false;
+    diffTargetService = '';
+    diffTargetPlaylistId = '';
+    diffTargetPlaylists = [];
+    showDiff = true;
+  }
+
+  function closeDiff() {
+    showDiff = false;
+    diffResult = null;
+    diffing = false;
+  }
+
+  let diffServices = $derived([
+    'local',
+    ...authenticatedServices,
+  ]);
+
+  async function loadDiffPlaylists(service: string) {
+    diffTargetService = service;
+    diffTargetPlaylistId = '';
+    diffLoadingPlaylists = true;
+    try {
+      if (service === 'local') {
+        diffTargetPlaylists = localPlaylists;
+      } else {
+        diffTargetPlaylists = streamingPlaylists[service] ?? [];
+      }
+    } catch (e) {
+      console.error('Load diff playlists error:', e);
+    }
+    diffLoadingPlaylists = false;
+  }
+
+  async function doDiff() {
+    const sourceId = selectedPlaylist?.id?.toString() ?? selectedStreamingPl?.source_id;
+    if (!sourceId || !diffTargetPlaylistId || !diffTargetService) return;
+    diffing = true;
+    try {
+      diffResult = await api.diffPlaylists(
+        selectedService,
+        sourceId,
+        diffTargetService,
+        diffTargetPlaylistId,
+      );
+    } catch (e) {
+      console.error('Diff playlists error:', e);
+    }
+    diffing = false;
+  }
 </script>
 
 <div class="pm-view">
@@ -336,6 +447,14 @@
             {$tr('playlist.import')}
           </button>
         {/if}
+        <button class="transfer-btn" onclick={openTransfer}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
+          {$tr('playlist.transfer')}
+        </button>
+        <button class="compare-btn" onclick={openDiff}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
+          {$tr('playlist.compare')}
+        </button>
         <button class="play-all-btn" onclick={() => {
           if (selectedPlaylist?.id) playPlaylist(selectedPlaylist.id);
           else if (selectedStreamingPl) playStreamingPlaylist(selectedStreamingPl);
@@ -515,6 +634,174 @@
               {$tr('playlist.importing')}
             {:else}
               {$tr('playlist.import')}
+            {/if}
+          </button>
+        </div>
+      {/if}
+    </div>
+  </div>
+{/if}
+
+<!-- Transfer Dialog Overlay -->
+{#if showTransfer}
+  <div class="modal-overlay" onclick={closeTransfer}>
+    <div class="modal-content modal-wide" onclick={(e) => e.stopPropagation()}>
+      {#if transferResult}
+        <div class="transfer-report">
+          <h3>{$tr('playlist.transferComplete')}</h3>
+          <div class="transfer-summary">
+            <span class="summary-stat matched">{transferResult.matched} {$tr('playlist.matched')}</span>
+            <span class="summary-stat approximate">{transferResult.approximate} {$tr('playlist.approximate')}</span>
+            <span class="summary-stat not-found">{transferResult.not_found} {$tr('playlist.notFound')}</span>
+          </div>
+          <div class="transfer-tracks">
+            {#each transferResult.tracks as track}
+              <div class="transfer-track-row status-{track.status}">
+                <span class="transfer-status-dot"></span>
+                <span class="transfer-track-title">{track.title}</span>
+                {#if track.artist_name}
+                  <span class="transfer-track-artist">{track.artist_name}</span>
+                {/if}
+                <span class="transfer-track-status">{$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}</span>
+              </div>
+            {/each}
+          </div>
+          <div class="form-actions">
+            <button class="confirm-btn" onclick={closeTransfer}>{$tr('common.ok')}</button>
+          </div>
+        </div>
+      {:else}
+        <h3>{$tr('playlist.transferTo')}</h3>
+        <p class="import-source">
+          {#if selectedService && selectedService !== 'local'}
+            <span class="source-chip" style="color: {serviceColor(selectedService)}">{serviceName(selectedService)}</span>
+          {:else}
+            <span class="source-chip" style="color: {serviceColor('local')}">{$tr('playlist.local')}</span>
+          {/if}
+          {selectedPlaylist?.name ?? selectedStreamingPl?.name}
+        </p>
+        <label class="import-label">{$tr('playlist.selectTarget')}</label>
+        <select class="import-input" bind:value={transferTargetService}>
+          {#each transferServices as svc}
+            <option value={svc}>{svc === 'local' ? $tr('playlist.local') : serviceName(svc)}</option>
+          {/each}
+        </select>
+        <label class="import-label">{$tr('playlist.name')}</label>
+        <input type="text" class="import-input" bind:value={transferName} />
+        <div class="form-actions">
+          <button class="cancel-btn" onclick={closeTransfer}>{$tr('common.cancel')}</button>
+          <button class="confirm-btn" onclick={doTransfer} disabled={transferring}>
+            {#if transferring}
+              <div class="spinner-small"></div>
+              {$tr('playlist.transferring')}
+            {:else}
+              {$tr('playlist.transfer')}
+            {/if}
+          </button>
+        </div>
+      {/if}
+    </div>
+  </div>
+{/if}
+
+<!-- Diff Dialog Overlay -->
+{#if showDiff}
+  <div class="modal-overlay" onclick={closeDiff}>
+    <div class="modal-content modal-wide" onclick={(e) => e.stopPropagation()}>
+      {#if diffResult}
+        <div class="diff-report">
+          <h3>{diffResult.source_name} vs {diffResult.target_name}</h3>
+          <div class="diff-columns">
+            <div class="diff-column">
+              <h4 class="diff-col-header source-header">{$tr('playlist.onlyInSource')} ({diffResult.only_in_source.length})</h4>
+              <div class="diff-track-list">
+                {#each diffResult.only_in_source as track}
+                  <div class="diff-track source-only">
+                    <span class="diff-track-title">{track.title}</span>
+                    {#if track.artist_name}<span class="diff-track-artist">{track.artist_name}</span>{/if}
+                  </div>
+                {/each}
+                {#if diffResult.only_in_source.length === 0}
+                  <div class="diff-empty">--</div>
+                {/if}
+              </div>
+            </div>
+            <div class="diff-column">
+              <h4 class="diff-col-header both-header">{$tr('playlist.inBoth')} ({diffResult.in_both.length})</h4>
+              <div class="diff-track-list">
+                {#each diffResult.in_both as track}
+                  <div class="diff-track in-both" class:approximate={track.match_quality === 'approximate'}>
+                    <span class="diff-track-title">{track.title}</span>
+                    {#if track.artist_name}<span class="diff-track-artist">{track.artist_name}</span>{/if}
+                    {#if track.match_quality === 'approximate'}
+                      <span class="diff-quality-badge">{$tr('playlist.approximate')}</span>
+                    {/if}
+                  </div>
+                {/each}
+                {#if diffResult.in_both.length === 0}
+                  <div class="diff-empty">--</div>
+                {/if}
+              </div>
+            </div>
+            <div class="diff-column">
+              <h4 class="diff-col-header target-header">{$tr('playlist.onlyInTarget')} ({diffResult.only_in_target.length})</h4>
+              <div class="diff-track-list">
+                {#each diffResult.only_in_target as track}
+                  <div class="diff-track target-only">
+                    <span class="diff-track-title">{track.title}</span>
+                    {#if track.artist_name}<span class="diff-track-artist">{track.artist_name}</span>{/if}
+                  </div>
+                {/each}
+                {#if diffResult.only_in_target.length === 0}
+                  <div class="diff-empty">--</div>
+                {/if}
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="confirm-btn" onclick={closeDiff}>{$tr('common.ok')}</button>
+          </div>
+        </div>
+      {:else}
+        <h3>{$tr('playlist.compareTo')}</h3>
+        <p class="import-source">
+          {#if selectedService && selectedService !== 'local'}
+            <span class="source-chip" style="color: {serviceColor(selectedService)}">{serviceName(selectedService)}</span>
+          {:else}
+            <span class="source-chip" style="color: {serviceColor('local')}">{$tr('playlist.local')}</span>
+          {/if}
+          {selectedPlaylist?.name ?? selectedStreamingPl?.name}
+        </p>
+        <label class="import-label">{$tr('playlist.selectTarget')}</label>
+        <select class="import-input" bind:value={diffTargetService} onchange={(e) => loadDiffPlaylists((e.target as HTMLSelectElement).value)}>
+          <option value="">--</option>
+          {#each diffServices as svc}
+            <option value={svc}>{svc === 'local' ? $tr('playlist.local') : serviceName(svc)}</option>
+          {/each}
+        </select>
+        {#if diffTargetService}
+          <label class="import-label">{$tr('playlist.selectPlaylist')}</label>
+          {#if diffLoadingPlaylists}
+            <div class="loading"><div class="spinner"></div></div>
+          {:else}
+            <select class="import-input" bind:value={diffTargetPlaylistId}>
+              <option value="">--</option>
+              {#each diffTargetPlaylists as pl}
+                <option value={'source_id' in pl ? (pl as StreamingPlaylist).source_id : String((pl as Playlist).id)}>
+                  {pl.name}
+                </option>
+              {/each}
+            </select>
+          {/if}
+        {/if}
+        <div class="form-actions">
+          <button class="cancel-btn" onclick={closeDiff}>{$tr('common.cancel')}</button>
+          <button class="confirm-btn" onclick={doDiff} disabled={diffing || !diffTargetPlaylistId}>
+            {#if diffing}
+              <div class="spinner-small"></div>
+              {$tr('playlist.comparing')}
+            {:else}
+              {$tr('playlist.compare')}
             {/if}
           </button>
         </div>
@@ -1222,5 +1509,278 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  /* Transfer & Compare buttons */
+  .transfer-btn,
+  .compare-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: none;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 13px;
+    transition: all 0.12s ease-out;
+  }
+
+  .transfer-btn:hover {
+    border-color: #1DB954;
+    color: #1DB954;
+  }
+
+  .compare-btn:hover {
+    border-color: #4285F4;
+    color: #4285F4;
+  }
+
+  /* Wide modal for transfer & diff */
+  .modal-wide {
+    min-width: 400px;
+    max-width: 720px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  /* Transfer report */
+  .transfer-summary {
+    display: flex;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+    flex-wrap: wrap;
+  }
+
+  .summary-stat {
+    font-family: var(--font-label);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 16px;
+  }
+
+  .summary-stat.matched {
+    background: rgba(29, 185, 84, 0.15);
+    color: #1DB954;
+  }
+
+  .summary-stat.approximate {
+    background: rgba(255, 152, 0, 0.15);
+    color: #FF9800;
+  }
+
+  .summary-stat.not-found {
+    background: rgba(244, 67, 54, 0.15);
+    color: #F44336;
+  }
+
+  .transfer-tracks {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    max-height: 350px;
+    overflow-y: auto;
+    margin-bottom: var(--space-md);
+  }
+
+  .transfer-track-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 13px;
+  }
+
+  .transfer-track-row.status-matched {
+    background: rgba(29, 185, 84, 0.06);
+  }
+
+  .transfer-track-row.status-approximate {
+    background: rgba(255, 152, 0, 0.06);
+  }
+
+  .transfer-track-row.status-not_found {
+    background: rgba(244, 67, 54, 0.06);
+  }
+
+  .transfer-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-matched .transfer-status-dot {
+    background: #1DB954;
+  }
+
+  .status-approximate .transfer-status-dot {
+    background: #FF9800;
+  }
+
+  .status-not_found .transfer-status-dot {
+    background: #F44336;
+  }
+
+  .transfer-track-title {
+    font-weight: 600;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .transfer-track-artist {
+    color: var(--tune-text-secondary);
+    flex-shrink: 0;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .transfer-track-status {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+    color: var(--tune-text-muted);
+  }
+
+  /* Diff report */
+  .diff-report h3 {
+    margin-bottom: var(--space-md);
+  }
+
+  .diff-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+
+  .diff-column {
+    min-width: 0;
+  }
+
+  .diff-col-header {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-sm);
+  }
+
+  .source-header {
+    background: rgba(244, 67, 54, 0.1);
+    color: #F44336;
+  }
+
+  .both-header {
+    background: rgba(29, 185, 84, 0.1);
+    color: #1DB954;
+  }
+
+  .target-header {
+    background: rgba(33, 150, 243, 0.1);
+    color: #2196F3;
+  }
+
+  .diff-track-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 350px;
+    overflow-y: auto;
+  }
+
+  .diff-track {
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 12px;
+  }
+
+  .diff-track.source-only {
+    background: rgba(244, 67, 54, 0.05);
+  }
+
+  .diff-track.in-both {
+    background: rgba(29, 185, 84, 0.05);
+  }
+
+  .diff-track.in-both.approximate {
+    background: rgba(255, 152, 0, 0.05);
+  }
+
+  .diff-track.target-only {
+    background: rgba(33, 150, 243, 0.05);
+  }
+
+  .diff-track-title {
+    display: block;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .diff-track-artist {
+    display: block;
+    color: var(--tune-text-secondary);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .diff-quality-badge {
+    display: inline-block;
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 600;
+    color: #FF9800;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .diff-empty {
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+    font-size: 12px;
+    text-align: center;
+    padding: var(--space-md);
+  }
+
+  /* Select styling */
+  select.import-input {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+    cursor: pointer;
+  }
+
+  @media (max-width: 600px) {
+    .diff-columns {
+      grid-template-columns: 1fr;
+    }
+    .modal-wide {
+      min-width: unset;
+      max-width: 95vw;
+    }
   }
 </style>

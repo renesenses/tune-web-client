@@ -311,6 +311,41 @@ export interface PlaylistImportResponse {
   tracks_imported: number;
 }
 
+export interface TransferTrackResult {
+  title: string;
+  artist_name?: string | null;
+  status: 'matched' | 'not_found' | 'approximate';
+  source_id?: string | null;
+  target_id?: string | null;
+  target_service?: string | null;
+}
+
+export interface PlaylistTransferResponse {
+  playlist_id: number | string | null;
+  playlist_name: string;
+  total_tracks: number;
+  matched: number;
+  not_found: number;
+  approximate: number;
+  tracks: TransferTrackResult[];
+}
+
+export interface DiffTrackResult {
+  title: string;
+  artist_name?: string | null;
+  in_source: boolean;
+  in_target: boolean;
+  match_quality?: 'exact' | 'approximate' | null;
+}
+
+export interface PlaylistDiffResponse {
+  source_name: string;
+  target_name: string;
+  only_in_source: DiffTrackResult[];
+  only_in_target: DiffTrackResult[];
+  in_both: DiffTrackResult[];
+}
+
 export interface WSEvent {
   type: string;
   data: any;
