@@ -157,7 +157,7 @@
             {#if artistSearch && !artists.some(a => a.name.toLowerCase() === artistSearch.toLowerCase())}
               <span class="create-hint">Nouvel artiste : "{artistSearch}"</span>
             {/if}
-          </label>
+          </div>
 
           <label class="field">
             <span class="field-label">{$t('metadata.albumTitle')}</span>
