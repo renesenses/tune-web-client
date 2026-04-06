@@ -387,6 +387,7 @@
                 </div>
                 {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
+                <span class="track-heart" onclick={(e) => e.stopPropagation()}><HeartButton trackId={t.id} size={14} /></span>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
                 {#if onAddToPlaylist && (t.id || t.source_id)}
                   <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
@@ -1424,6 +1425,12 @@
     color: var(--tune-text-muted);
     letter-spacing: 0.3px;
     flex-shrink: 0;
+  }
+
+  .track-heart {
+    display: flex;
+    align-items: center;
+    margin-right: 4px;
   }
 
   .add-queue-btn {
