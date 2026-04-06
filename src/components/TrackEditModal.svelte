@@ -144,9 +144,9 @@
             <input type="text" bind:value={title} />
           </label>
 
-          <label class="field">
+          <div class="field">
             <span class="field-label">{$t('metadata.artist')}</span>
-            <input type="text" bind:value={artistSearch} placeholder="Rechercher ou créer un artiste..." onfocus={() => artistFocused = true} onblur={() => setTimeout(() => artistFocused = false, 200)} />
+            <input type="text" bind:value={artistSearch} placeholder="Rechercher ou créer un artiste..." onfocus={() => artistFocused = true} onblur={() => setTimeout(() => artistFocused = false, 300)} />
             {#if artistFocused && artistSearch.length > 0 && filteredArtists.length > 0}
               <div class="dropdown-list">
                 {#each filteredArtists as a}

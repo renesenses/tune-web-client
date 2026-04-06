@@ -678,10 +678,17 @@
     {/if}
 
     {#if loading}
-      <div class="loading"><div class="spinner"></div><span>{loadingStatus || $tr('common.loading')}</span></div>
-    {:else if displayPlaylists.length === 0}
+      <div class="loading-bar">
+        <div class="spinner"></div>
+        <span>{loadingStatus || $tr('common.loading')}</span>
+      </div>
+    {/if}
+
+    {#if !loading && displayPlaylists.length === 0}
       <div class="empty">{$tr('playlist.noPlaylists')}</div>
-    {:else}
+    {/if}
+
+    {#if displayPlaylists.length > 0}
       <div class="playlist-list">
         {#each displayPlaylists as item}
           <div class="playlist-item">
@@ -1676,6 +1683,25 @@
   }
 
   /* Utility */
+  .loading-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--tune-accent);
+    font-family: var(--font-body);
+    font-size: 13px;
+    padding: 12px 16px;
+    background: var(--tune-surface);
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
   .loading {
     display: flex;
     align-items: center;
