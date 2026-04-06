@@ -1086,6 +1086,18 @@
     border-radius: var(--radius-lg);
     overflow: hidden;
     background: var(--tune-grey2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .album-card-art::before {
+    content: "♪";
+    position: absolute;
+    font-size: 32px;
+    color: var(--tune-text-muted, #555);
+    opacity: 0.3;
+    z-index: 0;
   }
 
   .album-cover-img {
@@ -1093,6 +1105,14 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    to { opacity: 1; }
   }
 
   .play-overlay {
