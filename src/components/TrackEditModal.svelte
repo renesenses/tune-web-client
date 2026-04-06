@@ -27,9 +27,35 @@
 
   let artists = $state<Artist[]>([]);
   let albums = $state<Album[]>([]);
+  let artistSearch = $state(track.artist_name ?? '');
+  let albumSearch = $state(track.album_title ?? '');
+  let newArtistName = $state('');
+  let newAlbumName = $state('');
   let saving = $state(false);
   let success = $state(false);
   let error = $state<string | null>(null);
+
+  let filteredArtists = $derived(
+    artistSearch.length < 1
+      ? artists.slice(0, 30)
+      : artists.filter(a => a.name.toLowerCase().includes(artistSearch.toLowerCase())).slice(0, 30)
+  );
+
+  let filteredAlbums = $derived(
+    albumSearch.length < 1
+      ? albums.slice(0, 30)
+      : albums.filter(a => a.title.toLowerCase().includes(albumSearch.toLowerCase())).slice(0, 30)
+  );
+
+  function selectArtist(a: Artist) {
+    artistId = a.id;
+    artistSearch = a.name;
+  }
+
+  function selectAlbum(a: Album) {
+    albumId = a.id;
+    albumSearch = a.title;
+  }
 
   async function loadData() {
     try {
@@ -47,6 +73,17 @@
     saving = true;
     error = null;
     try {
+      // Create new artist if needed
+      if (artistSearch && !artistId) {
+        const match = artists.find(a => a.name.toLowerCase() === artistSearch.toLowerCase());
+        if (match) {
+          artistId = match.id;
+        } else {
+          const newArtist = await api.createArtist(artistSearch.trim());
+          artistId = newArtist.id;
+        }
+      }
+
       const data: Record<string, any> = {};
       if (title !== track.title) data.title = title;
       if (trackNumber !== (track.track_number ?? null)) data.track_number = trackNumber;
@@ -107,22 +144,33 @@
 
           <label class="field">
             <span class="field-label">{$t('metadata.artist')}</span>
-            <select bind:value={artistId}>
-              <option value={null}>--</option>
-              {#each artists as a}
-                <option value={a.id}>{a.name}</option>
+            <input type="text" bind:value={artistSearch} placeholder="Rechercher ou créer un artiste..." list="artist-list" oninput={() => { artistId = null; }} />
+            <datalist id="artist-list">
+              {#each filteredArtists as a}
+                <option value={a.name}>{a.name}</option>
               {/each}
-            </select>
+            </datalist>
+            {#if artistSearch && !artists.some(a => a.name.toLowerCase() === artistSearch.toLowerCase())}
+              <span class="create-hint">Nouvel artiste : "{artistSearch}"</span>
+            {:else if artistSearch}
+              {@const match = artists.find(a => a.name.toLowerCase() === artistSearch.toLowerCase())}
+              {#if match}
+                <span class="match-hint" style="display:none">{void selectArtist(match)}</span>
+              {/if}
+            {/if}
           </label>
 
           <label class="field">
             <span class="field-label">{$t('metadata.albumTitle')}</span>
-            <select bind:value={albumId}>
-              <option value={null}>--</option>
-              {#each albums as al}
-                <option value={al.id}>{al.title}{al.artist_name ? ` - ${al.artist_name}` : ''}</option>
+            <input type="text" bind:value={albumSearch} placeholder="Rechercher ou créer un album..." list="album-list" oninput={() => { albumId = null; }} />
+            <datalist id="album-list">
+              {#each filteredAlbums as al}
+                <option value={al.title}>{al.title}{al.artist_name ? ` - ${al.artist_name}` : ''}</option>
               {/each}
-            </select>
+            </datalist>
+            {#if albumSearch && !albums.some(a => a.title.toLowerCase() === albumSearch.toLowerCase())}
+              <span class="create-hint">Nouvel album : "{albumSearch}"</span>
+            {/if}
           </label>
 
           <div class="field-row">
@@ -283,6 +331,13 @@
 
   .field-row .field {
     flex: 1;
+  }
+
+  .create-hint {
+    font-size: 11px;
+    color: var(--tune-accent);
+    font-style: italic;
+    margin-top: 2px;
   }
 
   .error-msg {
