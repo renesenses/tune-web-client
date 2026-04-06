@@ -19,6 +19,8 @@
   let localPlaylists = $state<Playlist[]>([]);
   let streamingPlaylists = $state<Record<string, StreamingPlaylist[]>>({});
   let loading = $state(true);
+  let loadingStatus = $state('');
+  let loadedCount = $state(0);
   let searchQuery = $state('');
   let activeFilter = $state<string>('all');
 
@@ -78,12 +80,33 @@
 
   async function loadAll() {
     loading = true;
+    loadedCount = 0;
+    loadingStatus = 'Chargement des playlists locales...';
     try {
-      const data: UnifiedPlaylistsResponse = await api.getAllPlaylists();
-      localPlaylists = data.local;
-      streamingPlaylists = data.services;
+      // Load local playlists first (fast)
+      const localData = await api.getPlaylists();
+      localPlaylists = localData;
+      loadedCount = localData.length;
+      loadingStatus = `${loadedCount} playlists locales`;
+
+      // Load streaming services in parallel
+      const services = await api.getStreamingServices();
+      const serviceNames = Object.keys(services).filter(s => services[s].authenticated);
+
+      for (const svc of serviceNames) {
+        loadingStatus = `Chargement ${svc}...`;
+        try {
+          const playlists = await api.getStreamingPlaylists(svc);
+          streamingPlaylists = { ...streamingPlaylists, [svc]: playlists };
+          loadedCount += playlists.length;
+          loadingStatus = `${loadedCount} playlists (${svc}: ${playlists.length})`;
+        } catch (e) {
+          console.error(`Load ${svc} playlists error:`, e);
+        }
+      }
+      loadingStatus = `${loadedCount} playlists chargées`;
     } catch (e) {
-      console.error('Load all playlists error:', e);
+      console.error('Load playlists error:', e);
     }
     loading = false;
   }
@@ -561,7 +584,7 @@
     {/if}
 
     {#if detailLoading}
-      <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
+      <div class="loading"><div class="spinner"></div><span>{loadingStatus || $tr('common.loading')}</span></div>
     {:else}
       <div class="track-list">
         {#each detailTracks as t, index}
@@ -646,7 +669,7 @@
     {/if}
 
     {#if loading}
-      <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
+      <div class="loading"><div class="spinner"></div><span>{loadingStatus || $tr('common.loading')}</span></div>
     {:else if displayPlaylists.length === 0}
       <div class="empty">{$tr('playlist.noPlaylists')}</div>
     {:else}
