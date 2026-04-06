@@ -342,7 +342,7 @@ export function updateAlbum(id: number, data: { title?: string; artist_id?: numb
   });
 }
 
-export function updateTrack(id: number, data: { title?: string; album_id?: number; artist_id?: number; disc_number?: number; track_number?: number }) {
+export function updateTrack(id: number, data: { title?: string; album_id?: number; artist_id?: number; disc_number?: number; track_number?: number; genre?: string; year?: string }) {
   return fetchJSON<Track>(`${BASE}/library/tracks/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),

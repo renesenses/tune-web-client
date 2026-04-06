@@ -20,6 +20,10 @@
   let artistId = $state<number | null>(track.artist_id ?? null);
   // svelte-ignore state_referenced_locally
   let albumId = $state<number | null>(track.album_id ?? null);
+  // svelte-ignore state_referenced_locally
+  let genre = $state(track.genre ?? '');
+  // svelte-ignore state_referenced_locally
+  let year = $state(track.year?.toString() ?? '');
 
   let artists = $state<Artist[]>([]);
   let albums = $state<Album[]>([]);
@@ -49,6 +53,8 @@
       if (discNumber !== (track.disc_number ?? null)) data.disc_number = discNumber;
       if (artistId !== (track.artist_id ?? null)) data.artist_id = artistId;
       if (albumId !== (track.album_id ?? null)) data.album_id = albumId;
+      if (genre !== (track.genre ?? '')) data.genre = genre || undefined;
+      if (year !== (track.year?.toString() ?? '')) data.year = year || undefined;
 
       if (Object.keys(data).length > 0) {
         const updated = await api.updateTrack(track.id, data);
@@ -118,6 +124,18 @@
               {/each}
             </select>
           </label>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">{$t('metadata.genre')}</span>
+              <input type="text" bind:value={genre} placeholder="Rock, Jazz, Electronic..." />
+            </label>
+
+            <label class="field">
+              <span class="field-label">{$t('metadata.year')}</span>
+              <input type="text" bind:value={year} placeholder="2024" />
+            </label>
+          </div>
 
           <div class="field-row">
             <label class="field">
