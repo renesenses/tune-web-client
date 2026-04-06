@@ -301,12 +301,14 @@
         await api.play(zone.id, { track_id: t.id });
       }
       // Refresh zone state so transport bar updates
-      setTimeout(async () => {
-        try {
-          const zoneList = await api.getZones();
-          zones.set(zoneList);
-        } catch {}
-      }, 500);
+      for (const delay of [300, 1000, 3000]) {
+        setTimeout(async () => {
+          try {
+            const zoneList = await api.getZones();
+            zones.set(zoneList);
+          } catch {}
+        }, delay);
+      }
     } catch (e) {
       console.error('Play track error:', e);
     }
