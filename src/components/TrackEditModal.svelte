@@ -31,6 +31,8 @@
   let albumSearch = $state(track.album_title ?? '');
   let newArtistName = $state('');
   let newAlbumName = $state('');
+  let artistFocused = $state(false);
+  let albumFocused = $state(false);
   let saving = $state(false);
   let success = $state(false);
   let error = $state<string | null>(null);
@@ -144,8 +146,8 @@
 
           <label class="field">
             <span class="field-label">{$t('metadata.artist')}</span>
-            <input type="text" bind:value={artistSearch} placeholder="Rechercher ou créer un artiste..." />
-            {#if artistSearch.length > 0 && filteredArtists.length > 0}
+            <input type="text" bind:value={artistSearch} placeholder="Rechercher ou créer un artiste..." onfocus={() => artistFocused = true} onblur={() => setTimeout(() => artistFocused = false, 200)} />
+            {#if artistFocused && artistSearch.length > 0 && filteredArtists.length > 0}
               <div class="dropdown-list">
                 {#each filteredArtists as a}
                   <button type="button" class="dropdown-item" onclick={() => selectArtist(a)}>{a.name}</button>
@@ -159,8 +161,8 @@
 
           <label class="field">
             <span class="field-label">{$t('metadata.albumTitle')}</span>
-            <input type="text" bind:value={albumSearch} placeholder="Rechercher ou créer un album..." />
-            {#if albumSearch.length > 0 && filteredAlbums.length > 0}
+            <input type="text" bind:value={albumSearch} placeholder="Rechercher ou créer un album..." onfocus={() => albumFocused = true} onblur={() => setTimeout(() => albumFocused = false, 200)} />
+            {#if albumFocused && albumSearch.length > 0 && filteredAlbums.length > 0}
               <div class="dropdown-list">
                 {#each filteredAlbums as al}
                   <button type="button" class="dropdown-item" onclick={() => selectAlbum(al)}>{al.title}{al.artist_name ? ` — ${al.artist_name}` : ''}</button>
