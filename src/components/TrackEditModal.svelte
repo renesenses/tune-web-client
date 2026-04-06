@@ -144,12 +144,14 @@
 
           <label class="field">
             <span class="field-label">{$t('metadata.artist')}</span>
-            <input type="text" bind:value={artistSearch} placeholder="Rechercher ou créer un artiste..." list="artist-list" oninput={() => { artistId = null; }} />
-            <datalist id="artist-list">
-              {#each filteredArtists as a}
-                <option value={a.name}>{a.name}</option>
-              {/each}
-            </datalist>
+            <input type="text" bind:value={artistSearch} placeholder="Rechercher ou créer un artiste..." />
+            {#if artistSearch.length > 0 && filteredArtists.length > 0}
+              <div class="dropdown-list">
+                {#each filteredArtists as a}
+                  <button type="button" class="dropdown-item" onclick={() => selectArtist(a)}>{a.name}</button>
+                {/each}
+              </div>
+            {/if}
             {#if artistSearch && !artists.some(a => a.name.toLowerCase() === artistSearch.toLowerCase())}
               <span class="create-hint">Nouvel artiste : "{artistSearch}"</span>
             {/if}
@@ -157,12 +159,14 @@
 
           <label class="field">
             <span class="field-label">{$t('metadata.albumTitle')}</span>
-            <input type="text" bind:value={albumSearch} placeholder="Rechercher ou créer un album..." list="album-list" oninput={() => { albumId = null; }} />
-            <datalist id="album-list">
-              {#each filteredAlbums as al}
-                <option value={al.title}>{al.title}{al.artist_name ? ` - ${al.artist_name}` : ''}</option>
-              {/each}
-            </datalist>
+            <input type="text" bind:value={albumSearch} placeholder="Rechercher ou créer un album..." />
+            {#if albumSearch.length > 0 && filteredAlbums.length > 0}
+              <div class="dropdown-list">
+                {#each filteredAlbums as al}
+                  <button type="button" class="dropdown-item" onclick={() => selectAlbum(al)}>{al.title}{al.artist_name ? ` — ${al.artist_name}` : ''}</button>
+                {/each}
+              </div>
+            {/if}
             {#if albumSearch && !albums.some(a => a.title.toLowerCase() === albumSearch.toLowerCase())}
               <span class="create-hint">Nouvel album : "{albumSearch}"</span>
             {/if}
@@ -326,6 +330,32 @@
 
   .field-row .field {
     flex: 1;
+  }
+
+  .dropdown-list {
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: var(--tune-bg);
+    margin-top: 2px;
+  }
+
+  .dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 6px 10px;
+    background: none;
+    border: none;
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .dropdown-item:hover {
+    background: var(--tune-surface-hover, rgba(255,255,255,0.05));
   }
 
   .create-hint {
