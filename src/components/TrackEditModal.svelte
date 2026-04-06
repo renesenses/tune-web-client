@@ -152,11 +152,6 @@
             </datalist>
             {#if artistSearch && !artists.some(a => a.name.toLowerCase() === artistSearch.toLowerCase())}
               <span class="create-hint">Nouvel artiste : "{artistSearch}"</span>
-            {:else if artistSearch}
-              {@const match = artists.find(a => a.name.toLowerCase() === artistSearch.toLowerCase())}
-              {#if match}
-                <span class="match-hint" style="display:none">{void selectArtist(match)}</span>
-              {/if}
             {/if}
           </label>
 
