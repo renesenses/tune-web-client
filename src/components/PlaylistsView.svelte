@@ -25,6 +25,9 @@
   let selectedStreamingPl = $state<StreamingPlaylist | null>(null);
   let streamingPlTracks = $state<Track[]>([]);
   let selectedService = $state('');
+  let streamingLoading = $state(true);
+  let streamingLoadingStatus = $state('');
+  let streamingLoadedCount = $state(0);
 
   let authenticatedServices = $derived(
     Object.entries($streamingServices)
@@ -34,18 +37,26 @@
 
   $effect(() => {
     const services = authenticatedServices;
-    for (const svc of services) {
-      loadStreamingPlaylists(svc);
-    }
+    loadAllStreamingPlaylists(services);
   });
 
-  async function loadStreamingPlaylists(service: string) {
-    try {
-      const pls = await api.getStreamingPlaylists(service);
-      streamingPlaylists = { ...streamingPlaylists, [service]: pls };
-    } catch (e) {
-      console.error(`Load ${service} playlists error:`, e);
+  async function loadAllStreamingPlaylists(services: string[]) {
+    streamingLoading = true;
+    streamingLoadedCount = 0;
+    streamingLoadingStatus = 'Chargement des playlists...';
+    for (const svc of services) {
+      streamingLoadingStatus = `Chargement ${svc}...`;
+      try {
+        const pls = await api.getStreamingPlaylists(svc);
+        streamingPlaylists = { ...streamingPlaylists, [svc]: pls };
+        streamingLoadedCount += pls.length;
+        streamingLoadingStatus = `${streamingLoadedCount} playlists (${svc}: ${pls.length})`;
+      } catch (e) {
+        console.error(`Load ${svc} playlists error:`, e);
+      }
     }
+    streamingLoadingStatus = `${streamingLoadedCount} playlists chargées`;
+    streamingLoading = false;
   }
 
   function serviceName(s: string): string {
@@ -335,6 +346,13 @@
       </div>
     {/if}
 
+    {#if streamingLoading}
+      <div class="streaming-loading">
+        <div class="spinner"></div>
+        <span>{streamingLoadingStatus}</span>
+      </div>
+    {/if}
+
     {#each authenticatedServices as svc}
       {#if (filteredStreamingPlaylists[svc] ?? []).length > 0}
         <div class="section-group">
@@ -365,7 +383,7 @@
 
     {#if !$playlistsLoaded}
       <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
-    {:else if filteredPlaylists.length === 0 && !hasAnyStreamingPlaylists}
+    {:else if filteredPlaylists.length === 0 && !hasAnyStreamingPlaylists && !streamingLoading}
       <div class="empty">{$tr('playlist.noPlaylists')}</div>
     {:else}
       {#if hasAnyStreamingPlaylists && filteredPlaylists.length > 0}
@@ -895,6 +913,25 @@
     border-top-color: var(--tune-accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
+  }
+
+  .streaming-loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    color: var(--tune-accent);
+    font-family: var(--font-body);
+    font-size: 14px;
+    background: var(--tune-surface);
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
   }
 
   @keyframes spin {

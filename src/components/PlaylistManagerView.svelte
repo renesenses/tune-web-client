@@ -678,13 +678,12 @@
     {/if}
 
     {#if loading}
-      <div class="loading-bar">
-        <div class="spinner"></div>
-        <span>{loadingStatus || $tr('common.loading')}</span>
+      <div class="loading-fullscreen">
+        <div class="spinner-large"></div>
+        <p class="loading-label">{loadingStatus || $tr('common.loading')}</p>
+        <p class="loading-count">{loadedCount} playlists</p>
       </div>
-    {/if}
-
-    {#if !loading && displayPlaylists.length === 0}
+    {:else if displayPlaylists.length === 0}
       <div class="empty">{$tr('playlist.noPlaylists')}</div>
     {/if}
 
@@ -1683,23 +1682,41 @@
   }
 
   /* Utility */
-  .loading-bar {
+  .loading-fullscreen {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
-    color: var(--tune-accent);
+    justify-content: center;
+    gap: 16px;
+    padding: 80px 20px;
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .spinner-large {
+    width: 48px;
+    height: 48px;
+    border: 3px solid var(--tune-border);
+    border-top-color: var(--tune-accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .loading-label {
     font-family: var(--font-body);
-    font-size: 13px;
-    padding: 12px 16px;
-    background: var(--tune-surface);
-    border-radius: var(--radius-md);
-    margin-bottom: 12px;
+    font-size: 14px;
+    color: var(--tune-accent);
     animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  .loading-count {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
   }
 
   @keyframes pulse {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+    50% { opacity: 0.5; }
   }
 
   .loading {
