@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { currentZone } from '../lib/stores/zones';
+  import { currentZone, zones } from '../lib/stores/zones';
   import { playlists as playlistsStore } from '../lib/stores/playlists';
   import { streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
@@ -300,6 +300,13 @@
       } else if (t.id) {
         await api.play(zone.id, { track_id: t.id });
       }
+      // Refresh zone state so transport bar updates
+      setTimeout(async () => {
+        try {
+          const zoneList = await api.getZones();
+          zones.set(zoneList);
+        } catch {}
+      }, 500);
     } catch (e) {
       console.error('Play track error:', e);
     }
