@@ -91,7 +91,7 @@
     align-items: center;
     justify-content: center;
     color: var(--tune-text-muted);
-    opacity: 0;
+    opacity: 0.4;
     transition: opacity 0.12s, color 0.12s, transform 0.15s;
     flex-shrink: 0;
   }
