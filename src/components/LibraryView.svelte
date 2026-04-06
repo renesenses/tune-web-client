@@ -1464,7 +1464,7 @@
     align-items: center;
     justify-content: center;
     transition: all 0.12s ease-out;
-    opacity: 0;
+    opacity: 0.5;
   }
 
   .track-item:hover .edit-track-btn {
