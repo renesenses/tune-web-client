@@ -405,6 +405,16 @@ export default {
   'settings.about': 'À propos',
   'settings.clientVersion': 'Version client',
   'settings.serverVersion': 'Version serveur',
+
+  // Enrichment
+  'settings.enrichment': 'Enrichissement',
+  'settings.discogsToken': 'Token Discogs (images artistes)',
+  'settings.discogsTokenHelp': 'Créez un compte sur discogs.com, puis Settings > Developers > Generate Token',
+  'settings.discogsTokenSet': 'Token configuré',
+  'settings.discogsTokenNotSet': 'Non configuré',
+  'settings.enrichOnScan': 'Enrichir automatiquement après scan',
+  'settings.enrichNow': 'Enrichir les métadonnées',
+  'settings.enrichStarted': 'Enrichissement lancé',
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

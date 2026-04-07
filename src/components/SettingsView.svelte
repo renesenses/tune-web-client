@@ -20,6 +20,7 @@
   let scanning = $state(false);
   let loading = $state(true);
   let artworkScanning = $state(false);
+  let enrichMsg = $state('');
   let audioDevices = $state<LocalAudioDevice[]>([]);
   let artworkProgress: { current: number; total: number; found: number } | null = $state(null);
   let musicRoots = $state<BrowseRootEntry[]>([]);
@@ -816,6 +817,31 @@
         {/if}
       </div>
     </section>
+
+    <!-- Enrichment -->
+    {#if config}
+    <section class="settings-section">
+      <h3>{$t('settings.enrichment')}</h3>
+      <div class="pref-grid">
+        <label class="pref-label">{$t('settings.discogsToken')}</label>
+        <span class="pref-value">
+          {#if config.discogs_token_set}
+            <span class="badge-ok">{$t('settings.discogsTokenSet')}</span>
+          {:else}
+            <span class="badge-warn">{$t('settings.discogsTokenNotSet')}</span>
+          {/if}
+        </span>
+      </div>
+      <p class="settings-note">{$t('settings.discogsTokenHelp')}</p>
+      <p class="settings-note">TUNE_DISCOGS_TOKEN=... dans .env</p>
+      <div class="settings-actions">
+        <button class="action-btn" onclick={async () => { await api.apiFetch('/system/enrich', { method: 'POST' }); enrichMsg = $t('settings.enrichStarted'); setTimeout(() => enrichMsg = '', 3000); }}>
+          {$t('settings.enrichNow')}
+        </button>
+        {#if enrichMsg}<span class="action-feedback">{enrichMsg}</span>{/if}
+      </div>
+    </section>
+    {/if}
 
     <!-- Preferences -->
     <section class="settings-section">
