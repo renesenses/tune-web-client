@@ -72,6 +72,22 @@ export interface QueueItem {
   track?: Track | null;
 }
 
+export interface SignalPathStep {
+  stage: string;
+  description: string;
+  format?: string | null;
+  sample_rate?: number | null;
+  bit_depth?: number | null;
+  channels?: number | null;
+  detail?: string | null;
+}
+
+export interface SignalPath {
+  bit_perfect: boolean;
+  steps: SignalPathStep[];
+  summary: string;
+}
+
 export interface Zone {
   id: number | null;
   name: string;
@@ -84,6 +100,7 @@ export interface Zone {
   current_track?: Track | null;
   position_ms?: number;
   queue_length?: number;
+  signal_path?: SignalPath | null;
 }
 
 export interface DiscoveredDevice {

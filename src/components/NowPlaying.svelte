@@ -11,6 +11,7 @@
 
   let isFavorite = $state(false);
   let favChecking = $state(false);
+  let showSignalDetail = $state(false);
 
   $effect(() => {
     const tr = track;
@@ -181,6 +182,41 @@
           {/if}
           {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth}
             <p class="audio-badge">{formatAudioBadge(displayTrack)}</p>
+          {/if}
+          {#if zone?.signal_path}
+            <div class="signal-path-badge" class:bit-perfect={zone.signal_path.bit_perfect}>
+              {#if zone.signal_path.bit_perfect}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
+              {:else}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+              {/if}
+              <span>{zone.signal_path.summary}</span>
+            </div>
+            <button class="signal-path-toggle" onclick={() => showSignalDetail = !showSignalDetail}>
+              {showSignalDetail ? 'Masquer le chemin' : 'Chemin du signal'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                {#if showSignalDetail}<polyline points="18 15 12 9 6 15" />{:else}<polyline points="6 9 12 15 18 9" />{/if}
+              </svg>
+            </button>
+            {#if showSignalDetail}
+              <div class="signal-path-detail">
+                {#each zone.signal_path.steps as step}
+                  <div class="signal-step">
+                    <span class="step-stage">{step.stage}</span>
+                    <span class="step-desc">{step.description}</span>
+                    {#if step.sample_rate}
+                      <span class="step-spec">{step.sample_rate/1000}kHz / {step.bit_depth}bit / {step.channels}ch</span>
+                    {/if}
+                    {#if step.detail}
+                      <span class="step-detail">{step.detail}</span>
+                    {/if}
+                  </div>
+                  {#if zone.signal_path.steps.indexOf(step) < zone.signal_path.steps.length - 1}
+                    <div class="step-arrow">↓</div>
+                  {/if}
+                {/each}
+              </div>
+            {/if}
           {/if}
         </div>
 
@@ -500,6 +536,94 @@
     color: var(--tune-accent);
     letter-spacing: 0.5px;
     margin-top: var(--space-xs);
+  }
+
+  .signal-path-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: var(--space-xs);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-family: var(--font-label);
+    font-size: 11px;
+    letter-spacing: 0.3px;
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+  }
+
+  .signal-path-badge.bit-perfect {
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+    border-color: rgba(74, 222, 128, 0.3);
+  }
+
+  .signal-path-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    font-family: var(--font-label);
+    font-size: 10px;
+    cursor: pointer;
+    padding: 2px 0;
+    margin-top: 2px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .signal-path-toggle:hover { color: var(--tune-text); }
+
+  .signal-path-detail {
+    margin-top: var(--space-xs);
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--tune-border);
+  }
+
+  .signal-step {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .step-stage {
+    font-family: var(--font-label);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tune-text-muted);
+  }
+
+  .step-desc {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text);
+    font-weight: 500;
+  }
+
+  .step-spec {
+    font-family: var(--font-label);
+    font-size: 10px;
+    color: var(--tune-accent);
+  }
+
+  .step-detail {
+    font-family: var(--font-body);
+    font-size: 10px;
+    color: var(--tune-text-muted);
+    font-style: italic;
+  }
+
+  .step-arrow {
+    text-align: center;
+    color: var(--tune-text-muted);
+    font-size: 12px;
+    line-height: 16px;
   }
 
   .seek-container {
