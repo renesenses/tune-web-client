@@ -171,6 +171,9 @@ export interface SystemConfig {
   youtube_enabled: boolean;
   amazon_music_enabled: boolean;
   discovery_enabled: boolean;
+  metadata_readonly: boolean;
+  enrich_on_scan: boolean;
+  discogs_token_set: boolean;
   // Database
   db_engine: string;
   db_path?: string | null;

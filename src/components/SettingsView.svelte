@@ -825,7 +825,7 @@
       <div class="pref-grid">
         <label class="pref-label">{$t('settings.metadataReadonly')}</label>
         <label class="toggle-switch">
-          <input type="checkbox" checked={config.metadata_readonly} onchange={(e) => config.metadata_readonly = (e.target as HTMLInputElement).checked} />
+          <input type="checkbox" checked={config.metadata_readonly} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; config.metadata_readonly = val; await api.updateConfig({ metadata_readonly: val }); }} />
           <span class="toggle-slider"></span>
         </label>
       </div>

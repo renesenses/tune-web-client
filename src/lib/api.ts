@@ -481,6 +481,13 @@ export function getConfig() {
   return fetchJSON<any>(`${BASE}/system/config`);
 }
 
+export function updateConfig(fields: Record<string, unknown>) {
+  return fetchJSON<Record<string, unknown>>(`${BASE}/system/config`, {
+    method: 'PATCH',
+    body: JSON.stringify(fields),
+  });
+}
+
 export function addMusicDir(path: string) {
   return fetchJSON<{ music_dirs: string[] }>(`${BASE}/system/music-dirs`, {
     method: 'POST',
