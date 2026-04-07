@@ -300,15 +300,7 @@
       } else if (t.id) {
         await api.play(zone.id, { track_id: t.id });
       }
-      // Refresh zone state so transport bar updates
-      for (const delay of [300, 1000, 3000]) {
-        setTimeout(async () => {
-          try {
-            const zoneList = await api.getZones();
-            zones.set(zoneList);
-          } catch {}
-        }, delay);
-      }
+      // Zone state will update via WebSocket playback.track_changed event
     } catch (e) {
       console.error('Play track error:', e);
     }

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { zones, currentZone, currentZoneId } from '../lib/stores/zones';
-  import { currentTrack, playbackState, shuffleEnabled, repeatMode } from '../lib/stores/nowPlaying';
+  import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs } from '../lib/stores/nowPlaying';
   import { ytPlayerState, ytLoading, pauseVideo, resumeVideo } from '../lib/stores/ytPlayer';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
@@ -153,11 +153,31 @@
     if (text.startsWith('Streaming CDN')) return text.replace('Streaming CDN', $t('signal.streamingCdn' as any));
     return text;
   }
+
+  function formatTime(ms: number): string {
+    const s = Math.floor(ms / 1000);
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  }
+
+  let progressPercent = $derived(
+    displayTrack?.duration_ms ? Math.min(100, ($seekPositionMs / displayTrack.duration_ms) * 100) : 0
+  );
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="transport-bar" onclick={handleBarClick}>
+  {#if displayTrack && displayTrack.source !== 'radio' && displayTrack.duration_ms}
+    <div class="transport-progress">
+      <span class="progress-time">{formatTime($seekPositionMs)}</span>
+      <div class="progress-track" onclick={(e) => { e.stopPropagation(); const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); const pct = (e.clientX - rect.left) / rect.width; const pos = Math.floor(pct * (displayTrack?.duration_ms ?? 0)); if (zone?.id) api.seek(zone.id, pos); }}>
+        <div class="progress-fill" style="width: {progressPercent}%"></div>
+      </div>
+      <span class="progress-time">{formatTime(displayTrack.duration_ms)}</span>
+    </div>
+  {/if}
   <div class="transport-left">
     {#if displayTrack}
       <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -388,8 +408,8 @@
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    padding: 0 var(--space-lg);
-    gap: var(--space-lg);
+    padding: 4px var(--space-lg) 0;
+    gap: 2px var(--space-lg);
   }
 
   .transport-left {
@@ -514,6 +534,42 @@
     display: flex;
     align-items: center;
     gap: 24px;
+  }
+
+  .transport-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    grid-column: 1 / -1;
+    padding: 0 16px;
+  }
+
+  .progress-time {
+    font-size: 11px;
+    color: var(--tune-text-secondary, #888);
+    min-width: 36px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .progress-track {
+    flex: 1;
+    height: 4px;
+    background: var(--tune-border, #333);
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .progress-track:hover {
+    height: 6px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--tune-accent, #7c3aed);
+    border-radius: 2px;
+    transition: width 0.3s linear;
   }
 
   .control-btn {
