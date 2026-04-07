@@ -406,6 +406,10 @@ export default {
   'settings.clientVersion': 'Client version',
   'settings.serverVersion': 'Server version',
 
+  // Metadata
+  'settings.metadataReadonly': 'Read-only mode (never modify audio files)',
+  'settings.metadataReadonlyHelp': 'When enabled, Tune never writes tags to audio files on disk.',
+
   // Enrichment
   'settings.enrichment': 'Enrichment',
   'settings.discogsToken': 'Discogs token (artist images)',
@@ -415,6 +419,35 @@ export default {
   'settings.enrichOnScan': 'Auto-enrich after library scan',
   'settings.enrichNow': 'Enrich metadata now',
   'settings.enrichStarted': 'Enrichment started',
+
+  // Signal Path
+  'signal.title': 'Signal Path',
+  'signal.lossless': 'Lossless',
+  'signal.lossy': 'Lossy',
+  'signal.bitPerfect': 'Bit-Perfect',
+  'signal.transcoded': 'Transcoded',
+  'signal.source': 'Source',
+  'signal.transport': 'Transport',
+  'signal.decode': 'Decode',
+  'signal.output': 'Output',
+  'signal.directUrl': 'Direct URL Passthrough',
+  'signal.directUrlDetail': 'Renderer fetches audio directly — zero processing',
+  'signal.nativeDsd': 'Native DSD Passthrough',
+  'signal.nativeDsdDetail': 'DSD stream served bit-perfect to DSD-capable renderer',
+  'signal.filePassthrough': 'File Passthrough',
+  'signal.filePassthroughDetail': 'Native format streamed without re-encoding',
+  'signal.transcode': 'Transcode',
+  'signal.transcodeDetail': 'FFmpeg decode + re-encode',
+  'signal.transcodeResample': 'with resampling',
+  'signal.localFile': 'Local file',
+  'signal.streamingCdn': 'Streaming CDN',
+  'signal.liveRadio': 'Live radio stream',
+  'signal.network': 'Network',
+  'signal.checksum': 'Checksum',
+  'signal.verified': 'Verified',
+  'signal.decisions': 'Pipeline decisions',
+  'signal.showPath': 'Signal path',
+  'signal.hidePath': 'Hide path',
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

@@ -818,6 +818,21 @@
       </div>
     </section>
 
+    <!-- Metadata -->
+    {#if config}
+    <section class="settings-section">
+      <h3>{$t('metadata.title')}</h3>
+      <div class="pref-grid">
+        <label class="pref-label">{$t('settings.metadataReadonly')}</label>
+        <label class="toggle-switch">
+          <input type="checkbox" checked={config.metadata_readonly} onchange={(e) => config.metadata_readonly = (e.target as HTMLInputElement).checked} />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <p class="settings-note">{$t('settings.metadataReadonlyHelp')}</p>
+    </section>
+    {/if}
+
     <!-- Enrichment -->
     {#if config}
     <section class="settings-section">
