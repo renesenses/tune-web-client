@@ -119,6 +119,40 @@
   }
 
   let showSignalPath = $state(false);
+
+  const detailTranslations: Record<string, string> = {
+    'Renderer fetches audio directly from source — zero processing': 'signal.directUrlDetail',
+    'DSD stream served bit-perfect to DSD-capable renderer': 'signal.nativeDsdDetail',
+    'Native format streamed without re-encoding': 'signal.filePassthroughDetail',
+    'Local file': 'signal.localFile',
+    'Live radio stream': 'signal.liveRadio',
+    'Network': 'signal.network',
+    'Dlna': 'DLNA',
+    'Local': 'Local',
+    'Airplay': 'AirPlay',
+  };
+
+  const descTranslations: Record<string, string> = {
+    'Direct URL Passthrough': 'signal.directUrl',
+    'Native DSD Passthrough': 'signal.nativeDsd',
+    'File Passthrough': 'signal.filePassthrough',
+  };
+
+  function trDetail(text: string | null | undefined): string {
+    if (!text) return '';
+    const key = detailTranslations[text];
+    if (key && key.startsWith('signal.')) return $t(key as any);
+    if (key) return key;
+    return text;
+  }
+
+  function trDesc(text: string): string {
+    const key = descTranslations[text];
+    if (key) return $t(key as any);
+    // Translate "Streaming CDN (Tidal)" etc.
+    if (text.startsWith('Streaming CDN')) return text.replace('Streaming CDN', $t('signal.streamingCdn' as any));
+    return text;
+  }
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -234,13 +268,10 @@
         </svg>
       {/if}
     </button>
-  </div>
-
-  {#if zone?.signal_path && zone.state === 'playing'}
-    <button class="signal-dot-btn" class:bit-perfect={zone.signal_path.bit_perfect} onclick={(e) => { e.stopPropagation(); showSignalPath = !showSignalPath; }} title="{zone.signal_path.summary}">
+    <button class="signal-dot-btn" class:bit-perfect={zone?.signal_path?.bit_perfect} class:visible={zone?.signal_path && zone.state === 'playing'} onclick={(e) => { e.stopPropagation(); if (zone?.signal_path) showSignalPath = !showSignalPath; }} title="{zone?.signal_path?.summary ?? ''}">
       <span class="signal-dot-indicator"></span>
     </button>
-  {/if}
+  </div>
 
   <div class="transport-right">
     <div class="zone-selector">
@@ -282,7 +313,7 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="sp-card" onclick={(e) => e.stopPropagation()}>
       <div class="sp-header">
-        <h3>Chemin du signal : <span class:sp-good={zone.signal_path.bit_perfect} class:sp-lossy={!zone.signal_path.bit_perfect}>{zone.signal_path.bit_perfect ? 'Sans perte' : 'Avec perte'}</span></h3>
+        <h3>{$t('signal.title')} : <span class:sp-good={zone.signal_path.bit_perfect} class:sp-lossy={!zone.signal_path.bit_perfect}>{zone.signal_path.bit_perfect ? $t('signal.lossless') : $t('signal.lossy')}</span></h3>
         <button class="sp-x" onclick={() => showSignalPath = false}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
@@ -305,11 +336,11 @@
               {/if}
             </div>
             <div class="sp-info">
-              <span class="sp-name">{step.description} <span class="sp-ndot" class:bp={zone.signal_path.bit_perfect}></span></span>
+              <span class="sp-name">{trDesc(step.description)} <span class="sp-ndot" class:bp={zone.signal_path.bit_perfect}></span></span>
               {#if step.sample_rate}
                 <span class="sp-detail">{step.format} {step.sample_rate/1000}kHz {step.channels}ch {step.bit_depth}bit</span>
               {:else if step.detail}
-                <span class="sp-detail">{step.detail}</span>
+                <span class="sp-detail">{trDetail(step.detail)}</span>
               {/if}
             </div>
           </div>
@@ -326,9 +357,9 @@
             {/if}
           </span>
           <span class="sp-cs-text">
-            Checksum: <code>{zone.signal_path.checksum.substring(0, 12)}...</code>
+            {$t('signal.checksum')} : <code>{zone.signal_path.checksum.substring(0, 12)}...</code>
             {#if zone.signal_path.checksum_verified}
-              <span class="sp-cs-ok">Verified</span>
+              <span class="sp-cs-ok">{$t('signal.verified')}</span>
             {/if}
           </span>
         </div>
@@ -336,7 +367,7 @@
 
       {#if zone.signal_path.decisions && zone.signal_path.decisions.length > 0}
         <details class="sp-decisions">
-          <summary>Pipeline decisions ({zone.signal_path.decisions.length})</summary>
+          <summary>{$t('signal.decisions')} ({zone.signal_path.decisions.length})</summary>
           <ul>
             {#each zone.signal_path.decisions as d}
               <li>{d}</li>
@@ -567,6 +598,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .signal-dot-btn.visible {
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .signal-dot-indicator {
@@ -575,7 +614,7 @@
     border-radius: 50%;
     background: #f59e0b;
     box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
-    transition: background 0.3s, box-shadow 0.3s;
+    transition: background 0.3s, box-shadow 0.3s, transform 0.15s;
   }
 
   .signal-dot-btn.bit-perfect .signal-dot-indicator {

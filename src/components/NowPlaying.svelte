@@ -13,6 +13,33 @@
   let favChecking = $state(false);
   let showSignalDetail = $state(false);
 
+  const _detailTr: Record<string, string> = {
+    'Renderer fetches audio directly from source — zero processing': 'signal.directUrlDetail',
+    'DSD stream served bit-perfect to DSD-capable renderer': 'signal.nativeDsdDetail',
+    'Native format streamed without re-encoding': 'signal.filePassthroughDetail',
+    'Local file': 'signal.localFile',
+    'Live radio stream': 'signal.liveRadio',
+    'Network': 'signal.network',
+    'Dlna': 'DLNA', 'Local': 'Local', 'Airplay': 'AirPlay',
+  };
+  const _descTr: Record<string, string> = {
+    'Direct URL Passthrough': 'signal.directUrl',
+    'Native DSD Passthrough': 'signal.nativeDsd',
+    'File Passthrough': 'signal.filePassthrough',
+  };
+  function trDetail(text: string | null | undefined): string {
+    if (!text) return '';
+    const k = _detailTr[text];
+    if (k?.startsWith('signal.')) return $t(k as any);
+    return k ?? text;
+  }
+  function trDesc(text: string): string {
+    const k = _descTr[text];
+    if (k) return $t(k as any);
+    if (text.startsWith('Streaming CDN')) return text.replace('Streaming CDN', $t('signal.streamingCdn' as any));
+    return text;
+  }
+
   $effect(() => {
     const tr = track;
     if (tr?.source === 'radio' && tr.title && tr.artist_name) {
@@ -188,7 +215,7 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="signal-path-pill" class:bit-perfect={zone.signal_path.bit_perfect} onclick={() => showSignalDetail = !showSignalDetail}>
               <span class="sp-dot"></span>
-              <span class="sp-label">{zone.signal_path.bit_perfect ? 'Bit-Perfect' : 'Transcodé'}</span>
+              <span class="sp-label">{zone.signal_path.bit_perfect ? $t('signal.bitPerfect') : $t('signal.transcoded')}</span>
             </div>
             {#if showSignalDetail}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -198,7 +225,7 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div class="signal-path-card" onclick={(e) => e.stopPropagation()}>
                   <div class="sp-card-header">
-                    <h3>Chemin du signal : <span class:sp-quality-good={zone.signal_path.bit_perfect} class:sp-quality-lossy={!zone.signal_path.bit_perfect}>{zone.signal_path.bit_perfect ? 'Sans perte' : 'Avec perte'}</span></h3>
+                    <h3>{$t('signal.title')} : <span class:sp-quality-good={zone.signal_path.bit_perfect} class:sp-quality-lossy={!zone.signal_path.bit_perfect}>{zone.signal_path.bit_perfect ? $t('signal.lossless') : $t('signal.lossy')}</span></h3>
                     <button class="sp-close" onclick={() => showSignalDetail = false}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                     </button>
@@ -222,11 +249,11 @@
                           {/if}
                         </div>
                         <div class="sp-step-info">
-                          <span class="sp-step-name">{step.description} <span class="sp-step-dot" class:bit-perfect={zone.signal_path.bit_perfect}></span></span>
+                          <span class="sp-step-name">{trDesc(step.description)} <span class="sp-step-dot" class:bit-perfect={zone.signal_path.bit_perfect}></span></span>
                           {#if step.sample_rate}
                             <span class="sp-step-detail">{step.format} {step.sample_rate/1000}kHz {step.channels}ch {step.bit_depth}bit</span>
                           {:else if step.detail}
-                            <span class="sp-step-detail">{step.detail}</span>
+                            <span class="sp-step-detail">{trDetail(step.detail)}</span>
                           {/if}
                         </div>
                       </div>
