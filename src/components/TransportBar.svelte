@@ -117,6 +117,8 @@
     const result = await api.setRepeat(zone.id, next);
     repeatMode.set(result.repeat);
   }
+
+  let showSignalPath = $state(false);
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -234,6 +236,12 @@
     </button>
   </div>
 
+  {#if zone?.signal_path && zone.state === 'playing'}
+    <button class="signal-dot-btn" class:bit-perfect={zone.signal_path.bit_perfect} onclick={(e) => { e.stopPropagation(); showSignalPath = !showSignalPath; }} title="{zone.signal_path.summary}">
+      <span class="signal-dot-indicator"></span>
+    </button>
+  {/if}
+
   <div class="transport-right">
     <div class="zone-selector">
       <button class="zone-selector-btn" onclick={() => showZoneDropdown = !showZoneDropdown} title={$t('zone.switchZone')}>
@@ -265,6 +273,80 @@
     <VolumeControl />
   </div>
 </div>
+
+{#if showSignalPath && zone?.signal_path}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="sp-overlay" onclick={() => showSignalPath = false}>
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="sp-card" onclick={(e) => e.stopPropagation()}>
+      <div class="sp-header">
+        <h3>Chemin du signal : <span class:sp-good={zone.signal_path.bit_perfect} class:sp-lossy={!zone.signal_path.bit_perfect}>{zone.signal_path.bit_perfect ? 'Sans perte' : 'Avec perte'}</span></h3>
+        <button class="sp-x" onclick={() => showSignalPath = false}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
+      </div>
+      <div class="sp-body">
+        {#each zone.signal_path.steps as step, i}
+          <div class="sp-row">
+            <div class="sp-icon-col">
+              <div class="sp-icon" class:bp={zone.signal_path.bit_perfect}>
+                {#if step.stage === 'source'}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /></svg>
+                {:else if step.stage === 'transport' || step.stage === 'decode'}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
+                {:else}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 010 14.14" /><path d="M15.54 8.46a5 5 0 010 7.07" /></svg>
+                {/if}
+              </div>
+              {#if i < zone.signal_path.steps.length - 1}
+                <div class="sp-line" class:bp={zone.signal_path.bit_perfect}></div>
+              {/if}
+            </div>
+            <div class="sp-info">
+              <span class="sp-name">{step.description} <span class="sp-ndot" class:bp={zone.signal_path.bit_perfect}></span></span>
+              {#if step.sample_rate}
+                <span class="sp-detail">{step.format} {step.sample_rate/1000}kHz {step.channels}ch {step.bit_depth}bit</span>
+              {:else if step.detail}
+                <span class="sp-detail">{step.detail}</span>
+              {/if}
+            </div>
+          </div>
+        {/each}
+      </div>
+
+      {#if zone.signal_path.checksum}
+        <div class="sp-checksum">
+          <span class="sp-cs-icon" class:verified={zone.signal_path.checksum_verified}>
+            {#if zone.signal_path.checksum_verified}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
+            {:else}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+            {/if}
+          </span>
+          <span class="sp-cs-text">
+            Checksum: <code>{zone.signal_path.checksum.substring(0, 12)}...</code>
+            {#if zone.signal_path.checksum_verified}
+              <span class="sp-cs-ok">Verified</span>
+            {/if}
+          </span>
+        </div>
+      {/if}
+
+      {#if zone.signal_path.decisions && zone.signal_path.decisions.length > 0}
+        <details class="sp-decisions">
+          <summary>Pipeline decisions ({zone.signal_path.decisions.length})</summary>
+          <ul>
+            {#each zone.signal_path.decisions as d}
+              <li>{d}</li>
+            {/each}
+          </ul>
+        </details>
+      {/if}
+    </div>
+  </div>
+{/if}
 
 <style>
   .transport-bar {
@@ -477,6 +559,34 @@
     to { transform: rotate(360deg); }
   }
 
+  .signal-dot-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .signal-dot-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #f59e0b;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+
+  .signal-dot-btn.bit-perfect .signal-dot-indicator {
+    background: #4ade80;
+    box-shadow: 0 0 6px rgba(74, 222, 128, 0.5);
+  }
+
+  .signal-dot-btn:hover .signal-dot-indicator {
+    transform: scale(1.3);
+  }
+
   .transport-right {
     display: flex;
     justify-content: flex-end;
@@ -562,6 +672,183 @@
     display: flex;
     align-items: center;
     flex-shrink: 0;
+  }
+
+  /* Signal Path Modal */
+  .sp-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: spIn 0.15s ease-out;
+  }
+  @keyframes spIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .sp-card {
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: 12px;
+    width: 340px;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: spUp 0.2s ease-out;
+  }
+  @keyframes spUp { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  .sp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--tune-border);
+  }
+  .sp-header h3 {
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--tune-text);
+    margin: 0;
+  }
+  .sp-good { color: #4ade80; font-weight: 600; }
+  .sp-lossy { color: #f59e0b; font-weight: 600; }
+  .sp-x {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+  }
+  .sp-x:hover { color: var(--tune-text); }
+
+  .sp-body { padding: 16px 20px 20px; }
+
+  .sp-row { display: flex; gap: 14px; }
+
+  .sp-icon-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 36px;
+    flex-shrink: 0;
+  }
+
+  .sp-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1.5px solid rgba(245, 158, 11, 0.3);
+    color: #f59e0b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .sp-icon.bp {
+    background: rgba(74, 222, 128, 0.1);
+    border-color: rgba(74, 222, 128, 0.3);
+    color: #4ade80;
+  }
+
+  .sp-line {
+    width: 2px;
+    flex: 1;
+    min-height: 16px;
+    background: rgba(245, 158, 11, 0.25);
+    margin: 4px 0;
+  }
+  .sp-line.bp { background: rgba(74, 222, 128, 0.25); }
+
+  .sp-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 6px;
+    padding-bottom: 8px;
+    min-width: 0;
+  }
+
+  .sp-name {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--tune-text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sp-ndot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #f59e0b;
+    flex-shrink: 0;
+  }
+  .sp-ndot.bp { background: #4ade80; }
+
+  .sp-detail {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-accent);
+  }
+
+  .sp-checksum {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--tune-border);
+  }
+  .sp-cs-icon { display: flex; color: var(--tune-text-muted); }
+  .sp-cs-icon.verified { color: #4ade80; }
+  .sp-cs-text {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+  }
+  .sp-cs-text code {
+    background: rgba(255,255,255,0.06);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 10px;
+  }
+  .sp-cs-ok {
+    color: #4ade80;
+    font-weight: 600;
+    margin-left: 4px;
+  }
+
+  .sp-decisions {
+    margin-top: 8px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+  }
+  .sp-decisions summary {
+    cursor: pointer;
+    padding: 4px 0;
+  }
+  .sp-decisions summary:hover { color: var(--tune-text); }
+  .sp-decisions ul {
+    margin: 4px 0 0 0;
+    padding-left: 16px;
+    list-style: none;
+  }
+  .sp-decisions li {
+    padding: 2px 0;
+    font-size: 10px;
+    font-family: monospace;
+    color: var(--tune-text-muted);
+  }
+  .sp-decisions li::before {
+    content: "→ ";
+    color: var(--tune-accent);
   }
 
   @media (max-width: 768px) {

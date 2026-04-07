@@ -86,6 +86,9 @@ export interface SignalPath {
   bit_perfect: boolean;
   steps: SignalPathStep[];
   summary: string;
+  decisions?: string[];
+  checksum?: string | null;
+  checksum_verified?: boolean | null;
 }
 
 export interface Zone {

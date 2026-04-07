@@ -184,37 +184,55 @@
             <p class="audio-badge">{formatAudioBadge(displayTrack)}</p>
           {/if}
           {#if zone?.signal_path}
-            <div class="signal-path-badge" class:bit-perfect={zone.signal_path.bit_perfect}>
-              {#if zone.signal_path.bit_perfect}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
-              {:else}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-              {/if}
-              <span>{zone.signal_path.summary}</span>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="signal-path-pill" class:bit-perfect={zone.signal_path.bit_perfect} onclick={() => showSignalDetail = !showSignalDetail}>
+              <span class="sp-dot"></span>
+              <span class="sp-label">{zone.signal_path.bit_perfect ? 'Bit-Perfect' : 'Transcodé'}</span>
             </div>
-            <button class="signal-path-toggle" onclick={() => showSignalDetail = !showSignalDetail}>
-              {showSignalDetail ? 'Masquer le chemin' : 'Chemin du signal'}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
-                {#if showSignalDetail}<polyline points="18 15 12 9 6 15" />{:else}<polyline points="6 9 12 15 18 9" />{/if}
-              </svg>
-            </button>
             {#if showSignalDetail}
-              <div class="signal-path-detail">
-                {#each zone.signal_path.steps as step}
-                  <div class="signal-step">
-                    <span class="step-stage">{step.stage}</span>
-                    <span class="step-desc">{step.description}</span>
-                    {#if step.sample_rate}
-                      <span class="step-spec">{step.sample_rate/1000}kHz / {step.bit_depth}bit / {step.channels}ch</span>
-                    {/if}
-                    {#if step.detail}
-                      <span class="step-detail">{step.detail}</span>
-                    {/if}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="signal-path-overlay" onclick={() => showSignalDetail = false}>
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div class="signal-path-card" onclick={(e) => e.stopPropagation()}>
+                  <div class="sp-card-header">
+                    <h3>Chemin du signal : <span class:sp-quality-good={zone.signal_path.bit_perfect} class:sp-quality-lossy={!zone.signal_path.bit_perfect}>{zone.signal_path.bit_perfect ? 'Sans perte' : 'Avec perte'}</span></h3>
+                    <button class="sp-close" onclick={() => showSignalDetail = false}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    </button>
                   </div>
-                  {#if zone.signal_path.steps.indexOf(step) < zone.signal_path.steps.length - 1}
-                    <div class="step-arrow">↓</div>
-                  {/if}
-                {/each}
+
+                  <div class="sp-steps">
+                    {#each zone.signal_path.steps as step, i}
+                      <div class="sp-step">
+                        <div class="sp-step-icon-col">
+                          <div class="sp-step-icon" class:bit-perfect={zone.signal_path.bit_perfect}>
+                            {#if step.stage === 'source'}
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /></svg>
+                            {:else if step.stage === 'transport' || step.stage === 'decode'}
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
+                            {:else}
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 010 14.14" /><path d="M15.54 8.46a5 5 0 010 7.07" /></svg>
+                            {/if}
+                          </div>
+                          {#if i < zone.signal_path.steps.length - 1}
+                            <div class="sp-step-line" class:bit-perfect={zone.signal_path.bit_perfect}></div>
+                          {/if}
+                        </div>
+                        <div class="sp-step-info">
+                          <span class="sp-step-name">{step.description} <span class="sp-step-dot" class:bit-perfect={zone.signal_path.bit_perfect}></span></span>
+                          {#if step.sample_rate}
+                            <span class="sp-step-detail">{step.format} {step.sample_rate/1000}kHz {step.channels}ch {step.bit_depth}bit</span>
+                          {:else if step.detail}
+                            <span class="sp-step-detail">{step.detail}</span>
+                          {/if}
+                        </div>
+                      </div>
+                    {/each}
+                  </div>
+                </div>
               </div>
             {/if}
           {/if}
@@ -538,92 +556,182 @@
     margin-top: var(--space-xs);
   }
 
-  .signal-path-badge {
+  /* Signal Path — Roon-inspired design */
+  .signal-path-pill {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     margin-top: var(--space-xs);
-    padding: 4px 10px;
-    border-radius: 12px;
+    cursor: pointer;
+    padding: 3px 0;
+  }
+
+  .sp-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f59e0b;
+    flex-shrink: 0;
+  }
+
+  .signal-path-pill.bit-perfect .sp-dot {
+    background: #4ade80;
+  }
+
+  .sp-label {
     font-family: var(--font-label);
     font-size: 11px;
+    color: var(--tune-text-muted);
     letter-spacing: 0.3px;
-    background: rgba(251, 191, 36, 0.15);
-    color: #fbbf24;
-    border: 1px solid rgba(251, 191, 36, 0.3);
   }
 
-  .signal-path-badge.bit-perfect {
-    background: rgba(74, 222, 128, 0.15);
-    color: #4ade80;
-    border-color: rgba(74, 222, 128, 0.3);
-  }
+  .signal-path-pill:hover .sp-label { color: var(--tune-text); }
 
-  .signal-path-toggle {
-    display: inline-flex;
+  .signal-path-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 300;
+    display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    animation: spFadeIn 0.15s ease-out;
+  }
+
+  @keyframes spFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .signal-path-card {
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: 12px;
+    width: 340px;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: spSlideUp 0.2s ease-out;
+  }
+
+  @keyframes spSlideUp {
+    from { transform: translateY(12px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .sp-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--tune-border);
+  }
+
+  .sp-card-header h3 {
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--tune-text);
+    margin: 0;
+  }
+
+  .sp-quality-good { color: #4ade80; font-weight: 600; }
+  .sp-quality-lossy { color: #f59e0b; font-weight: 600; }
+
+  .sp-close {
     background: none;
     border: none;
     color: var(--tune-text-muted);
-    font-family: var(--font-label);
-    font-size: 10px;
     cursor: pointer;
-    padding: 2px 0;
-    margin-top: 2px;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    display: flex;
   }
 
-  .signal-path-toggle:hover { color: var(--tune-text); }
+  .sp-close:hover { color: var(--tune-text); }
 
-  .signal-path-detail {
-    margin-top: var(--space-xs);
-    padding: 10px 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--tune-border);
+  .sp-steps {
+    padding: 16px 20px 20px;
   }
 
-  .signal-step {
+  .sp-step {
+    display: flex;
+    gap: 14px;
+  }
+
+  .sp-step-icon-col {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    align-items: center;
+    width: 36px;
+    flex-shrink: 0;
   }
 
-  .step-stage {
-    font-family: var(--font-label);
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--tune-text-muted);
+  .sp-step-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1.5px solid rgba(245, 158, 11, 0.3);
+    color: #f59e0b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
 
-  .step-desc {
+  .sp-step-icon.bit-perfect {
+    background: rgba(74, 222, 128, 0.1);
+    border-color: rgba(74, 222, 128, 0.3);
+    color: #4ade80;
+  }
+
+  .sp-step-line {
+    width: 2px;
+    flex: 1;
+    min-height: 16px;
+    background: rgba(245, 158, 11, 0.25);
+    margin: 4px 0;
+  }
+
+  .sp-step-line.bit-perfect {
+    background: rgba(74, 222, 128, 0.25);
+  }
+
+  .sp-step-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 6px;
+    padding-bottom: 8px;
+    min-width: 0;
+  }
+
+  .sp-step-name {
     font-family: var(--font-body);
-    font-size: 12px;
-    color: var(--tune-text);
+    font-size: 14px;
     font-weight: 500;
+    color: var(--tune-text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
-  .step-spec {
-    font-family: var(--font-label);
-    font-size: 10px;
-    color: var(--tune-accent);
+  .sp-step-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #f59e0b;
+    flex-shrink: 0;
   }
 
-  .step-detail {
+  .sp-step-dot.bit-perfect {
+    background: #4ade80;
+  }
+
+  .sp-step-detail {
     font-family: var(--font-body);
-    font-size: 10px;
-    color: var(--tune-text-muted);
-    font-style: italic;
-  }
-
-  .step-arrow {
-    text-align: center;
-    color: var(--tune-text-muted);
     font-size: 12px;
-    line-height: 16px;
+    color: var(--tune-accent);
   }
 
   .seek-container {
