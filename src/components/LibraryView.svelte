@@ -451,6 +451,7 @@
             <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
               <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
             </button>
+            <span class="heart-overlay"><HeartButton albumId={album.id} size={14} /></span>
           </div>
           <span class="album-card-title truncate">{album.title}</span>
           {#if album.year}
