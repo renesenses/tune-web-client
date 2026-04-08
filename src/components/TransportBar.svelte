@@ -172,7 +172,28 @@
   {#if displayTrack && displayTrack.source !== 'radio' && displayTrack.duration_ms}
     <div class="transport-progress">
       <span class="progress-time">{formatTime($seekPositionMs)}</span>
-      <div class="progress-track" onclick={(e) => { e.stopPropagation(); const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); const pct = (e.clientX - rect.left) / rect.width; const pos = Math.floor(pct * (displayTrack?.duration_ms ?? 0)); if (zone?.id) api.seek(zone.id, pos); }}>
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="progress-track" onpointerdown={(e) => {
+        e.stopPropagation();
+        const el = e.currentTarget as HTMLElement;
+        const seek = (clientX: number) => {
+          const rect = el.getBoundingClientRect();
+          const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+          const pos = Math.floor(pct * (displayTrack?.duration_ms ?? 0));
+          seekPositionMs.set(pos);
+          return pos;
+        };
+        let pos = seek(e.clientX);
+        const onMove = (ev: PointerEvent) => { pos = seek(ev.clientX); };
+        const onUp = () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          if (zone?.id) api.seek(zone.id, pos);
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+        el.setPointerCapture(e.pointerId);
+      }}>
         <div class="progress-fill" style="width: {progressPercent}%"></div>
       </div>
       <span class="progress-time">{formatTime(displayTrack.duration_ms)}</span>
@@ -554,22 +575,37 @@
 
   .progress-track {
     flex: 1;
+    height: 18px;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .progress-track::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
     height: 4px;
     background: var(--tune-border, #333);
     border-radius: 2px;
-    cursor: pointer;
-    position: relative;
   }
 
-  .progress-track:hover {
+  .progress-track:hover::before {
     height: 6px;
   }
 
   .progress-fill {
-    height: 100%;
+    height: 4px;
     background: var(--tune-accent, #7c3aed);
     border-radius: 2px;
-    transition: width 0.3s linear;
+    position: relative;
+    z-index: 1;
+  }
+
+  .progress-track:hover .progress-fill {
+    height: 6px;
   }
 
   .control-btn {
