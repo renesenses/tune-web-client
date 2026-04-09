@@ -33,9 +33,7 @@
 
   async function loadRecentAlbums() {
     try {
-      const albums = await api.getAlbums(20);
-      // API returns newest first (by ID desc), take first 20
-      recentAlbums = albums;
+      recentAlbums = await api.getRecentAlbums(20);
     } catch (e) {
       console.error('Load recent albums error:', e);
     }

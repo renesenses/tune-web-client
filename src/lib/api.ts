@@ -256,6 +256,10 @@ export function getAlbums(limit = 100, offset = 0) {
   return fetchJSON<Album[]>(`${BASE}/library/albums?limit=${limit}&offset=${offset}`);
 }
 
+export function getRecentAlbums(limit = 50) {
+  return fetchJSON<Album[]>(`${BASE}/library/albums/recent?limit=${limit}`);
+}
+
 export async function getAllAlbums(pageSize = 2000): Promise<Album[]> {
   const all: Album[] = [];
   let offset = 0;
