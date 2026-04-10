@@ -818,3 +818,15 @@ export async function getAlbumCoverPath(albumId: number): Promise<string | null>
   albumCoverPending.set(albumId, promise);
   return promise;
 }
+
+// --- Update ---
+
+export async function checkForUpdate(): Promise<any> {
+  const res = await fetch(`${BASE}/system/update/check`);
+  return res.json();
+}
+
+export async function installUpdate(): Promise<any> {
+  const res = await fetch(`${BASE}/system/update/install`, { method: 'POST' });
+  return res.json();
+}

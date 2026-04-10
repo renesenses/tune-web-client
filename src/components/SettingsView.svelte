@@ -26,6 +26,11 @@
   let musicRoots = $state<BrowseRootEntry[]>([]);
   let scanningPath = $state<string | null>(null);
 
+  // Update checker
+  let updateInfo = $state<{ latest_version: string; current_version: string; release_notes?: string } | null>(null);
+  let updateInstalling = $state(false);
+  let updateDone = $state(false);
+
   // Music dir management
   let newMusicDirPath = $state('');
   let addingMusicDir = $state(false);
@@ -375,6 +380,26 @@
     }
   }
 
+  async function checkForUpdate() {
+    try {
+      const data = await api.checkForUpdate();
+      if (data.latest_version && data.latest_version !== data.current_version) {
+        updateInfo = data;
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function installUpdate() {
+    updateInstalling = true;
+    try {
+      await api.installUpdate();
+      updateDone = true;
+    } catch (e) {
+      console.error('Update install error:', e);
+    }
+    updateInstalling = false;
+  }
+
   async function loadAll() {
     loading = true;
     try {
@@ -496,6 +521,7 @@
       loadAll();
       fetchAudioDevices();
       fetchServerVersion();
+      checkForUpdate();
     });
     const unsub = tuneWS.onEvent((event) => {
       if (event.type === 'library.scan.completed') {
@@ -1119,6 +1145,27 @@
           <span class="about-label">{$t('settings.serverVersion')}</span>
           <span class="about-value">{serverVersion ?? '...'}</span>
         </div>
+        {#if updateInfo}
+          <div class="update-banner">
+            <span class="update-icon">🔄</span>
+            <span class="update-text">
+              Mise à jour disponible : <strong>v{updateInfo.latest_version}</strong>
+              (actuel : v{updateInfo.current_version})
+            </span>
+            {#if updateDone}
+              <span class="update-done">✅ Installée — redémarrez le serveur</span>
+            {:else}
+              <button class="update-btn" onclick={installUpdate} disabled={updateInstalling}>
+                {updateInstalling ? 'Installation...' : 'Installer'}
+              </button>
+            {/if}
+          </div>
+        {:else}
+          <div class="about-row">
+            <span class="about-label">Mises à jour</span>
+            <span class="about-value" style="color: var(--tune-accent)">✓ À jour</span>
+          </div>
+        {/if}
       </div>
     </section>
   {/if}
@@ -1666,6 +1713,51 @@
     color: var(--tune-text);
     font-weight: 600;
     font-variant-numeric: tabular-nums;
+  }
+
+  .update-banner {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, var(--tune-accent), color-mix(in srgb, var(--tune-accent) 70%, white));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+  }
+
+  .update-icon {
+    font-size: 20px;
+  }
+
+  .update-text {
+    flex: 1;
+    font-size: 13px;
+  }
+
+  .update-btn {
+    background: white;
+    color: var(--tune-accent);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .update-btn:hover {
+    opacity: 0.9;
+  }
+
+  .update-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .update-done {
+    font-weight: 600;
+    font-size: 13px;
   }
 
   /* Database section */
