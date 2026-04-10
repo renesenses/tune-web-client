@@ -1,6 +1,6 @@
 <script lang="ts">
   import * as api from '../lib/api';
-  import { zones } from '../lib/stores/zones';
+  import { currentZoneId } from '../lib/stores/zones';
   import { get } from 'svelte/store';
 
   let searchQuery = $state('');
@@ -41,11 +41,16 @@
   }
 
   async function playEpisode(episode: any) {
-    const zoneStore = get(zones);
-    const zoneId = zoneStore.currentZoneId;
+    const zoneId = get(currentZoneId);
     if (!zoneId) return;
     try {
-      await api.play(zoneId, { file_path: episode.audio_url });
+      await api.play(zoneId, {
+        file_path: episode.audio_url,
+        title: episode.title,
+        artist_name: selectedPodcast?.name,
+        cover_path: episode.cover_url || selectedPodcast?.cover_url,
+        duration_ms: episode.duration_ms,
+      });
     } catch (e) {
       console.error('Play podcast error:', e);
     }
@@ -406,4 +411,5 @@
     padding: 40px;
     font-size: 14px;
   }
+
 </style>
