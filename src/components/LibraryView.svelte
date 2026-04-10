@@ -408,7 +408,7 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="track-item" onclick={() => t.id && playTrack(t.id)}>
               <span class="track-num">{t.track_number ?? index + 1}</span>
-              <div class="track-info">
+              <div class="track-info" title={t.file_path ?? ''}>
                 <span class="track-title truncate">{t.title}</span>
                 {#if t.artist_name}
                   <span class="track-artist truncate">{t.artist_name}</span>
@@ -620,7 +620,7 @@
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <div class="track-item" style="position:absolute;top:{(visibleTracks.startIdx + i) * TRACK_ROW_HEIGHT}px;left:0;right:0;height:{TRACK_ROW_HEIGHT}px;" onclick={() => t.id && playTrack(t.id)}>
               <span class="track-thumb"><AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.album_title ?? ''} /></span>
-              <div class="track-info">
+              <div class="track-info" title={t.file_path ?? ''}>
                 <span class="track-title truncate">{t.title}</span>
                 <span class="track-meta truncate">{#if t.artist_name}<button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.artist_id) selectArtistDetail({ id: t.artist_id, name: t.artist_name! }); }}>{t.artist_name}</button>{/if}{#if t.album_title}<span class="track-sep"> — </span><button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.album_id) selectAlbumDetail({ id: t.album_id, title: t.album_title!, artist_name: t.artist_name } as Album); }}>{t.album_title}</button>{/if}</span>
               </div>
