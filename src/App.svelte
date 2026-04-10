@@ -30,6 +30,7 @@
   import MetadataView from './components/MetadataView.svelte';
   import BrowseView from './components/BrowseView.svelte';
   import RadiosView from './components/RadiosView.svelte';
+  import PodcastsView from './components/PodcastsView.svelte';
   import GenresView from './components/GenresView.svelte';
   import MediaServersView from './components/MediaServersView.svelte';
   import FavoritesView from './components/FavoritesView.svelte';
@@ -353,6 +354,8 @@
           <StreamingView onAddToPlaylist={openPlaylistModal} />
         {:else if $activeView === 'radios'}
           <RadiosView />
+        {:else if $activeView === 'podcasts'}
+          <PodcastsView />
         {:else if $activeView === 'genres'}
           <GenresView onAddToPlaylist={openPlaylistModal} />
         {:else if $activeView === 'metadata'}

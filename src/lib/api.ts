@@ -830,3 +830,20 @@ export async function installUpdate(): Promise<any> {
   const res = await fetch(`${BASE}/system/update/install`, { method: 'POST' });
   return res.json();
 }
+
+// --- Podcasts ---
+
+export async function searchPodcasts(query: string, limit = 20): Promise<any[]> {
+  const res = await fetch(`${BASE}/podcasts/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+  return res.json();
+}
+
+export async function getRadioFrancePodcasts(): Promise<any[]> {
+  const res = await fetch(`${BASE}/podcasts/radiofrance`);
+  return res.json();
+}
+
+export async function getPodcastEpisodes(feedUrl: string, limit = 30): Promise<any[]> {
+  const res = await fetch(`${BASE}/podcasts/episodes?feed_url=${encodeURIComponent(feedUrl)}&limit=${limit}`);
+  return res.json();
+}
