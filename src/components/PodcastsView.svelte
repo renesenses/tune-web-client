@@ -31,7 +31,7 @@
   async function selectPodcast(podcast: any) {
     selectedPodcast = podcast;
     isLoadingEpisodes = true;
-    episodes = await api.getPodcastEpisodes(podcast.feed_url);
+    episodes = await api.getPodcastEpisodes(podcast.feed_url, 30, podcast.show_url);
     isLoadingEpisodes = false;
   }
 

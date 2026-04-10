@@ -843,7 +843,10 @@ export async function getRadioFrancePodcasts(): Promise<any[]> {
   return res.json();
 }
 
-export async function getPodcastEpisodes(feedUrl: string, limit = 30): Promise<any[]> {
-  const res = await fetch(`${BASE}/podcasts/episodes?feed_url=${encodeURIComponent(feedUrl)}&limit=${limit}`);
+export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: string): Promise<any[]> {
+  let url = `${BASE}/podcasts/episodes?limit=${limit}`;
+  if (feedUrl) url += `&feed_url=${encodeURIComponent(feedUrl)}`;
+  if (showUrl) url += `&show_url=${encodeURIComponent(showUrl)}`;
+  const res = await fetch(url);
   return res.json();
 }
