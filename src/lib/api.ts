@@ -655,6 +655,80 @@ export function applyRecovery(playlistId: number, replacements: Array<{ track_id
   });
 }
 
+// --- Playlist Manager v2 ---
+
+export function getPlaylistManagerServices() {
+  return fetchJSON<Record<string, { authenticated: boolean; supports_write: boolean }>>(`${BASE}/playlist-manager/services`);
+}
+
+export function transferPlaylistV2(body: {
+  source_service: string; source_playlist_id: string; target_service: string;
+  target_name?: string; create_on_target?: boolean; match_threshold?: number;
+  include_approximate?: boolean; dry_run?: boolean;
+}) {
+  return fetchJSON<any>(`${BASE}/playlist-manager/transfer`, { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function batchTransfer(body: {
+  source_service: string; target_service: string; playlist_ids?: string[] | null; match_threshold?: number;
+}) {
+  return fetchJSON<any>(`${BASE}/playlist-manager/batch-transfer`, { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function mergePlaylists(body: {
+  playlists: Array<{ service: string; playlist_id: string }>; target_name: string;
+  deduplicate?: boolean; target_service?: string;
+}) {
+  return fetchJSON<any>(`${BASE}/playlist-manager/merge`, { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function backupPlaylists(services?: string[]) {
+  return fetchJSON<any>(`${BASE}/playlist-manager/backup`, {
+    method: 'POST', body: JSON.stringify({ services, include_tracks: true }),
+  });
+}
+
+export function exportPlaylistFile(service: string, playlistId: string, format: string) {
+  return fetch(`${BASE}/playlist-manager/export`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ service, playlist_id: playlistId, format }),
+  });
+}
+
+export async function importPlaylistFile(file: File, format: string) {
+  const form = new FormData();
+  form.append('file', file);
+  const resp = await fetch(`${BASE}/playlist-manager/import?format=${format}`, { method: 'POST', body: form });
+  return resp.json();
+}
+
+export function getPlaylistLinks() {
+  return fetchJSON<any[]>(`${BASE}/playlist-manager/links`);
+}
+
+export function createPlaylistLink(body: {
+  local_playlist_id: number; service: string; service_playlist_id: string;
+  sync_direction?: string; sync_interval_minutes?: number;
+}) {
+  return fetchJSON<any>(`${BASE}/playlist-manager/links`, { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function triggerPlaylistSync(linkId: number) {
+  return fetchJSON<any>(`${BASE}/playlist-manager/links/${linkId}/sync`, { method: 'POST' });
+}
+
+export function deletePlaylistLink(linkId: number) {
+  return fetchJSON<any>(`${BASE}/playlist-manager/links/${linkId}`, { method: 'DELETE' });
+}
+
+export function getTransferHistory(limit = 50, offset = 0) {
+  return fetchJSON<any[]>(`${BASE}/playlist-manager/history?limit=${limit}&offset=${offset}`);
+}
+
+export function getTransferDetail(transferId: number) {
+  return fetchJSON<any>(`${BASE}/playlist-manager/history/${transferId}`);
+}
+
 // --- Radios ---
 
 export function getRadios(params?: { genre?: string; favorite?: boolean; limit?: number; offset?: number }) {

@@ -65,6 +65,76 @@
   let newName = $state('');
   let newDescription = $state('');
 
+  // --- NEW: Playlist Manager v2 tabs ---
+  let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup'>('playlists');
+
+  // Transfer history
+  let transferHistory = $state<any[]>([]);
+  let historyLoading = $state(false);
+
+  // Sync links
+  let syncLinks = $state<any[]>([]);
+  let syncLoading = $state(false);
+  let syncing = $state<Set<number>>(new Set());
+
+  // Backup
+  let backingUp = $state(false);
+  let backupResult = $state<any>(null);
+
+  // Batch
+  let batchSource = $state('');
+  let batchTarget = $state('local');
+  let batching = $state(false);
+  let batchResult = $state<any>(null);
+
+  // Service capabilities
+  let serviceCapabilities = $state<Record<string, { authenticated: boolean; supports_write: boolean }>>({});
+
+  async function loadManagerData() {
+    if (managerTab === 'transfers') {
+      historyLoading = true;
+      try { transferHistory = await api.getTransferHistory(); } catch {}
+      historyLoading = false;
+    } else if (managerTab === 'sync') {
+      syncLoading = true;
+      try {
+        syncLinks = await api.getPlaylistLinks();
+        serviceCapabilities = await api.getPlaylistManagerServices();
+      } catch {}
+      syncLoading = false;
+    }
+  }
+
+  async function triggerSync(linkId: number) {
+    syncing = new Set([...syncing, linkId]);
+    try {
+      await api.triggerPlaylistSync(linkId);
+      syncLinks = await api.getPlaylistLinks();
+    } catch {}
+    syncing.delete(linkId);
+    syncing = new Set(syncing);
+  }
+
+  async function deleteLink(linkId: number) {
+    try {
+      await api.deletePlaylistLink(linkId);
+      syncLinks = syncLinks.filter(l => l.id !== linkId);
+    } catch {}
+  }
+
+  async function doBackup() {
+    backingUp = true;
+    try { backupResult = await api.backupPlaylists(); } catch {}
+    backingUp = false;
+  }
+
+  async function doBatchTransfer() {
+    if (!batchSource) return;
+    batching = true;
+    try { batchResult = await api.batchTransfer({ source_service: batchSource, target_service: batchTarget }); } catch {}
+    batching = false;
+  }
+
   // Available filter chips
   let authenticatedServices = $derived(
     Object.entries($streamingServices)
@@ -621,6 +691,12 @@
     <!-- List View -->
     <div class="pm-header">
       <h2>{$tr('playlist.manager')}</h2>
+      <div class="pm-tabs">
+        <button class="pm-tab" class:active={managerTab === 'playlists'} onclick={() => managerTab = 'playlists'}>Playlists</button>
+        <button class="pm-tab" class:active={managerTab === 'transfers'} onclick={() => { managerTab = 'transfers'; loadManagerData(); }}>Transferts</button>
+        <button class="pm-tab" class:active={managerTab === 'sync'} onclick={() => { managerTab = 'sync'; loadManagerData(); }}>Sync</button>
+        <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>Backup</button>
+      </div>
       <div class="pm-header-right">
         <div class="search-box">
           <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
@@ -638,7 +714,115 @@
       </div>
     </div>
 
-    <!-- Filter Chips -->
+    {#if managerTab === 'transfers'}
+      <!-- Transfer History Tab -->
+      <div class="pm-tab-content">
+        <div class="tab-actions">
+          <h3>Historique des transferts</h3>
+        </div>
+        {#if historyLoading}
+          <div class="loading"><div class="spinner"></div>Chargement...</div>
+        {:else if transferHistory.length === 0}
+          <div class="empty">Aucun transfert effectué</div>
+        {:else}
+          <div class="history-list">
+            {#each transferHistory as entry}
+              <div class="history-row">
+                <div class="history-op">{entry.operation}</div>
+                <div class="history-info">
+                  <span class="history-name">{entry.source_playlist_name || '?'}</span>
+                  <span class="history-arrow">{entry.source_service} → {entry.target_service}</span>
+                </div>
+                <div class="history-stats">
+                  <span class="stat-ok">{entry.matched} ok</span>
+                  <span class="stat-approx">{entry.approximate} ~</span>
+                  <span class="stat-miss">{entry.not_found} ✕</span>
+                </div>
+                <span class="history-date">{entry.started_at?.substring(0, 16)}</span>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+    {:else if managerTab === 'sync'}
+      <!-- Sync Links Tab -->
+      <div class="pm-tab-content">
+        <div class="tab-actions">
+          <h3>Liens de synchronisation</h3>
+        </div>
+        {#if syncLoading}
+          <div class="loading"><div class="spinner"></div>Chargement...</div>
+        {:else if syncLinks.length === 0}
+          <div class="empty">Aucun lien de sync. Utilisez le transfert pour créer des liens.</div>
+        {:else}
+          {#each syncLinks as link}
+            <div class="sync-row">
+              <div class="sync-info">
+                <span>Playlist #{link.local_playlist_id}</span>
+                <span class="sync-arrow">↔ {link.service} / {link.service_playlist_id}</span>
+                <span class="sync-dir">{link.sync_direction}</span>
+              </div>
+              <div class="sync-actions">
+                <button class="btn-sm" onclick={() => triggerSync(link.id)} disabled={syncing.has(link.id)}>
+                  {syncing.has(link.id) ? 'Sync...' : 'Sync'}
+                </button>
+                <button class="btn-sm danger" onclick={() => deleteLink(link.id)}>✕</button>
+              </div>
+              {#if link.last_synced_at}
+                <span class="sync-date">Dernier: {link.last_synced_at.substring(0, 16)}</span>
+              {/if}
+            </div>
+          {/each}
+        {/if}
+      </div>
+
+    {:else if managerTab === 'backup'}
+      <!-- Backup Tab -->
+      <div class="pm-tab-content">
+        <div class="tab-actions">
+          <h3>Backup & Export</h3>
+          <div class="tab-btns">
+            <button class="btn-action" onclick={doBackup} disabled={backingUp}>
+              {backingUp ? 'Backup en cours...' : 'Backup toutes les playlists'}
+            </button>
+          </div>
+        </div>
+        {#if backupResult}
+          <div class="backup-result">
+            <span class="stat-ok">{backupResult.playlists_backed_up} playlists</span>
+            <span class="stat-ok">{backupResult.total_tracks_snapshot} tracks snapshottés</span>
+          </div>
+        {/if}
+
+        <h4 style="margin-top: 24px;">Batch Transfer</h4>
+        <div class="batch-form">
+          <select bind:value={batchSource}>
+            <option value="">Source...</option>
+            {#each authenticatedServices as svc}
+              <option value={svc}>{svc}</option>
+            {/each}
+          </select>
+          <span>→</span>
+          <select bind:value={batchTarget}>
+            <option value="local">Local</option>
+            {#each authenticatedServices as svc}
+              <option value={svc}>{svc}</option>
+            {/each}
+          </select>
+          <button class="btn-action" onclick={doBatchTransfer} disabled={batching || !batchSource}>
+            {batching ? 'Transfert...' : 'Transférer tout'}
+          </button>
+        </div>
+        {#if batchResult}
+          <div class="backup-result">
+            <span>{batchResult.total_playlists} playlists traitées — {batchResult.status}</span>
+          </div>
+        {/if}
+      </div>
+
+    {:else}
+    <!-- Filter Chips (original playlists tab) -->
     <div class="filter-chips">
       {#each filterChips as chip}
         <button
@@ -715,6 +899,7 @@
           </div>
         {/each}
       </div>
+    {/if}
     {/if}
   {/if}
 </div>
@@ -1022,6 +1207,44 @@
     padding: var(--space-lg) 28px;
     overflow-y: auto;
   }
+
+  .pm-tabs { display: flex; gap: 4px; margin-left: 24px; }
+  .pm-tab { padding: 6px 16px; border: none; border-radius: 8px; background: none; color: var(--tune-text-muted); cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.15s; }
+  .pm-tab:hover { background: var(--tune-surface-hover); color: var(--tune-text); }
+  .pm-tab.active { background: var(--tune-accent); color: white; }
+
+  .pm-tab-content { padding: 16px 0; }
+  .tab-actions { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .tab-actions h3 { font-size: 16px; font-weight: 600; color: var(--tune-text); }
+  .tab-btns { display: flex; gap: 8px; }
+  .btn-action { padding: 8px 16px; background: var(--tune-accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .btn-action:hover { opacity: 0.9; }
+  .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .history-list { display: flex; flex-direction: column; gap: 2px; }
+  .history-row { display: flex; align-items: center; gap: 16px; padding: 12px 16px; background: var(--tune-surface); border-radius: 8px; }
+  .history-op { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--tune-accent); min-width: 70px; }
+  .history-info { flex: 1; }
+  .history-name { font-weight: 600; font-size: 14px; }
+  .history-arrow { font-size: 12px; color: var(--tune-text-muted); margin-left: 8px; }
+  .history-stats { display: flex; gap: 8px; font-size: 12px; }
+  .stat-ok { color: #10B981; } .stat-approx { color: #F59E0B; } .stat-miss { color: #EF4444; }
+  .history-date { font-size: 11px; color: var(--tune-text-muted); }
+
+  .sync-row { display: flex; align-items: center; gap: 16px; padding: 12px 16px; background: var(--tune-surface); border-radius: 8px; margin-bottom: 4px; }
+  .sync-info { flex: 1; display: flex; gap: 8px; align-items: center; font-size: 14px; }
+  .sync-arrow { color: var(--tune-accent); font-weight: 600; }
+  .sync-dir { font-size: 11px; color: var(--tune-text-muted); background: var(--tune-surface2); padding: 2px 8px; border-radius: 4px; }
+  .sync-actions { display: flex; gap: 6px; }
+  .sync-date { font-size: 11px; color: var(--tune-text-muted); }
+  .btn-sm { padding: 4px 12px; border: 1px solid var(--tune-border); border-radius: 6px; background: none; color: var(--tune-text); cursor: pointer; font-size: 12px; }
+  .btn-sm:hover { background: var(--tune-surface-hover); }
+  .btn-sm.danger { color: #EF4444; border-color: #EF444444; }
+  .btn-sm.danger:hover { background: #EF444422; }
+
+  .backup-result { padding: 12px 16px; background: var(--tune-surface); border-radius: 8px; margin-top: 12px; display: flex; gap: 16px; font-size: 14px; }
+  .batch-form { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+  .batch-form select { padding: 8px 12px; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 8px; color: var(--tune-text); font-size: 13px; }
 
   .pm-header {
     display: flex;
