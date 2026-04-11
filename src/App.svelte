@@ -34,6 +34,7 @@
   import GenresView from './components/GenresView.svelte';
   import MediaServersView from './components/MediaServersView.svelte';
   import FavoritesView from './components/FavoritesView.svelte';
+  import RadioFavoritesView from './components/RadioFavoritesView.svelte';
   import PlaylistManagerView from './components/PlaylistManagerView.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
   import BottomTabBar from './components/BottomTabBar.svelte';
@@ -364,6 +365,8 @@
           <MediaServersView />
         {:else if $activeView === 'favorites'}
           <FavoritesView onAddToPlaylist={openPlaylistModal} />
+        {:else if $activeView === 'radiofavorites'}
+          <RadioFavoritesView />
         {/if}
       </div>
     {/key}
