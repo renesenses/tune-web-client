@@ -38,6 +38,44 @@
   let suggestionCount = $state(0);
   let showSuggestions = $state(false);
 
+  let albumNameInput = $state('');
+
+  async function applyAlbumName() {
+    const name = albumNameInput.trim();
+    if (!name || selectedTrackIds.size === 0) return;
+    applying = true;
+    try {
+      const trackIds = [...selectedTrackIds];
+      // Find or create album with this name
+      let albumId: number | null = null;
+      const albums = await api.getAlbums();
+      const existing = albums.find((a: any) => a.title?.toLowerCase() === name.toLowerCase());
+      if (existing) {
+        albumId = existing.id;
+      } else {
+        // Create album via library API
+        const res = await api.apiFetch(`/library/albums`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: name }),
+        });
+        albumId = res?.id;
+      }
+      if (albumId) {
+        // Update all selected tracks to point to this album
+        for (const tid of trackIds) {
+          await api.updateTrackMetadata(tid, { album_id: albumId });
+        }
+      }
+      albumNameInput = '';
+      selectedTrackIds = new Set();
+      location.reload();
+    } catch (e) {
+      console.error('Apply album error:', e);
+    }
+    applying = false;
+  }
+
   let fixingAlbums = $state(false);
   let fixAlbumsResult = $state('');
 
@@ -945,7 +983,17 @@
               {#if applying}
                 <div class="spinner small"></div>
               {/if}
-              Appliquer
+              Appliquer artiste
+            </button>
+            <span style="color: var(--tune-text-muted); margin: 0 4px;">|</span>
+            <input
+              type="text"
+              placeholder="Nom de l'album..."
+              bind:value={albumNameInput}
+              class="album-input"
+            />
+            <button class="btn-action btn-primary" onclick={applyAlbumName} disabled={!albumNameInput.trim() || applying}>
+              Appliquer album
             </button>
           </div>
         {/if}
@@ -1810,4 +1858,6 @@
   .dup-track { color: var(--tune-text); }
   .dup-vs { color: var(--tune-text-muted); font-size: 11px; }
   .dup-hash { font-size: 10px; color: var(--tune-text-muted); font-family: monospace; }
+  .album-input { background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 6px; padding: 6px 12px; color: var(--tune-text); font-size: 13px; width: 200px; }
+  .album-input:focus { border-color: var(--tune-accent); outline: none; }
 </style>
