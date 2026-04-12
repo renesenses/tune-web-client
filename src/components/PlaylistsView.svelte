@@ -19,6 +19,21 @@
   let playlistTracks: Track[] = $state([]);
   let loading = $state(false);
   let searchQuery = $state('');
+  let dragIdx = $state(-1);
+  let dragOverIdx = $state(-1);
+
+  async function moveTrack(from: number, to: number) {
+    if (to < 0 || to >= playlistTracks.length || from === to) return;
+    const arr = [...playlistTracks];
+    const [item] = arr.splice(from, 1);
+    arr.splice(to, 0, item);
+    playlistTracks = arr;
+    // Persist to server
+    if (selectedPlaylist?.id) {
+      const ids = arr.map(t => t.id).filter(Boolean) as number[];
+      await api.reorderPlaylistTracks(selectedPlaylist.id, ids);
+    }
+  }
 
   // Source selection
   let selectedSource = $state<string>('local');
@@ -248,8 +263,23 @@
       <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
     {:else}
       <div class="track-list">
-        {#each playlistTracks as t, index}
-          <div class="track-item">
+        {#each playlistTracks as t, index (t.id ?? index)}
+          <div class="track-item"
+            draggable="true"
+            ondragstart={(e) => { e.dataTransfer?.setData('text/plain', String(index)); dragIdx = index; }}
+            ondragover={(e) => { e.preventDefault(); dragOverIdx = index; }}
+            ondragleave={() => { if (dragOverIdx === index) dragOverIdx = -1; }}
+            ondrop={(e) => { e.preventDefault(); moveTrack(dragIdx, index); dragIdx = -1; dragOverIdx = -1; }}
+            class:drag-over={dragOverIdx === index && dragIdx !== index}
+          >
+            <div class="reorder-btns">
+              <button class="move-btn" onclick={() => moveTrack(index, index - 1)} disabled={index === 0} title="Monter">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="18 15 12 9 6 15"/></svg>
+              </button>
+              <button class="move-btn" onclick={() => moveTrack(index, index + 1)} disabled={index === playlistTracks.length - 1} title="Descendre">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
             <button class="track-play" onclick={() => t.id && playTrack(t.id)}>
               <span class="track-num">{index + 1}</span>
               <div class="track-info">
@@ -512,7 +542,14 @@
   .delete-btn:hover { color: var(--tune-warning); }
 
   .track-list { display: flex; flex-direction: column; gap: 1px; flex: 1; overflow-y: auto; }
-  .track-item { display: flex; align-items: center; gap: 0; }
+  .track-item { display: flex; align-items: center; gap: 0; cursor: grab; transition: background 0.12s; }
+  .track-item:active { cursor: grabbing; }
+  .track-item.drag-over { background: var(--tune-accent-bg, rgba(99,102,241,0.12)); border-top: 2px solid var(--tune-accent); }
+  .reorder-btns { display: flex; flex-direction: column; gap: 0; margin-right: 4px; opacity: 0; transition: opacity 0.12s; }
+  .track-item:hover .reorder-btns { opacity: 1; }
+  .move-btn { background: none; border: none; color: var(--tune-text-muted); cursor: pointer; padding: 2px 4px; border-radius: 4px; }
+  .move-btn:hover { color: var(--tune-accent); background: var(--tune-surface-hover); }
+  .move-btn:disabled { opacity: 0.2; cursor: not-allowed; }
   .track-play { flex: 1; display: flex; align-items: center; gap: var(--space-md); padding: 8px 28px; background: none; border: none; color: var(--tune-text); cursor: pointer; text-align: left; transition: background 0.12s ease-out; }
   .track-play:hover { background: var(--tune-surface-hover); }
   .track-num { width: 28px; text-align: center; font-family: var(--font-body); font-size: 13px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }

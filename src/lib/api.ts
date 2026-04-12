@@ -461,6 +461,13 @@ export function removePlaylistTrack(playlistId: number, trackId: number) {
   return fetchVoid(`${BASE}/playlists/${playlistId}/tracks/${trackId}`, { method: 'DELETE' });
 }
 
+export function reorderPlaylistTracks(playlistId: number, trackIds: number[]) {
+  return fetchVoid(`${BASE}/playlists/${playlistId}/reorder`, {
+    method: 'POST',
+    body: JSON.stringify({ track_ids: trackIds }),
+  });
+}
+
 // --- Search ---
 
 export function federatedSearch(q: string, sources?: string[], limit = 20) {
