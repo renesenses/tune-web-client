@@ -43,6 +43,7 @@
   let transferName = $state('');
   let transferring = $state(false);
   let transferResult = $state<PlaylistTransferResponse | null>(null);
+  let transferFilter = $state<string>('all'); // 'all', 'matched', 'approximate', 'not_found'
 
   // Diff dialog
   let showDiff = $state(false);
@@ -441,6 +442,7 @@
     showTransfer = false;
     transferResult = null;
     transferring = false;
+    transferFilter = 'all';
   }
 
   let transferServices = $derived([
@@ -954,12 +956,12 @@
         <div class="transfer-report">
           <h3>{$tr('playlist.transferComplete')}</h3>
           <div class="transfer-summary">
-            <span class="summary-stat matched">{transferResult.matched} {$tr('playlist.matched')}</span>
-            <span class="summary-stat approximate">{transferResult.approximate} {$tr('playlist.approximate')}</span>
-            <span class="summary-stat not-found">{transferResult.not_found} {$tr('playlist.notFound')}</span>
+            <button class="summary-stat matched" class:active={transferFilter === 'matched' || transferFilter === 'all'} onclick={() => transferFilter = transferFilter === 'matched' ? 'all' : 'matched'}>{transferResult.matched} {$tr('playlist.matched')}</button>
+            <button class="summary-stat approximate" class:active={transferFilter === 'approximate' || transferFilter === 'all'} onclick={() => transferFilter = transferFilter === 'approximate' ? 'all' : 'approximate'}>{transferResult.approximate} {$tr('playlist.approximate')}</button>
+            <button class="summary-stat not-found" class:active={transferFilter === 'not_found' || transferFilter === 'all'} onclick={() => transferFilter = transferFilter === 'not_found' ? 'all' : 'not_found'}>{transferResult.not_found} {$tr('playlist.notFound')}</button>
           </div>
           <div class="transfer-tracks">
-            {#each transferResult.tracks as track}
+            {#each transferResult.tracks.filter(t => transferFilter === 'all' || t.status === transferFilter) as track}
               <div class="transfer-track-row status-{track.status}">
                 <span class="transfer-status-dot"></span>
                 <span class="transfer-track-title">{track.title}</span>
@@ -2024,7 +2026,17 @@
     font-weight: 600;
     padding: 4px 12px;
     border-radius: 16px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    opacity: 0.6;
   }
+  .summary-stat.active {
+    opacity: 1;
+    border-color: currentColor;
+    transform: scale(1.05);
+  }
+  .summary-stat:hover { opacity: 1; }
 
   .summary-stat.matched {
     background: rgba(29, 185, 84, 0.15);
