@@ -482,12 +482,20 @@
     removingMusicDir = null;
   }
 
+  let scanMessage = $state('');
+
   async function handleScan() {
     scanning = true;
+    scanMessage = '';
     try {
       await api.triggerScan();
-    } catch (e) {
-      console.error('Scan error:', e);
+      scanMessage = 'Scan lancé';
+    } catch (e: any) {
+      if (e?.message?.includes('already') || e?.message?.includes('409')) {
+        scanMessage = 'Scan déjà en cours...';
+      } else {
+        scanMessage = `Erreur: ${e?.message || e}`;
+      }
       scanning = false;
     }
   }
@@ -613,6 +621,9 @@
             {$t('settings.scanLibrary')}
           {/if}
         </button>
+        {#if scanMessage}
+          <span class="scan-message">{scanMessage}</span>
+        {/if}
 
         <button class="scan-btn" onclick={handleArtworkRescan} disabled={artworkScanning}>
           {#if artworkScanning}
@@ -1829,4 +1840,5 @@
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+  .scan-message { font-size: 12px; color: var(--tune-accent); margin-left: 8px; font-weight: 600; }
 </style>
