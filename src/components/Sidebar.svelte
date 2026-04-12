@@ -247,13 +247,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
       {$t('nav.queue')}
     </button>
-    <button class="nav-item" class:active={$activeView === 'playlists'} onclick={() => navigate('playlists')}>
+    <button class="nav-item" class:active={$activeView === 'playlists' || $activeView === 'playlistmanager'} onclick={() => navigate('playlistmanager')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
       {$t('nav.playlists')}
-    </button>
-    <button class="nav-item" class:active={$activeView === 'playlistmanager'} onclick={() => navigate('playlistmanager')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
-      {$t('playlist.manager')}
     </button>
     <button class="nav-item" class:active={$activeView === 'browse'} onclick={() => navigate('browse')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
