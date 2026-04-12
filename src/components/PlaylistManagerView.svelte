@@ -956,9 +956,9 @@
         <div class="transfer-report">
           <h3>{$tr('playlist.transferComplete')}</h3>
           <div class="transfer-summary">
-            <button class="summary-stat matched" class:active={transferFilter === 'matched' || transferFilter === 'all'} onclick={() => transferFilter = transferFilter === 'matched' ? 'all' : 'matched'}>{transferResult.matched} {$tr('playlist.matched')}</button>
-            <button class="summary-stat approximate" class:active={transferFilter === 'approximate' || transferFilter === 'all'} onclick={() => transferFilter = transferFilter === 'approximate' ? 'all' : 'approximate'}>{transferResult.approximate} {$tr('playlist.approximate')}</button>
-            <button class="summary-stat not-found" class:active={transferFilter === 'not_found' || transferFilter === 'all'} onclick={() => transferFilter = transferFilter === 'not_found' ? 'all' : 'not_found'}>{transferResult.not_found} {$tr('playlist.notFound')}</button>
+            <button class="summary-stat matched" class:active={transferFilter === 'matched'} onclick={() => transferFilter = transferFilter === 'matched' ? 'all' : 'matched'}>{transferResult.matched} {$tr('playlist.matched')}</button>
+            <button class="summary-stat approximate" class:active={transferFilter === 'approximate'} onclick={() => transferFilter = transferFilter === 'approximate' ? 'all' : 'approximate'}>{transferResult.approximate} {$tr('playlist.approximate')}</button>
+            <button class="summary-stat not-found" class:active={transferFilter === 'not_found'} onclick={() => transferFilter = transferFilter === 'not_found' ? 'all' : 'not_found'}>{transferResult.not_found} {$tr('playlist.notFound')}</button>
           </div>
           <div class="transfer-tracks">
             {#each transferResult.tracks.filter(t => transferFilter === 'all' || t.status === transferFilter) as track}
@@ -2029,14 +2029,13 @@
     border: 2px solid transparent;
     cursor: pointer;
     transition: all 0.15s;
-    opacity: 0.6;
   }
   .summary-stat.active {
-    opacity: 1;
     border-color: currentColor;
-    transform: scale(1.05);
+    transform: scale(1.1);
+    box-shadow: 0 0 8px currentColor;
   }
-  .summary-stat:hover { opacity: 1; }
+  .summary-stat:hover { transform: scale(1.05); }
 
   .summary-stat.matched {
     background: rgba(29, 185, 84, 0.15);
