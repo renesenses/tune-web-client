@@ -462,8 +462,8 @@ export function removePlaylistTrack(playlistId: number, trackId: number) {
 }
 
 export function reorderPlaylistTracks(playlistId: number, trackIds: number[]) {
-  return fetchVoid(`${BASE}/playlists/${playlistId}/reorder`, {
-    method: 'POST',
+  return fetchJSON(`${BASE}/playlists/${playlistId}/tracks`, {
+    method: 'PUT',
     body: JSON.stringify({ track_ids: trackIds }),
   });
 }
