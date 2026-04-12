@@ -156,6 +156,98 @@ export function listGroups() {
   return fetchJSON<ZoneGroupResponse[]>(`${BASE}/zones/groups/list`);
 }
 
+// --- Zone Manager ---
+
+export function getZoneOverview() {
+  return fetchJSON<any>(`${BASE}/zone-manager/overview`);
+}
+
+export function hotSwapDevice(zoneId: number, outputType: string, outputDeviceId?: string) {
+  return fetchJSON<any>(`${BASE}/zone-manager/zones/${zoneId}/hot-swap`, {
+    method: 'POST',
+    body: JSON.stringify({ output_type: outputType, output_device_id: outputDeviceId }),
+  });
+}
+
+export function muteZone(zoneId: number, muted: boolean) {
+  return fetchJSON<any>(`${BASE}/zone-manager/zones/${zoneId}/mute`, {
+    method: 'POST',
+    body: JSON.stringify({ muted }),
+  });
+}
+
+export function getZoneManagerGroups() {
+  return fetchJSON<any[]>(`${BASE}/zone-manager/groups`);
+}
+
+export function createGroup(leaderZoneId: number, zoneIds: number[], name?: string, masterVolume = 0.5) {
+  return fetchJSON<any>(`${BASE}/zone-manager/groups`, {
+    method: 'POST',
+    body: JSON.stringify({ leader_zone_id: leaderZoneId, zone_ids: zoneIds, name, master_volume: masterVolume }),
+  });
+}
+
+export function renameGroup(groupId: string, name: string) {
+  return fetchJSON<any>(`${BASE}/zone-manager/groups/${encodeURIComponent(groupId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export function deleteGroup(groupId: string) {
+  return fetchVoid(`${BASE}/zone-manager/groups/${encodeURIComponent(groupId)}`, { method: 'DELETE' });
+}
+
+export function setGroupVolume(groupId: string, masterVolume?: number, offsets?: Record<number, number>) {
+  return fetchJSON<any>(`${BASE}/zone-manager/groups/${encodeURIComponent(groupId)}/volume`, {
+    method: 'POST',
+    body: JSON.stringify({ master_volume: masterVolume, offsets }),
+  });
+}
+
+export function getZoneProfiles() {
+  return fetchJSON<any[]>(`${BASE}/zone-manager/profiles`);
+}
+
+export function createZoneProfile(name: string, description?: string, icon?: string) {
+  return fetchJSON<any>(`${BASE}/zone-manager/profiles`, {
+    method: 'POST',
+    body: JSON.stringify({ name, description, icon }),
+  });
+}
+
+export function activateZoneProfile(profileId: number) {
+  return fetchJSON<any>(`${BASE}/zone-manager/profiles/${profileId}/activate`, { method: 'POST' });
+}
+
+export function deleteZoneProfile(profileId: number) {
+  return fetchVoid(`${BASE}/zone-manager/profiles/${profileId}`, { method: 'DELETE' });
+}
+
+export function measureLatency(zoneId: number) {
+  return fetchJSON<any>(`${BASE}/zone-manager/zones/${zoneId}/measure-latency`, { method: 'POST' });
+}
+
+export function calibrateGroup(groupId: string) {
+  return fetchJSON<any>(`${BASE}/zone-manager/groups/${encodeURIComponent(groupId)}/calibrate`, { method: 'POST' });
+}
+
+export function getZoneHealth(zoneId: number) {
+  return fetchJSON<any>(`${BASE}/zone-manager/zones/${zoneId}/health`);
+}
+
+export function getGroupHealth(groupId: string) {
+  return fetchJSON<any>(`${BASE}/zone-manager/groups/${encodeURIComponent(groupId)}/health`);
+}
+
+export function getSyncStats() {
+  return fetchJSON<any>(`${BASE}/zone-manager/sync/stats`);
+}
+
+export function getGaplessStatus(groupId: string) {
+  return fetchJSON<any>(`${BASE}/zone-manager/groups/${encodeURIComponent(groupId)}/gapless`);
+}
+
 // --- Playback ---
 
 export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; file_path?: string }) {

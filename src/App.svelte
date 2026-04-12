@@ -28,6 +28,7 @@
   import HomeView from './components/HomeView.svelte';
   import StreamingView from './components/StreamingView.svelte';
   import MetadataView from './components/MetadataView.svelte';
+  import ZoneManagerView from './components/ZoneManagerView.svelte';
   import BrowseView from './components/BrowseView.svelte';
   import RadiosView from './components/RadiosView.svelte';
   import PodcastsView from './components/PodcastsView.svelte';
@@ -367,6 +368,8 @@
           <FavoritesView onAddToPlaylist={openPlaylistModal} />
         {:else if $activeView === 'radiofavorites'}
           <RadioFavoritesView />
+        {:else if $activeView === 'zonemanager'}
+          <ZoneManagerView />
         {/if}
       </div>
     {/key}
