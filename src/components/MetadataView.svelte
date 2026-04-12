@@ -29,6 +29,73 @@
   let loading = $state(true);
   let filter = $state<'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist' | 'unknown'>('no_cover');
 
+  // Metadata Manager v2
+  let autoFixStatus = $state('idle');
+  let autoFixProgress = $state('');
+  let scanningDuplicates = $state(false);
+  let duplicates = $state<any[]>([]);
+  let suggestions = $state<any[]>([]);
+  let suggestionCount = $state(0);
+  let showSuggestions = $state(false);
+
+  async function handleAutoFix() {
+    if (autoFixStatus === 'running') return;
+    autoFixStatus = 'running';
+    try {
+      await api.startAutoFix();
+      // Poll status
+      const poll = setInterval(async () => {
+        const s = await api.getAutoFixStatus();
+        autoFixProgress = `${s.current}/${s.total}`;
+        if (s.status === 'completed') {
+          autoFixStatus = 'idle';
+          autoFixProgress = `${s.fixed} corrigés, ${s.suggestions} suggestions`;
+          clearInterval(poll);
+          await loadSuggestions();
+        }
+      }, 2000);
+    } catch { autoFixStatus = 'idle'; }
+  }
+
+  async function handleScanDuplicates() {
+    scanningDuplicates = true;
+    try {
+      await api.scanDuplicates();
+      const d = await api.listDuplicates();
+      duplicates = d;
+    } catch {}
+    scanningDuplicates = false;
+  }
+
+  async function loadSuggestions() {
+    try {
+      suggestions = await api.getMetadataSuggestions();
+      suggestionCount = suggestions.length;
+    } catch {}
+  }
+
+  async function handleShowSuggestions() {
+    showSuggestions = !showSuggestions;
+    if (showSuggestions) await loadSuggestions();
+  }
+
+  async function handleAcceptSuggestion(id: number) {
+    await api.acceptSuggestion(id);
+    suggestions = suggestions.filter(s => s.id !== id);
+    suggestionCount = suggestions.length;
+  }
+
+  async function handleRejectSuggestion(id: number) {
+    await api.rejectSuggestion(id);
+    suggestions = suggestions.filter(s => s.id !== id);
+    suggestionCount = suggestions.length;
+  }
+
+  async function handleAcceptAll() {
+    await api.acceptAllSuggestions(0.9);
+    await loadSuggestions();
+  }
+
   let editAlbum = $state<Album | null>(null);
   let rescanningAll = $state(false);
 
@@ -699,6 +766,59 @@
       <button class="filter-btn" class:active={filter === 'no_artist'} onclick={() => filter = 'no_artist'}>{$t('metadata.missingArtist')} ({stats.tracks_without_artist})</button>
       <button class="filter-btn" class:active={filter === 'unknown'} onclick={() => filter = 'unknown'}>{$t('metadata.unknown')} ({unknownAlbums.length})</button>
     </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+      <button class="action-btn" onclick={handleAutoFix}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        {autoFixStatus === 'running' ? `Auto-fix en cours (${autoFixProgress})` : 'Auto-fix'}
+      </button>
+      <button class="action-btn" onclick={handleScanDuplicates} disabled={scanningDuplicates}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+        {scanningDuplicates ? 'Scan doublons...' : 'Scan doublons'}
+      </button>
+      <button class="action-btn" onclick={handleShowSuggestions}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        Suggestions ({suggestionCount})
+      </button>
+    </div>
+
+    <!-- Suggestions Panel -->
+    {#if showSuggestions && suggestions.length > 0}
+      <div class="suggestions-panel">
+        <div class="suggestions-header">
+          <h3>Suggestions ({suggestions.length})</h3>
+          <button class="action-btn" onclick={handleAcceptAll}>Accepter tout (≥90%)</button>
+        </div>
+        {#each suggestions as s}
+          <div class="suggestion-row">
+            <span class="suggestion-field">{s.field}</span>
+            <span class="suggestion-current">{s.current_value || '—'}</span>
+            <span class="suggestion-arrow">→</span>
+            <span class="suggestion-value">{s.suggested_value}</span>
+            <span class="suggestion-source">{s.source}</span>
+            <span class="suggestion-confidence">{Math.round((s.confidence || 0) * 100)}%</span>
+            <button class="btn-accept" onclick={() => handleAcceptSuggestion(s.id)}>✓</button>
+            <button class="btn-reject" onclick={() => handleRejectSuggestion(s.id)}>✕</button>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
+    <!-- Duplicates Panel -->
+    {#if duplicates.length > 0}
+      <div class="duplicates-panel">
+        <h3>Doublons détectés ({duplicates.length})</h3>
+        {#each duplicates as d}
+          <div class="duplicate-row">
+            <span class="dup-track">{d.track_a_title}</span>
+            <span class="dup-vs">vs</span>
+            <span class="dup-track">{d.track_b_title}</span>
+            <span class="dup-hash">{d.audio_hash?.substring(0, 8)}</span>
+          </div>
+        {/each}
+      </div>
+    {/if}
 
     <!-- Content -->
     {#if filter === 'no_artist'}
@@ -1644,4 +1764,30 @@
   .album-card {
     position: relative;
   }
+  .action-bar { display: flex; gap: 8px; margin: 12px 0 16px; }
+  .action-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border: 1px solid var(--tune-border); border-radius: 8px; background: var(--tune-surface); color: var(--tune-text); cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.12s; }
+  .action-btn:hover { background: var(--tune-surface-hover); border-color: var(--tune-accent); color: var(--tune-accent); }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .suggestions-panel { background: var(--tune-surface); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--tune-border); }
+  .suggestions-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .suggestions-header h3 { font-size: 15px; font-weight: 600; }
+  .suggestion-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--tune-border); font-size: 13px; }
+  .suggestion-field { font-weight: 600; color: var(--tune-accent); min-width: 80px; }
+  .suggestion-current { color: var(--tune-text-muted); text-decoration: line-through; }
+  .suggestion-arrow { color: var(--tune-text-muted); }
+  .suggestion-value { color: var(--tune-text); font-weight: 500; }
+  .suggestion-source { font-size: 10px; color: var(--tune-text-muted); background: var(--tune-grey2); padding: 2px 6px; border-radius: 4px; }
+  .suggestion-confidence { font-size: 11px; font-weight: 700; color: var(--tune-accent); }
+  .btn-accept { background: none; border: none; color: #10B981; cursor: pointer; font-size: 16px; padding: 4px; }
+  .btn-reject { background: none; border: none; color: #EF4444; cursor: pointer; font-size: 16px; padding: 4px; }
+  .btn-accept:hover { background: #10B98122; border-radius: 4px; }
+  .btn-reject:hover { background: #EF444422; border-radius: 4px; }
+
+  .duplicates-panel { background: var(--tune-surface); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #F59E0B44; }
+  .duplicates-panel h3 { font-size: 15px; font-weight: 600; color: #F59E0B; margin-bottom: 12px; }
+  .duplicate-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; }
+  .dup-track { color: var(--tune-text); }
+  .dup-vs { color: var(--tune-text-muted); font-size: 11px; }
+  .dup-hash { font-size: 10px; color: var(--tune-text-muted); font-family: monospace; }
 </style>

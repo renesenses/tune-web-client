@@ -736,6 +736,96 @@ export function getTransferDetail(transferId: number) {
   return fetchJSON<any>(`${BASE}/playlist-manager/history/${transferId}`);
 }
 
+// --- Metadata Manager ---
+
+export function updateTrackMetadata(trackId: number, updates: Record<string, any>) {
+  return fetchJSON(`${BASE}/metadata/tracks/${trackId}`, { method: 'PATCH', body: JSON.stringify(updates) });
+}
+
+export function updateAlbumMetadata(albumId: number, updates: Record<string, any>) {
+  return fetchJSON(`${BASE}/metadata/albums/${albumId}`, { method: 'PATCH', body: JSON.stringify(updates) });
+}
+
+export function writeTrackTags(trackId: number) {
+  return fetchJSON(`${BASE}/metadata/tracks/${trackId}/write-tags`, { method: 'POST' });
+}
+
+export function writeAlbumTags(albumId: number) {
+  return fetchJSON(`${BASE}/metadata/albums/${albumId}/write-tags`, { method: 'POST' });
+}
+
+export function batchEditTracks(trackIds: number[], updates: Record<string, any>) {
+  return fetchJSON(`${BASE}/metadata/batch/tracks`, { method: 'POST', body: JSON.stringify({ track_ids: trackIds, updates }) });
+}
+
+export function renameArtist(oldName: string, newName: string, updateFiles = false) {
+  return fetchJSON(`${BASE}/metadata/batch/rename-artist`, { method: 'POST', body: JSON.stringify({ old_name: oldName, new_name: newName, update_files: updateFiles }) });
+}
+
+export function lookupTrack(title: string, artist = '', album = '') {
+  return fetchJSON(`${BASE}/metadata/lookup?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}`, { method: 'POST' });
+}
+
+export function lookupAlbum(title: string, artist = '') {
+  return fetchJSON(`${BASE}/metadata/lookup-album?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`, { method: 'POST' });
+}
+
+export function enrichTrack(trackId: number) {
+  return fetchJSON(`${BASE}/metadata/enrich/${trackId}`, { method: 'POST' });
+}
+
+export function enrichAlbum(albumId: number) {
+  return fetchJSON(`${BASE}/metadata/enrich-album/${albumId}`, { method: 'POST' });
+}
+
+export function fetchAlbumCover(albumId: number) {
+  return fetchJSON(`${BASE}/metadata/covers/album/${albumId}`, { method: 'POST' });
+}
+
+export function fingerprintTrack(trackId: number) {
+  return fetchJSON(`${BASE}/metadata/fingerprint/${trackId}`, { method: 'POST' });
+}
+
+export function fingerprintBatch(trackIds?: number[], limit = 50) {
+  return fetchJSON(`${BASE}/metadata/fingerprint-batch`, { method: 'POST', body: JSON.stringify(trackIds ? { track_ids: trackIds } : { limit }) });
+}
+
+export function startAutoFix() {
+  return fetchJSON(`${BASE}/metadata/auto-fix`, { method: 'POST' });
+}
+
+export function getAutoFixStatus() {
+  return fetchJSON(`${BASE}/metadata/auto-fix/status`);
+}
+
+export function getAutoFixReport(limit = 10) {
+  return fetchJSON(`${BASE}/metadata/auto-fix/report?limit=${limit}`);
+}
+
+export function scanDuplicates(limit = 5000) {
+  return fetchJSON(`${BASE}/metadata/duplicates/scan`, { method: 'POST', body: JSON.stringify({ limit }) });
+}
+
+export function listDuplicates() {
+  return fetchJSON(`${BASE}/metadata/duplicates`);
+}
+
+export function getMetadataSuggestions(status = 'pending', limit = 100) {
+  return fetchJSON(`${BASE}/metadata/suggestions?status=${status}&limit=${limit}`);
+}
+
+export function acceptSuggestion(id: number) {
+  return fetchJSON(`${BASE}/metadata/suggestions/${id}/accept`, { method: 'POST' });
+}
+
+export function rejectSuggestion(id: number) {
+  return fetchJSON(`${BASE}/metadata/suggestions/${id}/reject`, { method: 'POST' });
+}
+
+export function acceptAllSuggestions(minConfidence = 0.9) {
+  return fetchJSON(`${BASE}/metadata/suggestions/accept-all?min_confidence=${minConfidence}`, { method: 'POST' });
+}
+
 // --- Radios ---
 
 export function getRadios(params?: { genre?: string; favorite?: boolean; limit?: number; offset?: number }) {
