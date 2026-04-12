@@ -263,7 +263,7 @@
       <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
     {:else}
       <div class="track-list">
-        {#each playlistTracks as t, index (t.id ?? index)}
+        {#each playlistTracks as t, index (index)}
           <div class="track-item"
             draggable="true"
             ondragstart={(e) => { e.dataTransfer?.setData('text/plain', String(index)); dragIdx = index; }}
