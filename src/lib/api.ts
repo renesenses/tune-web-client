@@ -826,6 +826,10 @@ export function acceptAllSuggestions(minConfidence = 0.9) {
   return fetchJSON(`${BASE}/metadata/suggestions/accept-all?min_confidence=${minConfidence}`, { method: 'POST' });
 }
 
+export function autoFixAlbums() {
+  return fetchJSON(`${BASE}/metadata/auto-fix-albums`, { method: 'POST' });
+}
+
 // --- Radios ---
 
 export function getRadios(params?: { genre?: string; favorite?: boolean; limit?: number; offset?: number }) {

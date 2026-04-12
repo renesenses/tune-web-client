@@ -38,6 +38,22 @@
   let suggestionCount = $state(0);
   let showSuggestions = $state(false);
 
+  let fixingAlbums = $state(false);
+  let fixAlbumsResult = $state('');
+
+  async function handleAutoFixAlbums() {
+    fixingAlbums = true;
+    try {
+      const r = await api.autoFixAlbums();
+      fixAlbumsResult = `${r.tracks_fixed} tracks corrigés, ${r.albums_created} albums créés`;
+      // Refresh stats
+      location.reload();
+    } catch (e) {
+      fixAlbumsResult = 'Erreur';
+    }
+    fixingAlbums = false;
+  }
+
   async function handleAutoFix() {
     if (autoFixStatus === 'running') return;
     autoFixStatus = 'running';
@@ -769,6 +785,10 @@
 
     <!-- Action Bar -->
     <div class="action-bar">
+      <button class="action-btn" onclick={handleAutoFixAlbums} disabled={fixingAlbums}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        {fixingAlbums ? 'Fix albums...' : 'Auto-fix albums'}
+      </button>
       <button class="action-btn" onclick={handleAutoFix}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
         {autoFixStatus === 'running' ? `Auto-fix en cours (${autoFixProgress})` : 'Auto-fix'}
