@@ -69,7 +69,9 @@
       }
       albumNameInput = '';
       selectedTrackIds = new Set();
-      location.reload();
+      // Refresh data without full reload
+      const sc = await api.getCompletenessStats();
+      stats = sc;
     } catch (e) {
       console.error('Apply album error:', e);
     }
@@ -85,7 +87,9 @@
       const r = await api.autoFixAlbums();
       fixAlbumsResult = `${r.tracks_fixed} tracks corrigés, ${r.albums_created} albums créés`;
       // Refresh stats
-      location.reload();
+      // Refresh data without full reload
+      const sc = await api.getCompletenessStats();
+      stats = sc;
     } catch (e) {
       fixAlbumsResult = 'Erreur';
     }
