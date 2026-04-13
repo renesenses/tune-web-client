@@ -74,7 +74,7 @@
       </svg>
     {/if}
   </button>
-  <button class="step-btn" onclick={stepDown} title="-">
+  <button class="step-btn" onclick={stepDown} title="-" aria-label="Decrease volume">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12" /></svg>
   </button>
   <input
@@ -85,8 +85,9 @@
     step="0.01"
     value={vol}
     oninput={handleVolume}
+    aria-label="Volume"
   />
-  <button class="step-btn" onclick={stepUp} title="+">
+  <button class="step-btn" onclick={stepUp} title="+" aria-label="Increase volume">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
   </button>
   <span class="volume-value">{volumeDisplay(vol)}</span>

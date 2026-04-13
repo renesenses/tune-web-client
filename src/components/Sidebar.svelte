@@ -366,8 +366,7 @@
                 <svg viewBox="0 0 10 12" fill="currentColor" width="10" height="12"><polygon points="0,0 10,6 0,12" /></svg>
               </span>
             {/if}
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <span class="zone-config-btn" onclick={(e) => openConfig(zone, e)} title={$t('zone.configure')}>
+            <span class="zone-config-btn" onclick={(e) => openConfig(zone, e)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openConfig(zone, e as any); }}} title={$t('zone.configure')} aria-label={$t('zone.configure')} role="button" tabindex={0}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
             </span>
           </span>
@@ -421,8 +420,7 @@
       {/if}
     </div>
   </div>
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="resize-handle" onmousedown={startResize}></div>
+  <div class="resize-handle" onmousedown={startResize} role="separator" aria-label="Resize sidebar" tabindex={0}></div>
 </aside>
 
 {#if configZone}
@@ -850,6 +848,7 @@
     transition: opacity 0.12s, color 0.12s;
     padding: 2px;
     border-radius: var(--radius-sm);
+    cursor: pointer;
   }
 
   .zone-item:hover .zone-config-btn,

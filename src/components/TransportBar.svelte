@@ -166,9 +166,7 @@
   );
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="transport-bar" onclick={handleBarClick}>
+<div class="transport-bar" onclick={handleBarClick} role="button" tabindex={0} aria-label="Transport bar">
   {#if displayTrack && displayTrack.source !== 'radio' && displayTrack.duration_ms}
     <div class="transport-progress">
       <span class="progress-time">{formatTime($seekPositionMs)}</span>
@@ -180,9 +178,7 @@
   {/if}
   <div class="transport-left">
     {#if displayTrack}
-      <!-- svelte-ignore a11y_click_events_have_key_events -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="track-mini-clickable" onclick={() => activeView.set('nowplaying')}>
+      <div class="track-mini-clickable" onclick={() => activeView.set('nowplaying')} role="button" tabindex={0} aria-label="Open now playing">
         <AlbumArt coverPath={displayTrack.cover_path} albumId={displayTrack.album_id} size={56} alt={displayTrack.title} />
         <div class="track-mini">
           <span class="mini-title truncate">
@@ -300,9 +296,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9" /></svg>
       </button>
       {#if showZoneDropdown}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="zone-dropdown-backdrop" onclick={() => showZoneDropdown = false}></div>
+        <div class="zone-dropdown-backdrop" onclick={() => showZoneDropdown = false} role="button" tabindex={0} aria-label="Close zone dropdown"></div>
         <div class="zone-dropdown">
           {#each $zones as z}
             <button
@@ -326,12 +320,8 @@
 </div>
 
 {#if showSignalPath && zone?.signal_path}
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="sp-overlay" onclick={() => showSignalPath = false}>
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="sp-card" onclick={(e) => e.stopPropagation()}>
+  <div class="sp-overlay" onclick={() => showSignalPath = false} role="button" tabindex={0} aria-label="Close signal path">
+    <div class="sp-card" onclick={(e) => e.stopPropagation()} role="dialog" aria-label="Signal path details">
       <div class="sp-header">
         <h3>{$t('signal.title')} : <span class:sp-good={zone.signal_path.bit_perfect} class:sp-lossy={!zone.signal_path.bit_perfect}>{zone.signal_path.bit_perfect ? $t('signal.lossless') : $t('signal.lossy')}</span></h3>
         <button class="sp-x" onclick={() => showSignalPath = false}>

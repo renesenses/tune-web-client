@@ -66,9 +66,7 @@
 
 <div class="seek-bar" class:disabled={!enabled}>
   <span class="time">{formatTime(displayPositionMs)}</span>
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="seek-track" onclick={handleClick} onmousedown={handleMouseDown}>
+  <div class="seek-track" onclick={handleClick} onmousedown={handleMouseDown} role="slider" aria-valuemin={0} aria-valuemax={durationMs} aria-valuenow={displayPositionMs} aria-label="Seek" tabindex={0}>
     <div class="seek-fill" style="width: {progress}%"></div>
     <div class="seek-thumb" style="left: {progress}%"></div>
   </div>
