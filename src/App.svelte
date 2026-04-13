@@ -45,6 +45,7 @@
 
   import type { Track } from './lib/types';
 
+  let cleanupKeyboard: (() => void) | null = null;
   let scanIndicator = $state(false);
   let playlistModalTrack = $state<Track | null>(null);
 
@@ -123,6 +124,7 @@
       }
     } catch (e) {
       console.error('Fetch zones error:', e);
+      showError('Failed to load zones');
     }
   }
 
@@ -132,6 +134,7 @@
       devices.set(deviceList);
     } catch (e) {
       console.error('Fetch devices error:', e);
+      showError('Failed to load devices');
     }
   }
 
@@ -146,6 +149,7 @@
       queueLength.set(qs.length);
     } catch (e) {
       console.error('Fetch queue error:', e);
+      showError('Failed to load queue');
     }
   }
 
@@ -156,6 +160,7 @@
       playlistsLoaded.set(true);
     } catch (e) {
       console.error('Fetch playlists error:', e);
+      showError('Failed to load playlists');
     }
   }
 
@@ -181,6 +186,7 @@
       }
     } catch (e) {
       console.error('Sync zone state error:', e);
+      showError('Failed to sync zone state');
     }
   }
 
@@ -199,7 +205,7 @@
       activeView.set(prefs.startupView as any);
     }
 
-    const cleanupKeyboard = setupKeyboardShortcuts();
+    cleanupKeyboard = setupKeyboardShortcuts();
 
     connectionState.set('connecting');
     tuneWS.connect();
@@ -320,7 +326,7 @@
   });
 
   onDestroy(() => {
-    cleanupKeyboard();
+    cleanupKeyboard?.();
     tuneWS.disconnect();
     stopSeekTimer();
   });

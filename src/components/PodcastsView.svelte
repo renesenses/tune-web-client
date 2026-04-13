@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import * as api from '../lib/api';
   import { currentZoneId } from '../lib/stores/zones';
   import { get } from 'svelte/store';
@@ -11,28 +12,49 @@
   let isSearching = $state(false);
   let isLoadingEpisodes = $state(false);
   let activeTab = $state<'radiofrance' | 'search'>('radiofrance');
+  let errorMessage = $state<string | null>(null);
 
   // Load Radio France podcasts on mount
-  $effect(() => {
+  onMount(() => {
     loadRadioFrance();
   });
 
   async function loadRadioFrance() {
-    radioFrancePodcasts = await api.getRadioFrancePodcasts();
+    errorMessage = null;
+    try {
+      radioFrancePodcasts = await api.getRadioFrancePodcasts();
+    } catch (e) {
+      console.error('Load Radio France podcasts error:', e);
+      errorMessage = 'Impossible de charger les podcasts Radio France';
+    }
   }
 
   async function searchPodcasts() {
     if (!searchQuery.trim()) return;
     isSearching = true;
-    searchResults = await api.searchPodcasts(searchQuery);
-    isSearching = false;
+    errorMessage = null;
+    try {
+      searchResults = await api.searchPodcasts(searchQuery);
+    } catch (e) {
+      console.error('Search podcasts error:', e);
+      errorMessage = 'Erreur lors de la recherche de podcasts';
+    } finally {
+      isSearching = false;
+    }
   }
 
   async function selectPodcast(podcast: any) {
     selectedPodcast = podcast;
     isLoadingEpisodes = true;
-    episodes = await api.getPodcastEpisodes(podcast.feed_url, 30, podcast.show_url);
-    isLoadingEpisodes = false;
+    errorMessage = null;
+    try {
+      episodes = await api.getPodcastEpisodes(podcast.feed_url, 30, podcast.show_url);
+    } catch (e) {
+      console.error('Load podcast episodes error:', e);
+      errorMessage = 'Impossible de charger les épisodes';
+    } finally {
+      isLoadingEpisodes = false;
+    }
   }
 
   function goBack() {
@@ -75,6 +97,10 @@
 </script>
 
 <div class="podcasts-view">
+  {#if errorMessage}
+    <div class="error-banner">{errorMessage}</div>
+  {/if}
+
   {#if selectedPodcast}
     <!-- Episode list -->
     <div class="episode-header">
@@ -410,6 +436,16 @@
     color: var(--tune-text-secondary, #999);
     padding: 40px;
     font-size: 14px;
+  }
+
+  .error-banner {
+    background: #2A1A1A;
+    border: 1px solid #6B2D2D;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    color: #E8A0A0;
+    font-size: 13px;
   }
 
 </style>

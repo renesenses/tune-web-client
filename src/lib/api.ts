@@ -1102,11 +1102,13 @@ export async function installUpdate(): Promise<any> {
 
 export async function searchPodcasts(query: string, limit = 20): Promise<any[]> {
   const res = await fetch(`${BASE}/podcasts/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+  if (!res.ok) throw new Error(`Search podcasts failed: ${res.status} ${res.statusText}`);
   return res.json();
 }
 
 export async function getRadioFrancePodcasts(): Promise<any[]> {
   const res = await fetch(`${BASE}/podcasts/radiofrance`);
+  if (!res.ok) throw new Error(`Radio France podcasts failed: ${res.status} ${res.statusText}`);
   return res.json();
 }
 
@@ -1115,5 +1117,6 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
   if (feedUrl) url += `&feed_url=${encodeURIComponent(feedUrl)}`;
   if (showUrl) url += `&show_url=${encodeURIComponent(showUrl)}`;
   const res = await fetch(url);
+  if (!res.ok) throw new Error(`Podcast episodes failed: ${res.status} ${res.statusText}`);
   return res.json();
 }
