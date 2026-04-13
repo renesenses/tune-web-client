@@ -590,7 +590,7 @@
   }
 
   .zones-section {
-    flex: 0 0 auto;
+    flex: none;
     padding: var(--space-md) 0;
   }
 
@@ -746,9 +746,7 @@
   .devices-section {
     border-top: 1px solid var(--tune-border);
     padding: var(--space-md) 0 var(--space-sm);
-    overflow-y: auto;
-    flex: 1 1 0;
-    min-height: 40px;
+    flex: none;
   }
 
   .devices-list {
