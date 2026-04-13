@@ -336,49 +336,45 @@
   <Sidebar />
 
   <main class="main-content">
-    {#key $activeView}
-      <div class="view-transition">
-        {#if $activeView === 'home'}
-          <HomeView />
-        {:else if $activeView === 'nowplaying'}
-          <NowPlaying onAddToPlaylist={openPlaylistModal} />
-        {:else if $activeView === 'library'}
-          <LibraryView onAddToPlaylist={openPlaylistModal} />
-        {:else if $activeView === 'queue'}
-          <QueueView onAddToPlaylist={openPlaylistModal} />
-        {:else if $activeView === 'playlists'}
-          <PlaylistsView onAddToPlaylist={openPlaylistModal} />
-        {:else if $activeView === 'playlistmanager'}
-          <PlaylistManagerView onAddToPlaylist={openPlaylistModal} />
-        {:else if $activeView === 'browse'}
-          <BrowseView onAddToPlaylist={openPlaylistModal} />
-        {:else if $activeView === 'search'}
-          <SearchView onAddToPlaylist={openPlaylistModal} />
-        {:else if $activeView === 'settings'}
-          <SettingsView />
-        {:else if $activeView === 'history'}
-          <HistoryView />
-        {:else if $activeView === 'streaming'}
-          <StreamingView onAddToPlaylist={openPlaylistModal} />
-        {:else if $activeView === 'radios'}
-          <RadiosView />
-        {:else if $activeView === 'podcasts'}
-          <PodcastsView />
-        {:else if $activeView === 'genres'}
-          <GenresView onAddToPlaylist={openPlaylistModal} />
-        {:else if $activeView === 'metadata'}
-          <MetadataView />
-        {:else if $activeView === 'mediaservers'}
-          <MediaServersView />
-        {:else if $activeView === 'favorites'}
-          <FavoritesView onAddToPlaylist={openPlaylistModal} />
-        {:else if $activeView === 'radiofavorites'}
-          <RadioFavoritesView />
-        {:else if $activeView === 'zonemanager'}
-          <ZoneManagerView />
-        {/if}
-      </div>
-    {/key}
+    {#if $activeView === 'home'}
+      <HomeView />
+    {:else if $activeView === 'nowplaying'}
+      <NowPlaying onAddToPlaylist={openPlaylistModal} />
+    {:else if $activeView === 'library'}
+      <LibraryView onAddToPlaylist={openPlaylistModal} />
+    {:else if $activeView === 'queue'}
+      <QueueView onAddToPlaylist={openPlaylistModal} />
+    {:else if $activeView === 'playlists'}
+      <PlaylistsView onAddToPlaylist={openPlaylistModal} />
+    {:else if $activeView === 'playlistmanager'}
+      <PlaylistManagerView onAddToPlaylist={openPlaylistModal} />
+    {:else if $activeView === 'browse'}
+      <BrowseView onAddToPlaylist={openPlaylistModal} />
+    {:else if $activeView === 'search'}
+      <SearchView onAddToPlaylist={openPlaylistModal} />
+    {:else if $activeView === 'settings'}
+      <SettingsView />
+    {:else if $activeView === 'history'}
+      <HistoryView />
+    {:else if $activeView === 'streaming'}
+      <StreamingView onAddToPlaylist={openPlaylistModal} />
+    {:else if $activeView === 'radios'}
+      <RadiosView />
+    {:else if $activeView === 'podcasts'}
+      <PodcastsView />
+    {:else if $activeView === 'genres'}
+      <GenresView onAddToPlaylist={openPlaylistModal} />
+    {:else if $activeView === 'metadata'}
+      <MetadataView />
+    {:else if $activeView === 'mediaservers'}
+      <MediaServersView />
+    {:else if $activeView === 'favorites'}
+      <FavoritesView onAddToPlaylist={openPlaylistModal} />
+    {:else if $activeView === 'radiofavorites'}
+      <RadioFavoritesView />
+    {:else if $activeView === 'zonemanager'}
+      <ZoneManagerView />
+    {/if}
 
     {#if scanIndicator}
       <div class="scan-indicator">
@@ -448,16 +444,6 @@
     overflow-y: auto;
     padding: 0;
     position: relative;
-  }
-
-  .view-transition {
-    height: 100%;
-    animation: viewFadeIn 0.15s ease-out;
-  }
-
-  @keyframes viewFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
   }
 
   .scan-indicator {
