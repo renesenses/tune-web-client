@@ -29,6 +29,9 @@ export default {
   'common.noResult': 'Aucun résultat',
   'common.error': 'Erreur',
   'common.ok': 'OK',
+  'common.title': 'Titre',
+  'common.artist': 'Artiste',
+  'common.album': 'Album',
   'common.albums': 'Albums',
   'common.artists': 'Artistes',
   'common.genres': 'Genres',
@@ -297,6 +300,9 @@ export default {
   'metadata.selectAll': 'Tout sélectionner',
   'metadata.applyingBatch': 'Application {current}/{total}...',
   'metadata.batchDone': '{count} albums mis à jour',
+  'metadata.filePath': 'Chemin du fichier',
+  'metadata.doubtful': 'Douteux',
+  'metadata.noDoubtful': 'Aucune métadonnée douteuse',
 
   // Backup / Restore
   'maintenance.backupRestore': 'Sauvegarde / Restauration',

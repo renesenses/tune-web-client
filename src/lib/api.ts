@@ -475,6 +475,22 @@ export function getCompletenessStats() {
   return fetchJSON<CompletenessStats>(`${BASE}/library/stats/completeness`);
 }
 
+export interface DoubtfulAlbum {
+  id: number;
+  title: string;
+  artist_name: string | null;
+  artist_resolved: string | null;
+  genre: string | null;
+  year: number | null;
+  cover_path: string | null;
+  source: string | null;
+  reasons: string[];
+}
+
+export function getDoubtfulAlbums() {
+  return fetchJSON<DoubtfulAlbum[]>(`${BASE}/metadata/doubtful`);
+}
+
 // --- Browse (directory navigation) ---
 
 export function getBrowseRoots() {
@@ -920,6 +936,38 @@ export function acceptAllSuggestions(minConfidence = 0.9) {
 
 export function autoFixAlbums() {
   return fetchJSON(`${BASE}/metadata/auto-fix-albums`, { method: 'POST' });
+}
+
+export function fixYearsMusicBrainz() {
+  return fetchJSON(`${BASE}/metadata/fix-years-musicbrainz`, { method: 'POST' });
+}
+
+export function fixYearsDiscogs() {
+  return fetchJSON(`${BASE}/metadata/fix-years-discogs`, { method: 'POST' });
+}
+
+export function fixYearsTidal() {
+  return fetchJSON(`${BASE}/metadata/fix-years-tidal`, { method: 'POST' });
+}
+
+export function fixYearsTags() {
+  return fetchJSON(`${BASE}/metadata/fix-years-tags`, { method: 'POST' });
+}
+
+export function fixGenres() {
+  return fetchJSON(`${BASE}/metadata/fix-genres`, { method: 'POST' });
+}
+
+export function clearLibrary() {
+  return fetchJSON(`${BASE}/system/library/clear`, { method: 'POST' });
+}
+
+export function writeAllTags() {
+  return fetchJSON(`${BASE}/metadata/write-all-tags`, { method: 'POST' });
+}
+
+export function writeAllCovers() {
+  return fetchJSON(`${BASE}/metadata/write-all-covers`, { method: 'POST' });
 }
 
 // --- Radios ---

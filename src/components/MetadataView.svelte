@@ -27,7 +27,9 @@
   let albumArtistSearch = $state('');
   let albumArtistDropdownOpen = $state(false);
   let loading = $state(true);
-  let filter = $state<'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist' | 'unknown'>('no_cover');
+  let filter = $state<'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist' | 'unknown' | 'doubtful'>('no_cover');
+  let doubtfulAlbums = $state<import('../lib/api').DoubtfulAlbum[]>([]);
+  let doubtfulLoaded = $state(false);
 
   // Metadata Manager v2
   let autoFixStatus = $state('idle');
@@ -37,6 +39,77 @@
   let suggestions = $state<any[]>([]);
   let suggestionCount = $state(0);
   let showSuggestions = $state(false);
+
+  let fixYearsRunning = $state<string | null>(null);
+  let fixYearsResult = $state<{ source: string; total: number; fixed: number; not_found: number } | null>(null);
+  let fixGenresRunning = $state(false);
+  let fixGenresResult = $state<{ total: number; fixed: number } | null>(null);
+
+  async function handleFixYears(source: string) {
+    fixYearsRunning = source;
+    fixYearsResult = null;
+    try {
+      let result: any;
+      if (source === 'musicbrainz') result = await api.fixYearsMusicBrainz();
+      else if (source === 'discogs') result = await api.fixYearsDiscogs();
+      else if (source === 'tidal') result = await api.fixYearsTidal();
+      else if (source === 'tags') result = await api.fixYearsTags();
+      fixYearsResult = { source, total: result.total ?? 0, fixed: result.fixed ?? 0, not_found: result.not_found ?? 0 };
+      api.getCompletenessStats().then(s => stats = s);
+    } catch (e: any) {
+      fixYearsResult = { source, total: 0, fixed: 0, not_found: 0 };
+    }
+    fixYearsRunning = null;
+  }
+
+  async function handleFixGenres() {
+    fixGenresRunning = true;
+    fixGenresResult = null;
+    try {
+      const result = await api.fixGenres();
+      fixGenresResult = { total: result.total ?? 0, fixed: result.fixed ?? 0 };
+      api.getCompletenessStats().then(s => stats = s);
+    } catch {
+      fixGenresResult = { total: 0, fixed: 0 };
+    }
+    fixGenresRunning = false;
+  }
+
+  function dismissFixResult() {
+    fixYearsResult = null;
+    fixGenresResult = null;
+    writeResult = null;
+  }
+
+  let writingTags = $state(false);
+  let writingCovers = $state(false);
+  let writeResult = $state<{ type: string; message: string } | null>(null);
+
+  async function handleWriteTags() {
+    if (!confirm('Écrire les métadonnées (genre, année, artiste...) dans tous les fichiers musicaux ?')) return;
+    writingTags = true;
+    writeResult = null;
+    try {
+      const r = await api.writeAllTags();
+      writeResult = { type: 'tags', message: `Tags écrits : ${r.updated} fichiers modifiés, ${r.skipped} ignorés, ${r.errors} erreurs` };
+    } catch (e: any) {
+      writeResult = { type: 'tags', message: `Erreur : ${e?.message || e}` };
+    }
+    writingTags = false;
+  }
+
+  async function handleWriteCovers() {
+    if (!confirm('Copier les covers dans les dossiers albums (cover.jpg) ?')) return;
+    writingCovers = true;
+    writeResult = null;
+    try {
+      const r = await api.writeAllCovers();
+      writeResult = { type: 'covers', message: `Covers : ${r.written} copiées, ${r.skipped} déjà présentes, ${r.errors} erreurs` };
+    } catch (e: any) {
+      writeResult = { type: 'covers', message: `Erreur : ${e?.message || e}` };
+    }
+    writingCovers = false;
+  }
 
   let albumNameInput = $state('');
 
@@ -652,13 +725,167 @@
     loadBackups();
   });
 
+  async function validateDoubtful(album: import('../lib/api').DoubtfulAlbum) {
+    // Normalize: fix uppercase artist, apply resolved artist, etc.
+    const updates: Record<string, any> = {};
+    for (const reason of album.reasons) {
+      if (reason === 'artist_uppercase' && album.artist_name) {
+        // Title-case the artist
+        updates.artist_name = album.artist_name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      }
+      if (reason === 'artist_mismatch' && album.artist_resolved) {
+        updates.artist_name = album.artist_resolved;
+      }
+      if (reason === 'genre_placeholder') {
+        // Keep as-is, user validated it
+      }
+    }
+    if (Object.keys(updates).length > 0) {
+      try {
+        await api.updateAlbumMetadata(album.id, updates);
+      } catch (e) {
+        console.error('Validate error:', e);
+      }
+    }
+    // Remove from list
+    doubtfulAlbums = doubtfulAlbums.filter(a => a.id !== album.id);
+    if (stats) stats.doubtful_count = doubtfulAlbums.length;
+  }
+
+  let doubtfulZoomCover = $state<string | null>(null);
+  let doubtfulCoverUploadId = $state<number | null>(null);
+  let editingDoubtfulId = $state<number | null>(null);
+
+  async function handleDoubtfulCoverUpload(albumId: number, file: File) {
+    try {
+      const updated = await api.uploadAlbumArtwork(albumId, file);
+      doubtfulAlbums = doubtfulAlbums.map(a =>
+        a.id === albumId ? { ...a, cover_path: updated.cover_path } : a
+      );
+      api.getCompletenessStats().then(s => stats = s);
+    } catch (e) {
+      console.error('Cover upload error:', e);
+    }
+    doubtfulCoverUploadId = null;
+  }
+
+  function onDoubtfulCoverClick(albumId: number, coverPath: string | null) {
+    if (coverPath) {
+      doubtfulZoomCover = api.artworkUrl(coverPath);
+    } else {
+      // No cover: trigger file picker
+      doubtfulCoverUploadId = albumId;
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) handleDoubtfulCoverUpload(albumId, file);
+      };
+      input.click();
+    }
+  }
+
+  function onDoubtfulCoverDrop(e: DragEvent, albumId: number) {
+    e.preventDefault();
+    const file = e.dataTransfer?.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      handleDoubtfulCoverUpload(albumId, file);
+    }
+  }
+  let editingDoubtfulData = $state<{ artist_name: string; title: string; genre: string; year: string }>({ artist_name: '', title: '', genre: '', year: '' });
+
+  function editDoubtful(album: import('../lib/api').DoubtfulAlbum) {
+    editingDoubtfulId = album.id;
+    editingDoubtfulData = {
+      artist_name: album.artist_name ?? '',
+      title: album.title ?? '',
+      genre: album.genre ?? '',
+      year: album.year ? String(album.year) : '',
+    };
+  }
+
+  async function saveDoubtful() {
+    if (!editingDoubtfulId) return;
+    const updates: Record<string, any> = {};
+    const album = doubtfulAlbums.find(a => a.id === editingDoubtfulId);
+    if (!album) return;
+    if (editingDoubtfulData.artist_name !== (album.artist_name ?? '')) updates.artist_name = editingDoubtfulData.artist_name;
+    if (editingDoubtfulData.title !== (album.title ?? '')) updates.title = editingDoubtfulData.title;
+    if (editingDoubtfulData.genre !== (album.genre ?? '')) updates.genre = editingDoubtfulData.genre;
+    const newYear = editingDoubtfulData.year ? parseInt(editingDoubtfulData.year) : null;
+    if (newYear !== album.year) updates.year = newYear;
+    if (Object.keys(updates).length > 0) {
+      try {
+        await api.updateAlbumMetadata(editingDoubtfulId, updates);
+        // Update local state
+        doubtfulAlbums = doubtfulAlbums.map(a => a.id === editingDoubtfulId ? { ...a, ...updates } : a);
+      } catch (e) {
+        console.error('Save doubtful error:', e);
+      }
+    }
+    editingDoubtfulId = null;
+  }
+
+  function cancelDoubtful() {
+    editingDoubtfulId = null;
+  }
+
+  // Column resize for doubtful table
+  let resizingCol = $state<number | null>(null);
+  let resizeStartX = 0;
+  let resizeStartW = 0;
+  let doubtfulColWidths = $state<number[]>([40, 140, 170, 90, 50, 150, 65]);
+
+  function onResizeStart(e: MouseEvent, colIdx: number) {
+    e.preventDefault();
+    resizingCol = colIdx;
+    resizeStartX = e.clientX;
+    resizeStartW = doubtfulColWidths[colIdx];
+    const onMove = (ev: MouseEvent) => {
+      if (resizingCol === null) return;
+      const delta = ev.clientX - resizeStartX;
+      const newWidths = [...doubtfulColWidths];
+      newWidths[resizingCol] = Math.max(50, resizeStartW + delta);
+      doubtfulColWidths = newWidths;
+    };
+    const onUp = () => {
+      resizingCol = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
+  async function loadDoubtful() {
+    if (doubtfulLoaded) return;
+    try {
+      doubtfulAlbums = await api.getDoubtfulAlbums();
+      doubtfulLoaded = true;
+    } catch (e) {
+      console.error('Load doubtful error:', e);
+    }
+  }
+
+  const REASON_LABELS: Record<string, string> = {
+    artist_uppercase: 'Artiste MAJ',
+    artist_placeholder: 'Artiste provisoire',
+    artist_has_year: 'Artiste = dossier',
+    genre_placeholder: 'Genre provisoire',
+    year_suspicious: 'Année suspecte',
+    title_uppercase: 'Titre MAJ',
+  };
+
   $effect(() => {
     if (filter === 'no_artist') {
       loadTracksWithoutArtist();
     }
-    // Track unknownAlbums.length so effect re-runs when allAlbums loads
     if (filter === 'unknown' && unknownAlbums.length > 0) {
       loadUnknownTracks();
+    }
+    if (filter === 'doubtful') {
+      loadDoubtful();
     }
     // Clear batch selection when changing filters
     batchSelectedIds = new Set();
@@ -823,27 +1050,82 @@
       <button class="filter-btn" class:active={filter === 'no_year'} onclick={() => filter = 'no_year'}>{$t('metadata.missingYear')} ({stats.albums_without_year})</button>
       <button class="filter-btn" class:active={filter === 'no_artist'} onclick={() => filter = 'no_artist'}>{$t('metadata.missingArtist')} ({stats.tracks_without_artist})</button>
       <button class="filter-btn" class:active={filter === 'unknown'} onclick={() => filter = 'unknown'}>{$t('metadata.unknown')} ({unknownAlbums.length})</button>
+      <button class="filter-btn" class:active={filter === 'doubtful'} onclick={() => filter = 'doubtful'}>{$t('metadata.doubtful')} ({stats?.doubtful_count ?? 0})</button>
     </div>
 
     <!-- Action Bar -->
-    <div class="action-bar">
-      <button class="action-btn" onclick={handleAutoFixAlbums} disabled={fixingAlbums}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        {fixingAlbums ? 'Fix albums...' : 'Auto-fix albums'}
-      </button>
-      <button class="action-btn" onclick={handleAutoFix}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-        {autoFixStatus === 'running' ? `Auto-fix en cours (${autoFixProgress})` : 'Auto-fix'}
-      </button>
-      <button class="action-btn" onclick={handleScanDuplicates} disabled={scanningDuplicates}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
-        {scanningDuplicates ? 'Scan doublons...' : 'Scan doublons'}
-      </button>
-      <button class="action-btn" onclick={handleShowSuggestions}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-        Suggestions ({suggestionCount})
-      </button>
+    <div class="action-bar-grid">
+      <div class="action-group">
+        <span class="action-group-label">Corriger</span>
+        <div class="action-group-btns">
+          <button class="action-btn" onclick={handleAutoFixAlbums} disabled={fixingAlbums}>
+            {fixingAlbums ? 'Albums...' : 'Auto-fix albums'}
+          </button>
+          <button class="action-btn" onclick={handleAutoFix}>
+            {autoFixStatus === 'running' ? `En cours (${autoFixProgress})` : 'Auto-fix'}
+          </button>
+          <button class="action-btn" onclick={handleScanDuplicates} disabled={scanningDuplicates}>
+            {scanningDuplicates ? 'Scan...' : 'Scan doublons'}
+          </button>
+          <button class="action-btn" onclick={handleShowSuggestions}>
+            Suggestions ({suggestionCount})
+          </button>
+        </div>
+      </div>
+      <div class="action-group">
+        <span class="action-group-label">Enrichir</span>
+        <div class="action-group-btns">
+          <button class="action-btn action-btn-fix" onclick={() => handleFixYears('musicbrainz')} disabled={!!fixYearsRunning}>
+            {fixYearsRunning === 'musicbrainz' ? '...' : 'Années MusicBrainz'}
+          </button>
+          <button class="action-btn action-btn-fix" onclick={() => handleFixYears('discogs')} disabled={!!fixYearsRunning}>
+            {fixYearsRunning === 'discogs' ? '...' : 'Années Discogs'}
+          </button>
+          <button class="action-btn action-btn-fix" onclick={() => handleFixYears('tidal')} disabled={!!fixYearsRunning}>
+            {fixYearsRunning === 'tidal' ? '...' : 'Années Tidal'}
+          </button>
+          <button class="action-btn action-btn-fix" onclick={handleFixGenres} disabled={fixGenresRunning}>
+            {fixGenresRunning ? '...' : 'Genres Last.fm'}
+          </button>
+        </div>
+      </div>
+      <div class="action-group">
+        <span class="action-group-label">Graver sur disque</span>
+        <div class="action-group-btns">
+          <button class="action-btn action-btn-write" onclick={handleWriteTags} disabled={writingTags}>
+            {writingTags ? 'Écriture...' : 'Tags dans fichiers'}
+          </button>
+          <button class="action-btn action-btn-write" onclick={handleWriteCovers} disabled={writingCovers}>
+            {writingCovers ? 'Écriture...' : 'Covers dans dossiers'}
+          </button>
+        </div>
+      </div>
     </div>
+
+    <!-- Fix Results -->
+    {#if fixYearsResult || fixGenresResult || writeResult}
+      <div class="fix-result-banner">
+        {#if fixYearsResult}
+          <span class="fix-result-text">
+            <strong>{fixYearsResult.source}</strong> : {fixYearsResult.fixed} corrigés / {fixYearsResult.total} analysés
+            {#if fixYearsResult.not_found > 0}
+              — {fixYearsResult.not_found} non trouvés
+            {/if}
+          </span>
+        {/if}
+        {#if fixGenresResult}
+          <span class="fix-result-text">
+            <strong>Genres</strong> : {fixGenresResult.fixed} corrigés / {fixGenresResult.total} analysés
+          </span>
+        {/if}
+        {#if writeResult}
+          <span class="fix-result-text">{writeResult.message}</span>
+        {/if}
+        <button class="fix-result-dismiss" onclick={dismissFixResult}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
+      </div>
+    {/if}
 
     <!-- Suggestions Panel -->
     {#if showSuggestions && suggestions.length > 0}
@@ -888,15 +1170,126 @@
         <div class="empty">{$t('metadata.noMissingArtist')}</div>
       {:else}
         <div class="tracks-list">
+          <div class="track-row track-row-header">
+            <span class="track-col-header">{$t('common.title')}</span>
+            <span class="track-col-header">{$t('common.artist')}</span>
+            <span class="track-col-header">{$t('common.album')}</span>
+            <span class="track-col-header">{$t('metadata.filePath')}</span>
+          </div>
           {#each tracksWithoutArtist as track (track.id)}
             <div class="track-row">
               <span class="track-title">{track.title}</span>
+              <span class="track-artist">{track.artist_name ?? ''}</span>
               <span class="track-album">{track.album_title ?? ''}</span>
               <span class="track-path">{track.file_path ?? ''}</span>
             </div>
           {/each}
         </div>
       {/if}
+    {:else if filter === 'doubtful'}
+      {#if doubtfulAlbums.length === 0}
+        <div class="empty">{$t('metadata.noDoubtful')}</div>
+      {:else}
+        <div class="doubtful-container" style="overflow-x:auto; border:1px solid var(--tune-border); border-radius:var(--radius-md); max-width:100%;">
+          <table class="doubtful-table">
+            <colgroup>
+              {#each doubtfulColWidths as w, i}
+                <col style="width:{w}px; min-width:50px;">
+              {/each}
+            </colgroup>
+            <thead class="doubtful-thead">
+              <tr class="doubtful-tr">
+                <th class="doubtful-th"></th>
+                <th class="doubtful-th">{$t('common.artist')}<span class="resize-handle" onmousedown={(e) => onResizeStart(e, 1)}></span></th>
+                <th class="doubtful-th">{$t('common.album')}<span class="resize-handle" onmousedown={(e) => onResizeStart(e, 2)}></span></th>
+                <th class="doubtful-th">{$t('metadata.genre')}<span class="resize-handle" onmousedown={(e) => onResizeStart(e, 3)}></span></th>
+                <th class="doubtful-th">{$t('metadata.year')}<span class="resize-handle" onmousedown={(e) => onResizeStart(e, 4)}></span></th>
+                <th class="doubtful-th">{$t('metadata.doubtful')}<span class="resize-handle" onmousedown={(e) => onResizeStart(e, 5)}></span></th>
+                <th class="doubtful-th"></th>
+              </tr>
+            </thead>
+            <tbody class="doubtful-tbody">
+              {#each doubtfulAlbums as album (album.id)}
+                <tr class="doubtful-tr">
+                  <td class="doubtful-td doubtful-cover-cell"
+                      ondragover={(e) => e.preventDefault()}
+                      ondrop={(e) => onDoubtfulCoverDrop(e, album.id)}>
+                    <div class="doubtful-cover-wrapper">
+                      {#if album.cover_path}
+                        <img class="doubtful-cover" src={api.artworkUrl(album.cover_path)} alt=""
+                             onclick={() => doubtfulZoomCover = api.artworkUrl(album.cover_path)}
+                             onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                      {:else}
+                        <div class="doubtful-cover-placeholder">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+                        </div>
+                      {/if}
+                      <label class="doubtful-cover-upload" title="Changer la cover">
+                        <input type="file" accept="image/*" style="display:none"
+                               onchange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) handleDoubtfulCoverUpload(album.id, f); }} />
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      </label>
+                    </div>
+                  </td>
+                  {#if editingDoubtfulId === album.id}
+                    <td class="doubtful-td"><input class="doubtful-input" bind:value={editingDoubtfulData.artist_name} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} /></td>
+                    <td class="doubtful-td"><input class="doubtful-input" bind:value={editingDoubtfulData.title} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} /></td>
+                    <td class="doubtful-td"><input class="doubtful-input" bind:value={editingDoubtfulData.genre} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} /></td>
+                    <td class="doubtful-td"><input class="doubtful-input doubtful-input-year" bind:value={editingDoubtfulData.year} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} /></td>
+                    <td class="doubtful-td"></td>
+                    <td class="doubtful-td">
+                      <span class="doubtful-actions">
+                        <button class="btn-doubtful-ok" title="Enregistrer" onclick={saveDoubtful}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
+                        </button>
+                        <button class="btn-doubtful-edit" title="Annuler" onclick={cancelDoubtful}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                        </button>
+                      </span>
+                    </td>
+                  {:else}
+                    <td class="doubtful-td doubtful-field" class:doubtful-warn={album.reasons.some(r => r.startsWith('artist'))}>
+                      {album.artist_name ?? ''}
+                      {#if album.artist_resolved && album.artist_resolved !== album.artist_name}
+                        <span class="doubtful-hint">→ {album.artist_resolved}</span>
+                      {/if}
+                    </td>
+                    <td class="doubtful-td track-title">{album.title}</td>
+                    <td class="doubtful-td doubtful-field" class:doubtful-warn={album.reasons.includes('genre_placeholder')}>
+                      {album.genre ?? ''}
+                    </td>
+                    <td class="doubtful-td doubtful-field" class:doubtful-warn={album.reasons.includes('year_suspicious')}>
+                      {album.year ?? ''}
+                    </td>
+                    <td class="doubtful-td">
+                      <span class="doubtful-reasons">
+                        {#each album.reasons as reason}
+                          <span class="doubtful-tag">{REASON_LABELS[reason] ?? reason}</span>
+                        {/each}
+                      </span>
+                    </td>
+                    <td class="doubtful-td">
+                      <span class="doubtful-actions">
+                        <button class="btn-doubtful-ok" title="Valider" onclick={() => validateDoubtful(album)}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
+                        </button>
+                        <button class="btn-doubtful-edit" title="Éditer" onclick={() => editDoubtful(album)}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                        </button>
+                      </span>
+                    </td>
+                  {/if}
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {/if}
+    {#if doubtfulZoomCover}
+      <div class="cover-zoom-overlay" onclick={() => doubtfulZoomCover = null} onkeydown={(e) => { if (e.key === 'Escape') doubtfulZoomCover = null; }} role="button" tabindex="-1">
+        <img class="cover-zoom-img" src={doubtfulZoomCover} alt="" />
+      </div>
+    {/if}
     {:else if filter === 'unknown'}
       {#if unknownTracksLoading}
         <div class="loading"><div class="spinner"></div></div>
@@ -930,6 +1323,12 @@
               <span class="album-group-count">{group.tracks.length} {group.tracks.length > 1 ? 'tracks' : 'track'}</span>
             </div>
             <div class="tracks-list">
+              <div class="track-row track-row-4col track-row-header">
+                <span></span>
+                <span class="track-col-header">{$t('common.title')}</span>
+                <span class="track-col-header">{$t('common.artist')}</span>
+                <span class="track-col-header">{$t('metadata.filePath')}</span>
+              </div>
               {#each group.tracks as track (track.id)}
                 <div class="track-row track-row-4col" class:selected={selectedTrackIds.has(track.id!)}>
                   <input
@@ -1462,11 +1861,29 @@
 
   .track-row {
     display: grid;
-    grid-template-columns: 1fr 1fr 2fr;
+    grid-template-columns: 1.2fr 1fr 1fr 2fr;
     gap: 12px;
     padding: 10px 14px;
     background: var(--tune-surface);
     align-items: center;
+  }
+
+  .track-row-header {
+    background: var(--tune-bg);
+    border-bottom: 1px solid var(--tune-border);
+    padding: 8px 14px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .track-col-header {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--tune-text-muted);
   }
 
   .track-title {
@@ -1864,4 +2281,349 @@
   .dup-hash { font-size: 10px; color: var(--tune-text-muted); font-family: monospace; }
   .album-input { background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 6px; padding: 6px 12px; color: var(--tune-text); font-size: 13px; width: 200px; }
   .album-input:focus { border-color: var(--tune-accent); outline: none; }
+
+  .action-bar-grid {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .action-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-right: 12px;
+    border-right: 1px solid var(--tune-border);
+  }
+
+  .action-group:last-child {
+    border-right: none;
+    padding-right: 0;
+  }
+
+  .action-group-label {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--tune-text-muted);
+  }
+
+  .action-group-btns {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .action-btn-fix {
+    font-size: 11px !important;
+    padding: 5px 10px !important;
+    background: rgba(109, 40, 217, 0.08) !important;
+    border-color: rgba(109, 40, 217, 0.2) !important;
+    color: #c4b5fd !important;
+  }
+
+  .action-btn-fix:hover:not(:disabled) {
+    background: rgba(109, 40, 217, 0.18) !important;
+    border-color: rgba(109, 40, 217, 0.4) !important;
+  }
+
+  .action-btn-write {
+    font-size: 11px !important;
+    padding: 5px 10px !important;
+    background: rgba(234, 88, 12, 0.08) !important;
+    border-color: rgba(234, 88, 12, 0.2) !important;
+    color: #fb923c !important;
+  }
+
+  .action-btn-write:hover:not(:disabled) {
+    background: rgba(234, 88, 12, 0.18) !important;
+    border-color: rgba(234, 88, 12, 0.4) !important;
+  }
+
+  .fix-result-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 16px;
+    margin: 8px 0;
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    color: #86efac;
+  }
+
+  .fix-result-text strong {
+    text-transform: capitalize;
+  }
+
+  .fix-result-dismiss {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: #86efac;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    opacity: 0.6;
+  }
+
+  .fix-result-dismiss:hover {
+    opacity: 1;
+  }
+
+  /* Doubtful view */
+  .doubtful-table {
+    display: table;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+  }
+
+  .doubtful-thead {
+    display: table-header-group;
+  }
+
+  .doubtful-tbody {
+    display: table-row-group;
+  }
+
+  .doubtful-tr {
+    display: table-row;
+    background: var(--tune-surface);
+  }
+
+  .doubtful-tr:hover {
+    background: var(--tune-surface-hover);
+  }
+
+  .doubtful-th, .doubtful-td {
+    display: table-cell;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--tune-border);
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    position: relative;
+  }
+
+  .doubtful-th {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--tune-text-muted);
+    background: var(--tune-bg);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    cursor: default;
+    border-right: 2px solid transparent;
+    user-select: none;
+  }
+
+  .resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    background: transparent;
+    z-index: 2;
+  }
+
+  .resize-handle:hover,
+  .resize-handle:active {
+    background: var(--tune-accent);
+    opacity: 0.5;
+  }
+
+  .doubtful-field {
+    font-size: 13px;
+    color: var(--tune-text);
+  }
+
+  .doubtful-warn {
+    color: #f59e0b;
+    font-weight: 600;
+  }
+
+  .doubtful-hint {
+    font-size: 11px;
+    color: var(--tune-accent);
+    margin-left: 4px;
+  }
+
+  .doubtful-reasons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .doubtful-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: var(--font-label);
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    white-space: nowrap;
+  }
+
+  .track-source {
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    font-family: var(--font-label);
+    text-transform: uppercase;
+  }
+
+  .doubtful-actions {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .btn-doubtful-ok, .btn-doubtful-edit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-doubtful-ok {
+    background: rgba(34, 197, 94, 0.12);
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.25);
+  }
+  .btn-doubtful-ok:hover {
+    background: rgba(34, 197, 94, 0.25);
+    border-color: #22c55e;
+  }
+
+  .btn-doubtful-edit {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.25);
+  }
+  .btn-doubtful-edit:hover {
+    background: rgba(59, 130, 246, 0.25);
+    border-color: #3b82f6;
+  }
+
+  .doubtful-input {
+    width: 100%;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-accent);
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: var(--tune-text);
+    font-size: 13px;
+    font-family: var(--font-body);
+    outline: none;
+  }
+
+  .doubtful-input:focus {
+    border-color: var(--tune-accent);
+    box-shadow: 0 0 0 2px rgba(87, 198, 185, 0.2);
+  }
+
+  .doubtful-input-year {
+    width: 60px;
+  }
+
+  .doubtful-cover-cell {
+    padding: 4px 6px !important;
+  }
+
+  .doubtful-cover {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    object-fit: cover;
+    display: block;
+    cursor: zoom-in;
+    transition: transform 0.15s;
+  }
+
+  .doubtful-cover:hover {
+    transform: scale(1.2);
+  }
+
+  .cover-zoom-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+  }
+
+  .cover-zoom-img {
+    max-width: 80vw;
+    max-height: 80vh;
+    border-radius: 12px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+  }
+
+  .doubtful-cover-wrapper {
+    position: relative;
+    width: 32px;
+    height: 32px;
+  }
+
+  .doubtful-cover-placeholder {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    background: var(--tune-bg);
+    border: 1px dashed var(--tune-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tune-text-muted);
+  }
+
+  .doubtful-cover-upload {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(109, 40, 217, 0.9);
+    border: 1px solid #fff;
+    color: #fff;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .doubtful-cover-wrapper:hover .doubtful-cover-upload {
+    display: flex;
+  }
 </style>
