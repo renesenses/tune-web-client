@@ -24,6 +24,13 @@
   let audioDevices = $state<LocalAudioDevice[]>([]);
   let artworkProgress: { current: number; total: number; found: number } | null = $state(null);
   let musicRoots = $state<BrowseRootEntry[]>([]);
+
+  // Database migration
+  let pgUrl = $state('');
+  let pgTesting = $state(false);
+  let pgTestOk = $state(false);
+  let pgTestResult = $state('');
+  let pgMigrating = $state(false);
   let scanningPath = $state<string | null>(null);
 
   // Update checker
@@ -380,6 +387,48 @@
     }
   }
 
+  async function testPgConnection() {
+    pgTesting = true;
+    pgTestResult = '';
+    pgTestOk = false;
+    try {
+      const res = await fetch(`/api/v1/system/database/test-connection?url=${encodeURIComponent(pgUrl)}`, { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        pgTestOk = true;
+        pgTestResult = `PostgreSQL ${data.version} — connexion OK`;
+      } else {
+        pgTestResult = `Erreur: ${data.error}`;
+      }
+    } catch (e: any) {
+      pgTestResult = `Erreur: ${e.message}`;
+    }
+    pgTesting = false;
+  }
+
+  async function migrateToPg() {
+    if (!pgUrl || !pgTestOk) return;
+    pgMigrating = true;
+    try {
+      await fetch(`/api/v1/system/database/migrate?target=postgres&url=${encodeURIComponent(pgUrl)}`, { method: 'POST' });
+      pgTestResult = 'Migration lancée ! Le serveur va redémarrer...';
+    } catch (e: any) {
+      pgTestResult = `Erreur migration: ${e.message}`;
+    }
+    pgMigrating = false;
+  }
+
+  async function migrateToSqlite() {
+    pgMigrating = true;
+    try {
+      await fetch(`/api/v1/system/database/migrate?target=sqlite`, { method: 'POST' });
+      pgTestResult = 'Migration vers SQLite lancée...';
+    } catch (e: any) {
+      pgTestResult = `Erreur: ${e.message}`;
+    }
+    pgMigrating = false;
+  }
+
   async function checkForUpdate() {
     try {
       const data = await api.checkForUpdate();
@@ -684,6 +733,36 @@
           </div>
         {/if}
         <p class="db-hint">{$t('settings.dbSwitchInfo')}</p>
+
+        <!-- Migration section -->
+        {#if config.db_engine === 'sqlite'}
+          <div class="db-migrate">
+            <h4>Migrer vers PostgreSQL</h4>
+            <div class="migrate-form">
+              <input type="text" class="auth-input" placeholder="postgresql://user:password@localhost/tune" bind:value={pgUrl} />
+              <div class="migrate-actions">
+                <button class="btn-secondary" onclick={testPgConnection} disabled={!pgUrl || pgTesting}>
+                  {pgTesting ? 'Test...' : 'Tester la connexion'}
+                </button>
+                <button class="btn-primary" onclick={migrateToPg} disabled={!pgTestOk || pgMigrating}>
+                  {pgMigrating ? 'Migration en cours...' : 'Migrer'}
+                </button>
+              </div>
+              {#if pgTestResult}
+                <div class="migrate-result" class:ok={pgTestOk} class:error={!pgTestOk}>
+                  {pgTestResult}
+                </div>
+              {/if}
+            </div>
+          </div>
+        {:else}
+          <div class="db-migrate">
+            <h4>Migrer vers SQLite</h4>
+            <button class="btn-secondary" onclick={migrateToSqlite} disabled={pgMigrating}>
+              {pgMigrating ? 'Migration en cours...' : 'Migrer vers SQLite'}
+            </button>
+          </div>
+        {/if}
       </div>
     </section>
     {/if}
@@ -1836,6 +1915,61 @@
     margin: var(--space-sm) 0 0 0;
     line-height: 1.4;
   }
+
+  .db-migrate {
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--tune-border);
+  }
+  .db-migrate h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tune-text-primary);
+    margin: 0 0 var(--space-sm) 0;
+  }
+  .migrate-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .migrate-actions {
+    display: flex;
+    gap: var(--space-sm);
+  }
+  .migrate-result {
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+  }
+  .migrate-result.ok {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.1);
+  }
+  .migrate-result.error {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.1);
+  }
+  .btn-primary {
+    background: var(--tune-accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 6px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary {
+    background: var(--tune-surface-hover);
+    color: var(--tune-text-primary);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    padding: 6px 14px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
   @keyframes spin {
     to { transform: rotate(360deg); }
