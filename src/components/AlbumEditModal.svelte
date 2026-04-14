@@ -38,6 +38,10 @@
     }
   }
 
+  let writingTags = $state(false);
+  let writeTagsResult = $state<string | null>(null);
+  let hasSaved = $state(false);
+
   async function saveAlbum() {
     if (!album.id) return;
     saving = true;
@@ -54,12 +58,25 @@
         onSaved?.(updated);
       }
       success = true;
-      setTimeout(() => onClose(), 600);
+      hasSaved = true;
     } catch (e) {
       console.error('Save album error:', e);
       error = $t('metadata.saveError');
     }
     saving = false;
+  }
+
+  async function writeAlbumTags() {
+    if (!album.id) return;
+    writingTags = true;
+    writeTagsResult = null;
+    try {
+      const result = await api.writeAlbumTags(album.id);
+      writeTagsResult = `Tags gravés : ${result.success}/${result.tracks_processed} pistes`;
+    } catch (e: any) {
+      writeTagsResult = `Erreur : ${e?.message || e}`;
+    }
+    writingTags = false;
   }
 
   async function handleUpload(file: File) {
@@ -252,6 +269,12 @@
 
       <div class="modal-footer">
         <button class="btn-cancel" onclick={onClose}>{$t('common.cancel')}</button>
+        {#if !album.source || album.source === 'local'}
+          <button class="btn-write-tags" onclick={writeAlbumTags} disabled={writingTags || !hasSaved}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
+            {writingTags ? 'Gravure...' : 'Graver tags'}
+          </button>
+        {/if}
         <button class="btn-save" onclick={saveAlbum} disabled={saving}>
           {#if saving}
             <div class="spinner small"></div>
@@ -260,6 +283,12 @@
           {/if}
         </button>
       </div>
+      {#if writeTagsResult}
+        <div class="write-tags-result">{writeTagsResult}</div>
+      {/if}
+      {#if success}
+        <div class="write-tags-result" style="color:#86efac">{$t('metadata.saved')}</div>
+      {/if}
     {/if}
   </div>
 </div>
@@ -528,6 +557,37 @@
   }
 
   .btn-save:disabled { opacity: 0.5; cursor: default; }
+
+  .btn-write-tags {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: rgba(234, 88, 12, 0.1);
+    border: 1px solid rgba(234, 88, 12, 0.3);
+    border-radius: var(--radius-sm);
+    color: #fb923c;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.12s;
+  }
+
+  .btn-write-tags:hover:not(:disabled) {
+    background: rgba(234, 88, 12, 0.2);
+    border-color: #fb923c;
+  }
+
+  .btn-write-tags:disabled { opacity: 0.5; cursor: wait; }
+
+  .write-tags-result {
+    padding: 6px 12px;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #fb923c;
+    text-align: center;
+  }
 
   .success-state {
     display: flex;

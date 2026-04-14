@@ -28,6 +28,21 @@
 
   let editingAlbum = $state<Album | null>(null);
   let editingTrack = $state<Track | null>(null);
+  let writingAlbumTags = $state(false);
+  let writeTagsMessage = $state<string | null>(null);
+
+  async function handleWriteAlbumTags(albumId: number) {
+    writingAlbumTags = true;
+    writeTagsMessage = null;
+    try {
+      const result = await api.writeAlbumTags(albumId);
+      writeTagsMessage = `Tags gravés : ${result.success}/${result.tracks_processed} pistes`;
+      setTimeout(() => writeTagsMessage = null, 5000);
+    } catch (e: any) {
+      writeTagsMessage = `Erreur : ${e?.message || e}`;
+    }
+    writingAlbumTags = false;
+  }
 
   function openAlbumEdit(e: MouseEvent, album: Album) {
     e.stopPropagation();
@@ -367,7 +382,16 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
               {$tr('metadata.editAlbum')}
             </button>
+            {#if !$selectedAlbum.source || $selectedAlbum.source === 'local'}
+              <button class="write-tags-btn" onclick={() => $selectedAlbum?.id && handleWriteAlbumTags($selectedAlbum.id)} disabled={writingAlbumTags}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
+                {writingAlbumTags ? 'Gravure...' : 'Graver tags'}
+              </button>
+            {/if}
           </div>
+          {#if writeTagsMessage}
+            <div class="write-tags-message">{writeTagsMessage}</div>
+          {/if}
         </div>
       </div>
       {#if hasMultipleDiscs}
@@ -910,6 +934,41 @@
   .edit-btn:hover {
     border-color: var(--tune-accent);
     color: var(--tune-text);
+  }
+
+  .write-tags-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(234, 88, 12, 0.08);
+    border: 1px solid rgba(234, 88, 12, 0.25);
+    border-radius: var(--radius-md);
+    color: #fb923c;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 13px;
+    transition: all 0.12s;
+  }
+
+  .write-tags-btn:hover:not(:disabled) {
+    background: rgba(234, 88, 12, 0.18);
+    border-color: #fb923c;
+  }
+
+  .write-tags-btn:disabled {
+    opacity: 0.5;
+    cursor: wait;
+  }
+
+  .write-tags-message {
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: var(--radius-sm);
+    color: #86efac;
+    font-size: 13px;
   }
 
   .detail-meta {

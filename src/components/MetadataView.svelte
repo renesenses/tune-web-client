@@ -391,6 +391,61 @@
     batchProgress = null;
   }
 
+  // Batch artist
+  let batchArtistSearch = $state('');
+  let batchArtistId = $state<number | null>(null);
+  let batchArtistDropdownOpen = $state(false);
+
+  let batchArtistResults = $derived(
+    batchArtistSearch.length >= 2
+      ? artists.filter(a => a.name.toLowerCase().includes(batchArtistSearch.toLowerCase())).slice(0, 10)
+      : []
+  );
+
+  async function applyBatchArtist() {
+    if (!batchArtistId || batchSelectedIds.size === 0) return;
+    const artist = artists.find(a => a.id === batchArtistId);
+    if (!artist) return;
+    batchApplying = true;
+    batchMessage = null;
+    const ids = [...batchSelectedIds];
+    const total = ids.length;
+    let done = 0;
+    try {
+      for (const id of ids) {
+        batchProgress = { current: done + 1, total };
+        await api.updateAlbum(id, { artist_id: batchArtistId });
+        done++;
+        allAlbums = allAlbums.map(a => a.id === id ? { ...a, artist_name: artist.name, artist_id: batchArtistId } : a);
+      }
+      batchMessage = $t('metadata.batchDone').replace('{count}', String(done));
+      batchSelectedIds = new Set();
+      batchArtistSearch = '';
+      batchArtistId = null;
+      api.getCompletenessStats().then(s => stats = s);
+    } catch (e) {
+      console.error('Batch artist error:', e);
+      batchMessage = $t('metadata.saveError');
+    }
+    batchApplying = false;
+    batchProgress = null;
+  }
+
+  // Load artists for autocomplete when needed
+  async function ensureArtistsLoaded() {
+    if (artists.length === 0) {
+      try {
+        artists = await api.getArtists(5000, 0);
+      } catch {}
+    }
+  }
+
+  // Select same artist albums
+  function selectSameArtist(artistName: string) {
+    const ids = filteredAlbums.filter(a => a.artist_name === artistName).map(a => a.id!);
+    batchSelectedIds = new Set(ids);
+  }
+
   async function mergeDuplicates() {
     merging = true;
     mergeMessage = null;
@@ -1410,14 +1465,47 @@
         {/if}
       </div>
     {:else}
-      <!-- Batch toolbar for no_genre / no_year -->
-      {#if filter === 'no_genre' || filter === 'no_year'}
+      <!-- Batch toolbar — visible on all album views when selection active or always on filtered views -->
+      {#if filter !== 'no_artist' && filter !== 'unknown' && filter !== 'doubtful'}
         <div class="batch-toolbar">
           <label class="batch-select-all">
             <input type="checkbox" checked={batchAllSelected} onchange={toggleBatchSelectAll} />
             {$t('metadata.selectAll')} ({filteredAlbums.length})
           </label>
-          {#if filter === 'no_genre'}
+
+          {#if batchSelectedIds.size > 0}
+            <!-- Artist -->
+            <div class="batch-input-group">
+              <div class="batch-autocomplete">
+                <input
+                  type="text"
+                  class="batch-input"
+                  placeholder="Artiste..."
+                  bind:value={batchArtistSearch}
+                  onfocus={() => { ensureArtistsLoaded(); batchArtistDropdownOpen = true; }}
+                  onblur={() => setTimeout(() => batchArtistDropdownOpen = false, 200)}
+                />
+                {#if batchArtistDropdownOpen && batchArtistResults.length > 0}
+                  <div class="batch-dropdown">
+                    {#each batchArtistResults as a}
+                      <button class="batch-dropdown-item" onmousedown={() => { batchArtistId = a.id!; batchArtistSearch = a.name; batchArtistDropdownOpen = false; }}>
+                        {a.name}
+                      </button>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+              <button class="btn-action btn-primary" onclick={applyBatchArtist} disabled={batchApplying || !batchArtistId || batchSelectedIds.size === 0}>
+                {#if batchApplying && batchArtistId}
+                  <div class="spinner small"></div>
+                {/if}
+                Artiste ({batchSelectedIds.size})
+              </button>
+            </div>
+
+            <span class="batch-sep">|</span>
+
+            <!-- Genre -->
             <div class="batch-input-group">
               <input
                 type="text"
@@ -1433,17 +1521,13 @@
                 {/each}
               </datalist>
               <button class="btn-action btn-primary" onclick={applyBatchGenre} disabled={batchApplying || !batchGenre.trim() || batchSelectedIds.size === 0}>
-                {#if batchApplying}
-                  <div class="spinner small"></div>
-                {/if}
-                {#if batchProgress}
-                  {$t('metadata.applyingBatch').replace('{current}', String(batchProgress.current)).replace('{total}', String(batchProgress.total))}
-                {:else}
-                  {$t('metadata.batchGenre')} ({batchSelectedIds.size})
-                {/if}
+                Genre ({batchSelectedIds.size})
               </button>
             </div>
-          {:else}
+
+            <span class="batch-sep">|</span>
+
+            <!-- Year -->
             <div class="batch-input-group">
               <input
                 type="number"
@@ -1454,17 +1538,11 @@
                 max="2100"
               />
               <button class="btn-action btn-primary" onclick={applyBatchYear} disabled={batchApplying || !batchYear || batchSelectedIds.size === 0}>
-                {#if batchApplying}
-                  <div class="spinner small"></div>
-                {/if}
-                {#if batchProgress}
-                  {$t('metadata.applyingBatch').replace('{current}', String(batchProgress.current)).replace('{total}', String(batchProgress.total))}
-                {:else}
-                  {$t('metadata.batchYear')} ({batchSelectedIds.size})
-                {/if}
+                Année ({batchSelectedIds.size})
               </button>
             </div>
           {/if}
+
           {#if batchMessage}
             <span class="inline-message success">{batchMessage}</span>
           {/if}
@@ -1474,12 +1552,10 @@
       <div class="albums-grid">
         {#each filteredAlbums as album (album.id)}
           <button class="album-card" onclick={() => editAlbum = album}>
-            {#if filter === 'no_genre' || filter === 'no_year'}
-              <!-- svelte-ignore a11y_click_events_have_key_events -->
-              <div class="album-card-checkbox" onclick={(e) => { e.stopPropagation(); toggleBatchSelect(album.id!); }}>
-                <input type="checkbox" checked={batchSelectedIds.has(album.id!)} tabindex="-1" />
-              </div>
-            {/if}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <div class="album-card-checkbox" onclick={(e) => { e.stopPropagation(); toggleBatchSelect(album.id!); }}>
+              <input type="checkbox" checked={batchSelectedIds.has(album.id!)} tabindex="-1" />
+            </div>
             <div class="album-card-art">
               <AlbumArt coverPath={album.cover_path} size={140} />
               {#if !album.cover_path}
@@ -1487,7 +1563,7 @@
               {/if}
             </div>
             <span class="album-card-title">{album.title}</span>
-            <span class="album-card-artist">{album.artist_name ?? ''}</span>
+            <span class="album-card-artist" title="Clic = sélectionner même artiste" onclick={(e) => { e.stopPropagation(); if (album.artist_name) selectSameArtist(album.artist_name); }}>{album.artist_name ?? ''}</span>
             <div class="album-card-tags">
               {#if !album.genre}
                 <span class="tag missing">{$t('metadata.genre')}</span>
@@ -2225,6 +2301,59 @@
     max-width: 100px;
     min-width: 80px;
     flex: unset;
+  }
+
+  .batch-sep {
+    color: var(--tune-border);
+    font-size: 16px;
+    user-select: none;
+  }
+
+  .batch-autocomplete {
+    position: relative;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .batch-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-top: none;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 20;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .batch-dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 6px 10px;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--tune-text);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .batch-dropdown-item:hover {
+    background: var(--tune-surface-hover);
+    color: var(--tune-accent);
+  }
+
+  .album-card-artist {
+    cursor: pointer !important;
+  }
+
+  .album-card-artist:hover {
+    color: var(--tune-accent) !important;
+    text-decoration: underline;
   }
 
   /* Album card checkbox */
