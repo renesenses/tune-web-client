@@ -68,7 +68,26 @@ export async function createProfile(name: string, avatarColor: string): Promise<
     profiles.update((list) => [...list, created]);
     currentProfileId.set(created.id);
     return created;
-  } catch (e) {
+  } catch (e: any) {
+    // Handle 409 — profile already exists, auto-select it
+    if (e?.message?.includes('409') || e?.status === 409) {
+      const existing = get(profiles).find(
+        (p) => p.name.toLowerCase() === name.trim().toLowerCase()
+      );
+      if (existing) {
+        currentProfileId.set(existing.id);
+        return existing;
+      }
+      // Refresh profiles and try again
+      await loadProfiles();
+      const refreshed = get(profiles).find(
+        (p) => p.name.toLowerCase() === name.trim().toLowerCase()
+      );
+      if (refreshed) {
+        currentProfileId.set(refreshed.id);
+        return refreshed;
+      }
+    }
     console.error('Create profile error:', e);
     return null;
   }
