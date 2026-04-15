@@ -27,7 +27,7 @@
   let albumArtistSearch = $state('');
   let albumArtistDropdownOpen = $state(false);
   let loading = $state(true);
-  let filter = $state<'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist' | 'unknown' | 'doubtful'>('no_cover');
+  let filter = $state<'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist' | 'unknown' | 'doubtful' | 'duplicates'>('no_cover');
   let doubtfulAlbums = $state<import('../lib/api').DoubtfulAlbum[]>([]);
   let doubtfulLoaded = $state(false);
 
@@ -188,14 +188,40 @@
     } catch { autoFixStatus = 'idle'; }
   }
 
+  let scanDupMessage = $state<string | null>(null);
+
   async function handleScanDuplicates() {
     scanningDuplicates = true;
+    scanDupMessage = null;
     try {
-      await api.scanDuplicates();
-      const d = await api.listDuplicates();
-      duplicates = d;
-    } catch {}
+      const result = await api.scanDuplicates();
+      scanDupMessage = `Scan : ${result.total_scanned} pistes analysées, ${result.duplicates_found} doublons`;
+      try {
+        const d = await api.listDuplicates();
+        duplicates = d;
+        if (d.length === 0 && result.duplicates_found === 0) {
+          scanDupMessage = `Scan terminé : ${result.total_scanned} pistes analysées, aucun doublon audio détecté`;
+        }
+      } catch (e2) {
+        console.error('List duplicates error:', e2);
+        scanDupMessage = `Scan OK (${result.duplicates_found} doublons) mais erreur au chargement de la liste`;
+      }
+      setTimeout(() => scanDupMessage = null, 8000);
+    } catch (e: any) {
+      console.error('Scan duplicates error:', e);
+      scanDupMessage = `Erreur : ${e?.message || e}`;
+    }
     scanningDuplicates = false;
+  }
+
+  async function resolveDuplicate(duplicateId: number, keepTrackId: number) {
+    try {
+      await api.resolveDuplicate(duplicateId, keepTrackId);
+      duplicates = duplicates.filter(d => d.id !== duplicateId);
+      api.getCompletenessStats().then(s => stats = s);
+    } catch (e) {
+      console.error('Resolve duplicate error:', e);
+    }
   }
 
   async function loadSuggestions() {
@@ -295,17 +321,83 @@
 
   // Count duplicate albums (same title, multiple entries)
   let duplicateCount = $derived.by(() => {
+    // Exact same title + same artist + same quality = real duplicate
+    // Different editions, remasters, CD1/CD2 are NOT duplicates
     const groups = new Map<string, number>();
     for (const a of allAlbums) {
-      const key = (a.title ?? '').toLowerCase().trim();
+      const title = (a.title ?? '').toLowerCase().trim();
+      const artist = (a.artist_name ?? '').toLowerCase().trim();
+      const sr = a.sample_rate ?? 0;
+      const bd = a.bit_depth ?? 0;
+      const key = `${title}||${artist}||${sr}||${bd}`;
       groups.set(key, (groups.get(key) ?? 0) + 1);
     }
     let count = 0;
     for (const c of groups.values()) {
-      if (c > 1) count += c;
+      if (c > 1) count += c - 1;
     }
     return count;
   });
+
+  let duplicateGroups = $derived.by(() => {
+    const groups = new Map<string, Album[]>();
+    for (const a of allAlbums) {
+      const title = (a.title ?? '').toLowerCase().trim();
+      const artist = (a.artist_name ?? '').toLowerCase().trim();
+      const sr = a.sample_rate ?? 0;
+      const bd = a.bit_depth ?? 0;
+      const key = `${title}||${artist}||${sr}||${bd}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(a);
+    }
+    return [...groups.values()].filter(g => g.length > 1);
+  });
+
+  function dupGroupType(group: Album[]): { type: 'album' | 'track'; trackCounts: number[] } {
+    const counts = group.map(a => a.track_count ?? 0);
+    const allMulti = counts.every(c => c > 1);
+    return { type: allMulti ? 'album' : 'track', trackCounts: counts };
+  }
+
+  let dupAlbumPaths = $state<Record<number, string>>({});
+
+  async function moveToDuplicates(album: Album, groupIndex: number) {
+    if (!album.id) return;
+    if (!confirm(`Déplacer "${album.title}" (${album.artist_name}) dans /data/duplicates ?\n\nLes fichiers seront déplacés et l'album supprimé de la bibliothèque.`)) return;
+    try {
+      const result = await api.moveAlbumToDuplicates(album.id);
+      // Remove from allAlbums — triggers recompute of duplicateGroups
+      allAlbums = allAlbums.filter(a => a.id !== album.id);
+      // Refresh stats
+      api.getCompletenessStats().then(s => stats = s);
+      // Clean up paths cache
+      delete dupAlbumPaths[album.id];
+      dupAlbumPaths = { ...dupAlbumPaths };
+    } catch (e: any) {
+      console.error('Move to duplicates error:', e);
+      alert(`Erreur : ${e?.message || e}`);
+    }
+  }
+
+  async function loadDupPaths() {
+    const needed: number[] = [];
+    for (const group of duplicateGroups) {
+      for (const a of group) {
+        if (a.id && !dupAlbumPaths[a.id]) needed.push(a.id);
+      }
+    }
+    for (const id of needed) {
+      try {
+        const tracks = await api.getAlbumTracks(id);
+        if (tracks.length > 0 && tracks[0].file_path) {
+          const path = tracks[0].file_path;
+          const folder = path.substring(0, path.lastIndexOf('/'));
+          dupAlbumPaths[id] = folder;
+        }
+      } catch {}
+    }
+    dupAlbumPaths = { ...dupAlbumPaths };
+  }
 
   // Available genres from library (distinct, sorted)
   let availableGenres = $derived.by(() => {
@@ -698,9 +790,11 @@
     applying = false;
   }
 
-  function completionPercent(missing: number, total: number): number {
-    if (total === 0) return 100;
-    return Math.round(((total - missing) / total) * 100);
+  function completionPercent(missing: number, total: number): string {
+    if (total === 0) return '100';
+    if (missing === 0) return '100';
+    const pct = ((total - missing) / total) * 100;
+    return pct.toFixed(2);
   }
 
   async function rescanAll() {
@@ -939,6 +1033,9 @@
     if (filter === 'unknown' && unknownAlbums.length > 0) {
       loadUnknownTracks();
     }
+    if (filter === 'duplicates') {
+      loadDupPaths();
+    }
     if (filter === 'doubtful') {
       loadDoubtful();
     }
@@ -972,7 +1069,7 @@
   {:else if stats}
     <!-- Stats dashboard -->
     <div class="stats-grid">
-      <div class="stat-card">
+      <button class="stat-card" class:stat-active={filter === 'no_cover'} onclick={() => filter = 'no_cover'}>
         <div class="stat-header">
           <span class="stat-label">{$t('metadata.cover')}</span>
           <span class="stat-value">{completionPercent(stats.albums_without_cover, stats.total_albums)}%</span>
@@ -981,9 +1078,9 @@
           <div class="progress-fill" style="width: {completionPercent(stats.albums_without_cover, stats.total_albums)}%"></div>
         </div>
         <span class="stat-detail">{stats.albums_without_cover} / {stats.total_albums} {$t('metadata.missingCovers').toLowerCase()}</span>
-      </div>
+      </button>
 
-      <div class="stat-card">
+      <button class="stat-card" class:stat-active={filter === 'no_genre'} onclick={() => filter = 'no_genre'}>
         <div class="stat-header">
           <span class="stat-label">{$t('metadata.genre')}</span>
           <span class="stat-value">{completionPercent(stats.albums_without_genre, stats.total_albums)}%</span>
@@ -992,9 +1089,9 @@
           <div class="progress-fill" style="width: {completionPercent(stats.albums_without_genre, stats.total_albums)}%"></div>
         </div>
         <span class="stat-detail">{stats.albums_without_genre} / {stats.total_albums} {$t('metadata.missingGenre').toLowerCase()}</span>
-      </div>
+      </button>
 
-      <div class="stat-card">
+      <button class="stat-card" class:stat-active={filter === 'no_year'} onclick={() => filter = 'no_year'}>
         <div class="stat-header">
           <span class="stat-label">{$t('metadata.year')}</span>
           <span class="stat-value">{completionPercent(stats.albums_without_year, stats.total_albums)}%</span>
@@ -1003,9 +1100,9 @@
           <div class="progress-fill" style="width: {completionPercent(stats.albums_without_year, stats.total_albums)}%"></div>
         </div>
         <span class="stat-detail">{stats.albums_without_year} / {stats.total_albums} {$t('metadata.missingYear').toLowerCase()}</span>
-      </div>
+      </button>
 
-      <div class="stat-card">
+      <button class="stat-card" class:stat-active={filter === 'no_artist'} onclick={() => filter = 'no_artist'}>
         <div class="stat-header">
           <span class="stat-label">{$t('metadata.artist')}</span>
           <span class="stat-value">{completionPercent(stats.tracks_without_artist, stats.total_tracks)}%</span>
@@ -1014,40 +1111,48 @@
           <div class="progress-fill" style="width: {completionPercent(stats.tracks_without_artist, stats.total_tracks)}%"></div>
         </div>
         <span class="stat-detail">{stats.tracks_without_artist} / {stats.total_tracks} {$t('metadata.missingArtist').toLowerCase()}</span>
-      </div>
+      </button>
     </div>
 
-    <!-- Actions row: Merge Duplicates + Enrich -->
+    <!-- Actions row: Duplicates + Enrich -->
     <div class="stats-actions">
-      <button class="btn-action" onclick={mergeDuplicates} disabled={merging || duplicateCount === 0}>
-        {#if merging}
-          <div class="spinner small"></div>
-          {$t('metadata.merging')}
-        {:else}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M16 3h5v5" /><path d="M8 3H3v5" /><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3" /><path d="m15 9 6-6" /></svg>
+      <div class="stats-actions-group">
+        <span class="stats-actions-label">Doublons</span>
+        <button class="btn-action" onclick={() => filter = 'duplicates'} disabled={duplicateCount === 0}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
           {#if duplicateCount > 0}
-            {$t('metadata.mergeDuplicates').replace('{count}', String(duplicateCount))}
+            Visualiser {duplicateCount} doublons
           {:else}
-            {$t('metadata.noDuplicates')}
+            Aucun doublon
           {/if}
+        </button>
+        <button class="btn-action" onclick={handleScanDuplicates} disabled={scanningDuplicates}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+          {scanningDuplicates ? 'Scan...' : 'Scan doublons audio'}
+        </button>
+        {#if mergeMessage}
+          <span class="inline-message">{mergeMessage}</span>
         {/if}
-      </button>
-      {#if mergeMessage}
-        <span class="inline-message">{mergeMessage}</span>
-      {/if}
+        {#if scanDupMessage}
+          <span class="inline-message success" style="font-size:11px">{scanDupMessage}</span>
+        {/if}
+      </div>
 
-      <button class="btn-action" onclick={triggerEnrich} disabled={enriching}>
-        {#if enriching}
-          <div class="spinner small"></div>
-          {$t('metadata.enriching')}
-        {:else}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-          {$t('metadata.enrich')}
+      <div class="stats-actions-group">
+        <span class="stats-actions-label">Enrichir</span>
+        <button class="btn-action" onclick={triggerEnrich} disabled={enriching}>
+          {#if enriching}
+            <div class="spinner small"></div>
+            {$t('metadata.enriching')}
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+            {$t('metadata.enrich')}
+          {/if}
+        </button>
+        {#if enrichMessage}
+          <span class="inline-message success">{enrichMessage}</span>
         {/if}
-      </button>
-      {#if enrichMessage}
-        <span class="inline-message success">{enrichMessage}</span>
-      {/if}
+      </div>
     </div>
 
     <!-- Backup / Restore -->
@@ -1118,9 +1223,6 @@
           </button>
           <button class="action-btn" onclick={handleAutoFix}>
             {autoFixStatus === 'running' ? `En cours (${autoFixProgress})` : 'Auto-fix'}
-          </button>
-          <button class="action-btn" onclick={handleScanDuplicates} disabled={scanningDuplicates}>
-            {scanningDuplicates ? 'Scan...' : 'Scan doublons'}
           </button>
           <button class="action-btn" onclick={handleShowSuggestions}>
             Suggestions ({suggestionCount})
@@ -1207,13 +1309,57 @@
     <!-- Duplicates Panel -->
     {#if duplicates.length > 0}
       <div class="duplicates-panel">
-        <h3>Doublons détectés ({duplicates.length})</h3>
-        {#each duplicates as d}
-          <div class="duplicate-row">
-            <span class="dup-track">{d.track_a_title}</span>
-            <span class="dup-vs">vs</span>
-            <span class="dup-track">{d.track_b_title}</span>
-            <span class="dup-hash">{d.audio_hash?.substring(0, 8)}</span>
+        <div class="dup-header">
+          <h3>Doublons détectés ({duplicates.length})</h3>
+          <button class="action-btn" onclick={() => duplicates = []}>Fermer</button>
+        </div>
+        {#each duplicates as d (d.id)}
+          <div class="dup-card">
+            <div class="dup-card-top">
+              <div class="dup-card-title">{d.a?.title || d.track_a_title || '?'}</div>
+              {#if d.type === 'album'}
+                <span class="dup-badge dup-badge-album">Album complet ({d.album_duplicate_count} pistes)</span>
+              {:else}
+                <span class="dup-badge dup-badge-track">Piste seule</span>
+              {/if}
+            </div>
+            {#if d.differences?.length > 0}
+              <div class="dup-diff-notice">Métadonnées différentes : {d.differences.join(', ')}</div>
+            {/if}
+            <div class="dup-compare">
+              <!-- Copy A -->
+              <div class="dup-copy" class:dup-selected={true}>
+                <div class="dup-copy-label">Copie A</div>
+                <div class="dup-field"><span class="dup-key">Titre</span> <span class:dup-diff={d.differences?.includes('title')}>{d.a?.title ?? d.track_a_title ?? '—'}</span></div>
+                <div class="dup-field"><span class="dup-key">Artiste</span> <span class:dup-diff={d.differences?.includes('artist')}>{d.a?.artist ?? '—'}</span></div>
+                <div class="dup-field"><span class="dup-key">Album</span> <span class:dup-diff={d.differences?.includes('album')}>{d.a?.album ?? '—'}</span></div>
+                <div class="dup-field"><span class="dup-key">Genre</span> <span class:dup-diff={d.differences?.includes('genre')}>{d.a?.genre ?? '—'}</span></div>
+                <div class="dup-field"><span class="dup-key">Année</span> <span class:dup-diff={d.differences?.includes('year')}>{d.a?.year ?? '—'}</span></div>
+                <div class="dup-field"><span class="dup-key">Format</span> <span>{d.a?.format ?? '?'} {d.a?.sample_rate ? Math.round(d.a.sample_rate/1000) + 'kHz' : ''} {d.a?.bit_depth ? d.a.bit_depth + 'bit' : ''}</span></div>
+                <div class="dup-field dup-path">{d.a?.path ?? d.track_a_path ?? ''}</div>
+                {#if d.a?.size}<div class="dup-field"><span class="dup-key">Taille</span> {(d.a.size / 1048576).toFixed(1)} Mo</div>{/if}
+                <button class="btn-keep" onclick={() => resolveDuplicate(d.id, d.a?.track_id)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><polyline points="20 6 9 17 4 12" /></svg>
+                  Garder A
+                </button>
+              </div>
+              <!-- Copy B -->
+              <div class="dup-copy">
+                <div class="dup-copy-label">Copie B</div>
+                <div class="dup-field"><span class="dup-key">Titre</span> <span class:dup-diff={d.differences?.includes('title')}>{d.b?.title ?? d.track_b_title ?? '—'}</span></div>
+                <div class="dup-field"><span class="dup-key">Artiste</span> <span class:dup-diff={d.differences?.includes('artist')}>{d.b?.artist ?? '—'}</span></div>
+                <div class="dup-field"><span class="dup-key">Album</span> <span class:dup-diff={d.differences?.includes('album')}>{d.b?.album ?? '—'}</span></div>
+                <div class="dup-field"><span class="dup-key">Genre</span> <span class:dup-diff={d.differences?.includes('genre')}>{d.b?.genre ?? '—'}</span></div>
+                <div class="dup-field"><span class="dup-key">Année</span> <span class:dup-diff={d.differences?.includes('year')}>{d.b?.year ?? '—'}</span></div>
+                <div class="dup-field"><span class="dup-key">Format</span> <span>{d.b?.format ?? '?'} {d.b?.sample_rate ? Math.round(d.b.sample_rate/1000) + 'kHz' : ''} {d.b?.bit_depth ? d.b.bit_depth + 'bit' : ''}</span></div>
+                <div class="dup-field dup-path">{d.b?.path ?? d.track_b_path ?? ''}</div>
+                {#if d.b?.size}<div class="dup-field"><span class="dup-key">Taille</span> {(d.b.size / 1048576).toFixed(1)} Mo</div>{/if}
+                <button class="btn-keep" onclick={() => resolveDuplicate(d.id, d.b?.track_id)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><polyline points="20 6 9 17 4 12" /></svg>
+                  Garder B
+                </button>
+              </div>
+            </div>
           </div>
         {/each}
       </div>
@@ -1241,103 +1387,134 @@
           {/each}
         </div>
       {/if}
+    {:else if filter === 'duplicates'}
+      {#if duplicateGroups.length === 0}
+        <div class="empty">Aucun doublon détecté</div>
+      {:else}
+        <div class="dup-groups">
+          {#each duplicateGroups as group, gi}
+            <div class="dup-group-card">
+              <div class="dup-group-header">
+                {#if dupGroupType(group).type === 'album'}
+                <span class="dup-badge dup-badge-album">Album</span>
+              {:else}
+                <span class="dup-badge dup-badge-track">Piste</span>
+              {/if}
+              <span class="dup-group-title">{group[0].title}</span>
+              <span class="dup-group-artist">{group[0].artist_name ?? '—'}</span>
+              <span class="dup-group-count">{group.length} copies</span>
+              </div>
+              <div class="dup-group-items">
+                {#each group as album, ai}
+                  <div class="dup-group-item">
+                    <div class="dup-group-item-cover">
+                      {#if album.cover_path}
+                        <img src={api.artworkUrl(album.cover_path)} alt="" style="width:40px;height:40px;border-radius:4px;object-fit:cover" />
+                      {:else}
+                        <div style="width:40px;height:40px;border-radius:4px;background:var(--tune-bg);border:1px dashed var(--tune-border);display:flex;align-items:center;justify-content:center;color:var(--tune-text-muted)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+                        </div>
+                      {/if}
+                    </div>
+                    <div class="dup-group-item-info">
+                      <div style="font-weight:600;font-size:13px;color:var(--tune-text)">{album.title}</div>
+                      <div style="font-size:12px;color:var(--tune-text-muted)">
+                        {album.track_count ?? '?'} pistes · {album.format ?? '?'} · {album.sample_rate ? Math.round(album.sample_rate/1000) + 'kHz' : '?'} · {album.bit_depth ?? '?'}bit · {album.genre ?? '—'} · {album.year ?? '—'}
+                      </div>
+                      {#if album.id && dupAlbumPaths[album.id]}
+                        <div style="font-size:10px;color:var(--tune-text-muted);margin-top:2px;word-break:break-all">{dupAlbumPaths[album.id]}</div>
+                      {/if}
+                    </div>
+                    <div class="dup-group-item-actions">
+                      <button class="btn-doubtful-edit" title="Éditer" onclick={() => editAlbum = album}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                      </button>
+                      {#if group.length > 1}
+                        <button class="btn-dup-move" title="Déplacer dans /data/duplicates" onclick={() => moveToDuplicates(album, gi)}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                        </button>
+                      {/if}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
     {:else if filter === 'doubtful'}
       {#if doubtfulAlbums.length === 0}
         <div class="empty">{$t('metadata.noDoubtful')}</div>
       {:else}
-        <div class="doubtful-container" style="overflow-x:auto; border:1px solid var(--tune-border); border-radius:var(--radius-md); max-width:100%;">
-          <table class="doubtful-table">
-            <colgroup>
-              {#each doubtfulColWidths as w, i}
-                <col style="width:{w}px; min-width:50px;">
-              {/each}
-            </colgroup>
-            <thead class="doubtful-thead">
-              <tr class="doubtful-tr">
-                <th class="doubtful-th"></th>
-                <th class="doubtful-th">{$t('common.artist')}<span class="resize-handle" onmousedown={(e) => onResizeStart(e, 1)}></span></th>
-                <th class="doubtful-th">{$t('common.album')}<span class="resize-handle" onmousedown={(e) => onResizeStart(e, 2)}></span></th>
-                <th class="doubtful-th">{$t('metadata.genre')}<span class="resize-handle" onmousedown={(e) => onResizeStart(e, 3)}></span></th>
-                <th class="doubtful-th">{$t('metadata.year')}<span class="resize-handle" onmousedown={(e) => onResizeStart(e, 4)}></span></th>
-                <th class="doubtful-th">{$t('metadata.doubtful')}<span class="resize-handle" onmousedown={(e) => onResizeStart(e, 5)}></span></th>
-                <th class="doubtful-th"></th>
-              </tr>
-            </thead>
-            <tbody class="doubtful-tbody">
-              {#each doubtfulAlbums as album (album.id)}
-                <tr class="doubtful-tr">
-                  <td class="doubtful-td doubtful-cover-cell"
-                      ondragover={(e) => e.preventDefault()}
-                      ondrop={(e) => onDoubtfulCoverDrop(e, album.id)}>
-                    <div class="doubtful-cover-wrapper">
-                      {#if album.cover_path}
-                        <img class="doubtful-cover" src={api.artworkUrl(album.cover_path)} alt=""
-                             onclick={() => doubtfulZoomCover = api.artworkUrl(album.cover_path)}
-                             onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
-                      {:else}
-                        <div class="doubtful-cover-placeholder">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
-                        </div>
-                      {/if}
-                      <label class="doubtful-cover-upload" title="Changer la cover">
-                        <input type="file" accept="image/*" style="display:none"
-                               onchange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) handleDoubtfulCoverUpload(album.id, f); }} />
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                      </label>
-                    </div>
-                  </td>
-                  {#if editingDoubtfulId === album.id}
-                    <td class="doubtful-td"><input class="doubtful-input" bind:value={editingDoubtfulData.artist_name} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} /></td>
-                    <td class="doubtful-td"><input class="doubtful-input" bind:value={editingDoubtfulData.title} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} /></td>
-                    <td class="doubtful-td"><input class="doubtful-input" bind:value={editingDoubtfulData.genre} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} /></td>
-                    <td class="doubtful-td"><input class="doubtful-input doubtful-input-year" bind:value={editingDoubtfulData.year} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} /></td>
-                    <td class="doubtful-td"></td>
-                    <td class="doubtful-td">
-                      <span class="doubtful-actions">
-                        <button class="btn-doubtful-ok" title="Enregistrer" onclick={saveDoubtful}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
-                        </button>
-                        <button class="btn-doubtful-edit" title="Annuler" onclick={cancelDoubtful}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                        </button>
-                      </span>
-                    </td>
+        <div class="doubtful-cards">
+          {#each doubtfulAlbums as album (album.id)}
+            <div class="dcard" ondragover={(e) => e.preventDefault()} ondrop={(e) => onDoubtfulCoverDrop(e, album.id)}>
+              {#if editingDoubtfulId === album.id}
+                <!-- Edit mode -->
+                <div class="dcard-cover-wrap">
+                  {#if album.cover_path}
+                    <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" />
                   {:else}
-                    <td class="doubtful-td doubtful-field" class:doubtful-warn={album.reasons.some(r => r.startsWith('artist'))}>
-                      {album.artist_name ?? ''}
-                      {#if album.artist_resolved && album.artist_resolved !== album.artist_name}
-                        <span class="doubtful-hint">→ {album.artist_resolved}</span>
-                      {/if}
-                    </td>
-                    <td class="doubtful-td track-title">{album.title}</td>
-                    <td class="doubtful-td doubtful-field" class:doubtful-warn={album.reasons.includes('genre_placeholder')}>
-                      {album.genre ?? ''}
-                    </td>
-                    <td class="doubtful-td doubtful-field" class:doubtful-warn={album.reasons.includes('year_suspicious')}>
-                      {album.year ?? ''}
-                    </td>
-                    <td class="doubtful-td">
-                      <span class="doubtful-reasons">
-                        {#each album.reasons as reason}
-                          <span class="doubtful-tag">{REASON_LABELS[reason] ?? reason}</span>
-                        {/each}
-                      </span>
-                    </td>
-                    <td class="doubtful-td">
-                      <span class="doubtful-actions">
-                        <button class="btn-doubtful-ok" title="Valider" onclick={() => validateDoubtful(album)}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
-                        </button>
-                        <button class="btn-doubtful-edit" title="Éditer" onclick={() => editDoubtful(album)}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                        </button>
-                      </span>
-                    </td>
+                    <div class="dcard-cover-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg></div>
                   {/if}
-                </tr>
-              {/each}
-            </tbody>
-          </table>
+                </div>
+                <div class="dcard-body">
+                  <div class="dcard-edit-fields">
+                    <input class="dcard-input" placeholder="Artiste" bind:value={editingDoubtfulData.artist_name} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
+                    <input class="dcard-input" placeholder="Album" bind:value={editingDoubtfulData.title} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
+                    <div class="dcard-edit-row">
+                      <input class="dcard-input dcard-input-sm" placeholder="Genre" bind:value={editingDoubtfulData.genre} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
+                      <input class="dcard-input dcard-input-year" placeholder="Année" bind:value={editingDoubtfulData.year} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
+                    </div>
+                  </div>
+                  <div class="dcard-edit-actions">
+                    <button class="btn-doubtful-ok" onclick={saveDoubtful}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg> Enregistrer</button>
+                    <button class="btn-doubtful-edit" onclick={cancelDoubtful}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg> Annuler</button>
+                  </div>
+                </div>
+              {:else}
+                <!-- Display mode -->
+                <div class="dcard-cover-wrap" onclick={() => album.cover_path && (doubtfulZoomCover = api.artworkUrl(album.cover_path))}>
+                  {#if album.cover_path}
+                    <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                  {:else}
+                    <div class="dcard-cover-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg></div>
+                  {/if}
+                  <label class="dcard-cover-upload">
+                    <input type="file" accept="image/*" style="display:none" onchange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) handleDoubtfulCoverUpload(album.id, f); }} />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  </label>
+                </div>
+                <div class="dcard-body">
+                  <div class="dcard-title">{album.title}</div>
+                  <div class="dcard-artist" class:dcard-warn={album.reasons.some(r => r.startsWith('artist'))}>
+                    {album.artist_name ?? '—'}
+                    {#if album.artist_resolved && album.artist_resolved !== album.artist_name}
+                      <span class="dcard-hint">→ {album.artist_resolved}</span>
+                    {/if}
+                  </div>
+                  <div class="dcard-meta">
+                    <span class:dcard-warn={album.reasons.includes('genre_placeholder')}>{album.genre ?? '—'}</span>
+                    <span class="dcard-sep">·</span>
+                    <span class:dcard-warn={album.reasons.includes('year_suspicious')}>{album.year ?? '—'}</span>
+                  </div>
+                  <div class="dcard-tags">
+                    {#each album.reasons as reason}
+                      <span class="doubtful-tag">{REASON_LABELS[reason] ?? reason}</span>
+                    {/each}
+                  </div>
+                </div>
+                <div class="dcard-actions">
+                  <button class="btn-doubtful-ok" title="Valider" onclick={() => validateDoubtful(album)}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><polyline points="20 6 9 17 4 12" /></svg>
+                  </button>
+                  <button class="btn-doubtful-edit" title="Éditer" onclick={() => editDoubtful(album)}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                  </button>
+                </div>
+              {/if}
+            </div>
+          {/each}
         </div>
       {/if}
     {#if doubtfulZoomCover}
@@ -1769,6 +1946,21 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    color: inherit;
+    font: inherit;
+  }
+
+  .stat-card:hover {
+    border-color: var(--tune-accent);
+    background: var(--tune-surface-hover);
+  }
+
+  .stat-card.stat-active {
+    border-color: var(--tune-accent);
+    box-shadow: 0 0 0 1px var(--tune-accent);
   }
 
   .stat-header {
@@ -2225,9 +2417,29 @@
   /* Stats actions row */
   .stats-actions {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    gap: 16px;
     flex-wrap: wrap;
+  }
+
+  .stats-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    flex-wrap: wrap;
+  }
+
+  .stats-actions-label {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--tune-text-muted);
+    margin-right: 4px;
   }
 
   .inline-message {
@@ -2403,13 +2615,309 @@
   .btn-reject:hover { background: #EF444422; border-radius: 4px; }
 
   .duplicates-panel { background: var(--tune-surface); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #F59E0B44; }
-  .duplicates-panel h3 { font-size: 15px; font-weight: 600; color: #F59E0B; margin-bottom: 12px; }
-  .duplicate-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; }
+  .dup-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .dup-header h3 { font-size: 15px; font-weight: 600; color: #F59E0B; margin: 0; }
+
+  .dup-card {
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+
+  .dup-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .dup-card-title { font-size: 15px; font-weight: 700; color: var(--tune-text); }
+
+  .dup-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+
+  .dup-badge-album {
+    background: rgba(109, 40, 217, 0.15);
+    color: #c4b5fd;
+    border: 1px solid rgba(109, 40, 217, 0.3);
+  }
+
+  .dup-badge-track {
+    background: rgba(59, 130, 246, 0.1);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+  }
+  .dup-diff-notice { font-size: 11px; color: #f59e0b; margin-bottom: 10px; font-weight: 600; }
+
+  .dup-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .dup-copy {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    font-size: 12px;
+  }
+
+  .dup-copy-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--tune-text-muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+  }
+
+  .dup-field { display: flex; gap: 6px; padding: 2px 0; color: var(--tune-text-secondary); }
+  .dup-key { color: var(--tune-text-muted); min-width: 50px; flex-shrink: 0; }
+  .dup-diff { color: #f59e0b !important; font-weight: 600; }
+  .dup-path { font-size: 10px; color: var(--tune-text-muted); word-break: break-all; margin-top: 4px; }
+
+  .btn-keep {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    background: rgba(34, 197, 94, 0.08);
+    color: #22c55e;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .btn-keep:hover {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: #22c55e;
+  }
   .dup-track { color: var(--tune-text); }
   .dup-vs { color: var(--tune-text-muted); font-size: 11px; }
   .dup-hash { font-size: 10px; color: var(--tune-text-muted); font-family: monospace; }
   .album-input { background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 6px; padding: 6px 12px; color: var(--tune-text); font-size: 13px; width: 200px; }
   .album-input:focus { border-color: var(--tune-accent); outline: none; }
+
+  /* Duplicate groups view */
+  .dup-groups { display: flex; flex-direction: column; gap: 12px; }
+
+  .dup-group-card {
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .dup-group-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: rgba(245, 158, 11, 0.06);
+    border-bottom: 1px solid var(--tune-border);
+  }
+
+  .dup-group-title { font-weight: 700; font-size: 14px; color: var(--tune-text); }
+  .dup-group-artist { font-size: 13px; color: var(--tune-text-muted); }
+  .dup-group-count { margin-left: auto; font-size: 11px; color: #f59e0b; font-weight: 600; padding: 2px 8px; border-radius: 10px; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); }
+
+  .dup-group-items { display: flex; flex-direction: column; }
+
+  .dup-group-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--tune-border);
+  }
+  .dup-group-item:last-child { border-bottom: none; }
+  .dup-group-item:hover { background: var(--tune-surface-hover); }
+
+  .dup-group-item-info { flex: 1; min-width: 0; }
+  .dup-group-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  .btn-dup-move {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    cursor: pointer;
+    transition: all 0.12s;
+    padding: 0;
+  }
+
+  .btn-dup-move:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+  }
+
+  /* Doubtful cards */
+  .doubtful-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dcard {
+    display: flex;
+    gap: 14px;
+    padding: 12px 16px;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    align-items: center;
+    transition: border-color 0.12s;
+  }
+
+  .dcard:hover { border-color: rgba(109, 40, 217, 0.3); }
+
+  .dcard-cover-wrap {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+  }
+
+  .dcard-cover {
+    width: 56px;
+    height: 56px;
+    border-radius: 6px;
+    object-fit: cover;
+    cursor: zoom-in;
+  }
+
+  .dcard-cover-empty {
+    width: 56px;
+    height: 56px;
+    border-radius: 6px;
+    background: var(--tune-bg);
+    border: 1px dashed var(--tune-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tune-text-muted);
+  }
+
+  .dcard-cover-upload {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(109, 40, 217, 0.9);
+    border: 1px solid #fff;
+    color: #fff;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .dcard-cover-wrap:hover .dcard-cover-upload { display: flex; }
+
+  .dcard-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .dcard-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tune-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dcard-artist {
+    font-size: 13px;
+    color: var(--tune-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dcard-meta {
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    margin-top: 2px;
+  }
+
+  .dcard-sep { margin: 0 4px; }
+
+  .dcard-warn { color: #f59e0b !important; font-weight: 600; }
+
+  .dcard-hint {
+    font-size: 11px;
+    color: var(--tune-accent);
+    margin-left: 4px;
+  }
+
+  .dcard-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .dcard-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .dcard-edit-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .dcard-edit-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .dcard-input {
+    width: 100%;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-accent);
+    border-radius: 4px;
+    padding: 5px 8px;
+    color: var(--tune-text);
+    font-size: 13px;
+    outline: none;
+  }
+
+  .dcard-input:focus { box-shadow: 0 0 0 2px rgba(87, 198, 185, 0.2); }
+  .dcard-input-sm { flex: 1; }
+  .dcard-input-year { width: 70px; flex: unset; }
+
+  .dcard-edit-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .dcard-edit-actions .btn-doubtful-ok,
+  .dcard-edit-actions .btn-doubtful-edit {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    font-size: 12px;
+    width: auto;
+    height: auto;
+    border-radius: 6px;
+  }
 
   .action-bar-grid {
     display: flex;

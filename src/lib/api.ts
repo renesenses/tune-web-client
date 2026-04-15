@@ -910,12 +910,20 @@ export function getAutoFixReport(limit = 10) {
   return fetchJSON(`${BASE}/metadata/auto-fix/report?limit=${limit}`);
 }
 
-export function scanDuplicates(limit = 5000) {
-  return fetchJSON(`${BASE}/metadata/duplicates/scan`, { method: 'POST', body: JSON.stringify({ limit }) });
+export function scanDuplicates() {
+  return fetchJSON(`${BASE}/metadata/duplicates/scan?limit=0`, { method: 'POST' });
 }
 
 export function listDuplicates() {
   return fetchJSON(`${BASE}/metadata/duplicates`);
+}
+
+export function moveAlbumToDuplicates(albumId: number) {
+  return fetchJSON(`${BASE}/metadata/duplicates/move-album?album_id=${albumId}`, { method: 'POST' });
+}
+
+export function resolveDuplicate(duplicateId: number, keepTrackId: number) {
+  return fetchJSON(`${BASE}/metadata/duplicates/resolve?duplicate_id=${duplicateId}&keep_track_id=${keepTrackId}`, { method: 'POST' });
 }
 
 export function getMetadataSuggestions(status = 'pending', limit = 100) {
