@@ -862,6 +862,14 @@ export function writeAlbumTags(albumId: number) {
   return fetchJSON(`${BASE}/metadata/albums/${albumId}/write-tags`, { method: 'POST' });
 }
 
+export function mergeAlbums(albumIds: number[]) {
+  return fetchJSON(`${BASE}/metadata/albums/merge`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ album_ids: albumIds }),
+  });
+}
+
 export function batchEditTracks(trackIds: number[], updates: Record<string, any>) {
   return fetchJSON(`${BASE}/metadata/batch/tracks`, { method: 'POST', body: JSON.stringify({ track_ids: trackIds, updates }) });
 }

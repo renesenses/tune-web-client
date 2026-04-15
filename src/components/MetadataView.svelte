@@ -112,6 +112,81 @@
   }
 
   let albumNameInput = $state('');
+  let unknownGraved = $state(false);
+  let unknownGravedTrackIds = $state<number[]>([]);
+
+  async function applyArtistAndAlbum() {
+    if (selectedTrackIds.size === 0) return;
+    const savedIds = [...selectedTrackIds];
+    applying = true;
+    try {
+      // Apply artist directly (don't call applyArtist which clears state)
+      if (selectedArtistId) {
+        const artistName = artists.find(a => a.id === selectedArtistId)?.name ?? '';
+        await Promise.all(
+          savedIds.map(id => api.updateTrack(id, { artist_id: selectedArtistId! }))
+        );
+        const idsSet = new Set(savedIds);
+        unknownTracks = unknownTracks.map(t =>
+          idsSet.has(t.id!) ? { ...t, artist_id: selectedArtistId, artist_name: artistName } : t
+        );
+      }
+
+      // Apply album name directly
+      if (albumNameInput.trim()) {
+        const name = albumNameInput.trim();
+        const albums = await api.getAlbums();
+        const existing = albums.find((a: any) => a.title?.toLowerCase() === name.toLowerCase());
+        let albumId = existing?.id;
+        if (!albumId) {
+          const res = await api.apiFetch(`/library/albums`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: name }),
+          });
+          albumId = res?.id;
+        }
+        if (albumId) {
+          for (const tid of savedIds) {
+            await api.updateTrackMetadata(tid, { album_id: albumId });
+          }
+        }
+        albumNameInput = '';
+      }
+
+      unknownGraved = true;
+      unknownGravedTrackIds = savedIds;
+      selectedTrackIds = new Set();
+      selectedArtistId = null;
+      artistSearch = '';
+    } catch (e) {
+      console.error('Apply error:', e);
+    }
+    applying = false;
+  }
+
+  async function graverUnknownTags() {
+    if (unknownGravedTrackIds.length === 0) return;
+    try {
+      // Get album IDs for these tracks and write tags per album
+      const albumIds = new Set<number>();
+      for (const t of unknownTracks) {
+        if (unknownGravedTrackIds.includes(t.id!) && t.album_id) {
+          albumIds.add(t.album_id);
+        }
+      }
+      let total = 0;
+      for (const aid of albumIds) {
+        const r = await api.writeAlbumTags(aid);
+        total += r.success ?? r.tracks_processed ?? 0;
+      }
+      writeResult = { type: 'tags', message: `Tags gravés : ${total} fichiers` };
+      unknownGraved = false;
+      unknownGravedTrackIds = [];
+    } catch (e: any) {
+      writeResult = { type: 'tags', message: `Erreur gravure : ${e?.message || e}` };
+    }
+  }
 
   async function applyAlbumName() {
     const name = albumNameInput.trim();
@@ -302,21 +377,53 @@
     })
   );
 
+  let metadataSearch = $state('');
+  let filterArtist = $state('');
+  let filterGenre = $state('');
+
   let filteredAlbums = $derived.by(() => {
+    let result: Album[];
     switch (filter) {
       case 'no_cover':
-        return allAlbums.filter(a => !a.cover_path);
+        result = allAlbums.filter(a => !a.cover_path || a.id === editingDoubtfulId);
+        break;
       case 'no_genre':
-        return allAlbums.filter(a => !a.genre);
+        result = allAlbums.filter(a => !a.genre || a.id === editingDoubtfulId);
+        break;
       case 'no_year':
-        return allAlbums.filter(a => !a.year);
+        result = allAlbums.filter(a => !a.year || a.id === editingDoubtfulId);
+        break;
       case 'no_artist':
-        return [];
+        result = allAlbums.filter(a => !a.artist_name || a.artist_name === 'Unknown Artist' || a.id === editingDoubtfulId);
+        break;
       case 'unknown':
-        return [];
+        result = allAlbums.filter(a => {
+          const t = (a.title ?? '').toLowerCase();
+          const ar = (a.artist_name ?? '').toLowerCase();
+          return t.includes('unknown') || ar.includes('unknown') || a.id === editingDoubtfulId;
+        });
+        break;
       default:
-        return allAlbums;
+        result = allAlbums;
     }
+    // Text search across title, artist, genre
+    if (metadataSearch.trim()) {
+      const q = metadataSearch.trim().toLowerCase();
+      result = result.filter(a =>
+        (a.title ?? '').toLowerCase().includes(q) ||
+        (a.artist_name ?? '').toLowerCase().includes(q) ||
+        (a.genre ?? '').toLowerCase().includes(q)
+      );
+    }
+    // Artist dropdown filter
+    if (filterArtist) {
+      result = result.filter(a => a.artist_name === filterArtist);
+    }
+    // Genre dropdown filter
+    if (filterGenre) {
+      result = result.filter(a => a.genre === filterGenre);
+    }
+    return result;
   });
 
   // Count duplicate albums (same title, multiple entries)
@@ -376,6 +483,27 @@
     } catch (e: any) {
       console.error('Move to duplicates error:', e);
       alert(`Erreur : ${e?.message || e}`);
+    }
+  }
+
+  async function mergeGroup(groupIndex: number) {
+    const group = duplicateGroups[groupIndex];
+    if (!group || group.length < 2) return;
+    const ids = group.map((a: Album) => a.id!).filter(Boolean);
+    const trackCounts = group.map((a: any) => `${a.title} (${a.track_count ?? '?'} pistes)`).join('\n');
+    if (!confirm(`Fusionner ${group.length} albums en un seul ?\n\n${trackCounts}\n\nL'album avec le plus de pistes sera conservé, les autres seront supprimés.`)) return;
+    try {
+      const result = await api.mergeAlbums(ids);
+      // Remove merged albums from allAlbums, keep master
+      const mergedIds = ids.filter((id: number) => id !== result.master_id);
+      allAlbums = allAlbums.filter(a => !mergedIds.includes(a.id!));
+      // Update master track count
+      allAlbums = allAlbums.map(a => a.id === result.master_id ? { ...a, track_count: result.total_tracks } : a);
+      api.getCompletenessStats().then(s => stats = s);
+      writeResult = { type: 'tags', message: `Fusionné : ${result.tracks_moved} pistes déplacées, total ${result.total_tracks} pistes` };
+    } catch (e: any) {
+      console.error('Merge error:', e);
+      alert(`Erreur fusion : ${e?.message || e}`);
     }
   }
 
@@ -904,6 +1032,18 @@
   let doubtfulZoomCover = $state<string | null>(null);
   let doubtfulCoverUploadId = $state<number | null>(null);
   let editingDoubtfulId = $state<number | null>(null);
+  let doubtfulSavedId = $state<number | null>(null);
+
+  async function graverDoubtfulTags(albumId: number) {
+    try {
+      const r = await api.writeAlbumTags(albumId);
+      writeResult = { type: 'tags', message: `Tags gravés : ${r.updated ?? 0} fichiers` };
+      doubtfulSavedId = null;
+      editingDoubtfulId = null;
+    } catch (e: any) {
+      writeResult = { type: 'tags', message: `Erreur gravure : ${e?.message || e}` };
+    }
+  }
 
   async function handleDoubtfulCoverUpload(albumId: number, file: File) {
     try {
@@ -911,7 +1051,16 @@
       doubtfulAlbums = doubtfulAlbums.map(a =>
         a.id === albumId ? { ...a, cover_path: updated.cover_path } : a
       );
+      allAlbums = allAlbums.map(a =>
+        a.id === albumId ? { ...a, cover_path: updated.cover_path } : a
+      );
       api.getCompletenessStats().then(s => stats = s);
+      // Enable Graver button after cover upload
+      doubtfulSavedId = albumId;
+      if (!editingDoubtfulId) {
+        const album = doubtfulAlbums.find(a => a.id === albumId) ?? allAlbums.find(a => a.id === albumId);
+        if (album) editDoubtful(album);
+      }
     } catch (e) {
       console.error('Cover upload error:', e);
     }
@@ -944,7 +1093,7 @@
   }
   let editingDoubtfulData = $state<{ artist_name: string; title: string; genre: string; year: string }>({ artist_name: '', title: '', genre: '', year: '' });
 
-  function editDoubtful(album: import('../lib/api').DoubtfulAlbum) {
+  function editDoubtful(album: any) {
     editingDoubtfulId = album.id;
     editingDoubtfulData = {
       artist_name: album.artist_name ?? '',
@@ -957,27 +1106,31 @@
   async function saveDoubtful() {
     if (!editingDoubtfulId) return;
     const updates: Record<string, any> = {};
-    const album = doubtfulAlbums.find(a => a.id === editingDoubtfulId);
+    const album = doubtfulAlbums.find(a => a.id === editingDoubtfulId) ?? allAlbums.find(a => a.id === editingDoubtfulId);
     if (!album) return;
     if (editingDoubtfulData.artist_name !== (album.artist_name ?? '')) updates.artist_name = editingDoubtfulData.artist_name;
     if (editingDoubtfulData.title !== (album.title ?? '')) updates.title = editingDoubtfulData.title;
     if (editingDoubtfulData.genre !== (album.genre ?? '')) updates.genre = editingDoubtfulData.genre;
     const newYear = editingDoubtfulData.year ? parseInt(editingDoubtfulData.year) : null;
-    if (newYear !== album.year) updates.year = newYear;
+    if (newYear !== (album as any).year) updates.year = newYear;
     if (Object.keys(updates).length > 0) {
       try {
         await api.updateAlbumMetadata(editingDoubtfulId, updates);
         // Update local state
         doubtfulAlbums = doubtfulAlbums.map(a => a.id === editingDoubtfulId ? { ...a, ...updates } : a);
+        allAlbums = allAlbums.map(a => a.id === editingDoubtfulId ? { ...a, ...updates } : a);
+        doubtfulSavedId = editingDoubtfulId;
       } catch (e) {
         console.error('Save doubtful error:', e);
       }
+    } else {
+      editingDoubtfulId = null;
     }
-    editingDoubtfulId = null;
   }
 
   function cancelDoubtful() {
     editingDoubtfulId = null;
+    doubtfulSavedId = null;
   }
 
   // Column resize for doubtful table
@@ -1114,148 +1267,91 @@
       </button>
     </div>
 
-    <!-- Actions row: Duplicates + Enrich -->
-    <div class="stats-actions">
-      <div class="stats-actions-group">
-        <span class="stats-actions-label">Doublons</span>
-        <button class="btn-action" onclick={() => filter = 'duplicates'} disabled={duplicateCount === 0}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
-          {#if duplicateCount > 0}
-            Visualiser {duplicateCount} doublons
-          {:else}
-            Aucun doublon
-          {/if}
+    <!-- 2. Enrichir -->
+    <div class="meta-section">
+      <span class="meta-section-label">Enrichir</span>
+      <div class="meta-section-btns">
+        <button class="enrich-btn" onclick={() => handleFixYears('musicbrainz')} disabled={!!fixYearsRunning}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          {fixYearsRunning === 'musicbrainz' ? '...' : 'Années MusicBrainz'}
         </button>
-        <button class="btn-action" onclick={handleScanDuplicates} disabled={scanningDuplicates}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+        <button class="enrich-btn" onclick={() => handleFixYears('discogs')} disabled={!!fixYearsRunning}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          {fixYearsRunning === 'discogs' ? '...' : 'Années Discogs'}
+        </button>
+        <button class="enrich-btn" onclick={() => handleFixYears('tidal')} disabled={!!fixYearsRunning}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          {fixYearsRunning === 'tidal' ? '...' : 'Années Tidal'}
+        </button>
+        <button class="enrich-btn" onclick={handleFixGenres} disabled={fixGenresRunning}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          {fixGenresRunning ? '...' : 'Genres Last.fm'}
+        </button>
+        <button class="enrich-btn" onclick={() => api.triggerEnrich()}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>
+          Enrichir via MusicBrainz
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. Doublons -->
+    <div class="meta-section">
+      <span class="meta-section-label">Doublons</span>
+      <div class="meta-section-btns">
+        <button class="enrich-btn" onclick={() => filter = 'duplicates'} disabled={duplicateCount === 0}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+          {duplicateCount > 0 ? `Visualiser ${duplicateCount} doublons` : 'Aucun doublon'}
+        </button>
+        <button class="enrich-btn" onclick={handleScanDuplicates} disabled={scanningDuplicates}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           {scanningDuplicates ? 'Scan...' : 'Scan doublons audio'}
         </button>
-        {#if mergeMessage}
-          <span class="inline-message">{mergeMessage}</span>
-        {/if}
-        {#if scanDupMessage}
-          <span class="inline-message success" style="font-size:11px">{scanDupMessage}</span>
-        {/if}
-      </div>
-
-      <div class="stats-actions-group">
-        <span class="stats-actions-label">Enrichir</span>
-        <button class="btn-action" onclick={triggerEnrich} disabled={enriching}>
-          {#if enriching}
-            <div class="spinner small"></div>
-            {$t('metadata.enriching')}
-          {:else}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-            {$t('metadata.enrich')}
-          {/if}
-        </button>
-        {#if enrichMessage}
-          <span class="inline-message success">{enrichMessage}</span>
-        {/if}
+        {#if mergeMessage}<span class="inline-message">{mergeMessage}</span>{/if}
+        {#if scanDupMessage}<span class="inline-message success" style="font-size:11px">{scanDupMessage}</span>{/if}
       </div>
     </div>
 
-    <!-- Backup / Restore -->
-    <div class="section-divider">
-      <h2 class="section-title">{$t('maintenance.backupRestore')}</h2>
-    </div>
-    <div class="backup-section">
-      <div class="backup-header">
-        <button class="btn-action btn-primary" onclick={createBackup} disabled={backupCreating}>
-          {#if backupCreating}
-            <div class="spinner small"></div>
-          {:else}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
-          {/if}
-          {$t('maintenance.createBackup')}
-        </button>
-        {#if backupMessage}
-          <span class="backup-msg" class:success={backupMessage.type === 'success'} class:error={backupMessage.type === 'error'}>
-            {backupMessage.text}
-          </span>
-        {/if}
-      </div>
-      {#if backupLoading}
-        <div class="loading"><div class="spinner small"></div></div>
-      {:else if backups.length === 0}
-        <p class="backup-empty">{$t('maintenance.noBackups')}</p>
-      {:else}
-        <div class="backup-list">
-          {#each backups as backup}
-            <div class="backup-item">
-              <div class="backup-info">
-                <span class="backup-name">{backup.filename}</span>
-                <span class="backup-meta">{formatBackupDate(backup.created_at)} &middot; {formatFileSize(backup.size)}</span>
-              </div>
-              <button class="btn-restore" onclick={() => restoreBackup(backup.filename)} disabled={restoring !== null}>
-                {#if restoring === backup.filename}
-                  <div class="spinner small"></div>
-                {:else}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg>
-                {/if}
-                {$t('maintenance.restore')}
-              </button>
-            </div>
-          {/each}
+    <!-- 4. Corriger -->
+    <div class="meta-section">
+      <span class="meta-section-label">Corriger</span>
+      <div class="meta-section-filters">
+        <div class="filter-col-tous">
+          <button class="filter-btn" class:active={filter === 'all'} onclick={() => filter = 'all'}>{$t('metadata.all')}</button>
+          <input
+            type="text"
+            class="metadata-search"
+            placeholder="Rechercher..."
+            bind:value={metadataSearch}
+            oninput={() => { if (metadataSearch.trim() && !['all', 'no_cover', 'no_genre', 'no_year', 'doubtful'].includes(filter)) filter = 'all'; }}
+          />
+          <select
+            class="metadata-search metadata-select"
+            value={filterArtist}
+            onchange={(e) => { filterArtist = (e.target as HTMLSelectElement).value; if (filterArtist) filter = 'all'; }}
+            onfocus={ensureArtistsLoaded}
+          >
+            <option value="">-- Artiste --</option>
+            {#each artists as a (a.id)}
+              <option value={a.name}>{a.name}</option>
+            {/each}
+          </select>
+          <select
+            class="metadata-search metadata-select"
+            value={filterGenre}
+            onchange={(e) => { filterGenre = (e.target as HTMLSelectElement).value; if (filterGenre) filter = 'all'; }}
+          >
+            <option value="">-- Genre --</option>
+            {#each availableGenres as g}
+              <option value={g}>{g}</option>
+            {/each}
+          </select>
         </div>
-      {/if}
-    </div>
-
-    <!-- Filters -->
-    <div class="filter-bar">
-      <span class="filter-label">{$t('metadata.filter')}:</span>
-      <button class="filter-btn" class:active={filter === 'all'} onclick={() => filter = 'all'}>{$t('metadata.all')}</button>
-      <button class="filter-btn" class:active={filter === 'no_cover'} onclick={() => filter = 'no_cover'}>{$t('metadata.missingCovers')} ({stats.albums_without_cover})</button>
-      <button class="filter-btn" class:active={filter === 'no_genre'} onclick={() => filter = 'no_genre'}>{$t('metadata.missingGenre')} ({stats.albums_without_genre})</button>
-      <button class="filter-btn" class:active={filter === 'no_year'} onclick={() => filter = 'no_year'}>{$t('metadata.missingYear')} ({stats.albums_without_year})</button>
-      <button class="filter-btn" class:active={filter === 'no_artist'} onclick={() => filter = 'no_artist'}>{$t('metadata.missingArtist')} ({stats.tracks_without_artist})</button>
-      <button class="filter-btn" class:active={filter === 'unknown'} onclick={() => filter = 'unknown'}>{$t('metadata.unknown')} ({unknownAlbums.length})</button>
-      <button class="filter-btn" class:active={filter === 'doubtful'} onclick={() => filter = 'doubtful'}>{$t('metadata.doubtful')} ({stats?.doubtful_count ?? 0})</button>
-    </div>
-
-    <!-- Action Bar -->
-    <div class="action-bar-grid">
-      <div class="action-group">
-        <span class="action-group-label">Corriger</span>
-        <div class="action-group-btns">
-          <button class="action-btn" onclick={handleAutoFixAlbums} disabled={fixingAlbums}>
-            {fixingAlbums ? 'Albums...' : 'Auto-fix albums'}
-          </button>
-          <button class="action-btn" onclick={handleAutoFix}>
-            {autoFixStatus === 'running' ? `En cours (${autoFixProgress})` : 'Auto-fix'}
-          </button>
-          <button class="action-btn" onclick={handleShowSuggestions}>
-            Suggestions ({suggestionCount})
-          </button>
-        </div>
-      </div>
-      <div class="action-group">
-        <span class="action-group-label">Enrichir</span>
-        <div class="action-group-btns">
-          <button class="action-btn action-btn-fix" onclick={() => handleFixYears('musicbrainz')} disabled={!!fixYearsRunning}>
-            {fixYearsRunning === 'musicbrainz' ? '...' : 'Années MusicBrainz'}
-          </button>
-          <button class="action-btn action-btn-fix" onclick={() => handleFixYears('discogs')} disabled={!!fixYearsRunning}>
-            {fixYearsRunning === 'discogs' ? '...' : 'Années Discogs'}
-          </button>
-          <button class="action-btn action-btn-fix" onclick={() => handleFixYears('tidal')} disabled={!!fixYearsRunning}>
-            {fixYearsRunning === 'tidal' ? '...' : 'Années Tidal'}
-          </button>
-          <button class="action-btn action-btn-fix" onclick={handleFixGenres} disabled={fixGenresRunning}>
-            {fixGenresRunning ? '...' : 'Genres Last.fm'}
-          </button>
-        </div>
-      </div>
-      <div class="action-group">
-        <span class="action-group-label">Graver sur disque</span>
-        <div class="action-group-btns">
-          <button class="action-btn action-btn-write" onclick={handleWriteTags} disabled={writingTags}>
-            {writingTags ? 'Écriture...' : 'Tags dans fichiers'}
-          </button>
-          <button class="action-btn action-btn-write" onclick={handleWriteCovers} disabled={writingCovers}>
-            {writingCovers ? 'Écriture...' : 'Covers dans dossiers'}
-          </button>
-        </div>
+        <button class="filter-btn" class:active={filter === 'no_cover'} onclick={() => filter = 'no_cover'}>{$t('metadata.missingCovers')} ({stats.albums_without_cover})</button>
+        <button class="filter-btn" class:active={filter === 'no_genre'} onclick={() => filter = 'no_genre'}>{$t('metadata.missingGenre')} ({stats.albums_without_genre})</button>
+        <button class="filter-btn" class:active={filter === 'no_year'} onclick={() => filter = 'no_year'}>{$t('metadata.missingYear')} ({stats.albums_without_year})</button>
+        <button class="filter-btn" class:active={filter === 'no_artist'} onclick={() => filter = 'no_artist'}>{$t('metadata.missingArtist')} ({stats.tracks_without_artist})</button>
+        <button class="filter-btn" class:active={filter === 'unknown'} onclick={() => filter = 'unknown'}>{$t('metadata.unknown')} ({unknownAlbums.length})</button>
+        <button class="filter-btn" class:active={filter === 'doubtful'} onclick={() => filter = 'doubtful'}>{$t('metadata.doubtful')} ({stats?.doubtful_count ?? 0})</button>
       </div>
     </div>
 
@@ -1366,28 +1462,7 @@
     {/if}
 
     <!-- Content -->
-    {#if filter === 'no_artist'}
-      {#if tracksWithoutArtist.length === 0}
-        <div class="empty">{$t('metadata.noMissingArtist')}</div>
-      {:else}
-        <div class="tracks-list">
-          <div class="track-row track-row-header">
-            <span class="track-col-header">{$t('common.title')}</span>
-            <span class="track-col-header">{$t('common.artist')}</span>
-            <span class="track-col-header">{$t('common.album')}</span>
-            <span class="track-col-header">{$t('metadata.filePath')}</span>
-          </div>
-          {#each tracksWithoutArtist as track (track.id)}
-            <div class="track-row">
-              <span class="track-title">{track.title}</span>
-              <span class="track-artist">{track.artist_name ?? ''}</span>
-              <span class="track-album">{track.album_title ?? ''}</span>
-              <span class="track-path">{track.file_path ?? ''}</span>
-            </div>
-          {/each}
-        </div>
-      {/if}
-    {:else if filter === 'duplicates'}
+    {#if filter === 'duplicates'}
       {#if duplicateGroups.length === 0}
         <div class="empty">Aucun doublon détecté</div>
       {:else}
@@ -1403,6 +1478,10 @@
               <span class="dup-group-title">{group[0].title}</span>
               <span class="dup-group-artist">{group[0].artist_name ?? '—'}</span>
               <span class="dup-group-count">{group.length} copies</span>
+              <button class="btn-merge" onclick={() => mergeGroup(gi)} title="Fusionner en un seul album">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                Fusionner
+              </button>
               </div>
               <div class="dup-group-items">
                 {#each group as album, ai}
@@ -1447,7 +1526,11 @@
         <div class="empty">{$t('metadata.noDoubtful')}</div>
       {:else}
         <div class="doubtful-cards">
-          {#each doubtfulAlbums as album (album.id)}
+          {#each (metadataSearch.trim() ? doubtfulAlbums.filter(a => {
+            const q = metadataSearch.trim().toLowerCase();
+            return (a.title ?? '').toLowerCase().includes(q) || (a.artist_name ?? '').toLowerCase().includes(q) || (a.genre ?? '').toLowerCase().includes(q);
+          }) : doubtfulAlbums) as album (album.id)}
+            {@const albumAny = album as any}
             <div class="dcard" ondragover={(e) => e.preventDefault()} ondrop={(e) => onDoubtfulCoverDrop(e, album.id)}>
               {#if editingDoubtfulId === album.id}
                 <!-- Edit mode -->
@@ -1455,28 +1538,41 @@
                   {#if album.cover_path}
                     <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" />
                   {:else}
-                    <div class="dcard-cover-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg></div>
+                    <div class="dcard-cover-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg></div>
                   {/if}
+                  <label class="dcard-cover-upload">
+                    <input type="file" accept="image/*" style="display:none" onchange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) handleDoubtfulCoverUpload(album.id, f); }} />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  </label>
                 </div>
                 <div class="dcard-body">
                   <div class="dcard-edit-fields">
-                    <input class="dcard-input" placeholder="Artiste" bind:value={editingDoubtfulData.artist_name} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
-                    <input class="dcard-input" placeholder="Album" bind:value={editingDoubtfulData.title} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
+                    <label class="dcard-label">Artiste</label>
+                    <input class="dcard-input" bind:value={editingDoubtfulData.artist_name} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
+                    <label class="dcard-label">Album</label>
+                    <input class="dcard-input" bind:value={editingDoubtfulData.title} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
                     <div class="dcard-edit-row">
-                      <input class="dcard-input dcard-input-sm" placeholder="Genre" bind:value={editingDoubtfulData.genre} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
-                      <input class="dcard-input dcard-input-year" placeholder="Année" bind:value={editingDoubtfulData.year} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
+                      <div class="dcard-field-group">
+                        <label class="dcard-label">Genre</label>
+                        <input class="dcard-input dcard-input-sm" bind:value={editingDoubtfulData.genre} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
+                      </div>
+                      <div class="dcard-field-group dcard-field-year">
+                        <label class="dcard-label">Année</label>
+                        <input class="dcard-input dcard-input-year" bind:value={editingDoubtfulData.year} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
+                      </div>
                     </div>
                   </div>
                   <div class="dcard-edit-actions">
                     <button class="btn-doubtful-ok" onclick={saveDoubtful}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg> Enregistrer</button>
+                    <button class="btn-doubtful-ok btn-graver" disabled={!doubtfulSavedId || doubtfulSavedId !== album.id} onclick={() => graverDoubtfulTags(album.id)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 3v13M5 10l7 7 7-7"/><line x1="4" y1="21" x2="20" y2="21"/></svg> Graver tags</button>
                     <button class="btn-doubtful-edit" onclick={cancelDoubtful}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg> Annuler</button>
                   </div>
                 </div>
               {:else}
                 <!-- Display mode -->
-                <div class="dcard-cover-wrap" onclick={() => album.cover_path && (doubtfulZoomCover = api.artworkUrl(album.cover_path))}>
+                <div class="dcard-cover-wrap">
                   {#if album.cover_path}
-                    <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                    <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} onclick={(e) => { e.stopPropagation(); doubtfulZoomCover = api.artworkUrl(album.cover_path!); }} />
                   {:else}
                     <div class="dcard-cover-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg></div>
                   {/if}
@@ -1487,27 +1583,26 @@
                 </div>
                 <div class="dcard-body">
                   <div class="dcard-title">{album.title}</div>
-                  <div class="dcard-artist" class:dcard-warn={album.reasons.some(r => r.startsWith('artist'))}>
+                  <div class="dcard-artist" class:dcard-warn={albumAny.reasons?.some((r: string) => r.startsWith('artist'))}>
                     {album.artist_name ?? '—'}
-                    {#if album.artist_resolved && album.artist_resolved !== album.artist_name}
-                      <span class="dcard-hint">→ {album.artist_resolved}</span>
+                    {#if albumAny.artist_resolved && albumAny.artist_resolved !== album.artist_name}
+                      <span class="dcard-hint">→ {albumAny.artist_resolved}</span>
                     {/if}
                   </div>
                   <div class="dcard-meta">
-                    <span class:dcard-warn={album.reasons.includes('genre_placeholder')}>{album.genre ?? '—'}</span>
+                    <span class:dcard-warn={!album.genre}>{album.genre ?? '—'}</span>
                     <span class="dcard-sep">·</span>
-                    <span class:dcard-warn={album.reasons.includes('year_suspicious')}>{album.year ?? '—'}</span>
+                    <span class:dcard-warn={!album.year}>{album.year ?? '—'}</span>
                   </div>
                   <div class="dcard-tags">
-                    {#each album.reasons as reason}
-                      <span class="doubtful-tag">{REASON_LABELS[reason] ?? reason}</span>
-                    {/each}
+                    {#if albumAny.reasons}
+                      {#each albumAny.reasons as reason}
+                        <span class="doubtful-tag">{REASON_LABELS[reason] ?? reason}</span>
+                      {/each}
+                    {/if}
                   </div>
                 </div>
                 <div class="dcard-actions">
-                  <button class="btn-doubtful-ok" title="Valider" onclick={() => validateDoubtful(album)}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><polyline points="20 6 9 17 4 12" /></svg>
-                  </button>
                   <button class="btn-doubtful-edit" title="Éditer" onclick={() => editDoubtful(album)}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                   </button>
@@ -1516,122 +1611,6 @@
             </div>
           {/each}
         </div>
-      {/if}
-    {#if doubtfulZoomCover}
-      <div class="cover-zoom-overlay" onclick={() => doubtfulZoomCover = null} onkeydown={(e) => { if (e.key === 'Escape') doubtfulZoomCover = null; }} role="button" tabindex="-1">
-        <img class="cover-zoom-img" src={doubtfulZoomCover} alt="" />
-      </div>
-    {/if}
-    {:else if filter === 'unknown'}
-      {#if unknownTracksLoading}
-        <div class="loading"><div class="spinner"></div></div>
-      {:else if unknownTracksByAlbum.length === 0}
-        <div class="empty">{$t('common.noResult')}</div>
-      {:else}
-        {#each unknownTracksByAlbum as group (group.album.id)}
-          <div class="album-group">
-            <div class="album-group-header">
-              <input
-                type="checkbox"
-                checked={isAlbumSelected(group.album.id)}
-                indeterminate={isAlbumPartial(group.album.id)}
-                onclick={(e) => e.stopPropagation()}
-                onchange={() => toggleAlbumTracks(group.album.id)}
-              />
-              {#if editingAlbumId === group.album.id}
-                <input
-                  class="inline-edit"
-                  type="text"
-                  bind:value={editingAlbumTitle}
-                  onkeydown={(e) => { if (e.key === 'Enter') saveAlbumTitle(); if (e.key === 'Escape') editingAlbumId = null; }}
-                  onblur={saveAlbumTitle}
-                  autofocus
-                  onclick={(e) => e.stopPropagation()}
-                />
-              {:else}
-                <span class="album-group-title editable" onclick={(e) => { e.stopPropagation(); startEditAlbum(group.album); }}>{group.album.title}</span>
-              {/if}
-              <span class="album-group-artist">{group.album.artist_name ?? 'Unknown Artist'}</span>
-              <span class="album-group-count">{group.tracks.length} {group.tracks.length > 1 ? 'tracks' : 'track'}</span>
-            </div>
-            <div class="tracks-list">
-              <div class="track-row track-row-4col track-row-header">
-                <span></span>
-                <span class="track-col-header">{$t('common.title')}</span>
-                <span class="track-col-header">{$t('common.artist')}</span>
-                <span class="track-col-header">{$t('metadata.filePath')}</span>
-              </div>
-              {#each group.tracks as track (track.id)}
-                <div class="track-row track-row-4col" class:selected={selectedTrackIds.has(track.id!)}>
-                  <input
-                    type="checkbox"
-                    checked={selectedTrackIds.has(track.id!)}
-                    onchange={() => toggleTrack(track.id!)}
-                  />
-                  {#if editingTrackId === track.id}
-                    <input
-                      class="inline-edit"
-                      type="text"
-                      bind:value={editingTrackTitle}
-                      onkeydown={(e) => { if (e.key === 'Enter') saveTrackTitle(); if (e.key === 'Escape') editingTrackId = null; }}
-                      onblur={saveTrackTitle}
-                      autofocus
-                    />
-                  {:else}
-                    <span class="track-title editable" onclick={() => startEditTrack(track)}>{track.title}</span>
-                  {/if}
-                  <span class="track-artist">{track.artist_name ?? ''}</span>
-                  <span class="track-path">{track.file_path ?? ''}</span>
-                </div>
-              {/each}
-            </div>
-          </div>
-        {/each}
-        {#if selectedTrackIds.size > 0}
-          <div class="action-bar">
-            <span class="action-count">{selectedTrackIds.size} {selectedTrackIds.size > 1 ? 'tracks' : 'track'}</span>
-            <div class="artist-picker">
-              <input
-                type="text"
-                placeholder={artists.length === 0 ? 'Chargement…' : 'Rechercher un artiste…'}
-                disabled={artists.length === 0}
-                bind:value={artistSearch}
-                onfocus={() => artistDropdownOpen = true}
-                oninput={() => { selectedArtistId = null; artistDropdownOpen = true; }}
-              />
-              {#if artistDropdownOpen && (filteredArtists.length > 0 || artistSearch.trim().length > 0)}
-                <div class="artist-dropdown">
-                  {#each filteredArtists as artist (artist.id)}
-                    <button class="artist-option" onclick={() => selectArtist(artist)}>
-                      {artist.name}
-                    </button>
-                  {/each}
-                  {#if artistSearch.trim().length > 0 && !artists.some(a => a.name.toLowerCase() === artistSearch.trim().toLowerCase())}
-                    <button class="artist-option artist-create" onclick={createAndSelectArtist}>
-                      + Créer « {artistSearch.trim()} »
-                    </button>
-                  {/if}
-                </div>
-              {/if}
-            </div>
-            <button class="btn-action btn-primary" onclick={applyArtist} disabled={!selectedArtistId || applying}>
-              {#if applying}
-                <div class="spinner small"></div>
-              {/if}
-              Appliquer artiste
-            </button>
-            <span style="color: var(--tune-text-muted); margin: 0 4px;">|</span>
-            <input
-              type="text"
-              placeholder="Nom de l'album..."
-              bind:value={albumNameInput}
-              class="album-input"
-            />
-            <button class="btn-action btn-primary" onclick={applyAlbumName} disabled={!albumNameInput.trim() || applying}>
-              Appliquer album
-            </button>
-          </div>
-        {/if}
       {/if}
     {:else if filteredAlbums.length === 0}
       <div class="empty">
@@ -1726,33 +1705,93 @@
         </div>
       {/if}
 
-      <div class="albums-grid">
+      <div class="doubtful-cards">
         {#each filteredAlbums as album (album.id)}
-          <button class="album-card" onclick={() => editAlbum = album}>
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <div class="album-card-checkbox" onclick={(e) => { e.stopPropagation(); toggleBatchSelect(album.id!); }}>
-              <input type="checkbox" checked={batchSelectedIds.has(album.id!)} tabindex="-1" />
-            </div>
-            <div class="album-card-art">
-              <AlbumArt coverPath={album.cover_path} size={140} />
-              {#if !album.cover_path}
-                <div class="no-cover-badge">{$t('metadata.noCover')}</div>
-              {/if}
-            </div>
-            <span class="album-card-title">{album.title}</span>
-            <span class="album-card-artist" title="Clic = sélectionner même artiste" onclick={(e) => { e.stopPropagation(); if (album.artist_name) selectSameArtist(album.artist_name); }}>{album.artist_name ?? ''}</span>
-            <div class="album-card-tags">
-              {#if !album.genre}
-                <span class="tag missing">{$t('metadata.genre')}</span>
-              {/if}
-              {#if !album.year}
-                <span class="tag missing">{$t('metadata.year')}</span>
-              {/if}
-            </div>
-          </button>
+          <div class="dcard" ondragover={(e) => e.preventDefault()} ondrop={(e) => onDoubtfulCoverDrop(e, album.id!)}>
+            {#if editingDoubtfulId === album.id}
+              <!-- Edit mode -->
+              <div class="dcard-cover-wrap">
+                {#if album.cover_path}
+                  <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" />
+                {:else}
+                  <div class="dcard-cover-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg></div>
+                {/if}
+                <label class="dcard-cover-upload">
+                  <input type="file" accept="image/*" style="display:none" onchange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) handleDoubtfulCoverUpload(album.id!, f); }} />
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </label>
+              </div>
+              <div class="dcard-body">
+                <div class="dcard-edit-fields">
+                  <label class="dcard-label">Artiste</label>
+                  <input class="dcard-input" bind:value={editingDoubtfulData.artist_name} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
+                  <label class="dcard-label">Album</label>
+                  <input class="dcard-input" bind:value={editingDoubtfulData.title} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
+                  <div class="dcard-edit-row">
+                    <div class="dcard-field-group">
+                      <label class="dcard-label">Genre</label>
+                      <input class="dcard-input dcard-input-sm" bind:value={editingDoubtfulData.genre} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
+                    </div>
+                    <div class="dcard-field-group dcard-field-year">
+                      <label class="dcard-label">Année</label>
+                      <input class="dcard-input dcard-input-year" bind:value={editingDoubtfulData.year} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
+                    </div>
+                  </div>
+                </div>
+                <div class="dcard-edit-actions">
+                  <button class="btn-doubtful-ok" onclick={saveDoubtful}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg> Enregistrer</button>
+                  <button class="btn-doubtful-ok btn-graver" disabled={!doubtfulSavedId || doubtfulSavedId !== album.id} onclick={() => graverDoubtfulTags(album.id!)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 3v13M5 10l7 7 7-7"/><line x1="4" y1="21" x2="20" y2="21"/></svg> Graver tags</button>
+                  <button class="btn-doubtful-edit" onclick={cancelDoubtful}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg> Annuler</button>
+                </div>
+              </div>
+            {:else}
+              <!-- Display mode -->
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <div class="dcard-cover-wrap">
+                {#if album.cover_path}
+                  <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} onclick={(e) => { e.stopPropagation(); doubtfulZoomCover = api.artworkUrl(album.cover_path!); }} />
+                {:else}
+                  <div class="dcard-cover-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg></div>
+                {/if}
+                <label class="dcard-cover-upload">
+                  <input type="file" accept="image/*" style="display:none" onchange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) handleDoubtfulCoverUpload(album.id!, f); }} />
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </label>
+              </div>
+              <div class="dcard-body">
+                <div class="dcard-title">{album.title}</div>
+                <div class="dcard-artist">{album.artist_name ?? '—'}</div>
+                <div class="dcard-meta">
+                  <span class:dcard-warn={!album.genre}>{album.genre ?? '—'}</span>
+                  <span class="dcard-sep">·</span>
+                  <span class:dcard-warn={!album.year}>{album.year ?? '—'}</span>
+                </div>
+                {#if (album as any).folder_path}
+                  <div class="dcard-path">{(album as any).folder_path}</div>
+                {/if}
+                <div class="dcard-tags">
+                  {#if !album.cover_path}<span class="doubtful-tag">Cover manquante</span>{/if}
+                  {#if !album.genre}<span class="doubtful-tag">Genre manquant</span>{/if}
+                  {#if !album.year}<span class="doubtful-tag">Année manquante</span>{/if}
+                </div>
+              </div>
+              <div class="dcard-actions">
+                <input type="checkbox" checked={batchSelectedIds.has(album.id!)} onchange={() => toggleBatchSelect(album.id!)} onclick={(e) => e.stopPropagation()} />
+                <button class="btn-doubtful-edit" title="Éditer" onclick={() => editDoubtful(album)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                </button>
+              </div>
+            {/if}
+          </div>
         {/each}
       </div>
     {/if}
+  {/if}
+
+  {#if doubtfulZoomCover}
+    <div class="cover-zoom-overlay" onclick={() => doubtfulZoomCover = null} onkeydown={(e) => { if (e.key === 'Escape') doubtfulZoomCover = null; }} role="button" tabindex="-1">
+      <img class="cover-zoom-img" src={doubtfulZoomCover} alt="" />
+    </div>
   {/if}
 </div>
 
@@ -1822,6 +1861,16 @@
   .btn-action.btn-primary:hover:not(:disabled) {
     background: var(--tune-accent-hover);
   }
+
+  .btn-action.btn-graver {
+    background: #e67e22;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .btn-action.btn-graver:hover:not(:disabled) { background: #d35400; }
+  .btn-action.btn-graver:disabled { opacity: 0.4; }
 
   /* Section divider */
   .section-divider {
@@ -2018,6 +2067,19 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
+
+  .metadata-search {
+    margin-left: auto;
+    padding: 5px 10px;
+    border: 1px solid var(--tune-border);
+    border-radius: 6px;
+    background: var(--tune-bg);
+    color: var(--tune-text);
+    font-size: 13px;
+    width: 260px;
+    outline: none;
+  }
+  .metadata-search:focus { border-color: var(--tune-accent); }
 
   .filter-btn {
     padding: 6px 12px;
@@ -2758,6 +2820,26 @@
     border-color: #ef4444;
   }
 
+  .btn-merge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(87, 198, 185, 0.3);
+    background: rgba(87, 198, 185, 0.1);
+    color: var(--tune-accent);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.12s;
+  }
+  .btn-merge:hover {
+    background: rgba(87, 198, 185, 0.25);
+    border-color: var(--tune-accent);
+  }
+
   /* Doubtful cards */
   .doubtful-cards {
     display: flex;
@@ -2853,6 +2935,14 @@
 
   .dcard-sep { margin: 0 4px; }
 
+  .dcard-path {
+    font-size: 10px;
+    color: var(--tune-text-muted);
+    margin-top: 2px;
+    word-break: break-all;
+    opacity: 0.7;
+  }
+
   .dcard-warn { color: #f59e0b !important; font-weight: 600; }
 
   .dcard-hint {
@@ -2901,6 +2991,20 @@
   .dcard-input-sm { flex: 1; }
   .dcard-input-year { width: 70px; flex: unset; }
 
+  .dcard-label {
+    font-size: 11px;
+    color: var(--tune-text-secondary, #999);
+    margin-bottom: 2px;
+    margin-top: 4px;
+  }
+  .dcard-label:first-child { margin-top: 0; }
+
+  .dcard-field-group { display: flex; flex-direction: column; flex: 1; }
+  .dcard-field-year { width: 80px; flex: unset; }
+
+  .btn-graver { background: #e67e22 !important; }
+  .btn-graver:disabled { opacity: 0.4; cursor: not-allowed; }
+
   .dcard-edit-actions {
     display: flex;
     gap: 8px;
@@ -2919,70 +3023,67 @@
     border-radius: 6px;
   }
 
-  .action-bar-grid {
-    display: flex;
-    gap: 12px;
-    padding: 12px 16px;
-    background: var(--tune-surface);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-md);
-    flex-wrap: wrap;
-    align-items: flex-start;
-  }
-
-  .action-group {
+  .meta-section {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding-right: 12px;
-    border-right: 1px solid var(--tune-border);
+    gap: 8px;
   }
 
-  .action-group:last-child {
-    border-right: none;
-    padding-right: 0;
-  }
-
-  .action-group-label {
+  .meta-section-label {
     font-family: var(--font-label);
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--tune-text-muted);
   }
 
-  .action-group-btns {
+  .meta-section-btns {
     display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .meta-section-filters {
+    display: flex;
+    align-items: flex-start;
     gap: 6px;
     flex-wrap: wrap;
   }
 
-  .action-btn-fix {
-    font-size: 11px !important;
-    padding: 5px 10px !important;
-    background: rgba(109, 40, 217, 0.08) !important;
-    border-color: rgba(109, 40, 217, 0.2) !important;
-    color: #c4b5fd !important;
+  .filter-col-tous {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .filter-col-tous .metadata-search {
+    width: 260px;
+    margin-left: 0;
+  }
+  .metadata-select {
+    appearance: auto;
+    cursor: pointer;
   }
 
-  .action-btn-fix:hover:not(:disabled) {
-    background: rgba(109, 40, 217, 0.18) !important;
-    border-color: rgba(109, 40, 217, 0.4) !important;
+  .enrich-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(109, 40, 217, 0.25);
+    background: rgba(109, 40, 217, 0.08);
+    color: #c4b5fd;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.12s;
   }
-
-  .action-btn-write {
-    font-size: 11px !important;
-    padding: 5px 10px !important;
-    background: rgba(234, 88, 12, 0.08) !important;
-    border-color: rgba(234, 88, 12, 0.2) !important;
-    color: #fb923c !important;
+  .enrich-btn:hover:not(:disabled) {
+    background: rgba(109, 40, 217, 0.2);
+    border-color: rgba(109, 40, 217, 0.4);
   }
-
-  .action-btn-write:hover:not(:disabled) {
-    background: rgba(234, 88, 12, 0.18) !important;
-    border-color: rgba(234, 88, 12, 0.4) !important;
-  }
+  .enrich-btn:disabled { opacity: 0.4; cursor: default; }
 
   .fix-result-banner {
     display: flex;
