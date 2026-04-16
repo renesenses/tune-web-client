@@ -4,6 +4,7 @@
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { currentProfileId } from '../lib/stores/profile';
   import * as api from '../lib/api';
+  import { notifications } from '../lib/stores/notifications';
   import { formatTime, formatDuration, formatAudioBadge } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
@@ -289,16 +290,23 @@
   }
 
   async function playAlbum(albumId: number) {
-    if (!zone?.id) return;
+    if (!zone?.id) {
+      notifications.error('Aucune zone sélectionnée — sélectionnez une zone pour lancer la lecture');
+      return;
+    }
     try {
       await api.play(zone.id, { album_id: albumId });
     } catch (e) {
       console.error('Play album error:', e);
+      notifications.error('Erreur de lecture : ' + (e instanceof Error ? e.message : String(e)));
     }
   }
 
   async function playTrack(trackId: number) {
-    if (!zone?.id) return;
+    if (!zone?.id) {
+      notifications.error('Aucune zone sélectionnée — sélectionnez une zone pour lancer la lecture');
+      return;
+    }
     try {
       const idx = $albumTracks.findIndex(t => t.id === trackId);
       if (idx >= 0) {
@@ -309,11 +317,15 @@
       }
     } catch (e) {
       console.error('Play track error:', e);
+      notifications.error('Erreur de lecture : ' + (e instanceof Error ? e.message : String(e)));
     }
   }
 
   async function addTrackToQueue(track: Track) {
-    if (!zone?.id) return;
+    if (!zone?.id) {
+      notifications.error('Aucune zone sélectionnée — sélectionnez une zone');
+      return;
+    }
     try {
       if (track.id) {
         await api.addToQueue(zone.id, { track_id: track.id });

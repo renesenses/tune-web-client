@@ -757,6 +757,14 @@
     transition: background 0.1s;
   }
 
+  /* Allow the truncated name to actually shrink and ellipsize inside the flex
+     row instead of wrapping one char per line when the playing indicator is
+     present (fixes Matteo's "192.168.1.52-Sonoro..." wrap bug). */
+  .zone-dropdown-item > .truncate {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
   .zone-dropdown-item:hover {
     background: var(--tune-surface-hover);
     color: var(--tune-text);
