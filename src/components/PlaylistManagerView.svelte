@@ -66,6 +66,58 @@
   let newName = $state('');
   let newDescription = $state('');
 
+  // Merge mode
+  let mergeMode = $state(false);
+  let mergeSelected = $state<Set<string>>(new Set());  // keys: `${service}:${id}`
+  let mergeName = $state('');
+  let mergeDedup = $state(true);
+  let merging = $state(false);
+  let mergeResult = $state<{ id: number; name: string; total_tracks: number } | null>(null);
+
+  function mergeKey(service: string, id: string): string {
+    return `${service}:${id}`;
+  }
+
+  function toggleMergeSelect(service: string, id: string) {
+    const key = mergeKey(service, id);
+    const next = new Set(mergeSelected);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    mergeSelected = next;
+  }
+
+  function cancelMerge() {
+    mergeMode = false;
+    mergeSelected = new Set();
+    mergeName = '';
+    mergeResult = null;
+  }
+
+  async function doMerge() {
+    if (mergeSelected.size < 2 || !mergeName.trim()) return;
+    const playlists = Array.from(mergeSelected).map((key) => {
+      const [service, id] = key.split(':', 2);
+      return { service, playlist_id: id };
+    });
+    merging = true;
+    mergeResult = null;
+    try {
+      const result = await api.mergePlaylists({
+        playlists,
+        target_name: mergeName.trim(),
+        deduplicate: mergeDedup,
+      });
+      mergeResult = result;
+      mergeSelected = new Set();
+      mergeName = '';
+      mergeMode = false;
+      // Reload local playlists
+      try { localPlaylists = await api.getPlaylists(); } catch {}
+    } catch (err: any) {
+      alert(`Erreur merge : ${err.message || err}`);
+    }
+    merging = false;
+  }
+
   // --- NEW: Playlist Manager v2 tabs ---
   let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup'>('playlists');
 
@@ -934,7 +986,22 @@
           {/if}
         </button>
       {/each}
+      <button
+        class="filter-chip"
+        class:active={mergeMode}
+        onclick={() => { mergeMode = !mergeMode; if (!mergeMode) cancelMerge(); }}
+        title="Fusionner plusieurs playlists"
+      >
+        {mergeMode ? 'Annuler fusion' : 'Fusionner'}
+      </button>
     </div>
+
+    {#if mergeResult}
+      <div class="backup-result" style="margin-bottom: 8px;">
+        <span class="stat-ok">Playlist "{mergeResult.name}" créée avec {mergeResult.total_tracks} pistes.</span>
+        <button class="cancel-btn" onclick={() => mergeResult = null}>OK</button>
+      </div>
+    {/if}
 
     {#if showCreate}
       <div class="create-form">
@@ -957,11 +1024,43 @@
       <div class="empty">{$tr('playlist.noPlaylists')}</div>
     {/if}
 
+    {#if mergeMode && mergeSelected.size > 0}
+      <div class="merge-bar">
+        <span class="merge-count">{mergeSelected.size} playlists sélectionnées</span>
+        <input
+          type="text"
+          placeholder="Nom de la playlist fusionnée"
+          bind:value={mergeName}
+          class="merge-input"
+        />
+        <label class="merge-dedup">
+          <input type="checkbox" bind:checked={mergeDedup} />
+          Dédupliquer
+        </label>
+        <button
+          class="confirm-btn"
+          onclick={doMerge}
+          disabled={merging || mergeSelected.size < 2 || !mergeName.trim()}
+        >
+          {merging ? 'Fusion...' : 'Fusionner'}
+        </button>
+        <button class="cancel-btn" onclick={cancelMerge}>Annuler</button>
+      </div>
+    {/if}
+
     {#if displayPlaylists.length > 0}
       <div class="playlist-list">
         {#each displayPlaylists as item}
-          <div class="playlist-item">
-            <button class="playlist-btn" onclick={() => selectItem(item)}>
+          <div class="playlist-item" class:merge-selected={mergeMode && mergeSelected.has(mergeKey(item.service, String(item.local?.id ?? item.streaming?.source_id ?? '')))}>
+            {#if mergeMode}
+              <input
+                type="checkbox"
+                class="merge-check"
+                checked={mergeSelected.has(mergeKey(item.service, String(item.local?.id ?? item.streaming?.source_id ?? '')))}
+                onchange={() => toggleMergeSelect(item.service, String(item.local?.id ?? item.streaming?.source_id ?? ''))}
+              />
+            {/if}
+            <button class="playlist-btn" onclick={() => mergeMode ? toggleMergeSelect(item.service, String(item.local?.id ?? item.streaming?.source_id ?? '')) : selectItem(item)}>
               <div class="playlist-icon" class:streaming-icon={item.type === 'streaming'}>
                 {#if item.coverPath}
                   <AlbumArt coverPath={item.coverPath} size={48} alt={item.name} />
@@ -1344,6 +1443,12 @@
   .snapshot-meta { font-size: 12px; color: var(--tune-text-secondary); }
   .snapshot-actions { display: flex; gap: 6px; flex-shrink: 0; }
   .btn-danger { background: rgba(248, 113, 113, 0.12); color: #f87171; border-color: rgba(248, 113, 113, 0.3); }
+  .merge-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--tune-accent)22; border: 1px solid var(--tune-accent)66; border-radius: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .merge-count { font-weight: 600; font-size: 13px; color: var(--tune-text-primary); }
+  .merge-input { flex: 1; min-width: 180px; padding: 6px 10px; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 6px; color: var(--tune-text-primary); font-size: 13px; }
+  .merge-dedup { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--tune-text-secondary); cursor: pointer; }
+  .merge-check { margin-right: 8px; cursor: pointer; accent-color: var(--tune-accent); width: 18px; height: 18px; }
+  .merge-selected { background: var(--tune-accent)11; }
   .batch-form { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
   .batch-form select { padding: 8px 12px; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 8px; color: var(--tune-text); font-size: 13px; }
 
