@@ -818,6 +818,41 @@ export function backupPlaylists(services?: string[]) {
   });
 }
 
+export interface PlaylistSnapshot {
+  id: number;
+  source_service: string;
+  source_playlist_id: string;
+  playlist_name: string;
+  track_count: number;
+  created_at?: string | null;
+}
+
+export interface SnapshotDetail extends PlaylistSnapshot {
+  tracks: Array<{ title?: string; artist_name?: string; album_title?: string; duration_ms?: number; source_id?: string; isrc?: string }>;
+}
+
+export function listPlaylistSnapshots(service?: string) {
+  const url = service
+    ? `${BASE}/playlist-manager/backups?service=${encodeURIComponent(service)}`
+    : `${BASE}/playlist-manager/backups`;
+  return fetchJSON<PlaylistSnapshot[]>(url);
+}
+
+export function getPlaylistSnapshot(id: number) {
+  return fetchJSON<SnapshotDetail>(`${BASE}/playlist-manager/backups/${id}`);
+}
+
+export function deletePlaylistSnapshot(id: number) {
+  return fetchJSON<{ deleted: boolean; id: number }>(`${BASE}/playlist-manager/backups/${id}`, { method: 'DELETE' });
+}
+
+export function restorePlaylistSnapshot(id: number, body?: { target_name?: string; overwrite_existing?: boolean }) {
+  return fetchJSON<{ local_playlist_id: number; name: string; tracks_restored: number; tracks_matched: number; tracks_not_found: number }>(
+    `${BASE}/playlist-manager/backups/${id}/restore`,
+    { method: 'POST', body: JSON.stringify(body ?? {}) },
+  );
+}
+
 export function exportPlaylistFile(service: string, playlistId: string, format: string) {
   return fetch(`${BASE}/playlist-manager/export`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },

@@ -81,6 +81,10 @@
   // Backup
   let backingUp = $state(false);
   let backupResult = $state<any>(null);
+  let snapshots = $state<api.PlaylistSnapshot[]>([]);
+  let snapshotsLoading = $state(false);
+  let restoringSnapshotId = $state<number | null>(null);
+  let restoreMessage = $state('');
 
   // Batch
   let batchSource = $state('');
@@ -103,6 +107,55 @@
         serviceCapabilities = await api.getPlaylistManagerServices();
       } catch {}
       syncLoading = false;
+    } else if (managerTab === 'backup') {
+      await loadSnapshots();
+    }
+  }
+
+  async function loadSnapshots() {
+    snapshotsLoading = true;
+    try { snapshots = await api.listPlaylistSnapshots(); } catch {}
+    snapshotsLoading = false;
+  }
+
+  async function restoreSnapshot(snap: api.PlaylistSnapshot) {
+    const name = prompt(`Restaurer "${snap.playlist_name}" en tant que playlist locale.\nNom (laisser vide = "${snap.playlist_name}") :`, snap.playlist_name);
+    if (name === null) return;
+    restoringSnapshotId = snap.id;
+    restoreMessage = '';
+    try {
+      const result = await api.restorePlaylistSnapshot(snap.id, {
+        target_name: name || undefined,
+      });
+      restoreMessage = `"${result.name}" restaurée : ${result.tracks_matched} pistes trouvées localement, ${result.tracks_not_found} introuvables.`;
+    } catch (err: any) {
+      // If conflict, ask user about overwrite
+      if (err?.message?.includes('already exists') || err?.status === 409) {
+        if (confirm(`Une playlist "${name || snap.playlist_name}" existe déjà. La remplacer ?`)) {
+          try {
+            const result = await api.restorePlaylistSnapshot(snap.id, {
+              target_name: name || undefined,
+              overwrite_existing: true,
+            });
+            restoreMessage = `"${result.name}" remplacée : ${result.tracks_matched} pistes trouvées, ${result.tracks_not_found} introuvables.`;
+          } catch (err2: any) {
+            restoreMessage = `Erreur : ${err2.message || err2}`;
+          }
+        }
+      } else {
+        restoreMessage = `Erreur : ${err.message || err}`;
+      }
+    }
+    restoringSnapshotId = null;
+  }
+
+  async function deleteSnapshot(snap: api.PlaylistSnapshot) {
+    if (!confirm(`Supprimer le snapshot de "${snap.playlist_name}" ?`)) return;
+    try {
+      await api.deletePlaylistSnapshot(snap.id);
+      snapshots = snapshots.filter(s => s.id !== snap.id);
+    } catch (err: any) {
+      alert(`Erreur : ${err.message || err}`);
     }
   }
 
@@ -127,6 +180,7 @@
     backingUp = true;
     try { backupResult = await api.backupPlaylists(); } catch {}
     backingUp = false;
+    await loadSnapshots();
   }
 
   async function doBatchTransfer() {
@@ -797,6 +851,44 @@
           </div>
         {/if}
 
+        <h4 style="margin-top: 24px;">Snapshots sauvegardés</h4>
+        {#if restoreMessage}
+          <div class="backup-result" style="margin-bottom: 8px;">
+            <span>{restoreMessage}</span>
+          </div>
+        {/if}
+        {#if snapshotsLoading}
+          <p class="muted">Chargement...</p>
+        {:else if snapshots.length === 0}
+          <p class="muted">Aucun snapshot. Lance un backup pour en créer.</p>
+        {:else}
+          <div class="snapshots-list">
+            {#each snapshots as snap (snap.id)}
+              <div class="snapshot-row">
+                <div class="snapshot-info">
+                  <span class="snapshot-name">{snap.playlist_name}</span>
+                  <span class="snapshot-meta">
+                    {snap.source_service} · {snap.track_count} pistes
+                    {#if snap.created_at}· {new Date(snap.created_at).toLocaleString()}{/if}
+                  </span>
+                </div>
+                <div class="snapshot-actions">
+                  <button
+                    class="btn-action"
+                    onclick={() => restoreSnapshot(snap)}
+                    disabled={restoringSnapshotId === snap.id}
+                  >
+                    {restoringSnapshotId === snap.id ? 'Restauration...' : 'Restaurer'}
+                  </button>
+                  <button class="btn-action btn-danger" onclick={() => deleteSnapshot(snap)}>
+                    Supprimer
+                  </button>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
+
         <h4 style="margin-top: 24px;">Batch Transfer</h4>
         <div class="batch-form">
           <select bind:value={batchSource}>
@@ -1245,6 +1337,13 @@
   .btn-sm.danger:hover { background: #EF444422; }
 
   .backup-result { padding: 12px 16px; background: var(--tune-surface); border-radius: 8px; margin-top: 12px; display: flex; gap: 16px; font-size: 14px; }
+  .snapshots-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .snapshot-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--tune-surface); border-radius: 6px; }
+  .snapshot-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .snapshot-name { font-weight: 600; font-size: 14px; color: var(--tune-text-primary); }
+  .snapshot-meta { font-size: 12px; color: var(--tune-text-secondary); }
+  .snapshot-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .btn-danger { background: rgba(248, 113, 113, 0.12); color: #f87171; border-color: rgba(248, 113, 113, 0.3); }
   .batch-form { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
   .batch-form select { padding: 8px 12px; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 8px; color: var(--tune-text); font-size: 13px; }
 
