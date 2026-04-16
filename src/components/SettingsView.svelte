@@ -429,6 +429,36 @@
     pgMigrating = false;
   }
 
+  // DB Import/Export
+  let dbImporting = $state(false);
+  let dbImportResult = $state('');
+  let dbImportFileInput: HTMLInputElement | null = $state(null);
+
+  function exportDatabase() {
+    window.location.href = api.exportDatabaseUrl();
+  }
+
+  async function onImportFileSelected(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!confirm(`Importer "${file.name}" va remplacer la base de données actuelle.\nUn backup de sécurité sera créé.\nLe serveur devra être redémarré après l'import.\n\nContinuer ?`)) {
+      input.value = '';
+      return;
+    }
+    dbImporting = true;
+    dbImportResult = '';
+    try {
+      const result = await api.importDatabase(file);
+      dbImportResult = `Import réussi (${(result.size / 1024 / 1024).toFixed(1)} MB). Redémarrez le serveur pour prendre en compte les changements.`;
+    } catch (err: any) {
+      dbImportResult = `Erreur import: ${err.message}`;
+    } finally {
+      dbImporting = false;
+      input.value = '';
+    }
+  }
+
   async function checkForUpdate() {
     try {
       const data = await api.checkForUpdate();
@@ -762,6 +792,42 @@
             <span class="db-stat">{stats.artists} {$t('settings.artists')}</span>
           </div>
         {/if}
+
+        <!-- Import / Export -->
+        <div class="db-importexport">
+          <h4>Import / Export</h4>
+          <div class="db-ie-actions">
+            <button class="btn-secondary" onclick={exportDatabase}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Exporter la base
+            </button>
+            <button class="btn-secondary" onclick={() => dbImportFileInput?.click()} disabled={dbImporting}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              {dbImporting ? 'Import...' : 'Importer un fichier'}
+            </button>
+            <input
+              bind:this={dbImportFileInput}
+              type="file"
+              accept=".db,.sqlite,.sqlite3,.sql"
+              style="display:none"
+              onchange={onImportFileSelected}
+            />
+          </div>
+          {#if dbImportResult}
+            <div class="migrate-result" class:ok={dbImportResult.startsWith('Import réussi')} class:error={dbImportResult.startsWith('Erreur')}>
+              {dbImportResult}
+            </div>
+          {/if}
+        </div>
+
         <p class="db-hint">{$t('settings.dbSwitchInfo')}</p>
 
         <!-- Migration section -->
@@ -1967,6 +2033,28 @@
     font-weight: 600;
     color: var(--tune-text-primary);
     margin: 0 0 var(--space-sm) 0;
+  }
+  .db-importexport {
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--tune-border);
+  }
+  .db-importexport h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tune-text-primary);
+    margin: 0 0 var(--space-sm) 0;
+  }
+  .db-ie-actions {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-sm);
+  }
+  .db-ie-actions button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
   .migrate-form {
     display: flex;

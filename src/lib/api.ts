@@ -642,6 +642,21 @@ export function restoreBackup(filename: string) {
   return fetchJSON<{ restored: boolean }>(`${BASE}/system/backups/${encodeURIComponent(filename)}/restore`, { method: 'POST' });
 }
 
+export function exportDatabaseUrl(): string {
+  return `${BASE}/system/database/export`;
+}
+
+export async function importDatabase(file: File) {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${BASE}/system/database/import`, { method: 'POST', body: form });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Import failed (${res.status}): ${text || res.statusText}`);
+  }
+  return res.json() as Promise<{ imported: boolean; engine: string; size: number; restart_required: boolean }>;
+}
+
 export function getStreamingServices() {
   return fetchJSON<Record<string, StreamingServiceStatus>>(`${BASE}/streaming/services`);
 }
