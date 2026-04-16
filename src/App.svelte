@@ -42,6 +42,7 @@
   import YTPlayer from './components/YTPlayer.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
   import { loadProfiles } from './lib/stores/profile';
+  import { notifications } from './lib/stores/notifications';
 
   import type { Track } from './lib/types';
 
@@ -410,6 +411,23 @@
       </button>
     </div>
   {/if}
+
+  <!-- Global notification toasts pushed by any component via `notifications.error/info`. -->
+  {#each $notifications as n (n.id)}
+    <div class="error-toast" class:info-toast={n.level === 'info'} style="top: {120 + (20 * n.id % 40)}px;">
+      <svg class="error-toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+        {#if n.level === 'error'}
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+        {:else}
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+        {/if}
+      </svg>
+      <span class="error-toast-msg">{n.message}</span>
+      <button class="error-toast-dismiss" onclick={() => notifications.dismiss(n.id)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+      </button>
+    </div>
+  {/each}
 </div>
 
 <!-- Single persistent YouTube IFrame Player instance (off-screen) -->
@@ -501,6 +519,15 @@
   .error-toast-icon {
     flex-shrink: 0;
     color: #C9544B;
+  }
+
+  .error-toast.info-toast {
+    background: #1A2A2A;
+    border-color: #2D5B6B;
+    color: #A0D8E8;
+  }
+  .error-toast.info-toast .error-toast-icon {
+    color: #4B9FC9;
   }
 
   .error-toast-msg {
