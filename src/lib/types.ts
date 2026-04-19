@@ -104,6 +104,8 @@ export interface Zone {
   position_ms?: number;
   queue_length?: number;
   signal_path?: SignalPath | null;
+  stereo_pair_id?: string | null;
+  stereo_channel?: 'left' | 'right' | null;
 }
 
 export interface DiscoveredDevice {
@@ -397,6 +399,18 @@ export interface PlaylistRecoverResponse {
 export interface RecoverApplyResponse {
   replaced: number;
   failed: number;
+}
+
+export interface StereoPairResponse {
+  stereo_pair_id: string;
+  left_zone_id: number;
+  right_zone_id: number;
+}
+
+export interface StereoPairInfo {
+  stereo_pair_id: string;
+  left_zone: Zone | null;
+  right_zone: Zone | null;
 }
 
 export interface WSEvent {

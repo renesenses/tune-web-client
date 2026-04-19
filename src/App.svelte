@@ -42,15 +42,19 @@
   import BottomTabBar from './components/BottomTabBar.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
   import ToastContainer from './components/ToastContainer.svelte';
+  import OnboardingWizard from './components/OnboardingWizard.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
   import { loadProfiles } from './lib/stores/profile';
   import { notifications } from './lib/stores/notifications';
+  import { streamingServices as streamingServicesStore } from './lib/stores/streaming';
 
   import type { Track } from './lib/types';
 
   let cleanupKeyboard: (() => void) | null = null;
   let scanIndicator = $state(false);
   let playlistModalTrack = $state<Track | null>(null);
+  let showOnboarding = $state(false);
+  let onboardingChecked = $state(false);
 
   function showError(msg: string) {
     notifications.error(msg);
@@ -176,6 +180,31 @@
     }
   }
 
+  async function checkOnboarding() {
+    // Skip if already completed
+    if (localStorage.getItem('tune_onboarding_completed')) {
+      onboardingChecked = true;
+      return;
+    }
+    try {
+      const [stats, services] = await Promise.all([
+        api.getLibraryStats(),
+        api.getStreamingServices(),
+      ]);
+      const hasNoTracks = stats.tracks === 0;
+      const hasNoEnabledServices = !Object.values(services).some((s: any) => s.enabled);
+      showOnboarding = hasNoTracks && hasNoEnabledServices;
+    } catch {
+      // If API fails, skip onboarding — server may not be ready yet
+      showOnboarding = false;
+    }
+    onboardingChecked = true;
+  }
+
+  function handleOnboardingComplete() {
+    showOnboarding = false;
+  }
+
   onMount(() => {
     // Apply saved preferences (theme + language)
     const unsub = preferences.subscribe((prefs) => {
@@ -199,6 +228,7 @@
     fetchDevices();
     fetchPlaylists();
     loadProfiles();
+    checkOnboarding();
 
     tuneWS.onEvent((event) => {
       const type = event.type;
@@ -389,6 +419,10 @@
 
   <ToastContainer />
 </div>
+
+{#if showOnboarding}
+  <OnboardingWizard onComplete={handleOnboardingComplete} />
+{/if}
 
 <!-- Single persistent YouTube IFrame Player instance (off-screen) -->
 <YTPlayer />

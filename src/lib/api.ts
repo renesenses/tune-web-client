@@ -270,6 +270,23 @@ export function getGaplessStatus(groupId: string) {
   return fetchJSON<any>(`${BASE}/zone-manager/groups/${encodeURIComponent(groupId)}/gapless`);
 }
 
+// --- Stereo Pairs ---
+
+export function createStereoPair(name: string, leftDeviceId: string, rightDeviceId: string) {
+  return fetchJSON<import('./types').StereoPairResponse>(`${BASE}/zones/stereo-pair`, {
+    method: 'POST',
+    body: JSON.stringify({ name, left_device_id: leftDeviceId, right_device_id: rightDeviceId }),
+  });
+}
+
+export function dissolveStereoPair(pairId: string) {
+  return fetchVoid(`${BASE}/zones/stereo-pair/${encodeURIComponent(pairId)}`, { method: 'DELETE' });
+}
+
+export function listStereoPairs() {
+  return fetchJSON<import('./types').StereoPairInfo[]>(`${BASE}/zones/stereo-pairs/list`);
+}
+
 // --- Playback ---
 
 export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; file_path?: string }) {
