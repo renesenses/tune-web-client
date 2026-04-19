@@ -9,6 +9,7 @@
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry, BackupInfo } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
+  import { notifications } from '../lib/stores/notifications';
 
   const CLIENT_VERSION = __APP_VERSION__;
   let serverVersion = $state<string | null>(null);
@@ -376,7 +377,7 @@
       $streamingServicesStore = await api.getStreamingServices();
     } catch (e: any) {
       console.error('Toggle service error:', e);
-      alert(e?.message || String(e));
+      notifications.error(e?.message || String(e));
     }
   }
 

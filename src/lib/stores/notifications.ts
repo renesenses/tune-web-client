@@ -6,7 +6,7 @@ import { writable } from 'svelte/store';
  * `showError` by making it reachable from anywhere.
  */
 
-export type NotificationLevel = 'error' | 'info';
+export type NotificationLevel = 'error' | 'info' | 'success';
 
 export interface Notification {
   id: number;
@@ -38,6 +38,7 @@ function createStore() {
   return {
     subscribe,
     error: (msg: string, duration = 5000) => push(msg, 'error', duration),
+    success: (msg: string, duration = 4000) => push(msg, 'success', duration),
     info: (msg: string, duration = 3000) => push(msg, 'info', duration),
     dismiss,
   };

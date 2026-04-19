@@ -1,5 +1,7 @@
 // REST API client for tune-server
 
+import { notifications } from './stores/notifications';
+
 import type {
   Zone,
   Track,
@@ -59,23 +61,43 @@ async function apiError(response: Response): Promise<Error> {
 }
 
 async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    });
+  } catch (e) {
+    notifications.error('Network error: server unreachable');
+    throw e;
+  }
   if (!response.ok) {
-    throw await apiError(response);
+    const err = await apiError(response);
+    if (response.status >= 500) {
+      notifications.error(`Server error: ${err.message}`);
+    }
+    throw err;
   }
   return response.json();
 }
 
 async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
-  const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    });
+  } catch (e) {
+    notifications.error('Network error: server unreachable');
+    throw e;
+  }
   if (!response.ok) {
-    throw await apiError(response);
+    const err = await apiError(response);
+    if (response.status >= 500) {
+      notifications.error(`Server error: ${err.message}`);
+    }
+    throw err;
   }
 }
 
@@ -598,6 +620,10 @@ export function getStats() {
 
 export function getConfig() {
   return fetchJSON<any>(`${BASE}/system/config`);
+}
+
+export function getDatabaseStatus() {
+  return fetchJSON<any>(`${BASE}/system/database/status`);
 }
 
 export function updateConfig(fields: Record<string, unknown>) {

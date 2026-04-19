@@ -29,6 +29,7 @@
   import StreamingView from './components/StreamingView.svelte';
   import MetadataView from './components/MetadataView.svelte';
   import ZoneManagerView from './components/ZoneManagerView.svelte';
+  import DiagnosticsView from './components/DiagnosticsView.svelte';
   import BrowseView from './components/BrowseView.svelte';
   import RadiosView from './components/RadiosView.svelte';
   import PodcastsView from './components/PodcastsView.svelte';
@@ -40,6 +41,7 @@
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
   import BottomTabBar from './components/BottomTabBar.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
+  import ToastContainer from './components/ToastContainer.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
   import { loadProfiles } from './lib/stores/profile';
   import { notifications } from './lib/stores/notifications';
@@ -50,25 +52,8 @@
   let scanIndicator = $state(false);
   let playlistModalTrack = $state<Track | null>(null);
 
-  // Error toast system
-  let errorMessage = $state<string | null>(null);
-  let errorTimeout: ReturnType<typeof setTimeout> | null = null;
-
   function showError(msg: string) {
-    errorMessage = msg;
-    if (errorTimeout) clearTimeout(errorTimeout);
-    errorTimeout = setTimeout(() => {
-      errorMessage = null;
-      errorTimeout = null;
-    }, 5000);
-  }
-
-  function dismissError() {
-    errorMessage = null;
-    if (errorTimeout) {
-      clearTimeout(errorTimeout);
-      errorTimeout = null;
-    }
+    notifications.error(msg);
   }
 
   function openPlaylistModal(track: Track) {
@@ -375,6 +360,8 @@
       <RadioFavoritesView />
     {:else if $activeView === 'zonemanager'}
       <ZoneManagerView />
+    {:else if $activeView === 'diagnostics'}
+      <DiagnosticsView />
     {/if}
 
     {#if scanIndicator}
@@ -400,34 +387,7 @@
     </div>
   {/if}
 
-  {#if errorMessage}
-    <div class="error-toast">
-      <svg class="error-toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-      </svg>
-      <span class="error-toast-msg">{errorMessage}</span>
-      <button class="error-toast-dismiss" onclick={dismissError}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-      </button>
-    </div>
-  {/if}
-
-  <!-- Global notification toasts pushed by any component via `notifications.error/info`. -->
-  {#each $notifications as n (n.id)}
-    <div class="error-toast" class:info-toast={n.level === 'info'} style="top: {120 + (20 * n.id % 40)}px;">
-      <svg class="error-toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-        {#if n.level === 'error'}
-          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-        {:else}
-          <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-        {/if}
-      </svg>
-      <span class="error-toast-msg">{n.message}</span>
-      <button class="error-toast-dismiss" onclick={() => notifications.dismiss(n.id)}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-      </button>
-    </div>
-  {/each}
+  <ToastContainer />
 </div>
 
 <!-- Single persistent YouTube IFrame Player instance (off-screen) -->
@@ -494,77 +454,6 @@
     to { transform: rotate(360deg); }
   }
 
-  /* Error toast */
-  .error-toast {
-    position: fixed;
-    bottom: calc(var(--transport-height) + 16px);
-    left: calc(var(--sidebar-width) + (100vw - var(--sidebar-width)) / 2);
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-lg);
-    background: #2A1A1A;
-    border: 1px solid #6B2D2D;
-    border-radius: var(--radius-md);
-    font-family: var(--font-body);
-    font-size: 13px;
-    color: #E8A0A0;
-    z-index: 200;
-    max-width: 500px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-    animation: toastSlideIn 0.25s ease-out;
-  }
-
-  .error-toast-icon {
-    flex-shrink: 0;
-    color: #C9544B;
-  }
-
-  .error-toast.info-toast {
-    background: #1A2A2A;
-    border-color: #2D5B6B;
-    color: #A0D8E8;
-  }
-  .error-toast.info-toast .error-toast-icon {
-    color: #4B9FC9;
-  }
-
-  .error-toast-msg {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .error-toast-dismiss {
-    flex-shrink: 0;
-    background: none;
-    border: none;
-    color: #E8A0A0;
-    cursor: pointer;
-    padding: 2px;
-    border-radius: var(--radius-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.7;
-    transition: opacity 0.12s ease-out;
-  }
-
-  .error-toast-dismiss:hover {
-    opacity: 1;
-  }
-
-  @keyframes toastSlideIn {
-    from {
-      opacity: 0;
-      transform: translateX(-50%) translateY(12px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-  }
-
   /* Tablet: sidebar icônes */
   @media (min-width: 769px) and (max-width: 1024px) {
     .app-layout {
@@ -586,11 +475,6 @@
 
     .app-layout > :global(.transport-bar) {
       grid-column: 1;
-    }
-
-    .error-toast {
-      left: 50%;
-      bottom: calc(var(--mini-player-height) + var(--tab-bar-height) + 16px);
     }
   }
 

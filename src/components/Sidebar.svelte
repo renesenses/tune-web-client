@@ -10,6 +10,7 @@
   import type { DiscoveredDevice, LocalAudioDevice, OutputType, Zone, ZoneGroupResponse, StreamingServiceStatus } from '../lib/types';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ProfileSelector from './ProfileSelector.svelte';
+  import { notifications } from '../lib/stores/notifications';
 
   function handleSelectZone(zoneId: number) {
     currentZoneId.set(zoneId);
@@ -155,7 +156,7 @@
       if (zone.id !== null) currentZoneId.set(zone.id);
     } catch (e: any) {
       const msg = e?.message || e?.detail || String(e);
-      alert(`Impossible de créer la zone : ${msg}`);
+      notifications.error(`Impossible de créer la zone : ${msg}`);
       console.error('Create zone from audio device error:', e);
     }
   }
@@ -167,7 +168,7 @@
       if (zone.id !== null) currentZoneId.set(zone.id);
     } catch (e: any) {
       const msg = e?.message || e?.detail || String(e);
-      alert(`Impossible de créer la zone : ${msg}`);
+      notifications.error(`Impossible de créer la zone : ${msg}`);
       console.error('Create zone from device error:', e);
     }
   }
@@ -298,6 +299,10 @@
     <button class="nav-item" class:active={$activeView === 'zonemanager'} onclick={() => navigate('zonemanager')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h.01"></path><path d="M7 20v-4"></path><path d="M12 20v-8"></path><path d="M17 20V8"></path><path d="M22 4v16"></path></svg>
       Zones
+    </button>
+    <button class="nav-item" class:active={$activeView === 'diagnostics'} onclick={() => navigate('diagnostics')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"></path><path d="M18 20V4"></path><path d="M6 20v-4"></path></svg>
+      {$t('nav.diagnostics')}
     </button>
   </nav>
 
