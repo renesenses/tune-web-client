@@ -365,6 +365,21 @@
     }
   }
 
+  async function handleToggleService(serviceName: string, enable: boolean) {
+    try {
+      if (enable) {
+        await api.enableStreamingService(serviceName);
+      } else {
+        await api.disableStreamingService(serviceName);
+      }
+      // Refresh services list
+      $streamingServicesStore = await api.getStreamingServices();
+    } catch (e: any) {
+      console.error('Toggle service error:', e);
+      alert(e?.message || String(e));
+    }
+  }
+
   async function handleDisconnect(serviceName: string) {
     try {
       await api.disconnectStreaming(serviceName);
@@ -1140,20 +1155,22 @@
     <!-- Streaming services -->
     <section class="settings-section">
       <h3>{$t('settings.streaming')}</h3>
-      {#if Object.keys($streamingServicesStore).length === 0}
-        <p class="muted">{$t('settings.noService')}</p>
-      {:else}
         <div class="service-list">
           {#each Object.entries($streamingServicesStore) as [name, status]}
             <div class="service-card">
               <div class="service-header">
                 <span class="service-name">{name.charAt(0).toUpperCase() + name.slice(1)}</span>
                 <div class="service-header-actions">
-                  {#if status.authenticated}
-                    <span class="badge auth">{$t('settings.connected')}</span>
-                    <button class="disconnect-btn" onclick={() => handleDisconnect(name)}>{$t('settings.disconnect')}</button>
+                  {#if status.enabled}
+                    {#if status.authenticated}
+                      <span class="badge auth">{$t('settings.connected')}</span>
+                      <button class="disconnect-btn" onclick={() => handleDisconnect(name)}>{$t('settings.disconnect')}</button>
+                    {:else}
+                      <span class="badge noauth">{$t('settings.notConnected')}</span>
+                    {/if}
+                    <button class="disconnect-btn" onclick={() => handleToggleService(name, false)}>{$t('settings.disable')}</button>
                   {:else}
-                    <span class="badge noauth">{$t('settings.notConnected')}</span>
+                    <button class="scan-btn" onclick={() => handleToggleService(name, true)}>{$t('settings.enable')}</button>
                   {/if}
                 </div>
               </div>
@@ -1316,7 +1333,6 @@
             </div>
           {/each}
         </div>
-      {/if}
     </section>
 
     <!-- About -->

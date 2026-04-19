@@ -153,7 +153,9 @@
       const zone = await api.createZone(device.name, 'local', device.name);
       zones.update((zs) => [...zs, zone]);
       if (zone.id !== null) currentZoneId.set(zone.id);
-    } catch (e) {
+    } catch (e: any) {
+      const msg = e?.message || e?.detail || String(e);
+      alert(`Impossible de créer la zone : ${msg}`);
       console.error('Create zone from audio device error:', e);
     }
   }
@@ -163,7 +165,9 @@
       const zone = await api.createZone(device.name, device.type, device.id);
       zones.update((zs) => [...zs, zone]);
       if (zone.id !== null) currentZoneId.set(zone.id);
-    } catch (e) {
+    } catch (e: any) {
+      const msg = e?.message || e?.detail || String(e);
+      alert(`Impossible de créer la zone : ${msg}`);
       console.error('Create zone from device error:', e);
     }
   }

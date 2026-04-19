@@ -224,6 +224,8 @@ export default {
   'settings.noService': 'No service configured',
   'settings.connected': 'Connected',
   'settings.disconnect': 'Disconnect',
+  'settings.enable': 'Enable',
+  'settings.disable': 'Disable',
   'settings.notConnected': 'Not Connected',
   'settings.email': 'Email',
   'settings.password': 'Password',

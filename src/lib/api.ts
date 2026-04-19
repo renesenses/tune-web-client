@@ -661,6 +661,14 @@ export function getStreamingServices() {
   return fetchJSON<Record<string, StreamingServiceStatus>>(`${BASE}/streaming/services`);
 }
 
+export function enableStreamingService(service: string) {
+  return fetchJSON<{ status: string }>(`${BASE}/streaming/${encodeURIComponent(service)}/enable`, { method: 'POST' });
+}
+
+export function disableStreamingService(service: string) {
+  return fetchJSON<{ status: string }>(`${BASE}/streaming/${encodeURIComponent(service)}/disable`, { method: 'POST' });
+}
+
 export function authenticateStreaming(service: string, body?: { username?: string; password?: string }) {
   return fetchJSON<StreamingAuthResponse>(`${BASE}/streaming/${encodeURIComponent(service)}/auth`, {
     method: 'POST',
