@@ -298,7 +298,13 @@
     artistMetadataLoading = true;
     try {
       const result = await api.getArtistMetadata(artistId);
-      artistMetadata = result;
+      // API returns {data: {...}, enrichment_status: "..."}
+      const raw = (result as any)?.data ?? result;
+      if (raw.bio_fr) raw.bio = raw.bio_fr;
+      if (!raw.enrichment_status && (result as any)?.enrichment_status) {
+        raw.enrichment_status = (result as any).enrichment_status;
+      }
+      artistMetadata = raw;
     } catch (e) {
       console.error('Load artist metadata error:', e);
       artistMetadataError = true;

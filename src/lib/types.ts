@@ -415,6 +415,7 @@ export interface StereoPairInfo {
 
 export interface ArtistMetadata {
   bio?: string;
+  bio_fr?: string;
   bio_en?: string;
   anecdotes?: string[];
   similar_artists?: { name: string; reason: string }[];
