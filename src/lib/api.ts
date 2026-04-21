@@ -442,6 +442,10 @@ export function getArtistAlbums(id: number) {
   return fetchJSON<Album[]>(`${BASE}/library/artists/${id}/albums`);
 }
 
+export function getArtistMetadata(artistId: number) {
+  return fetchJSON<import('./types').ArtistMetadata>(`${BASE}/artists/${artistId}/metadata`);
+}
+
 export function getArtistTracks(id: number) {
   return fetchJSON<Track[]>(`${BASE}/library/artists/${id}/tracks`);
 }

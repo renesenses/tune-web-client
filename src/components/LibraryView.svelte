@@ -11,7 +11,8 @@
   import TrackEditModal from './TrackEditModal.svelte';
   import HeartButton from './HeartButton.svelte';
   import type { Album, Artist, Track } from '../lib/types';
-  import { t as tr } from '../lib/i18n';
+  import { t as tr, locale } from '../lib/i18n';
+  import type { ArtistMetadata } from '../lib/types';
 
   function observeHeight(node: HTMLElement, callback: (h: number) => void) {
     const ro = new ResizeObserver(entries => {
@@ -31,6 +32,12 @@
   let editingTrack = $state<Track | null>(null);
   let writingAlbumTags = $state(false);
   let writeTagsMessage = $state<string | null>(null);
+
+  // Artist metadata
+  let artistMetadata = $state<ArtistMetadata | null>(null);
+  let artistMetadataLoading = $state(false);
+  let artistMetadataError = $state(false);
+  let openSections = $state<Record<string, boolean>>({});
 
   async function handleWriteAlbumTags(albumId: number) {
     writingAlbumTags = true;
@@ -272,6 +279,9 @@
     if (!artist.id) return;
     selectedArtist.set(artist);
     selectedAlbum.set(null);
+    artistMetadata = null;
+    artistMetadataError = false;
+    openSections = {};
     libraryLoading.set(true);
     try {
       const result = await api.getArtistAlbums(artist.id);
@@ -280,13 +290,40 @@
       console.error('Load artist albums error:', e);
     }
     libraryLoading.set(false);
+    // Lazy-load metadata (non-blocking)
+    loadArtistMetadata(artist.id);
   }
+
+  async function loadArtistMetadata(artistId: number) {
+    artistMetadataLoading = true;
+    try {
+      const result = await api.getArtistMetadata(artistId);
+      artistMetadata = result;
+    } catch (e) {
+      console.error('Load artist metadata error:', e);
+      artistMetadataError = true;
+    }
+    artistMetadataLoading = false;
+  }
+
+  function toggleSection(key: string) {
+    openSections = { ...openSections, [key]: !openSections[key] };
+  }
+
+  let artistBio = $derived.by(() => {
+    if (!artistMetadata) return null;
+    if ($locale === 'en' && artistMetadata.bio_en) return artistMetadata.bio_en;
+    return artistMetadata.bio ?? artistMetadata.bio_en ?? null;
+  });
 
   function goBack() {
     selectedAlbum.set(null);
     selectedArtist.set(null);
     albumTracks.set([]);
     artistAlbums.set([]);
+    artistMetadata = null;
+    artistMetadataError = false;
+    artistMetadataLoading = false;
   }
 
   async function playAlbum(albumId: number) {
@@ -475,26 +512,145 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
         {$tr('common.back')}
       </button>
-      <h2>{$selectedArtist.name}</h2>
     </div>
-    <div class="albums-grid">
-      {#each $artistAlbums as album}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="album-card" onclick={() => selectAlbumDetail(album)}>
-          <div class="album-card-art">
-            <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
-            <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
-              <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
-            </button>
-            <span class="heart-overlay"><HeartButton albumId={album.id} size={14} /></span>
-          </div>
-          <span class="album-card-title truncate">{album.title}</span>
-          {#if album.year}
-            <span class="album-card-year">{album.year}</span>
+
+    <div class="artist-detail">
+      <!-- Artist header -->
+      <div class="artist-detail-header">
+        <div class="artist-detail-avatar">
+          {#if artistMetadata?.image_url}
+            <img class="artist-detail-img" src={artistMetadata.image_url} alt={$selectedArtist.name} onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+          {:else if $selectedArtist.image_path}
+            <AlbumArt coverPath={$selectedArtist.image_path} size={160} alt={$selectedArtist.name} round />
+          {:else}
+            <span class="artist-detail-initials">{initials($selectedArtist.name)}</span>
           {/if}
         </div>
-      {/each}
+        <div class="artist-detail-info">
+          <h2 class="artist-detail-name">{$selectedArtist.name}</h2>
+          {#if $artistAlbums.length > 0}
+            <span class="artist-detail-count">{$artistAlbums.length} {$artistAlbums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
+          {/if}
+          {#if artistMetadataLoading}
+            <div class="artist-meta-loading">
+              <div class="spinner-sm"></div>
+              {$tr('common.loading')}
+            </div>
+          {:else if artistMetadata?.enrichment_status === 'pending'}
+            <div class="artist-enriching">
+              <div class="spinner-sm"></div>
+              {$tr('artist.enriching')}
+            </div>
+          {/if}
+        </div>
+      </div>
+
+      <!-- Bio -->
+      {#if artistBio}
+        <blockquote class="artist-bio">{artistBio}</blockquote>
+      {/if}
+
+      <!-- Collapsible sections -->
+      {#if artistMetadata && !artistMetadataLoading}
+        {#if artistMetadata.anecdotes && artistMetadata.anecdotes.length > 0}
+          <div class="artist-section">
+            <button class="artist-section-header" onclick={() => toggleSection('anecdotes')}>
+              <span class="artist-section-title">{$tr('artist.anecdotes')}</span>
+              <svg class="artist-section-chevron" class:open={openSections['anecdotes']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
+            </button>
+            {#if openSections['anecdotes']}
+              <ul class="artist-anecdotes">
+                {#each artistMetadata.anecdotes as anecdote}
+                  <li>{anecdote}</li>
+                {/each}
+              </ul>
+            {/if}
+          </div>
+        {/if}
+
+        {#if artistMetadata.similar_artists && artistMetadata.similar_artists.length > 0}
+          <div class="artist-section">
+            <button class="artist-section-header" onclick={() => toggleSection('similar')}>
+              <span class="artist-section-title">{$tr('artist.similarArtists')}</span>
+              <svg class="artist-section-chevron" class:open={openSections['similar']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
+            </button>
+            {#if openSections['similar']}
+              <div class="artist-similar-list">
+                {#each artistMetadata.similar_artists as sa}
+                  <span class="artist-similar-chip" title={sa.reason}>{sa.name}</span>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
+
+        {#if artistMetadata.members && artistMetadata.members.length > 0}
+          <div class="artist-section">
+            <button class="artist-section-header" onclick={() => toggleSection('members')}>
+              <span class="artist-section-title">{$tr('artist.members')}</span>
+              <svg class="artist-section-chevron" class:open={openSections['members']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
+            </button>
+            {#if openSections['members']}
+              <div class="artist-members-list">
+                {#each artistMetadata.members as member}
+                  <div class="artist-member">
+                    <span class="artist-member-name">{member.name}</span>
+                    <span class="artist-member-role">{member.role}</span>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
+
+        {#if artistMetadata.discography_highlights && artistMetadata.discography_highlights.length > 0}
+          <div class="artist-section">
+            <button class="artist-section-header" onclick={() => toggleSection('discography')}>
+              <span class="artist-section-title">{$tr('artist.discography')}</span>
+              <svg class="artist-section-chevron" class:open={openSections['discography']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
+            </button>
+            {#if openSections['discography']}
+              <div class="artist-discography-list">
+                {#each artistMetadata.discography_highlights as disc}
+                  <div class="artist-disc-item">
+                    <span class="artist-disc-year">{disc.year}</span>
+                    <div class="artist-disc-info">
+                      <span class="artist-disc-title">{disc.title}</span>
+                      <span class="artist-disc-desc">{disc.description}</span>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
+      {/if}
+
+      <!-- Albums in library -->
+      <div class="artist-section">
+        <div class="artist-section-header-static">
+          <span class="artist-section-title">{$tr('artist.albumsInLibrary')}</span>
+        </div>
+        <div class="albums-grid">
+          {#each $artistAlbums as album}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="album-card" onclick={() => selectAlbumDetail(album)}>
+              <div class="album-card-art">
+                <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
+                  <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
+                </button>
+                <span class="heart-overlay"><HeartButton albumId={album.id} size={14} /></span>
+              </div>
+              <span class="album-card-title truncate">{album.title}</span>
+              {#if album.year}
+                <span class="album-card-year">{album.year}</span>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      </div>
     </div>
 
   {:else}
@@ -1659,6 +1815,298 @@
     font-family: var(--font-body);
     font-size: 14px;
     color: var(--tune-text-muted);
+  }
+
+  /* Artist detail page */
+  .artist-detail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .artist-detail-header {
+    display: flex;
+    gap: var(--space-lg);
+    align-items: center;
+  }
+
+  .artist-detail-avatar {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: var(--tune-grey2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .artist-detail-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .artist-detail-initials {
+    font-family: var(--font-label);
+    font-size: 56px;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+  }
+
+  .artist-detail-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .artist-detail-name {
+    font-family: var(--font-label);
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.8px;
+  }
+
+  .artist-detail-count {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text-muted);
+  }
+
+  .artist-meta-loading,
+  .artist-enriching {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    margin-top: var(--space-xs);
+  }
+
+  .artist-enriching {
+    color: var(--tune-accent);
+  }
+
+  .spinner-sm {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--tune-border);
+    border-top-color: var(--tune-accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .artist-bio {
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--tune-text-secondary);
+    background: var(--tune-surface);
+    border-left: 3px solid var(--tune-accent);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    padding: var(--space-md) var(--space-lg);
+    margin: 0;
+  }
+
+  .artist-section {
+    border-top: 1px solid var(--tune-border);
+    padding-top: var(--space-sm);
+  }
+
+  .artist-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: var(--space-sm) 0;
+    cursor: pointer;
+    color: var(--tune-text);
+  }
+
+  .artist-section-header:hover {
+    color: var(--tune-accent);
+  }
+
+  .artist-section-header-static {
+    display: flex;
+    align-items: center;
+    padding: var(--space-sm) 0;
+  }
+
+  .artist-section-title {
+    font-family: var(--font-label);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  .artist-section-chevron {
+    transition: transform 0.2s ease-out;
+    color: var(--tune-text-muted);
+  }
+
+  .artist-section-chevron.open {
+    transform: rotate(180deg);
+  }
+
+  .artist-anecdotes {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-md) 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .artist-anecdotes li {
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--tune-text-secondary);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--tune-surface);
+    border-radius: var(--radius-md);
+    position: relative;
+    padding-left: var(--space-lg);
+  }
+
+  .artist-anecdotes li::before {
+    content: '';
+    position: absolute;
+    left: var(--space-sm);
+    top: 50%;
+    transform: translateY(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--tune-accent);
+  }
+
+  .artist-similar-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    padding: var(--space-sm) 0 var(--space-md);
+  }
+
+  .artist-similar-chip {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 16px;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-secondary);
+    cursor: default;
+    transition: all 0.12s ease-out;
+  }
+
+  .artist-similar-chip:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-text);
+  }
+
+  .artist-members-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-sm) 0 var(--space-md);
+  }
+
+  .artist-member {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-xs) var(--space-md);
+  }
+
+  .artist-member-name {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tune-text);
+  }
+
+  .artist-member-role {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+  }
+
+  .artist-discography-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-sm) 0 var(--space-md);
+  }
+
+  .artist-disc-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--tune-surface);
+    border-radius: var(--radius-md);
+  }
+
+  .artist-disc-year {
+    font-family: var(--font-label);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--tune-accent);
+    min-width: 40px;
+    padding-top: 1px;
+  }
+
+  .artist-disc-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .artist-disc-title {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tune-text);
+  }
+
+  .artist-disc-desc {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 600px) {
+    .artist-detail-header {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .artist-detail-avatar {
+      width: 120px;
+      height: 120px;
+    }
+
+    .artist-detail-initials {
+      font-size: 42px;
+    }
+
+    .artist-detail-name {
+      font-size: 24px;
+    }
   }
 
   .empty {

@@ -413,6 +413,17 @@ export interface StereoPairInfo {
   right_zone: Zone | null;
 }
 
+export interface ArtistMetadata {
+  bio?: string;
+  bio_en?: string;
+  anecdotes?: string[];
+  similar_artists?: { name: string; reason: string }[];
+  members?: { name: string; role: string }[];
+  discography_highlights?: { title: string; year: number; description: string }[];
+  image_url?: string;
+  enrichment_status?: string;
+}
+
 export interface WSEvent {
   type: string;
   data: any;

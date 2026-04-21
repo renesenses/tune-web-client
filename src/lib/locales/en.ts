@@ -533,6 +533,16 @@ export default {
   'signal.showPath': 'Signal path',
   'signal.hidePath': 'Hide path',
 
+  // Artist detail
+  'artist.bio': 'Biography',
+  'artist.anecdotes': 'Anecdotes',
+  'artist.similarArtists': 'Similar Artists',
+  'artist.members': 'Members',
+  'artist.discography': 'Discography',
+  'artist.albumsInLibrary': 'Albums in Library',
+  'artist.enriching': 'Enrichment in progress...',
+  'artist.noMetadata': 'No information available for this artist',
+
   // Onboarding
   'onboarding.welcomeTitle': 'Welcome to Tune',
   'onboarding.welcomeDesc': 'Tune is your multi-room music server. Stream your local library and streaming services to all your devices, in high fidelity.',
