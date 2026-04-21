@@ -316,6 +316,20 @@
     openSections = { ...openSections, [key]: !openSections[key] };
   }
 
+  async function navigateToSimilarArtist(name: string) {
+    try {
+      const allArtists = await api.getArtists(5000);
+      const match = allArtists.find((a: Artist) => a.name.toLowerCase() === name.toLowerCase());
+      if (match) {
+        selectArtistDetail(match);
+      } else {
+        notifications.info(`${name} n'est pas dans votre bibliothèque`);
+      }
+    } catch (e) {
+      console.error('Navigate to similar artist error:', e);
+    }
+  }
+
   let artistBio = $derived.by(() => {
     if (!artistMetadata) return null;
     if ($locale === 'en' && artistMetadata.bio_en) return artistMetadata.bio_en;
@@ -583,7 +597,7 @@
             {#if openSections['similar']}
               <div class="artist-similar-list">
                 {#each artistMetadata.similar_artists as sa}
-                  <span class="artist-similar-chip" title={sa.reason}>{sa.name}</span>
+                  <button class="artist-similar-chip clickable" title={sa.reason} onclick={() => navigateToSimilarArtist(sa.name)}>{sa.name}</button>
                 {/each}
               </div>
             {/if}
@@ -2012,13 +2026,14 @@
     background: var(--tune-surface);
     border: 1px solid var(--tune-border);
     color: var(--tune-text-secondary);
-    cursor: default;
+    cursor: pointer;
     transition: all 0.12s ease-out;
   }
 
   .artist-similar-chip:hover {
     border-color: var(--tune-accent);
-    color: var(--tune-text);
+    color: var(--tune-accent);
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.1);
   }
 
   .artist-members-list {
