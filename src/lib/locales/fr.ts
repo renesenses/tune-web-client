@@ -230,6 +230,8 @@ export default {
   'settings.addMusicDirPlaceholder': 'Chemin absolu, ex. /mnt/music',
   'settings.addingMusicDir': 'Ajout...',
   'settings.removeMusicDir': 'Supprimer',
+  'settings.addSmbShare': 'Ajouter un partage réseau (SMB)',
+  'settings.addLocalFolder': 'Ajouter un dossier local',
   'settings.removeMusicDirConfirm': 'Retirer ce dossier de la bibliothèque ?',
   'settings.coversProgress': 'Covers {current}/{total} ({found} trouvées)',
   'settings.searchingCovers': 'Recherche de covers...',

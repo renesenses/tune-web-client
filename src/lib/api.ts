@@ -1267,6 +1267,44 @@ export async function installUpdate(): Promise<any> {
   return res.json();
 }
 
+// --- Network / SMB ---
+
+export function discoverSmbShares() {
+  return fetchJSON<any[]>(`${BASE}/network/shares`);
+}
+
+export function scanHost(host: string, protocol?: string) {
+  let url = `${BASE}/network/scan-host?host=${encodeURIComponent(host)}`;
+  if (protocol) url += `&protocol=${encodeURIComponent(protocol)}`;
+  return fetchJSON<any>(url);
+}
+
+export function listHostShares(hostId: string) {
+  return fetchJSON<{ shares: string[] }>(`${BASE}/network/shares/${encodeURIComponent(hostId)}`);
+}
+
+export function testSmbConnection(host: string, share: string, username?: string, password?: string, domain?: string) {
+  return fetchJSON<{ ok: boolean; message?: string; error?: string }>(`${BASE}/network/mounts/test`, {
+    method: 'POST',
+    body: JSON.stringify({ host, share, username, password, domain }),
+  });
+}
+
+export function mountSmbShare(host: string, share: string, username?: string, password?: string) {
+  return fetchJSON<{ mount_path: string; id: number }>(`${BASE}/network/mounts`, {
+    method: 'POST',
+    body: JSON.stringify({ host, share, username, password }),
+  });
+}
+
+export function unmountSmbShare(id: number) {
+  return fetchVoid(`${BASE}/network/mounts/${id}`, { method: 'DELETE' });
+}
+
+export function listMounts() {
+  return fetchJSON<any[]>(`${BASE}/network/mounts`);
+}
+
 // --- Podcasts ---
 
 export async function searchPodcasts(query: string, limit = 20): Promise<any[]> {
