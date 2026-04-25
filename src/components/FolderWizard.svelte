@@ -78,7 +78,7 @@
   function goToStep(s: number) {
     if (s === 2 && !added) {
       addDirectory().then(() => {
-        if (added) step = s;
+        step = s;
       });
     } else {
       step = s;
