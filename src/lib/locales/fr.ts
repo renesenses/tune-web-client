@@ -97,6 +97,8 @@ export default {
   'zone.clearSelection': 'Annuler la sélection',
   'zone.latency': 'Latence',
   'zone.measuring': 'Mesure...',
+  'zone.calibrate': 'Calibrer',
+  'zone.calibrating': 'Calibrage...',
   'zone.refresh': 'Actualiser',
 
   // Transport

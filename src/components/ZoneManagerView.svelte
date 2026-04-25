@@ -31,6 +31,11 @@
   let measuringLatency = $state<number | null>(null);
   let latencyResults = $state<Record<number, number>>({});
 
+  // Group calibration
+  let calibratingGroupId = $state<string | null>(null);
+  // group_id -> { zone_id -> sync_delay_ms }
+  let calibrationResults = $state<Record<string, Record<number, number>>>({});
+
   // Volume debounce
   let volumeTimers: Record<number, ReturnType<typeof setTimeout>> = {};
 
@@ -282,6 +287,19 @@
       notifications.error('Latency: ' + e.message);
     } finally {
       measuringLatency = null;
+    }
+  }
+
+  async function handleCalibrateGroup(group: ZoneGroupResponse) {
+    calibratingGroupId = group.group_id;
+    try {
+      const result = await api.calibrateGroup(group.group_id);
+      calibrationResults = { ...calibrationResults, [group.group_id]: result.calibration ?? {} };
+      notifications.success($t('zone.calibrate') + ' OK');
+    } catch (e: any) {
+      notifications.error('Calibration: ' + e.message);
+    } finally {
+      calibratingGroupId = null;
     }
   }
 
@@ -546,6 +564,24 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
                   {$t('zone.activeGroup')}
                 </span>
+                {#if isLeader(zone, group)}
+                  <button
+                    class="btn-inline"
+                    onclick={(e) => { e.stopPropagation(); handleCalibrateGroup(group); }}
+                    disabled={calibratingGroupId === group.group_id}
+                    title={$t('zone.calibrate')}
+                  >
+                    {#if calibratingGroupId === group.group_id}
+                      <span class="spinner-sm"></span>
+                    {:else}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                    {/if}
+                    {calibratingGroupId === group.group_id ? $t('zone.calibrating') : $t('zone.calibrate')}
+                  </button>
+                {/if}
+                {#if calibrationResults[group.group_id]?.[zone.id!] !== undefined}
+                  <span class="latency-tag">{calibrationResults[group.group_id][zone.id!]}ms</span>
+                {/if}
                 <button class="btn-inline danger" onclick={(e) => { e.stopPropagation(); handleUngroupZone(group); }}>
                   {$t('zone.ungroup')}
                 </button>
