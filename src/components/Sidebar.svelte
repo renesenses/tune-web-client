@@ -276,6 +276,14 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
       Favoris Radio
     </button>
+    <button class="nav-item" class:active={$activeView === 'dj'} onclick={() => navigate('dj')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /></svg>
+      Mode DJ
+    </button>
+    <button class="nav-item" class:active={$activeView === 'party'} onclick={() => navigate('party')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+      Party
+    </button>
     <button class="nav-item" class:active={$activeView === 'podcasts'} onclick={() => navigate('podcasts')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
       Podcasts
@@ -364,20 +372,33 @@
         <button
           class="zone-item"
           class:active={zone.id === $currentZoneId}
+          class:is-playing={zone.state === 'playing'}
+          class:is-paused={zone.state === 'paused'}
           onclick={() => zone.id !== null && handleSelectZone(zone.id)}
         >
-          {#if gid}
-            <span class="zone-group-dot" style="background: {groupColor(gid)}" title={$t('zone.activeGroup')}></span>
-          {/if}
-          <span class="zone-name truncate">{zone.name}</span>
+          <div class="zone-left">
+            {#if gid}
+              <span class="zone-group-dot" style="background: {groupColor(gid)}" title={$t('zone.activeGroup')}></span>
+            {/if}
+            <span class="zone-state-icon">
+              {#if zone.state === 'playing'}
+                <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12" class="state-playing"><polygon points="5,3 19,12 5,21" /></svg>
+              {:else if zone.state === 'paused'}
+                <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12" class="state-paused"><rect x="5" y="3" width="4" height="18" rx="1" /><rect x="15" y="3" width="4" height="18" rx="1" /></svg>
+              {:else}
+                <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12" class="state-stopped"><rect x="5" y="5" width="14" height="14" rx="2" /></svg>
+              {/if}
+            </span>
+            <div class="zone-text">
+              <span class="zone-name truncate">{zone.name}</span>
+              {#if zone.current_track && (zone.state === 'playing' || zone.state === 'paused')}
+                <span class="zone-track truncate">{zone.current_track.title}{zone.current_track.artist_name ? ` - ${zone.current_track.artist_name}` : ''}</span>
+              {/if}
+            </div>
+          </div>
           <span class="zone-meta">
             {#if zone.output_type && zone.output_type !== 'local'}
               <span class="zone-type-badge">{deviceTypeIcon(zone.output_type)}</span>
-            {/if}
-            {#if zone.state === 'playing'}
-              <span class="zone-playing">
-                <svg viewBox="0 0 10 12" fill="currentColor" width="10" height="12"><polygon points="0,0 10,6 0,12" /></svg>
-              </span>
             {/if}
             <span class="zone-config-btn" onclick={(e) => openConfig(zone, e)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openConfig(zone, e as any); }}} title={$t('zone.configure')} aria-label={$t('zone.configure')} role="button" tabindex={0}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
@@ -703,21 +724,45 @@
     color: var(--tune-text);
   }
 
+  .zone-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .zone-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+  }
+
   .zone-name {
     flex: 1;
   }
 
-  .zone-playing {
-    color: var(--tune-success);
+  .zone-track {
     font-size: 10px;
-    display: flex;
-    align-items: center;
+    color: var(--tune-text-muted);
+    line-height: 1.2;
   }
 
-  .zone-playing svg {
-    width: 10px;
-    height: 10px;
+  .zone-state-icon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    width: 12px;
   }
+
+  .state-playing { color: var(--tune-success); }
+  .state-paused { color: var(--tune-warning); }
+  .state-stopped { color: var(--tune-text-muted); opacity: 0.3; }
+
+  .zone-item.is-playing { background: rgba(74, 222, 128, 0.05); }
+  .zone-item.is-paused { background: rgba(245, 158, 11, 0.05); }
 
   .zone-meta {
     display: flex;

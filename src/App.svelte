@@ -39,6 +39,8 @@
   import FavoritesView from './components/FavoritesView.svelte';
   import RadioFavoritesView from './components/RadioFavoritesView.svelte';
   import PlaylistManagerView from './components/PlaylistManagerView.svelte';
+  import DJView from './components/DJView.svelte';
+  import PartyView from './components/PartyView.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
   import BottomTabBar from './components/BottomTabBar.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
@@ -411,6 +413,10 @@
       <RadioFavoritesView />
     {:else if $activeView === 'zonemanager'}
       <ZoneManagerView />
+    {:else if $activeView === 'dj'}
+      <DJView />
+    {:else if $activeView === 'party'}
+      <PartyView />
     {:else if $activeView === 'diagnostics'}
       <DiagnosticsView />
     {/if}

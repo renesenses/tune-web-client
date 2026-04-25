@@ -50,6 +50,17 @@
     return idx;
   });
 
+  // Auto-scroll karaoke panel to keep current line visible
+  let karaokePanel = $state<HTMLElement | null>(null);
+  $effect(() => {
+    const lineIdx = karaokeCurrentLine;
+    if (lineIdx < 0 || !karaokePanel) return;
+    const lineEl = karaokePanel.children[lineIdx] as HTMLElement | undefined;
+    if (lineEl) {
+      lineEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  });
+
   const EQ_PRESETS = [
     { value: 'flat', label: 'Flat' },
     { value: 'bass_boost', label: 'Bass Boost' },
@@ -375,7 +386,7 @@
               </div>
             {/if}
             {#if karaokeMode && syncedLines.length > 0}
-              <div class="karaoke-panel">
+              <div class="karaoke-panel" bind:this={karaokePanel}>
                 {#each syncedLines as line, i}
                   <p class="karaoke-line" class:active={i === karaokeCurrentLine} class:past={i < karaokeCurrentLine} class:future={i > karaokeCurrentLine}>
                     {line.text || '♪'}

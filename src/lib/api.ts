@@ -1394,6 +1394,60 @@ export function listMounts() {
   return fetchJSON<any[]>(`${BASE}/network/mounts`);
 }
 
+// --- DJ Mode ---
+
+export function enableDJ(zoneId: number) {
+  return fetchJSON<any>(`${BASE}/dj/enable/${zoneId}`, { method: 'POST' });
+}
+
+export function disableDJ(zoneId: number) {
+  return fetchJSON<any>(`${BASE}/dj/disable/${zoneId}`, { method: 'POST' });
+}
+
+export function loadDeck(zoneId: number, deck: 'a' | 'b', body: { track_id?: number; album_id?: number }) {
+  return fetchJSON<any>(`${BASE}/dj/load/${zoneId}/${deck}`, { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function startCrossfade(zoneId: number, durationSeconds = 5, curve = 'linear') {
+  return fetchJSON<any>(`${BASE}/dj/crossfade/${zoneId}`, { method: 'POST', body: JSON.stringify({ duration_seconds: durationSeconds, curve }) });
+}
+
+export function toggleAutoCrossfade(zoneId: number, enabled?: boolean, beforeEnd?: number) {
+  return fetchJSON<any>(`${BASE}/dj/auto-crossfade/${zoneId}`, { method: 'POST', body: JSON.stringify({ enabled, before_end: beforeEnd }) });
+}
+
+export function getDJStatus(zoneId: number) {
+  return fetchJSON<any>(`${BASE}/dj/status/${zoneId}`);
+}
+
+export function setDeckVolume(zoneId: number, deck: 'a' | 'b', volume: number) {
+  return fetchJSON<any>(`${BASE}/dj/volume/${zoneId}/${deck}`, { method: 'POST', body: JSON.stringify({ volume }) });
+}
+
+// --- Party Mode ---
+
+export function getPartyStatus() {
+  return fetchJSON<any>(`${BASE}/party/status`);
+}
+
+export function partyAddTrack(query: string, zoneId?: number) {
+  return fetchJSON<any>(`${BASE}/party/add`, { method: 'POST', body: JSON.stringify({ query, zone_id: zoneId }) });
+}
+
+export function getPartyQueue(zoneId?: number) {
+  const qs = zoneId ? `?zone_id=${zoneId}` : '';
+  return fetchJSON<any[]>(`${BASE}/party/queue${qs}`);
+}
+
+// --- Radio Favorites → Playlist ---
+
+export function createPlaylistFromRadioFavorites(service: string, playlistName: string, limit = 200) {
+  return fetchJSON<any>(`${BASE}/radio-favorites/create-playlist`, {
+    method: 'POST',
+    body: JSON.stringify({ service, playlist_name: playlistName, limit }),
+  });
+}
+
 // --- Podcasts ---
 
 export async function searchPodcasts(query: string, limit = 20): Promise<any[]> {
