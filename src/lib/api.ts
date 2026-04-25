@@ -601,6 +601,29 @@ export function playMediaServerItem(serverId: string, itemId: string, zoneId: nu
 
 // --- Smart Playlists ---
 
+export function getArtistTimeline(artistId: number) {
+  return fetchJSON<any[]>(`${BASE}/library/artists/${artistId}/timeline`);
+}
+
+export function getSimilarAlbums(albumId: number, limit = 10) {
+  return fetchJSON<import('./types').Album[]>(`${BASE}/library/albums/${albumId}/similar?limit=${limit}`);
+}
+
+export function setEqualizer(zoneId: number, preset: string) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/eq`, {
+    method: 'POST',
+    body: JSON.stringify({ preset }),
+  });
+}
+
+export function shareNowPlaying(zoneId: number) {
+  return fetchJSON<{ title: string; artist: string; album: string; text: string; cover_url: string | null }>(`${BASE}/zones/${zoneId}/share`);
+}
+
+export function transferPlayback(fromZoneId: number, toZoneId: number) {
+  return fetchJSON<import('./types').Zone>(`${BASE}/zones/${fromZoneId}/transfer/${toZoneId}`, { method: 'POST' });
+}
+
 export function getTrackLyrics(trackId: number) {
   return fetchJSON<{ lyrics: string | null; source: string | null }>(`${BASE}/library/tracks/${trackId}/lyrics`);
 }

@@ -7,6 +7,7 @@
   import AlbumArt from './AlbumArt.svelte';
   import SeekBar from './SeekBar.svelte';
   import { t } from '../lib/i18n';
+  import { notifications } from '../lib/stores/notifications';
   import type { RepeatMode, Track, TrackCredit } from '../lib/types';
 
   let isFavorite = $state(false);
@@ -19,6 +20,35 @@
   let npLyrics: string | null = $state(null);
   let npLyricsTrackId: number | null = $state(null);
   let lyricsLoading = $state(false);
+  let showEq = $state(false);
+  let currentEqPreset = $state('flat');
+
+  const EQ_PRESETS = [
+    { value: 'flat', label: 'Flat' },
+    { value: 'bass_boost', label: 'Bass Boost' },
+    { value: 'treble_boost', label: 'Treble Boost' },
+    { value: 'vocal', label: 'Vocal' },
+    { value: 'rock', label: 'Rock' },
+    { value: 'jazz', label: 'Jazz' },
+    { value: 'classical', label: 'Classical' },
+  ];
+
+  async function setEqPreset(preset: string) {
+    if (!zone?.id) return;
+    try {
+      await api.setEqualizer(zone.id, preset);
+      currentEqPreset = preset;
+    } catch (e) { console.error('EQ error:', e); }
+  }
+
+  async function handleShare() {
+    if (!zone?.id) return;
+    try {
+      const card = await api.shareNowPlaying(zone.id);
+      await navigator.clipboard.writeText(card.text);
+      notifications.success('Copie dans le presse-papier !');
+    } catch (e) { console.error('Share error:', e); }
+  }
 
   async function loadNpCredits(trackId: number) {
     if (trackId === npCreditsTrackId) return;
@@ -280,9 +310,17 @@
                 {/each}
               </div>
             {/if}
-            <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; showCredits = false; if (showLyrics && displayTrack.id) loadNpLyrics(displayTrack.id); }}>
+            <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; showCredits = false; showEq = false; if (showLyrics && displayTrack.id) loadNpLyrics(displayTrack.id); }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
               Paroles
+            </button>
+            <button class="np-credits-btn" class:active={showEq} onclick={() => { showEq = !showEq; showCredits = false; showLyrics = false; }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>
+              EQ
+            </button>
+            <button class="np-credits-btn" onclick={handleShare}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+              Partager
             </button>
             </div>
             {#if showLyrics}
@@ -294,6 +332,15 @@
                 {:else}
                   <p class="lyrics-empty">Aucune parole disponible</p>
                 {/if}
+              </div>
+            {/if}
+            {#if showEq}
+              <div class="np-eq">
+                {#each EQ_PRESETS as preset}
+                  <button class="eq-preset" class:active={currentEqPreset === preset.value} onclick={() => setEqPreset(preset.value)}>
+                    {preset.label}
+                  </button>
+                {/each}
               </div>
             {/if}
           {/if}
@@ -1195,5 +1242,35 @@
     color: var(--tune-text-muted);
     font-style: italic;
     margin: 0;
+  }
+
+  .np-eq {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-top: var(--space-sm);
+  }
+
+  .eq-preset {
+    padding: 4px 12px;
+    border: 1px solid var(--tune-border);
+    border-radius: 14px;
+    background: none;
+    color: var(--tune-text-secondary);
+    font-family: var(--font-body);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .eq-preset.active {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.1);
+  }
+
+  .eq-preset:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
   }
 </style>
