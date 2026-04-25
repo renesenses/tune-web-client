@@ -142,6 +142,10 @@ export function clearDevices() {
   return fetchJSON<{ cleared: number }>(`${BASE}/devices/clear`, { method: 'POST' });
 }
 
+export function deleteDevice(deviceId: string) {
+  return fetchJSON<{ deleted: string }>(`${BASE}/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
+}
+
 export function getDevice(id: string) {
   return fetchJSON<DiscoveredDevice>(`${BASE}/devices/${encodeURIComponent(id)}`);
 }

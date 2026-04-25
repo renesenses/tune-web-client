@@ -240,6 +240,7 @@ export default {
   'settings.showAll': 'Tout afficher',
   'settings.hideAll': 'Tout masquer',
   'settings.clearDevices': 'Tout supprimer',
+  'settings.deleteDevice': 'Supprimer cet appareil',
   'settings.usb': 'USB',
   'settings.noDevices': 'Aucun appareil détecté',
   'settings.networkDevices': 'Appareils réseau',

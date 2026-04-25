@@ -546,6 +546,16 @@
     preferences.update((p) => ({ ...p, hiddenDeviceIds: [] }));
   }
 
+  async function handleDeleteDevice(deviceId: string, deviceName: string) {
+    try {
+      await api.deleteDevice(deviceId);
+      devices.update(list => list.filter(d => d.id !== deviceId));
+      notifications.success(`${deviceName} supprimé`);
+    } catch (e: any) {
+      notifications.error(e?.message || 'Erreur');
+    }
+  }
+
   async function handleClearAllDevices() {
     try {
       const result = await api.clearDevices();
@@ -1044,6 +1054,9 @@
                 </button>
               {/if}
             {/if}
+            <button class="device-delete-btn" onclick={() => handleDeleteDevice(device.id, device.name)} title={$t('settings.deleteDevice')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </button>
           </label>
         {/each}
         {#if $devices.length === 0}
@@ -1789,6 +1802,22 @@
   .scan-btn.small {
     padding: var(--space-xs) var(--space-md);
     font-size: 12px;
+  }
+
+  .device-delete-btn {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 2px;
+    margin-left: auto;
+    border-radius: var(--radius-sm);
+    transition: all 0.12s ease-out;
+  }
+
+  .device-delete-btn:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
   }
 
   .scan-btn.danger {
