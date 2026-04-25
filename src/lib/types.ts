@@ -196,6 +196,8 @@ export interface ZoneGroupResponse {
   group_id: string;
   leader_id: number;
   zone_ids: number[];
+  auto_synced: boolean;
+  group_manufacturer: string;
 }
 
 export interface CompletenessStats {

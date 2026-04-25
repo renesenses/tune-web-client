@@ -99,6 +99,8 @@ export default {
   'zone.measuring': 'Mesure...',
   'zone.calibrate': 'Calibrer',
   'zone.calibrating': 'Calibrage...',
+  'zone.autoSynced': 'Sync auto',
+  'zone.calibrationNeeded': 'Calibrage conseillé',
   'zone.refresh': 'Actualiser',
 
   // Transport

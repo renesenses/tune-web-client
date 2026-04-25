@@ -564,7 +564,14 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
                   {$t('zone.activeGroup')}
                 </span>
-                {#if isLeader(zone, group)}
+                {#if group.auto_synced}
+                  <!-- Same manufacturer: sync is guaranteed, no calibration needed -->
+                  <span class="auto-sync-badge" title={group.group_manufacturer}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>
+                    {$t('zone.autoSynced')}
+                  </span>
+                {:else if isLeader(zone, group)}
+                  <!-- Mixed brands: calibration recommended, only show on leader card -->
                   <button
                     class="btn-inline"
                     onclick={(e) => { e.stopPropagation(); handleCalibrateGroup(group); }}
@@ -1213,6 +1220,21 @@
     background: rgba(124, 58, 237, 0.15);
     color: var(--tune-accent);
     padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .auto-sync-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-family: var(--font-label);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    padding: 1px 6px;
     border-radius: 3px;
   }
 
