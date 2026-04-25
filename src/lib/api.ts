@@ -625,7 +625,7 @@ export function transferPlayback(fromZoneId: number, toZoneId: number) {
 }
 
 export function getTrackLyrics(trackId: number) {
-  return fetchJSON<{ lyrics: string | null; source: string | null }>(`${BASE}/library/tracks/${trackId}/lyrics`);
+  return fetchJSON<{ lyrics: string | null; synced: string | null; source: string | null }>(`${BASE}/library/tracks/${trackId}/lyrics`);
 }
 
 export function getSmartPlaylists() {

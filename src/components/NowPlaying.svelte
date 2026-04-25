@@ -22,6 +22,33 @@
   let lyricsLoading = $state(false);
   let showEq = $state(false);
   let currentEqPreset = $state('flat');
+  let karaokeMode = $state(false);
+  let syncedLines: { time: number; text: string }[] = $state([]);
+
+  function parseSyncedLyrics(raw: string): { time: number; text: string }[] {
+    const lines: { time: number; text: string }[] = [];
+    for (const line of raw.split('\n')) {
+      const m = line.match(/^\[(\d{2}):(\d{2})\.(\d{2,3})\]\s*(.*)/);
+      if (m) {
+        const mins = parseInt(m[1]);
+        const secs = parseInt(m[2]);
+        const ms = parseInt(m[3].padEnd(3, '0'));
+        lines.push({ time: mins * 60000 + secs * 1000 + ms, text: m[4] });
+      }
+    }
+    return lines;
+  }
+
+  let karaokeCurrentLine = $derived.by(() => {
+    if (!karaokeMode || syncedLines.length === 0) return -1;
+    const pos = $seekPositionMs ?? 0;
+    let idx = -1;
+    for (let i = 0; i < syncedLines.length; i++) {
+      if (syncedLines[i].time <= pos) idx = i;
+      else break;
+    }
+    return idx;
+  });
 
   const EQ_PRESETS = [
     { value: 'flat', label: 'Flat' },
@@ -318,6 +345,10 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>
               EQ
             </button>
+            <button class="np-credits-btn" class:active={karaokeMode} onclick={async () => { karaokeMode = !karaokeMode; if (karaokeMode && displayTrack?.id) { const r = await api.getTrackLyrics(displayTrack.id); if (r.synced) syncedLines = parseSyncedLyrics(r.synced); else if (r.lyrics) syncedLines = r.lyrics.split('\n').map((t, i) => ({ time: i * 5000, text: t })); } }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
+              Karaoké
+            </button>
             <button class="np-credits-btn" onclick={handleShare}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
               Partager
@@ -342,6 +373,17 @@
                   </button>
                 {/each}
               </div>
+            {/if}
+            {#if karaokeMode && syncedLines.length > 0}
+              <div class="karaoke-panel">
+                {#each syncedLines as line, i}
+                  <p class="karaoke-line" class:active={i === karaokeCurrentLine} class:past={i < karaokeCurrentLine} class:future={i > karaokeCurrentLine}>
+                    {line.text || '♪'}
+                  </p>
+                {/each}
+              </div>
+            {:else if karaokeMode}
+              <p class="lyrics-empty">Pas de paroles synchronisées disponibles</p>
             {/if}
           {/if}
           {#if zone?.signal_path}
@@ -1272,5 +1314,44 @@
   .eq-preset:hover {
     border-color: var(--tune-accent);
     color: var(--tune-accent);
+  }
+
+  .karaoke-panel {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-lg);
+    max-height: 350px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    text-align: center;
+  }
+
+  .karaoke-line {
+    font-family: var(--font-display);
+    font-size: 18px;
+    line-height: 2;
+    margin: 0;
+    padding: 2px 0;
+    transition: all 0.3s ease-out;
+    color: var(--tune-text-muted);
+    opacity: 0.4;
+  }
+
+  .karaoke-line.active {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--tune-accent);
+    opacity: 1;
+    text-shadow: 0 0 20px rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4);
+  }
+
+  .karaoke-line.past {
+    color: var(--tune-text-secondary);
+    opacity: 0.6;
+  }
+
+  .karaoke-line.future {
+    opacity: 0.3;
   }
 </style>
