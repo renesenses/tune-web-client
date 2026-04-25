@@ -1244,11 +1244,11 @@
     gap: 4px;
   }
 
-  /* Devices grid */
+  /* Devices list */
   .devices-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
 
   .device-card {
