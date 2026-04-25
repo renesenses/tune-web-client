@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { currentZone } from '../lib/stores/zones';
+  import { currentZone, playAndSync } from '../lib/stores/zones';
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
@@ -87,7 +87,7 @@
     const ids = browseResult.tracks.slice(index).filter(t => t.id).map(t => t.id!);
     if (ids.length === 0) return;
     try {
-      await api.play(zone.id, { track_ids: ids });
+      await playAndSync(zone.id, { track_ids: ids });
     } catch (e) {
       console.error('Play track error:', e);
     }
@@ -111,7 +111,7 @@
     const ids = browseResult.tracks.filter(t => t.id).map(t => t.id!);
     if (ids.length === 0) return;
     try {
-      await api.play(zone.id, { track_ids: ids });
+      await playAndSync(zone.id, { track_ids: ids });
     } catch (e) {
       console.error('Play all error:', e);
     }

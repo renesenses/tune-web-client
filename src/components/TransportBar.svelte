@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { zones, currentZone, currentZoneId } from '../lib/stores/zones';
+  import { zones, currentZone, currentZoneId, playAndSync } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs } from '../lib/stores/nowPlaying';
   import { ytPlayerState, ytLoading, pauseVideo, resumeVideo } from '../lib/stores/ytPlayer';
   import * as api from '../lib/api';
@@ -80,11 +80,11 @@
       else await api.resume(zone.id);
     } else if (zone?.id && state === 'stopped' && track) {
       // Zone stopped but has a current track (e.g. DLNA write failed) — resume playback
-      await api.play(zone.id);
+      await playAndSync(zone.id);
     } else if (zone?.id && state === 'stopped' && ytActive && ytTrack?.source_id) {
       // Zone stopped but IFrame has a YT track — restart via API
       ytLoading.set(true);
-      await api.play(zone.id, { source: ytTrack.source as any, source_id: ytTrack.source_id });
+      await playAndSync(zone.id, { source: ytTrack.source as any, source_id: ytTrack.source_id });
     } else if (ytActive) {
       // No zone at all — control IFrame directly as fallback
       if (ytPlaying) pauseVideo(); else resumeVideo();

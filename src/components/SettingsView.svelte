@@ -586,6 +586,7 @@
       musicRoots = br.roots;
     } catch (e: any) {
       musicDirError = e.message || String(e);
+      notifications.error(e.message || String(e));
     }
     addingMusicDir = false;
   }

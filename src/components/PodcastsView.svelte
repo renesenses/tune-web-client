@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import * as api from '../lib/api';
-  import { currentZoneId } from '../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../lib/stores/zones';
   import { get } from 'svelte/store';
 
   let searchQuery = $state('');
@@ -66,7 +66,7 @@
     const zoneId = get(currentZoneId);
     if (!zoneId) return;
     try {
-      await api.play(zoneId, {
+      await playAndSync(zoneId, {
         file_path: episode.audio_url,
         title: episode.title,
         artist_name: selectedPodcast?.name,

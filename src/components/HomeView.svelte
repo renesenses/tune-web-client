@@ -2,7 +2,7 @@
   import { activeView } from '../lib/stores/navigation';
   import { libraryTab, selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryLoading } from '../lib/stores/library';
   import { playbackHistory } from '../lib/stores/history';
-  import { currentZone } from '../lib/stores/zones';
+  import { currentZone, playAndSync } from '../lib/stores/zones';
   import { formatNumber } from '../lib/utils';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
@@ -56,7 +56,7 @@
   async function playAlbum(albumId: number) {
     if (!zone?.id) return;
     try {
-      await api.play(zone.id, { album_id: albumId });
+      await playAndSync(zone.id, { album_id: albumId });
     } catch (e) {
       console.error('Play album error:', e);
     }
@@ -101,7 +101,7 @@
   async function playTrack(trackId: number) {
     if (!zone?.id) return;
     try {
-      await api.play(zone.id, { track_id: trackId });
+      await playAndSync(zone.id, { track_id: trackId });
     } catch (e) {
       console.error('Play track error:', e);
     }
@@ -122,13 +122,13 @@
     if (!zone?.id) return;
     try {
       if (album.id) {
-        await api.play(zone.id, { album_id: album.id });
+        await playAndSync(zone.id, { album_id: album.id });
       } else if (album.source === 'radio' && album.firstTrack.source_id) {
         await api.playRadio(parseInt(album.firstTrack.source_id), zone.id);
       } else if (album.source && album.source !== 'local' && album.firstTrack.source_id) {
-        await api.play(zone.id, { source: album.source as Source, source_id: album.firstTrack.source_id });
+        await playAndSync(zone.id, { source: album.source as Source, source_id: album.firstTrack.source_id });
       } else if (album.firstTrack.id) {
-        await api.play(zone.id, { track_id: album.firstTrack.id });
+        await playAndSync(zone.id, { track_id: album.firstTrack.id });
       } else {
         // No DB id — try search by title first (more reliable than stale URLs)
         const searchTitle = album.firstTrack.album_title || album.title;
@@ -137,18 +137,18 @@
           if (results.tracks && results.tracks.length > 0) {
             const match = results.tracks.find((t: Track) => t.album_id);
             if (match?.album_id) {
-              await api.play(zone.id, { album_id: match.album_id });
+              await playAndSync(zone.id, { album_id: match.album_id });
               return;
             }
             if (results.tracks[0].id) {
-              await api.play(zone.id, { track_id: results.tracks[0].id });
+              await playAndSync(zone.id, { track_id: results.tracks[0].id });
               return;
             }
           }
         }
         // Last resort: direct file_path (may be stale for media server URLs)
         if (album.firstTrack.file_path) {
-          await api.play(zone.id, { file_path: album.firstTrack.file_path });
+          await playAndSync(zone.id, { file_path: album.firstTrack.file_path });
         }
       }
     } catch (e) {
@@ -300,7 +300,7 @@
       const results = await api.searchLibrary(`${track.track_title} ${track.artist_name ?? ''}`, 5);
       const match = results.tracks?.find((t: Track) => t.title === track.track_title);
       if (match?.id) {
-        await api.play(zone.id, { track_id: match.id });
+        await playAndSync(zone.id, { track_id: match.id });
       }
     } catch (e) {
       console.error('Play top track error:', e);

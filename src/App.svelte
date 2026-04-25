@@ -165,9 +165,25 @@
       zones.update((zs) =>
         zs.map((z) => z.id === zoneId ? zone : z)
       );
-      // Only update seek position and timer for the currently displayed zone.
-      // Events from other zones must not corrupt the active zone's playback state.
-      if (get(currentZone)?.id === zoneId) {
+      // Propagate playback state to all other zones in the same group:
+      // when a group plays, all members share the same track/state/position.
+      if (zone.group_id) {
+        zones.update((zs) =>
+          zs.map((z) => {
+            if (z.group_id === zone.group_id && z.id !== zoneId) {
+              return { ...z, state: zone.state, current_track: zone.current_track, position_ms: zone.position_ms };
+            }
+            return z;
+          })
+        );
+      }
+      // Update seek position and timer for the currently displayed zone,
+      // including when it is a group member of the zone that fired the event.
+      const curZone = get(currentZone);
+      const isCurrentOrGroupMember =
+        curZone?.id === zoneId ||
+        (zone.group_id != null && curZone?.group_id === zone.group_id);
+      if (isCurrentOrGroupMember) {
         seekPositionMs.set(zone.position_ms ?? 0);
         if (zone.state === 'playing') {
           startSeekTimer();
@@ -263,8 +279,10 @@
         } else if (zoneId) {
           // For started/resumed/paused/stopped/track_changed: fetch full zone state
           syncZoneState(zoneId).then(() => {
-            // IFrame sync and history only concern the active zone
-            if (get(currentZone)?.id !== zoneId) return;
+            // IFrame sync and history only concern the active zone (or its group members)
+            const curZone = get(currentZone);
+            const isGroupMember = curZone?.group_id != null && curZone.group_id === get(zones).find(z => z.id === zoneId)?.group_id;
+            if (curZone?.id !== zoneId && !isGroupMember) return;
 
             const z = get(currentZone);
 

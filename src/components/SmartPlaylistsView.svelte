@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { currentZone } from '../lib/stores/zones';
+  import { currentZone, playAndSync } from '../lib/stores/zones';
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import type { Track } from '../lib/types';
@@ -136,13 +136,13 @@
     if (!zone?.id || spTracks.length === 0) return;
     const ids = spTracks.map(t => t.id).filter(Boolean) as number[];
     if (ids.length > 0) {
-      await api.play(zone.id, { track_ids: ids });
+      await playAndSync(zone.id, { track_ids: ids });
     }
   }
 
   async function playTrack(trackId: number) {
     if (!zone?.id) return;
-    await api.play(zone.id, { track_id: trackId });
+    await playAndSync(zone.id, { track_id: trackId });
   }
 
   function addRule() {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, type LibraryTab } from '../lib/stores/library';
-  import { currentZone } from '../lib/stores/zones';
+  import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { currentProfileId } from '../lib/stores/profile';
   import * as api from '../lib/api';
@@ -425,7 +425,7 @@
       return;
     }
     try {
-      await api.play(zone.id, { album_id: albumId });
+      await playAndSync(zone.id, { album_id: albumId });
     } catch (e) {
       console.error('Play album error:', e);
       notifications.error('Erreur de lecture : ' + (e instanceof Error ? e.message : String(e)));
@@ -441,9 +441,9 @@
       const idx = $albumTracks.findIndex(t => t.id === trackId);
       if (idx >= 0) {
         const ids = $albumTracks.slice(idx).map(t => t.id).filter(Boolean) as number[];
-        await api.play(zone.id, { track_ids: ids });
+        await playAndSync(zone.id, { track_ids: ids });
       } else {
-        await api.play(zone.id, { track_id: trackId });
+        await playAndSync(zone.id, { track_id: trackId });
       }
     } catch (e) {
       console.error('Play track error:', e);
