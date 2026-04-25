@@ -58,10 +58,19 @@
     adding = false;
   }
 
-  // Upvote tracking (local state — server doesn't persist votes yet)
-  let votes = $state<Record<number, number>>({});
-  function upvote(position: number) {
-    votes = { ...votes, [position]: (votes[position] || 0) + 1 };
+  // Upvote — server-side with queue reordering
+  let voting = $state<number | null>(null);
+  async function upvote(position: number) {
+    if (voting !== null) return;
+    voting = position;
+    try {
+      const r = await api.partyVote(position, zone?.id ?? undefined);
+      notifications.success(`Vote +1 !`);
+      refresh();
+    } catch (e: any) {
+      notifications.error(e?.message || 'Erreur vote');
+    }
+    voting = null;
   }
 
   function sharePartyLink() {
@@ -167,9 +176,13 @@
             {#if item.is_current}
               <span class="q-now">NOW</span>
             {:else}
-              <button class="upvote-btn" onclick={() => upvote(item.position)}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="18 15 12 9 6 15" /></svg>
-                {#if votes[item.position]}<span class="vote-count">{votes[item.position]}</span>{/if}
+              <button class="upvote-btn" class:voted={item.votes > 0} onclick={() => upvote(item.position)} disabled={voting !== null}>
+                {#if voting === item.position}
+                  <span class="vote-spin"></span>
+                {:else}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="18 15 12 9 6 15" /></svg>
+                {/if}
+                {#if item.votes > 0}<span class="vote-count">{item.votes}</span>{/if}
               </button>
             {/if}
           </div>
@@ -264,8 +277,12 @@
     padding: 3px 8px; color: var(--tune-text-muted); cursor: pointer;
     font-size: 0.75rem; transition: all 0.12s;
   }
-  .upvote-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
+  .upvote-btn:hover:not(:disabled) { border-color: var(--tune-accent); color: var(--tune-accent); }
+  .upvote-btn:disabled { opacity: 0.5; cursor: default; }
+  .upvote-btn.voted { border-color: var(--tune-accent); color: var(--tune-accent); background: rgba(99, 102, 241, 0.08); }
   .vote-count { font-weight: 700; color: var(--tune-accent); }
+  .vote-spin { width: 12px; height: 12px; border: 2px solid var(--tune-border); border-top-color: var(--tune-accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   .qr-section { text-align: center; margin-bottom: 24px; padding: 24px; background: var(--tune-surface); border-radius: 16px; }
   .qr-img { width: 200px; height: 200px; border-radius: 8px; image-rendering: pixelated; }

@@ -6,6 +6,48 @@
   import AlbumArt from './AlbumArt.svelte';
   import { formatTime } from '../lib/utils';
 
+  // Pseudo-random waveform based on track title (consistent per track)
+  function seedRand(seed: string) {
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
+    return () => { h = (h * 16807 + 0) % 2147483647; return (h & 0x7fffffff) / 2147483647; };
+  }
+
+  function drawWaveform(canvas: HTMLCanvasElement, title: string, progress: number, color: string) {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const w = canvas.width = canvas.offsetWidth * 2;
+    const h = canvas.height = canvas.offsetHeight * 2;
+    ctx.clearRect(0, 0, w, h);
+    const bars = Math.floor(w / 4);
+    const rand = seedRand(title || 'empty');
+    const mid = h / 2;
+    for (let i = 0; i < bars; i++) {
+      const amp = 0.2 + rand() * 0.8;
+      const barH = amp * mid * 0.9;
+      const x = i * 4;
+      const played = i / bars <= progress;
+      ctx.fillStyle = played ? color : 'rgba(255,255,255,0.12)';
+      ctx.fillRect(x, mid - barH, 2, barH * 2);
+    }
+  }
+
+  let waveCanvasA = $state<HTMLCanvasElement | null>(null);
+  let waveCanvasB = $state<HTMLCanvasElement | null>(null);
+
+  $effect(() => {
+    if (waveCanvasA && deckA?.title) {
+      const progress = deckA.duration_ms ? (deckA.position_ms || 0) / deckA.duration_ms : 0;
+      drawWaveform(waveCanvasA, deckA.title, progress, 'rgba(99, 102, 241, 0.8)');
+    }
+  });
+  $effect(() => {
+    if (waveCanvasB && deckB?.title) {
+      const progress = deckB.duration_ms ? (deckB.position_ms || 0) / deckB.duration_ms : 0;
+      drawWaveform(waveCanvasB, deckB.title, progress, 'rgba(99, 102, 241, 0.8)');
+    }
+  });
+
   let djEnabled = $state(false);
   let activeDeck = $state<'a' | 'b'>('a');
   let deckA = $state<any>(null);
@@ -228,6 +270,7 @@
                 {/if}
               </button>
             </div>
+            <canvas class="waveform" bind:this={waveCanvasA}></canvas>
           {:else}
             <button class="load-btn" onclick={() => { loadTarget = 'a'; }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
@@ -323,6 +366,7 @@
                 {/if}
               </button>
             </div>
+            <canvas class="waveform" bind:this={waveCanvasB}></canvas>
           {:else}
             <button class="load-btn" onclick={() => { loadTarget = 'b'; }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
@@ -512,6 +556,8 @@
 
   .deck-position-row { display: flex; align-items: baseline; gap: 4px; margin-top: 2px; }
   .deck-position { font-size: 0.85rem; color: var(--tune-accent); font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  .waveform { width: 100%; height: 40px; margin-top: 8px; border-radius: 6px; background: rgba(255,255,255,0.03); }
 
   .spinner-sm { width: 14px; height: 14px; border: 2px solid var(--tune-border); border-top-color: var(--tune-accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
 

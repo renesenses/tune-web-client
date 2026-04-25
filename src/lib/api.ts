@@ -1450,6 +1450,15 @@ export function partyAddTrack(query: string, zoneId?: number) {
   return fetchJSON<any>(`${BASE}/party/add`, { method: 'POST', body: JSON.stringify({ query, zone_id: zoneId }) });
 }
 
+export function partyVote(position: number, zoneId?: number) {
+  return fetchJSON<any>(`${BASE}/party/vote`, { method: 'POST', body: JSON.stringify({ position, zone_id: zoneId }) });
+}
+
+export function partyResetVotes(zoneId?: number) {
+  const qs = zoneId ? `?zone_id=${zoneId}` : '';
+  return fetchJSON<any>(`${BASE}/party/vote/reset${qs}`, { method: 'POST' });
+}
+
 export function getPartyQueue(zoneId?: number) {
   const qs = zoneId ? `?zone_id=${zoneId}` : '';
   return fetchJSON<any[]>(`${BASE}/party/queue${qs}`);
