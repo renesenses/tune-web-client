@@ -58,11 +58,22 @@
     adding = false;
   }
 
+  // Upvote tracking (local state — server doesn't persist votes yet)
+  let votes = $state<Record<number, number>>({});
+  function upvote(position: number) {
+    votes = { ...votes, [position]: (votes[position] || 0) + 1 };
+  }
+
   function sharePartyLink() {
     const url = window.location.origin + '/#party';
     navigator.clipboard.writeText(url);
     notifications.success('Lien copie !');
   }
+
+  let showQR = $state(false);
+  let partyUrl = $derived(window.location.origin + '/#party');
+  // Simple QR code via external API (no dependency needed)
+  let qrUrl = $derived(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(partyUrl)}`);
 </script>
 
 <div class="party-view">
@@ -70,9 +81,21 @@
     <h2>Mode Party</h2>
     <button class="share-btn" onclick={sharePartyLink}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
-      Partager le lien
+      Partager
+    </button>
+    <button class="share-btn" onclick={() => showQR = !showQR}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="3" height="3" /><rect x="18" y="18" width="3" height="3" /></svg>
+      QR Code
     </button>
   </header>
+
+  {#if showQR}
+    <div class="qr-section">
+      <img class="qr-img" src={qrUrl} alt="QR Code Party" />
+      <p class="qr-hint">Scannez pour rejoindre la party !</p>
+      <p class="qr-url">{partyUrl}</p>
+    </div>
+  {/if}
 
   {#if loading}
     <div class="empty">Chargement...</div>
@@ -143,6 +166,11 @@
             </div>
             {#if item.is_current}
               <span class="q-now">NOW</span>
+            {:else}
+              <button class="upvote-btn" onclick={() => upvote(item.position)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="18 15 12 9 6 15" /></svg>
+                {#if votes[item.position]}<span class="vote-count">{votes[item.position]}</span>{/if}
+              </button>
             {/if}
           </div>
         {/each}
@@ -229,4 +257,18 @@
   .q-artist { font-size: 0.75rem; color: var(--tune-text-muted); }
   .q-now { font-size: 0.65rem; font-weight: 700; color: var(--tune-accent); letter-spacing: 1px; }
   .queue-empty { text-align: center; padding: 32px; color: var(--tune-text-muted); font-size: 0.9rem; }
+
+  .upvote-btn {
+    display: flex; align-items: center; gap: 3px;
+    background: none; border: 1px solid var(--tune-border); border-radius: 8px;
+    padding: 3px 8px; color: var(--tune-text-muted); cursor: pointer;
+    font-size: 0.75rem; transition: all 0.12s;
+  }
+  .upvote-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
+  .vote-count { font-weight: 700; color: var(--tune-accent); }
+
+  .qr-section { text-align: center; margin-bottom: 24px; padding: 24px; background: var(--tune-surface); border-radius: 16px; }
+  .qr-img { width: 200px; height: 200px; border-radius: 8px; image-rendering: pixelated; }
+  .qr-hint { font-size: 0.9rem; color: var(--tune-text); margin: 12px 0 4px; }
+  .qr-url { font-size: 0.75rem; color: var(--tune-text-muted); word-break: break-all; }
 </style>

@@ -39,6 +39,25 @@
   let artistMetadataError = $state(false);
   let openSections = $state<Record<string, boolean>>({});
 
+  // Album bio
+  let albumBio = $state<string | null>(null);
+  let albumBioLoading = $state(false);
+  let albumBioAlbumId = $state<number | null>(null);
+  let showAlbumBio = $state(false);
+
+  async function loadAlbumBio(albumId: number) {
+    if (albumId === albumBioAlbumId && albumBio !== null) return;
+    albumBioAlbumId = albumId;
+    albumBioLoading = true;
+    try {
+      const r = await api.getAlbumBio(albumId);
+      albumBio = r.bio;
+    } catch {
+      albumBio = null;
+    }
+    albumBioLoading = false;
+  }
+
   // Track credits
   let expandedTrackCredits = $state<number | null>(null);
   let trackCreditsMap = $state<Record<number, TrackCredit[]>>({});
@@ -332,6 +351,9 @@
     selectedArtist.set(null);
     expandedTrackCredits = null;
     trackCreditsMap = {};
+    albumBio = null;
+    albumBioAlbumId = null;
+    showAlbumBio = false;
     libraryLoading.set(true);
     try {
       // Fetch full album if cover_path is missing (e.g. navigating from tracks view)
@@ -555,6 +577,21 @@
           </div>
           {#if writeTagsMessage}
             <div class="write-tags-message">{writeTagsMessage}</div>
+          {/if}
+          <button class="bio-toggle-btn" onclick={() => { showAlbumBio = !showAlbumBio; if (showAlbumBio && $selectedAlbum?.id) loadAlbumBio($selectedAlbum.id); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+            {showAlbumBio ? 'Masquer notes' : 'Notes / Bio'}
+          </button>
+          {#if showAlbumBio}
+            <div class="album-bio-section">
+              {#if albumBioLoading}
+                <div class="spinner-sm"></div>
+              {:else if albumBio}
+                <p class="album-bio-text">{albumBio}</p>
+              {:else}
+                <p class="album-bio-empty">Aucune note disponible pour cet album</p>
+              {/if}
+            </div>
           {/if}
         </div>
       </div>
@@ -1334,6 +1371,52 @@
     border-radius: var(--radius-sm);
     color: #86efac;
     font-size: 13px;
+  }
+
+  .bio-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: 14px;
+    padding: 4px 12px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .bio-toggle-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .album-bio-section {
+    margin-top: 10px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .album-bio-text {
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--tune-text-secondary);
+    white-space: pre-wrap;
+    margin: 0;
+  }
+
+  .album-bio-empty {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    font-style: italic;
+    margin: 0;
   }
 
   .detail-meta {

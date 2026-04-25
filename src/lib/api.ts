@@ -601,6 +601,10 @@ export function playMediaServerItem(serverId: string, itemId: string, zoneId: nu
 
 // --- Smart Playlists ---
 
+export function getAlbumBio(albumId: number) {
+  return fetchJSON<{ bio: string | null; source: string | null; release_id?: string | null }>(`${BASE}/library/albums/${albumId}/bio`);
+}
+
 export function getArtistTimeline(artistId: number) {
   return fetchJSON<any[]>(`${BASE}/library/artists/${artistId}/timeline`);
 }
@@ -1418,6 +1422,18 @@ export function toggleAutoCrossfade(zoneId: number, enabled?: boolean, beforeEnd
 
 export function getDJStatus(zoneId: number) {
   return fetchJSON<any>(`${BASE}/dj/status/${zoneId}`);
+}
+
+export function playDeck(zoneId: number, deck: 'a' | 'b') {
+  return fetchJSON<any>(`${BASE}/dj/play/${zoneId}/${deck}`, { method: 'POST' });
+}
+
+export function pauseDeck(zoneId: number, deck: 'a' | 'b') {
+  return fetchJSON<any>(`${BASE}/dj/pause/${zoneId}/${deck}`, { method: 'POST' });
+}
+
+export function setCrossfader(zoneId: number, position: number) {
+  return fetchJSON<any>(`${BASE}/dj/crossfader/${zoneId}`, { method: 'POST', body: JSON.stringify({ position }) });
 }
 
 export function setDeckVolume(zoneId: number, deck: 'a' | 'b', volume: number) {

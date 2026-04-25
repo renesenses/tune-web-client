@@ -14,7 +14,10 @@
   let crossfadeDuration = $state(5);
   let autoCrossfade = $state(false);
   let autoCrossfadeBeforeEnd = $state(10);
-  let positionMs = $state(0);
+  let gainA = $state(1);
+  let gainB = $state(0);
+  let mixing = $state(false);
+  let crossfaderPos = $state(0);
   let loading = $state(false);
 
   // Search for loading tracks
@@ -34,9 +37,11 @@
       deckA = s.deck_a;
       deckB = s.deck_b;
       crossfading = s.crossfading;
-      crossfadeDuration = s.crossfade_duration;
+      if (s.crossfade_duration) crossfadeDuration = s.crossfade_duration;
       autoCrossfade = s.auto_crossfade;
-      positionMs = s.position_ms;
+      gainA = s.gain_a ?? 1;
+      gainB = s.gain_b ?? 0;
+      mixing = s.mixing ?? false;
     } catch { /* ignore */ }
   }
 
@@ -126,6 +131,32 @@
       await api.setDeckVolume(zone.id, deck, vol);
     } catch { /* ignore */ }
   }
+
+  async function togglePlayDeck(deck: 'a' | 'b') {
+    if (!zone?.id) return;
+    const d = deck === 'a' ? deckA : deckB;
+    if (!d) return;
+    try {
+      if (d.playing) {
+        await api.pauseDeck(zone.id, deck);
+      } else {
+        await api.playDeck(zone.id, deck);
+      }
+      refreshStatus();
+    } catch (e) {
+      notifications.error('Erreur play/pause deck');
+    }
+  }
+
+  async function handleCrossfader(val: number) {
+    if (!zone?.id) return;
+    crossfaderPos = val;
+    try {
+      const r = await api.setCrossfader(zone.id, val);
+      gainA = r.gain_a;
+      gainB = r.gain_b;
+    } catch { /* ignore */ }
+  }
 </script>
 
 <div class="dj-view">
@@ -161,13 +192,14 @@
         <div class="deck-header">
           <span class="deck-label">DECK A</span>
           {#if activeDeck === 'a'}<span class="deck-active-badge">ACTIVE</span>{/if}
+          <div class="gain-bar"><div class="gain-fill" style="width: {gainA * 100}%"></div></div>
         </div>
         <div class="deck-content">
           {#if deckA}
             <div class="deck-track">
               <div class="deck-art">
                 <AlbumArt coverPath={deckA.cover} size={120} alt={deckA.title} />
-                <div class="vinyl-overlay" class:spinning={activeDeck === 'a' && !crossfading}>
+                <div class="vinyl-overlay" class:spinning={deckA.playing}>
                   <div class="vinyl-groove"></div>
                   <div class="vinyl-groove inner"></div>
                   <div class="vinyl-center"></div>
@@ -177,10 +209,24 @@
                 <span class="deck-title">{deckA.title}</span>
                 <span class="deck-artist">{deckA.artist}</span>
                 <span class="deck-album">{deckA.album}</span>
-                {#if deckA.duration_ms}
-                  <span class="deck-duration">{formatTime(deckA.duration_ms)}</span>
-                {/if}
+                <div class="deck-position-row">
+                  {#if deckA.position_ms != null}
+                    <span class="deck-position">{formatTime(deckA.position_ms)}</span>
+                  {/if}
+                  {#if deckA.duration_ms}
+                    <span class="deck-duration">/ {formatTime(deckA.duration_ms)}</span>
+                  {/if}
+                </div>
               </div>
+            </div>
+            <div class="deck-transport">
+              <button class="transport-btn" onclick={() => togglePlayDeck('a')}>
+                {#if deckA.playing}
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+                {:else}
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><polygon points="5,3 19,12 5,21" /></svg>
+                {/if}
+              </button>
             </div>
           {:else}
             <button class="load-btn" onclick={() => { loadTarget = 'a'; }}>
@@ -223,6 +269,11 @@
           <input type="range" min="1" max="30" step="0.5" bind:value={crossfadeDuration} />
           <span>{crossfadeDuration}s</span>
         </div>
+        <div class="cf-slider">
+          <span class="cf-s-label">A</span>
+          <input type="range" min="-1" max="1" step="0.05" value={crossfaderPos} oninput={(e) => handleCrossfader(parseFloat((e.target as HTMLInputElement).value))} />
+          <span class="cf-s-label">B</span>
+        </div>
         <button class="auto-btn" class:active={autoCrossfade} onclick={toggleAuto}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
             <path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
@@ -236,13 +287,14 @@
         <div class="deck-header">
           <span class="deck-label">DECK B</span>
           {#if activeDeck === 'b'}<span class="deck-active-badge">ACTIVE</span>{/if}
+          <div class="gain-bar"><div class="gain-fill" style="width: {gainB * 100}%"></div></div>
         </div>
         <div class="deck-content">
           {#if deckB}
             <div class="deck-track">
               <div class="deck-art">
                 <AlbumArt coverPath={deckB.cover} size={120} alt={deckB.title} />
-                <div class="vinyl-overlay" class:spinning={activeDeck === 'b' && !crossfading}>
+                <div class="vinyl-overlay" class:spinning={deckB.playing}>
                   <div class="vinyl-groove"></div>
                   <div class="vinyl-groove inner"></div>
                   <div class="vinyl-center"></div>
@@ -252,10 +304,24 @@
                 <span class="deck-title">{deckB.title}</span>
                 <span class="deck-artist">{deckB.artist}</span>
                 <span class="deck-album">{deckB.album}</span>
-                {#if deckB.duration_ms}
-                  <span class="deck-duration">{formatTime(deckB.duration_ms)}</span>
-                {/if}
+                <div class="deck-position-row">
+                  {#if deckB.position_ms != null}
+                    <span class="deck-position">{formatTime(deckB.position_ms)}</span>
+                  {/if}
+                  {#if deckB.duration_ms}
+                    <span class="deck-duration">/ {formatTime(deckB.duration_ms)}</span>
+                  {/if}
+                </div>
               </div>
+            </div>
+            <div class="deck-transport">
+              <button class="transport-btn" onclick={() => togglePlayDeck('b')}>
+                {#if deckB.playing}
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+                {:else}
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><polygon points="5,3 19,12 5,21" /></svg>
+                {/if}
+              </button>
             </div>
           {:else}
             <button class="load-btn" onclick={() => { loadTarget = 'b'; }}>
@@ -428,6 +494,24 @@
     transition: all 0.12s;
   }
   .auto-btn.active { border-color: var(--tune-accent); color: var(--tune-accent); background: rgba(99, 102, 241, 0.1); }
+
+  .cf-slider { display: flex; align-items: center; gap: 6px; width: 100%; }
+  .cf-slider input { flex: 1; accent-color: var(--tune-accent); }
+  .cf-s-label { font-family: var(--font-label); font-size: 11px; font-weight: 700; color: var(--tune-text-muted); }
+
+  .gain-bar { flex: 1; height: 4px; border-radius: 2px; background: var(--tune-border); overflow: hidden; margin-left: auto; max-width: 60px; }
+  .gain-fill { height: 100%; background: var(--tune-accent); border-radius: 2px; transition: width 0.15s; }
+
+  .deck-transport { display: flex; justify-content: center; margin-top: 12px; }
+  .transport-btn {
+    width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--tune-accent);
+    background: transparent; color: var(--tune-accent); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.12s;
+  }
+  .transport-btn:hover { background: var(--tune-accent); color: white; }
+
+  .deck-position-row { display: flex; align-items: baseline; gap: 4px; margin-top: 2px; }
+  .deck-position { font-size: 0.85rem; color: var(--tune-accent); font-variant-numeric: tabular-nums; font-weight: 600; }
 
   .spinner-sm { width: 14px; height: 14px; border: 2px solid var(--tune-border); border-top-color: var(--tune-accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
 
