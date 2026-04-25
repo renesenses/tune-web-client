@@ -23,6 +23,7 @@
   import LibraryView from './components/LibraryView.svelte';
   import SearchView from './components/SearchView.svelte';
   import PlaylistsView from './components/PlaylistsView.svelte';
+  import SmartPlaylistsView from './components/SmartPlaylistsView.svelte';
   import SettingsView from './components/SettingsView.svelte';
   import HistoryView from './components/HistoryView.svelte';
   import HomeView from './components/HomeView.svelte';
@@ -364,6 +365,8 @@
       <PlaylistsView onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'playlistmanager'}
       <PlaylistManagerView onAddToPlaylist={openPlaylistModal} />
+    {:else if $activeView === 'smartplaylists'}
+      <SmartPlaylistsView />
     {:else if $activeView === 'browse'}
       <BrowseView onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'search'}

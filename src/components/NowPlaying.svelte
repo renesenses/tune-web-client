@@ -15,6 +15,10 @@
   let showCredits = $state(false);
   let npCredits: TrackCredit[] = $state([]);
   let npCreditsTrackId: number | null = $state(null);
+  let showLyrics = $state(false);
+  let npLyrics: string | null = $state(null);
+  let npLyricsTrackId: number | null = $state(null);
+  let lyricsLoading = $state(false);
 
   async function loadNpCredits(trackId: number) {
     if (trackId === npCreditsTrackId) return;
@@ -34,12 +38,27 @@
     return map[role] || role.charAt(0).toUpperCase() + role.slice(1);
   }
 
-  // Auto-load credits when track changes
+  async function loadNpLyrics(trackId: number) {
+    if (trackId === npLyricsTrackId) return;
+    npLyricsTrackId = trackId;
+    lyricsLoading = true;
+    try {
+      const result = await api.getTrackLyrics(trackId);
+      npLyrics = result.lyrics;
+    } catch {
+      npLyrics = null;
+    }
+    lyricsLoading = false;
+  }
+
+  // Auto-load credits/lyrics when track changes
   $effect(() => {
     const tr = displayTrack;
-    if (tr?.id && showCredits) {
-      loadNpCredits(tr.id);
-    }
+    if (tr?.id && showCredits) loadNpCredits(tr.id);
+    if (tr?.id && showLyrics) loadNpLyrics(tr.id);
+    // Reset when track changes
+    if (tr?.id !== npCreditsTrackId) { npCredits = []; npCreditsTrackId = null; }
+    if (tr?.id !== npLyricsTrackId) { npLyrics = null; npLyricsTrackId = null; }
   });
 
   const _detailTr: Record<string, string> = {
@@ -240,7 +259,8 @@
             <p class="audio-badge">{formatAudioBadge(displayTrack)}</p>
           {/if}
           {#if !isRadio && displayTrack.id}
-            <button class="np-credits-btn" class:active={showCredits} onclick={() => { showCredits = !showCredits; if (showCredits && displayTrack.id) loadNpCredits(displayTrack.id); }}>
+            <div class="np-extra-btns">
+            <button class="np-credits-btn" class:active={showCredits} onclick={() => { showCredits = !showCredits; showLyrics = false; if (showCredits && displayTrack.id) loadNpCredits(displayTrack.id); }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
               {$t('artist.credits')}
             </button>
@@ -258,6 +278,22 @@
                     </div>
                   </div>
                 {/each}
+              </div>
+            {/if}
+            <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; showCredits = false; if (showLyrics && displayTrack.id) loadNpLyrics(displayTrack.id); }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+              Paroles
+            </button>
+            </div>
+            {#if showLyrics}
+              <div class="np-lyrics">
+                {#if lyricsLoading}
+                  <div class="spinner-sm"></div>
+                {:else if npLyrics}
+                  <pre class="lyrics-text">{npLyrics}</pre>
+                {:else}
+                  <p class="lyrics-empty">Aucune parole disponible</p>
+                {/if}
               </div>
             {/if}
           {/if}
@@ -1127,5 +1163,37 @@
     font-size: 10px;
     color: var(--tune-text-muted);
     font-style: italic;
+  }
+
+  .np-extra-btns {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-xs);
+  }
+
+  .np-lyrics {
+    margin-top: var(--space-sm);
+    padding: var(--space-md);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .lyrics-text {
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--tune-text-secondary);
+    white-space: pre-wrap;
+    margin: 0;
+  }
+
+  .lyrics-empty {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    font-style: italic;
+    margin: 0;
   }
 </style>

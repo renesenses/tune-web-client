@@ -599,6 +599,44 @@ export function playMediaServerItem(serverId: string, itemId: string, zoneId: nu
 
 // --- Playlists ---
 
+// --- Smart Playlists ---
+
+export function getTrackLyrics(trackId: number) {
+  return fetchJSON<{ lyrics: string | null; source: string | null }>(`${BASE}/library/tracks/${trackId}/lyrics`);
+}
+
+export function getSmartPlaylists() {
+  return fetchJSON<any[]>(`${BASE}/library/smart-playlists`);
+}
+
+export function createSmartPlaylist(data: { name: string; rules: any[]; match_mode?: string; sort_by?: string; sort_order?: string; max_tracks?: number; description?: string }) {
+  return fetchJSON<{ id: number }>(`${BASE}/library/smart-playlists`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function getSmartPlaylist(id: number) {
+  return fetchJSON<any>(`${BASE}/library/smart-playlists/${id}`);
+}
+
+export function updateSmartPlaylist(id: number, data: any) {
+  return fetchJSON<any>(`${BASE}/library/smart-playlists/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteSmartPlaylist(id: number) {
+  return fetchJSON<{ deleted: number }>(`${BASE}/library/smart-playlists/${id}`, { method: 'DELETE' });
+}
+
+export function getSmartPlaylistTracks(id: number) {
+  return fetchJSON<import('./types').Track[]>(`${BASE}/library/smart-playlists/${id}/tracks`);
+}
+
+// --- Playlists ---
+
 export function getPlaylists(limit = 100, offset = 0) {
   return fetchJSON<Playlist[]>(`${BASE}/playlists?limit=${limit}&offset=${offset}`);
 }

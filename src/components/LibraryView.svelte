@@ -451,6 +451,28 @@
     }
   }
 
+  async function playNext(track: Track) {
+    if (!zone?.id) {
+      notifications.error('Aucune zone sélectionnée');
+      return;
+    }
+    try {
+      const qs = await api.getQueue(zone.id);
+      const nextPos = qs.position + 1;
+      if (track.id) {
+        await api.addToQueue(zone.id, { track_id: track.id, position: nextPos });
+      } else if (track.source && track.source_id) {
+        await api.addToQueue(zone.id, { source: track.source, source_id: track.source_id, position: nextPos });
+      }
+      const updated = await api.getQueue(zone.id);
+      queueTracks.set(updated.tracks);
+      queuePosition.set(updated.position);
+      notifications.success(`"${track.title}" — lire ensuite`);
+    } catch (e: any) {
+      notifications.error(e?.message || 'Erreur');
+    }
+  }
+
   async function addTrackToQueue(track: Track) {
     if (!zone?.id) {
       notifications.error('Aucune zone sélectionnée — sélectionnez une zone');
@@ -555,6 +577,9 @@
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
                 <span class="track-heart" onclick={(e) => e.stopPropagation()}><HeartButton trackId={t.id} size={14} /></span>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+              <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title="Lire ensuite">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
+              </button>
                 {#if onAddToPlaylist && (t.id || t.source_id)}
                   <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
@@ -609,6 +634,9 @@
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
               <span class="track-heart" onclick={(e) => e.stopPropagation()}><HeartButton trackId={t.id} size={14} /></span>
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+              <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title="Lire ensuite">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
+              </button>
               {#if onAddToPlaylist && (t.id || t.source_id)}
                 <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
@@ -989,6 +1017,9 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
               </button>
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+              <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title="Lire ensuite">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
+              </button>
               {#if onAddToPlaylist && (t.id || t.source_id)}
                 <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
@@ -1849,6 +1880,30 @@
   }
 
   .add-queue-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .play-next-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease-out;
+    opacity: 0;
+  }
+
+  .track-item:hover .play-next-btn {
+    opacity: 1;
+  }
+
+  .play-next-btn:hover {
     border-color: var(--tune-accent);
     color: var(--tune-accent);
   }
