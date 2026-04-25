@@ -333,19 +333,31 @@
     })
   );
 
-  // Sort zones: grouped zones together, then by name
-  let sortedZones = $derived.by(() => {
-    const zs = [...$zones];
-    zs.sort((a, b) => {
-      const gA = getGroupForZone(a);
-      const gB = getGroupForZone(b);
-      // Grouped zones first, then by group ID to cluster them
-      if (gA && !gB) return -1;
-      if (!gA && gB) return 1;
-      if (gA && gB && gA.group_id !== gB.group_id) return gA.group_id.localeCompare(gB.group_id);
-      return a.name.localeCompare(b.name);
-    });
-    return zs;
+  type GridItem =
+    | { kind: 'group'; group: ZoneGroupResponse; zones: Zone[] }
+    | { kind: 'zone'; zone: Zone };
+
+  // Build grid items: grouped zones clustered first, then standalone zones
+  let gridItems = $derived.by((): GridItem[] => {
+    const items: GridItem[] = [];
+    const groupedIds = new Set<number>();
+
+    for (const group of zoneGroups) {
+      const groupZones = $zones
+        .filter(z => z.id !== null && group.zone_ids.includes(z.id!))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      if (groupZones.length > 0) {
+        items.push({ kind: 'group', group, zones: groupZones });
+        groupZones.forEach(z => z.id !== null && groupedIds.add(z.id!));
+      }
+    }
+
+    $zones
+      .filter(z => z.id !== null && !groupedIds.has(z.id!))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .forEach(zone => items.push({ kind: 'zone', zone }));
+
+    return items;
   });
 </script>
 
@@ -444,169 +456,173 @@
     </div>
   {/if}
 
-  <!-- Zones grid -->
-  <section class="zm-section">
-    <div class="zones-grid">
-      {#each sortedZones as zone (zone.id)}
-        {@const group = getGroupForZone(zone)}
-        {@const pair = getStereoPairForZone(zone)}
-        {@const selected = isSelected(zone)}
-        <div
-          class="zone-card"
-          class:selected
-          class:grouped={!!group}
-          style={group ? `border-color: ${groupColor(group.group_id)}` : ''}
-          onclick={() => toggleSelect(zone)}
-          onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSelect(zone); }}}
-          role="button"
-          tabindex={0}
-        >
-          <!-- Card header -->
-          <div class="card-header">
-            <div class="card-title-row">
-              {#if selected}
-                <span class="check-indicator">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
-                </span>
-              {/if}
-              {#if group}
-                <span class="group-dot" style="background: {groupColor(group.group_id)}" title={group.group_id}></span>
-              {/if}
-              <span class="zone-name">{zone.name}</span>
-              {#if pair}
-                <span class="stereo-badge">{getChannelLabel(zone, pair)}</span>
-              {/if}
-            </div>
-            <div class="card-badges">
-              <span class="output-badge {zone.output_type ?? 'local'}">{outputTypeIcon(zone.output_type)}</span>
-              <span class="state-badge {stateClass(zone.state)}">{stateLabel(zone.state)}</span>
-            </div>
-          </div>
-
-          <!-- Current track -->
-          {#if zone.current_track}
-            <div class="card-track">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-              <span class="track-info">{zone.current_track.title}{zone.current_track.artist_name ? ` - ${zone.current_track.artist_name}` : ''}</span>
-            </div>
+  <!-- Zone card snippet — used for both standalone and inside group clusters -->
+  {#snippet zoneCard(zone: Zone, inCluster: boolean)}
+    {@const pair = getStereoPairForZone(zone)}
+    {@const selected = isSelected(zone)}
+    <div
+      class="zone-card"
+      class:selected
+      class:in-cluster={inCluster}
+      onclick={() => toggleSelect(zone)}
+      onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSelect(zone); }}}
+      role="button"
+      tabindex={0}
+    >
+      <!-- Card header -->
+      <div class="card-header">
+        <div class="card-title-row">
+          {#if selected}
+            <span class="check-indicator">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
+            </span>
           {/if}
+          <span class="zone-name">{zone.name}</span>
+          {#if pair}
+            <span class="stereo-badge">{getChannelLabel(zone, pair)}</span>
+          {/if}
+        </div>
+        <div class="card-badges">
+          <span class="output-badge {zone.output_type ?? 'local'}">{outputTypeIcon(zone.output_type)}</span>
+          <span class="state-badge {stateClass(zone.state)}">{stateLabel(zone.state)}</span>
+        </div>
+      </div>
 
-          <!-- Volume + actions row -->
-          <div class="card-controls" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
-            <button
-              class="btn-icon"
-              onclick={(e) => { e.stopPropagation(); onVolumeInput(zone, (zone.volume ?? 0) > 0 ? 0 : 0.5); }}
-              title={(zone.volume ?? 0) > 0 ? $t('zone.mute') : $t('zone.unmute')}
-            >
-              {#if (zone.volume ?? 0) === 0}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
-              {:else if (zone.volume ?? 0) < 0.5}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-              {:else}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-              {/if}
+      <!-- Current track -->
+      {#if zone.current_track}
+        <div class="card-track">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+          <span class="track-info">{zone.current_track.title}{zone.current_track.artist_name ? ` - ${zone.current_track.artist_name}` : ''}</span>
+        </div>
+      {/if}
+
+      <!-- Volume + actions row -->
+      <div class="card-controls" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
+        <button
+          class="btn-icon"
+          onclick={(e) => { e.stopPropagation(); onVolumeInput(zone, (zone.volume ?? 0) > 0 ? 0 : 0.5); }}
+          title={(zone.volume ?? 0) > 0 ? $t('zone.mute') : $t('zone.unmute')}
+        >
+          {#if (zone.volume ?? 0) === 0}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+          {:else if (zone.volume ?? 0) < 0.5}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          {/if}
+        </button>
+        <input
+          type="range" min="0" max="1" step="0.01"
+          value={zone.volume ?? 0}
+          oninput={(e) => onVolumeInput(zone, parseFloat(e.currentTarget.value))}
+          class="volume-slider"
+        />
+        <span class="volume-pct">{Math.round((zone.volume ?? 0) * 100)}%</span>
+
+        <!-- Latency -->
+        <button
+          class="btn-icon btn-icon-sm"
+          onclick={(e) => { e.stopPropagation(); zone.id !== null && handleMeasureLatency(zone.id); }}
+          disabled={measuringLatency === zone.id}
+          title={$t('zone.latency')}
+        >
+          {#if measuringLatency === zone.id}
+            <span class="spinner-sm"></span>
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+          {/if}
+        </button>
+        {#if zone.id !== null && latencyResults[zone.id] !== undefined}
+          <span class="latency-tag">{latencyResults[zone.id]}ms</span>
+        {/if}
+
+        <!-- Delete -->
+        {#if confirmDeleteId === zone.id}
+          <div class="delete-confirm" onclick={(e) => e.stopPropagation()}>
+            <span class="delete-confirm-text">{$t('zone.confirmDelete')}</span>
+            <button class="btn btn-danger-sm" onclick={(e) => { e.stopPropagation(); zone.id !== null && handleDeleteZone(zone.id); }}>
+              {$t('common.delete')}
             </button>
-            <input
-              type="range" min="0" max="1" step="0.01"
-              value={zone.volume ?? 0}
-              oninput={(e) => onVolumeInput(zone, parseFloat(e.currentTarget.value))}
-              class="volume-slider"
-            />
-            <span class="volume-pct">{Math.round((zone.volume ?? 0) * 100)}%</span>
-
-            <!-- Latency -->
-            <button
-              class="btn-icon btn-icon-sm"
-              onclick={(e) => { e.stopPropagation(); zone.id !== null && handleMeasureLatency(zone.id); }}
-              disabled={measuringLatency === zone.id}
-              title={$t('zone.latency')}
-            >
-              {#if measuringLatency === zone.id}
-                <span class="spinner-sm"></span>
-              {:else}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-              {/if}
+            <button class="btn btn-ghost-sm" onclick={(e) => { e.stopPropagation(); confirmDeleteId = null; }}>
+              {$t('common.cancel')}
             </button>
-            {#if zone.id !== null && latencyResults[zone.id] !== undefined}
-              <span class="latency-tag">{latencyResults[zone.id]}ms</span>
-            {/if}
-
-            <!-- Delete -->
-            {#if confirmDeleteId === zone.id}
-              <div class="delete-confirm" onclick={(e) => e.stopPropagation()}>
-                <span class="delete-confirm-text">{$t('zone.confirmDelete')}</span>
-                <button class="btn btn-danger-sm" onclick={(e) => { e.stopPropagation(); zone.id !== null && handleDeleteZone(zone.id); }}>
-                  {$t('common.delete')}
-                </button>
-                <button class="btn btn-ghost-sm" onclick={(e) => { e.stopPropagation(); confirmDeleteId = null; }}>
-                  {$t('common.cancel')}
-                </button>
-              </div>
-            {:else}
-              <button
-                class="btn-icon btn-icon-danger"
-                onclick={(e) => { e.stopPropagation(); confirmDeleteId = zone.id; }}
-                title={$t('zone.deleteZone')}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-              </button>
-            {/if}
           </div>
+        {:else}
+          <button
+            class="btn-icon btn-icon-danger"
+            onclick={(e) => { e.stopPropagation(); confirmDeleteId = zone.id; }}
+            title={$t('zone.deleteZone')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+          </button>
+        {/if}
+      </div>
 
-          <!-- Group / Stereo info footer -->
-          {#if group}
-            <div class="card-footer" onclick={(e) => e.stopPropagation()}>
-              <div class="group-info" style="border-color: {groupColor(group.group_id)}">
-                {#if isLeader(zone, group)}
-                  <span class="leader-tag">{$t('zone.leader')}</span>
-                {/if}
-                <span class="group-label" style="color: {groupColor(group.group_id)}">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
-                  {$t('zone.activeGroup')}
-                </span>
-                {#if group.auto_synced}
-                  <!-- Same manufacturer: sync is guaranteed, no calibration needed -->
-                  <span class="auto-sync-badge" title={group.group_manufacturer}>
+      <!-- Stereo footer (only for stereo paired zones) -->
+      {#if pair}
+        <div class="card-footer" onclick={(e) => e.stopPropagation()}>
+          <div class="stereo-info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" /></svg>
+            <span>{$t('zone.stereoPair')}</span>
+            <button class="btn-inline danger" onclick={(e) => { e.stopPropagation(); handleDissolveStereoPair(pair.stereo_pair_id); }}>
+              {$t('zone.dissolveStereoPair')}
+            </button>
+          </div>
+        </div>
+      {/if}
+    </div>
+  {/snippet}
+
+  <!-- Zones list -->
+  <section class="zm-section">
+    <div class="zones-list">
+      {#each gridItems as item (item.kind === 'group' ? 'g-' + item.group.group_id : 'z-' + item.zone.id)}
+        {#if item.kind === 'group'}
+          <!-- Group cluster: all member zones share one colored border -->
+          <div class="group-cluster" style="border-color: {groupColor(item.group.group_id)}">
+            <div class="cluster-header" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
+              <div class="cluster-header-left">
+                <span class="cluster-dot" style="background: {groupColor(item.group.group_id)}"></span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="color: {groupColor(item.group.group_id)}"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                <span class="cluster-title" style="color: {groupColor(item.group.group_id)}">{$t('zone.activeGroup')}</span>
+                {#if item.group.auto_synced}
+                  <span class="auto-sync-badge" title={item.group.group_manufacturer}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>
                     {$t('zone.autoSynced')}
                   </span>
-                {:else if isLeader(zone, group)}
-                  <!-- Mixed brands: calibration recommended, only show on leader card -->
+                {/if}
+              </div>
+              <div class="cluster-header-right">
+                {#if !item.group.auto_synced}
                   <button
-                    class="btn-inline"
-                    onclick={(e) => { e.stopPropagation(); handleCalibrateGroup(group); }}
-                    disabled={calibratingGroupId === group.group_id}
-                    title={$t('zone.calibrate')}
+                    class="btn btn-ghost-sm"
+                    onclick={() => handleCalibrateGroup(item.group)}
+                    disabled={calibratingGroupId === item.group.group_id}
                   >
-                    {#if calibratingGroupId === group.group_id}
+                    {#if calibratingGroupId === item.group.group_id}
                       <span class="spinner-sm"></span>
+                      {$t('zone.calibrating')}
                     {:else}
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                      {$t('zone.calibrate')}
                     {/if}
-                    {calibratingGroupId === group.group_id ? $t('zone.calibrating') : $t('zone.calibrate')}
                   </button>
                 {/if}
-                {#if calibrationResults[group.group_id]?.[zone.id!] !== undefined}
-                  <span class="latency-tag">{calibrationResults[group.group_id][zone.id!]}ms</span>
-                {/if}
-                <button class="btn-inline danger" onclick={(e) => { e.stopPropagation(); handleUngroupZone(group); }}>
+                <button class="btn btn-ghost-sm" onclick={() => handleUngroupZone(item.group)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /><line x1="3" y1="3" x2="21" y2="21" /></svg>
                   {$t('zone.ungroup')}
                 </button>
               </div>
             </div>
-          {/if}
-          {#if pair}
-            <div class="card-footer" onclick={(e) => e.stopPropagation()}>
-              <div class="stereo-info">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" /></svg>
-                <span>{$t('zone.stereoPair')}</span>
-                <button class="btn-inline danger" onclick={(e) => { e.stopPropagation(); handleDissolveStereoPair(pair.stereo_pair_id); }}>
-                  {$t('zone.dissolveStereoPair')}
-                </button>
-              </div>
+            <div class="cluster-zones">
+              {#each item.zones as zone (zone.id)}
+                {@render zoneCard(zone, true)}
+              {/each}
             </div>
-          {/if}
-        </div>
+          </div>
+        {:else}
+          {@render zoneCard(item.zone, false)}
+        {/if}
       {/each}
     </div>
 
@@ -967,13 +983,77 @@
     margin: 0 0 12px;
   }
 
-  /* Zone grid */
-  .zones-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  /* Zones list */
+  .zones-list {
+    display: flex;
+    flex-direction: column;
     gap: 12px;
   }
 
+  /* Group cluster: shared colored border around all member zones */
+  .group-cluster {
+    border: 2px solid var(--tune-border);
+    border-radius: var(--radius-md, 8px);
+    overflow: hidden;
+  }
+
+  .cluster-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 14px;
+    background: var(--tune-surface);
+    border-bottom: 1px solid var(--tune-border);
+  }
+
+  .cluster-header-left {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-body);
+    font-size: 12px;
+  }
+
+  .cluster-header-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .cluster-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .cluster-title {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .cluster-zones {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0;
+  }
+
+  .cluster-zones .zone-card {
+    border: none;
+    border-radius: 0;
+    border-right: 1px solid var(--tune-border);
+    border-bottom: 1px solid var(--tune-border);
+  }
+
+  .cluster-zones .zone-card:last-child {
+    border-right: none;
+  }
+
+  /* Standalone zone card */
   .zone-card {
     background: var(--tune-surface);
     border: 1px solid var(--tune-border);
@@ -996,8 +1076,15 @@
     background: rgba(124, 58, 237, 0.06);
   }
 
-  .zone-card.grouped {
-    border-width: 2px;
+  /* Inside-cluster cards: no external border, subtle hover */
+  .zone-card.in-cluster {
+    background: var(--tune-bg);
+    padding: 14px 16px;
+  }
+
+  .zone-card.in-cluster:hover {
+    background: var(--tune-surface-hover);
+    border-color: transparent;
   }
 
   /* Card header */
@@ -1324,8 +1411,12 @@
       align-items: flex-start;
     }
 
-    .zones-grid {
+    .cluster-zones {
       grid-template-columns: 1fr;
+    }
+
+    .cluster-zones .zone-card {
+      border-right: none;
     }
 
     .devices-grid {
