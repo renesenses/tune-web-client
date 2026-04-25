@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { currentZone } from '../lib/stores/zones';
+  import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import * as api from '../lib/api';
   import { t as tr } from '../lib/i18n';
@@ -126,7 +126,7 @@
       if (item.album) body.album_title = item.album;
       if (item.album_art_uri) body.cover_path = item.album_art_uri;
       if (item.duration_ms) body.duration_ms = item.duration_ms;
-      await api.play(zone.id, body as any);
+      await playAndSync(zone.id, body as any);
     } catch (e) {
       console.error('Play media server item error:', e);
     }

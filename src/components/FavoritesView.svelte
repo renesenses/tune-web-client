@@ -1,6 +1,6 @@
 <script lang="ts">
   import { currentProfileId } from '../lib/stores/profile';
-  import { currentZone } from '../lib/stores/zones';
+  import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { selectedAlbum, albumTracks, selectedArtist, artistAlbums } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
@@ -48,7 +48,7 @@
   async function playTrack(track: Track) {
     if (!zone?.id || !track.id) return;
     try {
-      await api.play(zone.id, { track_id: track.id });
+      await playAndSync(zone.id, { track_id: track.id });
     } catch (e) {
       console.error('Play track error:', e);
     }
@@ -123,7 +123,7 @@
   async function playAlbum(album: Album) {
     if (!zone?.id || !album.id) return;
     try {
-      await api.play(zone.id, { album_id: album.id });
+      await playAndSync(zone.id, { album_id: album.id });
     } catch (e) {
       console.error('Play album error:', e);
     }

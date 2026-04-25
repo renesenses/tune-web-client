@@ -1,6 +1,6 @@
 <script lang="ts">
   import { albums, genres } from '../lib/stores/library';
-  import { currentZone } from '../lib/stores/zones';
+  import { currentZone, playAndSync } from '../lib/stores/zones';
   import * as api from '../lib/api';
   import { formatTime, formatDuration, formatAudioBadge } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
@@ -77,7 +77,7 @@
   async function playAlbum(albumId: number) {
     if (!zone?.id) return;
     try {
-      await api.play(zone.id, { album_id: albumId });
+      await playAndSync(zone.id, { album_id: albumId });
     } catch (e) {
       console.error('Play album error:', e);
     }
@@ -89,9 +89,9 @@
       const idx = genreAlbumTracks.findIndex(t => t.id === trackId);
       if (idx >= 0) {
         const ids = genreAlbumTracks.slice(idx).map(t => t.id).filter(Boolean) as number[];
-        await api.play(zone.id, { track_ids: ids });
+        await playAndSync(zone.id, { track_ids: ids });
       } else {
-        await api.play(zone.id, { track_id: trackId });
+        await playAndSync(zone.id, { track_id: trackId });
       }
     } catch (e) {
       console.error('Play track error:', e);

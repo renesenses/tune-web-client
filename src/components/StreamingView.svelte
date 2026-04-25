@@ -1,6 +1,6 @@
 <script lang="ts">
   import { activeStreamingService } from '../lib/stores/streaming';
-  import { currentZone } from '../lib/stores/zones';
+  import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
@@ -160,7 +160,7 @@
   async function playStreamingPlaylist(playlist: StreamingPlaylist) {
     if (!zone?.id || !service) return;
     try {
-      await api.play(zone.id, { source: playlist.source as any, streaming_playlist_id: playlist.source_id });
+      await playAndSync(zone.id, { source: playlist.source as any, streaming_playlist_id: playlist.source_id });
     } catch (e) {
       console.error('Play streaming playlist error:', e);
     }
@@ -196,7 +196,7 @@
       // Backend routes audio via yt-dlp → DLNA zone
       if (zone?.id) {
         try {
-          await api.play(zone.id, { source: track.source as any, source_id: track.source_id });
+          await playAndSync(zone.id, { source: track.source as any, source_id: track.source_id });
         } catch (e) {
           console.error('Play YouTube track (DLNA) error:', e);
         }
@@ -205,7 +205,7 @@
     }
     if (!zone?.id) return;
     try {
-      await api.play(zone.id, { source: track.source as any, source_id: track.source_id });
+      await playAndSync(zone.id, { source: track.source as any, source_id: track.source_id });
     } catch (e) {
       console.error('Play streaming track error:', e);
     }
@@ -214,7 +214,7 @@
   async function playStreamingAlbum(album: Album) {
     if (!zone?.id || !service || !album.source_id) return;
     try {
-      await api.play(zone.id, { source: album.source as any, streaming_album_id: album.source_id });
+      await playAndSync(zone.id, { source: album.source as any, streaming_album_id: album.source_id });
     } catch (e) {
       console.error('Play streaming album error:', e);
     }

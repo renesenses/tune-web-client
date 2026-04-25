@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { currentZone } from '../lib/stores/zones';
+  import { currentZone, playAndSync } from '../lib/stores/zones';
   import { playlists as playlistsStore, playlistsLoaded, streamingPlaylistsCache, streamingPlaylistsLoaded } from '../lib/stores/playlists';
   import { streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
@@ -186,7 +186,7 @@
   async function playPlaylist(playlistId: number) {
     if (!zone?.id) return;
     try {
-      await api.play(zone.id, { playlist_id: playlistId });
+      await playAndSync(zone.id, { playlist_id: playlistId });
     } catch (e) {
       console.error('Play playlist error:', e);
     }
@@ -195,7 +195,7 @@
   async function playTrack(trackId: number) {
     if (!zone?.id) return;
     try {
-      await api.play(zone.id, { track_id: trackId });
+      await playAndSync(zone.id, { track_id: trackId });
     } catch (e) {
       console.error('Play track error:', e);
     }
@@ -204,7 +204,7 @@
   async function playStreamingPlaylist(pl: StreamingPlaylist) {
     if (!zone?.id) return;
     try {
-      await api.play(zone.id, { source: pl.source as any, streaming_playlist_id: pl.source_id });
+      await playAndSync(zone.id, { source: pl.source as any, streaming_playlist_id: pl.source_id });
     } catch (e) {
       console.error('Play streaming playlist error:', e);
     }
@@ -213,7 +213,7 @@
   async function playStreamingTrack(t: Track) {
     if (!zone?.id || !t.source_id) return;
     try {
-      await api.play(zone.id, { source: t.source as any, source_id: t.source_id });
+      await playAndSync(zone.id, { source: t.source as any, source_id: t.source_id });
     } catch (e) {
       console.error('Play streaming track error:', e);
     }

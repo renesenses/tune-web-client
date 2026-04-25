@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { currentZone } from '../lib/stores/zones';
+  import { currentZone, playAndSync } from '../lib/stores/zones';
   import { activeView } from '../lib/stores/navigation';
   import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading } from '../lib/stores/library';
   import { streamingServices } from '../lib/stores/streaming';
@@ -91,9 +91,9 @@
     if (!zone?.id) return;
     try {
       if (pl.localId != null) {
-        await api.play(zone.id, { playlist_id: pl.localId });
+        await playAndSync(zone.id, { playlist_id: pl.localId });
       } else if (pl.streamingId && pl.streamingSource) {
-        await api.play(zone.id, { streaming_playlist_id: pl.streamingId, source: pl.streamingSource });
+        await playAndSync(zone.id, { streaming_playlist_id: pl.streamingId, source: pl.streamingSource });
       }
     } catch (e) {
       console.error('Play playlist error:', e);
@@ -108,9 +108,9 @@
     try {
       console.log('Playing track:', track.title, 'id:', track.id, 'source:', track.source, 'source_id:', track.source_id);
       if (track.id) {
-        await api.play(zone.id, { track_id: track.id });
+        await playAndSync(zone.id, { track_id: track.id });
       } else if (track.source && track.source_id) {
-        await api.play(zone.id, { source: track.source, source_id: track.source_id });
+        await playAndSync(zone.id, { source: track.source, source_id: track.source_id });
       } else {
         console.error('Track has no id and no source_id:', track);
       }
@@ -123,9 +123,9 @@
     if (!zone?.id) return;
     try {
       if (album.id) {
-        await api.play(zone.id, { album_id: album.id });
+        await playAndSync(zone.id, { album_id: album.id });
       } else if (album.source && album.source_id) {
-        await api.play(zone.id, { source: album.source, source_id: album.source_id });
+        await playAndSync(zone.id, { source: album.source, source_id: album.source_id });
       }
     } catch (e) {
       console.error('Play album error:', e);
