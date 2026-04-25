@@ -126,6 +126,10 @@ export default {
   'home.searchPlaceholder': 'Rechercher dans la bibliothèque...',
   'home.recentlyPlayed': 'Récemment joué',
   'home.recentlyAdded': 'Récemment ajouté',
+  'home.topArtists': 'Artistes les plus écoutés',
+  'home.topTracks': 'Titres les plus écoutés',
+  'home.plays': 'écoutes',
+  'home.noData': 'Pas encore de données d\'écoute',
   'home.noHistory': 'Aucun historique de lecture',
   'home.noAlbums': 'Aucun album',
 

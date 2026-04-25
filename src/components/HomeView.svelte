@@ -7,7 +7,7 @@
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
-  import type { Album, Track, Source } from '../lib/types';
+  import type { Album, Track, Source, TopTrack, TopArtist } from '../lib/types';
 
   let zone = $derived($currentZone);
   let currentTrack = $derived(zone?.current_track);
@@ -15,6 +15,10 @@
   let recentAlbums: Album[] = $state([]);
   let recentTab = $state<'played' | 'added'>('played');
   let searchQuery = $state('');
+  let topArtists: TopArtist[] = $state([]);
+  let topTracks: TopTrack[] = $state([]);
+  let topArtistsLoaded = $state(false);
+  let topTracksLoaded = $state(false);
 
   function greeting(): string {
     const h = new Date().getHours();
@@ -258,9 +262,56 @@
     el.scrollBy({ left: dir * 600, behavior: 'smooth' });
   }
 
+  async function loadTopArtists() {
+    try {
+      topArtists = await api.getTopArtists(10);
+      topArtistsLoaded = true;
+    } catch (e) {
+      console.error('Load top artists error:', e);
+      topArtistsLoaded = true;
+    }
+  }
+
+  async function loadTopTracks() {
+    try {
+      topTracks = await api.getTopTracks(10);
+      topTracksLoaded = true;
+    } catch (e) {
+      console.error('Load top tracks error:', e);
+      topTracksLoaded = true;
+    }
+  }
+
+  async function navigateArtistByName(name: string) {
+    try {
+      const results = await api.searchLibrary(name, 5);
+      const match = results.artists?.find((a: any) => a.name.toLowerCase() === name.toLowerCase());
+      if (match?.id) {
+        navigateToArtist(match.id);
+      }
+    } catch (e) {
+      console.error('Navigate artist by name error:', e);
+    }
+  }
+
+  async function playTopTrack(track: TopTrack) {
+    if (!zone?.id) return;
+    try {
+      const results = await api.searchLibrary(`${track.track_title} ${track.artist_name ?? ''}`, 5);
+      const match = results.tracks?.find((t: Track) => t.title === track.track_title);
+      if (match?.id) {
+        await api.play(zone.id, { track_id: match.id });
+      }
+    } catch (e) {
+      console.error('Play top track error:', e);
+    }
+  }
+
   $effect(() => {
     loadStats();
     loadRecentAlbums();
+    loadTopArtists();
+    loadTopTracks();
   });
 </script>
 
@@ -374,6 +425,48 @@
       {/if}
     {/if}
   </div>
+
+  <!-- Top Artists -->
+  {#if topArtistsLoaded && topArtists.length > 0}
+    <div class="top-section">
+      <h2 class="section-title">{$t('home.topArtists')}</h2>
+      <div class="top-artists-row">
+        {#each topArtists as artist, i}
+          <button class="artist-card" onclick={() => navigateArtistByName(artist.artist_name)}>
+            <span class="artist-rank">#{i + 1}</span>
+            <span class="artist-card-name">{artist.artist_name}</span>
+            <span class="play-count-badge">{artist.play_count} {$t('home.plays')}</span>
+          </button>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Top Tracks -->
+  {#if topTracksLoaded && topTracks.length > 0}
+    <div class="top-section">
+      <h2 class="section-title">{$t('home.topTracks')}</h2>
+      <div class="top-tracks-list">
+        {#each topTracks as track, i}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="top-track-row" onclick={() => playTopTrack(track)}>
+            <span class="track-rank">{i + 1}</span>
+            <div class="top-track-art">
+              <AlbumArt coverPath={track.cover_path} size={44} alt={track.track_title} />
+            </div>
+            <div class="top-track-info">
+              <span class="top-track-title truncate">{track.track_title}</span>
+              {#if track.artist_name}
+                <span class="top-track-artist truncate">{track.artist_name}</span>
+              {/if}
+            </div>
+            <span class="play-count-badge">{track.play_count}</span>
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -652,5 +745,142 @@
     color: var(--tune-text-muted);
     padding: var(--space-lg);
     text-align: center;
+  }
+
+  /* Top sections */
+  .top-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .section-title {
+    font-family: var(--font-label);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tune-text);
+    margin: 0;
+  }
+
+  /* Top Artists */
+  .top-artists-row {
+    display: flex;
+    gap: var(--space-sm);
+    overflow-x: auto;
+    padding: var(--space-xs) 0;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .top-artists-row::-webkit-scrollbar { display: none; }
+
+  .artist-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all 0.12s ease-out;
+    flex-shrink: 0;
+    color: var(--tune-text);
+  }
+
+  .artist-card:hover {
+    border-color: var(--tune-accent);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .artist-rank {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--tune-accent);
+    min-width: 20px;
+  }
+
+  .artist-card-name {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .play-count-badge {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--tune-accent);
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12);
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+
+  /* Top Tracks */
+  .top-tracks-list {
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .top-track-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+
+  .top-track-row:hover {
+    background: var(--tune-surface-hover);
+  }
+
+  .top-track-row + .top-track-row {
+    border-top: 1px solid var(--tune-border);
+  }
+
+  .track-rank {
+    font-family: var(--font-label);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--tune-text-muted);
+    min-width: 24px;
+    text-align: right;
+  }
+
+  .top-track-art {
+    flex-shrink: 0;
+  }
+
+  .top-track-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .top-track-title {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tune-text);
+  }
+
+  .top-track-artist {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+  }
+
+  @media (max-width: 768px) {
+    .top-tracks-list { font-size: 12px; }
+    .artist-card { padding: var(--space-xs) var(--space-sm); }
   }
 </style>

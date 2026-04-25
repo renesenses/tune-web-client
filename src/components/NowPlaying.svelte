@@ -7,11 +7,40 @@
   import AlbumArt from './AlbumArt.svelte';
   import SeekBar from './SeekBar.svelte';
   import { t } from '../lib/i18n';
-  import type { RepeatMode, Track } from '../lib/types';
+  import type { RepeatMode, Track, TrackCredit } from '../lib/types';
 
   let isFavorite = $state(false);
   let favChecking = $state(false);
   let showSignalDetail = $state(false);
+  let showCredits = $state(false);
+  let npCredits: TrackCredit[] = $state([]);
+  let npCreditsTrackId: number | null = $state(null);
+
+  async function loadNpCredits(trackId: number) {
+    if (trackId === npCreditsTrackId) return;
+    npCreditsTrackId = trackId;
+    try {
+      npCredits = await api.getTrackCredits(trackId);
+    } catch {
+      npCredits = [];
+    }
+  }
+
+  function formatRole(role: string): string {
+    const map: Record<string, string> = {
+      performer: 'Musicien', composer: 'Compositeur', conductor: "Chef d'orch.",
+      lyricist: 'Parolier', producer: 'Producteur', engineer: 'Ingénieur',
+    };
+    return map[role] || role.charAt(0).toUpperCase() + role.slice(1);
+  }
+
+  // Auto-load credits when track changes
+  $effect(() => {
+    const tr = displayTrack;
+    if (tr?.id && showCredits) {
+      loadNpCredits(tr.id);
+    }
+  });
 
   const _detailTr: Record<string, string> = {
     'Renderer fetches audio directly from source — zero processing': 'signal.directUrlDetail',
@@ -209,6 +238,28 @@
           {/if}
           {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth}
             <p class="audio-badge">{formatAudioBadge(displayTrack)}</p>
+          {/if}
+          {#if !isRadio && displayTrack.id}
+            <button class="np-credits-btn" class:active={showCredits} onclick={() => { showCredits = !showCredits; if (showCredits && displayTrack.id) loadNpCredits(displayTrack.id); }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+              {$t('artist.credits')}
+            </button>
+            {#if showCredits && npCredits.length > 0}
+              <div class="np-credits">
+                {#each Object.entries(Object.groupBy(npCredits, c => c.role)) as [role, credits]}
+                  <div class="np-credits-group">
+                    <span class="np-credits-role">{formatRole(role)}</span>
+                    <div class="np-credits-names">
+                      {#each credits as c}
+                        <span class="np-credit-chip">
+                          {c.artist_name}{#if c.instrument}<span class="np-credit-instr">{c.instrument}</span>{/if}
+                        </span>
+                      {/each}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {/if}
           {/if}
           {#if zone?.signal_path}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -1000,5 +1051,81 @@
     .track-album {
       font-size: 13px;
     }
+  }
+
+  /* Now Playing Credits */
+  .np-credits-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: 14px;
+    padding: 3px 10px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    transition: all 0.12s ease-out;
+    margin-top: var(--space-xs);
+  }
+
+  .np-credits-btn:hover, .np-credits-btn.active {
+    color: var(--tune-accent);
+    border-color: var(--tune-accent);
+  }
+
+  .np-credits {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .np-credits-group {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+  }
+
+  .np-credits-role {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tune-text-muted);
+    white-space: nowrap;
+    min-width: 70px;
+  }
+
+  .np-credits-names {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .np-credit-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.08);
+    color: var(--tune-text);
+  }
+
+  .np-credit-instr {
+    font-size: 10px;
+    color: var(--tune-text-muted);
+    font-style: italic;
   }
 </style>

@@ -486,6 +486,18 @@ export function searchLibrary(q: string, limit = 50) {
   return fetchJSON<SearchResult>(`${BASE}/library/search?q=${encodeURIComponent(q)}&limit=${limit}`);
 }
 
+export function getPlaybackHistory(limit = 50) {
+  return fetchJSON<import('./types').HistoryEntry[]>(`${BASE}/library/history?limit=${limit}`);
+}
+
+export function getTopTracks(limit = 20) {
+  return fetchJSON<import('./types').TopTrack[]>(`${BASE}/library/history/top-tracks?limit=${limit}`);
+}
+
+export function getTopArtists(limit = 20) {
+  return fetchJSON<import('./types').TopArtist[]>(`${BASE}/library/history/top-artists?limit=${limit}`);
+}
+
 export function getLibraryStats() {
   return fetchJSON<{ tracks: number; albums: number; artists: number }>(`${BASE}/library/stats`);
 }

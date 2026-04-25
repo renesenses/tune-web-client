@@ -126,6 +126,10 @@ export default {
   'home.searchPlaceholder': 'Search library...',
   'home.recentlyPlayed': 'Recently Played',
   'home.recentlyAdded': 'Recently Added',
+  'home.topArtists': 'Top Artists',
+  'home.topTracks': 'Top Tracks',
+  'home.plays': 'plays',
+  'home.noData': 'No listening data yet',
   'home.noHistory': 'No playback history',
   'home.noAlbums': 'No albums',
 

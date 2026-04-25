@@ -423,6 +423,32 @@ export interface TrackCredit {
   position: number;
 }
 
+export interface HistoryEntry {
+  track_title: string;
+  artist_name: string | null;
+  album_title: string | null;
+  cover_path: string | null;
+  played_at: string;
+  source: string | null;
+  duration_ms: number | null;
+  listened_ms: number | null;
+}
+
+export interface TopTrack {
+  track_title: string;
+  artist_name: string | null;
+  album_title: string | null;
+  cover_path: string | null;
+  play_count: number;
+  last_played: string;
+}
+
+export interface TopArtist {
+  artist_name: string;
+  play_count: number;
+  last_played: string;
+}
+
 export interface ArtistMetadata {
   bio?: string;
   bio_fr?: string;
