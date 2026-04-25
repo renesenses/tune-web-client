@@ -1436,6 +1436,18 @@ export function setCrossfader(zoneId: number, position: number) {
   return fetchJSON<any>(`${BASE}/dj/crossfader/${zoneId}`, { method: 'POST', body: JSON.stringify({ position }) });
 }
 
+export function getWaveform(trackId: number) {
+  return fetchJSON<{ track_id: number; waveform: number[]; bpm: number | null }>(`${BASE}/dj/waveform/${trackId}`);
+}
+
+export function analyzeTrack(trackId: number) {
+  return fetchJSON<any>(`${BASE}/dj/analyze/${trackId}`, { method: 'POST' });
+}
+
+export function syncTempo(zoneId: number) {
+  return fetchJSON<any>(`${BASE}/dj/sync-tempo/${zoneId}`, { method: 'POST' });
+}
+
 export function setDeckVolume(zoneId: number, deck: 'a' | 'b', volume: number) {
   return fetchJSON<any>(`${BASE}/dj/volume/${zoneId}/${deck}`, { method: 'POST', body: JSON.stringify({ volume }) });
 }

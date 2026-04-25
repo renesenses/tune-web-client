@@ -6,47 +6,74 @@
   import AlbumArt from './AlbumArt.svelte';
   import { formatTime } from '../lib/utils';
 
-  // Pseudo-random waveform based on track title (consistent per track)
-  function seedRand(seed: string) {
-    let h = 0;
-    for (let i = 0; i < seed.length; i++) h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
-    return () => { h = (h * 16807 + 0) % 2147483647; return (h & 0x7fffffff) / 2147483647; };
-  }
+  // Real waveform data from server API
+  let waveformA = $state<number[]>([]);
+  let waveformB = $state<number[]>([]);
+  let bpmA = $state<number | null>(null);
+  let bpmB = $state<number | null>(null);
+  let waveCanvasA = $state<HTMLCanvasElement | null>(null);
+  let waveCanvasB = $state<HTMLCanvasElement | null>(null);
 
-  function drawWaveform(canvas: HTMLCanvasElement, title: string, progress: number, color: string) {
+  function drawWaveform(canvas: HTMLCanvasElement, data: number[], progress: number, color: string) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const w = canvas.width = canvas.offsetWidth * 2;
     const h = canvas.height = canvas.offsetHeight * 2;
     ctx.clearRect(0, 0, w, h);
-    const bars = Math.floor(w / 4);
-    const rand = seedRand(title || 'empty');
+    if (data.length === 0) return;
+    const barW = w / data.length;
     const mid = h / 2;
-    for (let i = 0; i < bars; i++) {
-      const amp = 0.2 + rand() * 0.8;
+    for (let i = 0; i < data.length; i++) {
+      const amp = data[i];
       const barH = amp * mid * 0.9;
-      const x = i * 4;
-      const played = i / bars <= progress;
+      const x = i * barW;
+      const played = i / data.length <= progress;
       ctx.fillStyle = played ? color : 'rgba(255,255,255,0.12)';
-      ctx.fillRect(x, mid - barH, 2, barH * 2);
+      ctx.fillRect(x, mid - barH, Math.max(1, barW - 1), barH * 2);
     }
   }
 
-  let waveCanvasA = $state<HTMLCanvasElement | null>(null);
-  let waveCanvasB = $state<HTMLCanvasElement | null>(null);
+  async function loadWaveform(trackId: number, deck: 'a' | 'b') {
+    try {
+      const r = await api.getWaveform(trackId);
+      if (deck === 'a') { waveformA = r.waveform || []; bpmA = r.bpm; }
+      else { waveformB = r.waveform || []; bpmB = r.bpm; }
+    } catch { /* waveform not available yet */ }
+  }
 
+  // Load waveforms when decks change
   $effect(() => {
-    if (waveCanvasA && deckA?.title) {
-      const progress = deckA.duration_ms ? (deckA.position_ms || 0) / deckA.duration_ms : 0;
-      drawWaveform(waveCanvasA, deckA.title, progress, 'rgba(99, 102, 241, 0.8)');
+    if (deckA?.track_id) loadWaveform(deckA.track_id, 'a');
+    else waveformA = [];
+  });
+  $effect(() => {
+    if (deckB?.track_id) loadWaveform(deckB.track_id, 'b');
+    else waveformB = [];
+  });
+
+  // Redraw waveforms on position change
+  $effect(() => {
+    if (waveCanvasA && waveformA.length > 0) {
+      const progress = deckA?.duration_ms ? (deckA.position_ms || 0) / deckA.duration_ms : 0;
+      drawWaveform(waveCanvasA, waveformA, progress, 'rgba(99, 102, 241, 0.8)');
     }
   });
   $effect(() => {
-    if (waveCanvasB && deckB?.title) {
-      const progress = deckB.duration_ms ? (deckB.position_ms || 0) / deckB.duration_ms : 0;
-      drawWaveform(waveCanvasB, deckB.title, progress, 'rgba(99, 102, 241, 0.8)');
+    if (waveCanvasB && waveformB.length > 0) {
+      const progress = deckB?.duration_ms ? (deckB.position_ms || 0) / deckB.duration_ms : 0;
+      drawWaveform(waveCanvasB, waveformB, progress, 'rgba(99, 102, 241, 0.8)');
     }
   });
+
+  async function doSyncTempo() {
+    if (!zone?.id) return;
+    try {
+      const r = await api.syncTempo(zone.id);
+      notifications.success(`Tempo sync: ${r.source_bpm} → ${r.target_bpm} BPM (x${r.ratio})`);
+    } catch (e: any) {
+      notifications.error(e?.message || 'Sync tempo failed');
+    }
+  }
 
   let djEnabled = $state(false);
   let activeDeck = $state<'a' | 'b'>('a');
@@ -258,6 +285,7 @@
                   {#if deckA.duration_ms}
                     <span class="deck-duration">/ {formatTime(deckA.duration_ms)}</span>
                   {/if}
+                  {#if bpmA}<span class="bpm-badge">{Math.round(bpmA)} BPM</span>{/if}
                 </div>
               </div>
             </div>
@@ -307,6 +335,12 @@
             Crossfade
           {/if}
         </button>
+        {#if bpmA && bpmB}
+          <button class="sync-btn" onclick={doSyncTempo}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+            Sync {Math.round(bpmA)} → {Math.round(bpmB)} BPM
+          </button>
+        {/if}
         <div class="cf-duration">
           <label>Duree</label>
           <input type="range" min="1" max="30" step="0.5" bind:value={crossfadeDuration} />
@@ -354,6 +388,7 @@
                   {#if deckB.duration_ms}
                     <span class="deck-duration">/ {formatTime(deckB.duration_ms)}</span>
                   {/if}
+                  {#if bpmB}<span class="bpm-badge">{Math.round(bpmB)} BPM</span>{/if}
                 </div>
               </div>
             </div>
@@ -556,6 +591,16 @@
 
   .deck-position-row { display: flex; align-items: baseline; gap: 4px; margin-top: 2px; }
   .deck-position { font-size: 0.85rem; color: var(--tune-accent); font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  .bpm-badge { font-size: 0.7rem; padding: 1px 6px; border-radius: 8px; background: rgba(99, 102, 241, 0.15); color: var(--tune-accent); font-weight: 700; font-variant-numeric: tabular-nums; margin-left: 4px; }
+
+  .sync-btn {
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px 14px; border: 1px solid var(--tune-accent); border-radius: 14px;
+    background: none; color: var(--tune-accent); font-size: 0.75rem; font-weight: 600;
+    cursor: pointer; transition: all 0.12s;
+  }
+  .sync-btn:hover { background: var(--tune-accent); color: white; }
 
   .waveform { width: 100%; height: 40px; margin-top: 8px; border-radius: 6px; background: rgba(255,255,255,0.03); }
 
