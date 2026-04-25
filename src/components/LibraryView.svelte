@@ -10,7 +10,7 @@
   import AlbumEditModal from './AlbumEditModal.svelte';
   import TrackEditModal from './TrackEditModal.svelte';
   import HeartButton from './HeartButton.svelte';
-  import type { Album, Artist, Track } from '../lib/types';
+  import type { Album, Artist, Track, TrackCredit } from '../lib/types';
   import { t as tr, locale } from '../lib/i18n';
   import type { ArtistMetadata } from '../lib/types';
 
@@ -38,6 +38,68 @@
   let artistMetadataLoading = $state(false);
   let artistMetadataError = $state(false);
   let openSections = $state<Record<string, boolean>>({});
+
+  // Track credits
+  let expandedTrackCredits = $state<number | null>(null);
+  let trackCreditsMap = $state<Record<number, TrackCredit[]>>({});
+  let trackCreditsLoading = $state<number | null>(null);
+
+  // Artist credits
+  let artistCredits = $state<TrackCredit[] | null>(null);
+  let artistCreditsLoading = $state(false);
+
+  async function toggleTrackCredits(trackId: number) {
+    if (expandedTrackCredits === trackId) {
+      expandedTrackCredits = null;
+      return;
+    }
+    expandedTrackCredits = trackId;
+    if (trackCreditsMap[trackId]) return;
+    trackCreditsLoading = trackId;
+    try {
+      const credits = await api.getTrackCredits(trackId);
+      trackCreditsMap = { ...trackCreditsMap, [trackId]: credits };
+    } catch (e) {
+      console.error('Load track credits error:', e);
+      trackCreditsMap = { ...trackCreditsMap, [trackId]: [] };
+    }
+    trackCreditsLoading = null;
+  }
+
+  async function loadArtistCredits(artistId: number) {
+    artistCreditsLoading = true;
+    try {
+      artistCredits = await api.getArtistCredits(artistId);
+    } catch (e) {
+      console.error('Load artist credits error:', e);
+      artistCredits = [];
+    }
+    artistCreditsLoading = false;
+  }
+
+  function formatRole(role: string): string {
+    const key = `credits.${role}`;
+    const translated = $tr(key);
+    return translated !== key ? translated : role.charAt(0).toUpperCase() + role.slice(1);
+  }
+
+  function groupCreditsByRole(credits: TrackCredit[]): Record<string, TrackCredit[]> {
+    const groups: Record<string, TrackCredit[]> = {};
+    for (const c of credits) {
+      const role = c.role || 'performer';
+      if (!groups[role]) groups[role] = [];
+      groups[role].push(c);
+    }
+    return groups;
+  }
+
+  function uniqueInstruments(credits: TrackCredit[]): string[] {
+    const set = new Set<string>();
+    for (const c of credits) {
+      if (c.instrument) set.add(c.instrument);
+    }
+    return [...set].sort();
+  }
 
   async function handleWriteAlbumTags(albumId: number) {
     writingAlbumTags = true;
@@ -130,8 +192,13 @@
   // Albums filtered by search only (for quality chip counts)
   let searchFilteredAlbums = $derived.by(() => {
     if (!searchQuery.trim()) return $albums;
-    const q = searchQuery.toLowerCase();
-    return $albums.filter(a => a.title.toLowerCase().includes(q) || (a.artist_name ?? '').toLowerCase().includes(q));
+    const terms = searchQuery.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+    return $albums.filter(a => terms.every(q =>
+      a.title.toLowerCase().includes(q)
+      || (a.artist_name ?? '').toLowerCase().includes(q)
+      || (a.genre ?? '').toLowerCase().includes(q)
+      || String(a.year ?? '').includes(q)
+    ));
   });
 
   // Albums filtered by search + quality + format + sample rate + favorites (final display)
@@ -183,10 +250,12 @@
       result = result.filter(t => t.id !== null && favTrackIds.has(t.id!));
     }
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(t =>
-        t.title.toLowerCase().includes(q) || (t.artist_name ?? '').toLowerCase().includes(q) || (t.album_title ?? '').toLowerCase().includes(q)
-      );
+      const terms = searchQuery.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+      result = result.filter(t => terms.every(q =>
+        t.title.toLowerCase().includes(q)
+        || (t.artist_name ?? '').toLowerCase().includes(q)
+        || (t.album_title ?? '').toLowerCase().includes(q)
+      ));
     }
     return result;
   });
@@ -261,6 +330,8 @@
   async function selectAlbumDetail(album: Album) {
     if (!album.id) return;
     selectedArtist.set(null);
+    expandedTrackCredits = null;
+    trackCreditsMap = {};
     libraryLoading.set(true);
     try {
       // Fetch full album if cover_path is missing (e.g. navigating from tracks view)
@@ -281,6 +352,7 @@
     selectedAlbum.set(null);
     artistMetadata = null;
     artistMetadataError = false;
+    artistCredits = null;
     openSections = {};
     libraryLoading.set(true);
     try {
@@ -290,8 +362,9 @@
       console.error('Load artist albums error:', e);
     }
     libraryLoading.set(false);
-    // Lazy-load metadata (non-blocking)
+    // Lazy-load metadata + credits (non-blocking)
     loadArtistMetadata(artist.id);
+    loadArtistCredits(artist.id);
   }
 
   async function loadArtistMetadata(artistId: number) {
@@ -487,10 +560,35 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
                   </button>
                 {/if}
+                <button class="credits-btn" class:active={expandedTrackCredits === t.id} onclick={(e) => { e.stopPropagation(); t.id && toggleTrackCredits(t.id); }} title={$tr('artist.credits')}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                </button>
                 <button class="edit-track-btn" onclick={(e) => { e.stopPropagation(); openTrackEdit(e, t); }} title={$tr('metadata.editTrack')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                 </button>
               </div>
+              {#if expandedTrackCredits === t.id}
+                <div class="track-credits-row">
+                  {#if trackCreditsLoading === t.id}
+                    <div class="spinner-sm"></div>
+                  {:else if trackCreditsMap[t.id!] && trackCreditsMap[t.id!].length > 0}
+                    {#each Object.entries(groupCreditsByRole(trackCreditsMap[t.id!])) as [role, credits]}
+                      <div class="credits-role-group">
+                        <span class="credits-role-label">{formatRole(role)}</span>
+                        <div class="credits-names">
+                          {#each credits as c}
+                            <span class="credit-chip" onclick={(e) => { e.stopPropagation(); if (c.artist_id) selectArtistDetail({ id: c.artist_id, name: c.artist_name }); }}>
+                              {c.artist_name}{#if c.instrument}<span class="credit-instrument">{c.instrument}</span>{/if}
+                            </span>
+                          {/each}
+                        </div>
+                      </div>
+                    {/each}
+                  {:else}
+                    <span class="credits-empty">{$tr('artist.noMetadata')}</span>
+                  {/if}
+                </div>
+              {/if}
             {/each}
           </div>
         {/each}
@@ -516,10 +614,35 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
                 </button>
               {/if}
+              <button class="credits-btn" class:active={expandedTrackCredits === t.id} onclick={(e) => { e.stopPropagation(); t.id && toggleTrackCredits(t.id); }} title={$tr('artist.credits')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+              </button>
               <button class="edit-track-btn" onclick={(e) => { e.stopPropagation(); openTrackEdit(e, t); }} title={$tr('metadata.editTrack')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
               </button>
             </div>
+            {#if expandedTrackCredits === t.id}
+              <div class="track-credits-row">
+                {#if trackCreditsLoading === t.id}
+                  <div class="spinner-sm"></div>
+                {:else if trackCreditsMap[t.id!] && trackCreditsMap[t.id!].length > 0}
+                  {#each Object.entries(groupCreditsByRole(trackCreditsMap[t.id!])) as [role, credits]}
+                    <div class="credits-role-group">
+                      <span class="credits-role-label">{formatRole(role)}</span>
+                      <div class="credits-names">
+                        {#each credits as c}
+                          <span class="credit-chip" onclick={(e) => { e.stopPropagation(); if (c.artist_id) selectArtistDetail({ id: c.artist_id, name: c.artist_name }); }}>
+                            {c.artist_name}{#if c.instrument}<span class="credit-instrument">{c.instrument}</span>{/if}
+                          </span>
+                        {/each}
+                      </div>
+                    </div>
+                  {/each}
+                {:else}
+                  <span class="credits-empty">{$tr('artist.noMetadata')}</span>
+                {/if}
+              </div>
+            {/if}
           {/each}
         </div>
       {/if}
@@ -644,6 +767,29 @@
             {/if}
           </div>
         {/if}
+      {/if}
+
+      <!-- Credits (instruments played) -->
+      {#if artistCredits && artistCredits.length > 0}
+        <div class="artist-section">
+          <button class="artist-section-header" onclick={() => toggleSection('credits')}>
+            <span class="artist-section-title">{$tr('artist.credits')}</span>
+            <svg class="artist-section-chevron" class:open={openSections['credits']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
+          </button>
+          {#if openSections['credits']}
+            {@const instruments = uniqueInstruments(artistCredits)}
+            <div class="artist-credits-list">
+              {#if instruments.length > 0}
+                <div class="credits-instruments">
+                  {#each instruments as instr}
+                    <span class="credit-chip-static">{instr}</span>
+                  {/each}
+                </div>
+              {/if}
+              <div class="credits-track-count">{artistCredits.length} {artistCredits.length > 1 ? $tr('common.tracks') : 'track'}</div>
+            </div>
+          {/if}
+        </div>
       {/if}
 
       <!-- Albums in library -->
@@ -2136,5 +2282,130 @@
     text-align: center;
     padding: var(--space-2xl);
     grid-column: 1 / -1;
+  }
+
+  /* Track credits button */
+  .credits-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    transition: all 0.12s ease-out;
+  }
+
+  .credits-btn.active {
+    display: flex;
+    color: var(--tune-accent);
+  }
+
+  .track-item:hover .credits-btn {
+    display: flex;
+  }
+
+  .credits-btn:hover {
+    color: var(--tune-accent);
+  }
+
+  /* Expanded credits row */
+  .track-credits-row {
+    padding: var(--space-sm) 28px var(--space-sm) 56px;
+    background: var(--tune-surface);
+    border-bottom: 1px solid var(--tune-border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    align-items: flex-start;
+  }
+
+  .credits-role-group {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+  }
+
+  .credits-role-label {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tune-text-muted);
+    white-space: nowrap;
+  }
+
+  .credits-names {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .credit-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 2px 10px;
+    border-radius: 12px;
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.08);
+    color: var(--tune-text);
+    cursor: pointer;
+    transition: all 0.12s ease-out;
+  }
+
+  .credit-chip:hover {
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.18);
+    color: var(--tune-accent);
+  }
+
+  .credit-instrument {
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    font-style: italic;
+  }
+
+  .credit-chip-static {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 3px 12px;
+    border-radius: 12px;
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.08);
+    color: var(--tune-text);
+    border: 1px solid var(--tune-border);
+  }
+
+  .credits-empty {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    font-style: italic;
+  }
+
+  /* Artist credits section */
+  .artist-credits-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-sm) 0 var(--space-md);
+  }
+
+  .credits-instruments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .credits-track-count {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
   }
 </style>

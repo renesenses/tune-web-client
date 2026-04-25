@@ -413,6 +413,16 @@ export interface StereoPairInfo {
   right_zone: Zone | null;
 }
 
+export interface TrackCredit {
+  id: number | null;
+  track_id: number;
+  artist_id: number | null;
+  artist_name: string;
+  role: string;
+  instrument: string | null;
+  position: number;
+}
+
 export interface ArtistMetadata {
   bio?: string;
   bio_fr?: string;

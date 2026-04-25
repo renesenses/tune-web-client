@@ -138,6 +138,10 @@ export function getDevices() {
   return fetchJSON<DiscoveredDevice[]>(`${BASE}/devices`);
 }
 
+export function clearDevices() {
+  return fetchJSON<{ cleared: number }>(`${BASE}/devices/clear`, { method: 'POST' });
+}
+
 export function getDevice(id: string) {
   return fetchJSON<DiscoveredDevice>(`${BASE}/devices/${encodeURIComponent(id)}`);
 }
@@ -440,6 +444,14 @@ export function getArtist(id: number) {
 
 export function getArtistAlbums(id: number) {
   return fetchJSON<Album[]>(`${BASE}/library/artists/${id}/albums`);
+}
+
+export function getTrackCredits(trackId: number) {
+  return fetchJSON<import('./types').TrackCredit[]>(`${BASE}/library/tracks/${trackId}/credits`);
+}
+
+export function getArtistCredits(artistId: number) {
+  return fetchJSON<import('./types').TrackCredit[]>(`${BASE}/library/artists/${artistId}/credits`);
 }
 
 export function getArtistMetadata(artistId: number) {

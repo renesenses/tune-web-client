@@ -286,6 +286,16 @@
   }
 
   // --- Create zone from device ---
+  async function handleClearDevices() {
+    try {
+      const result = await api.clearDevices();
+      devices.set([]);
+      notifications.success(`${result.cleared} appareils supprimés`);
+    } catch (e: any) {
+      notifications.error(e?.message || 'Erreur');
+    }
+  }
+
   async function createZoneFromDevice(device: DiscoveredDevice) {
     try {
       const zone = await api.createZone(device.name, device.type, device.id);
@@ -566,9 +576,17 @@
   </section>
 
   <!-- Available devices (unbound) -->
-  {#if unboundDevices.length > 0}
+  {#if unboundDevices.length > 0 || $devices.length > 0}
     <section class="zm-section">
-      <h2 class="section-title">{$t('zone.devices')}</h2>
+      <div class="section-header-row">
+        <h2 class="section-title">{$t('zone.devices')}</h2>
+        {#if $devices.length > 0}
+          <button class="btn btn-ghost-sm btn-danger-text" onclick={handleClearDevices}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+            {$t('zone.clearDevices')}
+          </button>
+        {/if}
+      </div>
       <div class="devices-grid">
         {#each unboundDevices as device}
           <div class="device-card">
@@ -875,6 +893,25 @@
   /* Section */
   .zm-section {
     margin-bottom: 24px;
+  }
+
+  .section-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .section-header-row .section-title {
+    margin: 0;
+  }
+
+  .btn-danger-text {
+    color: #ef4444 !important;
+  }
+
+  .btn-danger-text:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
   }
 
   .section-title {

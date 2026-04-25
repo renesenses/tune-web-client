@@ -546,6 +546,16 @@
     preferences.update((p) => ({ ...p, hiddenDeviceIds: [] }));
   }
 
+  async function handleClearAllDevices() {
+    try {
+      const result = await api.clearDevices();
+      devices.set([]);
+      notifications.success(`${result.cleared} appareils supprimés`);
+    } catch (e: any) {
+      notifications.error(e?.message || 'Erreur');
+    }
+  }
+
   function hideAllDevices() {
     const allIds = [
       ...audioDevices.map(d => `audio:${d.id}`),
@@ -984,6 +994,7 @@
       <div class="devices-actions">
         <button class="scan-btn small" onclick={showAllDevices}>{$t('settings.showAll')}</button>
         <button class="scan-btn small" onclick={hideAllDevices}>{$t('settings.hideAll')}</button>
+        <button class="scan-btn small danger" onclick={handleClearAllDevices}>{$t('settings.clearDevices')}</button>
       </div>
       <div class="device-toggle-list">
         {#each $devices as device}
@@ -1778,6 +1789,15 @@
   .scan-btn.small {
     padding: var(--space-xs) var(--space-md);
     font-size: 12px;
+  }
+
+  .scan-btn.danger {
+    color: #ef4444;
+    border-color: #ef4444;
+  }
+
+  .scan-btn.danger:hover {
+    background: rgba(239, 68, 68, 0.1);
   }
 
   .device-toggle-list {
