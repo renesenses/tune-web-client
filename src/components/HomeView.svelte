@@ -1109,9 +1109,10 @@
   .dash-bars {
     display: flex;
     align-items: flex-end;
-    gap: 6px;
+    gap: 8px;
     height: 100px;
     margin-top: var(--space-sm);
+    justify-content: flex-start;
   }
 
   .dash-bar-col {
@@ -1119,7 +1120,7 @@
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    flex: 1;
+    width: 48px;
   }
 
   .dash-bar {
