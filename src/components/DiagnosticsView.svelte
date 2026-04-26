@@ -168,6 +168,51 @@
     }
   }
 
+  // Server actions
+  let restarting = $state(false);
+  let scanning = $state(false);
+  let clearing = $state(false);
+  let showLogs = $state(false);
+  let logs = $state('');
+  let logsLoading = $state(false);
+
+  async function restartServer() {
+    if (!confirm('Redemarrer le serveur Tune ?')) return;
+    restarting = true;
+    try {
+      await api.apiPost('/system/restart');
+    } catch { /* expected — server stops */ }
+    restarting = false;
+  }
+
+  async function rescanLibrary() {
+    scanning = true;
+    try {
+      await api.apiPost('/system/scan');
+    } catch (e) { console.error(e); }
+    scanning = false;
+  }
+
+  async function clearCache() {
+    clearing = true;
+    try {
+      const r = await api.apiPost('/system/clear-cache');
+      alert(`${r.cleared} fichiers supprimés`);
+    } catch (e) { console.error(e); }
+    clearing = false;
+  }
+
+  async function fetchLogs() {
+    showLogs = !showLogs;
+    if (!showLogs) return;
+    logsLoading = true;
+    try {
+      const r = await api.apiFetch('/system/logs?lines=100');
+      logs = r.logs || 'Aucun log disponible';
+    } catch { logs = 'Erreur chargement logs'; }
+    logsLoading = false;
+  }
+
   function streamingLabel(name: string): string {
     const labels: Record<string, string> = {
       tidal: 'TIDAL',
@@ -211,6 +256,38 @@
       </button>
     </div>
   </div>
+
+    <!-- Server Actions -->
+    <section class="diag-section actions-section">
+      <h3>Actions serveur</h3>
+      <div class="actions-grid">
+        <button class="server-action-btn" onclick={restartServer} disabled={restarting}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+          <span>{restarting ? 'Redemarrage...' : 'Redemarrer le serveur'}</span>
+        </button>
+        <button class="server-action-btn" onclick={rescanLibrary} disabled={scanning}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+          <span>{scanning ? 'Scan en cours...' : 'Rescanner la bibliotheque'}</span>
+        </button>
+        <button class="server-action-btn" onclick={clearCache} disabled={clearing}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+          <span>{clearing ? 'Nettoyage...' : 'Vider le cache artwork'}</span>
+        </button>
+        <button class="server-action-btn" onclick={fetchLogs}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+          <span>{showLogs ? 'Masquer les logs' : 'Voir les logs serveur'}</span>
+        </button>
+      </div>
+      {#if showLogs}
+        <div class="logs-panel">
+          {#if logsLoading}
+            <div class="spinner small"></div>
+          {:else}
+            <pre class="logs-text">{logs}</pre>
+          {/if}
+        </div>
+      {/if}
+    </section>
 
   {#if loading}
     <div class="loading">
@@ -879,6 +956,64 @@
 
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  /* Server Actions */
+  .actions-section { background: var(--tune-surface); }
+  .actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--space-sm);
+  }
+
+  .server-action-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .server-action-btn:hover:not(:disabled) {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .server-action-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .server-action-btn svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+
+  .logs-panel {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .logs-text {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--tune-text-secondary);
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: 0;
   }
 
   /* Responsive */

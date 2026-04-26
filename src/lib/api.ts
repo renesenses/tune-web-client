@@ -1485,6 +1485,88 @@ export function createPlaylistFromRadioFavorites(service: string, playlistName: 
   });
 }
 
+// --- Sleep Timer ---
+
+export function setSleepTimer(zoneId: number, minutes: number) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/sleep`, { method: 'POST', body: JSON.stringify({ minutes }) });
+}
+
+export function getSleepTimer(zoneId: number) {
+  return fetchJSON<{ active: boolean }>(`${BASE}/zones/${zoneId}/sleep`);
+}
+
+// --- Queue → Playlist ---
+
+export function saveQueueAsPlaylist(zoneId: number, name?: string) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/queue/save-as-playlist`, { method: 'POST', body: JSON.stringify({ name }) });
+}
+
+// --- Crossfade ---
+
+export function setCrossfade(zoneId: number, enabled: boolean, duration = 3.0) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/crossfade`, { method: 'POST', body: JSON.stringify({ enabled, duration }) });
+}
+
+// --- Volume Normalization ---
+
+export function setNormalization(zoneId: number, enabled: boolean, targetLufs = -14.0) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/normalization`, { method: 'POST', body: JSON.stringify({ enabled, target_lufs: targetLufs }) });
+}
+
+// --- DSP / Crossfeed ---
+
+export function setDSP(zoneId: number, crossfeed: string | null) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/dsp`, { method: 'POST', body: JSON.stringify({ crossfeed }) });
+}
+
+// --- Recommendations ---
+
+export function getRecommendations(limit = 20) {
+  return fetchJSON<any>(`${BASE}/library/recommendations?limit=${limit}`);
+}
+
+// --- Listening Dashboard ---
+
+export function getHistoryDashboard() {
+  return fetchJSON<any>(`${BASE}/library/history/dashboard`);
+}
+
+// --- Album Ratings ---
+
+export function rateAlbum(albumId: number, rating: number, note?: string) {
+  return fetchJSON<any>(`${BASE}/library/albums/${albumId}/rate`, { method: 'POST', body: JSON.stringify({ rating, note }) });
+}
+
+export function getAlbumRating(albumId: number) {
+  return fetchJSON<any>(`${BASE}/library/albums/${albumId}/rating`);
+}
+
+export function getTopRatedAlbums(limit = 20) {
+  return fetchJSON<any[]>(`${BASE}/library/albums/top-rated?limit=${limit}`);
+}
+
+// --- Collaborative Playlists ---
+
+export function getCollaborativePlaylists() {
+  return fetchJSON<any[]>(`${BASE}/playlists/collaborative`);
+}
+
+export function createCollaborativePlaylist(name: string, description?: string) {
+  return fetchJSON<any>(`${BASE}/playlists/collaborative`, { method: 'POST', body: JSON.stringify({ name, description }) });
+}
+
+export function addToCollaborativePlaylist(playlistId: number, trackId: number) {
+  return fetchJSON<any>(`${BASE}/playlists/collaborative/${playlistId}/add`, { method: 'POST', body: JSON.stringify({ track_id: trackId }) });
+}
+
+export function getCollaborativePlaylistTracks(playlistId: number) {
+  return fetchJSON<any[]>(`${BASE}/playlists/collaborative/${playlistId}/tracks`);
+}
+
+export function deleteCollaborativePlaylist(playlistId: number) {
+  return fetchJSON<any>(`${BASE}/playlists/collaborative/${playlistId}`, { method: 'DELETE' });
+}
+
 // --- Podcasts ---
 
 export async function searchPodcasts(query: string, limit = 20): Promise<any[]> {
