@@ -41,6 +41,7 @@
   import PlaylistManagerView from './components/PlaylistManagerView.svelte';
   import DJView from './components/DJView.svelte';
   import PartyView from './components/PartyView.svelte';
+  import CollectionsView from './components/CollectionsView.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
   import BottomTabBar from './components/BottomTabBar.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
@@ -417,6 +418,8 @@
       <DJView />
     {:else if $activeView === 'party'}
       <PartyView />
+    {:else if $activeView === 'collections'}
+      <CollectionsView />
     {:else if $activeView === 'diagnostics'}
       <DiagnosticsView />
     {/if}

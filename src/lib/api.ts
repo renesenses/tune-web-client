@@ -1567,6 +1567,54 @@ export function deleteCollaborativePlaylist(playlistId: number) {
   return fetchJSON<any>(`${BASE}/playlists/collaborative/${playlistId}`, { method: 'DELETE' });
 }
 
+// --- Alarm Clock ---
+export function setAlarm(zoneId: number, time: string | null, opts?: { album_id?: number; playlist_id?: number; radio_id?: number; fade_seconds?: number }) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm`, { method: 'POST', body: JSON.stringify({ time, ...opts }) });
+}
+export function getAlarm(zoneId: number) { return fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm`); }
+export function cancelAlarm(zoneId: number) { return fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm`, { method: 'DELETE' }); }
+
+// --- Quick Favorites ---
+export function quickFavTrack(trackId: number) { return fetchJSON<any>(`${BASE}/library/tracks/${trackId}/quick-fav`, { method: 'POST' }); }
+export function quickFavAlbum(albumId: number) { return fetchJSON<any>(`${BASE}/library/albums/${albumId}/quick-fav`, { method: 'POST' }); }
+
+// --- Collections ---
+export function getCollections() { return fetchJSON<any[]>(`${BASE}/library/collections`); }
+export function createCollection(name: string, description?: string, icon?: string, color?: string) {
+  return fetchJSON<any>(`${BASE}/library/collections`, { method: 'POST', body: JSON.stringify({ name, description, icon, color }) });
+}
+export function updateCollection(id: number, data: any) { return fetchJSON<any>(`${BASE}/library/collections/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
+export function deleteCollection(id: number) { return fetchJSON<any>(`${BASE}/library/collections/${id}`, { method: 'DELETE' }); }
+export function getCollectionAlbums(id: number) { return fetchJSON<any[]>(`${BASE}/library/collections/${id}/albums`); }
+export function addAlbumToCollection(collectionId: number, albumId: number) {
+  return fetchJSON<any>(`${BASE}/library/collections/${collectionId}/albums`, { method: 'POST', body: JSON.stringify({ album_id: albumId }) });
+}
+export function removeAlbumFromCollection(collectionId: number, albumId: number) {
+  return fetchJSON<any>(`${BASE}/library/collections/${collectionId}/albums/${albumId}`, { method: 'DELETE' });
+}
+
+// --- Smart Duplicates ---
+export function getSmartDuplicates(limit = 50) { return fetchJSON<any>(`${BASE}/library/duplicates/smart?limit=${limit}`); }
+
+// --- Activity Feed ---
+export function getActivityFeed(limit = 30) { return fetchJSON<any[]>(`${BASE}/library/activity?limit=${limit}`); }
+
+// --- Share Playlist ---
+export function sharePlaylist(playlistId: number) { return fetchJSON<any>(`${BASE}/playlists/${playlistId}/share`); }
+
+// --- Now Listening ---
+export function getNowListening() { return fetchJSON<any[]>(`${BASE}/zones/now-listening`); }
+
+// --- Audio Profile ---
+export function getAudioProfile(zoneId: number) { return fetchJSON<any>(`${BASE}/zones/${zoneId}/audio-profile`); }
+export function setAudioProfile(zoneId: number, profile: any) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/audio-profile`, { method: 'POST', body: JSON.stringify(profile) });
+}
+
+// --- Ratings Export/Import ---
+export function exportRatings() { return fetchJSON<any>(`${BASE}/library/ratings/export`); }
+export function importRatings(ratings: any[]) { return fetchJSON<any>(`${BASE}/library/ratings/import`, { method: 'POST', body: JSON.stringify({ ratings }) }); }
+
 // --- Podcasts ---
 
 export async function searchPodcasts(query: string, limit = 20): Promise<any[]> {

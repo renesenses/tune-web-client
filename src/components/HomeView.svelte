@@ -12,6 +12,10 @@
   let zone = $derived($currentZone);
   let currentTrack = $derived(zone?.current_track);
   let stats: { tracks: number; albums: number; artists: number } | null = $state(null);
+
+  // Now Listening across zones
+  let nowListening: any[] = $state([]);
+  let nowListeningLoaded = $state(false);
   let recentAlbums: Album[] = $state([]);
   let recentTab = $state<'played' | 'added'>('played');
   let searchQuery = $state('');
@@ -326,6 +330,16 @@
     }
   }
 
+  async function loadNowListening() {
+    try {
+      nowListening = await api.getNowListening();
+      nowListeningLoaded = true;
+    } catch (e) {
+      console.error('Load now listening error:', e);
+      nowListeningLoaded = true;
+    }
+  }
+
   async function loadDashboard() {
     try {
       const raw = await api.getHistoryDashboard();
@@ -352,11 +366,36 @@
     loadTopTracks();
     loadRecommendations();
     loadDashboard();
+    loadNowListening();
   });
 </script>
 
 <div class="home-view">
   <h1 class="greeting">{greeting()}</h1>
+
+  <!-- Now Listening across zones -->
+  {#if nowListeningLoaded && nowListening.length > 0}
+    <div class="now-listening-section">
+      <h2 class="section-title">En cours d'ecoute</h2>
+      <div class="now-listening-row">
+        {#each nowListening as item}
+          <div class="nl-card">
+            <div class="nl-cover">
+              <AlbumArt coverPath={item.cover_path} albumId={item.album_id} size={48} alt={item.track_title ?? ''} />
+            </div>
+            <div class="nl-info">
+              <span class="nl-zone">{item.zone_name}</span>
+              <span class="nl-track truncate">{item.track_title ?? item.title ?? ''}</span>
+              <span class="nl-artist truncate">{item.artist_name ?? ''}</span>
+            </div>
+            <span class="nl-playing-indicator">
+              <span class="eq-bars"><span></span><span></span><span></span></span>
+            </span>
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
 
   <!-- Stats cards -->
   {#if stats}
@@ -1201,5 +1240,74 @@
     font-size: 10px;
     font-weight: 700;
     color: var(--tune-accent);
+  }
+
+  /* Now Listening */
+  .now-listening-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .now-listening-row {
+    display: flex;
+    gap: var(--space-md);
+    overflow-x: auto;
+    padding: var(--space-xs) 0;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .now-listening-row::-webkit-scrollbar { display: none; }
+
+  .nl-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-lg);
+    flex-shrink: 0;
+    min-width: 220px;
+    max-width: 320px;
+  }
+
+  .nl-cover {
+    flex-shrink: 0;
+  }
+
+  .nl-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .nl-zone {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tune-accent);
+  }
+
+  .nl-track {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tune-text);
+  }
+
+  .nl-artist {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+  }
+
+  .nl-playing-indicator {
+    flex-shrink: 0;
   }
 </style>

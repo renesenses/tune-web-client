@@ -28,6 +28,46 @@
   }
   let { onAddToPlaylist }: Props = $props();
 
+  // Quick Fav state
+  let quickFavTrackIds = $state<Set<number>>(new Set());
+  async function handleQuickFavTrack(trackId: number, e: MouseEvent) {
+    e.stopPropagation();
+    try {
+      await api.quickFavTrack(trackId);
+      quickFavTrackIds = new Set([...quickFavTrackIds, trackId]);
+      notifications.success('Favori rapide ajoute');
+    } catch (err) {
+      console.error('Quick fav error:', err);
+    }
+  }
+
+  // Collections for album
+  let collections: any[] = $state([]);
+  let showCollectionMenu = $state(false);
+  let collectionsLoaded = $state(false);
+
+  async function loadCollections() {
+    if (collectionsLoaded) return;
+    try {
+      collections = await api.getCollections();
+      collectionsLoaded = true;
+    } catch (e) {
+      console.error('Load collections error:', e);
+    }
+  }
+
+  async function handleAddToCollection(collectionId: number) {
+    if (!$selectedAlbum?.id) return;
+    try {
+      await api.addAlbumToCollection(collectionId, $selectedAlbum.id);
+      showCollectionMenu = false;
+      notifications.success('Album ajoute a la collection');
+    } catch (e) {
+      console.error('Add to collection error:', e);
+      notifications.error('Erreur ajout collection');
+    }
+  }
+
   let editingAlbum = $state<Album | null>(null);
   let editingTrack = $state<Track | null>(null);
   let writingAlbumTags = $state(false);
@@ -626,6 +666,26 @@
                 {writingAlbumTags ? 'Gravure...' : 'Graver tags'}
               </button>
             {/if}
+            <div class="collection-dropdown-wrap" style="position:relative;display:inline-flex">
+              <button class="edit-btn" onclick={() => { showCollectionMenu = !showCollectionMenu; if (!collectionsLoaded) loadCollections(); }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
+                Collection
+              </button>
+              {#if showCollectionMenu}
+                <div class="collection-dropdown">
+                  {#if collections.length === 0}
+                    <span class="collection-empty">Aucune collection</span>
+                  {:else}
+                    {#each collections as col}
+                      <button class="collection-option" onclick={() => handleAddToCollection(col.id)}>
+                        {#if col.color}<span class="col-dot" style="background:{col.color}"></span>{/if}
+                        {col.name}
+                      </button>
+                    {/each}
+                  {/if}
+                </div>
+              {/if}
+            </div>
           </div>
           {#if writeTagsMessage}
             <div class="write-tags-message">{writeTagsMessage}</div>
@@ -698,6 +758,11 @@
                 {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
                 <span class="track-heart" onclick={(e) => e.stopPropagation()}><HeartButton trackId={t.id} size={14} /></span>
+                {#if t.id}
+                  <button class="quick-fav-btn" class:faved={quickFavTrackIds.has(t.id)} onclick={(e) => handleQuickFavTrack(t.id!, e)} title="Favori rapide">
+                    <svg viewBox="0 0 24 24" fill={quickFavTrackIds.has(t.id) ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                  </button>
+                {/if}
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title="Lire ensuite">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
@@ -755,6 +820,11 @@
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
               <span class="track-heart" onclick={(e) => e.stopPropagation()}><HeartButton trackId={t.id} size={14} /></span>
+              {#if t.id}
+                <button class="quick-fav-btn" class:faved={quickFavTrackIds.has(t.id)} onclick={(e) => handleQuickFavTrack(t.id!, e)} title="Favori rapide">
+                  <svg viewBox="0 0 24 24" fill={quickFavTrackIds.has(t.id) ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                </button>
+              {/if}
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title="Lire ensuite">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
@@ -2688,5 +2758,89 @@
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-muted);
+  }
+
+  /* Quick Fav */
+  .quick-fav-btn {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    transition: all 0.12s;
+  }
+
+  .track-item:hover .quick-fav-btn {
+    opacity: 1;
+  }
+
+  .quick-fav-btn.faved {
+    color: #f59e0b;
+    opacity: 1;
+  }
+
+  .quick-fav-btn:hover {
+    color: #f59e0b;
+    transform: scale(1.15);
+  }
+
+  /* Collection dropdown */
+  .collection-dropdown-wrap {
+    display: inline-flex;
+  }
+
+  .collection-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: 10px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 20;
+    box-shadow: var(--shadow-lg);
+    min-width: 160px;
+    margin-top: 4px;
+  }
+
+  .collection-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    padding: 6px 12px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.1s;
+    white-space: nowrap;
+  }
+
+  .collection-option:hover {
+    background: var(--tune-surface-hover);
+    color: var(--tune-text);
+  }
+
+  .collection-empty {
+    padding: 8px 12px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+  }
+
+  .col-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
 </style>

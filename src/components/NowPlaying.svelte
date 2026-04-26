@@ -38,6 +38,52 @@
   let normEnabled = $state(false);
   let normTargetLufs = $state(-14);
 
+  // Alarm Clock
+  let showAlarm = $state(false);
+  let alarmTime = $state('');
+  let alarmActive = $state(false);
+  let alarmSetting = $state(false);
+
+  async function handleSetAlarm() {
+    if (!zone?.id || !alarmTime) return;
+    alarmSetting = true;
+    try {
+      await api.setAlarm(zone.id, alarmTime);
+      alarmActive = true;
+      showAlarm = false;
+      notifications.success(`Reveil programme a ${alarmTime}`);
+    } catch (e) {
+      console.error('Alarm error:', e);
+      notifications.error('Erreur reveil');
+    }
+    alarmSetting = false;
+  }
+
+  async function handleCancelAlarm() {
+    if (!zone?.id) return;
+    try {
+      await api.cancelAlarm(zone.id);
+      alarmActive = false;
+      alarmTime = '';
+      notifications.success('Reveil annule');
+    } catch (e) {
+      console.error('Cancel alarm error:', e);
+    }
+  }
+
+  async function loadAlarmState() {
+    if (!zone?.id) return;
+    try {
+      const r = await api.getAlarm(zone.id);
+      alarmActive = !!r.time;
+      if (r.time) alarmTime = r.time;
+    } catch {}
+  }
+
+  $effect(() => {
+    if (zone?.id) loadAlarmState();
+  });
+
   // DSP / Crossfeed
   let showDspMenu = $state(false);
   let currentCrossfeed = $state<string | null>(null);
@@ -477,7 +523,27 @@
                 </div>
               {/if}
             </div>
+            <button class="np-credits-btn" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
+              Reveil
+            </button>
             </div>
+            {#if showAlarm}
+              <div class="np-alarm-panel">
+                <div class="alarm-row">
+                  <input type="time" class="alarm-time-input" bind:value={alarmTime} />
+                  <button class="alarm-set-btn" onclick={handleSetAlarm} disabled={alarmSetting || !alarmTime}>
+                    {alarmSetting ? '...' : 'Activer'}
+                  </button>
+                  {#if alarmActive}
+                    <button class="alarm-cancel-btn" onclick={handleCancelAlarm}>Annuler</button>
+                  {/if}
+                </div>
+                {#if alarmActive}
+                  <span class="alarm-status">Reveil actif : {alarmTime}</span>
+                {/if}
+              </div>
+            {/if}
             {#if showLyrics}
               <div class="np-lyrics">
                 {#if lyricsLoading}
@@ -1534,5 +1600,70 @@
 
   .sleep-option.sleep-off {
     color: var(--tune-warning);
+  }
+
+  /* Alarm panel */
+  .np-alarm-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+  }
+
+  .alarm-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .alarm-time-input {
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    outline: none;
+  }
+
+  .alarm-time-input:focus {
+    border-color: var(--tune-accent);
+  }
+
+  .alarm-set-btn {
+    background: var(--tune-accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 4px 12px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .alarm-set-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .alarm-cancel-btn {
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-warning);
+    cursor: pointer;
+  }
+
+  .alarm-status {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-accent);
   }
 </style>

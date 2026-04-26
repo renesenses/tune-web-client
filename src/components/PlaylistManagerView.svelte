@@ -6,7 +6,20 @@
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import type { Playlist, Track, StreamingPlaylist, UnifiedPlaylistsResponse, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse } from '../lib/types';
   import { t as tr } from '../lib/i18n';
+  import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './AlbumArt.svelte';
+
+  async function handleSharePlaylist(playlistId: number) {
+    try {
+      const result = await api.sharePlaylist(playlistId);
+      const text = result.text ?? result.share_url ?? JSON.stringify(result);
+      await navigator.clipboard.writeText(text);
+      notifications.success('Lien copie dans le presse-papier');
+    } catch (e) {
+      console.error('Share playlist error:', e);
+      notifications.error('Erreur partage');
+    }
+  }
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -1215,6 +1228,9 @@
               </button>
             {/if}
             {#if item.type === 'local' && item.local?.id}
+              <button class="share-btn" onclick={(e) => { e.stopPropagation(); handleSharePlaylist(item.local!.id); }} title="Partager">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+              </button>
               <button class="delete-btn" onclick={() => item.local?.id && deletePlaylist(item.local.id)} title={$tr('common.delete')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
               </button>
@@ -2004,6 +2020,25 @@
 
   .delete-btn:hover {
     color: var(--tune-warning);
+  }
+
+  .share-btn {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    opacity: 0;
+    transition: all 0.12s ease-out;
+  }
+
+  .playlist-item:hover .share-btn {
+    opacity: 1;
+  }
+
+  .share-btn:hover {
+    color: var(--tune-accent);
   }
 
   /* Track list */
