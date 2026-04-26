@@ -20,6 +20,14 @@
   let topArtistsLoaded = $state(false);
   let topTracksLoaded = $state(false);
 
+  // Recommendations
+  let recommendations: any[] = $state([]);
+  let recsLoaded = $state(false);
+
+  // Dashboard
+  let dashboard: any = $state(null);
+  let dashboardLoaded = $state(false);
+
   function greeting(): string {
     const h = new Date().getHours();
     if (h < 12) return $t('home.morning');
@@ -307,11 +315,34 @@
     }
   }
 
+  async function loadRecommendations() {
+    try {
+      const r = await api.getRecommendations(12);
+      recommendations = Array.isArray(r) ? r : (r.albums ?? r.recommendations ?? []);
+      recsLoaded = true;
+    } catch (e) {
+      console.error('Load recommendations error:', e);
+      recsLoaded = true;
+    }
+  }
+
+  async function loadDashboard() {
+    try {
+      dashboard = await api.getHistoryDashboard();
+      dashboardLoaded = true;
+    } catch (e) {
+      console.error('Load dashboard error:', e);
+      dashboardLoaded = true;
+    }
+  }
+
   $effect(() => {
     loadStats();
     loadRecentAlbums();
     loadTopArtists();
     loadTopTracks();
+    loadRecommendations();
+    loadDashboard();
   });
 </script>
 
@@ -465,6 +496,81 @@
           </div>
         {/each}
       </div>
+    </div>
+  {/if}
+
+  <!-- Recommendations -->
+  {#if recsLoaded && recommendations.length > 0}
+    <div class="top-section">
+      <h2 class="section-title">Recommandations</h2>
+      <div class="recs-carousel">
+        {#each recommendations as rec}
+          <button class="rec-card" onclick={() => rec.id ? navigateToAlbum(rec.id) : (rec.album_id ? navigateToAlbum(rec.album_id) : null)}>
+            <AlbumArt coverPath={rec.cover_path} albumId={rec.id ?? rec.album_id} size={140} alt={rec.title} />
+            <span class="rec-title truncate">{rec.title}</span>
+            <span class="rec-artist truncate">{rec.artist_name ?? ''}</span>
+            {#if rec.reason}
+              <span class="rec-reason">{rec.reason}</span>
+            {/if}
+          </button>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Listening Dashboard -->
+  {#if dashboardLoaded && dashboard}
+    <div class="top-section">
+      <h2 class="section-title">Statistiques</h2>
+      <div class="dash-stats">
+        {#if dashboard.total_plays != null}
+          <div class="dash-big-stat">
+            <span class="dash-big-number">{formatNumber(dashboard.total_plays)}</span>
+            <span class="dash-big-label">lectures</span>
+          </div>
+        {/if}
+        {#if dashboard.total_hours != null}
+          <div class="dash-big-stat">
+            <span class="dash-big-number">{Math.round(dashboard.total_hours)}</span>
+            <span class="dash-big-label">heures</span>
+          </div>
+        {/if}
+        {#if dashboard.new_artists != null}
+          <div class="dash-big-stat">
+            <span class="dash-big-number">{dashboard.new_artists}</span>
+            <span class="dash-big-label">nouveaux artistes</span>
+          </div>
+        {/if}
+        {#if dashboard.peak_hour != null}
+          <div class="dash-big-stat">
+            <span class="dash-big-number">{dashboard.peak_hour}h</span>
+            <span class="dash-big-label">heure de pointe</span>
+          </div>
+        {/if}
+      </div>
+
+      {#if dashboard.daily && Array.isArray(dashboard.daily) && dashboard.daily.length > 0}
+        <div class="dash-chart">
+          <span class="dash-chart-label">7 derniers jours</span>
+          <div class="dash-bars">
+            {#each dashboard.daily.slice(-7) as day}
+              {@const maxPlays = Math.max(...dashboard.daily.slice(-7).map((d: any) => d.plays ?? d.count ?? 0), 1)}
+              <div class="dash-bar-col">
+                <div class="dash-bar" style="height: {Math.max(4, ((day.plays ?? day.count ?? 0) / maxPlays) * 80)}px"></div>
+                <span class="dash-bar-label">{(day.date ?? '').slice(-2)}</span>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      {#if dashboard.genres && Array.isArray(dashboard.genres) && dashboard.genres.length > 0}
+        <div class="dash-genres">
+          {#each dashboard.genres.slice(0, 8) as g}
+            <span class="genre-pill">{g.genre ?? g.name ?? g} <span class="genre-count">{g.count ?? g.plays ?? ''}</span></span>
+          {/each}
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -882,5 +988,166 @@
   @media (max-width: 768px) {
     .top-tracks-list { font-size: 12px; }
     .artist-card { padding: var(--space-xs) var(--space-sm); }
+  }
+
+  /* Recommendations carousel */
+  .recs-carousel {
+    display: flex;
+    gap: var(--space-md);
+    overflow-x: auto;
+    padding: var(--space-xs) 0;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .recs-carousel::-webkit-scrollbar { display: none; }
+
+  .rec-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+    flex-shrink: 0;
+    width: 140px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--tune-text);
+  }
+
+  .rec-card:hover .rec-title { color: var(--tune-accent); }
+
+  .rec-title {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 700;
+    max-width: 140px;
+    transition: color 0.12s;
+  }
+
+  .rec-artist {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+    max-width: 140px;
+  }
+
+  .rec-reason {
+    display: inline-block;
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--tune-accent);
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12);
+    padding: 2px 8px;
+    border-radius: 8px;
+    white-space: nowrap;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Dashboard */
+  .dash-stats {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+  }
+
+  .dash-big-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: var(--space-md) var(--space-lg);
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-lg);
+    min-width: 100px;
+    flex: 1;
+  }
+
+  .dash-big-number {
+    font-family: var(--font-label);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--tune-accent);
+  }
+
+  .dash-big-label {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+  }
+
+  .dash-chart {
+    margin-top: var(--space-md);
+  }
+
+  .dash-chart-label {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .dash-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 100px;
+    margin-top: var(--space-sm);
+  }
+
+  .dash-bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+
+  .dash-bar {
+    width: 100%;
+    max-width: 40px;
+    background: var(--tune-accent);
+    border-radius: 4px 4px 0 0;
+    min-height: 4px;
+    transition: height 0.3s ease-out;
+  }
+
+  .dash-bar-label {
+    font-family: var(--font-label);
+    font-size: 10px;
+    color: var(--tune-text-muted);
+  }
+
+  .dash-genres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-top: var(--space-md);
+  }
+
+  .genre-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 14px;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text);
+  }
+
+  .genre-count {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--tune-accent);
   }
 </style>

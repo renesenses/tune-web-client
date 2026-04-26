@@ -119,7 +119,7 @@
   }
 
   // --- NEW: Playlist Manager v2 tabs ---
-  let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup'>('playlists');
+  let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup' | 'collab'>('playlists');
 
   // Transfer history
   let transferHistory = $state<any[]>([]);
@@ -147,6 +147,64 @@
   // Service capabilities
   let serviceCapabilities = $state<Record<string, { authenticated: boolean; supports_write: boolean }>>({});
 
+  // Collaborative playlists
+  let collabPlaylists = $state<any[]>([]);
+  let collabLoading = $state(false);
+  let collabSelectedId = $state<number | null>(null);
+  let collabTracks = $state<Track[]>([]);
+  let collabTracksLoading = $state(false);
+  let showCollabCreate = $state(false);
+  let newCollabName = $state('');
+  let creatingCollab = $state(false);
+  let deletingCollab = $state<number | null>(null);
+
+  async function loadCollabPlaylists() {
+    collabLoading = true;
+    try {
+      collabPlaylists = await api.getCollaborativePlaylists();
+    } catch { collabPlaylists = []; }
+    collabLoading = false;
+  }
+
+  async function createCollab() {
+    if (!newCollabName.trim()) return;
+    creatingCollab = true;
+    try {
+      await api.createCollaborativePlaylist(newCollabName.trim());
+      newCollabName = '';
+      showCollabCreate = false;
+      await loadCollabPlaylists();
+    } catch (err: any) {
+      alert(`Erreur : ${err.message || err}`);
+    }
+    creatingCollab = false;
+  }
+
+  async function loadCollabTracks(playlistId: number) {
+    collabSelectedId = playlistId;
+    collabTracksLoading = true;
+    try {
+      collabTracks = await api.getCollaborativePlaylistTracks(playlistId);
+    } catch { collabTracks = []; }
+    collabTracksLoading = false;
+  }
+
+  async function deleteCollab(playlistId: number) {
+    if (!confirm('Supprimer cette playlist collaborative ?')) return;
+    deletingCollab = playlistId;
+    try {
+      await api.deleteCollaborativePlaylist(playlistId);
+      collabPlaylists = collabPlaylists.filter(p => p.id !== playlistId);
+      if (collabSelectedId === playlistId) {
+        collabSelectedId = null;
+        collabTracks = [];
+      }
+    } catch (err: any) {
+      alert(`Erreur : ${err.message || err}`);
+    }
+    deletingCollab = null;
+  }
+
   async function loadManagerData() {
     if (managerTab === 'transfers') {
       historyLoading = true;
@@ -161,6 +219,8 @@
       syncLoading = false;
     } else if (managerTab === 'backup') {
       await loadSnapshots();
+    } else if (managerTab === 'collab') {
+      await loadCollabPlaylists();
     }
   }
 
@@ -804,6 +864,7 @@
         <button class="pm-tab" class:active={managerTab === 'transfers'} onclick={() => { managerTab = 'transfers'; loadManagerData(); }}>Transferts</button>
         <button class="pm-tab" class:active={managerTab === 'sync'} onclick={() => { managerTab = 'sync'; loadManagerData(); }}>Sync</button>
         <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>Backup</button>
+        <button class="pm-tab" class:active={managerTab === 'collab'} onclick={() => { managerTab = 'collab'; loadManagerData(); }}>Collaboratives</button>
       </div>
       <div class="pm-header-right">
         <div class="search-box">
@@ -964,6 +1025,74 @@
           <div class="backup-result">
             <span>{batchResult.total_playlists} playlists traitées — {batchResult.status}</span>
           </div>
+        {/if}
+      </div>
+
+    {:else if managerTab === 'collab'}
+      <!-- Collaborative Playlists Tab -->
+      <div class="pm-tab-content">
+        <div class="tab-actions">
+          <h3>Playlists collaboratives</h3>
+          <div class="tab-btns">
+            <button class="btn-action" onclick={() => showCollabCreate = true}>Créer</button>
+          </div>
+        </div>
+
+        {#if showCollabCreate}
+          <div class="collab-create-form">
+            <input type="text" placeholder="Nom de la playlist..." bind:value={newCollabName} onkeydown={(e) => e.key === 'Enter' && createCollab()} />
+            <button class="btn-action" onclick={createCollab} disabled={creatingCollab || !newCollabName.trim()}>
+              {creatingCollab ? 'Création...' : 'Créer'}
+            </button>
+            <button class="btn-action" style="background: var(--tune-text-muted)" onclick={() => { showCollabCreate = false; newCollabName = ''; }}>Annuler</button>
+          </div>
+        {/if}
+
+        {#if collabLoading}
+          <div class="loading"><div class="spinner"></div>Chargement...</div>
+        {:else if collabPlaylists.length === 0}
+          <div class="empty">Aucune playlist collaborative</div>
+        {:else}
+          <div class="collab-list">
+            {#each collabPlaylists as pl}
+              <div class="collab-row" class:active={collabSelectedId === pl.id}>
+                <button class="collab-row-btn" onclick={() => loadCollabTracks(pl.id)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                  <span class="collab-name">{pl.name}</span>
+                  {#if pl.track_count != null}
+                    <span class="collab-count">{pl.track_count} pistes</span>
+                  {/if}
+                </button>
+                <button class="btn-action btn-danger" onclick={() => deleteCollab(pl.id)} disabled={deletingCollab === pl.id}>
+                  {deletingCollab === pl.id ? '...' : 'Supprimer'}
+                </button>
+              </div>
+            {/each}
+          </div>
+
+          {#if collabSelectedId}
+            <div class="collab-tracks-section">
+              <h4>Pistes</h4>
+              {#if collabTracksLoading}
+                <div class="loading"><div class="spinner"></div></div>
+              {:else if collabTracks.length === 0}
+                <div class="empty">Aucune piste dans cette playlist</div>
+              {:else}
+                <div class="collab-tracks-list">
+                  {#each collabTracks as track, i}
+                    <div class="collab-track-row">
+                      <span class="collab-track-num">{i + 1}</span>
+                      <div class="collab-track-info">
+                        <span class="collab-track-title truncate">{track.title}</span>
+                        <span class="collab-track-artist truncate">{track.artist_name ?? ''}</span>
+                      </div>
+                      <span class="collab-track-dur">{formatTime(track.duration_ms)}</span>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/if}
         {/if}
       </div>
 
@@ -2598,5 +2727,156 @@
     .recover-track-row {
       flex-direction: column;
     }
+  }
+
+  /* Collaborative playlists */
+  .collab-create-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .collab-create-form input {
+    flex: 1;
+    max-width: 300px;
+    padding: 8px 12px;
+    border: 1px solid var(--tune-border);
+    border-radius: 8px;
+    background: var(--tune-surface);
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    outline: none;
+  }
+
+  .collab-create-form input:focus {
+    border-color: var(--tune-accent);
+  }
+
+  .collab-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .collab-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    border-radius: 8px;
+    transition: background 0.12s;
+  }
+
+  .collab-row:hover {
+    background: var(--tune-surface-hover);
+  }
+
+  .collab-row.active {
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.08);
+  }
+
+  .collab-row-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    color: var(--tune-text);
+    text-align: left;
+  }
+
+  .collab-name {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .collab-count {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    margin-left: auto;
+  }
+
+  .collab-tracks-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--tune-border);
+  }
+
+  .collab-tracks-section h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tune-text);
+    margin-bottom: 8px;
+  }
+
+  .collab-tracks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .collab-track-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    transition: background 0.12s;
+  }
+
+  .collab-track-row:hover {
+    background: var(--tune-surface-hover);
+  }
+
+  .collab-track-num {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    min-width: 24px;
+    text-align: right;
+  }
+
+  .collab-track-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .collab-track-title {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tune-text);
+  }
+
+  .collab-track-artist {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+  }
+
+  .collab-track-dur {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .btn-danger {
+    background: #ef4444 !important;
+    color: white !important;
+  }
+
+  .btn-danger:hover {
+    background: #dc2626 !important;
   }
 </style>

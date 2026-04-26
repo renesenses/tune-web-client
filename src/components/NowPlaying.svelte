@@ -25,6 +25,92 @@
   let karaokeMode = $state(false);
   let syncedLines: { time: number; text: string }[] = $state([]);
 
+  // Sleep Timer
+  let showSleepMenu = $state(false);
+  let sleepActive = $state(false);
+  let sleepMinutes = $state(0);
+
+  // Crossfade
+  let crossfadeEnabled = $state(false);
+  let crossfadeDuration = $state(3);
+
+  // Normalization
+  let normEnabled = $state(false);
+  let normTargetLufs = $state(-14);
+
+  // DSP / Crossfeed
+  let showDspMenu = $state(false);
+  let currentCrossfeed = $state<string | null>(null);
+  const DSP_PRESETS = [
+    { value: null, label: 'Off' },
+    { value: 'light', label: 'Light' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'strong', label: 'Strong' },
+  ];
+
+  async function handleSleepTimer(minutes: number) {
+    if (!zone?.id) return;
+    try {
+      await api.setSleepTimer(zone.id, minutes);
+      sleepActive = minutes > 0;
+      sleepMinutes = minutes;
+      showSleepMenu = false;
+      notifications.success(minutes > 0 ? `Sleep timer: ${minutes} min` : 'Sleep timer off');
+    } catch (e) {
+      console.error('Sleep timer error:', e);
+      notifications.error('Erreur sleep timer');
+    }
+  }
+
+  async function loadSleepTimer() {
+    if (!zone?.id) return;
+    try {
+      const r = await api.getSleepTimer(zone.id);
+      sleepActive = r.active;
+    } catch {}
+  }
+
+  async function toggleCrossfade() {
+    if (!zone?.id) return;
+    try {
+      const next = !crossfadeEnabled;
+      await api.setCrossfade(zone.id, next, crossfadeDuration);
+      crossfadeEnabled = next;
+      notifications.success(next ? `Crossfade: ${crossfadeDuration}s` : 'Crossfade off');
+    } catch (e) {
+      console.error('Crossfade error:', e);
+    }
+  }
+
+  async function toggleNormalization() {
+    if (!zone?.id) return;
+    try {
+      const next = !normEnabled;
+      await api.setNormalization(zone.id, next, normTargetLufs);
+      normEnabled = next;
+      notifications.success(next ? `Normalisation: ${normTargetLufs} LUFS` : 'Normalisation off');
+    } catch (e) {
+      console.error('Normalization error:', e);
+    }
+  }
+
+  async function handleDsp(crossfeed: string | null) {
+    if (!zone?.id) return;
+    try {
+      await api.setDSP(zone.id, crossfeed);
+      currentCrossfeed = crossfeed;
+      showDspMenu = false;
+      notifications.success(crossfeed ? `DSP Crossfeed: ${crossfeed}` : 'DSP off');
+    } catch (e) {
+      console.error('DSP error:', e);
+    }
+  }
+
+  // Load sleep timer state when zone changes
+  $effect(() => {
+    if (zone?.id) loadSleepTimer();
+  });
+
   function parseSyncedLyrics(raw: string): { time: number; text: string }[] {
     const lines: { time: number; text: string }[] = [];
     for (const line of raw.split('\n')) {
@@ -364,6 +450,33 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
               Partager
             </button>
+            <div class="np-sleep-wrapper" style="position:relative;display:inline-flex">
+              <button class="np-credits-btn" class:active={sleepActive} onclick={() => { showSleepMenu = !showSleepMenu; showDspMenu = false; }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+                Sleep
+              </button>
+              {#if showSleepMenu}
+                <div class="np-sleep-dropdown">
+                  {#each [15, 30, 45, 60] as m}
+                    <button class="sleep-option" class:active={sleepActive && sleepMinutes === m} onclick={() => handleSleepTimer(m)}>{m} min</button>
+                  {/each}
+                  <button class="sleep-option sleep-off" onclick={() => handleSleepTimer(0)}>Off</button>
+                </div>
+              {/if}
+            </div>
+            <div class="np-sleep-wrapper" style="position:relative;display:inline-flex">
+              <button class="np-credits-btn" class:active={currentCrossfeed !== null} onclick={() => { showDspMenu = !showDspMenu; showSleepMenu = false; }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h4l3-9 6 18 3-9h4" /></svg>
+                DSP
+              </button>
+              {#if showDspMenu}
+                <div class="np-sleep-dropdown">
+                  {#each DSP_PRESETS as preset}
+                    <button class="sleep-option" class:active={currentCrossfeed === preset.value} onclick={() => handleDsp(preset.value)}>{preset.label}</button>
+                  {/each}
+                </div>
+              {/if}
+            </div>
             </div>
             {#if showLyrics}
               <div class="np-lyrics">
@@ -490,6 +603,17 @@
               </svg>
             </button>
           {/if}
+
+          <button class="setting-btn" class:active={crossfadeEnabled} onclick={toggleCrossfade} title="Crossfade">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+              <path d="M2 6c4 0 6 6 10 6s6-6 10-6" /><path d="M2 18c4 0 6-6 10-6s6 6 10 6" />
+            </svg>
+          </button>
+          <button class="setting-btn" class:active={normEnabled} onclick={toggleNormalization} title="Normalisation">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+              <line x1="2" y1="12" x2="6" y2="12" /><line x1="18" y1="12" x2="22" y2="12" /><line x1="8" y1="8" x2="8" y2="16" /><line x1="12" y1="6" x2="12" y2="18" /><line x1="16" y1="9" x2="16" y2="15" />
+            </svg>
+          </button>
 
           <div class="setting-spacer"></div>
 
@@ -1364,5 +1488,51 @@
 
   .karaoke-line.future {
     opacity: 0.3;
+  }
+
+  /* Sleep Timer / DSP dropdown */
+  .np-sleep-dropdown {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: 10px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 20;
+    box-shadow: var(--shadow-lg);
+    min-width: 80px;
+    margin-bottom: 6px;
+  }
+
+  .sleep-option {
+    background: none;
+    border: none;
+    padding: 6px 12px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.1s;
+    white-space: nowrap;
+  }
+
+  .sleep-option:hover {
+    background: var(--tune-surface-hover);
+    color: var(--tune-text);
+  }
+
+  .sleep-option.active {
+    color: var(--tune-accent);
+    font-weight: 600;
+  }
+
+  .sleep-option.sleep-off {
+    color: var(--tune-warning);
   }
 </style>

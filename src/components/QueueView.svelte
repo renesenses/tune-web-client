@@ -5,6 +5,7 @@
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import { t } from '../lib/i18n';
+  import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './AlbumArt.svelte';
 
   interface Props {
@@ -106,6 +107,23 @@
     dragIndex = null;
     dropIndex = null;
   }
+
+  let savingQueue = $state(false);
+
+  async function handleSaveAsPlaylist() {
+    if (!zone?.id) return;
+    const name = prompt('Nom de la playlist :');
+    if (!name?.trim()) return;
+    savingQueue = true;
+    try {
+      await api.saveQueueAsPlaylist(zone.id, name.trim());
+      notifications.success(`Playlist "${name.trim()}" créée`);
+    } catch (e) {
+      console.error('Save queue as playlist error:', e);
+      notifications.error('Erreur lors de la sauvegarde');
+    }
+    savingQueue = false;
+  }
 </script>
 
 <div class="queue-view">
@@ -115,6 +133,12 @@
       <span class="queue-zone">{zone.name}</span>
     {/if}
     <span class="queue-count">{$queueTracks.length} {$t('common.tracks')}</span>
+    {#if $queueTracks.length > 0}
+      <button class="save-queue-btn" onclick={handleSaveAsPlaylist} disabled={savingQueue}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
+        {savingQueue ? 'Sauvegarde...' : 'Sauver en playlist'}
+      </button>
+    {/if}
   </div>
 
   {#if $queueTracks.length === 0}
@@ -210,6 +234,32 @@
     font-size: 13px;
     color: var(--tune-text-muted);
     margin-left: auto;
+  }
+
+  .save-queue-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: 8px;
+    padding: 4px 12px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    transition: all 0.12s;
+    margin-left: var(--space-sm);
+  }
+
+  .save-queue-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .save-queue-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .empty {

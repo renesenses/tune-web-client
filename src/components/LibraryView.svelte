@@ -45,6 +45,54 @@
   let albumBioAlbumId = $state<number | null>(null);
   let showAlbumBio = $state(false);
 
+  // Album rating
+  let albumRating = $state(0);
+  let albumRatingNote = $state('');
+  let albumRatingLoaded = $state(false);
+  let albumRatingAlbumId = $state<number | null>(null);
+  let ratingSubmitting = $state(false);
+
+  async function loadAlbumRating(albumId: number) {
+    if (albumId === albumRatingAlbumId && albumRatingLoaded) return;
+    albumRatingAlbumId = albumId;
+    albumRatingLoaded = false;
+    try {
+      const r = await api.getAlbumRating(albumId);
+      albumRating = r.rating ?? 0;
+      albumRatingNote = r.note ?? '';
+      albumRatingLoaded = true;
+    } catch {
+      albumRating = 0;
+      albumRatingNote = '';
+      albumRatingLoaded = true;
+    }
+  }
+
+  async function submitRating(albumId: number, star: number) {
+    ratingSubmitting = true;
+    try {
+      const newRating = star === albumRating ? 0 : star;
+      await api.rateAlbum(albumId, newRating, albumRatingNote);
+      albumRating = newRating;
+      notifications.success(newRating > 0 ? `Note: ${newRating}/5` : 'Note retirée');
+    } catch (e) {
+      console.error('Rate album error:', e);
+      notifications.error('Erreur notation');
+    }
+    ratingSubmitting = false;
+  }
+
+  async function submitRatingNote(albumId: number) {
+    ratingSubmitting = true;
+    try {
+      await api.rateAlbum(albumId, albumRating, albumRatingNote);
+      notifications.success('Note enregistrée');
+    } catch (e) {
+      console.error('Rate album note error:', e);
+    }
+    ratingSubmitting = false;
+  }
+
   async function loadAlbumBio(albumId: number) {
     if (albumId === albumBioAlbumId && albumBio !== null) return;
     albumBioAlbumId = albumId;
@@ -354,6 +402,10 @@
     albumBio = null;
     albumBioAlbumId = null;
     showAlbumBio = false;
+    albumRating = 0;
+    albumRatingNote = '';
+    albumRatingLoaded = false;
+    albumRatingAlbumId = null;
     libraryLoading.set(true);
     try {
       // Fetch full album if cover_path is missing (e.g. navigating from tracks view)
@@ -591,6 +643,39 @@
               {:else}
                 <p class="album-bio-empty">Aucune note disponible pour cet album</p>
               {/if}
+            </div>
+          {/if}
+          <!-- Album Rating -->
+          {#if $selectedAlbum?.id}
+            {@const ratingAlbumId = $selectedAlbum.id}
+            {#if !albumRatingLoaded && albumRatingAlbumId !== ratingAlbumId}
+              {(() => { loadAlbumRating(ratingAlbumId); return ''; })()}
+            {/if}
+            <div class="album-rating-section">
+              <div class="album-stars">
+                {#each [1, 2, 3, 4, 5] as star}
+                  <button
+                    class="star-btn"
+                    class:filled={star <= albumRating}
+                    disabled={ratingSubmitting}
+                    onclick={() => submitRating(ratingAlbumId, star)}
+                  >
+                    <svg viewBox="0 0 24 24" fill={star <= albumRating ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                  </button>
+                {/each}
+              </div>
+              <div class="album-rating-note">
+                <input
+                  type="text"
+                  class="rating-note-input"
+                  placeholder="Note personnelle..."
+                  bind:value={albumRatingNote}
+                  onkeydown={(e) => e.key === 'Enter' && submitRatingNote(ratingAlbumId)}
+                  onblur={() => { if (albumRatingNote !== '' || albumRating > 0) submitRatingNote(ratingAlbumId); }}
+                />
+              </div>
             </div>
           {/if}
         </div>
@@ -1417,6 +1502,64 @@
     color: var(--tune-text-muted);
     font-style: italic;
     margin: 0;
+  }
+
+  /* Album Rating */
+  .album-rating-section {
+    margin-top: var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .album-stars {
+    display: flex;
+    gap: 2px;
+  }
+
+  .star-btn {
+    background: none;
+    border: none;
+    padding: 2px;
+    cursor: pointer;
+    color: var(--tune-text-muted);
+    transition: color 0.1s, transform 0.1s;
+  }
+
+  .star-btn:hover {
+    color: #f59e0b;
+    transform: scale(1.2);
+  }
+
+  .star-btn.filled {
+    color: #f59e0b;
+  }
+
+  .star-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .rating-note-input {
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text);
+    width: 100%;
+    max-width: 250px;
+    outline: none;
+    transition: border-color 0.12s;
+  }
+
+  .rating-note-input:focus {
+    border-color: var(--tune-accent);
+  }
+
+  .rating-note-input::placeholder {
+    color: var(--tune-text-muted);
   }
 
   .detail-meta {
