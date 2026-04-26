@@ -629,12 +629,15 @@
     scanMessage = '';
     try {
       await api.triggerScan();
-      scanMessage = 'Scan lancé';
+      scanMessage = 'Scan lance !';
+      notifications.success('Scan de la bibliotheque lance');
     } catch (e: any) {
       if (e?.message?.includes('already') || e?.message?.includes('409')) {
-        scanMessage = 'Scan déjà en cours...';
+        scanMessage = 'Scan deja en cours...';
+        notifications.success('Scan deja en cours');
       } else {
         scanMessage = `Erreur: ${e?.message || e}`;
+        notifications.error(`Erreur scan: ${e?.message || e}`);
       }
       scanning = false;
     }
