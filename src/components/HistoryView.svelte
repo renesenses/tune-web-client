@@ -3,8 +3,11 @@
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import { t } from '../lib/i18n';
+  import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
+
+  let playingIndex = $state<number | null>(null);
 
   let zone = $derived($currentZone);
 
@@ -19,15 +22,20 @@
     return `il y a ${days}j`;
   }
 
-  async function replay(entry: HistoryEntry) {
-    if (!zone?.id) return;
+  async function replay(entry: HistoryEntry, index: number) {
+    if (!zone?.id) {
+      notifications.error('Aucune zone selectionnee');
+      return;
+    }
+    playingIndex = index;
     try {
       if (entry.track.id) {
         await playAndSync(zone.id, { track_id: entry.track.id });
+        notifications.success(`Lecture : ${entry.track.title}`);
       } else if (entry.track.source && entry.track.source !== 'local' && entry.track.source_id) {
         await playAndSync(zone.id, { source: entry.track.source, source_id: entry.track.source_id });
+        notifications.success(`Lecture : ${entry.track.title}`);
       } else {
-        // No DB id — search by title first (stale media server URLs won't work)
         const title = entry.track.album_title || entry.track.title;
         if (title) {
           const results = await api.searchLibrary(title);
@@ -35,21 +43,28 @@
             const match = results.tracks.find((t: any) => t.album_id);
             if (match?.album_id) {
               await playAndSync(zone.id, { album_id: match.album_id });
+              notifications.success(`Lecture : ${title}`);
               return;
             }
             if (results.tracks[0].id) {
               await playAndSync(zone.id, { track_id: results.tracks[0].id });
+              notifications.success(`Lecture : ${results.tracks[0].title}`);
               return;
             }
           }
         }
         if (entry.track.file_path) {
           await playAndSync(zone.id, { file_path: entry.track.file_path });
+          notifications.success(`Lecture : ${entry.track.title}`);
+        } else {
+          notifications.error('Impossible de relancer cette piste');
         }
       }
     } catch (e) {
       console.error('Replay error:', e);
+      notifications.error('Erreur de lecture');
     }
+    playingIndex = null;
   }
 </script>
 
@@ -71,8 +86,15 @@
     </div>
   {:else}
     <div class="history-list">
-      {#each $playbackHistory as entry}
-        <button class="history-item" onclick={() => replay(entry)}>
+      {#each $playbackHistory as entry, i}
+        <button class="history-item" class:loading={playingIndex === i} onclick={() => replay(entry, i)}>
+          <div class="history-play-icon">
+            {#if playingIndex === i}
+              <div class="spinner-sm"></div>
+            {:else}
+              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="5,3 19,12 5,21" /></svg>
+            {/if}
+          </div>
           <AlbumArt coverPath={entry.track.cover_path} albumId={entry.track.album_id} size={44} alt={entry.track.title} />
           <div class="history-info">
             <span class="history-title truncate">{entry.track.title}</span>
@@ -176,6 +198,42 @@
   .history-item:hover {
     background: var(--tune-surface-hover);
   }
+
+  .history-item.loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  .history-play-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tune-text-muted);
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+
+  .history-item:hover .history-play-icon {
+    opacity: 1;
+    color: var(--tune-accent);
+  }
+
+  .history-item.loading .history-play-icon {
+    opacity: 1;
+  }
+
+  .spinner-sm {
+    width: 14px; height: 14px;
+    border: 2px solid var(--tune-border);
+    border-top-color: var(--tune-accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   .history-info {
     flex: 1;
