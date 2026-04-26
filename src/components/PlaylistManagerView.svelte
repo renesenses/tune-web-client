@@ -1115,15 +1115,16 @@
           {/if}
         </button>
       {/each}
-      <button
-        class="filter-chip"
-        class:active={mergeMode}
-        onclick={() => { mergeMode = !mergeMode; if (!mergeMode) cancelMerge(); }}
-        title="Fusionner plusieurs playlists"
-      >
-        {mergeMode ? 'Annuler fusion' : 'Fusionner'}
-      </button>
     </div>
+    <button
+      class="merge-toggle-btn"
+      class:active={mergeMode}
+      onclick={() => { mergeMode = !mergeMode; if (!mergeMode) cancelMerge(); }}
+      title="Fusionner plusieurs playlists"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+      {mergeMode ? 'Annuler fusion' : 'Fusionner'}
+    </button>
 
     {#if mergeResult}
       <div class="backup-result" style="margin-bottom: 8px;">
@@ -1572,6 +1573,15 @@
   .snapshot-meta { font-size: 12px; color: var(--tune-text-secondary); }
   .snapshot-actions { display: flex; gap: 6px; flex-shrink: 0; }
   .btn-danger { background: rgba(248, 113, 113, 0.12); color: #f87171; border-color: rgba(248, 113, 113, 0.3); }
+  .merge-toggle-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 12px; border: 1px solid var(--tune-border); border-radius: 6px;
+    background: none; color: var(--tune-text-secondary); font-size: 12px;
+    cursor: pointer; transition: all 0.12s; margin-left: 8px;
+  }
+  .merge-toggle-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
+  .merge-toggle-btn.active { background: var(--tune-accent); color: white; border-color: var(--tune-accent); }
+
   .merge-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--tune-accent)22; border: 1px solid var(--tune-accent)66; border-radius: 8px; margin-bottom: 12px; flex-wrap: wrap; }
   .merge-count { font-weight: 600; font-size: 13px; color: var(--tune-text-primary); }
   .merge-input { flex: 1; min-width: 180px; padding: 6px 10px; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 6px; color: var(--tune-text-primary); font-size: 13px; }
