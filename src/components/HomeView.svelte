@@ -533,28 +533,28 @@
       <h2 class="section-title">Statistiques</h2>
       <div class="dash-stats">
         {#if dashboard.total_plays != null}
-          <div class="dash-big-stat">
+          <button class="dash-big-stat clickable" onclick={() => activeView.set('history')}>
             <span class="dash-big-number">{formatNumber(dashboard.total_plays)}</span>
             <span class="dash-big-label">lectures</span>
-          </div>
+          </button>
         {/if}
         {#if dashboard.total_hours != null}
-          <div class="dash-big-stat">
-            <span class="dash-big-number">{Math.round(dashboard.total_hours)}</span>
-            <span class="dash-big-label">heures</span>
-          </div>
+          <button class="dash-big-stat clickable" onclick={() => activeView.set('history')}>
+            <span class="dash-big-number">{dashboard.total_hours < 1 ? dashboard.total_hours.toFixed(1) : Math.round(dashboard.total_hours)}</span>
+            <span class="dash-big-label">heures d'ecoute</span>
+          </button>
         {/if}
         {#if dashboard.new_artists != null}
-          <div class="dash-big-stat">
+          <button class="dash-big-stat clickable" onclick={() => activeView.set('library')}>
             <span class="dash-big-number">{dashboard.new_artists}</span>
             <span class="dash-big-label">nouveaux artistes</span>
-          </div>
+          </button>
         {/if}
         {#if dashboard.peak_hour != null}
-          <div class="dash-big-stat">
+          <button class="dash-big-stat clickable" onclick={() => activeView.set('history')}>
             <span class="dash-big-number">{dashboard.peak_hour}h</span>
             <span class="dash-big-label">heure de pointe</span>
-          </div>
+          </button>
         {/if}
       </div>
 
@@ -1098,6 +1098,18 @@
     font-size: 12px;
     color: var(--tune-text-secondary);
     text-align: center;
+  }
+
+  .dash-big-stat.clickable {
+    cursor: pointer;
+    transition: all 0.15s ease-out;
+  }
+
+  .dash-big-stat.clickable:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.08));
+    border-color: rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
   }
 
   .dash-chart {
