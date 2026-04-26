@@ -328,7 +328,16 @@
 
   async function loadDashboard() {
     try {
-      dashboard = await api.getHistoryDashboard();
+      const raw = await api.getHistoryDashboard();
+      // Normalize API fields to UI fields
+      dashboard = {
+        ...raw,
+        total_hours: raw.total_listening_ms ? Math.round(raw.total_listening_ms / 3600000 * 10) / 10 : 0,
+        new_artists: raw.new_artists_discovered ?? 0,
+        peak_hour: raw.hourly?.length ? raw.hourly.reduce((a: any, b: any) => a.plays > b.plays ? a : b).hour : null,
+        daily: (raw.daily || []).map((d: any) => ({ ...d, date: d.day, count: d.plays })),
+        genres: (raw.genres || []).map((g: any) => ({ ...g, name: g.genre, count: g.plays })),
+      };
       dashboardLoaded = true;
     } catch (e) {
       console.error('Load dashboard error:', e);
@@ -550,14 +559,18 @@
       </div>
 
       {#if dashboard.daily && Array.isArray(dashboard.daily) && dashboard.daily.length > 0}
+        {@const last7 = dashboard.daily.slice(-7)}
+        {@const maxPlays = Math.max(...last7.map((d: any) => d.plays ?? d.count ?? 0), 1)}
         <div class="dash-chart">
-          <span class="dash-chart-label">7 derniers jours</span>
+          <span class="dash-chart-label">Ecoutes — 7 derniers jours</span>
           <div class="dash-bars">
-            {#each dashboard.daily.slice(-7) as day}
-              {@const maxPlays = Math.max(...dashboard.daily.slice(-7).map((d: any) => d.plays ?? d.count ?? 0), 1)}
+            {#each last7 as day}
+              {@const plays = day.plays ?? day.count ?? 0}
+              {@const dayName = day.date ? new Date(day.date + 'T00:00').toLocaleDateString('fr', { weekday: 'short' }) : ''}
               <div class="dash-bar-col">
-                <div class="dash-bar" style="height: {Math.max(4, ((day.plays ?? day.count ?? 0) / maxPlays) * 80)}px"></div>
-                <span class="dash-bar-label">{(day.date ?? '').slice(-2)}</span>
+                <span class="dash-bar-count">{plays}</span>
+                <div class="dash-bar" style="height: {Math.max(6, (plays / maxPlays) * 80)}px"></div>
+                <span class="dash-bar-label">{dayName}</span>
               </div>
             {/each}
           </div>
@@ -1118,10 +1131,18 @@
     transition: height 0.3s ease-out;
   }
 
+  .dash-bar-count {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--tune-accent);
+  }
+
   .dash-bar-label {
     font-family: var(--font-label);
     font-size: 10px;
     color: var(--tune-text-muted);
+    text-transform: capitalize;
   }
 
   .dash-genres {
