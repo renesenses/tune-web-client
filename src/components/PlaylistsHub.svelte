@@ -27,6 +27,7 @@
   let wizardResult = $state<any | null>(null);
   let transferHistory = $state<any[]>([]);
   let transferHistoryLoading = $state(false);
+  let transferHistoryLoaded = $state(false);
 
   function openWizard(presetSource: UnifiedPlaylist | null = null) {
     wizardOpen = true;
@@ -107,12 +108,15 @@
       transferHistory = [];
     } finally {
       transferHistoryLoading = false;
+      transferHistoryLoaded = true;
     }
   }
 
-  // Auto-load history when the tab is opened.
+  // Auto-load history once, the first time the tab is opened. The "loaded"
+  // flag (rather than `length === 0`) is the gate — otherwise an empty
+  // server response retriggers the effect on every render and pegs the CPU.
   $effect(() => {
-    if (activeTab === 'transfers' && transferHistory.length === 0) {
+    if (activeTab === 'transfers' && !transferHistoryLoaded && !transferHistoryLoading) {
       loadTransferHistory();
     }
   });
