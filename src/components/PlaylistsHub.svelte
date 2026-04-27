@@ -321,10 +321,15 @@
       />
     </div>
 
+    <!-- Loading slider (only while initial fetch runs) -->
+    {#if loading}
+      <div class="loading-bar"><span></span></div>
+    {/if}
+
     <!-- List -->
     <div class="grid">
       {#if loading}
-        <div class="loading">Chargement…</div>
+        <div class="loading">Chargement de tes playlists…</div>
       {:else if filtered.length === 0}
         <div class="empty">Aucune playlist ne correspond.</div>
       {:else}
@@ -449,6 +454,10 @@
       {#if wizardStep === 1}
         <h4>Quelle playlist veux-tu transférer ?</h4>
         <p class="muted">Choisis une playlist parmi celles authentifiées.</p>
+        {#if loading}
+          <div class="loading-bar"><span></span></div>
+          <p class="muted" style="margin-top: 0.6rem">Chargement des playlists…</p>
+        {/if}
         <div class="picker-grid">
           {#each unified.slice(0, 60) as p (p.id)}
             <button
@@ -685,6 +694,23 @@
   }
   .chip:not(.active) .count {
     background: var(--tune-divider, #333);
+  }
+
+  .loading-bar {
+    height: 3px;
+    background: var(--tune-divider, #333);
+    overflow: hidden;
+    position: relative;
+  }
+  .loading-bar span {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, var(--tune-accent, #6366f1) 50%, transparent);
+    animation: loading-slide 1.2s ease-in-out infinite;
+  }
+  @keyframes loading-slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
 
   .search { padding: 0 1rem 0.5rem; }
