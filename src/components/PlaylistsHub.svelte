@@ -36,9 +36,10 @@
     wizardPreview = null;
     wizardError = null;
     wizardResult = null;
-    if (Object.keys(wizardServices).length === 0) {
-      api.getPlaylistManagerServices().then((s) => wizardServices = s).catch(() => {});
-    }
+    // Always refetch — auth state can flip mid-session and the cached
+    // value would lock the user out of services they've since
+    // authenticated to.
+    api.getPlaylistManagerServices().then((s) => wizardServices = s).catch(() => {});
   }
 
   function closeWizard() {

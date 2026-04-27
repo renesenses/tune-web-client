@@ -974,7 +974,13 @@ export function applyRecovery(playlistId: number, replacements: Array<{ track_id
 // --- Playlist Manager v2 ---
 
 export function getPlaylistManagerServices() {
-  return fetchJSON<Record<string, { authenticated: boolean; supports_write: boolean }>>(`${BASE}/playlist-manager/services`);
+  // cache-bust: auth state can flip during a session (login/logout/token
+  // refresh) and FastAPI doesn't set Cache-Control on this endpoint, so
+  // browsers happily reuse the previous response. Force a fresh fetch.
+  return fetchJSON<Record<string, { authenticated: boolean; supports_write: boolean }>>(
+    `${BASE}/playlist-manager/services?_=${Date.now()}`,
+    { cache: 'no-store' },
+  );
 }
 
 export function transferPlaylistV2(body: {
