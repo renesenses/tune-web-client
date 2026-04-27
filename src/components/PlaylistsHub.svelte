@@ -239,11 +239,13 @@
             ontouchend={endPress}
           >
             <div class="cover" style:background={serviceColor[p.source] ?? '#444'}>
-              {#if p.cover_path}
-                <img src={p.cover_path} alt="" loading="lazy" />
-              {:else}
-                <span class="cover-fallback">♪</span>
-              {/if}
+              <div class="cover-inner">
+                {#if p.cover_path}
+                  <img src={p.cover_path} alt="" loading="lazy" />
+                {:else}
+                  <span class="cover-fallback">♪</span>
+                {/if}
+              </div>
               <span class="cover-badge" style:--badge-color={serviceColor[p.source]} title={serviceLabel[p.source] ?? p.source}>
                 {(serviceLabel[p.source] ?? p.source).slice(0, 1)}
               </span>
@@ -474,14 +476,23 @@
   }
 
   .cover {
+    /* padding-bottom 100% trick: makes the box square based on its
+       parent's width. More reliable than aspect-ratio across the
+       browsers our testers actually run. */
     width: 100%;
-    aspect-ratio: 1 / 1;
+    height: 0;
+    padding-bottom: 100%;
     border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .cover-inner {
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
-    position: relative;
   }
   .cover img { width: 100%; height: 100%; object-fit: cover; }
   .cover-fallback {
@@ -517,16 +528,17 @@
     font-weight: bold;
   }
 
-  .name {
+  .card .name {
     font-weight: 500;
     font-size: 0.9rem;
+    color: var(--tune-text, #f5f5f5);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .sub {
+  .card .sub {
     font-size: 0.7rem;
-    color: var(--tune-text-secondary, #888);
+    color: var(--tune-text-secondary, #aaa);
     display: flex;
     gap: 0.4rem;
     align-items: center;
