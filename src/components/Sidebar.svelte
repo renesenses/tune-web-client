@@ -256,6 +256,11 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
       {$t('nav.playlists')}
     </button>
+    <button class="nav-item" class:active={$activeView === 'playlistshub'} onclick={() => navigate('playlistshub')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      Playlists Hub
+      <span class="badge-new">POC</span>
+    </button>
     <button class="nav-item" class:active={$activeView === 'collections'} onclick={() => navigate('collections')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
       Collections
@@ -935,6 +940,16 @@
     .zones-section, .devices-section, .services-section { display: none; }
     .resize-handle { display: none; }
     .connected-dot { display: none; }
+  }
+
+  .badge-new {
+    margin-left: auto;
+    background: var(--tune-accent, #6366f1);
+    color: white;
+    border-radius: 999px;
+    padding: 0.05rem 0.4rem;
+    font-size: 0.65rem;
+    font-weight: 600;
   }
 
   /* Mobile: sidebar cachée (BottomTabBar prend le relais) */

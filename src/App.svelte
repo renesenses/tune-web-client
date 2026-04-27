@@ -39,6 +39,7 @@
   import FavoritesView from './components/FavoritesView.svelte';
   import RadioFavoritesView from './components/RadioFavoritesView.svelte';
   import PlaylistManagerView from './components/PlaylistManagerView.svelte';
+  import PlaylistsHub from './components/PlaylistsHub.svelte';
   import DJView from './components/DJView.svelte';
   import PartyView from './components/PartyView.svelte';
   import CollectionsView from './components/CollectionsView.svelte';
@@ -386,6 +387,8 @@
       <PlaylistsView onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'playlistmanager'}
       <PlaylistManagerView onAddToPlaylist={openPlaylistModal} />
+    {:else if $activeView === 'playlistshub'}
+      <PlaylistsHub />
     {:else if $activeView === 'smartplaylists'}
       <SmartPlaylistsView />
     {:else if $activeView === 'browse'}
