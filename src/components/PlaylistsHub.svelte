@@ -436,8 +436,9 @@
     padding: 0.5rem 1rem 5rem;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-auto-rows: min-content;   /* don't stretch rows vertically */
+    align-items: start;            /* keep cards top-aligned, no stretch */
     gap: 0.75rem;
-    align-content: start;
   }
   @media (min-width: 600px) {
     .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
@@ -464,7 +465,6 @@
     transition: border-color 80ms, transform 80ms;
     text-align: left;
     color: inherit;
-    overflow: hidden;
   }
   .card:hover {
     border-color: var(--tune-divider, #333);
@@ -476,16 +476,15 @@
   }
 
   .cover {
-    /* padding-bottom 100% trick: makes the box square based on its
-       parent's width. More reliable than aspect-ratio across the
-       browsers our testers actually run. */
     width: 100%;
-    height: 0;
-    padding-bottom: 100%;
+    aspect-ratio: 1;            /* same pattern as .album-card-art in LibraryView */
     border-radius: 8px;
     overflow: hidden;
     position: relative;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .cover-inner {
     position: absolute;
@@ -494,7 +493,7 @@
     align-items: center;
     justify-content: center;
   }
-  .cover img { width: 100%; height: 100%; object-fit: cover; }
+  .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .cover-fallback {
     color: rgba(255, 255, 255, 0.85);
     font-size: 2.4rem;
