@@ -826,6 +826,34 @@ export function getStreamingServiceStatus(service: string) {
   return fetchJSON<StreamingServiceStatus>(`${BASE}/streaming/${encodeURIComponent(service)}/status`);
 }
 
+// ───────────────────────── Spotify Connect (receiver) ─────────────────────────
+
+export interface SpotifyConnectStatus {
+  enabled: boolean;
+  available: boolean;
+  device_name: string | null;
+  zone_id: number | null;
+  binary_available: boolean;
+  stream_url: string | null;
+  active: boolean;
+  reason?: string;
+}
+
+export function getSpotifyConnectStatus() {
+  return fetchJSON<SpotifyConnectStatus>(`${BASE}/spotify-connect/status`);
+}
+
+export function enableSpotifyConnect(zone_id: number, device_name?: string | null) {
+  return fetchJSON<SpotifyConnectStatus>(`${BASE}/spotify-connect/enable`, {
+    method: 'POST',
+    body: JSON.stringify({ zone_id, device_name: device_name ?? null }),
+  });
+}
+
+export function disableSpotifyConnect() {
+  return fetchJSON<SpotifyConnectStatus>(`${BASE}/spotify-connect/disable`, { method: 'POST' });
+}
+
 export function rescanArtwork() {
   return fetchJSON<{ status: string }>(`${BASE}/library/artwork/rescan`, { method: 'POST' });
 }

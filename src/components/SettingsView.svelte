@@ -51,6 +51,46 @@
   let showSmbWizard = $state(false);
   let showFolderWizard = $state(false);
 
+  // Spotify Connect (receiver)
+  let spotifyConnect = $state<api.SpotifyConnectStatus | null>(null);
+  let spotifyConnectZoneId = $state<number | null>(null);
+  let spotifyConnectDeviceName = $state<string>('');
+  let spotifyConnectBusy = $state(false);
+  let spotifyConnectError = $state<string | null>(null);
+
+  async function refreshSpotifyConnect() {
+    try {
+      spotifyConnect = await api.getSpotifyConnectStatus();
+      if (spotifyConnect?.zone_id != null) spotifyConnectZoneId = spotifyConnect.zone_id;
+      if (spotifyConnect?.device_name) spotifyConnectDeviceName = spotifyConnect.device_name;
+    } catch (err) {
+      console.error('spotify-connect status failed', err);
+    }
+  }
+
+  async function toggleSpotifyConnect() {
+    spotifyConnectError = null;
+    spotifyConnectBusy = true;
+    try {
+      if (spotifyConnect?.enabled) {
+        spotifyConnect = await api.disableSpotifyConnect();
+      } else {
+        if (spotifyConnectZoneId == null) {
+          spotifyConnectError = 'Choisissez une zone';
+          return;
+        }
+        spotifyConnect = await api.enableSpotifyConnect(
+          spotifyConnectZoneId,
+          spotifyConnectDeviceName.trim() || null,
+        );
+      }
+    } catch (err: any) {
+      spotifyConnectError = err?.message ?? String(err);
+    } finally {
+      spotifyConnectBusy = false;
+    }
+  }
+
   // AirPlay pairing
   let pairingDeviceId: string | null = $state(null);
   let pairingPin = $state('');
@@ -520,6 +560,8 @@
       musicRoots = br.roots;
       config = cfg;
       backups = bk;
+      // Don't block on Spotify Connect — it may 503 if manager isn't initialized.
+      refreshSpotifyConnect();
     } catch (e) {
       console.error('Settings load error:', e);
     }
@@ -1383,6 +1425,73 @@
           {/each}
         </div>
     </section>
+
+    <!-- Spotify Connect (receiver) -->
+    {#if spotifyConnect}
+      <section class="settings-section">
+        <h3>Spotify Connect</h3>
+        <p class="section-hint">
+          Tune apparaît comme un récepteur Spotify Connect sur le réseau local.
+          Depuis l'app Spotify, sélectionnez "Tune (…)" dans la liste des appareils.
+          Compte Spotify Premium requis côté client.
+        </p>
+
+        {#if !spotifyConnect.binary_available}
+          <p class="auth-error">
+            librespot non détecté. Réinstallez Tune Server depuis le .pkg /
+            archive officiel pour que le binaire soit livré, ou installez-le
+            séparément (<code>brew install librespot</code> /
+            <code>apt install librespot</code>).
+          </p>
+        {:else}
+          <div class="form-row">
+            <label for="sc-zone">Zone cible</label>
+            <select id="sc-zone" bind:value={spotifyConnectZoneId} disabled={spotifyConnect.enabled || spotifyConnectBusy}>
+              <option value={null}>—</option>
+              {#each $zones as z (z.id)}
+                <option value={z.id}>{z.name}</option>
+              {/each}
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="sc-name">Nom du device (optionnel)</label>
+            <input
+              id="sc-name"
+              type="text"
+              placeholder="Tune ({spotifyConnect.device_name ?? '...'})"
+              bind:value={spotifyConnectDeviceName}
+              disabled={spotifyConnect.enabled || spotifyConnectBusy}
+            />
+          </div>
+
+          {#if spotifyConnectError}
+            <p class="auth-error">{spotifyConnectError}</p>
+          {/if}
+
+          <div class="form-actions">
+            <button
+              class="scan-btn"
+              onclick={toggleSpotifyConnect}
+              disabled={spotifyConnectBusy}
+            >
+              {#if spotifyConnectBusy}
+                <div class="spinner small"></div>
+                Patience…
+              {:else if spotifyConnect.enabled}
+                Désactiver
+              {:else}
+                Activer
+              {/if}
+            </button>
+            {#if spotifyConnect.enabled}
+              <span class="status-pill" class:active={spotifyConnect.active}>
+                {spotifyConnect.active ? '● En lecture' : '○ En attente'}
+              </span>
+            {/if}
+          </div>
+        {/if}
+      </section>
+    {/if}
 
     <!-- About -->
     <section class="settings-section">
