@@ -470,6 +470,23 @@
       {/if}
 
     {:else if showFeatured}
+      <!-- Spotify dev-mode notice — affiché si auth OK mais aucune section
+           featured (Spotify a verrouillé browse/* en dev mode fin 2024). -->
+      {#if service === 'spotify' && featuredSections.length === 0 && !featuredLoading}
+        <div class="dev-mode-banner">
+          <div class="dev-mode-icon">ℹ️</div>
+          <div class="dev-mode-text">
+            <strong>Spotify en mode développement</strong>
+            <p>
+              Spotify limite l'app à tes propres playlists. Les Nouveautés,
+              catégories et top tracks nécessitent une demande
+              <a href="https://developer.spotify.com/documentation/web-api/concepts/quota-modes" target="_blank" rel="noopener noreferrer">Extended Quota</a>
+              dans le dashboard Spotify (review 5–7 jours).
+            </p>
+          </div>
+        </div>
+      {/if}
+
       <!-- User playlists carousel -->
       {#if userPlaylists.length > 0}
         <div class="featured-section">
@@ -1175,5 +1192,37 @@
     0% { opacity: 0.4; }
     50% { opacity: 0.7; }
     100% { opacity: 0.4; }
+  }
+
+  .dev-mode-banner {
+    display: flex;
+    gap: 0.85rem;
+    padding: 1rem 1.2rem;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    border-radius: 10px;
+    margin: 0 1rem 1.25rem;
+    align-items: flex-start;
+  }
+  .dev-mode-icon {
+    font-size: 1.4rem;
+    line-height: 1;
+    margin-top: 0.1rem;
+  }
+  .dev-mode-text { flex: 1; min-width: 0; }
+  .dev-mode-text strong {
+    display: block;
+    color: var(--tune-text, #f5f5f5);
+    margin-bottom: 0.25rem;
+  }
+  .dev-mode-text p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--tune-text-secondary, #aaa);
+    line-height: 1.4;
+  }
+  .dev-mode-text a {
+    color: var(--tune-accent, #6366f1);
+    text-decoration: underline;
   }
 </style>
