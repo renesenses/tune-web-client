@@ -511,10 +511,10 @@
         {:else if wizardError}
           <div class="error-block">{wizardError}</div>
         {:else if wizardPreview}
-          {@const total = wizardPreview.total ?? wizardPreview.tracks_total ?? 0}
+          {@const total = wizardPreview.total_tracks ?? wizardPreview.total ?? wizardPreview.tracks_total ?? 0}
           {@const matched = wizardPreview.matched ?? wizardPreview.tracks_matched ?? 0}
           {@const approx = wizardPreview.approximate ?? wizardPreview.tracks_approximate ?? 0}
-          {@const failed = wizardPreview.failed ?? wizardPreview.tracks_not_found ?? Math.max(0, total - matched - approx)}
+          {@const failed = wizardPreview.not_found ?? wizardPreview.failed ?? wizardPreview.tracks_not_found ?? Math.max(0, total - matched - approx)}
           <div class="match-bar">
             <div class="seg ok"  style:flex={matched}  title="ISRC: {matched}"></div>
             <div class="seg warn" style:flex={approx}   title="Fuzzy: {approx}"></div>
@@ -533,7 +533,7 @@
         {#if wizardError}
           <div class="error-block">{wizardError}</div>
         {:else if wizardResult}
-          {@const total = wizardResult.total ?? wizardResult.tracks_total ?? 0}
+          {@const total = wizardResult.total_tracks ?? wizardResult.total ?? wizardResult.tracks_total ?? 0}
           {@const matched = wizardResult.matched ?? wizardResult.tracks_matched ?? 0}
           <div class="success-block">
             ✅ {matched}/{total} tracks transférées vers <strong>{serviceLabel[wizardTarget] ?? wizardTarget}</strong>.
