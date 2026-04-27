@@ -244,16 +244,17 @@
               {:else}
                 <span class="cover-fallback">♪</span>
               {/if}
+              <span class="cover-badge" style:--badge-color={serviceColor[p.source]} title={serviceLabel[p.source] ?? p.source}>
+                {(serviceLabel[p.source] ?? p.source).slice(0, 1)}
+              </span>
               {#if checked}
                 <span class="check">✓</span>
               {/if}
             </div>
-            <div class="meta">
-              <div class="name">{p.name}</div>
-              <div class="sub">
-                <span class="badge" style:--badge-color={serviceColor[p.source]}>{serviceLabel[p.source] ?? p.source}</span>
-                <span class="trk">{p.track_count} tracks</span>
-              </div>
+            <div class="name" title={p.name}>{p.name}</div>
+            <div class="sub">
+              <span class="badge" style:--badge-color={serviceColor[p.source]}>{serviceLabel[p.source] ?? p.source}</span>
+              <span class="trk">{p.track_count} trk</span>
             </div>
           </button>
         {/each}
@@ -431,11 +432,19 @@
     flex: 1;
     overflow-y: auto;
     padding: 0.5rem 1rem 5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+    align-content: start;
+  }
+  @media (min-width: 600px) {
+    .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  }
+  @media (min-width: 1200px) {
+    .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
   }
   .loading, .empty {
+    grid-column: 1 / -1;
     color: var(--tune-text-secondary, #888);
     text-align: center;
     padding: 2rem;
@@ -443,59 +452,85 @@
 
   .card {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    flex-direction: column;
+    gap: 0.4rem;
     background: var(--tune-surface);
     border: 1px solid transparent;
     border-radius: 10px;
     padding: 0.5rem;
     cursor: pointer;
-    transition: border-color 80ms;
+    transition: border-color 80ms, transform 80ms;
     text-align: left;
     color: inherit;
+    overflow: hidden;
   }
-  .card:hover { border-color: var(--tune-divider, #333); }
-  .card.selected { border-color: var(--tune-accent, #6366f1); background: color-mix(in srgb, var(--tune-accent, #6366f1) 12%, var(--tune-surface)); }
+  .card:hover {
+    border-color: var(--tune-divider, #333);
+    transform: translateY(-2px);
+  }
+  .card.selected {
+    border-color: var(--tune-accent, #6366f1);
+    background: color-mix(in srgb, var(--tune-accent, #6366f1) 12%, var(--tune-surface));
+  }
 
   .cover {
-    width: 56px; height: 56px;
-    border-radius: 6px;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
     overflow: hidden;
     position: relative;
   }
   .cover img { width: 100%; height: 100%; object-fit: cover; }
-  .cover-fallback { color: rgba(255,255,255,0.85); font-size: 1.5rem; }
-  .cover-fallback.big { font-size: 2.4rem; }
+  .cover-fallback {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 2.4rem;
+  }
+  .cover-fallback.big { font-size: 3rem; }
+  .cover-badge {
+    position: absolute;
+    top: 0.4rem;
+    left: 0.4rem;
+    background: var(--badge-color, rgba(0, 0, 0, 0.7));
+    color: white;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  }
   .check {
     position: absolute;
     inset: 0;
-    background: rgba(0,0,0,0.55);
+    background: rgba(0, 0, 0, 0.55);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.4rem;
+    font-size: 2rem;
     font-weight: bold;
   }
 
-  .meta { flex: 1; min-width: 0; }
   .name {
     font-weight: 500;
+    font-size: 0.9rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .sub {
-    margin-top: 0.2rem;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: var(--tune-text-secondary, #888);
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
     align-items: center;
+    justify-content: space-between;
   }
   .badge {
     background: var(--badge-color, #444);
