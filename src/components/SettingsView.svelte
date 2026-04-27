@@ -51,6 +51,28 @@
   let showSmbWizard = $state(false);
   let showFolderWizard = $state(false);
 
+  // Diagnostics bundle download
+  let diagDownloading = $state(false);
+
+  async function downloadDiagnostics() {
+    diagDownloading = true;
+    try {
+      const { blob, filename } = await api.downloadDiagnosticsBundle();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert('Erreur diagnostic: ' + (err?.message ?? String(err)));
+    } finally {
+      diagDownloading = false;
+    }
+  }
+
   // Spotify Connect (receiver)
   let spotifyConnect = $state<api.SpotifyConnectStatus | null>(null);
   let spotifyConnectZoneId = $state<number | null>(null);
@@ -1526,6 +1548,24 @@
             <span class="about-value" style="color: var(--tune-accent)">✓ À jour</span>
           </div>
         {/if}
+
+        <!-- Diagnostics bundle (Windows-friendly support tool) -->
+        <div class="about-row" style="margin-top: 0.75rem">
+          <span class="about-label">Diagnostics</span>
+          <button
+            class="scan-btn"
+            onclick={downloadDiagnostics}
+            disabled={diagDownloading}
+            title="Télécharge un ZIP avec logs + diagnostics + config (creds masqués) à envoyer au support"
+          >
+            {#if diagDownloading}
+              <div class="spinner small"></div>
+              Préparation…
+            {:else}
+              📦 Télécharger le diagnostic
+            {/if}
+          </button>
+        </div>
       </div>
     </section>
   {/if}

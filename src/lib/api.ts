@@ -839,6 +839,16 @@ export interface SpotifyConnectStatus {
   reason?: string;
 }
 
+export async function downloadDiagnosticsBundle(): Promise<{ blob: Blob; filename: string }> {
+  const res = await fetch(`${BASE}/system/diagnostics/bundle`);
+  if (!res.ok) throw new Error(`Diagnostics bundle failed (${res.status})`);
+  const cd = res.headers.get('Content-Disposition') ?? '';
+  const m = /filename="([^"]+)"/.exec(cd);
+  const filename = m ? m[1] : `tune-diagnostics-${Date.now()}.zip`;
+  const blob = await res.blob();
+  return { blob, filename };
+}
+
 export function getSpotifyConnectStatus() {
   return fetchJSON<SpotifyConnectStatus>(`${BASE}/spotify-connect/status`);
 }
