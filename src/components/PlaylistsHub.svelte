@@ -14,6 +14,108 @@
   type HubTab = 'library' | 'transfers' | 'sync' | 'snapshots';
   let activeTab = $state<HubTab>('library');
 
+  // ── Transfer wizard state ───────────────────────────────────────────────
+  type WizardStep = 1 | 2 | 3 | 4;
+  let wizardOpen = $state(false);
+  let wizardStep = $state<WizardStep>(1);
+  let wizardSource = $state<UnifiedPlaylist | null>(null);
+  let wizardTarget = $state<string>(''); // target service
+  let wizardServices = $state<Record<string, { authenticated: boolean; supports_write: boolean }>>({});
+  let wizardPreview = $state<any | null>(null); // transferPlaylistV2 dry_run response
+  let wizardLoading = $state(false);
+  let wizardError = $state<string | null>(null);
+  let wizardResult = $state<any | null>(null);
+  let transferHistory = $state<any[]>([]);
+  let transferHistoryLoading = $state(false);
+
+  function openWizard(presetSource: UnifiedPlaylist | null = null) {
+    wizardOpen = true;
+    wizardStep = presetSource ? 2 : 1;
+    wizardSource = presetSource;
+    wizardTarget = '';
+    wizardPreview = null;
+    wizardError = null;
+    wizardResult = null;
+    if (Object.keys(wizardServices).length === 0) {
+      api.getPlaylistManagerServices().then((s) => wizardServices = s).catch(() => {});
+    }
+  }
+
+  function closeWizard() {
+    wizardOpen = false;
+    wizardSource = null;
+    wizardPreview = null;
+    wizardResult = null;
+  }
+
+  async function runDryRun() {
+    if (!wizardSource || !wizardTarget) return;
+    wizardLoading = true;
+    wizardError = null;
+    try {
+      const sourceService = wizardSource.source;
+      const sourceId = sourceService === 'local'
+        ? String((wizardSource.raw as Playlist).id)
+        : (wizardSource.raw as StreamingPlaylist).source_id;
+      wizardPreview = await api.transferPlaylistV2({
+        source_service: sourceService,
+        source_playlist_id: sourceId,
+        target_service: wizardTarget,
+        dry_run: true,
+        include_approximate: true,
+      });
+      wizardStep = 3;
+    } catch (err: any) {
+      wizardError = err?.message ?? String(err);
+    } finally {
+      wizardLoading = false;
+    }
+  }
+
+  async function runTransfer() {
+    if (!wizardSource || !wizardTarget) return;
+    wizardLoading = true;
+    wizardError = null;
+    try {
+      const sourceService = wizardSource.source;
+      const sourceId = sourceService === 'local'
+        ? String((wizardSource.raw as Playlist).id)
+        : (wizardSource.raw as StreamingPlaylist).source_id;
+      wizardResult = await api.transferPlaylistV2({
+        source_service: sourceService,
+        source_playlist_id: sourceId,
+        target_service: wizardTarget,
+        dry_run: false,
+        include_approximate: true,
+      });
+      wizardStep = 4;
+      // Refresh history after a successful transfer.
+      loadTransferHistory();
+    } catch (err: any) {
+      wizardError = err?.message ?? String(err);
+    } finally {
+      wizardLoading = false;
+    }
+  }
+
+  async function loadTransferHistory() {
+    transferHistoryLoading = true;
+    try {
+      transferHistory = await api.getPlaylistManagerHistory(20);
+    } catch {
+      transferHistory = [];
+    } finally {
+      transferHistoryLoading = false;
+    }
+  }
+
+  // Auto-load history when the tab is opened.
+  $effect(() => {
+    if (activeTab === 'transfers' && transferHistory.length === 0) {
+      loadTransferHistory();
+    }
+  });
+
   // --- Library state ---
   let localPlaylists = $state<Playlist[]>([]);
   let streamingPlaylists = $state<Record<string, StreamingPlaylist[]>>({});
@@ -267,11 +369,48 @@
     <button class="fab" title="Lire dans la zone active" aria-label="Lire">⏵</button>
 
   {:else if activeTab === 'transfers'}
-    <div class="placeholder">
-      <h3>Transferts</h3>
-      <p>Wizard de transfert cross-service — arrive en <strong>v0.7.30</strong> avec
-        le matching ISRC + AcoustID. Pour l'instant utilise l'ancienne UI
-        Playlist Manager.</p>
+    <div class="transfers">
+      <button class="primary-btn" onclick={() => openWizard()}>
+        + Nouveau transfert
+      </button>
+
+      <h3 class="section-title">Historique récent</h3>
+      {#if transferHistoryLoading}
+        <div class="loading">Chargement…</div>
+      {:else if transferHistory.length === 0}
+        <div class="empty">
+          Aucun transfert. Lance ton premier avec le bouton ci-dessus, ou
+          depuis le détail d'une playlist (Mes Playlists → tap → Transférer).
+        </div>
+      {:else}
+        <ul class="history-list">
+          {#each transferHistory as t (t.id ?? t.created_at ?? Math.random())}
+            <li class="history-item">
+              <div class="history-main">
+                <div class="history-name">{t.source_name ?? '?'} → {t.target_name ?? t.target_service ?? '?'}</div>
+                <div class="history-sub">
+                  <span class="badge" style:--badge-color={serviceColor[t.source_service ?? ''] ?? '#666'}>{serviceLabel[t.source_service ?? ''] ?? t.source_service ?? '?'}</span>
+                  <span>→</span>
+                  <span class="badge" style:--badge-color={serviceColor[t.target_service ?? ''] ?? '#666'}>{serviceLabel[t.target_service ?? ''] ?? t.target_service ?? '?'}</span>
+                  <span class="dim">·</span>
+                  {#if t.matched != null && t.total != null}
+                    <span class="dim">{t.matched}/{t.total} matched</span>
+                  {/if}
+                  {#if t.created_at}
+                    <span class="dim">· {new Date(t.created_at).toLocaleString()}</span>
+                  {/if}
+                </div>
+              </div>
+              <div class="history-status" class:ok={t.status === 'success' || t.status === 'completed'} class:warn={t.status === 'partial'} class:err={t.status === 'failed' || t.status === 'error'}>
+                {#if t.status === 'success' || t.status === 'completed'}✓
+                {:else if t.status === 'partial'}⚠
+                {:else if t.status === 'failed' || t.status === 'error'}✕
+                {:else}…{/if}
+              </div>
+            </li>
+          {/each}
+        </ul>
+      {/if}
     </div>
 
   {:else if activeTab === 'sync'}
@@ -289,6 +428,135 @@
     </div>
   {/if}
 </div>
+
+<!-- Wizard sheet (transfert 4-step) -->
+{#if wizardOpen}
+  <div class="sheet-backdrop" onclick={closeWizard} role="presentation"></div>
+  <div class="wizard" role="dialog" aria-label="Wizard transfert">
+    <header class="wizard-header">
+      <button class="icon-btn" onclick={closeWizard} aria-label="Fermer">✕</button>
+      <h3>Transfert · Étape {wizardStep}/4</h3>
+      <div style="width: 36px"></div>
+    </header>
+
+    <div class="wizard-progress">
+      {#each [1, 2, 3, 4] as n}
+        <span class="dot" class:done={n < wizardStep} class:active={n === wizardStep}></span>
+      {/each}
+    </div>
+
+    <div class="wizard-body">
+      {#if wizardStep === 1}
+        <h4>Quelle playlist veux-tu transférer ?</h4>
+        <p class="muted">Choisis une playlist parmi celles authentifiées.</p>
+        <div class="picker-grid">
+          {#each unified.slice(0, 60) as p (p.id)}
+            <button
+              class="card mini"
+              class:selected={wizardSource?.id === p.id}
+              onclick={() => { wizardSource = p; }}
+            >
+              <div class="cover" style:background={serviceColor[p.source] ?? '#444'}>
+                {#if p.cover_path}<img src={p.cover_path} alt="" loading="lazy" />{:else}<span class="cover-fallback">♪</span>{/if}
+                <span class="cover-badge" style:--badge-color={serviceColor[p.source]}>{(serviceLabel[p.source] ?? p.source).slice(0, 1)}</span>
+              </div>
+              <div class="name" title={p.name}>{p.name}</div>
+            </button>
+          {/each}
+        </div>
+
+      {:else if wizardStep === 2}
+        <h4>Vers quel service ?</h4>
+        <p class="muted">
+          Source : <strong>{wizardSource?.name}</strong>
+          (<span class="badge" style:--badge-color={serviceColor[wizardSource?.source ?? '']}>{serviceLabel[wizardSource?.source ?? ''] ?? wizardSource?.source}</span>)
+        </p>
+        <div class="services-grid">
+          {#each Object.entries(wizardServices) as [svc, info] (svc)}
+            {#if svc !== wizardSource?.source}
+              <button
+                class="service-tile"
+                class:selected={wizardTarget === svc}
+                class:disabled={!info.authenticated || !info.supports_write}
+                disabled={!info.authenticated || !info.supports_write}
+                onclick={() => { wizardTarget = svc; }}
+              >
+                <div class="service-color" style:background={serviceColor[svc] ?? '#666'}>{(serviceLabel[svc] ?? svc).slice(0, 1)}</div>
+                <div class="service-name">{serviceLabel[svc] ?? svc}</div>
+                <div class="service-status">
+                  {#if !info.authenticated}🔒 non auth
+                  {:else if !info.supports_write}📖 lecture seule
+                  {:else if wizardTarget === svc}✓ choisi
+                  {:else}prêt{/if}
+                </div>
+              </button>
+            {/if}
+          {/each}
+        </div>
+
+      {:else if wizardStep === 3}
+        <h4>Aperçu du matching</h4>
+        {#if wizardLoading}
+          <div class="loading">Analyse en cours…</div>
+        {:else if wizardError}
+          <div class="error-block">{wizardError}</div>
+        {:else if wizardPreview}
+          {@const total = wizardPreview.total ?? wizardPreview.tracks_total ?? 0}
+          {@const matched = wizardPreview.matched ?? wizardPreview.tracks_matched ?? 0}
+          {@const approx = wizardPreview.approximate ?? wizardPreview.tracks_approximate ?? 0}
+          {@const failed = wizardPreview.failed ?? wizardPreview.tracks_not_found ?? Math.max(0, total - matched - approx)}
+          <div class="match-bar">
+            <div class="seg ok"  style:flex={matched}  title="ISRC: {matched}"></div>
+            <div class="seg warn" style:flex={approx}   title="Fuzzy: {approx}"></div>
+            <div class="seg err"  style:flex={failed}  title="Failed: {failed}"></div>
+          </div>
+          <div class="match-legend">
+            <span><span class="dot ok"></span> ISRC <strong>{matched}</strong></span>
+            <span><span class="dot warn"></span> Fuzzy <strong>{approx}</strong></span>
+            <span><span class="dot err"></span> Failed <strong>{failed}</strong></span>
+            <span class="dim">· total {total}</span>
+          </div>
+        {/if}
+
+      {:else if wizardStep === 4}
+        <h4>Transfert exécuté</h4>
+        {#if wizardError}
+          <div class="error-block">{wizardError}</div>
+        {:else if wizardResult}
+          {@const total = wizardResult.total ?? wizardResult.tracks_total ?? 0}
+          {@const matched = wizardResult.matched ?? wizardResult.tracks_matched ?? 0}
+          <div class="success-block">
+            ✅ {matched}/{total} tracks transférées vers <strong>{serviceLabel[wizardTarget] ?? wizardTarget}</strong>.
+            {#if wizardResult.target_playlist_id ?? wizardResult.target_id}
+              Nouvelle playlist créée.
+            {/if}
+          </div>
+          <p class="muted">La résolution manuelle des failed tracks arrive en v0.7.31.</p>
+        {/if}
+      {/if}
+    </div>
+
+    <footer class="wizard-footer">
+      {#if wizardStep === 1}
+        <button class="primary-btn" disabled={!wizardSource} onclick={() => wizardStep = 2}>
+          Suivant →
+        </button>
+      {:else if wizardStep === 2}
+        <button class="ghost-btn" onclick={() => wizardStep = 1}>← Retour</button>
+        <button class="primary-btn" disabled={!wizardTarget || wizardLoading} onclick={runDryRun}>
+          {wizardLoading ? 'Analyse…' : 'Aperçu →'}
+        </button>
+      {:else if wizardStep === 3}
+        <button class="ghost-btn" onclick={() => wizardStep = 2}>← Retour</button>
+        <button class="primary-btn" disabled={wizardLoading} onclick={runTransfer}>
+          {wizardLoading ? 'Transfert…' : 'Lancer le transfert'}
+        </button>
+      {:else}
+        <button class="primary-btn" onclick={closeWizard}>Terminer</button>
+      {/if}
+    </footer>
+  </div>
+{/if}
 
 <!-- Detail bottom sheet -->
 {#if detailPlaylist}
@@ -317,7 +585,7 @@
       <button class="action primary">⏵ Lire dans la zone active</button>
       <button class="action">+ Ajouter à la file</button>
       <div class="action-row">
-        <button class="action small">Transférer →</button>
+        <button class="action small" onclick={() => { const s = detailPlaylist; detailPlaylist = null; openWizard(s); }}>Transférer →</button>
         <button class="action small">↻ Lier auto-sync</button>
       </div>
       <div class="action-row">
@@ -645,4 +913,195 @@
 
   .sheet-tracks { padding: 0.75rem 1rem 1.5rem; }
   .muted { color: var(--tune-text-secondary, #888); font-size: 0.85rem; }
+
+  /* ── Transfers tab ─────────────────────────────────────────────────── */
+  .transfers {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1rem 5rem;
+  }
+  .primary-btn {
+    background: var(--tune-accent, #6366f1);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+    width: 100%;
+    font-weight: 500;
+  }
+  .primary-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .ghost-btn {
+    background: transparent;
+    color: var(--tune-text);
+    border: 1px solid var(--tune-divider, #333);
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+  }
+  .section-title {
+    margin: 1.25rem 0 0.5rem;
+    color: var(--tune-text-secondary, #aaa);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .history-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+  .history-item {
+    background: var(--tune-surface);
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .history-main { flex: 1; min-width: 0; }
+  .history-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .history-sub { font-size: 0.75rem; color: var(--tune-text-secondary, #888); margin-top: 0.2rem; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+  .history-sub .dim { color: var(--tune-text-secondary, #666); }
+  .history-status { font-size: 1.2rem; }
+  .history-status.ok { color: #22c55e; }
+  .history-status.warn { color: #f59e0b; }
+  .history-status.err { color: #ef4444; }
+
+  /* ── Wizard sheet ──────────────────────────────────────────────────── */
+  .wizard {
+    position: fixed;
+    inset: 0;
+    z-index: 95;
+    background: var(--tune-bg);
+    display: flex;
+    flex-direction: column;
+  }
+  .wizard-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--tune-divider, #333);
+  }
+  .wizard-header h3 { flex: 1; margin: 0; font-size: 1.05rem; text-align: center; }
+
+  .wizard-progress {
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0;
+  }
+  .wizard-progress .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--tune-divider, #333);
+    transition: background 80ms;
+  }
+  .wizard-progress .dot.done { background: var(--tune-accent, #6366f1); opacity: 0.55; }
+  .wizard-progress .dot.active {
+    background: var(--tune-accent, #6366f1);
+    width: 22px;
+    border-radius: 4px;
+  }
+
+  .wizard-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1rem 1.5rem;
+  }
+  .wizard-body h4 { margin: 0 0 0.4rem; font-size: 1.05rem; }
+
+  .picker-grid {
+    margin-top: 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-auto-rows: min-content;
+    gap: 0.5rem;
+  }
+  .card.mini { padding: 0.4rem; }
+  .card.mini .name { font-size: 0.75rem; }
+
+  .services-grid {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 0.5rem;
+  }
+  .service-tile {
+    background: var(--tune-surface);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    color: var(--tune-text);
+  }
+  .service-tile.selected { border-color: var(--tune-accent, #6366f1); }
+  .service-tile.disabled { opacity: 0.35; cursor: not-allowed; }
+  .service-color {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    color: white;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+  }
+  .service-name { font-weight: 500; font-size: 0.85rem; }
+  .service-status { font-size: 0.7rem; color: var(--tune-text-secondary, #888); }
+
+  .match-bar {
+    display: flex;
+    height: 24px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--tune-divider, #333);
+    margin: 1rem 0 0.6rem;
+  }
+  .match-bar .seg.ok { background: #22c55e; }
+  .match-bar .seg.warn { background: #f59e0b; }
+  .match-bar .seg.err { background: #ef4444; }
+  .match-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--tune-text-secondary, #aaa);
+  }
+  .match-legend .dot {
+    display: inline-block;
+    width: 10px; height: 10px; border-radius: 50%;
+    margin-right: 0.3rem;
+    vertical-align: middle;
+  }
+  .match-legend .dot.ok { background: #22c55e; }
+  .match-legend .dot.warn { background: #f59e0b; }
+  .match-legend .dot.err { background: #ef4444; }
+  .match-legend strong { color: var(--tune-text); }
+
+  .error-block {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+  }
+  .success-block {
+    background: rgba(34, 197, 94, 0.12);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+  }
+
+  .wizard-footer {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--tune-divider, #333);
+  }
+  .wizard-footer .primary-btn { flex: 2; }
+  .wizard-footer .ghost-btn { flex: 1; }
 </style>
