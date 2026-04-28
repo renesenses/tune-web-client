@@ -1555,13 +1555,37 @@
               (actuel : v{updateInfo.current_version})
             </span>
             {#if updateDone}
-              <span class="update-done">✅ Installée — redémarrez le serveur</span>
+              <span class="update-done">✅ Installée</span>
+              <button
+                class="update-btn"
+                disabled={restarting}
+                onclick={async () => {
+                  if (!confirm($t('settings.restartConfirm'))) return;
+                  restarting = true;
+                  try {
+                    await api.restartServer();
+                    setTimeout(() => window.location.reload(), 6000);
+                  } catch (e) {
+                    restarting = false;
+                    alert((e as Error).message);
+                  }
+                }}
+              >
+                {restarting ? $t('settings.restarting') : $t('settings.restartServer')}
+              </button>
+            {:else if updateInfo.installable === false}
+              <span class="update-done" title={updateInfo.install_hint ?? ''}>
+                ⚠️ Source install — voir notes
+              </span>
             {:else}
               <button class="update-btn" onclick={installUpdate} disabled={updateInstalling}>
                 {updateInstalling ? 'Installation...' : 'Installer'}
               </button>
             {/if}
           </div>
+          {#if updateInfo.installable === false && updateInfo.install_hint}
+            <div class="install-hint">{updateInfo.install_hint}</div>
+          {/if}
         {:else}
           <div class="about-row">
             <span class="about-label">Mises à jour</span>
@@ -1789,6 +1813,17 @@
   .restart-btn:disabled {
     opacity: 0.6;
     cursor: default;
+  }
+
+  .install-hint {
+    margin-top: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: var(--radius-md);
+    color: #fbbf24;
+    font-family: var(--font-body);
+    font-size: 13px;
   }
 
   .service-list {
