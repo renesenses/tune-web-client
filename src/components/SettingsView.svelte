@@ -21,6 +21,7 @@
   let config: SystemConfig | null = $state(null);
   let backups = $state<BackupInfo[]>([]);
   let scanning = $state(false);
+  let restarting = $state(false);
   let loading = $state(true);
   let artworkScanning = $state(false);
   let enrichMsg = $state('');
@@ -786,6 +787,25 @@
           {/each}
         </div>
       {/if}
+      <div class="server-actions">
+        <button
+          class="restart-btn"
+          disabled={restarting}
+          onclick={async () => {
+            if (!confirm($t('settings.restartConfirm'))) return;
+            restarting = true;
+            try {
+              await api.restartServer();
+              setTimeout(() => window.location.reload(), 6000);
+            } catch (e) {
+              restarting = false;
+              alert((e as Error).message);
+            }
+          }}
+        >
+          {restarting ? $t('settings.restarting') : $t('settings.restartServer')}
+        </button>
+      </div>
     </section>
 
     <!-- Library stats -->
@@ -1738,6 +1758,35 @@
   }
 
   .scan-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .server-actions {
+    margin-top: var(--space-md);
+  }
+
+  .restart-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--tune-grey2);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 14px;
+    transition: all 0.12s ease-out;
+  }
+
+  .restart-btn:hover:not(:disabled) {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+  }
+
+  .restart-btn:disabled {
     opacity: 0.6;
     cursor: default;
   }
