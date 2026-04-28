@@ -766,6 +766,10 @@ export function triggerScan(path?: string) {
   return fetchJSON<{ status: string; music_dirs: string[] }>(url, { method: 'POST' });
 }
 
+export function restartServer() {
+  return fetchJSON<{ status: string; message: string }>(`${BASE}/system/restart`, { method: 'POST' });
+}
+
 export function getScanStatus() {
   return fetchJSON<{ scanning: boolean }>(`${BASE}/system/scan/status`);
 }
