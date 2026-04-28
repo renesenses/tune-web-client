@@ -556,10 +556,33 @@
   async function installUpdate() {
     updateInstalling = true;
     try {
+      // Server returns immediately ("started"). Download runs in the
+      // background; we poll /update/status until the server restarts.
       await api.installUpdate();
-      updateDone = true;
     } catch (e) {
-      console.error('Update install error:', e);
+      // Old server (≤ v0.7.41) blocked the request for the full
+      // download and the browser reported 'Failed to fetch' even though
+      // the install actually completed. Treat as expected and fall
+      // through to the polling+reload loop.
+      console.warn('install fetch failed, server may be downloading:', e);
+    }
+    // Poll reachability for up to 3 min, then reload.
+    const oldVersion = updateInfo?.current_version;
+    const start = Date.now();
+    while (Date.now() - start < 180_000) {
+      await new Promise((r) => setTimeout(r, 3_000));
+      try {
+        const info = await api.checkForUpdate();
+        if (info?.current_version && info.current_version !== oldVersion) {
+          // Server is back on the new version — success.
+          updateDone = true;
+          updateInstalling = false;
+          setTimeout(() => window.location.reload(), 1500);
+          return;
+        }
+      } catch {
+        // Server still down (restarting). Keep polling.
+      }
     }
     updateInstalling = false;
   }
