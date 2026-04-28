@@ -39,6 +39,36 @@ currentProfileId.subscribe(saveProfileId);
 export const profiles = writable<Profile[]>([]);
 export const profileReady = writable<boolean>(false);
 
+// Favorite ids stored as sets so HeartButton can answer
+// 'is X favorited?' in O(1) without hitting the API per row.
+// Without this, opening Library/Tracks (30k+ rows) fired 30k+ /favorites/check
+// requests and Chrome refused with ERR_INSUFFICIENT_RESOURCES.
+export const favoriteTrackIds = writable<Set<number>>(new Set());
+export const favoriteAlbumIds = writable<Set<number>>(new Set());
+export const favoriteArtistIds = writable<Set<number>>(new Set());
+
+export async function loadFavoriteIds(profileId: number | null): Promise<void> {
+  if (profileId === null) {
+    favoriteTrackIds.set(new Set());
+    favoriteAlbumIds.set(new Set());
+    favoriteArtistIds.set(new Set());
+    return;
+  }
+  try {
+    const favs = await api.getFavorites(profileId);
+    favoriteTrackIds.set(new Set((favs.tracks ?? []).map((t: any) => t.id)));
+    favoriteAlbumIds.set(new Set((favs.albums ?? []).map((a: any) => a.id)));
+    favoriteArtistIds.set(new Set((favs.artists ?? []).map((a: any) => a.id)));
+  } catch (e) {
+    console.error('Load favorite ids error:', e);
+  }
+}
+
+// Reload favorites whenever the active profile changes.
+currentProfileId.subscribe((pid) => {
+  loadFavoriteIds(pid);
+});
+
 export async function loadProfiles(): Promise<void> {
   try {
     const list = await api.getProfiles();
