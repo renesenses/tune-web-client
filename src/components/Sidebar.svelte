@@ -11,6 +11,7 @@
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ProfileSelector from './ProfileSelector.svelte';
   import { notifications } from '../lib/stores/notifications';
+  import { updateAvailable } from '../lib/stores/updates';
 
   function handleSelectZone(zoneId: number) {
     currentZoneId.set(zoneId);
@@ -316,6 +317,9 @@
     <button class="nav-item" class:active={$activeView === 'settings'} onclick={() => navigate('settings')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
       {$t('nav.settings')}
+      {#if $updateAvailable}
+        <span class="badge-update">MAJ</span>
+      {/if}
     </button>
     <button class="nav-item" class:active={$activeView === 'metadata'} onclick={() => navigate('metadata')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
@@ -956,6 +960,23 @@
     padding: 0.05rem 0.4rem;
     font-size: 0.65rem;
     font-weight: 600;
+  }
+
+  .badge-update {
+    margin-left: auto;
+    background: #dc2626;
+    color: white;
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    animation: badge-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes badge-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6); }
+    50% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
   }
 
   /* Mobile: sidebar cachée (BottomTabBar prend le relais) */

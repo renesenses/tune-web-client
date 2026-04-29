@@ -12,6 +12,7 @@
   import { locale } from './lib/i18n';
   import { setupKeyboardShortcuts } from './lib/keyboard';
   import { playbackHistory } from './lib/stores/history';
+  import { startUpdatePolling, stopUpdatePolling } from './lib/stores/updates';
   import { ytPlayerState, ytLoading, playVideo, pauseVideo, resumeVideo, stopVideo, clearYTLoading } from './lib/stores/ytPlayer';
   import { get } from 'svelte/store';
   import { t } from './lib/i18n';
@@ -234,6 +235,8 @@
     });
     unsub(); // Read once, theme is applied
 
+    startUpdatePolling();
+
     // Apply startup view
     let prefs: { startupView?: string; defaultZoneId?: number | null } = {};
     preferences.subscribe((p) => (prefs = p))();
@@ -368,6 +371,7 @@
     cleanupKeyboard?.();
     tuneWS.disconnect();
     stopSeekTimer();
+    stopUpdatePolling();
   });
 </script>
 

@@ -2,6 +2,7 @@
   import { activeView, type View } from '../lib/stores/navigation';
   import { currentZone, zones, currentZoneId } from '../lib/stores/zones';
   import { t } from '../lib/i18n';
+  import { updateAvailable } from '../lib/stores/updates';
 
   const tabs: { view: View; label: string; path: string }[] = [
     { view: 'home', label: 'nav.home', path: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1' },
@@ -64,6 +65,9 @@
         <button class="sheet-item" class:active={$activeView === item.view} onclick={() => navigate(item.view)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d={item.path} /></svg>
           <span class="sheet-item-label">{$t(item.label)}</span>
+          {#if item.view === 'settings' && $updateAvailable}
+            <span class="sheet-badge-update">MAJ</span>
+          {/if}
         </button>
       {/each}
     </div>
@@ -199,6 +203,16 @@
     .sheet-item.active { color: var(--tune-accent); }
     .sheet-item-label { flex: 1; text-align: left; }
     .check { margin-left: auto; }
+
+    .sheet-badge-update {
+      background: #dc2626;
+      color: white;
+      border-radius: 999px;
+      padding: 0.1rem 0.5rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
 
     @keyframes slideUp {
       from { transform: translateY(100%); }
