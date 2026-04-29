@@ -12,6 +12,7 @@
   import { notifications } from '../lib/stores/notifications';
   import SmbWizard from './SmbWizard.svelte';
   import FolderWizard from './FolderWizard.svelte';
+  import MultiroomSettings from './MultiroomSettings.svelte';
 
   const CLIENT_VERSION = __APP_VERSION__;
   let serverVersion = $state<string | null>(null);
@@ -793,6 +794,9 @@
       {$t('common.loading')}
     </div>
   {:else}
+    <!-- v0.8.0 Multi-room: inter-techno calibration sliders -->
+    <MultiroomSettings />
+
     <!-- Server health -->
     <section class="settings-section">
       <h3>{$t('settings.serverHealth')}</h3>

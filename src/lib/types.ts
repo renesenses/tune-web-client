@@ -5,7 +5,35 @@ export type Source = 'local' | 'tidal' | 'qobuz' | 'youtube' | 'amazon' | 'spoti
 export type AudioFormat = 'flac' | 'wav' | 'mp3' | 'aac' | 'alac' | 'ogg' | 'opus' | 'dsd' | 'aiff' | 'wma';
 export type PlaybackState = 'stopped' | 'playing' | 'paused' | 'buffering';
 export type RepeatMode = 'off' | 'one' | 'all';
-export type OutputType = 'local' | 'dlna' | 'airplay';
+export type OutputType = 'local' | 'dlna' | 'airplay' | 'snapcast' | 'sonos';
+
+// v0.8.0 multi-room — Snapcast endpoint discovered by snapserver.
+export interface SnapcastClient {
+  id: string;        // UUID assigned by snapserver
+  name: string;
+  host: string;
+  mac: string | null;
+  connected: boolean;
+  volume: number;    // 0–100
+}
+
+// v0.8.0 multi-room — Sonos S2 speaker discovered by SoCo.
+export interface SonosSpeaker {
+  uid: string;             // RINCON_xxx
+  name: string;
+  ip: string;
+  is_coordinator: boolean;
+  group_uid: string | null;
+}
+
+// v0.8.0 multi-room — calibrated inter-techno offset, pair canonicalised
+// alphabetically server-side.
+export interface GroupDelay {
+  tech_a: string;
+  tech_b: string;
+  delay_ms: number;
+  calibrated_at?: string;
+}
 
 // Core domain models
 export interface Artist {

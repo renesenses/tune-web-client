@@ -21,6 +21,12 @@
   let newZoneName = $state('');
   let newZoneOutputType = $state<OutputType>('local');
   let newZoneDeviceId = $state<string | undefined>(undefined);
+  // v0.8.0 multi-room — Snapcast/Sonos device pickers fetched lazily
+  // when the user opens the modal and picks the matching type. Kept
+  // local to the component so we don't spam the API on every render.
+  let snapcastClients = $state<{id: string; name: string; connected: boolean}[]>([]);
+  let sonosSpeakers = $state<{uid: string; name: string; ip: string}[]>([]);
+  let multiroomLoading = $state(false);
 
   let configZone = $state<Zone | null>(null);
   let zoneGroups = $state<ZoneGroupResponse[]>([]);
@@ -141,12 +147,36 @@
       const zone = await api.createZone(newZoneName.trim(), newZoneOutputType, newZoneDeviceId);
       zones.update((zs) => [...zs, zone]);
       if (zone.id !== null) currentZoneId.set(zone.id);
+      // v0.8.0: bind the discovered Snapcast client to the new zone now
+      // that we have its zone_id. Also a no-op for non-snapcast types.
+      if (newZoneOutputType === 'snapcast' && newZoneDeviceId && zone.id !== null) {
+        try { await api.assignSnapcastClient(newZoneDeviceId, zone.id); } catch (e) { console.error(e); }
+      }
       newZoneName = '';
       newZoneOutputType = 'local';
       newZoneDeviceId = undefined;
       showCreateZone = false;
     } catch (e) {
       console.error('Create zone error:', e);
+    }
+  }
+
+  // v0.8.0 multi-room — load device candidates when the user picks
+  // a Snapcast / Sonos type in the create-zone modal. Lazy so we
+  // don't hit the API for every Sidebar render.
+  async function loadMultiroomDevices(type: OutputType) {
+    if (type !== 'snapcast' && type !== 'sonos') return;
+    multiroomLoading = true;
+    try {
+      if (type === 'snapcast') {
+        snapcastClients = await api.listSnapcastClients();
+      } else {
+        sonosSpeakers = await api.listSonosSpeakers();
+      }
+    } catch (e) {
+      console.error('multiroom_devices_load_failed', e);
+    } finally {
+      multiroomLoading = false;
     }
   }
 
@@ -373,16 +403,32 @@
           bind:value={newZoneName}
           onkeydown={(e) => e.key === 'Enter' && createZone()}
         />
-        <select class="create-zone-type" bind:value={newZoneOutputType} onchange={() => { newZoneDeviceId = undefined; }}>
+        <select class="create-zone-type" bind:value={newZoneOutputType} onchange={() => { newZoneDeviceId = undefined; loadMultiroomDevices(newZoneOutputType); }}>
           <option value="local">Local</option>
           <option value="dlna">DLNA</option>
           <option value="airplay">AirPlay</option>
+          <option value="snapcast">Snapcast</option>
+          <option value="sonos">Sonos</option>
         </select>
-        {#if newZoneOutputType !== 'local'}
+        {#if newZoneOutputType === 'dlna' || newZoneOutputType === 'airplay'}
           <select class="create-zone-device" bind:value={newZoneDeviceId}>
             <option value={undefined}>{$t('zone.selectDevice')}</option>
             {#each $devices.filter(d => d.type === newZoneOutputType && d.available) as dev}
               <option value={dev.id}>{dev.name}</option>
+            {/each}
+          </select>
+        {:else if newZoneOutputType === 'snapcast'}
+          <select class="create-zone-device" bind:value={newZoneDeviceId}>
+            <option value={undefined}>{multiroomLoading ? '…' : $t('zone.selectDevice')}</option>
+            {#each snapcastClients as cli}
+              <option value={cli.id}>{cli.name}{cli.connected ? '' : ' (offline)'}</option>
+            {/each}
+          </select>
+        {:else if newZoneOutputType === 'sonos'}
+          <select class="create-zone-device" bind:value={newZoneDeviceId}>
+            <option value={undefined}>{multiroomLoading ? '…' : $t('zone.selectDevice')}</option>
+            {#each sonosSpeakers as sp}
+              <option value={sp.uid}>{sp.name} ({sp.ip})</option>
             {/each}
           </select>
         {/if}

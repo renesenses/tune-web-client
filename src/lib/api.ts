@@ -458,6 +458,60 @@ export function enrichTrackCredits(trackId: number) {
   return fetchJSON(`${BASE}/library/tracks/${trackId}/credits/enrich`, { method: 'POST' });
 }
 
+// v0.8.0 multi-room — Snapcast control plane.
+export function getSnapcastStatus() {
+  return fetchJSON<{enabled: boolean; reason?: string; binary?: string; stream_count?: number}>(
+    `${BASE}/snapcast/status`
+  );
+}
+export function listSnapcastClients() {
+  return fetchJSON<import('./types').SnapcastClient[]>(`${BASE}/snapcast/clients`);
+}
+export function assignSnapcastClient(clientId: string, zoneId: number) {
+  return fetchJSON(`${BASE}/snapcast/clients/${encodeURIComponent(clientId)}/assign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ zone_id: zoneId }),
+  });
+}
+export function unassignSnapcastClient(clientId: string, zoneId: number) {
+  return fetch(`${BASE}/snapcast/clients/${encodeURIComponent(clientId)}/assign`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ zone_id: zoneId }),
+  }).then(r => r.json());
+}
+
+// v0.8.0 multi-room — Sonos / SoCo control plane.
+export function listSonosSpeakers() {
+  return fetchJSON<import('./types').SonosSpeaker[]>(`${BASE}/sonos/speakers`);
+}
+export function discoverSonos() {
+  return fetchJSON<import('./types').SonosSpeaker[]>(`${BASE}/sonos/discover`, { method: 'POST' });
+}
+export function setSonosGroup(coordinatorUid: string, memberUids: string[]) {
+  return fetchJSON(`${BASE}/sonos/groups`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ coordinator_uid: coordinatorUid, member_uids: memberUids }),
+  });
+}
+export function unjoinSonosSpeaker(uid: string) {
+  return fetchJSON(`${BASE}/sonos/speakers/${encodeURIComponent(uid)}/unjoin`, { method: 'POST' });
+}
+
+// v0.8.0 multi-room — group delays (calibrated inter-techno offsets).
+export function listGroupDelays() {
+  return fetchJSON<import('./types').GroupDelay[]>(`${BASE}/zones/group-delays`);
+}
+export function setGroupDelay(techA: string, techB: string, delayMs: number) {
+  return fetchJSON(`${BASE}/zones/group-delays`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tech_a: techA, tech_b: techB, delay_ms: delayMs }),
+  });
+}
+
 export type DashboardPeriod = 'today' | '7d' | '30d' | 'all';
 
 export interface DashboardData {
