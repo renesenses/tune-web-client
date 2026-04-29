@@ -297,6 +297,11 @@
       Collections
       <span class="badge-new">POC</span>
     </button>
+    <button class="nav-item" class:active={$activeView === 'smartcollections'} onclick={() => navigate('smartcollections')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><polyline points="14 14 17.5 17.5 21 14"/><line x1="17.5" y1="14" x2="17.5" y2="21"/></svg>
+      Smart Collections
+      <span class="badge-new">v0.8</span>
+    </button>
     <button class="nav-item" class:active={$activeView === 'smartplaylists'} onclick={() => navigate('smartplaylists')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
       Smart Playlists

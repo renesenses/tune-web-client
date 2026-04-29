@@ -496,3 +496,36 @@ export interface WSEvent {
   data: any;
   source?: string;
 }
+
+// v0.8.0 — Smart Collections (rule-based album collections).
+//
+// `field` is one of the whitelisted album columns or a cross-table
+// virtual: 'credit', 'play_count', 'last_played_at'.
+// `op` depends on the field type — see server compiler for the
+// authoritative list.
+export interface SmartRule {
+  field: string;
+  op: string;
+  value: any;
+}
+
+export interface SmartCollection {
+  id: number;
+  name: string;
+  description: string | null;
+  icon: string;
+  color: string;
+  rules: string;            // JSON-encoded SmartRule[]
+  match_mode: 'all' | 'any';
+  sort_by: string;
+  sort_order: 'asc' | 'desc';
+  max_albums: number;
+  auto_refresh: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SmartCollectionPreview {
+  count: number;
+  albums: any[];  // shape == albums table row
+}

@@ -1767,3 +1767,38 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
   if (!res.ok) throw new Error(`Podcast episodes failed: ${res.status} ${res.statusText}`);
   return res.json();
 }
+
+// v0.8.0 — Smart Collections
+export function listSmartCollections() {
+  return fetchJSON<import('./types').SmartCollection[]>(`${BASE}/library/smart-collections`);
+}
+export function getSmartCollection(id: number) {
+  return fetchJSON<import('./types').SmartCollection>(`${BASE}/library/smart-collections/${id}`);
+}
+export function createSmartCollection(payload: Partial<import('./types').SmartCollection> & { rules: any[] }) {
+  return fetchJSON<import('./types').SmartCollection>(`${BASE}/library/smart-collections`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+export function updateSmartCollection(id: number, payload: any) {
+  return fetchJSON<import('./types').SmartCollection>(`${BASE}/library/smart-collections/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+export function deleteSmartCollection(id: number) {
+  return fetch(`${BASE}/library/smart-collections/${id}`, { method: 'DELETE' }).then(r => r.json());
+}
+export function getSmartCollectionAlbums(id: number) {
+  return fetchJSON<any[]>(`${BASE}/library/smart-collections/${id}/albums`);
+}
+export function previewSmartCollection(payload: { rules: any[]; match_mode?: string; sort_by?: string; sort_order?: string; max_albums?: number }) {
+  return fetchJSON<import('./types').SmartCollectionPreview>(`${BASE}/library/smart-collections/preview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
