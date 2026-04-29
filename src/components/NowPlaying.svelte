@@ -8,6 +8,8 @@
   import SeekBar from './SeekBar.svelte';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
+  import { selectedArtist } from '../lib/stores/library';
+  import { activeView } from '../lib/stores/navigation';
   import type { RepeatMode, Track, TrackCredit } from '../lib/types';
 
   let isFavorite = $state(false);
@@ -16,6 +18,7 @@
   let showCredits = $state(false);
   let npCredits: TrackCredit[] = $state([]);
   let npCreditsTrackId: number | null = $state(null);
+  let creditsEnriching = $state(false);
   let showLyrics = $state(false);
   let npLyrics: string | null = $state(null);
   let npLyricsTrackId: number | null = $state(null);
@@ -230,12 +233,71 @@
     }
   }
 
+  // Stable display order — composer/lyricist top, performer bulk in the
+  // middle, engineering credits last. Anything else falls through to the
+  // raw role string.
+  const ROLE_ORDER = [
+    'composer', 'lyricist', 'arranger', 'conductor',
+    'performer', 'producer', 'mixer', 'engineer',
+  ];
+
   function formatRole(role: string): string {
-    const map: Record<string, string> = {
-      performer: 'Musicien', composer: 'Compositeur', conductor: "Chef d'orch.",
-      lyricist: 'Parolier', producer: 'Producteur', engineer: 'Ingénieur',
-    };
-    return map[role] || role.charAt(0).toUpperCase() + role.slice(1);
+    const key = `credits.${role}`;
+    const localized = $t(key);
+    // Fall back to title-cased raw role when the locale dict doesn't have
+    // a translation (we get back the key verbatim from $t in that case).
+    if (localized && localized !== key) return localized;
+    return role.charAt(0).toUpperCase() + role.slice(1);
+  }
+
+  // De-dup credits by (artist_id || artist_name, role, instrument) — MB
+  // enrichment can return the same triple twice when a track has two
+  // identifying tags pointing at the same artist relation.
+  function dedupCredits(credits: TrackCredit[]): TrackCredit[] {
+    const seen = new Set<string>();
+    const out: TrackCredit[] = [];
+    for (const c of credits) {
+      const key = `${c.artist_id ?? c.artist_name}|${c.role}|${c.instrument ?? ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(c);
+    }
+    return out;
+  }
+
+  // Sort role groups by ROLE_ORDER, unknown roles trail alphabetically.
+  function sortedRoleEntries(credits: TrackCredit[]) {
+    const groups = Object.groupBy(dedupCredits(credits), c => c.role);
+    return Object.entries(groups).sort(([a], [b]) => {
+      const ai = ROLE_ORDER.indexOf(a);
+      const bi = ROLE_ORDER.indexOf(b);
+      if (ai !== -1 && bi !== -1) return ai - bi;
+      if (ai !== -1) return -1;
+      if (bi !== -1) return 1;
+      return a.localeCompare(b);
+    });
+  }
+
+  function navigateToArtist(artistId: number | undefined, artistName: string) {
+    if (!artistId) return;
+    selectedArtist.set({ id: artistId, name: artistName } as any);
+    activeView.set('library');
+  }
+
+  async function enrichCurrentTrackCredits() {
+    const tr = displayTrack;
+    if (!tr?.id || creditsEnriching) return;
+    creditsEnriching = true;
+    try {
+      await api.enrichTrackCredits(tr.id);
+      // Force refetch — MB lookup just wrote new rows server-side.
+      npCreditsTrackId = null;
+      await loadNpCredits(tr.id);
+    } catch {
+      notifications.add({ message: $t('credits.enrich.failed'), type: 'error' });
+    } finally {
+      creditsEnriching = false;
+    }
   }
 
   async function loadNpLyrics(trackId: number) {
@@ -464,21 +526,39 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
               {$t('artist.credits')}
             </button>
-            {#if showCredits && npCredits.length > 0}
-              <div class="np-credits">
-                {#each Object.entries(Object.groupBy(npCredits, c => c.role)) as [role, credits]}
-                  <div class="np-credits-group">
-                    <span class="np-credits-role">{formatRole(role)}</span>
-                    <div class="np-credits-names">
-                      {#each credits as c}
-                        <span class="np-credit-chip">
-                          {c.artist_name}{#if c.instrument}<span class="np-credit-instr">{c.instrument}</span>{/if}
-                        </span>
-                      {/each}
+            {#if showCredits}
+              {#if npCredits.length > 0}
+                <div class="np-credits">
+                  {#each sortedRoleEntries(npCredits) as [role, credits]}
+                    <div class="np-credits-group">
+                      <span class="np-credits-role">{formatRole(role)}</span>
+                      <div class="np-credits-names">
+                        {#each credits ?? [] as c}
+                          <button
+                            class="np-credit-chip"
+                            class:linkable={!!c.artist_id}
+                            disabled={!c.artist_id}
+                            onclick={() => navigateToArtist(c.artist_id, c.artist_name)}
+                          >
+                            {c.artist_name}{#if c.instrument}<span class="np-credit-instr">{c.instrument}</span>{/if}
+                          </button>
+                        {/each}
+                      </div>
                     </div>
-                  </div>
-                {/each}
-              </div>
+                  {/each}
+                </div>
+              {:else}
+                <div class="np-credits-empty">
+                  <div class="np-credits-empty-title">{$t('credits.empty.title')}</div>
+                  <button
+                    class="np-credits-empty-cta"
+                    onclick={enrichCurrentTrackCredits}
+                    disabled={creditsEnriching}
+                  >
+                    {creditsEnriching ? $t('credits.enrich.in_progress') : $t('credits.empty.cta_enrich')}
+                  </button>
+                </div>
+              {/if}
             {/if}
             <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; showCredits = false; showEq = false; if (showLyrics && displayTrack.id) loadNpLyrics(displayTrack.id); }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
@@ -1447,12 +1527,56 @@
     border-radius: 10px;
     background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.08);
     color: var(--tune-text);
+    border: none;
+    cursor: default;
+  }
+  .np-credit-chip.linkable {
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .np-credit-chip.linkable:hover {
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.18);
+    text-decoration: underline;
+  }
+  .np-credit-chip:disabled {
+    opacity: 0.85;
   }
 
   .np-credit-instr {
     font-size: 10px;
     color: var(--tune-text-muted);
     font-style: italic;
+  }
+
+  .np-credits-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 4px;
+    margin-top: 6px;
+  }
+  .np-credits-empty-title {
+    font-size: 12px;
+    color: var(--tune-text-muted);
+  }
+  .np-credits-empty-cta {
+    font-family: var(--font-body);
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4);
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.08);
+    color: var(--tune-text);
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .np-credits-empty-cta:hover:not(:disabled) {
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.18);
+  }
+  .np-credits-empty-cta:disabled {
+    opacity: 0.6;
+    cursor: progress;
   }
 
   .np-extra-btns {

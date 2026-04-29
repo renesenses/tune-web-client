@@ -454,6 +454,34 @@ export function getTrackCredits(trackId: number) {
   return fetchJSON<import('./types').TrackCredit[]>(`${BASE}/library/tracks/${trackId}/credits`);
 }
 
+export function enrichTrackCredits(trackId: number) {
+  return fetchJSON(`${BASE}/library/tracks/${trackId}/credits/enrich`, { method: 'POST' });
+}
+
+export type DashboardPeriod = 'today' | '7d' | '30d' | 'all';
+
+export interface DashboardData {
+  period: DashboardPeriod;
+  range: { from: string | null; to: string };
+  totals: { plays: number; listening_ms: number; unique_tracks: number; unique_artists: number };
+  top_artists: { artist_name: string; plays: number; listening_ms: number }[];
+  top_albums: { album_title: string; artist_name: string; cover_path: string | null; plays: number }[];
+  top_tracks: { track_id: number | null; title: string; artist_name: string; plays: number; listening_ms: number }[];
+  trend: { day: string; plays: number; listening_ms: number }[];
+  hourly: { hour: number; plays: number }[];
+  by_zone: { zone_id: number | null; zone_name: string | null; plays: number; listening_ms: number }[];
+  by_source: { source: string | null; plays: number; listening_ms: number }[];
+  completion: { completed: number; skipped: number; avg_listened_ms: number; avg_track_duration_ms: number };
+}
+
+export function getDashboard(period: DashboardPeriod = '30d', opts?: { zoneId?: number; profileId?: number; topN?: number }) {
+  const params = new URLSearchParams({ period });
+  if (opts?.zoneId !== undefined) params.set('zone_id', String(opts.zoneId));
+  if (opts?.profileId !== undefined) params.set('profile_id', String(opts.profileId));
+  if (opts?.topN !== undefined) params.set('top_n', String(opts.topN));
+  return fetchJSON<DashboardData>(`${BASE}/library/history/dashboard?${params}`);
+}
+
 export function getArtistCredits(artistId: number) {
   return fetchJSON<import('./types').TrackCredit[]>(`${BASE}/library/artists/${artistId}/credits`);
 }
