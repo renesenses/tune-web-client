@@ -3,7 +3,6 @@
   import * as api from '../lib/api';
   import type { SmartCollection } from '../lib/types';
   import SmartCollectionEditor from './SmartCollectionEditor.svelte';
-  import AlbumArt from './AlbumArt.svelte';
 
   let collections = $state<SmartCollection[]>([]);
   let loading = $state(true);
@@ -145,16 +144,17 @@
           </div>
         </div>
       {:else}
-        <div class="album-grid">
+        <div class="albums-grid">
           {#each selectedAlbums as alb}
-            <div class="alb">
-              <AlbumArt album={alb} size="md" />
-              <div class="alb-meta">
-                <div class="alb-title" title={alb.title}>{alb.title}</div>
-                <div class="alb-artist" title={alb.artist_name ?? ''}>{alb.artist_name ?? '—'}</div>
-                {#if alb.year}<div class="alb-year">{alb.year}</div>{/if}
-                {#if alb.label}<div class="alb-label">{alb.label}</div>{/if}
+            <div class="album-card">
+              <div class="album-card-art">
+                <img class="album-cover-img" src={api.artworkUrl(alb.cover_path, 200)} alt={alb.title} loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.display='none')} />
               </div>
+              <span class="album-card-title truncate" title={alb.title}>{alb.title}</span>
+              {#if alb.artist_name}
+                <span class="album-card-artist truncate" title={alb.artist_name}>{alb.artist_name}</span>
+              {/if}
+              {#if alb.year}<span class="album-card-year">{alb.year}</span>{/if}
             </div>
           {/each}
         </div>
@@ -207,9 +207,35 @@
   .hint { margin-top: 0.5rem; font-size: 0.8rem; }
   .hint code { background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12); padding: 0.1rem 0.4rem; border-radius: 4px; font-family: monospace; }
 
-  .album-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; }
-  .alb { display: flex; flex-direction: column; gap: 0.3rem; }
-  .alb-title { font-size: 0.85rem; font-weight: 600; color: var(--tune-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .alb-artist { font-size: 0.78rem; color: var(--tune-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .alb-year, .alb-label { font-size: 0.72rem; color: var(--tune-text-muted); }
+  .albums-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-auto-rows: min-content;
+    gap: var(--space-lg, 1rem);
+    align-items: start;
+  }
+  .album-card {
+    display: flex; flex-direction: column; gap: var(--space-xs, 0.25rem);
+    background: none; border: none; padding: 0; text-align: left; color: var(--tune-text);
+    transition: transform 0.15s ease-out;
+  }
+  .album-card:hover { transform: translateY(-2px); }
+  .album-card-art {
+    position: relative; width: 100%; aspect-ratio: 1;
+    border-radius: var(--radius-lg, 8px); overflow: hidden;
+    background: var(--tune-grey2, #2a2a2a);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .album-card-art::before {
+    content: "♪"; position: absolute; font-size: 32px;
+    color: var(--tune-text-muted, #555); opacity: 0.3; z-index: 0;
+  }
+  .album-cover-img {
+    width: 100%; height: 100%; object-fit: cover;
+    display: block; position: relative; z-index: 1;
+  }
+  .album-card-title { font-size: 0.85rem; font-weight: 600; color: var(--tune-text); }
+  .album-card-artist { font-size: 0.78rem; color: var(--tune-text-muted); }
+  .album-card-year { font-size: 0.72rem; color: var(--tune-text-muted); }
+  .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>
