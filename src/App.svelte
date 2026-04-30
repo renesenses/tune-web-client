@@ -30,6 +30,8 @@
   import HomeView from './components/HomeView.svelte';
   import StreamingView from './components/StreamingView.svelte';
   import MetadataView from './components/MetadataView.svelte';
+  import ServiceTokensView from './components/ServiceTokensView.svelte';
+  import GenreTreeView from './components/GenreTreeView.svelte';
   import ZoneManagerView from './components/ZoneManagerView.svelte';
   import DiagnosticsView from './components/DiagnosticsView.svelte';
   import BrowseView from './components/BrowseView.svelte';
@@ -415,6 +417,10 @@
       <GenresView onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'metadata'}
       <MetadataView />
+    {:else if $activeView === 'services'}
+      <ServiceTokensView />
+    {:else if $activeView === 'genretree'}
+      <GenreTreeView />
     {:else if $activeView === 'mediaservers'}
       <MediaServersView />
     {:else if $activeView === 'favorites'}

@@ -63,6 +63,8 @@ export interface Album {
   bit_depth?: number | null;
   format?: string | null;
   quality?: string | null;
+  label?: string | null;
+  catalog_number?: string | null;
 }
 
 export interface Track {

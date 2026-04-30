@@ -525,6 +525,10 @@ export interface DashboardData {
   hourly: { hour: number; plays: number }[];
   by_zone: { zone_id: number | null; zone_name: string | null; plays: number; listening_ms: number }[];
   by_source: { source: string | null; plays: number; listening_ms: number }[];
+  by_genre?: { genre: string; plays: number; listening_ms: number }[];
+  weekday_hourly?: { weekday: number; hour: number; plays: number }[];
+  streak?: { current: number; best: number; last_day: string | null };
+  on_this_day?: { track_title: string | null; artist_name: string | null; album_title: string | null; cover_path: string | null; played_at: string | null; year: number | null }[];
   completion: { completed: number; skipped: number; avg_listened_ms: number; avg_track_duration_ms: number };
 }
 
@@ -1182,16 +1186,34 @@ export function updateAlbumMetadata(albumId: number, updates: Record<string, any
   return fetchJSON(`${BASE}/metadata/albums/${albumId}`, { method: 'PATCH', body: JSON.stringify(updates) });
 }
 
+export interface WriteTagsResult {
+  ok?: boolean;
+  success?: boolean;
+  written?: number;
+  tracks_processed?: number;
+  errors?: number;
+  message?: string;
+  details?: unknown[];
+}
+
 export function writeTrackTags(trackId: number) {
-  return fetchJSON(`${BASE}/metadata/tracks/${trackId}/write-tags`, { method: 'POST' });
+  return fetchJSON<WriteTagsResult>(`${BASE}/metadata/tracks/${trackId}/write-tags`, { method: 'POST' });
 }
 
 export function writeAlbumTags(albumId: number) {
-  return fetchJSON(`${BASE}/metadata/albums/${albumId}/write-tags`, { method: 'POST' });
+  return fetchJSON<WriteTagsResult>(`${BASE}/metadata/albums/${albumId}/write-tags`, { method: 'POST' });
+}
+
+export interface MergeAlbumsResult {
+  master_id: number;
+  total_tracks: number;
+  tracks_moved: number;
+  merged_ids?: number[];
+  [key: string]: unknown;
 }
 
 export function mergeAlbums(albumIds: number[]) {
-  return fetchJSON(`${BASE}/metadata/albums/merge`, {
+  return fetchJSON<MergeAlbumsResult>(`${BASE}/metadata/albums/merge`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ album_ids: albumIds }),
@@ -1234,24 +1256,39 @@ export function fingerprintBatch(trackIds?: number[], limit = 50) {
   return fetchJSON(`${BASE}/metadata/fingerprint-batch`, { method: 'POST', body: JSON.stringify(trackIds ? { track_ids: trackIds } : { limit }) });
 }
 
+export interface AutoFixStatus {
+  status: 'idle' | 'running' | 'completed' | 'error';
+  current: number;
+  total: number;
+  fixed: number;
+  suggestions: number;
+  [key: string]: unknown;
+}
+
+export interface DuplicateScanResult {
+  total_scanned: number;
+  duplicates_found: number;
+  [key: string]: unknown;
+}
+
 export function startAutoFix() {
-  return fetchJSON(`${BASE}/metadata/auto-fix`, { method: 'POST' });
+  return fetchJSON<{ ok?: boolean; status?: string }>(`${BASE}/metadata/auto-fix`, { method: 'POST' });
 }
 
 export function getAutoFixStatus() {
-  return fetchJSON(`${BASE}/metadata/auto-fix/status`);
+  return fetchJSON<AutoFixStatus>(`${BASE}/metadata/auto-fix/status`);
 }
 
 export function getAutoFixReport(limit = 10) {
-  return fetchJSON(`${BASE}/metadata/auto-fix/report?limit=${limit}`);
+  return fetchJSON<unknown[]>(`${BASE}/metadata/auto-fix/report?limit=${limit}`);
 }
 
 export function scanDuplicates() {
-  return fetchJSON(`${BASE}/metadata/duplicates/scan?limit=0`, { method: 'POST' });
+  return fetchJSON<DuplicateScanResult>(`${BASE}/metadata/duplicates/scan?limit=0`, { method: 'POST' });
 }
 
 export function listDuplicates() {
-  return fetchJSON(`${BASE}/metadata/duplicates`);
+  return fetchJSON<unknown[]>(`${BASE}/metadata/duplicates`);
 }
 
 export function moveAlbumToDuplicates(albumId: number) {
@@ -1278,40 +1315,208 @@ export function acceptAllSuggestions(minConfidence = 0.9) {
   return fetchJSON(`${BASE}/metadata/suggestions/accept-all?min_confidence=${minConfidence}`, { method: 'POST' });
 }
 
+export interface MetadataFixResult {
+  total?: number;
+  fixed?: number;
+  skipped?: number;
+  skipped_low_coherence?: number;
+  skipped_no_known_genre?: number;
+  errors?: number;
+  not_found?: number;
+  failed?: number;
+  repaired?: number;
+  requested?: number;
+  details?: unknown[];
+  [key: string]: unknown;
+}
+
 export function autoFixAlbums() {
-  return fetchJSON(`${BASE}/metadata/auto-fix-albums`, { method: 'POST' });
+  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/auto-fix-albums`, { method: 'POST' });
 }
 
 export function fixYearsMusicBrainz() {
-  return fetchJSON(`${BASE}/metadata/fix-years-musicbrainz`, { method: 'POST' });
+  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-years-musicbrainz`, { method: 'POST' });
 }
 
 export function fixYearsDiscogs() {
-  return fetchJSON(`${BASE}/metadata/fix-years-discogs`, { method: 'POST' });
+  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-years-discogs`, { method: 'POST' });
 }
 
 export function fixYearsTidal() {
-  return fetchJSON(`${BASE}/metadata/fix-years-tidal`, { method: 'POST' });
+  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-years-tidal`, { method: 'POST' });
 }
 
 export function fixYearsTags() {
-  return fetchJSON(`${BASE}/metadata/fix-years-tags`, { method: 'POST' });
+  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-years-tags`, { method: 'POST' });
 }
 
 export function fixGenres() {
-  return fetchJSON(`${BASE}/metadata/fix-genres`, { method: 'POST' });
+  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-genres`, { method: 'POST' });
+}
+
+export function fixYearsFromPath() {
+  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-years-from-path`, { method: 'POST' });
+}
+
+export function reclassifyGenresByPath(dryRun: boolean = false) {
+  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/reclassify-genres-by-path?dry_run=${dryRun}`, { method: 'POST' });
+}
+
+export function fixYearsItunes() {
+  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-years-itunes`, { method: 'POST' });
+}
+
+export function mergeDuplicateAlbums() {
+  return fetchJSON<MetadataFixResult>(`${BASE}/library/albums/merge-duplicates`, { method: 'POST' });
+}
+
+// ---------- Genre Tree ----------
+export interface GenreTreeResponse {
+  tree: Record<string, string[]>;
+}
+
+export function getGenreTree(): Promise<GenreTreeResponse> {
+  return fetchJSON(`${BASE}/library/genre-tree`);
+}
+
+export function putGenreTree(tree: Record<string, string[]>): Promise<GenreTreeResponse> {
+  return fetchJSON(`${BASE}/library/genre-tree`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tree }),
+  });
+}
+
+export interface TrackAllTags {
+  track_id: number;
+  file_path: string | null;
+  file_exists: boolean;
+  db_fields: Record<string, any>;
+  db_credits: any[];
+  file_tags: Record<string, string[]>;
+  audio_info: Record<string, any>;
+}
+
+export function getTrackAllTags(trackId: number): Promise<TrackAllTags> {
+  return fetchJSON(`${BASE}/library/tracks/${trackId}/all-tags`);
+}
+
+// ---------- Services & Tokens ----------
+export interface ServiceTokenInfo {
+  id: string;
+  name: string;
+  kind: 'no_auth' | 'personal_token' | 'api_key' | 'oauth' | 'login_password' | 'arl_token';
+  purpose: string;
+  pricing: 'free' | 'paid' | 'freemium' | 'unknown';
+  pricing_note: string;
+  fields: { key: string; label: string; type: string }[];
+  help_url: string;
+  help_steps: string[];
+  configured: boolean;
+  source: 'db' | 'env' | null;
+  valid: boolean | null;
+  validated_at: number | null;
+  validation_message: string | null;
+}
+
+export function listServiceTokens(): Promise<ServiceTokenInfo[]> {
+  return fetchJSON(`${BASE}/services/tokens`);
+}
+
+export interface ServiceTokenSaveResult {
+  ok?: boolean;
+  valid?: boolean;
+  message?: string;
+  error?: string;
+  validation_message?: string;
+  validated_at?: number;
+}
+
+export function saveServiceToken(service: string, fields: Record<string, string>) {
+  return fetchJSON<ServiceTokenSaveResult>(`${BASE}/services/tokens/${service}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(fields),
+  });
+}
+
+export function testServiceToken(service: string) {
+  return fetchJSON<ServiceTokenSaveResult>(`${BASE}/services/tokens/${service}/test`, { method: 'POST' });
+}
+
+export function deleteServiceToken(service: string) {
+  return fetchJSON<{ ok?: boolean }>(`${BASE}/services/tokens/${service}`, { method: 'DELETE' });
+}
+
+export interface Mp3DiagnoseResult {
+  total?: number;
+  ok?: number;
+  ok_files?: number;
+  scanned?: number;
+  warnings?: number;
+  errors?: number;
+  issues?: Array<{ track_id: number; path?: string; issues?: string[] }>;
+  issues_found?: number;
+  missing_files?: number;
+  problematic?: Array<{ track_id: number; path?: string; issues?: string[] }>;
+  [key: string]: unknown;
+}
+
+export function diagnoseMp3() {
+  return fetchJSON<Mp3DiagnoseResult>(`${BASE}/metadata/mp3/diagnose`, { method: 'POST' });
+}
+
+export interface Mp3RepairResult {
+  repaired?: number;
+  requested?: number;
+  failed?: Array<{ track_id?: number; error?: string }>;
+  skipped?: number;
+  [key: string]: unknown;
+}
+
+export function repairMp3(trackIds: number[]) {
+  return fetchJSON<Mp3RepairResult>(`${BASE}/metadata/mp3/repair`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ track_ids: trackIds }),
+  });
+}
+
+export function fixYearsWikidata() {
+  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-years-wikidata`, { method: 'POST' });
+}
+
+export function fixGenresByArtist(minCoherence = 0.7) {
+  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-genres-by-artist?min_coherence=${minCoherence}`, { method: 'POST' });
+}
+
+export function fixGenresByArtistFuzzy(minCoherence = 0.7) {
+  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-genres-by-artist-fuzzy?min_coherence=${minCoherence}`, { method: 'POST' });
+}
+
+export function fixGenresByFamily(minCoherence = 0.7) {
+  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-genres-by-family?min_coherence=${minCoherence}`, { method: 'POST' });
 }
 
 export function clearLibrary() {
   return fetchJSON(`${BASE}/system/library/clear`, { method: 'POST' });
 }
 
+export interface WriteAllResult {
+  updated?: number;
+  written?: number;
+  skipped?: number;
+  errors?: number;
+  total?: number;
+  [key: string]: unknown;
+}
+
 export function writeAllTags() {
-  return fetchJSON(`${BASE}/metadata/write-all-tags`, { method: 'POST' });
+  return fetchJSON<WriteAllResult>(`${BASE}/metadata/write-all-tags`, { method: 'POST' });
 }
 
 export function writeAllCovers() {
-  return fetchJSON(`${BASE}/metadata/write-all-covers`, { method: 'POST' });
+  return fetchJSON<WriteAllResult>(`${BASE}/metadata/write-all-covers`, { method: 'POST' });
 }
 
 // --- Radios ---
@@ -1775,7 +1980,7 @@ export function listSmartCollections() {
 export function getSmartCollection(id: number) {
   return fetchJSON<import('./types').SmartCollection>(`${BASE}/library/smart-collections/${id}`);
 }
-export function createSmartCollection(payload: Partial<import('./types').SmartCollection> & { rules: any[] }) {
+export function createSmartCollection(payload: Omit<Partial<import('./types').SmartCollection>, 'rules'> & { rules: import('./types').SmartRule[] }) {
   return fetchJSON<import('./types').SmartCollection>(`${BASE}/library/smart-collections`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

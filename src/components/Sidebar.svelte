@@ -379,6 +379,14 @@
       {$t('nav.maintenance')}
       <span class="badge-new">POC</span>
     </button>
+    <button class="nav-item" class:active={$activeView === 'services'} onclick={() => navigate('services')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Services & Tokens
+    </button>
+    <button class="nav-item" class:active={$activeView === 'genretree'} onclick={() => navigate('genretree')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6"/><circle cx="12" cy="10" r="2"/><path d="M12 12v3"/><path d="M5 17a3 3 0 1 0 6 0 3 3 0 0 0-6 0zm8 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0z"/><path d="M8 14h8"/><path d="M8 14v3"/><path d="M16 14v3"/></svg>
+      Arbre des genres
+    </button>
     <button class="nav-item" class:active={$activeView === 'zonemanager'} onclick={() => navigate('zonemanager')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h.01"></path><path d="M7 20v-4"></path><path d="M12 20v-8"></path><path d="M17 20V8"></path><path d="M22 4v16"></path></svg>
       {$t('nav.zonemanager')}

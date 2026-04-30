@@ -103,7 +103,7 @@
   async function loadTransferHistory() {
     transferHistoryLoading = true;
     try {
-      transferHistory = await api.getPlaylistManagerHistory(20);
+      transferHistory = await api.getTransferHistory(20);
     } catch {
       transferHistory = [];
     } finally {

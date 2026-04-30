@@ -8,7 +8,7 @@
   import SeekBar from './SeekBar.svelte';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
-  import { selectedArtist } from '../lib/stores/library';
+  import { selectedArtist, artistAlbums, libraryTab } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
   import type { RepeatMode, Track, TrackCredit } from '../lib/types';
 
@@ -278,9 +278,23 @@
     });
   }
 
-  function navigateToArtist(artistId: number | undefined, artistName: string) {
+  async function navigateToArtist(artistId: number | undefined, artistName: string) {
     if (!artistId) return;
-    selectedArtist.set({ id: artistId, name: artistName } as any);
+    // Open the Library → Artists tab on this artist. We fetch the full
+    // artist record (with bio / image_path) and the album list so the
+    // detail view doesn't show an empty shell while the user gets there
+    // from a credit click.
+    try {
+      const [artist, albums] = await Promise.all([
+        api.getArtist(artistId).catch(() => null),
+        api.getArtistAlbums(artistId).catch(() => []),
+      ]);
+      selectedArtist.set(artist ?? ({ id: artistId, name: artistName } as any));
+      artistAlbums.set(albums ?? []);
+    } catch {
+      selectedArtist.set({ id: artistId, name: artistName } as any);
+    }
+    libraryTab.set('artists');
     activeView.set('library');
   }
 

@@ -14,16 +14,84 @@
 
   type GenreLevel = 'list' | 'genre' | 'album';
   let level = $state<GenreLevel>('list');
+  let selectedParent = $state<string | null>(null);
   let selectedGenreName = $state<string | null>(null);
   let selectedAlbum = $state<Album | null>(null);
   let genreAlbumTracks = $state<Track[]>([]);
   let loading = $state(false);
+  let tree = $state<Record<string, string[]>>({});
 
   let zone = $derived($currentZone);
 
-  let genreAlbums = $derived(
-    selectedGenreName ? $albums.filter(a => a.genre === selectedGenreName) : []
-  );
+  // Reactive parent lookup — even if the tree loads AFTER the user already
+  // clicked a subgenre chip, the breadcrumb stays correct.
+  let displayParent = $derived.by(() => {
+    if (selectedGenreName) {
+      for (const [p, kids] of Object.entries(tree)) {
+        if (p.toLowerCase() === selectedGenreName.toLowerCase()) return null;
+        if (kids.some(c => c.toLowerCase() === selectedGenreName!.toLowerCase())) return p;
+      }
+    }
+    return selectedParent;
+  });
+
+  // Build a fast lookup: lower(name) → list of genre names belonging to
+  // the same branch when the user clicks a parent.
+  let branchOf = $derived.by(() => {
+    const map = new Map<string, string[]>();
+    for (const [parent, children] of Object.entries(tree)) {
+      const all = [parent, ...children];
+      map.set(parent.toLowerCase(), all);
+    }
+    return map;
+  });
+
+  // Genres mentioned anywhere in the tree (parents + children) so we can
+  // detect "orphan" genres in the user's library that aren't classified
+  // and show them in their own section at the bottom.
+  let knownTreeGenres = $derived.by(() => {
+    const set = new Set<string>();
+    for (const [p, kids] of Object.entries(tree)) {
+      set.add(p.toLowerCase());
+      for (const k of kids) set.add(k.toLowerCase());
+    }
+    return set;
+  });
+
+  let orphanGenres = $derived.by(() => {
+    return $genres.filter(g => !knownTreeGenres.has(g.name.toLowerCase()));
+  });
+
+  // Aggregate count per parent: sum of albums whose genre is the parent
+  // OR any of its children. Lets the user see "Jazz: 480 albums" before
+  // diving in.
+  let parentCounts = $derived.by(() => {
+    const counts: Record<string, number> = {};
+    const byName: Record<string, number> = {};
+    for (const g of $genres) byName[g.name.toLowerCase()] = g.count;
+    for (const [parent, children] of Object.entries(tree)) {
+      let total = (byName[parent.toLowerCase()] || 0);
+      for (const c of children) total += (byName[c.toLowerCase()] || 0);
+      counts[parent] = total;
+    }
+    return counts;
+  });
+
+  // genreAlbums depends on the current selection:
+  //   - subgenre selected → strict match
+  //   - parent only → all albums whose genre is the parent or a child
+  let genreAlbums = $derived.by(() => {
+    if (selectedGenreName) {
+      // Subgenre or orphan — exact match.
+      return $albums.filter(a => a.genre === selectedGenreName);
+    }
+    if (selectedParent) {
+      const branch = branchOf.get(selectedParent.toLowerCase()) ?? [selectedParent];
+      const lower = new Set(branch.map(b => b.toLowerCase()));
+      return $albums.filter(a => a.genre && lower.has(a.genre.toLowerCase()));
+    }
+    return [];
+  });
 
   let albumTotalDuration = $derived(
     genreAlbumTracks.reduce((sum, t) => sum + (t.duration_ms ?? 0), 0)
@@ -42,10 +110,41 @@
   let hasMultipleDiscs = $derived(tracksByDisc.length > 1);
 
   function selectGenre(name: string) {
+    // Leaf / orphan — strict subgenre filter. Find which branch it belongs
+    // to so the breadcrumb shows the path.
     selectedGenreName = name;
+    selectedParent = null;
+    for (const [parent, children] of Object.entries(tree)) {
+      if (parent.toLowerCase() === name.toLowerCase()) {
+        // The user clicked the parent name directly from a chip — treat
+        // it as "browse the whole branch".
+        selectedParent = parent;
+        selectedGenreName = null;
+        break;
+      }
+      if (children.some(c => c.toLowerCase() === name.toLowerCase())) {
+        selectedParent = parent;
+        break;
+      }
+    }
     selectedAlbum = null;
     genreAlbumTracks = [];
     level = 'genre';
+  }
+
+  function selectParentBranch(parent: string) {
+    selectedParent = parent;
+    selectedGenreName = null;
+    selectedAlbum = null;
+    genreAlbumTracks = [];
+    level = 'genre';
+  }
+
+  function selectChild(child: string) {
+    // From within a parent branch, narrow to a specific subgenre.
+    selectedGenreName = child;
+    selectedAlbum = null;
+    genreAlbumTracks = [];
   }
 
   async function selectAlbumDetail(album: Album) {
@@ -63,9 +162,18 @@
 
   function goToList() {
     level = 'list';
+    selectedParent = null;
     selectedGenreName = null;
     selectedAlbum = null;
     genreAlbumTracks = [];
+  }
+
+  function goToParent() {
+    // Drop the subgenre filter, keep the branch view.
+    selectedGenreName = null;
+    selectedAlbum = null;
+    genreAlbumTracks = [];
+    level = 'genre';
   }
 
   function goToGenre() {
@@ -117,36 +225,100 @@
       api.getAlbums(500).then(result => albums.set(result)).catch(e => console.error('Load albums error:', e));
     }
   });
+
+  // Load the genre tree once.
+  $effect(() => {
+    api.getGenreTree().then(r => tree = r.tree ?? {}).catch(e => console.error('Load genre tree error:', e));
+  });
 </script>
 
 <div class="genres-view">
   {#if level === 'list'}
-    <!-- Genre list -->
+    <!-- Genre list — branches first, then orphan genres -->
     <div class="view-header">
       <h2>{$tr('nav.genres')}</h2>
     </div>
-    <div class="genres-grid">
-      {#each $genres as g}
-        <button class="genre-card" onclick={() => selectGenre(g.name)}>
-          <span class="genre-card-name">{g.name}</span>
-          <span class="genre-card-count">{g.count} {g.count > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
-        </button>
-      {/each}
-      {#if $genres.length === 0}
-        <div class="empty">{$tr('library.noGenres')}</div>
-      {/if}
-    </div>
+    {#if Object.keys(tree).length > 0}
+      <div class="branches">
+        {#each Object.keys(tree).sort((a, b) => (parentCounts[b] ?? 0) - (parentCounts[a] ?? 0)) as parent (parent)}
+          {@const total = parentCounts[parent] ?? 0}
+          {#if total > 0}
+            <div class="branch-row">
+              <button class="branch-card" onclick={() => selectParentBranch(parent)}>
+                <span class="branch-name">{parent}</span>
+                <span class="branch-count">{total} {total > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
+              </button>
+              <div class="branch-children">
+                {#each tree[parent] as child}
+                  {@const c = ($genres.find(g => g.name.toLowerCase() === child.toLowerCase())?.count ?? 0)}
+                  {#if c > 0}
+                    <button class="child-chip" onclick={() => selectGenre(child)}>
+                      {child} <span class="child-count">{c}</span>
+                    </button>
+                  {/if}
+                {/each}
+              </div>
+            </div>
+          {/if}
+        {/each}
+      </div>
+    {/if}
 
-  {:else if level === 'genre' && selectedGenreName}
-    <!-- Genre albums -->
+    {#if orphanGenres.length > 0}
+      <h3 class="section-title">Hors arbre</h3>
+      <div class="genres-grid">
+        {#each orphanGenres as g}
+          <button class="genre-card" onclick={() => selectGenre(g.name)}>
+            <span class="genre-card-name">{g.name}</span>
+            <span class="genre-card-count">{g.count} {g.count > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
+          </button>
+        {/each}
+      </div>
+    {/if}
+
+    {#if $genres.length === 0}
+      <div class="empty">{$tr('library.noGenres')}</div>
+    {/if}
+
+  {:else if level === 'genre' && (displayParent || selectedGenreName)}
+    <!-- Genre albums (parent branch OR specific subgenre) -->
     <div class="view-header">
       <nav class="breadcrumbs">
         <button class="breadcrumb-link" onclick={goToList}>{$tr('nav.genres')}</button>
-        <span class="breadcrumb-sep">/</span>
-        <span class="breadcrumb-current">{selectedGenreName}</span>
+        {#if displayParent}
+          <span class="breadcrumb-sep">/</span>
+          {#if selectedGenreName}
+            <button class="breadcrumb-link" onclick={() => { selectedParent = displayParent; goToParent(); }}>{displayParent}</button>
+          {:else}
+            <span class="breadcrumb-current">{displayParent}</span>
+          {/if}
+        {/if}
+        {#if selectedGenreName}
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-current">{selectedGenreName}</span>
+        {/if}
       </nav>
       <span class="genre-count">{genreAlbums.length} {genreAlbums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
     </div>
+
+    <!-- Sub-genre chips when on a parent branch (lets user narrow without going back) -->
+    {#if displayParent && tree[displayParent]}
+      <div class="subchips">
+        {#if selectedGenreName}
+          <button class="subchip" onclick={() => { selectedParent = displayParent; goToParent(); }}>Tous</button>
+        {:else}
+          <button class="subchip subchip-all" disabled>Tous</button>
+        {/if}
+        {#each tree[displayParent] as child}
+          {@const c = ($genres.find(g => g.name.toLowerCase() === child.toLowerCase())?.count ?? 0)}
+          {#if c > 0}
+            <button class="subchip" class:active={selectedGenreName === child} onclick={() => selectChild(child)}>
+              {child} <span class="subchip-count">{c}</span>
+            </button>
+          {/if}
+        {/each}
+      </div>
+    {/if}
     <div class="albums-grid">
       {#each genreAlbums as album}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -174,8 +346,14 @@
     <div class="view-header">
       <nav class="breadcrumbs">
         <button class="breadcrumb-link" onclick={goToList}>{$tr('nav.genres')}</button>
-        <span class="breadcrumb-sep">/</span>
-        <button class="breadcrumb-link" onclick={goToGenre}>{selectedGenreName}</button>
+        {#if displayParent}
+          <span class="breadcrumb-sep">/</span>
+          <button class="breadcrumb-link" onclick={() => { selectedParent = displayParent; goToParent(); }}>{displayParent}</button>
+        {/if}
+        {#if selectedGenreName}
+          <span class="breadcrumb-sep">/</span>
+          <button class="breadcrumb-link" onclick={goToGenre}>{selectedGenreName}</button>
+        {/if}
         <span class="breadcrumb-sep">/</span>
         <span class="breadcrumb-current">{selectedAlbum.title}</span>
       </nav>
@@ -376,6 +554,78 @@
     font-family: var(--font-body);
     font-size: 13px;
     color: var(--tune-text-muted);
+  }
+
+  /* Branches (genre tree on the list view) */
+  .branches {
+    display: flex; flex-direction: column;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+  }
+  .branch-row {
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md) var(--space-lg);
+    display: flex; flex-direction: column; gap: var(--space-sm);
+  }
+  .branch-card {
+    display: flex; justify-content: space-between; align-items: baseline;
+    background: none; border: none; padding: 0;
+    color: var(--tune-text); cursor: pointer; text-align: left;
+  }
+  .branch-name {
+    font-family: var(--font-label);
+    font-size: 18px; font-weight: 700;
+  }
+  .branch-card:hover .branch-name { color: var(--tune-accent); }
+  .branch-count {
+    font-family: var(--font-body);
+    font-size: 13px; color: var(--tune-text-muted);
+  }
+  .branch-children {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .child-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    background: rgba(var(--tune-accent-rgb,99,102,241),0.10);
+    color: var(--tune-text);
+    border: 1px solid rgba(var(--tune-accent-rgb,99,102,241),0.18);
+    border-radius: 14px; font-size: 12px; cursor: pointer;
+    transition: background 0.12s;
+  }
+  .child-chip:hover { background: rgba(var(--tune-accent-rgb,99,102,241),0.22); }
+  .child-count {
+    color: var(--tune-text-muted); font-size: 11px;
+  }
+
+  .section-title {
+    font-family: var(--font-label);
+    font-size: 13px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--tune-text-muted);
+    margin: var(--space-md) 0 var(--space-sm);
+  }
+
+  /* Subgenre chips above the album grid in branch view */
+  .subchips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-bottom: var(--space-md);
+  }
+  .subchip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px;
+    background: var(--tune-bg);
+    color: var(--tune-text-muted);
+    border: 1px solid var(--tune-border);
+    border-radius: 14px; font-size: 12px; cursor: pointer;
+  }
+  .subchip:hover { color: var(--tune-text); border-color: var(--tune-accent); }
+  .subchip.active { background: var(--tune-accent); color: white; border-color: var(--tune-accent); }
+  .subchip-all { background: rgba(var(--tune-accent-rgb,99,102,241),0.15); color: var(--tune-accent); cursor: default; }
+  .subchip-count {
+    color: inherit; opacity: 0.7; font-size: 11px;
   }
 
   /* Albums grid */

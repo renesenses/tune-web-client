@@ -1,8 +1,9 @@
 <script lang="ts">
   import * as api from '../lib/api';
   import { artworkUrl } from '../lib/api';
-  import type { Album, Artist } from '../lib/types';
+  import type { Album, Artist, Track } from '../lib/types';
   import { t } from '../lib/i18n';
+  import TrackTagsDrawer from './TrackTagsDrawer.svelte';
 
   interface Props {
     album: Album;
@@ -16,12 +17,36 @@
   let year = $state<number | null>(album.year ?? null);
   let genre = $state(album.genre ?? '');
   let artistId = $state<number | null>(album.artist_id ?? null);
+  let artistInput = $state<string>(album.artist_name ?? '');
   let coverPath = $state(album.cover_path ?? null);
+  let label = $state(album.label ?? '');
+  let catalogNumber = $state(album.catalog_number ?? '');
 
   let artists = $state<Artist[]>([]);
   let saving = $state(false);
   let success = $state(false);
   let error = $state<string | null>(null);
+
+  // Tracks list (collapsible) + per-track all-tags drawer
+  let tracks = $state<Track[]>([]);
+  let tracksLoaded = $state(false);
+  let tracksOpen = $state(false);
+  let editingTrackId = $state<number | null>(null);
+
+  async function loadTracks() {
+    if (!album.id || tracksLoaded) return;
+    try {
+      tracks = await api.getAlbumTracks(album.id);
+      tracksLoaded = true;
+    } catch (e) {
+      console.error('Load tracks error:', e);
+    }
+  }
+
+  async function toggleTracks() {
+    tracksOpen = !tracksOpen;
+    if (tracksOpen && !tracksLoaded) await loadTracks();
+  }
 
   // Cover upload/search state
   let uploading = $state(false);
@@ -32,10 +57,23 @@
 
   async function loadArtists() {
     try {
-      artists = await api.getArtists(500, 0);
+      // Fetch the entire artist catalog so the autocomplete works for
+      // every name in the library (not just the alphabetical first 500).
+      // 5000 is the server's cap and ample for any realistic music
+      // library — Bertrand's largest is ~1300 artists.
+      artists = await api.getArtists(5000, 0);
     } catch (e) {
       console.error('Load artists error:', e);
     }
+  }
+
+  function resolveArtistByName(name: string): number | null {
+    const target = (name || '').trim().toLowerCase();
+    if (!target) return null;
+    // Exact (case-insensitive) match wins; otherwise no match → keep
+    // current artistId so we don't accidentally rewrite to a wrong one.
+    const hit = artists.find(a => (a.name || '').toLowerCase() === target);
+    return hit?.id ?? null;
   }
 
   let writingTags = $state(false);
@@ -52,6 +90,8 @@
       if (year !== (album.year ?? null)) data.year = year;
       if (genre !== (album.genre ?? '')) data.genre = genre || null;
       if (artistId !== (album.artist_id ?? null)) data.artist_id = artistId;
+      if (label !== (album.label ?? '')) data.label = label || null;
+      if (catalogNumber !== (album.catalog_number ?? '')) data.catalog_number = catalogNumber || null;
 
       if (Object.keys(data).length > 0) {
         const updated = await api.updateAlbum(album.id, data);
@@ -234,12 +274,28 @@
 
           <label class="field">
             <span class="field-label">{$t('metadata.artist')}</span>
-            <select bind:value={artistId}>
-              <option value={null}>--</option>
-              {#each artists as a}
-                <option value={a.id}>{a.name}</option>
+            <input
+              type="text"
+              bind:value={artistInput}
+              list="artist-suggestions"
+              autocomplete="off"
+              onblur={() => {
+                const resolved = resolveArtistByName(artistInput);
+                if (resolved) artistId = resolved;
+                // If no exact match, leave artistId unchanged (we don't
+                // create new artists from this drawer; use a dedicated
+                // 'New artist' flow if needed).
+              }}
+              placeholder="Tape pour chercher (autocomplétion)…"
+            />
+            <datalist id="artist-suggestions">
+              {#each artists as a (a.id)}
+                <option value={a.name}></option>
               {/each}
-            </select>
+            </datalist>
+            {#if artistInput && !resolveArtistByName(artistInput) && artistInput.trim().toLowerCase() !== (album.artist_name ?? '').toLowerCase()}
+              <span class="hint-warn">Aucun artiste exact ne correspond — choisis dans la liste.</span>
+            {/if}
           </label>
 
           <div class="field-row">
@@ -260,6 +316,41 @@
               {/if}
             </label>
           </div>
+
+          <label class="field">
+            <span class="field-label">Label</span>
+            <input type="text" bind:value={label} placeholder="Blue Note, ECM, …" />
+          </label>
+
+          <label class="field">
+            <span class="field-label">Catalogue</span>
+            <input type="text" bind:value={catalogNumber} placeholder="N° de catalogue" />
+          </label>
+        </div>
+
+        <!-- Tracks (collapsible). Click a track to open all-tags drawer. -->
+        <div class="tracks-section">
+          <button class="tracks-toggle" onclick={toggleTracks}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="transform: rotate({tracksOpen ? 90 : 0}deg); transition: transform 0.15s">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+            Pistes {tracksLoaded ? `(${tracks.length})` : ''}
+            <span class="tracks-hint">— clic = tous les champs</span>
+          </button>
+          {#if tracksOpen}
+            <div class="tracks-list">
+              {#each tracks as t}
+                <button class="track-row" onclick={() => editingTrackId = t.id} disabled={!t.id}>
+                  <span class="track-num">{t.track_number ?? '—'}</span>
+                  <span class="track-title">{t.title}</span>
+                  <span class="track-meta">{t.duration_ms ? Math.floor(t.duration_ms / 60000) + ':' + String(Math.floor(t.duration_ms / 1000) % 60).padStart(2, '0') : ''}</span>
+                </button>
+              {/each}
+              {#if tracks.length === 0 && tracksLoaded}
+                <div class="state-empty">Aucune piste.</div>
+              {/if}
+            </div>
+          {/if}
         </div>
 
         {#if error}
@@ -293,14 +384,17 @@
   </div>
 </div>
 
+{#if editingTrackId !== null}
+  <TrackTagsDrawer trackId={editingTrackId} onClose={() => editingTrackId = null} />
+{/if}
+
 <style>
   .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.4);
     display: flex;
-    align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
     z-index: 200;
     animation: fadeIn 0.15s ease-out;
   }
@@ -312,19 +406,24 @@
 
   .modal {
     background: var(--tune-surface);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-lg);
-    width: 440px;
-    max-height: 85vh;
+    border-left: 1px solid var(--tune-border);
+    width: 420px;
+    max-width: 92vw;
+    height: 100vh;
     display: flex;
     flex-direction: column;
-    animation: slideUp 0.2s ease-out;
+    animation: slideInRight 0.22s cubic-bezier(0.2, 0.7, 0.2, 1);
     overflow: hidden;
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.25);
   }
 
-  @keyframes slideUp {
-    from { transform: translateY(16px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+  @keyframes slideInRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+
+  @media (max-width: 600px) {
+    .modal { width: 100%; }
   }
 
   .modal-header {
@@ -620,5 +719,51 @@
 
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  .hint-warn {
+    font-size: 11px;
+    color: #fdba74;
+    margin-top: 4px;
+  }
+
+  /* Tracks section (collapsible) */
+  .tracks-section {
+    margin-top: 8px;
+    border-top: 1px solid var(--tune-border);
+    padding-top: 12px;
+  }
+  .tracks-toggle {
+    display: flex; align-items: center; gap: 6px;
+    background: none; border: none;
+    color: var(--tune-text); font-size: 12px;
+    font-family: var(--font-label); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    cursor: pointer; padding: 0; margin: 0;
+  }
+  .tracks-hint { color: var(--tune-text-muted); font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 11px; }
+  .tracks-list {
+    margin-top: 6px;
+    display: flex; flex-direction: column;
+    gap: 1px; max-height: 240px; overflow-y: auto;
+  }
+  .track-row {
+    display: grid; grid-template-columns: 32px 1fr 50px;
+    gap: 8px; align-items: center;
+    padding: 6px 8px;
+    background: var(--tune-bg);
+    border: none; color: var(--tune-text);
+    text-align: left; cursor: pointer;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .track-row:hover { background: var(--tune-surface-hover, rgba(255,255,255,0.05)); }
+  .track-row:disabled { opacity: 0.5; cursor: default; }
+  .track-num { color: var(--tune-text-muted); font-family: var(--font-label); text-align: right; }
+  .track-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .track-meta { color: var(--tune-text-muted); text-align: right; font-family: var(--font-label); font-size: 11px; }
+  .state-empty {
+    padding: 12px; text-align: center;
+    color: var(--tune-text-muted); font-size: 12px;
   }
 </style>

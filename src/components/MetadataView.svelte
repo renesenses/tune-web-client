@@ -3,8 +3,19 @@
   import { artworkUrl } from '../lib/api';
   import type { Album, Artist, Track, CompletenessStats, BackupInfo } from '../lib/types';
   import { t } from '../lib/i18n';
+  import { notifications } from '../lib/stores/notifications';
+  import { runAsyncOp } from '../lib/asyncOp';
   import AlbumArt from './AlbumArt.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
+  import MetadataStatsDashboard from './MetadataStatsDashboard.svelte';
+  import MetadataMp3Panel from './MetadataMp3Panel.svelte';
+
+  let toolsMenuOpen = $state(false);
+  function closeToolsMenu() { toolsMenuOpen = false; }
+  async function runFromMenu(fn: () => Promise<any>, _label: string) {
+    closeToolsMenu();
+    await fn();
+  }
 
   let stats = $state<CompletenessStats | null>(null);
   let albumsWithoutCover = $state<Album[]>([]);
@@ -45,34 +56,228 @@
   let fixGenresRunning = $state(false);
   let fixGenresResult = $state<{ total: number; fixed: number } | null>(null);
 
+  /** Refresh side effect : stats + albums list. Lance les deux en parallèle. */
+  async function refreshLibraryView() {
+    const [s, albums] = await Promise.all([
+      api.getCompletenessStats(),
+      api.getAllAlbums(),
+    ]);
+    stats = s;
+    allAlbums = albums;
+  }
+
   async function handleFixYears(source: string) {
-    fixYearsRunning = source;
     fixYearsResult = null;
-    try {
-      let result: any;
-      if (source === 'musicbrainz') result = await api.fixYearsMusicBrainz();
-      else if (source === 'discogs') result = await api.fixYearsDiscogs();
-      else if (source === 'tidal') result = await api.fixYearsTidal();
-      else if (source === 'tags') result = await api.fixYearsTags();
-      fixYearsResult = { source, total: result.total ?? 0, fixed: result.fixed ?? 0, not_found: result.not_found ?? 0 };
-      api.getCompletenessStats().then(s => stats = s);
-    } catch (e: any) {
-      fixYearsResult = { source, total: 0, fixed: 0, not_found: 0 };
-    }
-    fixYearsRunning = null;
+    const r = await runAsyncOp({
+      pending: `Années (${source}) en cours… (peut prendre plusieurs minutes)`,
+      errorPrefix: `Échec années ${source}`,
+      setRunning: (on) => fixYearsRunning = on ? source : null,
+      run: () => {
+        if (source === 'musicbrainz') return api.fixYearsMusicBrainz();
+        if (source === 'discogs') return api.fixYearsDiscogs();
+        if (source === 'tidal') return api.fixYearsTidal();
+        return api.fixYearsTags();
+      },
+      success: (result) => {
+        const fixed = result.fixed ?? 0, total = result.total ?? 0, nf = result.not_found ?? 0;
+        fixYearsResult = { source, total, fixed, not_found: nf };
+        return `Années ${source} : ${fixed} corrigées sur ${total}${nf ? ` (${nf} introuvables)` : ''}`;
+      },
+    });
+    if (r) api.getCompletenessStats().then(s => stats = s);
+    else fixYearsResult = { source, total: 0, fixed: 0, not_found: 0 };
   }
 
   async function handleFixGenres() {
-    fixGenresRunning = true;
     fixGenresResult = null;
-    try {
-      const result = await api.fixGenres();
-      fixGenresResult = { total: result.total ?? 0, fixed: result.fixed ?? 0 };
-      api.getCompletenessStats().then(s => stats = s);
-    } catch {
-      fixGenresResult = { total: 0, fixed: 0 };
-    }
-    fixGenresRunning = false;
+    const r = await runAsyncOp({
+      pending: 'Genres Last.fm en cours… (peut prendre plusieurs minutes)',
+      errorPrefix: 'Échec genres',
+      setRunning: (on) => fixGenresRunning = on,
+      run: () => api.fixGenres(),
+      success: (result) => {
+        const fixed = result.fixed ?? 0, total = result.total ?? 0;
+        fixGenresResult = { total, fixed };
+        return `Genres : ${fixed} corrigés sur ${total}`;
+      },
+    });
+    if (r) api.getCompletenessStats().then(s => stats = s);
+    else fixGenresResult = { total: 0, fixed: 0 };
+  }
+
+  let fixingGenresByArtist = $state(false);
+  async function handleFixGenresByArtist() {
+    const r = await runAsyncOp({
+      pending: 'Propagation par artiste en cours…',
+      errorPrefix: 'Échec propagation',
+      setRunning: (on) => fixingGenresByArtist = on,
+      run: () => api.fixGenresByArtist(0.7),
+      success: (r) => `Propagation : ${r.fixed} albums corrigés sur ${r.total} candidats. ` +
+        `Ignorés : ${r.skipped_low_coherence} (artistes trop hétérogènes), ${r.skipped_no_known_genre} (artiste sans genre connu).`,
+    });
+    if (r) await refreshLibraryView();
+  }
+
+  let fixingGenresFuzzy = $state(false);
+  async function handleFixGenresFuzzy() {
+    const r = await runAsyncOp({
+      pending: 'Propagation fuzzy (variantes Quartet/Trio/…) en cours…',
+      errorPrefix: 'Échec fuzzy',
+      setRunning: (on) => fixingGenresFuzzy = on,
+      run: () => api.fixGenresByArtistFuzzy(0.7),
+      success: (r) => `Fuzzy : ${r.fixed} corrigés sur ${r.total} candidats. ` +
+        `Ignorés : ${r.skipped_low_coherence} hétérogènes, ${r.skipped_no_known_genre} sans genre connu.`,
+    });
+    if (r) await refreshLibraryView();
+  }
+
+  let fixingYearsFromPath = $state(false);
+  async function handleFixYearsFromPath() {
+    const r = await runAsyncOp({
+      pending: 'Extraction années depuis chemin de fichier…',
+      errorPrefix: 'Échec',
+      setRunning: (on) => fixingYearsFromPath = on,
+      run: () => api.fixYearsFromPath(),
+      success: (r) => `Années (chemin) : ${r.fixed} corrigées sur ${r.total}, ${r.not_found} sans année dans le chemin.`,
+    });
+    if (r) await refreshLibraryView();
+  }
+
+  let fixingYearsItunes = $state(false);
+  async function handleFixYearsItunes() {
+    const r = await runAsyncOp({
+      pending: 'Recherche années sur iTunes Search API…',
+      errorPrefix: 'Échec iTunes',
+      setRunning: (on) => fixingYearsItunes = on,
+      run: () => api.fixYearsItunes(),
+      success: (r) => `iTunes : ${r.fixed} années corrigées sur ${r.total}, ${r.not_found} non trouvées.`,
+    });
+    if (r) await refreshLibraryView();
+  }
+
+  let mp3DiagnoseRunning = $state(false);
+  let mp3Issues = $state<any[]>([]);
+  let mp3Summary = $state<{ scanned: number; ok_files: number; missing_files: number; issues_found: number } | null>(null);
+  let mp3PanelOpen = $state(false);
+  let mp3Repairing = $state(false);
+
+  async function handleDiagnoseMp3() {
+    await runAsyncOp({
+      pending: 'Diagnostic MP3 en cours (mutagen + ffprobe)…',
+      errorPrefix: 'Échec diagnostic MP3',
+      setRunning: (on) => mp3DiagnoseRunning = on,
+      run: () => api.diagnoseMp3(),
+      success: (r) => {
+        mp3Issues = r.issues || [];
+        mp3Summary = {
+          scanned: r.scanned ?? 0,
+          ok_files: r.ok_files ?? 0,
+          missing_files: r.missing_files ?? 0,
+          issues_found: r.issues_found ?? 0,
+        };
+        mp3PanelOpen = true;
+        if ((r.issues_found ?? 0) === 0) {
+          return `MP3 OK : ${r.ok_files} fichiers sains, aucun problème détecté.`;
+        }
+        notifications.info(`MP3 : ${r.issues_found} problèmes détectés sur ${r.scanned}. Panel ouvert pour réparation.`, 0);
+        return null;
+      },
+    });
+  }
+
+  async function handleRepairMp3All() {
+    if (!mp3Issues.length) return;
+    if (!confirm(`Réparer ${mp3Issues.length} fichier(s) MP3 via ffmpeg -c:a copy ?\n\nLes fichiers sont réécrits sur disque (sans transcodage = sans perte de qualité).`)) return;
+    const r = await runAsyncOp({
+      pending: `Réparation de ${mp3Issues.length} fichiers MP3…`,
+      errorPrefix: 'Échec réparation',
+      setRunning: (on) => mp3Repairing = on,
+      run: () => api.repairMp3(mp3Issues.map((i: any) => i.track_id).filter(Boolean)),
+      success: (r) => `MP3 réparés : ${r.repaired}/${r.requested}, ${r.failed?.length ?? 0} échecs, ${r.skipped} ignorés.`,
+    });
+    if (r) await handleDiagnoseMp3();
+  }
+
+  async function handleRepairMp3One(trackId: number) {
+    await runAsyncOp({
+      pending: 'Réparation…',
+      run: () => api.repairMp3([trackId]),
+      success: (r) => {
+        if ((r.repaired ?? 0) > 0) {
+          mp3Issues = mp3Issues.filter((i: any) => i.track_id !== trackId);
+          return 'Fichier réparé.';
+        }
+        if (r.failed?.length) {
+          notifications.error(`Échec : ${r.failed[0].error}`);
+        }
+        return null;
+      },
+    });
+  }
+
+  let mergingAlbums = $state(false);
+  async function handleMergeDuplicates() {
+    if (!confirm("Fusionner les albums dupliqués (titre+artiste normalisés, par niveau de qualité) ?\n\nLes pistes sont réassignées au gagnant (plus de pistes), les doublons de fichiers sont supprimés. Action irréversible.")) return;
+    const r = await runAsyncOp({
+      pending: 'Fusion des albums dupliqués…',
+      errorPrefix: 'Échec fusion',
+      setRunning: (on) => mergingAlbums = on,
+      run: () => api.mergeDuplicateAlbums(),
+      success: (r) => {
+        const grp = (r.groups_merged as number) ?? 0;
+        const del = (r.albums_deleted as number) ?? (r.merged as number) ?? 0;
+        return `Fusion : ${grp} groupes traités, ${del} albums dupliqués supprimés.`;
+      },
+    });
+    if (r) await refreshLibraryView();
+  }
+
+  let fixingYearsWikidata = $state(false);
+  async function handleFixYearsWikidata() {
+    const r = await runAsyncOp({
+      pending: 'Recherche années sur Wikidata…',
+      errorPrefix: 'Échec Wikidata',
+      setRunning: (on) => fixingYearsWikidata = on,
+      run: () => api.fixYearsWikidata(),
+      success: (r) => `Wikidata : ${r.fixed} années corrigées sur ${r.total}, ${r.not_found} non trouvées.`,
+    });
+    if (r) await refreshLibraryView();
+  }
+
+  let reclassifyingByPath = $state(false);
+  async function handleReclassifyByPath(dryRun: boolean = false) {
+    const r = await runAsyncOp({
+      pending: dryRun ? 'Aperçu reclassification…' : 'Reclassification par chemin en cours…',
+      errorPrefix: 'Échec',
+      setRunning: (on) => reclassifyingByPath = on,
+      run: () => api.reclassifyGenresByPath(dryRun),
+      success: (r) => {
+        if (dryRun) {
+          const sugTotal = (r.suggestions_total as number) ?? 0;
+          const scanned = (r.scanned as number) ?? 0;
+          const details = (r.details as any[]) ?? [];
+          const example = details.length ? ` Ex: "${details[0].title}" → ${details[0].suggested}.` : '';
+          notifications.info(`Aperçu : ${sugTotal} albums seraient reclassés (${scanned} scannés).${example}`, 0);
+          return null;
+        }
+        return `${r.fixed} albums reclassés en sous-genre selon leur chemin.`;
+      },
+    });
+    if (r) await refreshLibraryView();
+  }
+
+  let fixingGenresByFamily = $state(false);
+  async function handleFixGenresByFamily(threshold = 0.7) {
+    const label = threshold >= 0.7 ? 'prudent' : 'agressif';
+    const r = await runAsyncOp({
+      pending: `Propagation par famille (${label}, ≥${Math.round(threshold * 100)}%) en cours…`,
+      errorPrefix: 'Échec famille',
+      setRunning: (on) => fixingGenresByFamily = on,
+      run: () => api.fixGenresByFamily(threshold),
+      success: (r) => `Famille (${label}) : ${r.fixed} corrigés sur ${r.total}. ` +
+        `Ignorés : ${r.skipped_low_coherence} familles trop éparpillées, ${r.skipped_no_known_genre} artistes sans genre connu.`,
+    });
+    if (r) await refreshLibraryView();
   }
 
   function dismissFixResult() {
@@ -87,28 +292,34 @@
 
   async function handleWriteTags() {
     if (!confirm('Écrire les métadonnées (genre, année, artiste...) dans tous les fichiers musicaux ?')) return;
-    writingTags = true;
     writeResult = null;
-    try {
-      const r = await api.writeAllTags();
-      writeResult = { type: 'tags', message: `Tags écrits : ${r.updated} fichiers modifiés, ${r.skipped} ignorés, ${r.errors} erreurs` };
-    } catch (e: any) {
-      writeResult = { type: 'tags', message: `Erreur : ${e?.message || e}` };
-    }
-    writingTags = false;
+    await runAsyncOp({
+      pending: 'Écriture des tags en cours… (peut prendre plusieurs minutes)',
+      errorPrefix: 'Écriture tags',
+      setRunning: (on) => writingTags = on,
+      run: () => api.writeAllTags(),
+      success: (r) => {
+        const msg = `Tags écrits : ${r.updated} fichiers modifiés, ${r.skipped} ignorés, ${r.errors} erreurs`;
+        writeResult = { type: 'tags', message: msg };
+        return msg;
+      },
+    });
   }
 
   async function handleWriteCovers() {
     if (!confirm('Copier les covers dans les dossiers albums (cover.jpg) ?')) return;
-    writingCovers = true;
     writeResult = null;
-    try {
-      const r = await api.writeAllCovers();
-      writeResult = { type: 'covers', message: `Covers : ${r.written} copiées, ${r.skipped} déjà présentes, ${r.errors} erreurs` };
-    } catch (e: any) {
-      writeResult = { type: 'covers', message: `Erreur : ${e?.message || e}` };
-    }
-    writingCovers = false;
+    await runAsyncOp({
+      pending: 'Copie des covers en cours…',
+      errorPrefix: 'Covers',
+      setRunning: (on) => writingCovers = on,
+      run: () => api.writeAllCovers(),
+      success: (r) => {
+        const msg = `Covers : ${r.written} copiées, ${r.skipped} déjà présentes, ${r.errors} erreurs`;
+        writeResult = { type: 'covers', message: msg };
+        return msg;
+      },
+    });
   }
 
   let albumNameInput = $state('');
@@ -266,27 +477,25 @@
   let scanDupMessage = $state<string | null>(null);
 
   async function handleScanDuplicates() {
-    scanningDuplicates = true;
     scanDupMessage = null;
-    try {
-      const result = await api.scanDuplicates();
-      scanDupMessage = `Scan : ${result.total_scanned} pistes analysées, ${result.duplicates_found} doublons`;
-      try {
+    await runAsyncOp({
+      pending: 'Scan doublons audio en cours… (peut prendre plusieurs minutes)',
+      errorPrefix: 'Erreur scan',
+      setRunning: (on) => scanningDuplicates = on,
+      run: async () => {
+        const result = await api.scanDuplicates();
         const d = await api.listDuplicates();
-        duplicates = d;
-        if (d.length === 0 && result.duplicates_found === 0) {
-          scanDupMessage = `Scan terminé : ${result.total_scanned} pistes analysées, aucun doublon audio détecté`;
+        return { result, d };
+      },
+      success: ({ result, d }) => {
+        duplicates = d as any[];
+        if ((d as any[]).length === 0 && result.duplicates_found === 0) {
+          return `Aucun doublon audio détecté (${result.total_scanned} pistes analysées)`;
         }
-      } catch (e2) {
-        console.error('List duplicates error:', e2);
-        scanDupMessage = `Scan OK (${result.duplicates_found} doublons) mais erreur au chargement de la liste`;
-      }
-      setTimeout(() => scanDupMessage = null, 8000);
-    } catch (e: any) {
-      console.error('Scan duplicates error:', e);
-      scanDupMessage = `Erreur : ${e?.message || e}`;
-    }
-    scanningDuplicates = false;
+        filter = 'duplicates';
+        return `Scan : ${result.duplicates_found} doublons sur ${result.total_scanned} pistes — onglet Doublons pour voir`;
+      },
+    });
   }
 
   async function resolveDuplicate(duplicateId: number, keepTrackId: number) {
@@ -380,51 +589,81 @@
   let metadataSearch = $state('');
   let filterArtist = $state('');
   let filterGenre = $state('');
+  let filterLabel = $state('');
+  let filterYearFrom = $state<number | null>(null);
+  let filterYearTo = $state<number | null>(null);
+  let smartSearchOpen = $state(false);
 
   let filteredAlbums = $derived.by(() => {
     let result: Album[];
     switch (filter) {
       case 'no_cover':
-        result = allAlbums.filter(a => !a.cover_path || a.id === editingDoubtfulId);
+        result = allAlbums.filter(a => !a.cover_path);
         break;
       case 'no_genre':
-        result = allAlbums.filter(a => !a.genre || a.id === editingDoubtfulId);
+        result = allAlbums.filter(a => !a.genre);
         break;
       case 'no_year':
-        result = allAlbums.filter(a => !a.year || a.id === editingDoubtfulId);
+        result = allAlbums.filter(a => !a.year);
         break;
       case 'no_artist':
-        result = allAlbums.filter(a => !a.artist_name || a.artist_name === 'Unknown Artist' || a.id === editingDoubtfulId);
+        result = allAlbums.filter(a => !a.artist_name || a.artist_name === 'Unknown Artist');
         break;
       case 'unknown':
         result = allAlbums.filter(a => {
           const t = (a.title ?? '').toLowerCase();
           const ar = (a.artist_name ?? '').toLowerCase();
-          return t.includes('unknown') || ar.includes('unknown') || a.id === editingDoubtfulId;
+          return t.includes('unknown') || ar.includes('unknown');
         });
         break;
       default:
         result = allAlbums;
     }
-    // Text search across title, artist, genre
+    // Text search across title, artist, genre, label
     if (metadataSearch.trim()) {
       const q = metadataSearch.trim().toLowerCase();
       result = result.filter(a =>
         (a.title ?? '').toLowerCase().includes(q) ||
         (a.artist_name ?? '').toLowerCase().includes(q) ||
-        (a.genre ?? '').toLowerCase().includes(q)
+        (a.genre ?? '').toLowerCase().includes(q) ||
+        (a.label ?? '').toLowerCase().includes(q)
       );
     }
-    // Artist dropdown filter
     if (filterArtist) {
       result = result.filter(a => a.artist_name === filterArtist);
     }
-    // Genre dropdown filter
     if (filterGenre) {
       result = result.filter(a => a.genre === filterGenre);
     }
+    if (filterLabel) {
+      result = result.filter(a => (a.label ?? '') === filterLabel);
+    }
+    if (filterYearFrom != null) {
+      result = result.filter(a => (a.year ?? 0) >= filterYearFrom!);
+    }
+    if (filterYearTo != null) {
+      result = result.filter(a => (a.year ?? 9999) <= filterYearTo!);
+    }
     return result;
   });
+
+  let availableLabels = $derived.by(() => {
+    const set = new Set<string>();
+    for (const a of allAlbums) if (a.label) set.add(a.label);
+    return [...set].sort((a, b) => a.localeCompare(b));
+  });
+
+  let activeSmartFilters = $derived(
+    (filterLabel ? 1 : 0) +
+    (filterYearFrom != null ? 1 : 0) +
+    (filterYearTo != null ? 1 : 0)
+  );
+
+  function clearSmartFilters() {
+    filterLabel = '';
+    filterYearFrom = null;
+    filterYearTo = null;
+  }
 
   // Count duplicate albums (same title, multiple entries)
   let duplicateCount = $derived.by(() => {
@@ -1030,21 +1269,10 @@
   }
 
   let doubtfulZoomCover = $state<string | null>(null);
-  let doubtfulCoverUploadId = $state<number | null>(null);
-  let editingDoubtfulId = $state<number | null>(null);
-  let doubtfulSavedId = $state<number | null>(null);
 
-  async function graverDoubtfulTags(albumId: number) {
-    try {
-      const r = await api.writeAlbumTags(albumId);
-      writeResult = { type: 'tags', message: `Tags gravés : ${r.updated ?? 0} fichiers` };
-      doubtfulSavedId = null;
-      editingDoubtfulId = null;
-    } catch (e: any) {
-      writeResult = { type: 'tags', message: `Erreur gravure : ${e?.message || e}` };
-    }
-  }
-
+  // Drag-drop / quick cover upload from the album cards. Editing the rest
+  // of the album metadata is now handled exclusively by AlbumEditModal
+  // (drawer); the inline-edit flow that lived here has been removed.
   async function handleDoubtfulCoverUpload(albumId: number, file: File) {
     try {
       const updated = await api.uploadAlbumArtwork(albumId, file);
@@ -1055,32 +1283,8 @@
         a.id === albumId ? { ...a, cover_path: updated.cover_path } : a
       );
       api.getCompletenessStats().then(s => stats = s);
-      // Enable Graver button after cover upload
-      doubtfulSavedId = albumId;
-      if (!editingDoubtfulId) {
-        const album = doubtfulAlbums.find(a => a.id === albumId) ?? allAlbums.find(a => a.id === albumId);
-        if (album) editDoubtful(album);
-      }
     } catch (e) {
       console.error('Cover upload error:', e);
-    }
-    doubtfulCoverUploadId = null;
-  }
-
-  function onDoubtfulCoverClick(albumId: number, coverPath: string | null) {
-    if (coverPath) {
-      doubtfulZoomCover = api.artworkUrl(coverPath);
-    } else {
-      // No cover: trigger file picker
-      doubtfulCoverUploadId = albumId;
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) handleDoubtfulCoverUpload(albumId, file);
-      };
-      input.click();
     }
   }
 
@@ -1090,47 +1294,6 @@
     if (file && file.type.startsWith('image/')) {
       handleDoubtfulCoverUpload(albumId, file);
     }
-  }
-  let editingDoubtfulData = $state<{ artist_name: string; title: string; genre: string; year: string }>({ artist_name: '', title: '', genre: '', year: '' });
-
-  function editDoubtful(album: any) {
-    editingDoubtfulId = album.id;
-    editingDoubtfulData = {
-      artist_name: album.artist_name ?? '',
-      title: album.title ?? '',
-      genre: album.genre ?? '',
-      year: album.year ? String(album.year) : '',
-    };
-  }
-
-  async function saveDoubtful() {
-    if (!editingDoubtfulId) return;
-    const updates: Record<string, any> = {};
-    const album = doubtfulAlbums.find(a => a.id === editingDoubtfulId) ?? allAlbums.find(a => a.id === editingDoubtfulId);
-    if (!album) return;
-    if (editingDoubtfulData.artist_name !== (album.artist_name ?? '')) updates.artist_name = editingDoubtfulData.artist_name;
-    if (editingDoubtfulData.title !== (album.title ?? '')) updates.title = editingDoubtfulData.title;
-    if (editingDoubtfulData.genre !== (album.genre ?? '')) updates.genre = editingDoubtfulData.genre;
-    const newYear = editingDoubtfulData.year ? parseInt(editingDoubtfulData.year) : null;
-    if (newYear !== (album as any).year) updates.year = newYear;
-    if (Object.keys(updates).length > 0) {
-      try {
-        await api.updateAlbumMetadata(editingDoubtfulId, updates);
-        // Update local state
-        doubtfulAlbums = doubtfulAlbums.map(a => a.id === editingDoubtfulId ? { ...a, ...updates } : a);
-        allAlbums = allAlbums.map(a => a.id === editingDoubtfulId ? { ...a, ...updates } : a);
-        doubtfulSavedId = editingDoubtfulId;
-      } catch (e) {
-        console.error('Save doubtful error:', e);
-      }
-    } else {
-      editingDoubtfulId = null;
-    }
-  }
-
-  function cancelDoubtful() {
-    editingDoubtfulId = null;
-    doubtfulSavedId = null;
   }
 
   // Column resize for doubtful table
@@ -1202,18 +1365,129 @@
   <div class="view-header">
     <h1>{$t('metadata.title')}</h1>
     <div class="header-actions">
-      <button class="btn-action" onclick={triggerScan}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 12a9 9 0 1 1-9-9" /><polyline points="21 3 21 9 15 9" /></svg>
-        {$t('settings.scanLibrary')}
+      <button class="btn-action" onclick={async () => {
+        const tid = notifications.info('Rafraîchissement…', 0);
+        try { await loadData(); notifications.dismiss(tid); notifications.success('Vue rafraîchie'); }
+        catch (e: any) { notifications.dismiss(tid); notifications.error(`Erreur : ${e?.message || e}`); }
+      }} disabled={loading} title="Rafraîchir la vue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Rafraîchir
       </button>
-      <button class="btn-action" onclick={rescanAll} disabled={rescanningAll}>
-        {#if rescanningAll}
-          <div class="spinner small"></div>
-        {:else}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+      <div class="tools-menu-wrap">
+        <button class="btn-action" onclick={(e) => { e.stopPropagation(); toolsMenuOpen = !toolsMenuOpen; }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Outils
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        {#if toolsMenuOpen}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="tools-backdrop" onclick={closeToolsMenu}></div>
+          <div class="tools-menu" onclick={(e) => e.stopPropagation()}>
+            <div class="tools-group-label">Bibliothèque</div>
+            <button class="tools-item" onclick={() => runFromMenu(triggerScan, 'scan')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12a9 9 0 1 1-9-9"/><polyline points="21 3 21 9 15 9"/></svg>
+              {$t('settings.scanLibrary')}
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(rescanAll, 'rescan')} disabled={rescanningAll}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              {rescanningAll ? '…' : $t('metadata.rescanAll')}
+            </button>
+
+            <div class="tools-group-label">Enrichir</div>
+            <button class="tools-item" onclick={() => runFromMenu(() => handleFixYears('musicbrainz'), 'mb')} disabled={!!fixYearsRunning}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Années (MusicBrainz)
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(() => handleFixYears('discogs'), 'discogs')} disabled={!!fixYearsRunning}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Années (Discogs)
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(() => handleFixYears('tidal'), 'tidal')} disabled={!!fixYearsRunning}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Années (Tidal)
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(() => handleFixYears('tags'), 'tags')} disabled={!!fixYearsRunning}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              Années (tags audio re-lus)
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(handleFixYearsFromPath, 'years_path')} disabled={fixingYearsFromPath}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              Années (depuis chemin du fichier)
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(handleFixYearsItunes, 'years_itunes')} disabled={fixingYearsItunes}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              Années (iTunes Search)
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(handleFixYearsWikidata, 'years_wikidata')} disabled={fixingYearsWikidata}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              Années (Wikidata)
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(handleFixGenresByArtist, 'genres_artist')} disabled={fixingGenresByArtist}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
+              Genres par artiste (instantané)
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(handleFixGenresFuzzy, 'genres_fuzzy')} disabled={fixingGenresFuzzy}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M11 8v6M8 11h6"/></svg>
+              Genres fuzzy (variantes Quartet/Trio/…)
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(() => handleFixGenresByFamily(0.7), 'genres_family')} disabled={fixingGenresByFamily}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h20M12 2v20M2 2l20 20M22 2L2 22"/></svg>
+              Genres par famille (prudent ≥70%)
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(() => handleFixGenresByFamily(0.6), 'genres_family_aggressive')} disabled={fixingGenresByFamily}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h20M12 2v20"/><circle cx="12" cy="12" r="10"/></svg>
+              Genres par famille (agressif ≥60%)
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(() => handleReclassifyByPath(true), 'reclass_dry')} disabled={reclassifyingByPath}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              Reclassifier sous-genres (aperçu chemins)
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(() => handleReclassifyByPath(false), 'reclass_apply')} disabled={reclassifyingByPath}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+              Reclassifier sous-genres (appliquer)
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(handleFixGenres, 'genres')} disabled={fixGenresRunning}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              Genres (Last.fm)
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(async () => { await api.triggerEnrich(); notifications.success('Enrichissement MusicBrainz lancé'); }, 'enrich')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>
+              Enrichir via MusicBrainz
+            </button>
+
+            <div class="tools-group-label">Tags &amp; covers</div>
+            <button class="tools-item" onclick={() => runFromMenu(handleWriteTags, 'tags')} disabled={writingTags}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 3v13M5 10l7 7 7-7"/><line x1="4" y1="21" x2="20" y2="21"/></svg>
+              Graver tags dans les fichiers
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(handleWriteCovers, 'covers')} disabled={writingCovers}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Copier covers dans dossiers
+            </button>
+
+            <div class="tools-group-label">Doublons &amp; Suggestions</div>
+            <button class="tools-item" onclick={() => runFromMenu(handleScanDuplicates, 'scan_dup')} disabled={scanningDuplicates}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              {scanningDuplicates ? 'Scan en cours…' : 'Scanner les doublons audio'}
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(handleMergeDuplicates, 'merge_dup')} disabled={mergingAlbums}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+              Fusionner doublons (titre+artiste normalisés)
+            </button>
+
+            <div class="tools-group-label">MP3 — diagnostic</div>
+            <button class="tools-item" onclick={() => runFromMenu(handleDiagnoseMp3, 'mp3_diag')} disabled={mp3DiagnoseRunning}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              {mp3DiagnoseRunning ? 'Diagnostic…' : 'Diagnostiquer MP3 (Jacques)'}
+            </button>
+            <button class="tools-item" onclick={() => { closeToolsMenu(); handleShowSuggestions(); }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+              Voir suggestions{suggestionCount ? ` (${suggestionCount})` : ''}
+            </button>
+          </div>
         {/if}
-        {$t('metadata.rescanAll')}
-      </button>
+      </div>
     </div>
   </div>
 
@@ -1221,171 +1495,115 @@
     <div class="loading"><div class="spinner"></div></div>
   {:else if stats}
     <!-- Stats dashboard -->
-    <div class="stats-grid">
-      <button class="stat-card" class:stat-active={filter === 'no_cover'} onclick={() => filter = 'no_cover'}>
-        <div class="stat-header">
-          <span class="stat-label">{$t('metadata.cover')}</span>
-          <span class="stat-value">{completionPercent(stats.albums_without_cover, stats.total_albums)}%</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: {completionPercent(stats.albums_without_cover, stats.total_albums)}%"></div>
-        </div>
-        <span class="stat-detail">{stats.albums_without_cover} / {stats.total_albums} {$t('metadata.missingCovers').toLowerCase()}</span>
-      </button>
+    <MetadataStatsDashboard {stats} {filter} onFilter={(f) => filter = f} />
 
-      <button class="stat-card" class:stat-active={filter === 'no_genre'} onclick={() => filter = 'no_genre'}>
-        <div class="stat-header">
-          <span class="stat-label">{$t('metadata.genre')}</span>
-          <span class="stat-value">{completionPercent(stats.albums_without_genre, stats.total_albums)}%</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: {completionPercent(stats.albums_without_genre, stats.total_albums)}%"></div>
-        </div>
-        <span class="stat-detail">{stats.albums_without_genre} / {stats.total_albums} {$t('metadata.missingGenre').toLowerCase()}</span>
-      </button>
-
-      <button class="stat-card" class:stat-active={filter === 'no_year'} onclick={() => filter = 'no_year'}>
-        <div class="stat-header">
-          <span class="stat-label">{$t('metadata.year')}</span>
-          <span class="stat-value">{completionPercent(stats.albums_without_year, stats.total_albums)}%</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: {completionPercent(stats.albums_without_year, stats.total_albums)}%"></div>
-        </div>
-        <span class="stat-detail">{stats.albums_without_year} / {stats.total_albums} {$t('metadata.missingYear').toLowerCase()}</span>
-      </button>
-
-      <button class="stat-card" class:stat-active={filter === 'no_artist'} onclick={() => filter = 'no_artist'}>
-        <div class="stat-header">
-          <span class="stat-label">{$t('metadata.artist')}</span>
-          <span class="stat-value">{completionPercent(stats.tracks_without_artist, stats.total_tracks)}%</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: {completionPercent(stats.tracks_without_artist, stats.total_tracks)}%"></div>
-        </div>
-        <span class="stat-detail">{stats.tracks_without_artist} / {stats.total_tracks} {$t('metadata.missingArtist').toLowerCase()}</span>
-      </button>
-    </div>
-
-    <!-- 2. Enrichir -->
-    <div class="meta-section">
-      <span class="meta-section-label">Enrichir</span>
-      <div class="meta-section-btns">
-        <button class="enrich-btn" onclick={() => handleFixYears('musicbrainz')} disabled={!!fixYearsRunning}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          {fixYearsRunning === 'musicbrainz' ? '...' : 'Années MusicBrainz'}
-        </button>
-        <button class="enrich-btn" onclick={() => handleFixYears('discogs')} disabled={!!fixYearsRunning}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          {fixYearsRunning === 'discogs' ? '...' : 'Années Discogs'}
-        </button>
-        <button class="enrich-btn" onclick={() => handleFixYears('tidal')} disabled={!!fixYearsRunning}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          {fixYearsRunning === 'tidal' ? '...' : 'Années Tidal'}
-        </button>
-        <button class="enrich-btn" onclick={handleFixGenres} disabled={fixGenresRunning}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-          {fixGenresRunning ? '...' : 'Genres Last.fm'}
-        </button>
-        <button class="enrich-btn" onclick={() => api.triggerEnrich()}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>
-          Enrichir via MusicBrainz
+    <!-- Filtres + recherche (ligne unique) -->
+    <div class="meta-filters">
+      <div class="meta-filters-tabs">
+        <button class="filter-btn" class:active={filter === 'all'} onclick={() => filter = 'all'}>{$t('metadata.all')}</button>
+        <button class="filter-btn" class:active={filter === 'no_cover'} onclick={() => filter = 'no_cover'}>{$t('metadata.missingCovers')} <span class="pill">{stats.albums_without_cover}</span></button>
+        <button class="filter-btn" class:active={filter === 'no_genre'} onclick={() => filter = 'no_genre'}>{$t('metadata.missingGenre')} <span class="pill">{stats.albums_without_genre}</span></button>
+        <button class="filter-btn" class:active={filter === 'no_year'} onclick={() => filter = 'no_year'}>{$t('metadata.missingYear')} <span class="pill">{stats.albums_without_year}</span></button>
+        <button class="filter-btn" class:active={filter === 'no_artist'} onclick={() => filter = 'no_artist'}>{$t('metadata.missingArtist')} <span class="pill">{stats.tracks_without_artist}</span></button>
+        <button class="filter-btn" class:active={filter === 'unknown'} onclick={() => filter = 'unknown'}>{$t('metadata.unknown')} <span class="pill">{unknownAlbums.length}</span></button>
+        <button class="filter-btn" class:active={filter === 'doubtful'} onclick={() => filter = 'doubtful'}>{$t('metadata.doubtful')} <span class="pill">{stats?.doubtful_count ?? 0}</span></button>
+        <button class="filter-btn" class:active={filter === 'duplicates'} onclick={() => filter = 'duplicates'}>Doublons <span class="pill">{duplicateCount}</span></button>
+      </div>
+      <div class="meta-search-row">
+        <input
+          type="text"
+          class="metadata-search"
+          placeholder="Rechercher..."
+          bind:value={metadataSearch}
+          oninput={() => { if (metadataSearch.trim() && !['all', 'no_cover', 'no_genre', 'no_year', 'doubtful'].includes(filter)) filter = 'all'; }}
+        />
+        <select
+          class="metadata-search metadata-select"
+          value={filterArtist}
+          onchange={(e) => { filterArtist = (e.target as HTMLSelectElement).value; if (filterArtist) filter = 'all'; }}
+          onfocus={ensureArtistsLoaded}
+        >
+          <option value="">-- Artiste --</option>
+          {#each artists as a (a.id)}
+            <option value={a.name}>{a.name}</option>
+          {/each}
+        </select>
+        <select
+          class="metadata-search metadata-select"
+          value={filterGenre}
+          onchange={(e) => { filterGenre = (e.target as HTMLSelectElement).value; if (filterGenre) filter = 'all'; }}
+        >
+          <option value="">-- Genre --</option>
+          {#each availableGenres as g}
+            <option value={g}>{g}</option>
+          {/each}
+        </select>
+        <button
+          class="filter-btn smart-toggle"
+          class:active={smartSearchOpen || activeSmartFilters > 0}
+          onclick={() => smartSearchOpen = !smartSearchOpen}
+          title="Filtres avancés"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          Smart{activeSmartFilters > 0 ? ` (${activeSmartFilters})` : ''}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><polyline points={smartSearchOpen ? "18 15 12 9 6 15" : "6 9 12 15 18 9"}/></svg>
         </button>
       </div>
-    </div>
-
-    <!-- 3. Doublons -->
-    <div class="meta-section">
-      <span class="meta-section-label">Doublons</span>
-      <div class="meta-section-btns">
-        <button class="enrich-btn" onclick={() => filter = 'duplicates'} disabled={duplicateCount === 0}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
-          {duplicateCount > 0 ? `Visualiser ${duplicateCount} doublons` : 'Aucun doublon'}
-        </button>
-        <button class="enrich-btn" onclick={handleScanDuplicates} disabled={scanningDuplicates}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          {scanningDuplicates ? 'Scan...' : 'Scan doublons audio'}
-        </button>
-        {#if mergeMessage}<span class="inline-message">{mergeMessage}</span>{/if}
-        {#if scanDupMessage}<span class="inline-message success" style="font-size:11px">{scanDupMessage}</span>{/if}
-      </div>
-    </div>
-
-    <!-- 4. Corriger -->
-    <div class="meta-section">
-      <span class="meta-section-label">Corriger</span>
-      <div class="meta-section-filters">
-        <div class="filter-col-tous">
-          <button class="filter-btn" class:active={filter === 'all'} onclick={() => filter = 'all'}>{$t('metadata.all')}</button>
+      {#if smartSearchOpen}
+        <div class="smart-search-row">
+          <select
+            class="metadata-search metadata-select"
+            value={filterLabel}
+            onchange={(e) => { filterLabel = (e.target as HTMLSelectElement).value; if (filterLabel) filter = 'all'; }}
+          >
+            <option value="">-- Label --</option>
+            {#each availableLabels as l}
+              <option value={l}>{l}</option>
+            {/each}
+          </select>
           <input
-            type="text"
-            class="metadata-search"
-            placeholder="Rechercher..."
-            bind:value={metadataSearch}
-            oninput={() => { if (metadataSearch.trim() && !['all', 'no_cover', 'no_genre', 'no_year', 'doubtful'].includes(filter)) filter = 'all'; }}
+            type="number"
+            class="metadata-search metadata-input-year"
+            placeholder="Année min"
+            bind:value={filterYearFrom}
+            oninput={() => { if (filterYearFrom != null) filter = 'all'; }}
           />
-          <select
-            class="metadata-search metadata-select"
-            value={filterArtist}
-            onchange={(e) => { filterArtist = (e.target as HTMLSelectElement).value; if (filterArtist) filter = 'all'; }}
-            onfocus={ensureArtistsLoaded}
-          >
-            <option value="">-- Artiste --</option>
-            {#each artists as a (a.id)}
-              <option value={a.name}>{a.name}</option>
-            {/each}
-          </select>
-          <select
-            class="metadata-search metadata-select"
-            value={filterGenre}
-            onchange={(e) => { filterGenre = (e.target as HTMLSelectElement).value; if (filterGenre) filter = 'all'; }}
-          >
-            <option value="">-- Genre --</option>
-            {#each availableGenres as g}
-              <option value={g}>{g}</option>
-            {/each}
-          </select>
+          <input
+            type="number"
+            class="metadata-search metadata-input-year"
+            placeholder="Année max"
+            bind:value={filterYearTo}
+            oninput={() => { if (filterYearTo != null) filter = 'all'; }}
+          />
+          {#if activeSmartFilters > 0}
+            <button class="filter-btn smart-clear" onclick={clearSmartFilters} title="Effacer les filtres avancés">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Effacer
+            </button>
+          {/if}
         </div>
-        <button class="filter-btn" class:active={filter === 'no_cover'} onclick={() => filter = 'no_cover'}>{$t('metadata.missingCovers')} ({stats.albums_without_cover})</button>
-        <button class="filter-btn" class:active={filter === 'no_genre'} onclick={() => filter = 'no_genre'}>{$t('metadata.missingGenre')} ({stats.albums_without_genre})</button>
-        <button class="filter-btn" class:active={filter === 'no_year'} onclick={() => filter = 'no_year'}>{$t('metadata.missingYear')} ({stats.albums_without_year})</button>
-        <button class="filter-btn" class:active={filter === 'no_artist'} onclick={() => filter = 'no_artist'}>{$t('metadata.missingArtist')} ({stats.tracks_without_artist})</button>
-        <button class="filter-btn" class:active={filter === 'unknown'} onclick={() => filter = 'unknown'}>{$t('metadata.unknown')} ({unknownAlbums.length})</button>
-        <button class="filter-btn" class:active={filter === 'doubtful'} onclick={() => filter = 'doubtful'}>{$t('metadata.doubtful')} ({stats?.doubtful_count ?? 0})</button>
-      </div>
+      {/if}
     </div>
 
-    <!-- Fix Results -->
-    {#if fixYearsResult || fixGenresResult || writeResult}
-      <div class="fix-result-banner">
-        {#if fixYearsResult}
-          <span class="fix-result-text">
-            <strong>{fixYearsResult.source}</strong> : {fixYearsResult.fixed} corrigés / {fixYearsResult.total} analysés
-            {#if fixYearsResult.not_found > 0}
-              — {fixYearsResult.not_found} non trouvés
-            {/if}
-          </span>
-        {/if}
-        {#if fixGenresResult}
-          <span class="fix-result-text">
-            <strong>Genres</strong> : {fixGenresResult.fixed} corrigés / {fixGenresResult.total} analysés
-          </span>
-        {/if}
-        {#if writeResult}
-          <span class="fix-result-text">{writeResult.message}</span>
-        {/if}
-        <button class="fix-result-dismiss" onclick={dismissFixResult}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-        </button>
-      </div>
+    <!-- MP3 Diagnose Panel -->
+    {#if mp3PanelOpen && mp3Summary}
+      <MetadataMp3Panel
+        summary={mp3Summary}
+        issues={mp3Issues}
+        repairing={mp3Repairing}
+        onRepairAll={handleRepairMp3All}
+        onRepairOne={handleRepairMp3One}
+        onClose={() => mp3PanelOpen = false}
+      />
     {/if}
 
-    <!-- Suggestions Panel -->
+    <!-- Suggestions Panel (n'apparaît que si l'utilisateur a explicitement cliqué) -->
     {#if showSuggestions && suggestions.length > 0}
       <div class="suggestions-panel">
         <div class="suggestions-header">
           <h3>Suggestions ({suggestions.length})</h3>
           <button class="action-btn" onclick={handleAcceptAll}>Accepter tout (≥90%)</button>
+          <button class="action-btn" onclick={() => showSuggestions = false} style="background:transparent;border:1px solid var(--tune-border);color:var(--tune-text-muted)">Fermer</button>
         </div>
         {#each suggestions as s}
           <div class="suggestion-row">
@@ -1532,82 +1750,43 @@
           }) : doubtfulAlbums) as album (album.id)}
             {@const albumAny = album as any}
             <div class="dcard" ondragover={(e) => e.preventDefault()} ondrop={(e) => onDoubtfulCoverDrop(e, album.id)}>
-              {#if editingDoubtfulId === album.id}
-                <!-- Edit mode -->
-                <div class="dcard-cover-wrap">
-                  {#if album.cover_path}
-                    <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" />
-                  {:else}
-                    <div class="dcard-cover-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg></div>
+              <div class="dcard-cover-wrap">
+                {#if album.cover_path}
+                  <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} onclick={(e) => { e.stopPropagation(); doubtfulZoomCover = api.artworkUrl(album.cover_path!); }} />
+                {:else}
+                  <div class="dcard-cover-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg></div>
+                {/if}
+                <label class="dcard-cover-upload">
+                  <input type="file" accept="image/*" style="display:none" onchange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) handleDoubtfulCoverUpload(album.id, f); }} />
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </label>
+              </div>
+              <div class="dcard-body">
+                <div class="dcard-title">{album.title}</div>
+                <div class="dcard-artist" class:dcard-warn={albumAny.reasons?.some((r: string) => r.startsWith('artist'))}>
+                  {album.artist_name ?? '—'}
+                  {#if albumAny.artist_resolved && albumAny.artist_resolved !== album.artist_name}
+                    <span class="dcard-hint">→ {albumAny.artist_resolved}</span>
                   {/if}
-                  <label class="dcard-cover-upload">
-                    <input type="file" accept="image/*" style="display:none" onchange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) handleDoubtfulCoverUpload(album.id, f); }} />
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                  </label>
                 </div>
-                <div class="dcard-body">
-                  <div class="dcard-edit-fields">
-                    <label class="dcard-label">Artiste</label>
-                    <input class="dcard-input" bind:value={editingDoubtfulData.artist_name} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
-                    <label class="dcard-label">Album</label>
-                    <input class="dcard-input" bind:value={editingDoubtfulData.title} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
-                    <div class="dcard-edit-row">
-                      <div class="dcard-field-group">
-                        <label class="dcard-label">Genre</label>
-                        <input class="dcard-input dcard-input-sm" bind:value={editingDoubtfulData.genre} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
-                      </div>
-                      <div class="dcard-field-group dcard-field-year">
-                        <label class="dcard-label">Année</label>
-                        <input class="dcard-input dcard-input-year" bind:value={editingDoubtfulData.year} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
-                      </div>
-                    </div>
-                  </div>
-                  <div class="dcard-edit-actions">
-                    <button class="btn-doubtful-ok" onclick={saveDoubtful}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg> Enregistrer</button>
-                    <button class="btn-doubtful-ok btn-graver" disabled={!doubtfulSavedId || doubtfulSavedId !== album.id} onclick={() => graverDoubtfulTags(album.id)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 3v13M5 10l7 7 7-7"/><line x1="4" y1="21" x2="20" y2="21"/></svg> Graver tags</button>
-                    <button class="btn-doubtful-edit" onclick={cancelDoubtful}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg> Annuler</button>
-                  </div>
+                <div class="dcard-meta">
+                  <span class:dcard-warn={!album.genre}>{album.genre ?? '—'}</span>
+                  <span class="dcard-sep">·</span>
+                  <span class:dcard-warn={!album.year}>{album.year ?? '—'}</span>
                 </div>
-              {:else}
-                <!-- Display mode -->
-                <div class="dcard-cover-wrap">
-                  {#if album.cover_path}
-                    <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} onclick={(e) => { e.stopPropagation(); doubtfulZoomCover = api.artworkUrl(album.cover_path!); }} />
-                  {:else}
-                    <div class="dcard-cover-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg></div>
+                <div class="dcard-tags">
+                  {#if albumAny.reasons}
+                    {#each albumAny.reasons as reason}
+                      <span class="doubtful-tag">{REASON_LABELS[reason] ?? reason}</span>
+                    {/each}
                   {/if}
-                  <label class="dcard-cover-upload">
-                    <input type="file" accept="image/*" style="display:none" onchange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) handleDoubtfulCoverUpload(album.id, f); }} />
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                  </label>
                 </div>
-                <div class="dcard-body">
-                  <div class="dcard-title">{album.title}</div>
-                  <div class="dcard-artist" class:dcard-warn={albumAny.reasons?.some((r: string) => r.startsWith('artist'))}>
-                    {album.artist_name ?? '—'}
-                    {#if albumAny.artist_resolved && albumAny.artist_resolved !== album.artist_name}
-                      <span class="dcard-hint">→ {albumAny.artist_resolved}</span>
-                    {/if}
-                  </div>
-                  <div class="dcard-meta">
-                    <span class:dcard-warn={!album.genre}>{album.genre ?? '—'}</span>
-                    <span class="dcard-sep">·</span>
-                    <span class:dcard-warn={!album.year}>{album.year ?? '—'}</span>
-                  </div>
-                  <div class="dcard-tags">
-                    {#if albumAny.reasons}
-                      {#each albumAny.reasons as reason}
-                        <span class="doubtful-tag">{REASON_LABELS[reason] ?? reason}</span>
-                      {/each}
-                    {/if}
-                  </div>
-                </div>
-                <div class="dcard-actions">
-                  <button class="btn-doubtful-edit" title="Éditer" onclick={() => editDoubtful(album)}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                  </button>
-                </div>
-              {/if}
+              </div>
+              <div class="dcard-actions">
+                <button class="btn-doubtful-edit" title="Éditer" onclick={() => editAlbum = album}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                </button>
+              </div>
             </div>
           {/each}
         </div>
@@ -1708,80 +1887,41 @@
       <div class="doubtful-cards">
         {#each filteredAlbums as album (album.id)}
           <div class="dcard" ondragover={(e) => e.preventDefault()} ondrop={(e) => onDoubtfulCoverDrop(e, album.id!)}>
-            {#if editingDoubtfulId === album.id}
-              <!-- Edit mode -->
-              <div class="dcard-cover-wrap">
-                {#if album.cover_path}
-                  <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" />
-                {:else}
-                  <div class="dcard-cover-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg></div>
-                {/if}
-                <label class="dcard-cover-upload">
-                  <input type="file" accept="image/*" style="display:none" onchange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) handleDoubtfulCoverUpload(album.id!, f); }} />
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                </label>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <div class="dcard-cover-wrap">
+              {#if album.cover_path}
+                <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} onclick={(e) => { e.stopPropagation(); doubtfulZoomCover = api.artworkUrl(album.cover_path!); }} />
+              {:else}
+                <div class="dcard-cover-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg></div>
+              {/if}
+              <label class="dcard-cover-upload">
+                <input type="file" accept="image/*" style="display:none" onchange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) handleDoubtfulCoverUpload(album.id!, f); }} />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </label>
+            </div>
+            <div class="dcard-body">
+              <div class="dcard-title">{album.title}</div>
+              <div class="dcard-artist">{album.artist_name ?? '—'}</div>
+              <div class="dcard-meta">
+                <span class:dcard-warn={!album.genre}>{album.genre ?? '—'}</span>
+                <span class="dcard-sep">·</span>
+                <span class:dcard-warn={!album.year}>{album.year ?? '—'}</span>
               </div>
-              <div class="dcard-body">
-                <div class="dcard-edit-fields">
-                  <label class="dcard-label">Artiste</label>
-                  <input class="dcard-input" bind:value={editingDoubtfulData.artist_name} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
-                  <label class="dcard-label">Album</label>
-                  <input class="dcard-input" bind:value={editingDoubtfulData.title} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
-                  <div class="dcard-edit-row">
-                    <div class="dcard-field-group">
-                      <label class="dcard-label">Genre</label>
-                      <input class="dcard-input dcard-input-sm" bind:value={editingDoubtfulData.genre} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
-                    </div>
-                    <div class="dcard-field-group dcard-field-year">
-                      <label class="dcard-label">Année</label>
-                      <input class="dcard-input dcard-input-year" bind:value={editingDoubtfulData.year} onkeydown={(e) => { if (e.key === 'Enter') saveDoubtful(); if (e.key === 'Escape') cancelDoubtful(); }} />
-                    </div>
-                  </div>
-                </div>
-                <div class="dcard-edit-actions">
-                  <button class="btn-doubtful-ok" onclick={saveDoubtful}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg> Enregistrer</button>
-                  <button class="btn-doubtful-ok btn-graver" disabled={!doubtfulSavedId || doubtfulSavedId !== album.id} onclick={() => graverDoubtfulTags(album.id!)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 3v13M5 10l7 7 7-7"/><line x1="4" y1="21" x2="20" y2="21"/></svg> Graver tags</button>
-                  <button class="btn-doubtful-edit" onclick={cancelDoubtful}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg> Annuler</button>
-                </div>
+              {#if (album as any).folder_path}
+                <div class="dcard-path">{(album as any).folder_path}</div>
+              {/if}
+              <div class="dcard-tags">
+                {#if !album.cover_path}<span class="doubtful-tag">Cover manquante</span>{/if}
+                {#if !album.genre}<span class="doubtful-tag">Genre manquant</span>{/if}
+                {#if !album.year}<span class="doubtful-tag">Année manquante</span>{/if}
               </div>
-            {:else}
-              <!-- Display mode -->
-              <!-- svelte-ignore a11y_click_events_have_key_events -->
-              <div class="dcard-cover-wrap">
-                {#if album.cover_path}
-                  <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} onclick={(e) => { e.stopPropagation(); doubtfulZoomCover = api.artworkUrl(album.cover_path!); }} />
-                {:else}
-                  <div class="dcard-cover-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg></div>
-                {/if}
-                <label class="dcard-cover-upload">
-                  <input type="file" accept="image/*" style="display:none" onchange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) handleDoubtfulCoverUpload(album.id!, f); }} />
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                </label>
-              </div>
-              <div class="dcard-body">
-                <div class="dcard-title">{album.title}</div>
-                <div class="dcard-artist">{album.artist_name ?? '—'}</div>
-                <div class="dcard-meta">
-                  <span class:dcard-warn={!album.genre}>{album.genre ?? '—'}</span>
-                  <span class="dcard-sep">·</span>
-                  <span class:dcard-warn={!album.year}>{album.year ?? '—'}</span>
-                </div>
-                {#if (album as any).folder_path}
-                  <div class="dcard-path">{(album as any).folder_path}</div>
-                {/if}
-                <div class="dcard-tags">
-                  {#if !album.cover_path}<span class="doubtful-tag">Cover manquante</span>{/if}
-                  {#if !album.genre}<span class="doubtful-tag">Genre manquant</span>{/if}
-                  {#if !album.year}<span class="doubtful-tag">Année manquante</span>{/if}
-                </div>
-              </div>
-              <div class="dcard-actions">
-                <input type="checkbox" checked={batchSelectedIds.has(album.id!)} onchange={() => toggleBatchSelect(album.id!)} onclick={(e) => e.stopPropagation()} />
-                <button class="btn-doubtful-edit" title="Éditer" onclick={() => editDoubtful(album)}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                </button>
-              </div>
-            {/if}
+            </div>
+            <div class="dcard-actions">
+              <input type="checkbox" checked={batchSelectedIds.has(album.id!)} onchange={() => toggleBatchSelect(album.id!)} onclick={(e) => e.stopPropagation()} />
+              <button class="btn-doubtful-edit" title="Éditer" onclick={() => editAlbum = album}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+              </button>
+            </div>
           </div>
         {/each}
       </div>
@@ -3364,4 +3504,75 @@
   .doubtful-cover-wrapper:hover .doubtful-cover-upload {
     display: flex;
   }
+
+  /* === Phase 1 — Outils dropdown + filtres unifiés === */
+  .tools-menu-wrap { position: relative; }
+  .tools-backdrop {
+    position: fixed; inset: 0; z-index: 90; background: transparent;
+  }
+  .tools-menu {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 100;
+    min-width: 260px; max-height: 70vh; overflow-y: auto;
+    background: var(--tune-surface); border: 1px solid var(--tune-border);
+    border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    padding: 6px 0;
+  }
+  .tools-group-label {
+    font-family: var(--font-label); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--tune-text-muted);
+    padding: 8px 14px 4px;
+  }
+  .tools-group-label:first-child { padding-top: 4px; }
+  .tools-item {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; padding: 8px 14px;
+    background: transparent; border: none;
+    color: var(--tune-text); font-family: var(--font-body); font-size: 13px;
+    text-align: left; cursor: pointer;
+  }
+  .tools-item:hover:not(:disabled) { background: var(--tune-surface-hover, rgba(255,255,255,0.04)); }
+  .tools-item:disabled { opacity: 0.45; cursor: default; }
+  .tools-item svg { flex-shrink: 0; color: var(--tune-text-muted); }
+
+  .meta-filters {
+    display: flex; flex-direction: column; gap: 8px;
+    margin: 14px 0 12px;
+  }
+  .meta-filters-tabs {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .meta-filters-tabs .filter-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .pill {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 18px; padding: 0 6px;
+    font-size: 11px; font-weight: 600;
+    border-radius: 9px;
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.15);
+    color: var(--tune-text);
+  }
+  .filter-btn.active .pill { background: rgba(255,255,255,0.25); }
+  .meta-search-row {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  }
+  .meta-search-row .metadata-search { flex: 1; min-width: 180px; max-width: 280px; }
+  .meta-search-row .metadata-select { flex: 0 0 auto; max-width: 200px; }
+  .smart-toggle {
+    display: inline-flex; align-items: center; gap: 4px;
+    flex: 0 0 auto; white-space: nowrap;
+  }
+  .smart-search-row {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    padding: 10px 12px;
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.06);
+    border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.18);
+    border-radius: 8px;
+    margin-top: 4px;
+  }
+  .smart-search-row .metadata-select { max-width: 240px; }
+  .metadata-input-year { width: 110px !important; flex: 0 0 110px; }
+  .smart-clear { color: var(--tune-text-muted); }
+  .smart-clear:hover { color: #dc2626; }
 </style>

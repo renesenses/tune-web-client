@@ -22,9 +22,16 @@ export function formatNumber(n: number): string {
 }
 
 /** Format audio badge (e.g. "FLAC / 96 kHz / 24-bit") */
-export function formatAudioBadge(track: { format?: string; sample_rate?: number; bit_depth?: number }): string {
+export function formatAudioBadge(
+  track: {
+    format?: string | null;
+    sample_rate?: number | null;
+    bit_depth?: number | null;
+  } | null | undefined,
+): string {
+  if (!track) return '';
   const parts: string[] = [];
-  if (track.format) parts.push(track.format.toUpperCase());
+  if (track.format) parts.push(String(track.format).toUpperCase());
   if (track.sample_rate) parts.push(`${(track.sample_rate / 1000).toFixed(track.sample_rate % 1000 === 0 ? 0 : 1)} kHz`);
   if (track.bit_depth) parts.push(`${track.bit_depth}-bit`);
   return parts.join(' / ');

@@ -61,6 +61,7 @@
     { value: 'starts_with', label: 'commence par' },
     { value: 'greater_than', label: '>' },
     { value: 'less_than', label: '<' },
+    { value: 'branch_of', label: 'branche de (genre + sous-genres)' },
   ];
 
   const SORT_OPTIONS = [
@@ -155,6 +156,14 @@
 
   function parseRules(sp: SmartPlaylist): Rule[] {
     try { return JSON.parse(sp.rules || '[]'); } catch { return []; }
+  }
+
+  function ruleSummary(sp: SmartPlaylist): string {
+    const rules = parseRules(sp);
+    if (!rules.length) return 'aucune règle';
+    const parts = rules.slice(0, 2).map(r => `${r.field} ${r.operator} ${r.value}`);
+    const summary = parts.join(sp.match_mode === 'all' ? ' ET ' : ' OU ');
+    return rules.length > 2 ? `${summary} … (+${rules.length - 2})` : summary;
   }
 
   $effect(() => { loadSmartPlaylists(); });
@@ -282,26 +291,25 @@
       </div>
     {/if}
 
-    <div class="sp-list">
+    <div class="grid">
       {#each smartPlaylists as sp}
-        <div class="sp-card">
-          <button class="sp-card-main" onclick={() => selectSp(sp)}>
-            <div class="sp-card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-            </div>
-            <div class="sp-card-info">
-              <span class="sp-card-name">{sp.name}</span>
-              {#if sp.description}<span class="sp-card-desc">{sp.description}</span>{/if}
-              <div class="sp-card-rules">
-                {#each parseRules(sp) as rule}
-                  <span class="sp-rule-mini">{rule.field}: {rule.value}</span>
-                {/each}
-              </div>
-            </div>
-          </button>
-          <button class="sp-delete-btn" onclick={() => handleDelete(sp)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-          </button>
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <div
+          class="card"
+          role="button"
+          tabindex="0"
+          onclick={() => selectSp(sp)}
+          onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') selectSp(sp); }}
+        >
+          <div class="card-head">
+            <span class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+            </span>
+            <span class="card-name">{sp.name}</span>
+            <button class="del" onclick={(e) => { e.stopPropagation(); handleDelete(sp); }} title="Supprimer">×</button>
+          </div>
+          <div class="card-rules">{ruleSummary(sp)}</div>
+          {#if sp.description}<div class="card-desc">{sp.description}</div>{/if}
         </div>
       {/each}
       {#if smartPlaylists.length === 0 && !showCreate}
@@ -335,20 +343,24 @@
   .sp-form-actions { display: flex; gap: var(--space-sm); }
   .cancel-btn { background: none; border: 1px solid var(--tune-border); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); color: var(--tune-text-secondary); cursor: pointer; font-family: var(--font-label); font-size: 13px; }
 
-  /* List */
-  .sp-list { display: flex; flex-direction: column; gap: var(--space-sm); }
-  .sp-card { display: flex; align-items: center; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: var(--radius-lg); transition: all 0.12s; }
-  .sp-card:hover { border-color: var(--tune-accent); }
-  .sp-card-main { flex: 1; display: flex; align-items: center; gap: var(--space-md); padding: var(--space-md); background: none; border: none; cursor: pointer; color: var(--tune-text); text-align: left; }
-  .sp-card-icon { color: var(--tune-accent); flex-shrink: 0; }
-  .sp-card-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .sp-card-name { font-family: var(--font-body); font-size: 14px; font-weight: 600; }
-  .sp-card-desc { font-family: var(--font-body); font-size: 12px; color: var(--tune-text-secondary); }
-  .sp-card-rules { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
-  .sp-rule-mini { font-size: 10px; padding: 1px 6px; border-radius: 8px; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.08); color: var(--tune-text-muted); }
-  .sp-delete-btn { background: none; border: none; color: var(--tune-text-muted); cursor: pointer; padding: var(--space-md); }
-  .sp-delete-btn:hover { color: #ef4444; }
-  .sp-empty { font-family: var(--font-body); font-size: 14px; color: var(--tune-text-muted); text-align: center; padding: var(--space-2xl); }
+  /* Grid (idem Smart Collections) */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.8rem; }
+  .card {
+    text-align: left; padding: 0.9rem 1rem;
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.06);
+    border-left: 4px solid var(--tune-accent, #6366f1);
+    border-top: none; border-right: none; border-bottom: none;
+    border-radius: 8px; cursor: pointer; transition: background 120ms ease;
+  }
+  .card:hover { background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12); }
+  .card-head { display: flex; align-items: center; gap: 0.5rem; }
+  .card-icon { color: var(--tune-accent, #6366f1); display: inline-flex; }
+  .card-name { flex: 1; font-weight: 600; color: var(--tune-text); font-size: 0.95rem; }
+  .del { background: transparent; border: none; color: var(--tune-text-muted); font-size: 1.1rem; cursor: pointer; opacity: 0.5; padding: 0 0.2rem; }
+  .del:hover { opacity: 1; color: #dc2626; }
+  .card-rules { font-size: 0.78rem; color: var(--tune-text-muted); margin-top: 0.3rem; line-height: 1.4; }
+  .card-desc { font-size: 0.78rem; color: var(--tune-text-muted); margin-top: 0.3rem; font-style: italic; }
+  .sp-empty { font-family: var(--font-body); font-size: 14px; color: var(--tune-text-muted); text-align: center; padding: var(--space-2xl); grid-column: 1 / -1; }
 
   /* Detail */
   .sp-header { margin-bottom: var(--space-md); }
