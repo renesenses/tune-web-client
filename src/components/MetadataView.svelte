@@ -9,6 +9,8 @@
   import AlbumEditModal from './AlbumEditModal.svelte';
   import MetadataStatsDashboard from './MetadataStatsDashboard.svelte';
   import MetadataMp3Panel from './MetadataMp3Panel.svelte';
+  import MetadataSuggestionsPanel from './MetadataSuggestionsPanel.svelte';
+  import MetadataDuplicatesPanel from './MetadataDuplicatesPanel.svelte';
 
   let toolsMenuOpen = $state(false);
   function closeToolsMenu() { toolsMenuOpen = false; }
@@ -1599,84 +1601,22 @@
 
     <!-- Suggestions Panel (n'apparaît que si l'utilisateur a explicitement cliqué) -->
     {#if showSuggestions && suggestions.length > 0}
-      <div class="suggestions-panel">
-        <div class="suggestions-header">
-          <h3>Suggestions ({suggestions.length})</h3>
-          <button class="action-btn" onclick={handleAcceptAll}>Accepter tout (≥90%)</button>
-          <button class="action-btn" onclick={() => showSuggestions = false} style="background:transparent;border:1px solid var(--tune-border);color:var(--tune-text-muted)">Fermer</button>
-        </div>
-        {#each suggestions as s}
-          <div class="suggestion-row">
-            <span class="suggestion-field">{s.field}</span>
-            <span class="suggestion-current">{s.current_value || '—'}</span>
-            <span class="suggestion-arrow">→</span>
-            <span class="suggestion-value">{s.suggested_value}</span>
-            <span class="suggestion-source">{s.source}</span>
-            <span class="suggestion-confidence">{Math.round((s.confidence || 0) * 100)}%</span>
-            <button class="btn-accept" onclick={() => handleAcceptSuggestion(s.id)}>✓</button>
-            <button class="btn-reject" onclick={() => handleRejectSuggestion(s.id)}>✕</button>
-          </div>
-        {/each}
-      </div>
+      <MetadataSuggestionsPanel
+        {suggestions}
+        onAccept={handleAcceptSuggestion}
+        onReject={handleRejectSuggestion}
+        onAcceptAll={handleAcceptAll}
+        onClose={() => showSuggestions = false}
+      />
     {/if}
 
     <!-- Duplicates Panel -->
     {#if duplicates.length > 0}
-      <div class="duplicates-panel">
-        <div class="dup-header">
-          <h3>Doublons détectés ({duplicates.length})</h3>
-          <button class="action-btn" onclick={() => duplicates = []}>Fermer</button>
-        </div>
-        {#each duplicates as d (d.id)}
-          <div class="dup-card">
-            <div class="dup-card-top">
-              <div class="dup-card-title">{d.a?.title || d.track_a_title || '?'}</div>
-              {#if d.type === 'album'}
-                <span class="dup-badge dup-badge-album">Album complet ({d.album_duplicate_count} pistes)</span>
-              {:else}
-                <span class="dup-badge dup-badge-track">Piste seule</span>
-              {/if}
-            </div>
-            {#if d.differences?.length > 0}
-              <div class="dup-diff-notice">Métadonnées différentes : {d.differences.join(', ')}</div>
-            {/if}
-            <div class="dup-compare">
-              <!-- Copy A -->
-              <div class="dup-copy" class:dup-selected={true}>
-                <div class="dup-copy-label">Copie A</div>
-                <div class="dup-field"><span class="dup-key">Titre</span> <span class:dup-diff={d.differences?.includes('title')}>{d.a?.title ?? d.track_a_title ?? '—'}</span></div>
-                <div class="dup-field"><span class="dup-key">Artiste</span> <span class:dup-diff={d.differences?.includes('artist')}>{d.a?.artist ?? '—'}</span></div>
-                <div class="dup-field"><span class="dup-key">Album</span> <span class:dup-diff={d.differences?.includes('album')}>{d.a?.album ?? '—'}</span></div>
-                <div class="dup-field"><span class="dup-key">Genre</span> <span class:dup-diff={d.differences?.includes('genre')}>{d.a?.genre ?? '—'}</span></div>
-                <div class="dup-field"><span class="dup-key">Année</span> <span class:dup-diff={d.differences?.includes('year')}>{d.a?.year ?? '—'}</span></div>
-                <div class="dup-field"><span class="dup-key">Format</span> <span>{d.a?.format ?? '?'} {d.a?.sample_rate ? Math.round(d.a.sample_rate/1000) + 'kHz' : ''} {d.a?.bit_depth ? d.a.bit_depth + 'bit' : ''}</span></div>
-                <div class="dup-field dup-path">{d.a?.path ?? d.track_a_path ?? ''}</div>
-                {#if d.a?.size}<div class="dup-field"><span class="dup-key">Taille</span> {(d.a.size / 1048576).toFixed(1)} Mo</div>{/if}
-                <button class="btn-keep" onclick={() => resolveDuplicate(d.id, d.a?.track_id)}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><polyline points="20 6 9 17 4 12" /></svg>
-                  Garder A
-                </button>
-              </div>
-              <!-- Copy B -->
-              <div class="dup-copy">
-                <div class="dup-copy-label">Copie B</div>
-                <div class="dup-field"><span class="dup-key">Titre</span> <span class:dup-diff={d.differences?.includes('title')}>{d.b?.title ?? d.track_b_title ?? '—'}</span></div>
-                <div class="dup-field"><span class="dup-key">Artiste</span> <span class:dup-diff={d.differences?.includes('artist')}>{d.b?.artist ?? '—'}</span></div>
-                <div class="dup-field"><span class="dup-key">Album</span> <span class:dup-diff={d.differences?.includes('album')}>{d.b?.album ?? '—'}</span></div>
-                <div class="dup-field"><span class="dup-key">Genre</span> <span class:dup-diff={d.differences?.includes('genre')}>{d.b?.genre ?? '—'}</span></div>
-                <div class="dup-field"><span class="dup-key">Année</span> <span class:dup-diff={d.differences?.includes('year')}>{d.b?.year ?? '—'}</span></div>
-                <div class="dup-field"><span class="dup-key">Format</span> <span>{d.b?.format ?? '?'} {d.b?.sample_rate ? Math.round(d.b.sample_rate/1000) + 'kHz' : ''} {d.b?.bit_depth ? d.b.bit_depth + 'bit' : ''}</span></div>
-                <div class="dup-field dup-path">{d.b?.path ?? d.track_b_path ?? ''}</div>
-                {#if d.b?.size}<div class="dup-field"><span class="dup-key">Taille</span> {(d.b.size / 1048576).toFixed(1)} Mo</div>{/if}
-                <button class="btn-keep" onclick={() => resolveDuplicate(d.id, d.b?.track_id)}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><polyline points="20 6 9 17 4 12" /></svg>
-                  Garder B
-                </button>
-              </div>
-            </div>
-          </div>
-        {/each}
-      </div>
+      <MetadataDuplicatesPanel
+        {duplicates}
+        onResolve={resolveDuplicate}
+        onClose={() => duplicates = []}
+      />
     {/if}
 
     <!-- Content -->
