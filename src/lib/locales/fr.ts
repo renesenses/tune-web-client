@@ -16,6 +16,7 @@ export default {
   // Common
   'common.play': 'Lire',
   'common.pause': 'Pause',
+  'common.stop': 'Arrêter',
   'common.loading': 'Chargement...',
   'common.cancel': 'Annuler',
   'common.delete': 'Supprimer',
