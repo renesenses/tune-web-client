@@ -146,7 +146,7 @@
       <div class="create-form">
         <input type="text" placeholder="Nom de la collection" bind:value={newName} onkeydown={(e) => e.key === 'Enter' && handleCreate()} />
         <input type="color" bind:value={newColor} class="color-picker" />
-        <button class="confirm-btn" onclick={handleCreate}>Creer</button>
+        <button class="confirm-btn" onclick={handleCreate}>Créer</button>
       </div>
     {/if}
 

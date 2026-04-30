@@ -66,7 +66,7 @@
         <span class="count">{savedTracks.length} titre{savedTracks.length > 1 ? 's' : ''}</span>
         <button class="btn accent" onclick={() => { showCreatePlaylist = true; createResult = null; }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-          Creer playlist
+          Créer playlist
         </button>
         <a class="btn" href="/api/v1/radio-favorites/export" download="radio_favorites.csv">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
@@ -119,7 +119,7 @@
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div class="modal-card" onclick={(e) => e.stopPropagation()}>
-        <h3>Creer une playlist streaming</h3>
+        <h3>Créer une playlist streaming</h3>
         <p class="modal-hint">Convertir vos {savedTracks.length} favoris radio en playlist sur un service de streaming</p>
         <div class="modal-field">
           <label>Service</label>
@@ -146,7 +146,7 @@
         <div class="modal-actions">
           <button class="btn" onclick={() => showCreatePlaylist = false}>Fermer</button>
           <button class="btn accent" onclick={createPlaylist} disabled={creating}>
-            {creating ? 'Creation...' : 'Creer'}
+            {creating ? 'Création...' : 'Créer'}
           </button>
         </div>
       </div>

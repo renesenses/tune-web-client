@@ -220,7 +220,7 @@
       <h2>Smart Playlists</h2>
       <button class="create-btn" onclick={() => showCreate = !showCreate}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-        Creer
+        Nouvelle Smart Playlist
       </button>
     </div>
 
@@ -230,7 +230,7 @@
         <input type="text" placeholder="Description (optionnel)" bind:value={newDescription} class="sp-input" />
 
         <div class="sp-rules-builder">
-          <h4>Regles</h4>
+          <h4>Règles</h4>
           {#each newRules as rule, i}
             <div class="sp-rule-row">
               <select bind:value={rule.field} class="sp-select">
@@ -245,7 +245,7 @@
               </button>
             </div>
           {/each}
-          <button class="sp-add-rule" onclick={addRule}>+ Ajouter une regle</button>
+          <button class="sp-add-rule" onclick={addRule}>+ Ajouter une règle</button>
         </div>
 
         <div class="sp-options">
@@ -266,7 +266,7 @@
             Ordre :
             <select bind:value={newSortOrder} class="sp-select">
               <option value="asc">Croissant</option>
-              <option value="desc">Decroissant</option>
+              <option value="desc">Décroissant</option>
             </select>
           </label>
           <label>
@@ -276,7 +276,7 @@
         </div>
 
         <div class="sp-form-actions">
-          <button class="play-all-btn" onclick={handleCreate} disabled={!newName.trim()}>Creer</button>
+          <button class="play-all-btn" onclick={handleCreate} disabled={!newName.trim()}>Créer</button>
           <button class="cancel-btn" onclick={() => showCreate = false}>Annuler</button>
         </div>
       </div>
@@ -305,7 +305,7 @@
         </div>
       {/each}
       {#if smartPlaylists.length === 0 && !showCreate}
-        <p class="sp-empty">Aucune smart playlist. Cliquez "Creer" pour commencer.</p>
+        <p class="sp-empty">Aucune smart playlist. Cliquez "Nouvelle Smart Playlist" pour commencer.</p>
       {/if}
     </div>
   {/if}

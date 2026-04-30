@@ -3,6 +3,17 @@
   import * as api from '../lib/api';
   import type { SmartCollection } from '../lib/types';
   import SmartCollectionEditor from './SmartCollectionEditor.svelte';
+  import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
+  import { activeView } from '../lib/stores/navigation';
+
+  function navigateToAlbum(album: any) {
+    selectedAlbum.set(album);
+    api.getAlbumTracks(album.id).then(tracks => {
+      albumTracks.set(tracks);
+      libraryTab.set('albums');
+      activeView.set('library');
+    });
+  }
 
   let collections = $state<SmartCollection[]>([]);
   let loading = $state(true);
@@ -89,7 +100,7 @@
 <section class="sc-view">
   <header class="sc-header">
     <h1>Smart Collections</h1>
-    <button class="new-btn" onclick={() => openEditor(null)}>+ Nouvelle</button>
+    <button class="new-btn" onclick={() => openEditor(null)}>+ Nouvelle Smart Collection</button>
   </header>
 
   {#if loading}
@@ -146,7 +157,9 @@
       {:else}
         <div class="albums-grid">
           {#each selectedAlbums as alb}
-            <div class="album-card">
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="album-card" role="button" tabindex="0" onclick={() => navigateToAlbum(alb)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigateToAlbum(alb); }}>
               <div class="album-card-art">
                 <img class="album-cover-img" src={api.artworkUrl(alb.cover_path, 200)} alt={alb.title} loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.display='none')} />
               </div>
@@ -218,6 +231,7 @@
     display: flex; flex-direction: column; gap: var(--space-xs, 0.25rem);
     background: none; border: none; padding: 0; text-align: left; color: var(--tune-text);
     transition: transform 0.15s ease-out;
+    cursor: pointer;
   }
   .album-card:hover { transform: translateY(-2px); }
   .album-card-art {

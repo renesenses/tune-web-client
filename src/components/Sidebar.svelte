@@ -17,6 +17,15 @@
     currentZoneId.set(zoneId);
   }
 
+  // Display the server version (single source of truth) — falls back to
+  // the client build version (__APP_VERSION__) until the API responds.
+  let serverVersion = $state<string | null>(null);
+  $effect(() => {
+    api.checkForUpdate()
+      .then((r) => { if (r?.current_version) serverVersion = r.current_version; })
+      .catch(() => { /* keep fallback */ });
+  });
+
   let showCreateZone = $state(false);
   let newZoneName = $state('');
   let newZoneOutputType = $state<OutputType>('local');
@@ -254,7 +263,7 @@
 
 <aside class="sidebar">
   <div class="sidebar-header">
-    <h1 class="logo"><img src="/tune-logo.png" alt="Tune" class="logo-img" /> <span class="version">v{__APP_VERSION__}</span></h1>
+    <h1 class="logo"><img src="/tune-logo.png" alt="Tune" class="logo-img" /> <span class="version">v{serverVersion ?? __APP_VERSION__}</span></h1>
     <div class="connection-status">
       <span class="state-dot" style="color: {stateColor($connectionState)}">
         {stateIcon($connectionState)}
@@ -283,29 +292,28 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
       {$t('nav.queue')}
     </button>
+    <!-- Playlists group -->
     <button class="nav-item" class:active={$activeView === 'playlists' || $activeView === 'playlistmanager'} onclick={() => navigate('playlistmanager')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
       {$t('nav.playlists')}
+    </button>
+    <button class="nav-item" class:active={$activeView === 'smartplaylists'} onclick={() => navigate('smartplaylists')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+      Smart Playlists
     </button>
     <button class="nav-item" class:active={$activeView === 'playlistshub'} onclick={() => navigate('playlistshub')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
       Playlists Hub
       <span class="badge-new">POC</span>
     </button>
+    <!-- Collections group -->
     <button class="nav-item" class:active={$activeView === 'collections'} onclick={() => navigate('collections')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
       Collections
-      <span class="badge-new">POC</span>
     </button>
     <button class="nav-item" class:active={$activeView === 'smartcollections'} onclick={() => navigate('smartcollections')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><polyline points="14 14 17.5 17.5 21 14"/><line x1="17.5" y1="14" x2="17.5" y2="21"/></svg>
       Smart Collections
-      <span class="badge-new">v0.8</span>
-    </button>
-    <button class="nav-item" class:active={$activeView === 'smartplaylists'} onclick={() => navigate('smartplaylists')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-      Smart Playlists
-      <span class="badge-new">POC</span>
     </button>
     <button class="nav-item" class:active={$activeView === 'browse'} onclick={() => navigate('browse')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
@@ -323,6 +331,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
       Favoris Radio
     </button>
+    <!-- Mode DJ + Party hidden until backend is wired up (v0.8.x). The
+         "Activer DJ" / "Activer Party" buttons would call missing routes
+         and fail silently — better to hide than ship a broken control. -->
+    <!--
     <button class="nav-item" class:active={$activeView === 'dj'} onclick={() => navigate('dj')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /></svg>
       Mode DJ
@@ -333,6 +345,8 @@
       Party
       <span class="badge-new">POC</span>
     </button>
+    -->
+
     <button class="nav-item" class:active={$activeView === 'podcasts'} onclick={() => navigate('podcasts')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
       Podcasts
