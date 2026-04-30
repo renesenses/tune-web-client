@@ -6,6 +6,8 @@
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import SeekBar from './SeekBar.svelte';
+  import NowPlayingLyrics from './NowPlayingLyrics.svelte';
+  import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { selectedArtist, artistAlbums, libraryTab } from '../lib/stores/library';
@@ -639,24 +641,10 @@
               </div>
             {/if}
             {#if showLyrics}
-              <div class="np-lyrics">
-                {#if lyricsLoading}
-                  <div class="spinner-sm"></div>
-                {:else if npLyrics}
-                  <pre class="lyrics-text">{npLyrics}</pre>
-                {:else}
-                  <p class="lyrics-empty">Aucune parole disponible</p>
-                {/if}
-              </div>
+              <NowPlayingLyrics loading={lyricsLoading} lyrics={npLyrics} />
             {/if}
             {#if showEq}
-              <div class="np-eq">
-                {#each EQ_PRESETS as preset}
-                  <button class="eq-preset" class:active={currentEqPreset === preset.value} onclick={() => setEqPreset(preset.value)}>
-                    {preset.label}
-                  </button>
-                {/each}
-              </div>
+              <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} />
             {/if}
             {#if karaokeMode && syncedLines.length > 0}
               <div class="karaoke-panel" bind:this={karaokePanel}>
