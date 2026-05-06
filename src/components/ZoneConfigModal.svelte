@@ -9,7 +9,7 @@
     allZones: Zone[];
     groups: ZoneGroupResponse[];
     onClose: () => void;
-    onDelete: (id: number) => void;
+    onDelete: (id: number) => void | Promise<void>;
     onGroupChanged: () => void;
     onRenamed: (id: number, name: string) => void;
   }
@@ -127,7 +127,16 @@
 
   async function handleDelete() {
     if (zone.id === null) return;
-    onDelete(zone.id);
+    loading = true;
+    error = '';
+    try {
+      await onDelete(zone.id);
+    } catch (e: any) {
+      error = e.message || get(t)('zone.deleteError');
+    } finally {
+      loading = false;
+      confirmDelete = false;
+    }
   }
 
   async function handleSyncSave() {
