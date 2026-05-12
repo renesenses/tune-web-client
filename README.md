@@ -174,4 +174,4 @@ L'app s'ouvre en mode standalone (plein écran, sans barre d'URL). Le service wo
 
 ## Licence
 
-Private — All rights reserved.
+MIT — see [LICENSE](LICENSE)
