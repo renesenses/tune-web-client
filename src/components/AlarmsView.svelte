@@ -44,7 +44,7 @@
 
   async function loadAlarms() {
     try {
-      alarms = await api.fetchJSON<Alarm[]>(`${api.BASE}/alarms`);
+      alarms = await api.fetchJSON<Alarm[]>(`${api.BASE}/alarms/`);
     } catch (e) {
       console.error('Load alarms error:', e);
     }
@@ -120,7 +120,7 @@
           body: JSON.stringify(body),
         });
       } else {
-        await api.fetchJSON(`${api.BASE}/alarms`, {
+        await api.fetchJSON(`${api.BASE}/alarms/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
