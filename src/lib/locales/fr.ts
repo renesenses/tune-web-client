@@ -169,6 +169,9 @@ export default {
   'streaming.searchOn': 'Rechercher sur {service}...',
   'streaming.myPlaylists': 'Mes playlists',
   'streaming.noPlaylists': 'Aucune playlist',
+  'streaming.favAlbums': 'Albums favoris',
+  'streaming.favArtists': 'Artistes favoris',
+  'streaming.favTracks': 'Titres favoris',
 
   // Playlist
   'playlist.title': 'Playlists',

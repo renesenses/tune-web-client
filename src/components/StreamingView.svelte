@@ -37,15 +37,23 @@
   let selectedStreamingPlaylist = $state<StreamingPlaylist | null>(null);
   let playlistTracks = $state<Track[]>([]);
 
+  let favAlbums = $state<Album[]>([]);
+  let favArtists = $state<Artist[]>([]);
+  let favTracks = $state<Track[]>([]);
+
   $effect(() => {
     const s = service;
     if (s) {
       loadFeatured(s);
       loadUserPlaylists(s);
+      loadFavorites(s);
     } else {
       featuredSections = [];
       featuredData = {};
       userPlaylists = [];
+      favAlbums = [];
+      favArtists = [];
+      favTracks = [];
     }
   });
 
@@ -80,6 +88,23 @@
       }
     } catch (e) {
       console.error('Load user playlists error:', e);
+    }
+  }
+
+  async function loadFavorites(s: string) {
+    try {
+      const [albums, artists, tracks] = await Promise.all([
+        api.getStreamingFavorites(s, 'albums'),
+        api.getStreamingFavorites(s, 'artists'),
+        api.getStreamingFavorites(s, 'tracks'),
+      ]);
+      if (service === s) {
+        favAlbums = albums?.albums ?? [];
+        favArtists = artists?.artists ?? [];
+        favTracks = tracks?.tracks ?? [];
+      }
+    } catch (e) {
+      console.error('Load favorites error:', e);
     }
   }
 
@@ -506,6 +531,82 @@
                 </div>
                 <span class="album-card-title truncate">{playlist.name}</span>
                 <span class="album-card-artist truncate">{playlist.track_count} {$tr('home.tracks').toLowerCase()}</span>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      <!-- Favorite albums carousel -->
+      {#if favAlbums.length > 0}
+        <div class="featured-section">
+          <h3 class="featured-section-title">♥ {$tr('streaming.favAlbums')}</h3>
+          <div class="carousel">
+            {#each favAlbums as album}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="carousel-card" onclick={() => selectAlbum(album)}>
+                <div class="album-card-art">
+                  <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+                  <div class="art-hover-overlay">
+                    <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); selectAlbum(album); }} title={$tr('library.openAlbum')}>
+                      <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M8 5v14l11-7z" /></svg>
+                    </button>
+                  </div>
+                </div>
+                <span class="album-card-title truncate">{album.title}</span>
+                <span class="album-card-artist truncate">{album.artist_name}</span>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      <!-- Favorite artists carousel -->
+      {#if favArtists.length > 0}
+        <div class="featured-section">
+          <h3 class="featured-section-title">♥ {$tr('streaming.favArtists')}</h3>
+          <div class="carousel">
+            {#each favArtists as artist}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="carousel-card" onclick={() => selectArtist(artist)}>
+                <div class="album-card-art">
+                  <AlbumArt coverPath={artist.image_path} size={160} alt={artist.name} round />
+                  <div class="art-hover-overlay">
+                    <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); selectArtist(artist); }} title={$tr('library.openAlbum')}>
+                      <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M8 5v14l11-7z" /></svg>
+                    </button>
+                  </div>
+                </div>
+                <span class="album-card-title truncate">{artist.name}</span>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      <!-- Favorite tracks -->
+      {#if favTracks.length > 0}
+        <div class="featured-section">
+          <h3 class="featured-section-title">♥ {$tr('streaming.favTracks')}</h3>
+          <div class="track-list">
+            {#each favTracks.slice(0, 50) as track, i}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="track-row" ondblclick={() => playTrack(track, favTracks, i)}>
+                <span class="track-num">{i + 1}</span>
+                <div class="track-art-small">
+                  <AlbumArt coverPath={track.cover_path} size={36} alt={track.title} />
+                </div>
+                <div class="track-info">
+                  <span class="track-title truncate">{track.title}</span>
+                  <span class="track-artist truncate">{track.artist_name}</span>
+                </div>
+                <span class="track-duration">{formatTime(track.duration)}</span>
+                <button class="track-action-btn" onclick={() => playTrack(track, favTracks, i)} title="Play">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M8 5v14l11-7z" /></svg>
+                </button>
               </div>
             {/each}
           </div>

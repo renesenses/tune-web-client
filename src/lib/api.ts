@@ -1000,6 +1000,10 @@ export function getStreamingPlaylists(service: string) {
   return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists`);
 }
 
+export function getStreamingFavorites(service: string, type: 'tracks' | 'albums' | 'artists') {
+  return fetchJSON<Record<string, any[]>>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}`);
+}
+
 // --- Unified Playlist Manager ---
 
 export function getAllPlaylists() {
