@@ -75,6 +75,7 @@ export interface Track {
   artist_id?: number | null;
   artist_name?: string | null;
   disc_number?: number;
+  disc_subtitle?: string | null;
   track_number?: number;
   duration_ms?: number;
   file_path?: string | null;
@@ -176,6 +177,13 @@ export interface FederatedSearchResult {
 export interface FeaturedSection {
   id: string;
   name: string;
+}
+
+export interface StreamingGenre {
+  id: string;
+  name: string;
+  has_children: boolean;
+  image_url?: string | null;
 }
 
 export interface StreamingServiceStatus {

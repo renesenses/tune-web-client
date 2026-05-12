@@ -5,7 +5,7 @@
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
-  import type { Album, Artist, Track, SearchResult, FeaturedSection, StreamingPlaylist } from '../lib/types';
+  import type { Album, Artist, Track, SearchResult, FeaturedSection, StreamingPlaylist, StreamingGenre } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { playVideo } from '../lib/stores/ytPlayer';
 
@@ -44,6 +44,13 @@
   let favArtistIds = $derived(new Set(favArtists.map(a => String(a.source_id ?? a.id))));
   let favTrackIds = $derived(new Set(favTracks.map(t => String(t.source_id ?? t.id))));
 
+  // Genre browsing state
+  let genres = $state<StreamingGenre[]>([]);
+  let genreBreadcrumb = $state<{ id: string | null; name: string }[]>([]);
+  let genreAlbums = $state<Album[]>([]);
+  let genreLoading = $state(false);
+  let browsingGenres = $state(false);
+
   $effect(() => {
     const s = service;
     if (s) {
@@ -58,6 +65,11 @@
       favArtists = [];
       favTracks = [];
     }
+    // Reset genre browsing on service change
+    browsingGenres = false;
+    genres = [];
+    genreAlbums = [];
+    genreBreadcrumb = [];
   });
 
   $effect(() => {
@@ -140,6 +152,66 @@
       }
     } catch (e) {
       console.error('Load favorites error:', e);
+    }
+  }
+
+  async function openGenreBrowser() {
+    if (!service) return;
+    browsingGenres = true;
+    genreBreadcrumb = [{ id: null, name: $tr('common.genres') }];
+    genreAlbums = [];
+    genreLoading = true;
+    try {
+      genres = await api.getStreamingGenres(service);
+    } catch (e) {
+      console.error('Load genres error:', e);
+      genres = [];
+    }
+    genreLoading = false;
+  }
+
+  async function selectGenre(genre: StreamingGenre) {
+    if (!service) return;
+    genreLoading = true;
+    genreBreadcrumb = [...genreBreadcrumb, { id: genre.id, name: genre.name }];
+    try {
+      if (genre.has_children) {
+        genres = await api.getStreamingGenres(service, genre.id);
+        genreAlbums = [];
+      } else {
+        genres = [];
+        genreAlbums = [];
+      }
+      // Always load albums for the selected genre
+      const albums = await api.getStreamingGenreAlbums(service, genre.id);
+      genreAlbums = albums;
+    } catch (e) {
+      console.error('Load genre detail error:', e);
+    }
+    genreLoading = false;
+  }
+
+  function genreGoBack() {
+    if (genreBreadcrumb.length <= 1) {
+      browsingGenres = false;
+      genres = [];
+      genreAlbums = [];
+      genreBreadcrumb = [];
+      return;
+    }
+    // Go up one level
+    const newBreadcrumb = genreBreadcrumb.slice(0, -1);
+    const parentEntry = newBreadcrumb[newBreadcrumb.length - 1];
+    genreBreadcrumb = newBreadcrumb;
+    genreLoading = true;
+    if (service) {
+      api.getStreamingGenres(service, parentEntry.id ?? undefined).then(g => {
+        genres = g;
+        genreAlbums = [];
+        genreLoading = false;
+      }).catch(() => {
+        genreLoading = false;
+      });
     }
   }
 
@@ -246,6 +318,10 @@
     albumTracks = [];
     artistAlbums = [];
     playlistTracks = [];
+    if (browsingGenres) {
+      // Return to genres view when navigating back from an album opened via genre browsing
+      browsingGenres = true;
+    }
   }
 
   async function playStreamingTrack(track: Track) {
@@ -425,10 +501,80 @@
       </div>
     {/if}
 
+  {:else if browsingGenres}
+    <!-- Genre browsing view -->
+    <div class="detail-header">
+      <button class="back-btn" onclick={genreGoBack}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
+        {$tr('common.back')}
+      </button>
+      {#each genreBreadcrumb as crumb, i}
+        {#if i > 0}<span class="breadcrumb-sep">/</span>{/if}
+        <span class="breadcrumb-item" class:current={i === genreBreadcrumb.length - 1}>{crumb.name}</span>
+      {/each}
+    </div>
+
+    {#if genreLoading}
+      <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
+    {:else}
+      {#if genres.length > 0}
+        <div class="genre-grid">
+          {#each genres as genre}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="genre-chip" onclick={() => selectGenre(genre)}>
+              <span class="genre-name">{genre.name}</span>
+              {#if genre.has_children}
+                <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6" /></svg>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
+
+      {#if genreAlbums.length > 0}
+        <div class="genre-albums-section">
+          <h3 class="featured-section-title">{$tr('common.albums')}</h3>
+          <div class="albums-grid">
+            {#each genreAlbums as album}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="album-card" onclick={() => selectAlbum(album)}>
+                <div class="album-card-art">
+                  <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+                  <div class="art-hover-overlay">
+                    <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); playStreamingAlbum(album); }} title={$tr('common.play')}>
+                      <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M8 5v14l11-7z" /></svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="album-card-meta">
+                  <span class="album-card-title truncate">{album.title}</span>
+                  {#if album.artist_name}
+                    <span class="album-card-artist truncate">{album.artist_name}</span>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      {#if genres.length === 0 && genreAlbums.length === 0}
+        <div class="empty-center">{$tr('common.noResult')}</div>
+      {/if}
+    {/if}
+
   {:else}
     <!-- Main search/browse view -->
     <div class="streaming-header">
       <h2>{serviceName(service)}</h2>
+      {#if service === 'qobuz'}
+        <button class="genres-btn" onclick={openGenreBrowser}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
+          {$tr('common.genres')}
+        </button>
+      {/if}
     </div>
 
     <div class="search-row">
@@ -1389,5 +1535,88 @@
   .dev-mode-text a {
     color: var(--tune-accent, #6366f1);
     text-decoration: underline;
+  }
+
+  /* Genre browsing */
+
+  .streaming-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .genres-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--tune-grey2);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.12s ease-out;
+  }
+
+  .genres-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .breadcrumb-sep {
+    color: var(--tune-text-muted);
+    font-size: 13px;
+    margin: 0 2px;
+  }
+
+  .breadcrumb-item {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text-secondary);
+  }
+
+  .breadcrumb-item.current {
+    color: var(--tune-text);
+    font-weight: 600;
+  }
+
+  .genre-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: var(--space-xl);
+  }
+
+  .genre-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    background: var(--tune-grey2);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-lg);
+    color: var(--tune-text);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.15s ease-out;
+  }
+
+  .genre-chip:hover {
+    border-color: var(--tune-accent);
+    background: rgba(87, 198, 185, 0.1);
+    transform: translateY(-1px);
+  }
+
+  .genre-name {
+    white-space: nowrap;
+  }
+
+  .genre-albums-section {
+    margin-top: var(--space-md);
   }
 </style>

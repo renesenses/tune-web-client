@@ -996,6 +996,15 @@ export function getStreamingFeatured(service: string, section: string, limit = 2
   return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured/${encodeURIComponent(section)}?limit=${limit}`);
 }
 
+export function getStreamingGenres(service: string, parentId?: string) {
+  const params = parentId ? `?parent_id=${encodeURIComponent(parentId)}` : '';
+  return fetchJSON<import('./types').StreamingGenre[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres${params}`);
+}
+
+export function getStreamingGenreAlbums(service: string, genreId: string, limit = 50) {
+  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}`);
+}
+
 export function getStreamingPlaylists(service: string) {
   return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists`);
 }
