@@ -465,9 +465,8 @@
 
   async function fetchServerVersion() {
     try {
-      const res = await fetch('/');
-      const data = await res.json();
-      serverVersion = data.version ?? null;
+      const data = await api.apiFetch('/system/update/check');
+      serverVersion = data?.current_version ?? null;
     } catch {
       serverVersion = null;
     }
