@@ -20,6 +20,45 @@
   let loading = $state(false);
   let results: FederatedSearchResult | null = $state(null);
 
+  // Source filtering
+  let selectedSources = $state<Set<string>>(new Set());
+  let availableSources = $derived.by(() => {
+    const sources: { key: string; label: string }[] = [{ key: 'local', label: 'Local' }];
+    for (const [service, status] of Object.entries($streamingServices)) {
+      if (status.authenticated) {
+        sources.push({ key: service, label: service.charAt(0).toUpperCase() + service.slice(1) });
+      }
+    }
+    return sources;
+  });
+  let allSelected = $derived(selectedSources.size === 0 || selectedSources.size === availableSources.length);
+
+  function toggleSource(key: string) {
+    const next = new Set(selectedSources);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    // If all are now selected, clear the set (meaning "all")
+    if (next.size === availableSources.length) {
+      selectedSources = new Set();
+    } else {
+      selectedSources = next;
+    }
+    // Re-run search if we already have results
+    if (results || playlistMatches.length > 0) {
+      handleSearch();
+    }
+  }
+
+  function selectAllSources() {
+    selectedSources = new Set();
+    if (results || playlistMatches.length > 0) {
+      handleSearch();
+    }
+  }
+
   interface PlaylistMatch {
     name: string;
     trackCount: number;
@@ -37,11 +76,13 @@
     playlistMatches = [];
     try {
       const query = searchQuery.trim().toLowerCase();
+      const activeSources = selectedSources.size > 0 ? [...selectedSources] : undefined;
+      const includeLocal = !activeSources || activeSources.includes('local');
 
       // Federated search + playlist search in parallel
       const [federated, localPlaylists] = await Promise.all([
-        api.federatedSearch(searchQuery.trim()),
-        api.getPlaylists().catch(() => [] as Playlist[]),
+        api.federatedSearch(searchQuery.trim(), activeSources),
+        includeLocal ? api.getPlaylists().catch(() => [] as Playlist[]) : Promise.resolve([] as Playlist[]),
       ]);
       results = federated;
 
@@ -59,7 +100,7 @@
       const services = $streamingServices;
       const streamingPromises: Promise<void>[] = [];
       for (const [service, status] of Object.entries(services)) {
-        if (status.authenticated) {
+        if (status.authenticated && (!activeSources || activeSources.includes(service))) {
           streamingPromises.push(
             api.getStreamingPlaylists(service)
               .then((playlists: StreamingPlaylist[]) => {
@@ -182,6 +223,22 @@
       />
       <button class="search-btn" onclick={handleSearch}>{$t('common.search')}</button>
     </div>
+    {#if availableSources.length > 1}
+      <div class="source-filters">
+        <button
+          class="source-chip"
+          class:active={allSelected}
+          onclick={selectAllSources}
+        >{$t('common.all')}</button>
+        {#each availableSources as src}
+          <button
+            class="source-chip"
+            class:active={!allSelected && selectedSources.has(src.key)}
+            onclick={() => toggleSource(src.key)}
+          >{src.label}</button>
+        {/each}
+      </div>
+    {/if}
   </div>
 
   {#if loading}
@@ -339,6 +396,38 @@
 
   .search-btn:hover {
     background: var(--tune-accent-hover);
+  }
+
+  .source-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-top: var(--space-sm);
+  }
+
+  .source-chip {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    padding: 4px 12px;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--tune-border);
+    background: transparent;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    transition: all 0.12s ease-out;
+  }
+
+  .source-chip:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-text);
+  }
+
+  .source-chip.active {
+    background: var(--tune-accent);
+    border-color: var(--tune-accent);
+    color: white;
   }
 
   .source-section {

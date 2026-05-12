@@ -32,6 +32,7 @@ export default {
   'common.artists': '艺人',
   'common.genres': '风格',
   'common.create': '创建',
+  'common.all': '全部',
 
   // Zone
   'zone.zones': '区域',

@@ -32,6 +32,7 @@ export default {
   'common.artists': 'アーティスト',
   'common.genres': 'ジャンル',
   'common.create': '作成',
+  'common.all': 'すべて',
 
   // Zone
   'zone.zones': 'ゾーン',

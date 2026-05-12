@@ -32,6 +32,7 @@ export default {
   'common.artists': '아티스트',
   'common.genres': '장르',
   'common.create': '생성',
+  'common.all': '전체',
 
   // Zone
   'zone.zones': '존',

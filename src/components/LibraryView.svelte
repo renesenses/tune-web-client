@@ -1,6 +1,7 @@
 <script lang="ts">
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { tuneWS } from '../lib/websocket';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { currentProfileId } from '../lib/stores/profile';
   import * as api from '../lib/api';
@@ -27,6 +28,19 @@
     onAddToPlaylist?: (track: Track) => void;
   }
   let { onAddToPlaylist }: Props = $props();
+
+  let scanProgress = $state<{ scanned: number; added: number } | null>(null);
+
+  $effect(() => {
+    const unsub = tuneWS.onEvent((event) => {
+      if (event.type === 'library.scan.progress') {
+        scanProgress = { scanned: event.data?.scanned ?? 0, added: event.data?.added ?? 0 };
+      } else if (event.type === 'library.scan.completed' || event.type === 'library.scan.started') {
+        scanProgress = event.type === 'library.scan.started' ? { scanned: 0, added: 0 } : null;
+      }
+    });
+    return unsub;
+  });
 
   // Quick Fav state
   let quickFavTrackIds = $state<Set<number>>(new Set());
@@ -1148,6 +1162,9 @@
       <div class="loading">
         <div class="spinner"></div>
         {$tr('common.loading')}
+        {#if scanProgress}
+          <span class="scan-progress">{scanProgress.scanned} fichiers scannés, {scanProgress.added} ajoutés</span>
+        {/if}
       </div>
     {:else if $libraryTab === 'albums'}
       <div class="quality-filters">
@@ -2403,6 +2420,14 @@
     font-family: var(--font-body);
     padding: var(--space-xl);
     justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .scan-progress {
+    width: 100%;
+    text-align: center;
+    font-size: 0.85em;
+    opacity: 0.7;
   }
 
   .spinner {

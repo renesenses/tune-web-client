@@ -32,6 +32,7 @@ export default {
   'common.artists': 'Künstler',
   'common.genres': 'Genres',
   'common.create': 'Erstellen',
+  'common.all': 'Alle',
 
   // Zone
   'zone.zones': 'ZONEN',
