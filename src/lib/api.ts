@@ -1004,6 +1004,14 @@ export function getStreamingFavorites(service: string, type: 'tracks' | 'albums'
   return fetchJSON<Record<string, any[]>>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}`);
 }
 
+export function addStreamingFavorite(service: string, type: 'tracks' | 'albums' | 'artists', itemId: string) {
+  return fetchJSON<{ok: boolean}>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}/${encodeURIComponent(itemId)}`, { method: 'POST' });
+}
+
+export function removeStreamingFavorite(service: string, type: 'tracks' | 'albums' | 'artists', itemId: string) {
+  return fetchJSON<{ok: boolean}>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}/${encodeURIComponent(itemId)}`, { method: 'DELETE' });
+}
+
 // --- Unified Playlist Manager ---
 
 export function getAllPlaylists() {

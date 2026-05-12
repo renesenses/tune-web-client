@@ -40,6 +40,9 @@
   let favAlbums = $state<Album[]>([]);
   let favArtists = $state<Artist[]>([]);
   let favTracks = $state<Track[]>([]);
+  let favAlbumIds = $derived(new Set(favAlbums.map(a => String(a.source_id ?? a.id))));
+  let favArtistIds = $derived(new Set(favArtists.map(a => String(a.source_id ?? a.id))));
+  let favTrackIds = $derived(new Set(favTracks.map(t => String(t.source_id ?? t.id))));
 
   $effect(() => {
     const s = service;
@@ -88,6 +91,22 @@
       }
     } catch (e) {
       console.error('Load user playlists error:', e);
+    }
+  }
+
+  async function toggleFavorite(type: 'tracks' | 'albums' | 'artists', itemId: string) {
+    if (!service) return;
+    const idSet = type === 'albums' ? favAlbumIds : type === 'artists' ? favArtistIds : favTrackIds;
+    const isFav = idSet.has(itemId);
+    try {
+      if (isFav) {
+        await api.removeStreamingFavorite(service, type, itemId);
+      } else {
+        await api.addStreamingFavorite(service, type, itemId);
+      }
+      await loadFavorites(service);
+    } catch (e) {
+      console.error('Toggle favorite error:', e);
     }
   }
 
@@ -447,10 +466,13 @@
                   </button>
                 </div>
               </div>
-              <span class="album-card-title truncate">{album.title}</span>
-              {#if album.artist_name}
-                <span class="album-card-artist truncate">{album.artist_name}</span>
-              {/if}
+              <div class="album-card-meta">
+                <span class="album-card-title truncate">{album.title}</span>
+                {#if album.artist_name}
+                  <span class="album-card-artist truncate">{album.artist_name}</span>
+                {/if}
+              </div>
+              <button class="fav-btn" class:is-fav={favAlbumIds.has(String(album.source_id ?? album.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('albums', String(album.source_id ?? album.id)); }} title="Favori">♥</button>
             </div>
           {/each}
         </div>
@@ -458,11 +480,14 @@
       {:else if tab === 'artists' && results.artists.length > 0}
         <div class="artists-list">
           {#each results.artists as artist}
-            <button class="artist-item" onclick={() => selectArtist(artist)}>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="artist-item" onclick={() => selectArtist(artist)}>
               <div class="artist-avatar">{artist.name.charAt(0).toUpperCase()}</div>
               <span class="artist-name">{artist.name}</span>
+              <button class="fav-btn" class:is-fav={favArtistIds.has(String(artist.source_id ?? artist.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('artists', String(artist.source_id ?? artist.id)); }} title="Favori">♥</button>
               <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
-            </button>
+            </div>
           {/each}
         </div>
 
@@ -479,6 +504,7 @@
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
+              <button class="fav-btn small" class:is-fav={favTrackIds.has(String(t.source_id ?? t.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('tracks', String(t.source_id ?? t.id)); }} title="Favori">♥</button>
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               {#if onAddToPlaylist && (t.id || t.source_id)}
                 <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
@@ -1168,6 +1194,28 @@
   .add-queue-btn:hover {
     border-color: var(--tune-accent);
     color: var(--tune-accent);
+  }
+
+  .fav-btn {
+    background: none;
+    border: none;
+    color: var(--tune-text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    opacity: 0.4;
+    transition: all 0.2s;
+  }
+  .fav-btn:hover {
+    opacity: 1;
+    color: #e74c3c;
+  }
+  .fav-btn.is-fav {
+    color: #e74c3c;
+    opacity: 1;
+  }
+  .fav-btn.small {
+    font-size: 14px;
   }
 
   .add-playlist-btn {
