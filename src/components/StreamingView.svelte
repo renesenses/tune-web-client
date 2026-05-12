@@ -865,6 +865,9 @@
   }
 
   .streaming-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
     margin-bottom: var(--space-lg);
   }
 
@@ -1538,12 +1541,6 @@
   }
 
   /* Genre browsing */
-
-  .streaming-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-  }
 
   .genres-btn {
     display: inline-flex;

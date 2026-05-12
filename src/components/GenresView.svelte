@@ -99,12 +99,14 @@
 
   let tracksByDisc = $derived.by(() => {
     const map = new Map<number, Track[]>();
+    const subtitles = new Map<number, string | null>();
     for (const t of genreAlbumTracks) {
       const disc = t.disc_number ?? 1;
       if (!map.has(disc)) map.set(disc, []);
       map.get(disc)!.push(t);
+      if (t.disc_subtitle && !subtitles.has(disc)) subtitles.set(disc, t.disc_subtitle);
     }
-    return [...map.entries()].sort((a, b) => a[0] - b[0]);
+    return [...map.entries()].sort((a, b) => a[0] - b[0]).map(([num, tracks]) => [num, tracks, subtitles.get(num) ?? null] as [number, Track[], string | null]);
   });
 
   let hasMultipleDiscs = $derived(tracksByDisc.length > 1);
@@ -395,8 +397,8 @@
           {$tr('common.loading')}
         </div>
       {:else if hasMultipleDiscs}
-        {#each tracksByDisc as [discNum, discTracks]}
-          <div class="disc-header">{$tr('library.disc').replace('{num}', String(discNum))}</div>
+        {#each tracksByDisc as [discNum, discTracks, discSubtitle]}
+          <div class="disc-header">{$tr('library.disc').replace('{num}', String(discNum))}{#if discSubtitle}: {discSubtitle}{/if}</div>
           <div class="track-list">
             {#each discTracks as t, index}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
