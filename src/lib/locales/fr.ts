@@ -483,6 +483,7 @@ export default {
 
   // Diagnostics
   'nav.zonemanager': 'Zones',
+  'nav.alarms': 'Réveils',
   'nav.diagnostics': 'Diagnostics',
   'diagnostics.title': 'Diagnostics',
   'diagnostics.serverInfo': 'Serveur',

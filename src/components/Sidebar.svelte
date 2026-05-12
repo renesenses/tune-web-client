@@ -392,6 +392,10 @@
       {$t('nav.zonemanager')}
       <span class="badge-new">POC</span>
     </button>
+    <button class="nav-item" class:active={$activeView === 'alarms'} onclick={() => navigate('alarms')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M5 3L2 6"></path><path d="M22 6l-3-3"></path></svg>
+      {$t('nav.alarms')}
+    </button>
     <button class="nav-item" class:active={$activeView === 'diagnostics'} onclick={() => navigate('diagnostics')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"></path><path d="M18 20V4"></path><path d="M6 20v-4"></path></svg>
       {$t('nav.diagnostics')}

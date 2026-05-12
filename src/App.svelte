@@ -34,6 +34,7 @@
   import GenreTreeView from './components/GenreTreeView.svelte';
   import ZoneManagerView from './components/ZoneManagerView.svelte';
   import DiagnosticsView from './components/DiagnosticsView.svelte';
+import AlarmsView from './components/AlarmsView.svelte';
   import BrowseView from './components/BrowseView.svelte';
   import RadiosView from './components/RadiosView.svelte';
   import PodcastsView from './components/PodcastsView.svelte';
@@ -439,6 +440,8 @@
       <SmartCollectionsView />
     {:else if $activeView === 'dashboard'}
       <DashboardView />
+    {:else if $activeView === 'alarms'}
+      <AlarmsView />
     {:else if $activeView === 'diagnostics'}
       <DiagnosticsView />
     {/if}
