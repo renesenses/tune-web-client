@@ -105,6 +105,7 @@
     switch (type) {
       case 'dlna': return 'DLNA';
       case 'airplay': return 'AirPlay';
+      case 'chromecast': return 'Cast';
       default: return 'Local';
     }
   }
@@ -437,6 +438,7 @@
           <option value="local">Local</option>
           <option value="dlna">DLNA</option>
           <option value="airplay">AirPlay</option>
+          <option value="chromecast">Chromecast</option>
         </select>
         {#if newZoneOutputType !== 'local'}
           <select class="form-select" bind:value={newZoneDeviceId}>
@@ -1169,6 +1171,11 @@
   .output-badge.airplay {
     background: rgba(168, 85, 247, 0.15);
     color: #c084fc;
+  }
+
+  .output-badge.chromecast {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
   }
 
   .output-badge.local {
