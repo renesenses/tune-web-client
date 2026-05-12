@@ -164,13 +164,23 @@
   let progressPercent = $derived(
     displayTrack?.duration_ms ? Math.min(100, ($seekPositionMs / displayTrack.duration_ms) * 100) : 0
   );
+
+  function handleProgressSeek(e: MouseEvent) {
+    const zone = $currentZone;
+    if (!displayTrack?.duration_ms || !zone?.id) return;
+    e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const posMs = Math.floor(pct * displayTrack.duration_ms);
+    api.seek(zone.id, posMs);
+  }
 </script>
 
 <div class="transport-bar" onclick={handleBarClick} role="button" tabindex={0} aria-label="Transport bar">
   {#if displayTrack && displayTrack.source !== 'radio' && displayTrack.duration_ms}
     <div class="transport-progress">
       <span class="progress-time">{formatTime($seekPositionMs)}</span>
-      <div class="progress-track">
+      <div class="progress-track" onclick={handleProgressSeek} role="slider" tabindex={0} aria-label="Seek" aria-valuenow={$seekPositionMs} aria-valuemin={0} aria-valuemax={displayTrack?.duration_ms ?? 0}>
         <div class="progress-fill" style="width: {progressPercent}%"></div>
       </div>
       <span class="progress-time">{formatTime(displayTrack.duration_ms)}</span>
@@ -565,6 +575,7 @@
     position: relative;
     display: flex;
     align-items: center;
+    cursor: pointer;
   }
 
   .progress-track::before {

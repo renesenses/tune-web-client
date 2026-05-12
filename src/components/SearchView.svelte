@@ -2,7 +2,7 @@
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { activeView } from '../lib/stores/navigation';
   import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading } from '../lib/stores/library';
-  import { streamingServices } from '../lib/stores/streaming';
+  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
@@ -119,33 +119,40 @@
     }
   }
 
-  async function playAlbum(album: Album) {
-    if (!zone?.id) return;
-    try {
-      if (album.id) {
-        await playAndSync(zone.id, { album_id: album.id });
-      } else if (album.source && album.source_id) {
-        await playAndSync(zone.id, { source: album.source, source_id: album.source_id });
-      }
-    } catch (e) {
-      console.error('Play album error:', e);
+  function openAlbum(album: Album) {
+    if (album.id) {
+      selectedAlbum.set(album);
+      libraryTab.set('albums');
+      activeView.set('library');
+    } else if (album.source && album.source_id) {
+      activeStreamingService.set(album.source);
+      pendingStreamingAlbum.set(album);
+      activeView.set('streaming');
     }
   }
 
   async function selectArtist(artist: Artist) {
-    if (!artist.id) return;
-    selectedArtist.set(artist);
-    selectedAlbum.set(null);
-    libraryTab.set('artists');
-    libraryLoading.set(true);
-    activeView.set('library');
-    try {
-      const result = await api.getArtistAlbums(artist.id);
-      artistAlbums.set(result);
-    } catch (e) {
-      console.error('Load artist albums error:', e);
+    if (artist.id) {
+      selectedArtist.set(artist);
+      selectedAlbum.set(null);
+      libraryTab.set('artists');
+      libraryLoading.set(true);
+      activeView.set('library');
+      try {
+        const result = await api.getArtistAlbums(artist.id);
+        artistAlbums.set(result);
+      } catch (e) {
+        console.error('Load artist albums error:', e);
+      }
+      libraryLoading.set(false);
+    } else if (artist.source_id) {
+      const source = (artist as any).source ?? Object.keys($streamingServices).find(s => $streamingServices[s]?.authenticated);
+      if (source) {
+        activeStreamingService.set(source);
+        pendingStreamingArtist.set(artist);
+        activeView.set('streaming');
+      }
     }
-    libraryLoading.set(false);
   }
 
   function allSources(results: FederatedSearchResult): { name: string; data: { tracks: Track[]; albums: Album[]; artists: Artist[] } }[] {
@@ -212,7 +219,7 @@
             <h4 class="subsection-title">{$t('common.albums')}</h4>
             <div class="albums-row">
               {#each source.data.albums as album}
-                <button class="album-card" onclick={() => playAlbum(album)}>
+                <button class="album-card" onclick={() => openAlbum(album)}>
                   <AlbumArt coverPath={album.cover_path} size={120} alt={album.title} />
                   <span class="album-card-title truncate">{album.title}</span>
                   {#if album.artist_name}

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { activeStreamingService } from '../lib/stores/streaming';
+  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist } from '../lib/stores/streaming';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import * as api from '../lib/api';
@@ -57,6 +57,22 @@
       favAlbums = [];
       favArtists = [];
       favTracks = [];
+    }
+  });
+
+  $effect(() => {
+    const album = $pendingStreamingAlbum;
+    if (album && service) {
+      pendingStreamingAlbum.set(null);
+      selectAlbum(album);
+    }
+  });
+
+  $effect(() => {
+    const artist = $pendingStreamingArtist;
+    if (artist && service) {
+      pendingStreamingArtist.set(null);
+      selectArtist(artist);
     }
   });
 

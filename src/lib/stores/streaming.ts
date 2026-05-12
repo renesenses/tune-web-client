@@ -1,6 +1,9 @@
 import { writable } from 'svelte/store';
-import type { StreamingServiceStatus } from '../types';
+import type { Album, Artist, StreamingServiceStatus } from '../types';
 
 export const activeStreamingService = writable<string | null>(null);
 
 export const streamingServices = writable<Record<string, StreamingServiceStatus>>({});
+
+export const pendingStreamingAlbum = writable<Album | null>(null);
+export const pendingStreamingArtist = writable<Artist | null>(null);
