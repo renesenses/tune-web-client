@@ -10,6 +10,10 @@
   let editing = $state<Record<string, Record<string, string>>>({});
   let helpOpen = $state<Record<string, boolean>>({});
 
+  // Last.fm scrobbling auth flow state
+  let lastfmAuthPending = $state(false);
+  let lastfmAuthToken = $state<string | null>(null);
+
   async function load() {
     loading = true;
     try {
@@ -74,6 +78,69 @@
     try {
       await api.deleteServiceToken(service.id);
       notifications.success(`${service.name}: token supprimé.`);
+      await load();
+    } catch (e: any) {
+      notifications.error(`Erreur: ${e?.message || e}`);
+    }
+    busy = null;
+  }
+
+  // --- Last.fm scrobbling ---
+
+  async function lastfmStartAuth() {
+    busy = 'lastfm';
+    lastfmAuthPending = false;
+    lastfmAuthToken = null;
+    try {
+      const r = await api.lastfmGetAuthToken();
+      lastfmAuthToken = r.token;
+      lastfmAuthPending = true;
+      // Open Last.fm auth page in a new tab
+      window.open(r.auth_url, '_blank', 'noopener');
+    } catch (e: any) {
+      notifications.error(`Last.fm: ${e?.message || e}`);
+    }
+    busy = null;
+  }
+
+  async function lastfmCompleteAuth() {
+    if (!lastfmAuthToken) return;
+    busy = 'lastfm';
+    try {
+      const r = await api.lastfmGetSession(lastfmAuthToken);
+      notifications.success(`Last.fm: connecté${r.username ? ` (${r.username})` : ''} — scrobbling activé.`);
+      lastfmAuthPending = false;
+      lastfmAuthToken = null;
+      await load();
+    } catch (e: any) {
+      notifications.error(`Last.fm: ${e?.message || e}`);
+    }
+    busy = null;
+  }
+
+  function lastfmCancelAuth() {
+    lastfmAuthPending = false;
+    lastfmAuthToken = null;
+  }
+
+  async function lastfmToggleScrobble(enabled: boolean) {
+    busy = 'lastfm';
+    try {
+      await api.lastfmToggleScrobble(enabled);
+      notifications.success(`Scrobbling ${enabled ? 'activé' : 'désactivé'}.`);
+      await load();
+    } catch (e: any) {
+      notifications.error(`Erreur: ${e?.message || e}`);
+    }
+    busy = null;
+  }
+
+  async function lastfmDisconnect() {
+    if (!confirm('Déconnecter ton compte Last.fm ? Le scrobbling sera désactivé.')) return;
+    busy = 'lastfm';
+    try {
+      await api.lastfmDisconnect();
+      notifications.success('Last.fm: compte déconnecté.');
       await load();
     } catch (e: any) {
       notifications.error(`Erreur: ${e?.message || e}`);
@@ -155,6 +222,59 @@
             </div>
           {:else if s.kind === 'oauth' || s.kind === 'login_password' || s.kind === 'arl_token'}
             <a class="btn-link" href={s.help_url}>Configurer →</a>
+          {/if}
+
+          {#if s.id === 'lastfm' && s.configured}
+            <div class="lastfm-scrobble">
+              <div class="scrobble-header">Scrobbling</div>
+
+              {#if s.scrobble_authenticated}
+                <div class="scrobble-status scrobble-connected">
+                  <span class="scrobble-dot" style:background={s.scrobble_enabled ? '#22c55e' : '#6b7280'}></span>
+                  <span>
+                    {#if s.lastfm_username}
+                      Connecté : <strong>{s.lastfm_username}</strong>
+                    {:else}
+                      Compte connecté
+                    {/if}
+                  </span>
+                </div>
+                <div class="scrobble-toggle-row">
+                  <label class="toggle-label">
+                    <input
+                      type="checkbox"
+                      checked={s.scrobble_enabled}
+                      disabled={busy === 'lastfm'}
+                      onchange={(e) => lastfmToggleScrobble((e.target as HTMLInputElement).checked)}
+                    />
+                    <span class="toggle-text">Scrobbling {s.scrobble_enabled ? 'actif' : 'inactif'}</span>
+                  </label>
+                </div>
+                <button class="btn-danger btn-sm" disabled={busy === 'lastfm'} onclick={lastfmDisconnect}>
+                  Déconnecter Last.fm
+                </button>
+              {:else if lastfmAuthPending}
+                <div class="scrobble-pending">
+                  <p class="pending-text">
+                    Autorise Tune sur la page Last.fm ouverte dans ton navigateur, puis clique ci-dessous.
+                  </p>
+                  <div class="actions">
+                    <button class="btn-save" disabled={busy === 'lastfm'} onclick={lastfmCompleteAuth}>
+                      {busy === 'lastfm' ? '…' : "J'ai autorisé — continuer"}
+                    </button>
+                    <button class="btn-secondary" onclick={lastfmCancelAuth}>Annuler</button>
+                  </div>
+                </div>
+              {:else}
+                <div class="scrobble-status scrobble-disconnected">
+                  <span class="scrobble-dot" style:background="transparent"></span>
+                  <span>Non connecté — connecte ton compte Last.fm pour activer le scrobbling.</span>
+                </div>
+                <button class="btn-lastfm" disabled={busy === 'lastfm'} onclick={lastfmStartAuth}>
+                  {busy === 'lastfm' ? '…' : 'Connecter mon compte Last.fm'}
+                </button>
+              {/if}
+            </div>
           {/if}
 
           <button class="help-toggle" onclick={() => helpOpen[s.id] = !helpOpen[s.id]}>
@@ -281,4 +401,47 @@
   .help-link:hover { text-decoration: underline; }
 
   .state { padding: 24px; text-align: center; color: var(--tune-text-muted); }
+
+  /* Last.fm scrobbling section */
+  .lastfm-scrobble {
+    border-top: 1px solid var(--tune-border);
+    padding-top: 10px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .scrobble-header {
+    font-size: 12px; font-weight: 600; color: var(--tune-text);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .scrobble-status {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--tune-text-muted);
+  }
+  .scrobble-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid var(--tune-border);
+  }
+  .scrobble-connected strong { color: var(--tune-text); }
+  .scrobble-toggle-row { display: flex; align-items: center; }
+  .toggle-label {
+    display: flex; align-items: center; gap: 6px;
+    cursor: pointer; font-size: 12px;
+  }
+  .toggle-label input[type="checkbox"] {
+    width: 16px; height: 16px; accent-color: var(--tune-accent);
+    cursor: pointer;
+  }
+  .toggle-text { color: var(--tune-text-muted); }
+  .scrobble-pending { display: flex; flex-direction: column; gap: 8px; }
+  .pending-text {
+    font-size: 12px; color: var(--tune-text-muted);
+    margin: 0; line-height: 1.4;
+  }
+  .btn-lastfm {
+    padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    cursor: pointer; border: none;
+    background: #d51007; color: white;
+  }
+  .btn-lastfm:hover { background: #b90e06; }
+  .btn-lastfm:disabled { opacity: 0.5; cursor: default; }
+  .btn-sm { font-size: 11px; padding: 4px 10px; }
 </style>

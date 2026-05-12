@@ -279,6 +279,10 @@ export interface ServiceTokenInfo {
   valid: boolean | null;
   validated_at: number | null;
   validation_message: string | null;
+  // Last.fm scrobbling extras (only present when id === 'lastfm')
+  scrobble_enabled?: boolean;
+  scrobble_authenticated?: boolean;
+  lastfm_username?: string;
 }
 
 export interface ServiceTokenSaveResult {
@@ -308,6 +312,44 @@ export function testServiceToken(service: string) {
 
 export function deleteServiceToken(service: string) {
   return fetchJSON<{ ok?: boolean }>(`${BASE}/services/tokens/${service}`, { method: 'DELETE' });
+}
+
+// --- Last.fm scrobbling ---
+
+export interface LastfmAuthToken {
+  token: string;
+  auth_url: string;
+}
+
+export interface LastfmSessionResult {
+  ok: boolean;
+  session_key: string;
+  username: string;
+  scrobble_enabled: boolean;
+}
+
+export function lastfmGetAuthToken() {
+  return fetchJSON<LastfmAuthToken>(`${BASE}/services/lastfm/auth/token`, { method: 'POST' });
+}
+
+export function lastfmGetSession(token: string) {
+  return fetchJSON<LastfmSessionResult>(`${BASE}/services/lastfm/auth/session`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+}
+
+export function lastfmToggleScrobble(enabled: boolean) {
+  return fetchJSON<{ ok: boolean; scrobble_enabled: boolean }>(`${BASE}/services/lastfm/scrobble/toggle`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled }),
+  });
+}
+
+export function lastfmDisconnect() {
+  return fetchJSON<{ ok: boolean }>(`${BASE}/services/lastfm/disconnect`, { method: 'POST' });
 }
 
 // --- MP3 diagnose & repair ---
