@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { formatAlbumYear } from '../lib/utils';
   import * as api from '../lib/api';
   import type { SmartCollection } from '../lib/types';
   import SmartCollectionEditor from './SmartCollectionEditor.svelte';
@@ -167,7 +168,7 @@
               {#if alb.artist_name}
                 <span class="album-card-artist truncate" title={alb.artist_name}>{alb.artist_name}</span>
               {/if}
-              {#if alb.year}<span class="album-card-year">{alb.year}</span>{/if}
+              {#if alb.year || alb.original_year}<span class="album-card-year">{formatAlbumYear(alb)}</span>{/if}
             </div>
           {/each}
         </div>

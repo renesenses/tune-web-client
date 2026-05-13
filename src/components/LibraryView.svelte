@@ -6,7 +6,7 @@
   import { currentProfileId } from '../lib/stores/profile';
   import * as api from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
-  import { formatTime, formatDuration, formatAudioBadge } from '../lib/utils';
+  import { formatTime, formatDuration, formatAudioBadge, formatAlbumYear } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
   import TrackEditModal from './TrackEditModal.svelte';
@@ -733,8 +733,8 @@
             <button class="detail-artist-link" onclick={() => { if ($selectedAlbum?.artist_id) selectArtistDetail({ id: $selectedAlbum.artist_id, name: $selectedAlbum.artist_name! }); }}>{$selectedAlbum.artist_name}</button>
           {/if}
           <div class="detail-meta">
-            {#if $selectedAlbum.year}
-              <span>{$selectedAlbum.year}</span>
+            {#if $selectedAlbum.year || $selectedAlbum.original_year}
+              <span>{formatAlbumYear($selectedAlbum)}</span>
             {/if}
             {#if $selectedAlbum.genre}
               <span>{$selectedAlbum.genre}</span>
@@ -1128,8 +1128,8 @@
                 <span class="heart-overlay"><HeartButton albumId={album.id} size={14} /></span>
               </div>
               <span class="album-card-title truncate">{album.title}</span>
-              {#if album.year}
-                <span class="album-card-year">{album.year}</span>
+              {#if album.year || album.original_year}
+                <span class="album-card-year">{formatAlbumYear(album)}</span>
               {/if}
             </div>
           {/each}

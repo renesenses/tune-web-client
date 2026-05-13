@@ -2,7 +2,7 @@
   import { albums, genres } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import * as api from '../lib/api';
-  import { formatTime, formatDuration, formatAudioBadge } from '../lib/utils';
+  import { formatTime, formatDuration, formatAudioBadge, formatAlbumYear } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import type { Album, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
@@ -369,8 +369,8 @@
             <p class="detail-artist">{selectedAlbum.artist_name}</p>
           {/if}
           <div class="detail-meta">
-            {#if selectedAlbum.year}
-              <span>{selectedAlbum.year}</span>
+            {#if selectedAlbum.year || selectedAlbum.original_year}
+              <span>{formatAlbumYear(selectedAlbum)}</span>
             {/if}
             {#if selectedAlbum.genre}
               <span>{selectedAlbum.genre}</span>

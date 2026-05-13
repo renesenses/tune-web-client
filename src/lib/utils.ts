@@ -21,6 +21,14 @@ export function formatNumber(n: number): string {
   return n.toLocaleString('fr-FR');
 }
 
+/** Format album year, showing original year when it differs from release year */
+export function formatAlbumYear(album: { year?: number | null; original_year?: number | null }): string {
+  const y = album.year;
+  const oy = album.original_year;
+  if (oy && y && oy !== y) return `${oy} (rééd. ${y})`;
+  return String(oy || y || '');
+}
+
 /** Format audio badge (e.g. "FLAC / 96 kHz / 24-bit") */
 export function formatAudioBadge(
   track: {

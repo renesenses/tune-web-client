@@ -3,7 +3,7 @@
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import * as api from '../lib/api';
-  import { formatTime, formatAudioBadge } from '../lib/utils';
+  import { formatTime, formatAudioBadge, formatAlbumYear } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import type { Album, Artist, Track, SearchResult, FeaturedSection, StreamingPlaylist, StreamingGenre } from '../lib/types';
   import { t as tr } from '../lib/i18n';
@@ -378,8 +378,8 @@
         {#if selectedAlbum.artist_name}
           <p class="detail-artist">{selectedAlbum.artist_name}</p>
         {/if}
-        {#if selectedAlbum.year}
-          <p class="detail-meta">{selectedAlbum.year}</p>
+        {#if selectedAlbum.year || selectedAlbum.original_year}
+          <p class="detail-meta">{formatAlbumYear(selectedAlbum)}</p>
         {/if}
         <button class="play-all-btn" onclick={() => selectedAlbum && playStreamingAlbum(selectedAlbum)}>
           <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
@@ -493,8 +493,8 @@
               </div>
             </div>
             <span class="album-card-title truncate">{album.title}</span>
-            {#if album.year}
-              <span class="album-card-year">{album.year}</span>
+            {#if album.year || album.original_year}
+              <span class="album-card-year">{formatAlbumYear(album)}</span>
             {/if}
           </div>
         {/each}
