@@ -164,6 +164,31 @@
     pairingMessage = null;
   }
 
+  // Crossfade
+  let crossfadeEnabled = $state(false);
+  let crossfadeDuration = $state(3);
+  let crossfadeLoading = $state(false);
+
+  async function loadCrossfade() {
+    const zoneList = get(zones);
+    if (!zoneList.length) return;
+    try {
+      const res = await api.getCrossfade(zoneList[0].id);
+      crossfadeEnabled = res.enabled ?? false;
+      crossfadeDuration = res.duration ?? 3;
+    } catch {}
+  }
+
+  async function applyCrossfade() {
+    const zoneList = get(zones);
+    if (!zoneList.length) return;
+    crossfadeLoading = true;
+    try {
+      await api.setCrossfade(zoneList[0].id, crossfadeEnabled, crossfadeDuration);
+    } catch {}
+    crossfadeLoading = false;
+  }
+
   // Streaming auth state
   let qobuzUsername = $state('');
   let qobuzPassword = $state('');
@@ -761,6 +786,7 @@
       fetchAudioDevices();
       fetchServerVersion();
       checkForUpdate();
+      loadCrossfade();
     });
     const unsub = tuneWS.onEvent((event) => {
       if (event.type === 'library.scan.completed') {
@@ -832,6 +858,35 @@
           {restarting ? $t('settings.restarting') : $t('settings.restartServer')}
         </button>
       </div>
+    </section>
+
+    <!-- Playback / Crossfade -->
+    <section class="settings-section">
+      <h3>Lecture</h3>
+      <div class="setting-row">
+        <div class="setting-label">
+          <span>Crossfade</span>
+          <span class="setting-hint">Fondu enchaîné entre les pistes. Désactivé = gapless automatique.</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" bind:checked={crossfadeEnabled} onchange={() => applyCrossfade()} />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      {#if crossfadeEnabled}
+        <div class="setting-row">
+          <div class="setting-label">
+            <span>Durée : {crossfadeDuration}s</span>
+          </div>
+          <input
+            type="range"
+            min="1" max="12" step="1"
+            bind:value={crossfadeDuration}
+            onchange={() => applyCrossfade()}
+            style="flex: 1; max-width: 200px; accent-color: var(--tune-accent, #007AFF);"
+          />
+        </div>
+      {/if}
     </section>
 
     <!-- Library stats -->
