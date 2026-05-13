@@ -1171,6 +1171,8 @@
     padding: 0;
     color: var(--tune-text);
     transition: transform 0.15s ease-out;
+    width: 160px;
+    min-width: 0;
   }
 
   .album-card:hover {
@@ -1221,18 +1223,29 @@
     transform: scale(1.08);
   }
 
+  .album-card-meta {
+    overflow: hidden;
+    width: 100%;
+  }
+
   .album-card-title {
     font-family: var(--font-body);
     font-size: 14px;
     font-weight: 700;
-    max-width: 160px;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .album-card-artist, .album-card-year {
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-secondary);
-    max-width: 160px;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .artists-list {
