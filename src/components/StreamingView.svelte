@@ -200,12 +200,23 @@
       return;
     }
     // Go up one level
-    const newBreadcrumb = genreBreadcrumb.slice(0, -1);
-    const parentEntry = newBreadcrumb[newBreadcrumb.length - 1];
+    navigateToBreadcrumb(genreBreadcrumb.length - 2);
+  }
+
+  function navigateToBreadcrumb(targetIndex: number) {
+    if (targetIndex < 0) {
+      browsingGenres = false;
+      genres = [];
+      genreAlbums = [];
+      genreBreadcrumb = [];
+      return;
+    }
+    const newBreadcrumb = genreBreadcrumb.slice(0, targetIndex + 1);
+    const targetEntry = newBreadcrumb[newBreadcrumb.length - 1];
     genreBreadcrumb = newBreadcrumb;
     genreLoading = true;
     if (service) {
-      api.getStreamingGenres(service, parentEntry.id ?? undefined).then(g => {
+      api.getStreamingGenres(service, targetEntry.id ?? undefined).then(g => {
         genres = g;
         genreAlbums = [];
         genreLoading = false;
@@ -510,7 +521,11 @@
       </button>
       {#each genreBreadcrumb as crumb, i}
         {#if i > 0}<span class="breadcrumb-sep">/</span>{/if}
-        <span class="breadcrumb-item" class:current={i === genreBreadcrumb.length - 1}>{crumb.name}</span>
+        {#if i < genreBreadcrumb.length - 1}
+          <button class="breadcrumb-item clickable" onclick={() => navigateToBreadcrumb(i)}>{crumb.name}</button>
+        {:else}
+          <span class="breadcrumb-item current">{crumb.name}</span>
+        {/if}
       {/each}
     </div>
 
@@ -1573,6 +1588,18 @@
     font-family: var(--font-body);
     font-size: 14px;
     color: var(--tune-text-secondary);
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .breadcrumb-item.clickable {
+    cursor: pointer;
+  }
+
+  .breadcrumb-item.clickable:hover {
+    color: var(--tune-accent);
   }
 
   .breadcrumb-item.current {
