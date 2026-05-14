@@ -307,6 +307,32 @@
   let albumFormatFilter = $state<string | null>(null);
   let albumSampleRateFilter = $state<number | null>(null);
 
+  // Sort options
+  type AlbumSortKey = 'title' | 'artist' | 'release_date' | 'original_year' | 'added_date';
+  const ALBUM_SORT_OPTIONS: { key: AlbumSortKey; label: string; defaultOrder: 'asc' | 'desc' }[] = [
+    { key: 'title', label: 'Titre', defaultOrder: 'asc' },
+    { key: 'artist', label: 'Artiste', defaultOrder: 'asc' },
+    { key: 'release_date', label: 'Date de sortie', defaultOrder: 'desc' },
+    { key: 'original_year', label: 'Annee originale', defaultOrder: 'desc' },
+    { key: 'added_date', label: "Date d'ajout", defaultOrder: 'desc' },
+  ];
+  let albumSort = $state<AlbumSortKey>((localStorage.getItem('tune_album_sort') as AlbumSortKey) || 'title');
+  let albumSortOrder = $state<'asc' | 'desc'>((localStorage.getItem('tune_album_sort_order') as 'asc' | 'desc') || 'asc');
+
+  function setAlbumSort(key: AlbumSortKey) {
+    if (albumSort === key) {
+      // Toggle order on re-click
+      albumSortOrder = albumSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      albumSort = key;
+      albumSortOrder = ALBUM_SORT_OPTIONS.find(o => o.key === key)?.defaultOrder ?? 'asc';
+    }
+    localStorage.setItem('tune_album_sort', albumSort);
+    localStorage.setItem('tune_album_sort_order', albumSortOrder);
+    // Re-fetch with new sort
+    loadAlbums();
+  }
+
   // Favorites filter
   let albumFavoritesFilter = $state(false);
   let trackFavoritesFilter = $state(false);
@@ -502,7 +528,7 @@
   async function loadAlbums() {
     libraryLoading.set(true);
     try {
-      const result = await api.getAllAlbums();
+      const result = await api.getAllAlbums(2000, albumSort, albumSortOrder);
       albums.set(result);
     } catch (e) {
       console.error('Load albums error:', e);
@@ -629,6 +655,25 @@
     artistMetadata = null;
     artistMetadataError = false;
     artistMetadataLoading = false;
+  }
+
+  let shuffleAllLoading = $state(false);
+
+  async function shuffleAllLibrary() {
+    if (!zone?.id) {
+      notifications.error('Aucune zone sélectionnée — sélectionnez une zone pour lancer la lecture');
+      return;
+    }
+    shuffleAllLoading = true;
+    try {
+      const result = await api.shuffleAll(zone.id);
+      notifications.success(`Lecture aléatoire : ${result.track_count} pistes`);
+    } catch (e) {
+      console.error('Shuffle all error:', e);
+      notifications.error('Erreur : ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      shuffleAllLoading = false;
+    }
   }
 
   async function playAlbum(albumId: number) {
@@ -840,7 +885,7 @@
       </div>
       {#if hasMultipleDiscs}
         {#each tracksByDisc as [discNum, discTracks, discSubtitle]}
-          <div class="disc-header">{$tr('library.disc').replace('{num}', String(discNum))}{#if discSubtitle}: {discSubtitle}{/if}</div>
+          <div class="disc-header">{$tr('library.disc').replace('{num}', String(discNum))}{#if discSubtitle} — {discSubtitle}{/if}</div>
           <div class="track-list">
             {#each discTracks as t, index}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -1141,6 +1186,10 @@
     <!-- Main library view -->
     <div class="library-header">
       <h2>{$tr('library.title')}</h2>
+      <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title="Tout lire en aléatoire">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+        {shuffleAllLoading ? 'Chargement...' : 'Tout lire en aléatoire'}
+      </button>
       <div class="library-header-right">
         <div class="search-box">
           <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
@@ -1211,6 +1260,22 @@
           <svg viewBox="0 0 24 24" fill={albumFavoritesFilter ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
           {$tr('favorites.filter')}
         </button>
+        <span class="filter-sep">|</span>
+        <span class="sort-control">
+          <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M3 6h18M3 12h12M3 18h6" /></svg>
+          <select class="sort-select" value={albumSort} onchange={(e) => setAlbumSort((e.currentTarget as HTMLSelectElement).value as AlbumSortKey)}>
+            {#each ALBUM_SORT_OPTIONS as opt}
+              <option value={opt.key}>{opt.label}</option>
+            {/each}
+          </select>
+          <button class="sort-order-btn" onclick={() => { albumSortOrder = albumSortOrder === 'asc' ? 'desc' : 'asc'; localStorage.setItem('tune_album_sort_order', albumSortOrder); loadAlbums(); }} title={albumSortOrder === 'asc' ? 'Croissant' : 'Decroissant'}>
+            {#if albumSortOrder === 'asc'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="18 15 12 9 6 15" /></svg>
+            {:else}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9" /></svg>
+            {/if}
+          </button>
+        </span>
         <span class="quality-count">{filteredAlbums.length} album{filteredAlbums.length > 1 ? 's' : ''}</span>
       </div>
       <div class="albums-grid">
@@ -1473,6 +1538,32 @@
     font-size: 28px;
     font-weight: 600;
     letter-spacing: -0.8px;
+  }
+
+  .shuffle-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--tune-accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+  }
+
+  .shuffle-all-btn:hover {
+    opacity: 0.85;
+  }
+
+  .shuffle-all-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .library-header-right {
@@ -1869,6 +1960,7 @@
     gap: 8px;
     padding: 12px 24px;
     flex-shrink: 0;
+    flex-wrap: wrap;
   }
 
   .quality-chip {
@@ -1935,6 +2027,51 @@
     font-size: 12px;
     color: var(--tune-text-muted);
     margin-left: auto;
+  }
+
+  .sort-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .sort-icon {
+    color: var(--tune-text-muted);
+    flex-shrink: 0;
+  }
+
+  .sort-select {
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.12s;
+  }
+
+  .sort-select:focus {
+    border-color: var(--tune-accent);
+  }
+
+  .sort-order-btn {
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    padding: 2px 4px;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.12s;
+  }
+
+  .sort-order-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
   }
 
   .albums-grid {

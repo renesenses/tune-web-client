@@ -398,7 +398,7 @@
         </div>
       {:else if hasMultipleDiscs}
         {#each tracksByDisc as [discNum, discTracks, discSubtitle]}
-          <div class="disc-header">{$tr('library.disc').replace('{num}', String(discNum))}{#if discSubtitle}: {discSubtitle}{/if}</div>
+          <div class="disc-header">{$tr('library.disc').replace('{num}', String(discNum))}{#if discSubtitle} — {discSubtitle}{/if}</div>
           <div class="track-list">
             {#each discTracks as t, index}
               <!-- svelte-ignore a11y_click_events_have_key_events -->

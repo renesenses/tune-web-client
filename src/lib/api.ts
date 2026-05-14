@@ -350,6 +350,12 @@ export function setRepeat(zoneId: number, mode: RepeatMode) {
   });
 }
 
+export function shuffleAll(zoneId: number) {
+  return fetchJSON<{ status: string; track_count: number }>(`${BASE}/playback/shuffle-all?zone_id=${zoneId}`, {
+    method: 'POST',
+  });
+}
+
 // --- Queue ---
 
 export function getQueue(zoneId: number) {
@@ -399,11 +405,11 @@ export function getRecentAlbums(limit = 50) {
   return fetchJSON<Album[]>(`${BASE}/library/albums/recent?limit=${limit}`);
 }
 
-export async function getAllAlbums(pageSize = 2000): Promise<Album[]> {
+export async function getAllAlbums(pageSize = 2000, sort = 'title', order = 'asc'): Promise<Album[]> {
   const all: Album[] = [];
   let offset = 0;
   while (true) {
-    const batch = await fetchJSON<Album[]>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}`);
+    const batch = await fetchJSON<Album[]>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}&sort=${sort}&order=${order}`);
     all.push(...batch);
     if (batch.length < pageSize) break;
     offset += pageSize;
