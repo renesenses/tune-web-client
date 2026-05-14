@@ -853,9 +853,13 @@ export function removeMusicDir(path: string) {
   });
 }
 
-export function triggerScan(path?: string) {
-  const url = path ? `${BASE}/system/scan?path=${encodeURIComponent(path)}` : `${BASE}/system/scan`;
-  return fetchJSON<{ status: string; music_dirs: string[] }>(url, { method: 'POST' });
+export function triggerScan(path?: string, full = false) {
+  const params = new URLSearchParams();
+  if (path) params.set('path', path);
+  if (full) params.set('full', 'true');
+  const qs = params.toString();
+  const url = qs ? `${BASE}/system/scan?${qs}` : `${BASE}/system/scan`;
+  return fetchJSON<{ status: string; music_dirs: string[]; full?: boolean }>(url, { method: 'POST' });
 }
 
 export function restartServer() {

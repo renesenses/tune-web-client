@@ -737,13 +737,13 @@
     clearingLibrary = false;
   }
 
-  async function handleScan() {
+  async function handleScan(full = false) {
     scanning = true;
     scanMessage = '';
     try {
-      await api.triggerScan();
-      scanMessage = 'Scan lance !';
-      notifications.success('Scan de la bibliotheque lance');
+      await api.triggerScan(undefined, full);
+      scanMessage = full ? 'Scan complet lance !' : 'Scan lance !';
+      notifications.success(full ? 'Scan complet (relecture de tous les tags)' : 'Scan de la bibliotheque lance');
     } catch (e: any) {
       if (e?.message?.includes('already') || e?.message?.includes('409')) {
         scanMessage = 'Scan deja en cours...';
@@ -918,7 +918,7 @@
       {/if}
 
       <div class="action-buttons">
-        <button class="scan-btn" onclick={handleScan} disabled={scanning}>
+        <button class="scan-btn" onclick={() => handleScan(false)} disabled={scanning}>
           {#if scanning}
             <div class="spinner small"></div>
             {$t('settings.scanning')}
@@ -927,6 +927,16 @@
               <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
             </svg>
             {$t('settings.scanLibrary')}
+          {/if}
+        </button>
+        <button class="scan-btn" onclick={() => handleScan(true)} disabled={scanning} title="Relit tous les tags audio (plus long)">
+          {#if scanning}
+            <div class="spinner small"></div>
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M21.5 2v6h-6" /><path d="M2.5 22v-6h6" /><path d="M22 11.5A10 10 0 0 0 3.2 7.2" /><path d="M2 12.5a10 10 0 0 0 18.8 4.2" />
+            </svg>
+            Scan complet
           {/if}
         </button>
         {#if scanMessage}
