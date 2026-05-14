@@ -5,12 +5,12 @@
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { tuneWS } from '../lib/websocket';
   import { notifications } from '../lib/stores/notifications';
-  import type { StreamingServiceStatus, BrowseRootEntry } from '../lib/types';
+  import type { StreamingServiceStatus, BrowseRootEntry, Zone, LocalAudioDevice, DiscoveredDevice } from '../lib/types';
 
   let { onComplete }: { onComplete: () => void } = $props();
 
   let step = $state(1);
-  const totalSteps = 4;
+  const totalSteps = 5;
 
   // Step 2: Music library
   let musicRoots = $state<BrowseRootEntry[]>([]);
@@ -47,7 +47,18 @@
   let youtubePollingInterval = $state<ReturnType<typeof setInterval> | null>(null);
   let youtubeAuthError = $state<string | null>(null);
 
-  // Step 4: Summary
+  // Step 4: Audio verification
+  let audioZones = $state<Zone[]>([]);
+  let audioDevices = $state<LocalAudioDevice[]>([]);
+  let networkDevices = $state<DiscoveredDevice[]>([]);
+  let audioCheckLoading = $state(false);
+  let creatingZone = $state(false);
+  let testingSound = $state(false);
+  let soundTestResult = $state<'success' | 'error' | null>(null);
+
+  let hasZone = $derived(audioZones.length > 0);
+
+  // Step 5: Summary
   let configuredDirs = $derived(musicRoots.length);
   let enabledServices = $derived(
     Object.entries($streamingServicesStore).filter(([, s]) => s.enabled).map(([name]) => name)
@@ -279,6 +290,50 @@
     if (youtubePollingInterval) clearInterval(youtubePollingInterval);
   }
 
+  async function loadAudioChecks() {
+    audioCheckLoading = true;
+    try {
+      const [zones, devices, netDevices] = await Promise.all([
+        api.getZones(),
+        api.getAudioDevices(),
+        api.getDevices(),
+      ]);
+      audioZones = zones;
+      audioDevices = devices;
+      networkDevices = netDevices;
+    } catch (e) {
+      console.error('Audio check error:', e);
+    }
+    audioCheckLoading = false;
+  }
+
+  async function createDefaultZone() {
+    creatingZone = true;
+    try {
+      await api.createZone('Ma zone', 'local');
+      audioZones = await api.getZones();
+    } catch (e: any) {
+      notifications.error(e?.message || String(e));
+    }
+    creatingZone = false;
+  }
+
+  async function testSound() {
+    if (!hasZone) return;
+    testingSound = true;
+    soundTestResult = null;
+    try {
+      const zone = audioZones[0];
+      if (zone.id != null) {
+        await api.play(zone.id);
+        soundTestResult = 'success';
+      }
+    } catch {
+      soundTestResult = 'error';
+    }
+    testingSound = false;
+  }
+
   function finishOnboarding() {
     localStorage.setItem('tune_onboarding_completed', 'true');
     onComplete();
@@ -488,14 +543,123 @@
         <div class="step-actions">
           <button class="btn-back" onclick={() => step = 2}>{$t('common.back')}</button>
           <div class="step-actions-right">
-            <button class="btn-skip" onclick={() => step = 4}>{$t('onboarding.skip')}</button>
-            <button class="btn-primary" onclick={() => step = 4}>{$t('onboarding.next')}</button>
+            <button class="btn-skip" onclick={() => { step = 4; loadAudioChecks(); }}>{$t('onboarding.skip')}</button>
+            <button class="btn-primary" onclick={() => { step = 4; loadAudioChecks(); }}>{$t('onboarding.next')}</button>
           </div>
         </div>
       </div>
 
-    <!-- Step 4: Done -->
+    <!-- Step 4: Audio Verification -->
     {:else if step === 4}
+      <div class="wizard-step">
+        <h2>Vérification audio</h2>
+        <p class="step-desc">Vérifions que le son fonctionne correctement.</p>
+
+        {#if audioCheckLoading}
+          <div class="audio-loading">
+            <div class="spinner"></div>
+            Chargement...
+          </div>
+        {:else}
+          <div class="check-list">
+            <div class="check-item">
+              <span class="check-icon">{hasZone ? '✅' : '⚠️'}</span>
+              <div class="check-info">
+                <span class="check-label">Zone de lecture</span>
+                {#if hasZone}
+                  <span class="check-detail">{audioZones[0].name}</span>
+                {:else}
+                  <span class="check-detail check-warning">Aucune zone configurée</span>
+                {/if}
+              </div>
+              {#if !hasZone}
+                <button class="btn-secondary" onclick={createDefaultZone} disabled={creatingZone}>
+                  {#if creatingZone}<div class="spinner"></div>{/if}
+                  Créer une zone
+                </button>
+              {/if}
+            </div>
+
+            <div class="check-item">
+              <span class="check-icon">{audioDevices.length > 0 ? '✅' : '⚠️'}</span>
+              <div class="check-info">
+                <span class="check-label">Sorties audio</span>
+                <span class="check-detail">{audioDevices.length} détectée{audioDevices.length !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+            {#if audioDevices.length > 0}
+              <div class="check-sublist">
+                {#each audioDevices as device}
+                  <div class="check-subitem">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--tune-accent)" stroke-width="2" width="14" height="14">
+                      <rect x="4" y="2" width="16" height="20" rx="2" /><circle cx="12" cy="14" r="4" /><line x1="12" y1="6" x2="12.01" y2="6" />
+                    </svg>
+                    <span>{device.name}</span>
+                    <span class="check-tag">{device.channels}ch · {Math.round(device.sample_rate / 1000)} kHz</span>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+
+            <div class="check-item">
+              <span class="check-icon">{networkDevices.length > 0 ? '✅' : 'ℹ️'}</span>
+              <div class="check-info">
+                <span class="check-label">Appareils réseau</span>
+                <span class="check-detail">{networkDevices.length} trouvé{networkDevices.length !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+            {#if networkDevices.length > 0}
+              <div class="check-sublist">
+                {#each networkDevices as device}
+                  <div class="check-subitem">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--tune-accent)" stroke-width="2" width="14" height="14">
+                      {#if device.type === 'airplay'}
+                        <path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1" /><polygon points="12 15 17 21 7 21 12 15" />
+                      {:else}
+                        <rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><polyline points="17 2 12 7 7 2" />
+                      {/if}
+                    </svg>
+                    <span>{device.name}</span>
+                    <span class="check-tag {device.type}">{device.type === 'airplay' ? 'AirPlay' : device.type === 'bluos' ? 'BluOS' : 'DLNA'}</span>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+
+          {#if hasZone}
+            <div class="test-sound-section">
+              <button class="btn-secondary" onclick={testSound} disabled={testingSound}>
+                {#if testingSound}
+                  <div class="spinner"></div>
+                  Test en cours...
+                {:else}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  </svg>
+                  Tester le son
+                {/if}
+              </button>
+              {#if soundTestResult === 'success'}
+                <span class="test-result success">Lecture lancée</span>
+              {:else if soundTestResult === 'error'}
+                <span class="test-result error">Erreur de lecture</span>
+              {/if}
+            </div>
+          {/if}
+        {/if}
+
+        <div class="step-actions">
+          <button class="btn-back" onclick={() => step = 3}>{$t('common.back')}</button>
+          <div class="step-actions-right">
+            <button class="btn-skip" onclick={() => step = 5}>{$t('onboarding.skip')}</button>
+            <button class="btn-primary" onclick={() => step = 5}>{$t('onboarding.next')}</button>
+          </div>
+        </div>
+      </div>
+
+    <!-- Step 5: Done -->
+    {:else if step === 5}
       <div class="wizard-step done-step">
         <div class="done-icon">
           <svg viewBox="0 0 48 48" fill="none" width="64" height="64">
@@ -523,6 +687,14 @@
               <span class="summary-value">{authenticatedServices.map(capitalize).join(', ')}</span>
             </div>
           {/if}
+          <div class="summary-item">
+            <span class="summary-label">Zones audio</span>
+            <span class="summary-value">{hasZone ? '✅' : '⚠️'} {audioZones.length}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Sorties audio</span>
+            <span class="summary-value">{audioDevices.length > 0 ? '✅' : '⚠️'} {audioDevices.length}</span>
+          </div>
         </div>
 
         <button class="btn-primary" onclick={finishOnboarding}>
@@ -1000,6 +1172,118 @@
 
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  /* Audio check */
+  .audio-loading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text-muted);
+  }
+
+  .check-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+  }
+
+  .check-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .check-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .check-label {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tune-text);
+  }
+
+  .check-detail {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+  }
+
+  .check-warning {
+    color: var(--tune-warning);
+  }
+
+  .check-sublist {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-left: 48px;
+  }
+
+  .check-subitem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-secondary);
+    padding: 4px 0;
+  }
+
+  .check-tag {
+    font-family: var(--font-label);
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    background: var(--tune-grey2);
+    color: var(--tune-text-muted);
+  }
+
+  .check-tag.airplay {
+    background: rgba(107, 110, 217, 0.12);
+    color: var(--tune-accent);
+  }
+
+  .check-tag.bluos {
+    background: rgba(87, 198, 185, 0.12);
+    color: var(--tune-success);
+  }
+
+  .test-sound-section {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .test-result {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .test-result.success {
+    color: var(--tune-success);
+  }
+
+  .test-result.error {
+    color: var(--tune-warning);
   }
 
   /* Mobile */

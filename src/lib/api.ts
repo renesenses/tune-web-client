@@ -835,6 +835,10 @@ export function getConfig() {
   return fetchJSON<any>(`${BASE}/system/config`);
 }
 
+export function audioCheck() {
+  return fetchJSON<import('./types').AudioCheckResult>(`${BASE}/system/audio-check`);
+}
+
 export function getDatabaseStatus() {
   return fetchJSON<any>(`${BASE}/system/database/status`);
 }

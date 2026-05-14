@@ -233,6 +233,21 @@ export interface SystemStats {
   devices: number;
 }
 
+export interface AudioCheckIssue {
+  code: string;
+  message: string;
+  severity: 'error' | 'warning';
+}
+
+export interface AudioCheckResult {
+  zones: number;
+  zones_with_output: number;
+  local_outputs: { id: number; name: string; channels: number; default: boolean }[];
+  network_renderers: { id: string; name: string; type: string }[];
+  has_audio: boolean;
+  issues: AudioCheckIssue[];
+}
+
 export interface ZoneGroupResponse {
   group_id: string;
   leader_id: number;

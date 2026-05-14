@@ -825,6 +825,37 @@
     <!-- v0.8.0 Multi-room: inter-techno calibration sliders -->
     <MultiroomSettings />
 
+    <!-- Audio diagnostic -->
+    <section class="settings-section audio-diagnostic">
+      <h3>Diagnostic audio</h3>
+      <div class="diag-checks">
+        <div class="diag-check">
+          <span class="diag-icon">{$zones.length > 0 ? '✅' : '⚠️'}</span>
+          <span class="diag-label">Zones de lecture</span>
+          <span class="diag-value">{$zones.length} configurée{$zones.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="diag-check">
+          <span class="diag-icon">{audioDevices.length > 0 ? '✅' : '⚠️'}</span>
+          <span class="diag-label">Sorties audio</span>
+          <span class="diag-value">{audioDevices.length} détectée{audioDevices.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="diag-check">
+          <span class="diag-icon">{$devices.length > 0 ? '✅' : 'ℹ️'}</span>
+          <span class="diag-label">Appareils réseau</span>
+          <span class="diag-value">{$devices.length} trouvé{$devices.length !== 1 ? 's' : ''}</span>
+        </div>
+      </div>
+      {#if $zones.length === 0 || audioDevices.length === 0}
+        <p class="diag-hint">
+          {#if $zones.length === 0}
+            Aucune zone configurée. Créez-en une dans la section Zones ci-dessous.
+          {:else if audioDevices.length === 0}
+            Aucune sortie audio détectée. Vérifiez vos connexions (USB DAC, HDMI, etc.).
+          {/if}
+        </p>
+      {/if}
+    </section>
+
     <!-- Server health -->
     <section class="settings-section">
       <h3>{$t('settings.serverHealth')}</h3>
@@ -1789,6 +1820,41 @@
     font-size: 16px;
     font-weight: 600;
     margin-bottom: var(--space-md);
+  }
+
+  /* Audio diagnostic */
+  .diag-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+  }
+
+  .diag-check {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-family: var(--font-body);
+    font-size: 14px;
+  }
+
+  .diag-icon {
+    font-size: 16px;
+  }
+
+  .diag-label {
+    color: var(--tune-text-secondary);
+  }
+
+  .diag-value {
+    font-weight: 600;
+    color: var(--tune-text);
+  }
+
+  .diag-hint {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-warning);
+    margin: var(--space-sm) 0 0;
   }
 
   .health-status {
