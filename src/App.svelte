@@ -173,7 +173,14 @@ import AlarmsView from './components/AlarmsView.svelte';
     try {
       const zone = await api.getZone(zoneId);
       zones.update((zs) =>
-        zs.map((z) => z.id === zoneId ? zone : z)
+        zs.map((z) => {
+          if (z.id !== zoneId) return z;
+          // Preserve cover_path if the API response lost it (avoids cover flash)
+          if (zone.current_track && !zone.current_track.cover_path && z.current_track?.cover_path) {
+            zone.current_track.cover_path = z.current_track.cover_path;
+          }
+          return zone;
+        })
       );
       // Propagate playback state to all other zones in the same group:
       // when a group plays, all members share the same track/state/position.
