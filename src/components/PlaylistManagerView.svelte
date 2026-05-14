@@ -4,7 +4,7 @@
   import { streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
-  import type { Playlist, Track, StreamingPlaylist, UnifiedPlaylistsResponse, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse } from '../lib/types';
+  import type { Playlist, Track, StreamingPlaylist, UnifiedPlaylistsResponse, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './AlbumArt.svelte';
@@ -57,6 +57,11 @@
   let transferring = $state(false);
   let transferResult = $state<PlaylistTransferResponse | null>(null);
   let transferFilter = $state<string>('all'); // 'all', 'matched', 'approximate', 'not_found'
+  let expandedAlternatives = $state<Set<number>>(new Set()); // track index -> expanded
+  let confirmingTransfer = $state(false);
+  let hasManualResolutions = $derived(
+    transferResult?.tracks.some(t => t.match_method === 'manual') ?? false
+  );
 
   // Diff dialog
   let showDiff = $state(false);
@@ -622,6 +627,83 @@
     transferResult = null;
     transferring = false;
     transferFilter = 'all';
+    expandedAlternatives = new Set();
+    confirmingTransfer = false;
+  }
+
+  function toggleAlternatives(trackIndex: number) {
+    const next = new Set(expandedAlternatives);
+    if (next.has(trackIndex)) next.delete(trackIndex); else next.add(trackIndex);
+    expandedAlternatives = next;
+  }
+
+  function pickAlternative(track: TransferTrackResult, alt: TransferAlternative) {
+    if (!transferResult) return;
+    const prevStatus = track.status;
+    track.status = 'matched';
+    track.target_id = alt.source_id;
+    track.target_title = alt.title;
+    track.target_artist = alt.artist_name;
+    track.match_method = 'manual';
+    track.score = alt.score;
+    if (prevStatus === 'not_found') {
+      transferResult.matched++;
+      transferResult.not_found--;
+    } else if (prevStatus === 'approximate') {
+      transferResult.matched++;
+      transferResult.approximate--;
+    }
+    // Force reactivity by reassigning
+    transferResult = { ...transferResult, tracks: [...transferResult.tracks] };
+  }
+
+  async function confirmManualChoices() {
+    if (!transferResult) return;
+    confirmingTransfer = true;
+    try {
+      const manualTracks = transferResult.tracks.filter(t => t.match_method === 'manual');
+      if (manualTracks.length === 0) return;
+
+      const localPlId = transferResult.local_playlist_id;
+      if (localPlId && typeof localPlId === 'number') {
+        // Add manually resolved tracks to the existing local playlist
+        const trackIds = manualTracks
+          .map(t => parseInt(t.target_id || '', 10))
+          .filter(id => !isNaN(id) && id > 0);
+        if (trackIds.length > 0) {
+          await api.addPlaylistTracks(localPlId, trackIds);
+        }
+      } else {
+        // Re-run transfer with create_on_target using V2 API
+        const allMatchedIds = transferResult.tracks
+          .filter(t => t.status === 'matched' && t.target_id)
+          .map(t => t.target_id!);
+        // Use V2 transfer with create_on_target
+        const sourceId = selectedPlaylist?.id?.toString() ?? selectedStreamingPl?.source_id;
+        if (sourceId && transferTargetService !== 'local') {
+          await api.transferPlaylistV2({
+            source_service: selectedService,
+            source_playlist_id: sourceId,
+            target_service: transferTargetService,
+            target_name: transferName || undefined,
+            create_on_target: true,
+          });
+        }
+      }
+      notifications.success(`${manualTracks.length} piste(s) ajoutée(s)`);
+      // Mark manual tracks as confirmed (remove manual flag to avoid re-confirm)
+      for (const t of manualTracks) {
+        t.match_method = 'confirmed';
+      }
+      transferResult = { ...transferResult, tracks: [...transferResult.tracks] };
+      await loadAll();
+      const list = await api.getPlaylists();
+      playlistsStore.set(list);
+    } catch (e: any) {
+      console.error('Confirm manual choices error:', e);
+      notifications.error(`Erreur : ${e.message || e}`);
+    }
+    confirmingTransfer = false;
   }
 
   let transferServices = $derived([
@@ -633,13 +715,37 @@
     const sourceId = selectedPlaylist?.id?.toString() ?? selectedStreamingPl?.source_id;
     if (!sourceId) return;
     transferring = true;
+    expandedAlternatives = new Set();
     try {
-      transferResult = await api.transferPlaylist(
-        selectedService,
-        sourceId,
-        transferTargetService,
-        transferName || undefined,
-      );
+      const v2Result = await api.transferPlaylistV2({
+        source_service: selectedService,
+        source_playlist_id: sourceId,
+        target_service: transferTargetService,
+        target_name: transferName || undefined,
+      });
+      // Map V2 response to our PlaylistTransferResponse shape
+      transferResult = {
+        playlist_id: v2Result.local_playlist_id ?? v2Result.target_playlist_id ?? null,
+        playlist_name: v2Result.source_name ?? transferName ?? '',
+        total_tracks: v2Result.total_tracks,
+        matched: v2Result.matched,
+        not_found: v2Result.not_found,
+        approximate: v2Result.approximate,
+        local_playlist_id: v2Result.local_playlist_id ?? null,
+        target_service: v2Result.target_service ?? transferTargetService,
+        tracks: (v2Result.tracks ?? []).map((t: any) => ({
+          title: t.title,
+          artist_name: t.artist_name,
+          status: t.status,
+          source_id: t.source_id,
+          target_id: t.target_id,
+          target_title: t.target_title ?? null,
+          target_artist: t.target_artist ?? null,
+          score: t.score ?? 0,
+          match_method: t.match_method ?? '',
+          alternatives: t.alternatives ?? [],
+        })),
+      };
       await loadAll();
       const list = await api.getPlaylists();
       playlistsStore.set(list);
@@ -1298,18 +1404,90 @@
             <button class="summary-stat not-found" class:active={transferFilter === 'not_found'} onclick={() => transferFilter = transferFilter === 'not_found' ? 'all' : 'not_found'}>{transferResult.not_found} {$tr('playlist.notFound')}</button>
           </div>
           <div class="transfer-tracks">
-            {#each transferResult.tracks.filter(t => transferFilter === 'all' || t.status === transferFilter) as track}
-              <div class="transfer-track-row status-{track.status}">
+            {#each transferResult.tracks.filter(t => transferFilter === 'all' || t.status === transferFilter) as track, i}
+              {@const trackIndex = transferResult.tracks.indexOf(track)}
+              <div class="transfer-track-row status-{track.status}" class:has-alternatives={track.alternatives && track.alternatives.length > 0}>
                 <span class="transfer-status-dot"></span>
-                <span class="transfer-track-title">{track.title}</span>
-                {#if track.artist_name}
-                  <span class="transfer-track-artist">{track.artist_name}</span>
-                {/if}
-                <span class="transfer-track-status">{$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}</span>
+                <div class="transfer-track-info">
+                  <div class="transfer-track-main">
+                    <span class="transfer-track-title">{track.title}</span>
+                    {#if track.artist_name}
+                      <span class="transfer-track-artist">{track.artist_name}</span>
+                    {/if}
+                    <span class="transfer-track-status">
+                      {#if track.match_method === 'manual'}
+                        {$tr('playlist.manualMatch')}
+                      {:else if track.match_method === 'confirmed'}
+                        {$tr('playlist.matched')}
+                      {:else}
+                        {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}
+                      {/if}
+                    </span>
+                  </div>
+                  <!-- For approximate tracks: show what it was matched to -->
+                  {#if track.status === 'approximate' && track.target_title}
+                    <div class="transfer-match-info">
+                      <span class="match-label">{$tr('playlist.matchedAs')}</span>
+                      <span class="match-title">{track.target_title}</span>
+                      {#if track.target_artist}
+                        <span class="match-artist">- {track.target_artist}</span>
+                      {/if}
+                      {#if track.score}
+                        <span class="match-score">{Math.round(track.score * 100)}%</span>
+                      {/if}
+                    </div>
+                  {/if}
+                  <!-- For manual matches: show what was picked -->
+                  {#if track.match_method === 'manual' && track.target_title}
+                    <div class="transfer-match-info">
+                      <span class="match-title">{track.target_title}</span>
+                      {#if track.target_artist}
+                        <span class="match-artist">- {track.target_artist}</span>
+                      {/if}
+                      {#if track.score}
+                        <span class="match-score">{Math.round(track.score * 100)}%</span>
+                      {/if}
+                    </div>
+                  {/if}
+                  <!-- Alternatives section for not_found and approximate tracks -->
+                  {#if (track.status === 'not_found' || track.status === 'approximate') && track.alternatives && track.alternatives.length > 0}
+                    <button class="alt-toggle" onclick={() => toggleAlternatives(trackIndex)}>
+                      {#if expandedAlternatives.has(trackIndex)}
+                        {$tr('playlist.hideAlternatives')}
+                      {:else}
+                        {$tr('playlist.showAlternatives')} ({track.alternatives.length})
+                      {/if}
+                    </button>
+                    {#if expandedAlternatives.has(trackIndex)}
+                      <div class="alternatives">
+                        {#each track.alternatives as alt}
+                          <div class="alt-row">
+                            <span class="alt-title">{alt.title}</span>
+                            <span class="alt-artist">{alt.artist_name}</span>
+                            <span class="alt-score">{Math.round(alt.score * 100)}%</span>
+                            <button class="alt-pick" onclick={() => pickAlternative(track, alt)}>
+                              {track.status === 'approximate' ? $tr('playlist.replace') : $tr('playlist.choose')}
+                            </button>
+                          </div>
+                        {/each}
+                      </div>
+                    {/if}
+                  {/if}
+                </div>
               </div>
             {/each}
           </div>
           <div class="form-actions">
+            {#if hasManualResolutions}
+              <button class="confirm-btn" onclick={confirmManualChoices} disabled={confirmingTransfer}>
+                {#if confirmingTransfer}
+                  <div class="spinner-small"></div>
+                  {$tr('playlist.confirming')}
+                {:else}
+                  {$tr('playlist.confirmChoices')}
+                {/if}
+              </button>
+            {/if}
             <button class="confirm-btn" onclick={closeTransfer}>{$tr('common.ok')}</button>
           </div>
         </div>
@@ -2433,8 +2611,8 @@
   .transfer-tracks {
     display: flex;
     flex-direction: column;
-    gap: 1px;
-    max-height: 350px;
+    gap: 2px;
+    max-height: 450px;
     overflow-y: auto;
     margin-bottom: var(--space-md);
   }
@@ -2506,6 +2684,153 @@
     letter-spacing: 0.3px;
     flex-shrink: 0;
     color: var(--tune-text-muted);
+  }
+
+  /* Transfer track info wrapper (replaces inline layout for alternatives support) */
+  .transfer-track-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .transfer-track-main {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .transfer-match-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    padding-left: 4px;
+  }
+
+  .match-label {
+    color: var(--tune-text-muted);
+    font-family: var(--font-label);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .match-title {
+    font-weight: 500;
+    color: var(--tune-text-secondary);
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .match-artist {
+    color: var(--tune-text-muted);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .match-score {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    color: #FF9800;
+    flex-shrink: 0;
+  }
+
+  .alt-toggle {
+    background: none;
+    border: none;
+    color: var(--tune-accent);
+    font-family: var(--font-body);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 4px;
+    text-align: left;
+    transition: color 0.12s;
+  }
+
+  .alt-toggle:hover {
+    color: var(--tune-accent-hover);
+    text-decoration: underline;
+  }
+
+  .alternatives {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 0 2px 4px;
+  }
+
+  .alt-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 4px 8px;
+    background: var(--tune-grey2);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+  }
+
+  .alt-title {
+    font-weight: 600;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .alt-artist {
+    color: var(--tune-text-secondary);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .alt-score {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    color: #FF9800;
+    flex-shrink: 0;
+    min-width: 32px;
+    text-align: right;
+  }
+
+  .alt-pick {
+    padding: 3px 10px;
+    background: var(--tune-accent);
+    border: none;
+    color: white;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background 0.12s ease-out;
+    margin-left: auto;
+  }
+
+  .alt-pick:hover {
+    background: var(--tune-accent-hover);
+  }
+
+  .status-matched .transfer-track-status {
+    color: #1DB954;
+  }
+
+  .status-approximate .transfer-track-status {
+    color: #FF9800;
+  }
+
+  .status-not_found .transfer-track-status {
+    color: #F44336;
   }
 
   /* Diff report */

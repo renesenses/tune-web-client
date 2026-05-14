@@ -395,6 +395,13 @@ export interface PlaylistImportResponse {
   tracks_imported: number;
 }
 
+export interface TransferAlternative {
+  title: string;
+  artist_name: string;
+  source_id: string;
+  score: number;
+}
+
 export interface TransferTrackResult {
   title: string;
   artist_name?: string | null;
@@ -402,6 +409,11 @@ export interface TransferTrackResult {
   source_id?: string | null;
   target_id?: string | null;
   target_service?: string | null;
+  target_title?: string | null;
+  target_artist?: string | null;
+  score?: number;
+  match_method?: string;
+  alternatives?: TransferAlternative[];
 }
 
 export interface PlaylistTransferResponse {
@@ -412,6 +424,8 @@ export interface PlaylistTransferResponse {
   not_found: number;
   approximate: number;
   tracks: TransferTrackResult[];
+  local_playlist_id?: number | null;
+  target_service?: string;
 }
 
 export interface DiffTrackResult {
