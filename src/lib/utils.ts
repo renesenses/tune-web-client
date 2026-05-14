@@ -22,7 +22,14 @@ export function formatNumber(n: number): string {
 }
 
 /** Format album year, showing original year when it differs from release year */
-export function formatAlbumYear(album: { year?: number | null; original_year?: number | null }): string {
+export function formatAlbumYear(album: { year?: number | null; original_year?: number | null; release_date?: string | null; original_date?: string | null }): string {
+  const rd = album.release_date;
+  const od = album.original_date;
+  if (rd || od) {
+    const fmt = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    if (od && rd && od !== rd) return `${fmt(od)} (rééd. ${fmt(rd)})`;
+    return fmt((od || rd)!);
+  }
   const y = album.year;
   const oy = album.original_year;
   if (oy && y && oy !== y) return `${oy} (rééd. ${y})`;

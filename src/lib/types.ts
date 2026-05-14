@@ -54,6 +54,8 @@ export interface Album {
   artist_name?: string | null;
   year?: number | null;
   original_year?: number | null;
+  release_date?: string | null;
+  original_date?: string | null;
   genre?: string | null;
   disc_count?: number;
   track_count?: number;
