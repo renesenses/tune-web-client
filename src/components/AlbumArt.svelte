@@ -44,6 +44,7 @@
       {alt}
       width={size || undefined}
       height={size || undefined}
+      loading="lazy"
       onerror={handleError}
     />
   {:else}

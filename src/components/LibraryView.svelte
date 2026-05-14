@@ -24,6 +24,15 @@
     return { destroy() { ro.disconnect(); } };
   }
 
+  function observeWidth(node: HTMLElement, callback: (w: number) => void) {
+    const ro = new ResizeObserver(entries => {
+      for (const e of entries) callback(e.contentRect.width);
+    });
+    ro.observe(node);
+    callback(node.clientWidth);
+    return { destroy() { ro.disconnect(); } };
+  }
+
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
   }
@@ -358,7 +367,7 @@
     if (_pid) loadFavoriteIds();
   });
 
-  // Virtual scroll state
+  // Virtual scroll state (tracks)
   const TRACK_ROW_HEIGHT = 52;
   const OVERSCAN = 10;
   let trackListEl = $state<HTMLDivElement | null>(null);
@@ -370,6 +379,65 @@
     const endIdx = Math.min(total, Math.ceil((scrollTop + containerHeight) / TRACK_ROW_HEIGHT) + OVERSCAN);
     return { startIdx, endIdx, totalHeight: total * TRACK_ROW_HEIGHT };
   });
+
+  // Virtual scroll state (album grid)
+  const ALBUM_ROW_HEIGHT = 220;    // ~160px art + ~60px text/gap
+  const ALBUM_MIN_WIDTH = 156;     // 140px min + gap
+  const ALBUM_OVERSCAN_ROWS = 3;
+  let albumGridViewport = $state<HTMLDivElement | null>(null);
+  let albumScrollTop = $state(0);
+  let albumViewportHeight = $state(800);
+  let albumViewportWidth = $state(1200);
+
+  let albumGridMetrics = $derived.by(() => {
+    const cols = Math.max(1, Math.floor(albumViewportWidth / ALBUM_MIN_WIDTH));
+    const total = filteredAlbums.length;
+    const rows = Math.ceil(total / cols);
+    const totalHeight = rows * ALBUM_ROW_HEIGHT;
+    const startRow = Math.max(0, Math.floor(albumScrollTop / ALBUM_ROW_HEIGHT) - ALBUM_OVERSCAN_ROWS);
+    const endRow = Math.min(rows, Math.ceil((albumScrollTop + albumViewportHeight) / ALBUM_ROW_HEIGHT) + ALBUM_OVERSCAN_ROWS);
+    const startIdx = startRow * cols;
+    const endIdx = Math.min(total, endRow * cols);
+    const offsetY = startRow * ALBUM_ROW_HEIGHT;
+    return { cols, totalHeight, startIdx, endIdx, offsetY };
+  });
+
+  let visibleAlbums = $derived(filteredAlbums.slice(albumGridMetrics.startIdx, albumGridMetrics.endIdx));
+
+  function handleAlbumGridScroll(e: Event) {
+    albumScrollTop = (e.currentTarget as HTMLDivElement).scrollTop;
+  }
+
+  // Debounce helper for filter changes
+  function debounce<T extends (...args: any[]) => void>(fn: T, ms: number): T {
+    let timer: ReturnType<typeof setTimeout>;
+    return ((...args: any[]) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), ms);
+    }) as T;
+  }
+
+  // Debounced filter setters
+  let debouncedQualityFilter = $state<string | null>(null);
+  let debouncedFormatFilter = $state<string | null>(null);
+  let debouncedSampleRateFilter = $state<number | null>(null);
+
+  const applyAlbumQualityFilter = debounce((v: string | null) => { albumQualityFilter = v; }, 100);
+  const applyAlbumFormatFilter = debounce((v: string | null) => { albumFormatFilter = v; }, 100);
+  const applyAlbumSampleRateFilter = debounce((v: number | null) => { albumSampleRateFilter = v; }, 100);
+
+  function setAlbumQualityChip(v: string | null) {
+    debouncedQualityFilter = v;
+    applyAlbumQualityFilter(v);
+  }
+  function setAlbumFormatChip(v: string | null) {
+    debouncedFormatFilter = v;
+    applyAlbumFormatFilter(v);
+  }
+  function setAlbumSampleRateChip(v: number | null) {
+    debouncedSampleRateFilter = v;
+    applyAlbumSampleRateFilter(v);
+  }
 
   type QualityBucket = { key: string; label: string; match: (t: Track) => boolean };
   const qualityBuckets: QualityBucket[] = [
@@ -399,6 +467,14 @@
     if (albumSampleRateFilter) result = result.filter(a => (a.sample_rate ?? 0) >= albumSampleRateFilter);
     if (albumFavoritesFilter) result = result.filter(a => a.id !== null && favAlbumIds.has(a.id!));
     return result;
+  });
+
+  // Reset album grid scroll when filters change
+  $effect(() => {
+    // Access filteredAlbums.length to subscribe to changes
+    const _len = filteredAlbums.length;
+    albumScrollTop = 0;
+    if (albumGridViewport) albumGridViewport.scrollTop = 0;
   });
 
   let albumFormats = $derived(
@@ -1219,7 +1295,7 @@
       </div>
     {:else if $libraryTab === 'albums'}
       <div class="quality-filters">
-        <button class="quality-chip" class:active={!albumQualityFilter} onclick={() => albumQualityFilter = null}>Tous ({searchFilteredAlbums.length})</button>
+        <button class="quality-chip" class:active={!albumQualityFilter} onclick={() => setAlbumQualityChip(null)}>Tous ({searchFilteredAlbums.length})</button>
         {#each [
           { key: 'dsd', label: 'DSD' },
           { key: 'hi-res', label: 'Hi-Res' },
@@ -1228,7 +1304,7 @@
         ] as tier}
           {@const count = searchFilteredAlbums.filter(a => a.quality === tier.key).length}
           {#if count > 0}
-            <button class="quality-chip {tier.key}" class:active={albumQualityFilter === tier.key} onclick={() => albumQualityFilter = albumQualityFilter === tier.key ? null : tier.key}>
+            <button class="quality-chip {tier.key}" class:active={albumQualityFilter === tier.key} onclick={() => setAlbumQualityChip(albumQualityFilter === tier.key ? null : tier.key)}>
               {tier.label} ({count})
             </button>
           {/if}
@@ -1238,7 +1314,7 @@
           {#each albumFormats as fmt}
             {@const count = searchFilteredAlbums.filter(a => a.format === fmt).length}
             {#if count > 0}
-              <button class="quality-chip format" class:active={albumFormatFilter === fmt} onclick={() => albumFormatFilter = albumFormatFilter === fmt ? null : fmt}>
+              <button class="quality-chip format" class:active={albumFormatFilter === fmt} onclick={() => setAlbumFormatChip(albumFormatFilter === fmt ? null : fmt)}>
                 {fmt.toUpperCase()} ({count})
               </button>
             {/if}
@@ -1249,7 +1325,7 @@
           {#each [44100, 48000, 88200, 96000, 176400, 192000] as sr}
             {@const count = searchFilteredAlbums.filter(a => (a.sample_rate ?? 0) >= sr).length}
             {#if count > 0 && albumSampleRates.some(r => (r ?? 0) >= sr)}
-              <button class="quality-chip samplerate" class:active={albumSampleRateFilter === sr} onclick={() => albumSampleRateFilter = albumSampleRateFilter === sr ? null : sr}>
+              <button class="quality-chip samplerate" class:active={albumSampleRateFilter === sr} onclick={() => setAlbumSampleRateChip(albumSampleRateFilter === sr ? null : sr)}>
                 {sr >= 1000 ? (sr / 1000) + 'kHz' : sr + 'Hz'}+ ({count})
               </button>
             {/if}
@@ -1278,29 +1354,37 @@
         </span>
         <span class="quality-count">{filteredAlbums.length} album{filteredAlbums.length > 1 ? 's' : ''}</span>
       </div>
-      <div class="albums-grid">
-        {#each filteredAlbums as album}
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="album-card" onclick={() => selectAlbumDetail(album)}>
-            <div class="album-card-art">
-              <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
-              <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
-                <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
-              </button>
-              <button class="edit-overlay" onclick={(e) => openAlbumEdit(e, album)} title={$tr('metadata.editAlbum')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-              </button>
-              <span class="heart-overlay"><HeartButton albumId={album.id} size={14} /></span>
-            </div>
-            <span class="album-card-title truncate">{album.title}</span>
-            {#if album.artist_name}
-              <span class="album-card-artist truncate">{album.artist_name}</span>
-            {/if}
-          </div>
-        {/each}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="album-grid-viewport" bind:this={albumGridViewport} onscroll={handleAlbumGridScroll}
+        use:observeHeight={(h) => { albumViewportHeight = h; }}
+        use:observeWidth={(w) => { albumViewportWidth = w; }}>
         {#if filteredAlbums.length === 0}
           <div class="empty">{searchQuery ? $tr('common.noResult') : $tr('library.noAlbums')}</div>
+        {:else}
+          <div style="height:{albumGridMetrics.totalHeight}px;position:relative;">
+            <div class="albums-grid" style="transform:translateY({albumGridMetrics.offsetY}px);">
+              {#each visibleAlbums as album (album.id ?? album.title)}
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div class="album-card" onclick={() => selectAlbumDetail(album)}>
+                  <div class="album-card-art">
+                    <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                    <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
+                      <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
+                    </button>
+                    <button class="edit-overlay" onclick={(e) => openAlbumEdit(e, album)} title={$tr('metadata.editAlbum')}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                    </button>
+                    <span class="heart-overlay"><HeartButton albumId={album.id} size={14} /></span>
+                  </div>
+                  <span class="album-card-title truncate">{album.title}</span>
+                  {#if album.artist_name}
+                    <span class="album-card-artist truncate">{album.artist_name}</span>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          </div>
         {/if}
       </div>
 
@@ -2074,13 +2158,17 @@
     color: var(--tune-accent);
   }
 
+  .album-grid-viewport {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
   .albums-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     grid-auto-rows: min-content;
     gap: var(--space-lg);
-    flex: 1;
-    overflow-y: auto;
     align-items: start;
   }
 

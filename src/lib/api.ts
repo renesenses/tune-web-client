@@ -405,7 +405,14 @@ export function getRecentAlbums(limit = 50) {
   return fetchJSON<Album[]>(`${BASE}/library/albums/recent?limit=${limit}`);
 }
 
-export async function getAllAlbums(pageSize = 2000, sort = 'title', order = 'asc'): Promise<Album[]> {
+export async function getAllAlbums(pageSize = 2000, sort = 'title', order = 'asc', page?: number, perPage?: number): Promise<Album[]> {
+  // When page is specified, fetch a single page (for future pagination support)
+  if (page !== undefined) {
+    const limit = perPage ?? 100;
+    const offset = (page - 1) * limit;
+    return fetchJSON<Album[]>(`${BASE}/library/albums?limit=${limit}&offset=${offset}&sort=${sort}&order=${order}`);
+  }
+  // Default: fetch all albums in batches
   const all: Album[] = [];
   let offset = 0;
   while (true) {
