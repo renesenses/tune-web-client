@@ -1710,3 +1710,23 @@ export function previewSmartCollection(payload: { rules: any[]; match_mode?: str
     body: JSON.stringify(payload),
   });
 }
+
+// --- CSV Export ---
+
+async function downloadCsv(path: string, filename: string) {
+  const res = await fetch(`${BASE}${path}`);
+  if (!res.ok) throw new Error(`Export failed (${res.status})`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export function exportAlbumsCsv() { return downloadCsv('/export/albums.csv', 'albums.csv'); }
+export function exportTracksCsv() { return downloadCsv('/export/tracks.csv', 'tracks.csv'); }
+export function exportArtistsCsv() { return downloadCsv('/export/artists.csv', 'artists.csv'); }

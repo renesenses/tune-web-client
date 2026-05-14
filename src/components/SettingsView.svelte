@@ -56,6 +56,9 @@
   // Diagnostics bundle download
   let diagDownloading = $state(false);
 
+  // CSV export
+  let csvExporting = $state<string | null>(null);
+
   async function downloadDiagnostics() {
     diagDownloading = true;
     try {
@@ -1625,6 +1628,37 @@
         {/if}
       </section>
     {/if}
+
+    <section class="settings-section">
+      <h3>Exporter CSV</h3>
+      <p class="section-hint">Téléchargez votre bibliothèque au format CSV.</p>
+      <div class="db-ie-actions">
+        <button class="btn-secondary" onclick={async () => { csvExporting = 'albums'; try { await api.exportAlbumsCsv(); } catch (e) { alert('Erreur : ' + (e as Error).message); } finally { csvExporting = null; } }} disabled={csvExporting !== null}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          {csvExporting === 'albums' ? 'Export...' : 'Albums (CSV)'}
+        </button>
+        <button class="btn-secondary" onclick={async () => { csvExporting = 'tracks'; try { await api.exportTracksCsv(); } catch (e) { alert('Erreur : ' + (e as Error).message); } finally { csvExporting = null; } }} disabled={csvExporting !== null}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          {csvExporting === 'tracks' ? 'Export...' : 'Pistes (CSV)'}
+        </button>
+        <button class="btn-secondary" onclick={async () => { csvExporting = 'artists'; try { await api.exportArtistsCsv(); } catch (e) { alert('Erreur : ' + (e as Error).message); } finally { csvExporting = null; } }} disabled={csvExporting !== null}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          {csvExporting === 'artists' ? 'Export...' : 'Artistes (CSV)'}
+        </button>
+      </div>
+    </section>
 
     <!-- About -->
     <section class="settings-section">
