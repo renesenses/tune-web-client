@@ -322,7 +322,7 @@
     { key: 'title', label: 'Titre', defaultOrder: 'asc' },
     { key: 'artist', label: 'Artiste', defaultOrder: 'asc' },
     { key: 'release_date', label: 'Date de sortie', defaultOrder: 'desc' },
-    { key: 'original_year', label: 'Annee originale', defaultOrder: 'desc' },
+    { key: 'original_year', label: 'Année originale', defaultOrder: 'desc' },
     { key: 'added_date', label: "Date d'ajout", defaultOrder: 'desc' },
   ];
   let albumSort = $state<AlbumSortKey>((localStorage.getItem('tune_album_sort') as AlbumSortKey) || 'title');
