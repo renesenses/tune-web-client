@@ -1398,6 +1398,11 @@ export async function installUpdate(): Promise<any> {
   return res.json();
 }
 
+export async function getUpdateStatus(): Promise<any> {
+  const res = await fetch(`${BASE}/system/update/status`);
+  return res.json();
+}
+
 // --- Network / SMB ---
 
 export function discoverSmbShares() {

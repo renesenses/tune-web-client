@@ -42,6 +42,8 @@
   let updateInfo = $state<{ latest_version: string; current_version: string; release_notes?: string } | null>(null);
   let updateInstalling = $state(false);
   let updateDone = $state(false);
+  let updateDmgReady = $state(false);
+  let updateDmgPath = $state('');
 
   // Music dir management
   let newMusicDirPath = $state('');
@@ -585,7 +587,7 @@
     updateInstalling = true;
     try {
       // Server returns immediately ("started"). Download runs in the
-      // background; we poll /update/status until the server restarts.
+      // background; we poll /update/status until it completes.
       await api.installUpdate();
     } catch (e) {
       // Old server (≤ v0.7.41) blocked the request for the full
@@ -594,11 +596,29 @@
       // through to the polling+reload loop.
       console.warn('install fetch failed, server may be downloading:', e);
     }
-    // Poll reachability for up to 3 min, then reload.
+
+    // Poll /update/status first to detect macOS dmg_ready phase.
     const oldVersion = updateInfo?.current_version;
     const start = Date.now();
     while (Date.now() - start < 180_000) {
       await new Promise((r) => setTimeout(r, 3_000));
+      try {
+        const status = await api.getUpdateStatus();
+        if (status?.phase === 'dmg_ready') {
+          // macOS: DMG downloaded and opened in Finder. No restart needed.
+          updateDmgReady = true;
+          updateDmgPath = status.dmg_path || '~/Downloads';
+          updateInstalling = false;
+          return;
+        }
+        if (status?.phase === 'failed') {
+          updateInstalling = false;
+          return;
+        }
+      } catch {
+        // Server may be restarting (connection refused). Fall through to
+        // version check below.
+      }
       try {
         const info = await api.checkForUpdate();
         if (info?.current_version && info.current_version !== oldVersion) {
@@ -1710,8 +1730,10 @@
               Mise à jour disponible : <strong>v{updateInfo.latest_version}</strong>
               (actuel : v{updateInfo.current_version})
             </span>
-            {#if updateDone}
-              <span class="update-done">✅ Installée</span>
+            {#if updateDmgReady}
+              <span class="update-done">Le DMG a été téléchargé et ouvert. Glissez la nouvelle app dans Applications, puis relancez Tune Server.</span>
+            {:else if updateDone}
+              <span class="update-done">Installée</span>
               <button
                 class="update-btn"
                 disabled={restarting}
