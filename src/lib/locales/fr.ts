@@ -10,6 +10,7 @@ export default {
   'nav.settings': 'Paramètres',
   'nav.navigation': 'NAVIGATION',
   'nav.services': 'SERVICES',
+  'nav.reglages': 'RÉGLAGES',
   'nav.maintenance': 'Métadonnées',
   'nav.genres': 'Genres',
 

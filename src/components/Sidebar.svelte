@@ -241,6 +241,13 @@
     }
   }
 
+  // REGLAGES section collapse — persisted in localStorage
+  let reglagesOpen = $state(localStorage.getItem('tune-reglages-open') === 'true');
+  function toggleReglages() {
+    reglagesOpen = !reglagesOpen;
+    localStorage.setItem('tune-reglages-open', String(reglagesOpen));
+  }
+
   // Resizable sidebar
   let resizing = $state(false);
 
@@ -263,7 +270,7 @@
 
 <aside class="sidebar">
   <div class="sidebar-header">
-    <h1 class="logo"><img src="/tune-logo.png" alt="Tune" class="logo-img" /> <span class="version">v{serverVersion ?? __APP_VERSION__}</span></h1>
+    <h1 class="logo"><img src="/tune-logo.png" alt="Tune" class="logo-img" /> <span class="version">v{serverVersion ?? __APP_VERSION__}{#if $updateAvailable}<span class="version-update-dot" title="Mise à jour disponible"></span>{/if}</span></h1>
     <div class="connection-status">
       <span class="state-dot" style="color: {stateColor($connectionState)}">
         {stateIcon($connectionState)}
@@ -274,6 +281,7 @@
 
   <ProfileSelector />
 
+  <!-- GROUP 1: NAVIGATION (daily use) -->
   <nav class="nav-section">
     <span class="section-label">{$t('nav.navigation')}</span>
     <button class="nav-item" class:active={$activeView === 'home'} onclick={() => navigate('home')}>
@@ -284,15 +292,14 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
       {$t('nav.nowplaying')}
     </button>
-    <button class="nav-item" class:active={$activeView === 'library'} onclick={() => navigate('library')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-      {$t('nav.library')}
-    </button>
     <button class="nav-item" class:active={$activeView === 'queue'} onclick={() => navigate('queue')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
       {$t('nav.queue')}
     </button>
-    <!-- Playlists group -->
+    <button class="nav-item" class:active={$activeView === 'library'} onclick={() => navigate('library')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+      {$t('nav.library')}
+    </button>
     <button class="nav-item" class:active={$activeView === 'playlists' || $activeView === 'playlistmanager'} onclick={() => navigate('playlistmanager')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
       {$t('nav.playlists')}
@@ -306,7 +313,6 @@
       Playlists Hub
       <span class="badge-new">POC</span>
     </button>
-    <!-- Collections group -->
     <button class="nav-item" class:active={$activeView === 'collections'} onclick={() => navigate('collections')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
       Collections
@@ -314,50 +320,6 @@
     <button class="nav-item" class:active={$activeView === 'smartcollections'} onclick={() => navigate('smartcollections')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><polyline points="14 14 17.5 17.5 21 14"/><line x1="17.5" y1="14" x2="17.5" y2="21"/></svg>
       Smart Collections
-    </button>
-    <button class="nav-item" class:active={$activeView === 'browse'} onclick={() => navigate('browse')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-      {$t('nav.browse')}
-    </button>
-    <button class="nav-item" class:active={$activeView === 'mediaservers'} onclick={() => navigate('mediaservers')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2" /><rect x="2" y="14" width="20" height="8" rx="2" ry="2" /><line x1="6" y1="6" x2="6.01" y2="6" /><line x1="6" y1="18" x2="6.01" y2="18" /></svg>
-      {$t('nav.mediaservers')}
-    </button>
-    <button class="nav-item" class:active={$activeView === 'radios'} onclick={() => navigate('radios')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5"></path><line x1="12" y1="19" x2="12" y2="22"></line><path d="M8 22h8"></path></svg>
-      {$t('nav.radios')}
-    </button>
-    <button class="nav-item" class:active={$activeView === 'radiofavorites'} onclick={() => navigate('radiofavorites')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-      Favoris Radio
-    </button>
-    <!-- Mode DJ + Party hidden until backend is wired up (v0.8.x). The
-         "Activer DJ" / "Activer Party" buttons would call missing routes
-         and fail silently — better to hide than ship a broken control. -->
-    <!--
-    <button class="nav-item" class:active={$activeView === 'dj'} onclick={() => navigate('dj')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /></svg>
-      Mode DJ
-      <span class="badge-new">POC</span>
-    </button>
-    <button class="nav-item" class:active={$activeView === 'party'} onclick={() => navigate('party')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-      Party
-      <span class="badge-new">POC</span>
-    </button>
-    -->
-
-    <button class="nav-item" class:active={$activeView === 'podcasts'} onclick={() => navigate('podcasts')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-      Podcasts
-    </button>
-    <button class="nav-item" class:active={$activeView === 'history'} onclick={() => navigate('history')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-      {$t('nav.history')}
-    </button>
-    <button class="nav-item" class:active={$activeView === 'dashboard'} onclick={() => navigate('dashboard')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-      {$t('nav.dashboard')}
     </button>
     <button class="nav-item" class:active={$activeView === 'favorites'} onclick={() => navigate('favorites')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
@@ -367,57 +329,110 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
       {$t('nav.search')}
     </button>
-    <button class="nav-item" class:active={$activeView === 'settings'} onclick={() => navigate('settings')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-      {$t('nav.settings')}
-      {#if $updateAvailable}
-        <span class="badge-update">MAJ</span>
-      {/if}
+    <button class="nav-item" class:active={$activeView === 'history'} onclick={() => navigate('history')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      {$t('nav.history')}
     </button>
-    <button class="nav-item" class:active={$activeView === 'metadata'} onclick={() => navigate('metadata')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
-      {$t('nav.maintenance')}
-      <span class="badge-new">POC</span>
-    </button>
-    <button class="nav-item" class:active={$activeView === 'services'} onclick={() => navigate('services')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      Services & Tokens
-    </button>
-    <button class="nav-item" class:active={$activeView === 'genretree'} onclick={() => navigate('genretree')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6"/><circle cx="12" cy="10" r="2"/><path d="M12 12v3"/><path d="M5 17a3 3 0 1 0 6 0 3 3 0 0 0-6 0zm8 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0z"/><path d="M8 14h8"/><path d="M8 14v3"/><path d="M16 14v3"/></svg>
-      Arbre des genres
-    </button>
-    <button class="nav-item" class:active={$activeView === 'zonemanager'} onclick={() => navigate('zonemanager')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h.01"></path><path d="M7 20v-4"></path><path d="M12 20v-8"></path><path d="M17 20V8"></path><path d="M22 4v16"></path></svg>
-      {$t('nav.zonemanager')}
-      <span class="badge-new">POC</span>
-    </button>
-    <button class="nav-item" class:active={$activeView === 'alarms'} onclick={() => navigate('alarms')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M5 3L2 6"></path><path d="M22 6l-3-3"></path></svg>
-      {$t('nav.alarms')}
-    </button>
-    <button class="nav-item" class:active={$activeView === 'diagnostics'} onclick={() => navigate('diagnostics')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"></path><path d="M18 20V4"></path><path d="M6 20v-4"></path></svg>
-      {$t('nav.diagnostics')}
+    <button class="nav-item" class:active={$activeView === 'dashboard'} onclick={() => navigate('dashboard')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+      {$t('nav.dashboard')}
     </button>
   </nav>
 
-  {#if activeServices.length > 0}
-    <nav class="nav-section services-section">
-      <span class="section-label">{$t('nav.services')}</span>
-      {#each activeServices as svc}
-        <button
-          class="nav-item"
-          class:active={$activeView === 'streaming' && $activeStreamingService === svc}
-          onclick={() => navigateStreaming(svc)}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
-          {streamingLabel(svc)}
-          <span class="connected-dot"></span>
-        </button>
-      {/each}
-    </nav>
-  {/if}
+  <!-- GROUP 2: SERVICES (streaming + media) -->
+  <nav class="nav-section services-section">
+    <span class="section-label">{$t('nav.services')}</span>
+    {#each activeServices as svc}
+      <button
+        class="nav-item"
+        class:active={$activeView === 'streaming' && $activeStreamingService === svc}
+        onclick={() => navigateStreaming(svc)}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+        {streamingLabel(svc)}
+        <span class="connected-dot"></span>
+      </button>
+    {/each}
+    <button class="nav-item" class:active={$activeView === 'radios'} onclick={() => navigate('radios')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5"></path><line x1="12" y1="19" x2="12" y2="22"></line><path d="M8 22h8"></path></svg>
+      {$t('nav.radios')}
+    </button>
+    <button class="nav-item" class:active={$activeView === 'radiofavorites'} onclick={() => navigate('radiofavorites')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+      Favoris Radio
+    </button>
+    <button class="nav-item" class:active={$activeView === 'podcasts'} onclick={() => navigate('podcasts')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+      Podcasts
+    </button>
+    <button class="nav-item" class:active={$activeView === 'mediaservers'} onclick={() => navigate('mediaservers')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2" /><rect x="2" y="14" width="20" height="8" rx="2" ry="2" /><line x1="6" y1="6" x2="6.01" y2="6" /><line x1="6" y1="18" x2="6.01" y2="18" /></svg>
+      {$t('nav.mediaservers')}
+    </button>
+    <button class="nav-item" class:active={$activeView === 'browse'} onclick={() => navigate('browse')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+      {$t('nav.browse')}
+    </button>
+  </nav>
+
+  <!-- GROUP 3: REGLAGES (admin, collapsible) -->
+  <nav class="nav-section reglages-section">
+    <button class="section-label-toggle" onclick={toggleReglages}>
+      <span class="section-label">{$t('nav.reglages')}</span>
+      <svg class="chevron" class:open={reglagesOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+    {#if reglagesOpen}
+      <button class="nav-item" class:active={$activeView === 'settings'} onclick={() => navigate('settings')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        {$t('nav.settings')}
+        {#if $updateAvailable}
+          <span class="badge-update">MAJ</span>
+        {/if}
+      </button>
+      <button class="nav-item" class:active={$activeView === 'metadata'} onclick={() => navigate('metadata')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+        {$t('nav.maintenance')}
+        <span class="badge-new">POC</span>
+      </button>
+      <button class="nav-item" class:active={$activeView === 'services'} onclick={() => navigate('services')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Services & Tokens
+      </button>
+      <button class="nav-item" class:active={$activeView === 'genretree'} onclick={() => navigate('genretree')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6"/><circle cx="12" cy="10" r="2"/><path d="M12 12v3"/><path d="M5 17a3 3 0 1 0 6 0 3 3 0 0 0-6 0zm8 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0z"/><path d="M8 14h8"/><path d="M8 14v3"/><path d="M16 14v3"/></svg>
+        Arbre des genres
+      </button>
+      <button class="nav-item" class:active={$activeView === 'zonemanager'} onclick={() => navigate('zonemanager')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h.01"></path><path d="M7 20v-4"></path><path d="M12 20v-8"></path><path d="M17 20V8"></path><path d="M22 4v16"></path></svg>
+        {$t('nav.zonemanager')}
+        <span class="badge-new">POC</span>
+      </button>
+      <button class="nav-item" class:active={$activeView === 'alarms'} onclick={() => navigate('alarms')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M5 3L2 6"></path><path d="M22 6l-3-3"></path></svg>
+        {$t('nav.alarms')}
+      </button>
+      <button class="nav-item" class:active={$activeView === 'diagnostics'} onclick={() => navigate('diagnostics')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"></path><path d="M18 20V4"></path><path d="M6 20v-4"></path></svg>
+        {$t('nav.diagnostics')}
+      </button>
+    {/if}
+  </nav>
+
+  <!-- Mode DJ + Party hidden until backend is wired up (v0.8.x). The
+       "Activer DJ" / "Activer Party" buttons would call missing routes
+       and fail silently — better to hide than ship a broken control. -->
+  <!--
+  <button class="nav-item" class:active={$activeView === 'dj'} onclick={() => navigate('dj')}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /></svg>
+    Mode DJ
+    <span class="badge-new">POC</span>
+  </button>
+  <button class="nav-item" class:active={$activeView === 'party'} onclick={() => navigate('party')}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+    Party
+    <span class="badge-new">POC</span>
+  </button>
+  -->
 
   <div class="zones-section">
     <div class="zones-header">
@@ -712,6 +727,57 @@
   .services-section {
     border-top: 1px solid var(--tune-border);
     padding-top: var(--space-md);
+  }
+
+  .reglages-section {
+    border-top: 1px solid var(--tune-border);
+    padding-top: var(--space-md);
+  }
+
+  .section-label-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 18px;
+    margin-bottom: 6px;
+    width: 100%;
+    text-align: left;
+  }
+
+  .section-label-toggle .section-label {
+    padding: 0;
+    margin-bottom: 0;
+  }
+
+  .section-label-toggle:hover .section-label {
+    color: var(--tune-text-secondary);
+  }
+
+  .chevron {
+    width: 12px;
+    height: 12px;
+    color: var(--tune-text-muted);
+    transition: transform 0.15s ease-out;
+    transform: rotate(-90deg);
+    flex-shrink: 0;
+  }
+
+  .chevron.open {
+    transform: rotate(0deg);
+  }
+
+  .version-update-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #dc2626;
+    margin-left: 4px;
+    vertical-align: middle;
+    animation: badge-pulse 2s ease-in-out infinite;
   }
 
   .connected-dot {
@@ -1028,7 +1094,8 @@
     .section-label { display: none; }
     .nav-item { justify-content: center; padding: 12px 0; font-size: 0; }
     .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
-    .zones-section, .devices-section, .services-section { display: none; }
+    .zones-section, .devices-section, .services-section, .reglages-section { display: none; }
+    .section-label-toggle { display: none; }
     .resize-handle { display: none; }
     .connected-dot { display: none; }
   }

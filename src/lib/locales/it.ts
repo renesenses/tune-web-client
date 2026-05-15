@@ -10,6 +10,7 @@ export default {
   'nav.settings': 'Impostazioni',
   'nav.navigation': 'NAVIGAZIONE',
   'nav.services': 'SERVIZI',
+  'nav.reglages': 'IMPOSTAZIONI',
   'nav.maintenance': 'Manutenzione',
 
   // Common

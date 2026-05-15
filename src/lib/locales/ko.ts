@@ -10,6 +10,7 @@ export default {
   'nav.settings': '설정',
   'nav.navigation': '네비게이션',
   'nav.services': '서비스',
+  'nav.reglages': '설정',
   'nav.maintenance': '유지보수',
 
   // Common
