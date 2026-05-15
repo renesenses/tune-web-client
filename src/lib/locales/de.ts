@@ -294,6 +294,16 @@ export default {
 
   // Volume
   'volume.title': 'Lautstärke (M zum Stummschalten)',
+
+  // Navigation (extra)
+  'nav.dashboard': 'Dashboard',
+  'nav.equalizer': 'Equalizer',
+
+  // Equalizer
+  'eq.title': 'Equalizer',
+  'eq.enabled': 'Aktiviert',
+  'eq.disabled': 'Deaktiviert',
+  'eq.reset': 'Zurücksetzen',
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

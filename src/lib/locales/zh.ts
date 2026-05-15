@@ -294,6 +294,16 @@ export default {
 
   // Volume
   'volume.title': '音量(M 静音)',
+
+  // Navigation (extra)
+  'nav.dashboard': '仪表盘',
+  'nav.equalizer': '均衡器',
+
+  // Equalizer
+  'eq.title': '均衡器',
+  'eq.enabled': '已启用',
+  'eq.disabled': '已禁用',
+  'eq.reset': '重置',
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

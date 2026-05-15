@@ -11,7 +11,7 @@
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ProfileSelector from './ProfileSelector.svelte';
   import { notifications } from '../lib/stores/notifications';
-  import { updateAvailable } from '../lib/stores/updates';
+  import { updateAvailable, latestVersion } from '../lib/stores/updates';
 
   function handleSelectZone(zoneId: number) {
     currentZoneId.set(zoneId);
@@ -270,7 +270,7 @@
 
 <aside class="sidebar">
   <div class="sidebar-header">
-    <h1 class="logo"><img src="/tune-logo.png" alt="Tune" class="logo-img" /> <span class="version">v{serverVersion ?? __APP_VERSION__}{#if $updateAvailable}<span class="version-update-dot" title="Mise à jour disponible"></span>{/if}</span></h1>
+    <h1 class="logo"><img src="/tune-logo.png" alt="Tune" class="logo-img" /> <span class="version">{#if $updateAvailable}<button class="version-link" onclick={() => navigate('settings')} title="Mise à jour disponible">v{serverVersion ?? __APP_VERSION__}<span class="version-update-dot"></span><span class="version-latest">v{$latestVersion}</span></button>{:else}v{serverVersion ?? __APP_VERSION__}{/if}</span></h1>
     <div class="connection-status">
       <span class="state-dot" style="color: {stateColor($connectionState)}">
         {stateIcon($connectionState)}
@@ -336,6 +336,10 @@
     <button class="nav-item" class:active={$activeView === 'dashboard'} onclick={() => navigate('dashboard')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
       {$t('nav.dashboard')}
+    </button>
+    <button class="nav-item" class:active={$activeView === 'equalizer'} onclick={() => navigate('equalizer')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+      {$t('nav.equalizer')}
     </button>
   </nav>
 
@@ -767,6 +771,30 @@
 
   .chevron.open {
     transform: rotate(0deg);
+  }
+
+  .version-link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .version-link:hover {
+    color: var(--tune-accent);
+  }
+
+  .version-latest {
+    font-size: 10px;
+    color: #dc2626;
+    margin-left: 4px;
+    font-weight: 600;
   }
 
   .version-update-dot {

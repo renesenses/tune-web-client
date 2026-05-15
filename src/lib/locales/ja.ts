@@ -294,6 +294,16 @@ export default {
 
   // Volume
   'volume.title': 'ボリューム(Mでミュート)',
+
+  // Navigation (extra)
+  'nav.dashboard': 'ダッシュボード',
+  'nav.equalizer': 'イコライザー',
+
+  // Equalizer
+  'eq.title': 'イコライザー',
+  'eq.enabled': '有効',
+  'eq.disabled': '無効',
+  'eq.reset': 'リセット',
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

@@ -294,6 +294,16 @@ export default {
 
   // Volume
   'volume.title': '볼륨 (M으로 음소거)',
+
+  // Navigation (extra)
+  'nav.dashboard': '대시보드',
+  'nav.equalizer': '이퀄라이저',
+
+  // Equalizer
+  'eq.title': '이퀄라이저',
+  'eq.enabled': '활성화',
+  'eq.disabled': '비활성화',
+  'eq.reset': '초기화',
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

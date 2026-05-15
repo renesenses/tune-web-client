@@ -719,6 +719,32 @@ export function setEqualizer(zoneId: number, preset: string) {
   });
 }
 
+export interface EqBand {
+  freq: number;
+  gain: number;
+  q: number;
+}
+
+export interface EqSettings {
+  bands: EqBand[];
+  enabled: boolean;
+}
+
+export function getEq(zoneId: number) {
+  return fetchJSON<EqSettings>(`${BASE}/zones/${zoneId}/eq`);
+}
+
+export function setEq(zoneId: number, settings: EqSettings) {
+  return fetchJSON<EqSettings>(`${BASE}/zones/${zoneId}/eq`, {
+    method: 'POST',
+    body: JSON.stringify(settings),
+  });
+}
+
+export function getListeningStats() {
+  return fetchJSON<any>(`${BASE}/system/stats/listening`);
+}
+
 export function shareNowPlaying(zoneId: number) {
   return fetchJSON<{ title: string; artist: string; album: string; text: string; cover_url: string | null }>(`${BASE}/zones/${zoneId}/share`);
 }

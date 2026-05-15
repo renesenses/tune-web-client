@@ -589,6 +589,7 @@ export default {
   'credits.enrich.failed': 'Aucun crédit trouvé',
 
   'nav.dashboard': 'Tableau de bord',
+  'nav.equalizer': 'Égaliseur',
   'dashboard.title': 'Mon écoute',
   'dashboard.period.today': "Aujourd'hui",
   'dashboard.period.7d': '7 jours',
@@ -609,6 +610,12 @@ export default {
   'dashboard.completion.completed': 'Terminées',
   'dashboard.completion.skipped': 'Skippées',
   'dashboard.empty': 'Pas encore d\'historique d\'écoute. Lance quelque chose 🎶',
+
+  // Equalizer
+  'eq.title': 'Égaliseur',
+  'eq.enabled': 'Activé',
+  'eq.disabled': 'Désactivé',
+  'eq.reset': 'Réinitialiser',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Bienvenue sur Tune',

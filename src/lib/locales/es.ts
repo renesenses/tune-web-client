@@ -294,6 +294,16 @@ export default {
 
   // Volume
   'volume.title': 'Volumen (M para silenciar)',
+
+  // Navigation (extra)
+  'nav.dashboard': 'Panel',
+  'nav.equalizer': 'Ecualizador',
+
+  // Equalizer
+  'eq.title': 'Ecualizador',
+  'eq.enabled': 'Activado',
+  'eq.disabled': 'Desactivado',
+  'eq.reset': 'Restablecer',
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];
