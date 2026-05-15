@@ -89,6 +89,7 @@ export interface Track {
   cover_path?: string | null;
   source?: Source;
   source_id?: string | null;
+  gapless_next?: boolean;
 }
 
 export interface Playlist {

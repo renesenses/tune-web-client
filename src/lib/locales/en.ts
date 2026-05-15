@@ -638,6 +638,50 @@ export default {
   'onboarding.summaryDirs': 'Music folders',
   'onboarding.summaryServices': 'Enabled services',
   'onboarding.summaryConnected': 'Connected services',
+
+  // Audiophile Mode
+  'audiophile.title': 'Audiophile Mode',
+  'audiophile.enabled': 'Audiophile mode active',
+  'audiophile.disabled': 'Audiophile mode inactive',
+  'audiophile.pure': 'PURE',
+
+  // Streaming Quality
+  'settings.streamingQuality': 'Streaming Quality',
+  'settings.qualityMax': 'Maximum',
+  'settings.qualityHires': 'Hi-Res',
+  'settings.qualityCd': 'CD (16/44.1)',
+  'settings.qualityLow': 'Economy',
+
+  // Config Export/Import
+  'settings.configSection': 'Configuration',
+  'settings.exportConfig': 'Export configuration',
+  'settings.importConfig': 'Import configuration',
+  'settings.importConfigSuccess': 'Configuration imported successfully',
+  'settings.importConfigError': 'Import failed',
+  'settings.exporting': 'Exporting...',
+  'settings.importing': 'Importing...',
+
+  // Batch Enrichment
+  'settings.batchEnrich': 'Enrich entire library (MusicBrainz)',
+  'settings.batchEnrichRunning': 'Enrichment: {current}/{total} albums...',
+  'settings.batchEnrichDone': 'Enrichment complete!',
+  'settings.batchEnrichStarted': 'Enrichment started',
+
+  // Gapless
+  'queue.gapless': 'Gapless',
+
+  // Push Notifications
+  'settings.pushNotifications': 'Browser notifications',
+  'settings.pushNotificationsHint': 'Notify on track change (only when tab is in background)',
+
+  // Network Diagnostics
+  'diagnostics.network': 'Network Diagnostics',
+  'diagnostics.networkRefresh': 'Auto-refresh every 30s',
+  'diagnostics.multicastSsdp': 'Multicast SSDP',
+  'diagnostics.port8888': 'Port 8888 accessible',
+  'diagnostics.internet': 'Internet available',
+  'diagnostics.dnsResolution': 'DNS resolution',
+  'diagnostics.discoveredRenderers': 'Discovered renderers',
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

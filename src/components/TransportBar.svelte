@@ -120,6 +120,30 @@
 
   let showSignalPath = $state(false);
 
+  // Audiophile mode
+  let audiophileEnabled = $state(false);
+  let audiophileLoading = $state(false);
+
+  $effect(() => {
+    const zoneId = $currentZoneId;
+    if (zoneId) {
+      api.getAudiophileMode(zoneId).then(res => {
+        audiophileEnabled = res.enabled;
+      }).catch(() => {});
+    }
+  });
+
+  async function toggleAudiophile() {
+    const z = $currentZone;
+    if (!z?.id || audiophileLoading) return;
+    audiophileLoading = true;
+    try {
+      const res = await api.setAudiophileMode(z.id, !audiophileEnabled);
+      audiophileEnabled = res.enabled;
+    } catch {}
+    audiophileLoading = false;
+  }
+
   const detailTranslations: Record<string, string> = {
     'Renderer fetches audio directly from source — zero processing': 'signal.directUrlDetail',
     'DSD stream served bit-perfect to DSD-capable renderer': 'signal.nativeDsdDetail',
@@ -310,8 +334,21 @@
         </svg>
       {/if}
     </button>
-    <button class="signal-dot-btn" class:bit-perfect={zone?.signal_path?.bit_perfect} class:visible={zone?.signal_path && zone.state === 'playing'} onclick={(e) => { e.stopPropagation(); if (zone?.signal_path) showSignalPath = !showSignalPath; }} title="{zone?.signal_path?.summary ?? ''}">
+    <button class="signal-dot-btn" class:bit-perfect={zone?.signal_path?.bit_perfect || audiophileEnabled} class:visible={zone?.signal_path && zone.state === 'playing'} onclick={(e) => { e.stopPropagation(); if (zone?.signal_path) showSignalPath = !showSignalPath; }} title="{zone?.signal_path?.summary ?? ''}">
       <span class="signal-dot-indicator"></span>
+    </button>
+    <button
+      class="audiophile-btn"
+      class:active={audiophileEnabled}
+      onclick={(e) => { e.stopPropagation(); toggleAudiophile(); }}
+      title={audiophileEnabled ? $t('audiophile.enabled' as any) : $t('audiophile.disabled' as any)}
+    >
+      <svg viewBox="0 0 24 24" fill={audiophileEnabled ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5" width="18" height="18">
+        <path d="M12 2L4 8v7c0 4.5 3.5 8.5 8 9.5c4.5-1 8-5 8-9.5V8l-8-6z" />
+      </svg>
+      {#if audiophileEnabled}
+        <span class="audiophile-label">{$t('audiophile.pure' as any)}</span>
+      {/if}
     </button>
   </div>
 
@@ -985,6 +1022,45 @@
     color: var(--tune-accent);
   }
 
+  /* Audiophile mode button */
+  .audiophile-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: var(--radius-sm);
+    color: var(--tune-text-muted);
+    opacity: 0.5;
+    transition: all 0.2s ease-out;
+    font-family: var(--font-label);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .audiophile-btn:hover {
+    opacity: 0.8;
+    background: var(--tune-surface-hover);
+  }
+
+  .audiophile-btn.active {
+    opacity: 1;
+    color: #d4a017;
+    text-shadow: 0 0 8px rgba(212, 160, 23, 0.4);
+  }
+
+  .audiophile-btn.active svg {
+    filter: drop-shadow(0 0 4px rgba(212, 160, 23, 0.5));
+  }
+
+  .audiophile-label {
+    color: inherit;
+    pointer-events: none;
+  }
+
   @media (max-width: 768px) {
     .transport-bar {
       grid-template-columns: 1fr auto;
@@ -1013,6 +1089,7 @@
 
     /* Mini-player: seulement play/pause + next */
     .transport-controls .control-btn.small { display: none; }
+    .transport-controls .audiophile-btn { display: none; }
 
     .transport-controls .play-btn {
       width: 36px;

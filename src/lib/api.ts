@@ -1765,3 +1765,74 @@ async function downloadCsv(path: string, filename: string) {
 export function exportAlbumsCsv() { return downloadCsv('/export/albums.csv', 'albums.csv'); }
 export function exportTracksCsv() { return downloadCsv('/export/tracks.csv', 'tracks.csv'); }
 export function exportArtistsCsv() { return downloadCsv('/export/artists.csv', 'artists.csv'); }
+
+// --- Audiophile Mode ---
+
+export function getAudiophileMode(zoneId: number) {
+  return fetchJSON<{ enabled: boolean }>(`${BASE}/zones/${zoneId}/audiophile`);
+}
+
+export function setAudiophileMode(zoneId: number, enabled: boolean) {
+  return fetchJSON<{ enabled: boolean }>(`${BASE}/zones/${zoneId}/audiophile`, {
+    method: 'POST',
+    body: JSON.stringify({ enabled }),
+  });
+}
+
+// --- Streaming Quality ---
+
+export function getStreamingQuality(zoneId: number) {
+  return fetchJSON<{ quality: string }>(`${BASE}/zones/${zoneId}/quality`);
+}
+
+export function setStreamingQuality(zoneId: number, quality: string) {
+  return fetchJSON<{ quality: string }>(`${BASE}/zones/${zoneId}/quality`, {
+    method: 'POST',
+    body: JSON.stringify({ quality }),
+  });
+}
+
+// --- Config Export/Import ---
+
+export async function exportConfig(): Promise<void> {
+  const res = await fetch(`${BASE}/system/config/export`);
+  if (!res.ok) throw new Error(`Export failed (${res.status})`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tune-config-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function importConfig(data: any) {
+  return fetchJSON<{ imported: boolean }>(`${BASE}/system/config/import`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// --- MusicBrainz Batch Enrichment ---
+
+export function startBatchEnrich() {
+  return fetchJSON<{ status: string }>(`${BASE}/library/enrich-all`, { method: 'POST' });
+}
+
+export function getBatchEnrichStatus() {
+  return fetchJSON<{ running: boolean; current: number; total: number; done: boolean }>(`${BASE}/library/enrich-all/status`);
+}
+
+// --- Network Diagnostics ---
+
+export function getNetworkDiagnostics() {
+  return fetchJSON<{
+    multicast_ssdp: boolean;
+    port_8888: boolean;
+    internet: boolean;
+    dns_resolution: Record<string, boolean>;
+    renderers: Array<{ name: string; host: string; available: boolean }>;
+  }>(`${BASE}/system/diagnostics/network`);
+}

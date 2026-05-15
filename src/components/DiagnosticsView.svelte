@@ -213,6 +213,38 @@
     logsLoading = false;
   }
 
+  // --- Network Diagnostics ---
+  let networkDiag = $state<{
+    multicast_ssdp: boolean;
+    port_8888: boolean;
+    internet: boolean;
+    dns_resolution: Record<string, boolean>;
+    renderers: Array<{ name: string; host: string; available: boolean }>;
+  } | null>(null);
+  let networkLoading = $state(false);
+  let networkTimer: ReturnType<typeof setInterval> | null = null;
+
+  async function fetchNetworkDiag() {
+    networkLoading = true;
+    try {
+      networkDiag = await api.getNetworkDiagnostics();
+    } catch {
+      networkDiag = null;
+    }
+    networkLoading = false;
+  }
+
+  // Auto-refresh network diagnostics every 30s while component is visible
+  $effect(() => {
+    untrack(() => {
+      fetchNetworkDiag();
+      networkTimer = setInterval(fetchNetworkDiag, 30000);
+    });
+    return () => {
+      if (networkTimer) { clearInterval(networkTimer); networkTimer = null; }
+    };
+  });
+
   function streamingLabel(name: string): string {
     const labels: Record<string, string> = {
       tidal: 'TIDAL',
@@ -497,6 +529,58 @@
             </div>
           {/each}
         </div>
+      {/if}
+    </section>
+
+    <!-- Network Diagnostics -->
+    <section class="diag-section">
+      <div class="network-diag-header">
+        <h3>{$t('diagnostics.network' as any)}</h3>
+        <span class="network-auto-hint">{$t('diagnostics.networkRefresh' as any)}</span>
+        {#if networkLoading}
+          <div class="spinner small"></div>
+        {/if}
+      </div>
+      {#if networkDiag}
+        <div class="network-checks">
+          <div class="network-check-row">
+            <span class="network-check-icon">{networkDiag.multicast_ssdp ? '✅' : '❌'}</span>
+            <span>{$t('diagnostics.multicastSsdp' as any)}</span>
+          </div>
+          <div class="network-check-row">
+            <span class="network-check-icon">{networkDiag.port_8888 ? '✅' : '❌'}</span>
+            <span>{$t('diagnostics.port8888' as any)}</span>
+          </div>
+          <div class="network-check-row">
+            <span class="network-check-icon">{networkDiag.internet ? '✅' : '❌'}</span>
+            <span>{$t('diagnostics.internet' as any)}</span>
+          </div>
+          {#if networkDiag.dns_resolution}
+            <div class="network-dns-section">
+              <span class="network-sub-label">{$t('diagnostics.dnsResolution' as any)}</span>
+              {#each Object.entries(networkDiag.dns_resolution) as [domain, ok]}
+                <div class="network-check-row indent">
+                  <span class="network-check-icon">{ok ? '✅' : '❌'}</span>
+                  <span class="mono">{domain}</span>
+                </div>
+              {/each}
+            </div>
+          {/if}
+          {#if networkDiag.renderers && networkDiag.renderers.length > 0}
+            <div class="network-renderers-section">
+              <span class="network-sub-label">{$t('diagnostics.discoveredRenderers' as any)}</span>
+              {#each networkDiag.renderers as renderer}
+                <div class="network-check-row indent">
+                  <span class="network-check-icon">{renderer.available ? '✅' : '❌'}</span>
+                  <span>{renderer.name}</span>
+                  <span class="mono device-host">{renderer.host}</span>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      {:else if !networkLoading}
+        <p class="empty">Diagnostic reseau indisponible</p>
       {/if}
     </section>
   {/if}
@@ -1014,6 +1098,67 @@
     white-space: pre-wrap;
     word-break: break-all;
     margin: 0;
+  }
+
+  /* Network Diagnostics */
+  .network-diag-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+
+  .network-diag-header h3 {
+    margin-bottom: 0;
+  }
+
+  .network-auto-hint {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    margin-left: auto;
+  }
+
+  .network-checks {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .network-check-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-family: var(--font-body);
+    font-size: 13px;
+    padding: var(--space-xs) 0;
+  }
+
+  .network-check-row.indent {
+    padding-left: var(--space-lg);
+  }
+
+  .network-check-icon {
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .network-sub-label {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+    margin-top: var(--space-sm);
+    display: block;
+    padding-bottom: var(--space-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .network-dns-section,
+  .network-renderers-section {
+    margin-top: var(--space-xs);
   }
 
   /* Responsive */

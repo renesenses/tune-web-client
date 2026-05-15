@@ -196,6 +196,15 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>
+        {#if queueTrack.gapless_next && index < $queueTracks.length - 1}
+          <div class="gapless-indicator">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+            <span>{$t('queue.gapless' as any)}</span>
+          </div>
+        {/if}
       {/each}
     </div>
   {/if}
@@ -448,5 +457,22 @@
 
   .action-btn.remove-btn:hover {
     color: var(--tune-warning);
+  }
+
+  .gapless-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 0 1px 62px;
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    color: #4ade80;
+    opacity: 0.7;
+  }
+
+  .gapless-indicator svg {
+    flex-shrink: 0;
   }
 </style>

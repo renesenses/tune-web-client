@@ -803,6 +803,110 @@
     }
   }
 
+  // --- Streaming Quality ---
+  let streamingQuality = $state<string>('max');
+  let qualityLoading = $state(false);
+
+  async function loadStreamingQuality() {
+    const zoneList = get(zones);
+    if (!zoneList.length) return;
+    try {
+      const res = await api.getStreamingQuality(zoneList[0].id);
+      streamingQuality = res.quality ?? 'max';
+    } catch {}
+  }
+
+  async function applyStreamingQuality() {
+    const zoneList = get(zones);
+    if (!zoneList.length) return;
+    qualityLoading = true;
+    try {
+      await api.setStreamingQuality(zoneList[0].id, streamingQuality);
+    } catch {}
+    qualityLoading = false;
+  }
+
+  // --- Config Export/Import ---
+  let configExporting = $state(false);
+  let configImporting = $state(false);
+  let configImportFileInput: HTMLInputElement | null = $state(null);
+
+  async function handleExportConfig() {
+    configExporting = true;
+    try {
+      await api.exportConfig();
+    } catch (err: any) {
+      notifications.error(err?.message ?? 'Export failed');
+    }
+    configExporting = false;
+  }
+
+  async function onConfigImportSelected(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    configImporting = true;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      await api.importConfig(data);
+      notifications.success(get(t)('settings.importConfigSuccess' as any));
+    } catch (err: any) {
+      notifications.error(get(t)('settings.importConfigError' as any) + ': ' + (err?.message ?? ''));
+    }
+    configImporting = false;
+    input.value = '';
+  }
+
+  // --- MusicBrainz Batch Enrichment ---
+  let batchEnrichRunning = $state(false);
+  let batchEnrichCurrent = $state(0);
+  let batchEnrichTotal = $state(0);
+  let batchEnrichTimer: ReturnType<typeof setInterval> | null = $state(null);
+
+  async function startBatchEnrich() {
+    batchEnrichRunning = true;
+    batchEnrichCurrent = 0;
+    batchEnrichTotal = 0;
+    try {
+      await api.startBatchEnrich();
+      notifications.info(get(t)('settings.batchEnrichStarted' as any));
+      pollBatchEnrich();
+    } catch (err: any) {
+      batchEnrichRunning = false;
+      notifications.error(err?.message ?? 'Error');
+    }
+  }
+
+  function pollBatchEnrich() {
+    if (batchEnrichTimer) clearInterval(batchEnrichTimer);
+    batchEnrichTimer = setInterval(async () => {
+      try {
+        const status = await api.getBatchEnrichStatus();
+        batchEnrichCurrent = status.current ?? 0;
+        batchEnrichTotal = status.total ?? 0;
+        if (status.done || !status.running) {
+          batchEnrichRunning = false;
+          if (batchEnrichTimer) { clearInterval(batchEnrichTimer); batchEnrichTimer = null; }
+          notifications.success(get(t)('settings.batchEnrichDone' as any));
+        }
+      } catch {
+        batchEnrichRunning = false;
+        if (batchEnrichTimer) { clearInterval(batchEnrichTimer); batchEnrichTimer = null; }
+      }
+    }, 3000);
+  }
+
+  // --- Push Notifications ---
+  import { isPushEnabled, setPushEnabled, initPushNotifications } from '../lib/notifications-push';
+  let pushEnabled = $state(isPushEnabled());
+
+  function togglePush() {
+    pushEnabled = !pushEnabled;
+    setPushEnabled(pushEnabled);
+    if (pushEnabled) initPushNotifications();
+  }
+
   $effect(() => {
     untrack(() => {
       loadAll();
@@ -810,6 +914,8 @@
       fetchServerVersion();
       checkForUpdate();
       loadCrossfade();
+      loadStreamingQuality();
+      if (pushEnabled) initPushNotifications();
     });
     const unsub = tuneWS.onEvent((event) => {
       if (event.type === 'library.scan.completed') {
@@ -829,6 +935,7 @@
       stopSpotifyPolling();
       stopDeezerPolling();
       stopYoutubePolling();
+      if (batchEnrichTimer) { clearInterval(batchEnrichTimer); batchEnrichTimer = null; }
     };
   });
 </script>
@@ -1679,6 +1786,93 @@
         {/if}
       </section>
     {/if}
+
+    <!-- Streaming Quality -->
+    <section class="settings-section">
+      <h3>{$t('settings.streamingQuality' as any)}</h3>
+      <div class="setting-row">
+        <div class="setting-label">
+          <span>{$t('settings.streamingQuality' as any)}</span>
+        </div>
+        <select class="quality-select" bind:value={streamingQuality} onchange={() => applyStreamingQuality()} disabled={qualityLoading}>
+          <option value="max">{$t('settings.qualityMax' as any)}</option>
+          <option value="hires">{$t('settings.qualityHires' as any)}</option>
+          <option value="cd">{$t('settings.qualityCd' as any)}</option>
+          <option value="low">{$t('settings.qualityLow' as any)}</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Config Export/Import -->
+    <section class="settings-section">
+      <h3>{$t('settings.configSection' as any)}</h3>
+      <div class="db-ie-actions">
+        <button class="btn-secondary" onclick={handleExportConfig} disabled={configExporting}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          {configExporting ? $t('settings.exporting' as any) : $t('settings.exportConfig' as any)}
+        </button>
+        <button class="btn-secondary" onclick={() => configImportFileInput?.click()} disabled={configImporting}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          {configImporting ? $t('settings.importing' as any) : $t('settings.importConfig' as any)}
+        </button>
+        <input
+          type="file"
+          accept=".json"
+          style="display:none"
+          bind:this={configImportFileInput}
+          onchange={onConfigImportSelected}
+        />
+      </div>
+    </section>
+
+    <!-- MusicBrainz Batch Enrichment -->
+    <section class="settings-section">
+      <h3>MusicBrainz</h3>
+      <div class="action-buttons">
+        <button class="scan-btn" onclick={startBatchEnrich} disabled={batchEnrichRunning}>
+          {#if batchEnrichRunning}
+            <div class="spinner small"></div>
+            {$t('settings.batchEnrichRunning' as any).replace('{current}', String(batchEnrichCurrent)).replace('{total}', String(batchEnrichTotal))}
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            {$t('settings.batchEnrich' as any)}
+          {/if}
+        </button>
+      </div>
+      {#if batchEnrichRunning && batchEnrichTotal > 0}
+        <div class="enrich-progress">
+          <div class="enrich-progress-bar">
+            <div class="enrich-progress-fill" style="width: {Math.round((batchEnrichCurrent / batchEnrichTotal) * 100)}%"></div>
+          </div>
+          <span class="enrich-progress-text">{batchEnrichCurrent} / {batchEnrichTotal}</span>
+        </div>
+      {/if}
+    </section>
+
+    <!-- Push Notifications -->
+    <section class="settings-section">
+      <h3>{$t('settings.pushNotifications' as any)}</h3>
+      <div class="setting-row">
+        <div class="setting-label">
+          <span>{$t('settings.pushNotifications' as any)}</span>
+          <span class="setting-hint">{$t('settings.pushNotificationsHint' as any)}</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" checked={pushEnabled} onchange={togglePush} />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </section>
 
     <section class="settings-section">
       <h3>Exporter CSV</h3>
@@ -2667,4 +2861,51 @@
     to { transform: rotate(360deg); }
   }
   .scan-message { font-size: 12px; color: var(--tune-accent); margin-left: 8px; font-weight: 600; }
+
+  /* Streaming Quality */
+  .quality-select {
+    background: var(--tune-bg);
+    color: var(--tune-text);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    min-width: 160px;
+  }
+
+  .quality-select:disabled { opacity: 0.5; }
+
+  /* Batch Enrich Progress */
+  .enrich-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+  }
+
+  .enrich-progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--tune-border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .enrich-progress-fill {
+    height: 100%;
+    background: var(--tune-accent);
+    border-radius: 4px;
+    transition: width 0.3s ease-out;
+  }
+
+  .enrich-progress-text {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+    font-variant-numeric: tabular-nums;
+    min-width: 70px;
+    text-align: right;
+  }
 </style>

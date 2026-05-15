@@ -59,6 +59,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import { loadProfiles } from './lib/stores/profile';
   import { notifications } from './lib/stores/notifications';
   import { streamingServices as streamingServicesStore } from './lib/stores/streaming';
+  import { isPushEnabled, initPushNotifications } from './lib/notifications-push';
 
   import type { Track } from './lib/types';
 
@@ -266,6 +267,9 @@ import AlarmsView from './components/AlarmsView.svelte';
     fetchPlaylists();
     loadProfiles();
     checkOnboarding();
+
+    // Initialize browser push notifications if enabled
+    if (isPushEnabled()) initPushNotifications();
 
     tuneWS.onEvent((event) => {
       const type = event.type;

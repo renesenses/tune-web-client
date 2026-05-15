@@ -638,6 +638,50 @@ export default {
   'onboarding.summaryDirs': 'Dossiers musicaux',
   'onboarding.summaryServices': 'Services activés',
   'onboarding.summaryConnected': 'Services connectés',
+
+  // Audiophile Mode
+  'audiophile.title': 'Mode Audiophile',
+  'audiophile.enabled': 'Mode audiophile actif',
+  'audiophile.disabled': 'Mode audiophile inactif',
+  'audiophile.pure': 'PURE',
+
+  // Streaming Quality
+  'settings.streamingQuality': 'Qualite streaming',
+  'settings.qualityMax': 'Maximum',
+  'settings.qualityHires': 'Hi-Res',
+  'settings.qualityCd': 'CD (16/44.1)',
+  'settings.qualityLow': 'Economique',
+
+  // Config Export/Import
+  'settings.configSection': 'Configuration',
+  'settings.exportConfig': 'Exporter la configuration',
+  'settings.importConfig': 'Importer une configuration',
+  'settings.importConfigSuccess': 'Configuration importee avec succes',
+  'settings.importConfigError': 'Erreur lors de l\'importation',
+  'settings.exporting': 'Export...',
+  'settings.importing': 'Import...',
+
+  // Batch Enrichment
+  'settings.batchEnrich': 'Enrichir toute la bibliotheque (MusicBrainz)',
+  'settings.batchEnrichRunning': 'Enrichissement : {current}/{total} albums...',
+  'settings.batchEnrichDone': 'Enrichissement termine !',
+  'settings.batchEnrichStarted': 'Enrichissement lance',
+
+  // Gapless
+  'queue.gapless': 'Gapless',
+
+  // Push Notifications
+  'settings.pushNotifications': 'Notifications navigateur',
+  'settings.pushNotificationsHint': 'Notification lors du changement de piste (uniquement quand l\'onglet est en arriere-plan)',
+
+  // Network Diagnostics
+  'diagnostics.network': 'Diagnostic reseau',
+  'diagnostics.networkRefresh': 'Actualisation auto toutes les 30s',
+  'diagnostics.multicastSsdp': 'Multicast SSDP',
+  'diagnostics.port8888': 'Port 8888 accessible',
+  'diagnostics.internet': 'Internet disponible',
+  'diagnostics.dnsResolution': 'Resolution DNS',
+  'diagnostics.discoveredRenderers': 'Renderers decouverts',
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];
