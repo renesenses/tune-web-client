@@ -26,6 +26,9 @@
     uptime_seconds: number;
     zones_count: number;
     tracks_count: number;
+    albums_count: number;
+    artists_count: number;
+    radios_count: number;
     active_services: string[];
     ws_connections: number;
     last_scan_at: string | null;
@@ -352,6 +355,24 @@
           <span class="stat-value">{serverDiag.tracks_count.toLocaleString()}</span>
           <span class="stat-label">{$t('diagnostics.tracks')}</span>
         </div>
+        {#if serverDiag.albums_count != null}
+        <div class="stat-card">
+          <span class="stat-value">{serverDiag.albums_count.toLocaleString()}</span>
+          <span class="stat-label">Albums</span>
+        </div>
+        {/if}
+        {#if serverDiag.artists_count != null}
+        <div class="stat-card">
+          <span class="stat-value">{serverDiag.artists_count.toLocaleString()}</span>
+          <span class="stat-label">Artistes</span>
+        </div>
+        {/if}
+        {#if serverDiag.radios_count != null}
+        <div class="stat-card">
+          <span class="stat-value">{serverDiag.radios_count}</span>
+          <span class="stat-label">Radios</span>
+        </div>
+        {/if}
         <div class="stat-card">
           <span class="stat-value">{serverDiag.active_services.length}</span>
           <span class="stat-label">{$t('diagnostics.activeServices' as any)}</span>
