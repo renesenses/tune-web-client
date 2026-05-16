@@ -53,6 +53,7 @@ export default {
   'zone.offline': 'Offline',
   'zone.searchingDevices': 'Searching for devices...',
   'zone.noZone': 'No zones',
+  'zone.playDisabledNoZone': 'Create a zone first to start playback',
   'zone.switchZone': 'Switch Zone',
   'zone.rename': 'Rename',
   'zone.groupedPlayback': 'Grouped Playback',

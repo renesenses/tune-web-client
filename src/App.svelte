@@ -289,6 +289,15 @@ import AlarmsView from './components/AlarmsView.svelte';
       // Playback events — refetch zone state since WS events lack full data
       if (type.startsWith('playback.')) {
         const zoneId = event.data?.zone_id;
+        if (type === 'playback.error') {
+          // Surface playback errors to the user (output unavailable, pipeline
+          // error, stream URL timeout, etc.) so they know WHY play failed.
+          const msg = event.data?.message || event.data?.error || 'Playback error';
+          const trackTitle = event.data?.track_title;
+          showError(trackTitle ? `${msg} — ${trackTitle}` : msg);
+          if (zoneId) syncZoneState(zoneId);
+          return;
+        }
         if (type === 'playback.metadata') {
           // ICY metadata update (radio stream title change) — refetch zone state
           if (zoneId) syncZoneState(zoneId);

@@ -53,6 +53,7 @@ export default {
   'zone.offline': 'Hors ligne',
   'zone.searchingDevices': "Recherche d'appareils...",
   'zone.noZone': 'Aucune zone',
+  'zone.playDisabledNoZone': 'Créez une zone pour lancer la lecture',
   'zone.switchZone': 'Changer de zone',
   'zone.rename': 'Renommer',
   'zone.groupedPlayback': 'Lecture groupée',

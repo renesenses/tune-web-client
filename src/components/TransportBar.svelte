@@ -60,6 +60,7 @@
   let track = $derived($currentTrack);
   let state = $derived($playbackState);
   let showZoneDropdown = $state(false);
+  let hasNoZone = $derived($zones.length === 0);
 
   // YouTube IFrame state — for badge display and fallback when no zone
   let ytActive = $derived($ytPlayerState.active);
@@ -271,8 +272,9 @@
     <button
       class="control-btn play-btn"
       class:loading={ytLoadingState}
+      disabled={hasNoZone && !ytActive}
       onclick={togglePlayPause}
-      title={isPlaying ? $t('common.pause') : $t('common.play')}
+      title={hasNoZone && !ytActive ? $t('zone.playDisabledNoZone' as any) : (isPlaying ? $t('common.pause') : $t('common.play'))}
     >
       {#if ytLoadingState}
         <svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
