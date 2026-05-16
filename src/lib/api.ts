@@ -1092,6 +1092,28 @@ export function getStreamingPlaylistTracks(service: string, playlistId: string) 
   return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(playlistId)}/tracks`);
 }
 
+// --- YouTube Music browse (ytmusicapi) ---
+
+export function getYouTubeHome() {
+  return fetchJSON<{ sections: { id: string; name: string }[]; data: Record<string, Album[]> }>(`${BASE}/streaming/youtube/home`);
+}
+
+export function getYouTubeCharts(country = 'FR') {
+  return fetchJSON<Record<string, any[]>>(`${BASE}/streaming/youtube/charts?country=${encodeURIComponent(country)}`);
+}
+
+export function getYouTubeMoods() {
+  return fetchJSON<{ title: string; items: { title: string; params: string }[] }[]>(`${BASE}/streaming/youtube/moods`);
+}
+
+export function getYouTubeMoodPlaylists(params: string) {
+  return fetchJSON<{ title: string; playlistId: string; description: string; cover_path: string | null }[]>(`${BASE}/streaming/youtube/moods/${encodeURIComponent(params)}`);
+}
+
+export function getYouTubeLibrary(limit = 100) {
+  return fetchJSON<Track[]>(`${BASE}/streaming/youtube/library?limit=${limit}`);
+}
+
 export function transferPlaylist(sourceService: string, sourceId: string, targetService: string, targetName?: string) {
   return fetchJSON<import('./types').PlaylistTransferResponse>(`${BASE}/playlists/transfer`, {
     method: 'POST',

@@ -51,6 +51,15 @@
   let genreLoading = $state(false);
   let browsingGenres = $state(false);
 
+  // YouTube Music browse state
+  type YtmBrowseTab = 'home' | 'charts' | 'moods' | null;
+  let ytmBrowseTab = $state<YtmBrowseTab>(null);
+  let ytmChartsData = $state<Record<string, any[]>>({});
+  let ytmMoodCategories = $state<{ title: string; items: { title: string; params: string }[] }[]>([]);
+  let ytmMoodPlaylists = $state<{ title: string; playlistId: string; description: string; cover_path: string | null }[]>([]);
+  let ytmMoodTitle = $state<string>('');
+  let ytmLoading = $state(false);
+
   $effect(() => {
     const s = service;
     if (s) {
@@ -70,6 +79,10 @@
     genres = [];
     genreAlbums = [];
     genreBreadcrumb = [];
+    // Reset YouTube browse on service change
+    ytmBrowseTab = null;
+    ytmMoodPlaylists = [];
+    ytmMoodTitle = '';
   });
 
   $effect(() => {
@@ -226,6 +239,86 @@
     }
   }
 
+  // YouTube Music browse functions
+  async function openYtmTab(tab: YtmBrowseTab) {
+    ytmBrowseTab = tab;
+    ytmMoodPlaylists = [];
+    ytmMoodTitle = '';
+    if (tab === 'charts') await loadYtmCharts();
+    if (tab === 'moods') await loadYtmMoods();
+  }
+
+  function closeYtmBrowse() {
+    ytmBrowseTab = null;
+    ytmMoodPlaylists = [];
+    ytmMoodTitle = '';
+  }
+
+  async function loadYtmCharts() {
+    ytmLoading = true;
+    try {
+      ytmChartsData = await api.getYouTubeCharts('FR');
+    } catch (e) {
+      console.error('Load YouTube charts error:', e);
+      ytmChartsData = {};
+    }
+    ytmLoading = false;
+  }
+
+  async function loadYtmMoods() {
+    ytmLoading = true;
+    try {
+      ytmMoodCategories = await api.getYouTubeMoods();
+    } catch (e) {
+      console.error('Load YouTube moods error:', e);
+      ytmMoodCategories = [];
+    }
+    ytmLoading = false;
+  }
+
+  async function selectYtmMood(item: { title: string; params: string }) {
+    ytmLoading = true;
+    ytmMoodTitle = item.title;
+    try {
+      ytmMoodPlaylists = await api.getYouTubeMoodPlaylists(item.params);
+    } catch (e) {
+      console.error('Load mood playlists error:', e);
+      ytmMoodPlaylists = [];
+    }
+    ytmLoading = false;
+  }
+
+  function ytmMoodGoBack() {
+    if (ytmMoodPlaylists.length > 0) {
+      ytmMoodPlaylists = [];
+      ytmMoodTitle = '';
+    } else {
+      closeYtmBrowse();
+    }
+  }
+
+  async function selectYtmMoodPlaylist(item: { title: string; playlistId: string; description: string; cover_path: string | null }) {
+    if (!service) return;
+    selectedStreamingPlaylist = {
+      source_id: item.playlistId,
+      name: item.title,
+      description: item.description || null,
+      track_count: 0,
+      duration_ms: 0,
+      cover_path: item.cover_path || null,
+      source: 'youtube' as any,
+    };
+    selectedAlbum = null;
+    selectedArtist = null;
+    loading = true;
+    try {
+      playlistTracks = await api.getStreamingPlaylistTracks(service, item.playlistId);
+    } catch (e) {
+      console.error('Get YouTube playlist tracks error:', e);
+    }
+    loading = false;
+  }
+
   let showFeatured = $derived(!searchQuery.trim() && !results);
 
   function serviceName(s: string): string {
@@ -333,6 +426,8 @@
       // Return to genres view when navigating back from an album opened via genre browsing
       browsingGenres = true;
     }
+    // Keep YouTube browse tab open when navigating back from detail
+    // ytmBrowseTab is preserved intentionally
   }
 
   async function playStreamingTrack(track: Track) {
@@ -580,6 +675,140 @@
       {/if}
     {/if}
 
+  {:else if ytmBrowseTab}
+    <!-- YouTube Music browse view -->
+    <div class="detail-header">
+      <button class="back-btn" onclick={ytmMoodGoBack}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
+        {$tr('common.back')}
+      </button>
+      <h2>
+        {#if ytmBrowseTab === 'charts'}{$tr('streaming.ytmCharts')}
+        {:else if ytmBrowseTab === 'moods'}{ytmMoodTitle || $tr('streaming.ytmMoods')}
+        {/if}
+      </h2>
+    </div>
+
+    {#if ytmLoading}
+      <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
+
+    {:else if ytmBrowseTab === 'charts'}
+      <!-- Charts: trending songs, top songs, top videos -->
+      {#if ytmChartsData.trending?.length}
+        <div class="featured-section">
+          <h3 class="featured-section-title">{$tr('streaming.ytmTrending')}</h3>
+          <div class="track-list">
+            {#each ytmChartsData.trending as t, i}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="track-item" onclick={() => playStreamingTrack(t)}>
+                <span class="track-num">{i + 1}</span>
+                <div class="track-info">
+                  <span class="track-title truncate">{t.title}</span>
+                  <span class="track-artist truncate">{t.artist_name ?? ''}</span>
+                </div>
+                <span class="track-duration">{formatTime(t.duration_ms)}</span>
+                <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      {#if ytmChartsData.songs?.length}
+        <div class="featured-section">
+          <h3 class="featured-section-title">{$tr('streaming.ytmTopSongs')}</h3>
+          <div class="track-list">
+            {#each ytmChartsData.songs as t, i}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="track-item" onclick={() => playStreamingTrack(t)}>
+                <span class="track-num">{i + 1}</span>
+                <div class="track-info">
+                  <span class="track-title truncate">{t.title}</span>
+                  <span class="track-artist truncate">{t.artist_name ?? ''}</span>
+                </div>
+                <span class="track-duration">{formatTime(t.duration_ms)}</span>
+                <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      {#if ytmChartsData.videos?.length}
+        <div class="featured-section">
+          <h3 class="featured-section-title">{$tr('streaming.ytmTopVideos')}</h3>
+          <div class="track-list">
+            {#each ytmChartsData.videos as t, i}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="track-item" onclick={() => playStreamingTrack(t)}>
+                <span class="track-num">{i + 1}</span>
+                <div class="track-info">
+                  <span class="track-title truncate">{t.title}</span>
+                  <span class="track-artist truncate">{t.artist_name ?? ''}</span>
+                </div>
+                <span class="track-duration">{formatTime(t.duration_ms)}</span>
+                <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      {#if !ytmChartsData.trending?.length && !ytmChartsData.songs?.length && !ytmChartsData.videos?.length}
+        <div class="empty-center">{$tr('common.noResult')}</div>
+      {/if}
+
+    {:else if ytmBrowseTab === 'moods'}
+      {#if ytmMoodPlaylists.length > 0}
+        <!-- Mood playlists -->
+        <div class="albums-grid">
+          {#each ytmMoodPlaylists as item}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="album-card" onclick={() => selectYtmMoodPlaylist(item)}>
+              <div class="album-card-art">
+                <AlbumArt coverPath={item.cover_path} size={160} alt={item.title} />
+                <div class="art-hover-overlay">
+                  <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); selectYtmMoodPlaylist(item); }} title={$tr('common.play')}>
+                    <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M8 5v14l11-7z" /></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="album-card-meta">
+                <span class="album-card-title truncate">{item.title}</span>
+                {#if item.description}
+                  <span class="album-card-artist truncate">{item.description}</span>
+                {/if}
+              </div>
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <!-- Mood categories -->
+        {#each ytmMoodCategories as cat}
+          <div class="featured-section">
+            <h3 class="featured-section-title">{cat.title}</h3>
+            <div class="genre-grid">
+              {#each cat.items as item}
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div class="genre-chip" onclick={() => selectYtmMood(item)}>
+                  <span class="genre-name">{item.title}</span>
+                  <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6" /></svg>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/each}
+        {#if ytmMoodCategories.length === 0}
+          <div class="empty-center">{$tr('common.noResult')}</div>
+        {/if}
+      {/if}
+    {/if}
+
   {:else}
     <!-- Main search/browse view -->
     <div class="streaming-header">
@@ -588,6 +817,16 @@
         <button class="genres-btn" onclick={openGenreBrowser}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
           {$tr('common.genres')}
+        </button>
+      {/if}
+      {#if service === 'youtube'}
+        <button class="genres-btn" class:active={ytmBrowseTab === 'charts'} onclick={() => openYtmTab('charts')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
+          {$tr('streaming.ytmCharts')}
+        </button>
+        <button class="genres-btn" class:active={ytmBrowseTab === 'moods'} onclick={() => openYtmTab('moods')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" /></svg>
+          {$tr('streaming.ytmMoods')}
         </button>
       {/if}
     </div>
@@ -1586,9 +1825,11 @@
     transition: all 0.12s ease-out;
   }
 
-  .genres-btn:hover {
+  .genres-btn:hover,
+  .genres-btn.active {
     border-color: var(--tune-accent);
     color: var(--tune-accent);
+    background: rgba(87, 198, 185, 0.1);
   }
 
   .breadcrumb-sep {

@@ -175,6 +175,14 @@ export default {
   'streaming.favAlbums': 'Favorite Albums',
   'streaming.favArtists': 'Favorite Artists',
   'streaming.favTracks': 'Favorite Tracks',
+  'streaming.ytmHome': 'Home',
+  'streaming.ytmCharts': 'Charts',
+  'streaming.ytmMoods': 'Moods & Genres',
+  'streaming.ytmLibrary': 'My Library',
+  'streaming.ytmTrending': 'Trending',
+  'streaming.ytmTopSongs': 'Top Songs',
+  'streaming.ytmTopVideos': 'Top Videos',
+  'streaming.ytmTopArtists': 'Top Artists',
 
   // Playlist
   'playlist.title': 'Playlists',
