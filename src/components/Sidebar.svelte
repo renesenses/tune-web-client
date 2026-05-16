@@ -467,6 +467,16 @@
         {$t('nav.zonemanager')}
         <span class="badge-new">POC</span>
       </button>
+      <button class="nav-item" class:active={$activeView === 'dj'} onclick={() => navigate('dj')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /></svg>
+        Mode DJ
+        <span class="badge-new">POC</span>
+      </button>
+      <button class="nav-item" class:active={$activeView === 'party'} onclick={() => navigate('party')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+        Party
+        <span class="badge-new">POC</span>
+      </button>
       <button class="nav-item" class:active={$activeView === 'alarms'} onclick={() => navigate('alarms')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M5 3L2 6"></path><path d="M22 6l-3-3"></path></svg>
         {$t('nav.alarms')}
@@ -478,21 +488,6 @@
     {/if}
   </nav>
 
-  <!-- Mode DJ + Party hidden until backend is wired up (v0.8.x). The
-       "Activer DJ" / "Activer Party" buttons would call missing routes
-       and fail silently — better to hide than ship a broken control. -->
-  <!--
-  <button class="nav-item" class:active={$activeView === 'dj'} onclick={() => navigate('dj')}>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /></svg>
-    Mode DJ
-    <span class="badge-new">POC</span>
-  </button>
-  <button class="nav-item" class:active={$activeView === 'party'} onclick={() => navigate('party')}>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-    Party
-    <span class="badge-new">POC</span>
-  </button>
-  -->
 
   <div class="zones-section">
     <div class="zones-header">
