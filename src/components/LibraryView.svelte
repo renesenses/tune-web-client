@@ -733,6 +733,19 @@
     artistMetadataLoading = false;
   }
 
+  async function reportArtistImage(artistId: number) {
+    try {
+      await api.reportArtistImage(artistId);
+      // Refresh artist in store
+      const updated = await api.getArtist(artistId);
+      selectedArtist.set(updated);
+      notifications.success($tr('artist.imageReported'));
+    } catch (e) {
+      console.error('Report artist image error:', e);
+      notifications.error($tr('artist.imageReportFailed'));
+    }
+  }
+
   let shuffleAllLoading = $state(false);
 
   async function shuffleAllLibrary() {
@@ -1100,10 +1113,10 @@
       <!-- Artist header -->
       <div class="artist-detail-header">
         <div class="artist-detail-avatar">
-          {#if artistMetadata?.image_url}
-            <img class="artist-detail-img" src={artistMetadata.image_url} alt={$selectedArtist.name} onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
-          {:else if $selectedArtist.image_path}
+          {#if $selectedArtist.image_path}
             <AlbumArt coverPath={$selectedArtist.image_path} size={160} alt={$selectedArtist.name} round />
+          {:else if artistMetadata?.image_url}
+            <img class="artist-detail-img" src={artistMetadata.image_url} alt={$selectedArtist.name} onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
           {:else}
             <span class="artist-detail-initials">{initials($selectedArtist.name)}</span>
           {/if}
@@ -1123,6 +1136,11 @@
               <div class="spinner-sm"></div>
               {$tr('artist.enriching')}
             </div>
+          {/if}
+          {#if $selectedArtist.image_path || artistMetadata?.image_url}
+            <button class="report-image-btn" title={$tr('artist.reportImage')} onclick={() => reportArtistImage($selectedArtist.id!)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+            </button>
           {/if}
         </div>
       </div>
@@ -2851,6 +2869,25 @@
     font-family: var(--font-body);
     font-size: 14px;
     color: var(--tune-text-muted);
+  }
+
+  .report-image-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border: 1px solid var(--tune-border);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    font-size: 11px;
+    opacity: 0.6;
+    transition: opacity 0.15s, color 0.15s;
+  }
+  .report-image-btn:hover {
+    opacity: 1;
+    color: var(--tune-accent);
   }
 
   .artist-meta-loading,

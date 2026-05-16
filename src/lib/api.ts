@@ -565,6 +565,25 @@ export function getArtistTracks(id: number) {
   return fetchJSON<Track[]>(`${BASE}/library/artists/${id}/tracks`);
 }
 
+export function reportArtistImage(artistId: number) {
+  return fetchJSON<{ status: string; artist_id: number }>(`${BASE}/library/artists/${artistId}/image/report`, {
+    method: 'POST',
+  });
+}
+
+export async function uploadArtistImage(artistId: number, file: File): Promise<Artist> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch(`${BASE}/library/artists/${artistId}/image/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText}`);
+  }
+  return response.json();
+}
+
 export function getTracks(limit = 100, offset = 0) {
   return fetchJSON<Track[]>(`${BASE}/library/tracks?limit=${limit}&offset=${offset}`);
 }

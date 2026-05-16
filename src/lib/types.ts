@@ -44,6 +44,7 @@ export interface Artist {
   discogs_id?: string | null;
   bio?: string | null;
   image_path?: string | null;
+  image_source?: string | null;
   source_id?: string | null;
 }
 
