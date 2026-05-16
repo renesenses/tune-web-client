@@ -70,6 +70,22 @@ import AlarmsView from './components/AlarmsView.svelte';
   let showOnboarding = $state(false);
   let onboardingChecked = $state(false);
 
+  // Reset seek state when zone changes
+  $effect(() => {
+    const unsub = currentZoneId.subscribe((zoneId) => {
+      if (zoneId == null) return;
+      stopSeekTimer();
+      const zone = $zones.find((z) => z.id === zoneId);
+      if (zone) {
+        seekPositionMs.set(zone.position_ms ?? 0);
+        if (zone.state === 'playing') startSeekTimer();
+      } else {
+        seekPositionMs.set(0);
+      }
+    });
+    return unsub;
+  });
+
   function showError(msg: string) {
     notifications.error(msg);
   }
