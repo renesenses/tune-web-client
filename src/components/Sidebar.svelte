@@ -213,6 +213,62 @@
     }
   }
 
+  // --- AirPlay pairing ---
+  let pairingDeviceId = $state<string | null>(null);
+  let pairingPin = $state('');
+  let pairingLoading = $state(false);
+  let pairingAwaitingPin = $state(false);
+  let pairedDeviceIds = $state<Set<string>>(new Set());
+
+  async function startPairing(deviceId: string, e: MouseEvent) {
+    e.stopPropagation();
+    pairingDeviceId = deviceId;
+    pairingPin = '';
+    pairingLoading = true;
+    pairingAwaitingPin = false;
+    try {
+      const res = await api.beginPairing(deviceId);
+      if (res.status === 'awaiting_pin') {
+        pairingAwaitingPin = true;
+      } else if (res.status === 'paired') {
+        pairedDeviceIds = new Set([...pairedDeviceIds, deviceId]);
+        notifications.success($t('pairing.success'));
+        pairingDeviceId = null;
+      }
+    } catch {
+      notifications.error($t('pairing.error'));
+      pairingDeviceId = null;
+    }
+    pairingLoading = false;
+  }
+
+  async function submitPairingPin() {
+    if (!pairingDeviceId || !pairingPin.trim()) return;
+    pairingLoading = true;
+    try {
+      const res = await api.submitPairingPin(pairingDeviceId, pairingPin.trim());
+      if (res.status === 'paired') {
+        pairedDeviceIds = new Set([...pairedDeviceIds, pairingDeviceId]);
+        notifications.success($t('pairing.success'));
+        pairingDeviceId = null;
+      } else {
+        notifications.error($t('pairing.error'));
+      }
+    } catch {
+      notifications.error($t('pairing.error'));
+    }
+    pairingLoading = false;
+    pairingAwaitingPin = false;
+  }
+
+  function cancelPairing(e?: Event) {
+    e?.stopPropagation();
+    pairingDeviceId = null;
+    pairingAwaitingPin = false;
+    pairingPin = '';
+    pairingLoading = false;
+  }
+
   function deviceTypeIcon(type: OutputType): string {
     switch (type) {
       case 'dlna': return 'DLNA';
@@ -557,9 +613,39 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
             {/if}
           </span>
+          {#if device.type === 'airplay' && !pairedDeviceIds.has(device.id)}
+            <svg class="device-lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          {/if}
           <span class="device-name truncate">{device.name}</span>
           <span class="device-type-tag">{deviceTypeIcon(device.type)}</span>
           {#if device.available}
+            {#if device.type === 'airplay' && !pairedDeviceIds.has(device.id)}
+              {#if pairingDeviceId === device.id && pairingAwaitingPin}
+                <!-- Inline PIN input -->
+                <div class="pairing-inline">
+                  <input
+                    type="text"
+                    class="pairing-pin-input"
+                    placeholder={$t('pairing.pinPlaceholder')}
+                    bind:value={pairingPin}
+                    onkeydown={(e) => { if (e.key === 'Enter') submitPairingPin(); if (e.key === 'Escape') cancelPairing(e); }}
+                    disabled={pairingLoading}
+                  />
+                  <button class="pairing-submit-btn" onclick={submitPairingPin} disabled={pairingLoading || !pairingPin.trim()}>
+                    {$t('pairing.submit')}
+                  </button>
+                  <button class="pairing-cancel-btn" onclick={(e) => cancelPairing(e)} title={$t('pairing.cancel')} aria-label={$t('pairing.cancel')}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  </button>
+                </div>
+              {:else if pairingDeviceId === device.id && pairingLoading}
+                <div class="pairing-spinner"></div>
+              {:else}
+                <button class="device-pair-btn" onclick={(e) => startPairing(device.id, e)} title={$t('pairing.pair')}>
+                  {$t('pairing.pair')}
+                </button>
+              {/if}
+            {/if}
             <button class="device-add-btn" onclick={() => createZoneFromDevice(device)} title={$t('zone.createZone')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </button>
@@ -1073,6 +1159,106 @@
 
   .device-status.offline {
     color: var(--tune-text-muted);
+  }
+
+  .device-lock-icon {
+    flex-shrink: 0;
+    opacity: 0.45;
+    color: var(--tune-warning, #f59e0b);
+  }
+
+  .device-pair-btn {
+    background: none;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-muted);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    padding: 1px 6px;
+    font-family: var(--font-label);
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+    transition: all 0.12s ease-out;
+  }
+
+  .device-pair-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .pairing-inline {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .pairing-pin-input {
+    width: 52px;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    padding: 2px 5px;
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 11px;
+    outline: none;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  .pairing-pin-input:focus {
+    border-color: var(--tune-accent);
+  }
+
+  .pairing-submit-btn {
+    background: var(--tune-accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+    cursor: pointer;
+    font-family: var(--font-label);
+    font-size: 9px;
+    font-weight: 600;
+  }
+
+  .pairing-submit-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .pairing-cancel-btn {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: color 0.12s;
+  }
+
+  .pairing-cancel-btn:hover {
+    color: var(--tune-danger, #ef4444);
+  }
+
+  .pairing-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--tune-border);
+    border-top-color: var(--tune-accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 
   .empty-state {
