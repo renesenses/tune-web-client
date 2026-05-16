@@ -1416,11 +1416,9 @@ export function checkFavorite(profileId: number, params: { track_id?: number; al
 
 export function artworkUrl(coverPath: string | null | undefined, size?: number): string {
   if (!coverPath) return '';
-  // External URLs (http/https) pass through directly
   if (coverPath.startsWith('http://') || coverPath.startsWith('https://')) {
-    return coverPath;
+    return `${BASE}/library/artwork/proxy?url=${encodeURIComponent(coverPath)}`;
   }
-  // Extract filename from absolute path (e.g. /data/artwork_cache/abc123.jpg -> abc123.jpg)
   const filename = coverPath.split('/').pop() ?? coverPath;
   const sizeParam = size ? `?size=${size}` : '';
   return `${BASE}/library/artwork/${encodeURIComponent(filename)}${sizeParam}`;
