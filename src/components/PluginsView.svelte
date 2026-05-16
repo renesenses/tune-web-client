@@ -251,6 +251,13 @@
               <span class="store-card-name">{plugin.display_name}</span>
               <span class="category-badge" style="background: {categoryColor(plugin.category)}">{plugin.category}</span>
             </div>
+            {#if plugin.platforms}
+            <div class="platform-badges">
+              {#each plugin.platforms.split(',') as platform}
+                <span class="platform-badge" class:python={platform === 'python'} class:swift={platform === 'swift'} class:flutter={platform === 'flutter'}>{platform === 'python' ? '🐍' : platform === 'swift' ? '🍎' : '📱'} {platform}</span>
+              {/each}
+            </div>
+            {/if}
             <p class="store-card-desc">{plugin.description}</p>
             <div class="store-card-footer">
               <span class="store-card-meta">
@@ -740,4 +747,23 @@
       align-self: flex-end;
     }
   }
+
+  .platform-badges {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+
+  .platform-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 6px;
+    text-transform: uppercase;
+  }
+
+  .platform-badge.python { background: rgba(55, 118, 171, 0.2); color: #3776ab; }
+  .platform-badge.swift { background: rgba(240, 81, 56, 0.2); color: #f05138; }
+  .platform-badge.flutter { background: rgba(66, 165, 245, 0.2); color: #42a5f5; }
 </style>
