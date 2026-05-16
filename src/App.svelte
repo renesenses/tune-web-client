@@ -70,7 +70,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   let showOnboarding = $state(false);
   let onboardingChecked = $state(false);
 
-  // Reset seek state when zone changes
+  // Reset seek state + refresh queue when zone changes
   $effect(() => {
     const unsub = currentZoneId.subscribe((zoneId) => {
       if (zoneId == null) return;
@@ -82,6 +82,7 @@ import AlarmsView from './components/AlarmsView.svelte';
       } else {
         seekPositionMs.set(0);
       }
+      fetchQueue();
     });
     return unsub;
   });
