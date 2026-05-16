@@ -50,6 +50,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import SmartCollectionsView from './components/SmartCollectionsView.svelte';
   import DashboardView from './components/DashboardView.svelte';
   import EqualizerView from './components/EqualizerView.svelte';
+  import PluginsView from './components/PluginsView.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
   import BottomTabBar from './components/BottomTabBar.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
@@ -484,6 +485,8 @@ import AlarmsView from './components/AlarmsView.svelte';
       <DashboardView />
     {:else if $activeView === 'equalizer'}
       <EqualizerView />
+    {:else if $activeView === 'plugins'}
+      <PluginsView />
     {:else if $activeView === 'alarms'}
       <AlarmsView />
     {:else if $activeView === 'diagnostics'}

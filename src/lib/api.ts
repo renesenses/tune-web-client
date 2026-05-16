@@ -1959,3 +1959,46 @@ export async function importPlaylists(file: File, preview = false): Promise<Impo
   }
   return res.json() as Promise<ImportReport>;
 }
+
+// --- Plugins ---
+
+export interface InstalledPlugin {
+  name: string;
+  version: string;
+  status: 'active' | 'disabled' | 'error';
+  description: string;
+  error_message?: string;
+}
+
+export interface StorePlugin {
+  name: string;
+  display_name: string;
+  description: string;
+  category: string;
+  author: string;
+  install_count: number;
+  version: string;
+}
+
+export function getInstalledPlugins(): Promise<InstalledPlugin[]> {
+  return fetchJSON<InstalledPlugin[]>(`${BASE}/system/plugins`);
+}
+
+export function enablePlugin(name: string): Promise<{ status: string }> {
+  return fetchJSON<{ status: string }>(`${BASE}/system/plugins/${encodeURIComponent(name)}/enable`, { method: 'POST' });
+}
+
+export function disablePlugin(name: string): Promise<{ status: string }> {
+  return fetchJSON<{ status: string }>(`${BASE}/system/plugins/${encodeURIComponent(name)}/disable`, { method: 'POST' });
+}
+
+export async function getStorePlugins(search?: string, category?: string): Promise<StorePlugin[]> {
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (category) params.set('category', category);
+  const qs = params.toString();
+  const url = `https://mozaiklabs.fr/api/v1/plugins${qs ? '?' + qs : ''}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Store fetch failed (${res.status})`);
+  return res.json();
+}

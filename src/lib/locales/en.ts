@@ -750,6 +750,30 @@ export default {
   'import.cancel': 'Cancel',
   'import.back': 'Back',
   'import.matchDetails': 'Match details',
+
+  // Plugins
+  'nav.plugins': 'Plugins',
+  'plugins.title': 'Plugins',
+  'plugins.installed': 'Installed Plugins',
+  'plugins.store': 'Store — Available Plugins',
+  'plugins.guide': 'Installation Guide',
+  'plugins.install': 'Install',
+  'plugins.enable': 'Enable',
+  'plugins.disable': 'Disable',
+  'plugins.active': 'Active',
+  'plugins.disabled': 'Disabled',
+  'plugins.error': 'Error',
+  'plugins.noInstalled': 'No plugins installed',
+  'plugins.noStoreResults': 'No plugins found',
+  'plugins.searchPlaceholder': 'Search plugins...',
+  'plugins.allCategories': 'All',
+  'plugins.copied': 'Copied!',
+  'plugins.guideStep1': 'Open a terminal on your server',
+  'plugins.guideStep2': 'Install the plugin with pip:',
+  'plugins.guideStep3': 'Restart Tune Server',
+  'plugins.guideStep4': 'The plugin appears in the list above',
+  'plugins.installCount': '{count} installs',
+  'plugins.by': 'by',
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

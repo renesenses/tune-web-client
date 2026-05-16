@@ -750,6 +750,30 @@ export default {
   'import.cancel': 'Annuler',
   'import.back': 'Retour',
   'import.matchDetails': 'Détails des correspondances',
+
+  // Plugins
+  'nav.plugins': 'Plugins',
+  'plugins.title': 'Plugins',
+  'plugins.installed': 'Plugins installés',
+  'plugins.store': 'Store — Plugins disponibles',
+  'plugins.guide': "Guide d'installation",
+  'plugins.install': 'Installer',
+  'plugins.enable': 'Activer',
+  'plugins.disable': 'Désactiver',
+  'plugins.active': 'Actif',
+  'plugins.disabled': 'Désactivé',
+  'plugins.error': 'Erreur',
+  'plugins.noInstalled': 'Aucun plugin installé',
+  'plugins.noStoreResults': 'Aucun plugin trouvé',
+  'plugins.searchPlaceholder': 'Rechercher un plugin...',
+  'plugins.allCategories': 'Toutes',
+  'plugins.copied': 'Copié !',
+  'plugins.guideStep1': 'Ouvrez un terminal sur votre serveur',
+  'plugins.guideStep2': 'Installez le plugin avec pip :',
+  'plugins.guideStep3': 'Redémarrez Tune Server',
+  'plugins.guideStep4': 'Le plugin apparaît dans la liste ci-dessus',
+  'plugins.installCount': '{count} installations',
+  'plugins.by': 'par',
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

@@ -249,6 +249,19 @@
           </ol>
         </div>
       {/if}
+      {#if data.top_radios && data.top_radios.length > 0}
+        <div class="card">
+          <h3>Top radios</h3>
+          <ol class="rank-list">
+            {#each data.top_radios as r}
+              <li>
+                <span class="rank-name">{r.station_name}</span>
+                <span class="rank-meta">{Math.round(r.listening_ms / 60000)}m</span>
+              </li>
+            {/each}
+          </ol>
+        </div>
+      {/if}
     </div>
 
     <!-- Streak + On this day -->
