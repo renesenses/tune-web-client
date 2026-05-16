@@ -823,9 +823,13 @@
                 </button>
               {/if}
             {/if}
+            {#if !$zones.some(z => z.output_device_id === device.id)}
             <button class="device-add-btn" onclick={() => createZoneFromDevice(device)} title={$t('zone.createZone')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </button>
+            {:else}
+            <span class="device-bound" title="Zone existante">&#x2713;</span>
+            {/if}
           {:else}
             <span class="device-status offline" title={$t('zone.offline')}>&#x25CB;</span>
           {/if}
@@ -1322,6 +1326,13 @@
     justify-content: center;
     flex-shrink: 0;
     transition: all 0.12s ease-out;
+  }
+
+  .device-bound {
+    color: var(--tune-success, #10b981);
+    font-size: 12px;
+    flex-shrink: 0;
+    opacity: 0.6;
   }
 
   .device-add-btn:hover {
