@@ -1061,6 +1061,7 @@
     text-align: left;
     flex-shrink: 0;
     width: 140px;
+    min-height: 210px;
     background: none;
     border: none;
     padding: 0;
@@ -1094,6 +1095,7 @@
     background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12);
     padding: 2px 8px;
     border-radius: 8px;
+    margin-top: auto;
     white-space: nowrap;
     max-width: 140px;
     overflow: hidden;
