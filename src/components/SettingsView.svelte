@@ -705,7 +705,11 @@
   }
 
   function showAllDevices() {
-    preferences.update((p) => ({ ...p, hiddenDeviceIds: [] }));
+    // Only reveal network devices — keep local audio devices hidden if user unchecked them
+    preferences.update((p) => ({
+      ...p,
+      hiddenDeviceIds: p.hiddenDeviceIds.filter(id => id.startsWith('audio:')),
+    }));
   }
 
   async function handleDeleteDevice(deviceId: string, deviceName: string) {
@@ -729,11 +733,15 @@
   }
 
   function hideAllDevices() {
-    const allIds = [
-      ...audioDevices.map(d => `audio:${d.id}`),
-      ...$devices.map(d => `net:${d.id}`),
-    ];
-    preferences.update((p) => ({ ...p, hiddenDeviceIds: allIds }));
+    // Only hide network devices — preserve local audio device visibility
+    const netIds = $devices.map(d => `net:${d.id}`);
+    preferences.update((p) => ({
+      ...p,
+      hiddenDeviceIds: [
+        ...p.hiddenDeviceIds.filter(id => id.startsWith('audio:')),
+        ...netIds,
+      ],
+    }));
   }
 
   async function handleAddMusicDir() {
