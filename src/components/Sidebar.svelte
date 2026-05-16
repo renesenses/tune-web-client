@@ -297,6 +297,173 @@
     }
   }
 
+  // --- Zone drag-and-drop reordering ---
+  let dragZoneId = $state<number | null>(null);
+  let dragOverZoneId = $state<number | null>(null);
+  let dragInsertBefore = $state(false); // true = insert before target, false = after
+  let touchDragZoneId = $state<number | null>(null);
+  let touchCurrentY = $state(0);
+  let touchStartY = $state(0);
+  let touchDragEl = $state<HTMLElement | null>(null);
+  let touchClone = $state<HTMLElement | null>(null);
+
+  // Load persisted zone order from localStorage
+  function loadZoneOrder(): number[] {
+    try {
+      const raw = localStorage.getItem('tune-zone-order');
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }
+
+  function saveZoneOrder(ids: number[]) {
+    localStorage.setItem('tune-zone-order', JSON.stringify(ids));
+  }
+
+  // Sorted zones: respect saved order, new zones at end
+  let sortedZones = $derived.by(() => {
+    const order = loadZoneOrder();
+    const zoneList = $zones;
+    if (order.length === 0) return zoneList;
+    const orderMap = new Map(order.map((id, i) => [id, i]));
+    return [...zoneList].sort((a, b) => {
+      const ai = a.id !== null ? orderMap.get(a.id) : undefined;
+      const bi = b.id !== null ? orderMap.get(b.id) : undefined;
+      if (ai !== undefined && bi !== undefined) return ai - bi;
+      if (ai !== undefined) return -1;
+      if (bi !== undefined) return 1;
+      return 0;
+    });
+  });
+
+  function handleZoneDragStart(e: DragEvent, zoneId: number | null) {
+    if (zoneId === null) return;
+    dragZoneId = zoneId;
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(zoneId));
+    }
+  }
+
+  function handleZoneDragOver(e: DragEvent, zoneId: number | null) {
+    if (dragZoneId === null || zoneId === null || zoneId === dragZoneId) {
+      dragOverZoneId = null;
+      return;
+    }
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    dragOverZoneId = zoneId;
+    // Determine if we insert before or after based on mouse Y position
+    const target = (e.currentTarget as HTMLElement);
+    const rect = target.getBoundingClientRect();
+    dragInsertBefore = e.clientY < rect.top + rect.height / 2;
+  }
+
+  function handleZoneDragLeave() {
+    dragOverZoneId = null;
+  }
+
+  function handleZoneDrop(e: DragEvent) {
+    e.preventDefault();
+    if (dragZoneId === null || dragOverZoneId === null) {
+      dragZoneId = null;
+      dragOverZoneId = null;
+      return;
+    }
+    reorderZones(dragZoneId, dragOverZoneId, dragInsertBefore);
+    dragZoneId = null;
+    dragOverZoneId = null;
+  }
+
+  function handleZoneDragEnd() {
+    dragZoneId = null;
+    dragOverZoneId = null;
+  }
+
+  function reorderZones(fromId: number, toId: number, before: boolean) {
+    const ids = sortedZones.map(z => z.id).filter((id): id is number => id !== null);
+    const fromIdx = ids.indexOf(fromId);
+    const toIdx = ids.indexOf(toId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    // Remove from original position
+    ids.splice(fromIdx, 1);
+    // Find new insert position
+    let insertIdx = ids.indexOf(toId);
+    if (!before) insertIdx += 1;
+    ids.splice(insertIdx, 0, fromId);
+    saveZoneOrder(ids);
+  }
+
+  // --- Touch drag for mobile ---
+  function handleTouchStart(e: TouchEvent, zoneId: number | null, el: HTMLElement) {
+    // Only activate from the drag handle
+    const target = e.target as HTMLElement;
+    if (!target.closest('.zone-drag-handle')) return;
+    if (zoneId === null) return;
+    e.preventDefault();
+    touchDragZoneId = zoneId;
+    touchStartY = e.touches[0].clientY;
+    touchCurrentY = e.touches[0].clientY;
+    touchDragEl = el;
+    // Create a visual clone
+    const clone = el.cloneNode(true) as HTMLElement;
+    clone.classList.add('zone-drag-clone');
+    clone.style.position = 'fixed';
+    clone.style.left = el.getBoundingClientRect().left + 'px';
+    clone.style.top = el.getBoundingClientRect().top + 'px';
+    clone.style.width = el.getBoundingClientRect().width + 'px';
+    clone.style.zIndex = '9999';
+    clone.style.pointerEvents = 'none';
+    clone.style.opacity = '0.85';
+    clone.style.boxShadow = '0 4px 16px rgba(0,0,0,0.3)';
+    document.body.appendChild(clone);
+    touchClone = clone;
+    el.style.opacity = '0.3';
+  }
+
+  function handleTouchMove(e: TouchEvent) {
+    if (touchDragZoneId === null || !touchClone || !touchDragEl) return;
+    e.preventDefault();
+    const y = e.touches[0].clientY;
+    touchCurrentY = y;
+    const startRect = touchDragEl.getBoundingClientRect();
+    const offsetY = y - touchStartY;
+    touchClone.style.top = (startRect.top + offsetY) + 'px';
+
+    // Determine which zone we're over
+    const zonesListEl = touchDragEl.parentElement;
+    if (!zonesListEl) return;
+    const children = Array.from(zonesListEl.children) as HTMLElement[];
+    dragOverZoneId = null;
+    for (const child of children) {
+      const rect = child.getBoundingClientRect();
+      if (y >= rect.top && y <= rect.bottom) {
+        const id = parseInt(child.dataset.zoneId ?? '', 10);
+        if (!isNaN(id) && id !== touchDragZoneId) {
+          dragOverZoneId = id;
+          dragInsertBefore = y < rect.top + rect.height / 2;
+        }
+        break;
+      }
+    }
+  }
+
+  function handleTouchEnd() {
+    if (touchDragZoneId !== null && dragOverZoneId !== null) {
+      reorderZones(touchDragZoneId, dragOverZoneId, dragInsertBefore);
+    }
+    // Clean up
+    if (touchClone) {
+      touchClone.remove();
+      touchClone = null;
+    }
+    if (touchDragEl) {
+      touchDragEl.style.opacity = '';
+      touchDragEl = null;
+    }
+    touchDragZoneId = null;
+    dragOverZoneId = null;
+  }
+
   // REGLAGES section collapse — persisted in localStorage
   let reglagesOpen = $state(localStorage.getItem('tune-reglages-open') === 'true');
   function toggleReglages() {
@@ -536,16 +703,31 @@
         <button class="create-zone-confirm" onclick={createZone}>OK</button>
       </div>
     {/if}
-    <div class="zones-list">
-      {#each $zones as zone}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="zones-list" ontouchmove={handleTouchMove} ontouchend={handleTouchEnd}>
+      {#each sortedZones as zone}
         {@const gid = getZoneGroupId(zone)}
         <button
           class="zone-item"
           class:active={zone.id === $currentZoneId}
           class:is-playing={zone.state === 'playing'}
           class:is-paused={zone.state === 'paused'}
+          class:is-dragging={dragZoneId === zone.id || touchDragZoneId === zone.id}
+          class:drag-over-before={dragOverZoneId === zone.id && dragInsertBefore}
+          class:drag-over-after={dragOverZoneId === zone.id && !dragInsertBefore}
+          draggable="true"
+          data-zone-id={zone.id}
+          ondragstart={(e) => handleZoneDragStart(e, zone.id)}
+          ondragover={(e) => handleZoneDragOver(e, zone.id)}
+          ondragleave={handleZoneDragLeave}
+          ondrop={handleZoneDrop}
+          ondragend={handleZoneDragEnd}
+          ontouchstart={(e) => handleTouchStart(e, zone.id, e.currentTarget as HTMLElement)}
           onclick={() => zone.id !== null && handleSelectZone(zone.id)}
         >
+          <span class="zone-drag-handle" title="Drag to reorder">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+          </span>
           <div class="zone-left">
             {#if gid}
               <span class="zone-group-dot" style="background: {groupColor(gid)}" title={$t('zone.activeGroup')}></span>
@@ -1289,6 +1471,59 @@
 
   .zone-config-btn:hover {
     color: var(--tune-accent);
+  }
+
+  /* --- Zone drag-and-drop --- */
+  .zone-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 14px;
+    color: var(--tune-text-muted);
+    opacity: 0;
+    cursor: grab;
+    transition: opacity 0.12s;
+    touch-action: none;
+  }
+
+  .zone-item:hover .zone-drag-handle {
+    opacity: 0.5;
+  }
+
+  .zone-drag-handle:hover {
+    opacity: 1 !important;
+    color: var(--tune-text-secondary);
+  }
+
+  .zone-drag-handle:active {
+    cursor: grabbing;
+  }
+
+  .zone-item.is-dragging {
+    opacity: 0.4;
+    transform: scale(0.97);
+    transition: opacity 0.15s, transform 0.15s;
+  }
+
+  .zone-item.drag-over-before {
+    box-shadow: inset 0 2px 0 0 var(--tune-accent, #6366f1);
+  }
+
+  .zone-item.drag-over-after {
+    box-shadow: inset 0 -2px 0 0 var(--tune-accent, #6366f1);
+  }
+
+  :global(.zone-drag-clone) {
+    background: var(--tune-surface, #1a1a2e);
+    border-radius: var(--radius-sm, 4px);
+  }
+
+  /* Touch devices: always show drag handle */
+  @media (hover: none) and (pointer: coarse) {
+    .zone-drag-handle {
+      opacity: 0.4;
+    }
   }
 
   /* Tablet: sidebar icônes seulement */

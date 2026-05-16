@@ -716,6 +716,32 @@ export default {
   'diagnostics.memoryUsage': 'Memory Usage',
   'diagnostics.activeServices': 'Active Services',
   'diagnostics.neverScanned': 'Never scanned',
+
+  // Library Import
+  'import.title': 'Import from another player',
+  'import.roon': 'Import from Roon',
+  'import.plex': 'Import from Plex',
+  'import.playlists': 'Import Playlists (M3U/PLS)',
+  'import.roonDesc': 'Roon library export (CSV)',
+  'import.plexDesc': 'Plex library export (XML)',
+  'import.playlistDesc': 'M3U, M3U8 or PLS files',
+  'import.selectFile': 'Select file',
+  'import.preview': 'Preview',
+  'import.previewing': 'Analysing...',
+  'import.confirm': 'Confirm import',
+  'import.importing': 'Importing...',
+  'import.matched': 'Matched',
+  'import.unmatched': 'Not found',
+  'import.totalRows': 'Total rows',
+  'import.playCounts': 'Play counts updated',
+  'import.ratings': 'Ratings updated',
+  'import.playlistsCreated': 'Playlists created',
+  'import.done': 'Import completed',
+  'import.noData': 'No data found in this file',
+  'import.error': 'Import error',
+  'import.cancel': 'Cancel',
+  'import.back': 'Back',
+  'import.matchDetails': 'Match details',
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

@@ -1865,3 +1865,75 @@ export function getServerDiagnostics() {
     memory_mb: number | null;
   }>(`${BASE}/system/diagnostics`);
 }
+
+// --- Library Import (Roon / Plex / Playlists) ---
+
+export interface ImportReport {
+  source: string;
+  total_rows: number;
+  matched: number;
+  unmatched: number;
+  play_counts_updated: number;
+  ratings_updated: number;
+  history_entries_added: number;
+  playlists_created: number;
+  details: Array<{
+    title: string;
+    artist: string | null;
+    album: string | null;
+    matched: boolean;
+    match_method: string | null;
+    tune_track_id: number | null;
+  }>;
+}
+
+export interface ImportResponse {
+  status?: string;
+  task_id?: string;
+  // When not background, the report fields are at top level
+  source?: string;
+  total_rows?: number;
+  matched?: number;
+  unmatched?: number;
+  play_counts_updated?: number;
+  ratings_updated?: number;
+  history_entries_added?: number;
+  playlists_created?: number;
+  details?: ImportReport['details'];
+}
+
+export async function importRoon(file: File, preview = false): Promise<ImportReport> {
+  const form = new FormData();
+  form.append('file', file);
+  const url = `${BASE}/library/import/roon?preview=${preview}`;
+  const res = await fetch(url, { method: 'POST', body: form });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Import Roon failed (${res.status}): ${text || res.statusText}`);
+  }
+  return res.json() as Promise<ImportReport>;
+}
+
+export async function importPlex(file: File, preview = false): Promise<ImportReport> {
+  const form = new FormData();
+  form.append('file', file);
+  const url = `${BASE}/library/import/plex?preview=${preview}`;
+  const res = await fetch(url, { method: 'POST', body: form });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Import Plex failed (${res.status}): ${text || res.statusText}`);
+  }
+  return res.json() as Promise<ImportReport>;
+}
+
+export async function importPlaylists(file: File, preview = false): Promise<ImportReport> {
+  const form = new FormData();
+  form.append('file', file);
+  const url = `${BASE}/library/import/playlists?preview=${preview}`;
+  const res = await fetch(url, { method: 'POST', body: form });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Import playlists failed (${res.status}): ${text || res.statusText}`);
+  }
+  return res.json() as Promise<ImportReport>;
+}

@@ -923,6 +923,78 @@
     }, 3000);
   }
 
+  // --- Library Import (Roon / Plex / Playlists) ---
+  type ImportSource = 'roon' | 'plex' | 'playlists';
+  type ImportStep = 'select' | 'preview' | 'done';
+  let importSource = $state<ImportSource | null>(null);
+  let importStep = $state<ImportStep>('select');
+  let importFile = $state<File | null>(null);
+  let importPreviewing = $state(false);
+  let importImporting = $state(false);
+  let importReport = $state<any>(null);
+  let importError = $state<string | null>(null);
+  let importFileInputRoon: HTMLInputElement | undefined = $state();
+  let importFileInputPlex: HTMLInputElement | undefined = $state();
+  let importFileInputPlaylist: HTMLInputElement | undefined = $state();
+
+  function onImportFileChosen(source: ImportSource) {
+    return async (e: Event) => {
+      const input = e.target as HTMLInputElement;
+      const file = input.files?.[0];
+      if (!file) return;
+      importSource = source;
+      importFile = file;
+      importError = null;
+      importReport = null;
+      importStep = 'preview';
+      importPreviewing = true;
+      try {
+        let report;
+        if (source === 'roon') report = await api.importRoon(file, true);
+        else if (source === 'plex') report = await api.importPlex(file, true);
+        else report = await api.importPlaylists(file, true);
+        importReport = report;
+        if (report.total_rows === 0) {
+          importError = $t('import.noData' as any);
+        }
+      } catch (err: any) {
+        importError = err?.message ?? 'Error';
+      } finally {
+        importPreviewing = false;
+        input.value = '';
+      }
+    };
+  }
+
+  async function confirmImport() {
+    if (!importFile || !importSource) return;
+    importImporting = true;
+    importError = null;
+    try {
+      let report;
+      if (importSource === 'roon') report = await api.importRoon(importFile, false);
+      else if (importSource === 'plex') report = await api.importPlex(importFile, false);
+      else report = await api.importPlaylists(importFile, false);
+      importReport = report;
+      importStep = 'done';
+      notifications.success($t('import.done' as any));
+    } catch (err: any) {
+      importError = err?.message ?? 'Error';
+    } finally {
+      importImporting = false;
+    }
+  }
+
+  function resetImport() {
+    importSource = null;
+    importStep = 'select';
+    importFile = null;
+    importReport = null;
+    importError = null;
+    importPreviewing = false;
+    importImporting = false;
+  }
+
   // --- Push Notifications ---
   import { isPushEnabled, setPushEnabled, initPushNotifications } from '../lib/notifications-push';
   let pushEnabled = $state(isPushEnabled());
@@ -1307,6 +1379,177 @@
       </div>
     </section>
     {/if}
+
+    <!-- Library Import (Roon / Plex / Playlists) -->
+    <section class="settings-section">
+      <h3>{$t('import.title' as any)}</h3>
+
+      {#if importStep === 'select'}
+        <div class="import-sources">
+          <div class="import-card" role="button" tabindex="0"
+               onclick={() => importFileInputRoon?.click()}
+               onkeydown={(e) => e.key === 'Enter' && importFileInputRoon?.click()}>
+            <div class="import-card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M8 12h8M12 8v8" />
+              </svg>
+            </div>
+            <div class="import-card-text">
+              <strong>{$t('import.roon' as any)}</strong>
+              <span>{$t('import.roonDesc' as any)}</span>
+            </div>
+            <input bind:this={importFileInputRoon} type="file" accept=".csv,.CSV,.txt" style="display:none"
+                   onchange={onImportFileChosen('roon')} />
+          </div>
+
+          <div class="import-card" role="button" tabindex="0"
+               onclick={() => importFileInputPlex?.click()}
+               onkeydown={(e) => e.key === 'Enter' && importFileInputPlex?.click()}>
+            <div class="import-card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28">
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <path d="M9 8l6 4-6 4V8z" />
+              </svg>
+            </div>
+            <div class="import-card-text">
+              <strong>{$t('import.plex' as any)}</strong>
+              <span>{$t('import.plexDesc' as any)}</span>
+            </div>
+            <input bind:this={importFileInputPlex} type="file" accept=".xml,.XML" style="display:none"
+                   onchange={onImportFileChosen('plex')} />
+          </div>
+
+          <div class="import-card" role="button" tabindex="0"
+               onclick={() => importFileInputPlaylist?.click()}
+               onkeydown={(e) => e.key === 'Enter' && importFileInputPlaylist?.click()}>
+            <div class="import-card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28">
+                <path d="M9 18V5l12-2v13" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="18" cy="16" r="3" />
+              </svg>
+            </div>
+            <div class="import-card-text">
+              <strong>{$t('import.playlists' as any)}</strong>
+              <span>{$t('import.playlistDesc' as any)}</span>
+            </div>
+            <input bind:this={importFileInputPlaylist} type="file" accept=".m3u,.m3u8,.pls,.M3U,.M3U8,.PLS" style="display:none"
+                   onchange={onImportFileChosen('playlists')} />
+          </div>
+        </div>
+
+      {:else if importStep === 'preview'}
+        <div class="import-preview">
+          {#if importPreviewing}
+            <div class="import-loading">
+              <div class="spinner"></div>
+              <span>{$t('import.previewing' as any)}</span>
+            </div>
+          {:else if importError}
+            <div class="import-error">{importError}</div>
+            <button class="btn-secondary" onclick={resetImport}>{$t('import.back' as any)}</button>
+          {:else if importReport}
+            <div class="import-summary">
+              <h4>{$t('import.preview' as any)} — {importFile?.name}</h4>
+              <div class="import-stats">
+                <div class="import-stat">
+                  <span class="import-stat-value">{importReport.total_rows}</span>
+                  <span class="import-stat-label">{$t('import.totalRows' as any)}</span>
+                </div>
+                <div class="import-stat matched">
+                  <span class="import-stat-value">{importReport.matched}</span>
+                  <span class="import-stat-label">{$t('import.matched' as any)}</span>
+                </div>
+                <div class="import-stat unmatched">
+                  <span class="import-stat-value">{importReport.unmatched}</span>
+                  <span class="import-stat-label">{$t('import.unmatched' as any)}</span>
+                </div>
+              </div>
+
+              {#if importReport.details?.length > 0}
+                <details class="import-details">
+                  <summary>{$t('import.matchDetails' as any)}</summary>
+                  <div class="import-details-table">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Titre</th>
+                          <th>Artiste</th>
+                          <th>Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {#each importReport.details.slice(0, 100) as d}
+                          <tr class:matched={d.matched} class:unmatched={!d.matched}>
+                            <td>{d.title}</td>
+                            <td>{d.artist ?? ''}</td>
+                            <td>
+                              {#if d.matched}
+                                <span class="badge-ok">{d.match_method}</span>
+                              {:else}
+                                <span class="badge-miss">--</span>
+                              {/if}
+                            </td>
+                          </tr>
+                        {/each}
+                        {#if importReport.details.length > 100}
+                          <tr><td colspan="3" class="more-rows">+ {importReport.details.length - 100} lignes...</td></tr>
+                        {/if}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              {/if}
+
+              <div class="import-actions">
+                <button class="btn-secondary" onclick={resetImport}>{$t('import.cancel' as any)}</button>
+                <button class="btn-primary" onclick={confirmImport} disabled={importImporting || importReport.matched === 0}>
+                  {importImporting ? $t('import.importing' as any) : $t('import.confirm' as any)}
+                </button>
+              </div>
+            </div>
+          {/if}
+        </div>
+
+      {:else if importStep === 'done'}
+        <div class="import-done">
+          <div class="import-done-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          </div>
+          <h4>{$t('import.done' as any)}</h4>
+          {#if importReport}
+            <div class="import-stats">
+              <div class="import-stat matched">
+                <span class="import-stat-value">{importReport.matched}</span>
+                <span class="import-stat-label">{$t('import.matched' as any)}</span>
+              </div>
+              {#if importReport.play_counts_updated > 0}
+                <div class="import-stat">
+                  <span class="import-stat-value">{importReport.play_counts_updated}</span>
+                  <span class="import-stat-label">{$t('import.playCounts' as any)}</span>
+                </div>
+              {/if}
+              {#if importReport.ratings_updated > 0}
+                <div class="import-stat">
+                  <span class="import-stat-value">{importReport.ratings_updated}</span>
+                  <span class="import-stat-label">{$t('import.ratings' as any)}</span>
+                </div>
+              {/if}
+              {#if importReport.playlists_created > 0}
+                <div class="import-stat">
+                  <span class="import-stat-value">{importReport.playlists_created}</span>
+                  <span class="import-stat-label">{$t('import.playlistsCreated' as any)}</span>
+                </div>
+              {/if}
+            </div>
+          {/if}
+          <button class="btn-secondary" onclick={resetImport}>{$t('import.back' as any)}</button>
+        </div>
+      {/if}
+    </section>
 
     <!-- Music locations -->
     <section class="settings-section">
@@ -2984,5 +3227,185 @@
     font-variant-numeric: tabular-nums;
     min-width: 70px;
     text-align: right;
+  }
+
+  /* Library Import */
+  .import-sources {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .import-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 14px 16px;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md, 8px);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .import-card:hover {
+    border-color: var(--tune-accent);
+    background: var(--tune-surface-hover);
+  }
+  .import-card-icon {
+    color: var(--tune-accent);
+    flex-shrink: 0;
+  }
+  .import-card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .import-card-text strong {
+    font-size: 14px;
+    color: var(--tune-text-primary);
+  }
+  .import-card-text span {
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+  }
+  .import-loading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+    color: var(--tune-text-secondary);
+    font-size: 13px;
+  }
+  .import-error {
+    color: #f87171;
+    font-size: 13px;
+    padding: var(--space-md);
+    background: rgba(248, 113, 113, 0.08);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-md);
+  }
+  .import-summary h4 {
+    margin: 0 0 var(--space-md);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tune-text-primary);
+  }
+  .import-stats {
+    display: flex;
+    gap: var(--space-lg);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-md);
+  }
+  .import-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 16px;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    min-width: 80px;
+  }
+  .import-stat.matched {
+    border-color: #34d399;
+    background: rgba(52, 211, 153, 0.06);
+  }
+  .import-stat.unmatched {
+    border-color: #fbbf24;
+    background: rgba(251, 191, 36, 0.06);
+  }
+  .import-stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--tune-text-primary);
+  }
+  .import-stat-label {
+    font-size: 11px;
+    color: var(--tune-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .import-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+  }
+  .import-details {
+    margin: var(--space-md) 0;
+  }
+  .import-details summary {
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+    margin-bottom: var(--space-sm);
+  }
+  .import-details-table {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+  }
+  .import-details-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .import-details-table th {
+    position: sticky;
+    top: 0;
+    background: var(--tune-surface-hover);
+    padding: 6px 10px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+    border-bottom: 1px solid var(--tune-border);
+  }
+  .import-details-table td {
+    padding: 5px 10px;
+    border-bottom: 1px solid var(--tune-border);
+    color: var(--tune-text-primary);
+  }
+  .import-details-table tr.unmatched td {
+    color: var(--tune-text-muted);
+  }
+  .import-details-table .more-rows {
+    text-align: center;
+    color: var(--tune-text-muted);
+    font-style: italic;
+  }
+  .badge-ok {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+  }
+  .badge-miss {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    background: rgba(251, 191, 36, 0.12);
+    color: #fbbf24;
+  }
+  .import-done {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-xl, 24px) 0;
+  }
+  .import-done-icon {
+    color: #34d399;
+  }
+  .import-done h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--tune-text-primary);
   }
 </style>

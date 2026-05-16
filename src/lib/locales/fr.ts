@@ -716,6 +716,32 @@ export default {
   'diagnostics.memoryUsage': 'Memoire utilisee',
   'diagnostics.activeServices': 'Services actifs',
   'diagnostics.neverScanned': 'Jamais scanne',
+
+  // Library Import
+  'import.title': 'Importer depuis un autre lecteur',
+  'import.roon': 'Importer depuis Roon',
+  'import.plex': 'Importer depuis Plex',
+  'import.playlists': 'Importer des playlists (M3U/PLS)',
+  'import.roonDesc': 'Export de bibliothèque Roon (CSV)',
+  'import.plexDesc': 'Export de bibliothèque Plex (XML)',
+  'import.playlistDesc': 'Fichiers M3U, M3U8 ou PLS',
+  'import.selectFile': 'Choisir un fichier',
+  'import.preview': 'Aperçu',
+  'import.previewing': 'Analyse en cours...',
+  'import.confirm': 'Confirmer l\'import',
+  'import.importing': 'Import en cours...',
+  'import.matched': 'Correspondances',
+  'import.unmatched': 'Non trouvés',
+  'import.totalRows': 'Lignes totales',
+  'import.playCounts': 'Compteurs de lecture mis à jour',
+  'import.ratings': 'Notes mises à jour',
+  'import.playlistsCreated': 'Playlists créées',
+  'import.done': 'Import terminé',
+  'import.noData': 'Aucune donnée trouvée dans ce fichier',
+  'import.error': 'Erreur d\'import',
+  'import.cancel': 'Annuler',
+  'import.back': 'Retour',
+  'import.matchDetails': 'Détails des correspondances',
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

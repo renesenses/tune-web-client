@@ -6,6 +6,7 @@
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import VolumeControl from './VolumeControl.svelte';
+  import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
   import type { RepeatMode } from '../lib/types';
   import { activeView, mobileNowPlayingOpen } from '../lib/stores/navigation';
@@ -331,6 +332,17 @@
           </svg>
         </button>
       {/if}
+      <div class="tb-mini-viz">
+        <AudioVisualizer
+          playing={isPlaying}
+          mode="spectrum"
+          height={24}
+          mini
+          sampleRate={displayTrack.sample_rate}
+          bitDepth={displayTrack.bit_depth}
+          format={displayTrack.format}
+        />
+      </div>
     {/if}
   </div>
 
@@ -595,6 +607,17 @@
     align-items: center;
     gap: var(--space-md);
     min-width: 0;
+  }
+
+  .tb-mini-viz {
+    width: 80px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 640px) {
+    .tb-mini-viz {
+      display: none;
+    }
   }
 
   .track-mini-clickable {

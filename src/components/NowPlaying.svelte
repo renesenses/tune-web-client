@@ -8,6 +8,7 @@
   import SeekBar from './SeekBar.svelte';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
+  import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { selectedArtist, artistAlbums, libraryTab } from '../lib/stores/library';
@@ -23,12 +24,16 @@
   let creditsEnriching = $state(false);
   let showLyrics = $state(false);
   let npLyrics: string | null = $state(null);
+  let npSyncedRaw: string | null = $state(null);
   let npLyricsTrackId: number | null = $state(null);
   let lyricsLoading = $state(false);
   let showEq = $state(false);
   let currentEqPreset = $state('flat');
   let karaokeMode = $state(false);
   let syncedLines: { time: number; text: string }[] = $state([]);
+
+  // Audio Visualizer
+  let vizMode = $state<'spectrum' | 'waveform'>('spectrum');
 
   // Sleep Timer
   let showSleepMenu = $state(false);
@@ -176,28 +181,6 @@
     return lines;
   }
 
-  let karaokeCurrentLine = $derived.by(() => {
-    if (!karaokeMode || syncedLines.length === 0) return -1;
-    const pos = $seekPositionMs ?? 0;
-    let idx = -1;
-    for (let i = 0; i < syncedLines.length; i++) {
-      if (syncedLines[i].time <= pos) idx = i;
-      else break;
-    }
-    return idx;
-  });
-
-  // Auto-scroll karaoke panel to keep current line visible
-  let karaokePanel = $state<HTMLElement | null>(null);
-  $effect(() => {
-    const lineIdx = karaokeCurrentLine;
-    if (lineIdx < 0 || !karaokePanel) return;
-    const lineEl = karaokePanel.children[lineIdx] as HTMLElement | undefined;
-    if (lineEl) {
-      lineEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
-  });
-
   const EQ_PRESETS = [
     { value: 'flat', label: 'Flat' },
     { value: 'bass_boost', label: 'Bass Boost' },
@@ -323,8 +306,16 @@
     try {
       const result = await api.getTrackLyrics(trackId);
       npLyrics = result.lyrics;
+      npSyncedRaw = result.synced ?? null;
+      if (npSyncedRaw) {
+        syncedLines = parseSyncedLyrics(npSyncedRaw);
+      } else {
+        syncedLines = [];
+      }
     } catch {
       npLyrics = null;
+      npSyncedRaw = null;
+      syncedLines = [];
     }
     lyricsLoading = false;
   }
@@ -336,7 +327,7 @@
     if (tr?.id && showLyrics) loadNpLyrics(tr.id);
     // Reset when track changes
     if (tr?.id !== npCreditsTrackId) { npCredits = []; npCreditsTrackId = null; }
-    if (tr?.id !== npLyricsTrackId) { npLyrics = null; npLyricsTrackId = null; }
+    if (tr?.id !== npLyricsTrackId) { npLyrics = null; npSyncedRaw = null; syncedLines = []; npLyricsTrackId = null; karaokeMode = false; }
   });
 
   const _detailTr: Record<string, string> = {
@@ -576,17 +567,13 @@
                 </div>
               {/if}
             {/if}
-            <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; showCredits = false; showEq = false; if (showLyrics && displayTrack.id) loadNpLyrics(displayTrack.id); }}>
+            <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; showCredits = false; showEq = false; if (!showLyrics) karaokeMode = false; if (showLyrics && displayTrack.id) loadNpLyrics(displayTrack.id); }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
               Paroles
             </button>
-            <button class="np-credits-btn" class:active={showEq} onclick={() => { showEq = !showEq; showCredits = false; showLyrics = false; }}>
+            <button class="np-credits-btn" class:active={showEq} onclick={() => { showEq = !showEq; showCredits = false; showLyrics = false; karaokeMode = false; }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>
               EQ
-            </button>
-            <button class="np-credits-btn" class:active={karaokeMode} onclick={async () => { karaokeMode = !karaokeMode; if (karaokeMode && displayTrack?.id) { const r = await api.getTrackLyrics(displayTrack.id); if (r.synced) syncedLines = parseSyncedLyrics(r.synced); else if (r.lyrics) syncedLines = r.lyrics.split('\n').map((t, i) => ({ time: i * 5000, text: t })); } }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
-              Karaoké
             </button>
             <button class="np-credits-btn" onclick={handleShare}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
@@ -641,21 +628,16 @@
               </div>
             {/if}
             {#if showLyrics}
-              <NowPlayingLyrics loading={lyricsLoading} lyrics={npLyrics} />
+              <NowPlayingLyrics
+                loading={lyricsLoading}
+                lyrics={npLyrics}
+                {syncedLines}
+                {karaokeMode}
+                onToggleKaraoke={() => { karaokeMode = !karaokeMode; }}
+              />
             {/if}
             {#if showEq}
               <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} />
-            {/if}
-            {#if karaokeMode && syncedLines.length > 0}
-              <div class="karaoke-panel" bind:this={karaokePanel}>
-                {#each syncedLines as line, i}
-                  <p class="karaoke-line" class:active={i === karaokeCurrentLine} class:past={i < karaokeCurrentLine} class:future={i > karaokeCurrentLine}>
-                    {line.text || '♪'}
-                  </p>
-                {/each}
-              </div>
-            {:else if karaokeMode}
-              <p class="lyrics-empty">Pas de paroles synchronisées disponibles</p>
             {/if}
           {/if}
           {#if zone?.signal_path}
@@ -711,6 +693,24 @@
               </div>
             {/if}
           {/if}
+        </div>
+
+        <div class="np-visualizer-row">
+          <AudioVisualizer
+            playing={isEffectivePlaying}
+            mode={vizMode}
+            height={80}
+            sampleRate={displayTrack.sample_rate}
+            bitDepth={displayTrack.bit_depth}
+            format={displayTrack.format}
+          />
+          <button class="viz-toggle-btn" onclick={() => vizMode = vizMode === 'spectrum' ? 'waveform' : 'spectrum'} title={vizMode === 'spectrum' ? 'Waveform' : 'Spectrum'}>
+            {#if vizMode === 'spectrum'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12c4 0 6-6 10-6s6 6 10 6" /></svg>
+            {:else}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="4" y1="20" x2="4" y2="10" /><line x1="8" y1="20" x2="8" y2="4" /><line x1="12" y1="20" x2="12" y2="8" /><line x1="16" y1="20" x2="16" y2="14" /><line x1="20" y1="20" x2="20" y2="6" /></svg>
+            {/if}
+          </button>
         </div>
 
         {#if !isRadio}
@@ -1224,6 +1224,32 @@
     width: 100%;
   }
 
+  /* Audio Visualizer */
+  .np-visualizer-row {
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    margin: 4px 0;
+  }
+
+  .viz-toggle-btn {
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 4px;
+    flex-shrink: 0;
+    transition: color 0.15s, border-color 0.15s;
+    line-height: 0;
+  }
+
+  .viz-toggle-btn:hover {
+    color: var(--tune-accent);
+    border-color: var(--tune-accent);
+  }
+
   /* Settings row */
   .settings-row {
     display: flex;
@@ -1641,45 +1667,6 @@
   .eq-preset:hover {
     border-color: var(--tune-accent);
     color: var(--tune-accent);
-  }
-
-  .karaoke-panel {
-    margin-top: var(--space-md);
-    padding: var(--space-md);
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: var(--radius-lg);
-    max-height: 350px;
-    overflow-y: auto;
-    scroll-behavior: smooth;
-    text-align: center;
-  }
-
-  .karaoke-line {
-    font-family: var(--font-display);
-    font-size: 18px;
-    line-height: 2;
-    margin: 0;
-    padding: 2px 0;
-    transition: all 0.3s ease-out;
-    color: var(--tune-text-muted);
-    opacity: 0.4;
-  }
-
-  .karaoke-line.active {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--tune-accent);
-    opacity: 1;
-    text-shadow: 0 0 20px rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4);
-  }
-
-  .karaoke-line.past {
-    color: var(--tune-text-secondary);
-    opacity: 0.6;
-  }
-
-  .karaoke-line.future {
-    opacity: 0.3;
   }
 
   /* Sleep Timer / DSP dropdown */
