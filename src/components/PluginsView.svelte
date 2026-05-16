@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t } from '../lib/i18n';
+  import { marked } from 'marked';
   import * as api from '../lib/api';
   import type { InstalledPlugin, StorePlugin } from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
@@ -13,6 +14,25 @@
   let guideOpen = $state(false);
   let copiedName = $state<string | null>(null);
   let togglingPlugin = $state<string | null>(null);
+  let activeTab = $state<'installed' | 'store' | 'docs'>('installed');
+  let docsHtml = $state('');
+  let docsLoading = $state(false);
+
+  async function fetchDocs() {
+    if (docsHtml) return;
+    docsLoading = true;
+    try {
+      const res = await fetch('/api/v1/store/docs');
+      if (res.ok) {
+        const md = await res.text();
+        docsHtml = marked(md) as string;
+      }
+    } catch (e) {
+      console.error('Failed to load plugin docs:', e);
+      docsHtml = '<p>Documentation unavailable.</p>';
+    }
+    docsLoading = false;
+  }
 
   // Fetch installed plugins
   async function fetchInstalled() {
@@ -120,8 +140,20 @@
 <div class="plugins-view">
   <header class="plugins-header">
     <h1>{$t('plugins.title')}</h1>
+    <nav class="plugins-tabs">
+      <button class="tab" class:active={activeTab === 'installed'} onclick={() => activeTab = 'installed'}>
+        {$t('plugins.installed')}
+      </button>
+      <button class="tab" class:active={activeTab === 'store'} onclick={() => activeTab = 'store'}>
+        {$t('plugins.store')}
+      </button>
+      <button class="tab" class:active={activeTab === 'docs'} onclick={() => { activeTab = 'docs'; fetchDocs(); }}>
+        Documentation
+      </button>
+    </nav>
   </header>
 
+  {#if activeTab === 'installed'}
   <!-- Section 1: Installed Plugins -->
   <section class="plugins-section">
     <h2 class="section-title">{$t('plugins.installed')}</h2>
@@ -171,7 +203,9 @@
       </div>
     {/if}
   </section>
+  {/if}
 
+  {#if activeTab === 'store'}
   <!-- Section 2: Store -->
   <section class="plugins-section">
     <h2 class="section-title">{$t('plugins.store')}</h2>
@@ -238,29 +272,18 @@
       </div>
     {/if}
   </section>
+  {/if}
 
-  <!-- Section 3: Installation Guide -->
-  <section class="plugins-section">
-    <button class="guide-toggle" onclick={() => guideOpen = !guideOpen}>
-      <h2 class="section-title">{$t('plugins.guide')}</h2>
-      <svg class="guide-chevron" class:open={guideOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9"></polyline></svg>
-    </button>
-    {#if guideOpen}
-      <div class="guide-content">
-        <ol class="guide-steps">
-          <li>{$t('plugins.guideStep1')}</li>
-          <li>
-            {$t('plugins.guideStep2')}
-            <code class="guide-code">pip install tune-plugin-xxx</code>
-            <span class="guide-or">ou</span>
-            <code class="guide-code">pip install git+https://...</code>
-          </li>
-          <li>{$t('plugins.guideStep3')}</li>
-          <li>{$t('plugins.guideStep4')}</li>
-        </ol>
-      </div>
+  {#if activeTab === 'docs'}
+  <!-- Section 3: Developer Documentation -->
+  <section class="plugins-section docs-section">
+    {#if docsLoading}
+      <div class="loading">{$t('common.loading')}</div>
+    {:else}
+      <div class="docs-content">{@html docsHtml}</div>
     {/if}
   </section>
+  {/if}
 </div>
 
 <style>
@@ -275,8 +298,75 @@
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--tune-text);
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--space-md);
   }
+
+  .plugins-tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: var(--space-lg);
+    border-bottom: 1px solid var(--tune-border);
+  }
+
+  .tab {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--tune-text-secondary);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .tab:hover { color: var(--tune-text); }
+  .tab.active {
+    color: var(--tune-accent);
+    border-bottom-color: var(--tune-accent);
+  }
+
+  .docs-content {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: var(--tune-text);
+  }
+
+  .docs-content :global(h1) { font-size: 1.4rem; font-weight: 700; margin: 2rem 0 1rem; color: var(--tune-text); }
+  .docs-content :global(h2) { font-size: 1.15rem; font-weight: 600; margin: 1.8rem 0 0.8rem; color: var(--tune-text); }
+  .docs-content :global(h3) { font-size: 1rem; font-weight: 600; margin: 1.4rem 0 0.6rem; color: var(--tune-text); }
+  .docs-content :global(pre) {
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+  .docs-content :global(code) {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.85em;
+    background: var(--tune-surface);
+    padding: 2px 5px;
+    border-radius: 4px;
+  }
+  .docs-content :global(pre code) { background: none; padding: 0; }
+  .docs-content :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.83rem;
+  }
+  .docs-content :global(th), .docs-content :global(td) {
+    border: 1px solid var(--tune-border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .docs-content :global(th) { background: var(--tune-surface); font-weight: 600; }
+  .docs-content :global(hr) { border: none; border-top: 1px solid var(--tune-border); margin: 2rem 0; }
+  .docs-content :global(ul), .docs-content :global(ol) { padding-left: 1.5rem; margin: 0.5rem 0; }
+  .docs-content :global(li) { margin-bottom: 0.3rem; }
 
   .plugins-section {
     margin-bottom: var(--space-xl);
