@@ -386,6 +386,7 @@
   const ALBUM_OVERSCAN_ROWS = 3;
   let albumGridViewport = $state<HTMLDivElement | null>(null);
   let albumScrollTop = $state(0);
+  let savedAlbumScrollTop = $state(0);
   let albumViewportHeight = $state(800);
   let albumViewportWidth = $state(1200);
 
@@ -636,6 +637,7 @@
 
   async function selectAlbumDetail(album: Album) {
     if (!album.id) return;
+    savedAlbumScrollTop = albumScrollTop;
     selectedArtist.set(null);
     expandedTrackCredits = null;
     trackCreditsMap = {};
@@ -724,6 +726,7 @@
   });
 
   function goBack() {
+    const restoreScroll = $selectedAlbum != null ? savedAlbumScrollTop : 0;
     selectedAlbum.set(null);
     selectedArtist.set(null);
     albumTracks.set([]);
@@ -731,6 +734,11 @@
     artistMetadata = null;
     artistMetadataError = false;
     artistMetadataLoading = false;
+    if (restoreScroll > 0) {
+      requestAnimationFrame(() => {
+        albumGridViewport?.scrollTo(0, restoreScroll);
+      });
+    }
   }
 
   async function reportArtistImage(artistId: number) {
