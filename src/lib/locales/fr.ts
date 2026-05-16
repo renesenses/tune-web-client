@@ -683,6 +683,39 @@ export default {
   'diagnostics.internet': 'Internet disponible',
   'diagnostics.dnsResolution': 'Resolution DNS',
   'diagnostics.discoveredRenderers': 'Renderers decouverts',
+
+  // Themes
+  'settings.themeOled': 'OLED',
+  'settings.themeMidnight': 'Bleu nuit',
+
+  // Sleep Timer
+  'sleep.title': 'Minuterie',
+  'sleep.15min': '15 min',
+  'sleep.30min': '30 min',
+  'sleep.45min': '45 min',
+  'sleep.1h': '1 heure',
+  'sleep.2h': '2 heures',
+  'sleep.cancel': 'Annuler la minuterie',
+  'sleep.fading': 'Fondu en cours...',
+  'sleep.active': 'Minuterie active',
+
+  // Scan Schedule
+  'settings.scanSchedule': 'Scan programme',
+  'settings.scanScheduleTime': 'Heure du scan quotidien',
+  'settings.scanScheduleEnabled': 'Activer le scan programme',
+  'settings.scanScheduleNext': 'Prochain scan : demain a {time}',
+  'settings.scanScheduleDisabled': 'Scan programme desactive',
+  'settings.scanScheduleSaved': 'Programmation enregistree',
+
+  // Server Stats Dashboard
+  'diagnostics.serverDashboard': 'Statistiques serveur',
+  'diagnostics.uptime': 'Uptime',
+  'diagnostics.wsConnections': 'Connexions WebSocket',
+  'diagnostics.lastScan': 'Dernier scan',
+  'diagnostics.scanDuration': 'Duree du scan',
+  'diagnostics.memoryUsage': 'Memoire utilisee',
+  'diagnostics.activeServices': 'Services actifs',
+  'diagnostics.neverScanned': 'Jamais scanne',
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

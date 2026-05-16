@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
   import { zones, currentZone, currentZoneId, playAndSync } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs } from '../lib/stores/nowPlaying';
   import { ytPlayerState, ytLoading, pauseVideo, resumeVideo } from '../lib/stores/ytPlayer';
@@ -8,6 +9,93 @@
   import { t } from '../lib/i18n';
   import type { RepeatMode } from '../lib/types';
   import { activeView, mobileNowPlayingOpen } from '../lib/stores/navigation';
+
+  // --- Sleep Timer ---
+  let sleepDropdownOpen = $state(false);
+  let sleepActive = $state(false);
+  let sleepRemainingSeconds = $state(0);
+  let sleepFading = $state(false);
+  let sleepPollInterval: ReturnType<typeof setInterval> | null = null;
+
+  function formatSleepTime(totalSeconds: number): string {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  async function setSleep(minutes: number) {
+    const z = $currentZone;
+    if (!z?.id) return;
+    sleepDropdownOpen = false;
+    try {
+      await api.setSleepTimer(z.id, minutes);
+      sleepActive = true;
+      sleepRemainingSeconds = minutes * 60;
+      sleepFading = false;
+      startSleepPolling();
+    } catch {}
+  }
+
+  async function cancelSleep() {
+    const z = $currentZone;
+    if (!z?.id) return;
+    sleepDropdownOpen = false;
+    try {
+      await api.setSleepTimer(z.id, 0);
+    } catch {}
+    sleepActive = false;
+    sleepRemainingSeconds = 0;
+    sleepFading = false;
+    stopSleepPolling();
+  }
+
+  async function pollSleepTimer() {
+    const z = $currentZone;
+    if (!z?.id) return;
+    try {
+      const res = await api.getSleepTimer(z.id);
+      sleepActive = res.active;
+      sleepRemainingSeconds = res.remaining_seconds ?? 0;
+      sleepFading = res.fading ?? false;
+      if (!res.active) stopSleepPolling();
+    } catch {}
+  }
+
+  function startSleepPolling() {
+    stopSleepPolling();
+    sleepPollInterval = setInterval(pollSleepTimer, 10000);
+  }
+
+  function stopSleepPolling() {
+    if (sleepPollInterval) {
+      clearInterval(sleepPollInterval);
+      sleepPollInterval = null;
+    }
+  }
+
+  // --- Mini-Player (compact mode on scroll) ---
+  let compact = $state(false);
+  let scrollObserver: IntersectionObserver | null = null;
+
+  onMount(() => {
+    // Initial sleep timer check
+    pollSleepTimer();
+
+    // Observe main-content scroll to switch to compact mode
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+      let lastScrollTop = 0;
+      mainContent.addEventListener('scroll', () => {
+        const scrollTop = (mainContent as HTMLElement).scrollTop;
+        compact = scrollTop > 100;
+        lastScrollTop = scrollTop;
+      });
+    }
+  });
+
+  onDestroy(() => {
+    stopSleepPolling();
+  });
 
   let isFavorite = $state(false);
   let favChecking = $state(false);
@@ -201,7 +289,7 @@
   }
 </script>
 
-<div class="transport-bar" onclick={handleBarClick} role="button" tabindex={0} aria-label="Transport bar">
+<div class="transport-bar" class:compact style="--compact-progress: {progressPercent}%" onclick={handleBarClick} role="button" tabindex={0} aria-label="Transport bar">
   {#if displayTrack && displayTrack.source !== 'radio' && displayTrack.duration_ms}
     <div class="transport-progress">
       <span class="progress-time">{formatTime($seekPositionMs)}</span>
@@ -355,6 +443,39 @@
   </div>
 
   <div class="transport-right">
+    <!-- Sleep Timer -->
+    <div class="sleep-timer-wrapper">
+      <button
+        class="control-btn sleep-btn"
+        class:active={sleepActive}
+        onclick={(e) => { e.stopPropagation(); sleepDropdownOpen = !sleepDropdownOpen; }}
+        title={$t('sleep.title' as any)}
+      >
+        {#if sleepFading}
+          <span class="sleep-countdown fading">{$t('sleep.fading' as any)}</span>
+        {:else if sleepActive}
+          <span class="sleep-countdown">{formatSleepTime(sleepRemainingSeconds)}</span>
+        {:else}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+        {/if}
+      </button>
+      {#if sleepDropdownOpen}
+        <div class="sleep-backdrop" onclick={() => sleepDropdownOpen = false} role="button" tabindex={0} aria-label="Close sleep timer"></div>
+        <div class="sleep-dropdown">
+          <button class="sleep-option" onclick={() => setSleep(15)}>{$t('sleep.15min' as any)}</button>
+          <button class="sleep-option" onclick={() => setSleep(30)}>{$t('sleep.30min' as any)}</button>
+          <button class="sleep-option" onclick={() => setSleep(45)}>{$t('sleep.45min' as any)}</button>
+          <button class="sleep-option" onclick={() => setSleep(60)}>{$t('sleep.1h' as any)}</button>
+          <button class="sleep-option" onclick={() => setSleep(120)}>{$t('sleep.2h' as any)}</button>
+          {#if sleepActive}
+            <button class="sleep-option cancel" onclick={cancelSleep}>{$t('sleep.cancel' as any)}</button>
+          {/if}
+        </div>
+      {/if}
+    </div>
+
     <div class="zone-selector">
       <button class="zone-selector-btn" onclick={() => showZoneDropdown = !showZoneDropdown} title={$t('zone.switchZone')}>
         <span class="truncate">{zone?.name ?? $t('zone.noZone')}</span>
@@ -465,6 +586,8 @@
     align-items: center;
     padding: 4px var(--space-lg) 0;
     gap: 2px var(--space-lg);
+    position: relative;
+    transition: height 0.2s ease-out;
   }
 
   .transport-left {
@@ -1063,6 +1186,152 @@
     pointer-events: none;
   }
 
+  /* --- Sleep Timer --- */
+  .sleep-timer-wrapper {
+    position: relative;
+  }
+
+  .sleep-btn {
+    width: 36px;
+    height: 36px;
+    opacity: 0.5;
+  }
+
+  .sleep-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .sleep-btn.active {
+    opacity: 1;
+    color: var(--tune-accent);
+  }
+
+  .sleep-countdown {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--tune-accent);
+    white-space: nowrap;
+  }
+
+  .sleep-countdown.fading {
+    color: var(--tune-warning);
+    animation: pulse-fade 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-fade {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .sleep-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+  }
+
+  .sleep-dropdown {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    right: 0;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    min-width: 140px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    padding: 4px 0;
+  }
+
+  .sleep-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 14px;
+    background: none;
+    border: none;
+    color: var(--tune-text-secondary);
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.1s;
+  }
+
+  .sleep-option:hover {
+    background: var(--tune-surface-hover);
+    color: var(--tune-text);
+  }
+
+  .sleep-option.cancel {
+    color: var(--tune-warning);
+    border-top: 1px solid var(--tune-border);
+    margin-top: 2px;
+    padding-top: 10px;
+  }
+
+  /* --- Compact Mode (mini-player on scroll) --- */
+  .transport-bar.compact {
+    height: 48px;
+    padding-top: 0;
+    transition: height 0.2s ease-out, padding 0.2s ease-out;
+  }
+
+  .transport-bar.compact .transport-progress {
+    display: none;
+  }
+
+  .transport-bar.compact .transport-left :global(.album-art) {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+  }
+
+  .transport-bar.compact .mini-title {
+    font-size: 12px;
+  }
+
+  .transport-bar.compact .mini-artist {
+    font-size: 11px;
+  }
+
+  .transport-bar.compact .control-btn.small,
+  .transport-bar.compact .signal-dot-btn,
+  .transport-bar.compact .audiophile-btn,
+  .transport-bar.compact .stop-btn {
+    display: none;
+  }
+
+  .transport-bar.compact .play-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .transport-bar.compact .play-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .transport-bar.compact .transport-controls {
+    gap: 8px;
+  }
+
+  /* Thin progress bar shown below the compact bar */
+  .transport-bar.compact::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: var(--tune-accent);
+    width: var(--compact-progress, 0%);
+    transition: width 0.3s linear;
+  }
+
   @media (max-width: 768px) {
     .transport-bar {
       grid-template-columns: 1fr auto;
@@ -1071,6 +1340,11 @@
       height: var(--mini-player-height);
       cursor: pointer;
       margin-bottom: var(--tab-bar-height);
+    }
+
+    /* Disable compact on mobile — already compact */
+    .transport-bar.compact {
+      height: var(--mini-player-height);
     }
 
     .transport-left {

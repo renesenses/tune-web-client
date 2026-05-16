@@ -136,6 +136,8 @@ body {
   --tune-bg: #F5F5F5;
   --tune-surface: #FFFFFF;
   --tune-footer: #F0F0F0;
+  --tune-accent: #4A6CF7;
+  --tune-accent-hover: #3B5DE8;
   --tune-text: #1A1A1A;
   --tune-text-secondary: #555555;
   --tune-text-muted: #999999;
@@ -154,4 +156,60 @@ body {
 
 [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
   background: #A0A0A0;
+}
+
+/* OLED theme — pure black for AMOLED screens */
+[data-theme="oled"] {
+  --tune-bg: #000000;
+  --tune-surface: #0A0A0A;
+  --tune-footer: #0A0A0A;
+  --tune-accent: #00D4AA;
+  --tune-accent-hover: #00E8BC;
+  --tune-text: #FFFFFF;
+  --tune-text-secondary: #A0A0A0;
+  --tune-text-muted: #555555;
+  --tune-border: rgba(255, 255, 255, 0.08);
+  --tune-surface-hover: rgba(255, 255, 255, 0.05);
+  --tune-surface-selected: rgba(255, 255, 255, 0.10);
+  --tune-grey2: #111111;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+}
+
+[data-theme="oled"] ::-webkit-scrollbar-thumb {
+  background: #333333;
+}
+
+[data-theme="oled"] ::-webkit-scrollbar-thumb:hover {
+  background: #444444;
+}
+
+/* Midnight blue theme */
+[data-theme="midnight"] {
+  --tune-bg: #0A1628;
+  --tune-surface: #0F1D32;
+  --tune-footer: #0D192C;
+  --tune-accent: #D4A017;
+  --tune-accent-hover: #E0B030;
+  --tune-text: #E0E6EF;
+  --tune-text-secondary: #8899AA;
+  --tune-text-muted: #4A5A6A;
+  --tune-border: rgba(100, 140, 180, 0.15);
+  --tune-success: #57C6B9;
+  --tune-warning: #C9544B;
+  --tune-surface-hover: rgba(100, 140, 200, 0.08);
+  --tune-surface-selected: rgba(100, 140, 200, 0.15);
+  --tune-grey2: #12203A;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="midnight"] ::-webkit-scrollbar-thumb {
+  background: #2A3A4A;
+}
+
+[data-theme="midnight"] ::-webkit-scrollbar-thumb:hover {
+  background: #3A4A5A;
 }

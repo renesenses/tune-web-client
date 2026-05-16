@@ -683,6 +683,39 @@ export default {
   'diagnostics.internet': 'Internet available',
   'diagnostics.dnsResolution': 'DNS resolution',
   'diagnostics.discoveredRenderers': 'Discovered renderers',
+
+  // Themes
+  'settings.themeOled': 'OLED',
+  'settings.themeMidnight': 'Midnight Blue',
+
+  // Sleep Timer
+  'sleep.title': 'Sleep Timer',
+  'sleep.15min': '15 min',
+  'sleep.30min': '30 min',
+  'sleep.45min': '45 min',
+  'sleep.1h': '1 hour',
+  'sleep.2h': '2 hours',
+  'sleep.cancel': 'Cancel timer',
+  'sleep.fading': 'Fading out...',
+  'sleep.active': 'Sleep timer active',
+
+  // Scan Schedule
+  'settings.scanSchedule': 'Scheduled Scan',
+  'settings.scanScheduleTime': 'Daily scan time',
+  'settings.scanScheduleEnabled': 'Enable scheduled scan',
+  'settings.scanScheduleNext': 'Next scan: tomorrow at {time}',
+  'settings.scanScheduleDisabled': 'Scheduled scan disabled',
+  'settings.scanScheduleSaved': 'Schedule saved',
+
+  // Server Stats Dashboard
+  'diagnostics.serverDashboard': 'Server Statistics',
+  'diagnostics.uptime': 'Uptime',
+  'diagnostics.wsConnections': 'WebSocket Connections',
+  'diagnostics.lastScan': 'Last Scan',
+  'diagnostics.scanDuration': 'Scan Duration',
+  'diagnostics.memoryUsage': 'Memory Usage',
+  'diagnostics.activeServices': 'Active Services',
+  'diagnostics.neverScanned': 'Never scanned',
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

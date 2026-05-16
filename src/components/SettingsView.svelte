@@ -55,6 +55,32 @@
   let showSmbWizard = $state(false);
   let showFolderWizard = $state(false);
 
+  // Scan schedule
+  let scanScheduleEnabled = $state(false);
+  let scanScheduleTime = $state('03:00');
+  let scanScheduleLoading = $state(false);
+
+  async function loadScanSchedule() {
+    try {
+      const sched = await api.getScanSchedule();
+      scanScheduleEnabled = sched.enabled;
+      scanScheduleTime = sched.time ?? '03:00';
+    } catch { /* endpoint may not exist yet */ }
+  }
+
+  async function saveScanSchedule() {
+    scanScheduleLoading = true;
+    try {
+      const sched = await api.setScanSchedule(scanScheduleTime, scanScheduleEnabled);
+      scanScheduleEnabled = sched.enabled;
+      scanScheduleTime = sched.time ?? '03:00';
+      notifications.success($t('settings.scanScheduleSaved' as any));
+    } catch (err: any) {
+      notifications.error(err?.message ?? 'Error');
+    }
+    scanScheduleLoading = false;
+  }
+
   // Diagnostics bundle download
   let diagDownloading = $state(false);
 
@@ -915,6 +941,7 @@
       checkForUpdate();
       loadCrossfade();
       loadStreamingQuality();
+      loadScanSchedule();
       if (pushEnabled) initPushNotifications();
     });
     const unsub = tuneWS.onEvent((event) => {
@@ -1132,6 +1159,42 @@
           {/if}
         </button>
       </div>
+    </section>
+
+    <!-- Scan Schedule -->
+    <section class="settings-section">
+      <h3>{$t('settings.scanSchedule' as any)}</h3>
+      <div class="setting-row">
+        <div class="setting-label">
+          <span>{$t('settings.scanScheduleEnabled' as any)}</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" bind:checked={scanScheduleEnabled} onchange={() => saveScanSchedule()} />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      {#if scanScheduleEnabled}
+        <div class="setting-row">
+          <div class="setting-label">
+            <span>{$t('settings.scanScheduleTime' as any)}</span>
+          </div>
+          <input
+            type="time"
+            class="pref-select"
+            bind:value={scanScheduleTime}
+            onchange={() => saveScanSchedule()}
+            disabled={scanScheduleLoading}
+            style="max-width: 140px;"
+          />
+        </div>
+        <div class="scan-schedule-next">
+          {$t('settings.scanScheduleNext' as any).replace('{time}', scanScheduleTime)}
+        </div>
+      {:else}
+        <div class="scan-schedule-next muted">
+          {$t('settings.scanScheduleDisabled' as any)}
+        </div>
+      {/if}
     </section>
 
     <!-- Database -->
@@ -1483,6 +1546,8 @@
           }}>
           <option value="dark">{$t('settings.dark')}</option>
           <option value="light">{$t('settings.light')}</option>
+          <option value="oled">{$t('settings.themeOled' as any)}</option>
+          <option value="midnight">{$t('settings.themeMidnight' as any)}</option>
         </select>
 
         <label class="pref-label" for="pref-lang">{$t('settings.language')}</label>
@@ -2861,6 +2926,18 @@
     to { transform: rotate(360deg); }
   }
   .scan-message { font-size: 12px; color: var(--tune-accent); margin-left: 8px; font-weight: 600; }
+
+  .scan-schedule-next {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-secondary);
+    margin-top: var(--space-sm);
+    padding: var(--space-sm) 0;
+  }
+
+  .scan-schedule-next.muted {
+    color: var(--tune-text-muted);
+  }
 
   /* Streaming Quality */
   .quality-select {

@@ -20,6 +20,19 @@
   let config = $state<SystemConfig | null>(null);
   let dbStatus = $state<any>(null);
 
+  // Server diagnostics dashboard
+  let serverDiag = $state<{
+    version: string;
+    uptime_seconds: number;
+    zones_count: number;
+    tracks_count: number;
+    active_services: string[];
+    ws_connections: number;
+    last_scan_at: string | null;
+    last_scan_duration_seconds: number | null;
+    memory_mb: number | null;
+  } | null>(null);
+
   async function fetchServerVersion() {
     try {
       const res = await fetch('/');
@@ -32,18 +45,20 @@
 
   async function loadAll() {
     try {
-      const [h, s, cfg, db, ss] = await Promise.all([
+      const [h, s, cfg, db, ss, sd] = await Promise.all([
         api.getHealth().catch(() => null),
         api.getStats().catch(() => null),
         api.getConfig().catch(() => null),
         api.getDatabaseStatus().catch(() => null),
         api.getStreamingServices().catch(() => ({})),
+        api.getServerDiagnostics().catch(() => null),
       ]);
       health = h;
       stats = s;
       config = cfg;
       dbStatus = db;
       streamingServicesStore.set(ss as Record<string, StreamingServiceStatus>);
+      serverDiag = sd;
     } catch (e) {
       console.error('Diagnostics load error:', e);
     }
@@ -245,6 +260,33 @@
     };
   });
 
+  function formatUptimeStr(seconds: number): string {
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (d > 0) return `${d}j ${h}h ${m}m`;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+  }
+
+  function formatRelativeDate(iso: string): string {
+    const d = new Date(iso);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffH = Math.floor(diffMs / 3600000);
+    const diffD = Math.floor(diffMs / 86400000);
+    if (diffH < 1) return 'Il y a quelques minutes';
+    if (diffH < 24) return `Il y a ${diffH}h`;
+    return `Il y a ${diffD}j`;
+  }
+
+  function formatDuration(seconds: number): string {
+    if (seconds < 60) return `${Math.round(seconds)}s`;
+    const m = Math.floor(seconds / 60);
+    const s = Math.round(seconds % 60);
+    return `${m}m ${s}s`;
+  }
+
   function streamingLabel(name: string): string {
     const labels: Record<string, string> = {
       tidal: 'TIDAL',
@@ -288,6 +330,63 @@
       </button>
     </div>
   </div>
+
+    <!-- Server Stats Dashboard -->
+    {#if serverDiag}
+    <section class="diag-section">
+      <h3>{$t('diagnostics.serverDashboard' as any)}</h3>
+      <div class="stats-grid server-dashboard-grid">
+        <div class="stat-card">
+          <span class="stat-value mono">{serverDiag.version}</span>
+          <span class="stat-label">{$t('diagnostics.serverVersion')}</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{formatUptimeStr(serverDiag.uptime_seconds)}</span>
+          <span class="stat-label">{$t('diagnostics.uptime' as any)}</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{serverDiag.zones_count}</span>
+          <span class="stat-label">Zones</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{serverDiag.tracks_count.toLocaleString()}</span>
+          <span class="stat-label">{$t('diagnostics.tracks')}</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{serverDiag.active_services.length}</span>
+          <span class="stat-label">{$t('diagnostics.activeServices' as any)}</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{serverDiag.ws_connections}</span>
+          <span class="stat-label">{$t('diagnostics.wsConnections' as any)}</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{serverDiag.last_scan_at ? formatRelativeDate(serverDiag.last_scan_at) : $t('diagnostics.neverScanned' as any)}</span>
+          <span class="stat-label">{$t('diagnostics.lastScan' as any)}</span>
+        </div>
+        {#if serverDiag.last_scan_duration_seconds != null}
+        <div class="stat-card">
+          <span class="stat-value">{formatDuration(serverDiag.last_scan_duration_seconds)}</span>
+          <span class="stat-label">{$t('diagnostics.scanDuration' as any)}</span>
+        </div>
+        {/if}
+        {#if serverDiag.memory_mb != null}
+        <div class="stat-card">
+          <span class="stat-value">{serverDiag.memory_mb} MB</span>
+          <span class="stat-label">{$t('diagnostics.memoryUsage' as any)}</span>
+        </div>
+        {/if}
+      </div>
+      {#if serverDiag.active_services.length > 0}
+        <div class="dashboard-services">
+          <span class="dashboard-services-label">{$t('diagnostics.activeServices' as any)} :</span>
+          {#each serverDiag.active_services as svc}
+            <span class="dashboard-service-badge">{streamingLabel(svc)}</span>
+          {/each}
+        </div>
+      {/if}
+    </section>
+    {/if}
 
     <!-- Server Actions -->
     <section class="diag-section actions-section">
@@ -1159,6 +1258,39 @@
   .network-dns-section,
   .network-renderers-section {
     margin-top: var(--space-xs);
+  }
+
+  /* Server Dashboard */
+  .server-dashboard-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+
+  .dashboard-services {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--tune-border);
+  }
+
+  .dashboard-services-label {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+  }
+
+  .dashboard-service-badge {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: var(--radius-sm);
+    background: rgba(87, 198, 185, 0.15);
+    color: var(--tune-success);
+    text-transform: capitalize;
   }
 
   /* Responsive */

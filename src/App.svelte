@@ -310,7 +310,28 @@ import AlarmsView from './components/AlarmsView.svelte';
           fetchQueue();
           if (zoneId) syncZoneState(zoneId);
         } else if (zoneId) {
-          // For started/resumed/paused/stopped/track_changed: fetch full zone state
+          // Optimistic update: apply track metadata from the WS event
+          // immediately so the UI updates without waiting for the API call.
+          // syncZoneState() will overwrite with the full zone state shortly.
+          if ((type === 'playback.started' || type === 'playback.track_changed') && event.data) {
+            zones.update((zs) =>
+              zs.map((z) => {
+                if (z.id !== zoneId) return z;
+                const d = event.data;
+                const partial: Record<string, unknown> = {};
+                if (d.track_title !== undefined) partial.title = d.track_title;
+                if (d.artist_name !== undefined) partial.artist_name = d.artist_name;
+                if (d.album_title !== undefined) partial.album_title = d.album_title;
+                if (d.cover_path !== undefined) partial.cover_path = d.cover_path;
+                if (d.track_id !== undefined) partial.id = d.track_id;
+                const updatedTrack = z.current_track
+                  ? { ...z.current_track, ...partial }
+                  : { ...partial } as any;
+                return { ...z, current_track: updatedTrack, state: 'playing' as const };
+              })
+            );
+          }
+          // Fetch full zone state from API (authoritative update)
           syncZoneState(zoneId).then(() => {
             // IFrame sync and history only concern the active zone (or its group members)
             const curZone = get(currentZone);

@@ -16,7 +16,7 @@
   </head>
   <body>
     <script>
-      try{var p=JSON.parse(localStorage.getItem('tune-preferences')||'{}');if(p.theme==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}
+      try{var p=JSON.parse(localStorage.getItem('tune-preferences')||'{}');var t=p.theme||'dark';if(t!=='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}
     </script>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>

@@ -1561,7 +1561,7 @@ export function setSleepTimer(zoneId: number, minutes: number) {
 }
 
 export function getSleepTimer(zoneId: number) {
-  return fetchJSON<{ active: boolean }>(`${BASE}/zones/${zoneId}/sleep`);
+  return fetchJSON<{ active: boolean; remaining_seconds?: number; fading?: boolean }>(`${BASE}/zones/${zoneId}/sleep`);
 }
 
 // --- Queue → Playlist ---
@@ -1835,4 +1835,33 @@ export function getNetworkDiagnostics() {
     dns_resolution: Record<string, boolean>;
     renderers: Array<{ name: string; host: string; available: boolean }>;
   }>(`${BASE}/system/diagnostics/network`);
+}
+
+// --- Scan Schedule ---
+
+export function getScanSchedule() {
+  return fetchJSON<{ enabled: boolean; time: string | null }>(`${BASE}/system/scan/schedule`);
+}
+
+export function setScanSchedule(time: string, enabled: boolean) {
+  return fetchJSON<{ enabled: boolean; time: string | null }>(`${BASE}/system/scan/schedule`, {
+    method: 'POST',
+    body: JSON.stringify({ time, enabled }),
+  });
+}
+
+// --- Server Diagnostics Dashboard ---
+
+export function getServerDiagnostics() {
+  return fetchJSON<{
+    version: string;
+    uptime_seconds: number;
+    zones_count: number;
+    tracks_count: number;
+    active_services: string[];
+    ws_connections: number;
+    last_scan_at: string | null;
+    last_scan_duration_seconds: number | null;
+    memory_mb: number | null;
+  }>(`${BASE}/system/diagnostics`);
 }

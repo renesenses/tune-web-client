@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import type { Locale } from '../i18n';
 
-export type ThemeMode = 'dark' | 'light';
+export type ThemeMode = 'dark' | 'light' | 'oled' | 'midnight';
 export type VolumeDisplay = 'percent' | 'dB';
 export type StartupView = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'search' | 'settings';
 
@@ -46,9 +46,11 @@ function createPreferences() {
 export const preferences = createPreferences();
 
 export function applyTheme(theme: ThemeMode) {
-  if (theme === 'light') {
-    document.documentElement.setAttribute('data-theme', 'light');
-  } else {
+  if (theme === 'dark') {
     document.documentElement.removeAttribute('data-theme');
+  } else {
+    document.documentElement.setAttribute('data-theme', theme);
   }
+  // Also persist in tune-theme for FOUC prevention in index.html
+  try { localStorage.setItem('tune-theme', theme); } catch { /* ignore */ }
 }
