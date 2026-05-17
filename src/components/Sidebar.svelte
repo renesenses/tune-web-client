@@ -291,7 +291,11 @@
     switch (type) {
       case 'dlna': return 'DLNA';
       case 'airplay': return 'AirPlay';
-      default: return 'Local';
+      case 'chromecast': return 'Cast';
+      case 'bluos': return 'BluOS';
+      case 'openhome': return 'OpenHome';
+      case 'local': return 'USB';
+      default: return type?.toUpperCase() ?? 'Local';
     }
   }
 

@@ -1725,7 +1725,7 @@
               {/if}
             </svg>
             <span class="device-toggle-name">{device.name}</span>
-            <span class="device-toggle-tag {device.type}">{device.type === 'airplay' ? 'AirPlay' : 'DLNA'}</span>
+            <span class="device-toggle-tag {device.type}">{device.type === 'airplay' ? 'AirPlay' : device.type === 'chromecast' ? 'Cast' : device.type === 'bluos' ? 'BluOS' : device.type === 'openhome' ? 'OpenHome' : 'DLNA'}</span>
             {#if device.host}<span class="device-toggle-host">{device.host}</span>{/if}
             {#if device.type === 'airplay'}
               {#if pairingDeviceId === device.id && pairingAwaitingPin}
