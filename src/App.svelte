@@ -59,6 +59,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
   import { loadProfiles } from './lib/stores/profile';
   import { notifications } from './lib/stores/notifications';
+  import { healthStatus } from './lib/stores/health';
   import { streamingServices as streamingServicesStore } from './lib/stores/streaming';
   import { isPushEnabled, initPushNotifications } from './lib/notifications-push';
 
@@ -427,6 +428,21 @@ import AlarmsView from './components/AlarmsView.svelte';
       // Device events
       if (type.startsWith('device.')) {
         fetchDevices();
+        return;
+      }
+
+      // Health alerts — show a notification banner for warnings/criticals
+      if (type === 'system.health_alert' && event.data) {
+        const level = event.data.level;
+        const message = event.data.message || 'Health alert';
+        if (level === 'critical') {
+          healthStatus.set('critical');
+          notifications.error(message, 10000);
+        } else if (level === 'warning') {
+          // Only upgrade, never downgrade from critical on a single alert
+          healthStatus.update((cur) => cur === 'critical' ? 'critical' : 'warning');
+          notifications.info(message, 6000);
+        }
         return;
       }
     });

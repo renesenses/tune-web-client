@@ -26,6 +26,24 @@
       .catch(() => { /* keep fallback */ });
   });
 
+  // Health monitor status (shared store, also updated by App.svelte on WS events)
+  import { healthStatus } from '../lib/stores/health';
+  import { onDestroy } from 'svelte';
+
+  // Poll health status every 60s
+  let healthInterval: ReturnType<typeof setInterval> | null = null;
+  function fetchHealthStatus() {
+    api.getHealthMonitor()
+      .then((r) => { healthStatus.set(r.status); })
+      .catch(() => { /* ignore */ });
+  }
+  fetchHealthStatus();
+  healthInterval = setInterval(fetchHealthStatus, 60_000);
+
+  onDestroy(() => {
+    if (healthInterval) clearInterval(healthInterval);
+  });
+
   let showCreateZone = $state(false);
   let newZoneName = $state('');
   let newZoneOutputType = $state<OutputType>('local');
@@ -499,6 +517,9 @@
         {stateIcon($connectionState)}
       </span>
       <span class="state-text truncate">{$connectionState === 'connected' ? $t('settings.connected') : $connectionState === 'connecting' ? $t('settings.connecting') : $t('settings.notConnected')}</span>
+      {#if $healthStatus !== 'ok'}
+        <span class="health-dot" class:health-warning={$healthStatus === 'warning'} class:health-critical={$healthStatus === 'critical'} title="Serveur : {$healthStatus}"></span>
+      {/if}
     </div>
   </div>
 
@@ -945,6 +966,30 @@
 
   .state-text {
     max-width: 180px;
+  }
+
+  .health-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-left: 2px;
+  }
+
+  .health-warning {
+    background: var(--tune-warning, #f59e0b);
+    box-shadow: 0 0 4px var(--tune-warning, #f59e0b);
+  }
+
+  .health-critical {
+    background: var(--tune-error, #ef4444);
+    box-shadow: 0 0 4px var(--tune-error, #ef4444);
+    animation: health-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes health-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
 
   .section-label {

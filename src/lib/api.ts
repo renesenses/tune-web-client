@@ -2019,3 +2019,32 @@ export async function getStorePlugins(search?: string, category?: string): Promi
   if (!res.ok) throw new Error(`Store fetch failed (${res.status})`);
   return res.json();
 }
+
+// --- Health Monitor ---
+
+export interface HealthCheck {
+  status: 'ok' | 'warning' | 'critical';
+  [key: string]: any;
+}
+
+export interface HealthAlert {
+  timestamp: string;
+  level: 'info' | 'warning' | 'critical';
+  category: string;
+  message: string;
+}
+
+export interface HealthMonitorResponse {
+  status: 'ok' | 'warning' | 'critical';
+  uptime_seconds: number;
+  checks: Record<string, HealthCheck>;
+  alerts: HealthAlert[];
+}
+
+export function getHealthMonitor(): Promise<HealthMonitorResponse> {
+  return fetchJSON<HealthMonitorResponse>(`${BASE}/system/health/monitor`);
+}
+
+export function getHealthAlerts(): Promise<HealthAlert[]> {
+  return fetchJSON<HealthAlert[]>(`${BASE}/system/health/alerts`);
+}

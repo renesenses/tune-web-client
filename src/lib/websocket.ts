@@ -29,7 +29,7 @@ class TuneWebSocket {
         // Subscribe to all event patterns
         this.send({
           action: 'subscribe',
-          patterns: ['playback.*', 'zone.*', 'playlist.*', 'library.*', 'device.*'],
+          patterns: ['playback.*', 'zone.*', 'playlist.*', 'library.*', 'device.*', 'system.*'],
         });
         this.handlers.forEach((h) => h({ type: '_connected', data: null }));
       };
