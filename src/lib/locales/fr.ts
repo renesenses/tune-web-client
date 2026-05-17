@@ -45,6 +45,7 @@ export default {
   'zone.newZone': 'Nouvelle zone',
   'zone.zoneName': 'Nom de la zone',
   'zone.selectDevice': '-- Appareil --',
+  'zone.defaultOutput': '-- Sortie par défaut --',
   'zone.devices': 'APPAREILS',
   'zone.clearDevices': 'Tout supprimer',
   'zone.createZone': 'Créer une zone',

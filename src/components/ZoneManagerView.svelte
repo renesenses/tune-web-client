@@ -4,7 +4,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
-  import type { Zone, ZoneGroupResponse, OutputType, DiscoveredDevice, StereoPairInfo } from '../lib/types';
+  import type { Zone, ZoneGroupResponse, OutputType, DiscoveredDevice, StereoPairInfo, LocalAudioDevice } from '../lib/types';
 
   // --- State ---
   let zoneGroups = $state<ZoneGroupResponse[]>([]);
@@ -19,6 +19,7 @@
   let newZoneName = $state('');
   let newZoneOutputType = $state<OutputType>('local');
   let newZoneDeviceId = $state<string | undefined>(undefined);
+  let localAudioDevices = $state<LocalAudioDevice[]>([]);
 
   // Stereo pair creation
   let showStereoPairForm = $state(false);
@@ -164,6 +165,14 @@
         console.error('Volume error:', e);
       }
     }, 100);
+  }
+
+  async function loadLocalAudioDevices() {
+    try {
+      localAudioDevices = await api.getAudioDevices();
+    } catch {
+      localAudioDevices = [];
+    }
   }
 
   // --- Zone CRUD ---
@@ -392,7 +401,7 @@
       <button class="btn btn-ghost" onclick={loadData} disabled={loading} title={$t('zone.refresh')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" class:spinning={loading}><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
       </button>
-      <button class="btn btn-primary" onclick={() => showCreateZone = !showCreateZone}>
+      <button class="btn btn-primary" onclick={() => { showCreateZone = !showCreateZone; if (showCreateZone) loadLocalAudioDevices(); }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
         {$t('zone.newZone')}
       </button>
@@ -435,14 +444,22 @@
           bind:value={newZoneName}
           onkeydown={(e) => e.key === 'Enter' && handleCreateZone()}
         />
-        <select class="form-select" bind:value={newZoneOutputType} onchange={() => { newZoneDeviceId = undefined; }}>
+        <select class="form-select" bind:value={newZoneOutputType} onchange={() => { newZoneDeviceId = undefined; if (newZoneOutputType === 'local') loadLocalAudioDevices(); }}>
           <option value="local">Local</option>
           <option value="dlna">DLNA</option>
           <option value="airplay">AirPlay</option>
           <option value="chromecast">Chromecast</option>
           <option value="bluos">BluOS</option>
+          <option value="openhome">OpenHome</option>
         </select>
-        {#if newZoneOutputType !== 'local'}
+        {#if newZoneOutputType === 'local'}
+          <select class="form-select" bind:value={newZoneDeviceId}>
+            <option value={undefined}>{$t('zone.defaultOutput')}</option>
+            {#each localAudioDevices as dev}
+              <option value={dev.name}>{dev.name} ({dev.channels}ch, {dev.sample_rate / 1000}kHz)</option>
+            {/each}
+          </select>
+        {:else}
           <select class="form-select" bind:value={newZoneDeviceId}>
             <option value={undefined}>{$t('zone.selectDevice')}</option>
             {#each $devices.filter(d => d.type === newZoneOutputType && d.available) as dev}
