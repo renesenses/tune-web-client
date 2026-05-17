@@ -42,6 +42,14 @@
   let editSyncDelay = $state(zone.sync_delay_ms ?? 0);
   let savingSync = $state(false);
 
+  // Pins (OpenHome presets)
+  let pinsSupported = $state(false);
+  let pinsLoading = $state(false);
+  let pins = $state<any[]>([]);
+  let maxPinSlots = $state(0);
+  let saveQueueTitle = $state('');
+  let savingQueuePin = $state(false);
+
   let confirmDelete = $state(false);
   let loading = $state(false);
   let error = $state('');
@@ -161,9 +169,63 @@
     switch (zone.output_type) {
       case 'dlna': return 'DLNA';
       case 'airplay': return 'AirPlay';
+      case 'openhome': return 'OpenHome';
       default: return 'Local';
     }
   }
+
+  // Load pins when zone is OpenHome
+  async function loadPins() {
+    if (zone.id === null || zone.output_type !== 'openhome') return;
+    pinsLoading = true;
+    try {
+      const result = await api.getZonePins(zone.id);
+      pinsSupported = result.supported;
+      pins = result.pins ?? [];
+      maxPinSlots = result.max_slots ?? 0;
+    } catch {
+      pinsSupported = false;
+    }
+    pinsLoading = false;
+  }
+
+  async function handleInvokePin(index: number) {
+    if (zone.id === null) return;
+    try {
+      await api.invokeZonePin(zone.id, index);
+    } catch (e: any) {
+      error = e.message || 'Failed to invoke pin';
+    }
+  }
+
+  async function handleClearPin(index: number) {
+    if (zone.id === null) return;
+    try {
+      await api.clearZonePin(zone.id, index);
+      await loadPins();
+    } catch (e: any) {
+      error = e.message || 'Failed to clear pin';
+    }
+  }
+
+  async function handleSaveQueueAsPin() {
+    if (zone.id === null || !saveQueueTitle.trim()) return;
+    savingQueuePin = true;
+    try {
+      await api.saveQueueAsPin(zone.id, saveQueueTitle.trim());
+      saveQueueTitle = '';
+      await loadPins();
+    } catch (e: any) {
+      error = e.message || 'Failed to save queue as pin';
+    }
+    savingQueuePin = false;
+  }
+
+  $effect(() => {
+    if (zone.output_type === 'openhome') {
+      loadPins();
+    }
+  });
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
@@ -268,6 +330,65 @@
         {/if}
       </div>
     </div>
+
+    {#if zone.output_type === 'openhome' && pinsSupported}
+      <div class="modal-section">
+        <h3 class="section-title">Pins / Presets</h3>
+        <p class="section-desc">Device presets for quick playback. {maxPinSlots} slots available.</p>
+
+        {#if pinsLoading}
+          <p class="empty-hint">Loading pins...</p>
+        {:else if pins.length === 0}
+          <p class="empty-hint">No pins configured on this device.</p>
+        {:else}
+          <div class="pins-list">
+            {#each pins as pin}
+              <div class="pin-item">
+                <span class="pin-index">#{pin.index ?? '?'}</span>
+                <span class="pin-title">{pin.title || pin.uri || '(empty)'}</span>
+                {#if pin.type}
+                  <span class="pin-type-badge">{pin.type}</span>
+                {/if}
+                <div class="pin-actions">
+                  <button
+                    class="btn btn-primary btn-sm"
+                    onclick={() => handleInvokePin(pin.index)}
+                    title="Play this pin"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><polygon points="5,3 19,12 5,21" /></svg>
+                  </button>
+                  <button
+                    class="btn btn-secondary btn-sm"
+                    onclick={() => handleClearPin(pin.index)}
+                    title="Clear this pin"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  </button>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
+
+        <div class="save-queue-row">
+          <input
+            class="sync-input save-queue-input"
+            type="text"
+            placeholder="Save queue as pin..."
+            bind:value={saveQueueTitle}
+            onkeydown={(e) => { if (e.key === 'Enter') handleSaveQueueAsPin(); }}
+            disabled={savingQueuePin}
+          />
+          <button
+            class="btn btn-primary btn-sm"
+            onclick={handleSaveQueueAsPin}
+            disabled={!saveQueueTitle.trim() || savingQueuePin}
+          >
+            {savingQueuePin ? '...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    {/if}
 
     <div class="modal-section danger-section">
       <h3 class="section-title">{$t('zone.actions')}</h3>
@@ -541,6 +662,72 @@
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-muted);
+  }
+
+  .pins-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+
+  .pin-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+  }
+
+  .pin-index {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--tune-accent);
+    min-width: 24px;
+  }
+
+  .pin-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text);
+  }
+
+  .pin-type-badge {
+    font-family: var(--font-label);
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tune-text-muted);
+    background: var(--tune-surface);
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+  }
+
+  .pin-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .save-queue-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .save-queue-input {
+    flex: 1;
   }
 
   .danger-section {

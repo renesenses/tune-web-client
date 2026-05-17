@@ -186,6 +186,34 @@ export function listGroups() {
   return fetchJSON<ZoneGroupResponse[]>(`${BASE}/zones/groups/list`);
 }
 
+// --- Zone Pins (OpenHome Presets) ---
+
+export function getZonePins(zoneId: number) {
+  return fetchJSON<{ supported: boolean; pins: any[]; max_slots: number }>(`${BASE}/zones/${zoneId}/pins`);
+}
+
+export function setZonePin(zoneId: number, data: { index: number; title: string; uri?: string; mode?: string; type?: string; description?: string; artwork_uri?: string; shuffle?: boolean }) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/pins`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function clearZonePin(zoneId: number, index: number) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/pins/${index}`, { method: 'DELETE' });
+}
+
+export function invokeZonePin(zoneId: number, index: number) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/pins/${index}/invoke`, { method: 'POST' });
+}
+
+export function saveQueueAsPin(zoneId: number, title: string, index?: number) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/pins/from-queue`, {
+    method: 'POST',
+    body: JSON.stringify({ title, index }),
+  });
+}
+
 // --- Zone Manager ---
 
 export function getZoneOverview() {
