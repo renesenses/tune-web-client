@@ -950,6 +950,29 @@ export function restartServer() {
   return fetchJSON<{ status: string; message: string }>(`${BASE}/system/restart`, { method: 'POST' });
 }
 
+// Peer discovery
+export interface TunePeer {
+  name: string;
+  host: string;
+  port: number;
+  version: string;
+  tracks: number;
+  zones: number;
+  server_id: string;
+}
+
+export function getTunePeers() {
+  return fetchJSON<TunePeer[]>(`${BASE}/system/peers`);
+}
+
+export function browsePeer(ip: string, port: number = 8888) {
+  return fetchJSON<any>(`${BASE}/system/peers/${ip}/browse?port=${port}`, { method: 'POST' });
+}
+
+export function transferToPeer(ip: string, port: number = 8888, zoneId: number = 1) {
+  return fetchJSON<any>(`${BASE}/system/peers/${ip}/transfer?port=${port}&zone_id=${zoneId}`, { method: 'POST' });
+}
+
 export function getScanStatus() {
   return fetchJSON<{ scanning: boolean }>(`${BASE}/system/scan/status`);
 }

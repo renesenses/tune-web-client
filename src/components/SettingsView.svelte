@@ -30,6 +30,10 @@
   let artworkProgress: { current: number; total: number; found: number } | null = $state(null);
   let musicRoots = $state<BrowseRootEntry[]>([]);
 
+  // Peer discovery
+  let tunePeers = $state<api.TunePeer[]>([]);
+  let peersLoading = $state(false);
+
   // Database migration
   let pgUrl = $state('');
   let pgTesting = $state(false);
@@ -696,6 +700,16 @@
     }
   }
 
+  async function fetchTunePeers() {
+    peersLoading = true;
+    try {
+      tunePeers = await api.getTunePeers();
+    } catch (e) {
+      console.error('Fetch tune peers error:', e);
+    }
+    peersLoading = false;
+  }
+
   function toggleDevice(prefixedId: string) {
     preferences.update((p) => {
       const ids = p.hiddenDeviceIds;
@@ -1017,6 +1031,7 @@
     untrack(() => {
       loadAll();
       fetchAudioDevices();
+      fetchTunePeers();
       fetchServerVersion();
       checkForUpdate();
       loadCrossfade();
@@ -1126,6 +1141,39 @@
           {restarting ? $t('settings.restarting') : $t('settings.restartServer')}
         </button>
       </div>
+    </section>
+
+    <!-- Tune Peers on the network -->
+    <section class="settings-section">
+      <h3>Serveurs Tune sur le réseau</h3>
+      {#if peersLoading}
+        <div class="loading"><div class="spinner small"></div> Recherche...</div>
+      {:else if tunePeers.length === 0}
+        <p class="diag-hint">Aucun autre serveur Tune détecté sur le réseau local.</p>
+      {:else}
+        <div class="peers-list">
+          {#each tunePeers as peer}
+            <div class="peer-card">
+              <div class="peer-info">
+                <span class="peer-name">{peer.name}</span>
+                <span class="peer-details">{peer.host}:{peer.port} — v{peer.version}</span>
+                <span class="peer-stats">{peer.tracks} pistes, {peer.zones} zone{peer.zones !== 1 ? 's' : ''}</span>
+              </div>
+              <div class="peer-actions">
+                <button class="btn-secondary" onclick={() => window.open(`http://${peer.host}:${peer.port}`, '_blank')}>
+                  Parcourir
+                </button>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+      <button class="scan-btn" onclick={fetchTunePeers} disabled={peersLoading} style="margin-top: 8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+        </svg>
+        Actualiser
+      </button>
     </section>
 
     <!-- Playback / Crossfade -->
@@ -3415,5 +3463,44 @@
     font-size: 16px;
     font-weight: 600;
     color: var(--tune-text-primary);
+  }
+
+  /* Tune Peers */
+  .peers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .peer-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--tune-bg-secondary, #f5f5f5);
+    border-radius: 8px;
+    gap: 12px;
+  }
+  .peer-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .peer-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--tune-text-primary);
+  }
+  .peer-details {
+    font-size: 12px;
+    color: var(--tune-text-secondary, #888);
+    font-family: monospace;
+  }
+  .peer-stats {
+    font-size: 12px;
+    color: var(--tune-text-secondary, #888);
+  }
+  .peer-actions {
+    flex-shrink: 0;
   }
 </style>
