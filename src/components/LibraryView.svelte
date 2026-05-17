@@ -11,6 +11,7 @@
   import AlbumEditModal from './AlbumEditModal.svelte';
   import TrackEditModal from './TrackEditModal.svelte';
   import HeartButton from './HeartButton.svelte';
+  import AlphaIndex from './AlphaIndex.svelte';
   import type { Album, Artist, Track, TrackCredit } from '../lib/types';
   import { t as tr, locale } from '../lib/i18n';
   import type { ArtistMetadata } from '../lib/types';
@@ -491,6 +492,72 @@
       ? $artists.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()))
       : $artists
   );
+
+  // Alpha index for artists
+  let artistLetters = $derived(
+    [...new Set(filteredArtists.map(a => {
+      const first = (a.sort_name || a.name).charAt(0).toUpperCase();
+      return /[A-Z]/.test(first) ? first : '#';
+    }))].sort((a, b) => a === '#' ? 1 : b === '#' ? -1 : a.localeCompare(b))
+  );
+
+  let activeArtistLetter = $state('');
+
+  function scrollToArtistLetter(letter: string) {
+    activeArtistLetter = letter;
+    const idx = filteredArtists.findIndex(a => {
+      const first = (a.sort_name || a.name).charAt(0).toUpperCase();
+      const normalized = /[A-Z]/.test(first) ? first : '#';
+      return normalized === letter;
+    });
+    if (idx < 0) return;
+    const grid = document.querySelector('.artists-grid');
+    if (!grid) return;
+    const cards = grid.querySelectorAll('.artist-card');
+    if (cards[idx]) {
+      cards[idx].scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+  }
+
+  // Alpha index for albums (years when sorted by date, letters otherwise)
+  let albumIndexEntries = $derived.by(() => {
+    if (albumSort === 'release_date' || albumSort === 'original_year') {
+      const decades = [...new Set(filteredAlbums.map(a => {
+        const year = a.original_year || a.release_year;
+        return year ? `${Math.floor(year / 10) * 10}` : '?';
+      }))];
+      return albumSortOrder === 'desc' ? decades.sort((a, b) => b.localeCompare(a)) : decades.sort();
+    }
+    const letters = [...new Set(filteredAlbums.map(a => {
+      const field = albumSort === 'artist' ? (a.artist_name || a.title) : a.title;
+      const first = field.charAt(0).toUpperCase();
+      return /[A-Z]/.test(first) ? first : '#';
+    }))];
+    return letters.sort((a, b) => a === '#' ? 1 : b === '#' ? -1 : a.localeCompare(b));
+  });
+
+  let activeAlbumEntry = $state('');
+
+  function scrollToAlbumEntry(entry: string) {
+    activeAlbumEntry = entry;
+    const isYear = albumSort === 'release_date' || albumSort === 'original_year';
+    const idx = filteredAlbums.findIndex(a => {
+      if (isYear) {
+        const year = a.original_year || a.release_year;
+        const decade = year ? `${Math.floor(year / 10) * 10}` : '?';
+        return decade === entry;
+      }
+      const field = albumSort === 'artist' ? (a.artist_name || a.title) : a.title;
+      const first = field.charAt(0).toUpperCase();
+      const normalized = /[A-Z]/.test(first) ? first : '#';
+      return normalized === entry;
+    });
+    if (idx < 0 || !albumGridViewport) return;
+    const cols = albumGridMetrics.cols || 4;
+    const rowHeight = albumGridMetrics.rowHeight || 220;
+    const row = Math.floor(idx / cols);
+    albumGridViewport.scrollTo({ top: row * rowHeight, behavior: 'smooth' });
+  }
 
   let availableFormats = $derived(
     [...new Set($tracks.map(t => t.format).filter(Boolean))].sort() as string[]
@@ -1380,11 +1447,15 @@
         </span>
         <span class="quality-count">{filteredAlbums.length} album{filteredAlbums.length > 1 ? 's' : ''}</span>
       </div>
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="album-grid-viewport" bind:this={albumGridViewport} onscroll={handleAlbumGridScroll}
-        use:observeHeight={(h) => { albumViewportHeight = h; }}
-        use:observeWidth={(w) => { albumViewportWidth = w; }}>
-        {#if filteredAlbums.length === 0}
+      <div class="album-viewport-wrapper">
+        {#if albumIndexEntries.length > 5}
+          <AlphaIndex letters={albumIndexEntries} activeLetter={activeAlbumEntry} onSelect={scrollToAlbumEntry} />
+        {/if}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="album-grid-viewport" bind:this={albumGridViewport} onscroll={handleAlbumGridScroll}
+          use:observeHeight={(h) => { albumViewportHeight = h; }}
+          use:observeWidth={(w) => { albumViewportWidth = w; }}>
+          {#if filteredAlbums.length === 0}
           <div class="empty">{searchQuery ? $tr('common.noResult') : $tr('library.noAlbums')}</div>
         {:else}
           <div style="height:{albumGridMetrics.totalHeight}px;position:relative;">
@@ -1411,12 +1482,17 @@
               {/each}
             </div>
           </div>
-        {/if}
+          {/if}
+        </div>
       </div>
 
     {:else if $libraryTab === 'artists'}
-      <div class="artists-grid">
-        {#each filteredArtists as artist}
+      <div class="artists-section">
+        {#if artistLetters.length > 5}
+          <AlphaIndex letters={artistLetters} activeLetter={activeArtistLetter} onSelect={scrollToArtistLetter} />
+        {/if}
+        <div class="artists-grid">
+          {#each filteredArtists as artist}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="artist-card" onclick={() => selectArtistDetail(artist)}>
@@ -1433,6 +1509,7 @@
         {#if filteredArtists.length === 0}
           <div class="empty">{searchQuery ? $tr('common.noResult') : $tr('library.noArtists')}</div>
         {/if}
+        </div>
       </div>
 
     {:else if $libraryTab === 'tracks'}
@@ -2184,6 +2261,13 @@
     color: var(--tune-accent);
   }
 
+  .album-viewport-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    min-height: 0;
+  }
+
   .album-grid-viewport {
     flex: 1;
     overflow-y: auto;
@@ -2359,13 +2443,21 @@
     max-width: 160px;
   }
 
-  /* Artists grid */
+  /* Artists section + grid */
+  .artists-section {
+    position: relative;
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+
   .artists-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: var(--space-lg);
     flex: 1;
     overflow-y: auto;
+    padding-right: 20px;
   }
 
   .artist-card {
