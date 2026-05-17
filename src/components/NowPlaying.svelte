@@ -718,7 +718,7 @@
           <SeekBar
             positionMs={$seekPositionMs}
             durationMs={displayTrack.duration_ms ?? 0}
-            enabled={isEffectivePlaying}
+            enabled={state === 'playing' || state === 'paused'}
           />
         </div>
         {/if}

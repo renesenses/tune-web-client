@@ -13,6 +13,7 @@
 
   let isDragging = $state(false);
   let dragPositionMs = $state(0);
+  let trackEl: HTMLElement | undefined = $state();
 
   let zone = $derived($currentZone);
 
@@ -22,42 +23,53 @@
     }
   });
 
+  function pctFromX(x: number): number {
+    if (!trackEl || !durationMs) return 0;
+    const rect = trackEl.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (x - rect.left) / rect.width));
+  }
+
   function handleClick(e: MouseEvent) {
     if (!enabled || !durationMs || !zone?.id) return;
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const newPos = Math.floor(pct * durationMs);
+    const newPos = Math.floor(pctFromX(e.clientX) * durationMs);
     api.seek(zone.id, newPos);
   }
 
   function handleMouseDown(e: MouseEvent) {
     if (!enabled || !durationMs) return;
     isDragging = true;
-    updateDragPosition(e);
+    dragPositionMs = Math.floor(pctFromX(e.clientX) * durationMs);
 
     function onMove(ev: MouseEvent) {
-      updateDragPosition(ev);
+      dragPositionMs = Math.floor(pctFromX(ev.clientX) * durationMs);
     }
-
     function onUp() {
       isDragging = false;
-      if (zone?.id) {
-        api.seek(zone.id, dragPositionMs);
-      }
+      if (zone?.id) api.seek(zone.id, dragPositionMs);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     }
-
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
   }
 
-  function updateDragPosition(e: MouseEvent) {
-    const bar = document.querySelector('.seek-track') as HTMLElement;
-    if (!bar || !durationMs) return;
-    const rect = bar.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    dragPositionMs = Math.floor(pct * durationMs);
+  function handleTouchStart(e: TouchEvent) {
+    if (!enabled || !durationMs) return;
+    isDragging = true;
+    dragPositionMs = Math.floor(pctFromX(e.touches[0].clientX) * durationMs);
+
+    function onMove(ev: TouchEvent) {
+      ev.preventDefault();
+      dragPositionMs = Math.floor(pctFromX(ev.touches[0].clientX) * durationMs);
+    }
+    function onEnd() {
+      isDragging = false;
+      if (zone?.id) api.seek(zone.id, dragPositionMs);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+    }
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
   }
 
   let displayPositionMs = $derived(isDragging ? dragPositionMs : positionMs);
@@ -66,7 +78,7 @@
 
 <div class="seek-bar" class:disabled={!enabled}>
   <span class="time">{formatTime(displayPositionMs)}</span>
-  <div class="seek-track" onclick={handleClick} onmousedown={handleMouseDown} role="slider" aria-valuemin={0} aria-valuemax={durationMs} aria-valuenow={displayPositionMs} aria-label="Seek" tabindex={0}>
+  <div class="seek-track" bind:this={trackEl} onclick={handleClick} onmousedown={handleMouseDown} ontouchstart={handleTouchStart} role="slider" aria-valuemin={0} aria-valuemax={durationMs} aria-valuenow={displayPositionMs} aria-label="Seek" tabindex={0}>
     <div class="seek-fill" style="width: {progress}%"></div>
     <div class="seek-thumb" style="left: {progress}%"></div>
   </div>
@@ -105,6 +117,7 @@
     border-radius: 2px;
     position: relative;
     cursor: pointer;
+    touch-action: none;
   }
 
   .seek-track:hover {
