@@ -935,7 +935,7 @@
     </div>
     <div class="album-detail">
       <div class="album-detail-header">
-        <AlbumArt coverPath={$selectedAlbum.cover_path} albumId={$selectedAlbum.id} size={320} alt={$selectedAlbum.title} />
+        <AlbumArt coverPath={$selectedAlbum.cover_path} albumId={$selectedAlbum.id} size={400} alt={$selectedAlbum.title} />
         <div class="album-detail-info">
           <h2>{$selectedAlbum.title}</h2>
           {#if $selectedAlbum.artist_name}
@@ -959,9 +959,8 @@
             <span class="source-badge">{$selectedAlbum.source}</span>
           {/if}
           <div class="detail-actions">
-            <button class="play-all-btn" onclick={() => $selectedAlbum?.id && playAlbum($selectedAlbum.id)}>
-              <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
-              {$tr('library.playAlbum')}
+            <button class="play-all-btn" onclick={() => $selectedAlbum?.id && playAlbum($selectedAlbum.id)} title={$tr('library.playAlbum')}>
+              <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M8 5v14l11-7z" /></svg>
             </button>
             <button class="edit-btn" onclick={(e) => $selectedAlbum && openAlbumEdit(e, $selectedAlbum)} title={$tr('metadata.editAlbum')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
@@ -1881,7 +1880,7 @@
   .album-detail-info {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xs);
+    gap: 2px;
   }
 
   .album-detail-info h2 {
@@ -2123,21 +2122,21 @@
   .play-all-btn {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-lg);
+    justify-content: center;
+    width: 40px;
+    height: 40px;
     background: var(--tune-accent);
     color: white;
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: 50%;
     cursor: pointer;
-    font-family: var(--font-body);
-    font-size: 14px;
-    font-weight: 700;
-    transition: background 0.12s ease-out;
+    transition: transform 0.12s ease-out, background 0.12s ease-out;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
   .play-all-btn:hover {
     background: var(--tune-accent-hover);
+    transform: scale(1.08);
   }
 
   /* Albums grid */
