@@ -2346,6 +2346,18 @@
             {/if}
           </button>
         </div>
+
+        <!-- What's New -->
+        <div class="about-row" style="margin-top: 0.75rem">
+          <span class="about-label">{$t('whatsnew.title')}</span>
+          <button
+            class="scan-btn"
+            onclick={() => window.dispatchEvent(new CustomEvent('tune:open-whatsnew'))}
+            title={$t('whatsnew.title')}
+          >
+            ✨ {$t('whatsnew.title')}
+          </button>
+        </div>
       </div>
     </section>
   {/if}

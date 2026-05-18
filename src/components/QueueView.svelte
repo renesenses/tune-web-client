@@ -176,7 +176,7 @@
           <button class="queue-item-play" onclick={() => playFromPosition(index)}>
             <span class="queue-index">{index + 1}</span>
             {#if queueTrack.cover_path}
-              <img src={queueTrack.cover_path.startsWith('http') ? queueTrack.cover_path : `/api/v1/library/artwork/${queueTrack.cover_path.split('/').pop()}`} alt="" width="40" height="40" style="border-radius:6px;object-fit:cover;flex-shrink:0" />
+              <img src={api.artworkUrl(queueTrack.cover_path)} alt="" width="40" height="40" style="border-radius:6px;object-fit:cover;flex-shrink:0" />
             {:else}
               <AlbumArt albumId={queueTrack.album_id} size={40} alt={queueTrack.title} />
             {/if}

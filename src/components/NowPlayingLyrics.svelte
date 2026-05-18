@@ -69,7 +69,7 @@
       <pre class="lyrics-text">{lyrics}</pre>
     {/if}
   {:else}
-    <p class="lyrics-empty">Aucune parole disponible</p>
+    <!-- No lyrics: show nothing (no empty state) -->
   {/if}
 </div>
 

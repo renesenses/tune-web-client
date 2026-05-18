@@ -56,6 +56,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
   import ToastContainer from './components/ToastContainer.svelte';
   import OnboardingWizard from './components/OnboardingWizard.svelte';
+  import WhatsNew from './components/WhatsNew.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
   import { loadProfiles } from './lib/stores/profile';
   import { notifications } from './lib/stores/notifications';
@@ -70,6 +71,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   let playlistModalTrack = $state<Track | null>(null);
   let showOnboarding = $state(false);
   let onboardingChecked = $state(false);
+  let showWhatsNew = $state(false);
 
   // Reset seek state + refresh queue when zone changes
   $effect(() => {
@@ -256,6 +258,24 @@ import AlarmsView from './components/AlarmsView.svelte';
     showOnboarding = false;
   }
 
+  async function checkWhatsNew() {
+    try {
+      const data = await api.checkForUpdate();
+      const currentVersion = data?.current_version;
+      if (!currentVersion) return;
+      const lastSeen = localStorage.getItem('tune_last_seen_version');
+      if (lastSeen !== currentVersion) {
+        showWhatsNew = true;
+      }
+    } catch {
+      // Server may not be ready yet, skip silently
+    }
+  }
+
+  function handleWhatsNewClose() {
+    showWhatsNew = false;
+  }
+
   onMount(() => {
     // Apply saved preferences (theme + language)
     const unsub = preferences.subscribe((prefs) => {
@@ -282,6 +302,10 @@ import AlarmsView from './components/AlarmsView.svelte';
     fetchPlaylists();
     loadProfiles();
     checkOnboarding();
+    checkWhatsNew();
+
+    // Allow any component to open the What's New dialog via custom event
+    window.addEventListener('tune:open-whatsnew', () => { showWhatsNew = true; });
 
     // Initialize browser push notifications if enabled
     if (isPushEnabled()) initPushNotifications();
@@ -550,6 +574,10 @@ import AlarmsView from './components/AlarmsView.svelte';
 
 {#if showOnboarding}
   <OnboardingWizard onComplete={handleOnboardingComplete} />
+{/if}
+
+{#if showWhatsNew}
+  <WhatsNew onClose={handleWhatsNewClose} />
 {/if}
 
 <!-- Single persistent YouTube IFrame Player instance (off-screen) -->

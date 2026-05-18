@@ -28,6 +28,9 @@
   let npLyricsTrackId: number | null = $state(null);
   let lyricsLoading = $state(false);
   let showEq = $state(false);
+
+  // Lightbox state for hi-res artwork zoom
+  let showLightbox = $state(false);
   let currentEqPreset = $state('flat');
   let karaokeMode = $state(false);
   let syncedLines: { time: number; text: string }[] = $state([]);
@@ -320,14 +323,41 @@
     lyricsLoading = false;
   }
 
-  // Auto-load credits/lyrics when track changes
+  // Auto-load credits and lyrics when track changes (progressive enhancement)
   $effect(() => {
     const tr = displayTrack;
-    if (tr?.id && showCredits) loadNpCredits(tr.id);
-    if (tr?.id && showLyrics) loadNpLyrics(tr.id);
+    if (!tr?.id) return;
+    // Always pre-load credits for the inline summary
+    loadNpCredits(tr.id);
+    // Auto-load lyrics if panel is open
+    if (showLyrics) loadNpLyrics(tr.id);
     // Reset when track changes
     if (tr?.id !== npCreditsTrackId) { npCredits = []; npCreditsTrackId = null; }
     if (tr?.id !== npLyricsTrackId) { npLyrics = null; npSyncedRaw = null; syncedLines = []; npLyricsTrackId = null; karaokeMode = false; }
+  });
+
+  // Compact inline credits summary: "Piano: K. Jarrett / Bass: G. Peacock / Drums: J. DeJohnette"
+  let inlineCredits = $derived.by(() => {
+    if (npCredits.length === 0) return '';
+    const unique = dedupCredits(npCredits);
+    // Show primary roles: performer, composer, conductor (skip engineer etc.)
+    const primaryRoles = ['performer', 'composer', 'conductor', 'arranger', 'lyricist'];
+    const primary = unique.filter(c => primaryRoles.includes(c.role));
+    const credits = primary.length > 0 ? primary : unique.slice(0, 6);
+    // Group by role
+    const groups = Object.groupBy(credits, c => c.role);
+    const parts: string[] = [];
+    for (const [role, members] of Object.entries(groups)) {
+      if (!members) continue;
+      const names = members.slice(0, 3).map(m => {
+        let name = m.artist_name;
+        if (m.instrument) name += ` (${m.instrument})`;
+        return name;
+      });
+      if (members.length > 3) names.push('...');
+      parts.push(`${formatRole(role)}: ${names.join(', ')}`);
+    }
+    return parts.join(' · ');
   });
 
   const _detailTr: Record<string, string> = {
@@ -385,7 +415,7 @@
     favChecking = false;
   }
   import { ytPlayerState, ytVideoRect, showYTVideo, hideYTVideo } from '../lib/stores/ytPlayer';
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -419,8 +449,20 @@
     showYTVideo({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
   }
 
+  // Close lightbox on Escape
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape' && showLightbox) {
+      showLightbox = false;
+    }
+  }
+
+  onMount(() => {
+    window.addEventListener('keydown', handleKeydown);
+  });
+
   onDestroy(() => {
     hideYTVideo();
+    window.removeEventListener('keydown', handleKeydown);
   });
 
   // Resolve cover path for blurred background
@@ -478,7 +520,16 @@
           <!-- Placeholder keeping layout while IFrame is rendered on top via position:fixed -->
           <div class="yt-placeholder"></div>
         {:else}
-          <AlbumArt coverPath={displayTrack.cover_path} albumId={displayTrack.album_id} size={isWide ? 360 : 400} alt={displayTrack.title} />
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="artwork-clickable" onclick={() => { if (!ytActive) showLightbox = true; }}>
+            <AlbumArt coverPath={displayTrack.cover_path} albumId={displayTrack.album_id} size={isWide ? 360 : 400} alt={displayTrack.title} />
+            {#if !ytActive}
+              <div class="artwork-zoom-hint">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              </div>
+            {/if}
+          </div>
           {#if ytActive}
             <button class="eye-btn" onclick={handleShowVideo} title={$t('youtube.showVideo')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
@@ -490,6 +541,9 @@
         {/if}
         {#if isRadio}
           <div class="art-live-badge"><span class="art-live-dot"></span>LIVE</div>
+        {/if}
+        {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth}
+          <div class="artwork-quality-badge">{formatAudioBadge(displayTrack)}</div>
         {/if}
       </div>
 
@@ -521,11 +575,11 @@
           {#if displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title}
             <p class="track-artist truncate">{displayTrack.artist_name}</p>
           {/if}
+          {#if !isRadio && inlineCredits}
+            <p class="inline-credits">{inlineCredits}</p>
+          {/if}
           {#if !isRadio && displayTrack.album_title}
             <p class="track-album truncate">{displayTrack.album_title}</p>
-          {/if}
-          {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth}
-            <p class="audio-badge">{formatAudioBadge(displayTrack)}</p>
           {/if}
           {#if !isRadio && displayTrack.id}
             <div class="np-extra-btns">
@@ -811,6 +865,36 @@
     </div>
   {/if}
 </div>
+
+<!-- Lightbox overlay for hi-res artwork -->
+{#if showLightbox && resolvedCoverUrl}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="lightbox-overlay" onclick={() => showLightbox = false}>
+    <button class="lightbox-close" onclick={() => showLightbox = false}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+    </button>
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <img
+      class="lightbox-img"
+      src={resolvedCoverUrl}
+      alt={displayTrack?.title ?? 'Artwork'}
+      onclick={(e) => e.stopPropagation()}
+    />
+    {#if displayTrack}
+      <div class="lightbox-caption" onclick={(e) => e.stopPropagation()}>
+        <span class="lightbox-title">{displayTrack.title}</span>
+        {#if displayTrack.artist_name}
+          <span class="lightbox-artist">{displayTrack.artist_name}</span>
+        {/if}
+        {#if displayTrack.album_title}
+          <span class="lightbox-album">{displayTrack.album_title}</span>
+        {/if}
+      </div>
+    {/if}
+  </div>
+{/if}
 
 <!-- Video controls rendered in root stacking context (z-index > IFrame) -->
 {#if ytShowVideo && $ytVideoRect}
@@ -1778,5 +1862,177 @@
     font-family: var(--font-body);
     font-size: 11px;
     color: var(--tune-accent);
+  }
+
+  /* Artwork click-to-zoom */
+  .artwork-clickable {
+    cursor: zoom-in;
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .artwork-zoom-hint {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+  }
+
+  .artwork-clickable:hover .artwork-zoom-hint {
+    opacity: 1;
+  }
+
+  /* Audio quality badge on artwork */
+  .artwork-quality-badge {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    color: var(--tune-accent);
+    border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.3);
+    backdrop-filter: blur(8px);
+    z-index: 2;
+    text-transform: uppercase;
+  }
+
+  /* Inline credits summary below artist name */
+  .inline-credits {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    line-height: 1.4;
+    margin-bottom: var(--space-xs);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  /* Lightbox overlay */
+  .lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.92);
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: lightboxFadeIn 0.2s ease-out;
+    cursor: zoom-out;
+  }
+
+  @keyframes lightboxFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .lightbox-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 501;
+    transition: background 0.15s;
+  }
+
+  .lightbox-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .lightbox-img {
+    max-width: min(90vw, 800px);
+    max-height: 75vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    cursor: default;
+    animation: lightboxImgIn 0.25s ease-out;
+  }
+
+  @keyframes lightboxImgIn {
+    from { transform: scale(0.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .lightbox-caption {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin-top: 16px;
+    cursor: default;
+  }
+
+  .lightbox-title {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+  }
+
+  .lightbox-artist {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .lightbox-album {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Responsive: hide inline credits on very small screens */
+  @media (max-width: 480px) {
+    .inline-credits {
+      display: none;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .inline-credits {
+      font-size: 11px;
+      -webkit-line-clamp: 1;
+    }
+
+    .artwork-quality-badge {
+      font-size: 9px;
+      padding: 2px 8px;
+    }
+
+    .lightbox-img {
+      max-width: 95vw;
+      max-height: 70vh;
+    }
   }
 </style>

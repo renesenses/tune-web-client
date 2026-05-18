@@ -1467,6 +1467,12 @@ export function checkFavorite(profileId: number, params: { track_id?: number; al
 
 export function artworkUrl(coverPath: string | null | undefined, size?: number): string {
   if (!coverPath) return '';
+  // Server already returns usable relative URLs for cover_path
+  // (e.g. /api/v1/library/artwork/abc.jpg or /api/v1/library/artwork/proxy?url=...).
+  // Detect these and use them directly.
+  if (coverPath.startsWith('/api/')) {
+    return coverPath;
+  }
   if (coverPath.startsWith('http://') || coverPath.startsWith('https://')) {
     return `${BASE}/library/artwork/proxy?url=${encodeURIComponent(coverPath)}`;
   }

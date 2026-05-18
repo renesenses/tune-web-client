@@ -815,6 +815,17 @@ export default {
   'plugins.categories.analytics': 'Analytique',
   'plugins.categories.tools': 'Outils',
   'plugins.featured': 'En vedette',
+
+  // What's New
+  'whatsnew.title': 'Quoi de neuf',
+  'whatsnew.version': 'Version {version}',
+  'whatsnew.close': 'Fermer',
+  'whatsnew.noNotes': 'Aucune note de version disponible.',
+  'whatsnew.loading': 'Chargement des notes de version...',
+  'whatsnew.error': 'Impossible de charger les notes de version.',
+  'whatsnew.newFeatures': 'Nouveautés',
+  'whatsnew.fixes': 'Corrections',
+  'whatsnew.improvements': 'Améliorations',
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

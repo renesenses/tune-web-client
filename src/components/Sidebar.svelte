@@ -515,7 +515,11 @@
 
 <aside class="sidebar">
   <div class="sidebar-header">
-    <h1 class="logo"><img src="/tune-logo.png" alt="Tune" class="logo-img" /> <span class="version">{#if $updateAvailable}<button class="version-link" onclick={() => navigate('settings')} title="Mise à jour disponible">v{serverVersion ?? __APP_VERSION__}<span class="version-update-dot"></span><span class="version-latest">v{$latestVersion}</span></button>{:else}v{serverVersion ?? __APP_VERSION__}{/if}</span></h1>
+    <h1 class="logo"><img src="/tune-logo.png" alt="Tune" class="logo-img" /> <span class="version">{#if $updateAvailable}<button class="version-link" onclick={() => navigate('settings')} title="Mise à jour disponible">v{serverVersion ?? __APP_VERSION__}<span class="version-update-dot"></span><span class="version-latest">v{$latestVersion}</span></button>{:else}v{serverVersion ?? __APP_VERSION__}{/if}</span>
+      <button class="whatsnew-btn" onclick={() => window.dispatchEvent(new CustomEvent('tune:open-whatsnew'))} title={$t('whatsnew.title')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </button>
+    </h1>
     <div class="connection-status">
       <span class="state-dot" style="color: {stateColor($connectionState)}">
         {stateIcon($connectionState)}
@@ -953,6 +957,27 @@
     font-weight: 400;
     opacity: 0.5;
     color: var(--tune-text);
+  }
+
+  .whatsnew-btn {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 2px;
+    margin-left: 4px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5;
+    transition: opacity 0.12s, color 0.12s;
+    vertical-align: middle;
+  }
+
+  .whatsnew-btn:hover {
+    opacity: 1;
+    color: var(--tune-accent);
   }
 
   .connection-status {

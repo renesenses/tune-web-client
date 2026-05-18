@@ -815,6 +815,17 @@ export default {
   'plugins.categories.analytics': 'Analytics',
   'plugins.categories.tools': 'Tools',
   'plugins.featured': 'Featured',
+
+  // What's New
+  'whatsnew.title': "What's New",
+  'whatsnew.version': 'Version {version}',
+  'whatsnew.close': 'Close',
+  'whatsnew.noNotes': 'No release notes available.',
+  'whatsnew.loading': 'Loading release notes...',
+  'whatsnew.error': 'Failed to load release notes.',
+  'whatsnew.newFeatures': 'New Features',
+  'whatsnew.fixes': 'Bug Fixes',
+  'whatsnew.improvements': 'Improvements',
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
