@@ -108,6 +108,22 @@
     dropIndex = null;
   }
 
+  let clearingQueue = $state(false);
+
+  async function handleClearQueue() {
+    if (!zone?.id || $queueTracks.length === 0) return;
+    clearingQueue = true;
+    try {
+      await api.clearQueue(zone.id);
+      queueTracks.set([]);
+      queuePosition.set(0);
+    } catch (e) {
+      console.error('Clear queue error:', e);
+      notifications.error('Erreur lors du vidage');
+    }
+    clearingQueue = false;
+  }
+
   let savingQueue = $state(false);
 
   async function handleSaveAsPlaylist() {
@@ -137,6 +153,9 @@
       <button class="save-queue-btn" onclick={handleSaveAsPlaylist} disabled={savingQueue}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
         {savingQueue ? 'Sauvegarde...' : 'Sauver en playlist'}
+      </button>
+      <button class="clear-queue-btn" onclick={handleClearQueue} disabled={clearingQueue} title="Vider la file d'attente">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
       </button>
     {/if}
   </div>
@@ -273,6 +292,29 @@
   }
 
   .save-queue-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .clear-queue-btn {
+    display: inline-flex;
+    align-items: center;
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: 8px;
+    padding: 4px 8px;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    transition: all 0.12s;
+    margin-left: 4px;
+  }
+
+  .clear-queue-btn:hover {
+    border-color: var(--tune-error, #ef4444);
+    color: var(--tune-error, #ef4444);
+  }
+
+  .clear-queue-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }

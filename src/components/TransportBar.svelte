@@ -25,6 +25,14 @@
     await api.setVolume(z.id, val);
   }
 
+  async function mobileVolumeStep(delta: number) {
+    const z = $currentZone;
+    if (!z?.id) return;
+    const newVal = Math.max(0, Math.min(1, mobileVol + delta));
+    if (newVal > 0) mutedVolume.set(null);
+    await api.setVolume(z.id, newVal);
+  }
+
   async function toggleMobileMute() {
     const z = $currentZone;
     if (!z?.id) return;
@@ -544,7 +552,11 @@
           aria-label="Volume"
           onclick={(e) => e.stopPropagation()}
         />
-        <span class="mobile-volume-value">{Math.round(mobileVol * 100)}</span>
+        <div class="mobile-volume-steps">
+          <button class="mobile-step-btn" onclick={(e) => { e.stopPropagation(); mobileVolumeStep(-0.01); }}>−</button>
+          <span class="mobile-volume-value">{Math.round(mobileVol * 100)}</span>
+          <button class="mobile-step-btn" onclick={(e) => { e.stopPropagation(); mobileVolumeStep(0.01); }}>+</button>
+        </div>
       </div>
     {/if}
   </div>
@@ -1630,11 +1642,44 @@
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
   }
 
+  .mobile-volume-steps {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mobile-step-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--tune-border);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--tune-text);
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s;
+  }
+
+  .mobile-step-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .mobile-step-btn:active {
+    transform: scale(0.9);
+  }
+
   .mobile-volume-value {
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
-    color: var(--tune-text-secondary);
+    color: var(--tune-text);
     font-variant-numeric: tabular-nums;
+    min-width: 28px;
+    text-align: center;
   }
 </style>
