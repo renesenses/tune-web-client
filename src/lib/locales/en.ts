@@ -488,6 +488,7 @@ export default {
   'settings.about': 'About',
   'settings.clientVersion': 'Client version',
   'settings.serverVersion': 'Server version',
+  'settings.apiDocs': 'API Documentation',
 
   // Metadata
   'settings.metadataReadonly': 'Read-only mode (never modify audio files)',

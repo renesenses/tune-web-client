@@ -3,7 +3,7 @@
   import { currentZone } from '../lib/stores/zones';
   import { currentTrack } from '../lib/stores/nowPlaying';
   import * as api from '../lib/api';
-  import { formatTime, formatAudioBadge } from '../lib/utils';
+  import { formatTime, formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './AlbumArt.svelte';
@@ -184,7 +184,13 @@
               <span class="queue-title truncate">{queueTrack.title}</span>
               <span class="queue-artist truncate">{queueTrack.artist_name ?? ''}</span>
             </div>
-            {#if queueTrack.format}<span class="audio-format">{formatAudioBadge(queueTrack)}</span>{/if}
+            {#if queueTrack.format}
+              {@const qTier = getQualityTier(queueTrack)}
+              <span
+                class="audio-format tier-{getQualityTierColor(qTier)}"
+                title={formatQualityTooltip(queueTrack)}
+              >{formatCompactQuality(queueTrack)}</span>
+            {/if}
             <span class="queue-duration">{formatTime(queueTrack.duration_ms)}</span>
           </button>
           {#if onAddToPlaylist && (queueTrack.id || queueTrack.source_id)}
@@ -421,10 +427,29 @@
 
   .audio-format {
     font-family: var(--font-label);
-    font-size: 11px;
-    color: var(--tune-text-muted);
+    font-size: 10px;
+    font-weight: 700;
     letter-spacing: 0.3px;
     flex-shrink: 0;
+    padding: 1px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    cursor: default;
+  }
+
+  .audio-format.tier-gold {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.12);
+  }
+
+  .audio-format.tier-silver {
+    color: #d1d5db;
+    background: rgba(209, 213, 219, 0.1);
+  }
+
+  .audio-format.tier-gray {
+    color: #9ca3af;
+    background: rgba(156, 163, 175, 0.08);
   }
 
   .action-btn {

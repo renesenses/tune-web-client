@@ -8,6 +8,7 @@
   import VolumeControl from './VolumeControl.svelte';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
+  import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
   import type { RepeatMode } from '../lib/types';
   import { activeView, mobileNowPlayingOpen } from '../lib/stores/navigation';
 
@@ -321,6 +322,13 @@
               <span class="radio-antenna">&#x1F4E1;</span>{displayTrack.album_title || 'Radio'}
             {:else}
               {displayTrack.artist_name ?? ''}
+              {#if displayTrack.format}
+                {@const miniTier = getQualityTier(displayTrack)}
+                <span
+                  class="tb-quality-badge tier-{getQualityTierColor(miniTier)}"
+                  title={formatQualityTooltip(displayTrack)}
+                >{formatCompactQuality(displayTrack)}</span>
+              {/if}
             {/if}
           </span>
         </div>
@@ -668,6 +676,33 @@
     color: white;
     flex-shrink: 0;
     letter-spacing: 0.3px;
+  }
+
+  .tb-quality-badge {
+    font-family: var(--font-label);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    margin-left: 2px;
+  }
+
+  .tb-quality-badge.tier-gold {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.15);
+  }
+
+  .tb-quality-badge.tier-silver {
+    color: #d1d5db;
+    background: rgba(209, 213, 219, 0.1);
+  }
+
+  .tb-quality-badge.tier-gray {
+    color: #9ca3af;
+    background: rgba(156, 163, 175, 0.08);
   }
 
   .live-badge {

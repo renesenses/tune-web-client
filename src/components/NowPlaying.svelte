@@ -2,7 +2,7 @@
   import { currentZone } from '../lib/stores/zones';
   import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode } from '../lib/stores/nowPlaying';
   import { upNextTracks } from '../lib/stores/queue';
-  import { formatTime, formatAudioBadge } from '../lib/utils';
+  import { formatTime, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import SeekBar from './SeekBar.svelte';
@@ -543,7 +543,14 @@
           <div class="art-live-badge"><span class="art-live-dot"></span>LIVE</div>
         {/if}
         {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth}
-          <div class="artwork-quality-badge">{formatAudioBadge(displayTrack)}</div>
+          {@const tier = getQualityTier(displayTrack)}
+          <div
+            class="artwork-quality-badge tier-{getQualityTierColor(tier)}"
+            title={formatQualityTooltip(displayTrack)}
+          >
+            <span class="aqb-tier">{getQualityTierLabel(tier)}</span>
+            <span class="aqb-detail">{formatQualitySource(displayTrack)}</span>
+          </div>
         {/if}
       </div>
 
@@ -843,6 +850,13 @@
                     <span class="up-next-title truncate">{nextTrack.title}</span>
                     <span class="up-next-artist truncate">{nextTrack.artist_name ?? ''}</span>
                   </div>
+                  {#if nextTrack.format}
+                    {@const nextTier = getQualityTier(nextTrack)}
+                    <span
+                      class="up-next-quality tier-{getQualityTierColor(nextTier)}"
+                      title={formatQualityTooltip(nextTrack)}
+                    >{formatCompactQuality(nextTrack)}</span>
+                  {/if}
                   <span class="up-next-duration">{formatTime(nextTrack.duration_ms)}</span>
                 </button>
               {/each}
@@ -1462,6 +1476,33 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .up-next-quality {
+    font-family: var(--font-label);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    cursor: default;
+  }
+
+  .up-next-quality.tier-gold {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.12);
+  }
+
+  .up-next-quality.tier-silver {
+    color: #d1d5db;
+    background: rgba(209, 213, 219, 0.1);
+  }
+
+  .up-next-quality.tier-gray {
+    color: #9ca3af;
+    background: rgba(156, 163, 175, 0.08);
+  }
+
   /* Radio LIVE badge on artwork */
   .art-live-badge {
     position: absolute;
@@ -1906,12 +1947,58 @@
     letter-spacing: 0.5px;
     padding: 3px 10px;
     border-radius: 4px;
-    background: rgba(0, 0, 0, 0.7);
-    color: var(--tune-accent);
-    border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.3);
+    background: rgba(0, 0, 0, 0.75);
     backdrop-filter: blur(8px);
     z-index: 2;
     text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: default;
+    transition: transform 0.15s ease-out;
+  }
+
+  .artwork-quality-badge:hover {
+    transform: scale(1.05);
+  }
+
+  .aqb-tier {
+    font-weight: 800;
+    letter-spacing: 0.8px;
+  }
+
+  .aqb-detail {
+    font-weight: 500;
+    opacity: 0.85;
+    letter-spacing: 0.3px;
+  }
+
+  /* Gold tier (MQA / Hi-Res) */
+  .artwork-quality-badge.tier-gold {
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.15);
+  }
+  .artwork-quality-badge.tier-gold .aqb-tier {
+    color: #fcd34d;
+  }
+
+  /* Silver tier (CD quality) */
+  .artwork-quality-badge.tier-silver {
+    color: #d1d5db;
+    border: 1px solid rgba(209, 213, 219, 0.3);
+  }
+  .artwork-quality-badge.tier-silver .aqb-tier {
+    color: #e5e7eb;
+  }
+
+  /* Gray tier (Lossy) */
+  .artwork-quality-badge.tier-gray {
+    color: #9ca3af;
+    border: 1px solid rgba(156, 163, 175, 0.25);
+  }
+  .artwork-quality-badge.tier-gray .aqb-tier {
+    color: #9ca3af;
   }
 
   /* Inline credits summary below artist name */
@@ -2028,6 +2115,11 @@
     .artwork-quality-badge {
       font-size: 9px;
       padding: 2px 8px;
+      gap: 4px;
+    }
+
+    .aqb-detail {
+      display: none;
     }
 
     .lightbox-img {
