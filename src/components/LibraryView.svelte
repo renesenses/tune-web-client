@@ -721,6 +721,7 @@
       selectedAlbum.set(full);
       const result = await api.getAlbumTracks(album.id);
       albumTracks.set(result);
+      window.history.pushState({ view: 'library', albumId: album.id, tab: $libraryTab }, '', '#library');
     } catch (e) {
       console.error('Load album tracks error:', e);
       selectedAlbum.set(album);
@@ -731,6 +732,7 @@
   async function selectArtistDetail(artist: Artist) {
     if (!artist.id) return;
     selectedArtist.set(artist);
+    window.history.pushState({ view: 'library', artistId: artist.id, tab: $libraryTab }, '', '#library');
     selectedAlbum.set(null);
     artistMetadata = null;
     artistMetadataError = false;

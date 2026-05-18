@@ -8,6 +8,7 @@
   import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
   import { connectionState } from './lib/stores/connection';
   import { activeView } from './lib/stores/navigation';
+  import { selectedAlbum, selectedArtist, libraryTab } from './lib/stores/library';
   import { preferences, applyTheme } from './lib/stores/preferences';
   import { locale } from './lib/i18n';
   import { setupKeyboardShortcuts } from './lib/keyboard';
@@ -300,14 +301,27 @@ import AlarmsView from './components/AlarmsView.svelte';
     let _pushingState = false;
     activeView.subscribe(view => {
       if (!_pushingState && typeof window !== 'undefined') {
-        window.history.pushState({ view }, '', `#${view}`);
+        const ctx = {
+          view,
+          albumId: $selectedAlbum?.id ?? null,
+          artistId: $selectedArtist?.id ?? null,
+          tab: $libraryTab ?? null,
+        };
+        window.history.pushState(ctx, '', `#${view}`);
       }
     });
     window.addEventListener('popstate', (e) => {
-      const view = e.state?.view;
-      if (view) {
+      const ctx = e.state;
+      if (ctx?.view) {
         _pushingState = true;
-        activeView.set(view);
+        activeView.set(ctx.view);
+        if (ctx.view === 'library') {
+          if (ctx.tab) libraryTab.set(ctx.tab);
+          if (!ctx.albumId && !ctx.artistId) {
+            selectedAlbum.set(null);
+            selectedArtist.set(null);
+          }
+        }
         _pushingState = false;
       }
     });
