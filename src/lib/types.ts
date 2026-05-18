@@ -159,6 +159,7 @@ export interface LocalAudioDevice {
   name: string;
   channels: number;
   sample_rate: number;
+  is_default?: boolean;
 }
 
 // Request/Response models

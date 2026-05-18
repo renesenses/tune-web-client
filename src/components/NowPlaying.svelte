@@ -13,6 +13,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { selectedArtist, artistAlbums, libraryTab } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
+  import VolumeControl from './VolumeControl.svelte';
   import type { RepeatMode, Track, TrackCredit } from '../lib/types';
 
   let isFavorite = $state(false);
@@ -825,6 +826,10 @@
           </button>
 
           <div class="setting-spacer"></div>
+
+          <div class="np-volume-control">
+            <VolumeControl />
+          </div>
 
           <span class="zone-label">{zone.name}</span>
           <span class="playback-indicator" class:playing={isEffectivePlaying} class:paused={state === 'paused' && !isEffectivePlaying}>
@@ -2097,6 +2102,25 @@
     font-family: var(--font-body);
     font-size: 12px;
     color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Volume control inside Now Playing — hidden on desktop (transport bar has it), shown on mobile */
+  .np-volume-control {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .np-volume-control {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      margin-top: var(--space-xs);
+    }
+
+    /* Reset the spacer above so volume goes full width */
+    .settings-row {
+      flex-wrap: wrap;
+    }
   }
 
   /* Responsive: hide inline credits on very small screens */

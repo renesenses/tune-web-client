@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { zones, currentZone, currentZoneId, playAndSync } from '../lib/stores/zones';
-  import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs } from '../lib/stores/nowPlaying';
+  import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
   import { ytPlayerState, ytLoading, pauseVideo, resumeVideo } from '../lib/stores/ytPlayer';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
@@ -11,6 +11,34 @@
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
   import type { RepeatMode } from '../lib/types';
   import { activeView, mobileNowPlayingOpen } from '../lib/stores/navigation';
+
+  // --- Mobile Volume Popup ---
+  let mobileVolumeOpen = $state(false);
+  let mobileVol = $derived($zoneVolume);
+  let mobileIsMuted = $derived(mobileVol === 0 && $mutedVolume !== null);
+
+  async function handleMobileVolume(e: Event) {
+    const z = $currentZone;
+    if (!z?.id) return;
+    const val = Number((e.target as HTMLInputElement).value);
+    if (val > 0) mutedVolume.set(null);
+    await api.setVolume(z.id, val);
+  }
+
+  async function toggleMobileMute() {
+    const z = $currentZone;
+    if (!z?.id) return;
+    if (mobileVol > 0) {
+      mutedVolume.set(mobileVol);
+      await api.setVolume(z.id, 0);
+    } else if ($mutedVolume !== null) {
+      const restore = $mutedVolume;
+      mutedVolume.set(null);
+      await api.setVolume(z.id, restore);
+    } else {
+      await api.setVolume(z.id, 0.5);
+    }
+  }
 
   // --- Sleep Timer ---
   let sleepDropdownOpen = $state(false);
@@ -141,6 +169,7 @@
   function handleBarClick(e: MouseEvent) {
     if ((e.target as HTMLElement).closest('.control-btn')) return;
     if ((e.target as HTMLElement).closest('.zone-dropdown')) return;
+    if ((e.target as HTMLElement).closest('.mobile-volume-wrapper')) return;
     if (window.innerWidth <= 768) {
       mobileNowPlayingOpen.set(true);
     }
@@ -460,6 +489,64 @@
         <span class="audiophile-label">{$t('audiophile.pure' as any)}</span>
       {/if}
     </button>
+  </div>
+
+  <!-- Mobile volume button (visible only on small screens) -->
+  <div class="mobile-volume-wrapper">
+    <button
+      class="control-btn mobile-volume-btn"
+      class:muted={mobileIsMuted}
+      onclick={(e) => { e.stopPropagation(); mobileVolumeOpen = !mobileVolumeOpen; }}
+      title={$t('volume.title')}
+    >
+      {#if mobileIsMuted || mobileVol === 0}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" />
+        </svg>
+      {:else if mobileVol < 0.5}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+        </svg>
+      {:else}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+        </svg>
+      {/if}
+    </button>
+    {#if mobileVolumeOpen}
+      <div class="mobile-volume-backdrop" onclick={() => mobileVolumeOpen = false} role="button" tabindex={0} aria-label="Close volume"></div>
+      <div class="mobile-volume-popup">
+        <button class="mobile-mute-btn" onclick={(e) => { e.stopPropagation(); toggleMobileMute(); }}>
+          {#if mobileIsMuted || mobileVol === 0}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" />
+            </svg>
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            </svg>
+          {/if}
+        </button>
+        <input
+          type="range"
+          class="mobile-volume-slider"
+          min="0"
+          max="1"
+          step="0.01"
+          value={mobileVol}
+          oninput={handleMobileVolume}
+          orient="vertical"
+          aria-label="Volume"
+          onclick={(e) => e.stopPropagation()}
+        />
+        <span class="mobile-volume-value">{Math.round(mobileVol * 100)}</span>
+      </div>
+    {/if}
   </div>
 
   <div class="transport-right">
@@ -1392,7 +1479,7 @@
 
   @media (max-width: 768px) {
     .transport-bar {
-      grid-template-columns: 1fr auto;
+      grid-template-columns: 1fr auto auto;
       padding: var(--space-xs) var(--space-md);
       gap: var(--space-sm);
       height: var(--mini-player-height);
@@ -1438,5 +1525,116 @@
     .transport-right {
       display: none;
     }
+
+    .mobile-volume-wrapper {
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  /* --- Mobile Volume Popup --- */
+  .mobile-volume-wrapper {
+    display: none;
+    position: relative;
+  }
+
+  .mobile-volume-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .mobile-volume-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .mobile-volume-btn.muted {
+    color: var(--tune-warning);
+  }
+
+  .mobile-volume-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 199;
+  }
+
+  .mobile-volume-popup {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: 12px;
+    padding: 14px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 200;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+    animation: volumePopIn 0.15s ease-out;
+  }
+
+  @keyframes volumePopIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  .mobile-mute-btn {
+    background: none;
+    border: none;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.12s;
+  }
+
+  .mobile-mute-btn:hover {
+    color: var(--tune-text);
+  }
+
+  .mobile-volume-slider {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 4px;
+    height: 120px;
+    -webkit-appearance: slider-vertical;
+    appearance: slider-vertical;
+    background: var(--tune-border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  .mobile-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--tune-accent);
+    cursor: pointer;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .mobile-volume-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--tune-accent);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .mobile-volume-value {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+    font-variant-numeric: tabular-nums;
   }
 </style>

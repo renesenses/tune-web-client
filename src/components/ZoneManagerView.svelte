@@ -503,7 +503,7 @@
           <select class="form-select" bind:value={newZoneDeviceId}>
             <option value={undefined}>{$t('zone.defaultOutput')}</option>
             {#each localAudioDevices as dev}
-              <option value={dev.name}>{dev.name} ({dev.channels}ch, {dev.sample_rate / 1000}kHz)</option>
+              <option value={"local:" + dev.name}>{dev.name} ({dev.channels}ch, {dev.sample_rate / 1000}kHz){dev.is_default ? ' *' : ''}</option>
             {/each}
           </select>
         {:else}
@@ -652,7 +652,7 @@
               <select class="form-select" bind:value={changeOutputDeviceId}>
                 <option value={undefined}>{$t('zone.defaultOutput')}</option>
                 {#each localAudioDevices as dev}
-                  <option value={dev.name}>{dev.name} ({dev.channels}ch, {dev.sample_rate / 1000}kHz)</option>
+                  <option value={"local:" + dev.name}>{dev.name} ({dev.channels}ch, {dev.sample_rate / 1000}kHz){dev.is_default ? ' *' : ''}</option>
                 {/each}
               </select>
             {:else}
@@ -774,13 +774,18 @@
           <div class="device-card">
             <div class="device-info">
               <span class="device-icon">
-                {#if device.type === 'airplay'}
+                {#if device.type === 'local'}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                {:else if device.type === 'airplay'}
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1" /><polygon points="12 15 17 21 7 21 12 15" /></svg>
                 {:else}
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><polyline points="17 2 12 7 7 2" /></svg>
                 {/if}
               </span>
               <span class="device-name">{device.name}</span>
+              {#if device.type === 'local' && device.capabilities}
+                <span class="device-detail">{device.capabilities.channels}ch {device.capabilities.sample_rate ? `${device.capabilities.sample_rate / 1000}kHz` : ''}</span>
+              {/if}
               <span class="output-badge {device.type}">{outputTypeIcon(device.type)}</span>
             </div>
             <button class="btn btn-ghost-sm" onclick={() => createZoneFromDevice(device)} title={$t('zone.createZone')}>
@@ -1522,6 +1527,14 @@
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+  }
+
+  .device-detail {
+    font-family: var(--font-label);
+    font-size: 10px;
+    color: var(--tune-text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   /* Empty state */
