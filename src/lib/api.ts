@@ -2046,6 +2046,30 @@ export interface StorePlugin {
   author: string;
   install_count: number;
   version: string;
+  platforms?: string;
+}
+
+/** Merged plugin (catalog + local install state) from /api/v1/plugins */
+export interface MergedPlugin {
+  name: string;
+  display_name: string;
+  description: string;
+  version: string;
+  category: string;
+  author?: string;
+  icon?: string;
+  install_count?: number;
+  platforms?: string;
+  compatible: boolean;
+  installed: boolean;
+  installed_version?: string | null;
+  update_available: boolean;
+  status: 'available' | 'active' | 'disabled' | 'error';
+  error_message?: string | null;
+  source?: string;
+  min_tune_version?: string;
+  max_tune_version?: string;
+  is_featured?: boolean;
 }
 
 export function getInstalledPlugins(): Promise<InstalledPlugin[]> {
@@ -2069,6 +2093,31 @@ export async function getStorePlugins(search?: string, category?: string): Promi
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Store fetch failed (${res.status})`);
   return res.json();
+}
+
+/** Fetch merged plugin list (catalog + local) from the Tune server. */
+export function getMergedPlugins(): Promise<MergedPlugin[]> {
+  return fetchJSON<MergedPlugin[]>(`${BASE}/plugins`);
+}
+
+/** Get details for a single plugin by slug. */
+export function getPluginDetail(slug: string): Promise<MergedPlugin> {
+  return fetchJSON<MergedPlugin>(`${BASE}/plugins/${encodeURIComponent(slug)}`);
+}
+
+/** Install a plugin via the server (pip install). */
+export function installPlugin(slug: string): Promise<{ success: boolean; message: string; restart_required: boolean }> {
+  return fetchJSON(`${BASE}/plugins/${encodeURIComponent(slug)}/install`, { method: 'POST' });
+}
+
+/** Uninstall a plugin via the server (pip uninstall). */
+export function uninstallPlugin(slug: string): Promise<{ success: boolean; message: string; restart_required: boolean }> {
+  return fetchJSON(`${BASE}/plugins/${encodeURIComponent(slug)}`, { method: 'DELETE' });
+}
+
+/** Update a plugin to the latest version via the server (pip install --upgrade). */
+export function updatePlugin(slug: string): Promise<{ success: boolean; message: string; restart_required: boolean }> {
+  return fetchJSON(`${BASE}/plugins/${encodeURIComponent(slug)}/update`, { method: 'POST' });
 }
 
 // --- Health Monitor ---

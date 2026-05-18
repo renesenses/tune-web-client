@@ -242,13 +242,9 @@ import AlarmsView from './components/AlarmsView.svelte';
       return;
     }
     try {
-      const [stats, services] = await Promise.all([
-        api.getLibraryStats(),
-        api.getStreamingServices(),
-      ]);
-      const hasNoTracks = stats.tracks === 0;
-      const hasNoEnabledServices = !Object.values(services).some((s: any) => s.enabled);
-      showOnboarding = hasNoTracks && hasNoEnabledServices;
+      const stats = await api.getLibraryStats();
+      // Show onboarding on first run: no music dirs configured or no tracks indexed
+      showOnboarding = stats.tracks === 0;
     } catch {
       // If API fails, skip onboarding — server may not be ready yet
       showOnboarding = false;

@@ -3,22 +3,22 @@
   import * as api from '../lib/api';
   import { t } from '../lib/i18n';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
+  import { activeView } from '../lib/stores/navigation';
   import { tuneWS } from '../lib/websocket';
   import { notifications } from '../lib/stores/notifications';
-  import type { StreamingServiceStatus, BrowseRootEntry, Zone, LocalAudioDevice, DiscoveredDevice } from '../lib/types';
+  import type { BrowseRootEntry } from '../lib/types';
 
   let { onComplete }: { onComplete: () => void } = $props();
 
   let step = $state(1);
-  const totalSteps = 5;
+  const totalSteps = 4;
 
   // Step 2: Music library
   let musicRoots = $state<BrowseRootEntry[]>([]);
   let newMusicDirPath = $state('');
   let addingMusicDir = $state(false);
   let musicDirError = $state<string | null>(null);
-  let scanning = $state(false);
-  let scanMessage = $state('');
+  let removingDir = $state<string | null>(null);
 
   // Step 3: Streaming
   let qobuzUsername = $state('');
@@ -47,35 +47,35 @@
   let youtubePollingInterval = $state<ReturnType<typeof setInterval> | null>(null);
   let youtubeAuthError = $state<string | null>(null);
 
-  // Step 4: Audio verification
-  let audioZones = $state<Zone[]>([]);
-  let audioDevices = $state<LocalAudioDevice[]>([]);
-  let networkDevices = $state<DiscoveredDevice[]>([]);
-  let audioCheckLoading = $state(false);
-  let creatingZone = $state(false);
-  let testingSound = $state(false);
-  let soundTestResult = $state<'success' | 'error' | null>(null);
+  // Step 4: Scan
+  let scanning = $state(false);
+  let scanComplete = $state(false);
+  let scanStats = $state<{ scanned: number; added: number; updated: number; removed: number; errors: number }>({ scanned: 0, added: 0, updated: 0, removed: 0, errors: 0 });
+  let tracksCount = $state(0);
+  let scanError = $state<string | null>(null);
 
-  let hasZone = $derived(audioZones.length > 0);
-
-  // Step 5: Summary
-  let configuredDirs = $derived(musicRoots.length);
+  // Derived
+  let hasMusic = $derived(musicRoots.length > 0);
   let enabledServices = $derived(
     Object.entries($streamingServicesStore).filter(([, s]) => s.enabled).map(([name]) => name)
   );
-  let authenticatedServices = $derived(
-    Object.entries($streamingServicesStore).filter(([, s]) => s.authenticated).map(([name]) => name)
-  );
+  let hasContent = $derived(hasMusic || enabledServices.length > 0);
 
   // Load data on mount
   $effect(() => {
     loadMusicRoots();
     loadStreamingServices();
     const unsub = tuneWS.onEvent((event) => {
+      if (event.type === 'library.scan.progress' && event.data) {
+        scanStats = { ...scanStats, ...event.data };
+      }
       if (event.type === 'library.scan.completed') {
         scanning = false;
-        scanMessage = get(t)('onboarding.scanComplete');
-        loadMusicRoots();
+        scanComplete = true;
+        if (event.data) {
+          scanStats = { ...scanStats, ...event.data };
+        }
+        loadTracksCount();
       }
     });
     return () => {
@@ -97,6 +97,13 @@
     } catch { /* ignore */ }
   }
 
+  async function loadTracksCount() {
+    try {
+      const stats = await api.getLibraryStats();
+      tracksCount = stats.tracks;
+    } catch { /* ignore */ }
+  }
+
   // Music dir management
   async function handleAddMusicDir() {
     const path = newMusicDirPath.trim();
@@ -113,19 +120,32 @@
     addingMusicDir = false;
   }
 
+  async function handleRemoveMusicDir(path: string) {
+    removingDir = path;
+    try {
+      await api.removeMusicDir(path);
+      await loadMusicRoots();
+    } catch (e: any) {
+      notifications.error(e?.message || String(e));
+    }
+    removingDir = null;
+  }
+
+  // Step 4: Launch scan
   async function handleScan() {
     scanning = true;
-    scanMessage = '';
+    scanComplete = false;
+    scanStats = { scanned: 0, added: 0, updated: 0, removed: 0, errors: 0 };
+    scanError = null;
     try {
       await api.triggerScan();
-      scanMessage = get(t)('onboarding.scanStarted');
     } catch (e: any) {
       if (e?.message?.includes('already') || e?.message?.includes('409')) {
-        scanMessage = get(t)('onboarding.scanAlready');
+        // Scan already running, just watch progress
       } else {
-        scanMessage = `Error: ${e?.message || e}`;
+        scanError = e?.message || String(e);
+        scanning = false;
       }
-      scanning = false;
     }
   }
 
@@ -144,7 +164,7 @@
     }
   }
 
-  // Auth handlers (reuse pattern from SettingsView)
+  // Auth handlers
   async function handleQobuzAuth() {
     qobuzAuthLoading = true;
     qobuzAuthError = null;
@@ -290,52 +310,9 @@
     if (youtubePollingInterval) clearInterval(youtubePollingInterval);
   }
 
-  async function loadAudioChecks() {
-    audioCheckLoading = true;
-    try {
-      const [zones, devices, netDevices] = await Promise.all([
-        api.getZones(),
-        api.getAudioDevices(),
-        api.getDevices(),
-      ]);
-      audioZones = zones;
-      audioDevices = devices;
-      networkDevices = netDevices;
-    } catch (e) {
-      console.error('Audio check error:', e);
-    }
-    audioCheckLoading = false;
-  }
-
-  async function createDefaultZone() {
-    creatingZone = true;
-    try {
-      await api.createZone('Ma zone', 'local');
-      audioZones = await api.getZones();
-    } catch (e: any) {
-      notifications.error(e?.message || String(e));
-    }
-    creatingZone = false;
-  }
-
-  async function testSound() {
-    if (!hasZone) return;
-    testingSound = true;
-    soundTestResult = null;
-    try {
-      const zone = audioZones[0];
-      if (zone.id != null) {
-        await api.play(zone.id);
-        soundTestResult = 'success';
-      }
-    } catch {
-      soundTestResult = 'error';
-    }
-    testingSound = false;
-  }
-
   function finishOnboarding() {
     localStorage.setItem('tune_onboarding_completed', 'true');
+    activeView.set('library');
     onComplete();
   }
 
@@ -346,6 +323,19 @@
 
   function capitalize(s: string): string {
     return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  function serviceLogo(name: string): string {
+    const colors: Record<string, string> = {
+      tidal: '#000',
+      qobuz: '#e91e63',
+      spotify: '#1db954',
+      deezer: '#a238ff',
+      youtube: '#ff0000',
+      amazon: '#ff9900',
+    };
+    const c = colors[name] ?? 'var(--tune-accent)';
+    return `<svg viewBox="0 0 20 20" width="20" height="20"><circle cx="10" cy="10" r="9" fill="${c}" opacity="0.15"/><circle cx="10" cy="10" r="5" fill="${c}"/></svg>`;
   }
 </script>
 
@@ -362,13 +352,37 @@
     {#if step === 1}
       <div class="wizard-step welcome-step">
         <div class="welcome-icon">
-          <svg viewBox="0 0 48 48" fill="none" width="64" height="64">
-            <circle cx="24" cy="24" r="22" stroke="var(--tune-accent)" stroke-width="2" fill="none" />
-            <path d="M18 14v20l16-10z" fill="var(--tune-accent)" />
+          <svg viewBox="0 0 80 80" fill="none" width="80" height="80">
+            <circle cx="40" cy="40" r="38" stroke="var(--tune-accent)" stroke-width="2" fill="none" />
+            <circle cx="40" cy="40" r="28" stroke="var(--tune-accent)" stroke-width="1.5" fill="none" opacity="0.4" />
+            <path d="M34 24v32l22-16z" fill="var(--tune-accent)" />
           </svg>
         </div>
         <h1>{$t('onboarding.welcomeTitle')}</h1>
         <p class="welcome-desc">{$t('onboarding.welcomeDesc')}</p>
+
+        <div class="welcome-features">
+          <div class="feature-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--tune-accent)" stroke-width="2" width="20" height="20">
+              <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
+            </svg>
+            <span>{$t('onboarding.featureLocal')}</span>
+          </div>
+          <div class="feature-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--tune-accent)" stroke-width="2" width="20" height="20">
+              <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
+              <line x1="2" y1="20" x2="2.01" y2="20" />
+            </svg>
+            <span>{$t('onboarding.featureStreaming')}</span>
+          </div>
+          <div class="feature-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--tune-accent)" stroke-width="2" width="20" height="20">
+              <rect x="4" y="2" width="16" height="20" rx="2" /><circle cx="12" cy="14" r="4" /><line x1="12" y1="6" x2="12.01" y2="6" />
+            </svg>
+            <span>{$t('onboarding.featureMultiroom')}</span>
+          </div>
+        </div>
+
         <button class="btn-primary" onclick={() => step = 2}>
           {$t('onboarding.getStarted')}
         </button>
@@ -394,7 +408,23 @@
                   <span class="music-dir-name">{root.name}</span>
                   <span class="music-dir-path">{root.path}</span>
                 </div>
-                <span class="music-dir-count">{root.track_count} {$t('common.tracks')}</span>
+                {#if root.track_count > 0}
+                  <span class="music-dir-count">{root.track_count} {$t('common.tracks')}</span>
+                {/if}
+                <button
+                  class="btn-remove"
+                  onclick={() => handleRemoveMusicDir(root.path)}
+                  disabled={removingDir === root.path}
+                  title={$t('common.delete')}
+                >
+                  {#if removingDir === root.path}
+                    <div class="spinner spinner-sm"></div>
+                  {:else}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  {/if}
+                </button>
               </div>
             {/each}
           </div>
@@ -404,7 +434,7 @@
           <input
             type="text"
             class="input-field"
-            placeholder={$t('settings.addMusicDirPlaceholder')}
+            placeholder={$t('onboarding.addDirPlaceholder')}
             bind:value={newMusicDirPath}
             disabled={addingMusicDir}
             onkeydown={(e) => { if (e.key === 'Enter') handleAddMusicDir(); }}
@@ -417,7 +447,10 @@
             {#if addingMusicDir}
               <div class="spinner"></div>
             {:else}
-              {$t('settings.addMusicDir')}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              {$t('onboarding.addDir')}
             {/if}
           </button>
         </div>
@@ -425,22 +458,7 @@
           <p class="error-msg">{musicDirError}</p>
         {/if}
 
-        {#if musicRoots.length > 0}
-          <button class="btn-scan" onclick={handleScan} disabled={scanning}>
-            {#if scanning}
-              <div class="spinner"></div>
-              {$t('settings.scanning')}
-            {:else}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-              </svg>
-              {$t('settings.scanLibrary')}
-            {/if}
-          </button>
-          {#if scanMessage}
-            <p class="scan-msg">{scanMessage}</p>
-          {/if}
-        {/if}
+        <p class="hint-text">{$t('onboarding.libraryHint')}</p>
 
         <div class="step-actions">
           <button class="btn-back" onclick={() => step = 1}>{$t('common.back')}</button>
@@ -461,7 +479,10 @@
           {#each Object.entries($streamingServicesStore) as [name, status]}
             <div class="service-card">
               <div class="service-header">
-                <span class="service-name">{capitalize(name)}</span>
+                <div class="service-name-row">
+                  <span class="service-logo">{@html serviceLogo(name)}</span>
+                  <span class="service-name">{capitalize(name)}</span>
+                </div>
                 <div class="service-actions">
                   {#if status.enabled}
                     {#if status.authenticated}
@@ -543,163 +564,135 @@
         <div class="step-actions">
           <button class="btn-back" onclick={() => step = 2}>{$t('common.back')}</button>
           <div class="step-actions-right">
-            <button class="btn-skip" onclick={() => { step = 4; loadAudioChecks(); }}>{$t('onboarding.skip')}</button>
-            <button class="btn-primary" onclick={() => { step = 4; loadAudioChecks(); }}>{$t('onboarding.next')}</button>
+            <button class="btn-skip" onclick={() => step = 4}>{$t('onboarding.skip')}</button>
+            <button class="btn-primary" onclick={() => step = 4}>{$t('onboarding.next')}</button>
           </div>
         </div>
       </div>
 
-    <!-- Step 4: Audio Verification -->
+    <!-- Step 4: Scan & Finish -->
     {:else if step === 4}
-      <div class="wizard-step">
-        <h2>Vérification audio</h2>
-        <p class="step-desc">Vérifions que le son fonctionne correctement.</p>
-
-        {#if audioCheckLoading}
-          <div class="audio-loading">
-            <div class="spinner"></div>
-            Chargement...
-          </div>
-        {:else}
-          <div class="check-list">
-            <div class="check-item">
-              <span class="check-icon">{hasZone ? '✅' : '⚠️'}</span>
-              <div class="check-info">
-                <span class="check-label">Zone de lecture</span>
-                {#if hasZone}
-                  <span class="check-detail">{audioZones[0].name}</span>
-                {:else}
-                  <span class="check-detail check-warning">Aucune zone configurée</span>
-                {/if}
-              </div>
-              {#if !hasZone}
-                <button class="btn-secondary" onclick={createDefaultZone} disabled={creatingZone}>
-                  {#if creatingZone}<div class="spinner"></div>{/if}
-                  Créer une zone
-                </button>
-              {/if}
+      <div class="wizard-step scan-step">
+        {#if !scanning && !scanComplete}
+          <!-- Pre-scan state -->
+          <div class="scan-intro">
+            <div class="scan-icon">
+              <svg viewBox="0 0 64 64" fill="none" width="64" height="64">
+                <circle cx="32" cy="32" r="28" stroke="var(--tune-accent)" stroke-width="2" fill="none" stroke-dasharray="4 4" />
+                <path d="M26 20v24l18-12z" fill="var(--tune-accent)" opacity="0.8" />
+              </svg>
             </div>
+            <h2>{$t('onboarding.scanTitle')}</h2>
+            <p class="step-desc">{$t('onboarding.scanDesc')}</p>
 
-            <div class="check-item">
-              <span class="check-icon">{audioDevices.length > 0 ? '✅' : '⚠️'}</span>
-              <div class="check-info">
-                <span class="check-label">Sorties audio</span>
-                <span class="check-detail">{audioDevices.length} détectée{audioDevices.length !== 1 ? 's' : ''}</span>
+            {#if hasMusic}
+              <div class="scan-summary">
+                <span class="scan-summary-label">{$t('onboarding.summaryDirs')}</span>
+                <span class="scan-summary-value">{musicRoots.length}</span>
               </div>
-            </div>
-            {#if audioDevices.length > 0}
-              <div class="check-sublist">
-                {#each audioDevices as device}
-                  <div class="check-subitem">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--tune-accent)" stroke-width="2" width="14" height="14">
-                      <rect x="4" y="2" width="16" height="20" rx="2" /><circle cx="12" cy="14" r="4" /><line x1="12" y1="6" x2="12.01" y2="6" />
-                    </svg>
-                    <span>{device.name}</span>
-                    <span class="check-tag">{device.channels}ch · {Math.round(device.sample_rate / 1000)} kHz</span>
-                  </div>
-                {/each}
+            {/if}
+            {#if enabledServices.length > 0}
+              <div class="scan-summary">
+                <span class="scan-summary-label">{$t('onboarding.summaryServices')}</span>
+                <span class="scan-summary-value">{enabledServices.map(capitalize).join(', ')}</span>
               </div>
             {/if}
 
-            <div class="check-item">
-              <span class="check-icon">{networkDevices.length > 0 ? '✅' : 'ℹ️'}</span>
-              <div class="check-info">
-                <span class="check-label">Appareils réseau</span>
-                <span class="check-detail">{networkDevices.length} trouvé{networkDevices.length !== 1 ? 's' : ''}</span>
-              </div>
-            </div>
-            {#if networkDevices.length > 0}
-              <div class="check-sublist">
-                {#each networkDevices as device}
-                  <div class="check-subitem">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--tune-accent)" stroke-width="2" width="14" height="14">
-                      {#if device.type === 'airplay'}
-                        <path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1" /><polygon points="12 15 17 21 7 21 12 15" />
-                      {:else}
-                        <rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><polyline points="17 2 12 7 7 2" />
-                      {/if}
-                    </svg>
-                    <span>{device.name}</span>
-                    <span class="check-tag {device.type}">{device.type === 'airplay' ? 'AirPlay' : device.type === 'bluos' ? 'BluOS' : 'DLNA'}</span>
-                  </div>
-                {/each}
-              </div>
-            {/if}
-          </div>
-
-          {#if hasZone}
-            <div class="test-sound-section">
-              <button class="btn-secondary" onclick={testSound} disabled={testingSound}>
-                {#if testingSound}
-                  <div class="spinner"></div>
-                  Test en cours...
-                {:else}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
-                  </svg>
-                  Tester le son
-                {/if}
+            {#if hasMusic}
+              <button class="btn-primary btn-scan-launch" onclick={handleScan}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                </svg>
+                {$t('onboarding.scanLaunch')}
               </button>
-              {#if soundTestResult === 'success'}
-                <span class="test-result success">Lecture lancée</span>
-              {:else if soundTestResult === 'error'}
-                <span class="test-result error">Erreur de lecture</span>
+            {/if}
+
+            <button class="btn-finish-skip" onclick={finishOnboarding}>
+              {hasMusic ? $t('onboarding.skipScan') : $t('onboarding.finishNoScan')}
+            </button>
+          </div>
+
+        {:else if scanning}
+          <!-- Scanning in progress -->
+          <div class="scan-progress-section">
+            <h2>{$t('onboarding.scanInProgress')}</h2>
+
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill progress-bar-indeterminate"></div>
+            </div>
+
+            <div class="scan-stats">
+              <div class="scan-stat">
+                <span class="scan-stat-number">{scanStats.scanned}</span>
+                <span class="scan-stat-label">{$t('onboarding.statScanned')}</span>
+              </div>
+              <div class="scan-stat">
+                <span class="scan-stat-number">{scanStats.added}</span>
+                <span class="scan-stat-label">{$t('onboarding.statAdded')}</span>
+              </div>
+              {#if scanStats.updated > 0}
+                <div class="scan-stat">
+                  <span class="scan-stat-number">{scanStats.updated}</span>
+                  <span class="scan-stat-label">{$t('onboarding.statUpdated')}</span>
+                </div>
               {/if}
             </div>
-          {/if}
+
+            <p class="scan-hint">{$t('onboarding.scanWait')}</p>
+          </div>
+
+        {:else if scanComplete}
+          <!-- Scan complete -->
+          <div class="scan-done-section">
+            <div class="done-icon">
+              <svg viewBox="0 0 64 64" fill="none" width="72" height="72">
+                <circle cx="32" cy="32" r="28" stroke="var(--tune-success)" stroke-width="2.5" fill="none" />
+                <path d="M20 32l8 8 16-16" stroke="var(--tune-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+              </svg>
+            </div>
+            <h1>{$t('onboarding.scanDoneTitle')}</h1>
+            <p class="scan-done-count">
+              {tracksCount > 0
+                ? $t('onboarding.scanDoneCount').replace('{count}', String(tracksCount))
+                : $t('onboarding.scanDoneNoTracks')
+              }
+            </p>
+
+            <div class="scan-final-stats">
+              <div class="scan-final-stat">
+                <span class="scan-final-number">{scanStats.added}</span>
+                <span class="scan-final-label">{$t('onboarding.statAdded')}</span>
+              </div>
+              {#if scanStats.updated > 0}
+                <div class="scan-final-stat">
+                  <span class="scan-final-number">{scanStats.updated}</span>
+                  <span class="scan-final-label">{$t('onboarding.statUpdated')}</span>
+                </div>
+              {/if}
+              {#if scanStats.removed > 0}
+                <div class="scan-final-stat">
+                  <span class="scan-final-number">{scanStats.removed}</span>
+                  <span class="scan-final-label">{$t('onboarding.statRemoved')}</span>
+                </div>
+              {/if}
+            </div>
+
+            <button class="btn-primary btn-go" onclick={finishOnboarding}>
+              {$t('onboarding.goToLibrary')}
+            </button>
+          </div>
         {/if}
 
-        <div class="step-actions">
-          <button class="btn-back" onclick={() => step = 3}>{$t('common.back')}</button>
-          <div class="step-actions-right">
-            <button class="btn-skip" onclick={() => step = 5}>{$t('onboarding.skip')}</button>
-            <button class="btn-primary" onclick={() => step = 5}>{$t('onboarding.next')}</button>
+        {#if !scanning && !scanComplete}
+          <div class="step-actions">
+            <button class="btn-back" onclick={() => step = 3}>{$t('common.back')}</button>
+            <div class="step-actions-right"></div>
           </div>
-        </div>
-      </div>
+        {/if}
 
-    <!-- Step 5: Done -->
-    {:else if step === 5}
-      <div class="wizard-step done-step">
-        <div class="done-icon">
-          <svg viewBox="0 0 48 48" fill="none" width="64" height="64">
-            <circle cx="24" cy="24" r="22" stroke="var(--tune-success)" stroke-width="2" fill="none" />
-            <path d="M14 24l7 7 13-13" stroke="var(--tune-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-          </svg>
-        </div>
-        <h1>{$t('onboarding.doneTitle')}</h1>
-        <p class="welcome-desc">{$t('onboarding.doneDesc')}</p>
-
-        <div class="summary">
-          <div class="summary-item">
-            <span class="summary-label">{$t('onboarding.summaryDirs')}</span>
-            <span class="summary-value">{configuredDirs}</span>
-          </div>
-          {#if enabledServices.length > 0}
-            <div class="summary-item">
-              <span class="summary-label">{$t('onboarding.summaryServices')}</span>
-              <span class="summary-value">{enabledServices.map(capitalize).join(', ')}</span>
-            </div>
-          {/if}
-          {#if authenticatedServices.length > 0}
-            <div class="summary-item">
-              <span class="summary-label">{$t('onboarding.summaryConnected')}</span>
-              <span class="summary-value">{authenticatedServices.map(capitalize).join(', ')}</span>
-            </div>
-          {/if}
-          <div class="summary-item">
-            <span class="summary-label">Zones audio</span>
-            <span class="summary-value">{hasZone ? '✅' : '⚠️'} {audioZones.length}</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Sorties audio</span>
-            <span class="summary-value">{audioDevices.length > 0 ? '✅' : '⚠️'} {audioDevices.length}</span>
-          </div>
-        </div>
-
-        <button class="btn-primary" onclick={finishOnboarding}>
-          {$t('onboarding.goToDashboard')}
-        </button>
+        {#if scanError}
+          <p class="error-msg">{scanError}</p>
+        {/if}
       </div>
     {/if}
   </div>
@@ -750,15 +743,19 @@
     gap: var(--space-lg);
   }
 
-  .welcome-step,
-  .done-step {
+  .welcome-step {
     align-items: center;
     text-align: center;
   }
 
-  .welcome-icon,
-  .done-icon {
+  .welcome-icon {
     margin-bottom: var(--space-md);
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
   }
 
   h1 {
@@ -787,6 +784,30 @@
 
   .welcome-step .welcome-desc {
     margin: 0 auto;
+  }
+
+  /* Welcome feature list */
+  .welcome-features {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    width: 100%;
+    max-width: 320px;
+    margin: var(--space-md) auto;
+  }
+
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text-secondary);
+    text-align: left;
+  }
+
+  .feature-item svg {
+    flex-shrink: 0;
   }
 
   /* Buttons */
@@ -871,32 +892,6 @@
     color: var(--tune-text);
   }
 
-  .btn-scan {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-lg);
-    background: var(--tune-grey2);
-    color: var(--tune-text);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-md);
-    font-family: var(--font-body);
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.12s;
-    align-self: flex-start;
-  }
-
-  .btn-scan:hover:not(:disabled) {
-    border-color: var(--tune-accent);
-    color: var(--tune-accent);
-  }
-
-  .btn-scan:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-
   .btn-toggle {
     background: none;
     border: 1px solid var(--tune-border);
@@ -921,6 +916,50 @@
 
   .btn-toggle.enable:hover {
     background: rgba(107, 110, 217, 0.1);
+  }
+
+  .btn-remove {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: color 0.12s;
+  }
+
+  .btn-remove:hover:not(:disabled) {
+    color: var(--tune-warning);
+  }
+
+  .btn-finish-skip {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    padding: var(--space-xs) var(--space-md);
+    transition: color 0.12s;
+  }
+
+  .btn-finish-skip:hover {
+    color: var(--tune-text-secondary);
+  }
+
+  .btn-scan-launch {
+    padding: var(--space-md) var(--space-xxl, 40px);
+    font-size: 16px;
+  }
+
+  .btn-go {
+    padding: var(--space-md) var(--space-xxl, 40px);
+    font-size: 16px;
+    margin-top: var(--space-md);
   }
 
   /* Step actions */
@@ -1017,6 +1056,14 @@
     flex-shrink: 0;
   }
 
+  .hint-text {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    margin: 0;
+    line-height: 1.4;
+  }
+
   /* Streaming */
   .service-list {
     display: flex;
@@ -1036,6 +1083,17 @@
   .service-header {
     display: flex;
     justify-content: space-between;
+    align-items: center;
+  }
+
+  .service-name-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .service-logo {
+    display: flex;
     align-items: center;
   }
 
@@ -1112,35 +1170,175 @@
     color: var(--tune-text-muted);
   }
 
-  /* Summary */
-  .summary {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-    width: 100%;
-    max-width: 400px;
-    background: var(--tune-surface);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-lg);
-    padding: var(--space-lg);
+  /* Step 4: Scan */
+  .scan-step {
+    min-height: 300px;
   }
 
-  .summary-item {
+  .scan-intro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-lg);
+  }
+
+  .scan-icon {
+    animation: rotate 20s linear infinite;
+  }
+
+  @keyframes rotate {
+    to { transform: rotate(360deg); }
+  }
+
+  .scan-summary {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    width: 100%;
+    max-width: 300px;
     padding: var(--space-xs) 0;
     font-family: var(--font-body);
     font-size: 14px;
   }
 
-  .summary-label {
+  .scan-summary-label {
     color: var(--tune-text-secondary);
   }
 
-  .summary-value {
+  .scan-summary-value {
     color: var(--tune-text);
     font-weight: 600;
+  }
+
+  /* Scan progress */
+  .scan-progress-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-lg);
+    padding: var(--space-xl) 0;
+  }
+
+  .progress-bar-track {
+    width: 100%;
+    height: 6px;
+    background: var(--tune-border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--tune-accent);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  .progress-bar-indeterminate {
+    width: 40%;
+    animation: indeterminate 1.5s ease-in-out infinite;
+  }
+
+  @keyframes indeterminate {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(350%); }
+  }
+
+  .scan-stats {
+    display: flex;
+    gap: var(--space-xl);
+  }
+
+  .scan-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .scan-stat-number {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--tune-accent);
+    line-height: 1;
+  }
+
+  .scan-stat-label {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .scan-hint {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    margin: 0;
+  }
+
+  /* Scan done */
+  .scan-done-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-lg);
+    padding: var(--space-lg) 0;
+    animation: fadeIn 0.4s ease-out;
+  }
+
+  .done-icon {
+    animation: popIn 0.4s ease-out;
+  }
+
+  @keyframes popIn {
+    0% { transform: scale(0.5); opacity: 0; }
+    70% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .scan-done-count {
+    font-family: var(--font-body);
+    font-size: 17px;
+    color: var(--tune-text-secondary);
+    line-height: 1.4;
+  }
+
+  .scan-final-stats {
+    display: flex;
+    gap: var(--space-xl);
+    padding: var(--space-md) var(--space-xl);
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .scan-final-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .scan-final-number {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--tune-success);
+    line-height: 1;
+  }
+
+  .scan-final-label {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   /* Error and scan messages */
@@ -1148,14 +1346,6 @@
     font-family: var(--font-body);
     font-size: 13px;
     color: var(--tune-warning);
-    margin: 0;
-  }
-
-  .scan-msg {
-    font-family: var(--font-body);
-    font-size: 13px;
-    color: var(--tune-accent);
-    font-weight: 600;
     margin: 0;
   }
 
@@ -1170,120 +1360,13 @@
     flex-shrink: 0;
   }
 
+  .spinner-sm {
+    width: 12px;
+    height: 12px;
+  }
+
   @keyframes spin {
     to { transform: rotate(360deg); }
-  }
-
-  /* Audio check */
-  .audio-loading {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    font-family: var(--font-body);
-    font-size: 14px;
-    color: var(--tune-text-muted);
-  }
-
-  .check-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
-
-  .check-item {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    padding: var(--space-md);
-    background: var(--tune-surface);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-md);
-  }
-
-  .check-icon {
-    font-size: 20px;
-    flex-shrink: 0;
-  }
-
-  .check-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .check-label {
-    font-family: var(--font-body);
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--tune-text);
-  }
-
-  .check-detail {
-    font-family: var(--font-body);
-    font-size: 12px;
-    color: var(--tune-text-muted);
-  }
-
-  .check-warning {
-    color: var(--tune-warning);
-  }
-
-  .check-sublist {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding-left: 48px;
-  }
-
-  .check-subitem {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    font-family: var(--font-body);
-    font-size: 13px;
-    color: var(--tune-text-secondary);
-    padding: 4px 0;
-  }
-
-  .check-tag {
-    font-family: var(--font-label);
-    font-size: 11px;
-    padding: 1px 6px;
-    border-radius: var(--radius-sm);
-    background: var(--tune-grey2);
-    color: var(--tune-text-muted);
-  }
-
-  .check-tag.airplay {
-    background: rgba(107, 110, 217, 0.12);
-    color: var(--tune-accent);
-  }
-
-  .check-tag.bluos {
-    background: rgba(87, 198, 185, 0.12);
-    color: var(--tune-success);
-  }
-
-  .test-sound-section {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-  }
-
-  .test-result {
-    font-family: var(--font-body);
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  .test-result.success {
-    color: var(--tune-success);
-  }
-
-  .test-result.error {
-    color: var(--tune-warning);
   }
 
   /* Mobile */
@@ -1302,6 +1385,27 @@
 
     .service-list {
       max-height: 300px;
+    }
+
+    .scan-stats {
+      gap: var(--space-lg);
+    }
+
+    .scan-stat-number {
+      font-size: 24px;
+    }
+
+    .scan-final-stats {
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .welcome-features {
+      max-width: 100%;
+    }
+
+    .add-dir-form {
+      flex-direction: column;
     }
   }
 </style>
