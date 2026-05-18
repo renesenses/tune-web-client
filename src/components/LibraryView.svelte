@@ -830,7 +830,11 @@
     }
     shuffleAllLoading = true;
     try {
-      const result = await api.shuffleAll(zone.id);
+      // Pass current search/filter context so shuffle applies to visible results
+      const opts: { search_query?: string; genre?: string } = {};
+      if (searchQuery.trim()) opts.search_query = searchQuery.trim();
+      else if (selectedGenre) opts.genre = selectedGenre;
+      const result = await api.shuffleAll(zone.id, Object.keys(opts).length ? opts : undefined);
       notifications.success(`Lecture aléatoire : ${result.track_count} pistes`);
     } catch (e) {
       console.error('Shuffle all error:', e);
@@ -1354,9 +1358,9 @@
     <!-- Main library view -->
     <div class="library-header">
       <h2>{$tr('library.title')}</h2>
-      <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title="Tout lire en aléatoire">
+      <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title={searchQuery.trim() || selectedGenre ? 'Lecture aléatoire des résultats' : 'Tout lire en aléatoire'}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
-        {shuffleAllLoading ? 'Chargement...' : 'Tout lire en aléatoire'}
+        {shuffleAllLoading ? 'Chargement...' : (searchQuery.trim() || selectedGenre ? 'Lecture aléatoire' : 'Tout lire en aléatoire')}
       </button>
       <div class="library-header-right">
         <div class="search-box">

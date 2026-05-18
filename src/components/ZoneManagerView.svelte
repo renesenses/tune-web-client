@@ -37,6 +37,12 @@
   // group_id -> { zone_id -> sync_delay_ms }
   let calibrationResults = $state<Record<string, Record<number, number>>>({});
 
+  // Change output
+  let changingOutputId = $state<number | null>(null);
+  let changeOutputType = $state<OutputType>('dlna');
+  let changeOutputDeviceId = $state<string | undefined>(undefined);
+  let changingOutputLoading = $state(false);
+
   // Volume debounce
   let volumeTimers: Record<number, ReturnType<typeof setTimeout>> = {};
 
@@ -216,6 +222,47 @@
       notifications.error(e.message || 'Failed to delete zone');
     }
   }
+
+  // --- Change output device ---
+  function openChangeOutput(zone: Zone) {
+    if (zone.id === null) return;
+    changingOutputId = zone.id;
+    changeOutputType = zone.output_type ?? 'local';
+    changeOutputDeviceId = zone.output_device_id ?? undefined;
+    if (changeOutputType === 'local') loadLocalAudioDevices();
+  }
+
+  function closeChangeOutput() {
+    changingOutputId = null;
+    changingOutputLoading = false;
+  }
+
+  async function handleChangeOutput(zoneId: number) {
+    changingOutputLoading = true;
+    try {
+      const updated = await api.changeZoneOutput(zoneId, changeOutputType, changeOutputDeviceId);
+      zones.update(zs => zs.map(z => z.id === zoneId ? updated : z));
+      notifications.success($t('zone.outputChanged'));
+      closeChangeOutput();
+    } catch (e: any) {
+      notifications.error(e.message || $t('zone.changeOutputError'));
+      changingOutputLoading = false;
+    }
+  }
+
+  // Devices available for the output type being changed (excludes devices already assigned to other zones)
+  let changeOutputDevices = $derived.by(() => {
+    if (changingOutputId === null) return [];
+    if (changeOutputType === 'local') return [];
+    return $devices.filter(d => {
+      if (d.type !== changeOutputType || !d.available) return false;
+      // Allow the device currently assigned to this zone
+      const currentZone = $zones.find(z => z.id === changingOutputId);
+      if (currentZone && currentZone.output_device_id === d.id) return true;
+      // Exclude devices assigned to other zones
+      return !$zones.some(z => z.id !== changingOutputId && z.output_device_id === d.id);
+    });
+  });
 
   // --- Groups ---
   async function handleGroupSelected() {
@@ -557,6 +604,16 @@
           <span class="latency-tag">{latencyResults[zone.id]}ms</span>
         {/if}
 
+        <!-- Change output -->
+        <button
+          class="btn-icon btn-icon-sm"
+          onclick={(e) => { e.stopPropagation(); openChangeOutput(zone); }}
+          title={$t('zone.changeOutput')}
+          disabled={changingOutputId === zone.id}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
+        </button>
+
         <!-- Delete -->
         {#if confirmDeleteId === zone.id}
           <div class="delete-confirm" onclick={(e) => e.stopPropagation()}>
@@ -578,6 +635,51 @@
           </button>
         {/if}
       </div>
+
+      <!-- Change output panel -->
+      {#if changingOutputId === zone.id}
+        <div class="change-output-panel" onclick={(e) => e.stopPropagation()}>
+          <div class="change-output-row">
+            <select class="form-select" bind:value={changeOutputType} onchange={() => { changeOutputDeviceId = undefined; if (changeOutputType === 'local') loadLocalAudioDevices(); }}>
+              <option value="local">Local</option>
+              <option value="dlna">DLNA</option>
+              <option value="airplay">AirPlay</option>
+              <option value="chromecast">Chromecast</option>
+              <option value="bluos">BluOS</option>
+              <option value="openhome">OpenHome</option>
+            </select>
+            {#if changeOutputType === 'local'}
+              <select class="form-select" bind:value={changeOutputDeviceId}>
+                <option value={undefined}>{$t('zone.defaultOutput')}</option>
+                {#each localAudioDevices as dev}
+                  <option value={dev.name}>{dev.name} ({dev.channels}ch, {dev.sample_rate / 1000}kHz)</option>
+                {/each}
+              </select>
+            {:else}
+              <select class="form-select" bind:value={changeOutputDeviceId}>
+                <option value={undefined}>{$t('zone.selectDevice')}</option>
+                {#each changeOutputDevices as dev}
+                  <option value={dev.id}>{dev.name}</option>
+                {/each}
+              </select>
+            {/if}
+            <button
+              class="btn btn-primary"
+              onclick={() => zone.id !== null && handleChangeOutput(zone.id)}
+              disabled={changingOutputLoading || (changeOutputType !== 'local' && !changeOutputDeviceId)}
+            >
+              {#if changingOutputLoading}
+                <span class="spinner-sm"></span>
+              {:else}
+                {$t('common.save')}
+              {/if}
+            </button>
+            <button class="btn btn-ghost" onclick={closeChangeOutput}>
+              {$t('common.cancel')}
+            </button>
+          </div>
+        </div>
+      {/if}
 
       <!-- Stereo footer (only for stereo paired zones) -->
       {#if pair}
@@ -1312,6 +1414,23 @@
     font-family: var(--font-body);
     font-size: 11px;
     color: #ef4444;
+  }
+
+  /* Change output panel */
+  .change-output-panel {
+    border-top: 1px solid var(--tune-border);
+    padding-top: 10px;
+  }
+
+  .change-output-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .change-output-row .form-select {
+    min-width: 120px;
   }
 
   /* Card footer */

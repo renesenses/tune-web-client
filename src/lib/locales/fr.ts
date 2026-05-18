@@ -108,6 +108,11 @@ export default {
   'zone.autoSynced': 'Sync auto',
   'zone.calibrationNeeded': 'Calibrage conseillé',
   'zone.refresh': 'Actualiser',
+  'zone.changeOutput': 'Changer la sortie',
+  'zone.outputChanged': 'Sortie audio modifiée',
+  'zone.changeOutputError': 'Impossible de changer la sortie',
+  'zone.currentDevice': 'Appareil actuel',
+  'zone.noDeviceAvailable': 'Aucun appareil disponible',
 
   // Transport
   'transport.shuffle': 'Aléatoire',

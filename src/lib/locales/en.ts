@@ -108,6 +108,11 @@ export default {
   'zone.autoSynced': 'Auto sync',
   'zone.calibrationNeeded': 'Calibration recommended',
   'zone.refresh': 'Refresh',
+  'zone.changeOutput': 'Change Output',
+  'zone.outputChanged': 'Output device changed',
+  'zone.changeOutputError': 'Failed to change output',
+  'zone.currentDevice': 'Current device',
+  'zone.noDeviceAvailable': 'No device available',
 
   // Transport
   'transport.shuffle': 'Shuffle',

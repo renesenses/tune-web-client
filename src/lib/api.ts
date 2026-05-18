@@ -132,6 +132,13 @@ export function updateZoneSyncDelay(id: number, syncDelayMs: number) {
   });
 }
 
+export function changeZoneOutput(id: number, outputType: string, outputDeviceId?: string | null) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ output_type: outputType, output_device_id: outputDeviceId ?? null }),
+  });
+}
+
 // --- Devices ---
 
 export function getDevices() {
@@ -378,8 +385,16 @@ export function setRepeat(zoneId: number, mode: RepeatMode) {
   });
 }
 
-export function shuffleAll(zoneId: number) {
-  return fetchJSON<{ status: string; track_count: number }>(`${BASE}/playback/shuffle-all?zone_id=${zoneId}`, {
+export function shuffleAll(
+  zoneId: number,
+  opts?: { search_query?: string; album_id?: number; artist_id?: number; genre?: string },
+) {
+  const params = new URLSearchParams({ zone_id: String(zoneId) });
+  if (opts?.search_query) params.set('search_query', opts.search_query);
+  if (opts?.album_id != null) params.set('album_id', String(opts.album_id));
+  if (opts?.artist_id != null) params.set('artist_id', String(opts.artist_id));
+  if (opts?.genre) params.set('genre', opts.genre);
+  return fetchJSON<{ status: string; track_count: number }>(`${BASE}/playback/shuffle-all?${params}`, {
     method: 'POST',
   });
 }
