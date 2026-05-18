@@ -62,17 +62,15 @@
 
 <style>
   .alpha-index {
-    position: absolute;
-    right: 2px;
-    top: 0;
-    bottom: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    z-index: 10;
-    padding: 8px 0;
+    flex-shrink: 0;
+    padding: 8px 2px;
     user-select: none;
     -webkit-user-select: none;
+    overflow-y: auto;
+    max-height: 100%;
   }
 
   .alpha-letter {

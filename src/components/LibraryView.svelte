@@ -2262,9 +2262,9 @@
 
   .album-viewport-wrapper {
     flex: 1;
-    position: relative;
     display: flex;
     min-height: 0;
+    gap: 4px;
   }
 
   .album-grid-viewport {
@@ -2444,10 +2444,10 @@
 
   /* Artists section + grid */
   .artists-section {
-    position: relative;
     flex: 1;
     display: flex;
     min-height: 0;
+    gap: 4px;
   }
 
   .artists-grid {
