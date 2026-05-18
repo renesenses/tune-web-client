@@ -541,6 +541,38 @@ export function unjoinSonosSpeaker(uid: string) {
   return fetchJSON(`${BASE}/sonos/speakers/${encodeURIComponent(uid)}/unjoin`, { method: 'POST' });
 }
 
+// v0.8.0 — Squeezebox / Lyrion Music Server (LMS) integration.
+export interface SqueezeboxPlayer {
+  id: string;
+  name: string;
+  model: string;
+  ip: string;
+  connected: boolean;
+  power: boolean;
+}
+
+export interface SqueezeboxStatus {
+  enabled: boolean;
+  lms_host: string | null;
+  lms_discovered: boolean;
+  players: SqueezeboxPlayer[];
+}
+
+export function getSqueezeboxStatus() {
+  return fetchJSON<SqueezeboxStatus>(`${BASE}/squeezebox/status`);
+}
+
+export function discoverSqueezebox() {
+  return fetchJSON<SqueezeboxStatus>(`${BASE}/squeezebox/discover`, { method: 'POST' });
+}
+
+export function createZoneFromSqueezebox(playerId: string, name?: string) {
+  return fetchJSON<import('./types').Zone>(`${BASE}/squeezebox/players/${encodeURIComponent(playerId)}/create-zone`, {
+    method: 'POST',
+    body: JSON.stringify({ name: name ?? undefined }),
+  });
+}
+
 // v0.8.0 multi-room — group delays (calibrated inter-techno offsets).
 export function listGroupDelays() {
   return fetchJSON<import('./types').GroupDelay[]>(`${BASE}/zones/group-delays`);
@@ -2153,4 +2185,81 @@ export function getHealthMonitor(): Promise<HealthMonitorResponse> {
 
 export function getHealthAlerts(): Promise<HealthAlert[]> {
   return fetchJSON<HealthAlert[]>(`${BASE}/system/health/alerts`);
+}
+
+// --- Admin Dashboard ---
+
+export interface AdminHealth {
+  cpu_percent: number;
+  ram_mb: number;
+  ram_total_mb: number;
+  disk_free_gb: number;
+  disk_total_gb: number;
+  uptime_seconds: number;
+  uptime_formatted: string;
+  open_fds: number;
+  pid: number;
+  python_threads: number;
+}
+
+export interface AdminZone {
+  id: number;
+  name: string;
+  state: string;
+  output_type: string;
+  device_name: string;
+  online: boolean;
+  current_track: { title: string; artist_name: string; album_title: string; duration_ms: number } | null;
+  position_ms: number;
+  volume: number;
+  buffer: { size_kb: number; fill_percent: number } | null;
+  group_id: string | null;
+}
+
+export interface AdminError {
+  ts: string;
+  level: string;
+  event: string;
+  [key: string]: unknown;
+}
+
+export interface AdminConnections {
+  websocket_connections: number;
+  http_streamer_sessions: number;
+}
+
+export interface AdminDiscoveryDevice {
+  id: string;
+  name: string;
+  type: string;
+  host: string;
+  port: number;
+  available: boolean;
+  capabilities: Record<string, unknown>;
+}
+
+export interface AdminDiscovery {
+  devices: AdminDiscoveryDevice[];
+  protocols: Record<string, boolean>;
+  device_count: number;
+}
+
+export function getAdminHealth() {
+  return fetchJSON<AdminHealth>(`${BASE}/admin/health`);
+}
+
+export function getAdminZones() {
+  return fetchJSON<AdminZone[]>(`${BASE}/admin/zones`);
+}
+
+export function getAdminErrors() {
+  return fetchJSON<AdminError[]>(`${BASE}/admin/errors`);
+}
+
+export function getAdminConnections() {
+  return fetchJSON<AdminConnections>(`${BASE}/admin/connections`);
+}
+
+export function getAdminDiscovery() {
+  return fetchJSON<AdminDiscovery>(`${BASE}/admin/discovery`);
 }

@@ -51,6 +51,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import DashboardView from './components/DashboardView.svelte';
   import EqualizerView from './components/EqualizerView.svelte';
   import PluginsView from './components/PluginsView.svelte';
+  import AdminDashboard from './components/AdminDashboard.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
   import BottomTabBar from './components/BottomTabBar.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
@@ -544,6 +545,8 @@ import AlarmsView from './components/AlarmsView.svelte';
       <AlarmsView />
     {:else if $activeView === 'diagnostics'}
       <DiagnosticsView />
+    {:else if $activeView === 'admin'}
+      <AdminDashboard />
     {/if}
 
     {#if scanIndicator}

@@ -110,6 +110,78 @@
     }
   }
 
+  // Squeezebox / Lyrion
+  let squeezeboxStatus = $state<api.SqueezeboxStatus | null>(null);
+  let squeezeboxLoading = $state(false);
+  let squeezeboxLmsHostInput = $state('');
+  let squeezeboxSaving = $state(false);
+  let squeezeboxCreatingZone = $state<string | null>(null);
+
+  async function refreshSqueezebox() {
+    squeezeboxLoading = true;
+    try {
+      squeezeboxStatus = await api.getSqueezeboxStatus();
+      if (squeezeboxStatus?.lms_host) {
+        squeezeboxLmsHostInput = squeezeboxStatus.lms_host;
+      }
+    } catch (err) {
+      console.error('squeezebox status failed', err);
+    }
+    squeezeboxLoading = false;
+  }
+
+  async function toggleSqueezeboxEnabled() {
+    squeezeboxSaving = true;
+    try {
+      const newVal = !(config?.squeezebox_enabled);
+      await api.updateConfig({ squeezebox_enabled: newVal });
+      if (config) config = { ...config, squeezebox_enabled: newVal };
+      if (newVal) {
+        await refreshSqueezebox();
+      } else {
+        squeezeboxStatus = null;
+      }
+    } catch (err: any) {
+      notifications.error(err?.message ?? 'Error');
+    }
+    squeezeboxSaving = false;
+  }
+
+  async function saveSqueezeboxLmsHost() {
+    squeezeboxSaving = true;
+    try {
+      const host = squeezeboxLmsHostInput.trim() || null;
+      await api.updateConfig({ lms_host: host });
+      if (config) config = { ...config, lms_host: host };
+      await refreshSqueezebox();
+      notifications.success(get(t)('settings.scanScheduleSaved' as any));
+    } catch (err: any) {
+      notifications.error(err?.message ?? 'Error');
+    }
+    squeezeboxSaving = false;
+  }
+
+  async function discoverSqueezeboxPlayers() {
+    squeezeboxLoading = true;
+    try {
+      squeezeboxStatus = await api.discoverSqueezebox();
+    } catch (err: any) {
+      notifications.error(err?.message ?? 'Error');
+    }
+    squeezeboxLoading = false;
+  }
+
+  async function createZoneFromSqueezebox(player: api.SqueezeboxPlayer) {
+    squeezeboxCreatingZone = player.id;
+    try {
+      await api.createZoneFromSqueezebox(player.id, player.name);
+      notifications.success(get(t)('settings.squeezeboxZoneCreated' as any).replace('{name}', player.name));
+    } catch (err: any) {
+      notifications.error(err?.message ?? 'Error');
+    }
+    squeezeboxCreatingZone = null;
+  }
+
   // Spotify Connect (receiver)
   let spotifyConnect = $state<api.SpotifyConnectStatus | null>(null);
   let spotifyConnectZoneId = $state<number | null>(null);
@@ -686,6 +758,8 @@
       backups = bk;
       // Don't block on Spotify Connect — it may 503 if manager isn't initialized.
       refreshSpotifyConnect();
+      // Load Squeezebox status if enabled
+      if (cfg?.squeezebox_enabled) refreshSqueezebox();
     } catch (e) {
       console.error('Settings load error:', e);
     }
@@ -2151,6 +2225,98 @@
       </section>
     {/if}
 
+    <!-- Squeezebox / Lyrion Music Server -->
+    {#if config}
+      <section class="settings-section">
+        <h3>{$t('settings.squeezebox' as any)}</h3>
+        <p class="section-hint">{$t('settings.squeezeboxHint' as any)}</p>
+
+        <div class="setting-row">
+          <div class="setting-label">
+            <span>{$t('settings.squeezeboxEnabled' as any)}</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" checked={config.squeezebox_enabled ?? false} onchange={() => toggleSqueezeboxEnabled()} disabled={squeezeboxSaving} />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        {#if config.squeezebox_enabled}
+          <div class="setting-row" style="margin-top: 0.5rem;">
+            <div class="setting-label">
+              <span>{$t('settings.squeezeboxLmsHost' as any)}</span>
+              {#if squeezeboxStatus?.lms_discovered && squeezeboxStatus?.lms_host}
+                <span class="setting-hint">{$t('settings.squeezeboxLmsDetected' as any).replace('{host}', squeezeboxStatus.lms_host)}</span>
+              {/if}
+            </div>
+            <div class="squeezebox-host-row">
+              <input
+                type="text"
+                class="auth-input"
+                placeholder={$t('settings.squeezeboxLmsPlaceholder' as any)}
+                bind:value={squeezeboxLmsHostInput}
+                disabled={squeezeboxSaving}
+                onkeydown={(e) => { if (e.key === 'Enter') saveSqueezeboxLmsHost(); }}
+                style="max-width: 260px;"
+              />
+              <button class="scan-btn small" onclick={saveSqueezeboxLmsHost} disabled={squeezeboxSaving}>
+                {squeezeboxSaving ? $t('settings.squeezeboxSaving' as any) : $t('common.save' as any)}
+              </button>
+            </div>
+          </div>
+
+          <div style="margin-top: 1rem;">
+            <div class="squeezebox-players-header">
+              <h4>{$t('settings.squeezeboxPlayers' as any)}</h4>
+              <button class="scan-btn small" onclick={discoverSqueezeboxPlayers} disabled={squeezeboxLoading}>
+                {#if squeezeboxLoading}
+                  <div class="spinner small"></div>
+                  {$t('settings.squeezeboxRefreshing' as any)}
+                {:else}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                  </svg>
+                  {$t('settings.squeezeboxRefresh' as any)}
+                {/if}
+              </button>
+            </div>
+
+            {#if squeezeboxStatus?.players && squeezeboxStatus.players.length > 0}
+              <div class="squeezebox-player-list">
+                {#each squeezeboxStatus.players as player}
+                  <div class="squeezebox-player-card">
+                    <div class="squeezebox-player-info">
+                      <span class="squeezebox-player-name">{player.name}</span>
+                      <span class="squeezebox-player-details">{player.model} &mdash; {player.ip}</span>
+                    </div>
+                    <div class="squeezebox-player-actions">
+                      <span class="squeezebox-status-badge" class:connected={player.connected} class:disconnected={!player.connected}>
+                        {player.connected ? $t('settings.squeezeboxConnected' as any) : $t('settings.squeezeboxDisconnected' as any)}
+                      </span>
+                      <button
+                        class="scan-btn small"
+                        onclick={() => createZoneFromSqueezebox(player)}
+                        disabled={squeezeboxCreatingZone === player.id || !player.connected}
+                      >
+                        {#if squeezeboxCreatingZone === player.id}
+                          <div class="spinner small"></div>
+                          {$t('settings.squeezeboxCreatingZone' as any)}
+                        {:else}
+                          {$t('settings.squeezeboxCreateZone' as any)}
+                        {/if}
+                      </button>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {:else if !squeezeboxLoading}
+              <p class="muted">{$t('settings.squeezeboxNoPlayers' as any)}</p>
+            {/if}
+          </div>
+        {/if}
+      </section>
+    {/if}
+
     <!-- Streaming Quality -->
     <section class="settings-section">
       <h3>{$t('settings.streamingQuality' as any)}</h3>
@@ -3248,6 +3414,92 @@
 
   .scan-schedule-next.muted {
     color: var(--tune-text-muted);
+  }
+
+  /* Squeezebox / Lyrion */
+  .squeezebox-host-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .squeezebox-players-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-sm);
+  }
+
+  .squeezebox-players-header h4 {
+    font-family: var(--font-label);
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .squeezebox-player-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .squeezebox-player-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    gap: var(--space-md);
+  }
+
+  .squeezebox-player-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .squeezebox-player-name {
+    font-family: var(--font-label);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .squeezebox-player-details {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+  }
+
+  .squeezebox-player-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-shrink: 0;
+  }
+
+  .squeezebox-status-badge {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    white-space: nowrap;
+  }
+
+  .squeezebox-status-badge.connected {
+    background: rgba(52, 199, 89, 0.15);
+    color: #34c759;
+  }
+
+  .squeezebox-status-badge.disconnected {
+    background: rgba(255, 59, 48, 0.12);
+    color: #ff3b30;
   }
 
   /* Streaming Quality */

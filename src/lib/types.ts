@@ -5,7 +5,7 @@ export type Source = 'local' | 'tidal' | 'qobuz' | 'youtube' | 'amazon' | 'spoti
 export type AudioFormat = 'flac' | 'wav' | 'mp3' | 'aac' | 'alac' | 'ogg' | 'opus' | 'dsd' | 'aiff' | 'wma';
 export type PlaybackState = 'stopped' | 'playing' | 'paused' | 'buffering';
 export type RepeatMode = 'off' | 'one' | 'all';
-export type OutputType = 'local' | 'dlna' | 'airplay' | 'chromecast' | 'bluos' | 'snapcast' | 'sonos';
+export type OutputType = 'local' | 'dlna' | 'airplay' | 'chromecast' | 'bluos' | 'snapcast' | 'sonos' | 'squeezebox';
 
 // v0.8.0 multi-room — Snapcast endpoint discovered by snapserver.
 export interface SnapcastClient {
@@ -225,6 +225,9 @@ export interface SystemConfig {
   db_pool_min?: number | null;
   db_pool_max?: number | null;
   db_connected: boolean;
+  // Squeezebox / LMS
+  squeezebox_enabled?: boolean;
+  lms_host?: string | null;
 }
 
 export interface SystemStats {

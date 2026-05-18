@@ -67,6 +67,18 @@ function showTrackNotification(track: {
     ? artworkUrl(track.cover_path, 128)
     : undefined;
 
+  // Prefer service worker for reliable notifications when tab is suspended
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'TRACK_NOTIFICATION',
+      title: track.title,
+      body: body || undefined,
+      icon: iconUrl,
+    });
+    return;
+  }
+
+  // Fallback to direct Notification API
   try {
     const n = new Notification(track.title, {
       body: body || undefined,

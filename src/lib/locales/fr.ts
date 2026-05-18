@@ -39,6 +39,7 @@ export default {
   'common.genres': 'Genres',
   'common.create': 'Créer',
   'common.all': 'Toutes',
+  'common.save': 'Enregistrer',
 
   // Zone
   'zone.zones': 'ZONES',
@@ -506,6 +507,7 @@ export default {
   'nav.zonemanager': 'Zones',
   'nav.alarms': 'Réveils',
   'nav.diagnostics': 'Diagnostics',
+  'nav.admin': 'Tableau de bord',
   'diagnostics.title': 'Diagnostics',
   'diagnostics.serverInfo': 'Serveur',
   'diagnostics.version': 'Version',
@@ -733,6 +735,24 @@ export default {
   'settings.scanScheduleNext': 'Prochain scan : demain a {time}',
   'settings.scanScheduleDisabled': 'Scan programme desactive',
   'settings.scanScheduleSaved': 'Programmation enregistree',
+
+  // Squeezebox / Lyrion
+  'settings.squeezebox': 'Squeezebox / Lyrion',
+  'settings.squeezeboxHint': 'Connectez les lecteurs Squeezebox geres par Lyrion Music Server (LMS) sur votre reseau local.',
+  'settings.squeezeboxEnabled': 'Activer la decouverte Squeezebox',
+  'settings.squeezeboxLmsHost': 'Hote LMS : port',
+  'settings.squeezeboxLmsPlaceholder': 'ex. 192.168.1.50:9000 (auto-detecte)',
+  'settings.squeezeboxLmsDetected': 'Auto-detecte : {host}',
+  'settings.squeezeboxNoPlayers': 'Aucun lecteur Squeezebox trouve',
+  'settings.squeezeboxPlayers': 'Lecteurs decouverts',
+  'settings.squeezeboxCreateZone': 'Creer une zone',
+  'settings.squeezeboxCreatingZone': 'Creation...',
+  'settings.squeezeboxZoneCreated': 'Zone creee pour {name}',
+  'settings.squeezeboxRefresh': 'Actualiser',
+  'settings.squeezeboxRefreshing': 'Recherche...',
+  'settings.squeezeboxConnected': 'Connecte',
+  'settings.squeezeboxDisconnected': 'Deconnecte',
+  'settings.squeezeboxSaving': 'Enregistrement...',
 
   // Server Stats Dashboard
   'diagnostics.serverDashboard': 'Statistiques serveur',
