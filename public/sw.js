@@ -16,10 +16,18 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Network-first for API calls and WebSocket — never cache these
   if (e.request.url.includes('/api/') || e.request.url.includes('/ws')) return;
+  // Network-first: always try the network, fall back to cache offline
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    fetch(e.request)
+      .then(resp => {
+        if (resp.ok) {
+          const clone = resp.clone();
+          caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        }
+        return resp;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
 

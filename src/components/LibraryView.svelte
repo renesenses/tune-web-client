@@ -595,17 +595,16 @@
   });
 
   let genreAlbums = $derived.by(() => {
+    let result: typeof $albums = [];
     if (selectedGenre) {
       const sel = selectedGenre.toLowerCase();
-      return $albums.filter(a => a.genre && a.genre.toLowerCase() === sel);
-    }
-    if (selectedParent) {
-      // Branch match: parent + all its direct children.
+      result = $albums.filter(a => a.genre && a.genre.toLowerCase() === sel);
+    } else if (selectedParent) {
       const branch = new Set([selectedParent.toLowerCase(),
         ...(genreTree[selectedParent] ?? []).map(c => c.toLowerCase())]);
-      return $albums.filter(a => a.genre && branch.has(a.genre.toLowerCase()));
+      result = $albums.filter(a => a.genre && branch.has(a.genre.toLowerCase()));
     }
-    return [];
+    return result.sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
   });
 
   let albumTotalDuration = $derived(
@@ -1638,6 +1637,9 @@
               {#if album.artist_name}
                 <span class="album-card-artist truncate">{album.artist_name}</span>
               {/if}
+              {#if selectedParent && album.genre && album.genre.toLowerCase() !== (selectedParent ?? '').toLowerCase()}
+                <span class="album-card-genre truncate">{album.genre}</span>
+              {/if}
             </div>
           {/each}
         </div>
@@ -2443,6 +2445,14 @@
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-secondary);
+    max-width: 160px;
+  }
+
+  .album-card-genre {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-accent);
+    opacity: 0.7;
     max-width: 160px;
   }
 
