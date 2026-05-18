@@ -296,6 +296,22 @@ import AlarmsView from './components/AlarmsView.svelte';
 
     cleanupKeyboard = setupKeyboardShortcuts();
 
+    // Browser history integration for mouse back/forward buttons
+    let _pushingState = false;
+    activeView.subscribe(view => {
+      if (!_pushingState && typeof window !== 'undefined') {
+        window.history.pushState({ view }, '', `#${view}`);
+      }
+    });
+    window.addEventListener('popstate', (e) => {
+      const view = e.state?.view;
+      if (view) {
+        _pushingState = true;
+        activeView.set(view);
+        _pushingState = false;
+      }
+    });
+
     connectionState.set('connecting');
     tuneWS.connect();
     fetchZones(true);
