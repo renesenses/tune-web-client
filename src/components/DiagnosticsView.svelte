@@ -190,6 +190,8 @@
   let restarting = $state(false);
   let scanning = $state(false);
   let clearing = $state(false);
+  let cleaning = $state(false);
+  let cleanupResults = $state<Record<string, any> | null>(null);
   let showLogs = $state(false);
   let logs = $state('');
   let logsLoading = $state(false);
@@ -209,6 +211,17 @@
       await api.apiPost('/system/scan');
     } catch (e) { console.error(e); }
     scanning = false;
+  }
+
+  async function cleanupServer() {
+    if (!confirm('Lancer le nettoyage complet ? (albums/artistes orphelins, artwork inutilisé, historique > 90j, vacuum DB)')) return;
+    cleaning = true;
+    cleanupResults = null;
+    try {
+      const res = await api.apiPost('/system/cleanup');
+      cleanupResults = res;
+    } catch (e) { console.error(e); }
+    cleaning = false;
   }
 
   async function clearCache() {
@@ -429,7 +442,23 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
           <span>{showLogs ? 'Masquer les logs' : 'Voir les logs serveur'}</span>
         </button>
+        <button class="server-action-btn cleanup-btn" onclick={cleanupServer} disabled={cleaning}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>
+          <span>{cleaning ? 'Nettoyage...' : 'Nettoyage du serveur'}</span>
+        </button>
       </div>
+      {#if cleanupResults}
+        <div class="cleanup-results">
+          <h4>Résultats du nettoyage</h4>
+          <ul>
+            {#if cleanupResults.orphan_albums_deleted != null}<li>Albums orphelins supprimés : <strong>{cleanupResults.orphan_albums_deleted}</strong></li>{/if}
+            {#if cleanupResults.orphan_artists_deleted != null}<li>Artistes orphelins supprimés : <strong>{cleanupResults.orphan_artists_deleted}</strong></li>{/if}
+            {#if cleanupResults.stale_artwork_deleted != null}<li>Fichiers artwork inutilisés supprimés : <strong>{cleanupResults.stale_artwork_deleted}</strong></li>{/if}
+            {#if cleanupResults.old_history_deleted != null}<li>Entrées historique > 90j supprimées : <strong>{cleanupResults.old_history_deleted}</strong></li>{/if}
+            {#if cleanupResults.db_vacuumed}<li>Base de données compactée (VACUUM)</li>{/if}
+          </ul>
+        </div>
+      {/if}
       {#if showLogs}
         <div class="logs-panel">
           {#if logsLoading}
@@ -1218,6 +1247,46 @@
     white-space: pre-wrap;
     word-break: break-all;
     margin: 0;
+  }
+
+  .cleanup-btn {
+    border-color: var(--tune-warning, #f59e0b) !important;
+    color: var(--tune-warning, #f59e0b) !important;
+  }
+
+  .cleanup-btn:hover:not(:disabled) {
+    background: rgba(245, 158, 11, 0.1) !important;
+  }
+
+  .cleanup-results {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    border-radius: 8px;
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+  }
+
+  .cleanup-results h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tune-text);
+    margin: 0 0 var(--space-sm) 0;
+  }
+
+  .cleanup-results ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .cleanup-results li {
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+    padding: 2px 0;
+  }
+
+  .cleanup-results strong {
+    color: var(--tune-text);
   }
 
   /* Network Diagnostics */
