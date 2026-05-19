@@ -16,55 +16,18 @@
     improvements: string[];
   }
 
-  const changelog: ChangelogEntry[] = [
-    {
-      version: '0.7.103',
-      date: '2026-05-18',
-      features: [
-        'What\'s New dialog — see release notes after each update',
-        'Plugin system with marketplace browser',
-        'Smart Collections with dynamic filters',
-      ],
-      fixes: [
-        'Fixed DLNA buffer stall on some renderers',
-        'Fixed track artist display for multi-artist tags',
-        'Fixed cover art flash on zone volume change',
-      ],
-      improvements: [
-        'Improved metadata editing with batch support',
-        'Dashboard listening statistics',
-        'Now Playing credits panel',
-      ],
-    },
-    {
-      version: '0.7.102',
-      date: '2026-05-15',
-      features: [
-        'Equalizer view with parametric EQ',
-        'Alarm/timer system for scheduled playback',
-      ],
-      fixes: [
-        'Fixed SMB path detection on Synology NAS',
-        'Fixed genre tree breadcrumb navigation',
-      ],
-      improvements: [
-        'Improved Windows stability for WASAPI outputs',
-        'Reduced memory usage on large libraries',
-      ],
-    },
-  ];
-
-  // Determine which version to highlight
+  let changelog = $state<ChangelogEntry[]>([]);
   let serverVersion = $state<string | null>(null);
   let loading = $state(true);
 
   $effect(() => {
-    api.checkForUpdate()
-      .then((r) => {
-        serverVersion = r?.current_version ?? null;
-      })
-      .catch(() => {})
-      .finally(() => { loading = false; });
+    Promise.all([
+      api.checkForUpdate().then((r) => { serverVersion = r?.current_version ?? null; }).catch(() => {}),
+      fetch(`/api/v1/system/changelog?limit=5`)
+        .then(r => r.json())
+        .then((entries: ChangelogEntry[]) => { changelog = entries; })
+        .catch(() => {}),
+    ]).finally(() => { loading = false; });
   });
 
   let currentEntry = $derived(

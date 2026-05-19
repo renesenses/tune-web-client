@@ -1,6 +1,6 @@
 <script lang="ts">
   import { currentZone, playAndSync } from '../lib/stores/zones';
-  import { activeView } from '../lib/stores/navigation';
+  import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
   import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading } from '../lib/stores/library';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
@@ -19,6 +19,15 @@
   let searchQuery = $state('');
   let loading = $state(false);
   let results: FederatedSearchResult | null = $state(null);
+
+  $effect(() => {
+    const pending = $pendingSearchQuery;
+    if (pending) {
+      searchQuery = pending;
+      pendingSearchQuery.set('');
+      handleSearch();
+    }
+  });
 
   // Source filtering
   let selectedSources = $state<Set<string>>(new Set());

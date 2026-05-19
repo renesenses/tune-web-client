@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { activeView } from '../lib/stores/navigation';
+  import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
   import { libraryTab, selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryLoading } from '../lib/stores/library';
   import { playbackHistory } from '../lib/stores/history';
   import { currentZone, playAndSync } from '../lib/stores/zones';
@@ -62,6 +62,7 @@
 
   function handleSearch() {
     if (!searchQuery.trim()) return;
+    pendingSearchQuery.set(searchQuery.trim());
     activeView.set('search');
   }
 

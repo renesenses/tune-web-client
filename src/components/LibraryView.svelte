@@ -671,12 +671,18 @@
   async function loadAlbums() {
     libraryLoading.set(true);
     try {
-      const result = await api.getAllAlbums(2000, albumSort, albumSortOrder);
-      albums.set(result);
+      // Load first page immediately for fast render, then fetch the rest
+      const first = await api.getAllAlbums(100, albumSort, albumSortOrder, 1, 100);
+      albums.set(first);
+      libraryLoading.set(false);
+      if (first.length >= 100) {
+        const rest = await api.getAllAlbums(2000, albumSort, albumSortOrder);
+        albums.set(rest);
+      }
     } catch (e) {
       console.error('Load albums error:', e);
+      libraryLoading.set(false);
     }
-    libraryLoading.set(false);
   }
 
   async function loadArtists() {
@@ -1716,6 +1722,7 @@
     flex-direction: column;
     padding: var(--space-lg) 28px;
     overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .library-header {
@@ -3453,5 +3460,53 @@
     height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
+  }
+
+  @media (max-width: 480px) {
+    .library-view {
+      padding: var(--space-md) 12px;
+    }
+
+    .library-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-sm);
+    }
+
+    .library-header h2 {
+      font-size: 22px;
+    }
+
+    .library-header-right {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-sm);
+    }
+
+    .search-box {
+      width: 100%;
+    }
+
+    .search-box input {
+      width: 100%;
+      flex: 1;
+    }
+
+    .tab-bar {
+      width: 100%;
+      justify-content: stretch;
+    }
+
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: var(--space-xs) var(--space-sm);
+      font-size: 12px;
+    }
+
+    .shuffle-all-btn {
+      width: 100%;
+      justify-content: center;
+    }
   }
 </style>
