@@ -3,6 +3,19 @@
   import { currentZone, zones, currentZoneId } from '../lib/stores/zones';
   import { t } from '../lib/i18n';
   import { updateAvailable } from '../lib/stores/updates';
+  import type { OutputType } from '../lib/types';
+
+  function deviceTypeLabel(type?: OutputType): string {
+    switch (type) {
+      case 'dlna': return 'DLNA';
+      case 'airplay': return 'AirPlay';
+      case 'chromecast': return 'Cast';
+      case 'bluos': return 'BluOS';
+      case 'openhome': return 'OpenHome';
+      case 'sonos': return 'Sonos';
+      default: return '';
+    }
+  }
 
   const tabs: { view: View; label: string; path: string }[] = [
     { view: 'home', label: 'nav.home', path: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1' },
@@ -48,6 +61,9 @@
         <button class="sheet-item" class:active={z.id === $currentZoneId} onclick={() => selectZone(z.id)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><path d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M9 12a1 1 0 11-2 0 1 1 0 012 0z" /></svg>
           <span class="sheet-item-label">{z.name}</span>
+          {#if deviceTypeLabel(z.output_type)}
+            <span class="sheet-type-badge">{deviceTypeLabel(z.output_type)}</span>
+          {/if}
           {#if z.id === $currentZoneId}
             <svg class="check" viewBox="0 0 24 24" fill="none" stroke="var(--tune-accent)" stroke-width="2.5" width="18" height="18"><polyline points="20 6 9 17 4 12" /></svg>
           {/if}
@@ -203,6 +219,17 @@
 
     .sheet-item.active { color: var(--tune-accent); }
     .sheet-item-label { flex: 1; text-align: left; }
+    .sheet-type-badge {
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--tune-text-muted);
+      background: var(--tune-bg);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+    }
     .check { margin-left: auto; }
 
     .sheet-badge-update {

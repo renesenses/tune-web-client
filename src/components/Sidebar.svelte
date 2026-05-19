@@ -1251,7 +1251,7 @@
     border-radius: 0;
     color: var(--tune-text-secondary);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: 14px;
     cursor: pointer;
     text-align: left;
     transition: all 0.12s ease-out;
@@ -1316,13 +1316,13 @@
 
   .zone-type-badge {
     font-family: var(--font-label);
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--tune-text-muted);
     background: var(--tune-bg);
-    padding: 1px 5px;
+    padding: 2px 6px;
     border-radius: var(--radius-sm);
   }
 

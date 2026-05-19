@@ -9,8 +9,21 @@
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
-  import type { RepeatMode } from '../lib/types';
+  import type { OutputType, RepeatMode } from '../lib/types';
   import { activeView, mobileNowPlayingOpen } from '../lib/stores/navigation';
+
+  function deviceTypeLabel(type?: OutputType): string {
+    switch (type) {
+      case 'dlna': return 'DLNA';
+      case 'airplay': return 'AirPlay';
+      case 'chromecast': return 'Cast';
+      case 'bluos': return 'BluOS';
+      case 'openhome': return 'OpenHome';
+      case 'sonos': return 'Sonos';
+      case 'local': return '';
+      default: return '';
+    }
+  }
 
   // --- Mobile Volume Popup ---
   let mobileVolumeOpen = $state(false);
@@ -610,11 +623,16 @@
               onclick={() => { if (z.id !== null) currentZoneId.set(z.id); showZoneDropdown = false; }}
             >
               <span class="truncate">{z.name}</span>
-              {#if z.state === 'playing'}
-                <span class="zone-playing-indicator">
-                  <svg viewBox="0 0 10 12" fill="currentColor" width="8" height="10"><polygon points="0,0 10,6 0,12" /></svg>
-                </span>
-              {/if}
+              <span class="zone-dropdown-meta">
+                {#if deviceTypeLabel(z.output_type)}
+                  <span class="zone-dropdown-badge">{deviceTypeLabel(z.output_type)}</span>
+                {/if}
+                {#if z.state === 'playing'}
+                  <span class="zone-playing-indicator">
+                    <svg viewBox="0 0 10 12" fill="currentColor" width="8" height="10"><polygon points="0,0 10,6 0,12" /></svg>
+                  </span>
+                {/if}
+              </span>
             </button>
           {/each}
         </div>
@@ -1054,8 +1072,8 @@
     border-radius: var(--radius-md);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 12px;
-    max-width: 140px;
+    font-size: 13px;
+    max-width: 160px;
     transition: all 0.12s ease-out;
   }
 
@@ -1097,7 +1115,7 @@
     border: none;
     color: var(--tune-text-secondary);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: 14px;
     cursor: pointer;
     text-align: left;
     transition: background 0.1s;
@@ -1118,6 +1136,25 @@
 
   .zone-dropdown-item.active {
     color: var(--tune-accent);
+  }
+
+  .zone-dropdown-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .zone-dropdown-badge {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tune-text-muted);
+    background: var(--tune-bg);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
   }
 
   .zone-playing-indicator {
