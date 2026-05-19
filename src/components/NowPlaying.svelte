@@ -524,7 +524,7 @@
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="artwork-clickable" onclick={() => { if (!ytActive) showLightbox = true; }}>
-            <AlbumArt coverPath={displayTrack.cover_path} albumId={displayTrack.album_id} size={isWide ? 360 : 400} alt={displayTrack.title} />
+            <AlbumArt coverPath={displayTrack.cover_path} albumId={displayTrack.album_id} size={isWide ? 420 : 440} alt={displayTrack.title} />
             {#if !ytActive}
               <div class="artwork-zoom-hint">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
@@ -543,6 +543,9 @@
         {#if isRadio}
           <div class="art-live-badge"><span class="art-live-dot"></span>LIVE</div>
         {/if}
+      </div>
+
+      <div class="info-column">
         {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth}
           {@const tier = getQualityTier(displayTrack)}
           <div
@@ -553,9 +556,6 @@
             <span class="aqb-detail">{formatQualitySource(displayTrack)}</span>
           </div>
         {/if}
-      </div>
-
-      <div class="info-column">
         <div class="track-info" class:center={!isWide}>
           {#if isRadio}
             <div class="radio-live-label">
@@ -1943,24 +1943,22 @@
 
   /* Audio quality badge on artwork */
   .artwork-quality-badge {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
+    position: relative;
     font-family: var(--font-label);
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.5px;
     padding: 3px 10px;
     border-radius: 4px;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(60, 60, 63, 0.6);
     backdrop-filter: blur(8px);
-    z-index: 2;
     text-transform: uppercase;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
     cursor: default;
     transition: transform 0.15s ease-out;
+    margin-bottom: var(--space-sm);
   }
 
   .artwork-quality-badge:hover {

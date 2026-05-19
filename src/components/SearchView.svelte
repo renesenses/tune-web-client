@@ -205,6 +205,24 @@
     }
   }
 
+  async function playAllTracks(trackList: Track[], shuffle = false) {
+    if (!zone?.id || trackList.length === 0) return;
+    try {
+      if (shuffle) {
+        await api.shuffleAll(zone.id, { search_query: searchQuery.trim() });
+      } else {
+        const localTracks = trackList.filter(t => t.id);
+        if (localTracks.length === 0) return;
+        await playAndSync(zone.id, { track_id: localTracks[0].id });
+        if (localTracks.length > 1) {
+          await api.addToQueue(zone.id, { track_ids: localTracks.slice(1).map(t => t.id!) });
+        }
+      }
+    } catch (e) {
+      console.error('Play all error:', e);
+    }
+  }
+
   function allSources(results: FederatedSearchResult): { name: string; data: { tracks: Track[]; albums: Album[]; artists: Artist[] } }[] {
     const sources: { name: string; data: { tracks: Track[]; albums: Album[]; artists: Artist[] } }[] = [];
     if (results.local && (results.local.tracks.length > 0 || results.local.albums.length > 0 || results.local.artists.length > 0)) {
@@ -297,7 +315,21 @@
           {/if}
 
           {#if source.data.tracks.length > 0}
-            <h4 class="subsection-title">{$t('home.tracks')}</h4>
+            <div class="tracks-header">
+              <h4 class="subsection-title">{$t('home.tracks')}</h4>
+              {#if source.name === 'Local' && source.data.tracks.length > 1}
+                <div class="tracks-actions">
+                  <button class="action-btn" onclick={() => playAllTracks(source.data.tracks)} title="Tout lire">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="5,3 19,12 5,21" /></svg>
+                    Tout lire
+                  </button>
+                  <button class="action-btn" onclick={() => playAllTracks(source.data.tracks, true)} title="Lecture aléatoire">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="16,3 21,3 21,8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21,16 21,21 16,21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></svg>
+                    Aléatoire
+                  </button>
+                </div>
+              {/if}
+            </div>
             <div class="track-list">
               {#each source.data.tracks as t}
                 <div class="track-item">
@@ -463,6 +495,32 @@
     margin-bottom: var(--space-sm);
     margin-top: var(--space-md);
   }
+
+  .tracks-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .tracks-header .subsection-title { margin-bottom: 0; }
+  .tracks-actions {
+    display: flex;
+    gap: var(--space-sm);
+  }
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,255,255,0.08);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--tune-text);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .action-btn:hover { background: var(--tune-accent); color: #fff; }
 
   .albums-row {
     display: flex;
