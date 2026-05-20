@@ -1123,6 +1123,9 @@
         scanning = false;
         scanProgress = null;
         scanningPath = null;
+        const d = event.data ?? {};
+        scanMessage = `Scan termine : ${d.scanned ?? '?'} fichiers, ${d.added ?? 0} ajoutes, ${d.updated ?? 0} mis a jour, ${d.removed ?? 0} supprimes`;
+        notifications.success(scanMessage);
         loadAll();
       } else if (event.type === 'library.artwork.progress') {
         artworkProgress = event.data;
