@@ -553,6 +553,11 @@ export default {
   'diagnostics.refreshing': '새로고침 중...',
   'diagnostics.refresh': '새로고침',
   'diagnostics.connection': 'WebSocket 연결',
+  'diagnostics.bugReportBtn': '버그 신고',
+  'diagnostics.bugReportLoading': '보고서 생성 중...',
+  'diagnostics.bugReportTitle': '버그 보고서',
+  'diagnostics.bugReportHint': '이 보고서를 복사하여 포럼 게시물이나 이메일에 붙여넣으세요.',
+  'diagnostics.bugReportCopy': '클립보드에 복사',
 
   // Signal Path
   'signal.title': '신호 경로',

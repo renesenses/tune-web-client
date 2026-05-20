@@ -186,6 +186,43 @@
     }
   }
 
+  // Bug report
+  let bugReportLoading = $state(false);
+  let bugReportText = $state('');
+  let showBugReport = $state(false);
+  let bugReportCopied = $state(false);
+
+  async function fetchBugReport() {
+    bugReportLoading = true;
+    bugReportText = '';
+    showBugReport = true;
+    try {
+      const resp = await fetch(`/api/v1/system/bug-report?format=markdown`);
+      if (!resp.ok) throw new Error(`${resp.status}`);
+      bugReportText = await resp.text();
+    } catch (e) {
+      bugReportText = 'Erreur lors de la generation du rapport de bug.';
+      console.error('Bug report error:', e);
+    }
+    bugReportLoading = false;
+  }
+
+  async function copyBugReport() {
+    try {
+      await navigator.clipboard.writeText(bugReportText);
+      bugReportCopied = true;
+      setTimeout(() => { bugReportCopied = false; }, 2000);
+    } catch (e) {
+      console.error('Copy failed:', e);
+    }
+  }
+
+  function closeBugReport() {
+    showBugReport = false;
+    bugReportText = '';
+    bugReportCopied = false;
+  }
+
   // Server actions
   let restarting = $state(false);
   let scanning = $state(false);
@@ -445,6 +482,10 @@
         <button class="server-action-btn cleanup-btn" onclick={cleanupServer} disabled={cleaning}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>
           <span>{cleaning ? 'Nettoyage...' : 'Nettoyage du serveur'}</span>
+        </button>
+        <button class="server-action-btn bug-report-btn" onclick={fetchBugReport} disabled={bugReportLoading}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+          <span>{bugReportLoading ? $t('diagnostics.bugReportLoading' as any) : $t('diagnostics.bugReportBtn' as any)}</span>
         </button>
       </div>
       {#if cleanupResults}
@@ -734,6 +775,48 @@
     </section>
   {/if}
 </div>
+
+{#if showBugReport}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="bug-report-overlay" onclick={closeBugReport}>
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="bug-report-modal" onclick={(e) => e.stopPropagation()}>
+      <div class="bug-report-header">
+        <h3>{$t('diagnostics.bugReportTitle' as any)}</h3>
+        <button class="bug-report-close" onclick={closeBugReport}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
+      </div>
+      <p class="bug-report-hint">{$t('diagnostics.bugReportHint' as any)}</p>
+      {#if bugReportLoading}
+        <div class="bug-report-loading">
+          <div class="spinner"></div>
+          {$t('diagnostics.bugReportLoading' as any)}
+        </div>
+      {:else}
+        <pre class="bug-report-content">{bugReportText}</pre>
+      {/if}
+      <div class="bug-report-actions">
+        <button class="action-btn" onclick={closeBugReport}>{$t('common.close' as any)}</button>
+        <button class="action-btn copy-btn" onclick={copyBugReport} disabled={bugReportLoading || !bugReportText}>
+          {#if bugReportCopied}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            {$t('diagnostics.copied')}
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+            {$t('diagnostics.bugReportCopy' as any)}
+          {/if}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .diagnostics-view {
@@ -1407,5 +1490,117 @@
     .stats-grid {
       grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     }
+
+    .bug-report-modal {
+      width: 95vw;
+      max-width: 95vw;
+    }
+  }
+
+  /* Bug Report Button */
+  .bug-report-btn {
+    border-color: var(--tune-accent) !important;
+    color: var(--tune-accent) !important;
+  }
+
+  .bug-report-btn:hover:not(:disabled) {
+    background: rgba(117, 116, 243, 0.1) !important;
+  }
+
+  /* Bug Report Modal */
+  .bug-report-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .bug-report-modal {
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: 16px;
+    padding: 24px;
+    width: 720px;
+    max-width: 90vw;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .bug-report-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-sm);
+  }
+
+  .bug-report-header h3 {
+    font-family: var(--font-label);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--tune-text);
+  }
+
+  .bug-report-close {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bug-report-close:hover {
+    color: var(--tune-text);
+    background: var(--tune-bg);
+  }
+
+  .bug-report-hint {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    margin: 0 0 var(--space-md) 0;
+  }
+
+  .bug-report-loading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+    padding: var(--space-xl);
+    justify-content: center;
+  }
+
+  .bug-report-content {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--tune-text-secondary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    max-height: 50vh;
+  }
+
+  .bug-report-actions {
+    display: flex;
+    gap: var(--space-sm);
+    justify-content: flex-end;
+    margin-top: var(--space-md);
   }
 </style>

@@ -553,6 +553,11 @@ export default {
   'diagnostics.refreshing': '刷新中...',
   'diagnostics.refresh': '刷新',
   'diagnostics.connection': 'WebSocket 连接',
+  'diagnostics.bugReportBtn': '报告错误',
+  'diagnostics.bugReportLoading': '生成报告中...',
+  'diagnostics.bugReportTitle': '错误报告',
+  'diagnostics.bugReportHint': '复制此报告并粘贴到论坛帖子或电子邮件中。',
+  'diagnostics.bugReportCopy': '复制到剪贴板',
 
   // Signal Path
   'signal.title': '信号路径',

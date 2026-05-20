@@ -553,6 +553,11 @@ export default {
   'diagnostics.refreshing': '更新中...',
   'diagnostics.refresh': '更新',
   'diagnostics.connection': 'WebSocket接続',
+  'diagnostics.bugReportBtn': 'バグを報告',
+  'diagnostics.bugReportLoading': 'レポート生成中...',
+  'diagnostics.bugReportTitle': 'バグレポート',
+  'diagnostics.bugReportHint': 'このレポートをコピーして、フォーラムの投稿やメールに貼り付けてください。',
+  'diagnostics.bugReportCopy': 'クリップボードにコピー',
 
   // Signal Path
   'signal.title': 'シグナルパス',

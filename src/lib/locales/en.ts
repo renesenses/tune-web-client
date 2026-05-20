@@ -553,6 +553,11 @@ export default {
   'diagnostics.refreshing': 'Refreshing...',
   'diagnostics.refresh': 'Refresh',
   'diagnostics.connection': 'WebSocket Connection',
+  'diagnostics.bugReportBtn': 'Report a Bug',
+  'diagnostics.bugReportLoading': 'Generating report...',
+  'diagnostics.bugReportTitle': 'Bug Report',
+  'diagnostics.bugReportHint': 'Copy this report and paste it into a forum post or email.',
+  'diagnostics.bugReportCopy': 'Copy to Clipboard',
 
   // Signal Path
   'signal.title': 'Signal Path',
