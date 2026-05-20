@@ -1965,7 +1965,7 @@ export function startBatchEnrich() {
 }
 
 export function getBatchEnrichStatus() {
-  return fetchJSON<{ running: boolean; current: number; total: number; done: boolean }>(`${BASE}/library/enrich-all/status`);
+  return fetchJSON<{ running: boolean; processed: number; total: number }>(`${BASE}/library/enrich-all/status`);
 }
 
 // --- Network Diagnostics ---

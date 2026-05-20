@@ -1006,9 +1006,9 @@
     batchEnrichTimer = setInterval(async () => {
       try {
         const status = await api.getBatchEnrichStatus();
-        batchEnrichCurrent = status.current ?? 0;
+        batchEnrichCurrent = status.processed ?? 0;
         batchEnrichTotal = status.total ?? 0;
-        if (status.done || !status.running) {
+        if (!status.running) {
           batchEnrichRunning = false;
           if (batchEnrichTimer) { clearInterval(batchEnrichTimer); batchEnrichTimer = null; }
           notifications.success(get(t)('settings.batchEnrichDone' as any));
@@ -1118,6 +1118,7 @@
       if (event.type === 'library.scan.progress') {
         scanning = true;
         scanProgress = event.data;
+        api.getStats().then(s => { stats = s; }).catch(() => {});
       } else if (event.type === 'library.scan.completed') {
         scanning = false;
         scanProgress = null;
