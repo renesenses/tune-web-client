@@ -382,8 +382,8 @@
   });
 
   // Virtual scroll state (album grid)
-  const ALBUM_ROW_HEIGHT = 220;    // ~160px art + ~60px text/gap
   const ALBUM_MIN_WIDTH = 156;     // 140px min + gap
+  const ALBUM_TEXT_HEIGHT = 60;    // text + gap below artwork
   const ALBUM_OVERSCAN_ROWS = 3;
   let albumGridViewport = $state<HTMLDivElement | null>(null);
   let albumScrollTop = $state(0);
@@ -393,14 +393,16 @@
 
   let albumGridMetrics = $derived.by(() => {
     const cols = Math.max(1, Math.floor(albumViewportWidth / ALBUM_MIN_WIDTH));
+    const colWidth = albumViewportWidth / cols;
+    const rowHeight = colWidth + ALBUM_TEXT_HEIGHT;
     const total = filteredAlbums.length;
     const rows = Math.ceil(total / cols);
-    const totalHeight = rows * ALBUM_ROW_HEIGHT;
-    const startRow = Math.max(0, Math.floor(albumScrollTop / ALBUM_ROW_HEIGHT) - ALBUM_OVERSCAN_ROWS);
-    const endRow = Math.min(rows, Math.ceil((albumScrollTop + albumViewportHeight) / ALBUM_ROW_HEIGHT) + ALBUM_OVERSCAN_ROWS);
+    const totalHeight = rows * rowHeight;
+    const startRow = Math.max(0, Math.floor(albumScrollTop / rowHeight) - ALBUM_OVERSCAN_ROWS);
+    const endRow = Math.min(rows, Math.ceil((albumScrollTop + albumViewportHeight) / rowHeight) + ALBUM_OVERSCAN_ROWS);
     const startIdx = startRow * cols;
     const endIdx = Math.min(total, endRow * cols);
-    const offsetY = startRow * ALBUM_ROW_HEIGHT;
+    const offsetY = startRow * rowHeight;
     return { cols, totalHeight, startIdx, endIdx, offsetY };
   });
 
