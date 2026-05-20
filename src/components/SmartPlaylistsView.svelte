@@ -31,6 +31,7 @@
   let spTracks: Track[] = $state([]);
   let loading = $state(false);
   let showCreate = $state(false);
+  let editingSp: SmartPlaylist | null = $state(null);
 
   // Create form
   let newName = $state('');
@@ -133,6 +134,50 @@
     }
   }
 
+  function startEdit(sp: SmartPlaylist) {
+    editingSp = sp;
+    newName = sp.name;
+    newDescription = sp.description || '';
+    newRules = parseRules(sp);
+    newMatchMode = sp.match_mode;
+    newSortBy = sp.sort_by;
+    newSortOrder = sp.sort_order;
+    newMaxTracks = sp.max_tracks;
+    showCreate = true;
+  }
+
+  async function handleUpdate() {
+    if (!editingSp || !newName.trim()) return;
+    try {
+      await api.updateSmartPlaylist(editingSp.id, {
+        name: newName.trim(),
+        description: newDescription.trim() || undefined,
+        rules: newRules.filter(r => r.value.trim()),
+        match_mode: newMatchMode,
+        sort_by: newSortBy,
+        sort_order: newSortOrder,
+        max_tracks: newMaxTracks,
+      });
+      notifications.success(`Smart playlist "${newName}" modifiee`);
+      editingSp = null;
+      showCreate = false;
+      newName = '';
+      newDescription = '';
+      newRules = [{ field: 'genre', operator: 'contains', value: '' }];
+      await loadSmartPlaylists();
+    } catch (e: any) {
+      notifications.error(e?.message || 'Erreur');
+    }
+  }
+
+  function cancelForm() {
+    editingSp = null;
+    showCreate = false;
+    newName = '';
+    newDescription = '';
+    newRules = [{ field: 'genre', operator: 'contains', value: '' }];
+  }
+
   async function playAll() {
     if (!zone?.id || spTracks.length === 0) return;
     const ids = spTracks.map(t => t.id).filter(Boolean) as number[];
@@ -196,10 +241,16 @@
         </div>
       </div>
 
-      <button class="play-all-btn" onclick={playAll} disabled={spTracks.length === 0}>
-        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
-        Lire tout ({spTracks.length})
-      </button>
+      <div class="sp-detail-actions">
+        <button class="play-all-btn" onclick={playAll} disabled={spTracks.length === 0}>
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
+          Lire tout ({spTracks.length})
+        </button>
+        <button class="edit-btn" onclick={() => { const sp = selectedSp!; selectedSp = null; spTracks = []; startEdit(sp); }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+          Editer
+        </button>
+      </div>
 
       {#if loading}
         <div class="loading"><div class="spinner"></div></div>
@@ -227,7 +278,7 @@
     <!-- List view -->
     <div class="sp-list-header">
       <h2>Smart Playlists</h2>
-      <button class="create-btn" onclick={() => showCreate = !showCreate}>
+      <button class="create-btn" onclick={() => { if (showCreate) { cancelForm(); } else { editingSp = null; newName = ''; newDescription = ''; newRules = [{ field: 'genre', operator: 'contains', value: '' }]; newMatchMode = 'all'; newSortBy = 'title'; newSortOrder = 'asc'; newMaxTracks = 200; showCreate = true; } }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
         Nouvelle Smart Playlist
       </button>
@@ -285,8 +336,8 @@
         </div>
 
         <div class="sp-form-actions">
-          <button class="play-all-btn" onclick={handleCreate} disabled={!newName.trim()}>Créer</button>
-          <button class="cancel-btn" onclick={() => showCreate = false}>Annuler</button>
+          <button class="play-all-btn" onclick={editingSp ? handleUpdate : handleCreate} disabled={!newName.trim()}>{editingSp ? 'Modifier' : 'Créer'}</button>
+          <button class="cancel-btn" onclick={cancelForm}>Annuler</button>
         </div>
       </div>
     {/if}
@@ -306,6 +357,9 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
             </span>
             <span class="card-name">{sp.name}</span>
+            <button class="edit-icon" onclick={(e) => { e.stopPropagation(); startEdit(sp); }} title="Editer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+            </button>
             <button class="del" onclick={(e) => { e.stopPropagation(); handleDelete(sp); }} title="Supprimer">×</button>
           </div>
           <div class="card-rules">{ruleSummary(sp)}</div>
@@ -356,6 +410,8 @@
   .card-head { display: flex; align-items: center; gap: 0.5rem; }
   .card-icon { color: var(--tune-accent, #6366f1); display: inline-flex; }
   .card-name { flex: 1; font-weight: 600; color: var(--tune-text); font-size: 0.95rem; }
+  .edit-icon { background: transparent; border: none; color: var(--tune-text-muted); cursor: pointer; opacity: 0.5; padding: 0 0.2rem; display: inline-flex; align-items: center; }
+  .edit-icon:hover { opacity: 1; color: var(--tune-accent); }
   .del { background: transparent; border: none; color: var(--tune-text-muted); font-size: 1.1rem; cursor: pointer; opacity: 0.5; padding: 0 0.2rem; }
   .del:hover { opacity: 1; color: #dc2626; }
   .card-rules { font-size: 0.78rem; color: var(--tune-text-muted); margin-top: 0.3rem; line-height: 1.4; }
@@ -373,8 +429,11 @@
   .sp-meta { font-family: var(--font-body); font-size: 12px; color: var(--tune-text-muted); margin: 0; }
   .sp-rules-display { display: flex; flex-wrap: wrap; gap: 4px; margin-top: var(--space-xs); }
   .sp-rule-chip { font-family: var(--font-body); font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.1); color: var(--tune-accent); }
-  .play-all-btn { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-sm) var(--space-lg); background: var(--tune-accent); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: 13px; font-weight: 600; margin-bottom: var(--space-md); }
+  .sp-detail-actions { display: flex; gap: var(--space-sm); margin-bottom: var(--space-md); }
+  .play-all-btn { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-sm) var(--space-lg); background: var(--tune-accent); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: 13px; font-weight: 600; }
   .play-all-btn:disabled { opacity: 0.5; cursor: default; }
+  .edit-btn { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-sm) var(--space-lg); background: none; border: 1px solid var(--tune-border); border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: 13px; font-weight: 600; color: var(--tune-text-secondary); transition: border-color 0.12s, color 0.12s; }
+  .edit-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
 
   /* Tracks list */
   .sp-tracks { display: flex; flex-direction: column; }
