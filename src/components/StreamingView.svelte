@@ -1235,12 +1235,21 @@
     gap: 16px;
     scroll-snap-type: x mandatory;
     padding-bottom: var(--space-sm);
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--tune-grey3, #555) transparent;
   }
 
   .carousel::-webkit-scrollbar {
-    display: none;
+    height: 6px;
+  }
+
+  .carousel::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .carousel::-webkit-scrollbar-thumb {
+    background: var(--tune-grey3, #555);
+    border-radius: 3px;
   }
 
   .carousel-card {

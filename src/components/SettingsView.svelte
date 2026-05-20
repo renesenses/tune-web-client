@@ -22,6 +22,7 @@
   let config: SystemConfig | null = $state(null);
   let backups = $state<BackupInfo[]>([]);
   let scanning = $state(false);
+  let scanProgress: { scanned: number; added: number; updated: number } | null = $state(null);
   let restarting = $state(false);
   let loading = $state(true);
   let artworkScanning = $state(false);
@@ -1016,7 +1017,7 @@
         batchEnrichRunning = false;
         if (batchEnrichTimer) { clearInterval(batchEnrichTimer); batchEnrichTimer = null; }
       }
-    }, 3000);
+    }, 10000);
   }
 
   // --- Library Import (Roon / Plex / Playlists) ---
@@ -1114,8 +1115,12 @@
       if (pushEnabled) initPushNotifications();
     });
     const unsub = tuneWS.onEvent((event) => {
-      if (event.type === 'library.scan.completed') {
+      if (event.type === 'library.scan.progress') {
+        scanning = true;
+        scanProgress = event.data;
+      } else if (event.type === 'library.scan.completed') {
         scanning = false;
+        scanProgress = null;
         scanningPath = null;
         loadAll();
       } else if (event.type === 'library.artwork.progress') {
@@ -1123,6 +1128,14 @@
       } else if (event.type === 'library.artwork.completed') {
         artworkScanning = false;
         artworkProgress = null;
+      } else if (event.type === 'library.enrich.progress') {
+        batchEnrichRunning = true;
+        batchEnrichCurrent = event.data.processed ?? 0;
+        batchEnrichTotal = event.data.total ?? 0;
+      } else if (event.type === 'library.enrich.completed') {
+        batchEnrichRunning = false;
+        if (batchEnrichTimer) { clearInterval(batchEnrichTimer); batchEnrichTimer = null; }
+        notifications.success(get(t)('settings.batchEnrichDone' as any));
       }
     });
     return () => {
@@ -1311,7 +1324,7 @@
         <button class="scan-btn" onclick={() => handleScan(false)} disabled={scanning}>
           {#if scanning}
             <div class="spinner small"></div>
-            {$t('settings.scanning')}
+            {$t('settings.scanning')}{#if scanProgress} — {scanProgress.scanned} fichiers ({scanProgress.added} ajoutés){/if}
           {:else}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
               <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
