@@ -984,6 +984,12 @@
     max-width: 960px;
   }
 
+  @media (min-width: 1400px) {
+    .content-layout.wide {
+      max-width: 1200px;
+    }
+  }
+
   .artwork-container {
     width: 100%;
     max-width: 400px;
@@ -994,6 +1000,24 @@
 
   .content-layout.wide .artwork-container {
     max-width: 360px;
+  }
+
+  @media (min-width: 1400px) {
+    .artwork-container {
+      max-width: 520px;
+    }
+    .content-layout.wide .artwork-container {
+      max-width: 520px;
+    }
+  }
+
+  @media (min-width: 1800px) {
+    .artwork-container {
+      max-width: 640px;
+    }
+    .content-layout.wide .artwork-container {
+      max-width: 640px;
+    }
   }
 
   .artwork-container :global(.album-art) {
