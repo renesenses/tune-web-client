@@ -337,6 +337,11 @@
     results = null;
     try {
       results = await api.searchStreaming(service, searchQuery.trim());
+      if (results) {
+        if (results.albums.length > 0) tab = 'albums';
+        else if (results.artists.length > 0) tab = 'artists';
+        else if (results.tracks.length > 0) tab = 'tracks';
+      }
     } catch (e) {
       console.error('Streaming search error:', e);
     }
