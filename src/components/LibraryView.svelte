@@ -339,7 +339,7 @@
     }
     localStorage.setItem('tune_album_sort', albumSort);
     localStorage.setItem('tune_album_sort_order', albumSortOrder);
-    // Re-fetch with new sort
+    albumsLoaded = false;
     loadAlbums();
   }
 
@@ -685,12 +685,16 @@
     searchQuery = '';
   }
 
+  let albumsLoaded = $state(false);
+  let artistsLoaded = $state(false);
+  let tracksLoaded = $state(false);
+
   async function loadAlbums() {
     libraryLoading.set(true);
     try {
-      // Load first page immediately for fast render, then fetch the rest
       const first = await api.getAllAlbums(100, albumSort, albumSortOrder, 1, 100);
       albums.set(first);
+      albumsLoaded = true;
       libraryLoading.set(false);
       if (first.length >= 100) {
         const rest = await api.getAllAlbums(2000, albumSort, albumSortOrder);
@@ -698,6 +702,7 @@
       }
     } catch (e) {
       console.error('Load albums error:', e);
+      albumsLoaded = true;
       libraryLoading.set(false);
     }
   }
@@ -707,8 +712,10 @@
     try {
       const result = await api.getAllArtists();
       artists.set(result);
+      artistsLoaded = true;
     } catch (e) {
       console.error('Load artists error:', e);
+      artistsLoaded = true;
     }
     libraryLoading.set(false);
   }
@@ -718,8 +725,10 @@
     try {
       const result = await api.getAllTracks();
       tracks.set(result);
+      tracksLoaded = true;
     } catch (e) {
       console.error('Load tracks error:', e);
+      tracksLoaded = true;
     }
     libraryLoading.set(false);
   }
@@ -945,10 +954,10 @@
   // Auto-load on tab switch
   $effect(() => {
     const tab = $libraryTab;
-    if (tab === 'albums' && $albums.length === 0) loadAlbums();
-    if (tab === 'artists' && $artists.length === 0) loadArtists();
-    if (tab === 'tracks' && $tracks.length === 0) loadTracks();
-    if (tab === 'genres' && $albums.length === 0) loadAlbums();
+    if (tab === 'albums' && !albumsLoaded && $albums.length === 0) loadAlbums();
+    if (tab === 'artists' && !artistsLoaded && $artists.length === 0) loadArtists();
+    if (tab === 'tracks' && !tracksLoaded && $tracks.length === 0) loadTracks();
+    if (tab === 'genres' && !albumsLoaded && $albums.length === 0) loadAlbums();
   });
 </script>
 
