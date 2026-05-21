@@ -391,6 +391,67 @@
     })
   );
 
+  // All devices indexed by ID for quick lookup (device status dot)
+  let deviceById = $derived(
+    Object.fromEntries($devices.map(d => [d.id, d]))
+  );
+
+  // Inline device picker for zone cards
+  let devicePickerZoneId = $state<number | null>(null);
+  let devicePickerLoading = $state(false);
+
+  function openDevicePicker(zoneId: number, e: MouseEvent) {
+    e.stopPropagation();
+    devicePickerZoneId = devicePickerZoneId === zoneId ? null : zoneId;
+  }
+
+  function closeDevicePicker() {
+    devicePickerZoneId = null;
+    devicePickerLoading = false;
+  }
+
+  // Available devices for a zone's device picker (same type, unassigned or currently assigned)
+  function getPickerDevices(zone: Zone): DiscoveredDevice[] {
+    return $devices.filter(d => {
+      // Show all device types that match the zone's output type, or all if local
+      if (zone.output_type && zone.output_type !== 'local' && d.type !== zone.output_type) return false;
+      // Allow device already on this zone
+      if (zone.output_device_id === d.id) return true;
+      // Exclude devices assigned to other zones
+      return !$zones.some(z => z.id !== zone.id && z.output_device_id === d.id);
+    });
+  }
+
+  async function handlePickDevice(zone: Zone, device: DiscoveredDevice) {
+    if (zone.id === null) return;
+    devicePickerLoading = true;
+    try {
+      const updated = await api.changeZoneOutput(zone.id, device.type, device.id);
+      zones.update(zs => zs.map(z => z.id === zone.id ? updated : z));
+      notifications.success($t('zone.outputChanged'));
+      closeDevicePicker();
+    } catch (e: any) {
+      notifications.error(e.message || $t('zone.changeOutputError'));
+      devicePickerLoading = false;
+    }
+  }
+
+  // Quick-create zone from unbound device
+  let quickCreateLoading = $state<string | null>(null);
+
+  async function quickCreateZone(device: DiscoveredDevice) {
+    quickCreateLoading = device.id;
+    try {
+      const zone = await api.createZone(device.name, device.type, device.id);
+      zones.update(zs => [...zs, zone]);
+      if (zone.id !== null) currentZoneId.set(zone.id);
+      notifications.success($t('zone.zoneCreated'));
+    } catch (e: any) {
+      notifications.error(e.message || 'Failed to create zone');
+    }
+    quickCreateLoading = null;
+  }
+
   type GridItem =
     | { kind: 'group'; group: ZoneGroupResponse; zones: Zone[] }
     | { kind: 'zone'; zone: Zone };
@@ -551,10 +612,73 @@
           {/if}
         </div>
         <div class="card-badges">
+          <!-- Device status dot -->
+          {#if zone.output_device_id && deviceById[zone.output_device_id]}
+            {@const dev = deviceById[zone.output_device_id]}
+            <span
+              class="device-status-dot"
+              class:online={dev.available}
+              class:offline={!dev.available}
+              title={dev.available ? `${dev.name} - ${$t('zone.online')}` : `${dev.name} - ${$t('zone.offline')}`}
+            ></span>
+          {/if}
           <span class="output-badge {zone.output_type ?? 'local'}">{outputTypeIcon(zone.output_type)}</span>
           <span class="state-badge {stateClass(zone.state)}">{stateLabel(zone.state)}</span>
         </div>
       </div>
+
+      <!-- Device assignment row -->
+      <div class="card-device-row" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
+        {#if zone.output_device_id && deviceById[zone.output_device_id]}
+          <span class="assigned-device-name" title={deviceById[zone.output_device_id].name}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><polyline points="17 2 12 7 7 2" /></svg>
+            {deviceById[zone.output_device_id].name}
+          </span>
+        {:else if zone.output_type === 'local'}
+          <span class="assigned-device-name muted">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon></svg>
+            {$t('zone.defaultOutput')}
+          </span>
+        {:else}
+          <span class="assigned-device-name muted">{$t('zone.noDeviceAvailable')}</span>
+        {/if}
+        <button
+          class="btn-icon btn-icon-sm device-picker-trigger"
+          onclick={(e) => zone.id !== null && openDevicePicker(zone.id, e)}
+          title={$t('zone.changeOutput')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9" /></svg>
+        </button>
+      </div>
+
+      <!-- Inline device picker dropdown -->
+      {#if devicePickerZoneId === zone.id}
+        {@const pickerDevices = getPickerDevices(zone)}
+        <div class="device-picker" onclick={(e) => e.stopPropagation()}>
+          {#if pickerDevices.length === 0}
+            <div class="picker-empty">{$t('zone.noDeviceAvailable')}</div>
+          {:else}
+            {#each pickerDevices as dev}
+              <button
+                class="picker-device"
+                class:current={zone.output_device_id === dev.id}
+                onclick={() => handlePickDevice(zone, dev)}
+                disabled={devicePickerLoading || zone.output_device_id === dev.id}
+              >
+                <span class="device-status-dot" class:online={dev.available} class:offline={!dev.available}></span>
+                <span class="picker-device-name">{dev.name}</span>
+                <span class="output-badge {dev.type}" style="font-size: 8px; padding: 1px 4px;">{outputTypeIcon(dev.type)}</span>
+                {#if zone.output_device_id === dev.id}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12" style="color: var(--tune-accent);"><polyline points="20 6 9 17 4 12" /></svg>
+                {/if}
+              </button>
+            {/each}
+          {/if}
+          {#if devicePickerLoading}
+            <div class="picker-loading"><span class="spinner-sm"></span></div>
+          {/if}
+        </div>
+      {/if}
 
       <!-- Current track -->
       {#if zone.current_track}
@@ -773,6 +897,7 @@
         {#each unboundDevices as device}
           <div class="device-card">
             <div class="device-info">
+              <span class="device-status-dot" class:online={device.available} class:offline={!device.available}></span>
               <span class="device-icon">
                 {#if device.type === 'local'}
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
@@ -788,8 +913,17 @@
               {/if}
               <span class="output-badge {device.type}">{outputTypeIcon(device.type)}</span>
             </div>
-            <button class="btn btn-ghost-sm" onclick={() => createZoneFromDevice(device)} title={$t('zone.createZone')}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            <button
+              class="btn btn-primary quick-create-btn"
+              onclick={() => quickCreateZone(device)}
+              disabled={quickCreateLoading === device.id}
+              title={$t('zone.createZone')}
+            >
+              {#if quickCreateLoading === device.id}
+                <span class="spinner-sm"></span>
+              {:else}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              {/if}
               {$t('zone.createZone')}
             </button>
           </div>
@@ -1561,6 +1695,127 @@
 
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  /* Device status dot */
+  .device-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .device-status-dot.online {
+    background: #22c55e;
+    box-shadow: 0 0 4px rgba(34, 197, 94, 0.4);
+  }
+
+  .device-status-dot.offline {
+    background: #6b7280;
+  }
+
+  /* Device assignment row inside zone card */
+  .card-device-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: default;
+  }
+
+  .assigned-device-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .assigned-device-name.muted {
+    color: var(--tune-text-muted);
+    font-style: italic;
+  }
+
+  .assigned-device-name svg {
+    flex-shrink: 0;
+    opacity: 0.5;
+  }
+
+  .device-picker-trigger {
+    margin-left: auto;
+  }
+
+  /* Inline device picker dropdown */
+  .device-picker {
+    border-top: 1px solid var(--tune-border);
+    padding-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .picker-device {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: none;
+    background: var(--tune-bg);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text);
+    transition: all 0.12s ease-out;
+    text-align: left;
+    width: 100%;
+  }
+
+  .picker-device:hover:not(:disabled) {
+    background: var(--tune-surface-hover);
+  }
+
+  .picker-device.current {
+    background: rgba(124, 58, 237, 0.08);
+    cursor: default;
+  }
+
+  .picker-device:disabled {
+    opacity: 0.7;
+  }
+
+  .picker-device-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  .picker-empty {
+    padding: 8px 10px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    font-style: italic;
+  }
+
+  .picker-loading {
+    display: flex;
+    justify-content: center;
+    padding: 6px 0;
+  }
+
+  /* Quick-create button in device list */
+  .quick-create-btn {
+    font-size: 11px;
+    padding: 5px 10px;
   }
 
   /* Responsive */

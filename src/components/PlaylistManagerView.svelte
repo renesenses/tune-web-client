@@ -165,6 +165,141 @@
   // Service capabilities
   let serviceCapabilities = $state<Record<string, { authenticated: boolean; supports_write: boolean }>>({});
 
+  // Quick Transfer (standalone transfer from Transfers tab)
+  let qtSourceService = $state('');
+  let qtSourcePlaylists = $state<(Playlist | StreamingPlaylist)[]>([]);
+  let qtSourcePlaylistId = $state('');
+  let qtTargetService = $state('local');
+  let qtTargetName = $state('');
+  let qtLoadingPlaylists = $state(false);
+  let qtTransferring = $state(false);
+  let qtResult = $state<PlaylistTransferResponse | null>(null);
+  let qtFilter = $state<string>('all');
+  let qtExpandedAlternatives = $state<Set<number>>(new Set());
+
+  let qtAvailableServices = $derived([
+    'local',
+    ...authenticatedServices,
+  ]);
+
+  let qtTargetServices = $derived(
+    qtAvailableServices.filter(s => s !== qtSourceService)
+  );
+
+  async function qtLoadSourcePlaylists(service: string) {
+    qtSourceService = service;
+    qtSourcePlaylistId = '';
+    qtSourcePlaylists = [];
+    qtResult = null;
+    qtTargetName = '';
+    if (!service) return;
+    qtLoadingPlaylists = true;
+    try {
+      if (service === 'local') {
+        qtSourcePlaylists = localPlaylists;
+      } else {
+        qtSourcePlaylists = streamingPlaylists[service] ?? [];
+        if (qtSourcePlaylists.length === 0) {
+          // Try loading from API if not cached
+          const pls = await api.getStreamingPlaylists(service);
+          qtSourcePlaylists = pls;
+        }
+      }
+    } catch (e) {
+      console.error('Load source playlists error:', e);
+    }
+    qtLoadingPlaylists = false;
+  }
+
+  function qtSelectPlaylist(id: string) {
+    qtSourcePlaylistId = id;
+    // Auto-fill target name from selected playlist
+    const pl = qtSourcePlaylists.find(p =>
+      ('source_id' in p ? (p as StreamingPlaylist).source_id : String((p as Playlist).id)) === id
+    );
+    if (pl) {
+      qtTargetName = pl.name;
+    }
+    qtResult = null;
+  }
+
+  async function doQuickTransfer() {
+    if (!qtSourcePlaylistId || !qtSourceService) return;
+    qtTransferring = true;
+    qtResult = null;
+    qtExpandedAlternatives = new Set();
+    try {
+      const v2Result = await api.transferPlaylistV2({
+        source_service: qtSourceService,
+        source_playlist_id: qtSourcePlaylistId,
+        target_service: qtTargetService,
+        target_name: qtTargetName || undefined,
+      });
+      qtResult = {
+        playlist_id: v2Result.local_playlist_id ?? v2Result.target_playlist_id ?? null,
+        playlist_name: v2Result.source_name ?? qtTargetName ?? '',
+        total_tracks: v2Result.total_tracks,
+        matched: v2Result.matched,
+        not_found: v2Result.not_found,
+        approximate: v2Result.approximate,
+        local_playlist_id: v2Result.local_playlist_id ?? null,
+        target_service: v2Result.target_service ?? qtTargetService,
+        tracks: (v2Result.tracks ?? []).map((t: any) => ({
+          title: t.title,
+          artist_name: t.artist_name,
+          status: t.status,
+          source_id: t.source_id,
+          target_id: t.target_id,
+          target_title: t.target_title ?? null,
+          target_artist: t.target_artist ?? null,
+          score: t.score ?? 0,
+          match_method: t.match_method ?? '',
+          alternatives: t.alternatives ?? [],
+        })),
+      };
+      // Refresh history and playlists
+      try { transferHistory = await api.getTransferHistory(); } catch {}
+      await loadAll();
+      const list = await api.getPlaylists();
+      playlistsStore.set(list);
+    } catch (e: any) {
+      console.error('Quick transfer error:', e);
+      notifications.error(e.message || 'Transfer failed');
+    }
+    qtTransferring = false;
+  }
+
+  function qtToggleAlternatives(trackIndex: number) {
+    const next = new Set(qtExpandedAlternatives);
+    if (next.has(trackIndex)) next.delete(trackIndex); else next.add(trackIndex);
+    qtExpandedAlternatives = next;
+  }
+
+  function qtPickAlternative(track: TransferTrackResult, alt: TransferAlternative) {
+    if (!qtResult) return;
+    const prevStatus = track.status;
+    track.status = 'matched';
+    track.target_id = alt.source_id;
+    track.target_title = alt.title;
+    track.target_artist = alt.artist_name;
+    track.match_method = 'manual';
+    track.score = alt.score;
+    if (prevStatus === 'not_found') {
+      qtResult.matched++;
+      qtResult.not_found--;
+    } else if (prevStatus === 'approximate') {
+      qtResult.matched++;
+      qtResult.approximate--;
+    }
+    qtResult = { ...qtResult, tracks: [...qtResult.tracks] };
+  }
+
+  function qtResetTransfer() {
+    qtResult = null;
+    qtFilter = 'all';
+    qtExpandedAlternatives = new Set();
+  }
+
   // Collaborative playlists
   let collabPlaylists = $state<any[]>([]);
   let collabLoading = $state(false);
@@ -1003,34 +1138,186 @@
     </div>
 
     {#if managerTab === 'transfers'}
-      <!-- Transfer History Tab -->
+      <!-- Transfer Tab: Quick Transfer + History -->
       <div class="pm-tab-content">
-        <div class="tab-actions">
-          <h3>Historique des transferts</h3>
-        </div>
-        {#if historyLoading}
-          <div class="loading"><div class="spinner"></div>Chargement...</div>
-        {:else if transferHistory.length === 0}
-          <div class="empty">Aucun transfert effectué</div>
-        {:else}
-          <div class="history-list">
-            {#each transferHistory as entry}
-              <div class="history-row">
-                <div class="history-op">{entry.operation}</div>
-                <div class="history-info">
-                  <span class="history-name">{entry.source_playlist_name || '?'}</span>
-                  <span class="history-arrow">{entry.source_service} → {entry.target_service}</span>
-                </div>
-                <div class="history-stats">
-                  <span class="stat-ok">{entry.matched} ok</span>
-                  <span class="stat-approx">{entry.approximate} ~</span>
-                  <span class="stat-miss">{entry.not_found} ✕</span>
-                </div>
-                <span class="history-date">{entry.started_at?.substring(0, 16)}</span>
+        <!-- Quick Transfer Section -->
+        <div class="qt-section">
+          <h3>{$tr('playlist.transfer')}</h3>
+          <p class="qt-hint">Transfer a playlist from one service to another.</p>
+
+          {#if qtResult}
+            <!-- Transfer result -->
+            <div class="qt-result">
+              <div class="qt-result-header">
+                <h4>"{qtResult.playlist_name}" — {$tr('playlist.transferComplete')}</h4>
+                <button class="btn-action btn-sm-action" onclick={qtResetTransfer}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+                  New transfer
+                </button>
               </div>
-            {/each}
+              <div class="transfer-summary">
+                <button class="summary-stat matched" class:active={qtFilter === 'matched'} onclick={() => qtFilter = qtFilter === 'matched' ? 'all' : 'matched'}>{qtResult.matched} {$tr('playlist.matched')}</button>
+                <button class="summary-stat approximate" class:active={qtFilter === 'approximate'} onclick={() => qtFilter = qtFilter === 'approximate' ? 'all' : 'approximate'}>{qtResult.approximate} {$tr('playlist.approximate')}</button>
+                <button class="summary-stat not-found" class:active={qtFilter === 'not_found'} onclick={() => qtFilter = qtFilter === 'not_found' ? 'all' : 'not_found'}>{qtResult.not_found} {$tr('playlist.notFound')}</button>
+              </div>
+              {#if qtResult.tracks.length > 0}
+                <div class="transfer-tracks qt-tracks">
+                  {#each qtResult.tracks.filter(t => qtFilter === 'all' || t.status === qtFilter) as track, i}
+                    {@const trackIndex = qtResult.tracks.indexOf(track)}
+                    <div class="transfer-track-row status-{track.status}">
+                      <span class="transfer-status-dot"></span>
+                      <div class="transfer-track-info">
+                        <div class="transfer-track-main">
+                          <span class="transfer-track-title">{track.title}</span>
+                          {#if track.artist_name}
+                            <span class="transfer-track-artist">{track.artist_name}</span>
+                          {/if}
+                          <span class="transfer-track-status">
+                            {#if track.match_method === 'manual'}
+                              {$tr('playlist.manualMatch')}
+                            {:else}
+                              {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}
+                            {/if}
+                          </span>
+                        </div>
+                        {#if track.status === 'approximate' && track.target_title}
+                          <div class="transfer-match-info">
+                            <span class="match-label">{$tr('playlist.matchedAs')}</span>
+                            <span class="match-title">{track.target_title}</span>
+                            {#if track.target_artist}<span class="match-artist">- {track.target_artist}</span>{/if}
+                            {#if track.score}<span class="match-score">{Math.round(track.score * 100)}%</span>{/if}
+                          </div>
+                        {/if}
+                        {#if track.match_method === 'manual' && track.target_title}
+                          <div class="transfer-match-info">
+                            <span class="match-title">{track.target_title}</span>
+                            {#if track.target_artist}<span class="match-artist">- {track.target_artist}</span>{/if}
+                            {#if track.score}<span class="match-score">{Math.round(track.score * 100)}%</span>{/if}
+                          </div>
+                        {/if}
+                        {#if (track.status === 'not_found' || track.status === 'approximate') && track.alternatives && track.alternatives.length > 0}
+                          <button class="alt-toggle" onclick={() => qtToggleAlternatives(trackIndex)}>
+                            {qtExpandedAlternatives.has(trackIndex) ? $tr('playlist.hideAlternatives') : `${$tr('playlist.showAlternatives')} (${track.alternatives.length})`}
+                          </button>
+                          {#if qtExpandedAlternatives.has(trackIndex)}
+                            <div class="alternatives">
+                              {#each track.alternatives as alt}
+                                <div class="alt-row">
+                                  <span class="alt-title">{alt.title}</span>
+                                  <span class="alt-artist">{alt.artist_name}</span>
+                                  <span class="alt-score">{Math.round(alt.score * 100)}%</span>
+                                  <button class="alt-pick" onclick={() => qtPickAlternative(track, alt)}>
+                                    {track.status === 'approximate' ? $tr('playlist.replace') : $tr('playlist.choose')}
+                                  </button>
+                                </div>
+                              {/each}
+                            </div>
+                          {/if}
+                        {/if}
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {:else}
+            <!-- Transfer form -->
+            <div class="qt-form">
+              <div class="qt-row">
+                <div class="qt-field">
+                  <label class="qt-label">Source</label>
+                  <select class="qt-select" bind:value={qtSourceService} onchange={(e) => qtLoadSourcePlaylists((e.target as HTMLSelectElement).value)}>
+                    <option value="">-- Service --</option>
+                    {#each qtAvailableServices as svc}
+                      <option value={svc}>{svc === 'local' ? $tr('playlist.local') : serviceName(svc)}</option>
+                    {/each}
+                  </select>
+                </div>
+                <div class="qt-arrow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
+                </div>
+                <div class="qt-field">
+                  <label class="qt-label">Target</label>
+                  <select class="qt-select" bind:value={qtTargetService} disabled={!qtSourceService}>
+                    {#each qtTargetServices as svc}
+                      <option value={svc}>{svc === 'local' ? $tr('playlist.local') : serviceName(svc)}</option>
+                    {/each}
+                  </select>
+                </div>
+              </div>
+
+              {#if qtSourceService}
+                <div class="qt-playlist-row">
+                  <div class="qt-field" style="flex: 2;">
+                    <label class="qt-label">{$tr('playlist.selectPlaylist')}</label>
+                    {#if qtLoadingPlaylists}
+                      <div class="qt-loading"><div class="spinner"></div></div>
+                    {:else}
+                      <select class="qt-select" bind:value={qtSourcePlaylistId} onchange={(e) => qtSelectPlaylist((e.target as HTMLSelectElement).value)}>
+                        <option value="">-- {$tr('playlist.selectPlaylist')} --</option>
+                        {#each qtSourcePlaylists as pl}
+                          <option value={'source_id' in pl ? (pl as StreamingPlaylist).source_id : String((pl as Playlist).id)}>
+                            {pl.name} ({('track_count' in pl ? pl.track_count : (pl as Playlist).track_count) ?? '?'} tracks)
+                          </option>
+                        {/each}
+                      </select>
+                    {/if}
+                  </div>
+                  <div class="qt-field" style="flex: 1;">
+                    <label class="qt-label">{$tr('playlist.name')}</label>
+                    <input type="text" class="qt-input" bind:value={qtTargetName} placeholder="Target playlist name..." />
+                  </div>
+                </div>
+              {/if}
+
+              <div class="qt-actions">
+                <button
+                  class="btn-action qt-transfer-btn"
+                  onclick={doQuickTransfer}
+                  disabled={qtTransferring || !qtSourcePlaylistId || !qtSourceService}
+                >
+                  {#if qtTransferring}
+                    <div class="spinner-small"></div>
+                    {$tr('playlist.transferring')}
+                  {:else}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
+                    {$tr('playlist.transfer')}
+                  {/if}
+                </button>
+              </div>
+            </div>
+          {/if}
+        </div>
+
+        <!-- Transfer History -->
+        <div class="qt-history-section">
+          <div class="tab-actions">
+            <h3>Historique des transferts</h3>
           </div>
-        {/if}
+          {#if historyLoading}
+            <div class="loading"><div class="spinner"></div>Chargement...</div>
+          {:else if transferHistory.length === 0}
+            <div class="empty">Aucun transfert effectué</div>
+          {:else}
+            <div class="history-list">
+              {#each transferHistory as entry}
+                <div class="history-row">
+                  <div class="history-op">{entry.operation}</div>
+                  <div class="history-info">
+                    <span class="history-name">{entry.source_playlist_name || '?'}</span>
+                    <span class="history-arrow">{entry.source_service} → {entry.target_service}</span>
+                  </div>
+                  <div class="history-stats">
+                    <span class="stat-ok">{entry.matched} ok</span>
+                    <span class="stat-approx">{entry.approximate} ~</span>
+                    <span class="stat-miss">{entry.not_found} ✕</span>
+                  </div>
+                  <span class="history-date">{entry.started_at?.substring(0, 16)}</span>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
       </div>
 
     {:else if managerTab === 'sync'}
@@ -3248,5 +3535,175 @@
 
   .btn-danger:hover {
     background: #dc2626 !important;
+  }
+
+  /* Quick Transfer section */
+  .qt-section {
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+
+  .qt-section h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--tune-text);
+    margin: 0 0 4px;
+  }
+
+  .qt-hint {
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    margin: 0 0 16px;
+  }
+
+  .qt-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .qt-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+  }
+
+  .qt-arrow {
+    color: var(--tune-text-muted);
+    padding-bottom: 6px;
+    flex-shrink: 0;
+  }
+
+  .qt-playlist-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+  }
+
+  .qt-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .qt-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tune-text-muted);
+  }
+
+  .qt-select {
+    padding: 8px 12px;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: 8px;
+    color: var(--tune-text);
+    font-size: 13px;
+    outline: none;
+    width: 100%;
+  }
+
+  .qt-select:focus {
+    border-color: var(--tune-accent);
+  }
+
+  .qt-select:disabled {
+    opacity: 0.5;
+  }
+
+  .qt-input {
+    padding: 8px 12px;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: 8px;
+    color: var(--tune-text);
+    font-size: 13px;
+    outline: none;
+    width: 100%;
+  }
+
+  .qt-input:focus {
+    border-color: var(--tune-accent);
+  }
+
+  .qt-loading {
+    padding: 8px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .qt-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 4px;
+  }
+
+  .qt-transfer-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  /* Quick Transfer result */
+  .qt-result {
+    margin-top: 4px;
+  }
+
+  .qt-result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .qt-result-header h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tune-text);
+    margin: 0;
+  }
+
+  .btn-sm-action {
+    font-size: 11px;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .qt-tracks {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .qt-history-section {
+    margin-top: 8px;
+  }
+
+  /* Responsive Quick Transfer */
+  @media (max-width: 768px) {
+    .qt-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .qt-arrow {
+      display: none;
+    }
+
+    .qt-playlist-row {
+      flex-direction: column;
+    }
   }
 </style>
