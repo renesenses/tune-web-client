@@ -391,6 +391,8 @@
   let albumViewportHeight = $state(800);
   let albumViewportWidth = $state(1200);
 
+  let prevAlbumCols = $state(0);
+
   let albumGridMetrics = $derived.by(() => {
     const cols = Math.max(1, Math.floor(albumViewportWidth / ALBUM_MIN_WIDTH));
     const colWidth = albumViewportWidth / cols;
@@ -403,7 +405,20 @@
     const startIdx = startRow * cols;
     const endIdx = Math.min(total, endRow * cols);
     const offsetY = startRow * rowHeight;
-    return { cols, totalHeight, startIdx, endIdx, offsetY };
+    return { cols, colWidth, rowHeight, totalHeight, startIdx, endIdx, offsetY };
+  });
+
+  $effect(() => {
+    const cols = albumGridMetrics.cols;
+    if (prevAlbumCols > 0 && prevAlbumCols !== cols && albumScrollTop > 0) {
+      const oldColWidth = albumViewportWidth / prevAlbumCols;
+      const oldRowHeight = oldColWidth + ALBUM_TEXT_HEIGHT;
+      const ratio = albumScrollTop / (oldRowHeight || 1);
+      const newScrollTop = ratio * albumGridMetrics.rowHeight;
+      albumScrollTop = newScrollTop;
+      if (albumGridViewport) albumGridViewport.scrollTop = newScrollTop;
+    }
+    prevAlbumCols = cols;
   });
 
   let visibleAlbums = $derived(filteredAlbums.slice(albumGridMetrics.startIdx, albumGridMetrics.endIdx));
