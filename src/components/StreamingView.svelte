@@ -358,12 +358,13 @@
   }
 
   async function selectAlbum(album: Album) {
-    if (!service || !album.source_id) return;
+    const albumId = String(album.source_id ?? album.id ?? '');
+    if (!service || !albumId) return;
     selectedAlbum = album;
     selectedArtist = null;
     loading = true;
     try {
-      albumTracks = await api.getStreamingAlbumTracks(service, album.source_id);
+      albumTracks = await api.getStreamingAlbumTracks(service, albumId);
     } catch (e) {
       console.error('Get streaming album tracks error:', e);
     }
@@ -371,7 +372,7 @@
   }
 
   async function selectArtist(artist: Artist) {
-    const artistId = artist.source_id ?? artist.musicbrainz_id ?? artist.discogs_id ?? '';
+    const artistId = String(artist.source_id ?? artist.id ?? artist.musicbrainz_id ?? artist.discogs_id ?? '');
     if (!service || !artistId) return;
     selectedArtist = artist;
     selectedAlbum = null;
