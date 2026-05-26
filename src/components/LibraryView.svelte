@@ -388,6 +388,7 @@
   let albumGridViewport = $state<HTMLDivElement | null>(null);
   let albumScrollTop = $state(0);
   let savedAlbumScrollTop = $state(0);
+  let restoringScroll = $state(false);
   let albumViewportHeight = $state(800);
   let albumViewportWidth = $state(1200);
 
@@ -488,10 +489,11 @@
     return result;
   });
 
-  // Reset album grid scroll when filters change
+  // Reset album grid scroll when filters change (but not when restoring after back-nav)
   $effect(() => {
     // Access filteredAlbums.length to subscribe to changes
     const _len = filteredAlbums.length;
+    if (restoringScroll) return;
     albumScrollTop = 0;
     if (albumGridViewport) albumGridViewport.scrollTop = 0;
   });
@@ -763,6 +765,7 @@
 
   async function selectArtistDetail(artist: Artist) {
     if (!artist.id) return;
+    savedAlbumScrollTop = albumScrollTop;
     selectedArtist.set(artist);
     window.history.pushState({ view: 'library', artistId: artist.id, tab: $libraryTab }, '', '#library');
     selectedAlbum.set(null);
@@ -826,7 +829,8 @@
   });
 
   function goBack() {
-    const restoreScroll = $selectedAlbum != null ? savedAlbumScrollTop : 0;
+    const restoreScroll = savedAlbumScrollTop;
+    restoringScroll = restoreScroll > 0;
     selectedAlbum.set(null);
     selectedArtist.set(null);
     albumTracks.set([]);
@@ -835,8 +839,12 @@
     artistMetadataError = false;
     artistMetadataLoading = false;
     if (restoreScroll > 0) {
+      // Wait for the grid to re-render, then restore scroll position
       requestAnimationFrame(() => {
-        albumGridViewport?.scrollTo(0, restoreScroll);
+        albumScrollTop = restoreScroll;
+        if (albumGridViewport) albumGridViewport.scrollTop = restoreScroll;
+        // Clear the flag after a tick so future filter changes reset normally
+        requestAnimationFrame(() => { restoringScroll = false; });
       });
     }
   }
@@ -950,6 +958,25 @@
       console.error('Add to queue error:', e);
     }
   }
+
+  // Detect browser-back (popstate) returning to grid from detail view
+  let _prevInDetail = false;
+  $effect(() => {
+    const album = $selectedAlbum;
+    const artist = $selectedArtist;
+    const inDetail = album != null || artist != null;
+    const wasInDetail = _prevInDetail;
+    _prevInDetail = inDetail;
+    // Restore scroll when transitioning from detail back to grid (e.g. browser back button)
+    if (wasInDetail && !inDetail && savedAlbumScrollTop > 0 && !restoringScroll) {
+      restoringScroll = true;
+      requestAnimationFrame(() => {
+        albumScrollTop = savedAlbumScrollTop;
+        if (albumGridViewport) albumGridViewport.scrollTop = savedAlbumScrollTop;
+        requestAnimationFrame(() => { restoringScroll = false; });
+      });
+    }
+  });
 
   // Auto-load on tab switch
   $effect(() => {
