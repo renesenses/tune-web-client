@@ -581,7 +581,13 @@
             {/if}
           </div>
           {#if displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title}
-            <p class="track-artist truncate">{displayTrack.artist_name}</p>
+            {#if displayTrack.artist_id}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <p class="track-artist truncate clickable" onclick={() => navigateToArtist(displayTrack.artist_id!, displayTrack.artist_name!)}>{displayTrack.artist_name}</p>
+            {:else}
+              <p class="track-artist truncate">{displayTrack.artist_name}</p>
+            {/if}
           {/if}
           {#if !isRadio && inlineCredits}
             <p class="inline-credits">{inlineCredits}</p>
@@ -1152,6 +1158,16 @@
     color: var(--tune-text-secondary);
     margin-bottom: var(--space-xs);
     line-height: 1.2;
+  }
+
+  .track-artist.clickable {
+    cursor: pointer;
+    transition: color 0.15s ease-out;
+  }
+
+  .track-artist.clickable:hover {
+    color: var(--tune-accent);
+    text-decoration: underline;
   }
 
   .track-album {
