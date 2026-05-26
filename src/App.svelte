@@ -394,12 +394,24 @@ import AlarmsView from './components/AlarmsView.svelte';
                 if (d.album_title !== undefined) partial.album_title = d.album_title;
                 if (d.cover_path !== undefined) partial.cover_path = d.cover_path;
                 if (d.track_id !== undefined) partial.id = d.track_id;
+                if (d.duration_ms !== undefined) partial.duration_ms = d.duration_ms;
                 const updatedTrack = z.current_track
                   ? { ...z.current_track, ...partial }
                   : { ...partial } as any;
                 return { ...z, current_track: updatedTrack, state: 'playing' as const };
               })
             );
+            // Immediately reset seek position for the current zone so the
+            // progress bar doesn't keep showing the old track's position
+            // while waiting for the async syncZoneState() API call.
+            const curZoneNow = get(currentZone);
+            const isCurrentZoneEvent =
+              curZoneNow?.id === zoneId ||
+              (curZoneNow?.group_id != null && curZoneNow.group_id === get(zones).find(z => z.id === zoneId)?.group_id);
+            if (isCurrentZoneEvent) {
+              seekPositionMs.set(0);
+              startSeekTimer();
+            }
           }
           // Fetch full zone state from API (authoritative update)
           syncZoneState(zoneId).then(() => {
