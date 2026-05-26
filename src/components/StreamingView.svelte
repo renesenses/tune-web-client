@@ -1042,16 +1042,16 @@
             {#each favTracks.slice(0, 50) as track, i}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div class="track-row" ondblclick={() => playTrack(track, favTracks, i)}>
+              <div class="track-item" ondblclick={() => playTrack(track, favTracks, i)}>
                 <span class="track-num">{i + 1}</span>
                 <div class="track-art-small">
                   <AlbumArt coverPath={track.cover_path} size={36} alt={track.title} />
                 </div>
                 <div class="track-info">
                   <span class="track-title truncate">{track.title}</span>
-                  <span class="track-artist truncate">{track.artist_name}</span>
+                  <span class="track-artist truncate">{track.artist_name}{#if track.album} — {track.album}{/if}</span>
                 </div>
-                <span class="track-duration">{formatTime(track.duration)}</span>
+                <span class="track-duration">{formatTime(track.duration_ms)}</span>
                 <button class="track-action-btn" onclick={() => playTrack(track, favTracks, i)} title="Play">
                   <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M8 5v14l11-7z" /></svg>
                 </button>
