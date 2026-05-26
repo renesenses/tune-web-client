@@ -402,7 +402,7 @@
   async function playStreamingPlaylist(playlist: StreamingPlaylist) {
     if (!zone?.id || !service) return;
     try {
-      await playAndSync(zone.id, { source: playlist.source as any, streaming_playlist_id: playlist.source_id });
+      await playAndSync(zone.id, { source: (playlist.source || service) as any, streaming_playlist_id: playlist.source_id });
     } catch (e) {
       console.error('Play streaming playlist error:', e);
     }
@@ -411,7 +411,7 @@
   async function addStreamingTrackToQueue(track: Track) {
     if (!zone?.id || !track.source || !track.source_id) return;
     try {
-      await api.addToQueue(zone.id, { source: track.source as any, source_id: track.source_id });
+      await api.addToQueue(zone.id, { source: (track.source || service) as any, source_id: track.source_id });
       // Refresh queue after add
       const qs = await api.getQueue(zone.id);
       queueTracks.set(qs.tracks);
@@ -444,7 +444,7 @@
       // Backend routes audio via yt-dlp → DLNA zone
       if (zone?.id) {
         try {
-          await playAndSync(zone.id, { source: track.source as any, source_id: track.source_id });
+          await playAndSync(zone.id, { source: (track.source || service) as any, source_id: track.source_id });
         } catch (e) {
           console.error('Play YouTube track (DLNA) error:', e);
         }
@@ -453,7 +453,7 @@
     }
     if (!zone?.id) return;
     try {
-      await playAndSync(zone.id, { source: track.source as any, source_id: track.source_id });
+      await playAndSync(zone.id, { source: (track.source || service) as any, source_id: track.source_id });
     } catch (e) {
       console.error('Play streaming track error:', e);
     }
@@ -462,7 +462,7 @@
   async function playStreamingAlbum(album: Album) {
     if (!zone?.id || !service || !album.source_id) return;
     try {
-      await playAndSync(zone.id, { source: album.source as any, streaming_album_id: album.source_id });
+      await playAndSync(zone.id, { source: (album.source || service) as any, streaming_album_id: album.source_id });
     } catch (e) {
       console.error('Play streaming album error:', e);
     }
