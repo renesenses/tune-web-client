@@ -28,6 +28,15 @@
   let recommendations: any[] = $state([]);
   let recsLoaded = $state(false);
 
+  // Home API sections
+  let continueListening: any[] = $state([]);
+  let continueListeningLoaded = $state(false);
+  let topMixes: any[] = $state([]);
+  let topMixesLoaded = $state(false);
+  let radioPicks: any[] = $state([]);
+  let radioPicksLoaded = $state(false);
+  let homeProfile: string = $state('');
+
   // Dashboard
   let dashboard: any = $state(null);
   let dashboardLoaded = $state(false);
@@ -341,6 +350,73 @@
     }
   }
 
+  async function loadContinueListening() {
+    try {
+      continueListening = await api.getContinueListening();
+      continueListeningLoaded = true;
+    } catch (e) {
+      console.error('Load continue listening error:', e);
+      continueListeningLoaded = true;
+    }
+  }
+
+  async function loadTopMixes() {
+    try {
+      topMixes = await api.getTopMixes();
+      topMixesLoaded = true;
+    } catch (e) {
+      console.error('Load top mixes error:', e);
+      topMixesLoaded = true;
+    }
+  }
+
+  async function loadRadioPicks() {
+    try {
+      radioPicks = await api.getRadioPicks();
+      radioPicksLoaded = true;
+    } catch (e) {
+      console.error('Load radio picks error:', e);
+      radioPicksLoaded = true;
+    }
+  }
+
+  async function loadHomeProfile() {
+    try {
+      const data = await api.getHomePage();
+      if (data && (data as any).profile_name) {
+        homeProfile = (data as any).profile_name;
+      }
+    } catch {
+      // Home API may not be available yet, ignore
+    }
+  }
+
+  async function playRadioEntry(radio: any) {
+    if (!zone?.id) return;
+    try {
+      if (radio.id) {
+        await api.playRadio(radio.id, zone.id);
+      } else if (radio.url) {
+        await api.apiPost(`/zones/${zone.id}/play`, { url: radio.url });
+      }
+    } catch (e) {
+      console.error('Play radio error:', e);
+    }
+  }
+
+  async function playMix(mix: any) {
+    if (!zone?.id) return;
+    try {
+      if (mix.playlist_id) {
+        await api.apiPost(`/zones/${zone.id}/play`, { playlist_id: mix.playlist_id });
+      } else if (mix.tracks && mix.tracks.length > 0) {
+        await playAndSync(zone.id, { track_id: mix.tracks[0].id });
+      }
+    } catch (e) {
+      console.error('Play mix error:', e);
+    }
+  }
+
   async function loadDashboard() {
     try {
       const raw = await api.getHistoryDashboard();
@@ -368,11 +444,15 @@
     loadRecommendations();
     loadDashboard();
     loadNowListening();
+    loadContinueListening();
+    loadTopMixes();
+    loadRadioPicks();
+    loadHomeProfile();
   });
 </script>
 
 <div class="home-view">
-  <h1 class="greeting">{greeting()}</h1>
+  <h1 class="greeting">{greeting()}{#if homeProfile}, {homeProfile}{/if}</h1>
 
   <!-- Now Listening across zones -->
   {#if nowListeningLoaded && nowListening.length > 0}
@@ -393,6 +473,27 @@
               <span class="eq-bars"><span></span><span></span><span></span></span>
             </span>
           </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Continue Listening (from home API) -->
+  {#if continueListeningLoaded && continueListening.length > 0}
+    <div class="top-section">
+      <h2 class="section-title">Continuer l'ecoute</h2>
+      <div class="recs-carousel">
+        {#each continueListening as item}
+          <button class="rec-card" onclick={() => item.album_id ? navigateToAlbum(item.album_id) : (item.id ? navigateToAlbum(item.id) : null)}>
+            <AlbumArt coverPath={item.cover_path} albumId={item.album_id ?? item.id} size={160} alt={item.title ?? item.album_title ?? ''} />
+            <span class="rec-title truncate">{item.title ?? item.album_title ?? ''}</span>
+            <span class="rec-artist truncate">{item.artist_name ?? ''}</span>
+            {#if item.progress_percent != null}
+              <div class="continue-progress">
+                <div class="continue-progress-bar" style="width: {item.progress_percent}%"></div>
+              </div>
+            {/if}
+          </button>
         {/each}
       </div>
     </div>
@@ -560,6 +661,52 @@
             <span class="rec-artist truncate">{rec.artist_name ?? ''}</span>
             {#if rec.reason}
               <span class="rec-reason">{rec.reason}</span>
+            {/if}
+          </button>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Top Mixes by Genre -->
+  {#if topMixesLoaded && topMixes.length > 0}
+    <div class="top-section">
+      <h2 class="section-title">Mix par genre</h2>
+      <div class="mixes-row">
+        {#each topMixes as mix}
+          <button class="mix-card" onclick={() => playMix(mix)}>
+            <div class="mix-cover" style="background: linear-gradient(135deg, {mix.color ?? 'var(--tune-accent)'}, {mix.color_end ?? 'rgba(99, 102, 241, 0.4)'})">
+              <span class="mix-genre">{mix.genre ?? mix.name ?? ''}</span>
+              {#if mix.track_count}
+                <span class="mix-count">{mix.track_count} pistes</span>
+              {/if}
+            </div>
+          </button>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Radio Picks -->
+  {#if radioPicksLoaded && radioPicks.length > 0}
+    <div class="top-section">
+      <h2 class="section-title">Radios favorites</h2>
+      <div class="recs-carousel">
+        {#each radioPicks as radio}
+          <button class="rec-card radio-card" onclick={() => playRadioEntry(radio)}>
+            {#if radio.logo_url || radio.cover_path}
+              <img src={radio.logo_url ?? radio.cover_path} alt={radio.name ?? ''} class="radio-logo" />
+            {:else}
+              <div class="radio-placeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
+                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+                  <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5" />
+                </svg>
+              </div>
+            {/if}
+            <span class="rec-title truncate">{radio.name ?? ''}</span>
+            {#if radio.genre}
+              <span class="rec-artist truncate">{radio.genre}</span>
             {/if}
           </button>
         {/each}
@@ -1243,6 +1390,102 @@
     font-size: 10px;
     font-weight: 700;
     color: var(--tune-accent);
+  }
+
+  /* Continue Listening progress bar */
+  .continue-progress {
+    width: 100%;
+    height: 3px;
+    background: var(--tune-border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+
+  .continue-progress-bar {
+    height: 100%;
+    background: var(--tune-accent);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  /* Top Mixes */
+  .mixes-row {
+    display: flex;
+    gap: var(--space-md);
+    overflow-x: auto;
+    padding: var(--space-xs) 0;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .mixes-row::-webkit-scrollbar { display: none; }
+
+  .mix-card {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--tune-text);
+  }
+
+  .mix-cover {
+    width: 160px;
+    height: 100px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+  }
+
+  .mix-card:hover .mix-cover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .mix-genre {
+    font-family: var(--font-label);
+    font-size: 15px;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .mix-count {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  /* Radio picks */
+  .radio-card {
+    width: 140px;
+  }
+
+  .radio-logo {
+    width: 140px;
+    height: 140px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    background: var(--tune-surface);
+  }
+
+  .radio-placeholder {
+    width: 140px;
+    height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    color: var(--tune-text-muted);
   }
 
   /* Now Listening */

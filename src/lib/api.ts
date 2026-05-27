@@ -2358,3 +2358,74 @@ export function smartAITempoMatch(body: { target_bpm: number; tolerance?: number
     body: JSON.stringify(body),
   });
 }
+
+// --- Home Dashboard ---
+export function getHomePage() {
+  return fetchJSON<{ sections: any[] }>(`${BASE}/home`);
+}
+
+export function getContinueListening() {
+  return fetchJSON<any[]>(`${BASE}/home/continue-listening`);
+}
+
+export function getRecentlyAdded() {
+  return fetchJSON<any[]>(`${BASE}/home/recently-added`);
+}
+
+export function getHomeRecommendations() {
+  return fetchJSON<any[]>(`${BASE}/home/recommendations`);
+}
+
+export function getTopMixes() {
+  return fetchJSON<any[]>(`${BASE}/home/top-mixes`);
+}
+
+export function getRadioPicks() {
+  return fetchJSON<any[]>(`${BASE}/home/radio-picks`);
+}
+
+// --- Onboarding ---
+export function getOnboardingStatus() {
+  return fetchJSON<{ complete: boolean; current_step: number }>(`${BASE}/onboarding/status`);
+}
+
+export function onboardingStep(step: string, body?: any) {
+  return fetchJSON(`${BASE}/onboarding/step/${step}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
+export function skipOnboarding() {
+  return fetchJSON(`${BASE}/onboarding/skip`, { method: 'POST' });
+}
+
+// --- Offline Manager ---
+export function getOfflineStatus() {
+  return fetchJSON<{ total: number; size_bytes: number; pending: number }>(`${BASE}/offline/status`);
+}
+
+export function getOfflineDownloads() {
+  return fetchJSON<any[]>(`${BASE}/offline/downloads`);
+}
+
+export function downloadForOffline(body: { source: string; source_id: string; type: string }) {
+  return fetchJSON(`${BASE}/offline/download`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+export function removeOfflineDownload(id: string) {
+  return fetchJSON(`${BASE}/offline/downloads/${id}`, { method: 'DELETE' });
+}
+
+export function syncOffline() {
+  return fetchJSON(`${BASE}/offline/sync`, { method: 'POST' });
+}
+
+export function clearOffline() {
+  return fetchJSON(`${BASE}/offline/clear`, { method: 'POST' });
+}

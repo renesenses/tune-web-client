@@ -59,6 +59,8 @@ import AlarmsView from './components/AlarmsView.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
   import ToastContainer from './components/ToastContainer.svelte';
   import OnboardingWizard from './components/OnboardingWizard.svelte';
+  import OnboardingView from './components/OnboardingView.svelte';
+  import OfflineView from './components/OfflineView.svelte';
   import WhatsNew from './components/WhatsNew.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
   import { loadProfiles } from './lib/stores/profile';
@@ -241,14 +243,21 @@ import AlarmsView from './components/AlarmsView.svelte';
   }
 
   async function checkOnboarding() {
-    // Skip if already completed
+    // Skip if already completed locally
     if (localStorage.getItem('tune_onboarding_completed')) {
       onboardingChecked = true;
       return;
     }
     try {
+      // Try the onboarding API first
+      const status = await api.getOnboardingStatus().catch(() => null);
+      if (status && !status.complete) {
+        showOnboarding = true;
+        onboardingChecked = true;
+        return;
+      }
+      // Fallback: check library stats
       const stats = await api.getLibraryStats();
-      // Show onboarding on first run: no music dirs configured or no tracks indexed
       showOnboarding = stats.tracks === 0;
     } catch {
       // If API fails, skip onboarding — server may not be ready yet
@@ -598,6 +607,10 @@ import AlarmsView from './components/AlarmsView.svelte';
       <DiagnosticsView />
     {:else if $activeView === 'admin'}
       <AdminDashboard />
+    {:else if $activeView === 'onboarding'}
+      <OnboardingView />
+    {:else if $activeView === 'offline'}
+      <OfflineView />
     {/if}
 
     {#if scanIndicator}
