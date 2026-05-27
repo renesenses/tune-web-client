@@ -412,12 +412,10 @@
   $effect(() => {
     const cols = albumGridMetrics.cols;
     if (prevAlbumCols > 0 && prevAlbumCols !== cols && albumScrollTop > 0) {
-      const oldColWidth = albumViewportWidth / prevAlbumCols;
-      const oldRowHeight = oldColWidth + ALBUM_TEXT_HEIGHT;
-      const ratio = albumScrollTop / (oldRowHeight || 1);
-      const newScrollTop = ratio * albumGridMetrics.rowHeight;
-      albumScrollTop = newScrollTop;
-      if (albumGridViewport) albumGridViewport.scrollTop = newScrollTop;
+      // Reset scroll to top when grid columns change (window resize, etc.)
+      // to avoid inconsistent scroll positions
+      albumScrollTop = 0;
+      if (albumGridViewport) albumGridViewport.scrollTop = 0;
     }
     prevAlbumCols = cols;
   });
@@ -506,11 +504,17 @@
     [...new Set(searchFilteredAlbums.map(a => a.sample_rate).filter(Boolean))].sort((a, b) => (a ?? 0) - (b ?? 0)) as number[]
   );
 
-  let filteredArtists = $derived(
-    searchQuery.trim()
+  let filteredArtists = $derived.by(() => {
+    let result = searchQuery.trim()
       ? $artists.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()))
-      : $artists
-  );
+      : [...$artists];
+    result.sort((a, b) => {
+      const nameA = (a.sort_name || a.name || '').toLowerCase();
+      const nameB = (b.sort_name || b.name || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+    return result;
+  });
 
   // Alpha index for artists
   let artistLetters = $derived(
@@ -765,7 +769,10 @@
 
   async function selectArtistDetail(artist: Artist) {
     if (!artist.id) return;
-    savedAlbumScrollTop = albumScrollTop;
+    // Only save scroll position if navigating from the album grid (not from album detail)
+    if (!$selectedAlbum) {
+      savedAlbumScrollTop = albumScrollTop;
+    }
     selectedArtist.set(artist);
     window.history.pushState({ view: 'library', artistId: artist.id, tab: $libraryTab }, '', '#library');
     selectedAlbum.set(null);

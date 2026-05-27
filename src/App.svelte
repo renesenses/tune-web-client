@@ -401,9 +401,11 @@ import AlarmsView from './components/AlarmsView.svelte';
                 return { ...z, current_track: updatedTrack, state: 'playing' as const };
               })
             );
-            // Immediately reset seek position for the current zone so the
-            // progress bar doesn't keep showing the old track's position
-            // while waiting for the async syncZoneState() API call.
+          }
+          // Immediately reset seek position for the current zone on track
+          // change so the progress bar doesn't keep showing the old track's
+          // position while waiting for the async syncZoneState() API call.
+          if (type === 'playback.started' || type === 'playback.track_changed') {
             const curZoneNow = get(currentZone);
             const isCurrentZoneEvent =
               curZoneNow?.id === zoneId ||

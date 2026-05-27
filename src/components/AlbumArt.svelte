@@ -13,6 +13,8 @@
 
   let hasError = $state(false);
   let resolvedCoverPath = $state<string | null>(null);
+  let prevCoverPath = $state<string | null | undefined>(undefined);
+  let prevAlbumId = $state<number | null | undefined>(undefined);
 
   function handleError(e: Event) {
     console.warn('AlbumArt load error:', coverPath, 'src:', src);
@@ -21,13 +23,22 @@
 
   // Fetch cover from album if no direct coverPath provided
   $effect(() => {
+    // Skip if props haven't changed (avoids flash on re-mount with same data)
+    if (coverPath === prevCoverPath && albumId === prevAlbumId) return;
+    prevCoverPath = coverPath;
+    prevAlbumId = albumId;
     hasError = false;
     if (coverPath) {
       resolvedCoverPath = coverPath;
     } else if (albumId) {
-      resolvedCoverPath = null;
-      getAlbumCoverPath(albumId).then((path) => {
-        resolvedCoverPath = path;
+      // Don't clear resolvedCoverPath to null — keep previous image visible
+      // while fetching to avoid flash on re-mount
+      const fetchId = albumId;
+      getAlbumCoverPath(fetchId).then((path) => {
+        // Only update if albumId hasn't changed during fetch
+        if (prevAlbumId === fetchId) {
+          resolvedCoverPath = path;
+        }
       });
     } else {
       resolvedCoverPath = null;
