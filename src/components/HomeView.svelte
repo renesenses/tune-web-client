@@ -481,11 +481,11 @@
   <!-- Continue Listening (from home API) -->
   {#if continueListeningLoaded && continueListening.length > 0}
     <div class="top-section">
-      <h2 class="section-title">Continuer l'ecoute</h2>
+      <h2 class="section-title">Continuer l'écoute</h2>
       <div class="recs-carousel">
         {#each continueListening as item}
           <button class="rec-card" onclick={() => item.album_id ? navigateToAlbum(item.album_id) : (item.id ? navigateToAlbum(item.id) : null)}>
-            <AlbumArt coverPath={item.cover_path} albumId={item.album_id ?? item.id} size={160} alt={item.title ?? item.album_title ?? ''} />
+            <AlbumArt coverPath={item.cover_path} albumId={item.album_id ?? item.id} size={140} alt={item.title ?? item.album_title ?? ''} />
             <span class="rec-title truncate">{item.title ?? item.album_title ?? ''}</span>
             <span class="rec-artist truncate">{item.artist_name ?? ''}</span>
             {#if item.progress_percent != null}

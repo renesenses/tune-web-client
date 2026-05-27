@@ -351,10 +351,10 @@
         {#if scanStatus === 'scanning'}
           <div class="scan-progress">
             <div class="spinner"></div>
-            <p>Scan en cours... {scanProgress.scanned || scanProgress.total || '?'} fichiers analysés, {scanProgress.inserted || 0} ajoutés</p>
+            <p>Scan en cours...</p>
           </div>
         {:else if scanProgress.total}
-          <p class="scan-done">✓ Scan terminé : {scanProgress.total} fichiers, {scanProgress.inserted || 0} pistes ajoutées</p>
+          <p class="scan-done">✓ Scan terminé : {scanProgress.total} fichiers analysés, {scanProgress.metadata_ok || scanProgress.total} pistes en bibliothèque{scanProgress.inserted ? ` (${scanProgress.inserted} nouvelles)` : ''}</p>
         {/if}
 
         <div class="step-actions">
