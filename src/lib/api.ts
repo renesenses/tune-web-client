@@ -2321,3 +2321,40 @@ export function deleteServiceToken(serviceId: string): Promise<void> {
     method: 'DELETE',
   });
 }
+
+// --- Smart AI Playlists ---
+
+export function smartAIMood(body: { mood: string; limit?: number }) {
+  return fetchJSON<{ tracks: import('./types').Track[]; name?: string }>(`${BASE}/smart-ai/mood`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function smartAIGenerate(body: { prompt: string; limit?: number }) {
+  return fetchJSON<{ tracks: import('./types').Track[]; name?: string }>(`${BASE}/smart-ai/generate`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function smartAIHistoryBased(body: { limit?: number; days?: number }) {
+  return fetchJSON<{ tracks: import('./types').Track[]; name?: string }>(`${BASE}/smart-ai/history-based`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function smartAIDiscovery(body: { limit?: number }) {
+  return fetchJSON<{ tracks: import('./types').Track[]; name?: string }>(`${BASE}/smart-ai/discovery`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function smartAITempoMatch(body: { target_bpm: number; tolerance?: number; limit?: number }) {
+  return fetchJSON<{ tracks: import('./types').Track[]; name?: string }>(`${BASE}/smart-ai/tempo-match`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}

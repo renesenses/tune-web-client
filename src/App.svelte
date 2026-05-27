@@ -46,6 +46,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import PlaylistManagerView from './components/PlaylistManagerView.svelte';
   import PlaylistsHub from './components/PlaylistsHub.svelte';
   import DJView from './components/DJView.svelte';
+  import SmartAIView from './components/SmartAIView.svelte';
   import PartyView from './components/PartyView.svelte';
   import CollectionsView from './components/CollectionsView.svelte';
   import SmartCollectionsView from './components/SmartCollectionsView.svelte';
@@ -545,6 +546,8 @@ import AlarmsView from './components/AlarmsView.svelte';
       <PlaylistsHub />
     {:else if $activeView === 'smartplaylists'}
       <SmartPlaylistsView />
+    {:else if $activeView === 'smart-ai'}
+      <SmartAIView />
     {:else if $activeView === 'browse'}
       <BrowseView onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'search'}
