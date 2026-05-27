@@ -226,7 +226,12 @@ import AlarmsView from './components/AlarmsView.svelte';
         curZone?.id === zoneId ||
         (zone.group_id != null && curZone?.group_id === zone.group_id);
       if (isCurrentOrGroupMember) {
-        seekPositionMs.set(zone.position_ms ?? 0);
+        const serverPos = zone.position_ms ?? 0;
+        const localPos = get(seekPositionMs);
+        const drift = Math.abs(localPos - serverPos);
+        if (zone.state !== 'playing' || drift > 2000) {
+          seekPositionMs.set(serverPos);
+        }
         if (zone.state === 'playing') {
           startSeekTimer();
         } else {
