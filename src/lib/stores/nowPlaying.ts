@@ -21,7 +21,7 @@ export const zoneVolume = derived(currentZone, ($zone) => $zone?.volume ?? 0.5);
 let seekTimer: ReturnType<typeof setInterval> | null = null;
 
 export function startSeekTimer() {
-  stopSeekTimer();
+  if (seekTimer) return; // already running
   seekTimer = setInterval(() => {
     seekPositionMs.update((pos) => pos + 1000);
   }, 1000);
