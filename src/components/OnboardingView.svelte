@@ -85,6 +85,9 @@
   }
 
   // Music dir management
+  let scanStatus = $state<string>('idle');
+  let scanProgress = $state<{total?: number; inserted?: number; scanned?: number}>({});
+
   async function handleAddMusicDir() {
     const path = newMusicDirPath.trim();
     if (!path) return;
@@ -94,9 +97,24 @@
       await api.addMusicDir(path);
       newMusicDirPath = '';
       await loadMusicRoots();
-      await api.onboardingStep('music_dirs', { path });
+      // Trigger scan automatically
+      scanStatus = 'scanning';
+      await api.triggerScan();
+      // Poll scan status until done
+      const pollInterval = setInterval(async () => {
+        try {
+          const status = await api.getScanStatus();
+          scanProgress = status.result || {};
+          if (!status.scanning) {
+            scanStatus = 'idle';
+            clearInterval(pollInterval);
+            await loadMusicRoots();
+          }
+        } catch { /* ignore */ }
+      }, 2000);
     } catch (e: any) {
       musicDirError = e.message || String(e);
+      scanStatus = 'idle';
     }
     addingMusicDir = false;
   }
@@ -330,11 +348,20 @@
           <p class="error-msg">{musicDirError}</p>
         {/if}
 
+        {#if scanStatus === 'scanning'}
+          <div class="scan-progress">
+            <div class="spinner"></div>
+            <p>Scan en cours... {scanProgress.scanned || scanProgress.total || '?'} fichiers analysés, {scanProgress.inserted || 0} ajoutés</p>
+          </div>
+        {:else if scanProgress.total}
+          <p class="scan-done">✓ Scan terminé : {scanProgress.total} fichiers, {scanProgress.inserted || 0} pistes ajoutées</p>
+        {/if}
+
         <div class="step-actions">
           <button class="btn-back" onclick={() => step = 1}>Retour</button>
           <div class="step-actions-right">
             <button class="btn-skip" onclick={() => step = 3}>Passer</button>
-            <button class="btn-primary" onclick={() => step = 3}>Suivant</button>
+            <button class="btn-primary" onclick={() => step = 3} disabled={scanStatus === 'scanning'}>Suivant</button>
           </div>
         </div>
       </div>
