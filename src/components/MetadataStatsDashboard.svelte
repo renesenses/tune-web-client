@@ -84,7 +84,7 @@
   .stat-active { border-color: var(--tune-accent, #00bcd4); background: rgba(0,188,212,0.08); }
   .stat-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
   .stat-label { font-size: 0.85rem; color: var(--tune-text-secondary, rgba(255,255,255,0.7)); }
-  .stat-value { font-size: 1.2rem; font-weight: 600; }
+  .stat-value { font-size: 1.2rem; font-weight: 600; color: #ffffff; }
   .progress-bar { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
   .progress-fill { height: 100%; background: var(--tune-accent, #00bcd4); transition: width 0.3s; }
   .stat-detail { font-size: 0.75rem; color: var(--tune-text-secondary, rgba(255,255,255,0.55)); }
