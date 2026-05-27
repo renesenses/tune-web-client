@@ -17,14 +17,15 @@ export const currentTrack = derived(currentZone, ($zone) => $zone?.current_track
 export const playbackState = derived(currentZone, ($zone): PlaybackState => ($zone?.state as PlaybackState) ?? 'stopped');
 export const zoneVolume = derived(currentZone, ($zone) => $zone?.volume ?? 0.5);
 
-// Seek interpolation timer (increments by 1000ms every second when playing)
+// Seek interpolation timer (smooth 200ms ticks for fluid progress bar)
 let seekTimer: ReturnType<typeof setInterval> | null = null;
+const TICK_MS = 200;
 
 export function startSeekTimer() {
   if (seekTimer) return; // already running
   seekTimer = setInterval(() => {
-    seekPositionMs.update((pos) => pos + 1000);
-  }, 1000);
+    seekPositionMs.update((pos) => pos + TICK_MS);
+  }, TICK_MS);
 }
 
 export function stopSeekTimer() {
