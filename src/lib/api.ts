@@ -2278,3 +2278,46 @@ export function getAdminConnections() {
 export function getAdminDiscovery() {
   return fetchJSON<AdminDiscovery>(`${BASE}/admin/discovery`);
 }
+
+// Service tokens (API keys for third-party services like Last.fm, Discogs, etc.)
+export interface ServiceTokenField {
+  key: string;
+  label: string;
+  type: 'text' | 'password' | 'url';
+  required: boolean;
+}
+export interface ServiceTokenInfo {
+  id: string;
+  name: string;
+  description: string;
+  configured: boolean;
+  fields: ServiceTokenField[];
+}
+export interface ServiceTokenSaveResult {
+  valid: boolean | null;
+  validation_message?: string;
+}
+
+export function listServiceTokens(): Promise<ServiceTokenInfo[]> {
+  return fetchJSON<ServiceTokenInfo[]>(`${BASE}/services/tokens`);
+}
+
+export function saveServiceToken(serviceId: string, data: Record<string, string>): Promise<ServiceTokenSaveResult> {
+  return fetchJSON<ServiceTokenSaveResult>(`${BASE}/services/tokens/${encodeURIComponent(serviceId)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+}
+
+export function testServiceToken(serviceId: string): Promise<ServiceTokenSaveResult> {
+  return fetchJSON<ServiceTokenSaveResult>(`${BASE}/services/tokens/${encodeURIComponent(serviceId)}/test`, {
+    method: 'POST',
+  });
+}
+
+export function deleteServiceToken(serviceId: string): Promise<void> {
+  return fetchJSON<void>(`${BASE}/services/tokens/${encodeURIComponent(serviceId)}`, {
+    method: 'DELETE',
+  });
+}
