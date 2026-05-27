@@ -374,8 +374,12 @@ import AlarmsView from './components/AlarmsView.svelte';
           return;
         }
         if (type === 'playback.position' && event.data?.position_ms !== undefined) {
-          // Lightweight position update (no API call)
-          seekPositionMs.set(event.data.position_ms);
+          // Only recalibrate if drift exceeds 2s to avoid flicker
+          const drift = Math.abs(get(seekPositionMs) - event.data.position_ms);
+          if (drift > 2000) {
+            seekPositionMs.set(event.data.position_ms);
+            startSeekTimer();
+          }
         } else if (type === 'playback.queue_changed') {
           fetchQueue();
           if (zoneId) syncZoneState(zoneId);
