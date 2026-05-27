@@ -8,8 +8,40 @@
   import AlbumArt from './AlbumArt.svelte';
 
   let playingIndex = $state<number | null>(null);
+  let serverHistory = $state<HistoryEntry[]>([]);
 
   let zone = $derived($currentZone);
+
+  // Merge local + server history
+  let mergedHistory = $derived(() => {
+    const local = $playbackHistory;
+    if (serverHistory.length === 0) return local;
+    if (local.length === 0) return serverHistory;
+    // Merge: local first (most recent), then server entries not in local
+    const localTitles = new Set(local.map(e => e.track.title + e.playedAt));
+    const extra = serverHistory.filter(e => !localTitles.has(e.track.title + e.playedAt));
+    return [...local, ...extra].slice(0, 200);
+  });
+
+  // Load server history on mount
+  $effect(() => {
+    api.getListenHistory(100).then(entries => {
+      serverHistory = entries.map((e: any) => ({
+        track: {
+          id: e.track_id,
+          title: e.title,
+          artist_name: e.artist_name,
+          album_title: e.album_title,
+          duration_ms: e.duration_ms,
+          source: e.source,
+          source_id: e.source_id,
+          cover_path: e.cover_path,
+        },
+        playedAt: e.listened_at,
+        zoneName: `Zone ${e.zone_id}`,
+      }));
+    }).catch(() => {});
+  });
 
   function relativeTime(iso: string): string {
     const diff = Date.now() - new Date(iso).getTime();
@@ -71,13 +103,13 @@
 <div class="history-view">
   <div class="history-header">
     <h2>{$t('history.title')}</h2>
-    <span class="history-count">{$playbackHistory.length} {$t('history.plays')}</span>
-    {#if $playbackHistory.length > 0}
+    <span class="history-count">{mergedHistory().length} {$t('history.plays')}</span>
+    {#if mergedHistory().length > 0}
       <button class="clear-btn" onclick={() => playbackHistory.clear()}>{$t('history.clear')}</button>
     {/if}
   </div>
 
-  {#if $playbackHistory.length === 0}
+  {#if mergedHistory().length === 0}
     <div class="empty">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
         <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
@@ -86,7 +118,7 @@
     </div>
   {:else}
     <div class="history-list">
-      {#each $playbackHistory as entry, i}
+      {#each mergedHistory() as entry, i}
         <button class="history-item" class:loading={playingIndex === i} onclick={() => replay(entry, i)}>
           <div class="history-play-icon">
             {#if playingIndex === i}
