@@ -673,10 +673,12 @@
     }
   }
 
-  async function playStreamingPlaylist(pl: StreamingPlaylist) {
+  async function playStreamingPlaylist(pl: StreamingPlaylist, startIndex?: number) {
     if (!zone?.id) return;
+    const source = pl.source || selectedService;
+    if (!source) return;
     try {
-      await playAndSync(zone.id, { source: pl.source as any, streaming_playlist_id: pl.source_id });
+      await playAndSync(zone.id, { source: source as any, streaming_playlist_id: pl.source_id, start_index: startIndex });
     } catch (e) {
       console.error('Play streaming playlist error:', e);
     }
@@ -685,12 +687,12 @@
   async function playTrack(t: Track) {
     if (!zone?.id) return;
     try {
-      if (t.source && t.source !== 'local' && t.source_id) {
-        await playAndSync(zone.id, { source: t.source as any, source_id: t.source_id });
+      const source = t.source || selectedService;
+      if (source && source !== 'local' && t.source_id) {
+        await playAndSync(zone.id, { source: source as any, source_id: t.source_id });
       } else if (t.id) {
         await playAndSync(zone.id, { track_id: t.id });
       }
-      // Zone state will update via WebSocket playback.track_changed event
     } catch (e) {
       console.error('Play track error:', e);
     }
