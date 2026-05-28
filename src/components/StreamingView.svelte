@@ -37,6 +37,9 @@
   let selectedStreamingPlaylist = $state<StreamingPlaylist | null>(null);
   let playlistTracks = $state<Track[]>([]);
 
+  let newReleases = $state<Album[]>([]);
+  let featuredPlaylists = $state<StreamingPlaylist[]>([]);
+
   let favAlbums = $state<Album[]>([]);
   let favArtists = $state<Artist[]>([]);
   let favTracks = $state<Track[]>([]);
@@ -66,10 +69,14 @@
       loadFeatured(s);
       loadUserPlaylists(s);
       loadFavorites(s);
+      loadNewReleases(s);
+      loadFeaturedPlaylists(s);
     } else {
       featuredSections = [];
       featuredData = {};
       userPlaylists = [];
+      newReleases = [];
+      featuredPlaylists = [];
       favAlbums = [];
       favArtists = [];
       favTracks = [];
@@ -166,6 +173,20 @@
     } catch (e) {
       console.error('Load favorites error:', e);
     }
+  }
+
+  async function loadNewReleases(s: string) {
+    try {
+      const albums = await api.getStreamingNewReleases(s);
+      if (service === s) newReleases = albums;
+    } catch { newReleases = []; }
+  }
+
+  async function loadFeaturedPlaylists(s: string) {
+    try {
+      const playlists = await api.getStreamingFeaturedPlaylists(s);
+      if (service === s) featuredPlaylists = playlists;
+    } catch { featuredPlaylists = []; }
   }
 
   async function openGenreBrowser() {
@@ -819,7 +840,7 @@
     <!-- Main search/browse view -->
     <div class="streaming-header">
       <h2>{serviceName(service)}</h2>
-      {#if service === 'qobuz'}
+      {#if service === 'qobuz' || service === 'tidal' || service === 'deezer' || service === 'spotify'}
         <button class="genres-btn" onclick={openGenreBrowser}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
           {$tr('common.genres')}
@@ -943,8 +964,7 @@
       {/if}
 
     {:else if showFeatured}
-      <!-- Spotify dev-mode notice — affiché si auth OK mais aucune section
-           featured (Spotify a verrouillé browse/* en dev mode fin 2024). -->
+      <!-- Spotify dev-mode notice -->
       {#if service === 'spotify' && featuredSections.length === 0 && !featuredLoading}
         <div class="dev-mode-banner">
           <div class="dev-mode-icon">ℹ️</div>
@@ -956,6 +976,106 @@
               <a href="https://developer.spotify.com/documentation/web-api/concepts/quota-modes" target="_blank" rel="noopener noreferrer">Extended Quota</a>
               dans le dashboard Spotify (review 5–7 jours).
             </p>
+          </div>
+        </div>
+      {/if}
+
+      <!-- Featured sections with carousels (top of page) -->
+      {#if featuredLoading && featuredSections.length === 0}
+        <div class="skeleton-sections">
+          {#each [1, 2, 3] as _}
+            <div class="skeleton-section">
+              <div class="skeleton-title"></div>
+              <div class="skeleton-carousel">
+                {#each [1, 2, 3, 4, 5] as __}
+                  <div class="skeleton-card">
+                    <div class="skeleton-art"></div>
+                    <div class="skeleton-text"></div>
+                    <div class="skeleton-text short"></div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/each}
+        </div>
+      {:else}
+        {#each featuredSections as section}
+          {#if featuredData[section.id]?.length}
+            <div class="featured-section">
+              <h3 class="featured-section-title">{section.name}</h3>
+              <div class="carousel">
+                {#each featuredData[section.id] as album}
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div class="carousel-card" onclick={() => selectAlbum(album)}>
+                    <div class="album-card-art">
+                      <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+                      <div class="art-hover-overlay">
+                        <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); selectAlbum(album); }} title={$tr('library.openAlbum')}>
+                          <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M8 5v14l11-7z" /></svg>
+                        </button>
+                      </div>
+                    </div>
+                    <span class="album-card-title truncate">{album.title}</span>
+                    {#if album.artist_name}
+                      <span class="album-card-artist truncate">{album.artist_name}</span>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+        {/each}
+      {/if}
+
+      <!-- New releases carousel -->
+      {#if newReleases.length > 0}
+        <div class="featured-section">
+          <h3 class="featured-section-title">{$tr('streaming.newReleases')}</h3>
+          <div class="carousel">
+            {#each newReleases as album}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="carousel-card" onclick={() => selectAlbum(album)}>
+                <div class="album-card-art">
+                  <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
+                  <div class="art-hover-overlay">
+                    <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); selectAlbum(album); }} title={$tr('library.openAlbum')}>
+                      <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M8 5v14l11-7z" /></svg>
+                    </button>
+                  </div>
+                </div>
+                <span class="album-card-title truncate">{album.title}</span>
+                {#if album.artist_name}
+                  <span class="album-card-artist truncate">{album.artist_name}</span>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      <!-- Featured playlists carousel -->
+      {#if featuredPlaylists.length > 0}
+        <div class="featured-section">
+          <h3 class="featured-section-title">{$tr('streaming.featuredPlaylists')}</h3>
+          <div class="carousel">
+            {#each featuredPlaylists as playlist}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="carousel-card" onclick={() => selectStreamingPlaylist(playlist)}>
+                <div class="album-card-art">
+                  <AlbumArt coverPath={playlist.cover_path} size={160} alt={playlist.name} />
+                  <div class="art-hover-overlay">
+                    <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); selectStreamingPlaylist(playlist); }} title={$tr('library.openAlbum')}>
+                      <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M8 5v14l11-7z" /></svg>
+                    </button>
+                  </div>
+                </div>
+                <span class="album-card-title truncate">{playlist.name}</span>
+                <span class="album-card-artist truncate">{playlist.track_count} {$tr('home.tracks').toLowerCase()}</span>
+              </div>
+            {/each}
           </div>
         </div>
       {/if}
@@ -1059,54 +1179,6 @@
             {/each}
           </div>
         </div>
-      {/if}
-
-      <!-- Featured sections with carousels -->
-      {#if featuredLoading && featuredSections.length === 0}
-        <div class="skeleton-sections">
-          {#each [1, 2, 3] as _}
-            <div class="skeleton-section">
-              <div class="skeleton-title"></div>
-              <div class="skeleton-carousel">
-                {#each [1, 2, 3, 4, 5] as __}
-                  <div class="skeleton-card">
-                    <div class="skeleton-art"></div>
-                    <div class="skeleton-text"></div>
-                    <div class="skeleton-text short"></div>
-                  </div>
-                {/each}
-              </div>
-            </div>
-          {/each}
-        </div>
-      {:else}
-        {#each featuredSections as section}
-          {#if featuredData[section.id]?.length}
-            <div class="featured-section">
-              <h3 class="featured-section-title">{section.name}</h3>
-              <div class="carousel">
-                {#each featuredData[section.id] as album}
-                  <!-- svelte-ignore a11y_click_events_have_key_events -->
-                  <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div class="carousel-card" onclick={() => selectAlbum(album)}>
-                    <div class="album-card-art">
-                      <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
-                      <div class="art-hover-overlay">
-                        <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); selectAlbum(album); }} title={$tr('library.openAlbum')}>
-                          <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M8 5v14l11-7z" /></svg>
-                        </button>
-                      </div>
-                    </div>
-                    <span class="album-card-title truncate">{album.title}</span>
-                    {#if album.artist_name}
-                      <span class="album-card-artist truncate">{album.artist_name}</span>
-                    {/if}
-                  </div>
-                {/each}
-              </div>
-            </div>
-          {/if}
-        {/each}
       {/if}
 
     {:else if searching}

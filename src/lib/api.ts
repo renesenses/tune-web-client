@@ -1160,6 +1160,14 @@ export function getStreamingFeatured(service: string, section: string, limit = 2
   return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured/${encodeURIComponent(section)}?limit=${limit}`);
 }
 
+export function getStreamingNewReleases(service: string, limit = 50) {
+  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/new-releases?limit=${limit}`);
+}
+
+export function getStreamingFeaturedPlaylists(service: string) {
+  return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured`);
+}
+
 export function getStreamingGenres(service: string, parentId?: string) {
   const params = parentId ? `?parent_id=${encodeURIComponent(parentId)}` : '';
   return fetchJSON<import('./types').StreamingGenre[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres${params}`);
