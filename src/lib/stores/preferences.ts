@@ -63,7 +63,12 @@ export async function syncPreferencesFromServer() {
       const server: Partial<Preferences> = typeof config.ui_preferences === 'string'
         ? JSON.parse(config.ui_preferences)
         : config.ui_preferences;
-      preferences.update((local) => ({ ...defaults, ...server, ...local }));
+      const hasLocal = !!localStorage.getItem(STORAGE_KEY);
+      if (hasLocal) {
+        preferences.update((local) => ({ ...defaults, ...server, ...local }));
+      } else {
+        preferences.update(() => ({ ...defaults, ...server }));
+      }
     }
   } catch { /* ignore */ }
 }

@@ -251,7 +251,7 @@ import AlarmsView from './components/AlarmsView.svelte';
     try {
       // Check server-side flag first
       const config = await api.getConfig().catch(() => null);
-      if (config?.onboarding_completed === 'true' || config?.onboarding_completed === true) {
+      if (config?.onboarding_complete === 'true' || config?.onboarding_complete === true || config?.onboarding_completed === 'true' || config?.onboarding_completed === true) {
         localStorage.setItem('tune_onboarding_completed', 'true');
         onboardingChecked = true;
         return;
