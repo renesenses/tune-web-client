@@ -1706,7 +1706,7 @@
                 <span class="album-card-artist truncate">{album.artist_name}</span>
               {/if}
               {#if selectedParent && album.genre && album.genre.toLowerCase() !== (selectedParent ?? '').toLowerCase()}
-                <span class="album-card-genre truncate">{album.genre}</span>
+                <span class="album-card-genre truncate">{album.genre.split(/[;\/\\]/).map(g => g.trim()).filter(Boolean).join(', ')}</span>
               {/if}
             </div>
           {/each}
