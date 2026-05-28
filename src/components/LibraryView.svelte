@@ -1017,7 +1017,7 @@
               <span>{formatAlbumYear($selectedAlbum)}</span>
             {/if}
             {#if $selectedAlbum.genre}
-              <span>{$selectedAlbum.genre}</span>
+              <span>{$selectedAlbum.genre.split(/[;\/\\]/).map(g => g.trim()).filter(Boolean).join(', ')}</span>
             {/if}
             {#if $albumTracks.length > 0}
               <span>{$albumTracks.length} {$tr('common.tracks')}</span>
