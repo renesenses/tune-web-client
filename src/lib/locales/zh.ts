@@ -179,6 +179,8 @@ export default {
   'streaming.searchOn': '在 {service} 上搜索...',
   'streaming.myPlaylists': '我的播放列表',
   'streaming.noPlaylists': '没有播放列表',
+  'streaming.newReleases': '新发行',
+  'streaming.featuredPlaylists': '精选播放列表',
   'streaming.favAlbums': '收藏专辑',
   'streaming.favArtists': '收藏艺术家',
   'streaming.favTracks': '收藏歌曲',

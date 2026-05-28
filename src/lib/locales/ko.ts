@@ -179,6 +179,8 @@ export default {
   'streaming.searchOn': '{service}에서 검색...',
   'streaming.myPlaylists': '내 재생목록',
   'streaming.noPlaylists': '재생목록 없음',
+  'streaming.newReleases': '새 앨범',
+  'streaming.featuredPlaylists': '추천 플레이리스트',
   'streaming.favAlbums': '좋아하는 앨범',
   'streaming.favArtists': '좋아하는 아티스트',
   'streaming.favTracks': '좋아하는 곡',
