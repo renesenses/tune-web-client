@@ -978,8 +978,8 @@ export function addMusicDir(path: string) {
 }
 
 export function removeMusicDir(path: string) {
-  return fetchJSON<{ music_dirs: string[] }>(`${BASE}/system/music-dirs`, {
-    method: 'DELETE',
+  return fetchJSON<{ music_dirs: string[] }>(`${BASE}/system/music-dirs/remove`, {
+    method: 'POST',
     body: JSON.stringify({ path }),
   });
 }
