@@ -201,10 +201,10 @@
     }
   }
 
-  async function playStreamingPlaylist(pl: StreamingPlaylist) {
+  async function playStreamingPlaylist(pl: StreamingPlaylist, startIndex?: number) {
     if (!zone?.id) return;
     try {
-      await playAndSync(zone.id, { source: pl.source as any, streaming_playlist_id: pl.source_id });
+      await playAndSync(zone.id, { source: pl.source as any, streaming_playlist_id: pl.source_id, start_index: startIndex });
     } catch (e) {
       console.error('Play streaming playlist error:', e);
     }
@@ -333,7 +333,7 @@
       <div class="track-list">
         {#each streamingPlTracks as t, index}
           <div class="track-item">
-            <button class="track-play" onclick={() => playStreamingTrack(t)}>
+            <button class="track-play" onclick={() => selectedStreamingPl ? playStreamingPlaylist(selectedStreamingPl, index) : playStreamingTrack(t)}>
               <span class="track-num">{index + 1}</span>
               <div class="track-info">
                 <span class="track-title truncate">{t.title}</span>

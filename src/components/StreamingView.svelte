@@ -399,10 +399,10 @@
     loading = false;
   }
 
-  async function playStreamingPlaylist(playlist: StreamingPlaylist) {
+  async function playStreamingPlaylist(playlist: StreamingPlaylist, startIndex?: number) {
     if (!zone?.id || !service) return;
     try {
-      await playAndSync(zone.id, { source: (playlist.source || service) as any, streaming_playlist_id: playlist.source_id });
+      await playAndSync(zone.id, { source: (playlist.source || service) as any, streaming_playlist_id: playlist.source_id, start_index: startIndex });
     } catch (e) {
       console.error('Play streaming playlist error:', e);
     }
@@ -557,7 +557,7 @@
         {#each playlistTracks as t, index}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="track-item" onclick={() => playStreamingTrack(t)}>
+          <div class="track-item" onclick={() => selectedStreamingPlaylist ? playStreamingPlaylist(selectedStreamingPlaylist, index) : playStreamingTrack(t)}>
             <span class="track-num">{index + 1}</span>
             <div class="track-info">
               <span class="track-title truncate">{t.title}</span>
