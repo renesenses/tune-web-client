@@ -9,7 +9,7 @@
   import { connectionState } from './lib/stores/connection';
   import { activeView } from './lib/stores/navigation';
   import { selectedAlbum, selectedArtist, libraryTab } from './lib/stores/library';
-  import { preferences, applyTheme } from './lib/stores/preferences';
+  import { preferences, applyTheme, syncPreferencesFromServer } from './lib/stores/preferences';
   import { locale } from './lib/i18n';
   import { setupKeyboardShortcuts } from './lib/keyboard';
   import { playbackHistory } from './lib/stores/history';
@@ -249,7 +249,14 @@ import AlarmsView from './components/AlarmsView.svelte';
       return;
     }
     try {
-      // Try the onboarding API first
+      // Check server-side flag first
+      const config = await api.getConfig().catch(() => null);
+      if (config?.onboarding_completed === 'true' || config?.onboarding_completed === true) {
+        localStorage.setItem('tune_onboarding_completed', 'true');
+        onboardingChecked = true;
+        return;
+      }
+      // Try the onboarding API
       const status = await api.getOnboardingStatus().catch(() => null);
       if (status && !status.complete) {
         showOnboarding = true;
@@ -260,7 +267,6 @@ import AlarmsView from './components/AlarmsView.svelte';
       const stats = await api.getLibraryStats();
       showOnboarding = stats.tracks === 0;
     } catch {
-      // If API fails, skip onboarding — server may not be ready yet
       showOnboarding = false;
     }
     onboardingChecked = true;
@@ -296,6 +302,7 @@ import AlarmsView from './components/AlarmsView.svelte';
     });
     unsub(); // Read once, theme is applied
 
+    syncPreferencesFromServer();
     startUpdatePolling();
 
     // Apply startup view

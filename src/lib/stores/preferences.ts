@@ -35,15 +35,38 @@ function loadPrefs(): Preferences {
 
 function createPreferences() {
   const { subscribe, set, update } = writable<Preferences>(loadPrefs());
+  let initialized = false;
   subscribe((v) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(v));
     } catch { /* ignore */ }
+    if (initialized) {
+      fetch('/api/v1/system/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ui_preferences: JSON.stringify(v) }),
+      }).catch(() => {});
+    }
   });
+  initialized = true;
   return { subscribe, set, update };
 }
 
 export const preferences = createPreferences();
+
+export async function syncPreferencesFromServer() {
+  try {
+    const res = await fetch('/api/v1/system/config');
+    if (!res.ok) return;
+    const config = await res.json();
+    if (config.ui_preferences) {
+      const server: Partial<Preferences> = typeof config.ui_preferences === 'string'
+        ? JSON.parse(config.ui_preferences)
+        : config.ui_preferences;
+      preferences.update((local) => ({ ...defaults, ...server, ...local }));
+    }
+  } catch { /* ignore */ }
+}
 
 export function applyTheme(theme: ThemeMode) {
   if (theme === 'dark') {

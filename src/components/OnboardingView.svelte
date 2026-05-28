@@ -235,6 +235,7 @@
       await api.onboardingStep('complete');
     } catch { /* ignore */ }
     localStorage.setItem('tune_onboarding_completed', 'true');
+    api.updateConfig({ onboarding_completed: 'true' }).catch(() => {});
     activeView.set('home');
   }
 
@@ -243,6 +244,7 @@
       await api.skipOnboarding();
     } catch { /* ignore */ }
     localStorage.setItem('tune_onboarding_completed', 'true');
+    api.updateConfig({ onboarding_completed: 'true' }).catch(() => {});
     activeView.set('home');
   }
 
