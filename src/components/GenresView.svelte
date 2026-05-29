@@ -232,6 +232,26 @@
   $effect(() => {
     api.getGenreTree().then(r => tree = r.tree ?? {}).catch(e => console.error('Load genre tree error:', e));
   });
+
+  // Genre search filter (client-side)
+  let searchQuery = $state('');
+
+  let filteredBranches = $derived.by(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return Object.keys(tree).sort((a, b) => (parentCounts[b] ?? 0) - (parentCounts[a] ?? 0));
+    return Object.keys(tree)
+      .filter(parent => {
+        if (parent.toLowerCase().includes(q)) return true;
+        return tree[parent].some(child => child.toLowerCase().includes(q));
+      })
+      .sort((a, b) => (parentCounts[b] ?? 0) - (parentCounts[a] ?? 0));
+  });
+
+  let filteredOrphanGenres = $derived.by(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return orphanGenres;
+    return orphanGenres.filter(g => g.name.toLowerCase().includes(q));
+  });
 </script>
 
 <div class="genres-view">
@@ -239,10 +259,19 @@
     <!-- Genre list — branches first, then orphan genres -->
     <div class="view-header">
       <h2>{$tr('nav.genres')}</h2>
+      <div class="genre-search-box">
+        <svg class="genre-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+        <input type="text" placeholder="Filtrer les genres..." bind:value={searchQuery} />
+        {#if searchQuery}
+          <button class="genre-search-clear" onclick={() => searchQuery = ''}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        {/if}
+      </div>
     </div>
     {#if Object.keys(tree).length > 0}
       <div class="branches">
-        {#each Object.keys(tree).sort((a, b) => (parentCounts[b] ?? 0) - (parentCounts[a] ?? 0)) as parent (parent)}
+        {#each filteredBranches as parent (parent)}
           {@const total = parentCounts[parent] ?? 0}
           {#if total > 0}
             <div class="branch-row">
@@ -266,10 +295,10 @@
       </div>
     {/if}
 
-    {#if orphanGenres.length > 0}
+    {#if filteredOrphanGenres.length > 0}
       <h3 class="section-title">Hors arbre</h3>
       <div class="genres-grid">
-        {#each orphanGenres as g}
+        {#each filteredOrphanGenres as g}
           <button class="genre-card" onclick={() => selectGenre(g.name)}>
             <span class="genre-card-name">{g.name}</span>
             <span class="genre-card-count">{g.count} {g.count > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
@@ -280,6 +309,8 @@
 
     {#if $genres.length === 0}
       <div class="empty">{$tr('library.noGenres')}</div>
+    {:else if searchQuery.trim() && filteredBranches.length === 0 && filteredOrphanGenres.length === 0}
+      <div class="empty">Aucun genre ne correspond a "{searchQuery.trim()}"</div>
     {/if}
 
   {:else if level === 'genre' && (displayParent || selectedGenreName)}
@@ -474,6 +505,57 @@
     font-size: 28px;
     font-weight: 600;
     letter-spacing: -0.8px;
+  }
+
+  /* Genre search */
+  .genre-search-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    padding: 5px 10px;
+    margin-left: auto;
+    transition: border-color 0.12s;
+  }
+
+  .genre-search-box:focus-within {
+    border-color: var(--tune-accent);
+  }
+
+  .genre-search-icon {
+    color: var(--tune-text-muted);
+    flex-shrink: 0;
+  }
+
+  .genre-search-box input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    width: 180px;
+  }
+
+  .genre-search-box input::placeholder {
+    color: var(--tune-text-muted);
+  }
+
+  .genre-search-clear {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    border-radius: var(--radius-sm);
+  }
+
+  .genre-search-clear:hover {
+    color: var(--tune-text);
   }
 
   /* Breadcrumbs */
