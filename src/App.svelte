@@ -78,6 +78,9 @@ import AlarmsView from './components/AlarmsView.svelte';
   let onboardingChecked = $state(false);
   let showWhatsNew = $state(false);
 
+  // Kiosk mode: ?kiosk=true forces NowPlaying view on small touchscreen
+  const isKiosk = new URLSearchParams(window.location.search).has('kiosk');
+
   // Reset seek state + refresh queue when zone changes
   $effect(() => {
     const unsub = currentZoneId.subscribe((zoneId) => {
@@ -295,6 +298,12 @@ import AlarmsView from './components/AlarmsView.svelte';
   }
 
   onMount(() => {
+    // Kiosk mode: set data attribute on <html> and force nowplaying view
+    if (isKiosk) {
+      document.documentElement.setAttribute('data-kiosk', '');
+      activeView.set('nowplaying');
+    }
+
     // Apply saved preferences (theme + language)
     const unsub = preferences.subscribe((prefs) => {
       applyTheme(prefs.theme);
@@ -305,11 +314,13 @@ import AlarmsView from './components/AlarmsView.svelte';
     syncPreferencesFromServer();
     startUpdatePolling();
 
-    // Apply startup view
-    let prefs: { startupView?: string; defaultZoneId?: number | null } = {};
-    preferences.subscribe((p) => (prefs = p))();
-    if (prefs.startupView) {
-      activeView.set(prefs.startupView as any);
+    // Apply startup view (skip in kiosk mode — always nowplaying)
+    if (!isKiosk) {
+      let prefs: { startupView?: string; defaultZoneId?: number | null } = {};
+      preferences.subscribe((p) => (prefs = p))();
+      if (prefs.startupView) {
+        activeView.set(prefs.startupView as any);
+      }
     }
 
     cleanupKeyboard = setupKeyboardShortcuts();
@@ -542,8 +553,10 @@ import AlarmsView from './components/AlarmsView.svelte';
   });
 </script>
 
-<div class="app-layout">
+<div class="app-layout" class:kiosk-mode={isKiosk}>
+  {#if !isKiosk}
   <Sidebar />
+  {/if}
 
   <main class="main-content">
     {#if $activeView === 'home'}
@@ -630,7 +643,9 @@ import AlarmsView from './components/AlarmsView.svelte';
 
   <TransportBar />
 
+  {#if !isKiosk}
   <BottomTabBar />
+  {/if}
 
   {#if $mobileNowPlayingOpen}
     <div class="mobile-np-overlay">
@@ -740,6 +755,21 @@ import AlarmsView from './components/AlarmsView.svelte';
     .app-layout > :global(.transport-bar) {
       grid-column: 1;
     }
+  }
+
+  /* Kiosk mode: full-screen layout, no sidebar */
+  .app-layout.kiosk-mode {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 80px;
+    padding-bottom: 0;
+  }
+
+  .app-layout.kiosk-mode .main-content {
+    grid-column: 1;
+  }
+
+  .app-layout.kiosk-mode > :global(.transport-bar) {
+    grid-column: 1;
   }
 
   /* Overlay NowPlaying mobile (plein écran) */

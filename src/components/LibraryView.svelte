@@ -3569,4 +3569,20 @@
       justify-content: center;
     }
   }
+
+  /* Kiosk: fewer, larger album cards */
+  @media (max-width: 840px) and (max-height: 520px) {
+    .albums-grid {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 8px;
+    }
+
+    .album-card-title {
+      font-size: 12px;
+    }
+
+    .album-card-artist {
+      font-size: 11px;
+    }
+  }
 </style>

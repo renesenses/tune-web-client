@@ -213,3 +213,73 @@ body {
 [data-theme="midnight"] ::-webkit-scrollbar-thumb:hover {
   background: #3A4A5A;
 }
+
+/* ==========================================================================
+   Kiosk mode — optimized for 800x480 RPi touchscreen (cog/WPE WebKit)
+   Activated via ?kiosk=true URL parameter which sets [data-kiosk] on <html>
+   ========================================================================== */
+
+/* Small touchscreen global adjustments (media query + kiosk attribute) */
+@media (max-width: 840px) and (max-height: 520px) {
+  :root {
+    --space-xs: 2px;
+    --space-sm: 4px;
+    --space-md: 8px;
+    --space-lg: 12px;
+    --space-xl: 16px;
+    --space-2xl: 24px;
+    --transport-height: 72px;
+    --tab-bar-height: 0px;
+    --mini-player-height: 0px;
+  }
+
+  /* Hide scrollbars on touchscreen */
+  ::-webkit-scrollbar {
+    width: 0;
+    display: none;
+  }
+
+  /* Ensure minimum touch targets */
+  button, [role="button"], a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Kiosk-specific overrides (require [data-kiosk] on <html>) */
+[data-kiosk] {
+  --sidebar-width: 0px;
+  --tab-bar-height: 0px;
+  --mini-player-height: 0px;
+  --transport-height: 80px;
+}
+
+[data-kiosk] body {
+  overflow: hidden;
+  cursor: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* In kiosk mode, hide sidebar, bottom tab bar, and scan indicator */
+[data-kiosk] .sidebar,
+[data-kiosk] .bottom-tab-bar,
+[data-kiosk] .scan-indicator {
+  display: none !important;
+}
+
+/* Kiosk app layout: single column, no sidebar */
+[data-kiosk] .app-layout {
+  grid-template-columns: 1fr !important;
+  grid-template-rows: 1fr var(--transport-height) !important;
+  padding-bottom: 0 !important;
+}
+
+[data-kiosk] .main-content {
+  grid-column: 1 !important;
+}
+
+[data-kiosk] .transport-bar {
+  grid-column: 1 / -1 !important;
+  margin-bottom: 0 !important;
+}

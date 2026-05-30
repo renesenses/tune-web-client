@@ -2189,4 +2189,91 @@
       max-height: 70vh;
     }
   }
+
+  /* Kiosk mode: landscape 800x480 touchscreen optimization */
+  :global([data-kiosk]) .now-playing {
+    padding: 8px 16px;
+    padding-top: 8px;
+  }
+
+  :global([data-kiosk]) .content-layout {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    max-width: 100%;
+  }
+
+  :global([data-kiosk]) .artwork-container {
+    max-width: 280px;
+    min-width: 240px;
+    flex-shrink: 0;
+  }
+
+  :global([data-kiosk]) .info-column {
+    max-width: none;
+    flex: 1;
+    min-width: 0;
+  }
+
+  :global([data-kiosk]) .track-title {
+    font-size: 22px;
+    margin-bottom: 2px;
+  }
+
+  :global([data-kiosk]) .track-artist {
+    font-size: 16px;
+    margin-bottom: 2px;
+  }
+
+  :global([data-kiosk]) .track-album {
+    font-size: 12px;
+    margin-bottom: 2px;
+  }
+
+  :global([data-kiosk]) .inline-credits {
+    display: none;
+  }
+
+  :global([data-kiosk]) .np-extra-btns {
+    display: none;
+  }
+
+  :global([data-kiosk]) .np-credits,
+  :global([data-kiosk]) .np-lyrics,
+  :global([data-kiosk]) .np-eq {
+    display: none;
+  }
+
+  :global([data-kiosk]) .up-next {
+    display: none;
+  }
+
+  :global([data-kiosk]) .artwork-zoom-hint {
+    display: none;
+  }
+
+  :global([data-kiosk]) .artwork-quality-badge {
+    font-size: 9px;
+    padding: 2px 8px;
+    margin-bottom: 4px;
+  }
+
+  :global([data-kiosk]) .seek-container {
+    margin-top: 4px;
+  }
+
+  :global([data-kiosk]) .settings-row {
+    gap: 4px;
+  }
+
+  :global([data-kiosk]) .np-volume-control {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  :global([data-kiosk]) .bg-blur {
+    filter: blur(60px) brightness(0.25);
+  }
 </style>

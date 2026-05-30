@@ -146,4 +146,24 @@
   .seek-track:hover .seek-thumb {
     opacity: 1;
   }
+
+  /* Kiosk mode: bigger seek bar for touch */
+  :global([data-kiosk]) .seek-track {
+    height: 28px;
+  }
+
+  :global([data-kiosk]) .seek-fill {
+    height: 6px;
+  }
+
+  :global([data-kiosk]) .seek-thumb {
+    width: 20px;
+    height: 20px;
+    opacity: 1;
+  }
+
+  :global([data-kiosk]) .time {
+    font-size: 13px;
+    min-width: 44px;
+  }
 </style>

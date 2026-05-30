@@ -1719,4 +1719,91 @@
     min-width: 28px;
     text-align: center;
   }
+
+  /* Kiosk mode: full-width transport bar with bigger controls */
+  :global([data-kiosk]) .transport-bar {
+    grid-template-columns: 1fr auto 1fr;
+    padding: 4px 16px 0;
+    gap: 2px 16px;
+    height: 80px;
+    cursor: default;
+    margin-bottom: 0;
+  }
+
+  :global([data-kiosk]) .transport-left :global(.album-art) {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    min-height: 52px !important;
+  }
+
+  :global([data-kiosk]) .transport-controls {
+    gap: 16px;
+  }
+
+  :global([data-kiosk]) .control-btn {
+    width: 48px;
+    height: 48px;
+  }
+
+  :global([data-kiosk]) .control-btn svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  :global([data-kiosk]) .play-btn {
+    width: 56px;
+    height: 56px;
+  }
+
+  :global([data-kiosk]) .play-btn svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  :global([data-kiosk]) .control-btn.small {
+    width: 40px;
+    height: 40px;
+  }
+
+  :global([data-kiosk]) .control-btn.small svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Show all controls in kiosk (not mobile-reduced) */
+  :global([data-kiosk]) .transport-right {
+    display: flex;
+  }
+
+  :global([data-kiosk]) .mobile-volume-wrapper {
+    display: none;
+  }
+
+  /* Progress track: thicker for touch */
+  :global([data-kiosk]) .progress-track {
+    height: 24px;
+  }
+
+  :global([data-kiosk]) .progress-track::before {
+    height: 6px;
+  }
+
+  :global([data-kiosk]) .progress-fill {
+    height: 6px;
+  }
+
+  :global([data-kiosk]) .zone-selector-btn {
+    padding: 8px 14px;
+    font-size: 14px;
+    min-height: 44px;
+  }
+
+  :global([data-kiosk]) .mini-title {
+    font-size: 13px;
+  }
+
+  :global([data-kiosk]) .mini-artist {
+    font-size: 12px;
+  }
 </style>

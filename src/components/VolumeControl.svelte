@@ -179,4 +179,45 @@
     text-align: right;
     font-variant-numeric: tabular-nums;
   }
+
+  /* Kiosk mode: larger volume controls for touch */
+  :global([data-kiosk]) .volume-slider {
+    width: 120px;
+    height: 6px;
+  }
+
+  :global([data-kiosk]) .volume-slider::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+  }
+
+  :global([data-kiosk]) .volume-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+  }
+
+  :global([data-kiosk]) .volume-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  :global([data-kiosk]) .volume-btn svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  :global([data-kiosk]) .step-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  :global([data-kiosk]) .step-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  :global([data-kiosk]) .volume-value {
+    font-size: 14px;
+    min-width: 40px;
+  }
 </style>
