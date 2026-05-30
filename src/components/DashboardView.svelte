@@ -41,18 +41,16 @@
       .sort((a, b) => b.plays - a.plays);
   });
 
-  let genreBranchMax = $derived(genreBranches.length ? Math.max(...genreBranches.map(b => b.plays)) : 0);
+  let showAllGenres = $state(false);
+  let visibleGenreBranches = $derived(showAllGenres ? genreBranches : genreBranches.slice(0, 20));
+  let genreBranchMax = $derived(visibleGenreBranches.length ? Math.max(...visibleGenreBranches.map(b => b.plays)) : 0);
 
-  // Click → navigate. We look the artist up in the cached full list to
-  // avoid bouncing back through the search endpoint.
-  let _allArtists: any[] = [];
+  // Click → navigate. Use search to find the artist instead of loading all.
   async function openArtist(name: string) {
     if (!name) return;
     try {
-      if (_allArtists.length === 0) {
-        _allArtists = await api.getArtists(5000, 0);
-      }
-      const hit = _allArtists.find(a => (a.name || '').toLowerCase() === name.toLowerCase());
+      const results = await api.searchLibrary(name, 5);
+      const hit = results.artists?.find((a: any) => (a.name || '').toLowerCase() === name.toLowerCase());
       if (hit) {
         selectedArtist.set(hit);
         libraryTab.set('artists');
@@ -63,8 +61,8 @@
 
   async function openAlbum(title: string, artist: string) {
     try {
-      const list = await api.getAllAlbums();
-      const hit = list.find(a =>
+      const results = await api.searchLibrary(`${title} ${artist}`, 10);
+      const hit = results.albums?.find((a: any) =>
         (a.title || '').toLowerCase() === (title || '').toLowerCase()
         && (a.artist_name || '').toLowerCase() === (artist || '').toLowerCase()
       );
@@ -92,7 +90,7 @@
     loading = true;
     error = null;
     try {
-      data = await api.getDashboard(period);
+      data = await api.getDashboard(period, { topN: 20 });
     } catch (e: any) {
       error = e?.message ?? 'Failed to load dashboard';
     } finally {
@@ -116,7 +114,12 @@
     return `${m}m`;
   }
 
-  let trendMax = $derived(data?.trend?.length ? Math.max(...data.trend.map(d => d.plays)) : 0);
+  // For 'all' period, limit trend to last 90 data points to avoid DOM overload
+  let visibleTrend = $derived.by(() => {
+    if (!data?.trend?.length) return [];
+    return data.trend.length > 90 ? data.trend.slice(-90) : data.trend;
+  });
+  let trendMax = $derived(visibleTrend.length ? Math.max(...visibleTrend.map(d => d.plays)) : 0);
   let hourlyMax = $derived(data?.hourly?.length ? Math.max(...data.hourly.map(h => h.plays)) : 0);
 
   // Build a 7×24 lookup: cellAt(weekday, hour) → plays. Weekday is
@@ -182,11 +185,11 @@
     </div>
 
     <!-- Trend -->
-    {#if data.trend.length > 0}
+    {#if visibleTrend.length > 0}
       <div class="card">
         <h3>{$t('dashboard.section.trend')}</h3>
         <div class="trend-bars">
-          {#each data.trend as d}
+          {#each visibleTrend as d}
             <div
               class="trend-bar"
               title="{d.day} — {d.plays} plays"
@@ -301,11 +304,11 @@
     </div>
 
     <!-- Genres par branche (rolled up via le genre tree) -->
-    {#if genreBranches.length > 0}
+    {#if visibleGenreBranches.length > 0}
       <div class="card">
         <h3>Écoutes par branche genre</h3>
         <ul class="bar-list">
-          {#each genreBranches as b}
+          {#each visibleGenreBranches as b}
             <li>
               <div class="bar-label">{b.branch}</div>
               <div class="bar-track"><div class="bar-fill" style:width="{(b.plays / genreBranchMax) * 100}%"></div></div>
@@ -313,6 +316,11 @@
             </li>
           {/each}
         </ul>
+        {#if genreBranches.length > 20}
+          <button class="show-more-btn" onclick={() => showAllGenres = !showAllGenres}>
+            {showAllGenres ? 'Afficher moins' : `Afficher les ${genreBranches.length - 20} autres`}
+          </button>
+        {/if}
       </div>
     {/if}
 
@@ -541,6 +549,22 @@
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.3rem; vertical-align: middle; }
   .dot-completed { background: #10b981; }
   .dot-skipped { background: #f59e0b; }
+
+  .show-more-btn {
+    margin-top: 0.5rem;
+    background: none;
+    border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.3);
+    color: var(--tune-text-muted);
+    border-radius: 999px;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .show-more-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-text);
+  }
 
   @media (max-width: 700px) {
     .totals { grid-template-columns: repeat(2, 1fr); }

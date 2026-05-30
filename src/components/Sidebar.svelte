@@ -638,7 +638,7 @@
       <span class="section-label">{$t('nav.reglages')}</span>
       <svg class="chevron" class:open={reglagesOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"></polyline></svg>
     </button>
-    {#if reglagesOpen}
+    <div class="reglages-items" class:reglages-open={reglagesOpen}>
       <button class="nav-item" class:active={$activeView === 'settings'} onclick={() => navigate('settings')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         {$t('nav.settings')}
@@ -694,7 +694,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
         {$t('nav.admin')}
       </button>
-    {/if}
+    </div>
   </nav>
 
 
@@ -1112,6 +1112,16 @@
 
   .section-label-toggle:hover .section-label {
     color: var(--tune-text-secondary);
+  }
+
+  /* Reglages items wrapper: hidden by default, shown when open */
+  .reglages-items {
+    display: none;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .reglages-items.reglages-open {
+    display: flex;
   }
 
   .chevron {
@@ -1628,7 +1638,8 @@
   @media (max-width: 1024px) {
     .sidebar {
       width: var(--sidebar-collapsed-width);
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
     .sidebar-header { padding: var(--space-md) 0; align-items: center; }
     .logo { justify-content: center; }
@@ -1636,10 +1647,15 @@
     .section-label { display: none; }
     .nav-item { justify-content: center; padding: 12px 0; font-size: 0; }
     .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
-    .zones-section, .devices-section, .services-section, .reglages-section { display: none; }
-    .section-label-toggle { display: none; }
-    .resize-handle { display: none; }
+    /* Hide text badges in icon-only mode to prevent overflow */
+    .badge-new, .badge-update { display: none; }
     .connected-dot { display: none; }
+    /* Show settings section icons — hide toggle, force items visible */
+    .services-section { display: none; }
+    .section-label-toggle { display: none; }
+    .reglages-items { display: flex; }
+    .zones-section, .devices-section { display: none; }
+    .resize-handle { display: none; }
   }
 
   .badge-new {

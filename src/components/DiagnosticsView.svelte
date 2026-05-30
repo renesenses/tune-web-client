@@ -48,20 +48,25 @@
 
   async function loadAll() {
     try {
-      const [h, s, cfg, db, ss, sd] = await Promise.all([
+      // Load critical data first (health + server dashboard), then the rest
+      const [h, sd] = await Promise.all([
         api.getHealth().catch(() => null),
+        api.getServerDiagnostics().catch(() => null),
+      ]);
+      health = h;
+      serverDiag = sd;
+
+      // Load remaining data in parallel
+      const [s, cfg, db, ss] = await Promise.all([
         api.getStats().catch(() => null),
         api.getConfig().catch(() => null),
         api.getDatabaseStatus().catch(() => null),
         api.getStreamingServices().catch(() => ({})),
-        api.getServerDiagnostics().catch(() => null),
       ]);
-      health = h;
       stats = s;
       config = cfg;
       dbStatus = db;
       streamingServicesStore.set(ss as Record<string, StreamingServiceStatus>);
-      serverDiag = sd;
     } catch (e) {
       console.error('Diagnostics load error:', e);
     }
@@ -302,11 +307,16 @@
     networkLoading = false;
   }
 
-  // Auto-refresh network diagnostics every 30s while component is visible
+  // Network diagnostics: load on demand, auto-refresh every 60s (was 30s)
+  let networkExpanded = $state(false);
   $effect(() => {
+    if (!networkExpanded) {
+      if (networkTimer) { clearInterval(networkTimer); networkTimer = null; }
+      return;
+    }
     untrack(() => {
       fetchNetworkDiag();
-      networkTimer = setInterval(fetchNetworkDiag, 30000);
+      networkTimer = setInterval(fetchNetworkDiag, 60000);
     });
     return () => {
       if (networkTimer) { clearInterval(networkTimer); networkTimer = null; }
@@ -722,16 +732,21 @@
       {/if}
     </section>
 
-    <!-- Network Diagnostics -->
+    <!-- Network Diagnostics (lazy loaded on expand) -->
     <section class="diag-section">
       <div class="network-diag-header">
-        <h3>{$t('diagnostics.network' as any)}</h3>
-        <span class="network-auto-hint">{$t('diagnostics.networkRefresh' as any)}</span>
-        {#if networkLoading}
-          <div class="spinner small"></div>
+        <button class="section-expand-btn" onclick={() => networkExpanded = !networkExpanded}>
+          <svg class="expand-chevron" class:expanded={networkExpanded} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9" /></svg>
+          <h3>{$t('diagnostics.network' as any)}</h3>
+        </button>
+        {#if networkExpanded}
+          <span class="network-auto-hint">{$t('diagnostics.networkRefresh' as any)}</span>
+          {#if networkLoading}
+            <div class="spinner small"></div>
+          {/if}
         {/if}
       </div>
-      {#if networkDiag}
+      {#if networkExpanded && networkDiag}
         <div class="network-checks">
           <div class="network-check-row">
             <span class="network-check-icon">{networkDiag.multicast_ssdp ? '✅' : '❌'}</span>
@@ -769,7 +784,7 @@
             </div>
           {/if}
         </div>
-      {:else if !networkLoading}
+      {:else if networkExpanded && !networkLoading}
         <p class="empty">Diagnostic reseau indisponible</p>
       {/if}
     </section>
@@ -1382,6 +1397,32 @@
 
   .network-diag-header h3 {
     margin-bottom: 0;
+  }
+
+  .section-expand-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    color: inherit;
+  }
+
+  .section-expand-btn:hover h3 {
+    color: var(--tune-accent);
+  }
+
+  .expand-chevron {
+    transition: transform 0.15s ease-out;
+    transform: rotate(-90deg);
+    flex-shrink: 0;
+    color: var(--tune-text-muted);
+  }
+
+  .expand-chevron.expanded {
+    transform: rotate(0deg);
   }
 
   .network-auto-hint {

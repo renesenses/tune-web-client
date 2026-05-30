@@ -419,15 +419,17 @@
 
   async function loadDashboard() {
     try {
-      const raw = await api.getHistoryDashboard();
+      // Use the bounded getDashboard endpoint with topN limit instead of
+      // getHistoryDashboard which returns unbounded data for large libraries.
+      const raw = await api.getDashboard('30d', { topN: 10 });
       // Normalize API fields to UI fields
       dashboard = {
         ...raw,
-        total_hours: raw.total_listening_ms ? Math.round(raw.total_listening_ms / 3600000 * 10) / 10 : 0,
-        new_artists: raw.new_artists_discovered ?? 0,
+        total_hours: raw.totals?.listening_ms ? Math.round(raw.totals.listening_ms / 3600000 * 10) / 10 : ((raw as any).total_listening_ms ? Math.round((raw as any).total_listening_ms / 3600000 * 10) / 10 : 0),
+        new_artists: (raw as any).new_artists_discovered ?? 0,
         peak_hour: raw.hourly?.length ? raw.hourly.reduce((a: any, b: any) => a.plays > b.plays ? a : b).hour : null,
-        daily: (raw.daily || []).map((d: any) => ({ ...d, date: d.day, count: d.plays })),
-        genres: (raw.genres || []).map((g: any) => ({ ...g, name: g.genre, count: g.plays })),
+        daily: ((raw as any).daily || raw.trend || []).map((d: any) => ({ ...d, date: d.day, count: d.plays })),
+        genres: ((raw as any).genres || (raw as any).by_genre || []).map((g: any) => ({ ...g, name: g.genre, count: g.plays })),
       };
       dashboardLoaded = true;
     } catch (e) {
