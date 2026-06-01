@@ -154,6 +154,16 @@
           onclick={() => period = p as DashboardPeriod}
         >{$t(`dashboard.period.${p}`)}</button>
       {/each}
+      <button
+        class="chip export-chip"
+        onclick={() => {
+          const a = document.createElement('a');
+          a.href = `/api/v1/history/export?limit=10000`;
+          a.download = 'tune-history.csv';
+          a.click();
+        }}
+        title="Export CSV"
+      >⬇ CSV</button>
     </div>
   </header>
 
