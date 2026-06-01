@@ -3,6 +3,8 @@
   import * as api from '../lib/api';
   import type { ServiceTokenInfo } from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
+  import { activeView } from '../lib/stores/navigation';
+  import { activeStreamingService } from '../lib/stores/streaming';
 
   let services = $state<ServiceTokenInfo[]>([]);
   let loading = $state(true);
@@ -163,6 +165,17 @@
     return d.toLocaleString();
   }
 
+  function navigateConfigure(service: ServiceTokenInfo) {
+    const url = (service as any).help_url as string | undefined;
+    const match = url?.match(/^\/streaming\/(\w+)/);
+    if (match) {
+      activeStreamingService.set(match[1]);
+      activeView.set('streaming');
+    } else if (url) {
+      window.open(url, '_blank', 'noopener');
+    }
+  }
+
   onMount(load);
 </script>
 
@@ -221,7 +234,7 @@
               </div>
             </div>
           {:else if s.kind === 'oauth' || s.kind === 'login_password' || s.kind === 'arl_token'}
-            <a class="btn-link" href={s.help_url}>Configurer →</a>
+            <button class="btn-link" onclick={() => navigateConfigure(s)}>Configurer →</button>
           {/if}
 
           {#if s.id === 'lastfm' && s.configured}
