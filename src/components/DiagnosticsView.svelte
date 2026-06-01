@@ -542,7 +542,7 @@
         <div class="info-row">
           <span class="info-label">{$t('diagnostics.connection')}</span>
           <span class="info-value">
-            <span class="status-badge" class:ok={$connectionState === 'connected'} class:warn={$connectionState === 'connecting'} class:error={$connectionState === 'disconnected'}>
+            <span class="status-badge" class:ok={$connectionState === 'connected'} class:warn={$connectionState === 'connecting' || $connectionState === 'reconnecting'} class:error={$connectionState === 'disconnected'}>
               {$connectionState}
             </span>
           </span>

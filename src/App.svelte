@@ -6,7 +6,7 @@
   import { seekPositionMs, startSeekTimer, stopSeekTimer, shuffleEnabled, repeatMode } from './lib/stores/nowPlaying';
   import { queueTracks, queuePosition, queueLength } from './lib/stores/queue';
   import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
-  import { connectionState } from './lib/stores/connection';
+  import { connectionState, reconnectAttempts } from './lib/stores/connection';
   import { activeView } from './lib/stores/navigation';
   import { selectedAlbum, selectedArtist, libraryTab } from './lib/stores/library';
   import { preferences, applyTheme, syncPreferencesFromServer } from './lib/stores/preferences';
@@ -375,12 +375,16 @@ import AlarmsView from './components/AlarmsView.svelte';
       // Internal connection events
       if (type === '_connected') {
         connectionState.set('connected');
+        reconnectAttempts.set(0);
         fetchZones(true);
         fetchDevices();
         return;
       }
       if (type === '_disconnected') {
-        connectionState.set('disconnected');
+        const attempts = event.data?.attemptCount ?? tuneWS.attemptCount;
+        reconnectAttempts.set(attempts);
+        // Show "reconnecting" (orange) for the first 4 attempts, then "disconnected" (red)
+        connectionState.set(attempts >= 5 ? 'disconnected' : 'reconnecting');
         return;
       }
 

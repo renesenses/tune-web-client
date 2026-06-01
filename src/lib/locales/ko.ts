@@ -309,6 +309,8 @@ export default {
   'settings.enable': '활성화',
   'settings.disable': '비활성화',
   'settings.notConnected': '연결되지 않음',
+  'settings.reconnecting': '재연결 중',
+  'settings.disconnected': '연결 끊김',
   'settings.email': '이메일',
   'settings.password': '비밀번호',
   'settings.connecting': '연결 중...',

@@ -309,6 +309,8 @@ export default {
   'settings.enable': 'Aktivieren',
   'settings.disable': 'Deaktivieren',
   'settings.notConnected': 'Nicht verbunden',
+  'settings.reconnecting': 'Wiederverbindung',
+  'settings.disconnected': 'Getrennt',
   'settings.email': 'E-Mail',
   'settings.password': 'Passwort',
   'settings.connecting': 'Wird verbunden...',

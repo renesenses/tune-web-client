@@ -10,9 +10,19 @@ class TuneWebSocket {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectDelay = 1000;
   private _connected = false;
+  private _reconnecting = false;
+  private _attemptCount = 0;
 
   get connected() {
     return this._connected;
+  }
+
+  get reconnecting() {
+    return this._reconnecting;
+  }
+
+  get attemptCount() {
+    return this._attemptCount;
   }
 
   connect() {
@@ -25,6 +35,8 @@ class TuneWebSocket {
       this.ws.onopen = () => {
         console.log('WebSocket connected');
         this._connected = true;
+        this._reconnecting = false;
+        this._attemptCount = 0;
         this.reconnectDelay = 1000;
         // Subscribe to all event patterns
         this.send({
@@ -51,7 +63,9 @@ class TuneWebSocket {
       this.ws.onclose = () => {
         console.log('WebSocket disconnected, reconnecting...');
         this._connected = false;
-        this.handlers.forEach((h) => h({ type: '_disconnected', data: null }));
+        this._reconnecting = true;
+        this._attemptCount++;
+        this.handlers.forEach((h) => h({ type: '_disconnected', data: { attemptCount: this._attemptCount } }));
         this.scheduleReconnect();
       };
 
@@ -60,6 +74,7 @@ class TuneWebSocket {
       };
     } catch (e) {
       console.error('WebSocket connection failed:', e);
+      this._attemptCount++;
       this.scheduleReconnect();
     }
   }

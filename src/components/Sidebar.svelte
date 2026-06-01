@@ -1,7 +1,7 @@
 <script lang="ts">
   import { zones, currentZoneId } from '../lib/stores/zones';
   import { devices, unboundDevices } from '../lib/stores/devices';
-  import { connectionState } from '../lib/stores/connection';
+  import { connectionState, reconnectAttempts } from '../lib/stores/connection';
   import { activeView, type View } from '../lib/stores/navigation';
   import { activeStreamingService, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { preferences } from '../lib/stores/preferences';
@@ -306,7 +306,9 @@
   function stateIcon(state: string): string {
     switch (state) {
       case 'connected': return '\u25CF';
-      case 'connecting': return '\u25D0';
+      case 'connecting':
+      case 'reconnecting': return '\u25D0';
+      case 'disconnected': return '\u25CB';
       default: return '\u25CB';
     }
   }
@@ -314,8 +316,20 @@
   function stateColor(state: string): string {
     switch (state) {
       case 'connected': return 'var(--tune-success)';
-      case 'connecting': return 'var(--tune-warning)';
+      case 'connecting':
+      case 'reconnecting': return 'var(--tune-warning)';
+      case 'disconnected': return 'var(--tune-error, #ef4444)';
       default: return 'var(--tune-text-muted)';
+    }
+  }
+
+  function stateLabel(state: string, attempts: number): string {
+    switch (state) {
+      case 'connected': return $t('settings.connected');
+      case 'connecting': return $t('settings.connecting');
+      case 'reconnecting': return attempts > 1 ? `${$t('settings.reconnecting')} (${attempts})...` : `${$t('settings.reconnecting')}...`;
+      case 'disconnected': return $t('settings.disconnected');
+      default: return $t('settings.notConnected');
     }
   }
 
@@ -524,7 +538,7 @@
       <span class="state-dot" style="color: {stateColor($connectionState)}">
         {stateIcon($connectionState)}
       </span>
-      <span class="state-text truncate">{$connectionState === 'connected' ? $t('settings.connected') : $connectionState === 'connecting' ? $t('settings.connecting') : $t('settings.notConnected')}</span>
+      <span class="state-text truncate">{stateLabel($connectionState, $reconnectAttempts)}</span>
       {#if $healthStatus !== 'ok'}
         <span class="health-dot" class:health-warning={$healthStatus === 'warning'} class:health-critical={$healthStatus === 'critical'} title="Serveur : {$healthStatus}"></span>
       {/if}

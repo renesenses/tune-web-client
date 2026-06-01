@@ -309,6 +309,8 @@ export default {
   'settings.enable': '启用',
   'settings.disable': '禁用',
   'settings.notConnected': '未连接',
+  'settings.reconnecting': '重新连接',
+  'settings.disconnected': '已断开',
   'settings.email': '邮箱',
   'settings.password': '密码',
   'settings.connecting': '连接中...',

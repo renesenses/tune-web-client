@@ -309,6 +309,8 @@ export default {
   'settings.enable': '有効にする',
   'settings.disable': '無効にする',
   'settings.notConnected': '未接続',
+  'settings.reconnecting': '再接続中',
+  'settings.disconnected': '切断',
   'settings.email': 'メール',
   'settings.password': 'パスワード',
   'settings.connecting': '接続中...',
