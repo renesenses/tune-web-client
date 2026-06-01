@@ -82,6 +82,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
+  /* iPad Safari safe areas (viewport-fit=cover) */
+  padding-top: env(safe-area-inset-top, 0);
 }
 
 #app {

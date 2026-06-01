@@ -722,9 +722,12 @@
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
     padding: 4px var(--space-lg) 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
     gap: 2px var(--space-lg);
     position: relative;
     transition: height 0.2s ease-out;
+    overflow: hidden;
+    min-width: 0;
   }
 
   .transport-left {
@@ -1055,6 +1058,8 @@
     justify-content: flex-end;
     align-items: center;
     gap: var(--space-md);
+    min-width: 0;
+    overflow: hidden;
   }
 
   .zone-selector {
@@ -1526,10 +1531,65 @@
     transition: width 0.3s linear;
   }
 
+  /* Tablet: tighter transport bar for iPad Safari (769-1024px) */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .transport-bar {
+      padding: 4px var(--space-md) 0;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      gap: 2px var(--space-sm);
+    }
+
+    .transport-controls {
+      gap: 8px;
+    }
+
+    .transport-controls .control-btn.small {
+      width: 28px;
+      height: 28px;
+    }
+
+    .transport-controls .control-btn.small svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .transport-controls .signal-dot-btn {
+      display: none;
+    }
+
+    .transport-controls .audiophile-btn .audiophile-label {
+      display: none;
+    }
+
+    .transport-right {
+      gap: var(--space-sm);
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .transport-right :global(.volume-control) {
+      min-width: 0;
+    }
+
+    .transport-right :global(.volume-slider) {
+      width: 60px;
+    }
+
+    .transport-right :global(.step-btn) {
+      display: none;
+    }
+
+    .zone-selector-btn {
+      max-width: 120px;
+      font-size: 12px;
+    }
+  }
+
   @media (max-width: 768px) {
     .transport-bar {
       grid-template-columns: 1fr auto auto;
       padding: var(--space-xs) var(--space-md);
+      padding-bottom: env(safe-area-inset-bottom, 0);
       gap: var(--space-sm);
       height: var(--mini-player-height);
       cursor: pointer;

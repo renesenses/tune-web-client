@@ -682,7 +682,10 @@ import AlarmsView from './components/AlarmsView.svelte';
     grid-template-columns: var(--sidebar-width) 1fr;
     grid-template-rows: 1fr var(--transport-height);
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
   }
 
   .app-layout > :global(.sidebar) {
@@ -699,8 +702,10 @@ import AlarmsView from './components/AlarmsView.svelte';
     grid-column: 2;
     grid-row: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 0;
     position: relative;
+    min-width: 0;
   }
 
   .scan-indicator {
@@ -738,6 +743,10 @@ import AlarmsView from './components/AlarmsView.svelte';
     .app-layout {
       grid-template-columns: var(--sidebar-collapsed-width) 1fr;
     }
+
+    .app-layout > :global(.transport-bar) {
+      grid-column: 1 / -1;
+    }
   }
 
   /* Mobile: pas de sidebar, tab bar en bas */
@@ -745,7 +754,7 @@ import AlarmsView from './components/AlarmsView.svelte';
     .app-layout {
       grid-template-columns: 1fr;
       grid-template-rows: 1fr var(--mini-player-height);
-      padding-bottom: var(--tab-bar-height);
+      padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0));
     }
 
     .main-content {

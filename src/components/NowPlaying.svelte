@@ -1103,6 +1103,7 @@
     flex-direction: column;
     gap: var(--space-md);
     width: 100%;
+    min-width: 0;
   }
 
   .content-layout.wide .info-column {
