@@ -453,13 +453,15 @@ export async function getAllAlbums(pageSize = 2000, sort = 'title', order = 'asc
   if (page !== undefined) {
     const limit = perPage ?? 100;
     const offset = (page - 1) * limit;
-    return fetchJSON<Album[]>(`${BASE}/library/albums?limit=${limit}&offset=${offset}&sort=${sort}&order=${order}`);
+    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${limit}&offset=${offset}&sort=${sort}&order=${order}`);
+    return Array.isArray(raw) ? raw : (raw.items ?? []);
   }
   // Default: fetch all albums in batches
   const all: Album[] = [];
   let offset = 0;
   while (true) {
-    const batch = await fetchJSON<Album[]>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}&sort=${sort}&order=${order}`);
+    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}&sort=${sort}&order=${order}`);
+    const batch: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
     all.push(...batch);
     if (batch.length < pageSize) break;
     offset += pageSize;
@@ -475,8 +477,9 @@ export function getAlbumTracks(id: number) {
   return fetchJSON<Track[]>(`${BASE}/library/albums/${id}/tracks`);
 }
 
-export function getArtists(limit = 100, offset = 0) {
-  return fetchJSON<Artist[]>(`${BASE}/library/artists?limit=${limit}&offset=${offset}`);
+export async function getArtists(limit = 100, offset = 0) {
+  const raw = await fetchJSON<any>(`${BASE}/library/artists?limit=${limit}&offset=${offset}`);
+  return Array.isArray(raw) ? raw : (raw.items ?? []) as Artist[];
 }
 
 export async function getAllArtists(pageSize = 2000): Promise<Artist[]> {
@@ -659,15 +662,17 @@ export async function uploadArtistImage(artistId: number, file: File): Promise<A
   return response.json();
 }
 
-export function getTracks(limit = 100, offset = 0) {
-  return fetchJSON<Track[]>(`${BASE}/library/tracks?limit=${limit}&offset=${offset}`);
+export async function getTracks(limit = 100, offset = 0) {
+  const raw = await fetchJSON<any>(`${BASE}/library/tracks?limit=${limit}&offset=${offset}`);
+  return Array.isArray(raw) ? raw : (raw.items ?? []) as Track[];
 }
 
 export async function getAllTracks(pageSize = 2000): Promise<Track[]> {
   const all: Track[] = [];
   let offset = 0;
   while (true) {
-    const batch = await fetchJSON<Track[]>(`${BASE}/library/tracks?limit=${pageSize}&offset=${offset}`);
+    const raw = await fetchJSON<any>(`${BASE}/library/tracks?limit=${pageSize}&offset=${offset}`);
+    const batch: Track[] = Array.isArray(raw) ? raw : (raw.items ?? []);
     all.push(...batch);
     if (batch.length < pageSize) break;
     offset += pageSize;
