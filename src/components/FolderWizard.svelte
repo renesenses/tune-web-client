@@ -2,6 +2,7 @@
   import * as api from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
   import type { BrowseRootEntry } from '../lib/types';
+  import FolderBrowser from './FolderBrowser.svelte';
 
   interface Props {
     onClose: () => void;
@@ -16,6 +17,8 @@
   let folderPath = $state('');
   let currentDirs = $state<BrowseRootEntry[]>([]);
   let loadingDirs = $state(false);
+
+  let showBrowser = $state(false);
 
   // Step 2: Add & Scan
   let adding = $state(false);
@@ -133,13 +136,19 @@
 
         <div class="form-group">
           <label class="form-label">Chemin du dossier</label>
-          <input
-            type="text"
-            class="auth-input"
-            placeholder="/chemin/vers/votre/musique"
-            bind:value={folderPath}
-            onkeydown={(e) => { if (e.key === 'Enter' && canGoToStep2()) goToStep(2); }}
-          />
+          <div style="display:flex;gap:8px;align-items:center">
+            <input
+              type="text"
+              class="auth-input"
+              style="flex:1"
+              placeholder="/chemin/vers/votre/musique"
+              bind:value={folderPath}
+              onkeydown={(e) => { if (e.key === 'Enter' && canGoToStep2()) goToStep(2); }}
+            />
+            <button class="hint-chip" style="white-space:nowrap;padding:8px 14px" onclick={() => showBrowser = true}>
+              📁 Browse
+            </button>
+          </div>
         </div>
 
         <div class="hint-chips">
@@ -273,6 +282,13 @@
     {/if}
   </div>
 </div>
+
+{#if showBrowser}
+  <FolderBrowser
+    onSelect={(path) => { folderPath = path; showBrowser = false; }}
+    onClose={() => showBrowser = false}
+  />
+{/if}
 
 <style>
   .modal-overlay {
