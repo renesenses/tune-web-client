@@ -433,7 +433,7 @@ export function moveInQueue(zoneId: number, fromPosition: number, toPosition: nu
 }
 
 export function clearQueue(zoneId: number) {
-  return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/clear`, {
+  return fetchVoid(`${BASE}/zones/${zoneId}/queue/clear`, {
     method: 'POST',
   });
 }
