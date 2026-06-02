@@ -247,7 +247,7 @@
             {#each browseResult.containers as container}
               <button class="album-grid-card" onclick={() => browseTo(container.id, container.title)}>
                 {#if container.album_art_uri}
-                  <img src={container.album_art_uri} alt="" class="album-grid-art" />
+                  <img src={container.album_art_uri} alt="" class="album-grid-art" loading="lazy" />
                 {:else}
                   <div class="album-grid-placeholder">
                     <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32" opacity="0.3"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
@@ -295,7 +295,7 @@
               <span class="item-num">{index + 1}</span>
               <span class="item-thumb">
                 {#if item.album_art_uri}
-                  <img src={item.album_art_uri} alt="" />
+                  <img src={item.album_art_uri} alt="" loading="lazy" />
                 {:else}
                   <span class="item-thumb-placeholder">
                     <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>

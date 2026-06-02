@@ -1646,7 +1646,7 @@
                   <div class="dup-group-item">
                     <div class="dup-group-item-cover">
                       {#if album.cover_path}
-                        <img src={api.artworkUrl(album.cover_path)} alt="" style="width:40px;height:40px;border-radius:4px;object-fit:cover" />
+                        <img src={api.artworkUrl(album.cover_path)} alt="" loading="lazy" style="width:40px;height:40px;border-radius:4px;object-fit:cover" />
                       {:else}
                         <div style="width:40px;height:40px;border-radius:4px;background:var(--tune-bg);border:1px dashed var(--tune-border);display:flex;align-items:center;justify-content:center;color:var(--tune-text-muted)">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
@@ -1692,7 +1692,7 @@
             <div class="dcard" ondragover={(e) => e.preventDefault()} ondrop={(e) => onDoubtfulCoverDrop(e, album.id)}>
               <div class="dcard-cover-wrap">
                 {#if album.cover_path}
-                  <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} onclick={(e) => { e.stopPropagation(); doubtfulZoomCover = api.artworkUrl(album.cover_path!); }} />
+                  <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} onclick={(e) => { e.stopPropagation(); doubtfulZoomCover = api.artworkUrl(album.cover_path!); }} />
                 {:else}
                   <div class="dcard-cover-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg></div>
                 {/if}
@@ -1830,7 +1830,7 @@
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <div class="dcard-cover-wrap">
               {#if album.cover_path}
-                <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} onclick={(e) => { e.stopPropagation(); doubtfulZoomCover = api.artworkUrl(album.cover_path!); }} />
+                <img class="dcard-cover" src={api.artworkUrl(album.cover_path)} alt="" loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} onclick={(e) => { e.stopPropagation(); doubtfulZoomCover = api.artworkUrl(album.cover_path!); }} />
               {:else}
                 <div class="dcard-cover-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg></div>
               {/if}

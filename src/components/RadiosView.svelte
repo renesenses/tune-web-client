@@ -294,7 +294,7 @@
         <div class="radio-card">
           <button class="radio-icon" onclick={() => openEdit(radio)} title={$t('radio.editRadio')}>
             {#if coverUrl(radio)}
-              <img src={coverUrl(radio)} alt={radio.name} />
+              <img src={coverUrl(radio)} alt={radio.name} loading="lazy" />
             {:else}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5"></path><line x1="12" y1="19" x2="12" y2="22"></line><path d="M8 22h8"></path></svg>
             {/if}
@@ -353,7 +353,7 @@
         <div class="saved-row">
           <div class="saved-cover">
             {#if fav.cover_url}
-              <img src={api.artworkUrl(fav.cover_url)} alt="" />
+              <img src={api.artworkUrl(fav.cover_url)} alt="" loading="lazy" />
             {:else}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><circle cx="12" cy="12" r="10" /><path d="M9 12l2 2 4-4" /></svg>
             {/if}

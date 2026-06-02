@@ -161,7 +161,7 @@
         {#each searchResults as podcast}
           <button class="podcast-card" onclick={() => selectPodcast(podcast)} disabled={!podcast.feed_url}>
             {#if podcast.cover_url}
-              <img src={podcast.cover_url} alt="" class="podcast-cover" />
+              <img src={podcast.cover_url} alt="" class="podcast-cover" loading="lazy" />
             {:else}
               <div class="podcast-cover placeholder">🎙️</div>
             {/if}
@@ -178,7 +178,7 @@
         {#each radioFrancePodcasts as podcast}
           <button class="podcast-card" onclick={() => selectPodcast(podcast)}>
             {#if podcast.cover_url}
-              <img src={podcast.cover_url} alt="" class="podcast-cover" />
+              <img src={podcast.cover_url} alt="" class="podcast-cover" loading="lazy" />
             {:else}
               <div class="podcast-cover placeholder">🎙️</div>
             {/if}

@@ -1275,7 +1275,7 @@
           {#if $selectedArtist.image_path}
             <AlbumArt coverPath={$selectedArtist.image_path} size={160} alt={$selectedArtist.name} round />
           {:else if artistMetadata?.image_url}
-            <img class="artist-detail-img" src={artistMetadata.image_url} alt={$selectedArtist.name} onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+            <img class="artist-detail-img" src={artistMetadata.image_url} alt={$selectedArtist.name} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
           {:else}
             <span class="artist-detail-initials">{initials($selectedArtist.name)}</span>
           {/if}
