@@ -308,6 +308,20 @@
   });
   let orphanGenres = $derived($genres.filter(g => !knownTreeGenres.has(g.name.toLowerCase())));
 
+  // Genres filtered by search query (for the Genres tab)
+  let genreSearchQuery = $derived(searchQuery.trim().toLowerCase());
+  let filteredGenreTreeKeys = $derived.by(() => {
+    if (!genreSearchQuery) return Object.keys(genreTree);
+    return Object.keys(genreTree).filter(parent => {
+      if (parent.toLowerCase().includes(genreSearchQuery)) return true;
+      return (genreTree[parent] ?? []).some(child => child.toLowerCase().includes(genreSearchQuery));
+    });
+  });
+  let filteredOrphanGenres = $derived.by(() => {
+    if (!genreSearchQuery) return orphanGenres;
+    return orphanGenres.filter(g => g.name.toLowerCase().includes(genreSearchQuery));
+  });
+
   $effect(() => {
     api.getGenreTree().then(r => genreTree = r.tree ?? {}).catch(() => {});
   });
@@ -1713,9 +1727,9 @@
         </div>
       {:else}
         <!-- Genre tree: branches first, then orphans. -->
-        {#if Object.keys(genreTree).length > 0}
+        {#if filteredGenreTreeKeys.length > 0}
           <div class="branches">
-            {#each Object.keys(genreTree).sort((a, b) => (parentAlbumCounts[b] ?? 0) - (parentAlbumCounts[a] ?? 0)) as parent (parent)}
+            {#each filteredGenreTreeKeys.sort((a, b) => (parentAlbumCounts[b] ?? 0) - (parentAlbumCounts[a] ?? 0)) as parent (parent)}
               {@const total = parentAlbumCounts[parent] ?? 0}
               {#if total > 0}
                 <div class="branch-row">
@@ -1739,10 +1753,10 @@
           </div>
         {/if}
 
-        {#if orphanGenres.length > 0}
+        {#if filteredOrphanGenres.length > 0}
           <h3 class="bc-section-title">Hors arbre</h3>
           <div class="genres-grid">
-            {#each orphanGenres as g}
+            {#each filteredOrphanGenres as g}
               <button class="genre-card" onclick={() => selectGenreInTab(g.name)}>
                 <span class="genre-card-name">{g.name}</span>
                 <span class="genre-card-count">{g.count} {g.count > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
@@ -1753,6 +1767,8 @@
 
         {#if $genres.length === 0}
           <div class="empty">{$tr('library.noGenres')}</div>
+        {:else if genreSearchQuery && filteredGenreTreeKeys.length === 0 && filteredOrphanGenres.length === 0}
+          <div class="empty">{$tr('common.noResult')}</div>
         {/if}
       {/if}
     {/if}
