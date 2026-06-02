@@ -81,12 +81,16 @@ import AlarmsView from './components/AlarmsView.svelte';
   // Kiosk mode: ?kiosk=true forces NowPlaying view on small touchscreen
   const isKiosk = new URLSearchParams(window.location.search).has('kiosk');
 
-  // Reset seek state + refresh queue when zone changes
+  // Reset seek state + refresh queue when zone changes.
+  // IMPORTANT: use get(zones) instead of $zones inside the callback to avoid
+  // tracking the zones store as a reactive dependency — otherwise this effect
+  // re-runs on every zone data update (position polls, volume, etc.) and
+  // resets seekPositionMs, causing the progress bar to flicker.
   $effect(() => {
     const unsub = currentZoneId.subscribe((zoneId) => {
       if (zoneId == null) return;
       stopSeekTimer();
-      const zone = $zones.find((z) => z.id === zoneId);
+      const zone = get(zones).find((z: any) => z.id === zoneId);
       if (zone) {
         seekPositionMs.set(zone.position_ms ?? 0);
         if (zone.state === 'playing') startSeekTimer();
@@ -234,6 +238,15 @@ import AlarmsView from './components/AlarmsView.svelte';
       if (isCurrentOrGroupMember) {
         if (zone.state === 'playing') {
           startSeekTimer();
+          // Apply drift filter: only correct the interpolated position when
+          // the server-reported position differs by more than 2s.  Small
+          // drifts are expected (timer imprecision, browser throttling) and
+          // the local interpolation is smoother than server jumps.
+          const serverPos = zone.position_ms ?? 0;
+          const drift = Math.abs(get(seekPositionMs) - serverPos);
+          if (drift > 2000) {
+            seekPositionMs.set(serverPos);
+          }
         } else {
           stopSeekTimer();
           seekPositionMs.set(zone.position_ms ?? 0);
@@ -406,11 +419,19 @@ import AlarmsView from './components/AlarmsView.svelte';
           return;
         }
         if (type === 'playback.position' && event.data?.position_ms !== undefined) {
-          // Only recalibrate if drift exceeds 2s to avoid flicker
-          const drift = Math.abs(get(seekPositionMs) - event.data.position_ms);
-          if (drift > 2000) {
-            seekPositionMs.set(event.data.position_ms);
-            startSeekTimer();
+          // Only recalibrate the *current* zone (or a group member) and only
+          // when drift exceeds 2s — small drifts are expected and the local
+          // interpolation timer is smoother than server-polled jumps.
+          const curZonePos = get(currentZone);
+          const isRelevantZone =
+            curZonePos?.id === zoneId ||
+            (curZonePos?.group_id != null && curZonePos.group_id === get(zones).find((z: any) => z.id === zoneId)?.group_id);
+          if (isRelevantZone) {
+            const drift = Math.abs(get(seekPositionMs) - event.data.position_ms);
+            if (drift > 2000) {
+              seekPositionMs.set(event.data.position_ms);
+              startSeekTimer();
+            }
           }
         } else if (type === 'playback.queue_changed') {
           fetchQueue();
