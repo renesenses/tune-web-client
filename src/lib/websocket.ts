@@ -19,6 +19,7 @@ class TuneWebSocket {
   private _attemptCount = 0;
   private _polling = false;
   private _pollingTimer: ReturnType<typeof setInterval> | null = null;
+  private _stableTimer: ReturnType<typeof setTimeout> | null = null;
   private _currentZoneId: number | null = null;
 
   get connected() {
@@ -56,8 +57,11 @@ class TuneWebSocket {
         const wasPolling = this._polling;
         this._connected = true;
         this._reconnecting = false;
-        this._attemptCount = 0;
         this.reconnectDelay = 1000;
+        // Only reset attemptCount after connection stays stable for 5s —
+        // prevents flapping WS from resetting the counter every brief connect.
+        if (this._stableTimer) clearTimeout(this._stableTimer);
+        this._stableTimer = setTimeout(() => { this._attemptCount = 0; }, 5000);
 
         // Exit polling mode — WS is now working
         if (wasPolling) {
@@ -90,6 +94,7 @@ class TuneWebSocket {
       this.ws.onclose = () => {
         this._connected = false;
         this._reconnecting = true;
+        if (this._stableTimer) { clearTimeout(this._stableTimer); this._stableTimer = null; }
         this._attemptCount++;
 
         if (!this._polling && this._attemptCount >= POLLING_THRESHOLD) {
