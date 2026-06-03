@@ -123,7 +123,8 @@ import AlarmsView from './components/AlarmsView.svelte';
       // zone over the default/first so the UI reconnects to active playback.
       let curId: number | null = null;
       currentZoneId.subscribe((v) => (curId = v))();
-      if (curId === null && zoneList.length > 0) {
+      const curZoneExists = curId !== null && zoneList.some((z) => z.id === curId);
+      if ((!curZoneExists) && zoneList.length > 0) {
         let defaultId: number | null = null;
         preferences.subscribe((p) => (defaultId = p.defaultZoneId))();
         const defaultZone = defaultId !== null ? zoneList.find((z) => z.id === defaultId) : null;
