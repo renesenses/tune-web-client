@@ -726,7 +726,7 @@
     gap: 2px var(--space-lg);
     position: relative;
     transition: height 0.2s ease-out;
-    overflow: hidden;
+    overflow: visible;
     min-width: 0;
   }
 
@@ -735,6 +735,7 @@
     align-items: center;
     gap: var(--space-md);
     min-width: 0;
+    overflow: hidden;
   }
 
   .tb-mini-viz {
@@ -1059,11 +1060,12 @@
     align-items: center;
     gap: var(--space-md);
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .zone-selector {
     position: relative;
+    flex-shrink: 0;
   }
 
   .zone-selector-btn {
@@ -1079,6 +1081,8 @@
     font-family: var(--font-body);
     font-size: 13px;
     max-width: 160px;
+    min-width: 60px;
+    overflow: hidden;
     transition: all 0.12s ease-out;
   }
 
@@ -1388,6 +1392,7 @@
   /* --- Sleep Timer --- */
   .sleep-timer-wrapper {
     position: relative;
+    flex-shrink: 0;
   }
 
   .sleep-btn {
@@ -1564,7 +1569,7 @@
     .transport-right {
       gap: var(--space-sm);
       min-width: 0;
-      overflow: hidden;
+      overflow: visible;
     }
 
     .transport-right :global(.volume-control) {
@@ -1581,6 +1586,7 @@
 
     .zone-selector-btn {
       max-width: 120px;
+      min-width: 50px;
       font-size: 12px;
     }
   }
