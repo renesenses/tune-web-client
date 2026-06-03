@@ -189,6 +189,7 @@
 
   function handleBarClick(e: MouseEvent) {
     if ((e.target as HTMLElement).closest('.control-btn')) return;
+    if ((e.target as HTMLElement).closest('.zone-selector')) return;
     if ((e.target as HTMLElement).closest('.zone-dropdown')) return;
     if ((e.target as HTMLElement).closest('.mobile-volume-wrapper')) return;
     if (window.innerWidth <= 768) {
