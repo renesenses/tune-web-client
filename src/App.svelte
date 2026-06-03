@@ -419,14 +419,24 @@ import AlarmsView from './components/AlarmsView.svelte';
       if (type === 'zone.updated' && event.data?.zones && Array.isArray(event.data.zones)) {
         const zoneList = event.data.zones;
         zones.set(zoneList);
-        // Update seek position for current zone
+        // Update seek position for current zone — apply drift filter so the
+        // server-polled position doesn't fight with the local interpolation
+        // timer, which would cause the progress bar to oscillate.
         let curId: number | null = null;
         currentZoneId.subscribe((v) => (curId = v))();
         const curZone = curId !== null ? zoneList.find((z: any) => z.id === curId) : null;
         if (curZone) {
-          seekPositionMs.set(curZone.position_ms ?? 0);
-          if (curZone.state === 'playing') startSeekTimer();
-          else stopSeekTimer();
+          if (curZone.state === 'playing') {
+            startSeekTimer();
+            const serverPos = curZone.position_ms ?? 0;
+            const drift = Math.abs(get(seekPositionMs) - serverPos);
+            if (drift > 2000) {
+              seekPositionMs.set(serverPos);
+            }
+          } else {
+            stopSeekTimer();
+            seekPositionMs.set(curZone.position_ms ?? 0);
+          }
         }
         return;
       }
