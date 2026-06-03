@@ -341,6 +341,7 @@ import AlarmsView from './components/AlarmsView.svelte';
 
     // Browser history integration for mouse back/forward buttons
     let _pushingState = false;
+    let _viewInitialized = false;
     activeView.subscribe(view => {
       if (!_pushingState && typeof window !== 'undefined') {
         const ctx = {
@@ -349,23 +350,32 @@ import AlarmsView from './components/AlarmsView.svelte';
           artistId: $selectedArtist?.id ?? null,
           tab: $libraryTab ?? null,
         };
-        window.history.pushState(ctx, '', `#${view}`);
+        // First call (on subscription) replaces the current entry to avoid
+        // polluting the history stack; subsequent view changes push.
+        if (!_viewInitialized) {
+          _viewInitialized = true;
+          window.history.replaceState(ctx, '', `#${view}`);
+        } else {
+          window.history.pushState(ctx, '', `#${view}`);
+        }
       }
     });
     window.addEventListener('popstate', (e) => {
       const ctx = e.state;
+      _pushingState = true;
       if (ctx?.view) {
-        _pushingState = true;
         activeView.set(ctx.view);
         if (ctx.view === 'library') {
           if (ctx.tab) libraryTab.set(ctx.tab);
-          if (!ctx.albumId && !ctx.artistId) {
-            selectedAlbum.set(null);
-            selectedArtist.set(null);
-          }
         }
-        _pushingState = false;
       }
+      // Always reconcile detail state: if the history entry has no albumId/artistId
+      // (or state is null, e.g. Safari initial entry), clear any active detail view.
+      // This fixes Safari where navigating back to the grid could leave stale state
+      // preventing subsequent album clicks from opening detail.
+      if (!ctx?.albumId) selectedAlbum.set(null);
+      if (!ctx?.artistId) selectedArtist.set(null);
+      _pushingState = false;
     });
 
     connectionState.set('connecting');

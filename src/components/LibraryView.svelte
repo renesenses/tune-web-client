@@ -859,6 +859,10 @@
     artistMetadata = null;
     artistMetadataError = false;
     artistMetadataLoading = false;
+    // Keep browser history in sync — navigate back so the popstate handler
+    // sees the grid entry.  This prevents a stale album-detail entry from
+    // remaining at the top of the history stack (Safari back-forward issue).
+    window.history.back();
     if (restoreScroll > 0) {
       // Wait for the grid to re-render, then restore scroll position
       requestAnimationFrame(() => {
