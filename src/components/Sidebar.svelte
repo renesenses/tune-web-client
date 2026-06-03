@@ -306,6 +306,7 @@
   function stateIcon(state: string): string {
     switch (state) {
       case 'connected': return '\u25CF';
+      case 'polling': return '\u25CF';
       case 'connecting':
       case 'reconnecting': return '\u25D0';
       case 'disconnected': return '\u25CB';
@@ -316,6 +317,7 @@
   function stateColor(state: string): string {
     switch (state) {
       case 'connected': return 'var(--tune-success)';
+      case 'polling': return 'var(--tune-success)';
       case 'connecting':
       case 'reconnecting': return 'var(--tune-warning)';
       case 'disconnected': return 'var(--tune-error, #ef4444)';
@@ -326,6 +328,7 @@
   function stateLabel(state: string, attempts: number): string {
     switch (state) {
       case 'connected': return $t('settings.connected');
+      case 'polling': return $t('settings.connected');
       case 'connecting': return $t('settings.connecting');
       case 'reconnecting': return attempts > 1 ? `${$t('settings.reconnecting')} (${attempts})...` : `${$t('settings.reconnecting')}...`;
       case 'disconnected': return $t('settings.disconnected');
@@ -539,6 +542,9 @@
         {stateIcon($connectionState)}
       </span>
       <span class="state-text truncate">{stateLabel($connectionState, $reconnectAttempts)}</span>
+      {#if $connectionState === 'polling'}
+        <span class="polling-badge" title="Mode polling actif (WebSocket indisponible)">P</span>
+      {/if}
       {#if $healthStatus !== 'ok'}
         <span class="health-dot" class:health-warning={$healthStatus === 'warning'} class:health-critical={$healthStatus === 'critical'} title="Serveur : {$healthStatus}"></span>
       {/if}
@@ -1018,6 +1024,23 @@
 
   .state-text {
     max-width: 180px;
+  }
+
+  .polling-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    background: var(--tune-warning, #f59e0b);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-left: 2px;
+    cursor: help;
   }
 
   .health-dot {

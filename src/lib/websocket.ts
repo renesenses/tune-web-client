@@ -1,8 +1,13 @@
 // WebSocket client for real-time events from tune-server
+// Falls back to HTTP polling after repeated WS failures
 
 import type { WSEvent } from './types';
+import { apiFetch } from './api';
 
 type EventHandler = (event: WSEvent) => void;
+
+const POLLING_THRESHOLD = 5;
+const POLLING_INTERVAL_MS = 2000;
 
 class TuneWebSocket {
   private ws: WebSocket | null = null;
@@ -12,6 +17,9 @@ class TuneWebSocket {
   private _connected = false;
   private _reconnecting = false;
   private _attemptCount = 0;
+  private _polling = false;
+  private _pollingTimer: ReturnType<typeof setInterval> | null = null;
+  private _currentZoneId: number | null = null;
 
   get connected() {
     return this._connected;
@@ -25,7 +33,18 @@ class TuneWebSocket {
     return this._attemptCount;
   }
 
+  get isPolling() {
+    return this._polling;
+  }
+
+  /** Called by App.svelte to keep polling aware of the active zone */
+  setCurrentZoneId(zoneId: number | null) {
+    this._currentZoneId = zoneId;
+  }
+
   connect() {
+    // If we're in polling mode, still attempt a WS connection in the background
+    // to see if WS has become available (e.g. after server restart)
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const url = `${protocol}//${window.location.host}/ws`;
 
@@ -34,10 +53,18 @@ class TuneWebSocket {
 
       this.ws.onopen = () => {
         console.log('WebSocket connected');
+        const wasPolling = this._polling;
         this._connected = true;
         this._reconnecting = false;
         this._attemptCount = 0;
         this.reconnectDelay = 1000;
+
+        // Exit polling mode — WS is now working
+        if (wasPolling) {
+          console.log('WebSocket recovered, exiting polling mode');
+          this.stopPolling();
+        }
+
         // Subscribe to all event patterns
         this.send({
           action: 'subscribe',
@@ -61,10 +88,24 @@ class TuneWebSocket {
       };
 
       this.ws.onclose = () => {
-        console.log('WebSocket disconnected, reconnecting...');
         this._connected = false;
         this._reconnecting = true;
         this._attemptCount++;
+
+        if (!this._polling && this._attemptCount >= POLLING_THRESHOLD) {
+          console.log(`WebSocket failed ${this._attemptCount} times, switching to HTTP polling`);
+          this.startPolling();
+          return;
+        }
+
+        if (this._polling) {
+          // Already in polling mode — schedule a background WS retry with longer delay
+          console.log('WebSocket still unavailable, continuing polling');
+          this.scheduleReconnect(30000);
+          return;
+        }
+
+        console.log('WebSocket disconnected, reconnecting...');
         this.handlers.forEach((h) => h({ type: '_disconnected', data: { attemptCount: this._attemptCount } }));
         this.scheduleReconnect();
       };
@@ -75,17 +116,74 @@ class TuneWebSocket {
     } catch (e) {
       console.error('WebSocket connection failed:', e);
       this._attemptCount++;
+
+      if (!this._polling && this._attemptCount >= POLLING_THRESHOLD) {
+        console.log(`WebSocket failed ${this._attemptCount} times, switching to HTTP polling`);
+        this.startPolling();
+        return;
+      }
+
       this.scheduleReconnect();
     }
   }
 
-  private scheduleReconnect() {
+  private startPolling() {
+    if (this._pollingTimer) return;
+    this._polling = true;
+    this._connected = true;
+    this._reconnecting = false;
+
+    // Emit connected event so the app initializes
+    this.handlers.forEach((h) => h({ type: '_connected', data: null }));
+    // Also emit a polling event so the UI can react
+    this.handlers.forEach((h) => h({ type: '_polling_started', data: null }));
+
+    this._pollingTimer = setInterval(() => this.poll(), POLLING_INTERVAL_MS);
+    // Run first poll immediately
+    this.poll();
+
+    // Schedule a background WS reconnect attempt with a long delay
+    this.scheduleReconnect(30000);
+  }
+
+  private stopPolling() {
+    if (this._pollingTimer) {
+      clearInterval(this._pollingTimer);
+      this._pollingTimer = null;
+    }
+    this._polling = false;
+    this.handlers.forEach((h) => h({ type: '_polling_stopped', data: null }));
+  }
+
+  private async poll() {
+    try {
+      const zones = await apiFetch('/zones');
+      this.handlers.forEach((h) => h({ type: 'zone.updated', data: { zones } }));
+
+      if (this._currentZoneId !== null) {
+        try {
+          const queue = await apiFetch(`/zones/${this._currentZoneId}/queue`);
+          this.handlers.forEach((h) => h({ type: 'playback.queue_changed', data: { zone_id: this._currentZoneId, ...queue } }));
+        } catch {
+          // Queue fetch can fail if zone has no queue — ignore
+        }
+      }
+    } catch (e) {
+      console.warn('Polling fetch failed:', e);
+      // Don't disconnect — server may be temporarily unreachable
+    }
+  }
+
+  private scheduleReconnect(overrideDelay?: number) {
     if (this.reconnectTimer) return;
+    const delay = overrideDelay ?? this.reconnectDelay;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
-      this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000);
+      if (!overrideDelay) {
+        this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000);
+      }
       this.connect();
-    }, this.reconnectDelay);
+    }, delay);
   }
 
   onEvent(handler: EventHandler) {
@@ -106,6 +204,7 @@ class TuneWebSocket {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+    this.stopPolling();
     this.ws?.close();
     this.ws = null;
     this._connected = false;

@@ -377,6 +377,11 @@ import AlarmsView from './components/AlarmsView.svelte';
     checkOnboarding();
     checkWhatsNew();
 
+    // Keep polling aware of the active zone so it can fetch the queue
+    const unsubZoneForPolling = currentZoneId.subscribe((zoneId) => {
+      tuneWS.setCurrentZoneId(zoneId);
+    });
+
     // Allow any component to open the What's New dialog via custom event
     window.addEventListener('tune:open-whatsnew', () => { showWhatsNew = true; });
 
@@ -388,10 +393,18 @@ import AlarmsView from './components/AlarmsView.svelte';
 
       // Internal connection events
       if (type === '_connected') {
-        connectionState.set('connected');
+        connectionState.set(tuneWS.isPolling ? 'polling' : 'connected');
         reconnectAttempts.set(0);
         fetchZones(true);
         fetchDevices();
+        return;
+      }
+      if (type === '_polling_started') {
+        connectionState.set('polling');
+        return;
+      }
+      if (type === '_polling_stopped') {
+        connectionState.set('connected');
         return;
       }
       if (type === '_disconnected') {
@@ -399,6 +412,31 @@ import AlarmsView from './components/AlarmsView.svelte';
         reconnectAttempts.set(attempts);
         // Show "reconnecting" (orange) for the first 4 attempts, then "disconnected" (red)
         connectionState.set(attempts >= 5 ? 'disconnected' : 'reconnecting');
+        return;
+      }
+
+      // Polling bulk zone update — replace all zones at once
+      if (type === 'zone.updated' && event.data?.zones && Array.isArray(event.data.zones)) {
+        const zoneList = event.data.zones;
+        zones.set(zoneList);
+        // Update seek position for current zone
+        let curId: number | null = null;
+        currentZoneId.subscribe((v) => (curId = v))();
+        const curZone = curId !== null ? zoneList.find((z: any) => z.id === curId) : null;
+        if (curZone) {
+          seekPositionMs.set(curZone.position_ms ?? 0);
+          if (curZone.state === 'playing') startSeekTimer();
+          else stopSeekTimer();
+        }
+        return;
+      }
+
+      // Polling queue update
+      if (type === 'playback.queue_changed' && tuneWS.isPolling) {
+        const d = event.data;
+        if (d?.tracks) queueTracks.set(d.tracks);
+        if (d?.position !== undefined) queuePosition.set(d.position);
+        if (d?.length !== undefined) queueLength.set(d.length);
         return;
       }
 
@@ -573,6 +611,7 @@ import AlarmsView from './components/AlarmsView.svelte';
 
   onDestroy(() => {
     cleanupKeyboard?.();
+    unsubZoneForPolling?.();
     tuneWS.disconnect();
     stopSeekTimer();
     stopUpdatePolling();

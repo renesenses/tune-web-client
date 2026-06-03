@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-export type ConnectionState = 'connected' | 'disconnected' | 'connecting' | 'reconnecting';
+export type ConnectionState = 'connected' | 'disconnected' | 'connecting' | 'reconnecting' | 'polling';
 
 export const connectionState = writable<ConnectionState>('disconnected');
 
