@@ -2442,3 +2442,63 @@ export function syncOffline() {
 export function clearOffline() {
   return fetchJSON(`${BASE}/offline/clear`, { method: 'POST' });
 }
+
+// -- OAAT Multi-Room Groups --
+
+export function getOaatGroups(): Promise<any> {
+  return fetchJSON(`${BASE}/zone-manager/oaat-groups`);
+}
+
+export function createOaatGroup(name: string, endpoints: { host: string; port: number }[]): Promise<any> {
+  return fetchJSON(`${BASE}/zone-manager/oaat-groups`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, endpoints }),
+  });
+}
+
+export function deleteOaatGroup(id: string): Promise<any> {
+  return fetchJSON(`${BASE}/zone-manager/oaat-groups/${id}`, { method: 'DELETE' });
+}
+
+export function getOaatGroupStatus(id: string): Promise<any> {
+  return fetchJSON(`${BASE}/zone-manager/oaat-groups/${id}`);
+}
+
+export function addOaatEndpoint(groupId: string, host: string, port: number): Promise<any> {
+  return fetchJSON(`${BASE}/zone-manager/oaat-groups/${groupId}/endpoints`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ host, port }),
+  });
+}
+
+export function removeOaatEndpoint(groupId: string, endpointId: string): Promise<any> {
+  return fetchJSON(`${BASE}/zone-manager/oaat-groups/${groupId}/endpoints/${endpointId}`, {
+    method: 'DELETE',
+  });
+}
+
+export function setOaatGroupVolume(groupId: string, level: number): Promise<any> {
+  return fetchJSON(`${BASE}/zone-manager/oaat-groups/${groupId}/volume`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ level }),
+  });
+}
+
+export function setOaatEndpointVolume(groupId: string, endpointId: string, level: number): Promise<any> {
+  return fetchJSON(`${BASE}/zone-manager/oaat-groups/${groupId}/endpoints/${endpointId}/volume`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ level }),
+  });
+}
+
+export function setOaatEndpointVolumeOffset(groupId: string, endpointId: string, offset: number): Promise<any> {
+  return fetchJSON(`${BASE}/zone-manager/oaat-groups/${groupId}/endpoints/${endpointId}/volume`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ offset }),
+  });
+}

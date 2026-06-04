@@ -4,6 +4,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
+  import OaatGroupsPanel from './OaatGroupsPanel.svelte';
   import type { Zone, ZoneGroupResponse, OutputType, DiscoveredDevice, StereoPairInfo, LocalAudioDevice } from '../lib/types';
 
   // --- State ---
@@ -931,6 +932,10 @@
       </div>
     </section>
   {/if}
+
+  <section class="oaat-section">
+    <OaatGroupsPanel />
+  </section>
 </div>
 
 <style>
@@ -1845,5 +1850,11 @@
       flex-direction: column;
       align-items: stretch;
     }
+  }
+
+  .oaat-section {
+    margin-top: 2rem;
+    border-top: 1px solid var(--tune-border, #333);
+    padding-top: 1rem;
   }
 </style>
