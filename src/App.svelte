@@ -3,6 +3,7 @@
   import { tuneWS } from './lib/websocket';
   import { zones, currentZoneId, currentZone } from './lib/stores/zones';
   import { devices } from './lib/stores/devices';
+  import { isBrowserZone, browserPlay, browserPause, browserResume, browserStop } from './lib/stores/browserAudio';
   import { seekPositionMs, startSeekTimer, stopSeekTimer, shuffleEnabled, repeatMode } from './lib/stores/nowPlaying';
   import { queueTracks, queuePosition, queueLength } from './lib/stores/queue';
   import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
@@ -13,7 +14,7 @@
   import { locale } from './lib/i18n';
   import { setupKeyboardShortcuts } from './lib/keyboard';
   import { playbackHistory } from './lib/stores/history';
-  import { startUpdatePolling, stopUpdatePolling } from './lib/stores/updates';
+  import { startUpdatePolling, stopUpdatePolling, updateAvailable, latestVersion, currentVersion, updateBannerDismissed, dismissUpdateBanner } from './lib/stores/updates';
   import { ytPlayerState, ytLoading, playVideo, pauseVideo, resumeVideo, stopVideo, clearYTLoading } from './lib/stores/ytPlayer';
   import { get } from 'svelte/store';
   import { t } from './lib/i18n';
@@ -565,6 +566,21 @@ import AlarmsView from './components/AlarmsView.svelte';
               }
             }
 
+            // Browser audio sync — when the zone uses browser output,
+            // control the local HTML5 <audio> element based on WS events.
+            if (isBrowserZone(z)) {
+              if (type === 'playback.paused') {
+                browserPause();
+              } else if (type === 'playback.stopped') {
+                browserStop();
+              } else if (type === 'playback.resumed') {
+                if (z?.stream_url) browserPlay(z.stream_url);
+                else browserResume();
+              } else if (type === 'playback.started' || type === 'playback.track_changed') {
+                if (z?.stream_url) browserPlay(z.stream_url);
+              }
+            }
+
             // Record to playback history on track start/change
             if (type === 'playback.started' || type === 'playback.track_changed') {
               if (z?.current_track) {
@@ -654,6 +670,12 @@ import AlarmsView from './components/AlarmsView.svelte';
   {/if}
 
   <main class="main-content">
+    {#if $updateAvailable && !$updateBannerDismissed}
+      <div class="update-banner">
+        <span class="update-banner-text">Tune v{$latestVersion} disponible — vous utilisez v{$currentVersion ?? '?'}</span>
+        <button class="update-banner-dismiss" onclick={dismissUpdateBanner} title="Masquer">&times;</button>
+      </div>
+    {/if}
     {#if $activeView === 'home'}
       <HomeView />
     {:else if $activeView === 'nowplaying'}
@@ -914,5 +936,40 @@ import AlarmsView from './components/AlarmsView.svelte';
       from { transform: translateY(100%); }
       to { transform: translateY(0); }
     }
+  }
+
+  .update-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: 6px var(--space-md);
+    background: var(--tune-accent);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 50;
+    flex-shrink: 0;
+  }
+
+  .update-banner-text {
+    text-align: center;
+  }
+
+  .update-banner-dismiss {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+    opacity: 0.8;
+    transition: opacity 0.15s;
+  }
+
+  .update-banner-dismiss:hover {
+    opacity: 1;
   }
 </style>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { currentZone } from '../lib/stores/zones';
+  import { isBrowserZone, browserSeek } from '../lib/stores/browserAudio';
   import * as api from '../lib/api';
   import { formatTime } from '../lib/utils';
 
@@ -32,6 +33,7 @@
   function handleClick(e: MouseEvent) {
     if (!enabled || !durationMs || !zone?.id) return;
     const newPos = Math.floor(pctFromX(e.clientX) * durationMs);
+    if (isBrowserZone(zone)) browserSeek(newPos);
     api.seek(zone.id, newPos);
   }
 
@@ -45,7 +47,10 @@
     }
     function onUp() {
       isDragging = false;
-      if (zone?.id) api.seek(zone.id, dragPositionMs);
+      if (zone?.id) {
+        if (isBrowserZone(zone)) browserSeek(dragPositionMs);
+        api.seek(zone.id, dragPositionMs);
+      }
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     }
@@ -64,7 +69,10 @@
     }
     function onEnd() {
       isDragging = false;
-      if (zone?.id) api.seek(zone.id, dragPositionMs);
+      if (zone?.id) {
+        if (isBrowserZone(zone)) browserSeek(dragPositionMs);
+        api.seek(zone.id, dragPositionMs);
+      }
       window.removeEventListener('touchmove', onMove);
       window.removeEventListener('touchend', onEnd);
     }

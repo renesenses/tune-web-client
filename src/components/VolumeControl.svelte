@@ -2,6 +2,7 @@
   import { currentZone } from '../lib/stores/zones';
   import { zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
   import { preferences } from '../lib/stores/preferences';
+  import { isBrowserZone, browserSetVolume } from '../lib/stores/browserAudio';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
 
@@ -21,6 +22,8 @@
     if (!zone?.id) return;
     const val = Number((e.target as HTMLInputElement).value);
     if (val > 0) mutedVolume.set(null);
+    // For browser zones, control volume locally
+    if (isBrowserZone(zone)) browserSetVolume(val);
     await api.setVolume(zone.id, val);
   }
 

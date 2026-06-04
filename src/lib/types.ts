@@ -5,7 +5,7 @@ export type Source = 'local' | 'tidal' | 'qobuz' | 'youtube' | 'amazon' | 'spoti
 export type AudioFormat = 'flac' | 'wav' | 'mp3' | 'aac' | 'alac' | 'ogg' | 'opus' | 'dsd' | 'aiff' | 'wma';
 export type PlaybackState = 'stopped' | 'playing' | 'paused' | 'buffering';
 export type RepeatMode = 'off' | 'one' | 'all';
-export type OutputType = 'local' | 'dlna' | 'airplay' | 'chromecast' | 'bluos' | 'snapcast' | 'sonos' | 'squeezebox';
+export type OutputType = 'local' | 'dlna' | 'airplay' | 'chromecast' | 'bluos' | 'snapcast' | 'sonos' | 'squeezebox' | 'browser';
 
 // v0.8.0 multi-room — Snapcast endpoint discovered by snapserver.
 export interface SnapcastClient {
@@ -144,6 +144,7 @@ export interface Zone {
   stereo_channel?: 'left' | 'right' | null;
   output_sent?: boolean;
   error?: string | null;
+  stream_url?: string | null;
 }
 
 export interface DiscoveredDevice {

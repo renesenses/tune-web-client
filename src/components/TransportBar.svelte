@@ -3,6 +3,7 @@
   import { zones, currentZone, currentZoneId, playAndSync, nextAndSync, previousAndSync, resumeAndSync } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
   import { ytPlayerState, ytLoading, pauseVideo, resumeVideo } from '../lib/stores/ytPlayer';
+  import { isBrowserZone, browserPause, browserResume, browserSetVolume, browserSeek, browserStop } from '../lib/stores/browserAudio';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import VolumeControl from './VolumeControl.svelte';
@@ -20,6 +21,7 @@
       case 'bluos': return 'BluOS';
       case 'openhome': return 'OpenHome';
       case 'sonos': return 'Sonos';
+      case 'browser': return 'Browser';
       case 'local': return '';
       default: return '';
     }
@@ -218,8 +220,14 @@
     if (zone?.id && state !== 'stopped') {
       // Zone has an active track — backend controls DLNA, WS events will sync IFrame
       if (ytActive) ytLoading.set(true);
-      if (state === 'playing') await api.pause(zone.id);
-      else await resumeAndSync(zone.id);
+      if (state === 'playing') {
+        await api.pause(zone.id);
+        // Also pause browser audio if this is a browser zone
+        if (isBrowserZone(zone)) browserPause();
+      } else {
+        await resumeAndSync(zone.id);
+        // resumeAndSync already handles browserResume via the store
+      }
     } else if (zone?.id && state === 'stopped' && track) {
       // Zone stopped but has a current track (e.g. DLNA write failed) — resume playback
       await playAndSync(zone.id);

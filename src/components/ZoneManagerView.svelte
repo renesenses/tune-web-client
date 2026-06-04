@@ -115,6 +115,7 @@
       case 'airplay': return 'AirPlay';
       case 'chromecast': return 'Cast';
       case 'bluos': return 'BluOS';
+      case 'browser': return 'Browser';
       default: return 'Local';
     }
   }
@@ -554,6 +555,7 @@
           onkeydown={(e) => e.key === 'Enter' && handleCreateZone()}
         />
         <select class="form-select" bind:value={newZoneOutputType} onchange={() => { newZoneDeviceId = undefined; if (newZoneOutputType === 'local') loadLocalAudioDevices(); }}>
+          <option value="browser">{$t('zone.browserOutput')}</option>
           <option value="local">Local</option>
           <option value="dlna">DLNA</option>
           <option value="airplay">AirPlay</option>
@@ -561,7 +563,9 @@
           <option value="bluos">BluOS</option>
           <option value="openhome">OpenHome</option>
         </select>
-        {#if newZoneOutputType === 'local'}
+        {#if newZoneOutputType === 'browser'}
+          <!-- No device selection needed for browser output -->
+        {:else if newZoneOutputType === 'local'}
           <select class="form-select" bind:value={newZoneDeviceId}>
             <option value={undefined}>{$t('zone.defaultOutput')}</option>
             {#each localAudioDevices as dev}
@@ -766,6 +770,7 @@
         <div class="change-output-panel" onclick={(e) => e.stopPropagation()}>
           <div class="change-output-row">
             <select class="form-select" bind:value={changeOutputType} onchange={() => { changeOutputDeviceId = undefined; if (changeOutputType === 'local') loadLocalAudioDevices(); }}>
+              <option value="browser">{$t('zone.browserOutput')}</option>
               <option value="local">Local</option>
               <option value="dlna">DLNA</option>
               <option value="airplay">AirPlay</option>
@@ -773,7 +778,9 @@
               <option value="bluos">BluOS</option>
               <option value="openhome">OpenHome</option>
             </select>
-            {#if changeOutputType === 'local'}
+            {#if changeOutputType === 'browser'}
+              <!-- No device selection needed for browser output -->
+            {:else if changeOutputType === 'local'}
               <select class="form-select" bind:value={changeOutputDeviceId}>
                 <option value={undefined}>{$t('zone.defaultOutput')}</option>
                 {#each localAudioDevices as dev}
@@ -791,7 +798,7 @@
             <button
               class="btn btn-primary"
               onclick={() => zone.id !== null && handleChangeOutput(zone.id)}
-              disabled={changingOutputLoading || (changeOutputType !== 'local' && !changeOutputDeviceId)}
+              disabled={changingOutputLoading || (changeOutputType !== 'local' && changeOutputType !== 'browser' && !changeOutputDeviceId)}
             >
               {#if changingOutputLoading}
                 <span class="spinner-sm"></span>

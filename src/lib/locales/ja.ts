@@ -47,6 +47,7 @@ export default {
   'zone.zoneName': 'ゾーン名',
   'zone.selectDevice': '-- デバイス --',
   'zone.defaultOutput': '-- デフォルト出力 --',
+  'zone.browserOutput': 'このブラウザ',
   'zone.devices': 'デバイス',
   'zone.clearDevices': 'すべて削除',
   'zone.createZone': 'ゾーンを作成',

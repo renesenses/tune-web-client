@@ -170,6 +170,7 @@
       case 'dlna': return 'DLNA';
       case 'airplay': return 'AirPlay';
       case 'openhome': return 'OpenHome';
+      case 'browser': return 'Browser';
       default: return 'Local';
     }
   }

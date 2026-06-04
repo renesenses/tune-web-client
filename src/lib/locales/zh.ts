@@ -47,6 +47,7 @@ export default {
   'zone.zoneName': '区域名称',
   'zone.selectDevice': '-- 选择设备 --',
   'zone.defaultOutput': '-- 默认输出 --',
+  'zone.browserOutput': '此浏览器',
   'zone.devices': '设备',
   'zone.clearDevices': '全部删除',
   'zone.createZone': '创建区域',

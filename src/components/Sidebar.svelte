@@ -532,7 +532,7 @@
 
 <aside class="sidebar">
   <div class="sidebar-header">
-    <h1 class="logo"><img src="/tune-logo.png" alt="Tune" class="logo-img" /> <span class="version">{#if $updateAvailable}<button class="version-link" onclick={() => navigate('settings')} title="Mise à jour disponible">v{serverVersion ?? __APP_VERSION__}<span class="version-update-dot"></span><span class="version-latest">v{$latestVersion}</span></button>{:else}v{serverVersion ?? __APP_VERSION__}{/if}</span>
+    <h1 class="logo"><a href="https://mozaiklabs.fr/forum" target="_blank" rel="noopener noreferrer" class="logo-link" title="Forum Mozaiklabs"><img src="/tune-logo.png" alt="Tune" class="logo-img" /></a> <span class="version">{#if $updateAvailable}<button class="version-link" onclick={() => navigate('settings')} title="Mise à jour disponible">v{serverVersion ?? __APP_VERSION__}<span class="version-update-dot"></span><span class="version-latest">v{$latestVersion}</span></button>{:else}v{serverVersion ?? __APP_VERSION__}{/if}</span>
       <button class="whatsnew-btn" onclick={() => window.dispatchEvent(new CustomEvent('tune:open-whatsnew'))} title={$t('whatsnew.title')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       </button>
@@ -973,6 +973,17 @@
     align-items: center;
     gap: 8px;
     margin-bottom: var(--space-xs);
+  }
+
+  .logo-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    transition: opacity 0.15s;
+  }
+
+  .logo-link:hover {
+    opacity: 0.7;
   }
 
   .logo-img {

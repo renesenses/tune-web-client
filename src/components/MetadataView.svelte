@@ -98,6 +98,10 @@
       setRunning: (on) => fixGenresRunning = on,
       run: () => api.fixGenres(),
       success: (result) => {
+        if (result == null || (result.fixed == null && result.total == null)) {
+          notifications.info(`Cette fonctionnalité n'est pas encore disponible dans le serveur Rust. Elle arrive bientôt !`);
+          return null;
+        }
         const fixed = result.fixed ?? 0, total = result.total ?? 0;
         fixGenresResult = { total, fixed };
         return `Genres : ${fixed} corrigés sur ${total}`;
@@ -114,8 +118,14 @@
       errorPrefix: 'Échec propagation',
       setRunning: (on) => fixingGenresByArtist = on,
       run: () => api.fixGenresByArtist(0.7),
-      success: (r) => `Propagation : ${r.fixed} albums corrigés sur ${r.total} candidats. ` +
-        `Ignorés : ${r.skipped_low_coherence} (artistes trop hétérogènes), ${r.skipped_no_known_genre} (artiste sans genre connu).`,
+      success: (r) => {
+        if (r == null || (r.fixed == null && r.total == null)) {
+          notifications.info(`Cette fonctionnalité n’est pas encore disponible dans le serveur Rust. Elle arrive bientôt !`);
+          return null;
+        }
+        return `Propagation : ${r.fixed ?? 0} albums corrigés sur ${r.total ?? 0} candidats. ` +
+          `Ignorés : ${r.skipped_low_coherence ?? 0} (artistes trop hétérogènes), ${r.skipped_no_known_genre ?? 0} (artiste sans genre connu).`;
+      },
     });
     if (r) await refreshLibraryView();
   }
@@ -127,8 +137,14 @@
       errorPrefix: 'Échec fuzzy',
       setRunning: (on) => fixingGenresFuzzy = on,
       run: () => api.fixGenresByArtistFuzzy(0.7),
-      success: (r) => `Fuzzy : ${r.fixed} corrigés sur ${r.total} candidats. ` +
-        `Ignorés : ${r.skipped_low_coherence} hétérogènes, ${r.skipped_no_known_genre} sans genre connu.`,
+      success: (r) => {
+        if (r == null || (r.fixed == null && r.total == null)) {
+          notifications.info(`Cette fonctionnalité n'est pas encore disponible dans le serveur Rust. Elle arrive bientôt !`);
+          return null;
+        }
+        return `Fuzzy : ${r.fixed ?? 0} corrigés sur ${r.total ?? 0} candidats. ` +
+          `Ignorés : ${r.skipped_low_coherence ?? 0} hétérogènes, ${r.skipped_no_known_genre ?? 0} sans genre connu.`;
+      },
     });
     if (r) await refreshLibraryView();
   }
@@ -254,6 +270,10 @@
       setRunning: (on) => reclassifyingByPath = on,
       run: () => api.reclassifyGenresByPath(dryRun),
       success: (r) => {
+        if (r == null || (r.fixed == null && r.suggestions_total == null && r.scanned == null)) {
+          notifications.info(`Cette fonctionnalité n’est pas encore disponible dans le serveur Rust. Elle arrive bientôt !`);
+          return null;
+        }
         if (dryRun) {
           const sugTotal = (r.suggestions_total as number) ?? 0;
           const scanned = (r.scanned as number) ?? 0;
@@ -262,7 +282,7 @@
           notifications.info(`Aperçu : ${sugTotal} albums seraient reclassés (${scanned} scannés).${example}`, 0);
           return null;
         }
-        return `${r.fixed} albums reclassés en sous-genre selon leur chemin.`;
+        return `${r.fixed ?? 0} albums reclassés en sous-genre selon leur chemin.`;
       },
     });
     if (r) await refreshLibraryView();
@@ -276,8 +296,14 @@
       errorPrefix: 'Échec famille',
       setRunning: (on) => fixingGenresByFamily = on,
       run: () => api.fixGenresByFamily(threshold),
-      success: (r) => `Famille (${label}) : ${r.fixed} corrigés sur ${r.total}. ` +
-        `Ignorés : ${r.skipped_low_coherence} familles trop éparpillées, ${r.skipped_no_known_genre} artistes sans genre connu.`,
+      success: (r) => {
+        if (r == null || (r.fixed == null && r.total == null)) {
+          notifications.info(`Cette fonctionnalité n'est pas encore disponible dans le serveur Rust. Elle arrive bientôt !`);
+          return null;
+        }
+        return `Famille (${label}) : ${r.fixed ?? 0} corrigés sur ${r.total ?? 0}. ` +
+          `Ignorés : ${r.skipped_low_coherence ?? 0} familles trop éparpillées, ${r.skipped_no_known_genre ?? 0} artistes sans genre connu.`;
+      },
     });
     if (r) await refreshLibraryView();
   }
