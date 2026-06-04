@@ -581,11 +581,21 @@ import AlarmsView from './components/AlarmsView.svelte';
 
       // Zone events
       if (type.startsWith('zone.')) {
-        fetchZones();
-        if (type === 'zone.volume_changed' && event.data?.zone_id !== undefined && event.data?.volume !== undefined) {
+        if (type === 'zone.created' && event.data?.zone) {
+          // Merge the new zone into the store directly to avoid WAL race condition
+          zones.update((zs) => {
+            if (zs.some((z) => z.id === event.data.zone.id)) return zs;
+            return [...zs, event.data.zone];
+          });
+        } else if (type === 'zone.deleted' && event.data?.id !== undefined) {
+          zones.update((zs) => zs.filter((z) => z.id !== event.data.id));
+        } else if (type === 'zone.volume_changed' && event.data?.zone_id !== undefined && event.data?.volume !== undefined) {
           zones.update((zs) =>
             zs.map((z) => z.id === event.data.zone_id ? { ...z, volume: event.data.volume } : z)
           );
+        } else {
+          // Fallback for other zone events (e.g. zone.updated without inline data)
+          fetchZones();
         }
         return;
       }
