@@ -1601,17 +1601,17 @@ export function listHostShares(hostId: string) {
   return fetchJSON<{ shares: string[] }>(`${BASE}/network/shares/${encodeURIComponent(hostId)}`);
 }
 
-export function testSmbConnection(host: string, share: string, username?: string, password?: string, domain?: string) {
-  return fetchJSON<{ ok: boolean; message?: string; error?: string }>(`${BASE}/network/mounts/test`, {
+export function testSmbConnection(host: string, share: string, username?: string, password?: string, _domain?: string) {
+  return fetchJSON<{ ok: boolean; message?: string; error?: string }>(`${BASE}/network/smb/mount`, {
     method: 'POST',
-    body: JSON.stringify({ host, share, username, password, domain }),
+    body: JSON.stringify({ host, share_name: share, username, password, dry_run: true }),
   });
 }
 
 export function mountSmbShare(host: string, share: string, username?: string, password?: string) {
-  return fetchJSON<{ mount_path: string; id: number }>(`${BASE}/network/mounts`, {
+  return fetchJSON<{ mount_path: string; id: number }>(`${BASE}/network/smb/mount`, {
     method: 'POST',
-    body: JSON.stringify({ host, share, username, password }),
+    body: JSON.stringify({ host, share_name: share, username, password }),
   });
 }
 

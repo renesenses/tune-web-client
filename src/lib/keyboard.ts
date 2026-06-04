@@ -1,5 +1,5 @@
 import { get } from 'svelte/store';
-import { currentZone } from './stores/zones';
+import { currentZone, nextAndSync, previousAndSync, resumeAndSync } from './stores/zones';
 import { playbackState, seekPositionMs, mutedVolume } from './stores/nowPlaying';
 import * as api from './api';
 
@@ -16,13 +16,13 @@ export function setupKeyboardShortcuts(): () => void {
         e.preventDefault();
         const state = get(playbackState);
         if (state === 'playing') api.pause(zone.id);
-        else api.resume(zone.id);
+        else resumeAndSync(zone.id);
         break;
       }
       case 'ArrowRight': {
         e.preventDefault();
         if (e.shiftKey) {
-          api.next(zone.id);
+          nextAndSync(zone.id);
         } else {
           const pos = get(seekPositionMs);
           api.seek(zone.id, pos + 10000);
@@ -32,7 +32,7 @@ export function setupKeyboardShortcuts(): () => void {
       case 'ArrowLeft': {
         e.preventDefault();
         if (e.shiftKey) {
-          api.previous(zone.id);
+          previousAndSync(zone.id);
         } else {
           const pos = get(seekPositionMs);
           api.seek(zone.id, Math.max(0, pos - 10000));
@@ -52,10 +52,10 @@ export function setupKeyboardShortcuts(): () => void {
         break;
       }
       case 'KeyN':
-        if (!e.metaKey && !e.ctrlKey) api.next(zone.id);
+        if (!e.metaKey && !e.ctrlKey) nextAndSync(zone.id);
         break;
       case 'KeyP':
-        if (!e.metaKey && !e.ctrlKey) api.previous(zone.id);
+        if (!e.metaKey && !e.ctrlKey) previousAndSync(zone.id);
         break;
       case 'KeyM': {
         if (e.metaKey || e.ctrlKey) break;

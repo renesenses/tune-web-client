@@ -142,6 +142,8 @@ export interface Zone {
   signal_path?: SignalPath | null;
   stereo_pair_id?: string | null;
   stereo_channel?: 'left' | 'right' | null;
+  output_sent?: boolean;
+  error?: string | null;
 }
 
 export interface DiscoveredDevice {

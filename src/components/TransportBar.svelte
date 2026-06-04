@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { zones, currentZone, currentZoneId, playAndSync } from '../lib/stores/zones';
+  import { zones, currentZone, currentZoneId, playAndSync, nextAndSync, previousAndSync, resumeAndSync } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
   import { ytPlayerState, ytLoading, pauseVideo, resumeVideo } from '../lib/stores/ytPlayer';
   import * as api from '../lib/api';
@@ -219,7 +219,7 @@
       // Zone has an active track — backend controls DLNA, WS events will sync IFrame
       if (ytActive) ytLoading.set(true);
       if (state === 'playing') await api.pause(zone.id);
-      else await api.resume(zone.id);
+      else await resumeAndSync(zone.id);
     } else if (zone?.id && state === 'stopped' && track) {
       // Zone stopped but has a current track (e.g. DLNA write failed) — resume playback
       await playAndSync(zone.id);
@@ -236,13 +236,13 @@
   async function handlePrevious() {
     if (!zone?.id) return;
     if (ytActive) ytLoading.set(true);
-    await api.previous(zone.id);
+    await previousAndSync(zone.id);
   }
 
   async function handleNext() {
     if (!zone?.id) return;
     if (ytActive) ytLoading.set(true);
-    await api.next(zone.id);
+    await nextAndSync(zone.id);
   }
 
   async function toggleShuffle() {
