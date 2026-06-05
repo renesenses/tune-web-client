@@ -11,7 +11,7 @@
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
-  import { selectedArtist, artistAlbums, libraryTab } from '../lib/stores/library';
+  import { selectedArtist, selectedAlbum, artistAlbums, libraryTab } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
   import VolumeControl from './VolumeControl.svelte';
   import type { RepeatMode, Track, TrackCredit } from '../lib/types';
@@ -284,6 +284,18 @@
       selectedArtist.set({ id: artistId, name: artistName } as any);
     }
     libraryTab.set('artists');
+    activeView.set('library');
+  }
+
+  async function navigateToAlbum(albumId: number | undefined, albumTitle?: string) {
+    if (!albumId) return;
+    try {
+      const album = await api.getAlbum(albumId).catch(() => null);
+      selectedAlbum.set(album ?? ({ id: albumId, title: albumTitle ?? '' } as any));
+    } catch {
+      selectedAlbum.set({ id: albumId, title: albumTitle ?? '' } as any);
+    }
+    libraryTab.set('albums');
     activeView.set('library');
   }
 
@@ -593,7 +605,13 @@
             <p class="inline-credits">{inlineCredits}</p>
           {/if}
           {#if !isRadio && displayTrack.album_title}
-            <p class="track-album truncate">{displayTrack.album_title}</p>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            {#if displayTrack.album_id}
+              <p class="track-album truncate clickable" onclick={() => navigateToAlbum(displayTrack.album_id, displayTrack.album_title)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year">({displayTrack.year})</span>{/if}</p>
+            {:else}
+              <p class="track-album truncate">{displayTrack.album_title}{#if displayTrack.year} <span class="track-year">({displayTrack.year})</span>{/if}</p>
+            {/if}
           {/if}
           {#if !isRadio && displayTrack.id}
             <div class="np-extra-btns">
