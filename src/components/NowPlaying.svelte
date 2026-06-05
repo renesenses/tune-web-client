@@ -11,7 +11,7 @@
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
-  import { selectedArtist, selectedAlbum, artistAlbums, libraryTab } from '../lib/stores/library';
+  import { selectedArtist, selectedAlbum, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
   import VolumeControl from './VolumeControl.svelte';
   import type { RepeatMode, Track, TrackCredit } from '../lib/types';
@@ -295,6 +295,13 @@
     } catch {
       selectedAlbum.set({ id: albumId, title: albumTitle ?? '' } as any);
     }
+    libraryTab.set('albums');
+    activeView.set('library');
+  }
+
+  function navigateToYear(year: number | undefined) {
+    if (!year) return;
+    yearFilter.set(year);
     libraryTab.set('albums');
     activeView.set('library');
   }
@@ -608,9 +615,9 @@
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             {#if displayTrack.album_id}
-              <p class="track-album truncate clickable" onclick={() => navigateToAlbum(displayTrack.album_id, displayTrack.album_title)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year">({displayTrack.year})</span>{/if}</p>
+              <p class="track-album truncate clickable" onclick={() => navigateToAlbum(displayTrack.album_id, displayTrack.album_title)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
             {:else}
-              <p class="track-album truncate">{displayTrack.album_title}{#if displayTrack.year} <span class="track-year">({displayTrack.year})</span>{/if}</p>
+              <p class="track-album truncate">{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
             {/if}
           {/if}
           {#if !isRadio && displayTrack.id}
@@ -1185,6 +1192,16 @@
   }
 
   .track-artist.clickable:hover {
+    color: var(--tune-accent);
+    text-decoration: underline;
+  }
+
+  .track-year.clickable {
+    cursor: pointer;
+    transition: color 0.15s ease-out;
+  }
+
+  .track-year.clickable:hover {
     color: var(--tune-accent);
     text-decoration: underline;
   }

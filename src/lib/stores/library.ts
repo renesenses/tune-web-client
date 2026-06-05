@@ -19,6 +19,9 @@ export const artistAlbums = writable<Album[]>([]);
 // Tracks
 export const tracks = writable<Track[]>([]);
 
+// Cross-view filters (set from NowPlaying, consumed by LibraryView)
+export const yearFilter = writable<number | null>(null);
+
 // Genres (derived from albums)
 export const genres = derived(albums, ($albums) => {
   const genreMap = new Map<string, number>();

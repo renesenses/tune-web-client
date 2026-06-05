@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, type LibraryTab } from '../lib/stores/library';
+  import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { tuneWS } from '../lib/websocket';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
@@ -330,6 +330,16 @@
   let albumQualityFilter = $state<string | null>(null);
   let albumFormatFilter = $state<string | null>(null);
   let albumSampleRateFilter = $state<number | null>(null);
+  let albumYearFilter = $state<number | null>(null);
+
+  // Sync year filter from store (set by NowPlaying)
+  $effect(() => {
+    const v = $yearFilter;
+    if (v !== null) {
+      albumYearFilter = v;
+      yearFilter.set(null); // consume it
+    }
+  });
 
   // Sort options
   type AlbumSortKey = 'title' | 'artist' | 'release_date' | 'original_year' | 'added_date';
@@ -498,6 +508,7 @@
     if (albumFormatFilter) result = result.filter(a => a.format === albumFormatFilter);
     if (albumSampleRateFilter) result = result.filter(a => (a.sample_rate ?? 0) >= albumSampleRateFilter);
     if (albumFavoritesFilter) result = result.filter(a => a.id !== null && favAlbumIds.has(a.id!));
+    if (albumYearFilter) result = result.filter(a => a.year === albumYearFilter);
     return result;
   });
 
@@ -1517,6 +1528,13 @@
           <svg viewBox="0 0 24 24" fill={albumFavoritesFilter ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
           {$tr('favorites.filter')}
         </button>
+        {#if albumYearFilter}
+          <span class="filter-sep">|</span>
+          <button class="quality-chip year active" onclick={() => albumYearFilter = null}>
+            {albumYearFilter}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        {/if}
         <span class="filter-sep">|</span>
         <span class="sort-control">
           <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M3 6h18M3 12h12M3 18h6" /></svg>
@@ -2508,6 +2526,18 @@
   .quality-chip.favorites.active {
     background: #ef4444;
     border-color: #ef4444;
+    color: white;
+  }
+
+  .quality-chip.year {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .quality-chip.year.active {
+    background: var(--tune-accent);
+    border-color: var(--tune-accent);
     color: white;
   }
 
