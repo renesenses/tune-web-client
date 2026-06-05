@@ -2,7 +2,13 @@ import { writable, derived, get } from 'svelte/store';
 import type { Zone } from '../types';
 import * as api from '../api';
 import { notifications } from './notifications';
-import { isBrowserZone, browserPlay, browserPause, browserResume, browserStop } from './browserAudio';
+// Lazy import to avoid circular dependency (browserAudio imports zones)
+function isBrowserZone(zone: { output_type?: string } | null | undefined): boolean {
+  return zone?.output_type === 'browser';
+}
+async function getBrowserAudio() {
+  return await import('./browserAudio');
+}
 
 export const zones = writable<Zone[]>([]);
 export const currentZoneId = writable<number | null>(null);
@@ -28,8 +34,9 @@ function checkPlayError(zone: Zone) {
 }
 
 /** After a play/next/previous, start browser audio if this is a browser zone */
-function handleBrowserPlayback(zone: Zone) {
+async function handleBrowserPlayback(zone: Zone) {
   if (isBrowserZone(zone) && zone.stream_url) {
+    const { browserPlay } = await getBrowserAudio();
     browserPlay(zone.stream_url);
   }
 }
@@ -64,6 +71,7 @@ export async function resumeAndSync(zoneId: number): Promise<Zone> {
   syncZone(zone);
   // For browser zones, resume local audio
   if (isBrowserZone(zone)) {
+    const { browserResume } = await getBrowserAudio();
     browserResume();
   }
   return zone;
