@@ -81,6 +81,17 @@ async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   return response.json();
 }
 
+/** Wrap a promise with a timeout — rejects with an Error after `ms` milliseconds. */
+export function withTimeout<T>(promise: Promise<T>, ms: number, label = 'request'): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    promise.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); },
+    );
+  });
+}
+
 async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
   let response: Response;
   try {

@@ -741,30 +741,42 @@
   async function loadAll() {
     loading = true;
     try {
-      const [h, s, ss, sc, br, cfg, bk] = await Promise.all([
-        api.getHealth(),
-        api.getStats(),
-        api.getStreamingServices().catch(() => ({})),
-        api.getScanStatus().catch(() => ({ scanning: false })),
-        api.getBrowseRoots().catch(() => ({ roots: [] })),
-        api.getConfig().catch(() => null),
-        api.getBackups().catch(() => []),
+      const T = 10_000; // 10s timeout per call — unblocks the page even if one endpoint hangs
+      const results = await Promise.allSettled([
+        api.withTimeout(api.getHealth(), T, '/system/health'),
+        api.withTimeout(api.getStats(), T, '/system/stats'),
+        api.withTimeout(api.getStreamingServices(), T, '/streaming/services'),
+        api.withTimeout(api.getScanStatus(), T, '/system/scan/status'),
+        api.withTimeout(api.getBrowseRoots(), T, '/library/browse'),
+        api.withTimeout(api.getConfig(), T, '/system/config'),
+        api.withTimeout(api.getBackups(), T, '/system/backups'),
       ]);
-      health = h;
-      stats = s;
-      $streamingServicesStore = ss as Record<string, StreamingServiceStatus>;
-      scanning = sc.scanning;
-      musicRoots = br.roots;
-      config = cfg;
-      backups = bk;
+      const val = <T>(r: PromiseSettledResult<T>, fallback: T): T =>
+        r.status === 'fulfilled' ? r.value : fallback;
+      const [rHealth, rStats, rStreaming, rScan, rBrowse, rConfig, rBackups] = results;
+      health = val(rHealth, null);
+      stats = val(rStats, null);
+      $streamingServicesStore = val(rStreaming, {} as Record<string, StreamingServiceStatus>) as Record<string, StreamingServiceStatus>;
+      scanning = val(rScan, { scanning: false }).scanning;
+      musicRoots = val(rBrowse, { roots: [] as any[] }).roots;
+      config = val(rConfig, null);
+      backups = val(rBackups, []);
+      // Log individual failures for debugging
+      for (const [i, r] of results.entries()) {
+        if (r.status === 'rejected') {
+          const names = ['health', 'stats', 'streaming', 'scan', 'browse', 'config', 'backups'];
+          console.warn(`Settings: ${names[i]} failed:`, r.reason);
+        }
+      }
       // Don't block on Spotify Connect — it may 503 if manager isn't initialized.
       refreshSpotifyConnect();
       // Load Squeezebox status if enabled
-      if (cfg?.squeezebox_enabled) refreshSqueezebox();
+      if (config?.squeezebox_enabled) refreshSqueezebox();
     } catch (e) {
       console.error('Settings load error:', e);
+    } finally {
+      loading = false;
     }
-    loading = false;
   }
 
   async function fetchAudioDevices() {
