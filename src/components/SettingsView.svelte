@@ -1216,6 +1216,7 @@
           <span class="health-dot"></span>
           {health.status === 'ok' ? $t('settings.operational') : $t('settings.degraded')}
         </div>
+        {#if health.components}
         <div class="component-list">
           {#each Object.entries(health.components) as [name, ok]}
             <div class="component-item">
@@ -1224,6 +1225,7 @@
             </div>
           {/each}
         </div>
+        {/if}
       {/if}
       <div class="server-actions">
         <button
