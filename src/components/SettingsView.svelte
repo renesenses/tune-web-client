@@ -10,6 +10,7 @@
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry, BackupInfo } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
+  import { activeView } from '../lib/stores/navigation';
   import SmbWizard from './SmbWizard.svelte';
   import FolderWizard from './FolderWizard.svelte';
   import MultiroomSettings from './MultiroomSettings.svelte';
@@ -59,6 +60,46 @@
   // Wizard modals
   let showSmbWizard = $state(false);
   let showFolderWizard = $state(false);
+
+  // Cloud / mozaiklabs.fr
+  let cloudSsoEmail = $state<string | null>(null);
+  let cloudSsoLoading = $state(true);
+  let cloudTelemetryEnabled = $state(false);
+  let cloudTelemetryLoading = $state(false);
+  let cloudTelemetryInstanceId = $state<string | null>(null);
+
+  async function loadCloudStatus() {
+    cloudSsoLoading = true;
+    try {
+      const sso = await api.apiFetch('/cloud/sso/status');
+      cloudSsoEmail = sso?.email || sso?.connected_email || null;
+    } catch { cloudSsoEmail = null; }
+    cloudSsoLoading = false;
+
+    try {
+      const tel = await api.apiFetch('/cloud/telemetry/status');
+      cloudTelemetryEnabled = !!tel?.enabled;
+      cloudTelemetryInstanceId = tel?.instance_id || null;
+    } catch { /* endpoint may not exist */ }
+  }
+
+  function cloudSsoConnect() {
+    window.location.href = '/api/v1/cloud/sso/authorize';
+  }
+
+  async function toggleCloudTelemetry() {
+    cloudTelemetryLoading = true;
+    const endpoint = cloudTelemetryEnabled ? '/cloud/telemetry/disable' : '/cloud/telemetry/enable';
+    try {
+      await api.apiPost(endpoint);
+      cloudTelemetryEnabled = !cloudTelemetryEnabled;
+    } catch (err: any) {
+      notifications.error(err?.message ?? 'Erreur telemetrie');
+    }
+    cloudTelemetryLoading = false;
+  }
+
+  loadCloudStatus();
 
   // Scan schedule
   let scanScheduleEnabled = $state(false);
@@ -2466,6 +2507,57 @@
       </div>
     </section>
 
+    <!-- Cloud / mozaiklabs.fr -->
+    <section class="settings-section">
+      <h3>Cloud</h3>
+
+      <!-- SSO Status -->
+      <div class="cloud-subsection">
+        <h4 class="cloud-label">mozaiklabs.fr</h4>
+        {#if cloudSsoLoading}
+          <div class="cloud-row"><div class="spinner small"></div> Chargement...</div>
+        {:else if cloudSsoEmail}
+          <div class="cloud-row">
+            <span class="cloud-status-dot connected"></span>
+            <span class="cloud-status-text">Connecte en tant que <strong>{cloudSsoEmail}</strong></span>
+          </div>
+        {:else}
+          <div class="cloud-row">
+            <span class="cloud-status-dot disconnected"></span>
+            <span class="cloud-status-text">Non connecte</span>
+            <button class="scan-btn small" onclick={cloudSsoConnect}>Se connecter</button>
+          </div>
+        {/if}
+      </div>
+
+      <!-- Telemetry -->
+      <div class="cloud-subsection">
+        <div class="cloud-toggle-row">
+          <div class="cloud-toggle-label">
+            <span>Telemetrie</span>
+            <span class="cloud-toggle-hint">Envoyer des statistiques anonymes pour ameliorer Tune.</span>
+          </div>
+          <label class="cloud-toggle">
+            <input type="checkbox" checked={cloudTelemetryEnabled} onchange={toggleCloudTelemetry} disabled={cloudTelemetryLoading} />
+            <span class="cloud-toggle-slider"></span>
+          </label>
+        </div>
+        {#if cloudTelemetryInstanceId}
+          <div class="cloud-instance-id">Instance : <code>{cloudTelemetryInstanceId}</code></div>
+        {/if}
+      </div>
+
+      <!-- Plugins marketplace link -->
+      <div class="cloud-subsection">
+        <button class="scan-btn" onclick={() => activeView.set('plugins')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M20 16V7a2 2 0 0 0-2-2h-3a2 2 0 0 1-2-2 2 2 0 0 0-2 2H8a2 2 0 0 0-2 2v3a2 2 0 0 1 2 2 2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h3a2 2 0 0 1 2 2 2 2 0 0 0 2-2h3a2 2 0 0 0 2-2z"/>
+          </svg>
+          Parcourir les plugins
+        </button>
+      </div>
+    </section>
+
     <!-- About -->
     <section class="settings-section">
       <h3>{$t('settings.about')}</h3>
@@ -3816,5 +3908,131 @@
   }
   .peer-actions {
     flex-shrink: 0;
+  }
+
+  /* Cloud section */
+  .cloud-subsection {
+    margin-bottom: var(--space-lg);
+  }
+
+  .cloud-subsection:last-child {
+    margin-bottom: 0;
+  }
+
+  .cloud-label {
+    font-family: var(--font-label);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+    margin-bottom: var(--space-sm);
+  }
+
+  .cloud-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text);
+  }
+
+  .cloud-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .cloud-status-dot.connected {
+    background: var(--tune-success);
+  }
+
+  .cloud-status-dot.disconnected {
+    background: var(--tune-text-muted);
+  }
+
+  .cloud-status-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .cloud-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+  }
+
+  .cloud-toggle-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text);
+  }
+
+  .cloud-toggle-hint {
+    font-size: 12px;
+    color: var(--tune-text-muted);
+  }
+
+  .cloud-toggle {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  .cloud-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+  }
+
+  .cloud-toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--tune-grey2);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .cloud-toggle-slider::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s;
+  }
+
+  .cloud-toggle input:checked + .cloud-toggle-slider {
+    background: var(--tune-accent);
+  }
+
+  .cloud-toggle input:checked + .cloud-toggle-slider::before {
+    transform: translateX(20px);
+  }
+
+  .cloud-instance-id {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    margin-top: var(--space-xs);
+  }
+
+  .cloud-instance-id code {
+    font-family: monospace;
+    background: var(--tune-bg);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    font-size: 10px;
   }
 </style>

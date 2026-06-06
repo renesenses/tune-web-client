@@ -1,6 +1,7 @@
 // REST API client for tune-server
 
 import { notifications } from './stores/notifications';
+import { getToken, clearToken } from './auth';
 
 import type {
   Zone,
@@ -30,23 +31,36 @@ const BASE = '/api/v1';
 
 // Generic helpers for radio favorites and custom endpoints
 export async function apiFetch(path: string): Promise<any> {
-  const resp = await fetch(`${BASE}${path}`);
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const resp = await fetch(`${BASE}${path}`, { headers });
+  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
   if (!resp.ok) throw new Error(`${resp.status}`);
   return resp.json();
 }
 
 export async function apiPost(path: string, body?: any): Promise<any> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (body) headers['Content-Type'] = 'application/json';
+  if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${path}`, {
     method: 'POST',
-    headers: body ? { 'Content-Type': 'application/json' } : {},
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
   if (!resp.ok) throw new Error(`${resp.status}`);
   return resp.json();
 }
 
 export async function apiDelete(path: string): Promise<any> {
-  const resp = await fetch(`${BASE}${path}`, { method: 'DELETE' });
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const resp = await fetch(`${BASE}${path}`, { method: 'DELETE', headers });
+  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
   if (!resp.ok) throw new Error(`${resp.status}`);
   return resp.json();
 }
@@ -63,8 +77,11 @@ async function apiError(response: Response): Promise<Error> {
 async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   let response: Response;
   try {
+    const token = getToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     response = await fetch(url, {
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       ...options,
     });
   } catch (e) {
@@ -72,6 +89,10 @@ async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
     throw e;
   }
   if (!response.ok) {
+    if (response.status === 401) {
+      clearToken();
+      throw new Error('Session expired');
+    }
     const err = await apiError(response);
     if (response.status >= 500) {
       notifications.error(`Server error: ${err.message}`);
@@ -95,8 +116,11 @@ export function withTimeout<T>(promise: Promise<T>, ms: number, label = 'request
 async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
   let response: Response;
   try {
+    const token = getToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     response = await fetch(url, {
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       ...options,
     });
   } catch (e) {
@@ -104,6 +128,10 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
     throw e;
   }
   if (!response.ok) {
+    if (response.status === 401) {
+      clearToken();
+      throw new Error('Session expired');
+    }
     const err = await apiError(response);
     if (response.status >= 500) {
       notifications.error(`Server error: ${err.message}`);

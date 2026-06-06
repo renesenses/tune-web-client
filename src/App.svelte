@@ -63,6 +63,9 @@ import AlarmsView from './components/AlarmsView.svelte';
   import OnboardingView from './components/OnboardingView.svelte';
   import OfflineView from './components/OfflineView.svelte';
   import WhatsNew from './components/WhatsNew.svelte';
+  import LoginView from './components/LoginView.svelte';
+  import BridgeView from './components/BridgeView.svelte';
+  import AiChat from './components/AiChat.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
   import { loadProfiles } from './lib/stores/profile';
   import { notifications } from './lib/stores/notifications';
@@ -748,6 +751,10 @@ import AlarmsView from './components/AlarmsView.svelte';
       <OnboardingView />
     {:else if $activeView === 'offline'}
       <OfflineView />
+    {:else if $activeView === 'login'}
+      <LoginView />
+    {:else if $activeView === 'bridge'}
+      <BridgeView />
     {/if}
 
     {#if scanIndicator}
@@ -775,6 +782,7 @@ import AlarmsView from './components/AlarmsView.svelte';
     </div>
   {/if}
 
+  <AiChat />
   <ToastContainer />
 </div>
 
