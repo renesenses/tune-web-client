@@ -152,6 +152,51 @@
     }
   }
 
+  // HQPlayer
+  let hqplayerEnabled = $state(false);
+  let hqplayerHostInput = $state('');
+  let hqplayerPortInput = $state(4321);
+  let hqplayerSaving = $state(false);
+  let hqplayerChecking = $state(false);
+  let hqplayerReachable = $state<boolean | null>(null);
+
+  async function loadHqplayerConfig() {
+    try {
+      const cfg = await api.apiFetch(`${api.BASE}/hqplayer/config`);
+      hqplayerEnabled = cfg?.enabled ?? false;
+      hqplayerHostInput = cfg?.host ?? '';
+      hqplayerPortInput = cfg?.port ?? 4321;
+    } catch { /* not configured */ }
+  }
+
+  async function toggleHqplayer() {
+    hqplayerSaving = true;
+    try {
+      hqplayerEnabled = !hqplayerEnabled;
+      await api.apiPost(`${api.BASE}/hqplayer/config`, { host: hqplayerHostInput, port: hqplayerPortInput, enabled: hqplayerEnabled });
+    } catch (e: any) { notifications.error(e?.message ?? 'Error'); }
+    hqplayerSaving = false;
+  }
+
+  async function saveHqplayer() {
+    hqplayerSaving = true;
+    try {
+      await api.apiPost(`${api.BASE}/hqplayer/config`, { host: hqplayerHostInput.trim(), port: hqplayerPortInput, enabled: hqplayerEnabled });
+      notifications.success('HQPlayer configuré');
+      await checkHqplayer();
+    } catch (e: any) { notifications.error(e?.message ?? 'Error'); }
+    hqplayerSaving = false;
+  }
+
+  async function checkHqplayer() {
+    hqplayerChecking = true;
+    try {
+      const status = await api.apiFetch(`${api.BASE}/hqplayer/status`);
+      hqplayerReachable = status?.reachable ?? false;
+    } catch { hqplayerReachable = false; }
+    hqplayerChecking = false;
+  }
+
   // Squeezebox / Lyrion
   let squeezeboxStatus = $state<api.SqueezeboxStatus | null>(null);
   let squeezeboxLoading = $state(false);
@@ -811,6 +856,8 @@
       }
       // Don't block on Spotify Connect — it may 503 if manager isn't initialized.
       refreshSpotifyConnect();
+      // Load HQPlayer config
+      loadHqplayerConfig();
       // Load Squeezebox status if enabled
       if (config?.squeezebox_enabled) refreshSqueezebox();
     } catch (e) {
@@ -2384,6 +2431,74 @@
             {:else if !squeezeboxLoading}
               <p class="muted">{$t('settings.squeezeboxNoPlayers' as any)}</p>
             {/if}
+          </div>
+        {/if}
+      </section>
+    {/if}
+
+    <!-- HQPlayer -->
+    {#if config}
+      <section class="settings-section">
+        <h3>HQPlayer</h3>
+        <p class="section-hint">Connectez Tune à HQPlayer pour l'upsampling et les filtres audiophiles. HQPlayer doit être lancé et écouter sur le port configuré.</p>
+
+        <div class="setting-row">
+          <div class="setting-label">
+            <span>Activer HQPlayer</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" checked={hqplayerEnabled} onchange={() => toggleHqplayer()} disabled={hqplayerSaving} />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        {#if hqplayerEnabled}
+          <div class="setting-row" style="margin-top: 0.5rem;">
+            <div class="setting-label">
+              <span>Adresse IP HQPlayer</span>
+            </div>
+            <div class="squeezebox-host-row">
+              <input
+                type="text"
+                class="auth-input"
+                placeholder="192.168.1.100"
+                bind:value={hqplayerHostInput}
+                disabled={hqplayerSaving}
+                onkeydown={(e) => { if (e.key === 'Enter') saveHqplayer(); }}
+                style="max-width: 200px;"
+              />
+              <input
+                type="number"
+                class="auth-input"
+                placeholder="4321"
+                bind:value={hqplayerPortInput}
+                disabled={hqplayerSaving}
+                style="max-width: 80px;"
+              />
+              <button class="scan-btn small" onclick={saveHqplayer} disabled={hqplayerSaving}>
+                {hqplayerSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+              </button>
+            </div>
+          </div>
+
+          <div class="setting-row" style="margin-top: 0.5rem;">
+            <div class="setting-label">
+              <span>État</span>
+            </div>
+            <div>
+              {#if hqplayerChecking}
+                <div class="spinner small"></div>
+              {:else if hqplayerReachable === true}
+                <span class="squeezebox-status-badge connected">Connecté</span>
+              {:else if hqplayerReachable === false}
+                <span class="squeezebox-status-badge disconnected">Injoignable</span>
+              {:else}
+                <span class="muted">Non testé</span>
+              {/if}
+              <button class="scan-btn small" onclick={checkHqplayer} disabled={hqplayerChecking} style="margin-left: 8px;">
+                Tester la connexion
+              </button>
+            </div>
           </div>
         {/if}
       </section>
