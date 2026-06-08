@@ -1,7 +1,7 @@
 <script lang="ts">
   import { queueTracks, queuePosition } from '../lib/stores/queue';
-  import { currentZone } from '../lib/stores/zones';
-  import { currentTrack } from '../lib/stores/nowPlaying';
+  import { currentZone, zones } from '../lib/stores/zones';
+  import { currentTrack, seekPositionMs, stopSeekTimer } from '../lib/stores/nowPlaying';
   import * as api from '../lib/api';
   import { formatTime, formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
   import { t } from '../lib/i18n';
@@ -117,6 +117,16 @@
       await api.clearQueue(zone.id);
       queueTracks.set([]);
       queuePosition.set(0);
+      // Clear current track so Now Playing bar/screen no longer shows stale info
+      const zoneId = zone.id;
+      zones.update((zs) =>
+        zs.map((z) => {
+          if (z.id !== zoneId) return z;
+          return { ...z, current_track: null, state: 'stopped' as const, position_ms: 0 };
+        })
+      );
+      stopSeekTimer();
+      seekPositionMs.set(0);
     } catch (e) {
       console.error('Clear queue error:', e);
       notifications.error('Erreur lors du vidage');

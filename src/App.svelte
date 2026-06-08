@@ -499,6 +499,25 @@ import AlarmsView from './components/AlarmsView.svelte';
         } else if (type === 'playback.queue_changed') {
           fetchQueue();
           if (zoneId) syncZoneState(zoneId);
+        } else if (type === 'playback.queue.cleared') {
+          // Queue was explicitly cleared — reset current track so the Now Playing
+          // bar and screen no longer display stale cover art / track info.
+          if (zoneId) {
+            zones.update((zs) =>
+              zs.map((z) => {
+                if (z.id !== zoneId) return z;
+                return { ...z, current_track: null, state: 'stopped' as const, position_ms: 0 };
+              })
+            );
+            const curZone = get(currentZone);
+            if (curZone?.id === zoneId || (curZone?.group_id != null && curZone.group_id === get(zones).find(z => z.id === zoneId)?.group_id)) {
+              stopSeekTimer();
+              seekPositionMs.set(0);
+            }
+          }
+          queueTracks.set([]);
+          queuePosition.set(0);
+          queueLength.set(0);
         } else if (zoneId) {
           // Optimistic update: apply track metadata from the WS event
           // immediately so the UI updates without waiting for the API call.

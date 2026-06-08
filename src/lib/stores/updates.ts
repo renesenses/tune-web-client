@@ -27,8 +27,8 @@ async function poll() {
   try {
     // Try the server's own update check first
     const info = await api.checkForUpdate();
-    const cur = info?.current_version ?? null;
-    const lat = info?.latest_version ?? null;
+    const cur = info?.current_version ?? info?.current ?? null;
+    const lat = info?.latest_version ?? info?.latest ?? null;
     if (cur) currentVersion.set(cur);
     if (lat) latestVersion.set(lat);
     const hasUpdate = !!info?.update_available || (cur && lat && isNewer(cur, lat));

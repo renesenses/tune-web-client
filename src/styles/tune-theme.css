@@ -91,8 +91,14 @@ body {
 }
 
 /* Scrollbar */
+* {
+  scrollbar-width: auto;
+  scrollbar-color: var(--tune-text-muted) transparent;
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 12px;
+  height: 12px;
 }
 
 ::-webkit-scrollbar-track {
@@ -101,7 +107,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: var(--tune-text-muted);
-  border-radius: 3px;
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {

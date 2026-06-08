@@ -1313,12 +1313,12 @@
     gap: 16px;
     scroll-snap-type: x mandatory;
     padding-bottom: var(--space-sm);
-    scrollbar-width: thin;
+    scrollbar-width: auto;
     scrollbar-color: var(--tune-grey3, #555) transparent;
   }
 
   .carousel::-webkit-scrollbar {
-    height: 6px;
+    height: 10px;
   }
 
   .carousel::-webkit-scrollbar-track {
@@ -1327,7 +1327,7 @@
 
   .carousel::-webkit-scrollbar-thumb {
     background: var(--tune-grey3, #555);
-    border-radius: 3px;
+    border-radius: 5px;
   }
 
   .carousel-card {
