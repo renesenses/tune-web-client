@@ -2440,7 +2440,7 @@
     {#if config}
       <section class="settings-section">
         <h3>HQPlayer</h3>
-        <p class="section-hint">Connectez Tune à HQPlayer pour l'upsampling et les filtres audiophiles. HQPlayer doit être lancé et écouter sur le port configuré.</p>
+        <p class="section-hint">Connectez Tune à HQPlayer pour l'upsampling et les filtres audiophiles. Port par défaut : 4321 (v4/v5) ou 8019 (v6).</p>
 
         <div class="setting-row">
           <div class="setting-label">
