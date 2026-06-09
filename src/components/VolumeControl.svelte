@@ -41,7 +41,7 @@
     }
   }
 
-  const STEP = 0.05;
+  const STEP = 0.01;
 
   async function stepDown() {
     if (!zone?.id) return;
