@@ -63,8 +63,6 @@
 
   // Cloud / mozaiklabs.fr
   let cloudSsoEmail = $state<string | null>(null);
-  let cloudSsoName = $state<string | null>(null);
-  let cloudSsoAvatar = $state<string | null>(null);
   let cloudSsoLoading = $state(true);
   let cloudTelemetryEnabled = $state(false);
   let cloudTelemetryLoading = $state(false);
@@ -74,9 +72,7 @@
     cloudSsoLoading = true;
     try {
       const sso = await api.apiFetch('/cloud/sso/status');
-      cloudSsoEmail = sso?.user?.email || sso?.email || sso?.connected_email || null;
-      cloudSsoName = sso?.user?.display_name || null;
-      cloudSsoAvatar = sso?.user?.avatar_url || null;
+      cloudSsoEmail = sso?.email || sso?.connected_email || null;
     } catch { cloudSsoEmail = null; }
     cloudSsoLoading = false;
 
@@ -2637,12 +2633,8 @@
           <div class="cloud-row"><div class="spinner small"></div> Chargement...</div>
         {:else if cloudSsoEmail}
           <div class="cloud-row">
-            {#if cloudSsoAvatar}
-              <img src={cloudSsoAvatar} alt="" class="cloud-avatar" />
-            {:else}
-              <span class="cloud-status-dot connected"></span>
-            {/if}
-            <span class="cloud-status-text">Connecté en tant que <strong>{cloudSsoName || cloudSsoEmail}</strong></span>
+            <span class="cloud-status-dot connected"></span>
+            <span class="cloud-status-text">Connecte en tant que <strong>{cloudSsoEmail}</strong></span>
           </div>
         {:else}
           <div class="cloud-row">
@@ -4057,15 +4049,6 @@
     font-family: var(--font-body);
     font-size: 14px;
     color: var(--tune-text);
-  }
-
-  .cloud-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
-    flex-shrink: 0;
-    border: 2px solid var(--tune-accent, #007AFF);
   }
 
   .cloud-status-dot {

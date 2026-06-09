@@ -1,18 +1,8 @@
 <script lang="ts">
   import { profiles, currentProfileId, createProfile, selectProfile, deleteProfile, type Profile } from '../lib/stores/profile';
   import { t } from '../lib/i18n';
-  import * as api from '../lib/api';
 
   let dropdownOpen = $state(false);
-  let cloudAvatarUrl = $state<string | null>(null);
-
-  async function loadCloudAvatar() {
-    try {
-      const sso = await api.apiFetch('/cloud/sso/status');
-      if (sso?.user?.avatar_url) cloudAvatarUrl = sso.user.avatar_url;
-    } catch {}
-  }
-  loadCloudAvatar();
   let showCreateDialog = $state(false);
   let newName = $state('');
   let newColor = $state('#6366f1');
@@ -57,13 +47,9 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="profile-selector">
   <button class="profile-current" onclick={toggleDropdown} title={$t('profile.select')}>
-    {#if cloudAvatarUrl}
-      <img src={cloudAvatarUrl} alt="" class="avatar-circle avatar-img" />
-    {:else}
-      <span class="avatar-circle" style="background: {currentProfile?.avatar_color ?? '#6366f1'}">
-        {currentProfile ? currentProfile.name.charAt(0).toUpperCase() : '?'}
-      </span>
-    {/if}
+    <span class="avatar-circle" style="background: {currentProfile?.avatar_color ?? '#6366f1'}">
+      {currentProfile ? currentProfile.name.charAt(0).toUpperCase() : '?'}
+    </span>
     <span class="profile-name truncate">{currentProfile?.name ?? '...'}</span>
     <svg class="chevron" class:open={dropdownOpen} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9" /></svg>
   </button>
@@ -163,11 +149,6 @@
     font-weight: 600;
     color: white;
     flex-shrink: 0;
-  }
-
-  .avatar-img {
-    object-fit: cover;
-    border: 1.5px solid var(--tune-accent, #007AFF);
   }
 
   .avatar-circle.small {
