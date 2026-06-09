@@ -1166,6 +1166,14 @@ export function rescanArtwork() {
   return fetchJSON<{ status: string }>(`${BASE}/library/artwork/rescan`, { method: 'POST' });
 }
 
+export function rescanMetadata() {
+  return fetchJSON<{ status: string }>(`${BASE}/library/rescan-metadata`, { method: 'POST' });
+}
+
+export function rescanMetadataStatus() {
+  return fetchJSON<{ status: string; result?: { total?: number; updated?: number; skipped?: number; errors?: number } }>(`${BASE}/library/rescan-metadata/status`);
+}
+
 export function mergeAlbumDuplicates() {
   return fetchJSON<{ merged: number }>(`${BASE}/library/albums/merge-duplicates`, { method: 'POST' });
 }

@@ -1195,6 +1195,8 @@
   async function rescanAll() {
     rescanningAll = true;
     try {
+      // Re-read all metadata (genres, year, etc.) from audio file tags, then refresh artwork
+      await api.rescanMetadata();
       await api.rescanArtwork();
     } catch (e) {
       console.error('Rescan error:', e);

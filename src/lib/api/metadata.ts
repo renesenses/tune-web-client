@@ -410,3 +410,23 @@ export function writeAllTags() {
 export function writeAllCovers() {
   return fetchJSON<WriteAllResult>(`${BASE}/metadata/write-all-covers`, { method: 'POST' });
 }
+
+// --- Rescan metadata from file tags ---
+
+export interface RescanMetadataResult {
+  status: string;
+  result?: {
+    total?: number;
+    updated?: number;
+    skipped?: number;
+    errors?: number;
+  };
+}
+
+export function rescanMetadata() {
+  return fetchJSON<{ status: string }>(`${BASE}/library/rescan-metadata`, { method: 'POST' });
+}
+
+export function rescanMetadataStatus() {
+  return fetchJSON<RescanMetadataResult>(`${BASE}/library/rescan-metadata/status`);
+}
