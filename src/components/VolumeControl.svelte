@@ -41,12 +41,13 @@
     }
   }
 
-  const STEP = 0.02;
+  const STEP = 0.05;
 
   async function stepDown() {
     if (!zone?.id) return;
     const next = Math.max(0, vol - STEP);
     if (next > 0) mutedVolume.set(null);
+    zoneVolume.set(next);
     await api.setVolume(zone.id, next);
   }
 
@@ -54,6 +55,7 @@
     if (!zone?.id) return;
     const next = Math.min(1, vol + STEP);
     mutedVolume.set(null);
+    zoneVolume.set(next);
     await api.setVolume(zone.id, next);
   }
 </script>
