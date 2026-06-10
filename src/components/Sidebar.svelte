@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { zones, currentZoneId } from '../lib/stores/zones';
   import { devices, unboundDevices } from '../lib/stores/devices';
   import { connectionState, reconnectAttempts } from '../lib/stores/connection';
@@ -21,9 +22,11 @@
   // the client build version (__APP_VERSION__) until the API responds.
   let serverVersion = $state<string | null>(null);
   $effect(() => {
-    api.checkForUpdate()
-      .then((r) => { if (r?.current_version) serverVersion = r.current_version; })
-      .catch(() => { /* keep fallback */ });
+    untrack(() => {
+      api.checkForUpdate()
+        .then((r) => { if (r?.current_version) serverVersion = r.current_version; })
+        .catch(() => { /* keep fallback */ });
+    });
   });
 
   // Health monitor status (shared store, also updated by App.svelte on WS events)
