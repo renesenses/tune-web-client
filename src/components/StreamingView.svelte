@@ -430,9 +430,17 @@
   }
 
   async function addStreamingTrackToQueue(track: Track) {
-    if (!zone?.id || !track.source || !track.source_id) return;
+    if (!zone?.id || !track.source_id) return;
     try {
-      await api.addToQueue(zone.id, { source: (track.source || service) as any, source_id: track.source_id });
+      await api.addToQueue(zone.id, {
+        source: (track.source || service) as any,
+        source_id: track.source_id,
+        title: track.title || undefined,
+        artist_name: track.artist_name || undefined,
+        album_title: track.album_title || (track as any).album || undefined,
+        cover_path: track.cover_path || undefined,
+        duration_ms: track.duration_ms || undefined,
+      });
       // Refresh queue after add
       const qs = await api.getQueue(zone.id);
       queueTracks.set(qs.tracks);
@@ -465,7 +473,15 @@
       // Backend routes audio via yt-dlp → DLNA zone
       if (zone?.id) {
         try {
-          await playAndSync(zone.id, { source: (track.source || service) as any, source_id: track.source_id });
+          await playAndSync(zone.id, {
+            source: (track.source || service) as any,
+            source_id: track.source_id,
+            title: track.title || undefined,
+            artist_name: track.artist_name || undefined,
+            album_title: track.album_title || (track as any).album || undefined,
+            cover_path: track.cover_path || undefined,
+            duration_ms: track.duration_ms || undefined,
+          });
         } catch (e) {
           console.error('Play YouTube track (DLNA) error:', e);
         }
@@ -474,7 +490,15 @@
     }
     if (!zone?.id) return;
     try {
-      await playAndSync(zone.id, { source: (track.source || service) as any, source_id: track.source_id });
+      await playAndSync(zone.id, {
+        source: (track.source || service) as any,
+        source_id: track.source_id,
+        title: track.title || undefined,
+        artist_name: track.artist_name || undefined,
+        album_title: track.album_title || (track as any).album || undefined,
+        cover_path: track.cover_path || undefined,
+        duration_ms: track.duration_ms || undefined,
+      });
     } catch (e) {
       console.error('Play streaming track error:', e);
     }
@@ -1169,7 +1193,7 @@
                 </div>
                 <div class="track-info">
                   <span class="track-title truncate">{track.title}</span>
-                  <span class="track-artist truncate">{track.artist_name}{#if track.album} — {track.album}{/if}</span>
+                  <span class="track-artist truncate">{track.artist_name}{#if track.album_title} — {track.album_title}{/if}</span>
                 </div>
                 <span class="track-duration">{formatTime(track.duration_ms)}</span>
                 <button class="track-action-btn" onclick={() => playStreamingTrack(track)} title="Play">

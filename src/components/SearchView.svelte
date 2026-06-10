@@ -160,7 +160,15 @@
       if (track.id) {
         await playAndSync(zone.id, { track_id: track.id });
       } else if (track.source && track.source_id) {
-        await playAndSync(zone.id, { source: track.source, source_id: track.source_id });
+        await playAndSync(zone.id, {
+          source: track.source,
+          source_id: track.source_id,
+          title: track.title || undefined,
+          artist_name: track.artist_name || undefined,
+          album_title: track.album_title || undefined,
+          cover_path: track.cover_path || undefined,
+          duration_ms: track.duration_ms || undefined,
+        });
       } else {
         console.error('Track has no id and no source_id:', track);
       }
