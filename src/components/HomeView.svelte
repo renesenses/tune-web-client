@@ -2,7 +2,8 @@
   import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
   import { libraryTab, selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryLoading } from '../lib/stores/library';
   import { playbackHistory } from '../lib/stores/history';
-  import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { currentZone, zones, playAndSync } from '../lib/stores/zones';
+  import { get } from 'svelte/store';
   import { formatNumber } from '../lib/utils';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
@@ -342,7 +343,20 @@
 
   async function loadNowListening() {
     try {
-      nowListening = await api.getNowListening();
+      const raw = await api.getNowListening();
+      const zoneList = get(zones);
+      nowListening = raw.map((item: any) => {
+        const np = item.now_playing ?? {};
+        const z = zoneList.find((z: any) => z.id === item.zone_id);
+        return {
+          ...item,
+          zone_name: z?.name ?? `Zone ${item.zone_id}`,
+          track_title: np.title ?? item.track_title ?? '',
+          artist_name: np.artist_name ?? item.artist_name ?? '',
+          cover_path: np.cover_path ?? item.cover_path ?? null,
+          album_id: np.album_id ?? item.album_id ?? null,
+        };
+      });
       nowListeningLoaded = true;
     } catch (e) {
       console.error('Load now listening error:', e);
@@ -459,7 +473,7 @@
   <!-- Now Listening across zones -->
   {#if nowListeningLoaded && nowListening.length > 0}
     <div class="now-listening-section">
-      <h2 class="section-title">En cours d'ecoute</h2>
+      <h2 class="section-title">En cours d'écoute</h2>
       <div class="now-listening-row">
         {#each nowListening as item}
           <div class="nl-card">
