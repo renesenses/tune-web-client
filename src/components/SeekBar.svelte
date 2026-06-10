@@ -3,6 +3,7 @@
   import { isBrowserZone, browserSeek } from '../lib/stores/browserAudio';
   import * as api from '../lib/api';
   import { formatTime } from '../lib/utils';
+  import { seekPositionMs, startSeekTimer } from '../lib/stores/nowPlaying';
 
   interface Props {
     positionMs: number;
@@ -33,6 +34,11 @@
   function handleClick(e: MouseEvent) {
     if (!enabled || !durationMs || !zone?.id) return;
     const newPos = Math.floor(pctFromX(e.clientX) * durationMs);
+    // Optimistically update the seek position so the progress bar
+    // immediately reflects the clicked position without waiting for
+    // the server round-trip or the next poller tick.
+    seekPositionMs.set(newPos);
+    startSeekTimer();
     if (isBrowserZone(zone)) browserSeek(newPos);
     api.seek(zone.id, newPos);
   }
@@ -48,6 +54,10 @@
     function onUp() {
       isDragging = false;
       if (zone?.id) {
+        // Optimistic update: lock the seek position so the progress bar
+        // doesn't snap back to the pre-seek value from the poller.
+        seekPositionMs.set(dragPositionMs);
+        startSeekTimer();
         if (isBrowserZone(zone)) browserSeek(dragPositionMs);
         api.seek(zone.id, dragPositionMs);
       }
@@ -70,6 +80,10 @@
     function onEnd() {
       isDragging = false;
       if (zone?.id) {
+        // Optimistic update: lock the seek position so the progress bar
+        // doesn't snap back to the pre-seek value from the poller.
+        seekPositionMs.set(dragPositionMs);
+        startSeekTimer();
         if (isBrowserZone(zone)) browserSeek(dragPositionMs);
         api.seek(zone.id, dragPositionMs);
       }

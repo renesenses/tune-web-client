@@ -481,6 +481,20 @@ import AlarmsView from './components/AlarmsView.svelte';
           if (zoneId) syncZoneState(zoneId);
           return;
         }
+        if (type === 'playback.seek' && event.data?.position_ms !== undefined) {
+          // Seek confirmed by server — immediately jump the progress bar
+          // to the new position.  This handles seeks from other clients
+          // (the local SeekBar already does an optimistic update).
+          const curZoneSeek = get(currentZone);
+          const isRelevantZoneSeek =
+            curZoneSeek?.id === zoneId ||
+            (curZoneSeek?.group_id != null && curZoneSeek.group_id === get(zones).find((z: any) => z.id === zoneId)?.group_id);
+          if (isRelevantZoneSeek) {
+            seekPositionMs.set(event.data.position_ms);
+            startSeekTimer();
+          }
+          return;
+        }
         if (type === 'playback.position' && event.data?.position_ms !== undefined) {
           // Only recalibrate the *current* zone (or a group member) and only
           // when drift exceeds 2s — small drifts are expected and the local
