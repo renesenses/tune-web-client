@@ -15,10 +15,19 @@ export const mutedVolume = writable<number | null>(null);
 // Derived from current zone
 export const currentTrack = derived(currentZone, ($zone) => $zone?.current_track ?? null);
 export const playbackState = derived(currentZone, ($zone): PlaybackState => ($zone?.state as PlaybackState) ?? 'stopped');
-export const zoneVolume = writable<number>(0.5);
+const _zoneVol = writable<number>(0.5);
+let _volLocalUntil = 0;
 currentZone.subscribe(($zone) => {
-  if ($zone?.volume !== undefined) zoneVolume.set($zone.volume);
+  if ($zone?.volume !== undefined && Date.now() > _volLocalUntil) {
+    const v = $zone.volume > 1 ? $zone.volume / 100 : $zone.volume;
+    _zoneVol.set(v);
+  }
 });
+export const zoneVolume = {
+  subscribe: _zoneVol.subscribe,
+  set(v: number) { _volLocalUntil = Date.now() + 2000; _zoneVol.set(v); },
+  update(fn: (v: number) => number) { _volLocalUntil = Date.now() + 2000; _zoneVol.update(fn); },
+};
 
 // Seek interpolation timer (smooth 200ms ticks for fluid progress bar)
 let seekTimer: ReturnType<typeof setInterval> | null = null;
