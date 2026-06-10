@@ -192,6 +192,16 @@ export function deleteDevice(deviceId: string) {
   return fetchJSON<{ deleted: string }>(`${BASE}/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
 }
 
+export function addDevice(type: string, host: string, port?: number, name?: string) {
+  return fetchJSON<{ status: string; device_id: string; name: string; type: string; host: string; port: number; zone_id?: number }>(
+    `${BASE}/devices/add`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ type, host, port, name: name || undefined }),
+    },
+  );
+}
+
 export function getDevice(id: string) {
   return fetchJSON<DiscoveredDevice>(`${BASE}/devices/${encodeURIComponent(id)}`);
 }

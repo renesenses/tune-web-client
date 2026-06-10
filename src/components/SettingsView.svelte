@@ -368,6 +368,39 @@
     pairingMessage = null;
   }
 
+  // Manual device addition
+  let addDeviceShow = $state(false);
+  let addDeviceType = $state('bluos');
+  let addDeviceHost = $state('');
+  let addDevicePort = $state('');
+  let addDeviceName = $state('');
+  let addDeviceLoading = $state(false);
+  let addDeviceError = $state<string | null>(null);
+
+  async function handleAddDevice() {
+    const host = addDeviceHost.trim();
+    if (!host) return;
+    addDeviceLoading = true;
+    addDeviceError = null;
+    try {
+      const port = addDevicePort.trim() ? parseInt(addDevicePort.trim(), 10) : undefined;
+      const name = addDeviceName.trim() || undefined;
+      const result = await api.addDevice(addDeviceType, host, port, name);
+      notifications.success(`${result.name} added successfully`);
+      // Refresh device list
+      const devs = await api.getDevices();
+      devices.set(devs);
+      // Reset form
+      addDeviceHost = '';
+      addDevicePort = '';
+      addDeviceName = '';
+      addDeviceShow = false;
+    } catch (e: any) {
+      addDeviceError = e?.message || 'Failed to add device';
+    }
+    addDeviceLoading = false;
+  }
+
   // Crossfade
   let crossfadeEnabled = $state(false);
   let crossfadeDuration = $state(3);
@@ -1909,8 +1942,61 @@
       <div class="devices-actions">
         <button class="scan-btn small" onclick={showAllDevices}>{$t('settings.showAll')}</button>
         <button class="scan-btn small" onclick={hideAllDevices}>{$t('settings.hideAll')}</button>
+        <button class="scan-btn small" onclick={() => addDeviceShow = !addDeviceShow}>
+          {addDeviceShow ? $t('settings.cancel') : $t('settings.addDevice')}
+        </button>
         <button class="scan-btn small danger" onclick={handleClearAllDevices}>{$t('settings.clearDevices')}</button>
       </div>
+
+      {#if addDeviceShow}
+        <div class="add-device-form">
+          <div class="form-row">
+            <label class="form-label">{$t('settings.deviceType')}</label>
+            <select bind:value={addDeviceType} class="form-select">
+              <option value="bluos">BluOS</option>
+              <option value="dlna">DLNA</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">{$t('settings.deviceHost')}</label>
+            <input
+              type="text"
+              class="form-input"
+              placeholder="192.168.1.x"
+              bind:value={addDeviceHost}
+              onkeydown={(e) => { if (e.key === 'Enter') handleAddDevice(); }}
+            />
+          </div>
+          <div class="form-row">
+            <label class="form-label">{$t('settings.devicePort')}</label>
+            <input
+              type="text"
+              class="form-input"
+              placeholder={addDeviceType === 'bluos' ? '11000' : '80'}
+              bind:value={addDevicePort}
+            />
+          </div>
+          <div class="form-row">
+            <label class="form-label">{$t('settings.deviceName')}</label>
+            <input
+              type="text"
+              class="form-input"
+              placeholder={$t('settings.deviceNamePlaceholder')}
+              bind:value={addDeviceName}
+            />
+          </div>
+          {#if addDeviceError}
+            <p class="error-msg">{addDeviceError}</p>
+          {/if}
+          <button class="scan-btn" onclick={handleAddDevice} disabled={addDeviceLoading || !addDeviceHost.trim()}>
+            {#if addDeviceLoading}
+              <div class="spinner small"></div>
+            {/if}
+            {$t('settings.addDeviceSubmit')}
+          </button>
+        </div>
+      {/if}
+
       <div class="device-toggle-list">
         {#each $devices as device}
           {@const prefId = `net:${device.id}`}
@@ -3284,6 +3370,50 @@
 
   .scan-btn.danger:hover {
     background: rgba(239, 68, 68, 0.1);
+  }
+
+  .add-device-form {
+    background: var(--tune-surface, rgba(255,255,255,0.03));
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .add-device-form .form-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .add-device-form .form-label {
+    min-width: 60px;
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+  }
+
+  .add-device-form .form-input,
+  .add-device-form .form-select {
+    flex: 1;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    color: var(--tune-text);
+    font-size: 13px;
+  }
+
+  .add-device-form .form-select {
+    max-width: 140px;
+  }
+
+  .add-device-form .error-msg {
+    color: #ef4444;
+    font-size: 12px;
+    margin: 0;
   }
 
   .device-toggle-list {
