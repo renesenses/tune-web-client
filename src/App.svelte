@@ -510,7 +510,7 @@ import AlarmsView from './components/AlarmsView.svelte';
               startSeekTimer();
             }
           }
-        } else if (type === 'playback.queue_changed') {
+        } else if (type === 'playback.queue_changed' || type === 'playback.queue.track_removed') {
           fetchQueue();
           if (zoneId) syncZoneState(zoneId);
         } else if (type === 'playback.queue.cleared') {
@@ -567,6 +567,11 @@ import AlarmsView from './components/AlarmsView.svelte';
               seekPositionMs.set(0);
               startSeekTimer();
             }
+            // Refresh queue on playback start / track change so the queue
+            // view shows the full list and the correct current position.
+            // The server does not emit playback.queue_changed when a
+            // streaming playlist begins or advances to the next track.
+            fetchQueue();
           }
           // Fetch full zone state from API (authoritative update)
           syncZoneState(zoneId).then(() => {

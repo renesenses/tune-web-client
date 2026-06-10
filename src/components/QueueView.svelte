@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { queueTracks, queuePosition } from '../lib/stores/queue';
-  import { currentZone, zones } from '../lib/stores/zones';
+  import { queueTracks, queuePosition, queueLength } from '../lib/stores/queue';
+  import { currentZone, currentZoneId, zones } from '../lib/stores/zones';
   import { currentTrack, seekPositionMs, stopSeekTimer } from '../lib/stores/nowPlaying';
   import * as api from '../lib/api';
   import { formatTime, formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
@@ -15,6 +15,22 @@
 
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
+
+  // Refresh queue when view mounts or zone changes — the queue may have been
+  // populated by a play action without a queue_changed WS event, leaving the
+  // store stale or empty.  Use $currentZoneId (primitive number) as dependency
+  // to avoid re-fetching on every zone state update (position, volume, etc.).
+  $effect(() => {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    api.getQueue(zid).then((qs) => {
+      queueTracks.set(qs.tracks);
+      queuePosition.set(qs.position);
+      queueLength.set(qs.length);
+    }).catch((e) => {
+      console.error('QueueView: fetch queue error:', e);
+    });
+  });
 
   // Drag state
   let dragIndex = $state<number | null>(null);
