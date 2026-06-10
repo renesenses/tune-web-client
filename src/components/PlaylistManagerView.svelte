@@ -689,7 +689,15 @@
     try {
       const source = t.source || selectedService;
       if (source && source !== 'local' && t.source_id) {
-        await playAndSync(zone.id, { source: source as any, source_id: t.source_id });
+        await playAndSync(zone.id, {
+          source: source as any,
+          source_id: t.source_id,
+          title: t.title || undefined,
+          artist_name: t.artist_name || undefined,
+          album_title: t.album_title || undefined,
+          cover_path: t.cover_path || undefined,
+          duration_ms: t.duration_ms || undefined,
+        });
       } else if (t.id) {
         await playAndSync(zone.id, { track_id: t.id });
       }
@@ -701,8 +709,17 @@
   async function addTrackToQueue(t: Track) {
     if (!zone?.id) return;
     try {
-      if (t.source && t.source !== 'local' && t.source_id) {
-        await api.addToQueue(zone.id, { source: t.source as any, source_id: t.source_id });
+      const source = t.source || selectedService;
+      if (source && source !== 'local' && t.source_id) {
+        await api.addToQueue(zone.id, {
+          source: source as any,
+          source_id: t.source_id,
+          title: t.title || undefined,
+          artist_name: t.artist_name || undefined,
+          album_title: t.album_title || undefined,
+          cover_path: t.cover_path || undefined,
+          duration_ms: t.duration_ms || undefined,
+        });
       } else if (t.id) {
         await api.addToQueue(zone.id, { track_id: t.id });
       }

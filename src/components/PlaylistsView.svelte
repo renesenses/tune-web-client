@@ -203,8 +203,10 @@
 
   async function playStreamingPlaylist(pl: StreamingPlaylist, startIndex?: number) {
     if (!zone?.id) return;
+    const source = pl.source || selectedService;
+    if (!source) return;
     try {
-      await playAndSync(zone.id, { source: pl.source as any, streaming_playlist_id: pl.source_id, start_index: startIndex });
+      await playAndSync(zone.id, { source: source as any, streaming_playlist_id: pl.source_id, start_index: startIndex });
     } catch (e) {
       console.error('Play streaming playlist error:', e);
     }
@@ -212,8 +214,18 @@
 
   async function playStreamingTrack(t: Track) {
     if (!zone?.id || !t.source_id) return;
+    const source = t.source || selectedService;
+    if (!source) return;
     try {
-      await playAndSync(zone.id, { source: t.source as any, source_id: t.source_id });
+      await playAndSync(zone.id, {
+        source: source as any,
+        source_id: t.source_id,
+        title: t.title || undefined,
+        artist_name: t.artist_name || undefined,
+        album_title: t.album_title || undefined,
+        cover_path: t.cover_path || undefined,
+        duration_ms: t.duration_ms || undefined,
+      });
     } catch (e) {
       console.error('Play streaming track error:', e);
     }
@@ -221,8 +233,18 @@
 
   async function addStreamingTrackToQueue(t: Track) {
     if (!zone?.id || !t.source_id) return;
+    const source = t.source || selectedService;
+    if (!source) return;
     try {
-      await api.addToQueue(zone.id, { source: t.source as any, source_id: t.source_id });
+      await api.addToQueue(zone.id, {
+        source: source as any,
+        source_id: t.source_id,
+        title: t.title || undefined,
+        artist_name: t.artist_name || undefined,
+        album_title: t.album_title || undefined,
+        cover_path: t.cover_path || undefined,
+        duration_ms: t.duration_ms || undefined,
+      });
     } catch (e) {
       console.error('Add streaming track to queue error:', e);
     }
