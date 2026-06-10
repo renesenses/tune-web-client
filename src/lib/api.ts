@@ -196,8 +196,9 @@ export function getDevice(id: string) {
   return fetchJSON<DiscoveredDevice>(`${BASE}/devices/${encodeURIComponent(id)}`);
 }
 
-export function getAudioDevices() {
-  return fetchJSON<LocalAudioDevice[]>(`${BASE}/devices/audio`);
+export async function getAudioDevices(): Promise<LocalAudioDevice[]> {
+  const data = await fetchJSON<any>(`${BASE}/devices/audio`);
+  return Array.isArray(data) ? data : (data?.devices ?? []);
 }
 
 export function beginPairing(deviceId: string) {
