@@ -9,11 +9,12 @@
 
   let playingIndex = $state<number | null>(null);
   let serverHistory = $state<HistoryEntry[]>([]);
+  let displayLimit = $state(50);
 
   let zone = $derived($currentZone);
 
   // Merge local + server history
-  let mergedHistory = $derived(() => {
+  let mergedHistory = $derived.by(() => {
     const local = $playbackHistory;
     if (serverHistory.length === 0) return local;
     if (local.length === 0) return serverHistory;
@@ -22,25 +23,34 @@
     const extra = serverHistory.filter(e => !localTitles.has(e.track.title + e.playedAt));
     return [...local, ...extra].slice(0, 200);
   });
+  let displayedHistory = $derived(mergedHistory.slice(0, displayLimit));
+  let hasMore = $derived(mergedHistory.length > displayLimit);
 
   // Load server history on mount
+  let historyLoaded = $state(false);
   $effect(() => {
-    api.getListenHistory(100).then(entries => {
-      serverHistory = entries.map((e: any) => ({
-        track: {
-          id: e.track_id,
-          title: e.title,
-          artist_name: e.artist_name,
-          album_title: e.album_title,
-          duration_ms: e.duration_ms,
-          source: e.source,
-          source_id: e.source_id,
-          cover_path: e.cover_path,
-        },
-        playedAt: e.listened_at,
-        zoneName: `Zone ${e.zone_id}`,
-      }));
-    }).catch(() => {});
+    if (historyLoaded) return;
+    historyLoaded = true;
+    try {
+      api.getPlaybackHistory(50).then(entries => {
+        serverHistory = entries.map((e: any) => ({
+          track: {
+            id: e.track_id ?? null,
+            title: e.track_title ?? e.title ?? 'Unknown',
+            artist_name: e.artist_name,
+            album_title: e.album_title,
+            duration_ms: e.duration_ms ?? e.listened_ms,
+            source: e.source,
+            source_id: e.source_id,
+            cover_path: e.cover_path,
+          },
+          playedAt: e.played_at ?? e.listened_at,
+          zoneName: e.zone_name ?? (e.zone_id ? `Zone ${e.zone_id}` : ''),
+        }));
+      }).catch((e) => { console.error('Load server history error:', e); });
+    } catch (e) {
+      console.error('History effect error:', e);
+    }
   });
 
   function relativeTime(iso: string): string {
@@ -103,13 +113,13 @@
 <div class="history-view">
   <div class="history-header">
     <h2>{$t('history.title')}</h2>
-    <span class="history-count">{mergedHistory().length} {$t('history.plays')}</span>
-    {#if mergedHistory().length > 0}
+    <span class="history-count">{mergedHistory.length} {$t('history.plays')}</span>
+    {#if mergedHistory.length > 0}
       <button class="clear-btn" onclick={() => playbackHistory.clear()}>{$t('history.clear')}</button>
     {/if}
   </div>
 
-  {#if mergedHistory().length === 0}
+  {#if mergedHistory.length === 0}
     <div class="empty">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
         <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
@@ -118,7 +128,7 @@
     </div>
   {:else}
     <div class="history-list">
-      {#each mergedHistory() as entry, i}
+      {#each displayedHistory as entry, i}
         <button class="history-item" class:loading={playingIndex === i} onclick={() => replay(entry, i)}>
           <div class="history-play-icon">
             {#if playingIndex === i}
@@ -140,6 +150,11 @@
           <span class="history-duration">{formatTime(entry.track.duration_ms)}</span>
         </button>
       {/each}
+      {#if hasMore}
+        <button class="load-more-btn" onclick={() => displayLimit += 50}>
+          {$t('common.loadMore') ?? 'Charger plus'} ({mergedHistory.length - displayLimit} restants)
+        </button>
+      {/if}
     </div>
   {/if}
 </div>
@@ -323,5 +338,26 @@
     color: var(--tune-text-muted);
     letter-spacing: 0.3px;
     flex-shrink: 0;
+  }
+
+  .load-more-btn {
+    display: block;
+    width: 100%;
+    padding: var(--space-md);
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    color: var(--tune-text-secondary);
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: var(--space-md);
+    transition: all 0.12s ease-out;
+  }
+
+  .load-more-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+    background: rgba(124, 58, 237, 0.05);
   }
 </style>

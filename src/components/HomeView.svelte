@@ -287,7 +287,13 @@
 
   async function loadTopArtists() {
     try {
-      topArtists = await api.getTopArtists(10);
+      const raw: any[] = await api.getTopArtists(10);
+      // Normalize server fields (name/plays) → TopArtist (artist_name/play_count)
+      topArtists = raw.map((a: any) => ({
+        artist_name: a.artist_name ?? a.name ?? '',
+        play_count: a.play_count ?? a.plays ?? 0,
+        last_played: a.last_played ?? '',
+      }));
       topArtistsLoaded = true;
     } catch (e) {
       console.error('Load top artists error:', e);
@@ -297,7 +303,16 @@
 
   async function loadTopTracks() {
     try {
-      topTracks = await api.getTopTracks(10);
+      const raw: any[] = await api.getTopTracks(10);
+      // Normalize server fields (title/plays) → TopTrack (track_title/play_count)
+      topTracks = raw.map((t: any) => ({
+        track_title: t.track_title ?? t.title ?? '',
+        artist_name: t.artist_name ?? null,
+        album_title: t.album_title ?? null,
+        cover_path: t.cover_path ?? null,
+        play_count: t.play_count ?? t.plays ?? 0,
+        last_played: t.last_played ?? '',
+      }));
       topTracksLoaded = true;
     } catch (e) {
       console.error('Load top tracks error:', e);
@@ -306,6 +321,7 @@
   }
 
   async function navigateArtistByName(name: string) {
+    if (!name) return;
     try {
       const results = await api.searchLibrary(name, 5);
       const match = results.artists?.find((a: any) => a.name.toLowerCase() === name.toLowerCase());
@@ -314,6 +330,25 @@
       }
     } catch (e) {
       console.error('Navigate artist by name error:', e);
+    }
+  }
+
+  async function navigateTopTrackAlbum(track: TopTrack) {
+    const query = `${track.track_title} ${track.artist_name ?? ''}`.trim();
+    if (!query) return;
+    try {
+      const results = await api.searchLibrary(query, 5);
+      const match = results.tracks?.find((t: Track) => t.title === track.track_title);
+      if (match?.album_id) {
+        navigateToAlbum(match.album_id);
+        return;
+      }
+      // Fallback: navigate to artist
+      if (track.artist_name) {
+        navigateArtistByName(track.artist_name);
+      }
+    } catch (e) {
+      console.error('Navigate top track album error:', e);
     }
   }
 
@@ -646,20 +681,18 @@
       <h2 class="section-title">{$t('home.topTracks')}</h2>
       <div class="top-tracks-list">
         {#each topTracks as track, i}
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="top-track-row" onclick={() => playTopTrack(track)}>
+          <div class="top-track-row">
             <span class="track-rank">{i + 1}</span>
-            <div class="top-track-art">
+            <button class="top-track-art" onclick={() => playTopTrack(track)}>
               <AlbumArt coverPath={track.cover_path} size={44} alt={track.track_title} />
-            </div>
+            </button>
             <div class="top-track-info">
-              <span class="top-track-title truncate">{track.track_title}</span>
+              <button class="top-track-title truncate" onclick={() => navigateTopTrackAlbum(track)}>{track.track_title}</button>
               {#if track.artist_name}
-                <span class="top-track-artist truncate">{track.artist_name}</span>
+                <button class="top-track-artist truncate" onclick={() => navigateArtistByName(track.artist_name!)}>{track.artist_name}</button>
               {/if}
             </div>
-            <span class="play-count-badge">{track.play_count}</span>
+            <button class="play-count-badge" onclick={() => playTopTrack(track)}>{track.play_count}</button>
           </div>
         {/each}
       </div>
@@ -1156,7 +1189,6 @@
     align-items: center;
     gap: var(--space-md);
     padding: var(--space-sm) var(--space-md);
-    cursor: pointer;
     transition: background 0.12s;
   }
 
@@ -1179,6 +1211,10 @@
 
   .top-track-art {
     flex-shrink: 0;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
   }
 
   .top-track-info {
@@ -1189,17 +1225,45 @@
     flex: 1;
   }
 
-  .top-track-title {
+  button.top-track-title {
     font-family: var(--font-body);
     font-size: 13px;
     font-weight: 600;
     color: var(--tune-text);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
   }
 
-  .top-track-artist {
+  button.top-track-title:hover {
+    color: var(--tune-accent);
+  }
+
+  button.top-track-artist {
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-secondary);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  button.top-track-artist:hover {
+    color: var(--tune-accent);
+  }
+
+  button.play-count-badge {
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12);
+    border: none;
+    cursor: pointer;
+  }
+
+  button.play-count-badge:hover {
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.2);
   }
 
   @media (max-width: 768px) {

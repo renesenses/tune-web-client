@@ -418,7 +418,7 @@ export function seek(zoneId: number, positionMs: number) {
 
 export function setVolume(zoneId: number, volume: number) {
   return fetchVoid(`${BASE}/zones/${zoneId}/volume`, {
-    method: 'PUT',
+    method: 'POST',
     body: JSON.stringify({ volume }),
   });
 }

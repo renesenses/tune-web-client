@@ -1,7 +1,7 @@
 <script lang="ts">
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
-  import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading } from '../lib/stores/library';
+  import { selectedArtist, artistAlbums, selectedAlbum, albumTracks, libraryTab, libraryLoading } from '../lib/stores/library';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
@@ -177,11 +177,24 @@
     }
   }
 
-  function openAlbum(album: Album) {
+  async function openAlbum(album: Album) {
     if (album.id) {
-      selectedAlbum.set(album);
+      selectedArtist.set(null);
+      libraryLoading.set(true);
       libraryTab.set('albums');
       activeView.set('library');
+      try {
+        const [fullAlbum, tracks] = await Promise.all([
+          api.getAlbum(album.id),
+          api.getAlbumTracks(album.id),
+        ]);
+        selectedAlbum.set(fullAlbum);
+        albumTracks.set(tracks);
+      } catch (e) {
+        console.error('Navigate to album error:', e);
+        selectedAlbum.set(album);
+      }
+      libraryLoading.set(false);
     } else if (album.source && album.source_id) {
       activeStreamingService.set(album.source);
       pendingStreamingAlbum.set(album);
@@ -191,16 +204,21 @@
 
   async function selectArtist(artist: Artist) {
     if (artist.id) {
-      selectedArtist.set(artist);
       selectedAlbum.set(null);
-      libraryTab.set('artists');
+      albumTracks.set([]);
       libraryLoading.set(true);
+      libraryTab.set('artists');
       activeView.set('library');
       try {
-        const result = await api.getArtistAlbums(artist.id);
-        artistAlbums.set(result);
+        const [fullArtist, albums] = await Promise.all([
+          api.getArtist(artist.id),
+          api.getArtistAlbums(artist.id),
+        ]);
+        selectedArtist.set(fullArtist);
+        artistAlbums.set(albums);
       } catch (e) {
         console.error('Load artist albums error:', e);
+        selectedArtist.set(artist);
       }
       libraryLoading.set(false);
     } else if (artist.source_id) {
