@@ -345,23 +345,17 @@
     try {
       const raw = await api.getNowListening();
       const zoneList = get(zones);
-      nowListening = raw
-        .filter((item: any) => {
-          const np = item.now_playing;
-          if (!np) return false;
-          if (!np.track_id && (!np.title || np.title === 'Recovering...')) return false;
-          return true;
-        })
-        .map((item: any) => {
+      nowListening = raw.map((item: any) => {
           const np = item.now_playing ?? {};
           const z = zoneList.find((z: any) => z.id === item.zone_id);
+          const recovering = !np.track_id && (!np.title || np.title === 'Recovering...');
           return {
             ...item,
             zone_name: z?.name ?? `Zone ${item.zone_id}`,
-            track_title: np.title ?? item.track_title ?? '',
-            artist_name: np.artist_name ?? item.artist_name ?? '',
-            cover_path: np.cover_path ?? item.cover_path ?? null,
-            album_id: np.album_id ?? item.album_id ?? null,
+            track_title: recovering ? '' : (np.title ?? item.track_title ?? ''),
+            artist_name: recovering ? '' : (np.artist_name ?? item.artist_name ?? ''),
+            cover_path: recovering ? null : (np.cover_path ?? item.cover_path ?? null),
+            album_id: recovering ? null : (np.album_id ?? item.album_id ?? null),
           };
         });
       nowListeningLoaded = true;
