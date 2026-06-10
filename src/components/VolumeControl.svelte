@@ -22,7 +22,7 @@
     if (!zone?.id) return;
     const val = Number((e.target as HTMLInputElement).value);
     if (val > 0) mutedVolume.set(null);
-    // For browser zones, control volume locally
+    zoneVolume.set(val);
     if (isBrowserZone(zone)) browserSetVolume(val);
     await api.setVolume(zone.id, val);
   }
