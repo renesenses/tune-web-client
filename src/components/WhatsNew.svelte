@@ -39,7 +39,7 @@
               fixes: find(['correction', 'fix', 'bug']),
               improvements: find(['amélioration', 'improvement', 'perf', 'optim']),
             };
-          });
+          }).reverse();
         })
         .catch(() => {}),
     ]).finally(() => { loading = false; });
