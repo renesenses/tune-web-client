@@ -53,6 +53,7 @@
     { value: 'bit_depth', label: 'Bits' },
     { value: 'source', label: 'Source' },
     { value: 'composer', label: 'Compositeur' },
+    { value: 'comments', label: 'Commentaires' },
   ];
 
   const OPERATORS = [
@@ -63,6 +64,8 @@
     { value: 'greater_than', label: '>' },
     { value: 'less_than', label: '<' },
     { value: 'branch_of', label: 'branche de (genre + sous-genres)' },
+    { value: 'is_empty', label: 'est vide' },
+    { value: 'is_not_empty', label: "n'est pas vide" },
   ];
 
   const SORT_OPTIONS = [
