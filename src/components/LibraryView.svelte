@@ -331,6 +331,70 @@
   let albumFormatFilter = $state<string | null>(null);
   let albumSampleRateFilter = $state<number | null>(null);
   let albumYearFilter = $state<number | null>(null);
+  let albumDuplicatesFilter = $state(false);
+
+  // Duplicate album detection: same title + same artist but different format/quality
+  function normalizeDupKey(title: string, artist: string): string {
+    return (title.trim().toLowerCase().replace(/[\s\-_.:;,!?'"()[\]{}]+/g, '') + '|||' +
+            artist.trim().toLowerCase().replace(/[\s\-_.:;,!?'"()[\]{}]+/g, ''));
+  }
+
+  function formatAlbumQualityLabel(album: Album): string {
+    const parts: string[] = [];
+    if (album.format) parts.push(String(album.format).toUpperCase());
+    if (album.sample_rate) parts.push(`${(album.sample_rate / 1000).toFixed(album.sample_rate % 1000 === 0 ? 0 : 1)}kHz`);
+    if (album.bit_depth) parts.push(`${album.bit_depth}-bit`);
+    if (parts.length === 0 && album.quality) parts.push(album.quality.toUpperCase());
+    return parts.join(' ') || '?';
+  }
+
+  // Map from normalized key -> array of albums that share that key
+  let duplicateMap = $derived.by(() => {
+    const map = new Map<string, Album[]>();
+    for (const a of $albums) {
+      const key = normalizeDupKey(a.title, a.artist_name ?? '');
+      const arr = map.get(key);
+      if (arr) arr.push(a);
+      else map.set(key, [a]);
+    }
+    // Only keep entries with 2+ albums
+    const result = new Map<string, Album[]>();
+    for (const [key, arr] of map) {
+      if (arr.length >= 2) result.set(key, arr);
+    }
+    return result;
+  });
+
+  // Set of album IDs that have duplicates
+  let duplicateAlbumIds = $derived.by(() => {
+    const ids = new Set<number>();
+    for (const arr of duplicateMap.values()) {
+      for (const a of arr) {
+        if (a.id !== null && a.id !== undefined) ids.add(a.id!);
+      }
+    }
+    return ids;
+  });
+
+  // Count of albums that are duplicates (for chip display)
+  let duplicateAlbumCount = $derived(duplicateAlbumIds.size);
+
+  // Currently open duplicate popup album id
+  let dupPopupAlbumId = $state<number | null>(null);
+
+  function getDuplicateSiblings(album: Album): Album[] {
+    const key = normalizeDupKey(album.title, album.artist_name ?? '');
+    return duplicateMap.get(key) ?? [];
+  }
+
+  function toggleDupPopup(albumId: number, e: MouseEvent) {
+    e.stopPropagation();
+    dupPopupAlbumId = dupPopupAlbumId === albumId ? null : albumId;
+  }
+
+  function closeDupPopup() {
+    dupPopupAlbumId = null;
+  }
 
   // Sync year filter from store (set by NowPlaying)
   $effect(() => {
@@ -448,6 +512,7 @@
 
   function handleAlbumGridScroll(e: Event) {
     albumScrollTop = (e.currentTarget as HTMLDivElement).scrollTop;
+    if (dupPopupAlbumId !== null) dupPopupAlbumId = null;
   }
 
   // Debounce helper for filter changes
@@ -501,7 +566,7 @@
     ));
   });
 
-  // Albums filtered by search + quality + format + sample rate + favorites (final display)
+  // Albums filtered by search + quality + format + sample rate + favorites + duplicates (final display)
   let filteredAlbums = $derived.by(() => {
     let result = searchFilteredAlbums;
     if (albumQualityFilter) result = result.filter(a => a.quality === albumQualityFilter);
@@ -509,6 +574,7 @@
     if (albumSampleRateFilter) result = result.filter(a => (a.sample_rate ?? 0) >= albumSampleRateFilter);
     if (albumFavoritesFilter) result = result.filter(a => a.id !== null && favAlbumIds.has(a.id!));
     if (albumYearFilter) result = result.filter(a => a.year === albumYearFilter);
+    if (albumDuplicatesFilter) result = result.filter(a => a.id !== null && duplicateAlbumIds.has(a.id!));
     return result;
   });
 
@@ -653,6 +719,33 @@
       result = $albums.filter(a => a.genre && branch.has(a.genre.toLowerCase()));
     }
     return result.sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
+  });
+
+  // Years tab: group albums by year (descending), unknown year at the bottom
+  let yearGroups = $derived.by(() => {
+    const map = new Map<number | null, Album[]>();
+    const filtered = searchQuery.trim()
+      ? $albums.filter(a => {
+          const q = searchQuery.toLowerCase();
+          return a.title.toLowerCase().includes(q)
+            || (a.artist_name ?? '').toLowerCase().includes(q)
+            || String(a.year ?? '').includes(q);
+        })
+      : $albums;
+    for (const album of filtered) {
+      const y = album.original_year ?? album.year ?? null;
+      if (!map.has(y)) map.set(y, []);
+      map.get(y)!.push(album);
+    }
+    const groups: { year: number | null; label: string; albums: Album[] }[] = [];
+    const years = [...map.keys()].filter((y): y is number => y !== null).sort((a, b) => b - a);
+    for (const y of years) {
+      groups.push({ year: y, label: String(y), albums: map.get(y)! });
+    }
+    if (map.has(null)) {
+      groups.push({ year: null, label: $tr('library.unknownYear'), albums: map.get(null)! });
+    }
+    return groups;
   });
 
   let albumTotalDuration = $derived(
@@ -1021,6 +1114,7 @@
     if (tab === 'artists' && !artistsLoaded && $artists.length === 0) loadArtists();
     if (tab === 'tracks' && !tracksLoaded && $tracks.length === 0) loadTracks();
     if (tab === 'genres' && !albumsLoaded && $albums.length === 0) loadAlbums();
+    if (tab === 'years' && !albumsLoaded && $albums.length === 0) loadAlbums();
   });
 </script>
 
@@ -1473,6 +1567,7 @@
           <button class="tab" class:active={$libraryTab === 'artists'} onclick={() => switchTab('artists')}>{$tr('common.artists')}</button>
           <button class="tab" class:active={$libraryTab === 'tracks'} onclick={() => switchTab('tracks')}>{$tr('home.tracks')}</button>
           <button class="tab" class:active={$libraryTab === 'genres'} onclick={() => switchTab('genres')}>{$tr('common.genres')}</button>
+          <button class="tab" class:active={$libraryTab === 'years'} onclick={() => switchTab('years')}>{$tr('common.years')}</button>
         </div>
       </div>
     </div>
@@ -1528,6 +1623,12 @@
           <svg viewBox="0 0 24 24" fill={albumFavoritesFilter ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
           {$tr('favorites.filter')}
         </button>
+        {#if duplicateAlbumCount > 0}
+          <button class="quality-chip duplicates" class:active={albumDuplicatesFilter} onclick={() => albumDuplicatesFilter = !albumDuplicatesFilter}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="8" y="2" width="13" height="13" rx="2" /><path d="M4 8H3a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-1" /></svg>
+            Doublons ({duplicateAlbumCount})
+          </button>
+        {/if}
         {#if albumYearFilter}
           <span class="filter-sep">|</span>
           <button class="quality-chip year active" onclick={() => albumYearFilter = null}>
@@ -1579,6 +1680,27 @@
                       <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                     </button>
                     <span class="heart-overlay"><HeartButton albumId={album.id} size={14} /></span>
+                    {#if album.id !== null && album.id !== undefined && duplicateAlbumIds.has(album.id)}
+                      {@const siblings = getDuplicateSiblings(album)}
+                      <button class="dup-badge" onclick={(e) => toggleDupPopup(album.id!, e)} title="Cet album existe en {siblings.length} versions">
+                        {siblings.length} versions
+                      </button>
+                      {#if dupPopupAlbumId === album.id}
+                        <!-- svelte-ignore a11y_click_events_have_key_events -->
+                        <!-- svelte-ignore a11y_no_static_element_interactions -->
+                        <div class="dup-popup-backdrop" onclick={(e) => { e.stopPropagation(); closeDupPopup(); }}></div>
+                        <div class="dup-popup">
+                          <div class="dup-popup-title">{siblings.length} versions</div>
+                          {#each siblings as sib (sib.id ?? sib.title)}
+                            <button class="dup-popup-item" class:current={sib.id === album.id} onclick={(e) => { e.stopPropagation(); closeDupPopup(); selectAlbumDetail(sib); }}>
+                              <span class="dup-popup-format">{formatAlbumQualityLabel(sib)}</span>
+                              {#if sib.year}<span class="dup-popup-year">{sib.year}</span>{/if}
+                              {#if sib.id === album.id}<span class="dup-popup-current">actuel</span>{/if}
+                            </button>
+                          {/each}
+                        </div>
+                      {/if}
+                    {/if}
                   </div>
                   <span class="album-card-title truncate">{album.title}</span>
                   {#if album.artist_name}
@@ -1793,6 +1915,37 @@
           <div class="empty">{$tr('common.noResult')}</div>
         {/if}
       {/if}
+
+    {:else if $libraryTab === 'years'}
+      {#if yearGroups.length === 0}
+        <div class="empty">{$tr('library.noAlbums')}</div>
+      {:else}
+        {#each yearGroups as group}
+          <div class="year-section">
+            <h3 class="year-header">{group.label}</h3>
+            <span class="year-count">{group.albums.length} {group.albums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
+          </div>
+          <div class="albums-grid">
+            {#each group.albums as album}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="album-card" onclick={() => selectAlbumDetail(album)}>
+                <div class="album-card-art">
+                  <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                  <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
+                    <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
+                  </button>
+                </div>
+                <span class="album-card-title truncate">{album.title}</span>
+                {#if album.artist_name}
+                  <span class="album-card-artist truncate">{album.artist_name}</span>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        {/each}
+      {/if}
+
     {/if}
   {/if}
 </div>
@@ -2515,6 +2668,113 @@
 
   .heart-overlay :global(.heart-btn:hover) {
     opacity: 1 !important;
+  }
+
+  /* Duplicate badge overlay on album card */
+  .dup-badge {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    z-index: 3;
+    background: rgba(245, 158, 11, 0.92);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    line-height: 1.3;
+    letter-spacing: 0.02em;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    transition: background 0.15s;
+  }
+
+  .dup-badge:hover {
+    background: rgba(217, 119, 6, 0.95);
+  }
+
+  .dup-popup-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+  }
+
+  .dup-popup {
+    position: absolute;
+    bottom: 36px;
+    right: 4px;
+    z-index: 100;
+    background: var(--tune-surface, #1e1e2e);
+    border: 1px solid var(--tune-border, #333);
+    border-radius: 8px;
+    padding: 6px 0;
+    min-width: 180px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  .dup-popup-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--tune-text-muted, #999);
+    padding: 4px 12px 6px;
+    border-bottom: 1px solid var(--tune-border, #333);
+    margin-bottom: 2px;
+  }
+
+  .dup-popup-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 12px;
+    border: none;
+    background: none;
+    color: var(--tune-text, #eee);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.1s;
+  }
+
+  .dup-popup-item:hover {
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.15);
+  }
+
+  .dup-popup-item.current {
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.1);
+  }
+
+  .dup-popup-format {
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .dup-popup-year {
+    font-size: 11px;
+    color: var(--tune-text-muted, #999);
+  }
+
+  .dup-popup-current {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--tune-accent, #6366f1);
+    font-weight: 700;
+  }
+
+  /* Duplicates filter chip */
+  .quality-chip.duplicates {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .quality-chip.duplicates.active {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: white;
   }
 
   .quality-chip.favorites {
@@ -3634,5 +3894,34 @@
     .album-card-artist {
       font-size: 11px;
     }
+  }
+
+  /* Years tab */
+  .year-section {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-sm);
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--tune-border);
+  }
+
+  .year-section:first-child {
+    margin-top: 0;
+  }
+
+  .year-header {
+    font-family: var(--font-label);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin: 0;
+  }
+
+  .year-count {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
   }
 </style>

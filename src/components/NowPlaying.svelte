@@ -1213,6 +1213,16 @@
     margin-bottom: var(--space-xs);
   }
 
+  .track-album.clickable {
+    cursor: pointer;
+    transition: color 0.15s ease-out;
+  }
+
+  .track-album.clickable:hover {
+    color: var(--tune-accent);
+    text-decoration: underline;
+  }
+
   .audio-badge {
     font-family: var(--font-label);
     font-size: 11px;

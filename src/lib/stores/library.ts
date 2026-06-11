@@ -1,7 +1,7 @@
 import { writable, derived } from 'svelte/store';
 import type { Album, Artist, Track } from '../types';
 
-export type LibraryTab = 'albums' | 'artists' | 'tracks' | 'genres';
+export type LibraryTab = 'albums' | 'artists' | 'tracks' | 'genres' | 'years';
 
 export const libraryTab = writable<LibraryTab>('albums');
 export const libraryLoading = writable<boolean>(false);
