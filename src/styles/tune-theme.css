@@ -90,15 +90,10 @@ body {
   height: 100%;
 }
 
-/* Scrollbar */
+/* Scrollbar — Firefox uses scrollbar-width/scrollbar-color,
+   Chrome/Safari use ::-webkit-scrollbar below */
 * {
-  scrollbar-width: auto;
-  scrollbar-color: var(--tune-text-muted) transparent;
-}
-
-/* Scrollbar — visible and wide on all platforms including Windows */
-* {
-  scrollbar-width: auto;
+  scrollbar-width: thin;
   scrollbar-color: var(--tune-text-muted) transparent;
 }
 

@@ -54,6 +54,11 @@ function createPreferences() {
 
 export const preferences = createPreferences();
 
+// Apply theme immediately on module load (before App mounts) to prevent flash.
+// The FOUC script in index.html handles the very first paint, but this ensures
+// the theme is also applied as soon as JS modules are evaluated.
+applyTheme(loadPrefs().theme);
+
 export async function syncPreferencesFromServer() {
   try {
     const res = await fetch('/api/v1/system/config');
@@ -79,6 +84,6 @@ export function applyTheme(theme: ThemeMode) {
   } else {
     document.documentElement.setAttribute('data-theme', theme);
   }
-  // Also persist in tune-theme for FOUC prevention in index.html
+  // Also persist the theme value for external consumers
   try { localStorage.setItem('tune-theme', theme); } catch { /* ignore */ }
 }

@@ -81,7 +81,7 @@ export function browserPlay(streamUrl: string) {
   } catch {
     // keep as-is if not a valid URL
   }
-  if (audio.src !== relativeUrl && currentUrl !== relativeUrl) {
+  if (currentUrl !== relativeUrl) {
     audio.src = relativeUrl;
     browserStreamUrl.set(relativeUrl);
   }
