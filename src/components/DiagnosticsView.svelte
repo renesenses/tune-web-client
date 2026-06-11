@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { onMount, onDestroy, untrack } from 'svelte';
   import * as api from '../lib/api';
   import { zones } from '../lib/stores/zones';
   import { devices } from '../lib/stores/devices';
@@ -7,6 +7,12 @@
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { t } from '../lib/i18n';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus } from '../lib/types';
+
+  // Guard: prevent $state writes after component teardown (async callbacks
+  // that resolve after navigation away could otherwise trigger Svelte
+  // reactivity on a destroyed component, blocking the render loop).
+  let destroyed = false;
+  onDestroy(() => { destroyed = true; });
 
   const CLIENT_VERSION = __APP_VERSION__;
 
@@ -39,10 +45,12 @@
   async function fetchServerVersion() {
     try {
       const res = await fetch('/');
+      if (destroyed) return;
       const data = await res.json();
+      if (destroyed) return;
       serverVersion = data.version ?? null;
     } catch {
-      serverVersion = null;
+      if (!destroyed) serverVersion = null;
     }
   }
 
@@ -53,6 +61,7 @@
         api.getHealth().catch(() => null),
         api.getServerDiagnostics().catch(() => null),
       ]);
+      if (destroyed) return;
       health = h;
       serverDiag = sd;
 
@@ -63,6 +72,7 @@
         api.getDatabaseStatus().catch(() => null),
         api.getStreamingServices().catch(() => ({})),
       ]);
+      if (destroyed) return;
       stats = s;
       config = cfg;
       dbStatus = db;
@@ -75,15 +85,19 @@
   async function refresh() {
     refreshing = true;
     await Promise.all([fetchServerVersion(), loadAll()]);
-    refreshing = false;
+    if (!destroyed) refreshing = false;
   }
 
-  $effect(() => {
-    untrack(() => {
-      loading = true;
-      Promise.all([fetchServerVersion(), loadAll()]).then(() => {
-        loading = false;
-      });
+  // Use onMount (not $effect) to load data exactly once on component
+  // creation.  The previous $effect(() => { untrack(() => { ... }) })
+  // could re-trigger on batch flushes in certain Svelte 5 runtime
+  // versions, flooding the server with API calls and starving the main
+  // thread so sidebar clicks were never processed (same class of bug as
+  // the update-check loop fixed in v0.8.72).
+  onMount(() => {
+    loading = true;
+    Promise.all([fetchServerVersion(), loadAll()]).then(() => {
+      if (!destroyed) loading = false;
     });
   });
 
@@ -185,7 +199,7 @@
     try {
       await navigator.clipboard.writeText(text);
       copied = true;
-      setTimeout(() => { copied = false; }, 2000);
+      setTimeout(() => { if (!destroyed) copied = false; }, 2000);
     } catch (e) {
       console.error('Copy failed:', e);
     }
@@ -203,9 +217,11 @@
     showBugReport = true;
     try {
       const resp = await fetch(`/api/v1/system/bug-report?format=markdown`);
+      if (destroyed) return;
       if (!resp.ok) throw new Error(`${resp.status}`);
       bugReportText = await resp.text();
     } catch (e) {
+      if (destroyed) return;
       bugReportText = 'Erreur lors de la generation du rapport de bug.';
       console.error('Bug report error:', e);
     }
@@ -216,7 +232,7 @@
     try {
       await navigator.clipboard.writeText(bugReportText);
       bugReportCopied = true;
-      setTimeout(() => { bugReportCopied = false; }, 2000);
+      setTimeout(() => { if (!destroyed) bugReportCopied = false; }, 2000);
     } catch (e) {
       console.error('Copy failed:', e);
     }
@@ -298,30 +314,50 @@
   let networkTimer: ReturnType<typeof setInterval> | null = null;
 
   async function fetchNetworkDiag() {
+    if (destroyed) return;
     networkLoading = true;
     try {
-      networkDiag = await api.getNetworkDiagnostics();
+      const result = await api.getNetworkDiagnostics();
+      if (destroyed) return;
+      networkDiag = result;
     } catch {
+      if (destroyed) return;
       networkDiag = null;
     }
     networkLoading = false;
   }
 
-  // Network diagnostics: load on demand, auto-refresh every 60s (was 30s)
+  function clearNetworkTimer() {
+    if (networkTimer) { clearInterval(networkTimer); networkTimer = null; }
+  }
+
+  // Network diagnostics: load on demand, auto-refresh every 60s.
+  // Cleanup guaranteed by both the $effect return AND onDestroy
+  // (belt-and-suspenders against stale timers that could fire after
+  // navigation, setting $state on a dead component).
   let networkExpanded = $state(false);
   $effect(() => {
-    if (!networkExpanded) {
-      if (networkTimer) { clearInterval(networkTimer); networkTimer = null; }
+    // Read the single reactive dependency — everything else must be
+    // untracked to prevent $state writes from creating a feedback loop.
+    const expanded = networkExpanded;
+    if (!expanded) {
+      clearNetworkTimer();
       return;
     }
+    // Start polling — untracked so that $state writes inside
+    // fetchNetworkDiag (networkLoading, networkDiag) don't create
+    // implicit dependencies that would re-trigger this effect.
     untrack(() => {
       fetchNetworkDiag();
       networkTimer = setInterval(fetchNetworkDiag, 60000);
     });
-    return () => {
-      if (networkTimer) { clearInterval(networkTimer); networkTimer = null; }
-    };
+    return () => { clearNetworkTimer(); };
   });
+
+  // Belt-and-suspenders: clear any stale network timer on component
+  // destroy, in case the $effect cleanup doesn't fire (e.g. rapid
+  // navigation before the effect schedules its teardown).
+  onDestroy(() => { clearNetworkTimer(); });
 
   function formatUptimeStr(seconds: number): string {
     const d = Math.floor(seconds / 86400);
