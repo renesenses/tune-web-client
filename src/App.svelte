@@ -322,12 +322,11 @@ import AlarmsView from './components/AlarmsView.svelte';
       activeView.set('nowplaying');
     }
 
-    // Apply saved preferences (theme + language)
-    const unsub = preferences.subscribe((prefs) => {
+    // Apply saved preferences (theme + language) — keep subscribed for server sync
+    preferences.subscribe((prefs) => {
       applyTheme(prefs.theme);
       locale.set(prefs.language ?? 'fr');
     });
-    unsub(); // Read once, theme is applied
 
     syncPreferencesFromServer();
     startUpdatePolling();
