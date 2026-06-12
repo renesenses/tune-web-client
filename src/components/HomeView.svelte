@@ -3,7 +3,7 @@
   import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
   import { libraryTab, selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryLoading } from '../lib/stores/library';
   import { playbackHistory } from '../lib/stores/history';
-  import { currentZone, zones, playAndSync } from '../lib/stores/zones';
+  import { currentZone, currentZoneId, zones, playAndSync } from '../lib/stores/zones';
   import { get } from 'svelte/store';
   import { formatNumber } from '../lib/utils';
   import { t } from '../lib/i18n';
@@ -42,6 +42,11 @@
   // Dashboard
   let dashboard: any = $state(null);
   let dashboardLoaded = $state(false);
+
+  function goToZoneNowPlaying(zoneId: number) {
+    currentZoneId.set(zoneId);
+    activeView.set('nowplaying');
+  }
 
   function greeting(): string {
     const h = new Date().getHours();
@@ -481,7 +486,7 @@
       <h2 class="section-title">En cours d'écoute</h2>
       <div class="now-listening-row">
         {#each nowListening as item}
-          <div class="nl-card">
+          <button class="nl-card" onclick={() => goToZoneNowPlaying(item.zone_id)}>
             <div class="nl-cover">
               <AlbumArt coverPath={item.cover_path} albumId={item.album_id} size={48} alt={item.track_title ?? ''} />
             </div>
@@ -493,7 +498,7 @@
             <span class="nl-playing-indicator">
               <span class="eq-bars"><span></span><span></span><span></span></span>
             </span>
-          </div>
+          </button>
         {/each}
       </div>
     </div>
@@ -1538,6 +1543,16 @@
     flex-shrink: 0;
     min-width: 220px;
     max-width: 320px;
+    cursor: pointer;
+    transition: all 0.15s ease-out;
+    color: var(--tune-text);
+    text-align: left;
+  }
+
+  .nl-card:hover {
+    border-color: var(--tune-accent);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
   }
 
   .nl-cover {

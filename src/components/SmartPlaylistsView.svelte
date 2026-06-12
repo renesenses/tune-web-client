@@ -264,7 +264,7 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="sp-track-row" onclick={() => t.id && playTrack(t.id)}>
               <span class="sp-track-num">{i + 1}</span>
-              <div class="sp-track-art"><AlbumArt coverPath={t.cover_path} size={40} alt={t.title} /></div>
+              <div class="sp-track-art"><AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={40} alt={t.title} /></div>
               <div class="sp-track-info">
                 <span class="sp-track-title truncate">{t.title}</span>
                 <span class="sp-track-artist truncate">{t.artist_name ?? ''}</span>

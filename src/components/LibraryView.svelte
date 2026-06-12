@@ -955,9 +955,12 @@
   }
 
   let artistBio = $derived.by(() => {
-    if (!artistMetadata) return null;
-    if ($locale === 'en' && artistMetadata.bio_en) return artistMetadata.bio_en;
-    return artistMetadata.bio ?? artistMetadata.bio_en ?? null;
+    if (artistMetadata) {
+      if ($locale === 'en' && artistMetadata.bio_en) return artistMetadata.bio_en;
+      if (artistMetadata.bio) return artistMetadata.bio;
+      if (artistMetadata.bio_en) return artistMetadata.bio_en;
+    }
+    return $selectedArtist?.bio ?? null;
   });
 
   function goBack() {
