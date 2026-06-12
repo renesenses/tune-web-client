@@ -508,21 +508,24 @@
   {#if continueListeningLoaded && continueListening.length > 0}
     <div class="top-section">
       <h2 class="section-title">Continuer l'écoute</h2>
-      <div class="recs-carousel">
-        {#each continueListening as item}
-          <div class="rec-card">
-            <button class="rec-cover-btn" type="button" onclick={() => { if (zone?.id && (item.album_id || item.id)) { playAndSync(zone.id, { album_id: item.album_id ?? item.id }); } }}>
-              <AlbumArt coverPath={item.cover_path} albumId={item.album_id ?? item.id} size={140} alt={item.title ?? item.album_title ?? ''} />
-            </button>
-            <button class="rec-title truncate" type="button" onclick={() => item.album_id ? navigateToAlbum(item.album_id) : (item.id ? navigateToAlbum(item.id) : null)}>{item.title ?? item.album_title ?? ''}</button>
-            <button class="rec-artist truncate" type="button" onclick={() => item.artist_name ? navigateArtistByName(item.artist_name) : null}>{item.artist_name ?? ''}</button>
-            {#if item.progress_percent != null}
-              <div class="continue-progress">
-                <div class="continue-progress-bar" style="width: {item.progress_percent}%"></div>
-              </div>
-            {/if}
-          </div>
-        {/each}
+      <div class="carousel-wrapper">
+        <div class="carousel">
+          {#each continueListening as item}
+            <div class="carousel-card">
+              <button class="carousel-cover" type="button" onclick={() => { if (zone?.id && (item.album_id || item.id)) { playAndSync(zone.id, { album_id: item.album_id ?? item.id }); } }}>
+                <AlbumArt coverPath={item.cover_path} albumId={item.album_id ?? item.id} size={160} alt={item.title ?? item.album_title ?? ''} />
+                <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
+              </button>
+              <button class="carousel-title truncate" type="button" onclick={() => item.album_id ? navigateToAlbum(item.album_id) : (item.id ? navigateToAlbum(item.id) : null)}>{item.title ?? item.album_title ?? ''}</button>
+              <button class="carousel-artist truncate" type="button" onclick={() => item.artist_name ? navigateArtistByName(item.artist_name) : null}>{item.artist_name ?? ''}</button>
+              {#if item.progress_percent != null}
+                <div class="continue-progress">
+                  <div class="continue-progress-bar" style="width: {item.progress_percent}%"></div>
+                </div>
+              {/if}
+            </div>
+          {/each}
+        </div>
       </div>
     </div>
   {/if}
