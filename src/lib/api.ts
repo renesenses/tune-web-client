@@ -923,7 +923,13 @@ export function deleteSmartPlaylist(id: number) {
 }
 
 export function getSmartPlaylistTracks(id: number) {
-  return fetchJSON<import('./types').Track[]>(`${BASE}/library/smart-playlists/${id}/tracks`);
+  return fetchJSON<any[]>(`${BASE}/library/smart-playlists/${id}/tracks`).then(tracks =>
+    (tracks ?? []).map(t => {
+      // Server may return cover as "album_cover" instead of "cover_path" — normalise
+      if (!t.cover_path && t.album_cover) t.cover_path = t.album_cover;
+      return t as import('./types').Track;
+    })
+  );
 }
 
 // --- Playlists ---
