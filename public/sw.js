@@ -16,7 +16,7 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  if (e.request.url.includes('/api/') || e.request.url.includes('/ws')) return;
+  if (e.request.url.includes('/api/') || e.request.url.includes('/ws') || e.request.url.includes('/stream/')) return;
   // Network-first: always try the network, fall back to cache offline
   e.respondWith(
     fetch(e.request)
