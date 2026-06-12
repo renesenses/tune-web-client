@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { tuneWS } from '../lib/websocket';
@@ -323,7 +324,9 @@
   });
 
   $effect(() => {
-    api.getGenreTree().then(r => genreTree = r.tree ?? {}).catch(() => {});
+    untrack(() => {
+      api.getGenreTree().then(r => genreTree = r.tree ?? {}).catch(() => {});
+    });
   });
   let formatFilter = $state<string | null>(null);
   let qualityFilter = $state<string | null>(null);
@@ -400,8 +403,10 @@
   $effect(() => {
     const v = $yearFilter;
     if (v !== null) {
-      albumYearFilter = v;
-      yearFilter.set(null); // consume it
+      untrack(() => {
+        albumYearFilter = v;
+        yearFilter.set(null); // consume it
+      });
     }
   });
 
@@ -453,7 +458,7 @@
 
   $effect(() => {
     const _pid = $currentProfileId;
-    if (_pid) loadFavoriteIds();
+    if (_pid) untrack(() => loadFavoriteIds());
   });
 
   // Virtual scroll state (tracks)
@@ -499,13 +504,15 @@
 
   $effect(() => {
     const cols = albumGridMetrics.cols;
-    if (prevAlbumCols > 0 && prevAlbumCols !== cols && albumScrollTop > 0) {
-      // Reset scroll to top when grid columns change (window resize, etc.)
-      // to avoid inconsistent scroll positions
-      albumScrollTop = 0;
-      if (albumGridViewport) albumGridViewport.scrollTop = 0;
-    }
-    prevAlbumCols = cols;
+    untrack(() => {
+      if (prevAlbumCols > 0 && prevAlbumCols !== cols && albumScrollTop > 0) {
+        // Reset scroll to top when grid columns change (window resize, etc.)
+        // to avoid inconsistent scroll positions
+        albumScrollTop = 0;
+        if (albumGridViewport) albumGridViewport.scrollTop = 0;
+      }
+      prevAlbumCols = cols;
+    });
   });
 
   let visibleAlbums = $derived(filteredAlbums.slice(albumGridMetrics.startIdx, albumGridMetrics.endIdx));
@@ -1093,28 +1100,32 @@
   $effect(() => {
     const album = $selectedAlbum;
     const artist = $selectedArtist;
-    const inDetail = album != null || artist != null;
-    const wasInDetail = _prevInDetail;
-    _prevInDetail = inDetail;
-    // Restore scroll when transitioning from detail back to grid (e.g. browser back button)
-    if (wasInDetail && !inDetail && savedAlbumScrollTop > 0 && !restoringScroll) {
-      restoringScroll = true;
-      requestAnimationFrame(() => {
-        albumScrollTop = savedAlbumScrollTop;
-        if (albumGridViewport) albumGridViewport.scrollTop = savedAlbumScrollTop;
-        requestAnimationFrame(() => { restoringScroll = false; });
-      });
-    }
+    untrack(() => {
+      const inDetail = album != null || artist != null;
+      const wasInDetail = _prevInDetail;
+      _prevInDetail = inDetail;
+      // Restore scroll when transitioning from detail back to grid (e.g. browser back button)
+      if (wasInDetail && !inDetail && savedAlbumScrollTop > 0 && !restoringScroll) {
+        restoringScroll = true;
+        requestAnimationFrame(() => {
+          albumScrollTop = savedAlbumScrollTop;
+          if (albumGridViewport) albumGridViewport.scrollTop = savedAlbumScrollTop;
+          requestAnimationFrame(() => { restoringScroll = false; });
+        });
+      }
+    });
   });
 
   // Auto-load on tab switch
   $effect(() => {
     const tab = $libraryTab;
-    if (tab === 'albums' && !albumsLoaded && $albums.length === 0) loadAlbums();
-    if (tab === 'artists' && !artistsLoaded && $artists.length === 0) loadArtists();
-    if (tab === 'tracks' && !tracksLoaded && $tracks.length === 0) loadTracks();
-    if (tab === 'genres' && !albumsLoaded && $albums.length === 0) loadAlbums();
-    if (tab === 'years' && !albumsLoaded && $albums.length === 0) loadAlbums();
+    untrack(() => {
+      if (tab === 'albums' && !albumsLoaded && $albums.length === 0) loadAlbums();
+      if (tab === 'artists' && !artistsLoaded && $artists.length === 0) loadArtists();
+      if (tab === 'tracks' && !tracksLoaded && $tracks.length === 0) loadTracks();
+      if (tab === 'genres' && !albumsLoaded && $albums.length === 0) loadAlbums();
+      if (tab === 'years' && !albumsLoaded && $albums.length === 0) loadAlbums();
+    });
   });
 </script>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import * as api from '../lib/api';
   import { artworkUrl } from '../lib/api';
   import type { Album, Artist, Track } from '../lib/types';
@@ -188,7 +189,7 @@
   }
 
   $effect(() => {
-    loadArtists();
+    untrack(() => loadArtists());
   });
 </script>
 

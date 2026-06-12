@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import * as api from '../lib/api';
   import type { Track, Album, Artist } from '../lib/types';
   import { t } from '../lib/i18n';
@@ -40,13 +41,13 @@
   let filteredArtists = $derived(
     artistSearch.length < 1
       ? artists.slice(0, 30)
-      : artists.filter(a => a.name.toLowerCase().includes(artistSearch.toLowerCase())).slice(0, 30)
+      : artists.filter(a => (a.name ?? '').toLowerCase().includes(artistSearch.toLowerCase())).slice(0, 30)
   );
 
   let filteredAlbums = $derived(
     albumSearch.length < 1
       ? albums.slice(0, 30)
-      : albums.filter(a => a.title.toLowerCase().includes(albumSearch.toLowerCase())).slice(0, 30)
+      : albums.filter(a => (a.title ?? '').toLowerCase().includes(albumSearch.toLowerCase())).slice(0, 30)
   );
 
   function selectArtist(a: Artist) {
@@ -77,7 +78,7 @@
     try {
       // Create new artist if needed
       if (artistSearch && !artistId) {
-        const match = artists.find(a => a.name.toLowerCase() === artistSearch.toLowerCase());
+        const match = artists.find(a => (a.name ?? '').toLowerCase() === artistSearch.toLowerCase());
         if (match) {
           artistId = match.id;
         } else {
@@ -117,7 +118,7 @@
   }
 
   $effect(() => {
-    loadData();
+    untrack(() => loadData());
   });
 </script>
 
@@ -154,7 +155,7 @@
                 {/each}
               </div>
             {/if}
-            {#if artistSearch && !artists.some(a => a.name.toLowerCase() === artistSearch.toLowerCase())}
+            {#if artistSearch && !artists.some(a => (a.name ?? '').toLowerCase() === artistSearch.toLowerCase())}
               <span class="create-hint">Nouvel artiste : "{artistSearch}"</span>
             {/if}
           </div>
@@ -169,7 +170,7 @@
                 {/each}
               </div>
             {/if}
-            {#if albumSearch && !albums.some(a => a.title.toLowerCase() === albumSearch.toLowerCase())}
+            {#if albumSearch && !albums.some(a => (a.title ?? '').toLowerCase() === albumSearch.toLowerCase())}
               <span class="create-hint">Nouvel album : "{albumSearch}"</span>
             {/if}
           </label>

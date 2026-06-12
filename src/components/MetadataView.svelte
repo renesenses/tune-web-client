@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import * as api from '../lib/api';
   import { artworkUrl } from '../lib/api';
   import type { Album, Artist, Track, CompletenessStats, BackupInfo } from '../lib/types';
@@ -1267,8 +1268,10 @@
   }
 
   $effect(() => {
-    loadData();
-    loadBackups();
+    untrack(() => {
+      loadData();
+      loadBackups();
+    });
   });
 
   async function validateDoubtful(album: import('../lib/api').DoubtfulAlbum) {
@@ -1373,21 +1376,27 @@
   };
 
   $effect(() => {
-    if (filter === 'no_artist') {
-      loadTracksWithoutArtist();
-    }
-    if (filter === 'unknown' && unknownAlbums.length > 0) {
-      loadUnknownTracks();
-    }
-    if (filter === 'duplicates') {
-      loadDupPaths();
-    }
-    if (filter === 'doubtful') {
-      loadDoubtful();
-    }
-    // Clear batch selection when changing filters
-    batchSelectedIds = new Set();
-    batchMessage = null;
+    // Read reactive deps (filter, unknownAlbums) to track changes
+    const f = filter;
+    const uaLen = unknownAlbums.length;
+    // Wrap async calls + state writes in untrack to prevent re-render loops
+    untrack(() => {
+      if (f === 'no_artist') {
+        loadTracksWithoutArtist();
+      }
+      if (f === 'unknown' && uaLen > 0) {
+        loadUnknownTracks();
+      }
+      if (f === 'duplicates') {
+        loadDupPaths();
+      }
+      if (f === 'doubtful') {
+        loadDoubtful();
+      }
+      // Clear batch selection when changing filters
+      batchSelectedIds = new Set();
+      batchMessage = null;
+    });
   });
 </script>
 

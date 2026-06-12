@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import * as api from '../lib/api';
   import type { TrackAllTags } from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
@@ -80,7 +81,7 @@
     if (e.key === 'Escape') onClose();
   }
 
-  $effect(() => { load(); });
+  $effect(() => { untrack(() => load()); });
 
   // Group DB fields for nicer rendering: Identification / Classique / Audio / Système.
   const FIELD_GROUPS: Record<string, string[]> = {
