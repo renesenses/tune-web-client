@@ -660,19 +660,17 @@
       <h2 class="section-title">{$t('home.topTracks')}</h2>
       <div class="top-tracks-list">
         {#each topTracks as track, i}
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="top-track-row" onclick={() => playTopTrack(track)}>
+          <div class="top-track-row">
             <span class="track-rank">{i + 1}</span>
-            <div class="top-track-art">
-              <AlbumArt coverPath={track.cover_path} albumId={track.track_id} size={44} alt={track.title} />
-            </div>
-            <div class="top-track-info">
+            <button class="top-track-play-zone" type="button" onclick={() => playTopTrack(track)}>
+              <div class="top-track-art">
+                <AlbumArt coverPath={track.cover_path} albumId={track.track_id} size={44} alt={track.title} />
+              </div>
               <span class="top-track-title truncate">{track.title}</span>
-              {#if track.artist_name}
-                <span class="top-track-artist truncate">{track.artist_name}</span>
-              {/if}
-            </div>
+            </button>
+            {#if track.artist_name}
+              <button class="top-track-artist-btn truncate" type="button" onclick={() => navigateArtistByName(track.artist_name)}>{track.artist_name}</button>
+            {/if}
             <span class="play-count-badge">{track.plays}</span>
           </div>
         {/each}
@@ -1195,12 +1193,22 @@
     flex-shrink: 0;
   }
 
-  .top-track-info {
+  .top-track-play-zone {
     display: flex;
-    flex-direction: column;
-    gap: 1px;
+    align-items: center;
+    gap: var(--space-md);
     min-width: 0;
     flex: 1;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+  }
+
+  .top-track-play-zone:hover .top-track-title {
+    color: var(--tune-accent);
   }
 
   .top-track-title {
@@ -1208,12 +1216,22 @@
     font-size: 13px;
     font-weight: 600;
     color: var(--tune-text);
+    transition: color 0.12s;
   }
 
-  .top-track-artist {
+  .top-track-artist-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-secondary);
+    transition: color 0.12s;
+  }
+
+  .top-track-artist-btn:hover {
+    color: var(--tune-accent);
   }
 
   @media (max-width: 768px) {
