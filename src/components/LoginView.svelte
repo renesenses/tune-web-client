@@ -91,6 +91,7 @@
   }
 
   function handleSSO() {
+    try { sessionStorage.setItem('tune_sso_pending', '1'); } catch {}
     window.location.href = `${BASE}/cloud/sso/authorize`;
   }
 </script>

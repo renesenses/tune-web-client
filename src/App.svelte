@@ -334,10 +334,26 @@ import AlarmsView from './components/AlarmsView.svelte';
 
     // Apply startup view (skip in kiosk mode — always nowplaying)
     if (!isKiosk) {
-      let prefs: { startupView?: string; defaultZoneId?: number | null } = {};
-      preferences.subscribe((p) => (prefs = p))();
-      if (prefs.startupView) {
-        activeView.set(prefs.startupView as any);
+      // After SSO OAuth redirect, the server sends the browser back to "/".
+      // Detect the pending flag and navigate straight to Settings so the
+      // SettingsView component re-runs loadCloudStatus() and shows the
+      // newly-connected state.
+      let ssoPending = false;
+      try {
+        if (sessionStorage.getItem('tune_sso_pending')) {
+          sessionStorage.removeItem('tune_sso_pending');
+          ssoPending = true;
+        }
+      } catch {}
+
+      if (ssoPending) {
+        activeView.set('settings');
+      } else {
+        let prefs: { startupView?: string; defaultZoneId?: number | null } = {};
+        preferences.subscribe((p) => (prefs = p))();
+        if (prefs.startupView) {
+          activeView.set(prefs.startupView as any);
+        }
       }
     }
 

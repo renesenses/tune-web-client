@@ -83,7 +83,10 @@
         cloudSsoName = null;
         cloudSsoAvatar = null;
       }
-    } catch { cloudSsoEmail = null; }
+    } catch (e) {
+      console.warn('loadCloudStatus failed:', e);
+      cloudSsoEmail = null;
+    }
     cloudSsoLoading = false;
 
     try {
@@ -94,6 +97,9 @@
   }
 
   function cloudSsoConnect() {
+    // Store a flag so the app knows to navigate back to Settings after
+    // the OAuth redirect (the server redirects to "/" with no indicator).
+    try { sessionStorage.setItem('tune_sso_pending', '1'); } catch {}
     window.location.href = '/api/v1/cloud/sso/authorize';
   }
 
