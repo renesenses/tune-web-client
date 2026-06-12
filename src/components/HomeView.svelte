@@ -326,10 +326,20 @@
   async function playTopTrack(track: TopTrack) {
     if (!zone?.id) return;
     try {
-      const results = await api.searchLibrary(`${track.track_title} ${track.artist_name ?? ''}`, 5);
-      const match = results.tracks?.find((t: Track) => t.title === track.track_title);
-      if (match?.id) {
-        await playAndSync(zone.id, { track_id: match.id });
+      if (track.track_id && (!track.source || track.source === 'local')) {
+        await playAndSync(zone.id, { track_id: track.track_id });
+      } else if (track.source && track.source !== 'local') {
+        const results = await api.searchStreaming(track.source as Source, `${track.title} ${track.artist_name ?? ''}`, 5);
+        const match = results.tracks?.find((t: any) => t.title === track.title);
+        if (match?.source_id) {
+          await playAndSync(zone.id, { source: track.source as Source, source_id: match.source_id });
+        }
+      } else {
+        const results = await api.searchLibrary(`${track.title} ${track.artist_name ?? ''}`, 5);
+        const match = results.tracks?.find((t: Track) => t.title === track.title);
+        if (match?.id) {
+          await playAndSync(zone.id, { track_id: match.id });
+        }
       }
     } catch (e) {
       console.error('Play top track error:', e);
@@ -660,15 +670,15 @@
           <div class="top-track-row" onclick={() => playTopTrack(track)}>
             <span class="track-rank">{i + 1}</span>
             <div class="top-track-art">
-              <AlbumArt coverPath={track.cover_path} size={44} alt={track.track_title} />
+              <AlbumArt coverPath={track.cover_path} size={44} alt={track.title} />
             </div>
             <div class="top-track-info">
-              <span class="top-track-title truncate">{track.track_title}</span>
+              <span class="top-track-title truncate">{track.title}</span>
               {#if track.artist_name}
                 <span class="top-track-artist truncate">{track.artist_name}</span>
               {/if}
             </div>
-            <span class="play-count-badge">{track.play_count}</span>
+            <span class="play-count-badge">{track.plays}</span>
           </div>
         {/each}
       </div>

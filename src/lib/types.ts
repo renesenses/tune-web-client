@@ -516,12 +516,13 @@ export interface HistoryEntry {
 }
 
 export interface TopTrack {
-  track_title: string;
+  title: string;
   artist_name: string | null;
   album_title: string | null;
   cover_path: string | null;
-  play_count: number;
-  last_played: string;
+  track_id: number | null;
+  source: string | null;
+  plays: number;
 }
 
 export interface TopArtist {
