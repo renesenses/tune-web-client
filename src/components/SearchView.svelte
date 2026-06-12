@@ -4,8 +4,9 @@
   import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading } from '../lib/stores/library';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
-  import { formatTime, formatAudioBadge } from '../lib/utils';
+  import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
+  import QualityBadge from './QualityBadge.svelte';
   import type { FederatedSearchResult, Track, Album, Artist, Playlist, StreamingPlaylist, Source } from '../lib/types';
   import { t } from '../lib/i18n';
 
@@ -339,7 +340,7 @@
                       <span class="track-title truncate">{t.title}</span>
                       <span class="track-artist truncate">{t.artist_name ?? ''}{t.album_title ? ` - ${t.album_title}` : ''}</span>
                     </div>
-                    {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
+                    <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
                     <span class="track-duration">{formatTime(t.duration_ms)}</span>
                   </button>
                   {#if onAddToPlaylist && (t.id || t.source_id)}

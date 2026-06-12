@@ -338,6 +338,9 @@ import AlarmsView from './components/AlarmsView.svelte';
       // Detect the pending flag and navigate straight to Settings so the
       // SettingsView component re-runs loadCloudStatus() and shows the
       // newly-connected state.
+      //
+      // Check both sessionStorage (original mechanism) and localStorage
+      // (more reliable across cross-origin redirect chains in Safari/mobile).
       let ssoPending = false;
       try {
         if (sessionStorage.getItem('tune_sso_pending')) {
@@ -345,6 +348,19 @@ import AlarmsView from './components/AlarmsView.svelte';
           ssoPending = true;
         }
       } catch {}
+      if (!ssoPending) {
+        try {
+          const ts = localStorage.getItem('tune_sso_pending');
+          if (ts) {
+            const elapsed = Date.now() - Number(ts);
+            // Only honour if set less than 2 minutes ago
+            if (elapsed >= 0 && elapsed < 120_000) {
+              ssoPending = true;
+            }
+            // Don't remove here — SettingsView will consume it for its retry
+          }
+        } catch {}
+      }
 
       if (ssoPending) {
         activeView.set('settings');
@@ -448,6 +464,16 @@ import AlarmsView from './components/AlarmsView.svelte';
       // Polling bulk zone update — replace all zones at once
       if (type === 'zone.updated' && event.data?.zones && Array.isArray(event.data.zones)) {
         const zoneList = event.data.zones;
+        // Flatten nested quality sub-object on current_track (streaming sources)
+        for (const z of zoneList) {
+          if (z.current_track?.quality && typeof z.current_track.quality === 'object') {
+            const q = z.current_track.quality;
+            if (q.codec && !z.current_track.format)       z.current_track.format = q.codec.toLowerCase();
+            if (q.sample_rate && !z.current_track.sample_rate) z.current_track.sample_rate = q.sample_rate;
+            if (q.bit_depth && !z.current_track.bit_depth)     z.current_track.bit_depth = q.bit_depth;
+            if (q.channels && !z.current_track.channels)       z.current_track.channels = q.channels;
+          }
+        }
         zones.set(zoneList);
         // Update seek position for current zone — apply drift filter so the
         // server-polled position doesn't fight with the local interpolation

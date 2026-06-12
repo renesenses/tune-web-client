@@ -143,11 +143,11 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
 // --- Zones ---
 
 export function getZones() {
-  return fetchJSON<Zone[]>(`${BASE}/zones`);
+  return fetchJSON<Zone[]>(`${BASE}/zones`).then(zs => zs.map(mapZoneQuality));
 }
 
 export function getZone(id: number) {
-  return fetchJSON<Zone>(`${BASE}/zones/${id}`);
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`).then(mapZoneQuality);
 }
 
 export function createZone(name: string, outputType: OutputType = 'local', outputDeviceId?: string) {
@@ -376,27 +376,27 @@ export function play(zoneId: number, body?: { track_id?: number; track_ids?: num
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
-  });
+  }).then(mapZoneQuality);
 }
 
 export function pause(zoneId: number) {
-  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/pause`, { method: 'POST' });
+  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/pause`, { method: 'POST' }).then(mapZoneQuality);
 }
 
 export function resume(zoneId: number) {
-  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/resume`, { method: 'POST' });
+  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/resume`, { method: 'POST' }).then(mapZoneQuality);
 }
 
 export function stop(zoneId: number) {
-  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/stop`, { method: 'POST' });
+  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/stop`, { method: 'POST' }).then(mapZoneQuality);
 }
 
 export function next(zoneId: number) {
-  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/next`, { method: 'POST' });
+  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/next`, { method: 'POST' }).then(mapZoneQuality);
 }
 
 export function previous(zoneId: number) {
-  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/previous`, { method: 'POST' });
+  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/previous`, { method: 'POST' }).then(mapZoneQuality);
 }
 
 export function seek(zoneId: number, positionMs: number) {
@@ -976,6 +976,39 @@ export function reorderPlaylistTracks(playlistId: number, trackIds: number[]) {
   });
 }
 
+// --- Streaming quality mapping ---
+
+/** Map a streaming track's nested `quality` sub-object to flat Track fields.
+ *  The server sends `quality: {codec, sample_rate, bit_depth, channels, bitrate}`
+ *  on streaming tracks; we flatten these so existing Track consumers work. */
+function mapStreamingQuality(track: any): Track {
+  if (track && track.quality && typeof track.quality === 'object') {
+    const q = track.quality;
+    if (q.codec && !track.format)       track.format = q.codec.toLowerCase();
+    if (q.sample_rate && !track.sample_rate) track.sample_rate = q.sample_rate;
+    if (q.bit_depth && !track.bit_depth)     track.bit_depth = q.bit_depth;
+    if (q.channels && !track.channels)       track.channels = q.channels;
+  }
+  return track as Track;
+}
+
+function mapStreamingTracks(tracks: any[]): Track[] {
+  return (tracks ?? []).map(mapStreamingQuality);
+}
+
+function mapStreamingSearchResult(result: SearchResult): SearchResult {
+  return {
+    ...result,
+    tracks: mapStreamingTracks(result.tracks),
+  };
+}
+
+/** Map quality on a zone's current_track if present */
+function mapZoneQuality(zone: any): Zone {
+  if (zone?.current_track) mapStreamingQuality(zone.current_track);
+  return zone as Zone;
+}
+
 // --- Search ---
 
 export function federatedSearch(q: string, sources?: string[], limit = 20) {
@@ -983,7 +1016,16 @@ export function federatedSearch(q: string, sources?: string[], limit = 20) {
   if (sources && sources.length > 0) {
     url += `&sources=${sources.join(',')}`;
   }
-  return fetchJSON<FederatedSearchResult>(url);
+  return fetchJSON<FederatedSearchResult>(url).then(result => {
+    // Map quality sub-objects on streaming tracks in federated results
+    if (result.local) result.local.tracks = mapStreamingTracks(result.local.tracks);
+    if (result.services) {
+      for (const key of Object.keys(result.services)) {
+        result.services[key].tracks = mapStreamingTracks(result.services[key].tracks);
+      }
+    }
+    return result;
+  });
 }
 
 // --- System ---
@@ -1186,7 +1228,8 @@ export function triggerEnrich() {
 // --- Streaming ---
 
 export function searchStreaming(service: string, q: string, limit = 50) {
-  return fetchJSON<SearchResult>(`${BASE}/streaming/${encodeURIComponent(service)}/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+  return fetchJSON<SearchResult>(`${BASE}/streaming/${encodeURIComponent(service)}/search?q=${encodeURIComponent(q)}&limit=${limit}`)
+    .then(mapStreamingSearchResult);
 }
 
 export function getStreamingAlbum(service: string, albumId: string) {
@@ -1194,7 +1237,8 @@ export function getStreamingAlbum(service: string, albumId: string) {
 }
 
 export function getStreamingAlbumTracks(service: string, albumId: string) {
-  return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}/tracks`);
+  return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}/tracks`)
+    .then(mapStreamingTracks);
 }
 
 export function getStreamingArtist(service: string, artistId: string) {
@@ -1235,7 +1279,14 @@ export function getStreamingPlaylists(service: string) {
 }
 
 export function getStreamingFavorites(service: string, type: 'tracks' | 'albums' | 'artists') {
-  return fetchJSON<Record<string, any[]>>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}`);
+  return fetchJSON<Record<string, any[]>>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}`)
+    .then(data => {
+      // Map quality sub-object on favorite tracks
+      if (type === 'tracks' && data?.tracks) {
+        data.tracks = mapStreamingTracks(data.tracks);
+      }
+      return data;
+    });
 }
 
 export function addStreamingFavorite(service: string, type: 'tracks' | 'albums' | 'artists', itemId: string) {
@@ -1267,7 +1318,8 @@ export function matchTrack(title: string, artistName: string, services?: string[
 }
 
 export function getStreamingPlaylistTracks(service: string, playlistId: string) {
-  return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(playlistId)}/tracks`);
+  return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(playlistId)}/tracks`)
+    .then(mapStreamingTracks);
 }
 
 // --- YouTube Music browse (ytmusicapi) ---

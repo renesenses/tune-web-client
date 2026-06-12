@@ -99,6 +99,11 @@
   function cloudSsoConnect() {
     // Store a flag so the app knows to navigate back to Settings after
     // the OAuth redirect (the server redirects to "/" with no indicator).
+    // Use localStorage with a timestamp — sessionStorage is unreliable across
+    // cross-origin redirect chains (Safari ITP, mobile browsers).
+    try {
+      localStorage.setItem('tune_sso_pending', Date.now().toString());
+    } catch {}
     try { sessionStorage.setItem('tune_sso_pending', '1'); } catch {}
     window.location.href = '/api/v1/cloud/sso/authorize';
   }
@@ -116,6 +121,25 @@
   }
 
   loadCloudStatus();
+
+  // After an SSO redirect the server may still be finalising the token exchange
+  // when the SPA loads.  Detect a recent SSO attempt (localStorage flag set by
+  // cloudSsoConnect) and re-fetch once more after a short delay so the UI
+  // reflects the newly-connected state even if the first call raced.
+  try {
+    const pending = localStorage.getItem('tune_sso_pending');
+    if (pending) {
+      const elapsed = Date.now() - Number(pending);
+      // Only honour the flag if it was set less than 2 minutes ago
+      if (elapsed >= 0 && elapsed < 120_000) {
+        localStorage.removeItem('tune_sso_pending');
+        setTimeout(() => loadCloudStatus(), 1500);
+      } else {
+        // Stale flag — clean up
+        localStorage.removeItem('tune_sso_pending');
+      }
+    }
+  } catch {}
 
   // Scan schedule
   let scanScheduleEnabled = $state(false);
