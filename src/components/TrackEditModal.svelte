@@ -206,8 +206,8 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-cancel" onclick={onClose}>{$t('common.cancel')}</button>
-        <button class="btn-save" onclick={saveTrack} disabled={saving}>
+        <button type="button" class="btn-cancel" onclick={onClose}>{$t('common.cancel')}</button>
+        <button type="button" class="btn-save" onclick={saveTrack} disabled={saving}>
           {#if saving}
             <div class="spinner small"></div>
           {:else}
