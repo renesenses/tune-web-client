@@ -1429,7 +1429,19 @@
 
       <!-- Bio -->
       {#if artistBio}
-        <blockquote class="artist-bio">{artistBio}</blockquote>
+        {@const maxLen = 1500}
+        {@const truncated = artistBio.length > maxLen}
+        {@const displayBio = truncated && !openSections['bio'] ? artistBio.slice(0, maxLen).replace(/\n[^\n]*$/, '') + '…' : artistBio}
+        <blockquote class="artist-bio">
+          {#each displayBio.split('\n').filter(p => p.trim()) as paragraph}
+            <p>{paragraph}</p>
+          {/each}
+        </blockquote>
+        {#if truncated}
+          <button class="bio-toggle-btn" onclick={() => toggleSection('bio')}>
+            {openSections['bio'] ? '▲ Réduire' : '▼ Lire la suite'}
+          </button>
+        {/if}
       {/if}
 
       <!-- Collapsible sections -->

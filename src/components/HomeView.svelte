@@ -510,7 +510,7 @@
       <h2 class="section-title">Continuer l'écoute</h2>
       <div class="recs-carousel">
         {#each continueListening as item}
-          <button class="rec-card" onclick={() => item.album_id ? navigateToAlbum(item.album_id) : (item.id ? navigateToAlbum(item.id) : null)}>
+          <button class="rec-card" onclick={() => { if (zone?.id && (item.album_id || item.id)) { playAndSync(zone.id, { album_id: item.album_id ?? item.id }); } }} ondblclick={() => item.album_id ? navigateToAlbum(item.album_id) : (item.id ? navigateToAlbum(item.id) : null)}>
             <AlbumArt coverPath={item.cover_path} albumId={item.album_id ?? item.id} size={140} alt={item.title ?? item.album_title ?? ''} />
             <span class="rec-title truncate">{item.title ?? item.album_title ?? ''}</span>
             <span class="rec-artist truncate">{item.artist_name ?? ''}</span>
