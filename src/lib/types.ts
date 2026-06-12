@@ -526,9 +526,10 @@ export interface TopTrack {
 }
 
 export interface TopArtist {
-  artist_name: string;
-  play_count: number;
-  last_played: string;
+  name: string;
+  artist_name?: string;
+  plays: number;
+  play_count?: number;
 }
 
 export interface ArtistMetadata {
