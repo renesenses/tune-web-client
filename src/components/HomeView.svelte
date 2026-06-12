@@ -16,8 +16,19 @@
   let stats: { tracks: number; albums: number; artists: number } | null = $state(null);
 
   // Now Listening across zones
-  let nowListening: any[] = $state([]);
-  let nowListeningLoaded = $state(false);
+  let nowListeningLoaded = $state(true);
+  let nowListening = $derived(
+    ($zones as any[])
+      .filter((z: any) => z.state === 'playing' && z.now_playing)
+      .map((z: any) => ({
+        zone_id: z.id,
+        zone_name: z.name,
+        track_title: z.now_playing?.title ?? '',
+        artist_name: z.now_playing?.artist_name ?? '',
+        cover_path: z.now_playing?.cover_path ?? null,
+        album_id: z.now_playing?.album_id ?? null,
+      }))
+  );
   let recentAlbums: Album[] = $state([]);
   let recentTab = $state<'played' | 'added'>('played');
   let searchQuery = $state('');
@@ -357,29 +368,6 @@
     }
   }
 
-  async function loadNowListening() {
-    try {
-      const raw = await api.getNowListening();
-      const zoneList = get(zones);
-      nowListening = raw.map((item: any) => {
-          const np = item.now_playing ?? {};
-          const z = zoneList.find((z: any) => z.id === item.zone_id);
-          const recovering = !np.track_id && (!np.title || np.title === 'Recovering...');
-          return {
-            ...item,
-            zone_name: z?.name ?? `Zone ${item.zone_id}`,
-            track_title: recovering ? '' : (np.title ?? item.track_title ?? ''),
-            artist_name: recovering ? '' : (np.artist_name ?? item.artist_name ?? ''),
-            cover_path: recovering ? null : (np.cover_path ?? item.cover_path ?? null),
-            album_id: recovering ? null : (np.album_id ?? item.album_id ?? null),
-          };
-        });
-      nowListeningLoaded = true;
-    } catch (e) {
-      console.error('Load now listening error:', e);
-      nowListeningLoaded = true;
-    }
-  }
 
   async function loadContinueListening() {
     try {
@@ -479,7 +467,6 @@
     loadTopTracks();
     loadRecommendations();
     loadDashboard();
-    loadNowListening();
     loadContinueListening();
     loadTopMixes();
     loadRadioPicks();
