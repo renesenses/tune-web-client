@@ -2483,8 +2483,8 @@ export function getHomePage() {
   return fetchJSON<{ sections: any[] }>(`${BASE}/home`);
 }
 
-export function getContinueListening() {
-  return fetchJSON<any[]>(`${BASE}/home/continue-listening`);
+export function getContinueListening(limit = 20) {
+  return fetchJSON<any[]>(`${BASE}/home/continue-listening?limit=${limit}`);
 }
 
 export function getRecentlyAdded() {

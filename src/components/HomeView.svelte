@@ -665,7 +665,7 @@
           <div class="top-track-row" onclick={() => playTopTrack(track)}>
             <span class="track-rank">{i + 1}</span>
             <div class="top-track-art">
-              <AlbumArt coverPath={track.cover_path} size={44} alt={track.title} />
+              <AlbumArt coverPath={track.cover_path} albumId={track.track_id} size={44} alt={track.title} />
             </div>
             <div class="top-track-info">
               <span class="top-track-title truncate">{track.title}</span>
