@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
   import { libraryTab, selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryLoading } from '../lib/stores/library';
   import { playbackHistory } from '../lib/stores/history';
@@ -453,7 +454,10 @@
     }
   }
 
-  $effect(() => {
+  // Use onMount (not $effect) to load data exactly once on component
+  // creation.  $effect can re-trigger on batch flushes in certain
+  // Svelte 5 runtime versions, flooding the server with API calls.
+  onMount(() => {
     loadStats();
     loadRecentAlbums();
     loadTopArtists();

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { audioLevels, type AudioLevels } from '../lib/stores/audioLevels';
 
   interface Props {
     playing: boolean;
@@ -37,6 +38,15 @@
   const TARGET_INTERVAL = 120; // ms between new random targets (~8 Hz)
   const FRAME_INTERVAL = 33;  // ~30 fps
 
+  let realLevels: AudioLevels | null = $state(null);
+  let lastRealUpdate = 0;
+  const unsub = audioLevels.subscribe((l) => {
+    if (l.rms_left_db > -90 || l.rms_right_db > -90) {
+      realLevels = l;
+      lastRealUpdate = performance.now();
+    }
+  });
+
   // Cache accent color (avoid getComputedStyle per frame)
   let cachedAccent = '#6B6ED9';
   let accentCacheTime = 0;
@@ -62,32 +72,63 @@
     return { bass, mid, treble, speed };
   }
 
+  function dbToLinear(db: number): number {
+    return Math.max(0, Math.min(1, Math.pow(10, db / 20)));
+  }
+
   function generateTargets() {
     const profile = getEnergyProfile();
+    const useReal = realLevels && (performance.now() - lastRealUpdate < 500);
 
     if (mode === 'spectrum') {
-      for (let i = 0; i < barCount; i++) {
-        const pos = i / barCount;
-        let energy: number;
-        if (pos < 0.25) {
-          energy = profile.bass * (0.5 + Math.random() * 0.5);
-        } else if (pos < 0.6) {
-          energy = profile.mid * (0.4 + Math.random() * 0.6);
-        } else {
-          energy = profile.treble * (0.3 + Math.random() * 0.5) * (1 - (pos - 0.6) * 0.8);
+      if (useReal) {
+        const left = dbToLinear(realLevels!.rms_left_db);
+        const right = dbToLinear(realLevels!.rms_right_db);
+        const avg = (left + right) / 2;
+        for (let i = 0; i < barCount; i++) {
+          const pos = i / barCount;
+          const side = pos < 0.5 ? left : right;
+          const base = side * (0.6 + avg * 0.4);
+          const variation = 0.85 + Math.random() * 0.3;
+          const rolloff = pos < 0.25 ? 1.0 : pos < 0.6 ? 0.9 : 0.7 * (1 - (pos - 0.6));
+          barTargets[i] = Math.min(1, Math.max(0.02, base * variation * rolloff));
         }
-        if (Math.random() < 0.15) energy *= 1.3;
-        barTargets[i] = Math.min(1, Math.max(0.02, energy));
+      } else {
+        for (let i = 0; i < barCount; i++) {
+          const pos = i / barCount;
+          let energy: number;
+          if (pos < 0.25) {
+            energy = profile.bass * (0.5 + Math.random() * 0.5);
+          } else if (pos < 0.6) {
+            energy = profile.mid * (0.4 + Math.random() * 0.6);
+          } else {
+            energy = profile.treble * (0.3 + Math.random() * 0.5) * (1 - (pos - 0.6) * 0.8);
+          }
+          if (Math.random() < 0.15) energy *= 1.3;
+          barTargets[i] = Math.min(1, Math.max(0.02, energy));
+        }
       }
     } else {
-      const phase = performance.now() * 0.001 * profile.speed;
-      for (let i = 0; i < WAVE_POINTS; i++) {
-        const x = i / WAVE_POINTS;
-        waveTargets[i] =
-          Math.sin(x * Math.PI * 4 + phase) * profile.bass * 0.4 +
-          Math.sin(x * Math.PI * 8 + phase * 1.7) * profile.mid * 0.25 +
-          Math.sin(x * Math.PI * 16 + phase * 2.3) * profile.treble * 0.15 +
-          (Math.random() - 0.5) * 0.08;
+      if (useReal) {
+        const left = dbToLinear(realLevels!.rms_left_db);
+        const right = dbToLinear(realLevels!.rms_right_db);
+        const phase = performance.now() * 0.001;
+        for (let i = 0; i < WAVE_POINTS; i++) {
+          const x = i / WAVE_POINTS;
+          const side = x < 0.5 ? left : right;
+          waveTargets[i] = side * Math.sin(x * Math.PI * 4 + phase) * 0.8
+            + (Math.random() - 0.5) * side * 0.15;
+        }
+      } else {
+        const phase = performance.now() * 0.001 * profile.speed;
+        for (let i = 0; i < WAVE_POINTS; i++) {
+          const x = i / WAVE_POINTS;
+          waveTargets[i] =
+            Math.sin(x * Math.PI * 4 + phase) * profile.bass * 0.4 +
+            Math.sin(x * Math.PI * 8 + phase * 1.7) * profile.mid * 0.25 +
+            Math.sin(x * Math.PI * 16 + phase * 2.3) * profile.treble * 0.15 +
+            (Math.random() - 0.5) * 0.08;
+        }
       }
     }
   }
@@ -324,7 +365,7 @@
   onMount(() => {
     const observer = new ResizeObserver(() => resizeCanvas());
     if (canvas) observer.observe(canvas);
-    return () => observer.disconnect();
+    return () => { observer.disconnect(); unsub(); };
   });
 </script>
 

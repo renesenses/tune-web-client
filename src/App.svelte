@@ -14,6 +14,7 @@
   import { locale } from './lib/i18n';
   import { setupKeyboardShortcuts } from './lib/keyboard';
   import { playbackHistory } from './lib/stores/history';
+  import { handleAudioLevelsEvent } from './lib/stores/audioLevels';
   import { startUpdatePolling, stopUpdatePolling, updateAvailable, latestVersion, currentVersion, updateBannerDismissed, dismissUpdateBanner } from './lib/stores/updates';
   import { ytPlayerState, ytLoading, playVideo, pauseVideo, resumeVideo, stopVideo, clearYTLoading } from './lib/stores/ytPlayer';
   import { get } from 'svelte/store';
@@ -460,6 +461,11 @@ import AlarmsView from './components/AlarmsView.svelte';
         if (d?.tracks) queueTracks.set(d.tracks);
         if (d?.position !== undefined) queuePosition.set(d.position);
         if (d?.length !== undefined) queueLength.set(d.length);
+        return;
+      }
+
+      if (type === 'playback.audio_levels') {
+        handleAudioLevelsEvent(event.data);
         return;
       }
 

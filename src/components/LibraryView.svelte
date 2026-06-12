@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { tuneWS } from '../lib/websocket';
@@ -323,10 +323,10 @@
     return orphanGenres.filter(g => g.name.toLowerCase().includes(genreSearchQuery));
   });
 
-  $effect(() => {
-    untrack(() => {
-      api.getGenreTree().then(r => genreTree = r.tree ?? {}).catch(() => {});
-    });
+  // Use onMount (not $effect) — the $effect(() => { untrack(...) }) pattern
+  // can re-trigger on batch flushes in certain Svelte 5 runtime versions.
+  onMount(() => {
+    api.getGenreTree().then(r => genreTree = r.tree ?? {}).catch(() => {});
   });
   let formatFilter = $state<string | null>(null);
   let qualityFilter = $state<string | null>(null);

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { zones, currentZoneId } from '../lib/stores/zones';
   import { devices, unboundDevices } from '../lib/stores/devices';
   import { connectionState, reconnectAttempts } from '../lib/stores/connection';
@@ -20,19 +20,22 @@
 
   // Display the server version (single source of truth) — falls back to
   // the client build version (__APP_VERSION__) until the API responds.
+  //
+  // Use onMount (not $effect) to fetch exactly once.  The previous
+  // $effect(() => { untrack(() => { ... }) }) pattern can re-trigger
+  // on batch flushes in certain Svelte 5 runtime versions, creating an
+  // infinite API-call loop that starves the main thread and blocks
+  // sidebar click events (same class of bug fixed in DiagnosticsView).
   let serverVersion = $state<string | null>(null);
-  $effect(() => {
-    untrack(() => {
-      api.checkForUpdate()
-        .then((r) => { if (r?.current_version) serverVersion = r.current_version; })
-        .catch(() => { /* keep fallback */ });
-    });
+  let sidebarDestroyed = false;
+  onMount(() => {
+    api.checkForUpdate()
+      .then((r) => { if (!sidebarDestroyed && r?.current_version) serverVersion = r.current_version; })
+      .catch(() => { /* keep fallback */ });
   });
 
   // Health monitor status (shared store, also updated by App.svelte on WS events)
   import { healthStatus } from '../lib/stores/health';
-  import { onDestroy } from 'svelte';
-
   // Poll health status every 60s
   let healthInterval: ReturnType<typeof setInterval> | null = null;
   function fetchHealthStatus() {
@@ -44,6 +47,7 @@
   healthInterval = setInterval(fetchHealthStatus, 60_000);
 
   onDestroy(() => {
+    sidebarDestroyed = true;
     if (healthInterval) clearInterval(healthInterval);
   });
 

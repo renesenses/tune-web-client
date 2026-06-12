@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
   import { tuneWS } from '../lib/websocket';
@@ -1212,18 +1212,26 @@
     if (pushEnabled) initPushNotifications();
   }
 
+  // Use onMount (not $effect) to load data exactly once on component
+  // creation.  The $effect(() => { untrack(() => { ... }) }) pattern
+  // can re-trigger on batch flushes in certain Svelte 5 runtime versions,
+  // flooding the server with API calls and starving the main thread so
+  // sidebar clicks are never processed.
+  onMount(() => {
+    loadAll();
+    fetchAudioDevices();
+    fetchTunePeers();
+    fetchServerVersion();
+    checkForUpdate();
+    loadCrossfade();
+    loadStreamingQuality();
+    loadScanSchedule();
+    if (pushEnabled) initPushNotifications();
+  });
+
+  // WS event subscription for scan/enrich progress — use $effect for
+  // automatic cleanup on component destruction.
   $effect(() => {
-    untrack(() => {
-      loadAll();
-      fetchAudioDevices();
-      fetchTunePeers();
-      fetchServerVersion();
-      checkForUpdate();
-      loadCrossfade();
-      loadStreamingQuality();
-      loadScanSchedule();
-      if (pushEnabled) initPushNotifications();
-    });
     const unsub = tuneWS.onEvent((event) => {
       if (event.type === 'library.scan.progress') {
         scanning = true;

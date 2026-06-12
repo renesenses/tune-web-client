@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import * as api from '../lib/api';
   import { artworkUrl } from '../lib/api';
   import type { Album, Artist, Track, CompletenessStats, BackupInfo } from '../lib/types';
@@ -1267,11 +1267,11 @@
     return new Date(iso).toLocaleString();
   }
 
-  $effect(() => {
-    untrack(() => {
-      loadData();
-      loadBackups();
-    });
+  // Use onMount (not $effect) — the $effect(() => { untrack(...) }) pattern
+  // can re-trigger on batch flushes in certain Svelte 5 runtime versions.
+  onMount(() => {
+    loadData();
+    loadBackups();
   });
 
   async function validateDoubtful(album: import('../lib/api').DoubtfulAlbum) {
