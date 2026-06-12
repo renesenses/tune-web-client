@@ -19,15 +19,18 @@
   let nowListeningLoaded = $state(true);
   let nowListening = $derived(
     ($zones as any[])
-      .filter((z: any) => z.state === 'playing' && z.now_playing)
-      .map((z: any) => ({
-        zone_id: z.id,
-        zone_name: z.name,
-        track_title: z.now_playing?.title ?? '',
-        artist_name: z.now_playing?.artist_name ?? '',
-        cover_path: z.now_playing?.cover_path ?? null,
-        album_id: z.now_playing?.album_id ?? null,
-      }))
+      .filter((z: any) => z.state === 'playing' && (z.now_playing || z.current_track))
+      .map((z: any) => {
+        const np = z.now_playing ?? z.current_track ?? {};
+        return {
+          zone_id: z.id,
+          zone_name: z.name,
+          track_title: np.title ?? '',
+          artist_name: np.artist_name ?? '',
+          cover_path: np.cover_path ?? null,
+          album_id: np.album_id ?? null,
+        };
+      })
   );
   let recentAlbums: Album[] = $state([]);
   let recentTab = $state<'played' | 'added'>('played');
