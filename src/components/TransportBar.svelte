@@ -625,7 +625,7 @@
       {#if showZoneDropdown}
         <div class="zone-dropdown-backdrop" onclick={() => showZoneDropdown = false} role="button" tabindex={0} aria-label="Close zone dropdown"></div>
         <div class="zone-dropdown">
-          {#each $zones as z}
+          {#each $zones.filter((z, i, arr) => arr.findIndex(x => x.output_device_id === z.output_device_id) === i).slice(0, 50) as z}
             <button
               class="zone-dropdown-item"
               class:active={z.id === $currentZoneId}
