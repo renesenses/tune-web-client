@@ -300,6 +300,7 @@
   // Scroll handling for carousel
   let playedCarousel: HTMLElement;
   let addedCarousel: HTMLElement;
+  let continueCarousel: HTMLElement;
 
   function scrollCarousel(el: HTMLElement, dir: number) {
     el.scrollBy({ left: dir * 600, behavior: 'smooth' });
@@ -509,7 +510,10 @@
     <div class="top-section">
       <h2 class="section-title">Continuer l'écoute</h2>
       <div class="carousel-wrapper">
-        <div class="carousel">
+        <button class="carousel-arrow left" onclick={() => scrollCarousel(continueCarousel, -1)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
+        </button>
+        <div class="carousel carousel-scrollable" bind:this={continueCarousel}>
           {#each continueListening as item}
             <div class="carousel-card">
               <button class="carousel-cover" type="button" onclick={() => { if (zone?.id && (item.album_id || item.id)) { playAndSync(zone.id, { album_id: item.album_id ?? item.id }); } }}>
@@ -526,6 +530,9 @@
             </div>
           {/each}
         </div>
+        <button class="carousel-arrow right" onclick={() => scrollCarousel(continueCarousel, 1)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
+        </button>
       </div>
     </div>
   {/if}
@@ -948,6 +955,19 @@
 
   .carousel::-webkit-scrollbar {
     display: none;
+  }
+
+  .carousel-scrollable {
+    scrollbar-width: thin;
+    scrollbar-color: var(--tune-text-muted) transparent;
+  }
+  .carousel-scrollable::-webkit-scrollbar {
+    display: block;
+    height: 4px;
+  }
+  .carousel-scrollable::-webkit-scrollbar-thumb {
+    background: var(--tune-text-muted);
+    border-radius: 2px;
   }
 
   .carousel-arrow {
