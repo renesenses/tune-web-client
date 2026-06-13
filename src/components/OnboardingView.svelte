@@ -211,7 +211,6 @@
   async function createZoneFromDevice(device: DiscoveredDevice) {
     try {
       const zone = await api.createZone(device.name, device.type, device.id);
-      zones.update((zs) => [...zs, zone]);
       if (zone.id !== null) currentZoneId.set(zone.id);
       notifications.success(`Zone "${device.name}" creee`);
     } catch (e: any) {

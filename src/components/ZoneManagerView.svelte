@@ -188,7 +188,6 @@
     if (!newZoneName.trim()) return;
     try {
       const zone = await api.createZone(newZoneName.trim(), newZoneOutputType, newZoneDeviceId);
-      zones.update(zs => [...zs, zone]);
       if (zone.id !== null) currentZoneId.set(zone.id);
       notifications.success($t('zone.zoneCreated'));
       newZoneName = '';
@@ -377,7 +376,6 @@
   async function createZoneFromDevice(device: DiscoveredDevice) {
     try {
       const zone = await api.createZone(device.name, device.type, device.id);
-      zones.update(zs => [...zs, zone]);
       if (zone.id !== null) currentZoneId.set(zone.id);
       notifications.success($t('zone.zoneCreated'));
     } catch (e: any) {
@@ -445,7 +443,6 @@
     quickCreateLoading = device.id;
     try {
       const zone = await api.createZone(device.name, device.type, device.id);
-      zones.update(zs => [...zs, zone]);
       if (zone.id !== null) currentZoneId.set(zone.id);
       notifications.success($t('zone.zoneCreated'));
     } catch (e: any) {
