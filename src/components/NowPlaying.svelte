@@ -19,6 +19,7 @@
   let isFavorite = $state(false);
   let favChecking = $state(false);
   let showSignalDetail = $state(false);
+  let showTrackDetail = $state(false);
   let showCredits = $state(false);
   let npCredits: TrackCredit[] = $state([]);
   let npCreditsTrackId: number | null = $state(null);
@@ -572,13 +573,59 @@
       <div class="info-column">
         {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth}
           {@const tier = getQualityTier(displayTrack)}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
             class="artwork-quality-badge tier-{getQualityTierColor(tier)}"
             title={formatQualityTooltip(displayTrack)}
+            onclick={() => showTrackDetail = !showTrackDetail}
+            style="cursor: pointer"
           >
             <span class="aqb-tier">{getQualityTierLabel(tier)}</span>
             <span class="aqb-detail">{formatQualitySource(displayTrack)}</span>
           </div>
+          {#if showTrackDetail}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="signal-path-overlay" onclick={() => showTrackDetail = false}>
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="signal-path-card" onclick={(e) => e.stopPropagation()}>
+                <div class="sp-card-header">
+                  <h3>Track Details</h3>
+                  <button class="sp-close" aria-label="Close" onclick={() => showTrackDetail = false}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  </button>
+                </div>
+                <div class="track-detail-grid">
+                  {#if displayTrack.format}
+                    <span class="td-label">Format</span>
+                    <span class="td-value">{displayTrack.format.toUpperCase()}</span>
+                  {/if}
+                  {#if displayTrack.sample_rate}
+                    <span class="td-label">Sample Rate</span>
+                    <span class="td-value">{displayTrack.sample_rate >= 1000 ? (displayTrack.sample_rate / 1000).toFixed(displayTrack.sample_rate % 1000 === 0 ? 0 : 1) + ' kHz' : displayTrack.sample_rate + ' Hz'}</span>
+                  {/if}
+                  {#if displayTrack.bit_depth}
+                    <span class="td-label">Bit Depth</span>
+                    <span class="td-value">{displayTrack.bit_depth}-bit</span>
+                  {/if}
+                  {#if displayTrack.channels}
+                    <span class="td-label">Channels</span>
+                    <span class="td-value">{displayTrack.channels === 2 ? 'Stéréo' : displayTrack.channels === 1 ? 'Mono' : displayTrack.channels + ' ch'}</span>
+                  {/if}
+                  {#if displayTrack.source}
+                    <span class="td-label">Source</span>
+                    <span class="td-value td-source">{displayTrack.source}</span>
+                  {/if}
+                  {#if displayTrack.file_path && displayTrack.source === 'local'}
+                    <span class="td-label">File</span>
+                    <span class="td-value td-file">{displayTrack.file_path.split('/').slice(-2).join('/')}</span>
+                  {/if}
+                </div>
+              </div>
+            </div>
+          {/if}
         {/if}
         <div class="track-info" class:center={!isWide}>
           {#if isRadio}
@@ -2047,7 +2094,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    cursor: default;
+    cursor: pointer;
     transition: transform 0.15s ease-out;
     margin-bottom: var(--space-sm);
   }
@@ -2093,6 +2140,42 @@
   }
   .artwork-quality-badge.tier-gray .aqb-tier {
     color: #9ca3af;
+  }
+
+  /* Track detail panel (quality badge click) */
+  .track-detail-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 16px;
+    padding: 16px 20px 20px;
+    align-items: baseline;
+  }
+
+  .td-label {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .td-value {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text);
+    font-weight: 500;
+  }
+
+  .td-source {
+    text-transform: capitalize;
+  }
+
+  .td-file {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    color: var(--tune-text-secondary);
+    word-break: break-all;
   }
 
   /* Inline credits summary below artist name */
