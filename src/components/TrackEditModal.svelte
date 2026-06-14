@@ -311,7 +311,7 @@
     display: flex;
     flex-direction: column;
     animation: slideUp 0.2s ease-out;
-    overflow: hidden;
+    overflow-y: auto;
   }
 
   @keyframes slideUp {

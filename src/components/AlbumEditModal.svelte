@@ -522,7 +522,7 @@
     display: flex;
     flex-direction: column;
     animation: slideInRight 0.22s cubic-bezier(0.2, 0.7, 0.2, 1);
-    overflow: hidden;
+    overflow-y: auto;
     box-shadow: -8px 0 32px rgba(0, 0, 0, 0.25);
   }
 
