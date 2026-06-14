@@ -52,17 +52,31 @@
       .filter(cat => cat.fields.length > 0)
   );
 
-  let filteredArtists = $derived(
-    artistSearch.length < 1
-      ? artists.slice(0, 30)
-      : artists.filter(a => (a.name ?? '').toLowerCase().includes(artistSearch.toLowerCase())).slice(0, 30)
-  );
+  let filteredArtists = $state<Artist[]>([]);
+  let filteredAlbums = $state<Album[]>([]);
+  let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  let filteredAlbums = $derived(
-    albumSearch.length < 1
-      ? albums.slice(0, 30)
-      : albums.filter(a => (a.title ?? '').toLowerCase().includes(albumSearch.toLowerCase())).slice(0, 30)
-  );
+  async function searchArtists(q: string) {
+    if (q.length < 2) { filteredArtists = []; return; }
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(async () => {
+      try {
+        const results = await api.search(q);
+        filteredArtists = (results?.local?.artists ?? []).slice(0, 20);
+      } catch { filteredArtists = []; }
+    }, 250);
+  }
+
+  async function searchAlbums(q: string) {
+    if (q.length < 2) { filteredAlbums = []; return; }
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(async () => {
+      try {
+        const results = await api.search(q);
+        filteredAlbums = (results?.local?.albums ?? []).slice(0, 20);
+      } catch { filteredAlbums = []; }
+    }, 250);
+  }
 
   function selectArtist(a: Artist) {
     artistId = a.id;
@@ -76,14 +90,10 @@
 
   async function loadData() {
     try {
-      const [artistsResult, albumsResult, fieldsResult, metaResult] = await Promise.all([
-        api.getArtists(500, 0),
-        api.getAlbums(500, 0),
+      const [fieldsResult, metaResult] = await Promise.all([
         api.getMetadataFieldSettings().catch(() => ({ categories: [] })),
         track.id ? api.getTrackExtendedMetadata(track.id).catch(() => ({})) : Promise.resolve({}),
       ]);
-      artists = artistsResult;
-      albums = albumsResult;
       extCategories = fieldsResult.categories ?? [];
       extOriginal = { ...metaResult };
       // Pre-fill all enabled keys so bind:value works on fresh fields
@@ -107,7 +117,7 @@
     try {
       // Create new artist if needed
       if (artistSearch && !artistId) {
-        const match = artists.find(a => (a.name ?? '').toLowerCase() === artistSearch.toLowerCase());
+        const match = filteredArtists.find(a => (a.name ?? '').toLowerCase() === artistSearch.toLowerCase());
         if (match) {
           artistId = match.id;
         } else {
@@ -192,7 +202,7 @@
 
           <div class="field">
             <span class="field-label">{$t('metadata.artist')}</span>
-            <input type="text" bind:value={artistSearch} placeholder="Rechercher ou créer un artiste..." onfocus={() => artistFocused = true} onblur={() => setTimeout(() => artistFocused = false, 300)} />
+            <input type="text" bind:value={artistSearch} placeholder="Rechercher ou créer un artiste..." onfocus={() => artistFocused = true} onblur={() => setTimeout(() => artistFocused = false, 300)} oninput={() => searchArtists(artistSearch)} />
             {#if artistFocused && artistSearch.length > 0 && filteredArtists.length > 0}
               <div class="dropdown-list">
                 {#each filteredArtists as a}
@@ -200,14 +210,14 @@
                 {/each}
               </div>
             {/if}
-            {#if artistSearch && !artists.some(a => (a.name ?? '').toLowerCase() === artistSearch.toLowerCase())}
+            {#if artistSearch && !filteredArtists.some(a => (a.name ?? '').toLowerCase() === artistSearch.toLowerCase())}
               <span class="create-hint">Nouvel artiste : "{artistSearch}"</span>
             {/if}
           </div>
 
           <label class="field">
             <span class="field-label">{$t('metadata.albumTitle')}</span>
-            <input type="text" bind:value={albumSearch} placeholder="Rechercher ou créer un album..." onfocus={() => albumFocused = true} onblur={() => setTimeout(() => albumFocused = false, 200)} />
+            <input type="text" bind:value={albumSearch} placeholder="Rechercher ou créer un album..." onfocus={() => albumFocused = true} onblur={() => setTimeout(() => albumFocused = false, 200)} oninput={() => searchAlbums(albumSearch)} />
             {#if albumFocused && albumSearch.length > 0 && filteredAlbums.length > 0}
               <div class="dropdown-list">
                 {#each filteredAlbums as al}
@@ -215,7 +225,7 @@
                 {/each}
               </div>
             {/if}
-            {#if albumSearch && !albums.some(a => (a.title ?? '').toLowerCase() === albumSearch.toLowerCase())}
+            {#if albumSearch && !filteredAlbums.some(a => (a.title ?? '').toLowerCase() === albumSearch.toLowerCase())}
               <span class="create-hint">Nouvel album : "{albumSearch}"</span>
             {/if}
           </label>
