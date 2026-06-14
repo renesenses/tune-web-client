@@ -61,6 +61,58 @@
   let showSmbWizard = $state(false);
   let showFolderWizard = $state(false);
 
+  // Metadata fields configuration
+  interface MetadataField { key: string; label: string; enabled: boolean; }
+  interface MetadataCategory { name: string; fields: MetadataField[]; }
+  let metadataCategories = $state<MetadataCategory[]>([]);
+  let metadataLoading = $state(true);
+  let metadataCollapsed = $state<Record<string, boolean>>({});
+  let metadataSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+  async function loadMetadataFields() {
+    metadataLoading = true;
+    try {
+      const data = await api.apiFetch('/system/settings/metadata-fields');
+      metadataCategories = data.categories ?? [];
+    } catch (e) {
+      console.warn('loadMetadataFields failed:', e);
+    }
+    metadataLoading = false;
+  }
+
+  function toggleMetadataField(catIndex: number, fieldIndex: number) {
+    metadataCategories[catIndex].fields[fieldIndex].enabled =
+      !metadataCategories[catIndex].fields[fieldIndex].enabled;
+    debounceSaveMetadataFields();
+  }
+
+  function toggleMetadataCategory(catName: string) {
+    metadataCollapsed[catName] = !metadataCollapsed[catName];
+  }
+
+  function debounceSaveMetadataFields() {
+    if (metadataSaveTimer) clearTimeout(metadataSaveTimer);
+    metadataSaveTimer = setTimeout(saveMetadataFields, 500);
+  }
+
+  async function saveMetadataFields() {
+    const enabledKeys: string[] = [];
+    for (const cat of metadataCategories) {
+      for (const field of cat.fields) {
+        if (field.enabled) enabledKeys.push(field.key);
+      }
+    }
+    try {
+      await fetch('/api/v1/system/settings/metadata-fields', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: enabledKeys }),
+      });
+    } catch (e) {
+      console.warn('saveMetadataFields failed:', e);
+    }
+  }
+
   // Cloud / mozaiklabs.fr
   let cloudSsoEmail = $state<string | null>(null);
   let cloudSsoName = $state<string | null>(null);
@@ -1280,6 +1332,7 @@
     loadCrossfade();
     loadStreamingQuality();
     loadScanSchedule();
+    loadMetadataFields();
     if (pushEnabled) initPushNotifications();
   });
 
@@ -2712,6 +2765,57 @@
           {csvExporting === 'artists' ? 'Export...' : 'Artistes (CSV)'}
         </button>
       </div>
+    </section>
+
+    <!-- Metadata Fields Configuration -->
+    <section class="settings-section">
+      <h3>Metadonnees</h3>
+      <p class="meta-fields-hint">Choisissez les champs de metadonnees affichees dans les vues album et piste.</p>
+      {#if metadataLoading}
+        <div class="loading"><div class="spinner small"></div> Chargement...</div>
+      {:else}
+        <div class="meta-fields-categories">
+          {#each metadataCategories as cat, catIndex}
+            <div class="meta-fields-category">
+              <button
+                class="meta-fields-category-header"
+                onclick={() => toggleMetadataCategory(cat.name)}
+              >
+                <span class="meta-fields-category-name">{cat.name}</span>
+                <span class="meta-fields-category-count">
+                  {cat.fields.filter(f => f.enabled).length}/{cat.fields.length}
+                </span>
+                <svg
+                  class="meta-fields-chevron"
+                  class:collapsed={metadataCollapsed[cat.name]}
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  width="16" height="16"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {#if !metadataCollapsed[cat.name]}
+                <div class="meta-fields-list">
+                  {#each cat.fields as field, fieldIndex}
+                    <label class="meta-field-item">
+                      <span class="meta-field-label">{field.label}</span>
+                      <span class="meta-field-key">{field.key}</span>
+                      <label class="cloud-toggle">
+                        <input
+                          type="checkbox"
+                          checked={field.enabled}
+                          onchange={() => toggleMetadataField(catIndex, fieldIndex)}
+                        />
+                        <span class="cloud-toggle-slider"></span>
+                      </label>
+                    </label>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
     </section>
 
     <!-- Cloud / mozaiklabs.fr -->
@@ -4259,5 +4363,107 @@
     padding: 1px 6px;
     border-radius: var(--radius-sm);
     font-size: 10px;
+  }
+
+  /* Metadata fields configuration */
+  .meta-fields-hint {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    margin-bottom: var(--space-md);
+  }
+
+  .meta-fields-categories {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .meta-fields-category {
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .meta-fields-category-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--tune-bg);
+    border: none;
+    color: var(--tune-text);
+    cursor: pointer;
+    font-family: var(--font-label);
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 0.12s ease-out;
+  }
+
+  .meta-fields-category-header:hover {
+    background: var(--tune-surface-hover);
+  }
+
+  .meta-fields-category-name {
+    flex: 1;
+    text-align: left;
+  }
+
+  .meta-fields-category-count {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--tune-text-muted);
+    background: var(--tune-grey2);
+    padding: 1px 8px;
+    border-radius: 9999px;
+  }
+
+  .meta-fields-chevron {
+    transition: transform 0.2s ease-out;
+    color: var(--tune-text-muted);
+    flex-shrink: 0;
+  }
+
+  .meta-fields-chevron.collapsed {
+    transform: rotate(-90deg);
+  }
+
+  .meta-fields-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .meta-field-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-md);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text);
+    cursor: pointer;
+    transition: background 0.1s ease-out;
+    border-top: 1px solid var(--tune-border);
+  }
+
+  .meta-field-item:hover {
+    background: var(--tune-surface-hover);
+  }
+
+  .meta-field-label {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .meta-field-key {
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    background: var(--tune-bg);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
   }
 </style>
