@@ -2,6 +2,7 @@
   import { untrack } from 'svelte';
   import * as api from '../lib/api';
   import type { Track, Album, Artist } from '../lib/types';
+  import type { MetadataCategory } from '../lib/api/metadata';
   import { t } from '../lib/i18n';
 
   interface Props {
@@ -38,6 +39,19 @@
   let success = $state(false);
   let error = $state<string | null>(null);
 
+  // Extended metadata
+  let extCategories = $state<MetadataCategory[]>([]);
+  let extValues = $state<Record<string, string>>({});
+  let extOriginal = $state<Record<string, string>>({});
+  let extLoading = $state(true);
+
+  /** Only categories that have at least one enabled field */
+  let enabledCategories = $derived(
+    extCategories
+      .map(cat => ({ ...cat, fields: cat.fields.filter(f => f.enabled) }))
+      .filter(cat => cat.fields.length > 0)
+  );
+
   let filteredArtists = $derived(
     artistSearch.length < 1
       ? artists.slice(0, 30)
@@ -62,13 +76,28 @@
 
   async function loadData() {
     try {
-      [artists, albums] = await Promise.all([
+      const [artistsResult, albumsResult, fieldsResult, metaResult] = await Promise.all([
         api.getArtists(500, 0),
         api.getAlbums(500, 0),
+        api.getMetadataFieldSettings().catch(() => ({ categories: [] })),
+        track.id ? api.getTrackExtendedMetadata(track.id).catch(() => ({})) : Promise.resolve({}),
       ]);
+      artists = artistsResult;
+      albums = albumsResult;
+      extCategories = fieldsResult.categories ?? [];
+      extOriginal = { ...metaResult };
+      // Pre-fill all enabled keys so bind:value works on fresh fields
+      const vals: Record<string, string> = {};
+      for (const cat of fieldsResult.categories ?? []) {
+        for (const f of cat.fields) {
+          if (f.enabled) vals[f.key] = metaResult[f.key] ?? '';
+        }
+      }
+      extValues = vals;
     } catch (e) {
       console.error('Load data error:', e);
     }
+    extLoading = false;
   }
 
   async function saveTrack() {
@@ -100,6 +129,22 @@
         const updated = await api.updateTrack(track.id, data);
         onSaved?.(updated);
       }
+
+      // Save extended metadata (only changed fields)
+      const extChanged: Record<string, string> = {};
+      for (const cat of enabledCategories) {
+        for (const f of cat.fields) {
+          const newVal = (extValues[f.key] ?? '').trim();
+          const oldVal = (extOriginal[f.key] ?? '').trim();
+          if (newVal !== oldVal) {
+            extChanged[f.key] = newVal;
+          }
+        }
+      }
+      if (Object.keys(extChanged).length > 0) {
+        await api.updateTrackExtendedMetadata(track.id, extChanged);
+      }
+
       success = true;
       setTimeout(() => onClose(), 600);
     } catch (e) {
@@ -200,6 +245,27 @@
           </div>
         </div>
 
+        <!-- Extended metadata fields -->
+        {#if !extLoading && enabledCategories.length > 0}
+          <div class="ext-divider"></div>
+          <div class="ext-section">
+            <span class="ext-heading">Métadonnées étendues</span>
+            {#each enabledCategories as cat}
+              <div class="ext-category">
+                <span class="ext-cat-label">{cat.name}</span>
+                <div class="fields">
+                  {#each cat.fields as f}
+                    <label class="field">
+                      <span class="field-label">{f.label}</span>
+                      <input type="text" bind:value={extValues[f.key]} placeholder="" />
+                    </label>
+                  {/each}
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
+
         {#if error}
           <p class="error-msg">{error}</p>
         {/if}
@@ -240,8 +306,8 @@
     background: var(--tune-surface);
     border: 1px solid var(--tune-border);
     border-radius: var(--radius-lg);
-    width: 400px;
-    max-height: 85vh;
+    width: 440px;
+    max-height: 90vh;
     display: flex;
     flex-direction: column;
     animation: slideUp 0.2s ease-out;
@@ -366,6 +432,42 @@
     color: var(--tune-accent);
     font-style: italic;
     margin-top: 2px;
+  }
+
+  /* Extended metadata */
+  .ext-divider {
+    height: 1px;
+    background: var(--tune-border);
+    margin: 4px 0;
+  }
+
+  .ext-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .ext-heading {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tune-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .ext-category {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ext-cat-label {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--tune-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
   }
 
   .error-msg {

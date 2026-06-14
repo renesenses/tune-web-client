@@ -430,3 +430,38 @@ export function rescanMetadata() {
 export function rescanMetadataStatus() {
   return fetchJSON<RescanMetadataResult>(`${BASE}/library/rescan-metadata/status`);
 }
+
+// --- Extended metadata (per-track key-value store) ---
+
+export interface MetadataFieldDef {
+  key: string;
+  label: string;
+  enabled: boolean;
+}
+
+export interface MetadataCategory {
+  name: string;
+  fields: MetadataFieldDef[];
+}
+
+export interface MetadataFieldsResponse {
+  categories: MetadataCategory[];
+}
+
+/** Fetch the user's metadata-fields configuration (which extended fields are visible). */
+export function getMetadataFieldSettings(): Promise<MetadataFieldsResponse> {
+  return fetchJSON(`${BASE}/system/settings/metadata-fields`);
+}
+
+/** Get all extended metadata key-value pairs for a track. */
+export function getTrackExtendedMetadata(trackId: number): Promise<Record<string, string>> {
+  return fetchJSON(`${BASE}/library/tracks/${trackId}/metadata`);
+}
+
+/** Batch-set extended metadata fields on a track. */
+export function updateTrackExtendedMetadata(trackId: number, fields: Record<string, string>): Promise<any> {
+  return fetchJSON(`${BASE}/library/tracks/${trackId}/metadata`, {
+    method: 'PUT',
+    body: JSON.stringify(fields),
+  });
+}

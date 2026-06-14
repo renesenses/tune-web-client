@@ -3,6 +3,7 @@
   import * as api from '../lib/api';
   import { artworkUrl } from '../lib/api';
   import type { Album, Artist, Track } from '../lib/types';
+  import type { MetadataCategory } from '../lib/api/metadata';
   import { t } from '../lib/i18n';
   import TrackTagsDrawer from './TrackTagsDrawer.svelte';
 
@@ -27,6 +28,35 @@
   let saving = $state(false);
   let success = $state(false);
   let error = $state<string | null>(null);
+
+  // Extended metadata (album-relevant fields from first track)
+  let extCategories = $state<MetadataCategory[]>([]);
+  let extValues = $state<Record<string, string>>({});
+  let extOriginal = $state<Record<string, string>>({});
+  let extLoading = $state(true);
+  let firstTrackId = $state<number | null>(null);
+
+  // Album-relevant extended fields (exclude per-track fields like lyrics, isrc, rg_track_gain)
+  const ALBUM_RELEVANT_KEYS = new Set([
+    'album_artist', 'sort_artist', 'sort_album',
+    'composer', 'conductor', 'lyricist', 'performer', 'remixer', 'label', 'producer',
+    'bpm', 'mood', 'grouping', 'compilation',
+    'comment',
+    'barcode', 'catalog_number', 'media_type',
+    'release_date', 'original_date',
+    'encoder', 'copyright', 'language',
+    'rg_album_gain',
+  ]);
+
+  /** Only categories that have at least one enabled album-relevant field */
+  let enabledCategories = $derived(
+    extCategories
+      .map(cat => ({
+        ...cat,
+        fields: cat.fields.filter(f => f.enabled && ALBUM_RELEVANT_KEYS.has(f.key)),
+      }))
+      .filter(cat => cat.fields.length > 0)
+  );
 
   // Tracks list (collapsible) + per-track all-tags drawer
   let tracks = $state<Track[]>([]);
@@ -68,6 +98,42 @@
     }
   }
 
+  async function loadExtendedMetadata() {
+    try {
+      // Fetch field settings + first track of album for extended metadata
+      const [fieldsResult, albumTracks] = await Promise.all([
+        api.getMetadataFieldSettings().catch(() => ({ categories: [] })),
+        album.id ? api.getAlbumTracks(album.id).catch(() => []) : Promise.resolve([]),
+      ]);
+      extCategories = fieldsResult.categories ?? [];
+
+      // Use first track to source album-level extended metadata
+      // Pre-fill all enabled keys so bind:value works on fresh fields
+      const enabledKeys = new Set<string>();
+      for (const cat of fieldsResult.categories ?? []) {
+        for (const f of cat.fields) {
+          if (f.enabled && ALBUM_RELEVANT_KEYS.has(f.key)) enabledKeys.add(f.key);
+        }
+      }
+
+      if (albumTracks.length > 0 && albumTracks[0].id) {
+        firstTrackId = albumTracks[0].id;
+        const meta = await api.getTrackExtendedMetadata(albumTracks[0].id).catch(() => ({}));
+        extOriginal = { ...meta };
+        const vals: Record<string, string> = {};
+        for (const k of enabledKeys) vals[k] = meta[k] ?? '';
+        extValues = vals;
+      } else {
+        const vals: Record<string, string> = {};
+        for (const k of enabledKeys) vals[k] = '';
+        extValues = vals;
+      }
+    } catch (e) {
+      console.error('Load extended metadata error:', e);
+    }
+    extLoading = false;
+  }
+
   function resolveArtistByName(name: string): number | null {
     const target = (name || '').trim().toLowerCase();
     if (!target) return null;
@@ -98,6 +164,24 @@
         const updated = await api.updateAlbum(album.id, data);
         onSaved?.(updated);
       }
+
+      // Save extended metadata on first track (album-level proxy)
+      if (firstTrackId) {
+        const extChanged: Record<string, string> = {};
+        for (const cat of enabledCategories) {
+          for (const f of cat.fields) {
+            const newVal = (extValues[f.key] ?? '').trim();
+            const oldVal = (extOriginal[f.key] ?? '').trim();
+            if (newVal !== oldVal) {
+              extChanged[f.key] = newVal;
+            }
+          }
+        }
+        if (Object.keys(extChanged).length > 0) {
+          await api.updateTrackExtendedMetadata(firstTrackId, extChanged);
+        }
+      }
+
       success = true;
       hasSaved = true;
     } catch (e) {
@@ -189,7 +273,10 @@
   }
 
   $effect(() => {
-    untrack(() => loadArtists());
+    untrack(() => {
+      loadArtists();
+      loadExtendedMetadata();
+    });
   });
 </script>
 
@@ -328,6 +415,27 @@
             <input type="text" bind:value={catalogNumber} placeholder="N° de catalogue" />
           </label>
         </div>
+
+        <!-- Extended metadata fields -->
+        {#if !extLoading && enabledCategories.length > 0}
+          <div class="ext-divider"></div>
+          <div class="ext-section">
+            <span class="ext-heading">Métadonnées étendues</span>
+            {#each enabledCategories as cat}
+              <div class="ext-category">
+                <span class="ext-cat-label">{cat.name}</span>
+                <div class="fields">
+                  {#each cat.fields as f}
+                    <label class="field">
+                      <span class="field-label">{f.label}</span>
+                      <input type="text" bind:value={extValues[f.key]} placeholder="" />
+                    </label>
+                  {/each}
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
 
         <!-- Tracks (collapsible). Click a track to open all-tags drawer. -->
         <div class="tracks-section">
@@ -586,6 +694,42 @@
 
   .field-row .field {
     flex: 1;
+  }
+
+  /* Extended metadata */
+  .ext-divider {
+    height: 1px;
+    background: var(--tune-border);
+    margin: 4px 0;
+  }
+
+  .ext-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .ext-heading {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tune-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .ext-category {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ext-cat-label {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--tune-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
   }
 
   .error-msg {
