@@ -1560,7 +1560,7 @@
                 </button>
                 <span class="heart-overlay"><HeartButton albumId={album.id} size={14} /></span>
               </div>
-              <span class="album-card-title truncate">{album.title}</span>
+              <span class="album-card-title truncate" title={album.title}>{album.title}</span>
               {#if album.year || album.original_year}
                 <span class="album-card-year">{formatAlbumYear(album)}</span>
               {/if}
@@ -1728,9 +1728,9 @@
                       {/if}
                     {/if}
                   </div>
-                  <span class="album-card-title truncate">{album.title}</span>
+                  <span class="album-card-title truncate" title={album.title}>{album.title}</span>
                   {#if album.artist_name}
-                    <span class="album-card-artist truncate">{album.artist_name}</span>
+                    <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
                   {/if}
                 </div>
               {/each}
@@ -1885,9 +1885,9 @@
                   <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                 </button>
               </div>
-              <span class="album-card-title truncate">{album.title}</span>
+              <span class="album-card-title truncate" title={album.title}>{album.title}</span>
               {#if album.artist_name}
-                <span class="album-card-artist truncate">{album.artist_name}</span>
+                <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
               {/if}
               {#if selectedParent && album.genre && album.genre.toLowerCase() !== (selectedParent ?? '').toLowerCase()}
                 <span class="album-card-genre truncate">{album.genre.split(/[;\/\\]/).map(g => g.trim()).filter(Boolean).join(', ')}</span>
@@ -1962,9 +1962,9 @@
                     <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                   </button>
                 </div>
-                <span class="album-card-title truncate">{album.title}</span>
+                <span class="album-card-title truncate" title={album.title}>{album.title}</span>
                 {#if album.artist_name}
-                  <span class="album-card-artist truncate">{album.artist_name}</span>
+                  <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
                 {/if}
               </div>
             {/each}

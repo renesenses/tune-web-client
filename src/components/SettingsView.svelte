@@ -65,6 +65,7 @@
   let cloudSsoEmail = $state<string | null>(null);
   let cloudSsoName = $state<string | null>(null);
   let cloudSsoAvatar = $state<string | null>(null);
+  let cloudSsoConfigured = $state(false);
   let cloudSsoLoading = $state(true);
   let cloudTelemetryEnabled = $state(false);
   let cloudTelemetryLoading = $state(false);
@@ -74,6 +75,7 @@
     cloudSsoLoading = true;
     try {
       const sso = await api.apiFetch('/cloud/sso/status');
+      cloudSsoConfigured = !!sso?.configured;
       if (sso?.connected && sso?.user) {
         cloudSsoEmail = sso.user.email || null;
         cloudSsoName = sso.user.display_name || null;
@@ -85,6 +87,7 @@
       }
     } catch (e) {
       console.warn('loadCloudStatus failed:', e);
+      cloudSsoConfigured = false;
       cloudSsoEmail = null;
     }
     cloudSsoLoading = false;
@@ -97,6 +100,10 @@
   }
 
   function cloudSsoConnect() {
+    if (!cloudSsoConfigured) {
+      notifications.error('Cloud SSO non disponible pour le moment.');
+      return;
+    }
     // Store a flag so the app knows to navigate back to Settings after
     // the OAuth redirect (the server redirects to "/" with no indicator).
     // Use localStorage with a timestamp — sessionStorage is unreliable across
@@ -777,6 +784,23 @@
   let dbImporting = $state(false);
   let dbImportResult = $state('');
   let dbImportFileInput: HTMLInputElement | null = $state(null);
+
+  // FTS rebuild
+  let ftsRebuilding = $state(false);
+  let ftsResult = $state('');
+
+  async function rebuildFtsIndex() {
+    ftsRebuilding = true;
+    ftsResult = '';
+    try {
+      const result = await api.rebuildFts();
+      ftsResult = `Index reconstruit : ${result.rows_indexed} enregistrements indexes.`;
+    } catch (err: any) {
+      ftsResult = `Erreur : ${err.message}`;
+    } finally {
+      ftsRebuilding = false;
+    }
+  }
 
   function exportDatabase() {
     window.location.href = api.exportDatabaseUrl();
@@ -1638,6 +1662,26 @@
           {#if dbImportResult}
             <div class="migrate-result" class:ok={dbImportResult.startsWith('Import réussi')} class:error={dbImportResult.startsWith('Erreur')}>
               {dbImportResult}
+            </div>
+          {/if}
+        </div>
+
+        <!-- Rebuild search index -->
+        <div class="db-importexport">
+          <h4>Index de recherche</h4>
+          <p class="db-hint" style="margin-top:0">Reconstruire l'index si la recherche ne renvoie pas de resultats apres des modifications manuelles de la base.</p>
+          <div class="db-ie-actions">
+            <button class="btn-secondary" onclick={rebuildFtsIndex} disabled={ftsRebuilding}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+              {ftsRebuilding ? 'Reconstruction...' : 'Reconstruire l\'index'}
+            </button>
+          </div>
+          {#if ftsResult}
+            <div class="migrate-result" class:ok={ftsResult.startsWith('Index')} class:error={ftsResult.startsWith('Erreur')}>
+              {ftsResult}
             </div>
           {/if}
         </div>
@@ -2688,11 +2732,16 @@
             {/if}
             <span class="cloud-status-text">Connecté en tant que <strong>{cloudSsoName || cloudSsoEmail}</strong></span>
           </div>
-        {:else}
+        {:else if cloudSsoConfigured}
           <div class="cloud-row">
             <span class="cloud-status-dot disconnected"></span>
             <span class="cloud-status-text">Non connecte</span>
             <button class="scan-btn small" onclick={cloudSsoConnect}>Se connecter</button>
+          </div>
+        {:else}
+          <div class="cloud-row">
+            <span class="cloud-status-dot disconnected"></span>
+            <span class="cloud-status-text">Cloud non disponible pour le moment</span>
           </div>
         {/if}
       </div>

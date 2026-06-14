@@ -1056,6 +1056,10 @@ export function getDatabaseStatus() {
   return fetchJSON<any>(`${BASE}/system/database/status`);
 }
 
+export function rebuildFts() {
+  return fetchJSON<{ status: string; rows_indexed: number; message: string }>(`${BASE}/system/database/rebuild-fts`, { method: 'POST' });
+}
+
 export function updateConfig(fields: Record<string, unknown>) {
   return fetchJSON<Record<string, unknown>>(`${BASE}/system/config`, {
     method: 'PATCH',

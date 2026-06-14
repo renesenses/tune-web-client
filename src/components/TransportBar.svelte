@@ -182,10 +182,15 @@
         if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
         isFavorite = false;
       } else {
-        await api.apiPost('/radio-favorites/save-current');
-        isFavorite = true;
+        const zid = $currentZoneId;
+        if (zid != null) {
+          await api.apiPost('/radio-favorites/save-current', { zone_id: zid });
+          isFavorite = true;
+        }
       }
-    } catch {}
+    } catch (e) {
+      console.error('toggleFavorite error:', e);
+    }
     favChecking = false;
   }
 

@@ -428,10 +428,15 @@
         if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
         isFavorite = false;
       } else {
-        await api.apiPost('/radio-favorites/save-current');
-        isFavorite = true;
+        const zid = zone?.id;
+        if (zid != null) {
+          await api.apiPost('/radio-favorites/save-current', { zone_id: zid });
+          isFavorite = true;
+        }
       }
-    } catch {}
+    } catch (e) {
+      console.error('toggleFav error:', e);
+    }
     favChecking = false;
   }
   import { ytPlayerState, ytVideoRect, showYTVideo, hideYTVideo } from '../lib/stores/ytPlayer';

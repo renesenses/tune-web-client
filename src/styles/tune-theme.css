@@ -93,7 +93,7 @@ body {
 /* Scrollbar — Firefox uses scrollbar-width/scrollbar-color,
    Chrome/Safari use ::-webkit-scrollbar below */
 * {
-  scrollbar-width: thin;
+  scrollbar-width: auto;
   scrollbar-color: var(--tune-text-muted) transparent;
 }
 
