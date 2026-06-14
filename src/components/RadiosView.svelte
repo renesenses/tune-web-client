@@ -2,6 +2,8 @@
   import { currentZoneId } from '../lib/stores/zones';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
+  import { tuneWS } from '../lib/websocket';
+  import { onMount } from 'svelte';
   import type { RadioStation } from '../lib/types';
 
   type Tab = 'stations' | 'saved';
@@ -218,6 +220,16 @@
   }
 
   loadRadios();
+
+  // Reload radio list when a radio is added/deleted externally (e.g. from radio-browser.info tab)
+  onMount(() => {
+    const unsub = tuneWS.onEvent((event) => {
+      if (event.type === 'library.radios_changed') {
+        loadRadios();
+      }
+    });
+    return unsub;
+  });
 </script>
 
 <div class="radios-view">
