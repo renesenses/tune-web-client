@@ -5,6 +5,7 @@
   import { formatTime, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
+  import ServiceBadge from './ServiceBadge.svelte';
   import SeekBar from './SeekBar.svelte';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
@@ -571,62 +572,65 @@
       </div>
 
       <div class="info-column">
-        {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth}
-          {@const tier = getQualityTier(displayTrack)}
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div
-            class="artwork-quality-badge tier-{getQualityTierColor(tier)}"
-            title={formatQualityTooltip(displayTrack)}
-            onclick={() => showTrackDetail = !showTrackDetail}
-            style="cursor: pointer"
-          >
-            <span class="aqb-tier">{getQualityTierLabel(tier)}</span>
-            <span class="aqb-detail">{formatQualitySource(displayTrack)}</span>
-          </div>
-          {#if showTrackDetail}
+        <div class="np-badges-row">
+          <ServiceBadge source={displayTrack.source} />
+          {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth}
+            {@const tier = getQualityTier(displayTrack)}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="signal-path-overlay" onclick={() => showTrackDetail = false}>
+            <div
+              class="artwork-quality-badge tier-{getQualityTierColor(tier)}"
+              title={formatQualityTooltip(displayTrack)}
+              onclick={() => showTrackDetail = !showTrackDetail}
+              style="cursor: pointer"
+            >
+              <span class="aqb-tier">{getQualityTierLabel(tier)}</span>
+              <span class="aqb-detail">{formatQualitySource(displayTrack)}</span>
+            </div>
+            {#if showTrackDetail}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div class="signal-path-card" onclick={(e) => e.stopPropagation()}>
-                <div class="sp-card-header">
-                  <h3>Track Details</h3>
-                  <button class="sp-close" aria-label="Close" onclick={() => showTrackDetail = false}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                  </button>
-                </div>
-                <div class="track-detail-grid">
-                  {#if displayTrack.format}
-                    <span class="td-label">Format</span>
-                    <span class="td-value">{displayTrack.format.toUpperCase()}</span>
-                  {/if}
-                  {#if displayTrack.sample_rate}
-                    <span class="td-label">Sample Rate</span>
-                    <span class="td-value">{displayTrack.sample_rate >= 1000 ? (displayTrack.sample_rate / 1000).toFixed(displayTrack.sample_rate % 1000 === 0 ? 0 : 1) + ' kHz' : displayTrack.sample_rate + ' Hz'}</span>
-                  {/if}
-                  {#if displayTrack.bit_depth}
-                    <span class="td-label">Bit Depth</span>
-                    <span class="td-value">{displayTrack.bit_depth}-bit</span>
-                  {/if}
-                  {#if displayTrack.channels}
-                    <span class="td-label">Channels</span>
-                    <span class="td-value">{displayTrack.channels === 2 ? 'Stéréo' : displayTrack.channels === 1 ? 'Mono' : displayTrack.channels + ' ch'}</span>
-                  {/if}
-                  {#if displayTrack.source}
-                    <span class="td-label">Source</span>
-                    <span class="td-value td-source">{displayTrack.source}</span>
-                  {/if}
-                  {#if displayTrack.file_path && displayTrack.source === 'local'}
-                    <span class="td-label">File</span>
-                    <span class="td-value td-file">{displayTrack.file_path.split('/').slice(-2).join('/')}</span>
-                  {/if}
+              <div class="signal-path-overlay" onclick={() => showTrackDetail = false}>
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div class="signal-path-card" onclick={(e) => e.stopPropagation()}>
+                  <div class="sp-card-header">
+                    <h3>Track Details</h3>
+                    <button class="sp-close" aria-label="Close" onclick={() => showTrackDetail = false}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    </button>
+                  </div>
+                  <div class="track-detail-grid">
+                    {#if displayTrack.format}
+                      <span class="td-label">Format</span>
+                      <span class="td-value">{displayTrack.format.toUpperCase()}</span>
+                    {/if}
+                    {#if displayTrack.sample_rate}
+                      <span class="td-label">Sample Rate</span>
+                      <span class="td-value">{displayTrack.sample_rate >= 1000 ? (displayTrack.sample_rate / 1000).toFixed(displayTrack.sample_rate % 1000 === 0 ? 0 : 1) + ' kHz' : displayTrack.sample_rate + ' Hz'}</span>
+                    {/if}
+                    {#if displayTrack.bit_depth}
+                      <span class="td-label">Bit Depth</span>
+                      <span class="td-value">{displayTrack.bit_depth}-bit</span>
+                    {/if}
+                    {#if displayTrack.channels}
+                      <span class="td-label">Channels</span>
+                      <span class="td-value">{displayTrack.channels === 2 ? 'Stéréo' : displayTrack.channels === 1 ? 'Mono' : displayTrack.channels + ' ch'}</span>
+                    {/if}
+                    {#if displayTrack.source}
+                      <span class="td-label">Source</span>
+                      <span class="td-value td-source">{displayTrack.source}</span>
+                    {/if}
+                    {#if displayTrack.file_path && displayTrack.source === 'local'}
+                      <span class="td-label">File</span>
+                      <span class="td-value td-file">{displayTrack.file_path.split('/').slice(-2).join('/')}</span>
+                    {/if}
+                  </div>
                 </div>
               </div>
-            </div>
+            {/if}
           {/if}
-        {/if}
+        </div>
         <div class="track-info" class:center={!isWide}>
           {#if isRadio}
             <div class="radio-live-label">
@@ -943,6 +947,7 @@
                     <span class="up-next-title truncate">{nextTrack.title}</span>
                     <span class="up-next-artist truncate">{nextTrack.artist_name ?? ''}</span>
                   </div>
+                  <ServiceBadge source={nextTrack.source} compact />
                   {#if nextTrack.format}
                     {@const nextTier = getQualityTier(nextTrack)}
                     <span
@@ -2100,6 +2105,14 @@
 
   .artwork-clickable:hover .artwork-zoom-hint {
     opacity: 1;
+  }
+
+  /* Badges row (service + quality) */
+  .np-badges-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
   }
 
   /* Audio quality badge on artwork */

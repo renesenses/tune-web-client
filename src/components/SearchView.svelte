@@ -7,6 +7,7 @@
   import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
+  import ServiceBadge from './ServiceBadge.svelte';
   import type { FederatedSearchResult, Track, Album, Artist, Playlist, StreamingPlaylist, Source } from '../lib/types';
   import { t } from '../lib/i18n';
 
@@ -340,6 +341,7 @@
                       <span class="track-title truncate">{t.title}</span>
                       <span class="track-artist truncate">{t.artist_name ?? ''}{t.album_title ? ` - ${t.album_title}` : ''}</span>
                     </div>
+                    <ServiceBadge source={t.source} compact />
                     <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
                     <span class="track-duration">{formatTime(t.duration_ms)}</span>
                   </button>

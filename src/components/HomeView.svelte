@@ -9,6 +9,7 @@
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
+  import ServiceBadge from './ServiceBadge.svelte';
   import type { Album, Track, Source, TopTrack, TopArtist } from '../lib/types';
 
   let zone = $derived($currentZone);
@@ -678,6 +679,7 @@
             {#if track.artist_name}
               <button class="top-track-artist-btn truncate" type="button" onclick={() => navigateArtistByName(track.artist_name)}>{track.artist_name}</button>
             {/if}
+            <ServiceBadge source={track.source} compact />
             <span class="play-count-badge">{track.plays}</span>
           </div>
         {/each}

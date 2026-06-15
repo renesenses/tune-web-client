@@ -6,6 +6,7 @@
   import { formatTime, formatAlbumYear } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
+  import ServiceBadge from './ServiceBadge.svelte';
   import type { Album, Artist, Track, SearchResult, FeaturedSection, StreamingPlaylist, StreamingGenre } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { playVideo } from '../lib/stores/ytPlayer';
@@ -536,6 +537,7 @@
                 <span class="track-artist truncate">{t.artist_name}</span>
               {/if}
             </div>
+            <ServiceBadge source={t.source} compact />
             <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
             <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
@@ -587,6 +589,7 @@
                 <span class="track-artist truncate">{t.artist_name}</span>
               {/if}
             </div>
+            <ServiceBadge source={t.source} compact />
             <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
             <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
@@ -946,6 +949,7 @@
                 <span class="track-title truncate">{t.title}</span>
                 <span class="track-artist truncate">{t.artist_name ?? ''} {t.album_title ? `- ${t.album_title}` : ''}</span>
               </div>
+              <ServiceBadge source={t.source} compact />
               <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
               <button class="fav-btn small" class:is-fav={favTrackIds.has(String(t.source_id ?? t.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('tracks', String(t.source_id ?? t.id)); }} title="Favori">♥</button>
@@ -1172,6 +1176,7 @@
                   <span class="track-title truncate">{track.title}</span>
                   <span class="track-artist truncate">{track.artist_name}{#if track.album} — {track.album}{/if}</span>
                 </div>
+                <ServiceBadge source={track.source} compact />
                 <QualityBadge format={track.format} sampleRate={track.sample_rate} bitDepth={track.bit_depth} source={track.source} />
                 <span class="track-duration">{formatTime(track.duration_ms)}</span>
                 <button class="track-action-btn" onclick={() => playStreamingTrack(track)} title="Play">

@@ -7,6 +7,7 @@
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './AlbumArt.svelte';
+  import ServiceBadge from './ServiceBadge.svelte';
 
   interface Props {
     onAddToPlaylist?: (track: import('../lib/types').Track) => void;
@@ -229,6 +230,7 @@
               <span class="queue-title truncate">{queueTrack.title}</span>
               <span class="queue-artist truncate">{queueTrack.artist_name ?? ''}</span>
             </div>
+            <ServiceBadge source={queueTrack.source} compact />
             {#if queueTrack.format}
               {@const qTier = getQualityTier(queueTrack)}
               <span

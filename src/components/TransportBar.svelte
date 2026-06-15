@@ -6,6 +6,7 @@
   import { isBrowserZone, browserPause, browserResume, browserSetVolume, browserSeek, browserStop } from '../lib/stores/browserAudio';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
+  import ServiceBadge from './ServiceBadge.svelte';
   import VolumeControl from './VolumeControl.svelte';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
@@ -386,12 +387,13 @@
               <span class="radio-antenna">&#x1F4E1;</span>{displayTrack.album_title || 'Radio'}
             {:else}
               {displayTrack.artist_name ?? ''}
-              {#if displayTrack.format}
-                {@const miniTier = getQualityTier(displayTrack)}
+              <ServiceBadge source={displayTrack.source} compact />
+              {#if displayTrack.format || zone?.signal_path}
+                {@const miniTier = displayTrack.format ? getQualityTier(displayTrack) : (zone?.signal_path?.bit_perfect ? 'cd' : 'lossy')}
                 <span
                   class="tb-quality-badge tier-{getQualityTierColor(miniTier)}"
-                  title={formatQualityTooltip(displayTrack)}
-                >{formatCompactQuality(displayTrack)}</span>
+                  title={displayTrack.format ? formatQualityTooltip(displayTrack) : (zone?.signal_path?.summary ?? '')}
+                >{displayTrack.format ? formatCompactQuality(displayTrack) : (zone?.signal_path?.bit_perfect ? 'Lossless' : 'Lossy')}</span>
               {/if}
             {/if}
           </span>
