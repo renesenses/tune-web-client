@@ -814,6 +814,11 @@
     selectedArtist.set(null);
     selectedGenre = null;
     searchQuery = '';
+    // Update current history entry so browser-back restores the correct tab
+    try {
+      const cur = window.history.state ?? {};
+      window.history.replaceState({ ...cur, tab }, '', window.location.hash || '#library');
+    } catch {}
   }
 
   let albumsLoaded = $state(false);
