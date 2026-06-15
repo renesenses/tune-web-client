@@ -640,14 +640,14 @@
     }
   }
 
-  // Alpha index for albums (years when sorted by date, letters otherwise)
+  // Alpha index for albums (individual years when sorted by date, letters otherwise)
   let albumIndexEntries = $derived.by(() => {
     if (albumSort === 'release_date' || albumSort === 'original_year') {
-      const decades = [...new Set(filteredAlbums.map(a => {
+      const years = [...new Set(filteredAlbums.map(a => {
         const year = a.original_year || a.release_year;
-        return year ? `${Math.floor(year / 10) * 10}` : '?';
+        return year ? `${year}` : '?';
       }))];
-      return albumSortOrder === 'desc' ? decades.sort((a, b) => b.localeCompare(a)) : decades.sort();
+      return albumSortOrder === 'desc' ? years.sort((a, b) => b.localeCompare(a)) : years.sort();
     }
     const letters = [...new Set(filteredAlbums.map(a => {
       const field = albumSort === 'artist' ? (a.artist_name || a.title) : a.title;
@@ -665,8 +665,7 @@
     const idx = filteredAlbums.findIndex(a => {
       if (isYear) {
         const year = a.original_year || a.release_year;
-        const decade = year ? `${Math.floor(year / 10) * 10}` : '?';
-        return decade === entry;
+        return (year ? `${year}` : '?') === entry;
       }
       const field = albumSort === 'artist' ? (a.artist_name || a.title) : a.title;
       const first = field.charAt(0).toUpperCase();

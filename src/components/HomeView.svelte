@@ -598,7 +598,7 @@
                   {/if}
                 </button>
                 <button class="carousel-title truncate" onclick={() => navigateRecentEntry(album)}>{album.title}</button>
-                <button class="carousel-artist truncate" onclick={() => navigateArtist(album)}>{album.artist_name}</button>
+                <span class="carousel-artist-row"><button class="carousel-artist truncate" onclick={() => navigateArtist(album)}>{album.artist_name}</button><ServiceBadge source={album.source} compact /></span>
               </div>
             {/each}
           </div>

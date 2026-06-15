@@ -1,5 +1,6 @@
 <script lang="ts">
   import { artworkUrl, getAlbumCoverPath } from '../lib/api';
+  import ServiceBadge from './ServiceBadge.svelte';
 
   interface Props {
     coverPath?: string | null;
@@ -7,9 +8,10 @@
     size?: number;
     alt?: string;
     round?: boolean;
+    source?: string | null;
   }
 
-  let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false }: Props = $props();
+  let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false, source = null }: Props = $props();
 
   let hasError = $state(false);
   let resolvedCoverPath = $state<string | null>(null);
@@ -65,6 +67,9 @@
       </svg>
     </div>
   {/if}
+  {#if source && source !== 'local' && source !== 'radio'}
+    <div class="cover-badge"><ServiceBadge {source} compact /></div>
+  {/if}
 </div>
 
 <style>
@@ -73,6 +78,14 @@
     overflow: hidden;
     background: var(--tune-grey2);
     flex-shrink: 0;
+    position: relative;
+  }
+
+  .cover-badge {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    z-index: 1;
   }
 
   .album-art.fill {
