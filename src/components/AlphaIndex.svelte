@@ -3,9 +3,10 @@
     letters: string[];
     activeLetter?: string;
     onSelect: (letter: string) => void;
+    formatLabel?: (key: string) => string;
   }
 
-  let { letters, activeLetter = '', onSelect }: Props = $props();
+  let { letters, activeLetter = '', onSelect, formatLabel }: Props = $props();
 
   let isDragging = $state(false);
 
@@ -56,7 +57,7 @@
       data-letter={letter}
       onclick={() => handleClick(letter)}
       onmouseover={() => handleMouseOver(letter)}
-    >{letter}</span>
+    >{formatLabel ? formatLabel(letter) : letter}</span>
   {/each}
 </div>
 

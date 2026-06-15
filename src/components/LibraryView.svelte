@@ -640,14 +640,32 @@
     }
   }
 
-  // Alpha index for albums (individual years when sorted by date, letters otherwise)
+  const MONTH_NAMES = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+
+  function albumDateKey(a: any): string {
+    const date = a.original_date || a.release_date;
+    if (date && typeof date === 'string' && date.length >= 7) {
+      const month = parseInt(date.substring(5, 7), 10);
+      const year = date.substring(0, 4);
+      if (month >= 1 && month <= 12) return `${year}-${String(month).padStart(2,'0')}`;
+    }
+    const year = a.original_year || a.release_year;
+    return year ? `${year}` : '?';
+  }
+
+  function formatDateKey(key: string): string {
+    if (key.length === 7 && key[4] === '-') {
+      const month = parseInt(key.substring(5), 10);
+      return `${MONTH_NAMES[month - 1]} ${key.substring(0, 4)}`;
+    }
+    return key;
+  }
+
+  // Alpha index for albums (years + months when sorted by date, letters otherwise)
   let albumIndexEntries = $derived.by(() => {
     if (albumSort === 'release_date' || albumSort === 'original_year') {
-      const years = [...new Set(filteredAlbums.map(a => {
-        const year = a.original_year || a.release_year;
-        return year ? `${year}` : '?';
-      }))];
-      return albumSortOrder === 'desc' ? years.sort((a, b) => b.localeCompare(a)) : years.sort();
+      const keys = [...new Set(filteredAlbums.map(albumDateKey))];
+      return albumSortOrder === 'desc' ? keys.sort((a, b) => b.localeCompare(a)) : keys.sort();
     }
     const letters = [...new Set(filteredAlbums.map(a => {
       const field = albumSort === 'artist' ? (a.artist_name || a.title) : a.title;
@@ -664,8 +682,7 @@
     const isYear = albumSort === 'release_date' || albumSort === 'original_year';
     const idx = filteredAlbums.findIndex(a => {
       if (isYear) {
-        const year = a.original_year || a.release_year;
-        return (year ? `${year}` : '?') === entry;
+        return albumDateKey(a) === entry;
       }
       const field = albumSort === 'artist' ? (a.artist_name || a.title) : a.title;
       const first = field.charAt(0).toUpperCase();
@@ -1686,7 +1703,7 @@
       </div>
       <div class="album-viewport-wrapper">
         {#if albumIndexEntries.length > 5}
-          <AlphaIndex letters={albumIndexEntries} activeLetter={activeAlbumEntry} onSelect={scrollToAlbumEntry} />
+          <AlphaIndex letters={albumIndexEntries} activeLetter={activeAlbumEntry} onSelect={scrollToAlbumEntry} formatLabel={(albumSort === 'release_date' || albumSort === 'original_year') ? formatDateKey : undefined} />
         {/if}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="album-grid-viewport" bind:this={albumGridViewport} onscroll={handleAlbumGridScroll}
