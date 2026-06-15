@@ -145,6 +145,11 @@ export interface Zone {
   output_sent?: boolean;
   error?: string | null;
   stream_url?: string | null;
+  online?: boolean;
+  /** Seconds since recovery started (null = not recovering) */
+  recovery_started_at?: number | null;
+  /** Number of consecutive failed poll attempts during recovery */
+  recovery_attempts?: number;
 }
 
 export interface DiscoveredDevice {

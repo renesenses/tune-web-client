@@ -915,6 +915,11 @@
           </div>
 
           <span class="zone-label">{zone.name}</span>
+          {#if zone.recovery_started_at != null}
+            <span class="zone-recovery-badge">{$t('zone.recovering')} ({zone.recovery_started_at}s)</span>
+          {:else if zone.online === false}
+            <span class="zone-offline-badge">{$t('zone.offline')}</span>
+          {/if}
           <span class="playback-indicator" class:playing={isEffectivePlaying} class:paused={state === 'paused' && !isEffectivePlaying}>
             {#if isEffectivePlaying}
               <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M8 5v14l11-7z" /></svg>
@@ -1533,6 +1538,24 @@
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-muted);
+  }
+
+  .zone-recovery-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--tune-warning, #f59e0b);
+    background: rgba(245, 158, 11, 0.15);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+  }
+
+  .zone-offline-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--tune-danger, #ef4444);
+    background: rgba(239, 68, 68, 0.15);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
   }
 
   .playback-indicator {

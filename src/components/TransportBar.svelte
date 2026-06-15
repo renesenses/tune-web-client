@@ -623,8 +623,13 @@
     </div>
 
     <div class="zone-selector">
-      <button class="zone-selector-btn" onclick={() => showZoneDropdown = !showZoneDropdown} title={$t('zone.switchZone')}>
+      <button class="zone-selector-btn" class:zone-recovering={zone?.recovery_started_at != null} class:zone-offline={zone?.online === false && zone?.recovery_started_at == null} onclick={() => showZoneDropdown = !showZoneDropdown} title={$t('zone.switchZone')}>
         <span class="truncate">{zone?.name ?? $t('zone.noZone')}</span>
+        {#if zone?.recovery_started_at != null}
+          <span class="zone-status-badge recovering">{$t('zone.recovering')} ({zone.recovery_started_at}s)</span>
+        {:else if zone?.online === false}
+          <span class="zone-status-badge offline">{$t('zone.offline')}</span>
+        {/if}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9" /></svg>
       </button>
       {#if showZoneDropdown}
@@ -641,7 +646,11 @@
                 {#if deviceTypeLabel(z.output_type)}
                   <span class="zone-dropdown-badge">{deviceTypeLabel(z.output_type)}</span>
                 {/if}
-                {#if z.state === 'playing'}
+                {#if z.recovery_started_at != null}
+                  <span class="zone-dropdown-badge recovering">{$t('zone.recovering')}</span>
+                {:else if z.online === false}
+                  <span class="zone-dropdown-badge offline">{$t('zone.offline')}</span>
+                {:else if z.state === 'playing'}
                   <span class="zone-playing-indicator">
                     <svg viewBox="0 0 10 12" fill="currentColor" width="8" height="10"><polygon points="0,0 10,6 0,12" /></svg>
                   </span>
@@ -1185,6 +1194,39 @@
     display: flex;
     align-items: center;
     flex-shrink: 0;
+  }
+
+  /* Recovery / Offline states */
+  .zone-selector-btn.zone-recovering {
+    border-color: var(--tune-warning, #f59e0b);
+  }
+  .zone-selector-btn.zone-offline {
+    border-color: var(--tune-danger, #ef4444);
+    opacity: 0.7;
+  }
+  .zone-status-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .zone-status-badge.recovering {
+    color: var(--tune-warning, #f59e0b);
+    background: rgba(245, 158, 11, 0.15);
+  }
+  .zone-status-badge.offline {
+    color: var(--tune-danger, #ef4444);
+    background: rgba(239, 68, 68, 0.15);
+  }
+  .zone-dropdown-badge.recovering {
+    color: var(--tune-warning, #f59e0b);
+    background: rgba(245, 158, 11, 0.15);
+  }
+  .zone-dropdown-badge.offline {
+    color: var(--tune-danger, #ef4444);
+    background: rgba(239, 68, 68, 0.15);
   }
 
   /* Signal Path Modal */

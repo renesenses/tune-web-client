@@ -697,6 +697,51 @@ import AlarmsView from './components/AlarmsView.svelte';
           zones.update((zs) =>
             zs.map((z) => z.id === event.data.zone_id ? { ...z, volume: event.data.volume } : z)
           );
+        } else if (type === 'zone.recovering') {
+          const zoneId = event.data?.zone_id;
+          if (zoneId !== undefined) {
+            zones.update((zs) =>
+              zs.map((z) => z.id === zoneId ? {
+                ...z,
+                recovery_started_at: event.data.elapsed_secs ?? 0,
+                recovery_attempts: event.data.attempts ?? 0,
+              } : z)
+            );
+          }
+        } else if (type === 'zone.recovered') {
+          const zoneId = event.data?.zone_id;
+          if (zoneId !== undefined) {
+            zones.update((zs) =>
+              zs.map((z) => z.id === zoneId ? {
+                ...z,
+                online: true,
+                recovery_started_at: null,
+                recovery_attempts: 0,
+              } : z)
+            );
+          }
+        } else if (type === 'zone.offline') {
+          const zoneId = event.data?.zone_id;
+          const deviceId = event.data?.device_id;
+          if (zoneId !== undefined) {
+            zones.update((zs) =>
+              zs.map((z) => z.id === zoneId ? {
+                ...z,
+                online: false,
+                recovery_started_at: null,
+                recovery_attempts: 0,
+              } : z)
+            );
+          } else if (deviceId) {
+            zones.update((zs) =>
+              zs.map((z) => z.output_device_id === deviceId ? {
+                ...z,
+                online: false,
+                recovery_started_at: null,
+                recovery_attempts: 0,
+              } : z)
+            );
+          }
         } else {
           // Fallback for other zone events (e.g. zone.updated without inline data)
           fetchZones();
