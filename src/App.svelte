@@ -130,10 +130,13 @@ import AlarmsView from './components/AlarmsView.svelte';
       currentZoneId.subscribe((v) => (curId = v))();
       const curZoneExists = curId !== null && zoneList.some((z) => z.id === curId);
       if ((!curZoneExists) && zoneList.length > 0) {
-        let defaultId: number | null = null;
-        preferences.subscribe((p) => (defaultId = p.defaultZoneId))();
-        const defaultZone = defaultId !== null ? zoneList.find((z) => z.id === defaultId) : null;
-        // Prefer the default if it exists, else the first playing zone, else zone[0]
+        // Check server-side default zone (is_default flag from zones list),
+        // then fall back to local preference, then playing zone, then first zone.
+        const serverDefault = zoneList.find((z) => z.is_default);
+        let localDefaultId: number | null = null;
+        preferences.subscribe((p) => (localDefaultId = p.defaultZoneId))();
+        const localDefault = localDefaultId !== null ? zoneList.find((z) => z.id === localDefaultId) : null;
+        const defaultZone = serverDefault ?? localDefault;
         const playingZone = zoneList.find((z) => z.state === 'playing');
         const target = defaultZone ?? playingZone ?? zoneList[0];
         if (target?.id != null) currentZoneId.set(target.id);

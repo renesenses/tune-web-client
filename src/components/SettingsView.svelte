@@ -2220,6 +2220,7 @@
             const val = (e.target as HTMLSelectElement).value;
             const defaultZoneId = val ? Number(val) : null;
             preferences.update((p) => ({ ...p, defaultZoneId }));
+            api.setDefaultZone(defaultZoneId).catch(() => {});
           }}>
           <option value="">{$t('settings.autoZone')}</option>
           {#each $zones as z}

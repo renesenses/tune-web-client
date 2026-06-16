@@ -150,6 +150,8 @@ export interface Zone {
   recovery_started_at?: number | null;
   /** Number of consecutive failed poll attempts during recovery */
   recovery_attempts?: number;
+  /** Whether this zone is the server-side default */
+  is_default?: boolean;
 }
 
 export interface DiscoveredDevice {

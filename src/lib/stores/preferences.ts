@@ -76,6 +76,16 @@ export async function syncPreferencesFromServer() {
       }
     }
   } catch { /* ignore */ }
+  // Sync server-side default zone into local preferences
+  try {
+    const res = await fetch('/api/v1/system/settings/default-zone');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.zone_id != null) {
+        preferences.update((p) => ({ ...p, defaultZoneId: data.zone_id }));
+      }
+    }
+  } catch { /* ignore */ }
 }
 
 export function applyTheme(theme: ThemeMode) {

@@ -150,6 +150,17 @@ export function getZone(id: number) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`).then(mapZoneQuality);
 }
 
+export function getDefaultZone(): Promise<{ zone_id: number | null }> {
+  return fetchJSON(`${BASE}/system/settings/default-zone`);
+}
+
+export function setDefaultZone(zoneId: number | null): Promise<{ zone_id: number | null }> {
+  return fetchJSON(`${BASE}/system/settings/default-zone`, {
+    method: 'PUT',
+    body: JSON.stringify({ zone_id: zoneId }),
+  });
+}
+
 export function createZone(name: string, outputType: OutputType = 'local', outputDeviceId?: string) {
   return fetchJSON<Zone>(`${BASE}/zones`, {
     method: 'POST',
