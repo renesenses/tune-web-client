@@ -469,21 +469,21 @@
               {/if}
             </div>
             <div class="track-list">
-              {#each source.data.tracks as t}
+              {#each source.data.tracks as track}
                 <div class="track-item">
-                  <button class="track-play" onclick={() => playTrack(t)}>
-                    <AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.title} />
+                  <button class="track-play" onclick={() => playTrack(track)}>
+                    <AlbumArt coverPath={track.cover_path} albumId={track.album_id} size={36} alt={track.title} />
                     <div class="track-info">
-                      <span class="track-title truncate">{t.title}</span>
-                      <span class="track-artist truncate">{t.artist_name ?? ''}{t.album_title ? ` - ${t.album_title}` : ''}</span>
-                      <MetadataChips track={t} fields={displayFields} />
+                      <span class="track-title truncate">{track.title}</span>
+                      <span class="track-artist truncate">{track.artist_name ?? ''}{track.album_title ? ` - ${track.album_title}` : ''}</span>
+                      <MetadataChips track={track} fields={displayFields} />
                     </div>
-                    <ServiceBadge source={t.source} compact />
-                    <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
-                    <span class="track-duration">{formatTime(t.duration_ms)}</span>
+                    <ServiceBadge source={track.source} compact />
+                    <QualityBadge format={track.format} sampleRate={track.sample_rate} bitDepth={track.bit_depth} source={track.source} />
+                    <span class="track-duration">{formatTime(track.duration_ms)}</span>
                   </button>
-                  {#if onAddToPlaylist && (t.id || t.source_id)}
-                    <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={addToPlaylistLabel}>
+                  {#if onAddToPlaylist && (track.id || track.source_id)}
+                    <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(track); }} title={addToPlaylistLabel}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
                     </button>
                   {/if}
