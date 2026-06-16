@@ -25,7 +25,8 @@
 
   // Load server history on mount
   $effect(() => {
-    api.getListenHistory(100).then(entries => {
+    api.getPlaybackHistory(100).then(res => {
+      const entries = res?.items ?? [];
       serverHistory = entries.map((e: any) => ({
         track: {
           id: e.track_id,
@@ -35,12 +36,12 @@
           duration_ms: e.duration_ms,
           source: e.source,
           source_id: e.source_id,
-          cover_path: e.cover_path,
+          cover_path: e.cover_url ?? null,
         },
         playedAt: e.listened_at,
-        zoneName: `Zone ${e.zone_id}`,
+        zoneName: `Zone ${e.zone_id ?? '?'}`,
       }));
-    }).catch(() => {});
+    }).catch((err) => { console.error('HistoryView: fetch error', err); });
   });
 
   function relativeTime(iso: string): string {

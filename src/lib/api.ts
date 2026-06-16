@@ -725,7 +725,7 @@ export function searchLibrary(q: string, limit = 50) {
 }
 
 export function getPlaybackHistory(limit = 50) {
-  return fetchJSON<import('./types').HistoryEntry[]>(`${BASE}/library/history?limit=${limit}`);
+  return fetchJSON<{ items: any[]; total: number }>(`${BASE}/library/history?limit=${limit}`);
 }
 
 export function getTopTracks(limit = 20) {

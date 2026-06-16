@@ -4,6 +4,7 @@
   import { devices, unboundDevices } from '../lib/stores/devices';
   import { connectionState, reconnectAttempts } from '../lib/stores/connection';
   import { activeView, type View } from '../lib/stores/navigation';
+  import { resetLibraryNavigation } from '../lib/stores/library';
   import { activeStreamingService, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { preferences } from '../lib/stores/preferences';
   import { t } from '../lib/i18n';
@@ -307,6 +308,7 @@
   }
 
   function navigate(view: View) {
+    if (view === 'library') resetLibraryNavigation();
     activeView.set(view);
   }
 

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { activeView, type View } from '../lib/stores/navigation';
+  import { resetLibraryNavigation } from '../lib/stores/library';
   import { currentZone, zones, currentZoneId } from '../lib/stores/zones';
   import { t } from '../lib/i18n';
   import { updateAvailable } from '../lib/stores/updates';
@@ -43,6 +44,7 @@
   let zonePickerOpen = $state(false);
 
   function navigate(view: View) {
+    if (view === 'library') resetLibraryNavigation();
     activeView.set(view);
     drawerOpen = false;
   }

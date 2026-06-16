@@ -22,6 +22,13 @@ export const tracks = writable<Track[]>([]);
 // Cross-view filters (set from NowPlaying, consumed by LibraryView)
 export const yearFilter = writable<number | null>(null);
 
+// Reset library sub-navigation (artist detail, album detail) to root view.
+// Call this whenever the user explicitly navigates to the Library from the sidebar/tabbar.
+export function resetLibraryNavigation() {
+  selectedArtist.set(null);
+  selectedAlbum.set(null);
+}
+
 // Genres (derived from albums)
 export const genres = derived(albums, ($albums) => {
   const genreMap = new Map<string, number>();
