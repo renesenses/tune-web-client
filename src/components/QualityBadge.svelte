@@ -20,8 +20,9 @@
 
 {#if hasData && label}
   <span class="quality-badge tier-{colorClass}" title={tooltip}>
-    {#if tier === 'hires' || tier === 'mqa'}
-      <span class="qb-tier">{tierLabel}</span>
+    <span class="qb-tier">{tierLabel}</span>
+    {#if tier === 'hires_max'}
+      <span class="qb-star">✦</span>
     {/if}
     <span class="qb-detail">{label}</span>
   </span>
@@ -49,32 +50,60 @@
     letter-spacing: 0.6px;
   }
 
+  .qb-star {
+    font-size: 8px;
+    line-height: 1;
+  }
+
   .qb-detail {
     font-weight: 500;
     opacity: 0.9;
   }
 
-  /* Gold tier (MQA / Hi-Res) */
-  .quality-badge.tier-gold {
-    color: #fbbf24;
-    background: rgba(251, 191, 36, 0.12);
-    border: 1px solid rgba(251, 191, 36, 0.3);
+  /* Gold-Max tier (Hi-Res Max ≥ 176.4 kHz / MQA) */
+  .quality-badge.tier-gold-max {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.4);
   }
-  .quality-badge.tier-gold .qb-tier {
+  .quality-badge.tier-gold-max .qb-tier {
+    color: #fbbf24;
+  }
+  .quality-badge.tier-gold-max .qb-star {
     color: #fcd34d;
   }
 
-  /* Silver tier (CD quality) */
-  .quality-badge.tier-silver {
-    color: #93c5fd;
-    background: rgba(147, 197, 253, 0.1);
-    border: 1px solid rgba(147, 197, 253, 0.25);
+  /* Gold tier (Hi-Res 88.2–96 kHz) */
+  .quality-badge.tier-gold {
+    color: #a78bfa;
+    background: rgba(167, 139, 250, 0.12);
+    border: 1px solid rgba(167, 139, 250, 0.3);
+  }
+  .quality-badge.tier-gold .qb-tier {
+    color: #c4b5fd;
+  }
+
+  /* Blue tier (CD quality / lossless ≤ 48 kHz) */
+  .quality-badge.tier-blue {
+    color: #60a5fa;
+    background: rgba(96, 165, 250, 0.1);
+    border: 1px solid rgba(96, 165, 250, 0.25);
+  }
+
+  /* Green tier (DSD) */
+  .quality-badge.tier-green {
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.1);
+    border: 1px solid rgba(52, 211, 153, 0.3);
+  }
+  .quality-badge.tier-green .qb-tier {
+    color: #6ee7b7;
   }
 
   /* Gray tier (Lossy) */
   .quality-badge.tier-gray {
-    color: #9ca3af;
-    background: rgba(156, 163, 175, 0.08);
-    border: 1px solid rgba(156, 163, 175, 0.2);
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.08);
+    border: 1px solid rgba(248, 113, 113, 0.2);
   }
 </style>

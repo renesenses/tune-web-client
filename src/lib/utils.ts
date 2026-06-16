@@ -54,7 +54,7 @@ export function formatAudioBadge(
 
 // --- Streaming quality tier helpers ---
 
-export type QualityTier = 'mqa' | 'hires' | 'cd' | 'lossy';
+export type QualityTier = 'mqa' | 'hires_max' | 'hires' | 'cd' | 'lossy' | 'dsd';
 
 const LOSSLESS_FORMATS = new Set(['flac', 'wav', 'alac', 'aiff', 'dsd']);
 
@@ -74,13 +74,19 @@ export function getQualityTier(
   // MQA is identifiable by format string
   if (fmt === 'mqa' || fmt.includes('mqa')) return 'mqa';
 
-  // DSD is always hi-res
-  if (fmt === 'dsd') return 'hires';
+  // DSD — native 1-bit format, always its own tier
+  if (fmt === 'dsd' || fmt.startsWith('dsd')) return 'dsd';
 
-  // Hi-Res: lossless format AND (sample rate > 44100 OR bit depth > 16)
-  if (LOSSLESS_FORMATS.has(fmt) && (sr > 44100 || bd > 16)) return 'hires';
+  // Hi-Res Max: lossless 24-bit at 176.4 kHz or above (176400, 192000, 352800, 384000 …)
+  if (LOSSLESS_FORMATS.has(fmt) && bd >= 24 && sr >= 176400) return 'hires_max';
 
-  // CD quality: lossless format at 44.1kHz/16-bit (or lower sample rate lossless)
+  // Hi-Res: lossless 24-bit at 88.2–96 kHz OR 32-bit at any rate above CD
+  if (LOSSLESS_FORMATS.has(fmt) && bd >= 24 && sr >= 88200) return 'hires';
+
+  // Also treat 24-bit at 44.1/48 kHz as Hi-Res (e.g. Qobuz 24/44.1)
+  if (LOSSLESS_FORMATS.has(fmt) && bd > 16) return 'hires';
+
+  // CD quality: lossless 16-bit at ≤ 48 kHz
   if (LOSSLESS_FORMATS.has(fmt)) return 'cd';
 
   // Everything else (MP3, AAC, OGG, Opus, WMA, unknown) is lossy
@@ -91,7 +97,9 @@ export function getQualityTier(
 export function getQualityTierLabel(tier: QualityTier): string {
   switch (tier) {
     case 'mqa': return 'MQA';
+    case 'hires_max': return 'Hi-Res Max';
     case 'hires': return 'Hi-Res';
+    case 'dsd': return 'DSD';
     case 'cd': return 'CD';
     case 'lossy': return 'Lossy';
   }
@@ -101,8 +109,10 @@ export function getQualityTierLabel(tier: QualityTier): string {
 export function getQualityTierColor(tier: QualityTier): string {
   switch (tier) {
     case 'mqa':
+    case 'hires_max': return 'gold-max';
     case 'hires': return 'gold';
-    case 'cd': return 'silver';
+    case 'dsd': return 'green';
+    case 'cd': return 'blue';
     case 'lossy': return 'gray';
   }
 }
@@ -138,8 +148,10 @@ export function formatQualitySource(
   let detail = '';
   if (tier === 'mqa') {
     detail = 'MQA';
-  } else if (tier === 'hires' && sr > 0 && bd > 0) {
+  } else if ((tier === 'hires' || tier === 'hires_max') && sr > 0 && bd > 0) {
     detail = `${bd}/${sr >= 1000 ? (sr / 1000).toFixed(sr % 1000 === 0 ? 0 : 1) : sr}`;
+  } else if (tier === 'dsd') {
+    detail = fmt.toUpperCase() || 'DSD';
   } else if (tier === 'cd') {
     detail = fmt || 'CD';
   } else {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
+  import { activeView } from '../lib/stores/navigation';
   import { libraryTab, selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryLoading } from '../lib/stores/library';
   import { playbackHistory } from '../lib/stores/history';
   import { currentZone, currentZoneId, zones, playAndSync } from '../lib/stores/zones';
@@ -35,7 +35,6 @@
   );
   let recentAlbums: Album[] = $state([]);
   let recentTab = $state<'played' | 'added'>('played');
-  let searchQuery = $state('');
   let topArtists: TopArtist[] = $state([]);
   let topTracks: TopTrack[] = $state([]);
   let topArtistsLoaded = $state(false);
@@ -89,12 +88,6 @@
   function goToLibrary(tab: 'albums' | 'artists' | 'tracks') {
     libraryTab.set(tab);
     activeView.set('library');
-  }
-
-  function handleSearch() {
-    if (!searchQuery.trim()) return;
-    pendingSearchQuery.set(searchQuery.trim());
-    activeView.set('search');
   }
 
   async function playAlbum(albumId: number) {
@@ -556,17 +549,6 @@
     </div>
   {/if}
 
-  <!-- Search bar -->
-  <div class="home-search">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-    <input
-      type="text"
-      placeholder={$t('home.searchPlaceholder')}
-      bind:value={searchQuery}
-      onkeydown={(e) => e.key === 'Enter' && handleSearch()}
-    />
-  </div>
-
   <!-- Recently section -->
   <div class="recent-section">
     <div class="recent-tabs">
@@ -868,41 +850,6 @@
     font-family: var(--font-body);
     font-size: 13px;
     color: var(--tune-text-secondary);
-  }
-
-  .home-search {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    background: var(--tune-surface);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-lg);
-    padding: var(--space-sm) var(--space-md);
-    transition: border-color 0.12s;
-  }
-
-  .home-search:focus-within {
-    border-color: var(--tune-accent);
-  }
-
-  .home-search svg {
-    color: var(--tune-text-muted);
-    flex-shrink: 0;
-  }
-
-  .home-search input {
-    flex: 1;
-    background: none;
-    border: none;
-    outline: none;
-    color: var(--tune-text);
-    font-family: var(--font-body);
-    font-size: 15px;
-    padding: var(--space-xs) 0;
-  }
-
-  .home-search input::placeholder {
-    color: var(--tune-text-muted);
   }
 
   .recent-section {

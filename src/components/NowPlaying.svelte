@@ -1659,19 +1659,29 @@
     cursor: default;
   }
 
-  .up-next-quality.tier-gold {
-    color: #fbbf24;
-    background: rgba(251, 191, 36, 0.12);
+  .up-next-quality.tier-gold-max {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
   }
 
-  .up-next-quality.tier-silver {
-    color: #d1d5db;
-    background: rgba(209, 213, 219, 0.1);
+  .up-next-quality.tier-gold {
+    color: #a78bfa;
+    background: rgba(167, 139, 250, 0.1);
+  }
+
+  .up-next-quality.tier-blue {
+    color: #60a5fa;
+    background: rgba(96, 165, 250, 0.08);
+  }
+
+  .up-next-quality.tier-green {
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.08);
   }
 
   .up-next-quality.tier-gray {
-    color: #9ca3af;
-    background: rgba(156, 163, 175, 0.08);
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.06);
   }
 
   /* Radio LIVE badge on artwork */
@@ -2150,32 +2160,52 @@
     letter-spacing: 0.3px;
   }
 
-  /* Gold tier (MQA / Hi-Res) */
-  .artwork-quality-badge.tier-gold {
-    color: #fbbf24;
-    border: 1px solid rgba(251, 191, 36, 0.4);
-    box-shadow: 0 0 8px rgba(251, 191, 36, 0.15);
+  /* Gold-Max tier (Hi-Res Max ≥ 176.4 kHz / MQA) */
+  .artwork-quality-badge.tier-gold-max {
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
   }
-  .artwork-quality-badge.tier-gold .aqb-tier {
-    color: #fcd34d;
+  .artwork-quality-badge.tier-gold-max .aqb-tier {
+    color: #fbbf24;
   }
 
-  /* Silver tier (CD quality) */
-  .artwork-quality-badge.tier-silver {
-    color: #d1d5db;
-    border: 1px solid rgba(209, 213, 219, 0.3);
+  /* Gold tier (Hi-Res 88.2–96 kHz) */
+  .artwork-quality-badge.tier-gold {
+    color: #a78bfa;
+    border: 1px solid rgba(167, 139, 250, 0.4);
+    box-shadow: 0 0 8px rgba(167, 139, 250, 0.12);
   }
-  .artwork-quality-badge.tier-silver .aqb-tier {
-    color: #e5e7eb;
+  .artwork-quality-badge.tier-gold .aqb-tier {
+    color: #c4b5fd;
+  }
+
+  /* Blue tier (CD quality) */
+  .artwork-quality-badge.tier-blue {
+    color: #60a5fa;
+    border: 1px solid rgba(96, 165, 250, 0.35);
+  }
+  .artwork-quality-badge.tier-blue .aqb-tier {
+    color: #93c5fd;
+  }
+
+  /* Green tier (DSD) */
+  .artwork-quality-badge.tier-green {
+    color: #34d399;
+    border: 1px solid rgba(52, 211, 153, 0.4);
+    box-shadow: 0 0 8px rgba(52, 211, 153, 0.12);
+  }
+  .artwork-quality-badge.tier-green .aqb-tier {
+    color: #6ee7b7;
   }
 
   /* Gray tier (Lossy) */
   .artwork-quality-badge.tier-gray {
-    color: #9ca3af;
-    border: 1px solid rgba(156, 163, 175, 0.25);
+    color: #f87171;
+    border: 1px solid rgba(248, 113, 113, 0.3);
   }
   .artwork-quality-badge.tier-gray .aqb-tier {
-    color: #9ca3af;
+    color: #fca5a5;
   }
 
   /* Track detail panel (quality badge click) */

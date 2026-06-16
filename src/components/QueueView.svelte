@@ -507,19 +507,29 @@
     cursor: default;
   }
 
-  .audio-format.tier-gold {
-    color: #fbbf24;
-    background: rgba(251, 191, 36, 0.12);
+  .audio-format.tier-gold-max {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
   }
 
-  .audio-format.tier-silver {
-    color: #d1d5db;
-    background: rgba(209, 213, 219, 0.1);
+  .audio-format.tier-gold {
+    color: #a78bfa;
+    background: rgba(167, 139, 250, 0.1);
+  }
+
+  .audio-format.tier-blue {
+    color: #60a5fa;
+    background: rgba(96, 165, 250, 0.08);
+  }
+
+  .audio-format.tier-green {
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.08);
   }
 
   .audio-format.tier-gray {
-    color: #9ca3af;
-    background: rgba(156, 163, 175, 0.08);
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.06);
   }
 
   .action-btn {

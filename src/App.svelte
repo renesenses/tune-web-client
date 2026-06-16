@@ -67,6 +67,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import LoginView from './components/LoginView.svelte';
   import BridgeView from './components/BridgeView.svelte';
   import AiChat from './components/AiChat.svelte';
+  import GlobalSearchBar from './components/GlobalSearchBar.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
   import { loadProfiles } from './lib/stores/profile';
   import { notifications } from './lib/stores/notifications';
@@ -812,6 +813,14 @@ import AlarmsView from './components/AlarmsView.svelte';
         <button class="update-banner-dismiss" onclick={dismissUpdateBanner} title="Masquer">&times;</button>
       </div>
     {/if}
+
+    <!-- Global search bar: sticky top-right overlay accessible from any view -->
+    {#if !isKiosk && $activeView !== 'nowplaying' && $activeView !== 'login' && $activeView !== 'onboarding' && $activeView !== 'offline'}
+      <div class="global-search-wrapper">
+        <GlobalSearchBar />
+      </div>
+    {/if}
+
     {#if $activeView === 'home'}
       <HomeView />
     {:else if $activeView === 'nowplaying'}
@@ -966,9 +975,24 @@ import AlarmsView from './components/AlarmsView.svelte';
     min-width: 0;
   }
 
+  .global-search-wrapper {
+    position: fixed;
+    top: 8px;
+    right: 16px;
+    z-index: 85;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .global-search-wrapper > :global(*) {
+    pointer-events: all;
+  }
+
   .scan-indicator {
     position: fixed;
-    top: 12px;
+    top: 56px;
     right: 12px;
     display: flex;
     align-items: center;
