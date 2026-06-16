@@ -239,8 +239,10 @@
               <AlbumArt albumId={queueTrack.album_id} size={40} alt={queueTrack.title} />
             {/if}
             <div class="queue-info">
-              <span class="queue-title truncate">{queueTrack.title}</span>
-              <span class="queue-artist truncate">{queueTrack.artist_name ?? ''}</span>
+              <span class="queue-title truncate">{queueTrack.title || 'Piste inconnue'}</span>
+              {#if queueTrack.artist_name}
+                <span class="queue-artist truncate">{queueTrack.artist_name}</span>
+              {/if}
               <MetadataChips track={queueTrack} fields={displayFields} />
             </div>
             <ServiceBadge source={queueTrack.source} compact />
@@ -481,13 +483,17 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
   }
 
   .queue-title {
+    display: block;
+    flex-shrink: 0;
     font-family: var(--font-body);
     font-size: 14px;
     font-weight: 700;
+    line-height: 1.3;
+    color: var(--tune-text);
   }
 
   .queue-item.current .queue-title {
@@ -495,8 +501,11 @@
   }
 
   .queue-artist {
+    display: block;
+    flex-shrink: 0;
     font-family: var(--font-body);
     font-size: 13px;
+    line-height: 1.3;
     color: var(--tune-text-secondary);
   }
 
