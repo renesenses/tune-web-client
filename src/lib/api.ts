@@ -718,6 +718,33 @@ export async function getTracks(limit = 100, offset = 0) {
   return Array.isArray(raw) ? raw : (raw.items ?? []) as Track[];
 }
 
+export async function getFilteredTracks(opts: {
+  genre?: string;
+  format?: string;
+  sample_rate?: number;
+  bit_depth?: number;
+  year?: number;
+  source?: string;
+  q?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{ items: Track[]; total: number }> {
+  const params = new URLSearchParams();
+  if (opts.genre) params.set('genre', opts.genre);
+  if (opts.format) params.set('format', opts.format);
+  if (opts.sample_rate != null) params.set('sample_rate', String(opts.sample_rate));
+  if (opts.bit_depth != null) params.set('bit_depth', String(opts.bit_depth));
+  if (opts.year != null) params.set('year', String(opts.year));
+  if (opts.source) params.set('source', opts.source);
+  if (opts.q) params.set('q', opts.q);
+  params.set('limit', String(opts.limit ?? 200));
+  if (opts.offset) params.set('offset', String(opts.offset));
+  const raw = await fetchJSON<any>(`${BASE}/library/tracks?${params}`);
+  const items: Track[] = Array.isArray(raw) ? raw : (raw.items ?? []);
+  const total: number = Array.isArray(raw) ? raw.length : (raw.total ?? items.length);
+  return { items, total };
+}
+
 export async function getAllTracks(pageSize = 2000): Promise<Track[]> {
   const all: Track[] = [];
   let offset = 0;

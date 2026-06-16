@@ -8,6 +8,18 @@
   import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
+  import MetadataChips from './MetadataChips.svelte';
+
+  const DISPLAY_FIELDS_KEY = 'tune_metadata_fields';
+  const DISPLAY_FIELDS_DEFAULT = ['format', 'genre', 'year'];
+  function getDisplayFields(): string[] {
+    try {
+      const raw = localStorage.getItem(DISPLAY_FIELDS_KEY);
+      if (raw) return JSON.parse(raw) as string[];
+    } catch {}
+    return DISPLAY_FIELDS_DEFAULT;
+  }
+  let displayFields = $state<string[]>(getDisplayFields());
 
   interface Props {
     onAddToPlaylist?: (track: import('../lib/types').Track) => void;
@@ -229,6 +241,7 @@
             <div class="queue-info">
               <span class="queue-title truncate">{queueTrack.title}</span>
               <span class="queue-artist truncate">{queueTrack.artist_name ?? ''}</span>
+              <MetadataChips track={queueTrack} fields={displayFields} />
             </div>
             <ServiceBadge source={queueTrack.source} compact />
             {#if queueTrack.format}

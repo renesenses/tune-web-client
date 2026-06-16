@@ -6,6 +6,18 @@
   import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
+  import MetadataChips from './MetadataChips.svelte';
+
+  const DISPLAY_FIELDS_KEY = 'tune_metadata_fields';
+  const DISPLAY_FIELDS_DEFAULT = ['format', 'genre', 'year'];
+  function getDisplayFields(): string[] {
+    try {
+      const raw = localStorage.getItem(DISPLAY_FIELDS_KEY);
+      if (raw) return JSON.parse(raw) as string[];
+    } catch {}
+    return DISPLAY_FIELDS_DEFAULT;
+  }
+  let displayFields = $state<string[]>(getDisplayFields());
 
   let playingIndex = $state<number | null>(null);
   let serverHistory = $state<HistoryEntry[]>([]);
@@ -132,6 +144,7 @@
           <div class="history-info">
             <span class="history-title truncate">{entry.track.title}</span>
             <span class="history-artist truncate">{entry.track.artist_name ?? ''}</span>
+            <MetadataChips track={entry.track} fields={displayFields} />
           </div>
           <div class="history-meta">
             <span class="history-zone truncate">{entry.zoneName}</span>

@@ -1318,6 +1318,42 @@
     if (pushEnabled) initPushNotifications();
   }
 
+  // Display metadata fields (chips shown under track titles)
+  const DISPLAY_FIELD_DEFS: { key: string; label: string }[] = [
+    { key: 'format', label: 'Format (FLAC, MP3…)' },
+    { key: 'sample_rate', label: 'Fréquence (96kHz)' },
+    { key: 'bit_depth', label: 'Profondeur (24bit)' },
+    { key: 'genre', label: 'Genre' },
+    { key: 'year', label: 'Année' },
+    { key: 'label', label: 'Label' },
+    { key: 'composer', label: 'Compositeur' },
+    { key: 'duration', label: 'Durée' },
+    { key: 'source', label: 'Source (local/tidal…)' },
+    { key: 'file_path', label: 'Fichier' },
+  ];
+  const DISPLAY_FIELDS_DEFAULT = ['format', 'genre', 'year'];
+  const DISPLAY_FIELDS_KEY = 'tune_metadata_fields';
+
+  function loadDisplayFields(): string[] {
+    try {
+      const raw = localStorage.getItem(DISPLAY_FIELDS_KEY);
+      if (raw) return JSON.parse(raw) as string[];
+    } catch {}
+    return DISPLAY_FIELDS_DEFAULT;
+  }
+
+  let displayFields = $state<string[]>(loadDisplayFields());
+
+  function toggleDisplayField(key: string) {
+    const next = displayFields.includes(key)
+      ? displayFields.filter(k => k !== key)
+      : [...displayFields, key];
+    displayFields = next;
+    try {
+      localStorage.setItem(DISPLAY_FIELDS_KEY, JSON.stringify(next));
+    } catch {}
+  }
+
   // Use onMount (not $effect) to load data exactly once on component
   // creation.  The $effect(() => { untrack(() => { ... }) }) pattern
   // can re-trigger on batch flushes in certain Svelte 5 runtime versions,
@@ -2237,6 +2273,24 @@
           <option value="percent">{$t('settings.percent')}</option>
           <option value="dB">{$t('settings.decibels')}</option>
         </select>
+      </div>
+    </section>
+
+    <!-- Display metadata fields -->
+    <section class="settings-section">
+      <h3>Champs métadonnées affichés</h3>
+      <p class="section-hint">Champs affichés sous chaque titre dans les résultats de recherche, la bibliothèque, la file d'attente et l'historique.</p>
+      <div class="display-fields-grid">
+        {#each DISPLAY_FIELD_DEFS as def}
+          <label class="display-field-check">
+            <input
+              type="checkbox"
+              checked={displayFields.includes(def.key)}
+              onchange={() => toggleDisplayField(def.key)}
+            />
+            <span>{def.label}</span>
+          </label>
+        {/each}
       </div>
     </section>
 
@@ -3440,6 +3494,43 @@
 
   .pref-select:focus {
     border-color: var(--tune-accent);
+  }
+
+  .section-hint {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    margin: 0 0 var(--space-md) 0;
+    line-height: 1.5;
+  }
+
+  .display-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-sm) var(--space-md);
+  }
+
+  .display-field-check {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .display-field-check input[type="checkbox"] {
+    accent-color: var(--tune-accent);
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .display-field-check:hover {
+    color: var(--tune-text);
   }
 
   .devices-actions {

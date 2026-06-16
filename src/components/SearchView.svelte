@@ -1,7 +1,7 @@
 <script lang="ts">
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
-  import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading } from '../lib/stores/library';
+  import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading, albums, tracks as libraryTracks, genres as libraryGenres } from '../lib/stores/library';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
   import { formatTime } from '../lib/utils';
@@ -10,6 +10,142 @@
   import ServiceBadge from './ServiceBadge.svelte';
   import type { FederatedSearchResult, Track, Album, Artist, Playlist, StreamingPlaylist, Source } from '../lib/types';
   import { t } from '../lib/i18n';
+  import MetadataChips from './MetadataChips.svelte';
+
+  const DISPLAY_FIELDS_KEY = 'tune_metadata_fields';
+  const DISPLAY_FIELDS_DEFAULT = ['format', 'genre', 'year'];
+  function getDisplayFields(): string[] {
+    try {
+      const raw = localStorage.getItem(DISPLAY_FIELDS_KEY);
+      if (raw) return JSON.parse(raw) as string[];
+    } catch {}
+    return DISPLAY_FIELDS_DEFAULT;
+  }
+  let displayFields = $state<string[]>(getDisplayFields());
+
+  // --- Metadata filter panel (shown when no search query) ---
+
+  // Active filter selections
+  let filterGenre = $state<string | null>(null);
+  let filterYear = $state<number | null>(null);
+  let filterFormat = $state<string | null>(null);
+  let filterSampleRate = $state<number | null>(null);
+
+  // Filtered tracks result (when metadata filters are active)
+  let filterResults = $state<Track[]>([]);
+  let filterTotal = $state<number>(0);
+  let filterLoading = $state(false);
+
+  // Whether ANY metadata filter is active
+  let hasActiveFilters = $derived(
+    filterGenre !== null || filterYear !== null || filterFormat !== null || filterSampleRate !== null
+  );
+
+  // Derive genre list from library store
+  let availableGenres = $derived(
+    $libraryGenres.slice(0, 30).map((g) => g.name)
+  );
+
+  // Derive year list from albums store (sorted desc, top 20)
+  let availableYears = $derived.by(() => {
+    const yearSet = new Set<number>();
+    for (const a of $albums) {
+      if (a.year) yearSet.add(a.year);
+    }
+    return [...yearSet].sort((a, b) => b - a).slice(0, 20);
+  });
+
+  // Derive format list from tracks store
+  let availableFormats = $derived.by(() => {
+    const fmtSet = new Set<string>();
+    for (const t of $libraryTracks) {
+      if (t.format) fmtSet.add(t.format.toUpperCase());
+    }
+    // Also include static common formats; merge with what library has
+    const base = ['FLAC', 'WAV', 'MP3', 'AAC', 'DSD', 'ALAC', 'AIFF', 'OGG'];
+    for (const b of base) fmtSet.add(b);
+    return [...fmtSet].sort();
+  });
+
+  // Fixed sample rate options
+  const SAMPLE_RATE_OPTIONS: { label: string; value: number }[] = [
+    { label: '44.1 kHz', value: 44100 },
+    { label: '48 kHz', value: 48000 },
+    { label: '88.2 kHz', value: 88200 },
+    { label: '96 kHz', value: 96000 },
+    { label: '176.4 kHz', value: 176400 },
+    { label: '192 kHz', value: 192000 },
+    { label: '352.8 kHz', value: 352800 },
+    { label: '384 kHz', value: 384000 },
+  ];
+
+  // Which filter rows to show (from localStorage)
+  let shownFilterFields = $derived.by(() => {
+    const fields = displayFields;
+    const rows: string[] = [];
+    if (fields.includes('genre')) rows.push('genre');
+    if (fields.includes('year')) rows.push('year');
+    if (fields.includes('format')) rows.push('format');
+    // Always show sample_rate if format is shown (they go together)
+    rows.push('sample_rate');
+    return rows;
+  });
+
+  // Run filter query whenever any filter changes
+  $effect(() => {
+    const g = filterGenre;
+    const y = filterYear;
+    const f = filterFormat;
+    const sr = filterSampleRate;
+    const q = searchQuery.trim();
+    if (!g && !y && !f && !sr && !q) {
+      filterResults = [];
+      filterTotal = 0;
+      return;
+    }
+    // Don't run if there's a text query (text search handles it)
+    if (q) return;
+    runFilterSearch(g, y, f, sr);
+  });
+
+  async function runFilterSearch(genre: string | null, year: number | null, format: string | null, sampleRate: number | null) {
+    filterLoading = true;
+    try {
+      const res = await api.getFilteredTracks({
+        genre: genre ?? undefined,
+        year: year ?? undefined,
+        format: format?.toLowerCase() ?? undefined,
+        sample_rate: sampleRate ?? undefined,
+        limit: 200,
+      });
+      filterResults = res.items;
+      filterTotal = res.total;
+    } catch (e) {
+      console.error('Filter search error:', e);
+      filterResults = [];
+      filterTotal = 0;
+    }
+    filterLoading = false;
+  }
+
+  function toggleFilterGenre(g: string) {
+    filterGenre = filterGenre === g ? null : g;
+  }
+  function toggleFilterYear(y: number) {
+    filterYear = filterYear === y ? null : y;
+  }
+  function toggleFilterFormat(f: string) {
+    filterFormat = filterFormat === f ? null : f;
+  }
+  function toggleFilterSampleRate(sr: number) {
+    filterSampleRate = filterSampleRate === sr ? null : sr;
+  }
+  function clearAllFilters() {
+    filterGenre = null;
+    filterYear = null;
+    filterFormat = null;
+    filterSampleRate = null;
+  }
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -340,6 +476,7 @@
                     <div class="track-info">
                       <span class="track-title truncate">{t.title}</span>
                       <span class="track-artist truncate">{t.artist_name ?? ''}{t.album_title ? ` - ${t.album_title}` : ''}</span>
+                      <MetadataChips track={t} fields={displayFields} />
                     </div>
                     <ServiceBadge source={t.source} compact />
                     <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
@@ -370,7 +507,119 @@
       {/each}
     {/if}
   {:else}
-    <div class="empty">{$t('search.hint')}</div>
+    <!-- Metadata filter panel — shown when no text query is entered -->
+    <div class="filter-panel">
+
+      {#if shownFilterFields.includes('genre') && availableGenres.length > 0}
+        <div class="filter-row">
+          <span class="filter-label">{$t('common.genres')}</span>
+          <div class="filter-chips">
+            {#each availableGenres as g}
+              <button
+                class="filter-chip"
+                class:active={filterGenre === g}
+                onclick={() => toggleFilterGenre(g)}
+              >{g}{filterGenre === g ? ' ×' : ''}</button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      {#if shownFilterFields.includes('year') && availableYears.length > 0}
+        <div class="filter-row">
+          <span class="filter-label">{$t('common.years')}</span>
+          <div class="filter-chips">
+            {#each availableYears as y}
+              <button
+                class="filter-chip"
+                class:active={filterYear === y}
+                onclick={() => toggleFilterYear(y)}
+              >{y}{filterYear === y ? ' ×' : ''}</button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      {#if shownFilterFields.includes('format')}
+        <div class="filter-row">
+          <span class="filter-label">Format</span>
+          <div class="filter-chips">
+            {#each availableFormats as f}
+              <button
+                class="filter-chip filter-chip--format"
+                class:active={filterFormat === f}
+                onclick={() => toggleFilterFormat(f)}
+              >{f}{filterFormat === f ? ' ×' : ''}</button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      <div class="filter-row">
+        <span class="filter-label">Sample Rate</span>
+        <div class="filter-chips">
+          {#each SAMPLE_RATE_OPTIONS as opt}
+            <button
+              class="filter-chip filter-chip--rate"
+              class:active={filterSampleRate === opt.value}
+              onclick={() => toggleFilterSampleRate(opt.value)}
+            >{opt.label}{filterSampleRate === opt.value ? ' ×' : ''}</button>
+          {/each}
+        </div>
+      </div>
+
+      {#if hasActiveFilters}
+        <div class="filter-actions">
+          <button class="clear-filters-btn" onclick={clearAllFilters}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            Effacer les filtres
+          </button>
+        </div>
+      {/if}
+    </div>
+
+    {#if filterLoading}
+      <div class="loading">
+        <div class="spinner"></div>
+        {$t('search.searching')}
+      </div>
+    {:else if hasActiveFilters}
+      <div class="filter-results">
+        <div class="filter-count">
+          {filterTotal} {$t('common.tracks')}
+          {#if filterTotal !== filterResults.length && filterResults.length > 0}
+            <span class="filter-count-note">(affichage des {filterResults.length} premiers)</span>
+          {/if}
+        </div>
+        {#if filterResults.length === 0}
+          <div class="empty">{$t('common.noResult')}</div>
+        {:else}
+          <div class="track-list">
+            {#each filterResults as trk}
+              <div class="track-item">
+                <button class="track-play" onclick={() => playTrack(trk)}>
+                  <AlbumArt coverPath={trk.cover_path} albumId={trk.album_id} size={36} alt={trk.title} />
+                  <div class="track-info">
+                    <span class="track-title truncate">{trk.title}</span>
+                    <span class="track-artist truncate">{trk.artist_name ?? ''}{trk.album_title ? ` - ${trk.album_title}` : ''}</span>
+                    <MetadataChips track={trk} fields={displayFields} />
+                  </div>
+                  <QualityBadge format={trk.format} sampleRate={trk.sample_rate} bitDepth={trk.bit_depth} source={trk.source} />
+                  <span class="track-duration">{formatTime(trk.duration_ms)}</span>
+                </button>
+                {#if onAddToPlaylist && (trk.id || trk.source_id)}
+                  <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(trk); }} title={addToPlaylistLabel}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
+                  </button>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    {:else}
+      <div class="empty">{$t('search.hint')}</div>
+    {/if}
   {/if}
 </div>
 
@@ -783,5 +1032,133 @@
     border-radius: var(--radius-sm);
     flex-shrink: 0;
     letter-spacing: 0.3px;
+  }
+
+  /* --- Metadata filter panel --- */
+  .filter-panel {
+    background: var(--tune-grey2);
+    border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-lg);
+    margin-bottom: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .filter-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    min-height: 28px;
+  }
+
+  .filter-label {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--tune-text-muted);
+    flex-shrink: 0;
+    width: 80px;
+    padding-top: 5px;
+  }
+
+  .filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .filter-chip {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    padding: 3px 10px;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--tune-border);
+    background: transparent;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    transition: all 0.12s ease-out;
+    white-space: nowrap;
+  }
+
+  .filter-chip:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-text);
+  }
+
+  .filter-chip.active {
+    background: var(--tune-accent);
+    border-color: var(--tune-accent);
+    color: white;
+    font-weight: 600;
+  }
+
+  .filter-chip--format.active {
+    background: #2060b8;
+    border-color: #2060b8;
+  }
+
+  .filter-chip--rate.active {
+    background: #7030b8;
+    border-color: #7030b8;
+  }
+
+  .filter-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: var(--space-xs);
+  }
+
+  .clear-filters-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    color: var(--tune-text-muted);
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all 0.12s ease-out;
+  }
+
+  .clear-filters-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  /* --- Filter results --- */
+  .filter-results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .filter-count {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tune-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--tune-border);
+  }
+
+  .filter-count-note {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-left: var(--space-sm);
   }
 </style>
