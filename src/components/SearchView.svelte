@@ -1,5 +1,6 @@
 <script lang="ts">
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { notifications } from '../lib/stores/notifications';
   import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
   import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading, albums, tracks as libraryTracks, genres as libraryGenres } from '../lib/stores/library';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices } from '../lib/stores/streaming';
@@ -290,7 +291,7 @@
 
   async function playTrack(track: Track) {
     if (!zone?.id) {
-      console.warn('No zone selected, cannot play track:', track.title);
+      notifications.error('Aucune zone sélectionnée — sélectionnez une zone pour lancer la lecture');
       return;
     }
     try {

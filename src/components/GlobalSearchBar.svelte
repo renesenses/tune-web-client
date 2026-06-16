@@ -1,6 +1,7 @@
 <script lang="ts">
   import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
   import { t } from '../lib/i18n';
   import AlbumArt from './AlbumArt.svelte';
@@ -79,7 +80,10 @@
   // Quick-play a track directly from the dropdown
   async function playTrack(track: Track) {
     const zone = $currentZone;
-    if (!zone?.id) return;
+    if (!zone?.id) {
+      notifications.error('Aucune zone sélectionnée — sélectionnez une zone pour lancer la lecture');
+      return;
+    }
     try {
       if (track.id) {
         await playAndSync(zone.id, { track_id: track.id });
