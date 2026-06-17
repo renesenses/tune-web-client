@@ -1044,10 +1044,23 @@ function mapStreamingTracks(tracks: any[]): Track[] {
   return (tracks ?? []).map(mapStreamingQuality);
 }
 
+function mapStreamingAlbums(albums: any[]): Album[] {
+  return (albums ?? []).map(a => {
+    if (a && a.quality && typeof a.quality === 'object') {
+      const q = a.quality;
+      if (q.codec && !a.format)           a.format = q.codec.toLowerCase();
+      if (q.sample_rate && !a.sample_rate) a.sample_rate = q.sample_rate;
+      if (q.bit_depth && !a.bit_depth)     a.bit_depth = q.bit_depth;
+    }
+    return a as Album;
+  });
+}
+
 function mapStreamingSearchResult(result: SearchResult): SearchResult {
   return {
     ...result,
     tracks: mapStreamingTracks(result.tracks),
+    albums: mapStreamingAlbums(result.albums),
   };
 }
 
@@ -1065,11 +1078,11 @@ export function federatedSearch(q: string, sources?: string[], limit = 20) {
     url += `&sources=${sources.join(',')}`;
   }
   return fetchJSON<FederatedSearchResult>(url).then(result => {
-    // Map quality sub-objects on streaming tracks in federated results
     if (result.local) result.local.tracks = mapStreamingTracks(result.local.tracks);
     if (result.services) {
       for (const key of Object.keys(result.services)) {
         result.services[key].tracks = mapStreamingTracks(result.services[key].tracks);
+        result.services[key].albums = mapStreamingAlbums(result.services[key].albums);
       }
     }
     return result;

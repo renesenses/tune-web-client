@@ -259,11 +259,14 @@
       notifications.error('Aucune zone selectionnee');
       return;
     }
+    const src = track.source ?? (track as any)._source;
     try {
-      if (track.id) {
+      if (track.id && !src) {
         await playAndSync(zone.id, { track_id: track.id });
-      } else if (track.source && track.source_id) {
-        await playAndSync(zone.id, { source: track.source, source_id: track.source_id });
+      } else if (src && track.source_id) {
+        await playAndSync(zone.id, { source: src, source_id: track.source_id });
+      } else if (track.id) {
+        await playAndSync(zone.id, { track_id: track.id });
       }
     } catch (e) {
       console.error('Play track error:', e);
@@ -275,12 +278,16 @@
       notifications.error('Aucune zone selectionnee');
       return;
     }
+    const src = track.source ?? (track as any)._source;
     try {
-      if (track.id) {
+      if (track.id && !src) {
         await api.addToQueue(zone.id, { track_id: track.id });
         notifications.success(`Ajout a la file : ${track.title}`);
-      } else if (track.source && track.source_id) {
-        await api.addToQueue(zone.id, { source: track.source, source_id: track.source_id });
+      } else if (src && track.source_id) {
+        await api.addToQueue(zone.id, { source: src, source_id: track.source_id });
+        notifications.success(`Ajout a la file : ${track.title}`);
+      } else if (track.id) {
+        await api.addToQueue(zone.id, { track_id: track.id });
         notifications.success(`Ajout a la file : ${track.title}`);
       }
     } catch (e) {
@@ -293,11 +300,14 @@
       notifications.error('Aucune zone selectionnee');
       return;
     }
+    const src = album.source ?? (album as any)._source;
     try {
-      if (album.id) {
+      if (album.id && !src) {
         await playAndSync(zone.id, { album_id: album.id });
-      } else if (album.source && album.source_id) {
-        await playAndSync(zone.id, { source: album.source, streaming_album_id: album.source_id });
+      } else if (src && album.source_id) {
+        await playAndSync(zone.id, { source: src, streaming_album_id: album.source_id });
+      } else if (album.id) {
+        await playAndSync(zone.id, { album_id: album.id });
       }
     } catch (e) {
       console.error('Play album error:', e);
@@ -357,7 +367,7 @@
     }
   }
 
-  // Compute grouped results
+  // Compute grouped results — dedup artists, prefer the one with an image
   let groupedArtists = $derived.by(() => {
     if (!results) return [];
     const all: (Artist & { _source?: string })[] = [];
@@ -369,13 +379,17 @@
         for (const a of data.artists) all.push({ ...a, _source: svc });
       }
     }
-    const seen = new Set<string>();
-    return all.filter(a => {
+    const map = new Map<string, Artist & { _source?: string }>();
+    for (const a of all) {
       const key = a.name.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, a);
+      } else if (!existing.image_path && a.image_path) {
+        map.set(key, a);
+      }
+    }
+    return [...map.values()];
   });
 
   let groupedAlbums = $derived.by(() => {
