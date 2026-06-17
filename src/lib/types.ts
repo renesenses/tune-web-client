@@ -91,6 +91,11 @@ export interface Track {
   source?: Source;
   source_id?: string | null;
   gapless_next?: boolean;
+  // Metadata fields returned by server (absent from legacy Track payloads, so optional)
+  genre?: string | null;
+  year?: number | null;
+  label?: string | null;
+  composer?: string | null;
 }
 
 export interface Playlist {

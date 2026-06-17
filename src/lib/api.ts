@@ -725,6 +725,8 @@ export async function getFilteredTracks(opts: {
   bit_depth?: number;
   year?: number;
   source?: string;
+  label?: string;
+  composer?: string;
   q?: string;
   limit?: number;
   offset?: number;
@@ -736,6 +738,8 @@ export async function getFilteredTracks(opts: {
   if (opts.bit_depth != null) params.set('bit_depth', String(opts.bit_depth));
   if (opts.year != null) params.set('year', String(opts.year));
   if (opts.source) params.set('source', opts.source);
+  if (opts.label) params.set('label', opts.label);
+  if (opts.composer) params.set('composer', opts.composer);
   if (opts.q) params.set('q', opts.q);
   params.set('limit', String(opts.limit ?? 200));
   if (opts.offset) params.set('offset', String(opts.offset));
@@ -778,7 +782,7 @@ export function getLibraryStats() {
   return fetchJSON<{ tracks: number; albums: number; artists: number }>(`${BASE}/library/stats`);
 }
 
-export function updateAlbum(id: number, data: { title?: string; artist_id?: number; year?: number; genre?: string }) {
+export function updateAlbum(id: number, data: { title?: string; artist_id?: number; artist_name?: string; year?: number; genre?: string; label?: string; catalog_number?: string }) {
   return fetchJSON<Album>(`${BASE}/library/albums/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),

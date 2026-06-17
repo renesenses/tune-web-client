@@ -31,6 +31,11 @@
   let filterYear = $state<number | null>(null);
   let filterFormat = $state<string | null>(null);
   let filterSampleRate = $state<number | null>(null);
+  let filterBitDepth = $state<number | null>(null);
+  let filterSource = $state<string | null>(null);
+  let filterDuration = $state<string | null>(null); // e.g. 'lt3', '3-5', '5-10', '10-30', 'gt30'
+  let filterLabel = $state<string>('');
+  let filterComposer = $state<string>('');
 
   // Filtered tracks result (when metadata filters are active)
   let filterResults = $state<Track[]>([]);
@@ -39,7 +44,15 @@
 
   // Whether ANY metadata filter is active
   let hasActiveFilters = $derived(
-    filterGenre !== null || filterYear !== null || filterFormat !== null || filterSampleRate !== null
+    filterGenre !== null ||
+    filterYear !== null ||
+    filterFormat !== null ||
+    filterSampleRate !== null ||
+    filterBitDepth !== null ||
+    filterSource !== null ||
+    filterDuration !== null ||
+    filterLabel.trim().length > 0 ||
+    filterComposer.trim().length > 0
   );
 
   // Derive genre list from library store
@@ -47,13 +60,13 @@
     $libraryGenres.slice(0, 30).map((g) => g.name)
   );
 
-  // Derive year list from albums store (sorted desc, top 20)
+  // Derive year list from albums store (sorted desc, top 25)
   let availableYears = $derived.by(() => {
     const yearSet = new Set<number>();
     for (const a of $albums) {
       if (a.year) yearSet.add(a.year);
     }
-    return [...yearSet].sort((a, b) => b - a).slice(0, 20);
+    return [...yearSet].sort((a, b) => b - a).slice(0, 25);
   });
 
   // Derive format list from tracks store
@@ -68,6 +81,36 @@
     return [...fmtSet].sort();
   });
 
+  // Derive label list from albums store (sorted alphabetically, top 30)
+  let availableLabels = $derived.by(() => {
+    const labelSet = new Set<string>();
+    for (const a of $albums) {
+      if (a.label) labelSet.add(a.label);
+    }
+    return [...labelSet].sort((a, b) => a.localeCompare(b)).slice(0, 30);
+  });
+
+  // Derive composer list from tracks store
+  let availableComposers = $derived.by(() => {
+    const cSet = new Set<string>();
+    for (const t of $libraryTracks) {
+      if ((t as any).composer) cSet.add((t as any).composer as string);
+    }
+    return [...cSet].sort((a, b) => a.localeCompare(b)).slice(0, 30);
+  });
+
+  // Filtered label/composer suggestions based on current input
+  let labelSuggestions = $derived(
+    filterLabel.trim().length >= 1
+      ? availableLabels.filter((l) => l.toLowerCase().includes(filterLabel.toLowerCase())).slice(0, 8)
+      : []
+  );
+  let composerSuggestions = $derived(
+    filterComposer.trim().length >= 1
+      ? availableComposers.filter((c) => c.toLowerCase().includes(filterComposer.toLowerCase())).slice(0, 8)
+      : []
+  );
+
   // Fixed sample rate options
   const SAMPLE_RATE_OPTIONS: { label: string; value: number }[] = [
     { label: '44.1 kHz', value: 44100 },
@@ -80,6 +123,31 @@
     { label: '384 kHz', value: 384000 },
   ];
 
+  // Fixed bit depth options
+  const BIT_DEPTH_OPTIONS: { label: string; value: number }[] = [
+    { label: '16 bits', value: 16 },
+    { label: '24 bits', value: 24 },
+    { label: '32 bits', value: 32 },
+  ];
+
+  // Duration range options
+  const DURATION_OPTIONS: { label: string; key: string; minMs: number; maxMs: number }[] = [
+    { label: '< 3 min', key: 'lt3', minMs: 0, maxMs: 3 * 60 * 1000 },
+    { label: '3 – 5 min', key: '3-5', minMs: 3 * 60 * 1000, maxMs: 5 * 60 * 1000 },
+    { label: '5 – 10 min', key: '5-10', minMs: 5 * 60 * 1000, maxMs: 10 * 60 * 1000 },
+    { label: '10 – 30 min', key: '10-30', minMs: 10 * 60 * 1000, maxMs: 30 * 60 * 1000 },
+    { label: '> 30 min', key: 'gt30', minMs: 30 * 60 * 1000, maxMs: Infinity },
+  ];
+
+  // Source options (static list - show all, hide if service not authenticated)
+  const SOURCE_OPTIONS = [
+    { label: 'Local', key: 'local' },
+    { label: 'Tidal', key: 'tidal' },
+    { label: 'Qobuz', key: 'qobuz' },
+    { label: 'Deezer', key: 'deezer' },
+    { label: 'YouTube', key: 'youtube' },
+  ];
+
   // Which filter rows to show (from localStorage)
   let shownFilterFields = $derived.by(() => {
     const fields = displayFields;
@@ -87,10 +155,26 @@
     if (fields.includes('genre')) rows.push('genre');
     if (fields.includes('year')) rows.push('year');
     if (fields.includes('format')) rows.push('format');
-    // Always show sample_rate if format is shown (they go together)
+    // sample_rate always shown alongside format
     rows.push('sample_rate');
+    if (fields.includes('bit_depth')) rows.push('bit_depth');
+    if (fields.includes('source')) rows.push('source');
+    if (fields.includes('duration')) rows.push('duration');
+    if (fields.includes('label')) rows.push('label');
+    if (fields.includes('composer')) rows.push('composer');
     return rows;
   });
+
+  // Apply duration filter client-side on the result list
+  function applyDurationFilter(tracks: Track[], durationKey: string | null): Track[] {
+    if (!durationKey) return tracks;
+    const opt = DURATION_OPTIONS.find((o) => o.key === durationKey);
+    if (!opt) return tracks;
+    return tracks.filter((t) => {
+      const ms = t.duration_ms ?? 0;
+      return ms >= opt.minMs && (opt.maxMs === Infinity ? true : ms < opt.maxMs);
+    });
+  }
 
   // Run filter query whenever any filter changes
   $effect(() => {
@@ -98,18 +182,33 @@
     const y = filterYear;
     const f = filterFormat;
     const sr = filterSampleRate;
+    const bd = filterBitDepth;
+    const src = filterSource;
+    const dur = filterDuration;
+    const lbl = filterLabel.trim();
+    const cmp = filterComposer.trim();
     const q = searchQuery.trim();
-    if (!g && !y && !f && !sr && !q) {
+    if (!g && !y && !f && !sr && !bd && !src && !dur && !lbl && !cmp && !q) {
       filterResults = [];
       filterTotal = 0;
       return;
     }
     // Don't run if there's a text query (text search handles it)
     if (q) return;
-    runFilterSearch(g, y, f, sr);
+    runFilterSearch(g, y, f, sr, bd, src, dur, lbl, cmp);
   });
 
-  async function runFilterSearch(genre: string | null, year: number | null, format: string | null, sampleRate: number | null) {
+  async function runFilterSearch(
+    genre: string | null,
+    year: number | null,
+    format: string | null,
+    sampleRate: number | null,
+    bitDepth: number | null,
+    source: string | null,
+    duration: string | null,
+    label: string,
+    composer: string,
+  ) {
     filterLoading = true;
     try {
       const res = await api.getFilteredTracks({
@@ -117,10 +216,17 @@
         year: year ?? undefined,
         format: format?.toLowerCase() ?? undefined,
         sample_rate: sampleRate ?? undefined,
-        limit: 200,
+        bit_depth: bitDepth ?? undefined,
+        source: source ?? undefined,
+        label: label || undefined,
+        composer: composer || undefined,
+        limit: 500,
       });
-      filterResults = res.items;
-      filterTotal = res.total;
+      // Apply duration filter client-side (not supported server-side)
+      const durationFiltered = applyDurationFilter(res.items, duration);
+      filterResults = durationFiltered;
+      // If only duration is filtered, total is from server; otherwise use post-filter count
+      filterTotal = duration ? durationFiltered.length : res.total;
     } catch (e) {
       console.error('Filter search error:', e);
       filterResults = [];
@@ -141,11 +247,25 @@
   function toggleFilterSampleRate(sr: number) {
     filterSampleRate = filterSampleRate === sr ? null : sr;
   }
+  function toggleFilterBitDepth(bd: number) {
+    filterBitDepth = filterBitDepth === bd ? null : bd;
+  }
+  function toggleFilterSource(src: string) {
+    filterSource = filterSource === src ? null : src;
+  }
+  function toggleFilterDuration(key: string) {
+    filterDuration = filterDuration === key ? null : key;
+  }
   function clearAllFilters() {
     filterGenre = null;
     filterYear = null;
     filterFormat = null;
     filterSampleRate = null;
+    filterBitDepth = null;
+    filterSource = null;
+    filterDuration = null;
+    filterLabel = '';
+    filterComposer = '';
   }
 
   interface Props {
@@ -513,7 +633,7 @@
 
       {#if shownFilterFields.includes('genre') && availableGenres.length > 0}
         <div class="filter-row">
-          <span class="filter-label">{$t('common.genres')}</span>
+          <span class="filter-label">GENRE</span>
           <div class="filter-chips">
             {#each availableGenres as g}
               <button
@@ -528,7 +648,7 @@
 
       {#if shownFilterFields.includes('year') && availableYears.length > 0}
         <div class="filter-row">
-          <span class="filter-label">{$t('common.years')}</span>
+          <span class="filter-label">ANNÉE</span>
           <div class="filter-chips">
             {#each availableYears as y}
               <button
@@ -543,7 +663,7 @@
 
       {#if shownFilterFields.includes('format')}
         <div class="filter-row">
-          <span class="filter-label">Format</span>
+          <span class="filter-label">FORMAT</span>
           <div class="filter-chips">
             {#each availableFormats as f}
               <button
@@ -556,18 +676,111 @@
         </div>
       {/if}
 
-      <div class="filter-row">
-        <span class="filter-label">Sample Rate</span>
-        <div class="filter-chips">
-          {#each SAMPLE_RATE_OPTIONS as opt}
-            <button
-              class="filter-chip filter-chip--rate"
-              class:active={filterSampleRate === opt.value}
-              onclick={() => toggleFilterSampleRate(opt.value)}
-            >{opt.label}{filterSampleRate === opt.value ? ' ×' : ''}</button>
-          {/each}
+      {#if shownFilterFields.includes('sample_rate')}
+        <div class="filter-row">
+          <span class="filter-label">SAMPLE RATE</span>
+          <div class="filter-chips">
+            {#each SAMPLE_RATE_OPTIONS as opt}
+              <button
+                class="filter-chip filter-chip--rate"
+                class:active={filterSampleRate === opt.value}
+                onclick={() => toggleFilterSampleRate(opt.value)}
+              >{opt.label}{filterSampleRate === opt.value ? ' ×' : ''}</button>
+            {/each}
+          </div>
         </div>
-      </div>
+      {/if}
+
+      {#if shownFilterFields.includes('bit_depth')}
+        <div class="filter-row">
+          <span class="filter-label">BIT DEPTH</span>
+          <div class="filter-chips">
+            {#each BIT_DEPTH_OPTIONS as opt}
+              <button
+                class="filter-chip filter-chip--depth"
+                class:active={filterBitDepth === opt.value}
+                onclick={() => toggleFilterBitDepth(opt.value)}
+              >{opt.label}{filterBitDepth === opt.value ? ' ×' : ''}</button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      {#if shownFilterFields.includes('source')}
+        <div class="filter-row">
+          <span class="filter-label">SOURCE</span>
+          <div class="filter-chips">
+            {#each SOURCE_OPTIONS as opt}
+              <button
+                class="filter-chip filter-chip--source"
+                class:active={filterSource === opt.key}
+                onclick={() => toggleFilterSource(opt.key)}
+              >{opt.label}{filterSource === opt.key ? ' ×' : ''}</button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      {#if shownFilterFields.includes('duration')}
+        <div class="filter-row">
+          <span class="filter-label">DURÉE</span>
+          <div class="filter-chips">
+            {#each DURATION_OPTIONS as opt}
+              <button
+                class="filter-chip filter-chip--dur"
+                class:active={filterDuration === opt.key}
+                onclick={() => toggleFilterDuration(opt.key)}
+              >{opt.label}{filterDuration === opt.key ? ' ×' : ''}</button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      {#if shownFilterFields.includes('label')}
+        <div class="filter-row">
+          <span class="filter-label">LABEL</span>
+          <div class="filter-autocomplete">
+            <input
+              class="filter-text-input"
+              type="text"
+              placeholder="Rechercher un label…"
+              bind:value={filterLabel}
+            />
+            {#if labelSuggestions.length > 0}
+              <div class="filter-suggestions">
+                {#each labelSuggestions as s}
+                  <button class="filter-suggestion" onclick={() => { filterLabel = s; }}>
+                    {s}
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        </div>
+      {/if}
+
+      {#if shownFilterFields.includes('composer')}
+        <div class="filter-row">
+          <span class="filter-label">COMPOSITEUR</span>
+          <div class="filter-autocomplete">
+            <input
+              class="filter-text-input"
+              type="text"
+              placeholder="Rechercher un compositeur…"
+              bind:value={filterComposer}
+            />
+            {#if composerSuggestions.length > 0}
+              <div class="filter-suggestions">
+                {#each composerSuggestions as s}
+                  <button class="filter-suggestion" onclick={() => { filterComposer = s; }}>
+                    {s}
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        </div>
+      {/if}
 
       {#if hasActiveFilters}
         <div class="filter-actions">
@@ -1108,6 +1321,81 @@
   .filter-chip--rate.active {
     background: #7030b8;
     border-color: #7030b8;
+  }
+
+  .filter-chip--depth.active {
+    background: #186090;
+    border-color: #186090;
+  }
+
+  .filter-chip--source.active {
+    background: #20806a;
+    border-color: #20806a;
+  }
+
+  .filter-chip--dur.active {
+    background: #804820;
+    border-color: #804820;
+  }
+
+  /* --- Autocomplete inputs (label / composer) --- */
+  .filter-autocomplete {
+    position: relative;
+    flex: 1;
+  }
+
+  .filter-text-input {
+    width: 100%;
+    max-width: 320px;
+    background: rgba(60, 60, 63, 0.5);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    padding: 4px 10px;
+    outline: none;
+    transition: border-color 0.12s ease-out;
+  }
+
+  .filter-text-input:focus {
+    border-color: var(--tune-accent);
+  }
+
+  .filter-text-input::placeholder {
+    color: var(--tune-text-muted);
+  }
+
+  .filter-suggestions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 200px;
+    max-width: 320px;
+    background: var(--tune-surface, #1e1e20);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .filter-suggestion {
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 6px 12px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .filter-suggestion:hover {
+    background: var(--tune-surface-hover);
   }
 
   .filter-actions {
