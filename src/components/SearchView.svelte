@@ -433,31 +433,71 @@
     searchQuery = query;
   }
 
-  // Smart top result: pick the best match based on query similarity
+  // Smart top result: pick the best match based on query + relevance (image, exact match)
   let topResult = $derived.by(() => {
     if (!results) return null;
     const q = searchQuery.trim().toLowerCase();
     if (!q) return null;
 
-    // Check exact/close match on album title
-    const exactAlbum = groupedAlbums.find(a => a.title.toLowerCase() === q);
-    const startsAlbum = !exactAlbum ? groupedAlbums.find(a => a.title.toLowerCase().startsWith(q)) : null;
+    function scoreArtist(a: Artist): number {
+      const name = a.name.toLowerCase();
+      let s = 0;
+      if (name === q) s += 100;
+      else if (name.startsWith(q)) s += 50;
+      else if (name.includes(q)) s += 20;
+      if (a.image_path) s += 30;
+      return s;
+    }
+    function scoreAlbum(a: Album): number {
+      const title = a.title.toLowerCase();
+      let s = 0;
+      if (title === q) s += 100;
+      else if (title.startsWith(q)) s += 50;
+      else if (title.includes(q)) s += 20;
+      if (a.cover_path) s += 5;
+      return s;
+    }
+    function scoreTrack(t: Track): number {
+      const title = t.title.toLowerCase();
+      let s = 0;
+      if (title === q) s += 100;
+      else if (title.startsWith(q)) s += 50;
+      else if (title.includes(q)) s += 20;
+      return s;
+    }
 
-    // Check exact/close match on artist name
-    const exactArtist = groupedArtists.find(a => a.name.toLowerCase() === q);
-    const startsArtist = !exactArtist ? groupedArtists.find(a => a.name.toLowerCase().startsWith(q)) : null;
+    // Find best candidate per type
+    let bestArtist: { artist: Artist; score: number } | null = null;
+    for (const a of groupedArtists) {
+      const s = scoreArtist(a);
+      if (s > 0 && (!bestArtist || s > bestArtist.score)) bestArtist = { artist: a, score: s };
+    }
+    let bestAlbum: { album: Album; score: number } | null = null;
+    for (const a of groupedAlbums) {
+      const s = scoreAlbum(a);
+      if (s > 0 && (!bestAlbum || s > bestAlbum.score)) bestAlbum = { album: a, score: s };
+    }
+    let bestTrack: { track: Track; score: number } | null = null;
+    for (const t of groupedTracks) {
+      const s = scoreTrack(t);
+      if (s > 0 && (!bestTrack || s > bestTrack.score)) bestTrack = { track: t, score: s };
+    }
 
-    // Check exact/close match on track title
-    const exactTrack = groupedTracks.find(t => t.title.toLowerCase() === q);
-    const startsTrack = !exactTrack ? groupedTracks.find(t => t.title.toLowerCase().startsWith(q)) : null;
+    // Pick overall best
+    const candidates: { type: string; score: number; data: any }[] = [];
+    if (bestArtist) candidates.push({ type: 'artist', score: bestArtist.score, data: bestArtist.artist });
+    if (bestAlbum) candidates.push({ type: 'album', score: bestAlbum.score, data: bestAlbum.album });
+    if (bestTrack) candidates.push({ type: 'track', score: bestTrack.score, data: bestTrack.track });
+    candidates.sort((a, b) => b.score - a.score);
 
-    // Priority: exact match > starts-with match > first artist > first album
-    if (exactArtist) return { type: 'artist' as const, artist: exactArtist };
-    if (exactAlbum) return { type: 'album' as const, album: exactAlbum };
-    if (exactTrack) return { type: 'track' as const, track: exactTrack };
-    if (startsArtist) return { type: 'artist' as const, artist: startsArtist };
-    if (startsAlbum) return { type: 'album' as const, album: startsAlbum };
-    if (startsTrack) return { type: 'track' as const, track: startsTrack };
+    if (candidates.length > 0) {
+      const c = candidates[0];
+      if (c.type === 'artist') return { type: 'artist' as const, artist: c.data as Artist };
+      if (c.type === 'album') return { type: 'album' as const, album: c.data as Album };
+      if (c.type === 'track') return { type: 'track' as const, track: c.data as Track };
+    }
+
+    // Fallback
     if (groupedArtists.length > 0) return { type: 'artist' as const, artist: groupedArtists[0] };
     if (groupedAlbums.length > 0) return { type: 'album' as const, album: groupedAlbums[0] };
     if (groupedTracks.length > 0) return { type: 'track' as const, track: groupedTracks[0] };
@@ -651,7 +691,7 @@
                 <section class="artists-section">
                   <h3 class="section-title">Artistes</h3>
                   <div class="artists-scroll">
-                    {#each groupedArtists.slice(1, 12) as artist}
+                    {#each groupedArtists.filter(a => a.name !== topResult?.artist?.name).slice(0, 12) as artist}
                       <button class="artist-card" onclick={() => selectArtist(artist)}>
                         {#if artist.image_path}
                           <div class="artist-avatar">

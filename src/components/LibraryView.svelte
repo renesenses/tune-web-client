@@ -16,6 +16,10 @@
   import MetadataChips from './MetadataChips.svelte';
   import type { Album, Artist, Track, TrackCredit } from '../lib/types';
   import { t as tr, locale } from '../lib/i18n';
+  import { streamingServices, activeStreamingService, pendingStreamingAlbum } from '../lib/stores/streaming';
+  import { activeView } from '../lib/stores/navigation';
+  import ServiceBadge from './ServiceBadge.svelte';
+  import QualityBadge from './QualityBadge.svelte';
 
   const DISPLAY_FIELDS_KEY = 'tune_metadata_fields';
   const DISPLAY_FIELDS_DEFAULT = ['format', 'genre', 'year'];
@@ -191,6 +195,10 @@
   // Artist credits
   let artistCredits = $state<TrackCredit[] | null>(null);
   let artistCreditsLoading = $state(false);
+
+  // Streaming albums for current artist
+  let streamingArtistAlbums = $state<{ service: string; albums: Album[] }[]>([]);
+  let streamingArtistAlbumsLoading = $state(false);
 
   async function toggleTrackCredits(trackId: number) {
     if (expandedTrackCredits === trackId) {
@@ -946,9 +954,40 @@
       console.error('Load artist albums error:', e);
     }
     libraryLoading.set(false);
-    // Lazy-load metadata + credits (non-blocking)
+    // Lazy-load metadata + credits + streaming albums (non-blocking)
     loadArtistMetadata(artist.id);
     loadArtistCredits(artist.id);
+    loadStreamingArtistAlbums(artist.name);
+  }
+
+  async function loadStreamingArtistAlbums(artistName: string) {
+    streamingArtistAlbums = [];
+    streamingArtistAlbumsLoading = true;
+    const services = $streamingServices;
+    const results: { service: string; albums: Album[] }[] = [];
+
+    const promises = Object.entries(services)
+      .filter(([_, status]) => status.authenticated)
+      .map(async ([svc]) => {
+        try {
+          const searchResults = await api.federatedSearch(artistName, [svc], 5);
+          const svcData = searchResults.services?.[svc];
+          if (!svcData?.artists?.length) return;
+          const matchedArtist = svcData.artists.find(
+            (a: any) => a.name.toLowerCase() === artistName.toLowerCase()
+          ) ?? svcData.artists[0];
+          const artistId = matchedArtist.id ?? (matchedArtist as any).source_id;
+          if (!artistId) return;
+          const albums = await api.getStreamingArtistAlbums(svc, String(artistId));
+          if (albums.length > 0) {
+            results.push({ service: svc, albums: albums.map(a => ({ ...a, source: svc as any })) });
+          }
+        } catch {}
+      });
+
+    await Promise.all(promises);
+    streamingArtistAlbums = results;
+    streamingArtistAlbumsLoading = false;
   }
 
   async function loadArtistMetadata(artistId: number) {
@@ -1003,6 +1042,7 @@
     selectedArtist.set(null);
     albumTracks.set([]);
     artistAlbums.set([]);
+    streamingArtistAlbums = [];
     artistMetadata = null;
     artistMetadataError = false;
     artistMetadataLoading = false;
@@ -1603,6 +1643,54 @@
           {/each}
         </div>
       </div>
+
+      <!-- Streaming albums -->
+      {#if streamingArtistAlbumsLoading}
+        <div class="artist-section">
+          <div class="artist-section-header-static">
+            <span class="artist-section-title">Albums en streaming</span>
+          </div>
+          <div class="streaming-loading">Chargement...</div>
+        </div>
+      {/if}
+      {#each streamingArtistAlbums as { service, albums: svcAlbums }}
+        <div class="artist-section">
+          <div class="artist-section-header-static">
+            <span class="artist-section-title">
+              <ServiceBadge source={service} />
+              {svcAlbums.length} {svcAlbums.length > 1 ? 'albums' : 'album'}
+            </span>
+          </div>
+          <div class="albums-grid">
+            {#each svcAlbums as album}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="album-card" onclick={() => {
+                activeStreamingService.set(service);
+                pendingStreamingAlbum.set(album);
+                activeView.set('streaming');
+              }}>
+                <div class="album-card-art">
+                  <AlbumArt coverPath={album.cover_path} size={200} alt={album.title} />
+                  <button class="play-overlay" onclick={(e) => {
+                    e.stopPropagation();
+                    const zoneId = $currentZone?.id;
+                    if (zoneId && album.source_id) {
+                      playAndSync(zoneId, { source: service, streaming_album_id: album.source_id });
+                    }
+                  }} title="Lire">
+                    <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
+                  </button>
+                </div>
+                <span class="album-card-title truncate" title={album.title}>{album.title}</span>
+                {#if album.year}
+                  <span class="album-card-year">{album.year}</span>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/each}
     </div>
 
   {:else}
@@ -3512,6 +3600,15 @@
     font-size: 15px;
     font-weight: 600;
     letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .streaming-loading {
+    color: var(--tune-text-muted);
+    font-size: 13px;
+    padding: 12px 0;
   }
 
   .artist-section-chevron {
