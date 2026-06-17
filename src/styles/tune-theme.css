@@ -94,7 +94,7 @@ body {
    Chrome/Safari use ::-webkit-scrollbar below */
 * {
   scrollbar-width: auto;
-  scrollbar-color: var(--tune-text-muted) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -107,14 +107,14 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--tune-text-muted);
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 7px;
   border: 3px solid transparent;
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--tune-text-secondary);
+  background: rgba(255, 255, 255, 0.35);
   border: 3px solid transparent;
   background-clip: padding-box;
 }

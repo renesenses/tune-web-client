@@ -75,21 +75,22 @@
   }
 
   .alpha-letter {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
-    color: var(--tune-text-muted);
-    padding: 1px 6px;
+    color: var(--tune-text-secondary);
+    padding: 2px 8px;
     cursor: pointer;
     text-align: center;
-    border-radius: 3px;
+    border-radius: 4px;
     transition: color 0.1s, background 0.1s;
-    line-height: 1.4;
+    line-height: 1.5;
   }
 
   .alpha-letter:hover,
   .alpha-letter.active {
     color: var(--tune-accent);
-    background: rgba(var(--tune-accent-rgb, 0, 200, 180), 0.12);
+    background: rgba(var(--tune-accent-rgb, 0, 200, 180), 0.18);
+    font-weight: 700;
   }
 
   @media (max-width: 768px) {
