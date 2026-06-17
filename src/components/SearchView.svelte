@@ -51,7 +51,6 @@
     const trimmed = query.trim();
     if (!trimmed) return;
     let entries = loadSearchHistory();
-    // Deduplicate
     entries = entries.filter(e => e.query.toLowerCase() !== trimmed.toLowerCase());
     entries.unshift({ query: trimmed, timestamp: Date.now() });
     if (entries.length > SEARCH_HISTORY_MAX) entries = entries.slice(0, SEARCH_HISTORY_MAX);
@@ -73,225 +72,6 @@
 
   let searchHistory = $state<SearchHistoryEntry[]>(loadSearchHistory());
 
-  // --- Metadata filter panel ---
-
-  // Active filter selections
-  let filterGenre = $state<string | null>(null);
-  let filterYear = $state<number | null>(null);
-  let filterFormat = $state<string | null>(null);
-  let filterSampleRate = $state<number | null>(null);
-  let filterBitDepth = $state<number | null>(null);
-  let filterSource = $state<string | null>(null);
-  let filterDuration = $state<string | null>(null);
-  let filterLabel = $state<string>('');
-  let filterComposer = $state<string>('');
-
-  // Filtered tracks result
-  let filterResults = $state<Track[]>([]);
-  let filterTotal = $state<number>(0);
-  let filterLoading = $state(false);
-
-  // Whether ANY metadata filter is active
-  let hasActiveFilters = $derived(
-    filterGenre !== null ||
-    filterYear !== null ||
-    filterFormat !== null ||
-    filterSampleRate !== null ||
-    filterBitDepth !== null ||
-    filterSource !== null ||
-    filterDuration !== null ||
-    filterLabel.trim().length > 0 ||
-    filterComposer.trim().length > 0
-  );
-
-  // Derive genre list from library store
-  let availableGenres = $derived(
-    $libraryGenres.slice(0, 30).map((g) => g.name)
-  );
-
-  // Derive year list from albums store
-  let availableYears = $derived.by(() => {
-    const yearSet = new Set<number>();
-    for (const a of $albums) {
-      if (a.year) yearSet.add(a.year);
-    }
-    return [...yearSet].sort((a, b) => b - a).slice(0, 25);
-  });
-
-  // Derive format list from tracks store
-  let availableFormats = $derived.by(() => {
-    const fmtSet = new Set<string>();
-    for (const t of $libraryTracks) {
-      if (t.format) fmtSet.add(t.format.toUpperCase());
-    }
-    const base = ['FLAC', 'WAV', 'MP3', 'AAC', 'DSD', 'ALAC', 'AIFF', 'OGG'];
-    for (const b of base) fmtSet.add(b);
-    return [...fmtSet].sort();
-  });
-
-  // Derive label list from albums store
-  let availableLabels = $derived.by(() => {
-    const labelSet = new Set<string>();
-    for (const a of $albums) {
-      if (a.label) labelSet.add(a.label);
-    }
-    return [...labelSet].sort((a, b) => a.localeCompare(b)).slice(0, 30);
-  });
-
-  // Derive composer list from tracks store
-  let availableComposers = $derived.by(() => {
-    const cSet = new Set<string>();
-    for (const t of $libraryTracks) {
-      if ((t as any).composer) cSet.add((t as any).composer as string);
-    }
-    return [...cSet].sort((a, b) => a.localeCompare(b)).slice(0, 30);
-  });
-
-  let labelSuggestions = $derived(
-    filterLabel.trim().length >= 1
-      ? availableLabels.filter((l) => l.toLowerCase().includes(filterLabel.toLowerCase())).slice(0, 8)
-      : []
-  );
-  let composerSuggestions = $derived(
-    filterComposer.trim().length >= 1
-      ? availableComposers.filter((c) => c.toLowerCase().includes(filterComposer.toLowerCase())).slice(0, 8)
-      : []
-  );
-
-  // Fixed sample rate options
-  const SAMPLE_RATE_OPTIONS: { label: string; value: number }[] = [
-    { label: '44.1 kHz', value: 44100 },
-    { label: '48 kHz', value: 48000 },
-    { label: '88.2 kHz', value: 88200 },
-    { label: '96 kHz', value: 96000 },
-    { label: '176.4 kHz', value: 176400 },
-    { label: '192 kHz', value: 192000 },
-    { label: '352.8 kHz', value: 352800 },
-    { label: '384 kHz', value: 384000 },
-  ];
-
-  const BIT_DEPTH_OPTIONS: { label: string; value: number }[] = [
-    { label: '16 bits', value: 16 },
-    { label: '24 bits', value: 24 },
-    { label: '32 bits', value: 32 },
-  ];
-
-  const DURATION_OPTIONS: { label: string; key: string; minMs: number; maxMs: number }[] = [
-    { label: '< 3 min', key: 'lt3', minMs: 0, maxMs: 3 * 60 * 1000 },
-    { label: '3 - 5 min', key: '3-5', minMs: 3 * 60 * 1000, maxMs: 5 * 60 * 1000 },
-    { label: '5 - 10 min', key: '5-10', minMs: 5 * 60 * 1000, maxMs: 10 * 60 * 1000 },
-    { label: '10 - 30 min', key: '10-30', minMs: 10 * 60 * 1000, maxMs: 30 * 60 * 1000 },
-    { label: '> 30 min', key: 'gt30', minMs: 30 * 60 * 1000, maxMs: Infinity },
-  ];
-
-  const SOURCE_OPTIONS = [
-    { label: 'Local', key: 'local' },
-    { label: 'Tidal', key: 'tidal' },
-    { label: 'Qobuz', key: 'qobuz' },
-    { label: 'Deezer', key: 'deezer' },
-    { label: 'YouTube', key: 'youtube' },
-  ];
-
-  let shownFilterFields = $derived.by(() => {
-    const fields = displayFields;
-    const rows: string[] = [];
-    if (fields.includes('genre')) rows.push('genre');
-    if (fields.includes('year')) rows.push('year');
-    if (fields.includes('format')) rows.push('format');
-    rows.push('sample_rate');
-    if (fields.includes('bit_depth')) rows.push('bit_depth');
-    if (fields.includes('source')) rows.push('source');
-    if (fields.includes('duration')) rows.push('duration');
-    if (fields.includes('label')) rows.push('label');
-    if (fields.includes('composer')) rows.push('composer');
-    return rows;
-  });
-
-  function applyDurationFilter(tracks: Track[], durationKey: string | null): Track[] {
-    if (!durationKey) return tracks;
-    const opt = DURATION_OPTIONS.find((o) => o.key === durationKey);
-    if (!opt) return tracks;
-    return tracks.filter((t) => {
-      const ms = t.duration_ms ?? 0;
-      return ms >= opt.minMs && (opt.maxMs === Infinity ? true : ms < opt.maxMs);
-    });
-  }
-
-  // Run filter query when filters change and no search query
-  $effect(() => {
-    const g = filterGenre;
-    const y = filterYear;
-    const f = filterFormat;
-    const sr = filterSampleRate;
-    const bd = filterBitDepth;
-    const src = filterSource;
-    const dur = filterDuration;
-    const lbl = filterLabel.trim();
-    const cmp = filterComposer.trim();
-    const q = searchQuery.trim();
-    if (!g && !y && !f && !sr && !bd && !src && !dur && !lbl && !cmp && !q) {
-      filterResults = [];
-      filterTotal = 0;
-      return;
-    }
-    if (q) return;
-    runFilterSearch(g, y, f, sr, bd, src, dur, lbl, cmp);
-  });
-
-  async function runFilterSearch(
-    genre: string | null,
-    year: number | null,
-    format: string | null,
-    sampleRate: number | null,
-    bitDepth: number | null,
-    source: string | null,
-    duration: string | null,
-    label: string,
-    composer: string,
-  ) {
-    filterLoading = true;
-    try {
-      const res = await api.getFilteredTracks({
-        genre: genre ?? undefined,
-        year: year ?? undefined,
-        format: format?.toLowerCase() ?? undefined,
-        sample_rate: sampleRate ?? undefined,
-        bit_depth: bitDepth ?? undefined,
-        source: source ?? undefined,
-        label: label || undefined,
-        composer: composer || undefined,
-        limit: 500,
-      });
-      const durationFiltered = applyDurationFilter(res.items, duration);
-      filterResults = durationFiltered;
-      filterTotal = duration ? durationFiltered.length : res.total;
-    } catch (e) {
-      console.error('Filter search error:', e);
-      filterResults = [];
-      filterTotal = 0;
-    }
-    filterLoading = false;
-  }
-
-  function toggleFilterGenre(g: string) { filterGenre = filterGenre === g ? null : g; }
-  function toggleFilterYear(y: number) { filterYear = filterYear === y ? null : y; }
-  function toggleFilterFormat(f: string) { filterFormat = filterFormat === f ? null : f; }
-  function toggleFilterSampleRate(sr: number) { filterSampleRate = filterSampleRate === sr ? null : sr; }
-  function toggleFilterBitDepth(bd: number) { filterBitDepth = filterBitDepth === bd ? null : bd; }
-  function toggleFilterSource(src: string) { filterSource = filterSource === src ? null : src; }
-  function toggleFilterDuration(key: string) { filterDuration = filterDuration === key ? null : key; }
-  function clearAllFilters() {
-    filterGenre = null;
-    filterYear = null;
-    filterFormat = null;
-    filterSampleRate = null;
-    filterBitDepth = null;
-    filterSource = null;
-    filterDuration = null;
-    filterLabel = '';
-    filterComposer = '';
-  }
-
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
   }
@@ -303,17 +83,12 @@
   let loading = $state(false);
   let results: FederatedSearchResult | null = $state(null);
 
-  // --- Collapsible filters ---
-  let filtersExpanded = $state(false);
-
   // --- Discovery content ---
   let topArtists = $state<any[]>([]);
   let recentAlbums = $state<Album[]>([]);
   let discoveryLoading = $state(true);
 
-  // Load discovery content on mount
   $effect(() => {
-    // Only load once
     if (topArtists.length > 0 || recentAlbums.length > 0) return;
     loadDiscoveryContent();
   });
@@ -321,12 +96,12 @@
   async function loadDiscoveryContent() {
     discoveryLoading = true;
     try {
-      const [artists, albums] = await Promise.all([
-        api.getTopArtists(8).catch(() => []),
-        api.getRecentAlbums(12).catch(() => []),
+      const [artists, albs] = await Promise.all([
+        api.getTopArtists(12).catch(() => []),
+        api.getRecentAlbums(18).catch(() => []),
       ]);
       topArtists = artists;
-      recentAlbums = albums;
+      recentAlbums = albs;
     } catch {}
     discoveryLoading = false;
   }
@@ -419,12 +194,11 @@
       const includeLocal = !activeSources || activeSources.includes('local');
 
       const [federated, localPlaylists] = await Promise.all([
-        api.federatedSearch(searchQuery.trim(), activeSources),
+        api.federatedSearch(searchQuery.trim(), activeSources, 30),
         includeLocal ? api.getPlaylists().catch(() => [] as Playlist[]) : Promise.resolve([] as Playlist[]),
       ]);
       results = federated;
 
-      // Save to history
       addToSearchHistory(searchQuery.trim());
 
       const matches: PlaylistMatch[] = localPlaylists
@@ -531,19 +305,25 @@
   }
 
   function openAlbum(album: Album) {
-    if (album.id) {
+    const src = (album as any)._source ?? album.source;
+    if (src && src !== 'local') {
+      activeStreamingService.set(src);
+      pendingStreamingAlbum.set(album);
+      activeView.set('streaming');
+    } else if (album.id) {
       selectedAlbum.set(album);
       libraryTab.set('albums');
       activeView.set('library');
-    } else if (album.source && album.source_id) {
-      activeStreamingService.set(album.source);
-      pendingStreamingAlbum.set(album);
-      activeView.set('streaming');
     }
   }
 
   async function selectArtist(artist: Artist) {
-    if (artist.id) {
+    const src = (artist as any)._source ?? (artist as any).source;
+    if (src && src !== 'local') {
+      activeStreamingService.set(src);
+      pendingStreamingArtist.set(artist);
+      activeView.set('streaming');
+    } else if (artist.id) {
       selectedArtist.set(artist);
       selectedAlbum.set(null);
       libraryTab.set('artists');
@@ -556,13 +336,6 @@
         console.error('Load artist albums error:', e);
       }
       libraryLoading.set(false);
-    } else if (artist.source_id) {
-      const source = (artist as any).source ?? Object.keys($streamingServices).find(s => $streamingServices[s]?.authenticated);
-      if (source) {
-        activeStreamingService.set(source);
-        pendingStreamingArtist.set(artist);
-        activeView.set('streaming');
-      }
     }
   }
 
@@ -584,7 +357,7 @@
     }
   }
 
-  // Compute grouped results from federated search
+  // Compute grouped results
   let groupedArtists = $derived.by(() => {
     if (!results) return [];
     const all: (Artist & { _source?: string })[] = [];
@@ -596,7 +369,6 @@
         for (const a of data.artists) all.push({ ...a, _source: svc });
       }
     }
-    // Deduplicate by name (case-insensitive)
     const seen = new Set<string>();
     return all.filter(a => {
       const key = a.name.toLowerCase();
@@ -634,24 +406,6 @@
     return all;
   });
 
-  // Streaming-only results (not local)
-  let streamingOnlyAlbums = $derived.by(() => {
-    if (!results?.services) return [];
-    const localTitles = new Set(
-      (results.local?.albums ?? []).map(a => `${a.title}|||${a.artist_name}`.toLowerCase())
-    );
-    const streaming: (Album & { _source?: string })[] = [];
-    for (const [svc, data] of Object.entries(results.services)) {
-      for (const a of data.albums) {
-        const key = `${a.title}|||${a.artist_name}`.toLowerCase();
-        if (!localTitles.has(key)) {
-          streaming.push({ ...a, _source: svc });
-        }
-      }
-    }
-    return streaming;
-  });
-
   let hasResults = $derived(
     groupedArtists.length > 0 ||
     groupedAlbums.length > 0 ||
@@ -659,543 +413,376 @@
     playlistMatches.length > 0
   );
 
-  let showDiscovery = $derived(!searchQuery.trim() && !hasActiveFilters);
+  let showDiscovery = $derived(!searchQuery.trim());
 
   function searchFromHistory(query: string) {
     searchQuery = query;
   }
+
+  // Top result: first matching artist or album
+  let topResult = $derived.by(() => {
+    if (!results) return null;
+    if (groupedArtists.length > 0) {
+      const a = groupedArtists[0];
+      return { type: 'artist' as const, artist: a };
+    }
+    if (groupedAlbums.length > 0) {
+      const a = groupedAlbums[0];
+      return { type: 'album' as const, album: a };
+    }
+    return null;
+  });
 </script>
 
 <div class="search-view">
-  <!-- Search header -->
+  <!-- Search bar -->
   <div class="search-header">
-    <h2>{$t('search.title')}</h2>
-    <div class="search-bar-row">
-      <div class="search-bar">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-        <input
-          type="text"
-          placeholder={$t('search.placeholder')}
-          bind:value={searchQuery}
-        />
-        {#if searchQuery}
-          <button class="clear-input-btn" onclick={() => { searchQuery = ''; }} title="Effacer" aria-label="Effacer la recherche">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-          </button>
-        {/if}
-        {#if loading}
-          <div class="search-spinner"></div>
-        {/if}
-      </div>
-      <button
-        class="filter-toggle-btn"
-        class:active={filtersExpanded}
-        onclick={() => { filtersExpanded = !filtersExpanded; }}
-        title="Filtres"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-          <line x1="4" y1="6" x2="20" y2="6" />
-          <line x1="6" y1="12" x2="18" y2="12" />
-          <line x1="8" y1="18" x2="16" y2="18" />
-        </svg>
-        Filtres
-        {#if hasActiveFilters}
-          <span class="filter-count-badge"></span>
-        {/if}
-      </button>
+    <div class="search-bar" class:focused={searchQuery.length > 0}>
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+      <input
+        type="text"
+        placeholder={$t('search.placeholder')}
+        bind:value={searchQuery}
+        autofocus
+      />
+      {#if searchQuery}
+        <button class="clear-btn" onclick={() => { searchQuery = ''; }} aria-label="Effacer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
+      {/if}
+      {#if loading}
+        <div class="search-spinner"></div>
+      {/if}
     </div>
 
     {#if availableSources.length > 1}
-      <div class="source-filters">
-        <button
-          class="source-chip"
-          class:active={allSelected}
-          onclick={selectAllSources}
-        >{$t('common.all')}</button>
+      <div class="source-pills">
+        <button class="pill" class:active={allSelected} onclick={selectAllSources}>Tous</button>
         {#each availableSources as src}
           <button
-            class="source-chip"
+            class="pill"
             class:active={!allSelected && selectedSources.has(src.key)}
             onclick={() => toggleSource(src.key)}
           >{src.label}</button>
         {/each}
       </div>
     {/if}
-
-    <!-- Collapsible filters -->
-    {#if filtersExpanded}
-      <div class="filter-panel" class:visible={filtersExpanded}>
-        {#if shownFilterFields.includes('genre') && availableGenres.length > 0}
-          <div class="filter-row">
-            <span class="filter-label">GENRE</span>
-            <div class="filter-chips">
-              {#each availableGenres as g}
-                <button class="filter-chip" class:active={filterGenre === g} onclick={() => toggleFilterGenre(g)}>{g}{filterGenre === g ? ' x' : ''}</button>
-              {/each}
-            </div>
-          </div>
-        {/if}
-        {#if shownFilterFields.includes('year') && availableYears.length > 0}
-          <div class="filter-row">
-            <span class="filter-label">ANNEE</span>
-            <div class="filter-chips">
-              {#each availableYears as y}
-                <button class="filter-chip" class:active={filterYear === y} onclick={() => toggleFilterYear(y)}>{y}{filterYear === y ? ' x' : ''}</button>
-              {/each}
-            </div>
-          </div>
-        {/if}
-        {#if shownFilterFields.includes('format')}
-          <div class="filter-row">
-            <span class="filter-label">FORMAT</span>
-            <div class="filter-chips">
-              {#each availableFormats as f}
-                <button class="filter-chip filter-chip--format" class:active={filterFormat === f} onclick={() => toggleFilterFormat(f)}>{f}{filterFormat === f ? ' x' : ''}</button>
-              {/each}
-            </div>
-          </div>
-        {/if}
-        {#if shownFilterFields.includes('sample_rate')}
-          <div class="filter-row">
-            <span class="filter-label">SAMPLE RATE</span>
-            <div class="filter-chips">
-              {#each SAMPLE_RATE_OPTIONS as opt}
-                <button class="filter-chip filter-chip--rate" class:active={filterSampleRate === opt.value} onclick={() => toggleFilterSampleRate(opt.value)}>{opt.label}{filterSampleRate === opt.value ? ' x' : ''}</button>
-              {/each}
-            </div>
-          </div>
-        {/if}
-        {#if shownFilterFields.includes('bit_depth')}
-          <div class="filter-row">
-            <span class="filter-label">BIT DEPTH</span>
-            <div class="filter-chips">
-              {#each BIT_DEPTH_OPTIONS as opt}
-                <button class="filter-chip filter-chip--depth" class:active={filterBitDepth === opt.value} onclick={() => toggleFilterBitDepth(opt.value)}>{opt.label}{filterBitDepth === opt.value ? ' x' : ''}</button>
-              {/each}
-            </div>
-          </div>
-        {/if}
-        {#if shownFilterFields.includes('source')}
-          <div class="filter-row">
-            <span class="filter-label">SOURCE</span>
-            <div class="filter-chips">
-              {#each SOURCE_OPTIONS as opt}
-                <button class="filter-chip filter-chip--source" class:active={filterSource === opt.key} onclick={() => toggleFilterSource(opt.key)}>{opt.label}{filterSource === opt.key ? ' x' : ''}</button>
-              {/each}
-            </div>
-          </div>
-        {/if}
-        {#if shownFilterFields.includes('duration')}
-          <div class="filter-row">
-            <span class="filter-label">DUREE</span>
-            <div class="filter-chips">
-              {#each DURATION_OPTIONS as opt}
-                <button class="filter-chip filter-chip--dur" class:active={filterDuration === opt.key} onclick={() => toggleFilterDuration(opt.key)}>{opt.label}{filterDuration === opt.key ? ' x' : ''}</button>
-              {/each}
-            </div>
-          </div>
-        {/if}
-        {#if shownFilterFields.includes('label')}
-          <div class="filter-row">
-            <span class="filter-label">LABEL</span>
-            <div class="filter-autocomplete">
-              <input class="filter-text-input" type="text" placeholder="Rechercher un label..." bind:value={filterLabel} />
-              {#if labelSuggestions.length > 0}
-                <div class="filter-suggestions">
-                  {#each labelSuggestions as s}
-                    <button class="filter-suggestion" onclick={() => { filterLabel = s; }}>{s}</button>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-          </div>
-        {/if}
-        {#if shownFilterFields.includes('composer')}
-          <div class="filter-row">
-            <span class="filter-label">COMPOSITEUR</span>
-            <div class="filter-autocomplete">
-              <input class="filter-text-input" type="text" placeholder="Rechercher un compositeur..." bind:value={filterComposer} />
-              {#if composerSuggestions.length > 0}
-                <div class="filter-suggestions">
-                  {#each composerSuggestions as s}
-                    <button class="filter-suggestion" onclick={() => { filterComposer = s; }}>{s}</button>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-          </div>
-        {/if}
-        {#if hasActiveFilters}
-          <div class="filter-actions">
-            <button class="clear-filters-btn" onclick={clearAllFilters}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-              Effacer les filtres
-            </button>
-          </div>
-        {/if}
-      </div>
-    {/if}
   </div>
 
-  <!-- CONTENT AREA -->
+  <!-- CONTENT -->
+  <div class="content">
 
-  {#if showDiscovery}
-    <!-- Discovery content when no search query -->
-    <div class="discovery">
-      <!-- Recent searches -->
-      {#if searchHistory.length > 0}
-        <section class="discovery-section">
-          <div class="section-header">
-            <h3>Recherches recentes</h3>
-            <button class="section-action" onclick={clearSearchHistory}>Effacer</button>
-          </div>
-          <div class="recent-searches">
-            {#each searchHistory.slice(0, 5) as entry}
-              <div class="recent-search-item">
-                <button class="recent-search-btn" onclick={() => searchFromHistory(entry.query)}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="1,4 1,10 7,10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg>
-                  <span>{entry.query}</span>
-                </button>
-                <button class="recent-search-remove" onclick={() => removeFromSearchHistory(entry.query)} title="Supprimer">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                </button>
-              </div>
-            {/each}
-          </div>
-        </section>
-      {/if}
-
-      <!-- Top artists -->
-      {#if topArtists.length > 0}
-        <section class="discovery-section">
-          <h3>Artistes populaires</h3>
-          <div class="artists-scroll">
-            {#each topArtists as artist}
-              <button class="discovery-artist-card" onclick={() => {
-                // TopArtist has name/artist_name, try to find in library
-                const name = artist.artist_name || artist.name;
-                searchQuery = name;
-              }}>
-                <div class="discovery-artist-avatar">
-                  <span>{(artist.artist_name || artist.name || '?').charAt(0).toUpperCase()}</span>
-                </div>
-                <span class="discovery-artist-name truncate">{artist.artist_name || artist.name}</span>
-                <span class="discovery-artist-plays">{artist.plays ?? artist.play_count ?? 0} lectures</span>
-              </button>
-            {/each}
-          </div>
-        </section>
-      {/if}
-
-      <!-- Recent albums -->
-      {#if recentAlbums.length > 0}
-        <section class="discovery-section">
-          <h3>Albums recents</h3>
-          <div class="albums-grid">
-            {#each recentAlbums as album}
-              <button class="discovery-album-card" onclick={() => openAlbum(album)}>
-                <div class="discovery-album-cover">
-                  <AlbumArt coverPath={album.cover_path} size={0} alt={album.title} />
-                  <div class="album-play-overlay">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><polygon points="5,3 19,12 5,21" /></svg>
-                  </div>
-                </div>
-                <span class="discovery-album-title truncate">{album.title}</span>
-                {#if album.artist_name}
-                  <span class="discovery-album-artist truncate">{album.artist_name}</span>
-                {/if}
-              </button>
-            {/each}
-          </div>
-        </section>
-      {/if}
-
-      {#if !discoveryLoading && topArtists.length === 0 && recentAlbums.length === 0 && searchHistory.length === 0}
-        <div class="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-          <p>{$t('search.hint')}</p>
-        </div>
-      {/if}
-    </div>
-
-  {:else if hasActiveFilters && !searchQuery.trim()}
-    <!-- Filter results (no text query) -->
-    {#if filterLoading}
-      <div class="loading">
-        <div class="spinner"></div>
-        {$t('search.searching')}
-      </div>
-    {:else}
-      <div class="filter-results">
-        <div class="filter-results-count">
-          {filterTotal} {$t('common.tracks')}
-          {#if filterTotal !== filterResults.length && filterResults.length > 0}
-            <span class="filter-count-note">(affichage des {filterResults.length} premiers)</span>
-          {/if}
-        </div>
-        {#if filterResults.length === 0}
-          <div class="empty-state">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-            <p>{$t('common.noResult')}</p>
-          </div>
-        {:else}
-          <div class="track-list">
-            {#each filterResults as trk}
-              <div class="track-item">
-                <button class="track-play" onclick={() => playTrack(trk)}>
-                  <AlbumArt coverPath={trk.cover_path} albumId={trk.album_id} size={40} alt={trk.title} />
-                  <div class="track-info">
-                    <span class="track-title truncate">{trk.title}</span>
-                    <span class="track-artist truncate">{trk.artist_name ?? ''}{trk.album_title ? ` - ${trk.album_title}` : ''}</span>
-                    <MetadataChips track={trk} fields={displayFields} />
-                  </div>
-                  <QualityBadge format={trk.format} sampleRate={trk.sample_rate} bitDepth={trk.bit_depth} source={trk.source} />
-                  <span class="track-duration">{formatTime(trk.duration_ms)}</span>
-                </button>
-                <div class="track-actions">
-                  <button class="track-action-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(trk); }} title="Ajouter a la file">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                  </button>
-                  {#if onAddToPlaylist && (trk.id || trk.source_id)}
-                    <button class="track-action-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(trk); }} title={addToPlaylistLabel}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
-                    </button>
-                  {/if}
-                </div>
-              </div>
-            {/each}
-          </div>
-        {/if}
-      </div>
-    {/if}
-
-  {:else if searchQuery.trim()}
-    <!-- Search results -->
-    {#if loading && !results}
-      <div class="loading">
-        <div class="spinner"></div>
-        {$t('search.searching')}
-      </div>
-    {:else if results && !hasResults}
-      <div class="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="8" y1="8" x2="14" y2="14" /><line x1="14" y1="8" x2="8" y2="14" /></svg>
-        <p>{$t('search.noResults').replace('{query}', searchQuery)}</p>
-      </div>
-    {:else if results}
-      <div class="results">
-        <!-- Playlists -->
-        {#if playlistMatches.length > 0}
-          <section class="result-section">
-            <h3 class="result-section-title">{$t('nav.playlists')} ({playlistMatches.length})</h3>
-            <div class="playlist-results">
-              {#each playlistMatches as pl}
-                <button class="playlist-result-item" onclick={() => playPlaylist(pl)}>
-                  <span class="playlist-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M9 18V5l12-3v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="15" r="3" /></svg>
-                  </span>
-                  <div class="playlist-result-info">
-                    <span class="playlist-result-name truncate">{pl.name}</span>
-                    <span class="playlist-result-meta">{pl.trackCount} {$t('common.tracks')}</span>
-                  </div>
-                  <span class="playlist-source-badge">{pl.source}</span>
+    {#if showDiscovery}
+      <!-- =================== DISCOVERY =================== -->
+      <div class="discovery">
+        <!-- Search history -->
+        {#if searchHistory.length > 0}
+          <section class="section">
+            <div class="section-head">
+              <h3>Recherches recentes</h3>
+              <button class="link-btn" onclick={clearSearchHistory}>Effacer</button>
+            </div>
+            <div class="history-chips">
+              {#each searchHistory.slice(0, 8) as entry}
+                <button class="history-chip" onclick={() => searchFromHistory(entry.query)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="1,4 1,10 7,10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg>
+                  {entry.query}
+                  <span class="chip-x" onclick={(e) => { e.stopPropagation(); removeFromSearchHistory(entry.query); }}>&times;</span>
                 </button>
               {/each}
             </div>
           </section>
         {/if}
 
-        <!-- Artists -->
-        {#if groupedArtists.length > 0}
-          <section class="result-section">
-            <h3 class="result-section-title">{$t('common.artists')} ({groupedArtists.length})</h3>
-            <div class="artists-scroll">
-              {#each groupedArtists as artist}
-                <button class="artist-card" onclick={() => selectArtist(artist)}>
-                  {#if artist.image_path}
-                    <div class="artist-card-avatar">
-                      <AlbumArt coverPath={artist.image_path} size={72} alt={artist.name} round />
-                    </div>
-                  {:else}
-                    <div class="artist-card-avatar artist-card-avatar--placeholder">
-                      <span>{artist.name.charAt(0).toUpperCase()}</span>
-                    </div>
-                  {/if}
-                  <span class="artist-card-name truncate">{artist.name}</span>
-                  {#if (artist as any)._source && (artist as any)._source !== 'local'}
-                    <ServiceBadge source={(artist as any)._source} compact />
-                  {/if}
+        <!-- Top artists -->
+        {#if topArtists.length > 0}
+          <section class="section">
+            <h3>Artistes les plus ecoutes</h3>
+            <div class="artist-row">
+              {#each topArtists as artist}
+                <button class="artist-pill" onclick={() => { searchQuery = artist.artist_name || artist.name; }}>
+                  <div class="artist-pill-avatar">
+                    <span>{(artist.artist_name || artist.name || '?').charAt(0).toUpperCase()}</span>
+                  </div>
+                  <div class="artist-pill-text">
+                    <span class="artist-pill-name">{artist.artist_name || artist.name}</span>
+                    <span class="artist-pill-plays">{artist.plays ?? artist.play_count ?? 0} ecoutes</span>
+                  </div>
                 </button>
               {/each}
             </div>
           </section>
         {/if}
 
-        <!-- Albums -->
-        {#if groupedAlbums.length > 0}
-          <section class="result-section">
-            <h3 class="result-section-title">{$t('common.albums')} ({groupedAlbums.length})</h3>
-            <div class="albums-grid">
-              {#each groupedAlbums as album}
-                <div class="album-card" role="group">
-                  <button class="album-card-cover" onclick={() => openAlbum(album)} title={album.title}>
+        <!-- Recent albums -->
+        {#if recentAlbums.length > 0}
+          <section class="section">
+            <h3>Ajouts recents</h3>
+            <div class="album-grid discovery-grid">
+              {#each recentAlbums as album}
+                <button class="album-card" onclick={() => playAlbum(album)}>
+                  <div class="album-card-cover">
                     <AlbumArt coverPath={album.cover_path} size={0} alt={album.title} />
-                    <span class="album-play-overlay" onclick={(e) => { e.stopPropagation(); playAlbum(album); }} role="button" tabindex="-1">
-                      <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><polygon points="5,3 19,12 5,21" /></svg>
-                    </span>
-                  </button>
-                  <button class="album-card-info" onclick={() => openAlbum(album)}>
-                    <span class="album-card-title truncate">{album.title}</span>
-                    {#if album.artist_name}
-                      <span class="album-card-artist truncate">{album.artist_name}</span>
-                    {/if}
-                    <div class="album-card-meta">
-                      {#if album.year}
-                        <span class="album-card-year">{album.year}</span>
-                      {/if}
-                      <QualityBadge format={album.format} sampleRate={album.sample_rate} bitDepth={album.bit_depth} source={album.source} />
+                    <div class="cover-overlay">
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><polygon points="6,3 20,12 6,21" /></svg>
                     </div>
-                  </button>
-                </div>
+                  </div>
+                  <span class="album-card-title">{album.title}</span>
+                  {#if album.artist_name}
+                    <span class="album-card-artist">{album.artist_name}</span>
+                  {/if}
+                </button>
               {/each}
             </div>
           </section>
         {/if}
 
-        <!-- Tracks -->
-        {#if groupedTracks.length > 0}
-          <section class="result-section">
-            <div class="tracks-header">
-              <h3 class="result-section-title">Pistes ({groupedTracks.length})</h3>
-              {#if groupedTracks.filter(t => t.id).length > 1}
-                <div class="tracks-actions">
-                  <button class="action-btn" onclick={() => playAllTracks(groupedTracks)} title="Tout lire">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="5,3 19,12 5,21" /></svg>
-                    Tout lire
+        {#if !discoveryLoading && topArtists.length === 0 && recentAlbums.length === 0 && searchHistory.length === 0}
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="56" height="56" opacity="0.3"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+            <p>{$t('search.hint')}</p>
+          </div>
+        {/if}
+      </div>
+
+    {:else if searchQuery.trim()}
+      <!-- =================== SEARCH RESULTS =================== -->
+      {#if loading && !results}
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <span>{$t('search.searching')}</span>
+        </div>
+      {:else if results && !hasResults}
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="56" height="56" opacity="0.3"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="8" y1="8" x2="14" y2="14" /><line x1="14" y1="8" x2="8" y2="14" /></svg>
+          <p>{$t('search.noResults').replace('{query}', searchQuery)}</p>
+        </div>
+      {:else if results}
+        <div class="results">
+
+          <!-- TOP RESULT + ARTISTS side by side -->
+          {#if topResult || groupedArtists.length > 0}
+            <div class="top-row">
+              <!-- Top result card -->
+              {#if topResult?.type === 'artist'}
+                <section class="top-result-section">
+                  <h3 class="section-title">Meilleur resultat</h3>
+                  <button class="top-result-card" onclick={() => selectArtist(topResult!.artist)}>
+                    {#if topResult.artist.image_path}
+                      <div class="top-result-avatar">
+                        <AlbumArt coverPath={topResult.artist.image_path} size={96} alt={topResult.artist.name} round />
+                      </div>
+                    {:else}
+                      <div class="top-result-avatar top-result-avatar--letter">
+                        <span>{topResult.artist.name.charAt(0).toUpperCase()}</span>
+                      </div>
+                    {/if}
+                    <span class="top-result-name">{topResult.artist.name}</span>
+                    <span class="top-result-type">Artiste</span>
+                    {#if (topResult.artist as any)._source && (topResult.artist as any)._source !== 'local'}
+                      <div class="top-result-badge"><ServiceBadge source={(topResult.artist as any)._source} compact /></div>
+                    {/if}
                   </button>
-                  <button class="action-btn" onclick={() => playAllTracks(groupedTracks, true)} title="Lecture aleatoire">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="16,3 21,3 21,8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21,16 21,21 16,21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></svg>
-                    Aleatoire
+                </section>
+              {:else if topResult?.type === 'album'}
+                <section class="top-result-section">
+                  <h3 class="section-title">Meilleur resultat</h3>
+                  <button class="top-result-card" onclick={() => openAlbum(topResult!.album)}>
+                    <div class="top-result-cover">
+                      <AlbumArt coverPath={topResult.album.cover_path} size={96} alt={topResult.album.title} />
+                    </div>
+                    <span class="top-result-name">{topResult.album.title}</span>
+                    <span class="top-result-type">{topResult.album.artist_name ?? 'Album'}</span>
                   </button>
-                </div>
+                </section>
+              {/if}
+
+              <!-- Artists horizontal -->
+              {#if groupedArtists.length > 1}
+                <section class="artists-section">
+                  <h3 class="section-title">Artistes</h3>
+                  <div class="artists-scroll">
+                    {#each groupedArtists.slice(topResult?.type === 'artist' ? 1 : 0, 12) as artist}
+                      <button class="artist-card" onclick={() => selectArtist(artist)}>
+                        {#if artist.image_path}
+                          <div class="artist-avatar">
+                            <AlbumArt coverPath={artist.image_path} size={80} alt={artist.name} round />
+                          </div>
+                        {:else}
+                          <div class="artist-avatar artist-avatar--letter">
+                            <span>{artist.name.charAt(0).toUpperCase()}</span>
+                          </div>
+                        {/if}
+                        <span class="artist-name">{artist.name}</span>
+                        {#if (artist as any)._source && (artist as any)._source !== 'local'}
+                          <ServiceBadge source={(artist as any)._source} compact />
+                        {/if}
+                      </button>
+                    {/each}
+                  </div>
+                </section>
               {/if}
             </div>
-            <div class="track-list">
-              {#each groupedTracks as track}
-                <div class="track-item">
-                  <button class="track-play" onclick={() => playTrack(track)}>
-                    <AlbumArt coverPath={track.cover_path} albumId={track.album_id} size={40} alt={track.title} />
-                    <div class="track-info">
-                      <span class="track-title truncate">{track.title}</span>
-                      <span class="track-artist truncate">
-                        {track.artist_name ?? ''}
-                        {track.album_title ? ` - ${track.album_title}` : ''}
-                      </span>
-                      {#if track.composer}
-                        <span class="track-matched-field">Compositeur: {track.composer}</span>
-                      {/if}
-                      <MetadataChips track={track} fields={displayFields} />
-                    </div>
-                    {#if (track as any)._source && (track as any)._source !== 'local'}
-                      <ServiceBadge source={(track as any)._source} compact />
-                    {/if}
-                    <QualityBadge format={track.format} sampleRate={track.sample_rate} bitDepth={track.bit_depth} source={track.source} />
-                    <span class="track-duration">{formatTime(track.duration_ms)}</span>
-                  </button>
-                  <div class="track-actions">
-                    <button class="track-action-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(track); }} title="Ajouter a la file">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                    </button>
-                    {#if onAddToPlaylist && (track.id || track.source_id)}
-                      <button class="track-action-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(track); }} title={addToPlaylistLabel}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
-                      </button>
-                    {/if}
-                  </div>
-                </div>
-              {/each}
-            </div>
-          </section>
-        {/if}
+          {/if}
 
-        <!-- Streaming-only albums -->
-        {#if streamingOnlyAlbums.length > 0}
-          <section class="result-section streaming-section">
-            <h3 class="result-section-title">Aussi en streaming ({streamingOnlyAlbums.length})</h3>
-            <div class="albums-grid">
-              {#each streamingOnlyAlbums as album}
-                <div class="album-card" role="group">
-                  <button class="album-card-cover" onclick={() => openAlbum(album)} title={album.title}>
-                    <AlbumArt coverPath={album.cover_path} size={0} alt={album.title} />
-                    <span class="album-play-overlay" onclick={(e) => { e.stopPropagation(); playAlbum(album); }} role="button" tabindex="-1">
-                      <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><polygon points="5,3 19,12 5,21" /></svg>
-                    </span>
-                    {#if (album as any)._source}
-                      <div class="album-service-badge"><ServiceBadge source={(album as any)._source} compact /></div>
-                    {/if}
+          <!-- ALBUMS grid -->
+          {#if groupedAlbums.length > 0}
+            <section class="section">
+              <h3 class="section-title">Albums <span class="count">{groupedAlbums.length}</span></h3>
+              <div class="album-grid">
+                {#each groupedAlbums as album}
+                  <div class="album-card" role="group">
+                    <button class="album-card-cover" onclick={() => playAlbum(album)}>
+                      <AlbumArt coverPath={album.cover_path} size={0} alt={album.title} />
+                      <div class="cover-overlay">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><polygon points="6,3 20,12 6,21" /></svg>
+                      </div>
+                      {#if (album as any)._source && (album as any)._source !== 'local'}
+                        <div class="cover-badge"><ServiceBadge source={(album as any)._source} compact /></div>
+                      {/if}
+                    </button>
+                    <button class="album-card-info" onclick={() => openAlbum(album)}>
+                      <span class="album-card-title">{album.title}</span>
+                      {#if album.artist_name}
+                        <span class="album-card-artist">{album.artist_name}</span>
+                      {/if}
+                      <div class="album-card-meta">
+                        {#if album.year}<span class="year">{album.year}</span>{/if}
+                        <QualityBadge format={album.format} sampleRate={album.sample_rate} bitDepth={album.bit_depth} source={album.source} />
+                      </div>
+                    </button>
+                  </div>
+                {/each}
+              </div>
+            </section>
+          {/if}
+
+          <!-- PLAYLISTS -->
+          {#if playlistMatches.length > 0}
+            <section class="section">
+              <h3 class="section-title">Playlists <span class="count">{playlistMatches.length}</span></h3>
+              <div class="playlist-list">
+                {#each playlistMatches as pl}
+                  <button class="playlist-row" onclick={() => playPlaylist(pl)}>
+                    <div class="playlist-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 18V5l12-3v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="15" r="3" /></svg>
+                    </div>
+                    <div class="playlist-info">
+                      <span class="playlist-name">{pl.name}</span>
+                      <span class="playlist-meta">{pl.trackCount} pistes</span>
+                    </div>
+                    <span class="playlist-source">{pl.source}</span>
                   </button>
-                  <button class="album-card-info" onclick={() => openAlbum(album)}>
-                    <span class="album-card-title truncate">{album.title}</span>
-                    {#if album.artist_name}
-                      <span class="album-card-artist truncate">{album.artist_name}</span>
-                    {/if}
-                  </button>
-                </div>
-              {/each}
-            </div>
-          </section>
-        {/if}
-      </div>
+                {/each}
+              </div>
+            </section>
+          {/if}
+
+          <!-- TRACKS -->
+          {#if groupedTracks.length > 0}
+            <section class="section">
+              <div class="section-head">
+                <h3 class="section-title">Pistes <span class="count">{groupedTracks.length}</span></h3>
+                {#if groupedTracks.filter(t => t.id).length > 1}
+                  <div class="track-actions-bar">
+                    <button class="action-pill" onclick={() => playAllTracks(groupedTracks)}>
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><polygon points="5,3 19,12 5,21" /></svg>
+                      Tout lire
+                    </button>
+                    <button class="action-pill" onclick={() => playAllTracks(groupedTracks, true)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="16,3 21,3 21,8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21,16 21,21 16,21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></svg>
+                      Aleatoire
+                    </button>
+                  </div>
+                {/if}
+              </div>
+              <div class="track-list">
+                {#each groupedTracks as track, i}
+                  <div class="track-row">
+                    <span class="track-num">{i + 1}</span>
+                    <button class="track-main" onclick={() => playTrack(track)}>
+                      <div class="track-art">
+                        <AlbumArt coverPath={track.cover_path} albumId={track.album_id} size={40} alt={track.title} />
+                        <div class="track-art-play">
+                          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="6,3 20,12 6,21" /></svg>
+                        </div>
+                      </div>
+                      <div class="track-info">
+                        <span class="track-title">{track.title}</span>
+                        <span class="track-sub">
+                          {track.artist_name ?? ''}
+                          {#if track.album_title} &middot; {track.album_title}{/if}
+                        </span>
+                      </div>
+                    </button>
+                    <div class="track-right">
+                      {#if (track as any)._source && (track as any)._source !== 'local'}
+                        <ServiceBadge source={(track as any)._source} compact />
+                      {/if}
+                      <QualityBadge format={track.format} sampleRate={track.sample_rate} bitDepth={track.bit_depth} source={track.source} />
+                      <span class="track-dur">{formatTime(track.duration_ms)}</span>
+                      <div class="track-hover-actions">
+                        <button class="icon-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(track); }} title="Ajouter a la file">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                        </button>
+                        {#if onAddToPlaylist && (track.id || track.source_id)}
+                          <button class="icon-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(track); }} title={addToPlaylistLabel}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
+                          </button>
+                        {/if}
+                      </div>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </section>
+          {/if}
+        </div>
+      {/if}
     {/if}
-  {/if}
+  </div>
 </div>
 
 <style>
+  /* ====================== LAYOUT ====================== */
   .search-view {
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding: var(--space-lg) 28px;
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .search-header {
-    margin-bottom: var(--space-lg);
     flex-shrink: 0;
+    padding: 20px 28px 0;
   }
 
-  .search-header h2 {
-    font-family: var(--font-label);
-    font-size: 28px;
-    font-weight: 600;
-    letter-spacing: -0.8px;
-    margin-bottom: var(--space-md);
-  }
-
-  .search-bar-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-  }
-
-  .search-bar {
+  .content {
     flex: 1;
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    background: rgba(60, 60, 63, 0.5);
-    border-radius: var(--radius-md);
-    padding: 0 var(--space-md);
-    transition: border-color 0.15s ease-out;
-    border: 1px solid transparent;
+    overflow-y: auto;
+    padding: 20px 28px 40px;
   }
 
-  .search-bar:focus-within {
+  /* ====================== SEARCH BAR ====================== */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 0 18px;
+    transition: all 0.2s ease-out;
+  }
+  .search-bar:focus-within, .search-bar.focused {
+    background: rgba(255, 255, 255, 0.09);
     border-color: var(--tune-accent);
+    box-shadow: 0 0 0 3px rgba(107, 110, 217, 0.15);
   }
 
   .search-icon {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     color: var(--tune-text-muted);
     flex-shrink: 0;
   }
@@ -1204,19 +791,17 @@
     flex: 1;
     background: none;
     border: none;
-    padding: 10px 0;
+    padding: 14px 0;
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 15px;
+    font-size: 16px;
+    font-weight: 500;
     outline: none;
   }
+  .search-bar input::placeholder { color: var(--tune-text-muted); }
 
-  .search-bar input::placeholder {
-    color: var(--tune-text-muted);
-  }
-
-  .clear-input-btn {
-    background: none;
+  .clear-btn {
+    background: rgba(255, 255, 255, 0.1);
     border: none;
     color: var(--tune-text-muted);
     cursor: pointer;
@@ -1224,427 +809,385 @@
     display: flex;
     align-items: center;
     border-radius: 50%;
-    transition: color 0.12s;
+    transition: all 0.15s;
   }
-  .clear-input-btn:hover { color: var(--tune-text); }
+  .clear-btn:hover { color: var(--tune-text); background: rgba(255, 255, 255, 0.15); }
 
   .search-spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid var(--tune-border);
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.15);
     border-top-color: var(--tune-accent);
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+    animation: spin 0.7s linear infinite;
     flex-shrink: 0;
   }
 
-  .filter-toggle-btn {
+  /* ====================== SOURCE PILLS ====================== */
+  .source-pills {
     display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(60, 60, 63, 0.5);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-md);
-    color: var(--tune-text-secondary);
-    font-family: var(--font-label);
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.3px;
-    padding: 8px 14px;
-    cursor: pointer;
-    transition: all 0.12s ease-out;
-    position: relative;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .filter-toggle-btn:hover {
-    border-color: var(--tune-accent);
-    color: var(--tune-text);
-  }
-  .filter-toggle-btn.active {
-    background: var(--tune-accent);
-    border-color: var(--tune-accent);
-    color: white;
-  }
-  .filter-count-badge {
-    position: absolute;
-    top: -3px;
-    right: -3px;
-    width: 8px;
-    height: 8px;
-    background: var(--tune-accent);
-    border-radius: 50%;
-  }
-  .filter-toggle-btn.active .filter-count-badge {
-    background: white;
-  }
-
-  .source-filters {
-    display: flex;
+    gap: 8px;
+    margin-top: 14px;
     flex-wrap: wrap;
-    gap: var(--space-xs);
-    margin-top: var(--space-sm);
   }
 
-  .source-chip {
+  .pill {
     font-family: var(--font-label);
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.3px;
-    padding: 4px 12px;
-    border-radius: var(--radius-xl);
-    border: 1px solid var(--tune-border);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
     background: transparent;
     color: var(--tune-text-secondary);
     cursor: pointer;
-    transition: all 0.12s ease-out;
-  }
-  .source-chip:hover {
-    border-color: var(--tune-accent);
-    color: var(--tune-text);
-  }
-  .source-chip.active {
-    background: var(--tune-accent);
-    border-color: var(--tune-accent);
-    color: white;
-  }
-
-  /* --- Filter panel (collapsible) --- */
-  .filter-panel {
-    background: var(--tune-grey2);
-    border-radius: var(--radius-md);
-    padding: var(--space-md) var(--space-lg);
-    margin-top: var(--space-sm);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-    animation: slideDown 0.2s ease-out;
-  }
-
-  @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .filter-row {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-md);
-    min-height: 28px;
-  }
-
-  .filter-label {
-    font-family: var(--font-label);
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: var(--tune-text-muted);
-    flex-shrink: 0;
-    width: 80px;
-    padding-top: 5px;
-  }
-
-  .filter-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    flex: 1;
-    overflow: hidden;
-  }
-
-  .filter-chip {
-    font-family: var(--font-label);
-    font-size: 12px;
-    font-weight: 500;
+    transition: all 0.15s ease-out;
     letter-spacing: 0.2px;
-    padding: 3px 10px;
-    border-radius: var(--radius-xl);
-    border: 1px solid var(--tune-border);
-    background: transparent;
-    color: var(--tune-text-secondary);
-    cursor: pointer;
-    transition: all 0.12s ease-out;
-    white-space: nowrap;
   }
-  .filter-chip:hover {
+  .pill:hover {
     border-color: var(--tune-accent);
     color: var(--tune-text);
   }
-  .filter-chip.active {
+  .pill.active {
     background: var(--tune-accent);
     border-color: var(--tune-accent);
     color: white;
-    font-weight: 600;
-  }
-  .filter-chip--format.active { background: #2060b8; border-color: #2060b8; }
-  .filter-chip--rate.active { background: #7030b8; border-color: #7030b8; }
-  .filter-chip--depth.active { background: #186090; border-color: #186090; }
-  .filter-chip--source.active { background: #20806a; border-color: #20806a; }
-  .filter-chip--dur.active { background: #804820; border-color: #804820; }
-
-  .filter-autocomplete {
-    position: relative;
-    flex: 1;
-  }
-  .filter-text-input {
-    width: 100%;
-    max-width: 320px;
-    background: rgba(60, 60, 63, 0.5);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-sm);
-    color: var(--tune-text);
-    font-family: var(--font-body);
-    font-size: 13px;
-    padding: 4px 10px;
-    outline: none;
-    transition: border-color 0.12s ease-out;
-  }
-  .filter-text-input:focus { border-color: var(--tune-accent); }
-  .filter-text-input::placeholder { color: var(--tune-text-muted); }
-
-  .filter-suggestions {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    min-width: 200px;
-    max-width: 320px;
-    background: var(--tune-surface, #1e1e20);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-sm);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-    z-index: 100;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .filter-suggestion {
-    text-align: left;
-    background: none;
-    border: none;
-    padding: 6px 12px;
-    font-family: var(--font-body);
-    font-size: 13px;
-    color: var(--tune-text);
-    cursor: pointer;
-    transition: background 0.1s;
-  }
-  .filter-suggestion:hover { background: var(--tune-surface-hover); }
-
-  .filter-actions {
-    display: flex;
-    justify-content: flex-end;
-    padding-top: var(--space-xs);
-  }
-  .clear-filters-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background: none;
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-sm);
-    color: var(--tune-text-muted);
-    font-family: var(--font-label);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.3px;
-    padding: 3px 10px;
-    cursor: pointer;
-    transition: all 0.12s ease-out;
-  }
-  .clear-filters-btn:hover {
-    border-color: var(--tune-accent);
-    color: var(--tune-accent);
   }
 
-  /* --- Discovery content --- */
-  .discovery {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xl);
+  /* ====================== SECTIONS ====================== */
+  .section {
+    margin-bottom: 36px;
   }
 
-  .discovery-section h3 {
-    font-family: var(--font-label);
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--tune-text);
-    margin-bottom: var(--space-md);
-  }
-
-  .section-header {
+  .section-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--space-md);
+    margin-bottom: 16px;
   }
-  .section-header h3 { margin-bottom: 0; }
-  .section-action {
+
+  .section-title {
+    font-family: var(--font-label);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--tune-text);
+    letter-spacing: -0.3px;
+    margin-bottom: 16px;
+  }
+  .section-head .section-title { margin-bottom: 0; }
+
+  .section h3 {
+    font-family: var(--font-label);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--tune-text);
+    letter-spacing: -0.3px;
+    margin-bottom: 16px;
+  }
+
+  .count {
+    font-weight: 400;
+    color: var(--tune-text-muted);
+    font-size: 16px;
+  }
+
+  .link-btn {
     background: none;
     border: none;
     color: var(--tune-text-muted);
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
-    letter-spacing: 0.3px;
     cursor: pointer;
-    transition: color 0.12s;
+    transition: color 0.15s;
   }
-  .section-action:hover { color: var(--tune-accent); }
+  .link-btn:hover { color: var(--tune-accent); }
 
-  /* Recent searches */
-  .recent-searches {
+  /* ====================== DISCOVERY ====================== */
+  .discovery {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 8px;
   }
-  .recent-search-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    border-radius: var(--radius-sm);
-    transition: background 0.12s;
-  }
-  .recent-search-item:hover { background: var(--tune-surface-hover); }
-  .recent-search-btn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    padding: 8px 10px;
-    background: none;
-    border: none;
-    color: var(--tune-text);
-    font-family: var(--font-body);
-    font-size: 14px;
-    cursor: pointer;
-    text-align: left;
-  }
-  .recent-search-btn svg { color: var(--tune-text-muted); flex-shrink: 0; }
-  .recent-search-remove {
-    background: none;
-    border: none;
-    color: var(--tune-text-muted);
-    cursor: pointer;
-    padding: 6px;
-    display: flex;
-    align-items: center;
-    border-radius: 50%;
-    opacity: 0;
-    transition: opacity 0.12s, color 0.12s;
-  }
-  .recent-search-item:hover .recent-search-remove { opacity: 1; }
-  .recent-search-remove:hover { color: var(--tune-accent); }
 
-  /* Discovery artist cards (horizontal scroll) */
-  .artists-scroll {
+  /* Search history chips */
+  .history-chips {
     display: flex;
-    gap: var(--space-md);
-    overflow-x: auto;
-    padding-bottom: var(--space-sm);
-    scroll-snap-type: x proximity;
-    -webkit-overflow-scrolling: touch;
+    flex-wrap: wrap;
+    gap: 8px;
   }
-  .artists-scroll::-webkit-scrollbar { height: 4px; }
-  .artists-scroll::-webkit-scrollbar-thumb { background: var(--tune-border); border-radius: 2px; }
-
-  .discovery-artist-card {
+  .history-chip {
     display: flex;
-    flex-direction: column;
     align-items: center;
     gap: 6px;
-    padding: var(--space-sm);
-    background: none;
-    border: none;
-    cursor: pointer;
+    padding: 7px 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
     color: var(--tune-text);
-    flex-shrink: 0;
-    width: 90px;
-    scroll-snap-align: start;
-    transition: transform 0.15s;
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
   }
-  .discovery-artist-card:hover { transform: translateY(-2px); }
-  .discovery-artist-avatar {
-    width: 64px;
-    height: 64px;
+  .history-chip:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--tune-accent);
+  }
+  .history-chip svg { color: var(--tune-text-muted); }
+  .chip-x {
+    font-size: 16px;
+    line-height: 1;
+    color: var(--tune-text-muted);
+    margin-left: 2px;
+  }
+  .chip-x:hover { color: var(--tune-accent); }
+
+  /* Discovery artist row */
+  .artist-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+  }
+
+  .artist-pill {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: none;
+    border-radius: 10px;
+    color: var(--tune-text);
+    cursor: pointer;
+    transition: background 0.15s;
+    text-align: left;
+  }
+  .artist-pill:hover { background: rgba(255, 255, 255, 0.08); }
+
+  .artist-pill-avatar {
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--tune-accent), rgba(var(--tune-accent-rgb, 99, 102, 241), 0.6));
+    background: linear-gradient(135deg, var(--tune-accent), #9b59b6);
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: var(--font-label);
-    font-size: 22px;
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .artist-pill-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .artist-pill-name {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .artist-pill-plays {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+  }
+
+  /* ====================== RESULTS ====================== */
+  .results {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* TOP ROW: best result + artists */
+  .top-row {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 24px;
+    margin-bottom: 36px;
+    align-items: start;
+  }
+
+  .top-result-section { min-width: 0; }
+  .top-result-section .section-title { margin-bottom: 12px; }
+  .artists-section { min-width: 0; overflow: hidden; }
+  .artists-section .section-title { margin-bottom: 12px; }
+
+  .top-result-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    color: var(--tune-text);
+    transition: background 0.2s;
+    width: 100%;
+    text-align: left;
+    position: relative;
+  }
+  .top-result-card:hover { background: rgba(255, 255, 255, 0.08); }
+
+  .top-result-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .top-result-avatar--letter {
+    background: linear-gradient(135deg, var(--tune-accent), #9b59b6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-label);
+    font-size: 36px;
     font-weight: 700;
     color: white;
   }
-  .discovery-artist-name {
+
+  .top-result-cover {
+    width: 92px;
+    height: 92px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .top-result-name {
+    font-family: var(--font-label);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+  .top-result-type {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    background: rgba(255, 255, 255, 0.08);
+    padding: 3px 10px;
+    border-radius: 12px;
+  }
+  .top-result-badge { position: absolute; top: 16px; right: 16px; }
+
+  /* Artists scroll in results */
+  .artists-scroll {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+  .artists-scroll::-webkit-scrollbar { height: 3px; }
+  .artists-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 2px; }
+
+  .artist-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--tune-text);
+    flex-shrink: 0;
+    width: 100px;
+    scroll-snap-align: start;
+    padding: 8px;
+    border-radius: 10px;
+    transition: background 0.15s;
+  }
+  .artist-card:hover { background: rgba(255, 255, 255, 0.06); }
+
+  .artist-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    overflow: hidden;
+  }
+  .artist-avatar--letter {
+    background: var(--tune-surface-selected);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-label);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--tune-text-muted);
+  }
+  .artist-name {
     font-family: var(--font-body);
     font-size: 12px;
     font-weight: 600;
     text-align: center;
-    max-width: 90px;
-  }
-  .discovery-artist-plays {
-    font-family: var(--font-body);
-    font-size: 10px;
-    color: var(--tune-text-muted);
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  /* Albums grid */
-  .albums-grid {
+  /* ====================== ALBUM GRID ====================== */
+  .album-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-md);
+    grid-template-columns: repeat(7, 1fr);
+    gap: 14px;
+  }
+  .discovery-grid {
+    grid-template-columns: repeat(8, 1fr);
   }
 
-  .discovery-album-card,
   .album-card {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     background: none;
     border: none;
     text-align: left;
     padding: 0;
     color: var(--tune-text);
+    cursor: pointer;
   }
-  .discovery-album-card { cursor: pointer; }
 
-  .discovery-album-cover,
   .album-card-cover {
     position: relative;
-    border-radius: var(--radius-lg);
+    border-radius: 8px;
     overflow: hidden;
     aspect-ratio: 1;
-    background: none;
+    background: rgba(255, 255, 255, 0.04);
+    width: 100%;
+    cursor: pointer;
     border: none;
     padding: 0;
-    cursor: pointer;
-    width: 100%;
   }
 
-  .album-play-overlay {
+  .cover-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.45);
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity 0.15s ease-out;
+    transition: opacity 0.2s;
     color: white;
-    cursor: pointer;
   }
-  .discovery-album-cover:hover .album-play-overlay,
-  .album-card-cover:hover .album-play-overlay {
-    opacity: 1;
-  }
+  .album-card-cover:hover .cover-overlay { opacity: 1; }
 
-  .album-service-badge {
+  .cover-badge {
     position: absolute;
     bottom: 6px;
     left: 6px;
+    z-index: 1;
   }
 
   .album-card-info {
@@ -1660,156 +1203,175 @@
     text-align: left;
   }
 
-  .discovery-album-title,
   .album-card-title {
     font-family: var(--font-body);
     font-size: 13px;
     font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
   }
-
-  .discovery-album-artist,
   .album-card-artist {
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-
   .album-card-meta {
     display: flex;
     align-items: center;
     gap: 6px;
     margin-top: 2px;
   }
-  .album-card-year {
+  .year {
     font-family: var(--font-label);
     font-size: 11px;
     color: var(--tune-text-muted);
   }
 
-  /* --- Result sections --- */
-  .results {
+  /* ====================== PLAYLISTS ====================== */
+  .playlist-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xl);
+    gap: 2px;
   }
-
-  .result-section {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .result-section-title {
-    font-family: var(--font-label);
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--tune-text);
-    margin-bottom: var(--space-md);
-    padding-bottom: var(--space-xs);
-    border-bottom: 1px solid var(--tune-border);
-  }
-
-  .streaming-section .result-section-title {
-    color: var(--tune-accent);
-  }
-
-  /* Artist cards in results */
-  .artist-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: var(--space-sm);
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--tune-text);
-    flex-shrink: 0;
-    width: 90px;
-    scroll-snap-align: start;
-    transition: transform 0.15s;
-  }
-  .artist-card:hover { transform: translateY(-2px); }
-  .artist-card-avatar {
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    overflow: hidden;
-    flex-shrink: 0;
-  }
-  .artist-card-avatar--placeholder {
-    background: var(--tune-surface-selected);
+  .playlist-row {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-family: var(--font-label);
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--tune-text-muted);
-  }
-  .artist-card-name {
-    font-family: var(--font-body);
-    font-size: 12px;
-    font-weight: 600;
-    text-align: center;
-    max-width: 90px;
-  }
-
-  /* Tracks */
-  .tracks-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .tracks-header .result-section-title { flex: 1; }
-  .tracks-actions {
-    display: flex;
-    gap: var(--space-sm);
-  }
-  .action-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background: rgba(255,255,255,0.08);
-    border: none;
-    border-radius: var(--radius-sm);
-    color: var(--tune-text);
-    font-size: 11px;
-    font-weight: 500;
-    padding: 4px 10px;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .action-btn:hover { background: var(--tune-accent); color: #fff; }
-
-  .track-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-  }
-
-  .track-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 0;
-    border-radius: var(--radius-sm);
-    transition: background 0.12s ease-out;
-  }
-  .track-item:hover { background: var(--tune-surface-hover); }
-
-  .track-play {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    padding: 6px 4px;
+    gap: 14px;
+    padding: 10px 12px;
     background: none;
     border: none;
     color: var(--tune-text);
     cursor: pointer;
     text-align: left;
+    border-radius: 8px;
+    transition: background 0.15s;
+  }
+  .playlist-row:hover { background: rgba(255, 255, 255, 0.06); }
+
+  .playlist-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tune-text-muted);
+    flex-shrink: 0;
+  }
+  .playlist-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .playlist-name {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .playlist-meta {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+  }
+  .playlist-source {
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 3px 10px;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  /* ====================== TRACKS ====================== */
+  .track-actions-bar {
+    display: flex;
+    gap: 8px;
+  }
+  .action-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    border-radius: 8px;
+    color: var(--tune-text);
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .action-pill:hover { background: var(--tune-accent); color: white; }
+
+  .track-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .track-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: background 0.12s;
+  }
+  .track-row:hover { background: rgba(255, 255, 255, 0.05); }
+
+  .track-num {
+    font-family: var(--font-label);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .track-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--tune-text);
+    text-align: left;
+    padding: 6px 4px;
     min-width: 0;
   }
+
+  .track-art {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .track-art-play {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+    color: white;
+  }
+  .track-row:hover .track-art-play { opacity: 1; }
 
   .track-info {
     flex: 1;
@@ -1821,155 +1383,80 @@
   .track-title {
     font-family: var(--font-body);
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .track-artist {
+  .track-sub {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: 12px;
     color: var(--tune-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .track-matched-field {
-    font-family: var(--font-body);
-    font-size: 11px;
-    color: var(--tune-accent);
-    font-style: italic;
+
+  .track-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
   }
-  .track-duration {
-    font-family: var(--font-body);
+  .track-dur {
+    font-family: var(--font-label);
     font-size: 12px;
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
-    flex-shrink: 0;
+    width: 42px;
+    text-align: right;
   }
 
-  .track-actions {
+  .track-hover-actions {
     display: flex;
-    gap: 2px;
+    gap: 4px;
     opacity: 0;
     transition: opacity 0.12s;
-    flex-shrink: 0;
   }
-  .track-item:hover .track-actions { opacity: 1; }
+  .track-row:hover .track-hover-actions { opacity: 1; }
 
-  .track-action-btn {
-    width: 28px;
-    height: 28px;
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-sm);
+  .icon-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
     background: none;
     color: var(--tune-text-secondary);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.12s ease-out;
+    transition: all 0.15s;
   }
-  .track-action-btn:hover {
+  .icon-btn:hover {
     border-color: var(--tune-accent);
     color: var(--tune-accent);
+    background: rgba(107, 110, 217, 0.1);
   }
 
-  /* Playlist results */
-  .playlist-results {
+  /* ====================== STATES ====================== */
+  .loading-state {
     display: flex;
     flex-direction: column;
-    gap: 1px;
-  }
-  .playlist-result-item {
-    display: flex;
     align-items: center;
-    gap: var(--space-md);
-    padding: 8px 4px;
-    background: none;
-    border: none;
-    color: var(--tune-text);
-    cursor: pointer;
-    text-align: left;
-    transition: background 0.12s ease-out;
-    border-radius: var(--radius-sm);
-  }
-  .playlist-result-item:hover { background: var(--tune-surface-hover); }
-  .playlist-icon {
-    flex-shrink: 0;
-    width: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    gap: 14px;
+    padding: 60px 20px;
     color: var(--tune-text-muted);
-  }
-  .playlist-result-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .playlist-result-name {
     font-family: var(--font-body);
     font-size: 14px;
-    font-weight: 700;
   }
-  .playlist-result-meta {
-    font-family: var(--font-body);
-    font-size: 12px;
-    color: var(--tune-text-secondary);
-  }
-  .playlist-source-badge {
-    font-family: var(--font-label);
-    font-size: 11px;
-    color: var(--tune-text-muted);
-    background: var(--tune-grey2);
-    padding: 2px 8px;
-    border-radius: var(--radius-sm);
-    flex-shrink: 0;
-    letter-spacing: 0.3px;
-  }
-
-  /* Filter results count */
-  .filter-results {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
-  .filter-results-count {
-    font-family: var(--font-label);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--tune-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    padding-bottom: var(--space-xs);
-    border-bottom: 1px solid var(--tune-border);
-  }
-  .filter-count-note {
-    font-weight: 400;
-    text-transform: none;
-    letter-spacing: 0;
-    margin-left: var(--space-sm);
-  }
-
-  /* Loading and empty states */
-  .loading {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    color: var(--tune-text-muted);
-    font-family: var(--font-body);
-    padding: var(--space-xl);
-    justify-content: center;
-  }
-
   .spinner {
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--tune-border);
+    width: 24px;
+    height: 24px;
+    border: 2.5px solid rgba(255, 255, 255, 0.1);
     border-top-color: var(--tune-accent);
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
+    animation: spin 0.7s linear infinite;
   }
 
   .empty-state {
@@ -1977,79 +1464,52 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--space-md);
-    padding: var(--space-2xl);
+    gap: 16px;
+    padding: 80px 20px;
     color: var(--tune-text-muted);
     text-align: center;
   }
   .empty-state p {
     font-family: var(--font-body);
-    font-size: 14px;
-    max-width: 320px;
+    font-size: 15px;
+    max-width: 360px;
+    line-height: 1.5;
   }
 
-  .truncate {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 
-  /* --- Responsive --- */
+  /* ====================== RESPONSIVE ====================== */
+  @media (max-width: 1200px) {
+    .album-grid { grid-template-columns: repeat(5, 1fr); }
+    .discovery-grid { grid-template-columns: repeat(6, 1fr); }
+  }
+
   @media (max-width: 1024px) {
-    .albums-grid {
-      grid-template-columns: repeat(3, 1fr);
+    .album-grid { grid-template-columns: repeat(4, 1fr); }
+    .discovery-grid { grid-template-columns: repeat(5, 1fr); }
+    .top-row {
+      grid-template-columns: 1fr;
     }
   }
 
   @media (max-width: 768px) {
-    .search-view {
-      padding: var(--space-md) var(--space-md);
-    }
-    .search-header h2 {
-      font-size: 22px;
-    }
-    .albums-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    .artists-scroll {
-      gap: var(--space-sm);
-    }
-    .discovery-artist-card {
-      width: 76px;
-    }
-    .discovery-artist-avatar {
-      width: 52px;
-      height: 52px;
-      font-size: 18px;
-    }
-    .artist-card {
-      width: 76px;
-    }
-    .artist-card-avatar {
-      width: 60px;
-      height: 60px;
-    }
-    .filter-row {
-      flex-direction: column;
-      gap: 4px;
-    }
-    .filter-label {
-      width: auto;
-      padding-top: 0;
-    }
+    .search-header { padding: 14px 16px 0; }
+    .content { padding: 14px 16px 40px; }
+    .album-grid, .discovery-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .artist-row { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+    .top-row { grid-template-columns: 1fr; }
+    .artist-avatar { width: 64px; height: 64px; }
+    .artist-card { width: 84px; }
+    .section-title, .section h3 { font-size: 17px; }
   }
 
   @media (max-width: 480px) {
-    .search-bar-row {
-      flex-direction: column;
-      gap: 8px;
-    }
-    .filter-toggle-btn {
-      align-self: flex-start;
-    }
-    .albums-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: var(--space-sm);
-    }
+    .album-grid, .discovery-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .source-pills { gap: 6px; }
+    .pill { padding: 5px 12px; font-size: 12px; }
+    .search-bar { border-radius: 10px; padding: 0 14px; }
+    .search-bar input { padding: 12px 0; font-size: 15px; }
   }
 </style>
