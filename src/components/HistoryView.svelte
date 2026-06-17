@@ -25,7 +25,7 @@
   let zone = $derived($currentZone);
 
   // Merge local + server history
-  let mergedHistory = $derived(() => {
+  let mergedHistory = $derived.by(() => {
     const local = $playbackHistory;
     if (serverHistory.length === 0) return local;
     if (local.length === 0) return serverHistory;
@@ -116,13 +116,13 @@
 <div class="history-view">
   <div class="history-header">
     <h2>{$t('history.title')}</h2>
-    <span class="history-count">{mergedHistory().length} {$t('history.plays')}</span>
-    {#if mergedHistory().length > 0}
+    <span class="history-count">{mergedHistory.length} {$t('history.plays')}</span>
+    {#if mergedHistory.length > 0}
       <button class="clear-btn" onclick={() => playbackHistory.clear()}>{$t('history.clear')}</button>
     {/if}
   </div>
 
-  {#if mergedHistory().length === 0}
+  {#if mergedHistory.length === 0}
     <div class="empty">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
         <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
@@ -131,7 +131,7 @@
     </div>
   {:else}
     <div class="history-list">
-      {#each mergedHistory() as entry, i}
+      {#each mergedHistory as entry, i}
         <button class="history-item" class:loading={playingIndex === i} onclick={() => replay(entry, i)}>
           <div class="history-play-icon">
             {#if playingIndex === i}

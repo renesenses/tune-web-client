@@ -367,9 +367,13 @@
     }
   }
 
-  // Compute grouped results — dedup artists, prefer the one with an image
+  interface MergedArtist extends Artist {
+    _source?: string;
+    _sources: { source: string; artist: Artist }[];
+  }
+
   let groupedArtists = $derived.by(() => {
-    if (!results) return [];
+    if (!results) return [] as MergedArtist[];
     const all: (Artist & { _source?: string })[] = [];
     if (results.local?.artists) {
       for (const a of results.local.artists) all.push({ ...a, _source: 'local' });
@@ -379,16 +383,46 @@
         for (const a of data.artists) all.push({ ...a, _source: svc });
       }
     }
-    const map = new Map<string, Artist & { _source?: string }>();
+
+    // Infer local artists from local tracks (search may miss artist names that don't start with query)
+    const localArtistNames = new Set<string>();
+    if (results.local?.tracks) {
+      for (const t of results.local.tracks) {
+        if (t.artist_name) localArtistNames.add(t.artist_name.toLowerCase());
+      }
+    }
+    if (results.local?.albums) {
+      for (const a of results.local.albums) {
+        if (a.artist_name) localArtistNames.add(a.artist_name.toLowerCase());
+      }
+    }
+
+    const map = new Map<string, MergedArtist>();
     for (const a of all) {
       const key = a.name.toLowerCase();
       const existing = map.get(key);
       if (!existing) {
-        map.set(key, a);
-      } else if (!existing.image_path && a.image_path) {
-        map.set(key, a);
+        map.set(key, { ...a, _sources: [{ source: (a as any)._source ?? 'local', artist: a }] });
+      } else {
+        existing._sources.push({ source: (a as any)._source ?? 'local', artist: a });
+        if (!existing.image_path && a.image_path) {
+          existing.image_path = a.image_path;
+        }
       }
     }
+
+    // Add local badge to artists found in local tracks/albums but not in local artist search
+    for (const [key, merged] of map) {
+      const hasLocal = merged._sources.some(s => s.source === 'local');
+      if (!hasLocal && localArtistNames.has(key)) {
+        const localTrack = results.local?.tracks?.find(t => t.artist_name?.toLowerCase() === key);
+        merged._sources.unshift({
+          source: 'local',
+          artist: { id: localTrack?.artist_id ?? null, name: merged.name } as Artist,
+        });
+      }
+    }
+
     return [...map.values()];
   });
 
@@ -669,22 +703,37 @@
               <section class="top-result-section">
                 <h3 class="section-title">Meilleur resultat</h3>
                 {#if topResult.type === 'artist'}
-                  <button class="top-result-card" onclick={() => selectArtist(topResult!.artist)}>
-                    {#if topResult.artist.image_path}
-                      <div class="top-result-avatar">
-                        <AlbumArt coverPath={topResult.artist.image_path} size={72} alt={topResult.artist.name} round />
-                      </div>
-                    {:else}
-                      <div class="top-result-avatar top-result-avatar--letter">
-                        <span>{topResult.artist.name.charAt(0).toUpperCase()}</span>
-                      </div>
-                    {/if}
-                    <span class="top-result-name">{topResult.artist.name}</span>
-                    <span class="top-result-type">Artiste</span>
-                    {#if (topResult.artist as any)._source && (topResult.artist as any)._source !== 'local'}
-                      <div class="top-result-badge"><ServiceBadge source={(topResult.artist as any)._source} compact /></div>
-                    {/if}
-                  </button>
+                  <div class="top-result-card">
+                    <button class="top-result-main" onclick={() => selectArtist(topResult!.artist)}>
+                      {#if topResult.artist.image_path}
+                        <div class="top-result-avatar">
+                          <AlbumArt coverPath={topResult.artist.image_path} size={72} alt={topResult.artist.name} round />
+                        </div>
+                      {:else}
+                        <div class="top-result-avatar top-result-avatar--letter">
+                          <span>{topResult.artist.name.charAt(0).toUpperCase()}</span>
+                        </div>
+                      {/if}
+                      <span class="top-result-name">{topResult.artist.name}</span>
+                    </button>
+                    <div class="source-badges">
+                      {#each (topResult.artist as MergedArtist)._sources ?? [{ source: (topResult.artist as any)._source ?? 'local', artist: topResult.artist }] as s}
+                        <button class="source-badge-btn" onclick={() => {
+                          if (s.source === 'local') {
+                            selectArtist({ ...s.artist, _source: 'local' } as any);
+                          } else {
+                            selectArtist({ ...s.artist, _source: s.source } as any);
+                          }
+                        }}>
+                          {#if s.source === 'local'}
+                            <span class="source-local-badge">LOCAL</span>
+                          {:else}
+                            <ServiceBadge source={s.source} compact />
+                          {/if}
+                        </button>
+                      {/each}
+                    </div>
+                  </div>
                 {:else if topResult.type === 'album'}
                   <button class="top-result-card top-result-card--album" onclick={() => playAlbum(topResult!.album)}>
                     <div class="top-result-cover top-result-cover--large">
@@ -740,21 +789,31 @@
                   <h3 class="section-title">Artistes</h3>
                   <div class="artists-scroll">
                     {#each groupedArtists.filter(a => a.name !== topResult?.artist?.name).slice(0, 12) as artist}
-                      <button class="artist-card" onclick={() => selectArtist(artist)}>
-                        {#if artist.image_path}
-                          <div class="artist-avatar">
-                            <AlbumArt coverPath={artist.image_path} size={64} alt={artist.name} round />
-                          </div>
-                        {:else}
-                          <div class="artist-avatar artist-avatar--letter">
-                            <span>{artist.name.charAt(0).toUpperCase()}</span>
-                          </div>
-                        {/if}
-                        <span class="artist-name">{artist.name}</span>
-                        {#if (artist as any)._source && (artist as any)._source !== 'local'}
-                          <ServiceBadge source={(artist as any)._source} compact />
-                        {/if}
-                      </button>
+                      <div class="artist-card">
+                        <button class="artist-card-main" onclick={() => selectArtist(artist)}>
+                          {#if artist.image_path}
+                            <div class="artist-avatar">
+                              <AlbumArt coverPath={artist.image_path} size={64} alt={artist.name} round />
+                            </div>
+                          {:else}
+                            <div class="artist-avatar artist-avatar--letter">
+                              <span>{artist.name.charAt(0).toUpperCase()}</span>
+                            </div>
+                          {/if}
+                          <span class="artist-name">{artist.name}</span>
+                        </button>
+                        <div class="artist-source-badges">
+                          {#each (artist as MergedArtist)._sources ?? [] as s}
+                            <button class="source-badge-btn source-badge-btn--sm" onclick={() => selectArtist({ ...s.artist, _source: s.source } as any)}>
+                              {#if s.source === 'local'}
+                                <span class="source-local-badge source-local-badge--sm">LOC</span>
+                              {:else}
+                                <ServiceBadge source={s.source} compact />
+                              {/if}
+                            </button>
+                          {/each}
+                        </div>
+                      </div>
                     {/each}
                   </div>
                 </section>
@@ -763,21 +822,31 @@
                   <h3 class="section-title">Artistes</h3>
                   <div class="artists-scroll">
                     {#each groupedArtists.slice(0, 12) as artist}
-                      <button class="artist-card" onclick={() => selectArtist(artist)}>
-                        {#if artist.image_path}
-                          <div class="artist-avatar">
-                            <AlbumArt coverPath={artist.image_path} size={64} alt={artist.name} round />
-                          </div>
-                        {:else}
-                          <div class="artist-avatar artist-avatar--letter">
-                            <span>{artist.name.charAt(0).toUpperCase()}</span>
-                          </div>
-                        {/if}
-                        <span class="artist-name">{artist.name}</span>
-                        {#if (artist as any)._source && (artist as any)._source !== 'local'}
-                          <ServiceBadge source={(artist as any)._source} compact />
-                        {/if}
-                      </button>
+                      <div class="artist-card">
+                        <button class="artist-card-main" onclick={() => selectArtist(artist)}>
+                          {#if artist.image_path}
+                            <div class="artist-avatar">
+                              <AlbumArt coverPath={artist.image_path} size={64} alt={artist.name} round />
+                            </div>
+                          {:else}
+                            <div class="artist-avatar artist-avatar--letter">
+                              <span>{artist.name.charAt(0).toUpperCase()}</span>
+                            </div>
+                          {/if}
+                          <span class="artist-name">{artist.name}</span>
+                        </button>
+                        <div class="artist-source-badges">
+                          {#each (artist as MergedArtist)._sources ?? [] as s}
+                            <button class="source-badge-btn source-badge-btn--sm" onclick={() => selectArtist({ ...s.artist, _source: s.source } as any)}>
+                              {#if s.source === 'local'}
+                                <span class="source-local-badge source-local-badge--sm">LOC</span>
+                              {:else}
+                                <ServiceBadge source={s.source} compact />
+                              {/if}
+                            </button>
+                          {/each}
+                        </div>
+                      </div>
                     {/each}
                   </div>
                 </section>
@@ -1370,19 +1439,78 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    background: none;
-    border: none;
-    cursor: pointer;
+    gap: 4px;
     color: var(--tune-text);
     flex-shrink: 0;
     width: 100px;
     scroll-snap-align: start;
-    padding: 8px;
+    padding: 4px;
     border-radius: 10px;
-    transition: background 0.15s;
   }
-  .artist-card:hover { background: rgba(255, 255, 255, 0.06); }
+  .artist-card-main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--tune-text);
+    padding: 4px;
+    border-radius: 8px;
+    transition: background 0.15s;
+    width: 100%;
+  }
+  .artist-card-main:hover { background: rgba(255, 255, 255, 0.06); }
+  .artist-source-badges {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* Source badge buttons */
+  .source-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+  .source-badge-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.12s, opacity 0.12s;
+    opacity: 0.85;
+  }
+  .source-badge-btn:hover { transform: scale(1.1); opacity: 1; }
+  .source-badge-btn--sm { transform: scale(0.85); }
+  .source-badge-btn--sm:hover { transform: scale(0.95); }
+  .source-local-badge {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--tune-text);
+    background: rgba(255, 255, 255, 0.12);
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+  .source-local-badge--sm { font-size: 9px; padding: 1px 4px; }
+
+  .top-result-main {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--tune-text);
+    text-align: left;
+    padding: 0;
+  }
 
   .artist-avatar {
     width: 64px;
