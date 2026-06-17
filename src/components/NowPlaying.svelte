@@ -68,7 +68,7 @@
   ] as const;
 
   async function handleNpMoodSelect(mood: typeof npMoods[number]) {
-    if (!zone?.id) return;
+    if (!zone?.id) { notifications.error("Aucune zone sélectionnée"); return; }
     moodLoading = mood.id;
     try {
       const data = await api.smartAIMood({ mood: mood.id, limit: 20 });
@@ -126,7 +126,6 @@
   }
 
   async function handleCancelAlarm() {
-    if (!zone?.id) return;
     try {
       await api.cancelAlarm(zone.id);
       alarmActive = false;
@@ -138,7 +137,6 @@
   }
 
   async function loadAlarmState() {
-    if (!zone?.id) return;
     try {
       const r = await api.getAlarm(zone.id);
       alarmActive = !!r.time;
@@ -161,7 +159,6 @@
   ];
 
   async function handleSleepTimer(minutes: number) {
-    if (!zone?.id) return;
     try {
       await api.setSleepTimer(zone.id, minutes);
       sleepActive = minutes > 0;
@@ -175,7 +172,6 @@
   }
 
   async function loadSleepTimer() {
-    if (!zone?.id) return;
     try {
       const r = await api.getSleepTimer(zone.id);
       sleepActive = r.active;
@@ -183,7 +179,6 @@
   }
 
   async function toggleCrossfade() {
-    if (!zone?.id) return;
     try {
       const next = !crossfadeEnabled;
       await api.setCrossfade(zone.id, next, crossfadeDuration);
@@ -195,7 +190,6 @@
   }
 
   async function toggleNormalization() {
-    if (!zone?.id) return;
     try {
       const next = !normEnabled;
       await api.setNormalization(zone.id, next, normTargetLufs);
@@ -207,7 +201,6 @@
   }
 
   async function handleDsp(crossfeed: string | null) {
-    if (!zone?.id) return;
     try {
       await api.setDSP(zone.id, crossfeed);
       currentCrossfeed = crossfeed;
@@ -248,7 +241,6 @@
   ];
 
   async function setEqPreset(preset: string) {
-    if (!zone?.id) return;
     try {
       await api.setEqualizer(zone.id, preset);
       currentEqPreset = preset;
@@ -256,7 +248,6 @@
   }
 
   async function handleShare() {
-    if (!zone?.id) return;
     try {
       const card = await api.shareNowPlaying(zone.id);
       await navigator.clipboard.writeText(card.text);
@@ -559,13 +550,11 @@
   });
 
   async function toggleShuffle() {
-    if (!zone?.id) return;
     const result = await api.setShuffle(zone.id, !$shuffleEnabled);
     shuffleEnabled.set(result.shuffle);
   }
 
   async function cycleRepeat() {
-    if (!zone?.id) return;
     const modes: RepeatMode[] = ['off', 'one', 'all'];
     const idx = modes.indexOf($repeatMode);
     const next = modes[(idx + 1) % modes.length];
@@ -574,7 +563,6 @@
   }
 
   async function jumpToUpNext(trackItem: Track, index: number) {
-    if (!zone?.id) return;
     try {
       // upNext starts at queuePosition + 1, so real index is queuePosition + 1 + index
       const { queuePosition } = await import('../lib/stores/queue');
@@ -692,7 +680,6 @@
   }
 
   async function qsPlayFromPosition(index: number) {
-    if (!zone?.id) return;
     try {
       await api.jumpInQueue(zone.id, index);
     } catch (e) {
@@ -701,7 +688,6 @@
   }
 
   async function qsRemoveFromQueue(index: number) {
-    if (!zone?.id) return;
     try {
       await api.removeFromQueue(zone.id, index);
     } catch (e) {
@@ -796,7 +782,6 @@
   let qsSavingQueue = $state(false);
 
   async function qsHandleSaveAsPlaylist() {
-    if (!zone?.id) return;
     const name = prompt('Nom de la playlist :');
     if (!name?.trim()) return;
     qsSavingQueue = true;
