@@ -690,6 +690,10 @@ export function getArtistMetadata(artistId: number) {
   return fetchJSON<import('./types').ArtistMetadata>(`${BASE}/artists/${artistId}/metadata`);
 }
 
+export function enrichArtist(artistId: number) {
+  return fetchJSON<import('./types').ArtistMetadata>(`${BASE}/metadata/artists/${artistId}/enrich`);
+}
+
 export function getArtistTracks(id: number) {
   return fetchJSON<Track[]>(`${BASE}/library/artists/${id}/tracks`);
 }

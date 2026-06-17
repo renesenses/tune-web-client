@@ -122,6 +122,7 @@
 
   // Album bio
   let albumBio = $state<string | null>(null);
+  let albumBioLevel = $state<'simple' | 'complete' | 'full'>('complete');
   let albumBioLoading = $state(false);
   let albumBioAlbumId = $state<number | null>(null);
   let showAlbumBio = $state(false);
@@ -195,6 +196,8 @@
   // Artist credits
   let artistCredits = $state<TrackCredit[] | null>(null);
   let artistCreditsLoading = $state(false);
+  let enrichLoading = $state(false);
+  let bioLevel = $state<'simple' | 'complete' | 'full'>('complete');
 
   // Streaming albums for current artist
   let streamingArtistAlbums = $state<{ service: string; albums: Album[] }[]>([]);
@@ -946,6 +949,7 @@
     artistMetadataError = false;
     artistCredits = null;
     openSections = {};
+    bioLevel = 'complete';
     libraryLoading.set(true);
     try {
       const result = await api.getArtistAlbums(artist.id);
@@ -966,26 +970,34 @@
     const services = $streamingServices;
     const results: { service: string; albums: Album[] }[] = [];
 
-    const promises = Object.entries(services)
-      .filter(([_, status]) => status.authenticated)
-      .map(async ([svc]) => {
-        try {
-          const searchResults = await api.federatedSearch(artistName, [svc], 5);
-          const svcData = searchResults.services?.[svc];
-          if (!svcData?.artists?.length) return;
-          const matchedArtist = svcData.artists.find(
-            (a: any) => a.name.toLowerCase() === artistName.toLowerCase()
-          ) ?? svcData.artists[0];
-          const artistId = matchedArtist.id ?? (matchedArtist as any).source_id;
-          if (!artistId) return;
-          const albums = await api.getStreamingArtistAlbums(svc, String(artistId));
-          if (albums.length > 0) {
-            results.push({ service: svc, albums: albums.map(a => ({ ...a, source: svc as any })) });
-          }
-        } catch {}
-      });
+    for (const [svc, status] of Object.entries(services)) {
+      if (!status.authenticated) continue;
+      try {
+        const searchResults = await api.federatedSearch(artistName, [svc], 5);
+        const svcData = searchResults.services?.[svc];
+        if (!svcData?.artists?.length) {
+          console.warn(`[streaming-albums] ${svc}: no artists found for "${artistName}"`);
+          continue;
+        }
+        const matchedArtist = svcData.artists.find(
+          (a: any) => a.name.toLowerCase() === artistName.toLowerCase()
+        ) ?? svcData.artists[0];
+        const artistId = matchedArtist.id ?? (matchedArtist as any).source_id;
+        if (!artistId) {
+          console.warn(`[streaming-albums] ${svc}: no artist ID for`, matchedArtist);
+          continue;
+        }
+        console.log(`[streaming-albums] ${svc}: fetching albums for artist ${artistId} (${matchedArtist.name})`);
+        const albums = await api.getStreamingArtistAlbums(svc, String(artistId));
+        console.log(`[streaming-albums] ${svc}: got ${albums.length} albums`);
+        if (albums.length > 0) {
+          results.push({ service: svc, albums: albums.map(a => ({ ...a, source: svc as any })) });
+        }
+      } catch (e) {
+        console.error(`[streaming-albums] ${svc}: error`, e);
+      }
+    }
 
-    await Promise.all(promises);
     streamingArtistAlbums = results;
     streamingArtistAlbumsLoading = false;
   }
@@ -1034,6 +1046,26 @@
     }
     return $selectedArtist?.bio ?? null;
   });
+
+  async function enrichArtistBio() {
+    const artist = $selectedArtist;
+    if (!artist?.id || enrichLoading) return;
+    enrichLoading = true;
+    try {
+      const result = await api.enrichArtist(artist.id);
+      const raw = (result as any)?.data ?? result;
+      if (raw.bio_fr) raw.bio = raw.bio_fr;
+      if (!raw.enrichment_status && (result as any)?.enrichment_status) {
+        raw.enrichment_status = (result as any).enrichment_status;
+      }
+      artistMetadata = raw;
+      notifications.success('Biographie enrichie');
+    } catch (e) {
+      console.error('Enrich artist error:', e);
+      notifications.error('Enrichissement indisponible');
+    }
+    enrichLoading = false;
+  }
 
   function goBack() {
     const restoreScroll = savedAlbumScrollTop;
@@ -1286,7 +1318,19 @@
               {#if albumBioLoading}
                 <div class="spinner-sm"></div>
               {:else if albumBio}
-                <p class="album-bio-text">{albumBio}</p>
+                {@const simpleCut = albumBio.indexOf('.') > 0 ? albumBio.indexOf('.', 80) + 1 || 200 : 200}
+                {@const simpleText = albumBio.slice(0, Math.min(simpleCut, 300)).trim()}
+                {@const completeCut = 800}
+                {@const completeText = albumBio.length > completeCut ? albumBio.slice(0, completeCut).trim() + '...' : albumBio}
+                {@const displayAlbumBio = albumBioLevel === 'simple' ? simpleText : albumBioLevel === 'complete' ? completeText : albumBio}
+                {#if albumBio.length > 300}
+                  <div class="bio-level-pills">
+                    <button class="bio-level-pill" class:active={albumBioLevel === 'simple'} onclick={() => albumBioLevel = 'simple'}>Essentiel</button>
+                    <button class="bio-level-pill" class:active={albumBioLevel === 'complete'} onclick={() => albumBioLevel = 'complete'}>Complete</button>
+                    <button class="bio-level-pill" class:active={albumBioLevel === 'full'} onclick={() => albumBioLevel = 'full'}>Detaillee</button>
+                  </div>
+                {/if}
+                <p class="album-bio-text">{displayAlbumBio}</p>
               {:else}
                 <p class="album-bio-empty">Aucune note disponible pour cet album</p>
               {/if}
@@ -1504,19 +1548,47 @@
 
       <!-- Bio -->
       {#if artistBio}
-        {@const maxLen = 1500}
-        {@const truncated = artistBio.length > maxLen}
-        {@const displayBio = truncated && !openSections['bio'] ? artistBio.slice(0, maxLen).replace(/\n[^\n]*$/, '') + '…' : artistBio}
+        {@const isLong = artistBio.length > 500}
+        {@const simpleCut = artistBio.indexOf('.') > 0 ? artistBio.indexOf('.', 100) + 1 || 200 : 200}
+        {@const simpleText = artistBio.slice(0, Math.min(simpleCut, 400)).trim()}
+        {@const completeCut = 1500}
+        {@const completeText = artistBio.length > completeCut ? artistBio.slice(0, completeCut).replace(/\n[^\n]*$/, '').trim() + '...' : artistBio}
+        {@const displayBio = !isLong ? artistBio : bioLevel === 'simple' ? simpleText : bioLevel === 'complete' ? completeText : artistBio}
+        {#if isLong}
+          <div class="bio-level-pills">
+            <button class="bio-level-pill" class:active={bioLevel === 'simple'} onclick={() => bioLevel = 'simple'}>Essentiel</button>
+            <button class="bio-level-pill" class:active={bioLevel === 'complete'} onclick={() => bioLevel = 'complete'}>Complete</button>
+            <button class="bio-level-pill" class:active={bioLevel === 'full'} onclick={() => bioLevel = 'full'}>Detaillee</button>
+          </div>
+        {/if}
         <blockquote class="artist-bio">
           {#each displayBio.split('\n').filter(p => p.trim()) as paragraph}
             <p>{paragraph}</p>
           {/each}
         </blockquote>
-        {#if truncated}
-          <button class="bio-toggle-btn" onclick={() => toggleSection('bio')}>
-            {openSections['bio'] ? '▲ Réduire' : '▼ Lire la suite'}
+        <div class="bio-actions">
+          <button class="bio-enrich-btn" onclick={enrichArtistBio} disabled={enrichLoading}>
+            {#if enrichLoading}
+              <div class="btn-spinner"></div>
+              Enrichissement...
+            {:else}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" /></svg>
+              {isLong ? 'Re-enrichir' : 'Enrichir la biographie'}
+            {/if}
           </button>
-        {/if}
+        </div>
+      {:else if !artistMetadataLoading}
+        <div class="bio-actions">
+          <button class="bio-enrich-btn bio-enrich-btn--prominent" onclick={enrichArtistBio} disabled={enrichLoading}>
+            {#if enrichLoading}
+              <div class="btn-spinner"></div>
+              Enrichissement...
+            {:else}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" /></svg>
+              Obtenir une biographie
+            {/if}
+          </button>
+        </div>
       {/if}
 
       <!-- Collapsible sections -->
@@ -2401,6 +2473,82 @@
   .bio-toggle-btn:hover {
     border-color: var(--tune-accent);
     color: var(--tune-accent);
+  }
+
+  .bio-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .bio-actions .bio-toggle-btn { margin-top: 0; }
+
+  .bio-enrich-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--tune-border);
+    border-radius: 14px;
+    padding: 5px 14px;
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--tune-accent);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .bio-enrich-btn:hover:not(:disabled) {
+    background: var(--tune-accent);
+    border-color: var(--tune-accent);
+    color: white;
+  }
+  .bio-enrich-btn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+  .bio-enrich-btn--prominent {
+    background: var(--tune-accent);
+    border-color: var(--tune-accent);
+    color: white;
+    padding: 8px 20px;
+    font-size: 13px;
+  }
+  .bio-enrich-btn--prominent:hover:not(:disabled) {
+    background: var(--tune-accent-hover);
+  }
+  .btn-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: var(--tune-accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  .bio-level-pills {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .bio-level-pill {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 14px;
+    border: 1px solid var(--tune-border);
+    background: transparent;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .bio-level-pill:hover { border-color: var(--tune-accent); color: var(--tune-text); }
+  .bio-level-pill.active {
+    background: var(--tune-accent);
+    border-color: var(--tune-accent);
+    color: white;
   }
 
   .album-bio-section {

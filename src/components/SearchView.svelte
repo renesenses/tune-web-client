@@ -420,6 +420,30 @@
     return all;
   });
 
+  // Group tracks by album for cleaner display
+  let tracksGroupedByAlbum = $derived.by(() => {
+    const groups: { albumKey: string; albumTitle: string; artistName: string; coverPath: string | null | undefined; source?: string; tracks: (Track & { _source?: string })[] }[] = [];
+    const map = new Map<string, typeof groups[0]>();
+    for (const t of groupedTracks) {
+      const key = `${t.album_title ?? ''}|||${t.artist_name ?? ''}|||${(t as any)._source ?? 'local'}`;
+      let group = map.get(key);
+      if (!group) {
+        group = {
+          albumKey: key,
+          albumTitle: t.album_title ?? '',
+          artistName: t.artist_name ?? '',
+          coverPath: t.cover_path,
+          source: (t as any)._source,
+          tracks: [],
+        };
+        map.set(key, group);
+        groups.push(group);
+      }
+      group.tracks.push(t);
+    }
+    return groups;
+  });
+
   let hasResults = $derived(
     groupedArtists.length > 0 ||
     groupedAlbums.length > 0 ||
@@ -662,23 +686,47 @@
                     {/if}
                   </button>
                 {:else if topResult.type === 'album'}
-                  <button class="top-result-card" onclick={() => playAlbum(topResult!.album)}>
-                    <div class="top-result-cover">
-                      <AlbumArt coverPath={topResult.album.cover_path} size={92} alt={topResult.album.title} />
+                  <button class="top-result-card top-result-card--album" onclick={() => playAlbum(topResult!.album)}>
+                    <div class="top-result-cover top-result-cover--large">
+                      <AlbumArt coverPath={topResult.album.cover_path} size={120} alt={topResult.album.title} />
                     </div>
-                    <span class="top-result-name">{topResult.album.title}</span>
-                    <span class="top-result-type">{topResult.album.artist_name ?? 'Album'}{topResult.album.year ? ` · ${topResult.album.year}` : ''}</span>
+                    <div class="top-result-details">
+                      <span class="top-result-name">{topResult.album.title}</span>
+                      <span class="top-result-type">{topResult.album.artist_name ?? 'Album'}</span>
+                      <div class="top-result-meta">
+                        {#if topResult.album.year}<span class="top-result-year">{topResult.album.year}</span>{/if}
+                        {#if topResult.album.track_count}<span class="top-result-count">{topResult.album.track_count} pistes</span>{/if}
+                        <QualityBadge format={topResult.album.format} sampleRate={topResult.album.sample_rate} bitDepth={topResult.album.bit_depth} source={topResult.album.source} />
+                      </div>
+                      <div class="top-result-play-btn">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="6,3 20,12 6,21" /></svg>
+                        Lire l'album
+                      </div>
+                    </div>
                     {#if (topResult.album as any)._source && (topResult.album as any)._source !== 'local'}
                       <div class="top-result-badge"><ServiceBadge source={(topResult.album as any)._source} compact /></div>
                     {/if}
                   </button>
                 {:else if topResult.type === 'track'}
-                  <button class="top-result-card" onclick={() => playTrack(topResult!.track)}>
-                    <div class="top-result-cover">
-                      <AlbumArt coverPath={topResult.track.cover_path} albumId={topResult.track.album_id} size={92} alt={topResult.track.title} />
+                  <button class="top-result-card top-result-card--track" onclick={() => playTrack(topResult!.track)}>
+                    <div class="top-result-cover top-result-cover--large">
+                      <AlbumArt coverPath={topResult.track.cover_path} albumId={topResult.track.album_id} size={120} alt={topResult.track.title} />
                     </div>
-                    <span class="top-result-name">{topResult.track.title}</span>
-                    <span class="top-result-type">{topResult.track.artist_name ?? ''}{topResult.track.album_title ? ` · ${topResult.track.album_title}` : ''}</span>
+                    <div class="top-result-details">
+                      <span class="top-result-name">{topResult.track.title}</span>
+                      <span class="top-result-type">{topResult.track.artist_name ?? ''}</span>
+                      {#if topResult.track.album_title}
+                        <span class="top-result-album">{topResult.track.album_title}</span>
+                      {/if}
+                      <div class="top-result-meta">
+                        <QualityBadge format={topResult.track.format} sampleRate={topResult.track.sample_rate} bitDepth={topResult.track.bit_depth} source={topResult.track.source} />
+                        {#if topResult.track.duration_ms}<span class="top-result-dur">{formatTime(topResult.track.duration_ms)}</span>{/if}
+                      </div>
+                      <div class="top-result-play-btn">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="6,3 20,12 6,21" /></svg>
+                        Lire
+                      </div>
+                    </div>
                     {#if (topResult.track as any)._source && (topResult.track as any)._source !== 'local'}
                       <div class="top-result-badge"><ServiceBadge source={(topResult.track as any)._source} compact /></div>
                     {/if}
@@ -785,45 +833,70 @@
                     </div>
                   {/if}
                 </div>
-                <div class="track-list">
-                  {#each groupedTracks as track, i}
-                    <div class="track-row">
-                      <span class="track-num">{i + 1}</span>
-                      <button class="track-main" onclick={() => playTrack(track)}>
-                        <div class="track-art">
-                          <AlbumArt coverPath={track.cover_path} albumId={track.album_id} size={40} alt={track.title} />
-                          <div class="track-art-play">
-                            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="6,3 20,12 6,21" /></svg>
-                          </div>
+
+                {#each tracksGroupedByAlbum as group}
+                  <div class="track-album-group">
+                    {#if group.albumTitle}
+                      <div class="track-album-header">
+                        <div class="track-album-cover">
+                          <AlbumArt coverPath={group.coverPath} size={48} alt={group.albumTitle} />
                         </div>
-                        <div class="track-info">
-                          <span class="track-title">{track.title}</span>
-                          <span class="track-sub">
-                            {track.artist_name ?? ''}
-                            {#if track.album_title} &middot; {track.album_title}{/if}
+                        <div class="track-album-info">
+                          <span class="track-album-title">{group.albumTitle}</span>
+                          <span class="track-album-artist">
+                            {group.artistName}
+                            {#if group.source && group.source !== 'local'}
+                              <ServiceBadge source={group.source} compact />
+                            {/if}
                           </span>
                         </div>
-                      </button>
-                      <div class="track-right">
-                        {#if (track as any)._source && (track as any)._source !== 'local'}
-                          <ServiceBadge source={(track as any)._source} compact />
-                        {/if}
-                        <QualityBadge format={track.format} sampleRate={track.sample_rate} bitDepth={track.bit_depth} source={track.source} />
-                        <span class="track-dur">{formatTime(track.duration_ms)}</span>
-                        <div class="track-hover-actions">
-                          <button class="icon-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(track); }} title="Ajouter a la file">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                          </button>
-                          {#if onAddToPlaylist && (track.id || track.source_id)}
-                            <button class="icon-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(track); }} title={addToPlaylistLabel}>
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
-                            </button>
-                          {/if}
-                        </div>
                       </div>
+                    {/if}
+                    <div class="track-list">
+                      {#each group.tracks as track, i}
+                        <div class="track-row">
+                          <span class="track-num">{i + 1}</span>
+                          <button class="track-main" onclick={() => playTrack(track)}>
+                            {#if !group.albumTitle}
+                              <div class="track-art">
+                                <AlbumArt coverPath={track.cover_path} albumId={track.album_id} size={40} alt={track.title} />
+                                <div class="track-art-play">
+                                  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="6,3 20,12 6,21" /></svg>
+                                </div>
+                              </div>
+                            {/if}
+                            <div class="track-info">
+                              <span class="track-title">{track.title}</span>
+                              {#if !group.albumTitle}
+                                <span class="track-sub">
+                                  {track.artist_name ?? ''}
+                                  {#if track.album_title} &middot; {track.album_title}{/if}
+                                </span>
+                              {/if}
+                            </div>
+                          </button>
+                          <div class="track-right">
+                            {#if !group.albumTitle && (track as any)._source && (track as any)._source !== 'local'}
+                              <ServiceBadge source={(track as any)._source} compact />
+                            {/if}
+                            <QualityBadge format={track.format} sampleRate={track.sample_rate} bitDepth={track.bit_depth} source={track.source} />
+                            <span class="track-dur">{formatTime(track.duration_ms)}</span>
+                            <div class="track-hover-actions">
+                              <button class="icon-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(track); }} title="Ajouter a la file">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                              </button>
+                              {#if onAddToPlaylist && (track.id || track.source_id)}
+                                <button class="icon-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(track); }} title={addToPlaylistLabel}>
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
+                                </button>
+                              {/if}
+                            </div>
+                          </div>
+                        </div>
+                      {/each}
                     </div>
-                  {/each}
-                </div>
+                  </div>
+                {/each}
               </section>
             {/if}
           {/each}
@@ -1171,6 +1244,23 @@
     height: 92px;
     border-radius: 8px;
     overflow: hidden;
+    flex-shrink: 0;
+  }
+  .top-result-cover--large {
+    width: 110px;
+    height: 110px;
+  }
+
+  .top-result-card--album, .top-result-card--track {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+  .top-result-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
   }
 
   .top-result-name {
@@ -1184,11 +1274,85 @@
     font-family: var(--font-body);
     font-size: 13px;
     color: var(--tune-text-muted);
+  }
+  .top-result-card:not(.top-result-card--album):not(.top-result-card--track) .top-result-type {
     background: rgba(255, 255, 255, 0.08);
     padding: 3px 10px;
     border-radius: 12px;
+    align-self: flex-start;
+  }
+  .top-result-album {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+  }
+  .top-result-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .top-result-year, .top-result-count, .top-result-dur {
+    font-family: var(--font-label);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+  }
+  .top-result-play-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    background: var(--tune-accent);
+    padding: 5px 14px;
+    border-radius: 16px;
+    margin-top: 4px;
+    align-self: flex-start;
   }
   .top-result-badge { position: absolute; top: 16px; right: 16px; }
+
+  /* Track album grouping */
+  .track-album-group {
+    margin-bottom: 20px;
+  }
+  .track-album-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 4px;
+    margin-bottom: 4px;
+  }
+  .track-album-cover {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .track-album-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .track-album-title {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .track-album-artist {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
 
   /* Artists scroll in results */
   .artists-scroll {

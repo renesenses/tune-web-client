@@ -8,6 +8,7 @@ export interface AudioLevels {
   peak_right_db: number;
   rms_left: number;
   rms_right: number;
+  spectrum: number[];
 }
 
 const defaultLevels: AudioLevels = {
@@ -18,6 +19,7 @@ const defaultLevels: AudioLevels = {
   peak_right_db: -96,
   rms_left: 0,
   rms_right: 0,
+  spectrum: [],
 };
 
 export const audioLevels = writable<AudioLevels>(defaultLevels);
@@ -31,5 +33,6 @@ export function handleAudioLevelsEvent(data: any) {
     peak_right_db: data.peak_right_db ?? -96,
     rms_left: data.rms_left ?? 0,
     rms_right: data.rms_right ?? 0,
+    spectrum: Array.isArray(data.spectrum) ? data.spectrum : [],
   });
 }

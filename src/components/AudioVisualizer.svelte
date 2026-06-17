@@ -79,9 +79,17 @@
   function generateTargets() {
     const profile = getEnergyProfile();
     const useReal = realLevels && (performance.now() - lastRealUpdate < 500);
+    const hasSpectrum = useReal && realLevels!.spectrum && realLevels!.spectrum.length > 0;
 
     if (mode === 'spectrum') {
-      if (useReal) {
+      if (hasSpectrum) {
+        const spec = realLevels!.spectrum;
+        for (let i = 0; i < barCount; i++) {
+          const idx = Math.floor(i * spec.length / barCount);
+          const val = spec[Math.min(idx, spec.length - 1)] ?? 0;
+          barTargets[i] = Math.min(1, Math.max(0.02, val));
+        }
+      } else if (useReal) {
         const left = dbToLinear(realLevels!.rms_left_db);
         const right = dbToLinear(realLevels!.rms_right_db);
         const avg = (left + right) / 2;
