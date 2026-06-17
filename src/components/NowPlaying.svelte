@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { currentZone } from '../lib/stores/zones';
+  import { currentZone, playAndSync } from '../lib/stores/zones';
   import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode } from '../lib/stores/nowPlaying';
-  import { upNextTracks } from '../lib/stores/queue';
+  import { upNextTracks, queueTracks, queuePosition, queueLength } from '../lib/stores/queue';
   import { formatTime, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
@@ -53,6 +53,54 @@
   // Normalization
   let normEnabled = $state(false);
   let normTargetLufs = $state(-14);
+
+  // Mood / Smart AutoPlay
+  let showMoodPicker = $state(false);
+  let moodLoading = $state<string | null>(null);
+
+  const npMoods = [
+    { id: 'calm', emoji: '\u{1F319}', label: 'Chill', color: '#6366f1' },
+    { id: 'happy', emoji: '\u{1F389}', label: 'Party', color: '#f59e0b' },
+    { id: 'focus', emoji: '\u{1F3AF}', label: 'Focus', color: '#8b5cf6' },
+    { id: 'energetic', emoji: '\u{26A1}', label: 'Energetic', color: '#ef4444' },
+  ] as const;
+
+  async function handleNpMoodSelect(mood: typeof npMoods[number]) {
+    if (!zone?.id) return;
+    moodLoading = mood.id;
+    try {
+      const data = await api.smartAIMood({ mood: mood.id, limit: 20 });
+      const tracks = data.tracks || [];
+      if (tracks.length === 0) {
+        notifications.error('Aucun titre trouvé pour cette ambiance');
+        moodLoading = null;
+        return;
+      }
+      const ids = tracks.map(t => t.id).filter((id): id is number => id != null && id > 0);
+      if (ids.length === 0) {
+        notifications.error('Aucun titre local pour cette ambiance');
+        moodLoading = null;
+        return;
+      }
+      if ($queueTracks.length === 0) {
+        await playAndSync(zone.id, { track_ids: ids });
+        notifications.success(`${mood.label} Mix : ${ids.length} titres en lecture`);
+      } else {
+        await api.addToQueue(zone.id, { track_ids: ids });
+        notifications.success(`${mood.label} Mix : ${ids.length} titres ajoutés`);
+      }
+      // Refresh queue
+      const qs = await api.getQueue(zone.id);
+      queueTracks.set(qs.tracks);
+      queuePosition.set(qs.position);
+      queueLength.set(qs.length);
+      showMoodPicker = false;
+    } catch (e) {
+      console.error('NP Mood error:', e);
+      notifications.error('Erreur lors de la génération');
+    }
+    moodLoading = null;
+  }
 
   // Alarm Clock
   let showAlarm = $state(false);
@@ -912,6 +960,35 @@
             </svg>
           </button>
 
+          <!-- Mood / Smart AutoPlay -->
+          <div class="np-mood-wrapper" style="position:relative;display:inline-flex">
+            <button class="setting-btn" class:active={showMoodPicker} onclick={() => { showMoodPicker = !showMoodPicker; showSleepMenu = false; showDspMenu = false; }} title="Smart AutoPlay">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+              </svg>
+            </button>
+            {#if showMoodPicker}
+              <div class="np-mood-dropdown">
+                <span class="np-mood-title">Smart AutoPlay</span>
+                {#each npMoods as mood}
+                  <button
+                    class="np-mood-option"
+                    style="--mood-color: {mood.color}"
+                    onclick={() => handleNpMoodSelect(mood)}
+                    disabled={moodLoading !== null}
+                  >
+                    {#if moodLoading === mood.id}
+                      <span class="np-mood-spinner" style="border-top-color: {mood.color}"></span>
+                    {:else}
+                      <span class="np-mood-emoji">{mood.emoji}</span>
+                    {/if}
+                    <span style="color: {mood.color}">{mood.label}</span>
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </div>
+
           <div class="setting-spacer"></div>
 
           <div class="np-volume-control">
@@ -973,6 +1050,27 @@
       <p>{$t('nowplaying.noPlayback')}</p>
       {#if !zone}
         <p class="hint">{$t('nowplaying.waitingServer')}</p>
+      {:else}
+        <div class="np-empty-mood">
+          <p class="np-empty-mood-hint">Lancez une ambiance</p>
+          <div class="np-empty-mood-grid">
+            {#each npMoods as mood}
+              <button
+                class="np-empty-mood-btn"
+                style="--mood-color: {mood.color}"
+                onclick={() => handleNpMoodSelect(mood)}
+                disabled={moodLoading !== null}
+              >
+                {#if moodLoading === mood.id}
+                  <span class="np-mood-spinner" style="border-top-color: {mood.color}"></span>
+                {:else}
+                  <span class="np-empty-mood-emoji">{mood.emoji}</span>
+                {/if}
+                <span class="np-empty-mood-label" style="color: {mood.color}">{mood.label}</span>
+              </button>
+            {/each}
+          </div>
+        </div>
       {/if}
     </div>
   {/if}
@@ -2475,5 +2573,151 @@
 
   :global([data-kiosk]) .bg-blur {
     filter: blur(60px) brightness(0.25);
+  }
+
+  /* --- Mood picker dropdown in settings row --- */
+  .np-mood-dropdown {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 8px;
+    background: var(--tune-surface, #1a1a2e);
+    border: 1px solid var(--tune-border);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 160px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    z-index: 20;
+  }
+
+  .np-mood-title {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--tune-text-muted);
+    padding: 2px 8px 6px;
+  }
+
+  .np-mood-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: var(--tune-text);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 0.12s;
+    white-space: nowrap;
+  }
+
+  .np-mood-option:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--mood-color) 12%, transparent);
+  }
+
+  .np-mood-option:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .np-mood-emoji {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .np-mood-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-top-color: var(--tune-accent);
+    border-radius: 50%;
+    animation: np-mood-spin 0.6s linear infinite;
+  }
+
+  @keyframes np-mood-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* --- Empty state mood grid --- */
+  .np-empty-mood {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+  }
+
+  .np-empty-mood-hint {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text-secondary);
+    margin: 0;
+  }
+
+  .np-empty-mood-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md);
+    max-width: 400px;
+    width: 100%;
+  }
+
+  .np-empty-mood-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 8px;
+    border: 1px solid color-mix(in srgb, var(--mood-color) 30%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--mood-color) 8%, transparent);
+    color: var(--tune-text);
+    cursor: pointer;
+    transition: all 0.15s ease-out;
+    font-family: var(--font-body);
+  }
+
+  .np-empty-mood-btn:hover:not(:disabled) {
+    border-color: var(--mood-color);
+    background: color-mix(in srgb, var(--mood-color) 15%, transparent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--mood-color) 20%, transparent);
+  }
+
+  .np-empty-mood-btn:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .np-empty-mood-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .np-empty-mood-emoji {
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .np-empty-mood-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+
+  @media (max-width: 480px) {
+    .np-empty-mood-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
 </style>

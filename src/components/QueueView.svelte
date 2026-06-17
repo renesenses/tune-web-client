@@ -1,6 +1,6 @@
 <script lang="ts">
   import { queueTracks, queuePosition, queueLength } from '../lib/stores/queue';
-  import { currentZone, currentZoneId, zones } from '../lib/stores/zones';
+  import { currentZone, currentZoneId, zones, playAndSync } from '../lib/stores/zones';
   import { currentTrack, seekPositionMs, stopSeekTimer } from '../lib/stores/nowPlaying';
   import * as api from '../lib/api';
   import { formatTime, formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
@@ -179,6 +179,72 @@
     }
     savingQueue = false;
   }
+
+  // --- Smart AutoPlay / Mood ---
+  const AUTOPLAY_KEY = 'tune_autoplay_enabled';
+  let autoPlayEnabled = $state(localStorage.getItem(AUTOPLAY_KEY) === 'true');
+  let moodLoading = $state<string | null>(null);
+
+  function toggleAutoPlay() {
+    autoPlayEnabled = !autoPlayEnabled;
+    localStorage.setItem(AUTOPLAY_KEY, String(autoPlayEnabled));
+    if (autoPlayEnabled) {
+      notifications.success('AutoPlay activé');
+    }
+  }
+
+  const moods = [
+    { id: 'calm', emoji: '\u{1F319}', label: 'Chill', color: '#6366f1' },
+    { id: 'happy', emoji: '\u{1F389}', label: 'Party', color: '#f59e0b' },
+    { id: 'focus', emoji: '\u{1F3AF}', label: 'Focus', color: '#8b5cf6' },
+    { id: 'energetic', emoji: '\u{26A1}', label: 'Energetic', color: '#ef4444' },
+  ] as const;
+
+  /** True when the queue is empty or near the end (2 tracks or fewer remaining) */
+  let showMoodSelector = $derived(
+    $queueTracks.length === 0 ||
+    ($queueTracks.length - $queuePosition) <= 2
+  );
+
+  async function handleMoodSelect(mood: typeof moods[number]) {
+    if (!zone?.id) {
+      notifications.error('Aucune zone sélectionnée');
+      return;
+    }
+    moodLoading = mood.id;
+    try {
+      const data = await api.smartAIMood({ mood: mood.id, limit: 20 });
+      const tracks = data.tracks || [];
+      if (tracks.length === 0) {
+        notifications.error('Aucun titre trouvé pour cette ambiance');
+        moodLoading = null;
+        return;
+      }
+      const ids = tracks.map(t => t.id).filter((id): id is number => id != null && id > 0);
+      if (ids.length === 0) {
+        notifications.error('Aucun titre local pour cette ambiance');
+        moodLoading = null;
+        return;
+      }
+      // If queue is empty, play directly; otherwise add to queue
+      if ($queueTracks.length === 0) {
+        await playAndSync(zone.id, { track_ids: ids });
+        notifications.success(`${mood.label} Mix : ${ids.length} titres en lecture`);
+      } else {
+        await api.addToQueue(zone.id, { track_ids: ids });
+        notifications.success(`${mood.label} Mix : ${ids.length} titres ajoutés`);
+      }
+      // Refresh queue
+      const qs = await api.getQueue(zone.id);
+      queueTracks.set(qs.tracks);
+      queuePosition.set(qs.position);
+      queueLength.set(qs.length);
+    } catch (e) {
+      console.error('Mood AutoPlay error:', e);
+      notifications.error('Erreur lors de la génération');
+    }
+    moodLoading = null;
+  }
 </script>
 
 <div class="queue-view">
@@ -188,6 +254,18 @@
       <span class="queue-zone">{zone.name}</span>
     {/if}
     <span class="queue-count">{$queueTracks.length} {$t('common.tracks')}</span>
+    <!-- AutoPlay toggle -->
+    <button
+      class="autoplay-toggle"
+      class:active={autoPlayEnabled}
+      onclick={toggleAutoPlay}
+      title={autoPlayEnabled ? 'AutoPlay activé' : 'AutoPlay désactivé'}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+      </svg>
+      AutoPlay
+    </button>
     {#if $queueTracks.length > 0}
       <button class="save-queue-btn" onclick={handleSaveAsPlaylist} disabled={savingQueue}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
@@ -202,6 +280,33 @@
   {#if $queueTracks.length === 0}
     <div class="empty">
       <p>{$t('queue.empty')}</p>
+    </div>
+    <!-- Mood selector when queue is empty -->
+    <div class="mood-section">
+      <div class="mood-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+        </svg>
+        <span>Smart AutoPlay</span>
+      </div>
+      <p class="mood-hint">Choisissez une ambiance pour remplir la file automatiquement</p>
+      <div class="mood-grid">
+        {#each moods as mood}
+          <button
+            class="mood-btn"
+            style="--mood-color: {mood.color}"
+            onclick={() => handleMoodSelect(mood)}
+            disabled={moodLoading !== null}
+          >
+            {#if moodLoading === mood.id}
+              <span class="mood-spinner"></span>
+            {:else}
+              <span class="mood-emoji">{mood.emoji}</span>
+            {/if}
+            <span class="mood-label">{mood.label}</span>
+          </button>
+        {/each}
+      </div>
     </div>
   {:else}
     <div class="queue-list">
@@ -275,6 +380,35 @@
         {/if}
       {/each}
     </div>
+
+    <!-- Mood selector at bottom when queue is near the end -->
+    {#if showMoodSelector && $queueTracks.length > 0}
+      <div class="mood-section mood-section-bottom">
+        <div class="mood-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+          </svg>
+          <span>Continuer avec...</span>
+        </div>
+        <div class="mood-grid mood-grid-compact">
+          {#each moods as mood}
+            <button
+              class="mood-btn mood-btn-compact"
+              style="--mood-color: {mood.color}"
+              onclick={() => handleMoodSelect(mood)}
+              disabled={moodLoading !== null}
+            >
+              {#if moodLoading === mood.id}
+                <span class="mood-spinner"></span>
+              {:else}
+                <span class="mood-emoji">{mood.emoji}</span>
+              {/if}
+              <span class="mood-label">{mood.label}</span>
+            </button>
+          {/each}
+        </div>
+      </div>
+    {/if}
   {/if}
 </div>
 
@@ -601,5 +735,153 @@
 
   .gapless-indicator svg {
     flex-shrink: 0;
+  }
+
+  /* --- AutoPlay toggle --- */
+  .autoplay-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: 8px;
+    padding: 4px 12px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-left: var(--space-sm);
+  }
+
+  .autoplay-toggle:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .autoplay-toggle.active {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+    background: rgba(107, 110, 217, 0.08);
+  }
+
+  /* --- Mood / Smart AutoPlay section --- */
+  .mood-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-xl) var(--space-lg);
+  }
+
+  .mood-section-bottom {
+    border-top: 1px solid var(--tune-border);
+    margin-top: var(--space-lg);
+    padding-top: var(--space-lg);
+    padding-bottom: var(--space-md);
+  }
+
+  .mood-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-family: var(--font-label);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--tune-text);
+  }
+
+  .mood-hint {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    text-align: center;
+    margin: 0;
+  }
+
+  .mood-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md);
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .mood-grid-compact {
+    max-width: 400px;
+    gap: var(--space-sm);
+  }
+
+  .mood-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 8px;
+    border: 1px solid color-mix(in srgb, var(--mood-color) 30%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--mood-color) 8%, transparent);
+    color: var(--tune-text);
+    cursor: pointer;
+    transition: all 0.15s ease-out;
+    font-family: var(--font-body);
+  }
+
+  .mood-btn:hover:not(:disabled) {
+    border-color: var(--mood-color);
+    background: color-mix(in srgb, var(--mood-color) 15%, transparent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--mood-color) 20%, transparent);
+  }
+
+  .mood-btn:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .mood-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .mood-btn-compact {
+    padding: 10px 6px;
+    border-radius: 10px;
+  }
+
+  .mood-emoji {
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .mood-btn-compact .mood-emoji {
+    font-size: 22px;
+  }
+
+  .mood-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    color: var(--mood-color);
+  }
+
+  .mood-spinner {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    border: 2px solid color-mix(in srgb, var(--mood-color) 30%, transparent);
+    border-top-color: var(--mood-color);
+    border-radius: 50%;
+    animation: mood-spin 0.6s linear infinite;
+  }
+
+  @keyframes mood-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @media (max-width: 480px) {
+    .mood-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
 </style>
