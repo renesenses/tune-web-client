@@ -1,7 +1,8 @@
 <script lang="ts">
   import { currentZone, playAndSync } from '../lib/stores/zones';
-  import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode } from '../lib/stores/nowPlaying';
+  import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, stopSeekTimer } from '../lib/stores/nowPlaying';
   import { upNextTracks, queueTracks, queuePosition, queueLength } from '../lib/stores/queue';
+  import { currentZoneId, zones } from '../lib/stores/zones';
   import { formatTime, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
@@ -15,6 +16,7 @@
   import { selectedArtist, selectedAlbum, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
   import VolumeControl from './VolumeControl.svelte';
+  import MetadataChips from './MetadataChips.svelte';
   import type { RepeatMode, Track, TrackCredit } from '../lib/types';
 
   let isFavorite = $state(false);
@@ -533,11 +535,13 @@
 
   onMount(() => {
     window.addEventListener('keydown', handleKeydown);
+    window.addEventListener('keydown', handleQsKeydown);
   });
 
   onDestroy(() => {
     hideYTVideo();
     window.removeEventListener('keydown', handleKeydown);
+    window.removeEventListener('keydown', handleQsKeydown);
   });
 
   // Resolve cover path for blurred background
@@ -581,9 +585,240 @@
       console.error('Jump to up next error:', e);
     }
   }
+
+  // ─── Queue Bottom Sheet ──────────────────────────────────────────────
+  type QueueSheetState = 'collapsed' | 'peek' | 'expanded';
+  let queueSheetState = $state<QueueSheetState>('collapsed');
+  let sheetDragStartY = $state(0);
+  let sheetDragCurrentY = $state(0);
+  let sheetDragging = $state(false);
+  let sheetEl = $state<HTMLElement | null>(null);
+
+  // Queue metadata display fields
+  const QUEUE_DISPLAY_FIELDS_KEY = 'tune_metadata_fields';
+  const QUEUE_DISPLAY_FIELDS_DEFAULT = ['format', 'genre', 'year'];
+  function getQueueDisplayFields(): string[] {
+    try {
+      const raw = localStorage.getItem(QUEUE_DISPLAY_FIELDS_KEY);
+      if (raw) return JSON.parse(raw) as string[];
+    } catch {}
+    return QUEUE_DISPLAY_FIELDS_DEFAULT;
+  }
+  let queueDisplayFields = $state<string[]>(getQueueDisplayFields());
+
+  // Refresh queue when sheet is opened
+  $effect(() => {
+    if (queueSheetState !== 'collapsed' && zone?.id) {
+      api.getQueue(zone.id).then((qs) => {
+        queueTracks.set(qs.tracks);
+        queuePosition.set(qs.position);
+        queueLength.set(qs.length);
+      }).catch((e) => {
+        console.error('Queue sheet: fetch queue error:', e);
+      });
+    }
+  });
+
+  function toggleQueueSheet() {
+    if (queueSheetState === 'collapsed') {
+      queueSheetState = 'peek';
+    } else if (queueSheetState === 'peek') {
+      queueSheetState = 'expanded';
+    } else {
+      queueSheetState = 'collapsed';
+    }
+  }
+
+  function closeQueueSheet() {
+    queueSheetState = 'collapsed';
+  }
+
+  function expandQueueSheet() {
+    queueSheetState = 'expanded';
+  }
+
+  // Sheet touch gesture handling
+  function handleSheetTouchStart(e: TouchEvent) {
+    // Only handle touch on the sheet header / drag handle area
+    const target = e.target as HTMLElement;
+    if (target.closest('.qs-track-list')) return; // Don't hijack list scrolling
+    sheetDragStartY = e.touches[0].clientY;
+    sheetDragCurrentY = sheetDragStartY;
+    sheetDragging = true;
+  }
+
+  function handleSheetTouchMove(e: TouchEvent) {
+    if (!sheetDragging) return;
+    sheetDragCurrentY = e.touches[0].clientY;
+    const delta = sheetDragStartY - sheetDragCurrentY;
+
+    // If dragging up significantly, prevent default to avoid page scroll
+    if (Math.abs(delta) > 10) {
+      e.preventDefault();
+    }
+  }
+
+  function handleSheetTouchEnd() {
+    if (!sheetDragging) return;
+    sheetDragging = false;
+    const delta = sheetDragStartY - sheetDragCurrentY;
+    const threshold = 60;
+
+    if (delta > threshold) {
+      // Swiped up — expand
+      if (queueSheetState === 'collapsed') queueSheetState = 'peek';
+      else if (queueSheetState === 'peek') queueSheetState = 'expanded';
+    } else if (delta < -threshold) {
+      // Swiped down — collapse
+      if (queueSheetState === 'expanded') queueSheetState = 'peek';
+      else if (queueSheetState === 'peek') queueSheetState = 'collapsed';
+    }
+  }
+
+  // Desktop wheel event to reveal sheet
+  function handleNpWheel(e: WheelEvent) {
+    // Only trigger when scrolling down at bottom of NP content
+    if (e.deltaY > 20 && queueSheetState === 'collapsed' && $queueTracks.length > 0) {
+      queueSheetState = 'peek';
+    }
+  }
+
+  // Queue track actions (reused from QueueView logic)
+  let qsDragIndex = $state<number | null>(null);
+  let qsDropIndex = $state<number | null>(null);
+
+  function qsIsCurrent(index: number): boolean {
+    return index === $queuePosition;
+  }
+
+  async function qsPlayFromPosition(index: number) {
+    if (!zone?.id) return;
+    try {
+      await api.jumpInQueue(zone.id, index);
+    } catch (e) {
+      console.error('Queue sheet jump error:', e);
+    }
+  }
+
+  async function qsRemoveFromQueue(index: number) {
+    if (!zone?.id) return;
+    try {
+      await api.removeFromQueue(zone.id, index);
+    } catch (e) {
+      console.error('Queue sheet remove error:', e);
+    }
+  }
+
+  function qsHandleDragStart(e: DragEvent, index: number) {
+    qsDragIndex = index;
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(index));
+    }
+  }
+
+  function qsHandleDragOver(e: DragEvent, index: number) {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    if (qsDragIndex !== null && index !== qsDragIndex) {
+      qsDropIndex = index;
+    }
+  }
+
+  function qsHandleDragLeave() {
+    qsDropIndex = null;
+  }
+
+  async function qsHandleDrop(e: DragEvent, toIndex: number) {
+    e.preventDefault();
+    const fromIndex = qsDragIndex;
+    qsDragIndex = null;
+    qsDropIndex = null;
+
+    if (fromIndex === null || fromIndex === toIndex || !zone?.id) return;
+
+    // Optimistic update
+    const tracks = [...$queueTracks];
+    const [moved] = tracks.splice(fromIndex, 1);
+    tracks.splice(toIndex, 0, moved);
+    queueTracks.set(tracks);
+
+    const pos = $queuePosition;
+    let newPos = pos;
+    if (fromIndex === pos) newPos = toIndex;
+    else if (fromIndex < pos && toIndex >= pos) newPos = pos - 1;
+    else if (fromIndex > pos && toIndex <= pos) newPos = pos + 1;
+    if (newPos !== pos) queuePosition.set(newPos);
+
+    try {
+      await api.moveInQueue(zone.id, fromIndex, toIndex);
+    } catch (e) {
+      console.error('Queue sheet move error:', e);
+      try {
+        const qs = await api.getQueue(zone.id);
+        queueTracks.set(qs.tracks);
+        queuePosition.set(qs.position);
+      } catch {}
+    }
+  }
+
+  function qsHandleDragEnd() {
+    qsDragIndex = null;
+    qsDropIndex = null;
+  }
+
+  let qsClearingQueue = $state(false);
+
+  async function qsHandleClearQueue() {
+    if (!zone?.id || $queueTracks.length === 0) return;
+    qsClearingQueue = true;
+    try {
+      await api.clearQueue(zone.id);
+      queueTracks.set([]);
+      queuePosition.set(0);
+      const zoneId = zone.id;
+      zones.update((zs) =>
+        zs.map((z) => {
+          if (z.id !== zoneId) return z;
+          return { ...z, current_track: null, state: 'stopped' as const, position_ms: 0 };
+        })
+      );
+      stopSeekTimer();
+      seekPositionMs.set(0);
+      queueSheetState = 'collapsed';
+    } catch (e) {
+      console.error('Queue sheet clear error:', e);
+      notifications.error('Erreur lors du vidage');
+    }
+    qsClearingQueue = false;
+  }
+
+  let qsSavingQueue = $state(false);
+
+  async function qsHandleSaveAsPlaylist() {
+    if (!zone?.id) return;
+    const name = prompt('Nom de la playlist :');
+    if (!name?.trim()) return;
+    qsSavingQueue = true;
+    try {
+      await api.saveQueueAsPlaylist(zone.id, name.trim());
+      notifications.success(`Playlist "${name.trim()}" creee`);
+    } catch (e) {
+      console.error('Queue sheet save error:', e);
+      notifications.error('Erreur lors de la sauvegarde');
+    }
+    qsSavingQueue = false;
+  }
+
+  // Close queue sheet on Escape
+  function handleQsKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape' && queueSheetState !== 'collapsed') {
+      queueSheetState = 'collapsed';
+    }
+  }
 </script>
 
-<div class="now-playing" class:wide={isWide} bind:clientWidth={containerWidth}>
+<div class="now-playing" class:wide={isWide} class:queue-open={queueSheetState !== 'collapsed'} bind:clientWidth={containerWidth} onwheel={handleNpWheel}>
   {#if resolvedCoverUrl}
     <div class="bg-blur" style="background-image: url({resolvedCoverUrl})"></div>
   {/if}
@@ -1012,8 +1247,23 @@
           </span>
         </div>
 
-        <!-- Up Next -->
-        {#if $upNextTracks.length > 0}
+        <!-- Queue toggle button -->
+        {#if $queueTracks.length > 0}
+          <button class="queue-sheet-toggle" onclick={toggleQueueSheet}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
+              <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+            </svg>
+            {$t('queue.title')}
+            <span class="queue-sheet-count">{$queueTracks.length}</span>
+            <svg class="queue-sheet-chevron" class:rotated={queueSheetState !== 'collapsed'} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <polyline points="18 15 12 9 6 15" />
+            </svg>
+          </button>
+        {/if}
+
+        <!-- Up Next (only when sheet is collapsed) -->
+        {#if $upNextTracks.length > 0 && queueSheetState === 'collapsed'}
           <div class="up-next">
             <span class="up-next-label">{$t('nowplaying.upNext')}</span>
             <div class="up-next-list">
@@ -1072,6 +1322,114 @@
           </div>
         </div>
       {/if}
+    </div>
+  {/if}
+
+  <!-- Queue Bottom Sheet -->
+  {#if $queueTracks.length > 0 && zone && displayTrack}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    {#if queueSheetState === 'expanded'}
+      <div class="qs-backdrop" onclick={closeQueueSheet}></div>
+    {/if}
+    <div
+      class="queue-sheet"
+      class:peek={queueSheetState === 'peek'}
+      class:expanded={queueSheetState === 'expanded'}
+      class:dragging={sheetDragging}
+      class:wide-layout={isWide}
+      bind:this={sheetEl}
+      ontouchstart={handleSheetTouchStart}
+      ontouchmove={handleSheetTouchMove}
+      ontouchend={handleSheetTouchEnd}
+    >
+      <!-- Drag handle -->
+      <div class="qs-handle-bar" onclick={toggleQueueSheet}>
+        <div class="qs-handle-pill"></div>
+      </div>
+
+      <!-- Sheet header -->
+      <div class="qs-header">
+        <div class="qs-header-left">
+          <h3 class="qs-title">{$t('queue.title')}</h3>
+          <span class="qs-count">{$queueTracks.length} {$t('common.tracks')}</span>
+        </div>
+        <div class="qs-header-actions">
+          {#if $queueTracks.length > 0}
+            <button class="qs-action-btn" onclick={qsHandleSaveAsPlaylist} disabled={qsSavingQueue} title="Sauver en playlist">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
+            </button>
+            <button class="qs-action-btn qs-clear-btn" onclick={qsHandleClearQueue} disabled={qsClearingQueue} title="Vider la file">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+            </button>
+          {/if}
+          <button class="qs-close-btn" onclick={closeQueueSheet} title="Fermer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Track list -->
+      <div class="qs-track-list">
+        {#each $queueTracks as queueTrack, index}
+          <div
+            class="qs-item"
+            class:qs-current={qsIsCurrent(index)}
+            class:qs-dragging={qsDragIndex === index}
+            class:qs-drop-above={qsDropIndex === index && qsDragIndex !== null && qsDragIndex > index}
+            class:qs-drop-below={qsDropIndex === index && qsDragIndex !== null && qsDragIndex < index}
+            draggable="true"
+            ondragstart={(e) => qsHandleDragStart(e, index)}
+            ondragover={(e) => qsHandleDragOver(e, index)}
+            ondragleave={qsHandleDragLeave}
+            ondrop={(e) => qsHandleDrop(e, index)}
+            ondragend={qsHandleDragEnd}
+            role="listitem"
+          >
+            {#if qsIsCurrent(index)}
+              <span class="qs-current-bar"></span>
+            {/if}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <span class="qs-drag-handle" onclick={(e) => e.stopPropagation()}>
+              <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+                <circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" />
+                <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
+                <circle cx="9" cy="18" r="1.5" /><circle cx="15" cy="18" r="1.5" />
+              </svg>
+            </span>
+            <button class="qs-item-play" onclick={() => qsPlayFromPosition(index)}>
+              <span class="qs-index">{index + 1}</span>
+              {#if queueTrack.cover_path}
+                <img src={api.artworkUrl(queueTrack.cover_path)} alt="" width="36" height="36" loading="lazy" style="border-radius:5px;object-fit:cover;flex-shrink:0" />
+              {:else}
+                <AlbumArt albumId={queueTrack.album_id} size={36} alt={queueTrack.title} />
+              {/if}
+              <div class="qs-track-info">
+                <span class="qs-track-title truncate">{queueTrack.title || 'Piste inconnue'}</span>
+                {#if queueTrack.artist_name}
+                  <span class="qs-track-artist truncate">{queueTrack.artist_name}</span>
+                {/if}
+              </div>
+              <ServiceBadge source={queueTrack.source} compact />
+              {#if queueTrack.format}
+                {@const qTier = getQualityTier(queueTrack)}
+                <span class="qs-quality tier-{getQualityTierColor(qTier)}" title={formatQualityTooltip(queueTrack)}>{formatCompactQuality(queueTrack)}</span>
+              {/if}
+              <span class="qs-duration">{formatTime(queueTrack.duration_ms)}</span>
+            </button>
+            {#if onAddToPlaylist && (queueTrack.id || queueTrack.source_id)}
+              <button class="qs-btn qs-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(queueTrack); }} title={$t('queue.addToPlaylist')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              </button>
+            {/if}
+            <button class="qs-btn qs-remove-btn" onclick={(e) => { e.stopPropagation(); qsRemoveFromQueue(index); }} title={$t('queue.removeFromQueue')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </button>
+          </div>
+        {/each}
+      </div>
     </div>
   {/if}
 </div>
@@ -1144,6 +1502,7 @@
     padding: var(--space-xl);
     position: relative;
     overflow: hidden;
+    overflow-y: auto;
   }
 
   .bg-blur {
@@ -2719,5 +3078,503 @@
     .np-empty-mood-grid {
       grid-template-columns: repeat(2, 1fr);
     }
+  }
+
+  /* ─── Queue Sheet Toggle Button ─────────────────────────────────────── */
+  .queue-sheet-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--tune-border);
+    border-radius: 10px;
+    padding: 6px 14px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease-out;
+    margin-top: var(--space-sm);
+  }
+
+  .queue-sheet-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .queue-sheet-count {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--tune-accent);
+    color: white;
+    padding: 1px 6px;
+    border-radius: 8px;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  .queue-sheet-chevron {
+    transition: transform 0.2s ease-out;
+  }
+
+  .queue-sheet-chevron.rotated {
+    transform: rotate(180deg);
+  }
+
+  /* ─── Queue Bottom Sheet ─────────────────────────────────────────────── */
+  .qs-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 49;
+    animation: qsFadeIn 0.2s ease-out;
+  }
+
+  @keyframes qsFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .queue-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: var(--tune-surface);
+    border-top: 1px solid var(--tune-border);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), height 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: 80vh;
+  }
+
+  .queue-sheet.dragging {
+    transition: none;
+  }
+
+  .queue-sheet.peek {
+    transform: translateY(0);
+    height: 240px;
+  }
+
+  .queue-sheet.expanded {
+    transform: translateY(0);
+    height: 70vh;
+  }
+
+  /* Desktop wide layout: right-side panel instead of bottom sheet */
+  .queue-sheet.wide-layout {
+    left: auto;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 380px;
+    max-height: 100%;
+    border-radius: 0;
+    border-top: none;
+    border-left: 1px solid var(--tune-border);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
+    transform: translateX(100%);
+  }
+
+  .queue-sheet.wide-layout.peek {
+    transform: translateX(0);
+    height: 100%;
+  }
+
+  .queue-sheet.wide-layout.expanded {
+    transform: translateX(0);
+    height: 100%;
+    width: 420px;
+  }
+
+  /* Shrink artwork area when queue is open on wide */
+  .now-playing.queue-open .content-layout.wide {
+    max-width: calc(100% - 420px);
+    transition: max-width 0.3s ease-out;
+  }
+
+  /* Shrink artwork when queue is open on mobile */
+  .now-playing.queue-open .artwork-container {
+    transition: max-width 0.3s ease-out, opacity 0.3s ease-out;
+  }
+
+  @media (max-width: 700px) {
+    .now-playing.queue-open .artwork-container {
+      max-width: 160px;
+      opacity: 0.7;
+    }
+  }
+
+  /* ─── Sheet Handle ──────────────────────────────────────────────────── */
+  .qs-handle-bar {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0 4px;
+    cursor: grab;
+    flex-shrink: 0;
+  }
+
+  .qs-handle-pill {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--tune-text-muted);
+    opacity: 0.4;
+    transition: opacity 0.15s;
+  }
+
+  .qs-handle-bar:hover .qs-handle-pill {
+    opacity: 0.7;
+  }
+
+  /* Hide handle on wide layout (side panel) */
+  .queue-sheet.wide-layout .qs-handle-bar {
+    display: none;
+  }
+
+  /* ─── Sheet Header ──────────────────────────────────────────────────── */
+  .qs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 16px 8px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--tune-border);
+  }
+
+  .qs-header-left {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .qs-title {
+    font-family: var(--font-label);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--tune-text);
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .qs-count {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    white-space: nowrap;
+  }
+
+  .qs-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .qs-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: 6px;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .qs-action-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .qs-action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .qs-clear-btn:hover {
+    border-color: var(--tune-error, #ef4444);
+    color: var(--tune-error, #ef4444);
+  }
+
+  .qs-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.12s;
+  }
+
+  .qs-close-btn:hover {
+    color: var(--tune-text);
+    background: var(--tune-surface-hover);
+  }
+
+  /* ─── Sheet Track List ──────────────────────────────────────────────── */
+  .qs-track-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overscroll-behavior: contain;
+  }
+
+  .qs-item {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    position: relative;
+    transition: background 0.12s ease-out;
+  }
+
+  .qs-item:hover {
+    background: var(--tune-surface-hover);
+  }
+
+  .qs-item.qs-current {
+    background: rgba(107, 110, 217, 0.08);
+  }
+
+  .qs-item.qs-current:hover {
+    background: rgba(107, 110, 217, 0.14);
+  }
+
+  .qs-item.qs-dragging {
+    opacity: 0.4;
+  }
+
+  .qs-item.qs-drop-above {
+    box-shadow: inset 0 2px 0 0 var(--tune-accent);
+  }
+
+  .qs-item.qs-drop-below {
+    box-shadow: inset 0 -2px 0 0 var(--tune-accent);
+  }
+
+  .qs-current-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--tune-accent);
+    border-radius: 0 2px 2px 0;
+  }
+
+  .qs-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    flex-shrink: 0;
+    color: var(--tune-text-muted);
+    cursor: grab;
+    opacity: 0;
+    transition: opacity 0.12s;
+    padding: 4px 0 4px 6px;
+  }
+
+  .qs-item:hover .qs-drag-handle {
+    opacity: 0.6;
+  }
+
+  .qs-drag-handle:hover {
+    opacity: 1 !important;
+    color: var(--tune-text);
+  }
+
+  .qs-drag-handle:active {
+    cursor: grabbing;
+  }
+
+  .qs-item-play {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 6px 6px 6px 4px;
+    background: none;
+    border: none;
+    color: var(--tune-text);
+    cursor: pointer;
+    text-align: left;
+    min-width: 0;
+  }
+
+  .qs-index {
+    width: 24px;
+    text-align: center;
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  .qs-item.qs-current .qs-index {
+    color: var(--tune-accent);
+  }
+
+  .qs-track-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .qs-track-title {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--tune-text);
+  }
+
+  .qs-item.qs-current .qs-track-title {
+    color: var(--tune-accent);
+  }
+
+  .qs-track-artist {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 11px;
+    line-height: 1.3;
+    color: var(--tune-text-secondary);
+  }
+
+  .qs-quality {
+    font-family: var(--font-label);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+    padding: 1px 5px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    cursor: default;
+  }
+
+  .qs-quality.tier-gold-max {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+  }
+
+  .qs-quality.tier-gold {
+    color: #a78bfa;
+    background: rgba(167, 139, 250, 0.1);
+  }
+
+  .qs-quality.tier-blue {
+    color: #60a5fa;
+    background: rgba(96, 165, 250, 0.08);
+  }
+
+  .qs-quality.tier-green {
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.08);
+  }
+
+  .qs-quality.tier-gray {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.06);
+  }
+
+  .qs-duration {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  .qs-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    opacity: 0;
+    transition: all 0.12s ease-out;
+    flex-shrink: 0;
+  }
+
+  .qs-item:hover .qs-btn {
+    opacity: 1;
+  }
+
+  .qs-playlist-btn:hover {
+    color: var(--tune-accent);
+  }
+
+  .qs-remove-btn {
+    margin-right: 6px;
+  }
+
+  .qs-remove-btn:hover {
+    color: var(--tune-warning);
+  }
+
+  /* ─── Queue Sheet Mobile ────────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .queue-sheet {
+      max-height: 70vh;
+    }
+
+    .queue-sheet.peek {
+      height: 220px;
+    }
+
+    .queue-sheet.expanded {
+      height: 65vh;
+    }
+
+    .qs-item-play {
+      gap: 6px;
+      padding: 5px 4px 5px 2px;
+    }
+
+    .qs-track-title {
+      font-size: 12px;
+    }
+
+    .qs-track-artist {
+      font-size: 10px;
+    }
+  }
+
+  /* ─── Kiosk: hide queue sheet ───────────────────────────────────────── */
+  :global([data-kiosk]) .queue-sheet-toggle {
+    display: none;
+  }
+
+  :global([data-kiosk]) .queue-sheet {
+    display: none;
   }
 </style>
