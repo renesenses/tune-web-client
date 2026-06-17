@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { profiles, currentProfileId, createProfile, selectProfile, deleteProfile, type Profile } from '../lib/stores/profile';
+  import { profiles, currentProfileId, createProfile, selectProfile, deleteProfile, updateProfile, type Profile } from '../lib/stores/profile';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
 
@@ -16,6 +16,11 @@
   let showCreateDialog = $state(false);
   let newName = $state('');
   let newColor = $state('#6366f1');
+
+  let showEditDialog = $state(false);
+  let editProfileId = $state<number | null>(null);
+  let editName = $state('');
+  let editColor = $state('#6366f1');
 
   const avatarColors = ['#6366f1', '#f59e0b', '#10b981', '#ec4899', '#8b5cf6', '#14b8a6', '#ef4444', '#3b82f6'];
 
@@ -47,6 +52,20 @@
     e.stopPropagation();
     if ($profiles.length <= 1) return;
     await deleteProfile(profile.id);
+  }
+
+  function openEditDialog(profile: Profile) {
+    editProfileId = profile.id;
+    editName = profile.name;
+    editColor = profile.avatar_color;
+    showEditDialog = true;
+    dropdownOpen = false;
+  }
+
+  async function handleEdit() {
+    if (!editName.trim() || editProfileId === null) return;
+    await updateProfile(editProfileId, editName.trim(), editColor);
+    showEditDialog = false;
   }
 
   function closeDropdown() {
@@ -81,6 +100,9 @@
             {#if profile.id === $currentProfileId}
               <svg class="check" viewBox="0 0 24 24" fill="none" stroke="var(--tune-accent)" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
             {/if}
+          </button>
+          <button class="edit-btn" onclick={(e) => { e.stopPropagation(); openEditDialog(profile); }} title={$t('profile.edit')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
           </button>
           {#if $profiles.length > 1}
             <button class="delete-btn" onclick={(e) => handleDelete(e, profile)} title={$t('profile.delete')}>
@@ -119,6 +141,33 @@
       <div class="modal-actions">
         <button class="btn-cancel" onclick={() => showCreateDialog = false}>{$t('common.cancel')}</button>
         <button class="btn-create" onclick={handleCreate}>{$t('common.create')}</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if showEditDialog}
+  <div class="modal-backdrop" onclick={() => showEditDialog = false}>
+    <div class="modal" role="presentation" onclick={(e) => e.stopPropagation()}>
+      <h3>{$t('profile.edit')}</h3>
+      <div class="form-field">
+        <label>{$t('profile.name')}</label>
+        <input type="text" bind:value={editName} placeholder={$t('profile.name')} onkeydown={(e) => e.key === 'Enter' && handleEdit()} />
+      </div>
+      <div class="color-picker">
+        {#each avatarColors as color}
+          <button class="color-swatch" class:selected={editColor === color} style="background: {color}" onclick={() => editColor = color}></button>
+        {/each}
+      </div>
+      <div class="preview">
+        <span class="avatar-circle preview-avatar" style="background: {editColor}">
+          {editName ? editName.charAt(0).toUpperCase() : '?'}
+        </span>
+        <span class="preview-name">{editName || '...'}</span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick={() => showEditDialog = false}>{$t('common.cancel')}</button>
+        <button class="btn-create" onclick={handleEdit}>{$t('common.save')}</button>
       </div>
     </div>
   </div>
@@ -265,6 +314,7 @@
     min-width: 0;
   }
 
+  .edit-btn,
   .delete-btn {
     background: none;
     border: none;
@@ -280,8 +330,14 @@
     flex-shrink: 0;
   }
 
+  .dropdown-row:hover .edit-btn,
   .dropdown-row:hover .delete-btn {
     opacity: 0.7;
+  }
+
+  .edit-btn:hover {
+    color: var(--tune-accent);
+    opacity: 1 !important;
   }
 
   .delete-btn:hover {

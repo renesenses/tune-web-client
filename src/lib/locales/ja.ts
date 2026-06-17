@@ -485,6 +485,7 @@ export default {
   'profile.create': '新しいプロファイル',
   'profile.name': '名前',
   'profile.delete': '削除',
+  'profile.edit': 'プロフィールを編集',
   'profile.profiles': 'プロファイル',
   'favorites.tracks': 'トラック',
   'favorites.albums': 'アルバム',

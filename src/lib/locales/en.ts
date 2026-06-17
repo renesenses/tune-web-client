@@ -490,6 +490,7 @@ export default {
   'profile.create': 'New profile',
   'profile.name': 'Name',
   'profile.delete': 'Delete',
+  'profile.edit': 'Edit profile',
   'profile.profiles': 'PROFILES',
   'favorites.tracks': 'Tracks',
   'favorites.albums': 'Albums',

@@ -485,6 +485,7 @@ export default {
   'profile.create': '새 프로필',
   'profile.name': '이름',
   'profile.delete': '삭제',
+  'profile.edit': '프로필 편집',
   'profile.profiles': '프로필',
   'favorites.tracks': '곡',
   'favorites.albums': '앨범',

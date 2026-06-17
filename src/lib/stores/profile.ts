@@ -123,6 +123,19 @@ export async function createProfile(name: string, avatarColor: string): Promise<
   }
 }
 
+export async function updateProfile(id: number, name: string, avatarColor: string): Promise<Profile | null> {
+  try {
+    const updated = await api.updateProfile(id, { name, avatar_color: avatarColor });
+    profiles.update((list) =>
+      list.map((p) => (p.id === id ? { ...p, name: updated.name ?? name, avatar_color: updated.avatar_color ?? avatarColor } : p))
+    );
+    return { id, name: updated.name ?? name, avatar_color: updated.avatar_color ?? avatarColor };
+  } catch (e) {
+    console.error('Update profile error:', e);
+    return null;
+  }
+}
+
 export async function selectProfile(id: number): Promise<void> {
   currentProfileId.set(id);
 }

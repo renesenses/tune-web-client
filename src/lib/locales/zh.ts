@@ -485,6 +485,7 @@ export default {
   'profile.create': '新建配置文件',
   'profile.name': '名称',
   'profile.delete': '删除',
+  'profile.edit': '编辑个人资料',
   'profile.profiles': '配置文件',
   'favorites.tracks': '歌曲',
   'favorites.albums': '专辑',

@@ -485,6 +485,7 @@ export default {
   'profile.create': 'Nuovo profilo',
   'profile.name': 'Nome',
   'profile.delete': 'Elimina',
+  'profile.edit': 'Modifica profilo',
   'profile.profiles': 'PROFILI',
   'favorites.tracks': 'Brani',
   'favorites.albums': 'Album',
