@@ -661,7 +661,7 @@
       const year = date.substring(0, 4);
       if (month >= 1 && month <= 12) return `${year}-${String(month).padStart(2,'0')}`;
     }
-    const year = a.original_year || a.release_year;
+    const year = a.original_year || a.release_year || a.year;
     return year ? `${year}` : '?';
   }
 
