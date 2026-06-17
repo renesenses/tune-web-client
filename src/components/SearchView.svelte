@@ -419,18 +419,43 @@
     searchQuery = query;
   }
 
-  // Top result: first matching artist or album
+  // Smart top result: pick the best match based on query similarity
   let topResult = $derived.by(() => {
     if (!results) return null;
-    if (groupedArtists.length > 0) {
-      const a = groupedArtists[0];
-      return { type: 'artist' as const, artist: a };
-    }
-    if (groupedAlbums.length > 0) {
-      const a = groupedAlbums[0];
-      return { type: 'album' as const, album: a };
-    }
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return null;
+
+    // Check exact/close match on album title
+    const exactAlbum = groupedAlbums.find(a => a.title.toLowerCase() === q);
+    const startsAlbum = !exactAlbum ? groupedAlbums.find(a => a.title.toLowerCase().startsWith(q)) : null;
+
+    // Check exact/close match on artist name
+    const exactArtist = groupedArtists.find(a => a.name.toLowerCase() === q);
+    const startsArtist = !exactArtist ? groupedArtists.find(a => a.name.toLowerCase().startsWith(q)) : null;
+
+    // Check exact/close match on track title
+    const exactTrack = groupedTracks.find(t => t.title.toLowerCase() === q);
+    const startsTrack = !exactTrack ? groupedTracks.find(t => t.title.toLowerCase().startsWith(q)) : null;
+
+    // Priority: exact match > starts-with match > first artist > first album
+    if (exactArtist) return { type: 'artist' as const, artist: exactArtist };
+    if (exactAlbum) return { type: 'album' as const, album: exactAlbum };
+    if (exactTrack) return { type: 'track' as const, track: exactTrack };
+    if (startsArtist) return { type: 'artist' as const, artist: startsArtist };
+    if (startsAlbum) return { type: 'album' as const, album: startsAlbum };
+    if (startsTrack) return { type: 'track' as const, track: startsTrack };
+    if (groupedArtists.length > 0) return { type: 'artist' as const, artist: groupedArtists[0] };
+    if (groupedAlbums.length > 0) return { type: 'album' as const, album: groupedAlbums[0] };
+    if (groupedTracks.length > 0) return { type: 'track' as const, track: groupedTracks[0] };
     return null;
+  });
+
+  // Section order: put the most relevant category first
+  let sectionOrder = $derived.by(() => {
+    if (!topResult) return ['artists', 'albums', 'tracks'] as const;
+    if (topResult.type === 'album') return ['albums', 'artists', 'tracks'] as const;
+    if (topResult.type === 'track') return ['tracks', 'albums', 'artists'] as const;
+    return ['artists', 'albums', 'tracks'] as const;
   });
 </script>
 
@@ -560,17 +585,16 @@
       {:else if results}
         <div class="results">
 
-          <!-- TOP RESULT + ARTISTS side by side -->
-          {#if topResult || groupedArtists.length > 0}
+          <!-- TOP RESULT row -->
+          {#if topResult}
             <div class="top-row">
-              <!-- Top result card -->
-              {#if topResult?.type === 'artist'}
-                <section class="top-result-section">
-                  <h3 class="section-title">Meilleur resultat</h3>
+              <section class="top-result-section">
+                <h3 class="section-title">Meilleur resultat</h3>
+                {#if topResult.type === 'artist'}
                   <button class="top-result-card" onclick={() => selectArtist(topResult!.artist)}>
                     {#if topResult.artist.image_path}
                       <div class="top-result-avatar">
-                        <AlbumArt coverPath={topResult.artist.image_path} size={96} alt={topResult.artist.name} round />
+                        <AlbumArt coverPath={topResult.artist.image_path} size={72} alt={topResult.artist.name} round />
                       </div>
                     {:else}
                       <div class="top-result-avatar top-result-avatar--letter">
@@ -583,30 +607,64 @@
                       <div class="top-result-badge"><ServiceBadge source={(topResult.artist as any)._source} compact /></div>
                     {/if}
                   </button>
-                </section>
-              {:else if topResult?.type === 'album'}
-                <section class="top-result-section">
-                  <h3 class="section-title">Meilleur resultat</h3>
-                  <button class="top-result-card" onclick={() => openAlbum(topResult!.album)}>
+                {:else if topResult.type === 'album'}
+                  <button class="top-result-card" onclick={() => playAlbum(topResult!.album)}>
                     <div class="top-result-cover">
-                      <AlbumArt coverPath={topResult.album.cover_path} size={96} alt={topResult.album.title} />
+                      <AlbumArt coverPath={topResult.album.cover_path} size={92} alt={topResult.album.title} />
                     </div>
                     <span class="top-result-name">{topResult.album.title}</span>
-                    <span class="top-result-type">{topResult.album.artist_name ?? 'Album'}</span>
+                    <span class="top-result-type">{topResult.album.artist_name ?? 'Album'}{topResult.album.year ? ` · ${topResult.album.year}` : ''}</span>
+                    {#if (topResult.album as any)._source && (topResult.album as any)._source !== 'local'}
+                      <div class="top-result-badge"><ServiceBadge source={(topResult.album as any)._source} compact /></div>
+                    {/if}
                   </button>
-                </section>
-              {/if}
+                {:else if topResult.type === 'track'}
+                  <button class="top-result-card" onclick={() => playTrack(topResult!.track)}>
+                    <div class="top-result-cover">
+                      <AlbumArt coverPath={topResult.track.cover_path} albumId={topResult.track.album_id} size={92} alt={topResult.track.title} />
+                    </div>
+                    <span class="top-result-name">{topResult.track.title}</span>
+                    <span class="top-result-type">{topResult.track.artist_name ?? ''}{topResult.track.album_title ? ` · ${topResult.track.album_title}` : ''}</span>
+                    {#if (topResult.track as any)._source && (topResult.track as any)._source !== 'local'}
+                      <div class="top-result-badge"><ServiceBadge source={(topResult.track as any)._source} compact /></div>
+                    {/if}
+                  </button>
+                {/if}
+              </section>
 
-              <!-- Artists horizontal -->
-              {#if groupedArtists.length > 1}
+              <!-- Secondary: artists scroll if top is artist, or first non-top section -->
+              {#if topResult.type === 'artist' && groupedArtists.length > 1}
                 <section class="artists-section">
                   <h3 class="section-title">Artistes</h3>
                   <div class="artists-scroll">
-                    {#each groupedArtists.slice(topResult?.type === 'artist' ? 1 : 0, 12) as artist}
+                    {#each groupedArtists.slice(1, 12) as artist}
                       <button class="artist-card" onclick={() => selectArtist(artist)}>
                         {#if artist.image_path}
                           <div class="artist-avatar">
-                            <AlbumArt coverPath={artist.image_path} size={80} alt={artist.name} round />
+                            <AlbumArt coverPath={artist.image_path} size={64} alt={artist.name} round />
+                          </div>
+                        {:else}
+                          <div class="artist-avatar artist-avatar--letter">
+                            <span>{artist.name.charAt(0).toUpperCase()}</span>
+                          </div>
+                        {/if}
+                        <span class="artist-name">{artist.name}</span>
+                        {#if (artist as any)._source && (artist as any)._source !== 'local'}
+                          <ServiceBadge source={(artist as any)._source} compact />
+                        {/if}
+                      </button>
+                    {/each}
+                  </div>
+                </section>
+              {:else if topResult.type !== 'artist' && groupedArtists.length > 0}
+                <section class="artists-section">
+                  <h3 class="section-title">Artistes</h3>
+                  <div class="artists-scroll">
+                    {#each groupedArtists.slice(0, 12) as artist}
+                      <button class="artist-card" onclick={() => selectArtist(artist)}>
+                        {#if artist.image_path}
+                          <div class="artist-avatar">
+                            <AlbumArt coverPath={artist.image_path} size={64} alt={artist.name} round />
                           </div>
                         {:else}
                           <div class="artist-avatar artist-avatar--letter">
@@ -625,39 +683,98 @@
             </div>
           {/if}
 
-          <!-- ALBUMS grid -->
-          {#if groupedAlbums.length > 0}
-            <section class="section">
-              <h3 class="section-title">Albums <span class="count">{groupedAlbums.length}</span></h3>
-              <div class="album-grid">
-                {#each groupedAlbums as album}
-                  <div class="album-card" role="group">
-                    <button class="album-card-cover" onclick={() => playAlbum(album)}>
-                      <AlbumArt coverPath={album.cover_path} size={0} alt={album.title} />
-                      <div class="cover-overlay">
-                        <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><polygon points="6,3 20,12 6,21" /></svg>
+          <!-- Dynamic sections ordered by relevance -->
+          {#each sectionOrder as sec}
+            {#if sec === 'albums' && groupedAlbums.length > 0}
+              <section class="section">
+                <h3 class="section-title">Albums <span class="count">{groupedAlbums.length}</span></h3>
+                <div class="album-grid">
+                  {#each groupedAlbums as album}
+                    <div class="album-card" role="group">
+                      <button class="album-card-cover" onclick={() => playAlbum(album)}>
+                        <AlbumArt coverPath={album.cover_path} size={0} alt={album.title} />
+                        <div class="cover-overlay">
+                          <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><polygon points="6,3 20,12 6,21" /></svg>
+                        </div>
+                        {#if (album as any)._source && (album as any)._source !== 'local'}
+                          <div class="cover-badge"><ServiceBadge source={(album as any)._source} compact /></div>
+                        {/if}
+                      </button>
+                      <button class="album-card-info" onclick={() => openAlbum(album)}>
+                        <span class="album-card-title">{album.title}</span>
+                        {#if album.artist_name}
+                          <span class="album-card-artist">{album.artist_name}</span>
+                        {/if}
+                        <div class="album-card-meta">
+                          {#if album.year}<span class="year">{album.year}</span>{/if}
+                          <QualityBadge format={album.format} sampleRate={album.sample_rate} bitDepth={album.bit_depth} source={album.source} />
+                        </div>
+                      </button>
+                    </div>
+                  {/each}
+                </div>
+              </section>
+            {:else if sec === 'tracks' && groupedTracks.length > 0}
+              <section class="section">
+                <div class="section-head">
+                  <h3 class="section-title">Pistes <span class="count">{groupedTracks.length}</span></h3>
+                  {#if groupedTracks.filter(t => t.id).length > 1}
+                    <div class="track-actions-bar">
+                      <button class="action-pill" onclick={() => playAllTracks(groupedTracks)}>
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><polygon points="5,3 19,12 5,21" /></svg>
+                        Tout lire
+                      </button>
+                      <button class="action-pill" onclick={() => playAllTracks(groupedTracks, true)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="16,3 21,3 21,8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21,16 21,21 16,21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></svg>
+                        Aleatoire
+                      </button>
+                    </div>
+                  {/if}
+                </div>
+                <div class="track-list">
+                  {#each groupedTracks as track, i}
+                    <div class="track-row">
+                      <span class="track-num">{i + 1}</span>
+                      <button class="track-main" onclick={() => playTrack(track)}>
+                        <div class="track-art">
+                          <AlbumArt coverPath={track.cover_path} albumId={track.album_id} size={40} alt={track.title} />
+                          <div class="track-art-play">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="6,3 20,12 6,21" /></svg>
+                          </div>
+                        </div>
+                        <div class="track-info">
+                          <span class="track-title">{track.title}</span>
+                          <span class="track-sub">
+                            {track.artist_name ?? ''}
+                            {#if track.album_title} &middot; {track.album_title}{/if}
+                          </span>
+                        </div>
+                      </button>
+                      <div class="track-right">
+                        {#if (track as any)._source && (track as any)._source !== 'local'}
+                          <ServiceBadge source={(track as any)._source} compact />
+                        {/if}
+                        <QualityBadge format={track.format} sampleRate={track.sample_rate} bitDepth={track.bit_depth} source={track.source} />
+                        <span class="track-dur">{formatTime(track.duration_ms)}</span>
+                        <div class="track-hover-actions">
+                          <button class="icon-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(track); }} title="Ajouter a la file">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                          </button>
+                          {#if onAddToPlaylist && (track.id || track.source_id)}
+                            <button class="icon-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(track); }} title={addToPlaylistLabel}>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
+                            </button>
+                          {/if}
+                        </div>
                       </div>
-                      {#if (album as any)._source && (album as any)._source !== 'local'}
-                        <div class="cover-badge"><ServiceBadge source={(album as any)._source} compact /></div>
-                      {/if}
-                    </button>
-                    <button class="album-card-info" onclick={() => openAlbum(album)}>
-                      <span class="album-card-title">{album.title}</span>
-                      {#if album.artist_name}
-                        <span class="album-card-artist">{album.artist_name}</span>
-                      {/if}
-                      <div class="album-card-meta">
-                        {#if album.year}<span class="year">{album.year}</span>{/if}
-                        <QualityBadge format={album.format} sampleRate={album.sample_rate} bitDepth={album.bit_depth} source={album.source} />
-                      </div>
-                    </button>
-                  </div>
-                {/each}
-              </div>
-            </section>
-          {/if}
+                    </div>
+                  {/each}
+                </div>
+              </section>
+            {/if}
+          {/each}
 
-          <!-- PLAYLISTS -->
+          <!-- PLAYLISTS (always last) -->
           {#if playlistMatches.length > 0}
             <section class="section">
               <h3 class="section-title">Playlists <span class="count">{playlistMatches.length}</span></h3>
@@ -673,66 +790,6 @@
                     </div>
                     <span class="playlist-source">{pl.source}</span>
                   </button>
-                {/each}
-              </div>
-            </section>
-          {/if}
-
-          <!-- TRACKS -->
-          {#if groupedTracks.length > 0}
-            <section class="section">
-              <div class="section-head">
-                <h3 class="section-title">Pistes <span class="count">{groupedTracks.length}</span></h3>
-                {#if groupedTracks.filter(t => t.id).length > 1}
-                  <div class="track-actions-bar">
-                    <button class="action-pill" onclick={() => playAllTracks(groupedTracks)}>
-                      <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><polygon points="5,3 19,12 5,21" /></svg>
-                      Tout lire
-                    </button>
-                    <button class="action-pill" onclick={() => playAllTracks(groupedTracks, true)}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="16,3 21,3 21,8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21,16 21,21 16,21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></svg>
-                      Aleatoire
-                    </button>
-                  </div>
-                {/if}
-              </div>
-              <div class="track-list">
-                {#each groupedTracks as track, i}
-                  <div class="track-row">
-                    <span class="track-num">{i + 1}</span>
-                    <button class="track-main" onclick={() => playTrack(track)}>
-                      <div class="track-art">
-                        <AlbumArt coverPath={track.cover_path} albumId={track.album_id} size={40} alt={track.title} />
-                        <div class="track-art-play">
-                          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="6,3 20,12 6,21" /></svg>
-                        </div>
-                      </div>
-                      <div class="track-info">
-                        <span class="track-title">{track.title}</span>
-                        <span class="track-sub">
-                          {track.artist_name ?? ''}
-                          {#if track.album_title} &middot; {track.album_title}{/if}
-                        </span>
-                      </div>
-                    </button>
-                    <div class="track-right">
-                      {#if (track as any)._source && (track as any)._source !== 'local'}
-                        <ServiceBadge source={(track as any)._source} compact />
-                      {/if}
-                      <QualityBadge format={track.format} sampleRate={track.sample_rate} bitDepth={track.bit_depth} source={track.source} />
-                      <span class="track-dur">{formatTime(track.duration_ms)}</span>
-                      <div class="track-hover-actions">
-                        <button class="icon-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(track); }} title="Ajouter a la file">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                        </button>
-                        {#if onAddToPlaylist && (track.id || track.source_id)}
-                          <button class="icon-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(track); }} title={addToPlaylistLabel}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
-                          </button>
-                        {/if}
-                      </div>
-                    </div>
-                  </div>
                 {/each}
               </div>
             </section>
@@ -1149,18 +1206,19 @@
   .album-card {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     background: none;
     border: none;
     text-align: left;
     padding: 0;
     color: var(--tune-text);
     cursor: pointer;
+    min-width: 0;
   }
 
   .album-card-cover {
     position: relative;
-    border-radius: 8px;
+    border-radius: 6px;
     overflow: hidden;
     aspect-ratio: 1;
     background: rgba(255, 255, 255, 0.04);
@@ -1168,6 +1226,11 @@
     cursor: pointer;
     border: none;
     padding: 0;
+  }
+  .album-card-cover :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .cover-overlay {
