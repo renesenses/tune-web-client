@@ -534,14 +534,23 @@
                       await playAndSync(zone.id, { source: src as Source, streaming_album_id: match.source_id });
                     }
                   } catch {}
-                } else if (item.album_id || item.id) {
-                  await playAndSync(zone.id, { album_id: item.album_id ?? item.id });
+                } else if (item.album_id) {
+                  await playAndSync(zone.id, { album_id: item.album_id });
+                } else {
+                  const q = `${item.title ?? item.album_title ?? ''} ${item.artist_name ?? ''}`.trim();
+                  if (q) {
+                    const results = await api.searchLibrary(q, 5);
+                    const match = results.tracks?.find((t: Track) => t.album_id);
+                    if (match?.album_id) {
+                      await playAndSync(zone.id, { album_id: match.album_id });
+                    }
+                  }
                 }
               }}>
                 <AlbumArt coverPath={item.cover_path} albumId={item.album_id ?? item.id} size={160} alt={item.title ?? item.album_title ?? ''} />
                 <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
               </button>
-              <button class="carousel-title truncate" type="button" onclick={() => item.album_id ? navigateToAlbum(item.album_id) : (item.id ? navigateToAlbum(item.id) : null)}>{item.title ?? item.album_title ?? ''}</button>
+              <button class="carousel-title truncate" type="button" onclick={() => item.album_id ? navigateToAlbum(item.album_id) : null}>{item.title ?? item.album_title ?? ''}</button>
               <button class="carousel-artist truncate" type="button" onclick={() => item.artist_name ? navigateArtistByName(item.artist_name) : null}>{item.artist_name ?? ''}</button>
               {#if item.progress_percent != null}
                 <div class="continue-progress">
