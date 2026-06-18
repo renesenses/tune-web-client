@@ -756,7 +756,9 @@
 
   let genreAlbums = $derived.by(() => {
     let result: typeof $albums = [];
-    if (selectedGenre) {
+    if (selectedNoGenre) {
+      result = noGenreAlbums;
+    } else if (selectedGenre) {
       const sel = selectedGenre.toLowerCase();
       result = $albums.filter(a => a.genre && a.genre.toLowerCase() === sel);
     } else if (selectedParent) {
@@ -767,7 +769,16 @@
     return result.sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
   });
 
+  // "No genre" filter state for genres tab
+  let selectedNoGenre = $state(false);
+
+  // Albums without genre
+  let noGenreAlbums = $derived.by(() => {
+    return $albums.filter(a => !a.genre || a.genre.trim() === '');
+  });
+
   // Years tab: group albums by year (descending), unknown year at the bottom
+  // Treat year=0 as unknown (same as null) so totals match the albums tab
   let yearGroups = $derived.by(() => {
     const map = new Map<number | null, Album[]>();
     const filtered = searchQuery.trim()
@@ -779,7 +790,8 @@
         })
       : $albums;
     for (const album of filtered) {
-      const y = album.original_year ?? album.year ?? null;
+      const raw = album.original_year ?? album.year ?? null;
+      const y = (raw === 0 || raw === null || raw === undefined) ? null : raw;
       if (!map.has(y)) map.set(y, []);
       map.get(y)!.push(album);
     }
@@ -793,6 +805,9 @@
     }
     return groups;
   });
+
+  // Total albums across all year groups (should equal total filtered albums)
+  let yearGroupsTotalCount = $derived(yearGroups.reduce((sum, g) => sum + g.albums.length, 0));
 
   let albumTotalDuration = $derived(
     $albumTracks.reduce((sum, t) => sum + (t.duration_ms ?? 0), 0)
@@ -834,6 +849,7 @@
   function clearGenreSelection() {
     selectedGenre = null;
     selectedParent = null;
+    selectedNoGenre = false;
   }
 
   function backToParent() {
@@ -852,6 +868,7 @@
     selectedAlbum.set(null);
     selectedArtist.set(null);
     selectedGenre = null;
+    selectedNoGenre = false;
     searchQuery = '';
     // Update current history entry so browser-back restores the correct tab
     try {
@@ -2044,24 +2061,29 @@
       </div>
 
     {:else if $libraryTab === 'genres'}
-      {#if selectedGenre || selectedParent}
-        <!-- Genre filtered albums (parent branch OR specific subgenre) -->
+      {#if selectedGenre || selectedParent || selectedNoGenre}
+        <!-- Genre filtered albums (parent branch OR specific subgenre OR no genre) -->
         <div class="genre-detail-header">
           <button class="back-btn" onclick={clearGenreSelection}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
             {$tr('common.genres')}
           </button>
-          {#if displayParent}
+          {#if selectedNoGenre}
             <span class="bc-sep">/</span>
-            {#if selectedGenre}
-              <button class="bc-link" onclick={backToParent}>{displayParent}</button>
-            {:else}
-              <span class="bc-current">{displayParent}</span>
+            <span class="bc-current">{$tr('library.noGenreLabel')}</span>
+          {:else}
+            {#if displayParent}
+              <span class="bc-sep">/</span>
+              {#if selectedGenre}
+                <button class="bc-link" onclick={backToParent}>{displayParent}</button>
+              {:else}
+                <span class="bc-current">{displayParent}</span>
+              {/if}
             {/if}
-          {/if}
-          {#if selectedGenre}
-            <span class="bc-sep">/</span>
-            <span class="bc-current">{selectedGenre}</span>
+            {#if selectedGenre}
+              <span class="bc-sep">/</span>
+              <span class="bc-current">{selectedGenre}</span>
+            {/if}
           {/if}
           <span class="genre-detail-count">{genreAlbums.length} {genreAlbums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
         </div>
@@ -2146,6 +2168,16 @@
           </div>
         {/if}
 
+        {#if noGenreAlbums.length > 0 && !genreSearchQuery}
+          <h3 class="bc-section-title">{$tr('library.noGenreSection')}</h3>
+          <div class="genres-grid">
+            <button class="genre-card genre-card-warning" onclick={() => { selectedNoGenre = true; selectedGenre = null; selectedParent = null; }}>
+              <span class="genre-card-name">{$tr('library.noGenreLabel')}</span>
+              <span class="genre-card-count">{noGenreAlbums.length} {noGenreAlbums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
+            </button>
+          </div>
+        {/if}
+
         {#if $genres.length === 0}
           <div class="empty">{$tr('library.noGenres')}</div>
         {:else if genreSearchQuery && filteredGenreTreeKeys.length === 0 && filteredOrphanGenres.length === 0}
@@ -2157,6 +2189,10 @@
       {#if yearGroups.length === 0}
         <div class="empty">{$tr('library.noAlbums')}</div>
       {:else}
+        <div class="year-summary">
+          <span class="year-summary-total">{yearGroupsTotalCount} {yearGroupsTotalCount > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
+          <span class="year-summary-groups">{yearGroups.length} {yearGroups.length > 1 ? $tr('library.yearGroupPlural') : $tr('library.yearGroup')}</span>
+        </div>
         {#each yearGroups as group}
           <div class="year-section">
             <h3 class="year-header">{group.label}</h3>
@@ -4216,6 +4252,39 @@
     .album-card-artist {
       font-size: 11px;
     }
+  }
+
+  /* "No genre" card variant */
+  .genre-card-warning {
+    border-color: var(--tune-warning, #e6a23c);
+    border-style: dashed;
+  }
+
+  .genre-card-warning:hover {
+    border-color: var(--tune-warning, #e6a23c);
+    background: color-mix(in srgb, var(--tune-warning, #e6a23c) 8%, var(--tune-surface));
+  }
+
+  /* Years tab summary */
+  .year-summary {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+    padding: var(--space-sm) 0;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+  }
+
+  .year-summary-total {
+    font-weight: 600;
+    color: var(--tune-text);
+  }
+
+  .year-summary-groups::before {
+    content: '·';
+    margin-right: var(--space-md);
   }
 
   /* Years tab */
