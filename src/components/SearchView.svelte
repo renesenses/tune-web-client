@@ -448,29 +448,57 @@
       }
     }
 
-    // Add local badge to artists found in local tracks/albums or library store
-    const libraryArtists = get(artists);
-    const libraryArtistMap = new Map<string, any>();
-    for (const a of libraryArtists) {
-      if (a.name) libraryArtistMap.set(a.name.toLowerCase(), a);
-    }
-
+    // Add local badge to artists found in local tracks/albums
     for (const [key, merged] of map) {
       const hasLocal = merged._sources.some(s => s.source === 'local');
-      if (!hasLocal) {
-        const fromTracks = localArtistNames.has(key);
-        const fromLibrary = libraryArtistMap.get(key);
-        if (fromTracks || fromLibrary) {
-          const localTrack = results.local?.tracks?.find(t => t.artist_name?.toLowerCase() === key);
-          merged._sources.unshift({
-            source: 'local',
-            artist: { id: fromLibrary?.id ?? localTrack?.artist_id ?? null, name: merged.name } as Artist,
-          });
-        }
+      if (!hasLocal && localArtistNames.has(key)) {
+        const localTrack = results.local?.tracks?.find(t => t.artist_name?.toLowerCase() === key);
+        merged._sources.unshift({
+          source: 'local',
+          artist: { id: localTrack?.artist_id ?? null, name: merged.name } as Artist,
+        });
       }
     }
 
     return [...map.values()];
+  });
+
+  // Local artist lookup cache (enriched asynchronously)
+  let localArtistCache = $state<Map<string, { id: number; name: string }>>(new Map());
+  let localCacheLoaded = $state(false);
+
+  $effect(() => {
+    if (!results || localCacheLoaded) return;
+    loadLocalArtistCache();
+  });
+
+  async function loadLocalArtistCache() {
+    try {
+      const allArtists = await api.getArtists(5000, 0);
+      const cache = new Map<string, { id: number; name: string }>();
+      for (const a of allArtists) {
+        if (a.name && a.id) cache.set(a.name.toLowerCase(), { id: a.id, name: a.name });
+      }
+      localArtistCache = cache;
+      localCacheLoaded = true;
+    } catch {}
+  }
+
+  // Merged artists with local enrichment from cache
+  let enrichedArtists = $derived.by(() => {
+    if (!localCacheLoaded || localArtistCache.size === 0) return groupedArtists;
+    return groupedArtists.map(a => {
+      const hasLocal = a._sources.some(s => s.source === 'local');
+      if (hasLocal) return a;
+      const lib = localArtistCache.get(a.name.toLowerCase());
+      if (lib) {
+        return {
+          ...a,
+          _sources: [{ source: 'local', artist: { id: lib.id, name: lib.name } as Artist }, ...a._sources],
+        };
+      }
+      return a;
+    });
   });
 
   let groupedAlbums = $derived.by(() => {
@@ -526,7 +554,7 @@
   });
 
   let hasResults = $derived(
-    groupedArtists.length > 0 ||
+    enrichedArtists.length > 0 ||
     groupedAlbums.length > 0 ||
     groupedTracks.length > 0 ||
     playlistMatches.length > 0
@@ -573,7 +601,7 @@
 
     // Find best candidate per type
     let bestArtist: { artist: Artist; score: number } | null = null;
-    for (const a of groupedArtists) {
+    for (const a of enrichedArtists) {
       const s = scoreArtist(a);
       if (s > 0 && (!bestArtist || s > bestArtist.score)) bestArtist = { artist: a, score: s };
     }
@@ -603,7 +631,7 @@
     }
 
     // Fallback
-    if (groupedArtists.length > 0) return { type: 'artist' as const, artist: groupedArtists[0] };
+    if (enrichedArtists.length > 0) return { type: 'artist' as const, artist: enrichedArtists[0] };
     if (groupedAlbums.length > 0) return { type: 'album' as const, album: groupedAlbums[0] };
     if (groupedTracks.length > 0) return { type: 'track' as const, track: groupedTracks[0] };
     return null;
@@ -870,11 +898,11 @@
               </section>
 
               <!-- Secondary: artists scroll if top is artist, or first non-top section -->
-              {#if topResult.type === 'artist' && showArtists && groupedArtists.length > 1}
+              {#if topResult.type === 'artist' && showArtists && enrichedArtists.length > 1}
                 <section class="artists-section">
                   <h3 class="section-title">Artistes</h3>
                   <div class="artists-scroll">
-                    {#each groupedArtists.filter(a => a.name !== topResult?.artist?.name).slice(0, 12) as artist}
+                    {#each enrichedArtists.filter(a => a.name !== topResult?.artist?.name).slice(0, 12) as artist}
                       <div class="artist-card">
                         <button class="artist-card-main" onclick={() => selectArtist(artist)}>
                           {#if artist.image_path}
@@ -903,11 +931,11 @@
                     {/each}
                   </div>
                 </section>
-              {:else if topResult.type !== 'artist' && showArtists && groupedArtists.length > 0}
+              {:else if topResult.type !== 'artist' && showArtists && enrichedArtists.length > 0}
                 <section class="artists-section">
                   <h3 class="section-title">Artistes</h3>
                   <div class="artists-scroll">
-                    {#each groupedArtists.slice(0, 12) as artist}
+                    {#each enrichedArtists.slice(0, 12) as artist}
                       <div class="artist-card">
                         <button class="artist-card-main" onclick={() => selectArtist(artist)}>
                           {#if artist.image_path}
