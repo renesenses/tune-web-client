@@ -389,11 +389,15 @@
               {displayTrack.artist_name ?? ''}
               <ServiceBadge source={displayTrack.source} compact />
               {#if displayTrack.format || zone?.signal_path}
-                {@const miniTier = displayTrack.format ? getQualityTier(displayTrack) : (zone?.signal_path?.bit_perfect ? 'cd' : 'lossy')}
+                {@const sourceStep = zone?.signal_path?.steps?.find((s: any) => s.name === 'Source')?.description ?? ''}
+                {@const spFormat = sourceStep.split(' ')[0]?.toUpperCase() || ''}
+                {@const spDetail = sourceStep || ''}
+                {@const hasTrackFormat = !!displayTrack.format}
+                {@const miniTier = hasTrackFormat ? getQualityTier(displayTrack) : (spFormat === 'DSD' ? 'dsd' : (sourceStep.includes('24') || sourceStep.includes('88') || sourceStep.includes('96') || sourceStep.includes('176') || sourceStep.includes('192') || sourceStep.includes('352') || sourceStep.includes('384')) ? 'hires' : (spFormat === 'FLAC' || spFormat === 'WAV' || spFormat === 'ALAC' || spFormat === 'AIFF') ? 'cd' : zone?.signal_path?.bit_perfect ? 'cd' : 'lossy')}
                 <span
                   class="tb-quality-badge tier-{getQualityTierColor(miniTier)}"
-                  title={displayTrack.format ? formatQualityTooltip(displayTrack) : (zone?.signal_path?.summary ?? '')}
-                >{displayTrack.format ? formatCompactQuality(displayTrack) : (zone?.signal_path?.bit_perfect ? 'Lossless' : 'Lossy')}</span>
+                  title={hasTrackFormat ? formatQualityTooltip(displayTrack) : (zone?.signal_path?.summary ?? '')}
+                >{hasTrackFormat ? formatCompactQuality(displayTrack) : (spDetail || (zone?.signal_path?.bit_perfect ? 'Lossless' : 'Lossy'))}</span>
               {/if}
             {/if}
           </span>
