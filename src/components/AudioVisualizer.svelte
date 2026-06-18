@@ -170,6 +170,12 @@
 
     lastFrame = timestamp;
 
+    // When not playing, clear real levels and decay to zero
+    if (!playing) {
+      realLevels = null;
+      generateTargets();
+    }
+
     const profile = getEnergyProfile();
     const smoothing = playing ? 0.12 * profile.speed : 0.06;
     const decayRate = playing ? 0.92 : 0.85;
@@ -186,6 +192,14 @@
 
     ctx.clearRect(0, 0, w, h);
 
+    // Check if all bars are effectively zero — stop animating
+    if (!playing) {
+      const maxVal = Math.max(...barValues.slice(0, barCount), ...waveValues);
+      if (maxVal < 0.005) {
+        return;
+      }
+    }
+
     const accent = getAccent(timestamp);
 
     if (mode === 'spectrum') {
@@ -194,7 +208,6 @@
       drawWaveform(ctx, w, h, dpr, accent, smoothing, decayRate);
     }
 
-    // Keep animating while visible (bars decaying after pause)
     if (visible) {
       animId = requestAnimationFrame(draw);
     }

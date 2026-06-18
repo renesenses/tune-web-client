@@ -1055,11 +1055,22 @@
       const result = await api.enrichArtist(artist.id);
       const raw = (result as any)?.data ?? result;
       if (raw.bio_fr) raw.bio = raw.bio_fr;
+      if (!raw.bio && raw.bio_summary) raw.bio = raw.bio_summary;
       if (!raw.enrichment_status && (result as any)?.enrichment_status) {
         raw.enrichment_status = (result as any).enrichment_status;
       }
-      artistMetadata = raw;
-      notifications.success('Biographie enrichie');
+      if (raw.similar_artists && !raw.similar) {
+        raw.similar = raw.similar_artists.map((a: any) => a.name).filter(Boolean);
+      }
+      if (raw.tags && !raw.genres) {
+        raw.genres = raw.tags;
+      }
+      artistMetadata = { ...artistMetadata, ...raw };
+      if (raw.bio) {
+        notifications.success('Biographie enrichie');
+      } else {
+        notifications.info('Aucune biographie trouvee pour cet artiste');
+      }
     } catch (e) {
       console.error('Enrich artist error:', e);
       notifications.error('Enrichissement indisponible');
