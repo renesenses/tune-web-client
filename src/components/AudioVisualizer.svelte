@@ -77,6 +77,11 @@
   }
 
   function generateTargets() {
+    if (!playing) {
+      for (let i = 0; i < barCount; i++) barTargets[i] = 0;
+      for (let i = 0; i < WAVE_POINTS; i++) waveTargets[i] = 0;
+      return;
+    }
     const profile = getEnergyProfile();
     const useReal = realLevels && (performance.now() - lastRealUpdate < 500);
     const hasSpectrum = useReal && realLevels!.spectrum && realLevels!.spectrum.length > 0;

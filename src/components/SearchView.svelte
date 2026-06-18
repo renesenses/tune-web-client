@@ -2,7 +2,8 @@
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { notifications } from '../lib/stores/notifications';
   import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
-  import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading, albums, tracks as libraryTracks, genres as libraryGenres } from '../lib/stores/library';
+  import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading, albums, artists, tracks as libraryTracks, genres as libraryGenres } from '../lib/stores/library';
+  import { get } from 'svelte/store';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
   import { formatTime } from '../lib/utils';
@@ -83,6 +84,30 @@
   let loading = $state(false);
   let results: FederatedSearchResult | null = $state(null);
 
+  // Type filters
+  let showArtists = $state(true);
+  let showAlbums = $state(true);
+  let showTracks = $state(true);
+
+  // Quality filters
+  type QualityFilter = 'all' | 'hires' | 'cd' | 'lossy';
+  let qualityFilter = $state<QualityFilter>('all');
+
+  function matchesQuality(item: { sample_rate?: number | null; bit_depth?: number | null; format?: string | null }): boolean {
+    if (qualityFilter === 'all') return true;
+    const sr = item.sample_rate ?? 0;
+    const bd = item.bit_depth ?? 0;
+    const fmt = (item.format ?? '').toLowerCase();
+    if (qualityFilter === 'hires') return sr > 48000 || bd > 16;
+    if (qualityFilter === 'cd') return sr > 0 && sr <= 48000 && bd <= 16 && fmt !== 'mp3' && fmt !== 'aac' && fmt !== 'ogg';
+    if (qualityFilter === 'lossy') return fmt === 'mp3' || fmt === 'aac' || fmt === 'ogg';
+    return true;
+  }
+
+  // Filtered versions
+  let filteredAlbums = $derived(qualityFilter === 'all' ? groupedAlbums : groupedAlbums.filter(a => matchesQuality(a)));
+  let filteredTracks = $derived(qualityFilter === 'all' ? groupedTracks : groupedTracks.filter(t => matchesQuality(t)));
+
   // --- Discovery content ---
   let topArtists = $state<any[]>([]);
   let recentAlbums = $state<Album[]>([]);
@@ -96,11 +121,23 @@
   async function loadDiscoveryContent() {
     discoveryLoading = true;
     try {
-      const [artists, albs] = await Promise.all([
+      const [rawArtists, albs, libraryArtistList] = await Promise.all([
         api.getTopArtists(12).catch(() => []),
         api.getRecentAlbums(18).catch(() => []),
+        api.getArtists(5000, 0).catch(() => []),
       ]);
-      topArtists = artists;
+      const libraryArtistMap = new Map<string, any>();
+      for (const a of libraryArtistList) {
+        if (a.name) libraryArtistMap.set(a.name.toLowerCase(), a);
+      }
+      topArtists = rawArtists.map((a: any) => {
+        const name = (a.artist_name || a.name || '').toLowerCase();
+        const lib = libraryArtistMap.get(name);
+        if (lib?.image_path) {
+          return { ...a, image_path: lib.image_path, artist_id: lib.id };
+        }
+        return a;
+      });
       recentAlbums = albs;
     } catch {}
     discoveryLoading = false;
@@ -458,7 +495,7 @@
   let tracksGroupedByAlbum = $derived.by(() => {
     const groups: { albumKey: string; albumTitle: string; artistName: string; coverPath: string | null | undefined; source?: string; tracks: (Track & { _source?: string })[] }[] = [];
     const map = new Map<string, typeof groups[0]>();
-    for (const t of groupedTracks) {
+    for (const t of filteredTracks) {
       const key = `${t.album_title ?? ''}|||${t.artist_name ?? ''}|||${(t as any)._source ?? 'local'}`;
       let group = map.get(key);
       if (!group) {
@@ -604,6 +641,31 @@
         {/each}
       </div>
     {/if}
+
+    {#if searchQuery.trim() && results}
+      <div class="filter-row-inline">
+        <div class="type-filters">
+          <button class="type-pill" class:active={showArtists} onclick={() => showArtists = !showArtists}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+            Artistes
+          </button>
+          <button class="type-pill" class:active={showAlbums} onclick={() => showAlbums = !showAlbums}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="12" cy="12" r="3" /></svg>
+            Albums
+          </button>
+          <button class="type-pill" class:active={showTracks} onclick={() => showTracks = !showTracks}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M9 18V5l12-3v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="15" r="3" /></svg>
+            Pistes
+          </button>
+        </div>
+        <div class="quality-filters">
+          <button class="q-pill" class:active={qualityFilter === 'all'} onclick={() => qualityFilter = 'all'}>Tout</button>
+          <button class="q-pill q-pill--hires" class:active={qualityFilter === 'hires'} onclick={() => qualityFilter = 'hires'}>Hi-Res</button>
+          <button class="q-pill q-pill--cd" class:active={qualityFilter === 'cd'} onclick={() => qualityFilter = 'cd'}>CD</button>
+          <button class="q-pill q-pill--lossy" class:active={qualityFilter === 'lossy'} onclick={() => qualityFilter = 'lossy'}>Lossy</button>
+        </div>
+      </div>
+    {/if}
   </div>
 
   <!-- CONTENT -->
@@ -638,9 +700,15 @@
             <div class="artist-row">
               {#each topArtists as artist}
                 <button class="artist-pill" onclick={() => { searchQuery = artist.artist_name || artist.name; }}>
-                  <div class="artist-pill-avatar">
-                    <span>{(artist.artist_name || artist.name || '?').charAt(0).toUpperCase()}</span>
-                  </div>
+                  {#if artist.image_path}
+                    <div class="artist-pill-avatar artist-pill-avatar--img">
+                      <AlbumArt coverPath={artist.image_path} size={48} alt={artist.artist_name || artist.name} round />
+                    </div>
+                  {:else}
+                    <div class="artist-pill-avatar">
+                      <span>{(artist.artist_name || artist.name || '?').charAt(0).toUpperCase()}</span>
+                    </div>
+                  {/if}
                   <div class="artist-pill-text">
                     <span class="artist-pill-name">{artist.artist_name || artist.name}</span>
                     <span class="artist-pill-plays">{artist.plays ?? artist.play_count ?? 0} ecoutes</span>
@@ -698,7 +766,7 @@
         <div class="results">
 
           <!-- TOP RESULT row -->
-          {#if topResult}
+          {#if topResult && ((topResult.type === 'artist' && showArtists) || (topResult.type === 'album' && showAlbums) || (topResult.type === 'track' && showTracks))}
             <div class="top-row">
               <section class="top-result-section">
                 <h3 class="section-title">Meilleur resultat</h3>
@@ -784,7 +852,7 @@
               </section>
 
               <!-- Secondary: artists scroll if top is artist, or first non-top section -->
-              {#if topResult.type === 'artist' && groupedArtists.length > 1}
+              {#if topResult.type === 'artist' && showArtists && groupedArtists.length > 1}
                 <section class="artists-section">
                   <h3 class="section-title">Artistes</h3>
                   <div class="artists-scroll">
@@ -817,7 +885,7 @@
                     {/each}
                   </div>
                 </section>
-              {:else if topResult.type !== 'artist' && groupedArtists.length > 0}
+              {:else if topResult.type !== 'artist' && showArtists && groupedArtists.length > 0}
                 <section class="artists-section">
                   <h3 class="section-title">Artistes</h3>
                   <div class="artists-scroll">
@@ -856,11 +924,11 @@
 
           <!-- Dynamic sections ordered by relevance -->
           {#each sectionOrder as sec}
-            {#if sec === 'albums' && groupedAlbums.length > 0}
+            {#if sec === 'albums' && showAlbums && filteredAlbums.length > 0}
               <section class="section">
-                <h3 class="section-title">Albums <span class="count">{groupedAlbums.length}</span></h3>
+                <h3 class="section-title">Albums <span class="count">{filteredAlbums.length}</span></h3>
                 <div class="album-grid">
-                  {#each groupedAlbums as album}
+                  {#each filteredAlbums as album}
                     <div class="album-card" role="group">
                       <button class="album-card-cover" onclick={() => playAlbum(album)}>
                         <AlbumArt coverPath={album.cover_path} size={0} alt={album.title} />
@@ -885,11 +953,11 @@
                   {/each}
                 </div>
               </section>
-            {:else if sec === 'tracks' && groupedTracks.length > 0}
+            {:else if sec === 'tracks' && showTracks && filteredTracks.length > 0}
               <section class="section">
                 <div class="section-head">
-                  <h3 class="section-title">Pistes <span class="count">{groupedTracks.length}</span></h3>
-                  {#if groupedTracks.filter(t => t.id).length > 1}
+                  <h3 class="section-title">Pistes <span class="count">{filteredTracks.length}</span></h3>
+                  {#if filteredTracks.filter(t => t.id).length > 1}
                     <div class="track-actions-bar">
                       <button class="action-pill" onclick={() => playAllTracks(groupedTracks)}>
                         <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><polygon points="5,3 19,12 5,21" /></svg>
@@ -1076,6 +1144,58 @@
     flex-shrink: 0;
   }
 
+  /* ====================== TYPE + QUALITY FILTERS ====================== */
+  .filter-row-inline {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .type-filters, .quality-filters {
+    display: flex;
+    gap: 6px;
+  }
+  .type-pill {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 16px;
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    background: transparent;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .type-pill:hover { border-color: var(--tune-accent); color: var(--tune-text); }
+  .type-pill.active {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--tune-accent);
+    color: var(--tune-text);
+  }
+  .q-pill {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .q-pill:hover { border-color: var(--tune-accent); color: var(--tune-text); }
+  .q-pill.active { background: rgba(255,255,255,0.1); border-color: var(--tune-accent); color: var(--tune-text); }
+  .q-pill--hires.active { background: #7030b8; border-color: #7030b8; color: white; }
+  .q-pill--cd.active { background: #2060b8; border-color: #2060b8; color: white; }
+  .q-pill--lossy.active { background: #806020; border-color: #806020; color: white; }
+
   /* ====================== SOURCE PILLS ====================== */
   .source-pills {
     display: flex;
@@ -1231,6 +1351,10 @@
     font-weight: 700;
     color: white;
     flex-shrink: 0;
+    overflow: hidden;
+  }
+  .artist-pill-avatar--img {
+    background: none;
   }
 
   .artist-pill-text {
