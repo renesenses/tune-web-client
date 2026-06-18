@@ -448,15 +448,25 @@
       }
     }
 
-    // Add local badge to artists found in local tracks/albums but not in local artist search
+    // Add local badge to artists found in local tracks/albums or library store
+    const libraryArtists = get(artists);
+    const libraryArtistMap = new Map<string, any>();
+    for (const a of libraryArtists) {
+      if (a.name) libraryArtistMap.set(a.name.toLowerCase(), a);
+    }
+
     for (const [key, merged] of map) {
       const hasLocal = merged._sources.some(s => s.source === 'local');
-      if (!hasLocal && localArtistNames.has(key)) {
-        const localTrack = results.local?.tracks?.find(t => t.artist_name?.toLowerCase() === key);
-        merged._sources.unshift({
-          source: 'local',
-          artist: { id: localTrack?.artist_id ?? null, name: merged.name } as Artist,
-        });
+      if (!hasLocal) {
+        const fromTracks = localArtistNames.has(key);
+        const fromLibrary = libraryArtistMap.get(key);
+        if (fromTracks || fromLibrary) {
+          const localTrack = results.local?.tracks?.find(t => t.artist_name?.toLowerCase() === key);
+          merged._sources.unshift({
+            source: 'local',
+            artist: { id: fromLibrary?.id ?? localTrack?.artist_id ?? null, name: merged.name } as Artist,
+          });
+        }
       }
     }
 
@@ -771,8 +781,16 @@
               <section class="top-result-section">
                 <h3 class="section-title">Meilleur resultat</h3>
                 {#if topResult.type === 'artist'}
+                  {@const topSources = (topResult.artist as MergedArtist)._sources ?? []}
+                  {@const topLocalSource = topSources.find(s => s.source === 'local')}
                   <div class="top-result-card">
-                    <button class="top-result-main" onclick={() => selectArtist(topResult!.artist)}>
+                    <button class="top-result-main" onclick={() => {
+                      if (topLocalSource) {
+                        selectArtist({ ...topLocalSource.artist, _source: 'local' } as any);
+                      } else {
+                        selectArtist(topResult!.artist);
+                      }
+                    }}>
                       {#if topResult.artist.image_path}
                         <div class="top-result-avatar">
                           <AlbumArt coverPath={topResult.artist.image_path} size={72} alt={topResult.artist.name} round />
