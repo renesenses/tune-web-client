@@ -158,12 +158,23 @@
   async function playRecentEntry(album: RecentAlbumEntry) {
     if (!zone?.id) return;
     try {
-      if (album.id) {
-        await playAndSync(zone.id, { album_id: album.id });
-      } else if (album.source === 'radio' && album.firstTrack.source_id) {
+      if (album.source === 'radio' && album.firstTrack.source_id) {
         await api.playRadio(parseInt(album.firstTrack.source_id), zone.id);
       } else if (album.source && album.source !== 'local' && album.firstTrack.source_id) {
         await playAndSync(zone.id, { source: album.source as Source, source_id: album.firstTrack.source_id });
+      } else if (album.source && album.source !== 'local') {
+        const q = `${album.firstTrack.title ?? album.title} ${album.firstTrack.artist_name ?? album.artist_name ?? ''}`.trim();
+        const results = await api.searchStreaming(album.source as Source, q, 5);
+        const match = results.tracks?.find((t: any) =>
+          t.title?.toLowerCase() === (album.firstTrack.title ?? album.title)?.toLowerCase()
+        );
+        if (match?.source_id) {
+          await playAndSync(zone.id, { source: album.source as Source, source_id: match.source_id });
+        } else {
+          notifications.error('Piste introuvable sur ' + album.source);
+        }
+      } else if (album.id && (!album.source || album.source === 'local')) {
+        await playAndSync(zone.id, { album_id: album.id });
       } else if (album.firstTrack.id) {
         await playAndSync(zone.id, { track_id: album.firstTrack.id });
       } else {
@@ -510,7 +521,23 @@
         <div class="carousel carousel-scrollable" bind:this={continueCarousel}>
           {#each continueListening as item}
             <div class="carousel-card">
-              <button class="carousel-cover" type="button" onclick={() => { if (zone?.id && (item.album_id || item.id)) { playAndSync(zone.id, { album_id: item.album_id ?? item.id }); } }}>
+              <button class="carousel-cover" type="button" onclick={async () => {
+                if (!zone?.id) return;
+                const src = item.source;
+                if (src && src !== 'local' && src !== 'radio') {
+                  const q = `${item.title ?? item.album_title ?? ''} ${item.artist_name ?? ''}`.trim();
+                  try {
+                    const results = await api.searchStreaming(src as Source, q, 5);
+                    const match = results.albums?.find((a: any) => a.title?.toLowerCase() === (item.title ?? item.album_title)?.toLowerCase())
+                      ?? results.tracks?.[0];
+                    if (match?.source_id) {
+                      await playAndSync(zone.id, { source: src as Source, streaming_album_id: match.source_id });
+                    }
+                  } catch {}
+                } else if (item.album_id || item.id) {
+                  await playAndSync(zone.id, { album_id: item.album_id ?? item.id });
+                }
+              }}>
                 <AlbumArt coverPath={item.cover_path} albumId={item.album_id ?? item.id} size={160} alt={item.title ?? item.album_title ?? ''} />
                 <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
               </button>
