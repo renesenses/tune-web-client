@@ -1066,10 +1066,14 @@
         raw.genres = raw.tags;
       }
       artistMetadata = { ...artistMetadata, ...raw };
+      // Auto-expand sections after enrichment
+      if (raw.similar_artists?.length) openSections['similar'] = true;
       if (raw.bio) {
         notifications.success('Biographie enrichie');
+      } else if (raw.similar_artists?.length || raw.tags?.length) {
+        notifications.success('Artistes similaires et tags trouves');
       } else {
-        notifications.info('Aucune biographie trouvee pour cet artiste');
+        notifications.info('Aucune information trouvee pour cet artiste');
       }
     } catch (e) {
       console.error('Enrich artist error:', e);
