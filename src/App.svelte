@@ -84,6 +84,35 @@ import AlarmsView from './components/AlarmsView.svelte';
   let onboardingChecked = $state(false);
   let showWhatsNew = $state(false);
 
+  // Status banner state
+  type BannerStatus = 'idle' | 'scan' | 'streaming' | 'ready';
+  let bannerStatus = $state<BannerStatus>('idle');
+  let bannerMessage = $state('');
+  let bannerFadeout = $state(false);
+  let bannerFadeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function showBanner(status: BannerStatus, message: string) {
+    if (bannerFadeTimer) { clearTimeout(bannerFadeTimer); bannerFadeTimer = null; }
+    bannerStatus = status;
+    bannerMessage = message;
+    bannerFadeout = false;
+  }
+
+  function showReadyBanner() {
+    if (bannerFadeTimer) { clearTimeout(bannerFadeTimer); bannerFadeTimer = null; }
+    bannerStatus = 'ready';
+    bannerMessage = 'Prêt';
+    bannerFadeout = false;
+    bannerFadeTimer = setTimeout(() => {
+      bannerFadeout = true;
+      bannerFadeTimer = setTimeout(() => {
+        bannerStatus = 'idle';
+        bannerFadeout = false;
+        bannerFadeTimer = null;
+      }, 600);
+    }, 1500);
+  }
+
   // Kiosk mode: ?kiosk=true forces NowPlaying view on small touchscreen
   const isKiosk = new URLSearchParams(window.location.search).has('kiosk');
 
@@ -757,9 +786,36 @@ import AlarmsView from './components/AlarmsView.svelte';
       if (type.startsWith('library.scan.')) {
         if (type === 'library.scan.started') {
           scanIndicator = true;
+          showBanner('scan', 'Synchronisation de la bibliothèque...');
+        } else if (type === 'library.scan.progress') {
+          scanIndicator = true;
+          const scanned = event.data?.scanned ?? event.data?.files_scanned;
+          const added = event.data?.added ?? event.data?.tracks_added;
+          if (scanned !== undefined) {
+            const addedPart = added !== undefined ? ` · ${added} ajouté${added !== 1 ? 's' : ''}` : '';
+            showBanner('scan', `Synchronisation de la bibliothèque... ${scanned} fichier${scanned !== 1 ? 's' : ''}${addedPart}`);
+          }
         } else if (type === 'library.scan.completed') {
           scanIndicator = false;
+          showReadyBanner();
         }
+        return;
+      }
+
+      // Streaming auth events
+      if (type === 'streaming.auth.success' && event.data?.service) {
+        const service = (event.data.service as string).toLowerCase();
+        const serviceLabels: Record<string, string> = {
+          tidal: 'Tidal', qobuz: 'Qobuz', spotify: 'Spotify',
+          deezer: 'Deezer', amazon: 'Amazon Music',
+        };
+        const label = serviceLabels[service] ?? service;
+        showBanner('streaming', `Connexion à ${label}...`);
+        // Auto-clear after 3s if no scan is running
+        if (bannerFadeTimer) clearTimeout(bannerFadeTimer);
+        bannerFadeTimer = setTimeout(() => {
+          if (bannerStatus === 'streaming') showReadyBanner();
+        }, 2000);
         return;
       }
 
@@ -798,6 +854,7 @@ import AlarmsView from './components/AlarmsView.svelte';
     tuneWS.disconnect();
     stopSeekTimer();
     stopUpdatePolling();
+    if (bannerFadeTimer) clearTimeout(bannerFadeTimer);
   });
 </script>
 
@@ -811,6 +868,17 @@ import AlarmsView from './components/AlarmsView.svelte';
       <div class="update-banner">
         <span class="update-banner-text">Tune v{$latestVersion} disponible — vous utilisez v{$currentVersion ?? '?'}</span>
         <button class="update-banner-dismiss" onclick={dismissUpdateBanner} title="Masquer">&times;</button>
+      </div>
+    {/if}
+
+    {#if bannerStatus !== 'idle'}
+      <div class="status-banner" class:status-banner--scan={bannerStatus === 'scan'} class:status-banner--streaming={bannerStatus === 'streaming'} class:status-banner--ready={bannerStatus === 'ready'} class:status-banner--fadeout={bannerFadeout}>
+        {#if bannerStatus === 'scan' || bannerStatus === 'streaming'}
+          <span class="status-banner-spinner"></span>
+        {:else if bannerStatus === 'ready'}
+          <svg class="status-banner-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
+        {/if}
+        <span class="status-banner-text">{bannerMessage}</span>
       </div>
     {/if}
 
@@ -899,12 +967,6 @@ import AlarmsView from './components/AlarmsView.svelte';
       <BridgeView />
     {/if}
 
-    {#if scanIndicator}
-      <div class="scan-indicator">
-        <div class="scan-spinner"></div>
-        {$t('settings.scanning')}
-      </div>
-    {/if}
   </main>
 
   <TransportBar />
@@ -990,33 +1052,73 @@ import AlarmsView from './components/AlarmsView.svelte';
     pointer-events: all;
   }
 
-  .scan-indicator {
-    position: fixed;
-    top: 56px;
-    right: 12px;
+  /* Status banner */
+  .status-banner {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-xs) var(--space-md);
-    background: var(--tune-surface);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-md);
+    justify-content: center;
+    gap: 7px;
+    padding: 5px var(--space-md);
     font-family: var(--font-body);
     font-size: 12px;
-    color: var(--tune-text-secondary);
-    z-index: 100;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    background: var(--tune-surface-2, rgba(255,255,255,0.06));
+    border-bottom: 1px solid var(--tune-border);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    transition: opacity 0.6s ease;
+    opacity: 1;
   }
 
-  .scan-spinner {
-    width: 12px;
-    height: 12px;
-    border: 2px solid var(--tune-border);
-    border-top-color: var(--tune-accent);
+  .status-banner--scan {
+    background: rgba(107, 110, 217, 0.15);
+    color: var(--tune-accent, #6b6ed9);
+    border-bottom-color: rgba(107, 110, 217, 0.25);
+  }
+
+  .status-banner--streaming {
+    background: rgba(34, 197, 94, 0.1);
+    color: #4ade80;
+    border-bottom-color: rgba(34, 197, 94, 0.2);
+  }
+
+  .status-banner--ready {
+    background: rgba(34, 197, 94, 0.08);
+    color: #4ade80;
+    border-bottom-color: rgba(34, 197, 94, 0.15);
+  }
+
+  .status-banner--fadeout {
+    opacity: 0;
+  }
+
+  .status-banner-spinner {
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid currentColor;
+    border-top-color: transparent;
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+    animation: banner-spin 0.7s linear infinite;
+    flex-shrink: 0;
+    opacity: 0.8;
   }
 
-  @keyframes spin {
+  .status-banner-check {
+    flex-shrink: 0;
+    opacity: 0.9;
+  }
+
+  .status-banner-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 60vw;
+  }
+
+  @keyframes banner-spin {
     to { transform: rotate(360deg); }
   }
 
