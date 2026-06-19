@@ -2106,7 +2106,9 @@ export function deleteSmartCollection(id: number) {
   return fetch(`${BASE}/library/smart-collections/${id}`, { method: 'DELETE' }).then(r => r.json());
 }
 export function getSmartCollectionAlbums(id: number) {
-  return fetchJSON<any[]>(`${BASE}/library/smart-collections/${id}/albums`);
+  return fetchJSON<any>(`${BASE}/library/smart-collections/${id}/albums`).then(d =>
+    Array.isArray(d) ? d : (d.albums ?? [])
+  );
 }
 export function previewSmartCollection(payload: { rules: any[]; match_mode?: string; sort_by?: string; sort_order?: string; max_albums?: number }) {
   return fetchJSON<import('./types').SmartCollectionPreview>(`${BASE}/library/smart-collections/preview`, {
