@@ -932,7 +932,7 @@ export function getDsp(zoneId: number) {
 
 export function setDsp(zoneId: number, body: any) {
   return fetchJSON<any>(`${BASE}/zones/${zoneId}/dsp`, {
-    method: 'POST',
+    method: 'PUT',
     body: JSON.stringify(body),
   });
 }
