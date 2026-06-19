@@ -926,6 +926,17 @@ export function setEq(zoneId: number, settings: EqSettings) {
   });
 }
 
+export function getDsp(zoneId: number) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/dsp`);
+}
+
+export function setDsp(zoneId: number, body: any) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/dsp`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
 export function getListeningStats() {
   return fetchJSON<any>(`${BASE}/system/stats/listening`);
 }
