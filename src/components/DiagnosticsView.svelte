@@ -44,11 +44,9 @@
 
   async function fetchServerVersion() {
     try {
-      const res = await fetch('/');
+      const data = await api.getHealth();
       if (destroyed) return;
-      const data = await res.json();
-      if (destroyed) return;
-      serverVersion = data.version ?? null;
+      serverVersion = data?.version ?? null;
     } catch {
       if (!destroyed) serverVersion = null;
     }
