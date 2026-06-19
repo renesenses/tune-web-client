@@ -7,17 +7,52 @@
   let searchQuery = $state('');
   let searchResults = $state<any[]>([]);
   let radioFrancePodcasts = $state<any[]>([]);
+  let subscriptions = $state<any[]>([]);
   let selectedPodcast = $state<any | null>(null);
   let episodes = $state<any[]>([]);
   let isSearching = $state(false);
   let isLoadingEpisodes = $state(false);
-  let activeTab = $state<'radiofrance' | 'search'>('radiofrance');
+  let activeTab = $state<'subscriptions' | 'radiofrance' | 'search'>('subscriptions');
   let errorMessage = $state<string | null>(null);
 
-  // Load Radio France podcasts on mount
   onMount(() => {
+    loadSubscriptions();
     loadRadioFrance();
   });
+
+  async function loadSubscriptions() {
+    try {
+      subscriptions = await api.getPodcastSubscriptions();
+    } catch { subscriptions = []; }
+  }
+
+  async function subscribe(podcast: any) {
+    try {
+      await api.subscribePodcast({
+        title: podcast.name || podcast.title,
+        feed_url: podcast.feed_url,
+        author: podcast.artist || podcast.author,
+        image_url: podcast.cover_url || podcast.image_url,
+        description: podcast.description,
+      });
+      await loadSubscriptions();
+    } catch (e) {
+      console.error('Subscribe error:', e);
+    }
+  }
+
+  async function unsubscribe(id: number) {
+    try {
+      await api.unsubscribePodcast(id);
+      await loadSubscriptions();
+    } catch (e) {
+      console.error('Unsubscribe error:', e);
+    }
+  }
+
+  function isSubscribed(feedUrl: string): boolean {
+    return subscriptions.some(s => s.feed_url === feedUrl);
+  }
 
   async function loadRadioFrance() {
     errorMessage = null;
@@ -145,11 +180,32 @@
   {:else}
     <!-- Podcast catalog -->
     <div class="tabs">
+      <button class="tab" class:active={activeTab === 'subscriptions'} onclick={() => activeTab = 'subscriptions'}>Mes podcasts</button>
       <button class="tab" class:active={activeTab === 'radiofrance'} onclick={() => activeTab = 'radiofrance'}>Radio France</button>
       <button class="tab" class:active={activeTab === 'search'} onclick={() => activeTab = 'search'}>Rechercher</button>
     </div>
 
-    {#if activeTab === 'search'}
+    {#if activeTab === 'subscriptions'}
+      {#if subscriptions.length === 0}
+        <div class="empty">Aucun abonnement. Explorez Radio France ou recherchez des podcasts pour vous abonner.</div>
+      {:else}
+        <div class="podcast-grid">
+          {#each subscriptions as podcast}
+            <div class="podcast-card" role="button" tabindex="0" onclick={() => selectPodcast({ ...podcast, name: podcast.title, cover_url: podcast.image_url, artist: podcast.author })}>
+              {#if podcast.image_url}
+                <img src={podcast.image_url} alt="" class="podcast-cover" loading="lazy" />
+              {:else}
+                <div class="podcast-cover placeholder">🎙️</div>
+              {/if}
+              <span class="podcast-name">{podcast.title}</span>
+              <span class="podcast-artist-sm">{podcast.author}</span>
+              <button class="unsub-btn" onclick={(e: MouseEvent) => { e.stopPropagation(); unsubscribe(podcast.id); }}>Se desabonner</button>
+            </div>
+          {/each}
+        </div>
+      {/if}
+
+    {:else if activeTab === 'search'}
       <div class="search-bar">
         <input type="text" bind:value={searchQuery} placeholder="Rechercher un podcast…" onkeydown={(e) => e.key === 'Enter' && searchPodcasts()} />
         <button onclick={searchPodcasts} disabled={isSearching}>
@@ -159,7 +215,7 @@
 
       <div class="podcast-grid">
         {#each searchResults as podcast}
-          <button class="podcast-card" onclick={() => selectPodcast(podcast)} disabled={!podcast.feed_url}>
+          <div class="podcast-card" role="button" tabindex="0" onclick={() => !podcast.feed_url ? null : selectPodcast(podcast)} class:disabled={!podcast.feed_url}>
             {#if podcast.cover_url}
               <img src={podcast.cover_url} alt="" class="podcast-cover" loading="lazy" />
             {:else}
@@ -169,8 +225,12 @@
             <span class="podcast-artist-sm">{podcast.artist}</span>
             {#if !podcast.feed_url}
               <span class="no-feed">Pas de flux RSS</span>
+            {:else if !isSubscribed(podcast.feed_url)}
+              <button class="sub-btn" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>+ S'abonner</button>
+            {:else}
+              <span class="sub-badge">Abonne</span>
             {/if}
-          </button>
+          </div>
         {/each}
       </div>
     {:else}
@@ -273,7 +333,7 @@
     border-color: var(--tune-accent, #6C5CE7);
   }
 
-  .podcast-card:disabled {
+  .podcast-card:disabled, .podcast-card.disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
@@ -447,5 +507,28 @@
     color: #E8A0A0;
     font-size: 13px;
   }
+
+  .sub-btn {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 1px solid var(--tune-accent, #6C5CE7);
+    background: transparent;
+    color: var(--tune-accent, #6C5CE7);
+    cursor: pointer;
+  }
+  .sub-btn:hover { background: var(--tune-accent, #6C5CE7); color: white; }
+  .sub-badge { font-size: 10px; color: #10b981; font-weight: 600; }
+  .unsub-btn {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 1px solid #666;
+    background: transparent;
+    color: #999;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .unsub-btn:hover { border-color: #e74c3c; color: #e74c3c; }
 
 </style>

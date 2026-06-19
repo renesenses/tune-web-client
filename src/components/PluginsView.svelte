@@ -36,7 +36,7 @@
     if (docsHtml) return;
     docsLoading = true;
     try {
-      const res = await fetch('/api/v1/store/docs');
+      const res = await fetch('/api/v1/plugins/docs');
       if (res.ok) {
         const md = await res.text();
         docsHtml = marked(md) as string;

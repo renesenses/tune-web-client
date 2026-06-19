@@ -2081,6 +2081,18 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
   return res.json();
 }
 
+export function getPodcastSubscriptions(): Promise<any[]> {
+  return fetchJSON(`${BASE}/podcasts/subscriptions`);
+}
+
+export function subscribePodcast(podcast: { title: string; feed_url: string; author?: string; image_url?: string; description?: string }): Promise<any> {
+  return fetchJSON(`${BASE}/podcasts/subscriptions`, { method: 'POST', body: JSON.stringify(podcast) });
+}
+
+export function unsubscribePodcast(id: number): Promise<void> {
+  return fetchVoid(`${BASE}/podcasts/subscriptions/${id}`, { method: 'DELETE' });
+}
+
 // v0.8.0 — Smart Collections
 export function listSmartCollections() {
   return fetchJSON<import('./types').SmartCollection[]>(`${BASE}/library/smart-collections`);
@@ -2365,7 +2377,7 @@ export interface MergedPlugin {
 }
 
 export function getInstalledPlugins(): Promise<InstalledPlugin[]> {
-  return fetchJSON<InstalledPlugin[]>(`${BASE}/system/plugins`);
+  return fetchJSON<InstalledPlugin[]>(`${BASE}/plugins`);
 }
 
 export function enablePlugin(name: string): Promise<{ status: string }> {
