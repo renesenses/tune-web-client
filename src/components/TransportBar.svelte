@@ -352,6 +352,7 @@
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const posMs = Math.floor(pct * displayTrack.duration_ms);
+    seekPositionMs.set(posMs);
     api.seek(zone.id, posMs);
   }
 </script>
