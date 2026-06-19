@@ -6,6 +6,14 @@ import { getToken, clearToken } from '../auth';
 
 export const BASE = '/api/v1';
 
+let _lastNetworkError = 0;
+function showNetworkError() {
+  const now = Date.now();
+  if (now - _lastNetworkError < 5000) return;
+  _lastNetworkError = now;
+  notifications.error('Network error: server unreachable');
+}
+
 async function apiError(response: Response): Promise<Error> {
   let detail = `${response.status} ${response.statusText}`;
   try {
@@ -31,7 +39,7 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       ...options,
     });
   } catch (e) {
-    notifications.error('Network error: server unreachable');
+    showNetworkError();
     throw e;
   }
   if (!response.ok) {

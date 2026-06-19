@@ -3,6 +3,14 @@
 import { notifications } from './stores/notifications';
 import { getToken, clearToken } from './auth';
 
+let _lastNetworkError = 0;
+function showNetworkError() {
+  const now = Date.now();
+  if (now - _lastNetworkError < 5000) return;
+  _lastNetworkError = now;
+  notifications.error('Network error: server unreachable');
+}
+
 import type {
   Zone,
   Track,
@@ -100,7 +108,7 @@ async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
       ...options,
     });
   } catch (e) {
-    notifications.error('Network error: server unreachable');
+    showNetworkError();
     throw e;
   }
   if (!response.ok) {
@@ -150,7 +158,7 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
       ...options,
     });
   } catch (e) {
-    notifications.error('Network error: server unreachable');
+    showNetworkError();
     throw e;
   }
   if (!response.ok) {

@@ -293,7 +293,6 @@ import AlarmsView from './components/AlarmsView.svelte';
       }
     } catch (e) {
       console.error('Sync zone state error:', e);
-      showError('Failed to sync zone state');
     }
   }
 
