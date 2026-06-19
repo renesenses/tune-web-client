@@ -229,6 +229,31 @@
   // Diagnostics bundle download
   let diagDownloading = $state(false);
 
+  // Log level
+  let logLevel = $state('info');
+
+  async function loadLogLevel() {
+    try {
+      const resp = await fetch('/api/v1/system/log-level');
+      const data = await resp.json();
+      logLevel = data.level ?? 'info';
+    } catch {}
+  }
+
+  async function changeLogLevel(level: string) {
+    logLevel = level;
+    try {
+      await fetch('/api/v1/system/log-level', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level }),
+      });
+      notifications.success(`Niveau de log: ${level}`);
+    } catch {
+      notifications.error('Erreur changement log level');
+    }
+  }
+
   // Logs download
   let logsDownloading = $state(false);
 
@@ -1393,6 +1418,7 @@
     loadStreamingQuality();
     loadScanSchedule();
     loadMetadataFields();
+    loadLogLevel();
     if (pushEnabled) initPushNotifications();
   });
 
@@ -3049,6 +3075,22 @@
           </div>
         </div>
 
+        <!-- Log Level -->
+        <div class="about-row" style="margin-top: 0.75rem">
+          <span class="about-label">Niveau de log</span>
+          <select
+            class="log-level-select"
+            value={logLevel}
+            onchange={(e) => changeLogLevel((e.target as HTMLSelectElement).value)}
+          >
+            <option value="error">Error</option>
+            <option value="warn">Warn</option>
+            <option value="info">Info</option>
+            <option value="debug">Debug</option>
+            <option value="trace">Trace</option>
+          </select>
+        </div>
+
         <!-- What's New -->
         <div class="about-row" style="margin-top: 0.75rem">
           <span class="about-label">{$t('whatsnew.title')}</span>
@@ -3802,6 +3844,18 @@
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
+
+  .log-level-select {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--tune-border);
+    border-radius: 6px;
+    color: var(--tune-text);
+    font-family: var(--font-label);
+    font-size: 13px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  .log-level-select:focus { border-color: var(--tune-accent); outline: none; }
 
   .update-banner {
     margin-top: 12px;
