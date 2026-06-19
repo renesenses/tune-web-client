@@ -1369,19 +1369,8 @@
   }
 
   // Display metadata fields (chips shown under track titles)
-  const DISPLAY_FIELD_DEFS: { key: string; label: string }[] = [
-    { key: 'format', label: 'Format (FLAC, MP3…)' },
-    { key: 'sample_rate', label: 'Fréquence (96kHz)' },
-    { key: 'bit_depth', label: 'Profondeur (24bit)' },
-    { key: 'genre', label: 'Genre' },
-    { key: 'year', label: 'Année' },
-    { key: 'label', label: 'Label' },
-    { key: 'composer', label: 'Compositeur' },
-    { key: 'duration', label: 'Durée' },
-    { key: 'source', label: 'Source (local/tidal…)' },
-    { key: 'file_path', label: 'Fichier' },
-  ];
-  const DISPLAY_FIELDS_DEFAULT = ['format', 'genre', 'year'];
+  // Fetches the full catalog from the server, persists selection to localStorage + server.
+  const DISPLAY_FIELDS_DEFAULT = ['format', 'sample_rate', 'bit_depth', 'genre', 'year', 'label', 'composer'];
   const DISPLAY_FIELDS_KEY = 'tune_metadata_fields';
 
   function loadDisplayFields(): string[] {
@@ -1402,6 +1391,7 @@
     try {
       localStorage.setItem(DISPLAY_FIELDS_KEY, JSON.stringify(next));
     } catch {}
+    saveMetadataFields();
   }
 
   // Use onMount (not $effect) to load data exactly once on component
@@ -2392,18 +2382,42 @@
     <section class="settings-section">
       <h3>Champs métadonnées affichés</h3>
       <p class="section-hint">Champs affichés sous chaque titre dans les résultats de recherche, la bibliothèque, la file d'attente et l'historique.</p>
-      <div class="display-fields-grid">
-        {#each DISPLAY_FIELD_DEFS as def}
-          <label class="display-field-check">
-            <input
-              type="checkbox"
-              checked={displayFields.includes(def.key)}
-              onchange={() => toggleDisplayField(def.key)}
-            />
-            <span>{def.label}</span>
-          </label>
+      {#if metadataLoading}
+        <p style="opacity:0.5">Chargement…</p>
+      {:else if metadataCategories.length > 0}
+        {#each metadataCategories as cat, catIndex}
+          <div class="metadata-category">
+            <button class="category-toggle" onclick={() => toggleMetadataCategory(cat.name)}>
+              <span class="toggle-icon">{metadataCollapsed[cat.name] ? '▸' : '▾'}</span>
+              <span class="category-name">{cat.name}</span>
+              <span class="category-count">{cat.fields.filter((f: any) => displayFields.includes(f.key)).length}/{cat.fields.length}</span>
+            </button>
+            {#if !metadataCollapsed[cat.name]}
+              <div class="display-fields-grid">
+                {#each cat.fields as field, fieldIndex}
+                  <label class="display-field-check">
+                    <input
+                      type="checkbox"
+                      checked={displayFields.includes(field.key)}
+                      onchange={() => toggleDisplayField(field.key)}
+                    />
+                    <span>{field.label}</span>
+                  </label>
+                {/each}
+              </div>
+            {/if}
+          </div>
         {/each}
-      </div>
+      {:else}
+        <div class="display-fields-grid">
+          {#each DISPLAY_FIELDS_DEFAULT as key}
+            <label class="display-field-check">
+              <input type="checkbox" checked={displayFields.includes(key)} onchange={() => toggleDisplayField(key)} />
+              <span>{key}</span>
+            </label>
+          {/each}
+        </div>
+      {/if}
     </section>
     {/if}
 
@@ -3697,10 +3711,32 @@
     line-height: 1.5;
   }
 
+  .metadata-category {
+    margin-bottom: 12px;
+  }
+  .category-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    color: var(--tune-text);
+    font-family: var(--font-label);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 0;
+    width: 100%;
+    text-align: left;
+  }
+  .category-toggle:hover { color: var(--tune-accent); }
+  .toggle-icon { font-size: 11px; opacity: 0.6; width: 12px; }
+  .category-count { font-weight: 400; opacity: 0.5; font-size: 11px; margin-left: auto; }
   .display-fields-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: var(--space-sm) var(--space-md);
+    padding-left: 20px;
   }
 
   .display-field-check {

@@ -8,47 +8,46 @@
   }
   let { track, fields }: Props = $props();
 
+  const FORMATTERS: Record<string, (track: Record<string, any>) => string | null> = {
+    format: t => t.format ? String(t.format).toUpperCase() : null,
+    sample_rate: t => t.sample_rate ? `${Math.round(t.sample_rate / 100) / 10}kHz` : null,
+    bit_depth: t => t.bit_depth ? `${t.bit_depth}bit` : null,
+    channels: t => t.channels ? `${t.channels}ch` : null,
+    duration: t => t.duration_ms ? formatTime(t.duration_ms) : null,
+    duration_ms: t => t.duration_ms ? formatTime(t.duration_ms) : null,
+    file_size: t => t.file_size ? `${(t.file_size / 1048576).toFixed(1)} MB` : null,
+    file_path: t => {
+      if (!t.file_path) return null;
+      const parts = String(t.file_path).split(/[\\/]/);
+      return parts[parts.length - 1] ?? t.file_path;
+    },
+    disc_number: t => t.disc_number ? `Disc ${t.disc_number}` : null,
+    track_number: t => t.track_number ? `#${t.track_number}` : null,
+    bpm: t => t.bpm ? `${t.bpm} BPM` : null,
+  };
+
   function buildChips(track: Record<string, any>, fields: string[]): string[] {
     const chips: string[] = [];
     const hasSampleRate = fields.includes('sample_rate') && track.sample_rate;
     const hasBitDepth = fields.includes('bit_depth') && track.bit_depth;
 
     for (const field of fields) {
-      if (field === 'sample_rate' && hasBitDepth) continue; // merged below
-      if (field === 'bit_depth' && hasSampleRate) continue; // merged below
+      if (field === 'sample_rate' && hasBitDepth) continue;
+      if (field === 'bit_depth' && hasSampleRate) continue;
 
-      if (field === 'sample_rate' && !hasBitDepth && track.sample_rate) {
-        const khz = Math.round(track.sample_rate / 100) / 10;
-        chips.push(`${khz}kHz`);
-      } else if (field === 'bit_depth' && !hasSampleRate && track.bit_depth) {
-        chips.push(`${track.bit_depth}bit`);
-      } else if (field === 'sample_rate' && hasBitDepth) {
-        // combined — but this branch won't be reached due to continue above
-      } else if (field === 'format' && track.format) {
-        chips.push(String(track.format).toUpperCase());
-      } else if (field === 'genre' && track.genre) {
-        chips.push(String(track.genre));
-      } else if (field === 'year' && track.year) {
-        chips.push(String(track.year));
-      } else if (field === 'label' && track.label) {
-        chips.push(String(track.label));
-      } else if (field === 'composer' && track.composer) {
-        chips.push(String(track.composer));
-      } else if (field === 'duration' && track.duration_ms) {
-        chips.push(formatTime(track.duration_ms));
-      } else if (field === 'source' && track.source) {
-        chips.push(String(track.source));
-      } else if (field === 'file_path' && track.file_path) {
-        const parts = String(track.file_path).split(/[\\/]/);
-        chips.push(parts[parts.length - 1] ?? track.file_path);
+      const formatter = FORMATTERS[field];
+      if (formatter) {
+        const val = formatter(track);
+        if (val) chips.push(val);
+      } else {
+        const val = track[field];
+        if (val != null && val !== '' && val !== 0) chips.push(String(val));
       }
     }
 
-    // Insert combined sample_rate/bit_depth chip after format (or at start)
     if (hasSampleRate && hasBitDepth) {
       const khz = Math.round(track.sample_rate / 100) / 10;
       const combined = `${khz}kHz/${track.bit_depth}bit`;
-      // Insert after format chip if present, else prepend
       const fmtIdx = chips.findIndex(c => c === String(track.format).toUpperCase());
       if (fmtIdx >= 0) {
         chips.splice(fmtIdx + 1, 0, combined);
