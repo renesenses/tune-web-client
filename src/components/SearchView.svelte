@@ -441,7 +441,10 @@
       if (!existing) {
         map.set(key, { ...a, _sources: [{ source: (a as any)._source ?? 'local', artist: a }] });
       } else {
-        existing._sources.push({ source: (a as any)._source ?? 'local', artist: a });
+        const srcName = (a as any)._source ?? 'local';
+        if (!existing._sources.some(s => s.source === srcName)) {
+          existing._sources.push({ source: srcName, artist: a });
+        }
         if (!existing.image_path && a.image_path) {
           existing.image_path = a.image_path;
         }

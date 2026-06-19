@@ -230,6 +230,31 @@
   // Diagnostics bundle download
   let diagDownloading = $state(false);
 
+  // Audio backend
+  let audioBackend = $state('wasapi');
+
+  async function loadAudioBackend() {
+    try {
+      const resp = await fetch('/api/v1/system/config');
+      const data = await resp.json();
+      audioBackend = data.audio_backend ?? data.local_audio_backend ?? 'wasapi';
+    } catch {}
+  }
+
+  async function changeAudioBackend(backend: string) {
+    audioBackend = backend;
+    try {
+      await fetch('/api/v1/system/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ local_audio_backend: backend }),
+      });
+      notifications.success(`Backend audio: ${backend.toUpperCase()}. Redemarrez le serveur.`);
+    } catch {
+      notifications.error('Erreur changement backend audio');
+    }
+  }
+
   // Log level
   let logLevel = $state('info');
 
@@ -1410,6 +1435,7 @@
     loadScanSchedule();
     loadMetadataFields();
     loadLogLevel();
+    loadAudioBackend();
     if (pushEnabled) initPushNotifications();
   });
 
@@ -2242,6 +2268,13 @@
     <!-- Local Audio Outputs -->
     <section class="settings-section">
       <h3>{$t('settings.localAudio')}</h3>
+      <div class="about-row" style="margin-bottom: 0.75rem">
+        <span class="about-label">Backend audio</span>
+        <select class="log-level-select" value={audioBackend} onchange={(e) => changeAudioBackend((e.target as HTMLSelectElement).value)}>
+          <option value="wasapi">WASAPI (defaut)</option>
+          <option value="asio">ASIO (bit-perfect)</option>
+        </select>
+      </div>
       <div class="device-toggle-list">
         {#each audioDevices as device}
           {@const prefId = `audio:${device.id}`}
