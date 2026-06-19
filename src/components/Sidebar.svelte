@@ -581,11 +581,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
       {$t('nav.playlists')}
     </button>
-    <button class="nav-item" class:active={$activeView === 'smart-ai'} onclick={() => navigate('smart-ai')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4c0 1.1-.9 2-2 2h-4a2 2 0 0 1-2-2 4 4 0 0 1 4-4z"/><path d="M8 8v2a4 4 0 0 0 8 0V8"/><path d="M12 14v4"/><path d="M8 22h8"/><circle cx="7" cy="12" r="1"/><circle cx="17" cy="12" r="1"/></svg>
-      Smart AI
-      <span class="badge-new">NEW</span>
-    </button>
     <button class="nav-item" class:active={$activeView === 'collections' || $activeView === 'smartcollections'} onclick={() => navigate('collections')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
       Collections
