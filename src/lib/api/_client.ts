@@ -21,7 +21,10 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
   let response: Response;
   try {
     const token = getToken();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     response = await fetch(url, {
       headers,
@@ -38,5 +41,13 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
     }
     throw await apiError(response);
   }
-  return response.json();
+  const text = await response.text();
+  if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
+    throw new Error('Expected JSON but received HTML — check the endpoint URL');
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error('Invalid JSON response');
+  }
 }

@@ -32,17 +32,21 @@ const BASE = '/api/v1';
 // Generic helpers for radio favorites and custom endpoints
 export async function apiFetch(path: string): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { 'Accept': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${path}`, { headers });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
   if (!resp.ok) throw new Error(`${resp.status}`);
-  return resp.json();
+  const text = await resp.text();
+  if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
+    throw new Error('Expected JSON but received HTML — check the endpoint URL');
+  }
+  try { return JSON.parse(text); } catch { throw new Error('Invalid JSON response'); }
 }
 
 export async function apiPost(path: string, body?: any): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { 'Accept': 'application/json' };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${path}`, {
@@ -52,17 +56,25 @@ export async function apiPost(path: string, body?: any): Promise<any> {
   });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
   if (!resp.ok) throw new Error(`${resp.status}`);
-  return resp.json();
+  const text = await resp.text();
+  if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
+    throw new Error('Expected JSON but received HTML — check the endpoint URL');
+  }
+  try { return JSON.parse(text); } catch { throw new Error('Invalid JSON response'); }
 }
 
 export async function apiDelete(path: string): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { 'Accept': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${path}`, { method: 'DELETE', headers });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
   if (!resp.ok) throw new Error(`${resp.status}`);
-  return resp.json();
+  const text = await resp.text();
+  if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
+    throw new Error('Expected JSON but received HTML — check the endpoint URL');
+  }
+  try { return JSON.parse(text); } catch { throw new Error('Invalid JSON response'); }
 }
 
 async function apiError(response: Response): Promise<Error> {
@@ -78,7 +90,10 @@ async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   let response: Response;
   try {
     const token = getToken();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     response = await fetch(url, {
       headers,
@@ -99,7 +114,15 @@ async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
     }
     throw err;
   }
-  return response.json();
+  const text = await response.text();
+  if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
+    throw new Error('Expected JSON but received HTML — check the endpoint URL');
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error('Invalid JSON response');
+  }
 }
 
 /** Wrap a promise with a timeout — rejects with an Error after `ms` milliseconds. */
@@ -117,7 +140,10 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
   let response: Response;
   try {
     const token = getToken();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     response = await fetch(url, {
       headers,
