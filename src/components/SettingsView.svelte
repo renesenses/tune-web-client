@@ -235,26 +235,45 @@
 
   // Audio backend
   let audioBackend = $state('wasapi');
+  let exclusiveMode = $state(false);
 
   async function loadAudioBackend() {
     try {
       const resp = await fetch('/api/v1/system/config');
       const data = await resp.json();
       audioBackend = data.audio_backend ?? data.local_audio_backend ?? 'wasapi';
+      exclusiveMode = data.local_exclusive_mode ?? false;
     } catch {}
   }
 
   async function changeAudioBackend(backend: string) {
     audioBackend = backend;
+    const newExclusive = backend === 'asio' ? true : exclusiveMode;
     try {
       await fetch('/api/v1/system/config', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ local_audio_backend: backend }),
+        body: JSON.stringify({ local_audio_backend: backend, local_exclusive_mode: newExclusive }),
       });
+      exclusiveMode = newExclusive;
       notifications.success(`Backend audio: ${backend.toUpperCase()}. Redemarrez le serveur.`);
     } catch {
       notifications.error('Erreur changement backend audio');
+    }
+  }
+
+  async function toggleExclusiveMode() {
+    const newVal = !exclusiveMode;
+    exclusiveMode = newVal;
+    try {
+      await fetch('/api/v1/system/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ local_exclusive_mode: newVal }),
+      });
+      notifications.success(newVal ? 'Mode exclusif active. Redemarrez le serveur.' : 'Mode partage active. Redemarrez le serveur.');
+    } catch {
+      notifications.error('Erreur changement mode exclusif');
     }
   }
 
@@ -2278,6 +2297,15 @@
           <option value="asio">ASIO (bit-perfect)</option>
         </select>
       </div>
+      {#if audioBackend === 'wasapi'}
+      <div class="about-row" style="margin-bottom: 0.75rem">
+        <span class="about-label">Mode WASAPI</span>
+        <select class="log-level-select" value={exclusiveMode ? 'exclusive' : 'shared'} onchange={(e) => { const v = (e.target as HTMLSelectElement).value; if ((v === 'exclusive') !== exclusiveMode) toggleExclusiveMode(); }}>
+          <option value="shared">Partage (defaut)</option>
+          <option value="exclusive">Exclusif (bit-perfect)</option>
+        </select>
+      </div>
+      {/if}
       <div class="device-toggle-list">
         {#each audioDevices as device}
           {@const prefId = `audio:${device.id}`}

@@ -1,15 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import * as api from '../lib/api';
-  import type { GroupDelay } from '../lib/types';
-
-  // Inter-techno calibration UI (v0.8.0). The user picks a pair of
-  // technologies (snapcast/sonos/dlna/airplay/local) and slides a
-  // delay value in milliseconds. The server canonicalises the pair
-  // alphabetically, so the same row covers (a, b) and (b, a). Only
-  // pairs with at least one of the new natively-synced techs
-  // (Snapcast or Sonos) are surfaced — local↔dlna calibration was
-  // never a thing in Tune anyway.
+  import type { GroupDelay, Zone } from '../lib/types';
+  import { zones } from '../lib/stores/zones';
 
   const TECHS = ['snapcast', 'sonos', 'dlna', 'airplay', 'local'] as const;
   type Tech = typeof TECHS[number];
@@ -17,6 +10,8 @@
   let delays = $state<GroupDelay[]>([]);
   let loading = $state(true);
   let savedNote = $state<string | null>(null);
+  let cleanupRunning = $state(false);
+  let cleanupResult = $state<string | null>(null);
 
   // Build an editable view: matrix of (tech_a, tech_b) pairs where
   // tech_a < tech_b alphabetically. Initial value pulled from the
@@ -54,6 +49,31 @@
     }
   }
 
+  async function cleanupOfflineZones() {
+    cleanupRunning = true;
+    cleanupResult = null;
+    try {
+      const allZones: Zone[] = await api.getZones();
+      const offlineZones = allZones.filter(z => z.online === false && z.output_type !== 'local');
+      if (offlineZones.length === 0) {
+        cleanupResult = 'Aucune zone hors ligne a supprimer.';
+        return;
+      }
+      let deleted = 0;
+      for (const z of offlineZones) {
+        try {
+          await api.deleteZone(z.id!);
+          deleted++;
+        } catch {}
+      }
+      cleanupResult = `${deleted} zone${deleted > 1 ? 's' : ''} hors ligne supprimee${deleted > 1 ? 's' : ''}.`;
+    } catch (e) {
+      cleanupResult = 'Erreur lors du nettoyage.';
+    } finally {
+      cleanupRunning = false;
+    }
+  }
+
   onMount(load);
 
   // The pairs we actually want to expose. Snapcast ↔ Sonos is the
@@ -70,6 +90,23 @@
     ['sonos', 'local'],
   ];
 </script>
+
+<section class="settings-section zone-cleanup">
+  <h2>Zones de lecture</h2>
+  <p class="hint">
+    Les zones hors ligne (appareils DLNA, AirPlay, etc. deconnectes) encombrent
+    la liste. Ce bouton supprime toutes les zones dont l'appareil n'est plus accessible.
+  </p>
+  <div class="cleanup-row">
+    <span class="zone-count">{$zones.length} zone{$zones.length !== 1 ? 's' : ''} active{$zones.length !== 1 ? 's' : ''}</span>
+    <button class="cleanup-btn" onclick={cleanupOfflineZones} disabled={cleanupRunning}>
+      {cleanupRunning ? 'Nettoyage...' : 'Nettoyer les zones hors ligne'}
+    </button>
+  </div>
+  {#if cleanupResult}
+    <p class="cleanup-result">{cleanupResult}</p>
+  {/if}
+</section>
 
 <section class="settings-section multiroom-settings">
   <div class="header">
@@ -133,8 +170,18 @@
   .save { font-size: 0.8rem; padding: 0.3rem 0.7rem; border-radius: 6px; border: none; background: var(--tune-accent, #6366f1); color: white; cursor: pointer; }
   .saved { font-size: 0.8rem; color: #10b981; margin: 0.6rem 0 0 0; }
 
+  .zone-cleanup { padding: 1rem 1.2rem; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.04); border-radius: 12px; margin-bottom: 1rem; }
+  .zone-cleanup h2 { font-size: 1rem; margin: 0 0 0.4rem 0; color: var(--tune-text); }
+  .cleanup-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .zone-count { font-size: 0.85rem; color: var(--tune-text-muted); }
+  .cleanup-btn { font-size: 0.85rem; padding: 0.4rem 1rem; border-radius: 8px; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); background: transparent; color: var(--tune-text); cursor: pointer; transition: all 0.15s; }
+  .cleanup-btn:hover { background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.1); }
+  .cleanup-btn:disabled { opacity: 0.5; cursor: default; }
+  .cleanup-result { font-size: 0.8rem; color: #10b981; margin: 0.5rem 0 0 0; }
+
   @media (max-width: 700px) {
     .pair { grid-template-columns: 1fr; }
     .pair-label { font-weight: 600; }
+    .cleanup-row { flex-direction: column; align-items: flex-start; }
   }
 </style>
