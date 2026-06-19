@@ -97,8 +97,8 @@ body {
 /* Scrollbar — Firefox uses scrollbar-width/scrollbar-color,
    Chrome/Safari use ::-webkit-scrollbar below */
 * {
-  scrollbar-width: auto;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -167,6 +167,10 @@ body {
   --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
+[data-theme="light"] {
+  scrollbar-color: #C0C0C0 transparent;
+}
+
 [data-theme="light"] ::-webkit-scrollbar-thumb {
   background: #C0C0C0;
 }
@@ -192,6 +196,10 @@ body {
   --shadow-sm: none;
   --shadow-md: none;
   --shadow-lg: none;
+}
+
+[data-theme="oled"] {
+  scrollbar-color: #333333 transparent;
 }
 
 [data-theme="oled"] ::-webkit-scrollbar-thumb {
@@ -223,6 +231,10 @@ body {
   --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.6);
 }
 
+[data-theme="midnight"] {
+  scrollbar-color: #2A3A4A transparent;
+}
+
 [data-theme="midnight"] ::-webkit-scrollbar-thumb {
   background: #2A3A4A;
 }
@@ -251,6 +263,9 @@ body {
   }
 
   /* Hide scrollbars on touchscreen */
+  * {
+    scrollbar-width: none;
+  }
   ::-webkit-scrollbar {
     width: 0;
     display: none;

@@ -1602,6 +1602,7 @@
     scroll-snap-type: x proximity;
     -webkit-overflow-scrolling: touch;
   }
+  .artists-scroll { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.2) transparent; }
   .artists-scroll::-webkit-scrollbar { height: 3px; }
   .artists-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 2px; }
 
