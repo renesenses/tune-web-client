@@ -229,6 +229,30 @@
   // Diagnostics bundle download
   let diagDownloading = $state(false);
 
+  // Logs download
+  let logsDownloading = $state(false);
+
+  async function downloadLogs() {
+    logsDownloading = true;
+    try {
+      const resp = await fetch(`/api/v1/system/logs`);
+      const text = await resp.text();
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tune-logs-${new Date().toISOString().slice(0, 10)}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert('Erreur logs: ' + (err?.message ?? String(err)));
+    } finally {
+      logsDownloading = false;
+    }
+  }
+
   // CSV export
   let csvExporting = $state<string | null>(null);
 
@@ -2996,19 +3020,33 @@
         <!-- Diagnostics bundle (Windows-friendly support tool) -->
         <div class="about-row" style="margin-top: 0.75rem">
           <span class="about-label">Diagnostics</span>
-          <button
-            class="scan-btn"
-            onclick={downloadDiagnostics}
-            disabled={diagDownloading}
-            title="Télécharge un ZIP avec logs + diagnostics + config (creds masqués) à envoyer au support"
-          >
-            {#if diagDownloading}
-              <div class="spinner small"></div>
-              Préparation…
-            {:else}
-              📦 Télécharger le diagnostic
-            {/if}
-          </button>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button
+              class="scan-btn"
+              onclick={downloadDiagnostics}
+              disabled={diagDownloading}
+              title="Télécharge un ZIP avec logs + diagnostics + config (creds masqués) à envoyer au support"
+            >
+              {#if diagDownloading}
+                <div class="spinner small"></div>
+                Préparation…
+              {:else}
+                Télécharger le diagnostic
+              {/if}
+            </button>
+            <button
+              class="scan-btn"
+              onclick={downloadLogs}
+              disabled={logsDownloading}
+              title="Télécharge les derniers logs du serveur"
+            >
+              {#if logsDownloading}
+                <div class="spinner small"></div>
+              {:else}
+                Télécharger les logs
+              {/if}
+            </button>
+          </div>
         </div>
 
         <!-- What's New -->
