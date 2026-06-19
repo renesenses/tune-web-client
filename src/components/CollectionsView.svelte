@@ -150,7 +150,7 @@
     </div>
   {:else}
     <div class="collections-header">
-      <h1>Collections</h1>
+      <h2>Collections</h2>
       <button class="create-btn" onclick={() => showCreate = !showCreate}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
         Nouvelle collection
@@ -224,7 +224,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding: var(--space-xl) 32px;
+    padding: var(--space-lg) 28px;
     overflow-y: auto;
     gap: var(--space-lg);
   }
@@ -235,10 +235,11 @@
     justify-content: space-between;
   }
 
-  .collections-header h1 {
-    font-family: var(--font-display);
-    font-size: 32px;
+  .collections-header h2 {
+    font-family: var(--font-label);
+    font-size: 28px;
     font-weight: 600;
+    letter-spacing: -0.8px;
     color: var(--tune-text);
   }
 
@@ -376,7 +377,7 @@
   }
 
   .collection-card:hover .delete-col-btn { opacity: 1; }
-  .delete-col-btn:hover { color: var(--tune-error); }
+  .delete-col-btn:hover { color: var(--tune-error, #ef4444); }
 
   /* Detail */
   .detail-header {
@@ -413,9 +414,10 @@
   }
 
   .collection-detail-header h2 {
-    font-family: var(--font-display);
+    font-family: var(--font-label);
     font-size: 28px;
     font-weight: 600;
+    letter-spacing: -0.8px;
     color: var(--tune-text);
   }
 

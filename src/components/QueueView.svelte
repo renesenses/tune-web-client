@@ -417,7 +417,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding: var(--space-lg) 24px;
+    padding: var(--space-lg) 28px;
   }
 
   .queue-header {

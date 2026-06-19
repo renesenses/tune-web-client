@@ -460,7 +460,7 @@
 
 <style>
   .radios-view {
-    padding: var(--space-lg);
+    padding: var(--space-lg) 28px;
     max-width: 900px;
   }
 
@@ -473,8 +473,9 @@
 
   .radios-header h2 {
     font-family: var(--font-label);
-    font-size: 24px;
-    font-weight: 700;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.8px;
     color: var(--tune-text);
   }
 

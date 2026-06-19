@@ -100,7 +100,7 @@
 
 <section class="sc-view">
   <header class="sc-header">
-    <h1>Smart Collections</h1>
+    <h2>Smart Collections</h2>
     <button class="new-btn" onclick={() => openEditor(null)}>+ Nouvelle Smart Collection</button>
   </header>
 
@@ -186,50 +186,50 @@
 </section>
 
 <style>
-  .sc-view { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
-  .sc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; }
-  .sc-header h1 { margin: 0; font-size: 1.5rem; color: var(--tune-text); }
-  .new-btn { padding: 0.5rem 1rem; background: var(--tune-accent, #6366f1); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+  .sc-view { padding: var(--space-lg) 28px; }
+  .sc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 19px; }
+  .sc-header h2 { margin: 0; font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; color: var(--tune-text); }
+  .new-btn { padding: 8px 16px; background: var(--tune-accent, #6366f1); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: 14px; }
   .new-btn:hover { filter: brightness(1.1); }
 
-  .state { padding: 3rem 2rem; text-align: center; color: var(--tune-text-muted); }
+  .state { padding: 48px 32px; text-align: center; color: var(--tune-text-muted); font-size: 14px; }
   .state.err { color: #dc2626; }
-  .cta-row { margin-top: 1rem; }
-  .cta { padding: 0.5rem 1.2rem; background: var(--tune-accent, #6366f1); color: white; border: none; border-radius: 8px; cursor: pointer; }
+  .cta-row { margin-top: 16px; }
+  .cta { padding: 8px 19px; background: var(--tune-accent, #6366f1); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-size: 14px; }
 
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.8rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 13px; }
   .card {
-    text-align: left; padding: 0.9rem 1rem; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.06);
+    text-align: left; padding: 14px 16px; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.06);
     border-left: 4px solid var(--tune-accent, #6366f1);
     border-top: none; border-right: none; border-bottom: none;
-    border-radius: 8px; cursor: pointer; transition: background 120ms ease;
+    border-radius: var(--radius-md); cursor: pointer; transition: background 120ms ease;
   }
   .card:hover { background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12); }
-  .card-head { display: flex; align-items: center; gap: 0.5rem; }
+  .card-head { display: flex; align-items: center; gap: 8px; }
   .card-color { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
-  .card-name { flex: 1; font-weight: 600; color: var(--tune-text); font-size: 0.95rem; }
-  .del { background: transparent; border: none; color: var(--tune-text-muted); font-size: 1.1rem; cursor: pointer; opacity: 0.5; }
+  .card-name { flex: 1; font-family: var(--font-label); font-weight: 600; color: var(--tune-text); font-size: 14px; }
+  .del { background: transparent; border: none; color: var(--tune-text-muted); font-size: 18px; cursor: pointer; opacity: 0.5; }
   .del:hover { opacity: 1; color: #dc2626; }
-  .card-rules { font-size: 0.78rem; color: var(--tune-text-muted); margin-top: 0.3rem; line-height: 1.4; }
-  .card-desc { font-size: 0.78rem; color: var(--tune-text-muted); margin-top: 0.3rem; font-style: italic; }
+  .card-rules { font-size: 12px; color: var(--tune-text-muted); margin-top: 5px; line-height: 1.4; }
+  .card-desc { font-size: 12px; color: var(--tune-text-muted); margin-top: 5px; font-style: italic; }
 
-  .detail-head { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
-  .detail-head h2 { flex: 1; margin: 0; font-size: 1.3rem; }
-  .back { background: transparent; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); color: var(--tune-text); padding: 0.35rem 0.8rem; border-radius: 6px; cursor: pointer; }
-  .edit-btn { background: var(--tune-accent, #6366f1); color: white; border: none; padding: 0.35rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
-  .detail-rules { color: var(--tune-text-muted); font-size: 0.85rem; margin-bottom: 1rem; }
-  .hint { margin-top: 0.5rem; font-size: 0.8rem; }
-  .hint code { background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12); padding: 0.1rem 0.4rem; border-radius: 4px; font-family: monospace; }
+  .detail-head { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  .detail-head h2 { flex: 1; margin: 0; font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; }
+  .back { background: transparent; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); color: var(--tune-text); padding: 6px 13px; border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; }
+  .edit-btn { background: var(--tune-accent, #6366f1); color: white; border: none; padding: 6px 13px; border-radius: var(--radius-sm); cursor: pointer; font-family: var(--font-label); font-size: 14px; }
+  .detail-rules { color: var(--tune-text-muted); font-size: 14px; margin-bottom: 16px; }
+  .hint { margin-top: 8px; font-size: 13px; }
+  .hint code { background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12); padding: 2px 6px; border-radius: var(--radius-sm); font-family: monospace; }
 
   .albums-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     grid-auto-rows: min-content;
-    gap: var(--space-lg, 1rem);
+    gap: var(--space-lg, 16px);
     align-items: start;
   }
   .album-card {
-    display: flex; flex-direction: column; gap: var(--space-xs, 0.25rem);
+    display: flex; flex-direction: column; gap: var(--space-xs, 4px);
     background: none; border: none; padding: 0; text-align: left; color: var(--tune-text);
     transition: transform 0.15s ease-out;
     cursor: pointer;
@@ -237,7 +237,7 @@
   .album-card:hover { transform: translateY(-2px); }
   .album-card-art {
     position: relative; width: 100%; aspect-ratio: 1;
-    border-radius: var(--radius-lg, 8px); overflow: hidden;
+    border-radius: var(--radius-lg); overflow: hidden;
     background: var(--tune-grey2, #2a2a2a);
     display: flex; align-items: center; justify-content: center;
   }
@@ -249,8 +249,8 @@
     width: 100%; height: 100%; object-fit: cover;
     display: block; position: relative; z-index: 1;
   }
-  .album-card-title { font-size: 0.85rem; font-weight: 600; color: var(--tune-text); }
-  .album-card-artist { font-size: 0.78rem; color: var(--tune-text-muted); }
-  .album-card-year { font-size: 0.72rem; color: var(--tune-text-muted); }
+  .album-card-title { font-size: 13px; font-weight: 600; color: var(--tune-text); }
+  .album-card-artist { font-size: 12px; color: var(--tune-text-muted); }
+  .album-card-year { font-size: 12px; color: var(--tune-text-muted); }
   .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>

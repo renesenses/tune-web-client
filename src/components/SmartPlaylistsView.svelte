@@ -379,7 +379,7 @@
 <style>
   .sp-view { padding: var(--space-lg) 28px; overflow-y: auto; height: 100%; }
   .sp-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-lg); }
-  .sp-list-header h2 { font-family: var(--font-display); font-size: 28px; font-weight: 600; color: var(--tune-text); margin: 0; }
+  .sp-list-header h2 { font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; color: var(--tune-text); margin: 0; }
   .create-btn { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-sm) var(--space-md); background: var(--tune-accent); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: 13px; font-weight: 600; transition: opacity 0.12s; }
   .create-btn:hover { opacity: 0.85; }
 
@@ -427,7 +427,7 @@
   .back-btn:hover { color: var(--tune-accent); }
   .sp-detail-header { display: flex; align-items: flex-start; gap: var(--space-lg); margin-bottom: var(--space-md); }
   .sp-icon { color: var(--tune-accent); padding: var(--space-md); background: var(--tune-surface); border-radius: var(--radius-lg); }
-  .sp-detail-info h2 { font-family: var(--font-display); font-size: 24px; font-weight: 600; color: var(--tune-text); margin: 0; }
+  .sp-detail-info h2 { font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; color: var(--tune-text); margin: 0; }
   .sp-desc { font-family: var(--font-body); font-size: 13px; color: var(--tune-text-secondary); margin: 2px 0; }
   .sp-meta { font-family: var(--font-body); font-size: 12px; color: var(--tune-text-muted); margin: 0; }
   .sp-rules-display { display: flex; flex-wrap: wrap; gap: 4px; margin-top: var(--space-xs); }
@@ -446,7 +446,7 @@
   .sp-track-art { flex-shrink: 0; }
   .sp-track-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
   .sp-track-title { font-family: var(--font-body); font-size: 14px; font-weight: 600; color: var(--tune-text); }
-  .sp-track-artist { font-family: var(--font-body); font-size: 12px; color: var(--tune-text-secondary); }
+  .sp-track-artist { font-family: var(--font-body); font-size: 13px; color: var(--tune-text-secondary); }
   .sp-track-duration { font-family: var(--font-label); font-size: 12px; color: var(--tune-text-muted); }
   .audio-format { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 8px; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.1); color: var(--tune-accent); }
   .loading { display: flex; justify-content: center; padding: var(--space-xl); }
