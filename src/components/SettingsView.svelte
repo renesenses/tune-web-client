@@ -17,6 +17,7 @@
 
   const CLIENT_VERSION = __APP_VERSION__;
   let serverVersion = $state<string | null>(null);
+  let settingsTab = $state<string>('general');
 
   let health: SystemHealth | null = $state(null);
   let stats: SystemStats | null = $state(null);
@@ -1467,6 +1468,40 @@
 <div class="settings-view">
   <h2>{$t('settings.title')}</h2>
 
+  <div class="settings-tabs">
+    <button class="settings-tab" class:active={settingsTab === 'general'} onclick={() => settingsTab = 'general'}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="14" y2="12" /><line x1="4" y1="18" x2="18" y2="18" />
+        <circle cx="19" cy="6" r="3" /><circle cx="19" cy="12" r="3" />
+      </svg>
+      Général
+    </button>
+    <button class="settings-tab" class:active={settingsTab === 'library'} onclick={() => settingsTab = 'library'}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+      </svg>
+      Bibliothèque
+    </button>
+    <button class="settings-tab" class:active={settingsTab === 'services'} onclick={() => settingsTab = 'services'}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg>
+      Services
+    </button>
+    <button class="settings-tab" class:active={settingsTab === 'network'} onclick={() => settingsTab = 'network'}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <path d="M5 12.55a11 11 0 0 1 14.08 0" /><path d="M1.42 9a16 16 0 0 1 21.16 0" /><path d="M8.53 16.11a6 6 0 0 1 6.95 0" /><line x1="12" y1="20" x2="12.01" y2="20" />
+      </svg>
+      Réseau &amp; Audio
+    </button>
+    <button class="settings-tab" class:active={settingsTab === 'system'} onclick={() => settingsTab = 'system'}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+      </svg>
+      Système
+    </button>
+  </div>
+
   {#if loading}
     <div class="loading">
       <div class="spinner"></div>
@@ -1476,6 +1511,7 @@
     <!-- v0.8.0 Multi-room: inter-techno calibration sliders -->
     <MultiroomSettings />
 
+    {#if settingsTab === 'network'}
     <!-- Audio diagnostic -->
     <section class="settings-section audio-diagnostic">
       <h3>Diagnostic audio</h3>
@@ -1506,7 +1542,9 @@
         </p>
       {/if}
     </section>
+    {/if}
 
+    {#if settingsTab === 'system'}
     <!-- Server health -->
     <section class="settings-section">
       <h3>{$t('settings.serverHealth')}</h3>
@@ -1546,7 +1584,9 @@
         </button>
       </div>
     </section>
+    {/if}
 
+    {#if settingsTab === 'network'}
     <!-- Tune Peers on the network -->
     <section class="settings-section">
       <h3>Serveurs Tune sur le réseau</h3>
@@ -1579,7 +1619,9 @@
         Actualiser
       </button>
     </section>
+    {/if}
 
+    {#if settingsTab === 'general'}
     <!-- Playback / Crossfade -->
     <section class="settings-section">
       <h3>Lecture</h3>
@@ -1608,7 +1650,9 @@
         </div>
       {/if}
     </section>
+    {/if}
 
+    {#if settingsTab === 'library'}
     <!-- Library stats -->
     <section class="settings-section">
       <h3>{$t('settings.library')}</h3>
@@ -1728,7 +1772,9 @@
         </div>
       {/if}
     </section>
+    {/if}
 
+    {#if settingsTab === 'system'}
     <!-- Database -->
     {#if config}
     <section class="settings-section">
@@ -2030,7 +2076,9 @@
         </div>
       {/if}
     </section>
+    {/if}
 
+    {#if settingsTab === 'library'}
     <!-- Music locations -->
     <section class="settings-section">
       <h3>{$t('settings.musicDirs')}</h3>
@@ -2123,7 +2171,9 @@
         </div>
       {/if}
     </section>
+    {/if}
 
+    {#if settingsTab === 'network'}
     <!-- Network Devices (DLNA / AirPlay) -->
     <section class="settings-section">
       <h3>{$t('settings.networkDevices')}</h3>
@@ -2215,7 +2265,9 @@
         {/if}
       </div>
     </section>
+    {/if}
 
+    {#if settingsTab === 'library'}
     <!-- Metadata -->
     {#if config}
     <section class="settings-section">
@@ -2255,7 +2307,9 @@
       </div>
     </section>
     {/if}
+    {/if}
 
+    {#if settingsTab === 'general'}
     <!-- Preferences -->
     <section class="settings-section">
       <h3>{$t('settings.interface')}</h3>
@@ -2343,7 +2397,9 @@
         {/each}
       </div>
     </section>
+    {/if}
 
+    {#if settingsTab === 'services'}
     <!-- Streaming services -->
     <section class="settings-section">
       <h3>{$t('settings.streaming')}</h3>
@@ -2753,7 +2809,9 @@
         {/if}
       </section>
     {/if}
+    {/if}
 
+    {#if settingsTab === 'general'}
     <!-- Streaming Quality -->
     <section class="settings-section">
       <h3>{$t('settings.streamingQuality' as any)}</h3>
@@ -2769,7 +2827,9 @@
         </select>
       </div>
     </section>
+    {/if}
 
+    {#if settingsTab === 'system'}
     <!-- Config Export/Import -->
     <section class="settings-section">
       <h3>{$t('settings.configSection' as any)}</h3>
@@ -2799,7 +2859,9 @@
         />
       </div>
     </section>
+    {/if}
 
+    {#if settingsTab === 'library'}
     <!-- MusicBrainz Batch Enrichment -->
     <section class="settings-section">
       <h3>MusicBrainz</h3>
@@ -2825,7 +2887,9 @@
         </div>
       {/if}
     </section>
+    {/if}
 
+    {#if settingsTab === 'system'}
     <!-- Push Notifications -->
     <section class="settings-section">
       <h3>{$t('settings.pushNotifications' as any)}</h3>
@@ -2871,7 +2935,9 @@
         </button>
       </div>
     </section>
+    {/if}
 
+    {#if settingsTab === 'library'}
     <!-- Metadata Fields Configuration -->
     <section class="settings-section">
       <h3>Metadonnees</h3>
@@ -2922,7 +2988,9 @@
         </div>
       {/if}
     </section>
+    {/if}
 
+    {#if settingsTab === 'system'}
     <!-- Cloud / mozaiklabs.fr -->
     <section class="settings-section">
       <h3>Cloud</h3>
@@ -3123,6 +3191,7 @@
         </div>
       </div>
     </section>
+    {/if}
   {/if}
 </div>
 
@@ -3161,6 +3230,42 @@
     font-size: 28px;
     font-weight: 600;
     letter-spacing: -0.8px;
+  }
+
+  /* Tab pills */
+  .settings-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+
+  .settings-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-label);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    background: transparent;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease-out;
+    letter-spacing: 0.2px;
+  }
+
+  .settings-tab:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-text);
+  }
+
+  .settings-tab.active {
+    background: var(--tune-accent);
+    border-color: var(--tune-accent);
+    color: white;
   }
 
   .settings-section {
