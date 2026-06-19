@@ -27,19 +27,22 @@
   let dbStatus = $state<any>(null);
 
   // Server diagnostics dashboard
+  // Field names match the actual server JSON response from /system/diagnostics.
   let serverDiag = $state<{
-    version: string;
+    server_version: string;
     uptime_seconds: number;
-    zones_count: number;
+    active_zones: number;
     tracks_count: number;
-    albums_count: number;
-    artists_count: number;
-    radios_count: number;
-    active_services: string[];
-    ws_connections: number;
-    last_scan_at: string | null;
-    last_scan_duration_seconds: number | null;
-    memory_mb: number | null;
+    albums_count: number | null;
+    artists_count: number | null;
+    connectors: string[];
+    memory_rss_mb: number | null;
+    scan_status: {
+      status: string;
+      tracks: number;
+      albums: number;
+      last_result: Record<string, unknown> | null;
+    } | null;
   } | null>(null);
 
   async function fetchServerVersion() {
@@ -434,21 +437,23 @@
       <h3>{$t('diagnostics.serverDashboard' as any)}</h3>
       <div class="stats-grid server-dashboard-grid">
         <div class="stat-card">
-          <span class="stat-value mono">{serverDiag.version}</span>
+          <span class="stat-value mono">{serverDiag.server_version ?? '...'}</span>
           <span class="stat-label">{$t('diagnostics.serverVersion')}</span>
         </div>
         <div class="stat-card">
-          <span class="stat-value">{formatUptimeStr(serverDiag.uptime_seconds)}</span>
+          <span class="stat-value">{serverDiag.uptime_seconds != null ? formatUptimeStr(serverDiag.uptime_seconds) : '...'}</span>
           <span class="stat-label">{$t('diagnostics.uptime' as any)}</span>
         </div>
         <div class="stat-card">
-          <span class="stat-value">{serverDiag.zones_count}</span>
+          <span class="stat-value">{serverDiag.active_zones ?? 0}</span>
           <span class="stat-label">Zones</span>
         </div>
+        {#if serverDiag.tracks_count != null}
         <div class="stat-card">
           <span class="stat-value">{serverDiag.tracks_count.toLocaleString()}</span>
           <span class="stat-label">{$t('diagnostics.tracks')}</span>
         </div>
+        {/if}
         {#if serverDiag.albums_count != null}
         <div class="stat-card">
           <span class="stat-value">{serverDiag.albums_count.toLocaleString()}</span>
@@ -461,41 +466,23 @@
           <span class="stat-label">Artistes</span>
         </div>
         {/if}
-        {#if serverDiag.radios_count != null}
+        {#if serverDiag.connectors != null}
         <div class="stat-card">
-          <span class="stat-value">{serverDiag.radios_count}</span>
-          <span class="stat-label">Radios</span>
-        </div>
-        {/if}
-        <div class="stat-card">
-          <span class="stat-value">{serverDiag.active_services.length}</span>
+          <span class="stat-value">{serverDiag.connectors.length}</span>
           <span class="stat-label">{$t('diagnostics.activeServices' as any)}</span>
         </div>
-        <div class="stat-card">
-          <span class="stat-value">{serverDiag.ws_connections}</span>
-          <span class="stat-label">{$t('diagnostics.wsConnections' as any)}</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-value">{serverDiag.last_scan_at ? formatRelativeDate(serverDiag.last_scan_at) : $t('diagnostics.neverScanned' as any)}</span>
-          <span class="stat-label">{$t('diagnostics.lastScan' as any)}</span>
-        </div>
-        {#if serverDiag.last_scan_duration_seconds != null}
-        <div class="stat-card">
-          <span class="stat-value">{formatDuration(serverDiag.last_scan_duration_seconds)}</span>
-          <span class="stat-label">{$t('diagnostics.scanDuration' as any)}</span>
-        </div>
         {/if}
-        {#if serverDiag.memory_mb != null}
+        {#if serverDiag.memory_rss_mb != null}
         <div class="stat-card">
-          <span class="stat-value">{serverDiag.memory_mb} MB</span>
+          <span class="stat-value">{serverDiag.memory_rss_mb} MB</span>
           <span class="stat-label">{$t('diagnostics.memoryUsage' as any)}</span>
         </div>
         {/if}
       </div>
-      {#if serverDiag.active_services.length > 0}
+      {#if serverDiag.connectors != null && serverDiag.connectors.length > 0}
         <div class="dashboard-services">
           <span class="dashboard-services-label">{$t('diagnostics.activeServices' as any)} :</span>
-          {#each serverDiag.active_services as svc}
+          {#each serverDiag.connectors as svc}
             <span class="dashboard-service-badge">{streamingLabel(svc)}</span>
           {/each}
         </div>

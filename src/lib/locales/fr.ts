@@ -152,6 +152,10 @@ export default {
   'home.noData': 'Pas encore de données d\'écoute',
   'home.noHistory': 'Aucun historique de lecture',
   'home.noAlbums': 'Aucun album',
+  'home.emptyState.hint': 'Commencez à écouter pour voir vos statistiques ici',
+  'home.emptyState.browseLibrary': 'Parcourir la bibliothèque',
+  'home.emptyState.discoverRadios': 'Découvrir les radios',
+  'home.emptyState.libraryStats': 'Votre bibliothèque',
 
   // History
   'history.title': 'Historique',
@@ -527,7 +531,7 @@ export default {
   // Diagnostics
   'nav.zonemanager': 'Zones',
   'nav.alarms': 'Réveils',
-  'nav.diagnostics': 'Diagnostics',
+  'nav.diagnostics': 'Diagnostiques et logs',
   'nav.admin': 'Tableau de bord',
   'diagnostics.title': 'Diagnostics',
   'diagnostics.serverInfo': 'Serveur',

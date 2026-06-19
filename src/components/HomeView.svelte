@@ -4,6 +4,7 @@
   import { libraryTab, selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryLoading } from '../lib/stores/library';
   import { playbackHistory } from '../lib/stores/history';
   import { currentZone, currentZoneId, zones, playAndSync } from '../lib/stores/zones';
+  import { activeStreamingService, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { get } from 'svelte/store';
   import { formatNumber } from '../lib/utils';
   import { t } from '../lib/i18n';
@@ -11,6 +12,12 @@
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import type { Album, Track, Source, TopTrack, TopArtist } from '../lib/types';
+
+  let activeStreamingServices = $derived(
+    Object.entries($streamingServicesStore)
+      .filter(([, s]) => s.enabled && s.authenticated)
+      .map(([name]) => name)
+  );
 
   let zone = $derived($currentZone);
   let currentTrack = $derived(zone?.current_track);
@@ -625,7 +632,37 @@
           </button>
         </div>
       {:else}
-        <p class="empty-recent">{$t('home.noHistory')}</p>
+        <div class="empty-state-card">
+          <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+            <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+          </svg>
+          <p class="empty-state-hint">{$t('home.emptyState.hint')}</p>
+          <div class="empty-state-links">
+            <button class="empty-state-btn" onclick={() => goToLibrary('albums')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              {$t('home.emptyState.browseLibrary')}
+            </button>
+            <button class="empty-state-btn" onclick={() => activeView.set('radios')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5"/></svg>
+              {$t('home.emptyState.discoverRadios')}
+            </button>
+            {#each activeStreamingServices as svc}
+              <button class="empty-state-btn" onclick={() => { activeStreamingService.set(svc); activeView.set('streaming'); }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                Explorer {svc.charAt(0).toUpperCase() + svc.slice(1)}
+              </button>
+            {/each}
+          </div>
+          {#if stats}
+            <div class="empty-state-stats">
+              <span class="empty-stat"><strong>{formatNumber(stats.albums)}</strong> {$t('common.albums')}</span>
+              <span class="empty-stat-sep">·</span>
+              <span class="empty-stat"><strong>{formatNumber(stats.artists)}</strong> {$t('common.artists')}</span>
+              <span class="empty-stat-sep">·</span>
+              <span class="empty-stat"><strong>{formatNumber(stats.tracks)}</strong> {$t('home.tracks').toLowerCase()}</span>
+            </div>
+          {/if}
+        </div>
       {/if}
 
     {:else}
@@ -766,6 +803,33 @@
             {/if}
           </button>
         {/each}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Listening Dashboard empty state: show library stats + quick links when no history -->
+  {#if dashboardLoaded && !dashboard && stats}
+    <div class="top-section">
+      <h2 class="section-title">Statistiques</h2>
+      <div class="dash-empty-state">
+        <p class="dash-empty-hint">{$t('home.emptyState.hint')}</p>
+        <div class="dash-empty-library">
+          <span class="dash-empty-label">{$t('home.emptyState.libraryStats')}</span>
+          <div class="dash-empty-stats">
+            <button class="dash-big-stat clickable" onclick={() => goToLibrary('albums')}>
+              <span class="dash-big-number">{formatNumber(stats.albums)}</span>
+              <span class="dash-big-label">{$t('common.albums')}</span>
+            </button>
+            <button class="dash-big-stat clickable" onclick={() => goToLibrary('artists')}>
+              <span class="dash-big-number">{formatNumber(stats.artists)}</span>
+              <span class="dash-big-label">{$t('common.artists')}</span>
+            </button>
+            <button class="dash-big-stat clickable" onclick={() => goToLibrary('tracks')}>
+              <span class="dash-big-number">{formatNumber(stats.tracks)}</span>
+              <span class="dash-big-label">{$t('home.tracks').toLowerCase()}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   {/if}
@@ -1619,5 +1683,113 @@
 
   .nl-playing-indicator {
     flex-shrink: 0;
+  }
+
+  /* Empty state card (no listening history) */
+  .empty-state-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-xl) var(--space-lg);
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    color: var(--tune-text-secondary);
+  }
+
+  .empty-state-icon {
+    opacity: 0.3;
+    color: var(--tune-text-muted);
+  }
+
+  .empty-state-hint {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text-secondary);
+    margin: 0;
+  }
+
+  .empty-state-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    justify-content: center;
+  }
+
+  .empty-state-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-lg);
+    color: var(--tune-text-secondary);
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.12s ease-out;
+  }
+
+  .empty-state-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+    transform: translateY(-1px);
+  }
+
+  .empty-state-stats {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    margin-top: var(--space-sm);
+  }
+
+  .empty-stat strong {
+    color: var(--tune-text);
+    font-weight: 600;
+  }
+
+  .empty-stat-sep {
+    opacity: 0.4;
+  }
+
+  /* Dashboard empty state */
+  .dash-empty-state {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+  }
+
+  .dash-empty-hint {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text-muted);
+    margin: 0;
+  }
+
+  .dash-empty-library {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .dash-empty-label {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--tune-text-muted);
+  }
+
+  .dash-empty-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
   }
 </style>

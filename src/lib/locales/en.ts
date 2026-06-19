@@ -152,6 +152,10 @@ export default {
   'home.noData': 'No listening data yet',
   'home.noHistory': 'No playback history',
   'home.noAlbums': 'No albums',
+  'home.emptyState.hint': 'Start listening to see your stats here',
+  'home.emptyState.browseLibrary': 'Browse the library',
+  'home.emptyState.discoverRadios': 'Discover radios',
+  'home.emptyState.libraryStats': 'Your library',
 
   // History
   'history.title': 'History',

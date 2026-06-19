@@ -67,6 +67,15 @@
 
   $effect(() => {
     const s = service;
+    // Reset all navigation state on service change to prevent UI freeze
+    selectedAlbum = null;
+    selectedArtist = null;
+    selectedStreamingPlaylist = null;
+    albumTracks = [];
+    artistAlbums = [];
+    playlistTracks = [];
+    results = null;
+    searchQuery = '';
     if (s) {
       loadFeatured(s);
       loadUserPlaylists(s);

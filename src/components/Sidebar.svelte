@@ -3,7 +3,7 @@
   import { zones, currentZoneId } from '../lib/stores/zones';
   import { devices, unboundDevices } from '../lib/stores/devices';
   import { connectionState, reconnectAttempts } from '../lib/stores/connection';
-  import { activeView, type View } from '../lib/stores/navigation';
+  import { activeView, settingsInitialTab, type View } from '../lib/stores/navigation';
   import { resetLibraryNavigation } from '../lib/stores/library';
   import { activeStreamingService, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { preferences } from '../lib/stores/preferences';
@@ -310,6 +310,11 @@
   function navigate(view: View) {
     if (view === 'library') resetLibraryNavigation();
     activeView.set(view);
+  }
+
+  function navigateToSettingsTab(tab: string) {
+    settingsInitialTab.set(tab);
+    activeView.set('settings');
   }
 
   function stateIcon(state: string): string {
@@ -662,9 +667,9 @@
         {$t('nav.maintenance')}
         <span class="badge-new">POC</span>
       </button>
-      <button class="nav-item" class:active={$activeView === 'services'} onclick={() => navigate('services')}>
+      <button class="nav-item" class:active={$activeView === 'settings' && false} onclick={() => navigateToSettingsTab('services')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Services & Tokens
+        Services connectés
       </button>
       <button class="nav-item" class:active={$activeView === 'genretree'} onclick={() => navigate('genretree')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6"/><circle cx="12" cy="10" r="2"/><path d="M12 12v3"/><path d="M5 17a3 3 0 1 0 6 0 3 3 0 0 0-6 0zm8 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0z"/><path d="M8 14h8"/><path d="M8 14v3"/><path d="M16 14v3"/></svg>

@@ -114,6 +114,19 @@
   let writingAlbumTags = $state(false);
   let writeTagsMessage = $state<string | null>(null);
 
+  // Track context menu ("...")
+  let trackMenuOpenId = $state<number | null>(null);
+
+  function openTrackMenu(e: MouseEvent, trackId: number | null | undefined) {
+    e.stopPropagation();
+    if (!trackId) return;
+    trackMenuOpenId = trackMenuOpenId === trackId ? null : trackId;
+  }
+
+  function closeTrackMenu() {
+    trackMenuOpenId = null;
+  }
+
   // Artist metadata
   let artistMetadata = $state<ArtistMetadata | null>(null);
   let artistMetadataLoading = $state(false);
@@ -1411,7 +1424,10 @@
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div class="track-item" onclick={() => t.id && playTrack(t.id)}>
-                <span class="track-num">{t.track_number ?? index + 1}</span>
+                <span class="track-num">
+                  <span class="num-text">{t.track_number ?? index + 1}</span>
+                  <span class="num-play">&#9654;</span>
+                </span>
                 <div class="track-info">
                   <span class="track-title truncate">{t.title}</span>
                   {#if t.artist_name}
@@ -1442,6 +1458,37 @@
                 <button class="edit-track-btn" onclick={(e) => { e.stopPropagation(); openTrackEdit(e, t); }} title={$tr('metadata.editTrack')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                 </button>
+                <!-- Track context menu -->
+                <div class="track-more-wrap">
+                  <button class="track-more-btn" onclick={(e) => openTrackMenu(e, t.id)} title="Plus d'options">···</button>
+                  {#if trackMenuOpenId === t.id}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div class="track-menu-backdrop" onclick={closeTrackMenu}></div>
+                    <div class="track-menu">
+                      <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); t.id && playTrack(t.id); }}>
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
+                        Lire
+                      </button>
+                      <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); addTrackToQueue(t); }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                        Ajouter à la file
+                      </button>
+                      {#if onAddToPlaylist}
+                        <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); onAddToPlaylist!(t); }}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><line x1="16" y1="3" x2="16" y2="11"/><line x1="12" y1="7" x2="20" y2="7"/></svg>
+                          Ajouter à une playlist
+                        </button>
+                      {/if}
+                      {#if t.artist_name}
+                        <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); const a = $artists.find(ar => ar.name === t.artist_name); if (a) selectArtistDetail(a); }}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                          Aller à l'artiste
+                        </button>
+                      {/if}
+                    </div>
+                  {/if}
+                </div>
               </div>
               {#if expandedTrackCredits === t.id}
                 <div class="track-credits-row">
@@ -1474,7 +1521,10 @@
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="track-item" onclick={() => t.id && playTrack(t.id)}>
-              <span class="track-num">{t.track_number ?? index + 1}</span>
+              <span class="track-num">
+                <span class="num-text">{t.track_number ?? index + 1}</span>
+                <span class="num-play">&#9654;</span>
+              </span>
               <div class="track-info" title={t.file_path ?? ''}>
                 <span class="track-title truncate">{t.title}</span>
                 {#if t.artist_name}
@@ -1505,6 +1555,41 @@
               <button class="edit-track-btn" onclick={(e) => { e.stopPropagation(); openTrackEdit(e, t); }} title={$tr('metadata.editTrack')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
               </button>
+              <!-- Track context menu -->
+              <div class="track-more-wrap">
+                <button class="track-more-btn" onclick={(e) => openTrackMenu(e, t.id)} title="Plus d'options">···</button>
+                {#if trackMenuOpenId === t.id}
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div class="track-menu-backdrop" onclick={closeTrackMenu}></div>
+                  <div class="track-menu">
+                    <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); t.id && playTrack(t.id); }}>
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
+                      Lire
+                    </button>
+                    <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); addTrackToQueue(t); }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                      Ajouter à la file
+                    </button>
+                    {#if onAddToPlaylist}
+                      <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); onAddToPlaylist!(t); }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><line x1="16" y1="3" x2="16" y2="11"/><line x1="12" y1="7" x2="20" y2="7"/></svg>
+                        Ajouter à une playlist
+                      </button>
+                    {/if}
+                    {#if t.artist_name}
+                      <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); const a = $artists.find(ar => ar.name === t.artist_name); if (a) selectArtistDetail(a); }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Aller à l'artiste
+                      </button>
+                    {/if}
+                    <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); selectAlbumDetail($selectedAlbum!); }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h4"/></svg>
+                      Aller à l'album
+                    </button>
+                  </div>
+                {/if}
+              </div>
             </div>
             {#if expandedTrackCredits === t.id}
               <div class="track-credits-row">
@@ -3340,6 +3425,10 @@
     font-size: 13px;
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .track-info {
@@ -4314,5 +4403,100 @@
     font-family: var(--font-body);
     font-size: 13px;
     color: var(--tune-text-muted);
+  }
+
+  /* Hover play icon on track number */
+  .track-num .num-play {
+    display: none;
+    color: var(--tune-accent);
+    font-size: 11px;
+  }
+
+  .track-item:hover .num-text {
+    display: none;
+  }
+
+  .track-item:hover .num-play {
+    display: inline;
+  }
+
+  /* Track context menu ("...") */
+  .track-more-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .track-more-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease-out;
+    opacity: 0;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .track-item:hover .track-more-btn {
+    opacity: 1;
+  }
+
+  .track-more-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .track-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+  }
+
+  .track-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: 10px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    z-index: 100;
+    box-shadow: var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.4));
+    min-width: 190px;
+    white-space: nowrap;
+  }
+
+  .track-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    padding: 7px 12px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.1s;
+    text-align: left;
+    width: 100%;
+  }
+
+  .track-menu-item:hover {
+    background: var(--tune-surface-hover);
+    color: var(--tune-text);
   }
 </style>

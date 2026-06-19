@@ -10,14 +10,17 @@
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry, BackupInfo } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
-  import { activeView } from '../lib/stores/navigation';
+  import { activeView, settingsInitialTab } from '../lib/stores/navigation';
   import SmbWizard from './SmbWizard.svelte';
   import FolderWizard from './FolderWizard.svelte';
   import MultiroomSettings from './MultiroomSettings.svelte';
 
   const CLIENT_VERSION = __APP_VERSION__;
   let serverVersion = $state<string | null>(null);
-  let settingsTab = $state<string>('general');
+  // Consume settingsInitialTab once: allows sidebar shortcuts to open a specific tab
+  const _initialTab = get(settingsInitialTab);
+  settingsInitialTab.set(null);
+  let settingsTab = $state<string>(_initialTab ?? 'general');
 
   let health: SystemHealth | null = $state(null);
   let stats: SystemStats | null = $state(null);

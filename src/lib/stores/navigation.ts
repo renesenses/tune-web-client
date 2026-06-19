@@ -2,6 +2,8 @@ import { writable, get } from 'svelte/store';
 
 export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'playlistmanager' | 'playlistshub' | 'smartplaylists' | 'smart-ai' | 'browse' | 'search' | 'settings' | 'history' | 'streaming' | 'metadata' | 'radios' | 'radiofavorites' | 'genres' | 'mediaservers' | 'favorites' | 'podcasts' | 'zonemanager' | 'diagnostics' | 'dj' | 'party' | 'collections' | 'smartcollections' | 'dashboard' | 'services' | 'genretree' | 'equalizer' | 'plugins' | 'admin' | 'onboarding' | 'offline' | 'alarms' | 'login' | 'bridge';
 export const activeView = writable<View>('home');
+// Optional tab to open when navigating to settings (consumed once by SettingsView)
+export const settingsInitialTab = writable<string | null>(null);
 export const mobileNowPlayingOpen = writable(false);
 export const pendingSearchQuery = writable<string>('');
 

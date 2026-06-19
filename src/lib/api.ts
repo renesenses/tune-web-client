@@ -2226,15 +2226,25 @@ export function setScanSchedule(time: string, enabled: boolean) {
 
 export function getServerDiagnostics() {
   return fetchJSON<{
-    version: string;
+    // Server uses "server_version" — client normalises via DiagnosticsView
+    server_version: string;
     uptime_seconds: number;
-    zones_count: number;
+    // Server uses "active_zones" for the zone count
+    active_zones: number;
     tracks_count: number;
-    active_services: string[];
-    ws_connections: number;
-    last_scan_at: string | null;
-    last_scan_duration_seconds: number | null;
-    memory_mb: number | null;
+    albums_count: number;
+    artists_count: number;
+    // Server uses "connectors" for the list of active streaming service names
+    connectors: string[];
+    // Memory: server uses "memory_rss_mb"
+    memory_rss_mb: number | null;
+    // Scan info embedded under scan_status.*
+    scan_status: {
+      status: string;
+      tracks: number;
+      albums: number;
+      last_result: Record<string, unknown> | null;
+    } | null;
   }>(`${BASE}/system/diagnostics`);
 }
 
