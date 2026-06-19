@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { currentZoneId } from '../lib/stores/zones';
+  import { currentZoneId, currentZone } from '../lib/stores/zones';
+  import { isBrowserZone, browserPlay } from '../lib/stores/browserAudio';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import { tuneWS } from '../lib/websocket';
@@ -158,7 +159,10 @@
   async function playRadio(radio: RadioStation) {
     if (!radio.id || !$currentZoneId) return;
     try {
-      await api.playRadio(radio.id, $currentZoneId);
+      const result = await api.playRadio(radio.id, $currentZoneId);
+      if (isBrowserZone($currentZone) && result?.stream_url) {
+        browserPlay(result.stream_url);
+      }
     } catch (e) {
       console.error('Play radio error:', e);
     }
