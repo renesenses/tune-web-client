@@ -8,6 +8,10 @@
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './AlbumArt.svelte';
+  import SmartPlaylistsView from './SmartPlaylistsView.svelte';
+  import PlaylistsHub from './PlaylistsHub.svelte';
+
+  let viewTab = $state<'manual' | 'smart' | 'hub'>('manual');
 
   async function handleSharePlaylist(playlistId: number) {
     try {
@@ -1040,6 +1044,23 @@
   }
 </script>
 
+<div class="view-tabs">
+  <button class="view-tab" class:active={viewTab === 'manual'} onclick={() => viewTab = 'manual'}>
+    Playlists
+  </button>
+  <button class="view-tab" class:active={viewTab === 'smart'} onclick={() => viewTab = 'smart'}>
+    Smart Playlists
+  </button>
+  <button class="view-tab" class:active={viewTab === 'hub'} onclick={() => viewTab = 'hub'}>
+    Playlists Hub
+  </button>
+</div>
+
+{#if viewTab === 'smart'}
+  <SmartPlaylistsView />
+{:else if viewTab === 'hub'}
+  <PlaylistsHub />
+{:else}
 <div class="pm-view">
   {#if selectedPlaylist || selectedStreamingPl}
     <!-- Detail View -->
@@ -2021,8 +2042,34 @@
     </div>
   </div>
 {/if}
+{/if}
 
 <style>
+  .view-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--tune-border, rgba(255,255,255,0.1));
+    margin-bottom: 0;
+    padding: 0 1rem;
+  }
+  .view-tab {
+    background: none;
+    border: none;
+    color: var(--tune-text-secondary, #999);
+    padding: 0.75rem 1.25rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .view-tab:hover {
+    color: var(--tune-text, #fff);
+  }
+  .view-tab.active {
+    color: var(--tune-accent, #f5a623);
+    border-bottom-color: var(--tune-accent, #f5a623);
+  }
+
   .pm-view {
     height: 100%;
     display: flex;

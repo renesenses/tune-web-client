@@ -5,6 +5,9 @@
   import { activeView } from '../lib/stores/navigation';
   import AlbumArt from './AlbumArt.svelte';
   import type { Album } from '../lib/types';
+  import SmartCollectionsView from './SmartCollectionsView.svelte';
+
+  let viewTab = $state<'manual' | 'smart'>('manual');
 
   let collections: any[] = $state([]);
   let loading = $state(true);
@@ -93,6 +96,18 @@
   });
 </script>
 
+<div class="view-tabs">
+  <button class="view-tab" class:active={viewTab === 'manual'} onclick={() => viewTab = 'manual'}>
+    Collections
+  </button>
+  <button class="view-tab" class:active={viewTab === 'smart'} onclick={() => viewTab = 'smart'}>
+    Smart Collections
+  </button>
+</div>
+
+{#if viewTab === 'smart'}
+  <SmartCollectionsView />
+{:else}
 <div class="collections-view">
   {#if selectedCollection}
     <div class="detail-header">
@@ -177,8 +192,34 @@
     {/if}
   {/if}
 </div>
+{/if}
 
 <style>
+  .view-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--tune-border, rgba(255,255,255,0.1));
+    margin-bottom: 0;
+    padding: 0 1rem;
+  }
+  .view-tab {
+    background: none;
+    border: none;
+    color: var(--tune-text-secondary, #999);
+    padding: 0.75rem 1.25rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .view-tab:hover {
+    color: var(--tune-text, #fff);
+  }
+  .view-tab.active {
+    color: var(--tune-accent, #f5a623);
+    border-bottom-color: var(--tune-accent, #f5a623);
+  }
+
   .collections-view {
     height: 100%;
     display: flex;
