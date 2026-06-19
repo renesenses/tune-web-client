@@ -9,9 +9,10 @@
   import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './AlbumArt.svelte';
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
+  import SmartAIView from './SmartAIView.svelte';
   import PlaylistsHub from './PlaylistsHub.svelte';
 
-  let viewTab = $state<'manual' | 'smart' | 'hub'>('manual');
+  let viewTab = $state<'manual' | 'smart' | 'smart-ai' | 'hub'>('manual');
 
   async function handleSharePlaylist(playlistId: number) {
     try {
@@ -141,7 +142,7 @@
   }
 
   // --- NEW: Playlist Manager v2 tabs ---
-  let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup' | 'collab'>('playlists');
+  let managerTab = $state<'playlists' | 'transfers' | 'smart-ai' | 'sync' | 'backup' | 'collab'>('playlists');
 
   // Transfer history
   let transferHistory = $state<any[]>([]);
@@ -1051,6 +1052,9 @@
   <button class="view-tab" class:active={viewTab === 'smart'} onclick={() => viewTab = 'smart'}>
     Smart Playlists
   </button>
+  <button class="view-tab" class:active={viewTab === 'smart-ai'} onclick={() => viewTab = 'smart-ai'}>
+    Smart AI
+  </button>
   <button class="view-tab" class:active={viewTab === 'hub'} onclick={() => viewTab = 'hub'}>
     Playlists Hub
   </button>
@@ -1058,6 +1062,8 @@
 
 {#if viewTab === 'smart'}
   <SmartPlaylistsView />
+{:else if viewTab === 'smart-ai'}
+  <SmartAIView />
 {:else if viewTab === 'hub'}
   <PlaylistsHub />
 {:else}
@@ -1156,6 +1162,7 @@
       <div class="pm-tabs">
         <button class="pm-tab" class:active={managerTab === 'playlists'} onclick={() => managerTab = 'playlists'}>Playlists</button>
         <button class="pm-tab" class:active={managerTab === 'transfers'} onclick={() => { managerTab = 'transfers'; loadManagerData(); }}>Transferts</button>
+        <button class="pm-tab" class:active={managerTab === 'smart-ai'} onclick={() => managerTab = 'smart-ai'}>Smart AI</button>
         <button class="pm-tab" class:active={managerTab === 'sync'} onclick={() => { managerTab = 'sync'; loadManagerData(); }}>Sync</button>
         <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>Backup</button>
         <button class="pm-tab" class:active={managerTab === 'collab'} onclick={() => { managerTab = 'collab'; loadManagerData(); }}>Collaboratives</button>
@@ -1358,6 +1365,12 @@
             </div>
           {/if}
         </div>
+      </div>
+
+    {:else if managerTab === 'smart-ai'}
+      <!-- Smart AI Tab -->
+      <div class="pm-tab-content">
+        <SmartAIView />
       </div>
 
     {:else if managerTab === 'sync'}
