@@ -1500,6 +1500,12 @@
       </svg>
       Système
     </button>
+    <button class="settings-tab" class:active={settingsTab === 'multiroom'} onclick={() => settingsTab = 'multiroom'}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <rect x="2" y="7" width="8" height="10" rx="1" /><rect x="14" y="7" width="8" height="10" rx="1" /><path d="M10 12h4" />
+      </svg>
+      Multi-room
+    </button>
   </div>
 
   {#if loading}
@@ -1508,8 +1514,10 @@
       {$t('common.loading')}
     </div>
   {:else}
-    <!-- v0.8.0 Multi-room: inter-techno calibration sliders -->
+    {#if settingsTab === 'multiroom'}
+    <!-- Multi-room settings -->
     <MultiroomSettings />
+    {/if}
 
     {#if settingsTab === 'network'}
     <!-- Audio diagnostic -->
