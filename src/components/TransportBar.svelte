@@ -4,6 +4,7 @@
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
   import { ytPlayerState, ytLoading, pauseVideo, resumeVideo } from '../lib/stores/ytPlayer';
   import { isBrowserZone, browserPause, browserResume, browserSetVolume, browserSeek, browserStop } from '../lib/stores/browserAudio';
+  import { currentProfileId, favoriteTrackIds } from '../lib/stores/profile';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -131,9 +132,20 @@
   let compact = $state(false);
   let scrollObserver: IntersectionObserver | null = null;
 
+  function handleGlobalKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      if (showZoneDropdown) { showZoneDropdown = false; e.stopPropagation(); }
+      if (sleepDropdownOpen) { sleepDropdownOpen = false; e.stopPropagation(); }
+      if (mobileVolumeOpen) { mobileVolumeOpen = false; e.stopPropagation(); }
+    }
+  }
+
   onMount(() => {
     // Initial sleep timer check
     pollSleepTimer();
+
+    // Global Escape key handler for popovers
+    document.addEventListener('keydown', handleGlobalKeydown);
 
     // Observe main-content scroll to switch to compact mode
     const mainContent = document.querySelector('.main-content');
@@ -149,43 +161,108 @@
 
   onDestroy(() => {
     stopSleepPolling();
+    document.removeEventListener('keydown', handleGlobalKeydown);
   });
 
   let isFavorite = $state(false);
   let favChecking = $state(false);
+  let favPulse = $state(false);
 
-  // Check if current radio track is a favorite
+  // Determine favorite type for the current track
+  type FavKind = 'radio' | 'library' | 'streaming' | 'none';
+
+  function getFavKind(track: typeof displayTrack): FavKind {
+    if (!track) return 'none';
+    if (track.source === 'radio') return 'radio';
+    if (track.source && track.source !== 'local' && track.source !== 'radio' && track.source_id) return 'streaming';
+    if (track.id) return 'library';
+    return 'none';
+  }
+
+  // Check if current track is a favorite (handles all track types)
   $effect(() => {
     const track = $currentTrack;
-    if (track?.source === 'radio' && track.title && track.artist_name) {
-      checkFavorite(track.title, track.artist_name);
+    const kind = getFavKind(track);
+    if (kind === 'radio' && track?.title && track?.artist_name) {
+      checkRadioFavorite(track.title, track.artist_name);
+    } else if (kind === 'library' && track?.id) {
+      isFavorite = $favoriteTrackIds.has(track.id);
+    } else if (kind === 'streaming') {
+      // Streaming favorites are per-service; check via API
+      checkStreamingFavorite(track!);
     } else {
       isFavorite = false;
     }
   });
 
-  async function checkFavorite(title: string, artist: string) {
+  // Re-check library favorite when the set changes (optimistic updates from other views)
+  $effect(() => {
+    const track = $currentTrack;
+    const ids = $favoriteTrackIds;
+    if (track?.id && getFavKind(track) === 'library') {
+      isFavorite = ids.has(track.id);
+    }
+  });
+
+  async function checkRadioFavorite(title: string, artist: string) {
     try {
       const res = await api.apiFetch(`/radio-favorites/is-favorite?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`);
       isFavorite = res.is_favorite;
     } catch { isFavorite = false; }
   }
 
+  async function checkStreamingFavorite(track: NonNullable<typeof displayTrack>) {
+    try {
+      const res = await api.getStreamingFavorites(track.source!, 'tracks');
+      const favTracks: any[] = res.tracks ?? res as any ?? [];
+      isFavorite = favTracks.some((f: any) => String(f.source_id ?? f.id) === String(track.source_id ?? track.id));
+    } catch { isFavorite = false; }
+  }
+
   async function toggleFavorite() {
     if (favChecking) return;
+    const track = $currentTrack;
+    const kind = getFavKind(track);
+    if (kind === 'none') return;
+
     favChecking = true;
+    // Trigger pulse animation
+    favPulse = true;
+    setTimeout(() => favPulse = false, 300);
+
     try {
-      if (isFavorite) {
-        // Find and delete
-        const favs = await api.apiFetch('/radio-favorites?limit=500');
-        const track = $currentTrack;
-        const match = favs.find((f: any) => f.title === track?.title && f.artist === track?.artist_name);
-        if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
-        isFavorite = false;
-      } else {
-        const zid = $currentZoneId;
-        if (zid != null) {
-          await api.apiPost('/radio-favorites/save-current', { zone_id: zid });
+      if (kind === 'radio') {
+        if (isFavorite) {
+          const favs = await api.apiFetch('/radio-favorites?limit=500');
+          const match = favs.find((f: any) => f.title === track?.title && f.artist === track?.artist_name);
+          if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
+          isFavorite = false;
+        } else {
+          const zid = $currentZoneId;
+          if (zid != null) {
+            await api.apiPost('/radio-favorites/save-current', { zone_id: zid });
+            isFavorite = true;
+          }
+        }
+      } else if (kind === 'library') {
+        const pid = $currentProfileId;
+        if (!pid || !track?.id) { favChecking = false; return; }
+        if (isFavorite) {
+          await api.removeFavorite(pid, { track_id: track.id });
+          favoriteTrackIds.update((s) => { s.delete(track.id!); return s; });
+          isFavorite = false;
+        } else {
+          await api.addFavorite(pid, { track_id: track.id });
+          favoriteTrackIds.update((s) => { s.add(track.id!); return s; });
+          isFavorite = true;
+        }
+      } else if (kind === 'streaming') {
+        const itemId = String(track!.source_id ?? track!.id);
+        if (isFavorite) {
+          await api.removeStreamingFavorite(track!.source!, 'tracks', itemId);
+          isFavorite = false;
+        } else {
+          await api.addStreamingFavorite(track!.source!, 'tracks', itemId);
           isFavorite = true;
         }
       }
@@ -198,7 +275,7 @@
   function handleBarClick(e: MouseEvent) {
     if ((e.target as HTMLElement).closest('.control-btn')) return;
     if ((e.target as HTMLElement).closest('.zone-selector')) return;
-    if ((e.target as HTMLElement).closest('.zone-dropdown')) return;
+    if ((e.target as HTMLElement).closest('.zone-popover')) return;
     if ((e.target as HTMLElement).closest('.mobile-volume-wrapper')) return;
     if (window.innerWidth <= 768) {
       mobileNowPlayingOpen.set(true);
@@ -404,8 +481,8 @@
           </span>
         </div>
       </div>
-      {#if displayTrack.source === 'radio'}
-        <button class="fav-btn control-btn" class:is-fav={isFavorite} onclick={toggleFavorite} title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}>
+      {#if getFavKind(displayTrack) !== 'none'}
+        <button class="fav-btn control-btn" class:is-fav={isFavorite} class:fav-pulse={favPulse} onclick={(e) => { e.stopPropagation(); toggleFavorite(); }} title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}>
           <svg viewBox="0 0 24 24" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="18" height="18">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
@@ -630,7 +707,8 @@
     </div>
 
     <div class="zone-selector">
-      <button class="zone-selector-btn" class:zone-recovering={zone?.recovery_started_at != null} class:zone-offline={zone?.online === false && zone?.recovery_started_at == null} onclick={() => showZoneDropdown = !showZoneDropdown} title={$t('zone.switchZone')}>
+      <button class="zone-selector-btn" class:zone-recovering={zone?.recovery_started_at != null} class:zone-offline={zone?.online === false && zone?.recovery_started_at == null} onclick={(e) => { e.stopPropagation(); showZoneDropdown = !showZoneDropdown; }} title={$t('zone.switchZone')}>
+        <span class="zone-dot-current" class:online={zone?.online !== false && zone?.recovery_started_at == null} class:recovering={zone?.recovery_started_at != null}></span>
         <span class="truncate">{zone?.name ?? $t('zone.noZone')}</span>
         {#if zone?.recovery_started_at != null}
           <span class="zone-status-badge recovering">{$t('zone.recovering')} ({zone.recovery_started_at}s)</span>
@@ -640,23 +718,28 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9" /></svg>
       </button>
       {#if showZoneDropdown}
-        <div class="zone-dropdown-backdrop" onclick={() => showZoneDropdown = false} role="button" tabindex={0} aria-label="Close zone dropdown"></div>
-        <div class="zone-dropdown">
+        <div class="zone-popover-backdrop" onclick={() => showZoneDropdown = false} onkeydown={(e) => { if (e.key === 'Escape') showZoneDropdown = false; }} role="button" tabindex={0} aria-label="Close zone selector"></div>
+        <div class="zone-popover">
+          <div class="zone-popover-header">
+            <span class="zone-popover-title">{$t('zone.zones')}</span>
+            <span class="zone-popover-count">{$zones.length}</span>
+          </div>
           {#each $zones.filter((z, i, arr) => arr.findIndex(x => x.output_device_id === z.output_device_id) === i).slice(0, 50) as z}
             <button
-              class="zone-dropdown-item"
+              class="zone-popover-item"
               class:active={z.id === $currentZoneId}
               onclick={() => { if (z.id !== null) currentZoneId.set(z.id); showZoneDropdown = false; }}
             >
-              <span class="truncate">{z.name}</span>
-              <span class="zone-dropdown-meta">
+              <span class="zone-dot" class:online={z.online !== false && z.recovery_started_at == null} class:recovering={z.recovery_started_at != null}></span>
+              <span class="zone-popover-name truncate">{z.name}</span>
+              <span class="zone-popover-meta">
                 {#if deviceTypeLabel(z.output_type)}
-                  <span class="zone-dropdown-badge">{deviceTypeLabel(z.output_type)}</span>
+                  <span class="zone-popover-badge">{deviceTypeLabel(z.output_type)}</span>
                 {/if}
                 {#if z.recovery_started_at != null}
-                  <span class="zone-dropdown-badge recovering">{$t('zone.recovering')}</span>
+                  <span class="zone-popover-badge recovering">{$t('zone.recovering')}</span>
                 {:else if z.online === false}
-                  <span class="zone-dropdown-badge offline">{$t('zone.offline')}</span>
+                  <span class="zone-popover-badge offline">{$t('zone.offline')}</span>
                 {:else if z.state === 'playing'}
                   <span class="zone-playing-indicator">
                     <svg viewBox="0 0 10 12" fill="currentColor" width="8" height="10"><polygon points="0,0 10,6 0,12" /></svg>
@@ -915,16 +998,24 @@
     padding: 4px;
     margin-left: 4px;
     flex-shrink: 0;
-    transition: color 0.2s, transform 0.15s;
+    transition: color 0.2s, transform 0.2s;
   }
 
   .fav-btn:hover {
     color: var(--tune-text);
-    transform: scale(1.15);
+    transform: scale(1.2);
   }
 
   .fav-btn.is-fav {
-    color: #e74c6f;
+    color: #ef4444;
+  }
+
+  .fav-btn.fav-pulse {
+    animation: fav-pulse-anim 0.3s ease;
+  }
+
+  @keyframes fav-pulse-anim {
+    50% { transform: scale(1.3); }
   }
 
   .transport-controls {
@@ -1111,7 +1202,7 @@
   .zone-selector-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     background: none;
     border: 1px solid var(--tune-border);
     color: var(--tune-text-secondary);
@@ -1120,7 +1211,7 @@
     cursor: pointer;
     font-family: var(--font-body);
     font-size: 13px;
-    max-width: 160px;
+    max-width: 180px;
     min-width: 60px;
     overflow: hidden;
     transition: all 0.12s ease-out;
@@ -1129,37 +1220,96 @@
   .zone-selector-btn:hover {
     border-color: var(--tune-text-muted);
     color: var(--tune-text);
+    background: var(--tune-surface-hover);
   }
 
-  .zone-dropdown-backdrop {
+  /* Current zone status dot in the selector button */
+  .zone-dot-current {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #6b7280;
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+
+  .zone-dot-current.online {
+    background: #22c55e;
+    box-shadow: 0 0 4px rgba(34, 197, 94, 0.4);
+  }
+
+  .zone-dot-current.recovering {
+    background: #f59e0b;
+    animation: dot-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes dot-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .zone-popover-backdrop {
     position: fixed;
     inset: 0;
     z-index: 99;
   }
 
-  .zone-dropdown {
+  .zone-popover {
     position: absolute;
-    bottom: calc(100% + 6px);
+    bottom: calc(100% + 8px);
     right: 0;
     background: var(--tune-surface);
     border: 1px solid var(--tune-border);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
-    min-width: 180px;
-    max-height: 240px;
+    border-radius: 12px;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    min-width: 220px;
+    max-width: 320px;
+    max-height: 300px;
     overflow-y: auto;
     z-index: 100;
     display: flex;
     flex-direction: column;
-    padding: 4px 0;
+    padding: 0;
+    animation: popover-in 0.15s ease-out;
   }
 
-  .zone-dropdown-item {
+  @keyframes popover-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .zone-popover-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-sm);
-    padding: 8px 14px;
+    padding: 10px 14px 8px;
+    border-bottom: 1px solid var(--tune-border);
+  }
+
+  .zone-popover-title {
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tune-text-muted);
+  }
+
+  .zone-popover-count {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--tune-text-muted);
+    background: var(--tune-bg);
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+
+  .zone-popover-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
     background: none;
     border: none;
     color: var(--tune-text-secondary);
@@ -1170,31 +1320,53 @@
     transition: background 0.1s;
   }
 
-  /* Allow the truncated name to actually shrink and ellipsize inside the flex
-     row instead of wrapping one char per line when the playing indicator is
-     present (fixes Matteo's "192.168.1.52-Sonoro..." wrap bug). */
-  .zone-dropdown-item > .truncate {
+  .zone-popover-item > .zone-popover-name {
     min-width: 0;
     flex: 1 1 auto;
   }
 
-  .zone-dropdown-item:hover {
+  .zone-popover-item:hover {
     background: var(--tune-surface-hover);
     color: var(--tune-text);
   }
 
-  .zone-dropdown-item.active {
+  .zone-popover-item.active {
     color: var(--tune-accent);
+    background: rgba(124, 58, 237, 0.06);
   }
 
-  .zone-dropdown-meta {
+  .zone-popover-item:last-child {
+    border-radius: 0 0 12px 12px;
+  }
+
+  /* Online/offline dot in the popover */
+  .zone-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6b7280;
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+
+  .zone-dot.online {
+    background: #22c55e;
+    box-shadow: 0 0 4px rgba(34, 197, 94, 0.4);
+  }
+
+  .zone-dot.recovering {
+    background: #f59e0b;
+    animation: dot-pulse 1.5s ease-in-out infinite;
+  }
+
+  .zone-popover-meta {
     display: flex;
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
   }
 
-  .zone-dropdown-badge {
+  .zone-popover-badge {
     font-family: var(--font-label);
     font-size: 10px;
     font-weight: 600;
@@ -1237,11 +1409,11 @@
     color: var(--tune-danger, #ef4444);
     background: rgba(239, 68, 68, 0.15);
   }
-  .zone-dropdown-badge.recovering {
+  .zone-popover-badge.recovering {
     color: var(--tune-warning, #f59e0b);
     background: rgba(245, 158, 11, 0.15);
   }
-  .zone-dropdown-badge.offline {
+  .zone-popover-badge.offline {
     color: var(--tune-danger, #ef4444);
     background: rgba(239, 68, 68, 0.15);
   }
