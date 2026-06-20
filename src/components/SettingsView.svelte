@@ -2265,16 +2265,16 @@
               onchange={() => toggleDevice(prefId)}
             />
             <svg class="device-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-              {#if device.type === 'airplay'}
+              {#if device.type === 'airplay' || device.type === 'airplay2'}
                 <path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1" /><polygon points="12 15 17 21 7 21 12 15" />
               {:else}
                 <rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><polyline points="17 2 12 7 7 2" />
               {/if}
             </svg>
             <span class="device-toggle-name">{device.name}</span>
-            <span class="device-toggle-tag {device.type}">{device.type === 'airplay' ? 'AirPlay' : device.type === 'chromecast' ? 'Cast' : device.type === 'bluos' ? 'BluOS' : device.type === 'openhome' ? 'OpenHome' : 'DLNA'}</span>
+            <span class="device-toggle-tag {device.type}">{device.type === 'airplay2' ? 'AirPlay 2' : device.type === 'airplay' ? 'AirPlay' : device.type === 'chromecast' ? 'Cast' : device.type === 'bluos' ? 'BluOS' : device.type === 'openhome' ? 'OpenHome' : 'DLNA'}</span>
             {#if device.host}<span class="device-toggle-host">{device.host}</span>{/if}
-            {#if device.type === 'airplay'}
+            {#if device.type === 'airplay' || device.type === 'airplay2'}
               {#if pairingDeviceId === device.id && pairingAwaitingPin}
                 <input
                   type="text"
