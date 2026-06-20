@@ -47,7 +47,7 @@
 
   async function fetchServerVersion() {
     try {
-      const data = await api.getHealth();
+      const data = await api.withTimeout(api.getHealth(), 8_000, 'health-version');
       if (destroyed) return;
       serverVersion = data?.version ?? null;
     } catch {
@@ -56,11 +56,12 @@
   }
 
   async function loadAll() {
+    const T = 8_000; // 8s timeout per call — prevents indefinite loading spinner
     try {
       // Load critical data first (health + server dashboard), then the rest
       const [h, sd] = await Promise.all([
-        api.getHealth().catch(() => null),
-        api.getServerDiagnostics().catch(() => null),
+        api.withTimeout(api.getHealth(), T, 'health').catch(() => null),
+        api.withTimeout(api.getServerDiagnostics(), T, 'diagnostics').catch(() => null),
       ]);
       if (destroyed) return;
       health = h;
@@ -68,10 +69,10 @@
 
       // Load remaining data in parallel
       const [s, cfg, db, ss] = await Promise.all([
-        api.getStats().catch(() => null),
-        api.getConfig().catch(() => null),
-        api.getDatabaseStatus().catch(() => null),
-        api.getStreamingServices().catch(() => ({})),
+        api.withTimeout(api.getStats(), T, 'stats').catch(() => null),
+        api.withTimeout(api.getConfig(), T, 'config').catch(() => null),
+        api.withTimeout(api.getDatabaseStatus(), T, 'db-status').catch(() => null),
+        api.withTimeout(api.getStreamingServices(), T, 'streaming').catch(() => ({})),
       ]);
       if (destroyed) return;
       stats = s;

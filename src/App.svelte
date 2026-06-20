@@ -428,6 +428,51 @@ import AlarmsView from './components/AlarmsView.svelte';
         }
       }
     });
+
+    // Push a history entry when entering album/artist detail within the library,
+    // so the browser back button returns to the grid instead of the previous view.
+    selectedAlbum.subscribe(album => {
+      if (!_pushingState && _viewInitialized && typeof window !== 'undefined') {
+        let view = '';
+        activeView.subscribe(v => (view = v))();
+        if (view === 'library') {
+          const ctx = {
+            view,
+            albumId: album?.id ?? null,
+            artistId: $selectedArtist?.id ?? null,
+            tab: $libraryTab ?? null,
+          };
+          if (album !== null) {
+            // Entering detail: push so back returns to grid
+            window.history.pushState(ctx, '', `#${view}`);
+          } else {
+            // Returning to grid (programmatic, not via popstate): update current entry
+            window.history.replaceState(ctx, '', `#${view}`);
+          }
+        }
+      }
+    });
+
+    selectedArtist.subscribe(artist => {
+      if (!_pushingState && _viewInitialized && typeof window !== 'undefined') {
+        let view = '';
+        activeView.subscribe(v => (view = v))();
+        if (view === 'library') {
+          const ctx = {
+            view,
+            albumId: $selectedAlbum?.id ?? null,
+            artistId: artist?.id ?? null,
+            tab: $libraryTab ?? null,
+          };
+          if (artist !== null) {
+            window.history.pushState(ctx, '', `#${view}`);
+          } else {
+            window.history.replaceState(ctx, '', `#${view}`);
+          }
+        }
+      }
+    });
+
     window.addEventListener('popstate', (e) => {
       const ctx = e.state;
       _pushingState = true;

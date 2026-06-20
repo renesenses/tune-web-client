@@ -234,7 +234,8 @@ export function clearDevices() {
 }
 
 export function deleteDevice(deviceId: string) {
-  return fetchJSON<{ deleted: string }>(`${BASE}/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
+  // Server returns 204 No Content, use fetchVoid to avoid JSON parse error on empty body
+  return fetchVoid(`${BASE}/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
 }
 
 export function getDevice(id: string) {
@@ -2366,6 +2367,8 @@ export interface MergedPlugin {
   platforms?: string;
   compatible: boolean;
   installed: boolean;
+  /** Server may send enabled instead of status for built-in plugins */
+  enabled?: boolean;
   installed_version?: string | null;
   update_available: boolean;
   status: 'available' | 'active' | 'disabled' | 'error';
@@ -2411,7 +2414,10 @@ export function getPluginDetail(slug: string): Promise<MergedPlugin> {
 
 /** Install a plugin via the server (pip install). */
 export function installPlugin(slug: string): Promise<{ success: boolean; message: string; restart_required: boolean }> {
-  return fetchJSON(`${BASE}/plugins/${encodeURIComponent(slug)}/install`, { method: 'POST' });
+  return fetchJSON(`${BASE}/plugins/${encodeURIComponent(slug)}/install`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
 }
 
 /** Uninstall a plugin via the server (pip uninstall). */

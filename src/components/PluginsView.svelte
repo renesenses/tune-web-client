@@ -24,7 +24,15 @@
   async function fetchPlugins() {
     loading = true;
     try {
-      allPlugins = await api.getMergedPlugins();
+      const raw = await api.getMergedPlugins();
+      // Normalize missing fields so the template never crashes on undefined access
+      allPlugins = raw.map(p => ({
+        compatible: true,
+        update_available: false,
+        status: p.installed ? (p.enabled !== false ? 'active' : 'disabled') : 'available',
+        category: 'system',
+        ...p,
+      } as api.MergedPlugin));
     } catch (e) {
       console.error('Failed to load plugins:', e);
       allPlugins = [];
@@ -38,7 +46,15 @@
     try {
       const res = await fetch('/api/v1/plugins/docs');
       if (res.ok) {
-        const md = await res.text();
+        const text = await res.text().catch(() => '');
+        // Server may return JSON {url: "..."} or raw markdown
+        let md = text;
+        try {
+          const parsed = JSON.parse(text);
+          if (parsed?.url) {
+            md = `# Plugin Documentation\n\nConsultez la documentation complète sur [mozaiklabs.fr](${parsed.url}).`;
+          }
+        } catch { /* not JSON — treat as raw markdown */ }
         docsHtml = marked(md) as string;
       }
     } catch (e) {

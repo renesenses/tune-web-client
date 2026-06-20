@@ -151,7 +151,7 @@
     try {
       const tel = await api.apiFetch('/cloud/telemetry/status');
       cloudTelemetryEnabled = !!tel?.enabled;
-      cloudTelemetryInstanceId = tel?.instance_id || null;
+      cloudTelemetryInstanceId = tel?.instance_id || tel?.server_id || null;
     } catch { /* endpoint may not exist */ }
   }
 
@@ -1082,7 +1082,7 @@
 
   async function fetchAudioDevices() {
     try {
-      audioDevices = await api.getAudioDevices();
+      audioDevices = await api.withTimeout(api.getAudioDevices(), 8_000, '/devices/audio');
     } catch (e) {
       console.error('Fetch audio devices error:', e);
     }
@@ -1091,7 +1091,7 @@
   async function fetchTunePeers() {
     peersLoading = true;
     try {
-      tunePeers = await api.getTunePeers();
+      tunePeers = await api.withTimeout(api.getTunePeers(), 8_000, '/peers');
     } catch (e) {
       console.error('Fetch tune peers error:', e);
     }
@@ -3104,7 +3104,7 @@
         {:else}
           <div class="cloud-row">
             <span class="cloud-status-dot disconnected"></span>
-            <span class="cloud-status-text">Cloud non disponible pour le moment</span>
+            <span class="cloud-status-text">Non connecté — <a href="https://mozaiklabs.fr" target="_blank" rel="noopener noreferrer" style="color:var(--tune-accent)">Créer un compte</a></span>
           </div>
         {/if}
       </div>
