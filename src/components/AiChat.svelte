@@ -13,6 +13,34 @@
   let messages = $state<ChatMessage[]>([]);
   let loading = $state(false);
   let messagesEl = $state<HTMLDivElement | null>(null);
+  let voiceListening = $state(false);
+
+  const voiceEnabled = typeof localStorage !== 'undefined' && localStorage.getItem('tune_voice_ai_enabled') === 'true';
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  let recognition: any = null;
+
+  function toggleVoice() {
+    if (!SpeechRecognition) return;
+    if (voiceListening) {
+      recognition?.stop();
+      voiceListening = false;
+      return;
+    }
+    recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (e: any) => {
+      const transcript = e.results[0][0].transcript;
+      input = transcript;
+      voiceListening = false;
+      send();
+    };
+    recognition.onerror = () => { voiceListening = false; };
+    recognition.onend = () => { voiceListening = false; };
+    recognition.start();
+    voiceListening = true;
+  }
 
   function toggle() {
     open = !open;
@@ -132,13 +160,20 @@
     </div>
 
     <div class="ai-input-row">
+      {#if voiceEnabled && SpeechRecognition}
+        <button class="ai-mic" class:listening={voiceListening} onclick={toggleVoice} title="Commande vocale">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+          </svg>
+        </button>
+      {/if}
       <input
         type="text"
         class="ai-input"
-        placeholder="Demandez a Tune..."
+        placeholder={voiceListening ? "Parlez..." : "Demandez a Tune..."}
         bind:value={input}
         onkeydown={handleKeydown}
-        disabled={loading}
+        disabled={loading || voiceListening}
       />
       <button class="ai-send" onclick={send} disabled={loading || !input.trim()}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
@@ -401,6 +436,31 @@
   .ai-send:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+  }
+
+  .ai-mic {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--tune-text-secondary);
+    border: 1px solid var(--tune-border, #333);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .ai-mic:hover { color: var(--tune-accent); border-color: var(--tune-accent); }
+  .ai-mic.listening {
+    color: #ef4444;
+    border-color: #ef4444;
+    animation: pulse-mic 1.2s infinite;
+  }
+  @keyframes pulse-mic {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
   }
 
   @media (max-width: 768px) {

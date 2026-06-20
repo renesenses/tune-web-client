@@ -1696,6 +1696,33 @@
         </div>
       {/if}
     </section>
+
+    <!-- Voice AI -->
+    <section class="settings-section">
+      <h3>Tune Voice AI</h3>
+      <div class="setting-row">
+        <div class="setting-label">
+          <span>Commande vocale</span>
+          <span class="setting-hint">Activez le micro pour parler a Tune AI au lieu de taper.</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" checked={localStorage.getItem('tune_voice_ai_enabled') === 'true'} onchange={(e) => {
+            const enabled = (e.target as HTMLInputElement).checked;
+            localStorage.setItem('tune_voice_ai_enabled', String(enabled));
+            if (enabled) {
+              navigator.mediaDevices?.getUserMedia({ audio: true }).then(() => {
+                notifications.success('Micro autorise. Rechargez la page pour activer le bouton micro dans Tune AI.');
+              }).catch(() => {
+                notifications.error('Acces au micro refuse par le navigateur.');
+                localStorage.setItem('tune_voice_ai_enabled', 'false');
+                (e.target as HTMLInputElement).checked = false;
+              });
+            }
+          }} />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </section>
     {/if}
 
     {#if settingsTab === 'library'}
