@@ -217,6 +217,7 @@
     } else if (album.source === 'radio') {
       activeView.set('radios');
     } else if (album.source && album.source !== 'local') {
+      activeStreamingService.set(album.source);
       activeView.set('streaming');
     } else {
       // Search local library to find the album — try album_title first, then album.title
