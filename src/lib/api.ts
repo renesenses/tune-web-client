@@ -2064,7 +2064,8 @@ export function importRatings(ratings: any[]) { return fetchJSON<any>(`${BASE}/l
 export async function searchPodcasts(query: string, limit = 20): Promise<any[]> {
   const res = await fetch(`${BASE}/podcasts/search?q=${encodeURIComponent(query)}&limit=${limit}`);
   if (!res.ok) throw new Error(`Search podcasts failed: ${res.status} ${res.statusText}`);
-  return res.json();
+  const data = await res.json();
+  return data.items || data;
 }
 
 export async function getRadioFrancePodcasts(): Promise<any[]> {
@@ -2079,7 +2080,12 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
   if (showUrl) url += `&show_url=${encodeURIComponent(showUrl)}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Podcast episodes failed: ${res.status} ${res.statusText}`);
-  return res.json();
+  const data = await res.json();
+  return data.episodes || data;
+}
+
+export async function playPodcastEpisode(zoneId: number, episode: { audio_url: string; title?: string; podcast_name?: string; cover_url?: string; duration_ms?: number }): Promise<any> {
+  return fetchJSON(`${BASE}/podcasts/play/${zoneId}`, { method: 'POST', body: JSON.stringify(episode) });
 }
 
 export function getPodcastSubscriptions(): Promise<any[]> {
