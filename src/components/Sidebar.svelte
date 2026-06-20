@@ -30,9 +30,15 @@
   let serverVersion = $state<string | null>(null);
   let sidebarDestroyed = false;
   onMount(() => {
-    api.checkForUpdate()
-      .then((r) => { if (!sidebarDestroyed && r?.current_version) serverVersion = r.current_version; })
-      .catch(() => { /* keep fallback */ });
+    // Primary: get version from /system/health (always available)
+    api.getHealth()
+      .then((r) => { if (!sidebarDestroyed && r?.version) serverVersion = r.version; })
+      .catch(() => {
+        // Fallback: try checkForUpdate
+        api.checkForUpdate()
+          .then((r) => { if (!sidebarDestroyed && r?.current_version) serverVersion = r.current_version; })
+          .catch(() => { /* keep __APP_VERSION__ fallback */ });
+      });
   });
 
   // Health monitor status (shared store, also updated by App.svelte on WS events)
