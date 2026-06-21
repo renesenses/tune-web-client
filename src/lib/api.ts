@@ -204,7 +204,7 @@ export function createZone(name: string, outputType: OutputType = 'local', outpu
 
 export function renameZone(id: number, name: string) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: JSON.stringify({ name }),
   });
 }
