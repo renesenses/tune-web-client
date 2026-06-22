@@ -1593,6 +1593,28 @@
     {/if}
 
     {#if settingsTab === 'system'}
+    <!-- Update banner (top of system tab for visibility) -->
+    {#if updateInfo}
+      <section class="settings-section">
+        <div class="update-banner" style="margin-bottom: 1rem;">
+          <span class="update-icon">🔄</span>
+          <span class="update-text">
+            Mise à jour disponible : <strong>v{updateInfo.latest_version}</strong>
+            (actuel : v{updateInfo.current_version})
+          </span>
+          {#if updateDmgReady}
+            <span class="update-done">DMG téléchargé et ouvert dans le Finder.</span>
+          {:else if updateDone}
+            <span class="update-done">Installée — redémarrage...</span>
+          {:else if updateInstalling}
+            <span class="update-btn" style="opacity:0.6">Installation...</span>
+          {:else}
+            <button class="update-btn" onclick={installUpdate}>Mettre à jour</button>
+          {/if}
+        </div>
+      </section>
+    {/if}
+
     <!-- Server health -->
     <section class="settings-section">
       <h3>{$t('settings.serverHealth')}</h3>
