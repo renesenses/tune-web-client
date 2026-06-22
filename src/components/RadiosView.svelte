@@ -465,6 +465,7 @@
 <style>
   .radios-view {
     padding: var(--space-lg) 28px;
+    padding-bottom: calc(var(--space-lg) + 80px);
     max-width: 900px;
   }
 
