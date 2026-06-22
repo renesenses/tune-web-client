@@ -321,7 +321,8 @@
 
   async function loadTopArtists() {
     try {
-      topArtists = await api.getTopArtists(10);
+      const raw = await api.getTopArtists(12);
+      topArtists = raw.filter((a: TopArtist) => a.name !== 'Live Radio' && a.name !== 'Various Artists' && a.name !== 'Artistes divers').slice(0, 10);
       topArtistsLoaded = true;
     } catch (e) {
       console.error('Load top artists error:', e);
@@ -340,11 +341,15 @@
   }
 
   async function navigateArtistByName(name: string) {
+    if (!name) return;
     try {
       const results = await api.searchLibrary(name, 5);
       const match = results.artists?.find((a: any) => a.name.toLowerCase() === name.toLowerCase());
       if (match?.id) {
         navigateToArtist(match.id);
+      } else {
+        libraryTab.set('artists');
+        activeView.set('library');
       }
     } catch (e) {
       console.error('Navigate artist by name error:', e);
@@ -599,6 +604,18 @@
         <span class="stat-number">{formatNumber(stats.tracks)}</span>
         <span class="stat-name">{$t('home.tracks')}</span>
       </button>
+      {#if (stats as any).listens > 0}
+        <button class="stat-card" onclick={() => activeView.set('dashboard')}>
+          <span class="stat-number">{formatNumber((stats as any).listens)}</span>
+          <span class="stat-name">Écoutes</span>
+        </button>
+      {/if}
+      {#if (stats as any).total_duration_ms > 0}
+        <button class="stat-card" onclick={() => activeView.set('dashboard')}>
+          <span class="stat-number">{Math.round((stats as any).total_duration_ms / 3600000)}h</span>
+          <span class="stat-name">Écouté</span>
+        </button>
+      {/if}
     </div>
   {/if}
 
