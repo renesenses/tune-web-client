@@ -308,7 +308,7 @@
     <div class="radios-grid">
       {#each filtered as radio}
         <div class="radio-card">
-          <button class="radio-icon" onclick={() => openEdit(radio)} title={$t('radio.editRadio')}>
+          <button class="radio-icon" onclick={() => playRadio(radio)} title={$t('radio.play')} disabled={!$currentZoneId}>
             {#if coverUrl(radio)}
               <img src={coverUrl(radio)} alt={radio.name} loading="lazy" />
             {:else}
@@ -316,11 +316,11 @@
             {/if}
           </button>
           <div class="radio-info">
-            <button class="radio-name-btn" onclick={() => openEdit(radio)}>{radio.name}</button>
+            <button class="radio-name-btn" onclick={() => playRadio(radio)} disabled={!$currentZoneId}>{radio.name}</button>
             {#if radio.genre}
-              <span class="radio-genre">{radio.genre}</span>
+              <button class="radio-genre radio-genre-btn" onclick={() => { filterGenre = filterGenre === radio.genre ? null : radio.genre!; filterFavorite = false; }}>{radio.genre}</button>
             {/if}
-            <span class="radio-url">{radio.stream_url}</span>
+            <button class="radio-url radio-url-btn" onclick={() => playRadio(radio)} disabled={!$currentZoneId}>{radio.stream_url}</button>
           </div>
           <div class="radio-actions">
             <button class="action-btn favorite-btn" class:is-favorite={radio.favorite} onclick={() => toggleFavorite(radio)} title={$t('radio.favorite')}>
@@ -716,6 +716,32 @@
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-muted);
+  }
+
+  .radio-genre-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+  }
+  .radio-genre-btn:hover {
+    color: var(--tune-accent);
+  }
+
+  .radio-url-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+  }
+  .radio-url-btn:hover {
+    color: var(--tune-accent);
   }
 
   .radio-url {
