@@ -558,8 +558,17 @@
                 <AlbumArt coverPath={item.cover_path} albumId={item.album_id ?? item.id} size={160} alt={item.title ?? item.album_title ?? ''} />
                 <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
               </button>
-              <button class="carousel-title truncate" type="button" onclick={() => item.album_id ? navigateToAlbum(item.album_id) : null}>{item.title ?? item.album_title ?? ''}</button>
-              <button class="carousel-artist truncate" type="button" onclick={() => item.artist_name ? navigateArtistByName(item.artist_name) : null}>{item.artist_name ?? ''}</button>
+              <button class="carousel-title truncate" type="button" onclick={async () => {
+                if (item.album_id) { navigateToAlbum(item.album_id); return; }
+                const q = (item.title ?? item.album_title ?? '').trim();
+                if (!q) return;
+                const results = await api.searchLibrary(`${q} ${item.artist_name ?? ''}`, 5);
+                const match = results.albums?.find((a: any) => a.title?.toLowerCase() === q.toLowerCase());
+                if (match?.id) navigateToAlbum(match.id);
+              }}>{item.title ?? item.album_title ?? ''}</button>
+              <button class="carousel-artist truncate" type="button" onclick={() => {
+                if (item.artist_name) navigateArtistByName(item.artist_name);
+              }}>{item.artist_name ?? ''}</button>
               {#if item.progress_percent != null}
                 <div class="continue-progress">
                   <div class="continue-progress-bar" style="width: {item.progress_percent}%"></div>
