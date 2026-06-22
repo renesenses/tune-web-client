@@ -1079,6 +1079,7 @@ import AlarmsView from './components/AlarmsView.svelte';
     padding: 0;
     position: relative;
     min-width: 0;
+    min-height: 0;
   }
 
   .global-search-wrapper {

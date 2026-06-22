@@ -2964,6 +2964,7 @@
     flex: 1;
     display: flex;
     min-height: 0;
+    overflow: hidden;
     gap: 4px;
   }
 
