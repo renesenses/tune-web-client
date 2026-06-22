@@ -298,10 +298,40 @@
     if (!showLogs) return;
     logsLoading = true;
     try {
-      const r = await api.apiFetch('/system/logs?lines=100');
+      const r = await api.apiFetch('/system/logs?lines=200');
       logs = r.logs || 'Aucun log disponible';
-    } catch { logs = 'Erreur chargement logs'; }
+      logsSource = r.source || 'unknown';
+    } catch { logs = 'Erreur chargement logs'; logsSource = 'error'; }
     logsLoading = false;
+  }
+
+  let logsSource = $state('');
+  let downloadingLogs = $state(false);
+
+  async function downloadLogs() {
+    downloadingLogs = true;
+    try {
+      const r = await api.apiFetch('/system/logs?lines=500');
+      const logText = r.logs || 'Aucun log disponible';
+      const source = r.source || 'unknown';
+      const diag = await api.apiFetch('/system/diagnostics').catch(() => null);
+      const version = diag?.server_version || 'inconnue';
+      const os = diag?.os || 'inconnu';
+      const header = `Tune Server ${version} | ${os} | source: ${source}\n${'='.repeat(60)}\n\n`;
+      const blob = new Blob([header + logText], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const date = new Date().toISOString().slice(0, 10);
+      a.download = `tune-logs-${date}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      alert('Erreur : ' + (e?.message || e));
+    }
+    downloadingLogs = false;
   }
 
   // --- Network Diagnostics ---
@@ -510,6 +540,10 @@
         <button class="server-action-btn" onclick={fetchLogs}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
           <span>{showLogs ? 'Masquer les logs' : 'Voir les logs serveur'}</span>
+        </button>
+        <button class="server-action-btn" onclick={downloadLogs} disabled={downloadingLogs}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+          <span>{downloadingLogs ? 'Export...' : 'Exporter les logs'}</span>
         </button>
         <button class="server-action-btn cleanup-btn" onclick={cleanupServer} disabled={cleaning}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>
