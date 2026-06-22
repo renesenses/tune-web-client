@@ -881,7 +881,7 @@
   async function fetchServerVersion() {
     try {
       const data = await api.apiFetch('/system/update/check');
-      serverVersion = data?.current_version ?? null;
+      serverVersion = data?.current_version ?? data?.current ?? null;
     } catch {
       serverVersion = null;
     }
@@ -979,8 +979,10 @@
   async function checkForUpdate() {
     try {
       const data = await api.checkForUpdate();
-      if (data.latest_version && data.latest_version !== data.current_version) {
-        updateInfo = data;
+      const latest = data.latest_version || data.latest;
+      const current = data.current_version || data.current;
+      if (latest && latest !== current) {
+        updateInfo = { ...data, latest_version: latest, current_version: current };
       }
     } catch { /* ignore */ }
   }
