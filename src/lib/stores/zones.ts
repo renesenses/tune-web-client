@@ -11,7 +11,22 @@ async function getBrowserAudio() {
 }
 
 export const zones = writable<Zone[]>([]);
-export const currentZoneId = writable<number | null>(null);
+
+function loadSavedZoneId(): number | null {
+  try {
+    const v = localStorage.getItem('tune_current_zone_id');
+    return v ? parseInt(v, 10) : null;
+  } catch { return null; }
+}
+
+export const currentZoneId = writable<number | null>(loadSavedZoneId());
+
+currentZoneId.subscribe((id) => {
+  try {
+    if (id !== null) localStorage.setItem('tune_current_zone_id', String(id));
+    else localStorage.removeItem('tune_current_zone_id');
+  } catch {}
+});
 
 export const currentZone = derived(
   [zones, currentZoneId],
