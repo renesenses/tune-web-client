@@ -542,6 +542,8 @@ export interface TopArtist {
   artist_name?: string;
   plays: number;
   play_count?: number;
+  artist_id?: number | null;
+  id?: number | null;
 }
 
 export interface ArtistMetadata {

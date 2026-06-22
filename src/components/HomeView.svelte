@@ -734,7 +734,7 @@
       <h2 class="section-title">{$t('home.topArtists')}</h2>
       <div class="top-artists-row">
         {#each topArtists as artist, i}
-          <button class="artist-card" onclick={() => navigateArtistByName(artist.name)}>
+          <button class="artist-card" onclick={() => artist.artist_id ? navigateToArtist(artist.artist_id) : navigateArtistByName(artist.name)}>
             <span class="artist-rank">#{i + 1}</span>
             <span class="artist-card-name">{artist.name}</span>
             <span class="play-count-badge">{artist.plays} {$t('home.plays')}</span>

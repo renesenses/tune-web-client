@@ -6,7 +6,7 @@ import { getToken, clearToken } from './auth';
 let _lastNetworkError = 0;
 function showNetworkError() {
   const now = Date.now();
-  if (now - _lastNetworkError < 5000) return;
+  if (now - _lastNetworkError < 30000) return;
   _lastNetworkError = now;
   notifications.error('Network error: server unreachable');
 }
