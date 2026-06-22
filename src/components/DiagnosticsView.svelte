@@ -298,7 +298,7 @@
     if (!showLogs) return;
     logsLoading = true;
     try {
-      const r = await api.apiFetch('/system/logs?lines=200');
+      const r = await api.apiFetch('/system/logs?lines=1000');
       logs = r.logs || 'Aucun log disponible';
       logsSource = r.source || 'unknown';
     } catch { logs = 'Erreur chargement logs'; logsSource = 'error'; }
@@ -311,7 +311,7 @@
   async function downloadLogs() {
     downloadingLogs = true;
     try {
-      const r = await api.apiFetch('/system/logs?lines=500');
+      const r = await api.apiFetch('/system/logs?lines=1000');
       const logText = r.logs || 'Aucun log disponible';
       const source = r.source || 'unknown';
       const diag = await api.apiFetch('/system/diagnostics').catch(() => null);
