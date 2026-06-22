@@ -8,7 +8,7 @@
   import { queueTracks, queuePosition, queueLength } from './lib/stores/queue';
   import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
   import { connectionState, reconnectAttempts } from './lib/stores/connection';
-  import { activeView } from './lib/stores/navigation';
+  import { activeView, settingsInitialTab } from './lib/stores/navigation';
   import { selectedAlbum, selectedArtist, libraryTab } from './lib/stores/library';
   import { preferences, applyTheme, syncPreferencesFromServer } from './lib/stores/preferences';
   import { locale } from './lib/i18n';
@@ -909,9 +909,9 @@ import AlarmsView from './components/AlarmsView.svelte';
 
   <main class="main-content">
     {#if $updateAvailable && !$updateBannerDismissed}
-      <div class="update-banner">
-        <span class="update-banner-text">Tune v{$latestVersion} disponible — vous utilisez v{$currentVersion ?? '?'}</span>
-        <button class="update-banner-dismiss" onclick={dismissUpdateBanner} title="Masquer">&times;</button>
+      <div class="update-banner" onclick={() => { activeView.set('settings'); settingsInitialTab.set('system'); }} style="cursor: pointer;" role="button" tabindex={0}>
+        <span class="update-banner-text">Tune v{$latestVersion} disponible — cliquez pour mettre à jour</span>
+        <button class="update-banner-dismiss" onclick={(e) => { e.stopPropagation(); dismissUpdateBanner(); }} title="Masquer">&times;</button>
       </div>
     {/if}
 
