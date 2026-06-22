@@ -166,7 +166,18 @@
     if (!zone?.id) return;
     try {
       if (album.source === 'radio' && album.firstTrack.source_id) {
-        await api.playRadio(parseInt(album.firstTrack.source_id), zone.id);
+        const radioId = parseInt(album.firstTrack.source_id);
+        if (!isNaN(radioId)) {
+          await api.playRadio(radioId, zone.id);
+        } else {
+          await playAndSync(zone.id, {
+            source: 'radio' as Source,
+            source_id: album.firstTrack.source_id,
+            title: album.firstTrack.title ?? album.title,
+            artist_name: album.firstTrack.artist_name,
+            cover_path: album.firstTrack.cover_path,
+          } as any);
+        }
       } else if (album.source && album.source !== 'local' && album.firstTrack.source_id) {
         await playAndSync(zone.id, { source: album.source as Source, source_id: album.firstTrack.source_id });
       } else if (album.source && album.source !== 'local') {
