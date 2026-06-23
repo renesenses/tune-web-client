@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store';
-import { currentZone } from './zones';
+import { currentZone, currentZoneId } from './zones';
 import type { Track, PlaybackState, RepeatMode } from '../types';
 
 // Seek position in milliseconds
@@ -17,6 +17,7 @@ export const currentTrack = derived(currentZone, ($zone) => $zone?.current_track
 export const playbackState = derived(currentZone, ($zone): PlaybackState => ($zone?.state as PlaybackState) ?? 'stopped');
 const _zoneVol = writable<number>(0.5);
 let _volLocalUntil = 0;
+currentZoneId.subscribe(() => { _volLocalUntil = 0; });
 currentZone.subscribe(($zone) => {
   if ($zone?.volume !== undefined && Date.now() > _volLocalUntil) {
     const v = $zone.volume > 1 ? $zone.volume / 100 : $zone.volume;

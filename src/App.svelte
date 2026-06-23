@@ -133,6 +133,7 @@ import AlarmsView from './components/AlarmsView.svelte';
         seekPositionMs.set(0);
       }
       fetchQueue();
+      syncZoneState(zoneId);
     });
     return unsub;
   });

@@ -18,13 +18,25 @@
     return `${Math.round(v * 100)}`;
   }
 
-  async function handleVolume(e: Event) {
+  let _volThrottleTimer: ReturnType<typeof setTimeout> | null = null;
+  let _volPending: (() => void) | null = null;
+
+  function handleVolume(e: Event) {
     if (!zone?.id) return;
     const val = Number((e.target as HTMLInputElement).value);
     if (val > 0) mutedVolume.set(null);
     zoneVolume.set(val);
     if (isBrowserZone(zone)) browserSetVolume(val);
-    await api.setVolume(zone.id, val);
+    const zoneId = zone.id;
+    _volPending = () => api.setVolume(zoneId, val);
+    if (!_volThrottleTimer) {
+      _volPending();
+      _volPending = null;
+      _volThrottleTimer = setTimeout(() => {
+        _volThrottleTimer = null;
+        if (_volPending) { _volPending(); _volPending = null; }
+      }, 80);
+    }
   }
 
   async function toggleMute() {

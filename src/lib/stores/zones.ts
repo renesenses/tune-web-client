@@ -65,7 +65,8 @@ export async function playAndSync(zoneId: number, body?: Parameters<typeof api.p
 }
 
 export async function nextAndSync(zoneId: number): Promise<Zone> {
-  const zone = await api.next(zoneId);
+  await api.next(zoneId);
+  const zone = await api.getZone(zoneId);
   checkPlayError(zone);
   syncZone(zone);
   handleBrowserPlayback(zone);
@@ -73,7 +74,8 @@ export async function nextAndSync(zoneId: number): Promise<Zone> {
 }
 
 export async function previousAndSync(zoneId: number): Promise<Zone> {
-  const zone = await api.previous(zoneId);
+  await api.previous(zoneId);
+  const zone = await api.getZone(zoneId);
   checkPlayError(zone);
   syncZone(zone);
   handleBrowserPlayback(zone);

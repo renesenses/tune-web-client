@@ -438,11 +438,11 @@ export function stop(zoneId: number) {
 }
 
 export function next(zoneId: number) {
-  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/next`, { method: 'POST' }).then(mapZoneQuality);
+  return fetchJSON<{ status: string; queue_position?: number }>(`${BASE}/zones/${zoneId}/next`, { method: 'POST' });
 }
 
 export function previous(zoneId: number) {
-  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/previous`, { method: 'POST' }).then(mapZoneQuality);
+  return fetchJSON<{ status: string; queue_position?: number }>(`${BASE}/zones/${zoneId}/previous`, { method: 'POST' });
 }
 
 export function seek(zoneId: number, positionMs: number) {

@@ -356,12 +356,14 @@
   // Audiophile mode
   let audiophileEnabled = $state(false);
   let audiophileLoading = $state(false);
+  let audiophileGeneration = 0;
 
   $effect(() => {
     const zoneId = $currentZoneId;
     if (zoneId) {
+      const gen = ++audiophileGeneration;
       api.getAudiophileMode(zoneId).then(res => {
-        audiophileEnabled = res.enabled;
+        if (gen === audiophileGeneration) audiophileEnabled = res.enabled;
       }).catch(() => {});
     }
   });
