@@ -40,6 +40,14 @@
   let tunePeers = $state<api.TunePeer[]>([]);
   let peersLoading = $state(false);
 
+  // Tune Bridge (remote access)
+  let bridgeEnabled = $state(false);
+  let bridgeConnected = $state(false);
+  let bridgeServerId = $state('');
+  let bridgeAccessUrl = $state('');
+  let bridgeToken = $state('');
+  let bridgeLoading = $state(false);
+
   // Database migration
   let pgUrl = $state('');
   let pgTesting = $state(false);
@@ -153,6 +161,39 @@
       cloudTelemetryEnabled = !!tel?.enabled;
       cloudTelemetryInstanceId = tel?.instance_id || tel?.server_id || null;
     } catch { /* endpoint may not exist */ }
+  }
+
+  async function loadBridgeStatus() {
+    try {
+      const data = await api.apiFetch('/cloud/bridge/status');
+      bridgeEnabled = !!data?.enabled;
+      bridgeConnected = !!data?.connected;
+      bridgeServerId = data?.server_id || '';
+      bridgeAccessUrl = data?.access_url || '';
+      bridgeToken = '';
+    } catch { /* endpoint may not exist on older servers */ }
+  }
+
+  async function toggleBridge() {
+    bridgeLoading = true;
+    try {
+      if (bridgeEnabled) {
+        await api.apiFetch('/cloud/bridge/disable', { method: 'POST' });
+        bridgeEnabled = false;
+        bridgeConnected = false;
+        bridgeAccessUrl = '';
+        bridgeToken = '';
+      } else {
+        const data = await api.apiFetch('/cloud/bridge/enable', { method: 'POST' });
+        bridgeEnabled = true;
+        bridgeServerId = data?.server_id || '';
+        bridgeAccessUrl = data?.access_url || '';
+        bridgeToken = data?.bridge_token || '';
+      }
+    } catch (e) {
+      console.error('toggleBridge failed:', e);
+    }
+    bridgeLoading = false;
   }
 
   function cloudSsoConnect() {
@@ -1075,6 +1116,7 @@
       loadHqplayerConfig();
       // Load Squeezebox status if enabled
       if (config?.squeezebox_enabled) refreshSqueezebox();
+      loadBridgeStatus();
     } catch (e) {
       console.error('Settings load error:', e);
     } finally {
@@ -2377,6 +2419,61 @@
           <p class="muted">{$t('settings.noAudioDevices')}</p>
         {/if}
       </div>
+    </section>
+
+    <!-- Tune Bridge (Remote Access) -->
+    <section class="settings-section">
+      <h3>Tune Bridge</h3>
+      <p class="muted" style="margin-bottom: 1rem">
+        Access your Tune server from anywhere — no VPN or port forwarding needed.
+      </p>
+      <div class="about-row">
+        <span class="about-label">Remote access</span>
+        <button
+          class="scan-btn small"
+          class:danger={bridgeEnabled}
+          onclick={toggleBridge}
+          disabled={bridgeLoading}
+        >
+          {#if bridgeLoading}
+            <div class="spinner small"></div>
+          {:else}
+            {bridgeEnabled ? 'Disable' : 'Enable'}
+          {/if}
+        </button>
+      </div>
+      {#if bridgeEnabled}
+        <div class="about-row">
+          <span class="about-label">Status</span>
+          <span class="badge" class:badge-ok={bridgeConnected} class:badge-warn={!bridgeConnected}>
+            {bridgeConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+        <div class="about-row">
+          <span class="about-label">Server ID</span>
+          <span class="about-value mono">{bridgeServerId}</span>
+        </div>
+        {#if bridgeAccessUrl}
+          <div class="about-row">
+            <span class="about-label">Access URL</span>
+            <a href={bridgeAccessUrl} target="_blank" rel="noopener" class="about-value link">{bridgeAccessUrl}</a>
+          </div>
+        {/if}
+        {#if bridgeToken}
+          <div class="about-row">
+            <span class="about-label">Token</span>
+            <code class="about-value mono" style="font-size: 0.75rem; word-break: break-all">{bridgeToken}</code>
+          </div>
+          <p class="muted" style="margin-top: 0.5rem">
+            Save this token — it won't be shown again. Restart the server to activate.
+          </p>
+        {/if}
+        {#if !bridgeConnected}
+          <p class="muted" style="margin-top: 0.5rem">
+            Restart the server to connect to the relay.
+          </p>
+        {/if}
+      {/if}
     </section>
     {/if}
 
