@@ -235,16 +235,20 @@
 
   // Genre search filter (client-side)
   let searchQuery = $state('');
+  let sortByAlpha = $state(false);
 
   let filteredBranches = $derived.by(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return Object.keys(tree).sort((a, b) => (parentCounts[b] ?? 0) - (parentCounts[a] ?? 0));
+    const sortFn = sortByAlpha
+      ? (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' })
+      : (a: string, b: string) => (parentCounts[b] ?? 0) - (parentCounts[a] ?? 0);
+    if (!q) return Object.keys(tree).sort(sortFn);
     return Object.keys(tree)
       .filter(parent => {
         if (parent.toLowerCase().includes(q)) return true;
         return tree[parent].some(child => child.toLowerCase().includes(q));
       })
-      .sort((a, b) => (parentCounts[b] ?? 0) - (parentCounts[a] ?? 0));
+      .sort(sortFn);
   });
 
   let filteredOrphanGenres = $derived.by(() => {
@@ -259,14 +263,19 @@
     <!-- Genre list — branches first, then orphan genres -->
     <div class="view-header">
       <h2>{$tr('nav.genres')}</h2>
-      <div class="genre-search-box">
-        <svg class="genre-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-        <input type="text" placeholder="Filtrer les genres..." bind:value={searchQuery} />
-        {#if searchQuery}
-          <button class="genre-search-clear" onclick={() => searchQuery = ''}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-          </button>
-        {/if}
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="sort-toggle" title={sortByAlpha ? 'Tri par nombre d\'albums' : 'Tri alphabétique'} onclick={() => sortByAlpha = !sortByAlpha}>
+          {sortByAlpha ? 'A→Z' : '#'}
+        </button>
+        <div class="genre-search-box">
+          <svg class="genre-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+          <input type="text" placeholder="Filtrer les genres..." bind:value={searchQuery} />
+          {#if searchQuery}
+            <button class="genre-search-clear" onclick={() => searchQuery = ''}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </button>
+          {/if}
+        </div>
       </div>
     </div>
     {#if Object.keys(tree).length > 0}
@@ -505,6 +514,24 @@
     font-size: 28px;
     font-weight: 600;
     letter-spacing: -0.8px;
+  }
+
+  /* Sort toggle */
+  .sort-toggle {
+    background: var(--tune-surface, #1a1a2e);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md, 8px);
+    color: var(--tune-text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.12s, color 0.12s;
+  }
+  .sort-toggle:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
   }
 
   /* Genre search */
