@@ -11,14 +11,12 @@ function load(): string[] {
   return DISPLAY_FIELDS_DEFAULTS;
 }
 
+function save(fields: string[]) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(fields)); } catch {}
+}
+
 function createDisplayFieldsStore() {
   const { subscribe, set, update } = writable<string[]>(load());
-
-  function save(fields: string[]) {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(fields)); } catch {}
-  }
-
-  subscribe(v => save(v));
 
   window.addEventListener('storage', (e) => {
     if (e.key === STORAGE_KEY) set(load());
@@ -26,12 +24,16 @@ function createDisplayFieldsStore() {
 
   return {
     subscribe,
-    set,
+    set(v: string[]) {
+      save(v);
+      set(v);
+    },
     toggle(key: string) {
       update(fields => {
         const next = fields.includes(key)
           ? fields.filter(k => k !== key)
           : [...fields, key];
+        save(next);
         return next;
       });
     },
