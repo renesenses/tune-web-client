@@ -24,22 +24,22 @@
     Promise.all([
       api.checkForUpdate().then((r) => { serverVersion = r?.current_version ?? null; }).catch(() => {}),
       fetch(`/api/v1/system/changelog?limit=10`)
-        .then(r => r.json())
+        .then(r => r.ok ? r.json() : Promise.reject('not ok'))
         .then((data: any) => {
-          const entries = data.entries ?? data;
+          const entries = data?.entries ?? data;
           if (!Array.isArray(entries)) return;
           changelog = entries.map((e: any) => {
             if (e.features || e.fixes || e.improvements) return e;
             const sections = e.sections ?? [];
             const find = (titles: string[]) => sections.find((s: any) => titles.some(t => (s.title || '').toLowerCase().includes(t)))?.items ?? [];
             return {
-              version: e.version,
-              date: e.date,
+              version: e.version ?? '',
+              date: e.date ?? '',
               features: find(['nouveaut', 'feature', 'new']),
               fixes: find(['correction', 'fix', 'bug']),
               improvements: find(['amélioration', 'improvement', 'perf', 'optim']),
             };
-          }).reverse();
+          }).filter((e: any) => e.version);
         })
         .catch(() => {}),
     ]).finally(() => { loading = false; });
