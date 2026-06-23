@@ -1460,29 +1460,10 @@
   }
 
   // Display metadata fields (chips shown under track titles)
-  // Fetches the full catalog from the server, persists selection to localStorage + server.
-  const DISPLAY_FIELDS_DEFAULT = ['format', 'sample_rate', 'bit_depth', 'genre', 'year', 'label', 'composer'];
-  const DISPLAY_FIELDS_KEY = 'tune_metadata_fields';
-
-  function loadDisplayFields(): string[] {
-    try {
-      const raw = localStorage.getItem(DISPLAY_FIELDS_KEY);
-      if (raw) return JSON.parse(raw) as string[];
-    } catch {}
-    return DISPLAY_FIELDS_DEFAULT;
-  }
-
-  let displayFields = $state<string[]>(loadDisplayFields());
+  import { displayFields, DISPLAY_FIELDS_DEFAULTS } from '../lib/stores/displayFields';
 
   function toggleDisplayField(key: string) {
-    const next = displayFields.includes(key)
-      ? displayFields.filter(k => k !== key)
-      : [...displayFields, key];
-    displayFields = next;
-    try {
-      localStorage.setItem(DISPLAY_FIELDS_KEY, JSON.stringify(next));
-    } catch {}
-    saveMetadataFields();
+    displayFields.toggle(key);
   }
 
   // Use onMount (not $effect) to load data exactly once on component
@@ -2602,7 +2583,7 @@
             <button class="category-toggle" onclick={() => toggleMetadataCategory(cat.name)}>
               <span class="toggle-icon">{metadataCollapsed[cat.name] ? '▸' : '▾'}</span>
               <span class="category-name">{cat.name}</span>
-              <span class="category-count">{cat.fields.filter((f: any) => displayFields.includes(f.key)).length}/{cat.fields.length}</span>
+              <span class="category-count">{cat.fields.filter((f: any) => $displayFields.includes(f.key)).length}/{cat.fields.length}</span>
             </button>
             {#if !metadataCollapsed[cat.name]}
               <div class="display-fields-grid">
@@ -2610,7 +2591,7 @@
                   <label class="display-field-check">
                     <input
                       type="checkbox"
-                      checked={displayFields.includes(field.key)}
+                      checked={$displayFields.includes(field.key)}
                       onchange={() => toggleDisplayField(field.key)}
                     />
                     <span>{field.label}</span>
@@ -2622,9 +2603,9 @@
         {/each}
       {:else}
         <div class="display-fields-grid">
-          {#each DISPLAY_FIELDS_DEFAULT as key}
+          {#each DISPLAY_FIELDS_DEFAULTS as key}
             <label class="display-field-check">
-              <input type="checkbox" checked={displayFields.includes(key)} onchange={() => toggleDisplayField(key)} />
+              <input type="checkbox" checked={$displayFields.includes(key)} onchange={() => toggleDisplayField(key)} />
               <span>{key}</span>
             </label>
           {/each}

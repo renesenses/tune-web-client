@@ -20,17 +20,7 @@
   import { activeView } from '../lib/stores/navigation';
   import ServiceBadge from './ServiceBadge.svelte';
   import QualityBadge from './QualityBadge.svelte';
-
-  const DISPLAY_FIELDS_KEY = 'tune_metadata_fields';
-  const DISPLAY_FIELDS_DEFAULT = ['format', 'genre', 'year'];
-  function getDisplayFields(): string[] {
-    try {
-      const raw = localStorage.getItem(DISPLAY_FIELDS_KEY);
-      if (raw) return JSON.parse(raw) as string[];
-    } catch {}
-    return DISPLAY_FIELDS_DEFAULT;
-  }
-  let displayFields = $state<string[]>(getDisplayFields());
+  import { displayFields } from '../lib/stores/displayFields';
   import type { ArtistMetadata } from '../lib/types';
 
   function observeHeight(node: HTMLElement, callback: (h: number) => void) {
@@ -1433,7 +1423,7 @@
                   {#if t.artist_name}
                     <span class="track-artist truncate">{t.artist_name}</span>
                   {/if}
-                  <MetadataChips track={t} fields={displayFields} />
+                  <MetadataChips track={t} fields={$displayFields} />
                 </div>
                 {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
@@ -1530,7 +1520,7 @@
                 {#if t.artist_name}
                   <span class="track-artist truncate">{t.artist_name}</span>
                 {/if}
-                <MetadataChips track={t} fields={displayFields} />
+                <MetadataChips track={t} fields={$displayFields} />
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
@@ -2120,7 +2110,7 @@
               <div class="track-info" title={t.file_path ?? ''}>
                 <span class="track-title truncate">{t.title}</span>
                 <span class="track-meta truncate">{#if t.artist_name}<button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.artist_id) selectArtistDetail({ id: t.artist_id, name: t.artist_name! }); }}>{t.artist_name}</button>{/if}{#if t.album_title}<span class="track-sep"> — </span><button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.album_id) selectAlbumDetail({ id: t.album_id, title: t.album_title!, artist_name: t.artist_name } as Album); }}>{t.album_title}</button>{/if}</span>
-                <MetadataChips track={t} fields={displayFields} />
+                <MetadataChips track={t} fields={$displayFields} />
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>

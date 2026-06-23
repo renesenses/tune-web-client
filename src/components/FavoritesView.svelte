@@ -6,8 +6,10 @@
   import { activeView } from '../lib/stores/navigation';
   import * as api from '../lib/api';
   import { t as tr } from '../lib/i18n';
-  import { formatTime, formatAudioBadge } from '../lib/utils';
+  import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
+  import MetadataChips from './MetadataChips.svelte';
+  import { displayFields } from '../lib/stores/displayFields';
   import type { Track, Album, Artist } from '../lib/types';
 
   interface Props {
@@ -167,8 +169,8 @@
             <div class="track-info">
               <span class="track-title truncate">{t.title}</span>
               <span class="track-meta truncate">{t.artist_name ?? ''}{#if t.album_title} — {t.album_title}{/if}</span>
+              <MetadataChips track={t} fields={$displayFields} />
             </div>
-            {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
             <button class="action-btn" onclick={(e) => { e.stopPropagation(); addToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
             {#if onAddToPlaylist && (t.id || t.source_id)}
@@ -391,18 +393,6 @@
     color: var(--tune-text-muted);
   }
 
-  .audio-format {
-    font-family: var(--font-label);
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 2px 6px;
-    border-radius: var(--radius-sm);
-    background: rgba(87, 198, 185, 0.1);
-    color: var(--tune-accent);
-    flex-shrink: 0;
-  }
 
   .track-duration {
     font-family: var(--font-label);

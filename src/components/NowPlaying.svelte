@@ -17,6 +17,7 @@
   import { activeView } from '../lib/stores/navigation';
   import VolumeControl from './VolumeControl.svelte';
   import MetadataChips from './MetadataChips.svelte';
+  import { displayFields } from '../lib/stores/displayFields';
   import type { RepeatMode, Track, TrackCredit } from '../lib/types';
 
   let isFavorite = $state(false);
@@ -582,17 +583,6 @@
   let sheetDragging = $state(false);
   let sheetEl = $state<HTMLElement | null>(null);
 
-  // Queue metadata display fields
-  const QUEUE_DISPLAY_FIELDS_KEY = 'tune_metadata_fields';
-  const QUEUE_DISPLAY_FIELDS_DEFAULT = ['format', 'genre', 'year'];
-  function getQueueDisplayFields(): string[] {
-    try {
-      const raw = localStorage.getItem(QUEUE_DISPLAY_FIELDS_KEY);
-      if (raw) return JSON.parse(raw) as string[];
-    } catch {}
-    return QUEUE_DISPLAY_FIELDS_DEFAULT;
-  }
-  let queueDisplayFields = $state<string[]>(getQueueDisplayFields());
 
   // Refresh queue when sheet is opened
   $effect(() => {
@@ -1396,6 +1386,7 @@
                 {#if queueTrack.artist_name}
                   <span class="qs-track-artist truncate">{queueTrack.artist_name}</span>
                 {/if}
+                <MetadataChips track={queueTrack} fields={$displayFields} />
               </div>
               <ServiceBadge source={queueTrack.source} compact />
               {#if queueTrack.format}

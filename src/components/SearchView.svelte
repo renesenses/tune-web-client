@@ -13,17 +13,7 @@
   import type { FederatedSearchResult, Track, Album, Artist, Playlist, StreamingPlaylist, Source } from '../lib/types';
   import { t } from '../lib/i18n';
   import MetadataChips from './MetadataChips.svelte';
-
-  const DISPLAY_FIELDS_KEY = 'tune_metadata_fields';
-  const DISPLAY_FIELDS_DEFAULT = ['format', 'genre', 'year'];
-  function getDisplayFields(): string[] {
-    try {
-      const raw = localStorage.getItem(DISPLAY_FIELDS_KEY);
-      if (raw) return JSON.parse(raw) as string[];
-    } catch {}
-    return DISPLAY_FIELDS_DEFAULT;
-  }
-  let displayFields = $state<string[]>(getDisplayFields());
+  import { displayFields } from '../lib/stores/displayFields';
 
   // --- Search history (localStorage) ---
   const SEARCH_HISTORY_KEY = 'tune_search_history';
@@ -1059,6 +1049,7 @@
                                   {#if track.album_title} &middot; {track.album_title}{/if}
                                 </span>
                               {/if}
+                              <MetadataChips track={track} fields={$displayFields} />
                             </div>
                           </button>
                           <div class="track-right">
