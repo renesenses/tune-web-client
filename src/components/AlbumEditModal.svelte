@@ -156,7 +156,11 @@
       if (title !== album.title) data.title = title;
       if (year !== (album.year ?? null)) data.year = year;
       if (genre !== (album.genre ?? '')) data.genre = genre || null;
-      if (artistId !== (album.artist_id ?? null)) data.artist_id = artistId;
+      if (artistId !== (album.artist_id ?? null)) {
+        data.artist_id = artistId;
+      } else if (artistInput.trim() && artistInput.trim().toLowerCase() !== (album.artist_name ?? '').toLowerCase() && !resolveArtistByName(artistInput)) {
+        data.artist_name = artistInput.trim();
+      }
       if (label !== (album.label ?? '')) data.label = label || null;
       if (catalogNumber !== (album.catalog_number ?? '')) data.catalog_number = catalogNumber || null;
 
@@ -382,7 +386,7 @@
               {/each}
             </datalist>
             {#if artistInput && !resolveArtistByName(artistInput) && artistInput.trim().toLowerCase() !== (album.artist_name ?? '').toLowerCase()}
-              <span class="hint-warn">Aucun artiste exact ne correspond — choisis dans la liste.</span>
+              <span class="hint-info">Nouvel artiste « {artistInput.trim()} » sera créé à la sauvegarde.</span>
             {/if}
           </label>
 
@@ -869,6 +873,12 @@
   .hint-warn {
     font-size: 11px;
     color: #fdba74;
+    margin-top: 4px;
+  }
+
+  .hint-info {
+    font-size: 11px;
+    color: #93c5fd;
     margin-top: 4px;
   }
 
