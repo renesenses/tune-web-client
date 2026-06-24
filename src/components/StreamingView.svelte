@@ -444,12 +444,25 @@
     if (!zone?.id || !track.source || !track.source_id) return;
     try {
       await api.addToQueue(zone.id, { source: (track.source || service) as any, source_id: track.source_id });
-      // Refresh queue after add
       const qs = await api.getQueue(zone.id);
       queueTracks.set(qs.tracks);
       queuePosition.set(qs.position);
     } catch (e) {
       console.error('Add streaming track to queue error:', e);
+    }
+  }
+
+  async function playNextStreaming(track: Track) {
+    if (!zone?.id || !track.source_id) return;
+    try {
+      const qs = await api.getQueue(zone.id);
+      const nextPos = qs.position + 1;
+      await api.addToQueue(zone.id, { source: (track.source || service) as any, source_id: track.source_id, position: nextPos });
+      const updated = await api.getQueue(zone.id);
+      queueTracks.set(updated.tracks);
+      queuePosition.set(updated.position);
+    } catch (e) {
+      console.error('Play next streaming track error:', e);
     }
   }
 
@@ -549,7 +562,10 @@
             <ServiceBadge source={t.source} compact />
             <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
-            <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+            <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title="Lire ensuite">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
+                </button>
+                <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
             {#if onAddToPlaylist && (t.id || t.source_id)}
               <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
@@ -601,7 +617,10 @@
             <ServiceBadge source={t.source} compact />
             <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
-            <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+            <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title="Lire ensuite">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
+                </button>
+                <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
             {#if onAddToPlaylist && (t.id || t.source_id)}
               <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
@@ -748,6 +767,9 @@
                   <span class="track-artist truncate">{t.artist_name ?? ''}</span>
                 </div>
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
+                <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title="Lire ensuite">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
+                </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               </div>
             {/each}
@@ -769,6 +791,9 @@
                   <span class="track-artist truncate">{t.artist_name ?? ''}</span>
                 </div>
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
+                <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title="Lire ensuite">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
+                </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               </div>
             {/each}
@@ -790,6 +815,9 @@
                   <span class="track-artist truncate">{t.artist_name ?? ''}</span>
                 </div>
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
+                <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title="Lire ensuite">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
+                </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               </div>
             {/each}
@@ -962,7 +990,10 @@
               <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
               <button class="fav-btn small" class:is-fav={favTrackIds.has(String(t.source_id ?? t.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('tracks', String(t.source_id ?? t.id)); }} title="Favori">♥</button>
-              <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+              <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title="Lire ensuite">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
+                </button>
+                <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               {#if onAddToPlaylist && (t.id || t.source_id)}
                 <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
@@ -1722,13 +1753,30 @@
     opacity: 0;
   }
 
-  .track-item:hover .add-queue-btn {
+  .track-item:hover .add-queue-btn,
+  .track-item:hover .play-next-btn {
     opacity: 1;
   }
 
-  .add-queue-btn:hover {
+  .add-queue-btn:hover,
+  .play-next-btn:hover {
     border-color: var(--tune-accent);
     color: var(--tune-accent);
+  }
+
+  .play-next-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease-out;
+    opacity: 0;
   }
 
   .fav-btn {
