@@ -11,6 +11,7 @@
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { activeView, settingsInitialTab } from '../lib/stores/navigation';
+  import { licenseState, isPremium, loadLicense } from '../lib/stores/license';
   import SmbWizard from './SmbWizard.svelte';
   import FolderWizard from './FolderWizard.svelte';
   import MultiroomSettings from './MultiroomSettings.svelte';
@@ -224,7 +225,66 @@
     cloudTelemetryLoading = false;
   }
 
+  // License / Premium
+  let licenseKeyInput = $state('');
+  let licenseActivating = $state(false);
+  let licenseDeactivating = $state(false);
+  let licenseValidating = $state(false);
+  let licenseError = $state<string | null>(null);
+
+  async function handleActivateLicense() {
+    const key = licenseKeyInput.trim();
+    if (!key) return;
+    licenseActivating = true;
+    licenseError = null;
+    try {
+      const result = await api.activateLicense(key);
+      if (result.status === 'ok' || result.tier === 'premium' || result.tier === 'pro') {
+        notifications.success('Licence activee avec succes !');
+        licenseKeyInput = '';
+        await loadLicense();
+      } else {
+        licenseError = 'Cle invalide ou expiree';
+      }
+    } catch (e: any) {
+      licenseError = e?.message === 'premium_required' ? 'Cle invalide' : (e?.message ?? 'Erreur');
+    }
+    licenseActivating = false;
+  }
+
+  async function handleDeactivateLicense() {
+    if (!confirm('Desactiver votre licence Premium ? Vous perdrez l\'acces aux fonctionnalites Premium.')) return;
+    licenseDeactivating = true;
+    try {
+      await api.deactivateLicense();
+      notifications.success('Licence desactivee');
+      await loadLicense();
+    } catch (e: any) {
+      notifications.error(e?.message ?? 'Erreur');
+    }
+    licenseDeactivating = false;
+  }
+
+  async function handleValidateLicense() {
+    licenseValidating = true;
+    try {
+      await api.validateLicense();
+      await loadLicense();
+      notifications.success('Licence validee');
+    } catch (e: any) {
+      notifications.error(e?.message ?? 'Erreur de validation');
+    }
+    licenseValidating = false;
+  }
+
+  function maskLicenseKey(key: string | null): string {
+    if (!key) return '';
+    if (key.length <= 4) return key;
+    return '****-****-****-' + key.slice(-4);
+  }
+
   loadCloudStatus();
+  loadLicense();
 
   // After an SSO redirect the server may still be finalising the token exchange
   // when the SPA loads.  Detect a recent SSO attempt (localStorage flag set by
@@ -3274,6 +3334,77 @@
       </div>
     </section>
 
+    <!-- Licence Tune Premium -->
+    <section class="settings-section">
+      <h3>Licence Tune Premium</h3>
+
+      <!-- Tier badge -->
+      <div class="license-tier-row">
+        {#if $isPremium}
+          <span class="license-badge premium">Premium</span>
+        {:else}
+          <span class="license-badge free">Free</span>
+        {/if}
+        {#if $licenseState.expiresAt}
+          <span class="license-expires">Expire le {new Date($licenseState.expiresAt).toLocaleDateString('fr-FR')}</span>
+        {/if}
+      </div>
+
+      {#if $licenseState.licenseKey}
+        <!-- Active license display -->
+        <div class="license-active-row">
+          <span class="license-key-display">{maskLicenseKey($licenseState.licenseKey)}</span>
+          <div class="license-actions">
+            <button class="scan-btn small" onclick={handleValidateLicense} disabled={licenseValidating}>
+              {licenseValidating ? 'Validation...' : 'Valider'}
+            </button>
+            <button class="scan-btn small danger-btn" onclick={handleDeactivateLicense} disabled={licenseDeactivating}>
+              {licenseDeactivating ? 'Desactivation...' : 'Desactiver'}
+            </button>
+          </div>
+        </div>
+      {:else}
+        <!-- Key input + activate -->
+        <div class="license-input-row">
+          <input
+            type="text"
+            class="pref-select license-key-input"
+            placeholder="XXXX-XXXX-XXXX-XXXX"
+            bind:value={licenseKeyInput}
+            onkeydown={(e) => { if (e.key === 'Enter') handleActivateLicense(); }}
+          />
+          <button class="scan-btn" onclick={handleActivateLicense} disabled={licenseActivating || !licenseKeyInput.trim()}>
+            {licenseActivating ? 'Activation...' : 'Activer'}
+          </button>
+        </div>
+        {#if licenseError}
+          <div class="license-error">{licenseError}</div>
+        {/if}
+      {/if}
+
+      <!-- Features list -->
+      {#if Object.keys($licenseState.features).length > 0}
+        <div class="license-features">
+          <h4 class="cloud-label">Fonctionnalites</h4>
+          <div class="license-features-grid">
+            {#each Object.entries($licenseState.features) as [key, feat]}
+              <div class="license-feature-item" class:enabled={feat.enabled} class:locked={!feat.enabled}>
+                <span class="license-feature-icon">{feat.enabled ? '✓' : '🔒'}</span>
+                <span class="license-feature-name">{feat.display_name}</span>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      <div class="license-footer">
+        <a href="https://mozaiklabs.fr/pricing" target="_blank" rel="noopener noreferrer" class="license-pricing-link">
+          Voir les offres sur mozaiklabs.fr/pricing
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+        </a>
+      </div>
+    </section>
+
     <!-- About -->
     <section class="settings-section">
       <h3>{$t('settings.about')}</h3>
@@ -4898,6 +5029,148 @@
     padding: 1px 6px;
     border-radius: var(--radius-sm);
     font-size: 10px;
+  }
+
+  /* License / Premium section */
+  .license-tier-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+
+  .license-badge {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 9999px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .license-badge.free {
+    background: rgba(107, 114, 128, 0.15);
+    color: #9ca3af;
+  }
+
+  .license-badge.premium {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2));
+    color: #f59e0b;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.15);
+  }
+
+  .license-expires {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+  }
+
+  .license-active-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+
+  .license-key-display {
+    font-family: monospace;
+    font-size: 13px;
+    color: var(--tune-text-secondary);
+    background: var(--tune-bg);
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    letter-spacing: 1px;
+  }
+
+  .license-actions {
+    display: flex;
+    gap: var(--space-sm);
+    flex-shrink: 0;
+  }
+
+  .license-input-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+  }
+
+  .license-key-input {
+    flex: 1;
+    max-width: 300px;
+    font-family: monospace;
+    letter-spacing: 1px;
+  }
+
+  .license-error {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-danger, #ef4444);
+    margin-bottom: var(--space-md);
+  }
+
+  .license-features {
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+
+  .license-features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-sm);
+  }
+
+  .license-feature-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 6px 10px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 13px;
+    transition: background 0.12s;
+  }
+
+  .license-feature-item.enabled {
+    color: var(--tune-text);
+    background: rgba(74, 222, 128, 0.06);
+  }
+
+  .license-feature-item.locked {
+    color: var(--tune-text-muted);
+    background: rgba(107, 114, 128, 0.06);
+  }
+
+  .license-feature-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+    width: 18px;
+    text-align: center;
+  }
+
+  .license-feature-name {
+    min-width: 0;
+  }
+
+  .license-footer {
+    margin-top: var(--space-sm);
+  }
+
+  .license-pricing-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-accent);
+    text-decoration: none;
+    transition: opacity 0.12s;
+  }
+
+  .license-pricing-link:hover {
+    opacity: 0.8;
   }
 
   /* Metadata fields configuration */

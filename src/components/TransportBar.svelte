@@ -14,6 +14,7 @@
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
   import type { OutputType, RepeatMode } from '../lib/types';
   import { activeView, mobileNowPlayingOpen } from '../lib/stores/navigation';
+  import { isPremium } from '../lib/stores/license';
 
   function deviceTypeLabel(type?: OutputType): string {
     switch (type) {
@@ -712,6 +713,9 @@
       <button class="zone-selector-btn" class:zone-recovering={zone?.recovery_started_at != null} class:zone-offline={zone?.online === false && zone?.recovery_started_at == null} onclick={(e) => { e.stopPropagation(); showZoneDropdown = !showZoneDropdown; }} title={$t('zone.switchZone')}>
         <span class="zone-dot-current" class:online={zone?.online !== false && zone?.recovery_started_at == null} class:recovering={zone?.recovery_started_at != null}></span>
         <span class="truncate">{zone?.name ?? $t('zone.noZone')}</span>
+        {#if $isPremium}
+          <span class="pro-pill">PRO</span>
+        {/if}
         {#if zone?.recovery_started_at != null}
           <span class="zone-status-badge recovering">{$t('zone.recovering')} ({zone.recovery_started_at}s)</span>
         {:else if zone?.online === false}
@@ -1248,6 +1252,19 @@
   @keyframes dot-pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
+  }
+
+  .pro-pill {
+    font-family: var(--font-label);
+    font-size: 8px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.25));
+    color: #f59e0b;
+    letter-spacing: 0.8px;
+    flex-shrink: 0;
+    line-height: 1.3;
   }
 
   .zone-popover-backdrop {

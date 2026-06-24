@@ -70,6 +70,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import GlobalSearchBar from './components/GlobalSearchBar.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
   import { loadProfiles } from './lib/stores/profile';
+  import { loadLicense } from './lib/stores/license';
   import { notifications } from './lib/stores/notifications';
   import { healthStatus } from './lib/stores/health';
   import { streamingServices as streamingServicesStore } from './lib/stores/streaming';
@@ -498,6 +499,7 @@ import AlarmsView from './components/AlarmsView.svelte';
     fetchDevices();
     fetchPlaylists();
     loadProfiles();
+    loadLicense();
     checkOnboarding();
     checkWhatsNew();
 
@@ -873,6 +875,12 @@ import AlarmsView from './components/AlarmsView.svelte';
       // Device events
       if (type.startsWith('device.')) {
         fetchDevices();
+        return;
+      }
+
+      // License updated — reload license state
+      if (type === 'license.updated') {
+        loadLicense();
         return;
       }
 

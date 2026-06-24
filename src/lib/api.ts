@@ -116,6 +116,15 @@ async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
       clearToken();
       throw new Error('Session expired');
     }
+    if (response.status === 402) {
+      try {
+        const body = await response.json();
+        notifications.error(body?.message || 'Tune Premium requis pour cette fonctionnalite');
+      } catch {
+        notifications.error('Tune Premium requis pour cette fonctionnalite');
+      }
+      throw new Error('premium_required');
+    }
     const err = await apiError(response);
     if (response.status >= 500) {
       notifications.error(`Server error: ${err.message}`);
@@ -2750,5 +2759,49 @@ export function setOaatEndpointVolumeOffset(groupId: string, endpointId: string,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ offset }),
+  });
+}
+
+// --- License / Premium ---
+
+export interface LicenseFeature {
+  enabled: boolean;
+  display_name: string;
+}
+
+export interface LicenseStatus {
+  tier: string;
+  license_key: string | null;
+  expires_at: string | null;
+  features: Record<string, LicenseFeature>;
+  zone_limit: number;
+  hardware_fingerprint: string | null;
+}
+
+export interface LicenseActivateResponse {
+  status: string;
+  tier: string;
+}
+
+export function getLicenseStatus(): Promise<LicenseStatus> {
+  return fetchJSON<LicenseStatus>(`${BASE}/cloud/license/status`);
+}
+
+export function activateLicense(licenseKey: string): Promise<LicenseActivateResponse> {
+  return fetchJSON<LicenseActivateResponse>(`${BASE}/cloud/license/activate`, {
+    method: 'POST',
+    body: JSON.stringify({ license_key: licenseKey }),
+  });
+}
+
+export function deactivateLicense(): Promise<LicenseActivateResponse> {
+  return fetchJSON<LicenseActivateResponse>(`${BASE}/cloud/license/deactivate`, {
+    method: 'POST',
+  });
+}
+
+export function validateLicense(): Promise<{ status: string }> {
+  return fetchJSON<{ status: string }>(`${BASE}/cloud/license/validate`, {
+    method: 'POST',
   });
 }
