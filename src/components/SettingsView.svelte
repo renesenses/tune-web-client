@@ -2496,6 +2496,14 @@
         </button>
         {#if enrichMsg}<span class="action-feedback">{enrichMsg}</span>{/if}
       </div>
+      <div class="settings-actions" style="margin-top: 12px;">
+        <button class="action-btn" onclick={async () => { await api.apiFetch('/library/enrich-all', { method: 'POST' }); enrichMsg = 'Enrichissement MusicBrainz lancé (genre, label, année, compositeur, ISRC)...'; setTimeout(() => enrichMsg = '', 5000); }}>
+          Enrichir via MusicBrainz
+        </button>
+        <button class="action-btn" style="margin-left: 8px;" onclick={async () => { await api.apiFetch('/library/write-tags', { method: 'POST', body: JSON.stringify({ only_missing: true }) }); enrichMsg = 'Écriture des tags dans les fichiers lancée (champs manquants uniquement)...'; setTimeout(() => enrichMsg = '', 5000); }}>
+          Écrire les tags dans les fichiers
+        </button>
+      </div>
     </section>
     {/if}
     {/if}
