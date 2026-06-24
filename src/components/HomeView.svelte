@@ -939,6 +939,7 @@
     display: flex;
     flex-direction: column;
     padding: var(--space-xl) 32px;
+    padding-bottom: calc(var(--space-xl) + 24px);
     overflow-y: auto;
     gap: var(--space-xl);
   }

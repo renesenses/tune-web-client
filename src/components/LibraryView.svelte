@@ -448,6 +448,26 @@
   let albumSort = $state<AlbumSortKey>((localStorage.getItem('tune_album_sort') as AlbumSortKey) || 'title');
   let albumSortOrder = $state<'asc' | 'desc'>((localStorage.getItem('tune_album_sort_order') as 'asc' | 'desc') || 'asc');
 
+  type GenreSortKey = 'title' | 'artist' | 'year';
+  const GENRE_SORT_OPTIONS: { key: GenreSortKey; label: string; defaultOrder: 'asc' | 'desc' }[] = [
+    { key: 'title', label: 'Titre', defaultOrder: 'asc' },
+    { key: 'artist', label: 'Artiste', defaultOrder: 'asc' },
+    { key: 'year', label: 'Année', defaultOrder: 'desc' },
+  ];
+  let genreSort = $state<GenreSortKey>((localStorage.getItem('tune_genre_sort') as GenreSortKey) || 'artist');
+  let genreSortOrder = $state<'asc' | 'desc'>((localStorage.getItem('tune_genre_sort_order') as 'asc' | 'desc') || 'asc');
+
+  function setGenreSort(key: GenreSortKey) {
+    if (genreSort === key) {
+      genreSortOrder = genreSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      genreSort = key;
+      genreSortOrder = GENRE_SORT_OPTIONS.find(o => o.key === key)?.defaultOrder ?? 'asc';
+    }
+    localStorage.setItem('tune_genre_sort', genreSort);
+    localStorage.setItem('tune_genre_sort_order', genreSortOrder);
+  }
+
   function setAlbumSort(key: AlbumSortKey) {
     if (albumSort === key) {
       // Toggle order on re-click
@@ -769,7 +789,18 @@
         ...(genreTree[selectedParent] ?? []).map(c => c.toLowerCase())]);
       result = $albums.filter(a => a.genre && branch.has(a.genre.toLowerCase()));
     }
-    return result.sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
+    const dir = genreSortOrder === 'asc' ? 1 : -1;
+    return result.sort((a, b) => {
+      if (genreSort === 'year') {
+        const ya = a.original_year ?? a.year ?? 0;
+        const yb = b.original_year ?? b.year ?? 0;
+        return (ya - yb) * dir || (a.title ?? '').localeCompare(b.title ?? '');
+      }
+      if (genreSort === 'artist') {
+        return (a.artist_name ?? '').localeCompare(b.artist_name ?? '') * dir || (a.title ?? '').localeCompare(b.title ?? '');
+      }
+      return (a.title ?? '').localeCompare(b.title ?? '') * dir;
+    });
   });
 
   // "No genre" filter state for genres tab
@@ -2161,6 +2192,21 @@
             {/if}
           {/if}
           <span class="genre-detail-count">{genreAlbums.length} {genreAlbums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
+          <span class="sort-control">
+            <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M3 6h18M3 12h12M3 18h6" /></svg>
+            <select class="sort-select" value={genreSort} onchange={(e) => setGenreSort((e.currentTarget as HTMLSelectElement).value as GenreSortKey)}>
+              {#each GENRE_SORT_OPTIONS as opt}
+                <option value={opt.key}>{opt.label}</option>
+              {/each}
+            </select>
+            <button class="sort-order-btn" onclick={() => { genreSortOrder = genreSortOrder === 'asc' ? 'desc' : 'asc'; localStorage.setItem('tune_genre_sort_order', genreSortOrder); }} title={genreSortOrder === 'asc' ? 'Croissant' : 'Décroissant'}>
+              {#if genreSortOrder === 'asc'}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14M5 12l7-7 7 7" /></svg>
+              {:else}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 19V5M5 12l7 7 7-7" /></svg>
+              {/if}
+            </button>
+          </span>
         </div>
 
         <!-- Subchips when on a parent branch (or with a child selected) -->
@@ -2320,6 +2366,7 @@
     display: flex;
     flex-direction: column;
     padding: var(--space-lg) 28px;
+    padding-bottom: calc(var(--space-lg) + 24px);
     overflow-y: auto;
     overflow-x: hidden;
   }

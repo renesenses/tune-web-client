@@ -3444,6 +3444,7 @@
     display: flex;
     flex-direction: column;
     padding: var(--space-lg) 28px;
+    padding-bottom: calc(var(--space-lg) + 24px);
     overflow-y: auto;
     gap: var(--space-lg);
   }
