@@ -902,8 +902,9 @@ export function browseDirectory(path: string) {
 
 // --- Media Servers (UPnP/DLNA) ---
 
-export function getMediaServers() {
-  return fetchJSON<import('./types').MediaServer[]>(`${BASE}/network/media-servers`);
+export async function getMediaServers(): Promise<import('./types').MediaServer[]> {
+  const data = await fetchJSON<any>(`${BASE}/network/media-servers`);
+  return Array.isArray(data) ? data : data.items ?? [];
 }
 
 export function browseMediaServer(serverId: string, objectId: string = '0') {
