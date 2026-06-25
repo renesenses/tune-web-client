@@ -203,6 +203,7 @@
   }
 
   function parseRules(sp: SmartPlaylist): Rule[] {
+    if (Array.isArray(sp.rules)) return sp.rules;
     try { return JSON.parse(sp.rules || '[]'); } catch { return []; }
   }
 

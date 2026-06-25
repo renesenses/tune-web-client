@@ -24,10 +24,9 @@
   // to a single empty rule for the create flow.
   let rules = $state<SmartRule[]>(
     collection?.rules
-      ? (() => {
-          try { return JSON.parse(collection.rules); }
-          catch { return []; }
-        })()
+      ? (Array.isArray(collection.rules)
+          ? collection.rules
+          : (() => { try { return JSON.parse(collection.rules); } catch { return []; } })())
       : [{ field: 'sample_rate', op: '>=', value: 96000 }]
   );
 
@@ -136,7 +135,7 @@
         description, icon, color,
         rules, match_mode: matchMode,
         sort_by: sortBy, sort_order: sortOrder,
-        max_albums: maxAlbums,
+        max_limit: maxAlbums,
       };
       let saved: SmartCollection;
       if (collection?.id) {
