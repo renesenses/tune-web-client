@@ -4,7 +4,7 @@
   import type { DashboardData, DashboardPeriod } from '../lib/api';
   import { t } from '../lib/i18n';
   import { activeView } from '../lib/stores/navigation';
-  import { selectedAlbum, selectedArtist, libraryTab, albumTracks } from '../lib/stores/library';
+  import { selectedAlbum, selectedArtist, libraryTab, albumTracks, artistAlbums } from '../lib/stores/library';
   import { artworkUrl } from '../lib/api';
 
   let tree = $state<Record<string, string[]>>({});
@@ -51,8 +51,12 @@
     try {
       const results = await api.searchLibrary(name, 5);
       const hit = results.artists?.find((a: any) => (a.name || '').toLowerCase() === name.toLowerCase());
-      if (hit) {
+      if (hit?.id) {
+        selectedAlbum.set(null);
+        albumTracks.set([]);
         selectedArtist.set(hit);
+        const albums = await api.getArtistAlbums(hit.id);
+        artistAlbums.set(albums);
         libraryTab.set('artists');
         activeView.set('library');
       }
