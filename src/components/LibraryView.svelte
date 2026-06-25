@@ -202,6 +202,35 @@
   let enrichLoading = $state(false);
   let bioLevel = $state<'simple' | 'complete' | 'full'>('complete');
 
+  // Artist name editing
+  let editingArtistName = $state(false);
+  let artistNameInput = $state('');
+  let artistNameSaving = $state(false);
+
+  async function saveArtistName() {
+    if (!$selectedArtist?.id || !artistNameInput.trim()) return;
+    artistNameSaving = true;
+    try {
+      const updated = await api.updateArtist($selectedArtist.id, { name: artistNameInput.trim() });
+      // Update the store so the UI refreshes
+      selectedArtist.set({ ...$selectedArtist, name: updated.name ?? artistNameInput.trim() });
+      editingArtistName = false;
+    } catch (e) {
+      console.error('Save artist name error:', e);
+    }
+    artistNameSaving = false;
+  }
+
+  function startEditArtistName() {
+    if (!$selectedArtist) return;
+    artistNameInput = $selectedArtist.name;
+    editingArtistName = true;
+  }
+
+  function cancelEditArtistName() {
+    editingArtistName = false;
+  }
+
   // Streaming albums for current artist
   let streamingArtistAlbums = $state<{ service: string; albums: Album[] }[]>([]);
   let streamingArtistAlbumsLoading = $state(false);
@@ -1661,7 +1690,34 @@
           {/if}
         </div>
         <div class="artist-detail-info">
-          <h2 class="artist-detail-name">{$selectedArtist.name}</h2>
+          {#if editingArtistName}
+            <div class="artist-name-edit">
+              <input
+                type="text"
+                class="artist-name-input"
+                bind:value={artistNameInput}
+                onkeydown={(e) => { if (e.key === 'Enter') saveArtistName(); if (e.key === 'Escape') cancelEditArtistName(); }}
+                autofocus
+              />
+              <button class="artist-name-save" onclick={saveArtistName} disabled={artistNameSaving || !artistNameInput.trim()}>
+                {#if artistNameSaving}
+                  <div class="spinner-sm"></div>
+                {:else}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
+                {/if}
+              </button>
+              <button class="artist-name-cancel" onclick={cancelEditArtistName}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            </div>
+          {:else}
+            <h2 class="artist-detail-name">
+              {$selectedArtist.name}
+              <button class="artist-edit-btn" onclick={startEditArtistName} title="Modifier le nom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+              </button>
+            </h2>
+          {/if}
           {#if $artistAlbums.length > 0}
             <span class="artist-detail-count">{$artistAlbums.length} {$artistAlbums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
           {/if}
@@ -3831,6 +3887,78 @@
     font-size: 32px;
     font-weight: 700;
     letter-spacing: -0.8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .artist-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px;
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+  }
+
+  .artist-detail-name:hover .artist-edit-btn {
+    opacity: 1;
+  }
+
+  .artist-edit-btn:hover {
+    color: var(--tune-accent);
+  }
+
+  .artist-name-edit {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .artist-name-input {
+    font-family: var(--font-label);
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.8px;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-accent);
+    border-radius: 6px;
+    padding: 4px 10px;
+    color: var(--tune-text);
+    outline: none;
+    min-width: 200px;
+  }
+
+  .artist-name-save,
+  .artist-name-cancel {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px;
+    border: 1px solid var(--tune-border);
+    border-radius: 4px;
+    background: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .artist-name-save:hover:not(:disabled) {
+    color: var(--tune-success, #4ade80);
+    border-color: var(--tune-success, #4ade80);
+  }
+
+  .artist-name-cancel:hover {
+    color: var(--tune-danger, #f87171);
+    border-color: var(--tune-danger, #f87171);
+  }
+
+  .artist-name-save:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
 
   .artist-detail-count {
