@@ -235,10 +235,14 @@
       {#if data.top_artists.length > 0}
         <div class="card">
           <h3>{$t('dashboard.section.top_artists')}</h3>
-          <ol class="rank-list">
+          <ol class="rank-list rank-list-with-cover">
             {#each data.top_artists as a}
               <li>
-                <span class="rank-icon">🎤</span>
+                {#if a.cover_path}
+                  <img class="rank-cover" src={artworkUrl(a.cover_path, 80)} alt="" loading="lazy" />
+                {:else}
+                  <div class="rank-cover-empty">🎤</div>
+                {/if}
                 <button class="rank-name rank-link" onclick={() => openArtist(a.artist_name)} title="Voir l'artiste">{a.artist_name}</button>
                 <span class="rank-meta">{a.plays} · {formatMs(a.listening_ms)}</span>
               </li>
@@ -271,10 +275,14 @@
       {#if data.top_tracks.length > 0}
         <div class="card">
           <h3>{$t('dashboard.section.top_tracks')}</h3>
-          <ol class="rank-list">
+          <ol class="rank-list rank-list-with-cover">
             {#each data.top_tracks as t}
               <li>
-                <span class="rank-icon">🎵</span>
+                {#if t.cover_path}
+                  <img class="rank-cover" src={artworkUrl(t.cover_path, 80)} alt="" loading="lazy" />
+                {:else}
+                  <div class="rank-cover-empty">🎵</div>
+                {/if}
                 <button class="rank-name rank-link" onclick={() => openTrack(t.track_id, t.title, t.artist_name)} title="Voir la piste">
                   {t.title}<span class="rank-sub"> — {t.artist_name}</span>
                 </button>
