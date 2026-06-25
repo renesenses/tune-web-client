@@ -19,6 +19,7 @@
   let isLoadingTop = $state(false);
   let isLoadingRadioFrance = $state(false);
   let selectedGenre = $state<number | null>(null);
+  const genreCache = new Map<string, any[]>();
 
   // Search
   let searchQuery = $state('');
@@ -97,10 +98,11 @@
     try {
       await api.subscribePodcast({
         title: podcast.name || podcast.title || podcast.collectionName,
-        feed_url: podcast.feed_url || podcast.feedUrl,
+        feed_url: podcast.feed_url || podcast.feedUrl || '',
         author: podcast.artist || podcast.author || podcast.artistName,
         image_url: podcast.cover_url || podcast.image_url || podcast.artworkUrl600,
         description: podcast.description,
+        source_id: podcast.source_id,
       });
       await loadSubscriptions();
     } catch (e) {
@@ -132,9 +134,16 @@
   // --- Discover ---
 
   async function loadTopPodcasts(genreId?: number | null) {
+    const cacheKey = String(genreId ?? 'all');
+    const cached = genreCache.get(cacheKey);
+    if (cached) {
+      topPodcasts = cached;
+      return;
+    }
     isLoadingTop = true;
     try {
       topPodcasts = await api.getTopPodcasts(genreId);
+      genreCache.set(cacheKey, topPodcasts);
     } catch (e) {
       console.error('Load top podcasts error:', e);
       topPodcasts = [];

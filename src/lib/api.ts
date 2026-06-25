@@ -2111,7 +2111,7 @@ export function getPodcastSubscriptions(): Promise<any[]> {
   return fetchJSON(`${BASE}/podcasts/subscriptions`);
 }
 
-export function subscribePodcast(podcast: { title: string; feed_url: string; author?: string; image_url?: string; description?: string }): Promise<any> {
+export function subscribePodcast(podcast: { title: string; feed_url: string; author?: string; image_url?: string; description?: string; source_id?: string }): Promise<any> {
   return fetchJSON(`${BASE}/podcasts/subscriptions`, { method: 'POST', body: JSON.stringify(podcast) });
 }
 
