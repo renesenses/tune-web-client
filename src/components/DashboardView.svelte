@@ -269,9 +269,10 @@
                 {:else}
                   <div class="rank-cover-empty rank-clickable" onclick={() => openAlbum(a.album_title, a.artist_name)}></div>
                 {/if}
-                <button class="rank-name rank-link" onclick={() => openAlbum(a.album_title, a.artist_name)} title="Voir l'album">
-                  {a.album_title}<span class="rank-sub"> — {a.artist_name}</span>
-                </button>
+                <span class="rank-info">
+                  <button class="rank-name rank-link" onclick={() => openAlbum(a.album_title, a.artist_name)} title="Voir l'album">{a.album_title}</button>
+                  <button class="rank-artist-link" onclick={() => openArtist(a.artist_name)} title="Voir l'artiste">{a.artist_name}</button>
+                </span>
                 <span class="rank-meta">{a.plays}</span>
               </li>
             {/each}
@@ -290,9 +291,10 @@
                 {:else}
                   <div class="rank-cover-empty rank-clickable" onclick={() => openTrack(t.track_id, t.title, t.artist_name)}>🎵</div>
                 {/if}
-                <button class="rank-name rank-link" onclick={() => openTrack(t.track_id, t.title, t.artist_name)} title="Voir la piste">
-                  {t.title}<span class="rank-sub"> — {t.artist_name}</span>
-                </button>
+                <span class="rank-info">
+                  <button class="rank-name rank-link" onclick={() => openTrack(t.track_id, t.title, t.artist_name)} title="Voir la piste">{t.title}</button>
+                  <button class="rank-artist-link" onclick={() => openArtist(t.artist_name)} title="Voir l'artiste">{t.artist_name}</button>
+                </span>
                 <span class="rank-meta">{t.plays}</span>
               </li>
             {/each}
@@ -512,6 +514,10 @@
   .rank-list li::before { content: counter(rank); font-size: 13px; color: var(--tune-text-muted); width: 24px; }
   .rank-icon { font-size: 14px; flex-shrink: 0; width: 20px; text-align: center; }
   .rank-clickable { cursor: pointer; }
+  .rank-info { flex: 1; display: flex; flex-direction: column; gap: 1px; overflow: hidden; min-width: 0; }
+  .rank-info .rank-name { text-align: left; }
+  .rank-artist-link { background: none; border: none; padding: 0; font: inherit; font-size: 12px; color: var(--tune-text-muted, #888); cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rank-artist-link:hover { color: var(--tune-accent); }
   .rank-name { flex: 1; font-size: 14px; color: var(--tune-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rank-link {
     background: none; border: none; padding: 0; text-align: left;
