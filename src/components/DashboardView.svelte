@@ -5,8 +5,8 @@
   import { t } from '../lib/i18n';
   import { activeView } from '../lib/stores/navigation';
   import { selectedAlbum, selectedArtist, libraryTab, albumTracks, artistAlbums } from '../lib/stores/library';
-  import { artworkUrl, play } from '../lib/api';
-  import { currentZone, currentZoneId } from '../lib/stores/zones';
+  import { artworkUrl } from '../lib/api';
+  import { currentZone, playAndSync } from '../lib/stores/zones';
 
   let tree = $state<Record<string, string[]>>({});
 
@@ -108,14 +108,29 @@
     }
   }
 
+  async function getZoneId(): Promise<number | null> {
+    const zone = $currentZone;
+    if (zone?.id) return zone.id;
+    try {
+      const allZones = await api.getZones();
+      const online = allZones.find((z: any) => z.online && z.state !== 'error');
+      if (online?.id) return online.id;
+      if (allZones[0]?.id) return allZones[0].id;
+    } catch {}
+    return null;
+  }
+
   async function playTrack(trackId: number | null) {
-    if (!trackId || !$currentZoneId) return;
-    try { await play($currentZoneId, { track_id: trackId }); } catch {}
+    if (!trackId) return;
+    const zoneId = await getZoneId();
+    if (!zoneId) return;
+    try { await playAndSync(zoneId, { track_id: trackId }); } catch (e) { console.error('Dashboard playTrack error:', e); }
   }
 
   async function playAlbumById(albumId: number) {
-    if (!$currentZoneId) return;
-    try { await play($currentZoneId, { album_id: albumId }); } catch {}
+    const zoneId = await getZoneId();
+    if (!zoneId) return;
+    try { await playAndSync(zoneId, { album_id: albumId }); } catch (e) { console.error('Dashboard playAlbum error:', e); }
   }
 
   let period = $state<DashboardPeriod>('30d');
@@ -274,13 +289,12 @@
           <ol class="rank-list rank-list-with-cover">
             {#each data.top_albums as a}
               <li>
-                <div class="rank-cover-wrap" onclick={() => openAlbum(a.album_title, a.artist_name)}>
+                <div class="rank-cover-wrap" onclick={() => a.album_id && playAlbumById(a.album_id)}>
                   {#if a.cover_path}
                     <img class="rank-cover rank-clickable" src={artworkUrl(a.cover_path, 80)} alt="" loading="lazy" />
                   {:else}
                     <div class="rank-cover-empty rank-clickable">💿</div>
                   {/if}
-                  {#if a.album_id}<button class="rank-play-btn" onclick={(e) => { e.stopPropagation(); playAlbumById(a.album_id); }} title="Lancer la lecture">▶</button>{/if}
                 </div>
                 <span class="rank-info">
                   <button class="rank-name rank-link" onclick={() => openAlbum(a.album_title, a.artist_name)} title="Voir l'album">{a.album_title}</button>
@@ -299,13 +313,12 @@
           <ol class="rank-list rank-list-with-cover">
             {#each data.top_tracks as t}
               <li>
-                <div class="rank-cover-wrap" onclick={() => openTrack(t.track_id, t.title, t.artist_name)}>
+                <div class="rank-cover-wrap" onclick={() => playTrack(t.track_id)}>
                   {#if t.cover_path}
                     <img class="rank-cover rank-clickable" src={artworkUrl(t.cover_path, 80)} alt="" loading="lazy" />
                   {:else}
                     <div class="rank-cover-empty rank-clickable">🎵</div>
                   {/if}
-                  <button class="rank-play-btn" onclick={(e) => { e.stopPropagation(); playTrack(t.track_id); }} title="Lancer la lecture">▶</button>
                 </div>
                 <span class="rank-info">
                   <button class="rank-name rank-link" onclick={() => openTrack(t.track_id, t.title, t.artist_name)} title="Voir la piste">{t.title}</button>
