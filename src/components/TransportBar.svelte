@@ -847,6 +847,46 @@
     transition: height 0.2s ease-out;
     overflow: visible;
     min-width: 0;
+    /* Respond to the bar's OWN width, not the viewport: the sidebar steals
+       ~280px, so at a wide viewport the bar can still be cramped. Without this
+       the centre controls (which grow with playback state) overflow the side
+       columns and the repeat icon lands on the zone name. */
+    container-type: inline-size;
+    container-name: tbar;
+  }
+
+  /* When the bar itself is narrow, drop the secondary centre buttons and
+     tighten gaps so left (title) / centre (transport) / right (zone+volume)
+     keep their lanes instead of overlapping. */
+  @container tbar (max-width: 1080px) {
+    .transport-controls {
+      gap: 4px;
+    }
+    .transport-controls .signal-dot-btn,
+    .transport-controls .audiophile-btn {
+      display: none;
+    }
+    .zone-selector-btn {
+      max-width: 140px;
+    }
+  }
+
+  @container tbar (max-width: 980px) {
+    /* Same trade-off the mobile breakpoint makes: drop the secondary
+       transport buttons (shuffle/repeat) so the centre stays compact and
+       can't spill its icons onto the zone chip. */
+    .transport-controls .control-btn.small {
+      display: none;
+    }
+    .zone-selector-btn .pro-pill {
+      display: none;
+    }
+    .zone-selector-btn {
+      max-width: 120px;
+    }
+    .transport-right :global(.volume-slider) {
+      width: 64px;
+    }
   }
 
   .transport-left {
@@ -1197,7 +1237,10 @@
     align-items: center;
     gap: var(--space-md);
     min-width: 0;
-    overflow: visible;
+    /* Clip rather than spill left into the transport controls: when the bar is
+       cramped the zone chip + volume can exceed this 1fr column, and an
+       overflow here used to drop the repeat icon onto the zone name. */
+    overflow: hidden;
   }
 
   .zone-selector {
