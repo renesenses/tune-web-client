@@ -5,7 +5,8 @@
   import { t } from '../lib/i18n';
   import { activeView } from '../lib/stores/navigation';
   import { selectedAlbum, selectedArtist, libraryTab, albumTracks, artistAlbums } from '../lib/stores/library';
-  import { artworkUrl } from '../lib/api';
+  import { artworkUrl, play } from '../lib/api';
+  import { currentZone, currentZoneId } from '../lib/stores/zones';
 
   let tree = $state<Record<string, string[]>>({});
 
@@ -100,12 +101,21 @@
         libraryTab.set('albums');
         activeView.set('library');
         return;
-        }
       }
       openAlbum(title, artist);
     } catch {
       openAlbum(title, artist);
     }
+  }
+
+  async function playTrack(trackId: number | null) {
+    if (!trackId || !$currentZoneId) return;
+    try { await play($currentZoneId, { track_id: trackId }); } catch {}
+  }
+
+  async function playAlbumById(albumId: number) {
+    if (!$currentZoneId) return;
+    try { await play($currentZoneId, { album_id: albumId }); } catch {}
   }
 
   let period = $state<DashboardPeriod>('30d');
@@ -264,11 +274,14 @@
           <ol class="rank-list rank-list-with-cover">
             {#each data.top_albums as a}
               <li>
-                {#if a.cover_path}
-                  <img class="rank-cover rank-clickable" src={artworkUrl(a.cover_path, 80)} alt="" loading="lazy" onclick={() => openAlbum(a.album_title, a.artist_name)} />
-                {:else}
-                  <div class="rank-cover-empty rank-clickable" onclick={() => openAlbum(a.album_title, a.artist_name)}></div>
-                {/if}
+                <div class="rank-cover-wrap" onclick={() => openAlbum(a.album_title, a.artist_name)}>
+                  {#if a.cover_path}
+                    <img class="rank-cover rank-clickable" src={artworkUrl(a.cover_path, 80)} alt="" loading="lazy" />
+                  {:else}
+                    <div class="rank-cover-empty rank-clickable">💿</div>
+                  {/if}
+                  {#if a.album_id}<button class="rank-play-btn" onclick={(e) => { e.stopPropagation(); playAlbumById(a.album_id); }} title="Lancer la lecture">▶</button>{/if}
+                </div>
                 <span class="rank-info">
                   <button class="rank-name rank-link" onclick={() => openAlbum(a.album_title, a.artist_name)} title="Voir l'album">{a.album_title}</button>
                   <button class="rank-artist-link" onclick={() => openArtist(a.artist_name)} title="Voir l'artiste">{a.artist_name}</button>
@@ -286,11 +299,14 @@
           <ol class="rank-list rank-list-with-cover">
             {#each data.top_tracks as t}
               <li>
-                {#if t.cover_path}
-                  <img class="rank-cover rank-clickable" src={artworkUrl(t.cover_path, 80)} alt="" loading="lazy" onclick={() => openTrack(t.track_id, t.title, t.artist_name)} />
-                {:else}
-                  <div class="rank-cover-empty rank-clickable" onclick={() => openTrack(t.track_id, t.title, t.artist_name)}>🎵</div>
-                {/if}
+                <div class="rank-cover-wrap" onclick={() => openTrack(t.track_id, t.title, t.artist_name)}>
+                  {#if t.cover_path}
+                    <img class="rank-cover rank-clickable" src={artworkUrl(t.cover_path, 80)} alt="" loading="lazy" />
+                  {:else}
+                    <div class="rank-cover-empty rank-clickable">🎵</div>
+                  {/if}
+                  <button class="rank-play-btn" onclick={(e) => { e.stopPropagation(); playTrack(t.track_id); }} title="Lancer la lecture">▶</button>
+                </div>
                 <span class="rank-info">
                   <button class="rank-name rank-link" onclick={() => openTrack(t.track_id, t.title, t.artist_name)} title="Voir la piste">{t.title}</button>
                   <button class="rank-artist-link" onclick={() => openArtist(t.artist_name)} title="Voir l'artiste">{t.artist_name}</button>
@@ -307,7 +323,9 @@
           <ol class="rank-list rank-list-with-cover">
             {#each data.top_radios as r}
               <li>
-                {#if r.cover_url}
+                {#if r.cover_path}
+                  <img class="rank-cover" src={artworkUrl(r.cover_path, 80)} alt="" loading="lazy" />
+                {:else if r.cover_url}
                   <img class="rank-cover" src={r.cover_url} alt="" loading="lazy" />
                 {:else}
                   <div class="rank-cover-empty">📻</div>
@@ -381,7 +399,7 @@
     <!-- Weekday × Hour heatmap (7 rows × 24 cols) -->
     {#if weekdayHourlyMax > 0}
       <div class="card">
-        <h3>{$t('dashboard.section.weekday_hourly') ?? 'Quand tu écoutes (semaine × heure)'}</h3>
+        <h3>{$t('dashboard.section.weekday_hourly')}</h3>
         <div class="wh-wrap">
           <div class="wh-hours">
             <div class="wh-day-label"></div>
@@ -534,7 +552,19 @@
   .rank-cover-empty {
     width: 32px; height: 32px; border-radius: var(--radius-sm);
     background: var(--tune-grey2, rgba(255,255,255,0.05)); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
   }
+  .rank-cover-wrap {
+    position: relative; flex-shrink: 0; cursor: pointer;
+    width: 32px; height: 32px;
+  }
+  .rank-cover-wrap .rank-cover, .rank-cover-wrap .rank-cover-empty { width: 100%; height: 100%; }
+  .rank-play-btn {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.5); color: white; border: none; border-radius: var(--radius-sm);
+    font-size: 12px; cursor: pointer; opacity: 0; transition: opacity 0.15s;
+  }
+  .rank-cover-wrap:hover .rank-play-btn { opacity: 1; }
 
   .trend-bars { display: flex; align-items: flex-end; gap: 2px; height: 80px; }
   .trend-bar { flex: 1; min-width: 4px; background: var(--tune-accent, #6366f1); border-radius: 2px 2px 0 0; transition: opacity 0.2s; }

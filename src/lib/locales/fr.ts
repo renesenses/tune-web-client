@@ -651,6 +651,7 @@ export default {
   'dashboard.section.hourly': "Heure d'écoute",
   'dashboard.section.by_zone': 'Par zone',
   'dashboard.section.by_source': 'Par source',
+  'dashboard.section.weekday_hourly': 'Quand tu écoutes (semaine × heure)',
   'dashboard.section.completion': 'Pistes terminées vs skippées',
   'dashboard.completion.completed': 'Terminées',
   'dashboard.completion.skipped': 'Skippées',
