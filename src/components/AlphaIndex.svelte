@@ -9,6 +9,7 @@
   let { letters, activeLetter = '', onSelect, formatLabel }: Props = $props();
 
   let isDragging = $state(false);
+  let compact = $derived(letters.length > 30);
 
   function handleClick(letter: string) {
     onSelect(letter);
@@ -43,6 +44,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="alpha-index"
+  class:compact
   onmousedown={handleMouseDown}
   ontouchmove={handleTouchMove}
   role="navigation"
@@ -71,7 +73,7 @@
     user-select: none;
     -webkit-user-select: none;
     overflow-y: auto;
-    max-height: calc(100vh - 180px);
+    max-height: 100%;
     scrollbar-width: none;
   }
 
@@ -89,6 +91,12 @@
     border-radius: 4px;
     transition: color 0.1s, background 0.1s;
     line-height: 1.3;
+  }
+
+  .alpha-index.compact .alpha-letter {
+    font-size: 8px;
+    padding: 0px 4px;
+    line-height: 1.15;
   }
 
   .alpha-letter:hover,

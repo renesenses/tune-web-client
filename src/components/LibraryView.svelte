@@ -2280,7 +2280,7 @@
         {#if filteredOrphanGenres.length > 0}
           <h3 class="bc-section-title">Hors arbre</h3>
           <div class="genres-grid">
-            {#each filteredOrphanGenres as g}
+            {#each filteredOrphanGenres.sort((a, b) => b.count - a.count) as g}
               <button class="genre-card" onclick={() => selectGenreInTab(g.name)}>
                 <span class="genre-card-name">{g.name}</span>
                 <span class="genre-card-count">{g.count} {g.count > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
