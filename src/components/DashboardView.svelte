@@ -133,6 +133,12 @@
     try { await playAndSync(zoneId, { album_id: albumId }); } catch (e) { console.error('Dashboard playAlbum error:', e); }
   }
 
+  async function playRadioById(radioId: number) {
+    const zoneId = await getZoneId();
+    if (!zoneId) return;
+    try { await api.playRadio(radioId, zoneId); } catch (e) { console.error('Dashboard playRadio error:', e); }
+  }
+
   let period = $state<DashboardPeriod>('30d');
   let data = $state<DashboardData | null>(null);
   let loading = $state(false);
@@ -336,13 +342,15 @@
           <ol class="rank-list rank-list-with-cover">
             {#each data.top_radios as r}
               <li>
-                {#if r.cover_path}
-                  <img class="rank-cover" src={artworkUrl(r.cover_path, 80)} alt="" loading="lazy" />
-                {:else if r.cover_url}
-                  <img class="rank-cover" src={r.cover_url} alt="" loading="lazy" />
-                {:else}
-                  <div class="rank-cover-empty">📻</div>
-                {/if}
+                <div class="rank-cover-wrap" onclick={() => r.radio_id && playRadioById(r.radio_id)}>
+                  {#if r.cover_path}
+                    <img class="rank-cover rank-clickable" src={artworkUrl(r.cover_path, 80)} alt="" loading="lazy" />
+                  {:else if r.cover_url}
+                    <img class="rank-cover rank-clickable" src={r.cover_url} alt="" loading="lazy" />
+                  {:else}
+                    <div class="rank-cover-empty rank-clickable">📻</div>
+                  {/if}
+                </div>
                 <span class="rank-name">{r.station_name}</span>
                 <span class="rank-meta">{r.plays} · {formatMs(r.listening_ms)}</span>
               </li>
@@ -375,7 +383,7 @@
           <h3>📅 Il y a quelques années…</h3>
           <ul class="otd-list">
             {#each data.on_this_day.slice(0, 8) as t}
-              <li>
+              <li class="otd-clickable" onclick={() => openTrack(null, t.track_title ?? '', t.artist_name ?? '')}>
                 <span class="otd-year">{t.year ?? '?'}</span>
                 <span class="otd-title">
                   {t.track_title ?? '?'}
@@ -644,6 +652,8 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .otd-sub { color: var(--tune-text-muted); font-size: 12px; }
+  .otd-clickable { cursor: pointer; border-radius: 4px; padding: 2px 4px; transition: background 0.15s; }
+  .otd-clickable:hover { background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12); }
 
   .completion-bar { display: flex; height: 12px; border-radius: var(--radius-md); overflow: hidden; margin-bottom: 0.6rem; }
   .completion-completed { background: #10b981; }
