@@ -5,6 +5,7 @@
   import type { Album, Artist, Track, CompletenessStats, BackupInfo } from '../lib/types';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
+  import { tuneWS } from '../lib/websocket';
   import { runAsyncOp } from '../lib/asyncOp';
   import AlbumArt from './AlbumArt.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
@@ -87,7 +88,7 @@
         return `Années ${source} : ${fixed} corrigées sur ${total}${nf ? ` (${nf} introuvables)` : ''}`;
       },
     });
-    if (r) api.getCompletenessStats().then(s => stats = s);
+    if (r) await refreshLibraryView();
     else fixYearsResult = { source, total: 0, fixed: 0, not_found: 0 };
   }
 
@@ -108,7 +109,7 @@
         return `Genres : ${fixed} corrigés sur ${total}`;
       },
     });
-    if (r) api.getCompletenessStats().then(s => stats = s);
+    if (r) await refreshLibraryView();
     else fixGenresResult = { total: 0, fixed: 0 };
   }
 
@@ -609,9 +610,8 @@
 
   let unknownAlbums = $derived(
     allAlbums.filter(a => {
-      const title = (a.title ?? '').toLowerCase();
-      const artist = (a.artist_name ?? '').toLowerCase();
-      return title.includes('unknown') || artist.includes('unknown');
+      // Albums with multiple missing metadata fields (genre AND year both empty)
+      return !a.genre && !a.year;
     })
   );
 
@@ -639,11 +639,7 @@
         result = allAlbums.filter(a => !a.artist_name || a.artist_name === 'Unknown Artist');
         break;
       case 'unknown':
-        result = allAlbums.filter(a => {
-          const t = (a.title ?? '').toLowerCase();
-          const ar = (a.artist_name ?? '').toLowerCase();
-          return t.includes('unknown') || ar.includes('unknown');
-        });
+        result = allAlbums.filter(a => !a.genre && !a.year);
         break;
       default:
         result = allAlbums;
@@ -955,6 +951,7 @@
     try {
       await api.triggerEnrich();
       enrichMessage = $t('metadata.enrichStarted');
+      // Enrichment runs async on server — stats will be refreshed by WS event
     } catch (e) {
       console.error('Enrich error:', e);
       enrichMessage = $t('metadata.saveError');
@@ -1274,6 +1271,16 @@
     loadBackups();
   });
 
+  // WS subscription: refresh stats + albums when enrichment completes
+  $effect(() => {
+    const unsub = tuneWS.onEvent((event) => {
+      if (event.type === 'library.enrich.completed' || event.type === 'library.scan.completed') {
+        refreshLibraryView();
+      }
+    });
+    return () => unsub();
+  });
+
   async function validateDoubtful(album: import('../lib/api').DoubtfulAlbum) {
     // Normalize: fix uppercase artist, apply resolved artist, etc.
     const updates: Record<string, any> = {};
@@ -1490,7 +1497,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
               Genres (Last.fm)
             </button>
-            <button class="tools-item" onclick={() => runFromMenu(async () => { await api.triggerEnrich(); notifications.success('Enrichissement MusicBrainz lancé'); }, 'enrich')}>
+            <button class="tools-item" onclick={() => runFromMenu(triggerEnrich, 'enrich')} disabled={enriching}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>
               Enrichir via MusicBrainz
             </button>
