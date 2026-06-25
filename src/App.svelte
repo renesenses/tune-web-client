@@ -994,10 +994,8 @@ import AlarmsView from './components/AlarmsView.svelte';
       <DJView />
     {:else if $activeView === 'party'}
       <PartyView />
-    {:else if $activeView === 'collections'}
+    {:else if $activeView === 'collections' || $activeView === 'smartcollections'}
       <CollectionsView />
-    {:else if $activeView === 'smartcollections'}
-      <SmartCollectionsView />
     {:else if $activeView === 'dashboard'}
       <DashboardView />
     {:else if $activeView === 'equalizer'}

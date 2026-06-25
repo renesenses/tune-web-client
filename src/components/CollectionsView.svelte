@@ -7,7 +7,8 @@
   import type { Album } from '../lib/types';
   import SmartCollectionsView from './SmartCollectionsView.svelte';
 
-  let smartCollapsed = $state(false);
+  type CollectionTab = 'smart' | 'manual';
+  let activeTab = $state<CollectionTab>('smart');
 
   let collections: any[] = $state([]);
   let loading = $state(true);
@@ -15,7 +16,6 @@
   let collectionAlbums: any[] = $state([]);
   let detailLoading = $state(false);
 
-  // Create form
   let showCreate = $state(false);
   let newName = $state('');
   let newColor = $state('#6366f1');
@@ -92,126 +92,171 @@
   }
 
   $effect(() => {
-    loadCollections();
+    if (activeTab === 'manual') loadCollections();
   });
 </script>
 
-<div class="collections-unified">
-  <SmartCollectionsView />
+<div class="collections-hub">
+  <header class="hub-header">
+    <h2>Collections</h2>
+  </header>
 
-<div class="collections-view">
-  {#if selectedCollection}
-    <div class="detail-header">
-      <button class="back-btn" onclick={() => { selectedCollection = null; collectionAlbums = []; }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
-        Retour
-      </button>
-    </div>
-    <div class="collection-detail">
-      <div class="collection-detail-header">
-        {#if selectedCollection.color}
-          <span class="col-color-big" style="background:{selectedCollection.color}"></span>
-        {/if}
-        <h2>{selectedCollection.name}</h2>
-        {#if selectedCollection.description}
-          <p class="col-desc">{selectedCollection.description}</p>
-        {/if}
-        <span class="col-count">{collectionAlbums.length} albums</span>
-      </div>
-      {#if detailLoading}
-        <div class="loading"><div class="spinner"></div></div>
-      {:else if collectionAlbums.length === 0}
-        <p class="empty-msg">Aucun album dans cette collection</p>
-      {:else}
-        <div class="albums-grid">
-          {#each collectionAlbums as album}
-            <div class="album-card">
-              <button class="album-cover" onclick={() => navigateToAlbum(album)}>
-                <AlbumArt coverPath={album.cover_path} albumId={album.id} size={160} alt={album.title} />
-              </button>
-              <span class="album-title truncate">{album.title}</span>
-              <span class="album-artist truncate">{album.artist_name ?? ''}</span>
-              <button class="remove-btn" onclick={() => removeAlbum(album.id)} title="Retirer">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-              </button>
-            </div>
-          {/each}
-        </div>
-      {/if}
+  <nav class="tabs" role="tablist">
+    <button class="tab" class:active={activeTab === 'smart'}
+            onclick={() => activeTab = 'smart'} role="tab">Smart Collections</button>
+    <button class="tab" class:active={activeTab === 'manual'}
+            onclick={() => activeTab = 'manual'} role="tab">Collections</button>
+  </nav>
+
+  {#if activeTab === 'smart'}
+    <div class="tab-content">
+      <SmartCollectionsView />
     </div>
   {:else}
-    <div class="collections-header">
-      <h2>Collections</h2>
-      <button class="create-btn" onclick={() => showCreate = !showCreate}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-        Nouvelle collection
-      </button>
-    </div>
-
-    {#if showCreate}
-      <div class="create-form">
-        <input type="text" placeholder="Nom de la collection" bind:value={newName} onkeydown={(e) => e.key === 'Enter' && handleCreate()} />
-        <input type="color" bind:value={newColor} class="color-picker" />
-        <button class="confirm-btn" onclick={handleCreate}>Créer</button>
-      </div>
-    {/if}
-
-    {#if loading}
-      <div class="loading"><div class="spinner"></div></div>
-    {:else if collections.length === 0}
-      <p class="empty-msg">Aucune collection. Creez-en une pour organiser vos albums.</p>
-    {:else}
-      <div class="collections-list">
-        {#each collections as col}
-          <div class="collection-card">
-            <button class="collection-btn" onclick={() => selectCollection(col)}>
-              {#if col.color}
-                <span class="col-color" style="background:{col.color}"></span>
-              {/if}
-              <div class="col-info">
-                <span class="col-name">{col.name}</span>
-                <span class="col-meta">{col.album_count ?? 0} albums</span>
-              </div>
-              <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
-            </button>
-            <button class="delete-col-btn" onclick={() => handleDelete(col.id)} title="Supprimer">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-            </button>
+    <div class="tab-content">
+      {#if selectedCollection}
+        <div class="detail-header">
+          <button class="back-btn" onclick={() => { selectedCollection = null; collectionAlbums = []; }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
+            Retour
+          </button>
+        </div>
+        <div class="collection-detail">
+          <div class="collection-detail-header">
+            {#if selectedCollection.color}
+              <span class="col-color-big" style="background:{selectedCollection.color}"></span>
+            {/if}
+            <h2>{selectedCollection.name}</h2>
+            {#if selectedCollection.description}
+              <p class="col-desc">{selectedCollection.description}</p>
+            {/if}
+            <span class="col-count">{collectionAlbums.length} albums</span>
           </div>
-        {/each}
-      </div>
-    {/if}
+          {#if detailLoading}
+            <div class="loading"><div class="spinner"></div></div>
+          {:else if collectionAlbums.length === 0}
+            <p class="empty-msg">Aucun album dans cette collection</p>
+          {:else}
+            <div class="albums-grid">
+              {#each collectionAlbums as album}
+                <div class="album-card">
+                  <button class="album-cover" onclick={() => navigateToAlbum(album)}>
+                    <AlbumArt coverPath={album.cover_path} albumId={album.id} size={160} alt={album.title} />
+                  </button>
+                  <span class="album-title truncate">{album.title}</span>
+                  <span class="album-artist truncate">{album.artist_name ?? ''}</span>
+                  <button class="remove-btn" onclick={() => removeAlbum(album.id)} title="Retirer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  </button>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      {:else}
+        <div class="collections-header">
+          <button class="create-btn" onclick={() => showCreate = !showCreate}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            Nouvelle collection
+          </button>
+        </div>
+
+        {#if showCreate}
+          <div class="create-form">
+            <input type="text" placeholder="Nom de la collection" bind:value={newName} onkeydown={(e) => e.key === 'Enter' && handleCreate()} />
+            <input type="color" bind:value={newColor} class="color-picker" />
+            <button class="confirm-btn" onclick={handleCreate}>Créer</button>
+          </div>
+        {/if}
+
+        {#if loading}
+          <div class="loading"><div class="spinner"></div></div>
+        {:else if collections.length === 0}
+          <p class="empty-msg">Aucune collection. Créez-en une pour organiser vos albums.</p>
+        {:else}
+          <div class="collections-list">
+            {#each collections as col}
+              <div class="collection-card">
+                <button class="collection-btn" onclick={() => selectCollection(col)}>
+                  {#if col.color}
+                    <span class="col-color" style="background:{col.color}"></span>
+                  {/if}
+                  <div class="col-info">
+                    <span class="col-name">{col.name}</span>
+                    <span class="col-meta">{col.album_count ?? 0} albums</span>
+                  </div>
+                  <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
+                </button>
+                <button class="delete-col-btn" onclick={() => handleDelete(col.id)} title="Supprimer">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                </button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      {/if}
+    </div>
   {/if}
-</div>
 </div>
 
 <style>
-  .collections-unified {
+  .collections-hub {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-  }
-  .collections-view {
     height: 100%;
+    color: var(--tune-text);
+    background: var(--tune-bg);
+  }
+
+  .hub-header {
     display: flex;
-    flex-direction: column;
-    padding: var(--space-lg) 28px;
+    align-items: center;
+    padding: 1rem 1rem 0.5rem;
+  }
+  .hub-header h2 {
+    flex: 1;
+    margin: 0;
+    font-family: var(--font-label);
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--tune-divider, #333);
+    padding: 0 0.5rem;
+  }
+  .tab {
+    background: transparent;
+    color: var(--tune-text-secondary, #aaa);
+    border: none;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    font-family: var(--font-label);
+  }
+  .tab.active {
+    color: var(--tune-accent, #6366f1);
+    border-bottom-color: var(--tune-accent, #6366f1);
+  }
+  .tab:hover:not(.active) {
+    color: var(--tune-text);
+  }
+
+  .tab-content {
+    flex: 1;
     overflow-y: auto;
-    gap: var(--space-lg);
   }
 
   .collections-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-  }
-
-  .collections-header h2 {
-    font-family: var(--font-label);
-    font-size: 28px;
-    font-weight: 600;
-    letter-spacing: -0.8px;
-    color: var(--tune-text);
+    justify-content: flex-end;
+    padding: 0 28px;
+    margin-bottom: var(--space-md);
   }
 
   .create-btn {

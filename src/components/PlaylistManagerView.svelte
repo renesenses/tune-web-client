@@ -1130,6 +1130,15 @@
           <div class="track-item">
             <button class="track-play" onclick={() => playTrack(t)}>
               <span class="track-num">{index + 1}</span>
+              <span class="track-thumb">
+                {#if t.cover_path}
+                  <img src={t.cover_path} alt="" loading="lazy" />
+                {:else}
+                  <span class="track-thumb-placeholder">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                  </span>
+                {/if}
+              </span>
               <div class="track-info">
                 <span class="track-title truncate">{t.title}</span>
                 {#if t.artist_name}
@@ -2625,6 +2634,32 @@
     font-size: 13px;
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  .track-thumb {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+
+  .track-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .track-thumb-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tune-surface);
+    color: var(--tune-text-muted);
+    border-radius: var(--radius-sm);
   }
 
   .track-info {
