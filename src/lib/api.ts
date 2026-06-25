@@ -2110,6 +2110,15 @@ export function unsubscribePodcast(id: number): Promise<void> {
   return fetchVoid(`${BASE}/podcasts/subscriptions/${id}`, { method: 'DELETE' });
 }
 
+export async function getTopPodcasts(genreId?: number | null, limit = 50): Promise<any[]> {
+  let url = `${BASE}/podcasts/top?limit=${limit}`;
+  if (genreId) url += `&genre=${genreId}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Top podcasts failed: ${res.status} ${res.statusText}`);
+  const data = await res.json();
+  return data.items || data;
+}
+
 // v0.8.0 — Smart Collections
 export function listSmartCollections() {
   return fetchJSON<import('./types').SmartCollection[]>(`${BASE}/library/smart-collections`);

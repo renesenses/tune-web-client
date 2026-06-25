@@ -1078,6 +1078,8 @@ import AlarmsView from './components/AlarmsView.svelte';
   .app-layout > :global(.transport-bar) {
     grid-column: 2;
     grid-row: 2;
+    z-index: 10;
+    position: relative;
   }
 
   .main-content {

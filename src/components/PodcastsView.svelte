@@ -4,43 +4,108 @@
   import { currentZoneId } from '../lib/stores/zones';
   import { get } from 'svelte/store';
 
+  // --- State ---
+  let activeTab = $state<'subscriptions' | 'discover' | 'search'>('subscriptions');
+  let errorMessage = $state<string | null>(null);
+
+  // Subscriptions
+  let subscriptions = $state<any[]>([]);
+  let newEpisodes = $state<any[]>([]);
+  let isLoadingNewEpisodes = $state(false);
+
+  // Discover
+  let topPodcasts = $state<any[]>([]);
+  let radioFrancePodcasts = $state<any[]>([]);
+  let isLoadingTop = $state(false);
+  let isLoadingRadioFrance = $state(false);
+  let selectedGenre = $state<number | null>(null);
+
+  // Search
   let searchQuery = $state('');
   let searchResults = $state<any[]>([]);
-  let radioFrancePodcasts = $state<any[]>([]);
-  let subscriptions = $state<any[]>([]);
+  let isSearching = $state(false);
+  let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  // Detail (episodes)
   let selectedPodcast = $state<any | null>(null);
   let episodes = $state<any[]>([]);
-  let isSearching = $state(false);
   let isLoadingEpisodes = $state(false);
-  let activeTab = $state<'subscriptions' | 'radiofrance' | 'search'>('subscriptions');
-  let errorMessage = $state<string | null>(null);
-  let searchTimeout: ReturnType<typeof setTimeout> | null = null;
   let playingEpisodeUrl = $state<string | null>(null);
+
+  const genres = [
+    { id: null, label: 'Tous' },
+    { id: 1311, label: 'Actualites' },
+    { id: 1324, label: 'Societe' },
+    { id: 1301, label: 'Arts & Culture' },
+    { id: 1310, label: 'Musique' },
+    { id: 1303, label: 'Comedie' },
+    { id: 1315, label: 'Science' },
+    { id: 1326, label: 'Histoire' },
+    { id: 1325, label: 'True Crime' },
+    { id: 1304, label: 'Education' },
+    { id: 1321, label: 'Business' },
+    { id: 1318, label: 'Tech' },
+    { id: 1316, label: 'Sport' },
+    { id: 1401, label: 'Fiction' },
+  ];
+
+  let selectedGenreLabel = $derived(genres.find(g => g.id === selectedGenre)?.label || 'Tous');
+  let topTen = $derived(topPodcasts.slice(0, 10));
+  let topGrid = $derived(topPodcasts.slice(0, 50));
 
   onMount(() => {
     loadSubscriptions();
     loadRadioFrance();
+    loadTopPodcasts();
   });
+
+  // --- Subscriptions ---
 
   async function loadSubscriptions() {
     try {
       subscriptions = await api.getPodcastSubscriptions();
+      if (subscriptions.length > 0) loadNewEpisodes();
     } catch { subscriptions = []; }
+  }
+
+  async function loadNewEpisodes() {
+    isLoadingNewEpisodes = true;
+    try {
+      const allEpisodes: any[] = [];
+      const promises = subscriptions.slice(0, 10).map(async (sub) => {
+        try {
+          const eps = await api.getPodcastEpisodes(sub.feed_url, 3);
+          return eps.map((e: any) => ({ ...e, podcast_name: sub.title, podcast_image: sub.image_url, podcast_feed_url: sub.feed_url }));
+        } catch { return []; }
+      });
+      const results = await Promise.all(promises);
+      for (const eps of results) allEpisodes.push(...eps);
+      allEpisodes.sort((a, b) => {
+        const da = a.published ? new Date(a.published).getTime() : 0;
+        const db = b.published ? new Date(b.published).getTime() : 0;
+        return db - da;
+      });
+      newEpisodes = allEpisodes.slice(0, 20);
+    } catch {
+      newEpisodes = [];
+    } finally {
+      isLoadingNewEpisodes = false;
+    }
   }
 
   async function subscribe(podcast: any) {
     try {
       await api.subscribePodcast({
-        title: podcast.name || podcast.title,
-        feed_url: podcast.feed_url,
-        author: podcast.artist || podcast.author,
-        image_url: podcast.cover_url || podcast.image_url,
+        title: podcast.name || podcast.title || podcast.collectionName,
+        feed_url: podcast.feed_url || podcast.feedUrl,
+        author: podcast.artist || podcast.author || podcast.artistName,
+        image_url: podcast.cover_url || podcast.image_url || podcast.artworkUrl600,
         description: podcast.description,
       });
       await loadSubscriptions();
     } catch (e) {
       console.error('Subscribe error:', e);
-      errorMessage = 'Erreur lors de l\'abonnement';
+      errorMessage = "Erreur lors de l'abonnement";
     }
   }
 
@@ -55,18 +120,47 @@
   }
 
   function isSubscribed(feedUrl: string): boolean {
+    if (!feedUrl) return false;
     return subscriptions.some(s => s.feed_url === feedUrl);
   }
 
+  function getSubscriptionId(feedUrl: string): number | null {
+    const sub = subscriptions.find(s => s.feed_url === feedUrl);
+    return sub ? sub.id : null;
+  }
+
+  // --- Discover ---
+
+  async function loadTopPodcasts(genreId?: number | null) {
+    isLoadingTop = true;
+    try {
+      topPodcasts = await api.getTopPodcasts(genreId);
+    } catch (e) {
+      console.error('Load top podcasts error:', e);
+      topPodcasts = [];
+    } finally {
+      isLoadingTop = false;
+    }
+  }
+
   async function loadRadioFrance() {
-    errorMessage = null;
+    isLoadingRadioFrance = true;
     try {
       radioFrancePodcasts = await api.getRadioFrancePodcasts();
     } catch (e) {
       console.error('Load Radio France podcasts error:', e);
-      errorMessage = 'Impossible de charger les podcasts Radio France';
+      radioFrancePodcasts = [];
+    } finally {
+      isLoadingRadioFrance = false;
     }
   }
+
+  function selectGenre(genreId: number | null) {
+    selectedGenre = genreId;
+    loadTopPodcasts(genreId);
+  }
+
+  // --- Search ---
 
   function handleSearchInput() {
     if (searchTimeout) clearTimeout(searchTimeout);
@@ -74,9 +168,7 @@
       searchResults = [];
       return;
     }
-    searchTimeout = setTimeout(() => {
-      searchPodcasts();
-    }, 400);
+    searchTimeout = setTimeout(() => searchPodcasts(), 400);
   }
 
   async function searchPodcasts() {
@@ -93,13 +185,16 @@
     }
   }
 
+  // --- Podcast detail ---
+
   async function selectPodcast(podcast: any) {
     selectedPodcast = podcast;
     isLoadingEpisodes = true;
     errorMessage = null;
     episodes = [];
     try {
-      episodes = await api.getPodcastEpisodes(podcast.feed_url, 50);
+      const feedUrl = podcast.feed_url || podcast.feedUrl;
+      episodes = await api.getPodcastEpisodes(feedUrl, 50);
     } catch (e) {
       console.error('Load podcast episodes error:', e);
       errorMessage = 'Impossible de charger les episodes';
@@ -125,8 +220,8 @@
       await api.playPodcastEpisode(zoneId, {
         audio_url: episode.audio_url,
         title: episode.title,
-        podcast_name: selectedPodcast?.name || selectedPodcast?.title,
-        cover_url: episode.cover_url || selectedPodcast?.cover_url || selectedPodcast?.image_url,
+        podcast_name: selectedPodcast?.name || selectedPodcast?.title || selectedPodcast?.collectionName,
+        cover_url: episode.cover_url || selectedPodcast?.cover_url || selectedPodcast?.image_url || selectedPodcast?.artworkUrl600,
         duration_ms: episode.duration_ms,
       });
     } catch (e) {
@@ -135,6 +230,47 @@
     } finally {
       setTimeout(() => { playingEpisodeUrl = null; }, 2000);
     }
+  }
+
+  async function playNewEpisode(episode: any) {
+    const zoneId = get(currentZoneId);
+    if (!zoneId) {
+      errorMessage = 'Aucune zone selectionnee';
+      return;
+    }
+    playingEpisodeUrl = episode.audio_url;
+    try {
+      await api.playPodcastEpisode(zoneId, {
+        audio_url: episode.audio_url,
+        title: episode.title,
+        podcast_name: episode.podcast_name,
+        cover_url: episode.cover_url || episode.podcast_image,
+        duration_ms: episode.duration_ms,
+      });
+    } catch (e) {
+      console.error('Play podcast error:', e);
+      errorMessage = 'Erreur de lecture';
+    } finally {
+      setTimeout(() => { playingEpisodeUrl = null; }, 2000);
+    }
+  }
+
+  // --- Helpers ---
+
+  function podcastCover(p: any): string | null {
+    return p?.cover_url || p?.image_url || p?.artworkUrl600 || p?.artworkUrl100 || null;
+  }
+
+  function podcastName(p: any): string {
+    return p?.name || p?.title || p?.collectionName || 'Podcast';
+  }
+
+  function podcastArtist(p: any): string {
+    return p?.artist || p?.author || p?.artistName || '';
+  }
+
+  function podcastFeed(p: any): string {
+    return p?.feed_url || p?.feedUrl || '';
   }
 
   function formatDuration(ms: number): string {
@@ -169,103 +305,336 @@
   {/if}
 
   {#if selectedPodcast}
-    <!-- Episode detail view -->
-    <div class="episode-header">
+    <!-- ====== PODCAST DETAIL / EPISODES ====== -->
+    <div class="detail-view">
       <button class="back-btn" onclick={goBack} aria-label="Retour">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6" /></svg>
+        <span>Retour</span>
       </button>
-      <div class="podcast-info">
-        {#if selectedPodcast.cover_url || selectedPodcast.image_url}
-          <img src={selectedPodcast.cover_url || selectedPodcast.image_url} alt="" class="podcast-cover-lg" />
+
+      <div class="detail-header">
+        {#if podcastCover(selectedPodcast)}
+          <img src={podcastCover(selectedPodcast)} alt="" class="detail-cover" />
         {:else}
-          <div class="podcast-cover-lg placeholder-lg">P</div>
+          <div class="detail-cover detail-cover-placeholder">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+          </div>
         {/if}
-        <div class="podcast-info-text">
-          <h2>{selectedPodcast.name || selectedPodcast.title}</h2>
-          <p class="podcast-artist">{selectedPodcast.artist || selectedPodcast.author || ''}</p>
+        <div class="detail-info">
+          <h2 class="detail-title">{podcastName(selectedPodcast)}</h2>
+          <p class="detail-artist">{podcastArtist(selectedPodcast)}</p>
           {#if selectedPodcast.description}
-            <p class="podcast-desc">{truncate(selectedPodcast.description, 300)}</p>
+            <p class="detail-desc">{truncate(selectedPodcast.description, 300)}</p>
           {/if}
-          {#if !isSubscribed(selectedPodcast.feed_url)}
-            <button class="sub-btn-lg" onclick={() => subscribe(selectedPodcast)}>+ S'abonner</button>
-          {:else}
-            <span class="sub-badge-lg">Abonne</span>
-          {/if}
+          <div class="detail-actions">
+            {#if isSubscribed(podcastFeed(selectedPodcast))}
+              <button class="btn-subscribed" onclick={() => { const id = getSubscriptionId(podcastFeed(selectedPodcast)); if (id) unsubscribe(id); }}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                Abonne
+              </button>
+            {:else}
+              <button class="btn-subscribe" onclick={() => subscribe(selectedPodcast)}>+ S'abonner</button>
+            {/if}
+          </div>
         </div>
       </div>
-    </div>
 
-    {#if isLoadingEpisodes}
-      <div class="loading">Chargement des episodes...</div>
-    {:else if episodes.length === 0}
-      <div class="empty">Aucun episode trouve</div>
-    {:else}
-      <div class="episodes-count">{episodes.length} episode{episodes.length > 1 ? 's' : ''}</div>
-      <div class="episodes-list">
-        {#each episodes as episode, i}
-          <button
-            class="episode-item"
-            class:playing={playingEpisodeUrl === episode.audio_url}
-            onclick={() => playEpisode(episode)}
-          >
-            <span class="episode-num">{i + 1}</span>
-            <div class="episode-info">
-              <span class="episode-title">{episode.title}</span>
-              <span class="episode-meta">
-                {formatDate(episode.published)}
-                {#if episode.duration_ms} · {formatDuration(episode.duration_ms)}{/if}
-              </span>
-              {#if episode.description}
-                <span class="episode-desc">{truncate(episode.description, 120)}</span>
-              {/if}
-            </div>
-            <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-          </button>
-        {/each}
-      </div>
-    {/if}
-  {:else}
-    <!-- Podcast catalog with tabs -->
-    <div class="view-tabs">
-      <button class="view-tab" class:active={activeTab === 'subscriptions'} onclick={() => activeTab = 'subscriptions'}>Abonnements</button>
-      <button class="view-tab" class:active={activeTab === 'radiofrance'} onclick={() => activeTab = 'radiofrance'}>Decouvrir</button>
-      <button class="view-tab" class:active={activeTab === 'search'} onclick={() => activeTab = 'search'}>Recherche</button>
-    </div>
-
-    {#if activeTab === 'subscriptions'}
-      {#if subscriptions.length === 0}
-        <div class="empty">
-          <div class="empty-icon">P</div>
-          <p>Aucun abonnement</p>
-          <p class="empty-hint">Explorez l'onglet Decouvrir ou Recherche pour vous abonner a des podcasts.</p>
+      {#if isLoadingEpisodes}
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <span>Chargement des episodes...</span>
         </div>
+      {:else if episodes.length === 0}
+        <div class="empty-state">Aucun episode trouve</div>
       {:else}
-        <div class="podcast-grid">
-          {#each subscriptions as podcast}
-            <div
-              class="podcast-card"
-              role="button"
-              tabindex="0"
-              onclick={() => selectPodcast({ ...podcast, name: podcast.title, cover_url: podcast.image_url, artist: podcast.author })}
-              onkeydown={(e) => e.key === 'Enter' && selectPodcast({ ...podcast, name: podcast.title, cover_url: podcast.image_url, artist: podcast.author })}
+        <div class="episodes-header">{episodes.length} episode{episodes.length > 1 ? 's' : ''}</div>
+        <div class="episodes-list">
+          {#each episodes as episode, i}
+            <button
+              class="episode-row"
+              class:playing={playingEpisodeUrl === episode.audio_url}
+              onclick={() => playEpisode(episode)}
             >
-              {#if podcast.image_url}
-                <img src={podcast.image_url} alt="" class="podcast-cover" loading="lazy" />
+              <span class="episode-num">{i + 1}</span>
+              {#if episode.cover_url}
+                <img src={episode.cover_url} alt="" class="episode-thumb" loading="lazy" />
+              {:else if podcastCover(selectedPodcast)}
+                <img src={podcastCover(selectedPodcast)} alt="" class="episode-thumb" loading="lazy" />
               {:else}
-                <div class="podcast-cover placeholder">P</div>
+                <div class="episode-thumb episode-thumb-placeholder">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                </div>
               {/if}
-              <span class="podcast-name">{podcast.title}</span>
-              {#if podcast.author}
-                <span class="podcast-artist-sm">{podcast.author}</span>
-              {/if}
-              <button class="unsub-btn" onclick={(e: MouseEvent) => { e.stopPropagation(); unsubscribe(podcast.id); }}>Se desabonner</button>
-            </div>
+              <div class="episode-info">
+                <span class="episode-title">{episode.title}</span>
+                <span class="episode-meta">
+                  {formatDate(episode.published)}
+                  {#if episode.duration_ms} · {formatDuration(episode.duration_ms)}{/if}
+                </span>
+                {#if episode.description}
+                  <span class="episode-desc">{truncate(episode.description, 120)}</span>
+                {/if}
+              </div>
+              <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+            </button>
           {/each}
         </div>
       {/if}
+    </div>
 
+  {:else}
+    <!-- ====== TABS ====== -->
+    <div class="view-tabs">
+      <button class="view-tab" class:active={activeTab === 'subscriptions'} onclick={() => activeTab = 'subscriptions'}>Abonnements</button>
+      <button class="view-tab" class:active={activeTab === 'discover'} onclick={() => activeTab = 'discover'}>Decouvrir</button>
+      <button class="view-tab" class:active={activeTab === 'search'} onclick={() => activeTab = 'search'}>Recherche</button>
+    </div>
+
+    <!-- ====== ABONNEMENTS ====== -->
+    {#if activeTab === 'subscriptions'}
+      {#if subscriptions.length === 0}
+        <div class="empty-state-full">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="56" height="56" class="empty-icon-svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+          <h3>Aucun abonnement</h3>
+          <p>Explorez l'onglet Decouvrir ou Recherche pour vous abonner a des podcasts.</p>
+        </div>
+      {:else}
+        <section class="section">
+          <h3 class="section-title">Mes podcasts</h3>
+          <div class="podcast-grid">
+            {#each subscriptions as podcast}
+              <div
+                class="podcast-card"
+                role="button"
+                tabindex="0"
+                onclick={() => selectPodcast({ ...podcast, name: podcast.title, cover_url: podcast.image_url, artist: podcast.author })}
+                onkeydown={(e) => e.key === 'Enter' && selectPodcast({ ...podcast, name: podcast.title, cover_url: podcast.image_url, artist: podcast.author })}
+              >
+                <div class="card-cover-wrap">
+                  {#if podcast.image_url}
+                    <img src={podcast.image_url} alt="" class="card-cover" loading="lazy" />
+                  {:else}
+                    <div class="card-cover card-cover-placeholder">
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                    </div>
+                  {/if}
+                </div>
+                <span class="card-title">{podcast.title}</span>
+                {#if podcast.author}
+                  <span class="card-artist">{podcast.author}</span>
+                {/if}
+                <button class="btn-unsub" onclick={(e: MouseEvent) => { e.stopPropagation(); unsubscribe(podcast.id); }} title="Se desabonner">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  Abonne
+                </button>
+              </div>
+            {/each}
+          </div>
+        </section>
+
+        <!-- Nouveaux episodes -->
+        <section class="section">
+          <h3 class="section-title">Nouveaux episodes</h3>
+          {#if isLoadingNewEpisodes}
+            <div class="loading-state">
+              <div class="spinner"></div>
+              <span>Chargement...</span>
+            </div>
+          {:else if newEpisodes.length === 0}
+            <p class="empty-hint">Aucun nouvel episode</p>
+          {:else}
+            <div class="new-episodes-list">
+              {#each newEpisodes as episode}
+                <button
+                  class="new-episode-row"
+                  class:playing={playingEpisodeUrl === episode.audio_url}
+                  onclick={() => playNewEpisode(episode)}
+                >
+                  {#if episode.cover_url || episode.podcast_image}
+                    <img src={episode.cover_url || episode.podcast_image} alt="" class="new-ep-cover" loading="lazy" />
+                  {:else}
+                    <div class="new-ep-cover new-ep-cover-placeholder">
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                    </div>
+                  {/if}
+                  <div class="new-ep-info">
+                    <span class="new-ep-title">{episode.title}</span>
+                    <span class="new-ep-podcast">{episode.podcast_name}</span>
+                    <span class="new-ep-meta">
+                      {formatDate(episode.published)}
+                      {#if episode.duration_ms} · {formatDuration(episode.duration_ms)}{/if}
+                    </span>
+                  </div>
+                  <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                </button>
+              {/each}
+            </div>
+          {/if}
+        </section>
+      {/if}
+
+    <!-- ====== DECOUVRIR ====== -->
+    {:else if activeTab === 'discover'}
+      <!-- Category chips -->
+      <div class="genre-chips-wrapper">
+        <div class="genre-chips">
+          {#each genres as genre}
+            <button
+              class="genre-chip"
+              class:active={selectedGenre === genre.id}
+              onclick={() => selectGenre(genre.id)}
+            >
+              {genre.label}
+            </button>
+          {/each}
+        </div>
+      </div>
+
+      <!-- Tendances France -->
+      <section class="section">
+        <h3 class="section-title">
+          {#if selectedGenre === null}
+            Tendances France
+          {:else}
+            Top {selectedGenreLabel}
+          {/if}
+        </h3>
+        {#if isLoadingTop}
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <span>Chargement...</span>
+          </div>
+        {:else if topTen.length > 0}
+          <div class="trending-scroll-wrapper">
+            <div class="trending-scroll">
+              {#each topTen as podcast, i}
+                <div
+                  class="trending-card"
+                  role="button"
+                  tabindex="0"
+                  onclick={() => selectPodcast(podcast)}
+                  onkeydown={(e) => e.key === 'Enter' && selectPodcast(podcast)}
+                >
+                  <div class="trending-rank">#{i + 1}</div>
+                  <div class="trending-cover-wrap">
+                    {#if podcastCover(podcast)}
+                      <img src={podcastCover(podcast)} alt="" class="trending-cover" loading="lazy" />
+                    {:else}
+                      <div class="trending-cover trending-cover-placeholder">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="40" height="40"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                      </div>
+                    {/if}
+                  </div>
+                  <span class="trending-title">{podcastName(podcast)}</span>
+                  <span class="trending-artist">{podcastArtist(podcast)}</span>
+                  {#if isSubscribed(podcastFeed(podcast))}
+                    <span class="card-badge-subscribed">
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    </span>
+                  {:else}
+                    <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>+ S'abonner</button>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          </div>
+        {:else}
+          <p class="empty-hint">Aucun podcast disponible</p>
+        {/if}
+      </section>
+
+      <!-- Top grid -->
+      {#if topGrid.length > 10}
+        <section class="section">
+          <h3 class="section-title">
+            {#if selectedGenre === null}
+              Top France
+            {:else}
+              {selectedGenreLabel}
+            {/if}
+          </h3>
+          <div class="podcast-grid podcast-grid-4col">
+            {#each topGrid.slice(10) as podcast, i}
+              <div
+                class="podcast-card"
+                role="button"
+                tabindex="0"
+                onclick={() => selectPodcast(podcast)}
+                onkeydown={(e) => e.key === 'Enter' && selectPodcast(podcast)}
+              >
+                <div class="card-cover-wrap">
+                  <span class="card-rank">#{i + 11}</span>
+                  {#if podcastCover(podcast)}
+                    <img src={podcastCover(podcast)} alt="" class="card-cover" loading="lazy" />
+                  {:else}
+                    <div class="card-cover card-cover-placeholder">
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                    </div>
+                  {/if}
+                </div>
+                <span class="card-title">{podcastName(podcast)}</span>
+                <span class="card-artist">{podcastArtist(podcast)}</span>
+                {#if isSubscribed(podcastFeed(podcast))}
+                  <span class="card-badge-subscribed">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  </span>
+                {:else}
+                  <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>+ S'abonner</button>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        </section>
+      {/if}
+
+      <!-- Radio France -->
+      <section class="section">
+        <h3 class="section-title">Radio France</h3>
+        {#if isLoadingRadioFrance}
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <span>Chargement...</span>
+          </div>
+        {:else if radioFrancePodcasts.length === 0}
+          <p class="empty-hint">Aucun podcast Radio France disponible</p>
+        {:else}
+          <div class="podcast-grid">
+            {#each radioFrancePodcasts as podcast}
+              <div
+                class="podcast-card"
+                role="button"
+                tabindex="0"
+                onclick={() => selectPodcast(podcast)}
+                onkeydown={(e) => e.key === 'Enter' && selectPodcast(podcast)}
+              >
+                <div class="card-cover-wrap">
+                  {#if podcastCover(podcast)}
+                    <img src={podcastCover(podcast)} alt="" class="card-cover" loading="lazy" />
+                  {:else}
+                    <div class="card-cover card-cover-placeholder">
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                    </div>
+                  {/if}
+                </div>
+                <span class="card-title">{podcastName(podcast)}</span>
+                <span class="card-artist">{podcastArtist(podcast)}</span>
+                {#if isSubscribed(podcastFeed(podcast))}
+                  <span class="card-badge-subscribed">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  </span>
+                {:else}
+                  <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>+ S'abonner</button>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </section>
+
+    <!-- ====== RECHERCHE ====== -->
     {:else if activeTab === 'search'}
       <div class="search-bar">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input
           type="text"
           bind:value={searchQuery}
@@ -273,80 +642,57 @@
           oninput={handleSearchInput}
           onkeydown={(e) => e.key === 'Enter' && searchPodcasts()}
         />
-        <button onclick={searchPodcasts} disabled={isSearching || !searchQuery.trim()}>
-          {isSearching ? '...' : 'Rechercher'}
-        </button>
+        {#if searchQuery}
+          <button class="search-clear" onclick={() => { searchQuery = ''; searchResults = []; }}>&times;</button>
+        {/if}
       </div>
 
       {#if isSearching}
-        <div class="loading">Recherche en cours...</div>
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <span>Recherche en cours...</span>
+        </div>
       {:else if searchResults.length > 0}
         <div class="podcast-grid">
           {#each searchResults as podcast}
             <div
               class="podcast-card"
-              class:disabled={!podcast.feed_url}
+              class:disabled={!podcastFeed(podcast)}
               role="button"
               tabindex="0"
-              onclick={() => podcast.feed_url && selectPodcast(podcast)}
-              onkeydown={(e) => e.key === 'Enter' && podcast.feed_url && selectPodcast(podcast)}
+              onclick={() => podcastFeed(podcast) && selectPodcast(podcast)}
+              onkeydown={(e) => e.key === 'Enter' && podcastFeed(podcast) && selectPodcast(podcast)}
             >
-              {#if podcast.cover_url}
-                <img src={podcast.cover_url} alt="" class="podcast-cover" loading="lazy" />
-              {:else}
-                <div class="podcast-cover placeholder">P</div>
-              {/if}
-              <span class="podcast-name">{podcast.name}</span>
-              {#if podcast.artist}
-                <span class="podcast-artist-sm">{podcast.artist}</span>
-              {/if}
-              {#if !podcast.feed_url}
+              <div class="card-cover-wrap">
+                {#if podcastCover(podcast)}
+                  <img src={podcastCover(podcast)} alt="" class="card-cover" loading="lazy" />
+                {:else}
+                  <div class="card-cover card-cover-placeholder">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                  </div>
+                {/if}
+              </div>
+              <span class="card-title">{podcastName(podcast)}</span>
+              <span class="card-artist">{podcastArtist(podcast)}</span>
+              {#if !podcastFeed(podcast)}
                 <span class="no-feed">Pas de flux RSS</span>
-              {:else if isSubscribed(podcast.feed_url)}
-                <span class="sub-badge">Abonne</span>
+              {:else if isSubscribed(podcastFeed(podcast))}
+                <span class="card-badge-subscribed">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  Abonne
+                </span>
               {:else}
-                <button class="sub-btn" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>+ S'abonner</button>
+                <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>+ S'abonner</button>
               {/if}
             </div>
           {/each}
         </div>
       {:else if searchQuery.trim()}
-        <div class="empty">Aucun resultat pour "{searchQuery}"</div>
-      {/if}
-
-    {:else}
-      <!-- Decouvrir / Radio France -->
-      {#if radioFrancePodcasts.length === 0}
-        <div class="loading">Chargement...</div>
+        <div class="empty-state">Aucun resultat pour "{searchQuery}"</div>
       {:else}
-        <div class="podcast-grid">
-          {#each radioFrancePodcasts as podcast}
-            <div
-              class="podcast-card"
-              role="button"
-              tabindex="0"
-              onclick={() => selectPodcast(podcast)}
-              onkeydown={(e) => e.key === 'Enter' && selectPodcast(podcast)}
-            >
-              {#if podcast.cover_url}
-                <img src={podcast.cover_url} alt="" class="podcast-cover" loading="lazy" />
-              {:else}
-                <div class="podcast-cover placeholder">P</div>
-              {/if}
-              <span class="podcast-name">{podcast.name}</span>
-              {#if podcast.artist}
-                <span class="podcast-artist-sm">{podcast.artist}</span>
-              {/if}
-              {#if podcast.description}
-                <span class="podcast-desc-sm">{truncate(podcast.description, 80)}</span>
-              {/if}
-              {#if isSubscribed(podcast.feed_url)}
-                <span class="sub-badge">Abonne</span>
-              {:else}
-                <button class="sub-btn" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>+ S'abonner</button>
-              {/if}
-            </div>
-          {/each}
+        <div class="search-placeholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" class="search-placeholder-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <p>Recherchez parmi des millions de podcasts</p>
         </div>
       {/if}
     {/if}
@@ -357,10 +703,10 @@
   .podcasts-view {
     height: 100%;
     overflow-y: auto;
-    padding: 20px;
+    padding: 20px 24px;
   }
 
-  /* Tabs — match .view-tabs / .view-tab from the app */
+  /* ===== TABS ===== */
   .view-tabs {
     display: flex;
     gap: 4px;
@@ -381,262 +727,536 @@
     transition: color 0.2s, border-color 0.2s;
   }
 
-  .view-tab:hover {
-    color: var(--tune-text, white);
-  }
-
+  .view-tab:hover { color: var(--tune-text, white); }
   .view-tab.active {
     color: var(--tune-accent, #6C5CE7);
     border-bottom-color: var(--tune-accent, #6C5CE7);
   }
 
-  /* Search bar */
-  .search-bar {
+  /* ===== SECTIONS ===== */
+  .section {
+    margin-bottom: 32px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--tune-text, white);
+    margin-bottom: 16px;
+    font-family: var(--font-body, sans-serif);
+  }
+
+  /* ===== GENRE CHIPS ===== */
+  .genre-chips-wrapper {
+    overflow-x: auto;
+    margin-bottom: 24px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .genre-chips-wrapper::-webkit-scrollbar { display: none; }
+
+  .genre-chips {
     display: flex;
     gap: 8px;
-    margin-bottom: 20px;
+    padding: 2px 0;
+    white-space: nowrap;
+  }
+
+  .genre-chip {
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--tune-border, #333);
+    background: transparent;
+    color: var(--tune-text-secondary, #999);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .genre-chip:hover {
+    border-color: var(--tune-text-secondary, #999);
+    color: var(--tune-text, white);
+  }
+
+  .genre-chip.active {
+    background: var(--tune-accent, #6C5CE7);
+    border-color: var(--tune-accent, #6C5CE7);
+    color: white;
+  }
+
+  /* ===== TRENDING HORIZONTAL SCROLL ===== */
+  .trending-scroll-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 -24px;
+    padding: 0 24px;
+  }
+  .trending-scroll-wrapper::-webkit-scrollbar { display: none; }
+
+  .trending-scroll {
+    display: flex;
+    gap: 16px;
+    padding: 4px 0 12px;
+  }
+
+  .trending-card {
+    flex-shrink: 0;
+    width: 180px;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.15s;
+  }
+
+  .trending-card:hover { transform: translateY(-3px); }
+
+  .trending-rank {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 8px;
+    z-index: 2;
+    backdrop-filter: blur(4px);
+  }
+
+  .trending-cover-wrap {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.4));
+  }
+
+  .trending-cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .trending-cover-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tune-grey2, #2A2A2A);
+    color: var(--tune-text-secondary, #666);
+  }
+
+  .trending-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tune-text, white);
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 2px;
+  }
+
+  .trending-artist {
+    font-size: 12px;
+    color: var(--tune-text-secondary, #999);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 6px;
+  }
+
+  /* ===== PODCAST GRID (cards) ===== */
+  .podcast-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 20px;
+  }
+
+  .podcast-grid-4col {
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  }
+
+  .podcast-card {
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.15s;
+  }
+
+  .podcast-card:hover { transform: translateY(-3px); }
+  .podcast-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .podcast-card.disabled:hover { transform: none; }
+
+  .card-cover-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.4));
+    background: var(--tune-grey2, #2A2A2A);
+  }
+
+  .card-cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .card-cover-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tune-grey2, #2A2A2A);
+    color: var(--tune-text-secondary, #666);
+  }
+
+  .card-rank {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    z-index: 2;
+    backdrop-filter: blur(4px);
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tune-text, white);
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 2px;
+  }
+
+  .card-artist {
+    font-size: 12px;
+    color: var(--tune-text-secondary, #999);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 6px;
+  }
+
+  /* ===== SUBSCRIBE BUTTONS ===== */
+  .btn-sub-sm {
+    align-self: flex-start;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 14px;
+    border: 1px solid var(--tune-accent, #6C5CE7);
+    background: transparent;
+    color: var(--tune-accent, #6C5CE7);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+  }
+  .btn-sub-sm:hover {
+    background: var(--tune-accent, #6C5CE7);
+    color: white;
+  }
+
+  .card-badge-subscribed {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--tune-success, #10b981);
+    font-weight: 600;
+    align-self: flex-start;
+  }
+
+  .btn-unsub {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    align-self: flex-start;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 14px;
+    border: 1px solid var(--tune-success, #10b981);
+    background: transparent;
+    color: var(--tune-success, #10b981);
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-unsub:hover {
+    border-color: var(--tune-error, #e74c3c);
+    color: var(--tune-error, #e74c3c);
+  }
+
+  .btn-subscribe {
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: 1px solid var(--tune-accent, #6C5CE7);
+    background: transparent;
+    color: var(--tune-accent, #6C5CE7);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 0.2s, color 0.2s;
+    margin-top: 4px;
+  }
+  .btn-subscribe:hover { background: var(--tune-accent, #6C5CE7); color: white; }
+
+  .btn-subscribed {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: 1px solid var(--tune-success, #10b981);
+    background: transparent;
+    color: var(--tune-success, #10b981);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: border-color 0.2s, color 0.2s;
+    margin-top: 4px;
+  }
+  .btn-subscribed:hover { border-color: var(--tune-error, #e74c3c); color: var(--tune-error, #e74c3c); }
+
+  .no-feed {
+    font-size: 10px;
+    color: var(--tune-text-secondary, #666);
+    font-style: italic;
+    align-self: flex-start;
+  }
+
+  /* ===== SEARCH BAR ===== */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 24px;
+    position: relative;
+    background: var(--tune-surface, #1a1a1a);
+    border: 1px solid var(--tune-border, #333);
+    border-radius: 12px;
+    padding: 0 14px;
+    transition: border-color 0.2s;
+  }
+
+  .search-bar:focus-within {
+    border-color: var(--tune-accent, #6C5CE7);
+  }
+
+  .search-icon {
+    flex-shrink: 0;
+    color: var(--tune-text-secondary, #666);
   }
 
   .search-bar input {
     flex: 1;
-    padding: 10px 14px;
-    border: 1px solid var(--tune-border, #333);
-    border-radius: 8px;
-    background: var(--tune-surface, #1a1a1a);
+    padding: 12px 10px;
+    border: none;
+    background: transparent;
     color: var(--tune-text, white);
     font-size: 14px;
     outline: none;
-  }
-
-  .search-bar input:focus {
-    border-color: var(--tune-accent, #6C5CE7);
   }
 
   .search-bar input::placeholder {
     color: var(--tune-text-secondary, #666);
   }
 
-  .search-bar button {
-    padding: 10px 20px;
-    background: var(--tune-accent, #6C5CE7);
-    color: white;
+  .search-clear {
+    background: none;
     border: none;
-    border-radius: 8px;
+    color: var(--tune-text-secondary, #999);
+    font-size: 20px;
     cursor: pointer;
-    font-weight: 600;
-    font-size: 14px;
-    transition: opacity 0.2s;
+    padding: 4px 8px;
+    line-height: 1;
   }
+  .search-clear:hover { color: var(--tune-text, white); }
 
-  .search-bar button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  .search-placeholder {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--tune-text-secondary, #666);
   }
-
-  /* Podcast grid */
-  .podcast-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 16px;
+  .search-placeholder-icon {
+    margin-bottom: 12px;
+    opacity: 0.4;
   }
+  .search-placeholder p { font-size: 14px; }
 
-  .podcast-card {
+  /* ===== NEW EPISODES LIST ===== */
+  .new-episodes-list {
     display: flex;
     flex-direction: column;
+  }
+
+  .new-episode-row {
+    display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 12px;
-    background: var(--tune-surface, #1a1a1a);
-    border: 1px solid var(--tune-border, #333);
-    border-radius: 12px;
+    gap: 12px;
+    padding: 10px 8px;
+    border: none;
+    background: transparent;
+    border-bottom: 1px solid var(--tune-border, rgba(77, 78, 81, 0.15));
     cursor: pointer;
-    text-align: center;
-    transition: border-color 0.2s, transform 0.15s;
+    text-align: left;
+    color: var(--tune-text, white);
+    transition: background 0.15s;
+    width: 100%;
+    border-radius: 4px;
   }
+  .new-episode-row:hover { background: var(--tune-surface-hover, rgba(60, 60, 63, 0.3)); }
+  .new-episode-row.playing { background: rgba(108, 92, 231, 0.1); }
 
-  .podcast-card:hover {
-    border-color: var(--tune-accent, #6C5CE7);
-    transform: translateY(-2px);
-  }
-
-  .podcast-card.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  .podcast-cover {
-    width: 150px;
-    height: 150px;
-    border-radius: 10px;
+  .new-ep-cover {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
     object-fit: cover;
+    flex-shrink: 0;
   }
 
-  .podcast-cover.placeholder {
+  .new-ep-cover-placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--tune-border, #333);
-    font-size: 36px;
+    background: var(--tune-grey2, #2A2A2A);
     color: var(--tune-text-secondary, #666);
-    font-weight: 700;
-    width: 150px;
-    height: 150px;
-    border-radius: 10px;
   }
 
-  .podcast-name {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--tune-text, white);
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .podcast-artist-sm {
-    font-size: 11px;
-    color: var(--tune-text-secondary, #999);
-  }
-
-  .podcast-desc-sm {
-    font-size: 11px;
-    color: var(--tune-text-secondary, #666);
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .no-feed {
-    font-size: 10px;
-    color: var(--tune-text-secondary, #666);
-    font-style: italic;
-  }
-
-  /* Subscribe / Unsubscribe buttons */
-  .sub-btn {
-    font-size: 11px;
-    padding: 4px 12px;
-    border-radius: 12px;
-    border: 1px solid var(--tune-accent, #6C5CE7);
-    background: transparent;
-    color: var(--tune-accent, #6C5CE7);
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s;
-    margin-top: 4px;
-  }
-  .sub-btn:hover { background: var(--tune-accent, #6C5CE7); color: white; }
-
-  .sub-badge { font-size: 10px; color: #10b981; font-weight: 600; margin-top: 4px; }
-
-  .unsub-btn {
-    font-size: 11px;
-    padding: 4px 12px;
-    border-radius: 12px;
-    border: 1px solid var(--tune-border, #444);
-    background: transparent;
-    color: var(--tune-text-secondary, #999);
-    cursor: pointer;
-    margin-top: 4px;
-    transition: border-color 0.2s, color 0.2s;
-  }
-  .unsub-btn:hover { border-color: #e74c3c; color: #e74c3c; }
-
-  .sub-btn-lg {
-    font-size: 13px;
-    padding: 6px 16px;
-    border-radius: 16px;
-    border: 1px solid var(--tune-accent, #6C5CE7);
-    background: transparent;
-    color: var(--tune-accent, #6C5CE7);
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s;
-    margin-top: 8px;
-  }
-  .sub-btn-lg:hover { background: var(--tune-accent, #6C5CE7); color: white; }
-  .sub-badge-lg { font-size: 12px; color: #10b981; font-weight: 600; margin-top: 8px; display: inline-block; }
-
-  /* Episode detail view */
-  .episode-header {
+  .new-ep-info {
+    flex: 1;
+    min-width: 0;
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 24px;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .new-ep-title {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .new-ep-podcast {
+    font-size: 12px;
+    color: var(--tune-accent, #6C5CE7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .new-ep-meta {
+    font-size: 11px;
+    color: var(--tune-text-secondary, #999);
+  }
+
+  /* ===== DETAIL VIEW ===== */
+  .detail-view {
+    max-width: 800px;
   }
 
   .back-btn {
-    background: var(--tune-surface, #1a1a1a);
-    border: 1px solid var(--tune-border, #333);
-    border-radius: 8px;
-    padding: 8px;
-    color: var(--tune-text, white);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    color: var(--tune-text-secondary, #999);
     cursor: pointer;
-    flex-shrink: 0;
-    transition: border-color 0.2s;
+    font-size: 13px;
+    padding: 4px 0;
+    margin-bottom: 20px;
+    transition: color 0.2s;
   }
+  .back-btn:hover { color: var(--tune-text, white); }
 
-  .back-btn:hover {
-    border-color: var(--tune-accent, #6C5CE7);
-  }
-
-  .podcast-info {
+  .detail-header {
     display: flex;
-    gap: 16px;
+    gap: 24px;
     align-items: flex-start;
+    margin-bottom: 32px;
   }
 
-  .podcast-info-text {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .podcast-cover-lg {
-    width: 120px;
-    height: 120px;
-    border-radius: 12px;
+  .detail-cover {
+    width: 160px;
+    height: 160px;
+    border-radius: 14px;
     object-fit: cover;
     flex-shrink: 0;
+    box-shadow: var(--shadow-lg, 0 10px 30px rgba(0, 0, 0, 0.5));
   }
 
-  .placeholder-lg {
+  .detail-cover-placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--tune-border, #333);
-    font-size: 40px;
+    background: var(--tune-grey2, #2A2A2A);
     color: var(--tune-text-secondary, #666);
+  }
+
+  .detail-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .detail-title {
+    font-size: 22px;
     font-weight: 700;
-  }
-
-  .podcast-info h2 {
-    font-size: 20px;
     color: var(--tune-text, white);
-    margin: 0 0 4px;
+    margin-bottom: 4px;
+    font-family: var(--font-body, sans-serif);
   }
 
-  .podcast-artist {
+  .detail-artist {
     color: var(--tune-text-secondary, #999);
     font-size: 14px;
-    margin: 0 0 4px;
+    margin-bottom: 8px;
   }
 
-  .podcast-desc {
-    color: var(--tune-text-secondary, #666);
-    font-size: 12px;
-    line-height: 1.4;
-    margin: 0;
+  .detail-desc {
+    color: var(--tune-text-muted, #888);
+    font-size: 13px;
+    line-height: 1.5;
     max-width: 500px;
+    margin-bottom: 8px;
   }
 
-  .episodes-count {
+  .detail-actions {
+    margin-top: 4px;
+  }
+
+  /* ===== EPISODES LIST ===== */
+  .episodes-header {
     font-size: 12px;
     color: var(--tune-text-secondary, #666);
     margin-bottom: 8px;
-    padding-left: 8px;
+    padding-left: 4px;
   }
 
   .episodes-list {
@@ -644,44 +1264,58 @@
     flex-direction: column;
   }
 
-  .episode-item {
+  .episode-row {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 12px 8px;
     border: none;
     background: transparent;
-    border-bottom: 1px solid var(--tune-border, #222);
+    border-bottom: 1px solid var(--tune-border, rgba(77, 78, 81, 0.15));
     cursor: pointer;
     text-align: left;
     color: var(--tune-text, white);
     transition: background 0.15s;
     width: 100%;
+    border-radius: 4px;
   }
 
-  .episode-item:hover {
-    background: var(--tune-surface, #1a1a1a);
-  }
-
-  .episode-item.playing {
-    background: rgba(108, 92, 231, 0.1);
-  }
+  .episode-row:hover { background: var(--tune-surface-hover, rgba(60, 60, 63, 0.3)); }
+  .episode-row.playing { background: rgba(108, 92, 231, 0.1); }
 
   .episode-num {
     font-size: 13px;
     color: var(--tune-text-secondary, #666);
-    width: 28px;
+    width: 24px;
     text-align: center;
     flex-shrink: 0;
+  }
+
+  .episode-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .episode-thumb-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tune-grey2, #2A2A2A);
+    color: var(--tune-text-secondary, #666);
   }
 
   .episode-info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
   }
 
   .episode-title {
-    display: block;
     font-size: 14px;
     font-weight: 500;
     white-space: nowrap;
@@ -690,56 +1324,93 @@
   }
 
   .episode-meta {
-    display: block;
     font-size: 12px;
     color: var(--tune-text-secondary, #999);
-    margin-top: 2px;
   }
 
   .episode-desc {
-    display: block;
     font-size: 11px;
-    color: var(--tune-text-secondary, #555);
-    margin-top: 3px;
+    color: var(--tune-text-muted, #888);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-top: 2px;
   }
 
   .play-icon {
     color: var(--tune-accent, #6C5CE7);
     flex-shrink: 0;
-    opacity: 0.5;
+    opacity: 0;
     transition: opacity 0.15s;
   }
-
-  .episode-item:hover .play-icon {
+  .episode-row:hover .play-icon,
+  .episode-row.playing .play-icon,
+  .new-episode-row:hover .play-icon,
+  .new-episode-row.playing .play-icon {
     opacity: 1;
   }
 
-  .episode-item.playing .play-icon {
-    opacity: 1;
+  /* ===== STATES ===== */
+  .loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 40px;
+    color: var(--tune-text-secondary, #999);
+    font-size: 14px;
   }
 
-  /* Loading / empty states */
-  .loading, .empty {
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--tune-border, #333);
+    border-top-color: var(--tune-accent, #6C5CE7);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .empty-state {
     text-align: center;
     color: var(--tune-text-secondary, #999);
     padding: 40px;
     font-size: 14px;
   }
 
-  .empty-icon {
-    font-size: 48px;
-    color: var(--tune-text-secondary, #444);
-    margin-bottom: 12px;
-    font-weight: 700;
+  .empty-state-full {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--tune-text-secondary, #999);
+  }
+
+  .empty-icon-svg {
+    opacity: 0.3;
+    margin-bottom: 16px;
+  }
+
+  .empty-state-full h3 {
+    font-size: 18px;
+    color: var(--tune-text, white);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .empty-state-full p {
+    font-size: 13px;
+    color: var(--tune-text-secondary, #666);
+    max-width: 300px;
+    margin: 0 auto;
+    line-height: 1.5;
   }
 
   .empty-hint {
-    font-size: 12px;
     color: var(--tune-text-secondary, #666);
-    margin-top: 4px;
+    font-size: 13px;
+    padding: 12px 0;
   }
 
   .error-banner {
@@ -764,31 +1435,23 @@
     padding: 0 4px;
     opacity: 0.7;
   }
+  .error-close:hover { opacity: 1; }
 
-  .error-close:hover {
-    opacity: 1;
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 768px) {
+    .podcasts-view { padding: 16px; }
+    .trending-scroll-wrapper { margin: 0 -16px; padding: 0 16px; }
+    .trending-card { width: 150px; }
+    .trending-cover-wrap { width: 150px; height: 150px; }
+    .podcast-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+    .detail-header { flex-direction: column; gap: 16px; }
+    .detail-cover { width: 120px; height: 120px; }
+    .detail-title { font-size: 18px; }
   }
 
-  /* Responsive */
-  @media (max-width: 600px) {
-    .podcast-grid {
-      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-      gap: 10px;
-    }
-    .podcast-cover {
-      width: 120px;
-      height: 120px;
-    }
-    .podcast-cover.placeholder {
-      width: 120px;
-      height: 120px;
-    }
-    .podcast-info {
-      flex-direction: column;
-    }
-    .podcast-cover-lg {
-      width: 80px;
-      height: 80px;
-    }
+  @media (max-width: 480px) {
+    .podcast-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .trending-card { width: 130px; }
+    .trending-cover-wrap { width: 130px; height: 130px; }
   }
 </style>

@@ -65,25 +65,30 @@
   .alpha-index {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     flex-shrink: 0;
-    padding: 8px 2px;
+    padding: 4px 2px;
     user-select: none;
     -webkit-user-select: none;
     overflow-y: auto;
-    max-height: 100%;
+    max-height: calc(100vh - 180px);
+    scrollbar-width: none;
+  }
+
+  .alpha-index::-webkit-scrollbar {
+    display: none;
   }
 
   .alpha-letter {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     color: var(--tune-text-secondary);
-    padding: 2px 8px;
+    padding: 1px 6px;
     cursor: pointer;
     text-align: center;
     border-radius: 4px;
     transition: color 0.1s, background 0.1s;
-    line-height: 1.5;
+    line-height: 1.3;
   }
 
   .alpha-letter:hover,
