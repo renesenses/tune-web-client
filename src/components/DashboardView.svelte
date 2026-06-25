@@ -76,9 +76,29 @@
     } catch {}
   }
 
-  function openTrack(trackId: number | null, title: string, artist: string) {
-    // Without a per-track view we land on the album.
-    if (trackId) openAlbum(title, artist);
+  async function openTrack(trackId: number | null, title: string, artist: string) {
+    if (!trackId) return;
+    try {
+      const results = await api.searchLibrary(`${title} ${artist}`, 10);
+      const hit = results.tracks?.find((t: any) => t.id === trackId)
+        || results.tracks?.find((t: any) =>
+          (t.title || '').toLowerCase() === (title || '').toLowerCase()
+          && (t.artist_name || '').toLowerCase() === (artist || '').toLowerCase());
+      if (hit?.album_id) {
+        const album = results.albums?.find((a: any) => a.id === hit.album_id);
+        if (album) {
+          selectedAlbum.set(album);
+          const tracks = await api.getAlbumTracks(album.id);
+          albumTracks.set(tracks);
+          libraryTab.set('albums');
+          activeView.set('library');
+          return;
+        }
+      }
+      openAlbum(title, artist);
+    } catch {
+      openAlbum(title, artist);
+    }
   }
 
   let period = $state<DashboardPeriod>('30d');
@@ -218,6 +238,7 @@
           <ol class="rank-list">
             {#each data.top_artists as a}
               <li>
+                <span class="rank-icon">🎤</span>
                 <button class="rank-name rank-link" onclick={() => openArtist(a.artist_name)} title="Voir l'artiste">{a.artist_name}</button>
                 <span class="rank-meta">{a.plays} · {formatMs(a.listening_ms)}</span>
               </li>
@@ -253,6 +274,7 @@
           <ol class="rank-list">
             {#each data.top_tracks as t}
               <li>
+                <span class="rank-icon">🎵</span>
                 <button class="rank-name rank-link" onclick={() => openTrack(t.track_id, t.title, t.artist_name)} title="Voir la piste">
                   {t.title}<span class="rank-sub"> — {t.artist_name}</span>
                 </button>
@@ -268,8 +290,9 @@
           <ol class="rank-list">
             {#each data.top_radios as r}
               <li>
+                <span class="rank-icon">📻</span>
                 <span class="rank-name">{r.station_name}</span>
-                <span class="rank-meta">{Math.round(r.listening_ms / 60000)}m</span>
+                <span class="rank-meta">{r.plays} · {formatMs(r.listening_ms)}</span>
               </li>
             {/each}
           </ol>
@@ -468,6 +491,7 @@
   .rank-list { list-style: none; padding: 0; margin: 0; counter-reset: rank; }
   .rank-list li { display: flex; align-items: center; gap: 0.6rem; padding: 0.3rem 0; counter-increment: rank; }
   .rank-list li::before { content: counter(rank); font-size: 13px; color: var(--tune-text-muted); width: 24px; }
+  .rank-icon { font-size: 14px; flex-shrink: 0; width: 20px; text-align: center; }
   .rank-name { flex: 1; font-size: 14px; color: var(--tune-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rank-link {
     background: none; border: none; padding: 0; text-align: left;
