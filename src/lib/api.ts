@@ -2071,8 +2071,17 @@ export function importRatings(ratings: any[]) { return fetchJSON<any>(`${BASE}/l
 
 // --- Podcasts ---
 
+function podcastCountry(): string {
+  try {
+    const lang = navigator.language || 'en-US';
+    const parts = lang.split('-');
+    return (parts[1] || parts[0] || 'us').toLowerCase().slice(0, 2);
+  } catch { return 'us'; }
+}
+
 export async function searchPodcasts(query: string, limit = 20): Promise<any[]> {
-  const res = await fetch(`${BASE}/podcasts/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+  const cc = podcastCountry();
+  const res = await fetch(`${BASE}/podcasts/search?q=${encodeURIComponent(query)}&limit=${limit}&country=${cc}`);
   if (!res.ok) throw new Error(`Search podcasts failed: ${res.status} ${res.statusText}`);
   const data = await res.json();
   return data.items || data;
@@ -2111,12 +2120,25 @@ export function unsubscribePodcast(id: number): Promise<void> {
 }
 
 export async function getTopPodcasts(genreId?: number | null, limit = 50): Promise<any[]> {
-  let url = `${BASE}/podcasts/top?limit=${limit}`;
+  const cc = podcastCountry();
+  let url = `${BASE}/podcasts/top?limit=${limit}&country=${cc}`;
   if (genreId) url += `&genre=${genreId}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Top podcasts failed: ${res.status} ${res.statusText}`);
   const data = await res.json();
   return data.items || data;
+}
+
+export async function getDiscoverPodcasts(): Promise<{ curated: any[]; top: any[]; genres: any[] }> {
+  const res = await fetch(`${BASE}/podcasts/discover`);
+  if (!res.ok) throw new Error(`Discover podcasts failed: ${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+export async function getPodcastGenres(): Promise<any[]> {
+  const res = await fetch(`${BASE}/podcasts/genres`);
+  if (!res.ok) throw new Error(`Podcast genres failed: ${res.status} ${res.statusText}`);
+  return res.json();
 }
 
 // v0.8.0 — Smart Collections
