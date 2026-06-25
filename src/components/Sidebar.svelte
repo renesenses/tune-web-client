@@ -788,6 +788,7 @@
           ondragend={handleZoneDragEnd}
           ontouchstart={(e) => handleTouchStart(e, zone.id, e.currentTarget as HTMLElement)}
           onclick={() => zone.id !== null && handleSelectZone(zone.id)}
+          oncontextmenu={(e) => { e.preventDefault(); openConfig(zone, e); }}
         >
           <span class="zone-drag-handle" title="Drag to reorder">
             <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
