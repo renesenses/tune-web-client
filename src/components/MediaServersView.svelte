@@ -119,8 +119,10 @@
   async function playItem(item: MediaServerItem) {
     if (!zone?.id || !item.res_url) return;
     try {
-      // Build track with metadata and add to queue then play
-      const body: Record<string, unknown> = { file_path: item.res_url };
+      const body: Record<string, unknown> = {
+        source: 'upnp',
+        source_id: item.res_url,
+      };
       if (item.title) body.title = item.title;
       if (item.artist) body.artist_name = item.artist;
       if (item.album) body.album_title = item.album;
@@ -135,14 +137,16 @@
   async function addItemToQueue(item: MediaServerItem) {
     if (!zone?.id || !item.res_url) return;
     try {
-      const body: Record<string, unknown> = { file_path: item.res_url };
+      const body: Record<string, unknown> = {
+        source: 'upnp',
+        source_id: item.res_url,
+      };
       if (item.title) body.title = item.title;
       if (item.artist) body.artist_name = item.artist;
       if (item.album) body.album_title = item.album;
       if (item.album_art_uri) body.cover_path = item.album_art_uri;
       if (item.duration_ms) body.duration_ms = item.duration_ms;
       await api.addToQueue(zone.id, body as any);
-      // Refresh queue
       const qs = await api.getQueue(zone.id);
       queueTracks.set(qs.tracks);
       queuePosition.set(qs.position);
