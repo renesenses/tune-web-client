@@ -703,7 +703,6 @@
           bind:value={searchQuery}
           placeholder="Rechercher un podcast..."
           oninput={handleSearchInput}
-          onkeydown={(e) => e.key === 'Enter' && searchPodcasts()}
         />
         {#if searchQuery}
           <button class="search-clear" onclick={() => { searchQuery = ''; searchResults = []; }}>&times;</button>

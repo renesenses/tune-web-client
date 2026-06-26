@@ -150,6 +150,17 @@
     loading = false;
   }
 
+  let djSearchDebounce: ReturnType<typeof setTimeout> | null = null;
+
+  function handleDjSearchInput() {
+    if (djSearchDebounce) clearTimeout(djSearchDebounce);
+    if (!searchQuery.trim()) {
+      searchResults = [];
+      return;
+    }
+    djSearchDebounce = setTimeout(() => searchTracks(), 300);
+  }
+
   async function searchTracks() {
     if (!searchQuery.trim()) return;
     searchLoading = true;
@@ -431,11 +442,12 @@
               type="text"
               placeholder="Rechercher un titre..."
               bind:value={searchQuery}
-              onkeydown={(e) => e.key === 'Enter' && searchTracks()}
+              oninput={handleDjSearchInput}
+              autofocus
             />
-            <button onclick={searchTracks} disabled={searchLoading}>
-              {searchLoading ? '...' : 'Chercher'}
-            </button>
+            {#if searchLoading}
+              <span class="search-loading">...</span>
+            {/if}
           </div>
           <div class="search-results">
             {#each searchResults as track}

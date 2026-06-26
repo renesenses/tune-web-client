@@ -380,13 +380,21 @@
     searching = false;
   }
 
-  function handleSearchKey(e: KeyboardEvent) {
-    if (e.key === 'Enter') search();
+  let searchDebounce: ReturnType<typeof setTimeout> | null = null;
+
+  function handleSearchInput() {
+    if (searchDebounce) clearTimeout(searchDebounce);
+    if (!searchQuery.trim()) {
+      results = null;
+      return;
+    }
+    searchDebounce = setTimeout(() => search(), 400);
   }
 
   function clearSearch() {
     searchQuery = '';
     results = null;
+    if (searchDebounce) clearTimeout(searchDebounce);
   }
 
   async function selectAlbum(album: Album) {
@@ -906,21 +914,17 @@
           type="text"
           placeholder={$tr('streaming.searchOn').replace('{service}', serviceName(service))}
           bind:value={searchQuery}
-          onkeydown={handleSearchKey}
+          oninput={handleSearchInput}
         />
+        {#if searching}
+          <div class="spinner small search-spinner"></div>
+        {/if}
         {#if searchQuery}
           <button class="search-clear" onclick={clearSearch}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         {/if}
       </div>
-      <button class="search-btn" onclick={search} disabled={searching || !searchQuery.trim()}>
-        {#if searching}
-          <div class="spinner small"></div>
-        {:else}
-          {$tr('common.search')}
-        {/if}
-      </button>
     </div>
 
     {#if results}
