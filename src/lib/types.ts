@@ -372,6 +372,14 @@ export interface BackupInfo {
   created_at: string;
 }
 
+// User tags
+export interface UserTag {
+  id: number | null;
+  name: string;
+  color: string;
+  count?: number;
+}
+
 export interface RadioStation {
   id: number | null;
   name: string;

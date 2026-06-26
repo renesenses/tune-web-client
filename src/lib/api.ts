@@ -926,6 +926,67 @@ export function playMediaServerItem(serverId: string, itemId: string, zoneId: nu
   );
 }
 
+// --- User Tags ---
+
+export function getTags(itemType?: string) {
+  const q = itemType ? `?item_type=${itemType}` : '';
+  return fetchJSON<import('./types').UserTag[]>(`${BASE}/tags/${q}`);
+}
+
+export function searchTags(query: string) {
+  return fetchJSON<import('./types').UserTag[]>(`${BASE}/tags/search?q=${encodeURIComponent(query)}`);
+}
+
+export function createTag(name: string, color?: string) {
+  return fetchJSON<{ id: number }>(`${BASE}/tags/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, color }),
+  });
+}
+
+export function deleteTag(id: number) {
+  return fetchJSON<void>(`${BASE}/tags/${id}`, { method: 'DELETE' });
+}
+
+export function updateTag(id: number, name?: string, color?: string) {
+  return fetchJSON<void>(`${BASE}/tags/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, color }),
+  });
+}
+
+export function tagItem(tagId: number, itemType: string, itemId: number) {
+  return fetchJSON<void>(`${BASE}/tags/${tagId}/items`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ item_type: itemType, item_id: itemId }),
+  });
+}
+
+export function untagItem(tagId: number, itemType: string, itemId: number) {
+  return fetchJSON<void>(`${BASE}/tags/${tagId}/items/${itemType}/${itemId}`, {
+    method: 'DELETE',
+  });
+}
+
+export function batchTag(tagId: number, itemType: string, itemIds: number[]) {
+  return fetchJSON<{ tagged: number }>(`${BASE}/tags/${tagId}/items/batch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ item_type: itemType, item_ids: itemIds }),
+  });
+}
+
+export function getTagsForItem(itemType: string, itemId: number) {
+  return fetchJSON<import('./types').UserTag[]>(`${BASE}/tags/for/${itemType}/${itemId}`);
+}
+
+export function getTagAlbums(tagId: number) {
+  return fetchJSON<{ albums: import('./types').Album[]; count: number }>(`${BASE}/tags/${tagId}/albums`);
+}
+
 // --- Playlists ---
 
 // --- Smart Playlists ---
