@@ -1508,6 +1508,35 @@ export function getStreamingPlaylistTracks(service: string, playlistId: string) 
     .then(mapStreamingTracks);
 }
 
+// --- YouTube Music OAuth ---
+
+export function youtubeAuthDeviceCode() {
+  return fetchJSON<{ user_code: string; verification_url: string; device_code: string; expires_in: number }>(
+    `${BASE}/streaming/youtube/auth/device-code`,
+    { method: 'POST' },
+  );
+}
+
+export function youtubeAuthPoll(deviceCode: string) {
+  return fetchJSON<{ authenticated?: boolean; pending?: boolean; email?: string }>(
+    `${BASE}/streaming/youtube/auth/poll`,
+    { method: 'POST', body: JSON.stringify({ device_code: deviceCode }) },
+  );
+}
+
+export function youtubeAuthLogout() {
+  return fetchJSON<any>(
+    `${BASE}/streaming/youtube/auth/logout`,
+    { method: 'POST' },
+  );
+}
+
+export function youtubeAuthStatus() {
+  return fetchJSON<{ authenticated: boolean; email: string | null }>(
+    `${BASE}/streaming/youtube/auth/status`,
+  );
+}
+
 // --- YouTube Music browse (ytmusicapi) ---
 
 export function getYouTubeHome() {

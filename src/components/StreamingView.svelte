@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist } from '../lib/stores/streaming';
+  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
+  import { activeView, settingsInitialTab } from '../lib/stores/navigation';
   import * as api from '../lib/api';
   import { formatTime, formatAlbumYear } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
@@ -20,6 +21,9 @@
 
   let service = $derived($activeStreamingService);
   let zone = $derived($currentZone);
+  let youtubeNeedsAuth = $derived(
+    service === 'youtube' && !$streamingServicesStore['youtube']?.authenticated
+  );
   let tab = $state<StreamingTab>('search');
   let searchQuery = $state('');
   let searching = $state(false);
@@ -520,12 +524,26 @@
       console.error('Play streaming album error:', e);
     }
   }
+
+  function goToSettings() {
+    settingsInitialTab.set('streaming');
+    activeView.set('settings');
+  }
 </script>
 
 <div class="streaming-view">
   {#if !service}
     <div class="empty-center">
       <p>{$tr('streaming.selectService')}</p>
+    </div>
+  {:else if youtubeNeedsAuth}
+    <div class="empty-center youtube-auth-prompt">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+      <p>{$tr('streaming.youtubeAuthRequired')}</p>
+      <button class="scan-btn" onclick={goToSettings}>{$tr('streaming.goToSettings')}</button>
     </div>
   {:else if selectedAlbum}
     <!-- Album detail -->
@@ -1867,6 +1885,20 @@
     font-size: 15px;
     text-align: center;
     padding: var(--space-2xl);
+  }
+
+  .youtube-auth-prompt {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .youtube-auth-prompt svg {
+    opacity: 0.5;
+  }
+
+  .youtube-auth-prompt p {
+    max-width: 360px;
+    line-height: 1.5;
   }
 
   /* Skeleton loaders */

@@ -704,8 +704,11 @@
   let youtubeAuthLoading = $state(false);
   let youtubeVerificationUrl: string | null = $state(null);
   let youtubeUserCode: string | null = $state(null);
+  let youtubeDeviceCode: string | null = $state(null);
   let youtubePollingInterval: ReturnType<typeof setInterval> | null = $state(null);
+  let youtubePollingTimeout: ReturnType<typeof setTimeout> | null = $state(null);
   let youtubeAuthError: string | null = $state(null);
+  let youtubeEmail: string | null = $state(null);
 
   async function handleQobuzAuth() {
     qobuzAuthLoading = true;
@@ -898,41 +901,32 @@
     youtubeAuthError = null;
     youtubeVerificationUrl = null;
     youtubeUserCode = null;
+    youtubeDeviceCode = null;
     try {
-      const res = await api.authenticateStreaming('youtube');
-      if (res.authenticated) {
-        $streamingServicesStore = {
-          ...$streamingServicesStore,
-          youtube: { ...$streamingServicesStore['youtube'], authenticated: true },
-        };
-        youtubeAuthLoading = false;
-        return;
-      }
-      if (res.verification_url) {
-        youtubeVerificationUrl = res.verification_url;
-        youtubeUserCode = res.user_code ?? null;
-        startYoutubePolling();
-      } else {
-        youtubeAuthError = res.error === 'missing_credentials'
-          ? get(t)('settings.youtubeMissingCredentials')
-          : get(t)('settings.connectionError');
-        youtubeAuthLoading = false;
-      }
-    } catch (e) {
-      youtubeAuthError = get(t)('settings.connectionError');
+      const res = await api.youtubeAuthDeviceCode();
+      youtubeVerificationUrl = res.verification_url;
+      youtubeUserCode = res.user_code;
+      youtubeDeviceCode = res.device_code;
+      startYoutubePolling(res.device_code, res.expires_in);
+    } catch (e: any) {
+      youtubeAuthError = e?.message?.includes('missing_credentials') || e?.message?.includes('not configured')
+        ? get(t)('settings.youtubeMissingCredentials')
+        : get(t)('settings.connectionError');
       youtubeAuthLoading = false;
     }
   }
 
-  function startYoutubePolling() {
+  function startYoutubePolling(deviceCode: string, expiresIn: number) {
     stopYoutubePolling();
     youtubePollingInterval = setInterval(async () => {
       try {
-        const status = await api.getStreamingServiceStatus('youtube');
-        if (status.authenticated) {
+        const res = await api.youtubeAuthPoll(deviceCode);
+        if (res.authenticated) {
           stopYoutubePolling();
           youtubeVerificationUrl = null;
           youtubeUserCode = null;
+          youtubeDeviceCode = null;
+          youtubeEmail = res.email ?? null;
           youtubeAuthLoading = false;
           $streamingServicesStore = {
             ...$streamingServicesStore,
@@ -943,12 +937,51 @@
         // ignore polling errors
       }
     }, 5000);
+    // Auto-stop polling after expires_in seconds
+    youtubePollingTimeout = setTimeout(() => {
+      if (youtubePollingInterval) {
+        stopYoutubePolling();
+        youtubeVerificationUrl = null;
+        youtubeUserCode = null;
+        youtubeDeviceCode = null;
+        youtubeAuthLoading = false;
+        youtubeAuthError = get(t)('settings.youtubeExpired');
+      }
+    }, expiresIn * 1000);
   }
 
   function stopYoutubePolling() {
     if (youtubePollingInterval) {
       clearInterval(youtubePollingInterval);
       youtubePollingInterval = null;
+    }
+    if (youtubePollingTimeout) {
+      clearTimeout(youtubePollingTimeout);
+      youtubePollingTimeout = null;
+    }
+  }
+
+  async function handleYoutubeDisconnect() {
+    try {
+      await api.youtubeAuthLogout();
+      youtubeEmail = null;
+      $streamingServicesStore = {
+        ...$streamingServicesStore,
+        youtube: { ...$streamingServicesStore['youtube'], authenticated: false },
+      };
+    } catch (e) {
+      console.error('YouTube disconnect error:', e);
+    }
+  }
+
+  async function fetchYoutubeAuthStatus() {
+    try {
+      const status = await api.youtubeAuthStatus();
+      if (status.authenticated) {
+        youtubeEmail = status.email;
+      }
+    } catch {
+      // ignore
     }
   }
 
@@ -1543,6 +1576,7 @@
     loadMetadataFields();
     loadLogLevel();
     loadAudioBackend();
+    fetchYoutubeAuthStatus();
     if (pushEnabled) initPushNotifications();
   });
 
@@ -2694,8 +2728,13 @@
                 <div class="service-header-actions">
                   {#if status.enabled}
                     {#if status.authenticated}
-                      <span class="badge auth">{$t('settings.connected')}</span>
-                      <button class="disconnect-btn" onclick={() => handleDisconnect(name)}>{$t('settings.disconnect')}</button>
+                      {#if name === 'youtube' && youtubeEmail}
+                        <span class="badge auth">{youtubeEmail}</span>
+                        <button class="disconnect-btn" onclick={handleYoutubeDisconnect}>{$t('settings.disconnect')}</button>
+                      {:else}
+                        <span class="badge auth">{$t('settings.connected')}</span>
+                        <button class="disconnect-btn" onclick={() => handleDisconnect(name)}>{$t('settings.disconnect')}</button>
+                      {/if}
                     {:else}
                       <span class="badge noauth">{$t('settings.notConnected')}</span>
                     {/if}
@@ -2832,10 +2871,10 @@
                     {#if youtubeVerificationUrl}
                       <p class="auth-hint">{$t('settings.youtubeLink')}</p>
                       {#if youtubeUserCode}
-                        <p class="auth-code">{youtubeUserCode}</p>
+                        <p class="yt-user-code" title={$t('settings.youtubeCopyCode')} onclick={() => { navigator.clipboard.writeText(youtubeUserCode ?? ''); notifications.success($t('settings.youtubeCopied')); }}>{youtubeUserCode}</p>
                       {/if}
                       <a href={youtubeVerificationUrl} target="_blank" rel="noopener noreferrer" class="auth-link">
-                        {$t('settings.youtubeOpenAuth')}
+                        {youtubeVerificationUrl}
                       </a>
                       <div class="auth-waiting">
                         <div class="spinner small"></div>
@@ -3946,6 +3985,27 @@
     letter-spacing: 3px;
     color: var(--tune-accent);
     margin: 0;
+  }
+
+  .yt-user-code {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: 6px;
+    color: var(--tune-accent);
+    background: var(--tune-surface);
+    border: 2px dashed var(--tune-accent);
+    border-radius: 8px;
+    padding: 12px 24px;
+    margin: 8px 0;
+    text-align: center;
+    cursor: pointer;
+    user-select: all;
+    transition: background 0.15s;
+  }
+
+  .yt-user-code:hover {
+    background: color-mix(in srgb, var(--tune-accent) 10%, var(--tune-surface));
   }
 
   .auth-link {
