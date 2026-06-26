@@ -198,10 +198,6 @@
   }
 
   function cloudSsoConnect() {
-    if (!cloudSsoConfigured) {
-      notifications.error('Cloud SSO non disponible pour le moment.');
-      return;
-    }
     // Store a flag so the app knows to navigate back to Settings after
     // the OAuth redirect (the server redirects to "/" with no indicator).
     // Use localStorage with a timestamp — sessionStorage is unreliable across
@@ -3355,7 +3351,9 @@
         {:else}
           <div class="cloud-row">
             <span class="cloud-status-dot disconnected"></span>
-            <span class="cloud-status-text">Non connecté — <a href="https://mozaiklabs.fr" target="_blank" rel="noopener noreferrer" style="color:var(--tune-accent)">Créer un compte</a></span>
+            <span class="cloud-status-text">Non connecté</span>
+            <button class="scan-btn small" onclick={cloudSsoConnect}>Se connecter</button>
+            <span style="margin-left:0.5em;font-size:0.85em">ou <a href="https://mozaiklabs.fr" target="_blank" rel="noopener noreferrer" style="color:var(--tune-accent)">Créer un compte</a></span>
           </div>
         {/if}
       </div>

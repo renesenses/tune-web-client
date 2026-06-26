@@ -10,6 +10,7 @@
   import { formatTime, formatDuration, formatAudioBadge, formatAlbumYear } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
+  import ArtistEditModal from './ArtistEditModal.svelte';
   import TrackEditModal from './TrackEditModal.svelte';
   import HeartButton from './HeartButton.svelte';
   import AlphaIndex from './AlphaIndex.svelte';
@@ -202,10 +203,11 @@
   let enrichLoading = $state(false);
   let bioLevel = $state<'simple' | 'complete' | 'full'>('complete');
 
-  // Artist name editing
+  // Artist editing
   let editingArtistName = $state(false);
   let artistNameInput = $state('');
   let artistNameSaving = $state(false);
+  let showArtistEdit = $state(false);
 
   async function saveArtistName() {
     if (!$selectedArtist?.id || !artistNameInput.trim()) return;
@@ -893,7 +895,7 @@
         })
       : $albums;
     for (const album of filtered) {
-      const raw = album.original_year ?? album.year ?? null;
+      const raw = album.year ?? album.original_year ?? null;
       const y = (raw === 0 || raw === null || raw === undefined) ? null : raw;
       if (!map.has(y)) map.set(y, []);
       map.get(y)!.push(album);
@@ -1781,7 +1783,7 @@
           {:else}
             <h2 class="artist-detail-name">
               {$selectedArtist.name}
-              <button class="artist-edit-btn" onclick={startEditArtistName} title="Modifier le nom">
+              <button class="artist-edit-btn" onclick={() => showArtistEdit = true} title="Éditer l'artiste">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
               </button>
             </h2>
@@ -2496,6 +2498,17 @@
     track={editingTrack}
     onClose={() => editingTrack = null}
     onSaved={handleTrackSaved}
+  />
+{/if}
+
+{#if showArtistEdit && $selectedArtist}
+  <ArtistEditModal
+    artist={$selectedArtist}
+    onClose={() => showArtistEdit = false}
+    onSaved={(updated) => {
+      selectedArtist.set(updated);
+      showArtistEdit = false;
+    }}
   />
 {/if}
 

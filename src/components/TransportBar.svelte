@@ -10,6 +10,7 @@
   import ServiceBadge from './ServiceBadge.svelte';
   import VolumeControl from './VolumeControl.svelte';
   import AudioVisualizer from './AudioVisualizer.svelte';
+  import ZoneConfigModal from './ZoneConfigModal.svelte';
   import { t } from '../lib/i18n';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
   import type { OutputType, RepeatMode } from '../lib/types';
@@ -295,6 +296,7 @@
   let track = $derived($currentTrack);
   let state = $derived($playbackState);
   let showZoneDropdown = $state(false);
+  let configZone = $state<typeof zone | null>(null);
   let hasNoZone = $derived($zones.length === 0);
 
   // YouTube IFrame state — for badge display and fallback when no zone
@@ -736,6 +738,7 @@
         class:zone-offline={zone?.online === false && zone?.recovery_started_at == null}
         class:zone-online={zone?.online !== false && zone?.recovery_started_at == null}
         onclick={(e) => { e.stopPropagation(); showZoneDropdown = !showZoneDropdown; }}
+        oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); if (zone) configZone = zone; }}
         title={zone?.name ? `${zone.name} — ${$t('zone.switchZone')}` : $t('zone.switchZone')}
         aria-label={zone?.name ?? $t('zone.switchZone')}
       >
@@ -877,6 +880,18 @@
       {/if}
     </div>
   </div>
+{/if}
+
+{#if configZone}
+  <ZoneConfigModal
+    zone={configZone}
+    allZones={$zones}
+    groups={[]}
+    onClose={() => configZone = null}
+    onDelete={() => configZone = null}
+    onGroupChanged={() => {}}
+    onRenamed={() => {}}
+  />
 {/if}
 
 <style>

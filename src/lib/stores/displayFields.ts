@@ -13,6 +13,11 @@ function load(): string[] {
 
 function save(fields: string[]) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(fields)); } catch {}
+  fetch('/api/v1/system/settings/metadata-fields', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields }),
+  }).catch(() => {});
 }
 
 function createDisplayFieldsStore() {
@@ -41,3 +46,26 @@ function createDisplayFieldsStore() {
 }
 
 export const displayFields = createDisplayFieldsStore();
+
+export async function syncDisplayFieldsFromServer() {
+  try {
+    const res = await fetch('/api/v1/system/settings/metadata-fields');
+    if (!res.ok) return;
+    const data = await res.json();
+    const categories = data?.categories;
+    if (!Array.isArray(categories)) return;
+    const enabled: string[] = [];
+    for (const cat of categories) {
+      for (const f of cat.fields ?? []) {
+        if (f.enabled) enabled.push(f.key);
+      }
+    }
+    if (enabled.length > 0) {
+      const hadLocal = !!localStorage.getItem(STORAGE_KEY);
+      if (!hadLocal) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(enabled)); } catch {}
+        displayFields.set(enabled);
+      }
+    }
+  } catch {}
+}

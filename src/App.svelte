@@ -11,6 +11,7 @@
   import { activeView, settingsInitialTab } from './lib/stores/navigation';
   import { selectedAlbum, selectedArtist, libraryTab } from './lib/stores/library';
   import { preferences, applyTheme, syncPreferencesFromServer } from './lib/stores/preferences';
+  import { syncDisplayFieldsFromServer } from './lib/stores/displayFields';
   import { locale } from './lib/i18n';
   import { setupKeyboardShortcuts } from './lib/keyboard';
   import { playbackHistory } from './lib/stores/history';
@@ -368,6 +369,7 @@ import AlarmsView from './components/AlarmsView.svelte';
     });
 
     syncPreferencesFromServer();
+    syncDisplayFieldsFromServer();
     startUpdatePolling();
 
     // Apply startup view (skip in kiosk mode — always nowplaying)
