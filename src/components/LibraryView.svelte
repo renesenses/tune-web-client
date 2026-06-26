@@ -14,7 +14,7 @@
   import HeartButton from './HeartButton.svelte';
   import AlphaIndex from './AlphaIndex.svelte';
   import MetadataChips from './MetadataChips.svelte';
-  import type { Album, Artist, Track, TrackCredit } from '../lib/types';
+  import type { Album, Artist, Track, TrackCredit, UserTag } from '../lib/types';
   import { t as tr, locale } from '../lib/i18n';
   import { streamingServices, activeStreamingService, pendingStreamingAlbum } from '../lib/stores/streaming';
   import { activeView } from '../lib/stores/navigation';
@@ -382,6 +382,7 @@
   // can re-trigger on batch flushes in certain Svelte 5 runtime versions.
   onMount(() => {
     api.getGenreTree().then(r => genreTree = r.tree ?? {}).catch(() => {});
+    loadUserTags();
   });
   let formatFilter = $state<string | null>(null);
   let qualityFilter = $state<string | null>(null);
@@ -513,6 +514,44 @@
 
   // Favorites filter
   let albumFavoritesFilter = $state(false);
+  let albumTagFilter = $state<number | null>(null);
+  let userTags = $state<UserTag[]>([]);
+  let tagAlbumIds = $state<Set<number>>(new Set());
+
+  async function loadUserTags() {
+    try {
+      userTags = await api.getTags('album');
+    } catch (e) { /* ignore */ }
+  }
+
+  let showTagPicker = $state(false);
+  let newTagName = $state('');
+
+  const TAG_COLORS = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#1abc9c', '#3498db', '#9b59b6', '#e91e63', '#795548', '#607d8b'];
+  async function handleCreateAndAssignTag(albumId: number) {
+    const name = newTagName.trim();
+    if (!name) return;
+    const color = TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
+    const result = await api.createTag(name, color);
+    if (result.id) {
+      await api.tagItem(result.id, 'album', albumId);
+      await loadUserTags();
+    }
+    newTagName = '';
+    showTagPicker = false;
+  }
+
+  async function applyTagFilter(tagId: number | null) {
+    albumTagFilter = tagId;
+    if (tagId) {
+      try {
+        const result = await api.getTagAlbums(tagId);
+        tagAlbumIds = new Set(result.albums.map(a => a.id!).filter(Boolean));
+      } catch (e) { tagAlbumIds = new Set(); }
+    } else {
+      tagAlbumIds = new Set();
+    }
+  }
   let trackFavoritesFilter = $state(false);
   let favAlbumIds = $state<Set<number>>(new Set());
   let favTrackIds = $state<Set<number>>(new Set());
@@ -657,6 +696,7 @@
     if (albumFavoritesFilter) result = result.filter(a => a.id !== null && favAlbumIds.has(a.id!));
     if (albumYearFilter) result = result.filter(a => a.year === albumYearFilter);
     if (albumDuplicatesFilter) result = result.filter(a => a.id !== null && duplicateAlbumIds.has(a.id!));
+    if (albumTagFilter) result = result.filter(a => a.id !== null && tagAlbumIds.has(a.id!));
     return result;
   });
 
@@ -1404,6 +1444,34 @@
           {#if writeTagsMessage}
             <div class="write-tags-message">{writeTagsMessage}</div>
           {/if}
+          <!-- User tags -->
+          {#if $selectedAlbum?.id}
+            {@const albumId = $selectedAlbum.id}
+            {#await api.getTagsForItem('album', albumId) then albumTags}
+              <div class="album-tags-row">
+                {#each albumTags as tag}
+                  <span class="album-tag-chip" style="background:{tag.color}">
+                    {tag.name}
+                    <button class="tag-remove" onclick={() => { api.untagItem(tag.id!, 'album', albumId); loadUserTags(); }}>×</button>
+                  </span>
+                {/each}
+                <div class="tag-add-wrap">
+                  <button class="tag-add-btn" onclick={() => showTagPicker = !showTagPicker}>+ Tag</button>
+                  {#if showTagPicker}
+                    <div class="tag-picker">
+                      <input class="tag-picker-input" type="text" placeholder="Nouveau tag..." bind:value={newTagName} onkeydown={(e) => { if (e.key === 'Enter' && newTagName.trim()) handleCreateAndAssignTag(albumId); }} />
+                      {#each userTags.filter(t => !albumTags.some(at => at.id === t.id)) as tag}
+                        <button class="tag-picker-option" onclick={() => { api.tagItem(tag.id!, 'album', albumId); showTagPicker = false; loadUserTags(); }}>
+                          <span class="tag-dot" style="background:{tag.color}"></span>
+                          {tag.name}
+                        </button>
+                      {/each}
+                    </div>
+                  {/if}
+                </div>
+              </div>
+            {/await}
+          {/if}
           <button class="bio-toggle-btn" onclick={() => { showAlbumBio = !showAlbumBio; if (showAlbumBio && $selectedAlbum?.id) loadAlbumBio($selectedAlbum.id); }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
             {showAlbumBio ? 'Masquer notes' : 'Notes / Bio'}
@@ -2043,6 +2111,21 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="8" y="2" width="13" height="13" rx="2" /><path d="M4 8H3a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-1" /></svg>
             Doublons ({duplicateAlbumCount})
           </button>
+        {/if}
+        {#if userTags.length > 0}
+          <span class="filter-sep">|</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="opacity:0.5;flex-shrink:0"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          {#each userTags as tag}
+            <button
+              class="quality-chip user-tag"
+              class:active={albumTagFilter === tag.id}
+              style="--tag-color: {tag.color}"
+              onclick={() => applyTagFilter(albumTagFilter === tag.id ? null : tag.id!)}
+            >
+              <span class="tag-dot" style="background:{tag.color}"></span>
+              {tag.name} ({tag.count ?? 0})
+            </button>
+          {/each}
         {/if}
         {#if albumYearFilter}
           <span class="filter-sep">|</span>
@@ -2993,6 +3076,105 @@
     background: #8e44ad;
     border-color: #8e44ad;
   }
+
+  .quality-chip.user-tag {
+    gap: 4px;
+  }
+  .quality-chip.user-tag.active {
+    background: var(--tag-color, #808080);
+    border-color: var(--tag-color, #808080);
+  }
+  .tag-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .album-tags-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+    align-items: center;
+  }
+  .album-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+    letter-spacing: 0.3px;
+  }
+  .tag-remove {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 2px;
+    line-height: 1;
+  }
+  .tag-remove:hover { color: white; }
+  .tag-add-wrap { position: relative; }
+  .tag-add-btn {
+    background: none;
+    border: 1px dashed var(--tune-border);
+    color: var(--tune-text-muted);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tag-add-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
+  .tag-picker {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    padding: 6px;
+    min-width: 180px;
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .tag-picker-input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: var(--tune-bg);
+    color: var(--tune-text);
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+    margin-bottom: 4px;
+  }
+  .tag-picker-input:focus { border-color: var(--tune-accent); }
+  .tag-picker-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border: none;
+    background: none;
+    color: var(--tune-text);
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    text-align: left;
+  }
+  .tag-picker-option:hover { background: var(--tune-surface-hover); }
 
   .filter-sep {
     color: var(--tune-text-muted);
