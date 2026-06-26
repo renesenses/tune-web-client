@@ -56,6 +56,7 @@
   }
 
   function removeParent(parent: string) {
+    if (!tree[parent]) return;
     if (!confirm(`Supprimer la branche "${parent}" et ses ${tree[parent].length} sous-genres ?`)) return;
     const { [parent]: _, ...rest } = tree;
     tree = rest;

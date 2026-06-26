@@ -241,7 +241,6 @@ export function getGenreTree(): Promise<GenreTreeResponse> {
 export function putGenreTree(tree: Record<string, string[]>): Promise<GenreTreeResponse> {
   return fetchJSON(`${BASE}/library/genre-tree`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ tree }),
   });
 }
