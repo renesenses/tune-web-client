@@ -528,19 +528,25 @@
 
   let showTagPicker = $state(false);
   let newTagName = $state('');
+  let albumTagsKey = $state(0);
 
   const TAG_COLORS = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#1abc9c', '#3498db', '#9b59b6', '#e91e63', '#795548', '#607d8b'];
   async function handleCreateAndAssignTag(albumId: number) {
     const name = newTagName.trim();
     if (!name) return;
     const color = TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
-    const result = await api.createTag(name, color);
-    if (result.id) {
-      await api.tagItem(result.id, 'album', albumId);
-      await loadUserTags();
+    try {
+      const result = await api.createTag(name, color);
+      if (result.id) {
+        await api.tagItem(result.id, 'album', albumId);
+      }
+    } catch (e) {
+      console.error('createTag error:', e);
     }
     newTagName = '';
     showTagPicker = false;
+    await loadUserTags();
+    albumTagsKey++;
   }
 
   async function applyTagFilter(tagId: number | null) {
@@ -1449,30 +1455,30 @@
           <!-- User tags -->
           {#if $selectedAlbum?.id}
             {@const albumId = $selectedAlbum.id}
-            {#await api.getTagsForItem('album', albumId) then albumTags}
-              <div class="album-tags-row">
-                {#each albumTags as tag}
-                  <span class="album-tag-chip" style="background:{tag.color}">
-                    {tag.name}
-                    <button class="tag-remove" onclick={() => { api.untagItem(tag.id!, 'album', albumId); loadUserTags(); }}>×</button>
-                  </span>
-                {/each}
-                <div class="tag-add-wrap">
+            {#key albumTagsKey}
+              {#await api.getTagsForItem('album', albumId) then albumTags}
+                <div class="album-tags-row">
+                  {#each albumTags as tag}
+                    <span class="album-tag-chip" style="background:{tag.color}">
+                      {tag.name}
+                      <button class="tag-remove" onclick={async () => { await api.untagItem(tag.id!, 'album', albumId); await loadUserTags(); albumTagsKey++; }}>×</button>
+                    </span>
+                  {/each}
                   <button class="tag-add-btn" onclick={() => showTagPicker = !showTagPicker}>+ Tag</button>
-                  {#if showTagPicker}
-                    <div class="tag-picker">
-                      <input class="tag-picker-input" type="text" placeholder="Nouveau tag..." bind:value={newTagName} onkeydown={(e) => { if (e.key === 'Enter' && newTagName.trim()) handleCreateAndAssignTag(albumId); }} />
-                      {#each userTags.filter(t => !albumTags.some(at => at.id === t.id)) as tag}
-                        <button class="tag-picker-option" onclick={() => { api.tagItem(tag.id!, 'album', albumId); showTagPicker = false; loadUserTags(); }}>
-                          <span class="tag-dot" style="background:{tag.color}"></span>
-                          {tag.name}
-                        </button>
-                      {/each}
-                    </div>
-                  {/if}
                 </div>
+              {/await}
+            {/key}
+            {#if showTagPicker}
+              <div class="tag-picker">
+                <input class="tag-picker-input" type="text" placeholder="Nouveau tag..." bind:value={newTagName} onkeydown={(e) => { if (e.key === 'Enter' && newTagName.trim()) handleCreateAndAssignTag(albumId); }} />
+                {#each userTags as tag}
+                  <button class="tag-picker-option" onclick={async () => { await api.tagItem(tag.id!, 'album', albumId); showTagPicker = false; await loadUserTags(); albumTagsKey++; }}>
+                    <span class="tag-dot" style="background:{tag.color}"></span>
+                    {tag.name}
+                  </button>
+                {/each}
               </div>
-            {/await}
+            {/if}
           {/if}
           <button class="bio-toggle-btn" onclick={() => { showAlbumBio = !showAlbumBio; if (showAlbumBio && $selectedAlbum?.id) loadAlbumBio($selectedAlbum.id); }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
