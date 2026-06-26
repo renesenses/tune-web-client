@@ -758,6 +758,11 @@ export default {
   'settings.scanScheduleDisabled': '예약 스캔 비활성화됨',
   'settings.scanScheduleSaved': '예약이 저장되었습니다',
 
+  // Zone auto-create
+  'settings.zoneAutoCreate': 'Playback zones',
+  'settings.zoneAutoCreateLabel': 'Auto-create zones',
+  'settings.zoneAutoCreateHint': 'When disabled, discovered devices appear in the list but zones must be created manually.',
+
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',
   'settings.squeezeboxHint': '로컬 네트워크의 Lyrion Music Server(LMS)에서 관리하는 Squeezebox 플레이어를 연결합니다.',

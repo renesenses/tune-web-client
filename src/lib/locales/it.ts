@@ -758,6 +758,11 @@ export default {
   'settings.scanScheduleDisabled': 'Scansione programmata disattivata',
   'settings.scanScheduleSaved': 'Programmazione salvata',
 
+  // Zone auto-create
+  'settings.zoneAutoCreate': 'Playback zones',
+  'settings.zoneAutoCreateLabel': 'Auto-create zones',
+  'settings.zoneAutoCreateHint': 'When disabled, discovered devices appear in the list but zones must be created manually.',
+
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',
   'settings.squeezeboxHint': 'Collega i lettori Squeezebox gestiti da Lyrion Music Server (LMS) sulla tua rete locale.',

@@ -232,6 +232,7 @@ export interface SystemConfig {
   youtube_enabled: boolean;
   amazon_music_enabled: boolean;
   discovery_enabled: boolean;
+  zone_auto_create?: boolean;
   metadata_readonly: boolean;
   enrich_on_scan: boolean;
   discogs_token_set: boolean;

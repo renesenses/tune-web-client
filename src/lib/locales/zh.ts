@@ -758,6 +758,11 @@ export default {
   'settings.scanScheduleDisabled': '定时扫描已禁用',
   'settings.scanScheduleSaved': '计划已保存',
 
+  // Zone auto-create
+  'settings.zoneAutoCreate': 'Playback zones',
+  'settings.zoneAutoCreateLabel': 'Auto-create zones',
+  'settings.zoneAutoCreateHint': 'When disabled, discovered devices appear in the list but zones must be created manually.',
+
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',
   'settings.squeezeboxHint': '连接局域网上由 Lyrion Music Server (LMS) 管理的 Squeezebox 播放器。',

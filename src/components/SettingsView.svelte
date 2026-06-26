@@ -2933,6 +2933,21 @@
       </section>
     {/if}
 
+    <!-- Zone auto-create -->
+    {#if config}
+      <section class="settings-section">
+        <h3>{$t('settings.zoneAutoCreate' as any)}</h3>
+        <div class="pref-grid">
+          <label class="pref-label">{$t('settings.zoneAutoCreateLabel' as any)}</label>
+          <label class="toggle-switch">
+            <input type="checkbox" checked={config.zone_auto_create ?? true} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; config.zone_auto_create = val; await api.updateConfig({ zone_auto_create: val }); }} />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <p class="settings-note">{$t('settings.zoneAutoCreateHint' as any)}</p>
+      </section>
+    {/if}
+
     <!-- Squeezebox / Lyrion Music Server -->
     {#if config}
       <section class="settings-section">
