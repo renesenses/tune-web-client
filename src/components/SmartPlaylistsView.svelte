@@ -103,7 +103,7 @@
       const result = await api.createSmartPlaylist({
         name: newName.trim(),
         description: newDescription.trim() || undefined,
-        rules: newRules.filter(r => r.value.trim()),
+        rules: newRules.filter(r => r.value.trim()).map(r => ({ field: r.field, op: r.operator, value: r.value })),
         match_mode: newMatchMode,
         sort_by: newSortBy,
         sort_order: newSortOrder,
@@ -155,7 +155,7 @@
       await api.updateSmartPlaylist(editingSp.id, {
         name: newName.trim(),
         description: newDescription.trim() || undefined,
-        rules: newRules.filter(r => r.value.trim()),
+        rules: newRules.filter(r => r.value.trim()).map(r => ({ field: r.field, op: r.operator, value: r.value })),
         match_mode: newMatchMode,
         sort_by: newSortBy,
         sort_order: newSortOrder,
@@ -203,8 +203,8 @@
   }
 
   function parseRules(sp: SmartPlaylist): Rule[] {
-    if (Array.isArray(sp.rules)) return sp.rules;
-    try { return JSON.parse(sp.rules || '[]'); } catch { return []; }
+    const raw: any[] = Array.isArray(sp.rules) ? sp.rules : (() => { try { return JSON.parse(sp.rules || '[]'); } catch { return []; } })();
+    return raw.map(r => ({ field: r.field, operator: r.operator || r.op || 'contains', value: r.value }));
   }
 
   function ruleSummary(sp: SmartPlaylist): string {
