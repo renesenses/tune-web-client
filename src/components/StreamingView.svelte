@@ -526,7 +526,7 @@
   }
 
   function goToSettings() {
-    settingsInitialTab.set('streaming');
+    settingsInitialTab.set('services');
     activeView.set('settings');
   }
 </script>
