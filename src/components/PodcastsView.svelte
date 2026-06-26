@@ -5,7 +5,7 @@
   import { get } from 'svelte/store';
 
   // --- State ---
-  let activeTab = $state<'subscriptions' | 'discover' | 'search'>('subscriptions');
+  let activeTab = $state<'subscriptions' | 'discover' | 'search'>('discover');
   let errorMessage = $state<string | null>(null);
 
   // Subscriptions
@@ -394,8 +394,8 @@
   {:else}
     <!-- ====== TABS ====== -->
     <div class="view-tabs">
+      <button class="view-tab" class:active={activeTab === 'discover'} onclick={() => activeTab = 'discover'}>Découvrir</button>
       <button class="view-tab" class:active={activeTab === 'subscriptions'} onclick={() => activeTab = 'subscriptions'}>Abonnements</button>
-      <button class="view-tab" class:active={activeTab === 'discover'} onclick={() => activeTab = 'discover'}>Decouvrir</button>
       <button class="view-tab" class:active={activeTab === 'search'} onclick={() => activeTab = 'search'}>Recherche</button>
     </div>
 
