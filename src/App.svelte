@@ -66,6 +66,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import WhatsNew from './components/WhatsNew.svelte';
   import LoginView from './components/LoginView.svelte';
   import BridgeView from './components/BridgeView.svelte';
+  import ConverterView from './components/ConverterView.svelte';
   import AiChat from './components/AiChat.svelte';
   import GlobalSearchBar from './components/GlobalSearchBar.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
@@ -1016,6 +1017,8 @@ import AlarmsView from './components/AlarmsView.svelte';
       <LoginView />
     {:else if $activeView === 'bridge'}
       <BridgeView />
+    {:else if $activeView === 'converter'}
+      <ConverterView />
     {/if}
 
   </main>

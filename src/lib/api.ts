@@ -2839,3 +2839,51 @@ export function validateLicense(): Promise<{ status: string }> {
     method: 'POST',
   });
 }
+
+// --- Audio Converter ---
+
+export function getConverterPresets(): Promise<{ id: string; label: string; format: string; quality: string; sample_rate: string; bit_depth: string; estimated_size_per_min: string }[]> {
+  return fetchJSON(`${BASE}/converter/presets`);
+}
+
+export function startConversion(
+  sources: { type: 'albums'; ids: number[] } | { type: 'directories'; paths: string[] },
+  format: string,
+  quality: string,
+  sampleRate: string,
+  bitDepth: string,
+): Promise<{ job_id: string; total_tracks: number }> {
+  return fetchJSON(`${BASE}/converter/start`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sources, format, quality, sample_rate: sampleRate, bit_depth: bitDepth }),
+  });
+}
+
+export function getConversionStatus(jobId: string): Promise<{
+  state: 'converting' | 'done' | 'error';
+  progress: number;
+  current_file: string;
+  converted: number;
+  total: number;
+  download_size?: string;
+  error?: string;
+}> {
+  return fetchJSON(`${BASE}/converter/status/${encodeURIComponent(jobId)}`);
+}
+
+export async function downloadConversion(jobId: string): Promise<string> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const resp = await fetch(`${BASE}/converter/download/${encodeURIComponent(jobId)}`, { headers });
+  if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
+  const blob = await resp.blob();
+  return URL.createObjectURL(blob);
+}
+
+export function cancelConversion(jobId: string): Promise<{ status: string }> {
+  return fetchJSON(`${BASE}/converter/cancel/${encodeURIComponent(jobId)}`, {
+    method: 'POST',
+  });
+}
