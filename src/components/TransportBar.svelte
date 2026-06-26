@@ -570,6 +570,17 @@
       {/if}
     </button>
 
+    {#if state !== 'stopped' && zone?.id}
+      <button
+        class="control-btn stop-btn"
+        onclick={async () => { if (zone?.id) await api.stop(zone.id); }}
+        title={$t('common.stop') ?? 'Stop'}
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <rect x="6" y="6" width="12" height="12" rx="1.5" />
+        </svg>
+      </button>
+    {/if}
 
     <button
       class="control-btn"
