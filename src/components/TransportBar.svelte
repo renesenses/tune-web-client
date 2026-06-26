@@ -307,15 +307,25 @@
   // Show zone track when available; fall back to IFrame track while yt-dlp is loading
   let displayTrack = $derived(track ?? (ytActive ? ytTrack : null));
   let isPlaying = $derived(state === 'playing' || (ytActive && ytPlaying && state === 'stopped'));
+  // Live sources (radio) can't be meaningfully paused/resumed, so the play/pause
+  // button acts as Stop for them (and shows a stop icon). This replaces the
+  // separate stop button. Add other non-pausable sources here if needed.
+  let stopsInsteadOfPausing = $derived(displayTrack?.source === 'radio');
 
   async function togglePlayPause() {
     if (zone?.id && state !== 'stopped') {
       // Zone has an active track — backend controls DLNA, WS events will sync IFrame
       if (ytActive) ytLoading.set(true);
       if (state === 'playing') {
-        await api.pause(zone.id);
-        // Also pause browser audio if this is a browser zone
-        if (isBrowserZone(zone)) browserPause();
+        if (stopsInsteadOfPausing) {
+          // Radio/live: stop rather than pause.
+          await api.stop(zone.id);
+          if (isBrowserZone(zone)) browserStop();
+        } else {
+          await api.pause(zone.id);
+          // Also pause browser audio if this is a browser zone
+          if (isBrowserZone(zone)) browserPause();
+        }
       } else {
         await resumeAndSync(zone.id);
         // resumeAndSync already handles browserResume via the store
@@ -552,12 +562,16 @@
       class:loading={ytLoadingState}
       disabled={hasNoZone && !ytActive}
       onclick={togglePlayPause}
-      title={hasNoZone && !ytActive ? $t('zone.playDisabledNoZone' as any) : (isPlaying ? $t('common.pause') : $t('common.play'))}
+      title={hasNoZone && !ytActive ? $t('zone.playDisabledNoZone' as any) : (isPlaying ? (stopsInsteadOfPausing ? ($t('common.stop') ?? 'Stop') : $t('common.pause')) : $t('common.play'))}
     >
       {#if ytLoadingState}
         <svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <circle cx="12" cy="12" r="9" stroke-opacity="0.25" />
           <path d="M12 3a9 9 0 0 1 9 9" />
+        </svg>
+      {:else if isPlaying && stopsInsteadOfPausing}
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <rect x="6" y="6" width="12" height="12" rx="1.5" />
         </svg>
       {:else if isPlaying}
         <svg viewBox="0 0 24 24" fill="currentColor">
@@ -569,18 +583,6 @@
         </svg>
       {/if}
     </button>
-
-    {#if state !== 'stopped' && zone?.id}
-      <button
-        class="control-btn stop-btn"
-        onclick={async () => { if (zone?.id) await api.stop(zone.id); }}
-        title={$t('common.stop') ?? 'Stop'}
-      >
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <rect x="6" y="6" width="12" height="12" rx="1.5" />
-        </svg>
-      </button>
-    {/if}
 
     <button
       class="control-btn"
@@ -2042,8 +2044,7 @@
 
   .transport-bar.compact .control-btn.small,
   .transport-bar.compact .signal-dot-btn,
-  .transport-bar.compact .audiophile-btn,
-  .transport-bar.compact .stop-btn {
+  .transport-bar.compact .audiophile-btn {
     display: none;
   }
 
