@@ -313,8 +313,14 @@
         // resumeAndSync already handles browserResume via the store
       }
     } else if (zone?.id && state === 'stopped' && track) {
-      // Zone stopped but has a current track (e.g. DLNA write failed) — resume playback
-      await playAndSync(zone.id);
+      // Zone stopped but has a current track — restart it. The /play endpoint
+      // needs an explicit target (an empty body returns 400), so pass the
+      // track's identity: source+source_id for streaming, track_id for local.
+      const trackId = (track as any).track_id ?? track.id;
+      const body = (track.source && track.source !== 'local' && track.source !== 'radio' && track.source_id)
+        ? { source: track.source as any, source_id: track.source_id }
+        : (trackId != null ? { track_id: trackId } : undefined);
+      await playAndSync(zone.id, body);
     } else if (zone?.id && state === 'stopped' && ytActive && ytTrack?.source_id) {
       // Zone stopped but IFrame has a YT track — restart via API
       ytLoading.set(true);
