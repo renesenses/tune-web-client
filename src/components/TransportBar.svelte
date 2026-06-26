@@ -332,10 +332,12 @@
       }
     } else if (zone?.id && state === 'stopped' && track) {
       // Zone stopped but has a current track — restart it. The /play endpoint
-      // needs an explicit target (an empty body returns 400), so pass the
-      // track's identity: source+source_id for streaming, track_id for local.
+      // needs an explicit target (an empty body returns 400): use source+source_id
+      // for sources that stream by URL (radio, podcast, streaming services) and
+      // track_id for local library tracks. Radio is included so the play button
+      // restarts a station after it was stopped.
       const trackId = (track as any).track_id ?? track.id;
-      const body = (track.source && track.source !== 'local' && track.source !== 'radio' && track.source_id)
+      const body = (track.source && track.source !== 'local' && track.source_id)
         ? { source: track.source as any, source_id: track.source_id }
         : (trackId != null ? { track_id: trackId } : undefined);
       await playAndSync(zone.id, body);
