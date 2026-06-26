@@ -21,6 +21,42 @@
   let selectedGenre = $state<number | null>(null);
   const genreCache = new Map<string, any[]>();
 
+  // Country & language selectors
+  const countries = [
+    { code: 'fr', flag: '🇫🇷', label: 'France' },
+    { code: 'us', flag: '🇺🇸', label: 'USA' },
+    { code: 'gb', flag: '🇬🇧', label: 'UK' },
+    { code: 'de', flag: '🇩🇪', label: 'Deutschland' },
+    { code: 'es', flag: '🇪🇸', label: 'España' },
+    { code: 'it', flag: '🇮🇹', label: 'Italia' },
+    { code: 'be', flag: '🇧🇪', label: 'Belgique' },
+    { code: 'ch', flag: '🇨🇭', label: 'Suisse' },
+    { code: 'ca', flag: '🇨🇦', label: 'Canada' },
+    { code: 'jp', flag: '🇯🇵', label: '日本' },
+    { code: 'kr', flag: '🇰🇷', label: '한국' },
+    { code: 'br', flag: '🇧🇷', label: 'Brasil' },
+    { code: 'au', flag: '🇦🇺', label: 'Australia' },
+    { code: 'nl', flag: '🇳🇱', label: 'Nederland' },
+    { code: 'pt', flag: '🇵🇹', label: 'Portugal' },
+    { code: 'se', flag: '🇸🇪', label: 'Sverige' },
+    { code: 'no', flag: '🇳🇴', label: 'Norge' },
+  ];
+  const languages = [
+    { code: 'fr', label: 'Français' },
+    { code: 'en', label: 'English' },
+    { code: 'de', label: 'Deutsch' },
+    { code: 'es', label: 'Español' },
+    { code: 'it', label: 'Italiano' },
+    { code: 'pt', label: 'Português' },
+    { code: 'ja', label: '日本語' },
+    { code: 'ko', label: '한국어' },
+    { code: 'zh', label: '中文' },
+    { code: 'nl', label: 'Nederlands' },
+    { code: 'sv', label: 'Svenska' },
+  ];
+  let podcastCountry = $state(api.podcastCountry());
+  let podcastLang = $state(navigator.language?.split('-')[0] || 'fr');
+
   // Search
   let searchQuery = $state('');
   let searchResults = $state<any[]>([]);
@@ -133,8 +169,14 @@
 
   // --- Discover ---
 
+  function changeCountry(cc: string) {
+    podcastCountry = cc;
+    genreCache.clear();
+    loadTopPodcasts(selectedGenre);
+  }
+
   async function loadTopPodcasts(genreId?: number | null) {
-    const cacheKey = String(genreId ?? 'all');
+    const cacheKey = `${podcastCountry}-${genreId ?? 'all'}`;
     const cached = genreCache.get(cacheKey);
     if (cached) {
       topPodcasts = cached;
@@ -142,7 +184,7 @@
     }
     isLoadingTop = true;
     try {
-      topPodcasts = await api.getTopPodcasts(genreId);
+      topPodcasts = await api.getTopPodcasts(genreId, 50, podcastCountry);
       genreCache.set(cacheKey, topPodcasts);
     } catch (e) {
       console.error('Load top podcasts error:', e);
@@ -185,7 +227,7 @@
     isSearching = true;
     errorMessage = null;
     try {
-      searchResults = await api.searchPodcasts(searchQuery);
+      searchResults = await api.searchPodcasts(searchQuery, 20, podcastCountry, podcastLang);
     } catch (e) {
       console.error('Search podcasts error:', e);
       errorMessage = 'Erreur lors de la recherche de podcasts';
@@ -397,6 +439,18 @@
       <button class="view-tab" class:active={activeTab === 'discover'} onclick={() => activeTab = 'discover'}>Découvrir</button>
       <button class="view-tab" class:active={activeTab === 'subscriptions'} onclick={() => activeTab = 'subscriptions'}>Abonnements</button>
       <button class="view-tab" class:active={activeTab === 'search'} onclick={() => activeTab = 'search'}>Recherche</button>
+      <div class="country-selector">
+        <select class="country-select" value={podcastLang} onchange={(e) => { podcastLang = (e.target as HTMLSelectElement).value; }}>
+          {#each languages as l}
+            <option value={l.code}>{l.label}</option>
+          {/each}
+        </select>
+        <select class="country-select" value={podcastCountry} onchange={(e) => changeCountry((e.target as HTMLSelectElement).value)}>
+          {#each countries as c}
+            <option value={c.code}>{c.flag} {c.label}</option>
+          {/each}
+        </select>
+      </div>
     </div>
 
     <!-- ====== ABONNEMENTS ====== -->
@@ -718,10 +772,29 @@
   /* ===== TABS ===== */
   .view-tabs {
     display: flex;
+    align-items: center;
     gap: 4px;
     margin-bottom: 20px;
     border-bottom: 1px solid var(--tune-border, #333);
     padding-bottom: 0;
+  }
+
+  .country-selector {
+    margin-left: auto;
+    padding-bottom: 6px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .country-select {
+    background: var(--tune-surface, #1a1a1a);
+    color: var(--tune-text, white);
+    border: 1px solid var(--tune-border, #333);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 13px;
+    cursor: pointer;
   }
 
   .view-tab {

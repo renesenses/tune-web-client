@@ -2071,7 +2071,7 @@ export function importRatings(ratings: any[]) { return fetchJSON<any>(`${BASE}/l
 
 // --- Podcasts ---
 
-function podcastCountry(): string {
+export function podcastCountry(): string {
   try {
     const lang = navigator.language || 'en-US';
     const parts = lang.split('-');
@@ -2079,9 +2079,11 @@ function podcastCountry(): string {
   } catch { return 'us'; }
 }
 
-export async function searchPodcasts(query: string, limit = 20): Promise<any[]> {
-  const cc = podcastCountry();
-  const res = await fetch(`${BASE}/podcasts/search?q=${encodeURIComponent(query)}&limit=${limit}&country=${cc}`);
+export async function searchPodcasts(query: string, limit = 20, country?: string, language?: string): Promise<any[]> {
+  const cc = country || podcastCountry();
+  let url = `${BASE}/podcasts/search?q=${encodeURIComponent(query)}&limit=${limit}&country=${cc}`;
+  if (language) url += `&language=${language}`;
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`Search podcasts failed: ${res.status} ${res.statusText}`);
   const data = await res.json();
   return data.items || data;
@@ -2119,8 +2121,8 @@ export function unsubscribePodcast(id: number): Promise<void> {
   return fetchVoid(`${BASE}/podcasts/subscriptions/${id}`, { method: 'DELETE' });
 }
 
-export async function getTopPodcasts(genreId?: number | null, limit = 50): Promise<any[]> {
-  const cc = podcastCountry();
+export async function getTopPodcasts(genreId?: number | null, limit = 50, country?: string): Promise<any[]> {
+  const cc = country || podcastCountry();
   let url = `${BASE}/podcasts/top?limit=${limit}&country=${cc}`;
   if (genreId) url += `&genre=${genreId}`;
   const res = await fetch(url);
