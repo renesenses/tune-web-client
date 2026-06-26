@@ -491,6 +491,11 @@
                 {@const miniTier = hasTrackFormat ? getQualityTier(displayTrack) : (spFormat === 'DSD' ? 'dsd' : (sourceStep.includes('24') || sourceStep.includes('88') || sourceStep.includes('96') || sourceStep.includes('176') || sourceStep.includes('192') || sourceStep.includes('352') || sourceStep.includes('384')) ? 'hires' : (spFormat === 'FLAC' || spFormat === 'WAV' || spFormat === 'ALAC' || spFormat === 'AIFF') ? 'cd' : zone?.signal_path?.bit_perfect ? 'cd' : 'lossy')}
                 <span
                   class="tb-quality-badge tier-{getQualityTierColor(miniTier)}"
+                  class:sp-clickable={!!zone?.signal_path}
+                  role={zone?.signal_path ? 'button' : undefined}
+                  tabindex={zone?.signal_path ? 0 : undefined}
+                  onclick={(e) => { if (zone?.signal_path) { e.stopPropagation(); showSignalPath = true; } }}
+                  onkeydown={(e) => { if (zone?.signal_path && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); showSignalPath = true; } }}
                   title={hasTrackFormat ? formatQualityTooltip(displayTrack) : (zone?.signal_path?.summary ?? '')}
                 >{hasTrackFormat ? formatCompactQuality(displayTrack) : (spDetail || (zone?.signal_path?.bit_perfect ? 'Lossless' : 'Lossy'))}</span>
               {/if}
@@ -565,21 +570,6 @@
       {/if}
     </button>
 
-    <!-- Stop button: only meaningful while something is playing/paused.
-         Streaming services (Spotify Connect, AirPlay receive, internet
-         radio) keep the zone in 'playing' state until explicitly
-         stopped — pause alone doesn't release the upstream stream. -->
-    {#if state !== 'stopped' && zone?.id}
-      <button
-        class="control-btn stop-btn"
-        onclick={async () => { if (zone?.id) await api.stop(zone.id); }}
-        title={$t('common.stop') ?? 'Stop'}
-      >
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <rect x="6" y="6" width="12" height="12" rx="1.5" />
-        </svg>
-      </button>
-    {/if}
 
     <button
       class="control-btn"
@@ -607,22 +597,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
         </svg>
-      {/if}
-    </button>
-    <button class="signal-dot-btn" class:bit-perfect={zone?.signal_path?.bit_perfect || audiophileEnabled} class:visible={zone?.signal_path && zone.state === 'playing'} onclick={(e) => { e.stopPropagation(); if (zone?.signal_path) showSignalPath = !showSignalPath; }} title="{zone?.signal_path?.summary ?? ''}">
-      <span class="signal-dot-indicator"></span>
-    </button>
-    <button
-      class="audiophile-btn"
-      class:active={audiophileEnabled}
-      onclick={(e) => { e.stopPropagation(); toggleAudiophile(); }}
-      title={audiophileEnabled ? $t('audiophile.enabled' as any) : $t('audiophile.disabled' as any)}
-    >
-      <svg viewBox="0 0 24 24" fill={audiophileEnabled ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5" width="18" height="18">
-        <path d="M12 2L4 8v7c0 4.5 3.5 8.5 8 9.5c4.5-1 8-5 8-9.5V8l-8-6z" />
-      </svg>
-      {#if audiophileEnabled}
-        <span class="audiophile-label">{$t('audiophile.pure' as any)}</span>
       {/if}
     </button>
   </div>
@@ -690,6 +664,7 @@
   </div>
 
   <div class="transport-right">
+    <div class="transport-right-top">
     <!-- Sleep Timer -->
     <div class="sleep-timer-wrapper">
       <button
@@ -723,19 +698,44 @@
       {/if}
     </div>
 
+    <!-- Merged status + audiophile control: the shield's colour reflects the
+         live signal path (grey idle / amber lossy / green bit-perfect), its
+         fill reflects whether audiophile mode is on. Clicking toggles audiophile
+         mode directly; the signal-path detail opens from the quality badge. -->
+    <button
+      class="audiophile-btn signal-shield-btn"
+      class:active={audiophileEnabled}
+      class:bit-perfect={zone?.signal_path?.bit_perfect || audiophileEnabled}
+      class:lossy={zone?.signal_path && zone.state === 'playing' && !zone.signal_path.bit_perfect && !audiophileEnabled}
+      onclick={(e) => { e.stopPropagation(); toggleAudiophile(); }}
+      title={audiophileEnabled ? $t('audiophile.enabled' as any) : $t('audiophile.disabled' as any)}
+    >
+      <svg viewBox="0 0 24 26" fill={audiophileEnabled ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5" width="18" height="18">
+        <path d="M12 2L4 8v7c0 4.5 3.5 8.5 8 9.5c4.5-1 8-5 8-9.5V8l-8-6z" />
+      </svg>
+      {#if audiophileEnabled}
+        <span class="audiophile-label">{$t('audiophile.pure' as any)}</span>
+      {/if}
+    </button>
+
     <div class="zone-selector">
-      <button class="zone-selector-btn" class:zone-recovering={zone?.recovery_started_at != null} class:zone-offline={zone?.online === false && zone?.recovery_started_at == null} onclick={(e) => { e.stopPropagation(); showZoneDropdown = !showZoneDropdown; }} title={$t('zone.switchZone')}>
-        <span class="zone-dot-current" class:online={zone?.online !== false && zone?.recovery_started_at == null} class:recovering={zone?.recovery_started_at != null}></span>
-        <span class="truncate">{zone?.name ?? $t('zone.noZone')}</span>
-        {#if $isPremium}
-          <span class="pro-pill">PRO</span>
-        {/if}
-        {#if zone?.recovery_started_at != null}
-          <span class="zone-status-badge recovering">{$t('zone.recovering')} ({zone.recovery_started_at}s)</span>
-        {:else if zone?.online === false}
-          <span class="zone-status-badge offline">{$t('zone.offline')}</span>
-        {/if}
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9" /></svg>
+      <button
+        class="zone-selector-btn zone-icon-btn"
+        class:zone-recovering={zone?.recovery_started_at != null}
+        class:zone-offline={zone?.online === false && zone?.recovery_started_at == null}
+        class:zone-online={zone?.online !== false && zone?.recovery_started_at == null}
+        onclick={(e) => { e.stopPropagation(); showZoneDropdown = !showZoneDropdown; }}
+        title={zone?.name ? `${zone.name} — ${$t('zone.switchZone')}` : $t('zone.switchZone')}
+        aria-label={zone?.name ?? $t('zone.switchZone')}
+      >
+        <!-- Spotify-style "Connect to a device" icon (monitor + speaker). -->
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2.5" y="4.5" width="13" height="10" rx="1.5" />
+          <path d="M6.5 18h6" />
+          <path d="M9.5 14.5V18" />
+          <rect x="18" y="8.5" width="3.5" height="10" rx="1" />
+        </svg>
+        <span class="zone-status-pip"></span>
       </button>
       {#if showZoneDropdown}
         <div class="zone-popover-backdrop" onclick={() => showZoneDropdown = false} onkeydown={(e) => { if (e.key === 'Escape') showZoneDropdown = false; }} role="button" tabindex={0} aria-label="Close zone selector"></div>
@@ -771,19 +771,41 @@
         </div>
       {/if}
     </div>
+    </div>
     <VolumeControl />
   </div>
 </div>
 
-{#if showSignalPath && zone?.signal_path}
+{#if showSignalPath}
   <div class="sp-overlay" onclick={() => showSignalPath = false} role="button" tabindex={0} aria-label="Close signal path">
     <div class="sp-card" onclick={(e) => e.stopPropagation()} role="dialog" aria-label="Signal path details">
       <div class="sp-header">
-        <h3>{$t('signal.title')} : <span class:sp-good={zone.signal_path.bit_perfect} class:sp-lossy={!zone.signal_path.bit_perfect}>{zone.signal_path.bit_perfect ? $t('signal.lossless') : $t('signal.lossy')}</span></h3>
+        <h3>{$t('signal.title')}{#if zone?.signal_path} : <span class:sp-good={zone.signal_path.bit_perfect} class:sp-lossy={!zone.signal_path.bit_perfect}>{zone.signal_path.bit_perfect ? $t('signal.lossless') : $t('signal.lossy')}</span>{/if}</h3>
         <button class="sp-x" onclick={() => showSignalPath = false}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>
+
+      <!-- Audiophile on/off lives here (merged from the old separate bar icon). -->
+      <div class="sp-audiophile">
+        <div class="sp-ap-text">
+          <span class="sp-ap-title">{$t('audiophile.title' as any)}</span>
+          <span class="sp-ap-sub">{audiophileEnabled ? $t('audiophile.enabled' as any) : $t('audiophile.disabled' as any)}</span>
+        </div>
+        <button
+          class="sp-ap-switch"
+          class:on={audiophileEnabled}
+          onclick={() => toggleAudiophile()}
+          disabled={audiophileLoading}
+          role="switch"
+          aria-checked={audiophileEnabled}
+          aria-label={$t('audiophile.title' as any)}
+        >
+          <span class="sp-ap-knob"></span>
+        </button>
+      </div>
+
+      {#if zone?.signal_path}
       <div class="sp-body">
         {#each zone.signal_path.steps as step, i}
           <div class="sp-row">
@@ -841,6 +863,7 @@
           </ul>
         </details>
       {/if}
+      {/if}
     </div>
   </div>
 {/if}
@@ -852,18 +875,69 @@
     background: var(--tune-footer);
     border-top: 1px solid var(--tune-border);
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    /* Spotify-style: three equal thirds. Centre third stacks controls (row 1)
+       over a centred progress bar (row 2); left (track) and right (device +
+       volume) span both rows and truncate within their third. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto;
     align-items: center;
-    padding: 4px var(--space-lg) 0;
-    padding-bottom: env(safe-area-inset-bottom, 0);
-    gap: 2px var(--space-lg);
+    padding: 6px var(--space-lg);
+    padding-bottom: max(6px, env(safe-area-inset-bottom, 0));
+    column-gap: var(--space-lg);
+    row-gap: 2px;
     position: relative;
-    transition: height 0.2s ease-out;
     overflow: visible;
     min-width: 0;
+    /* Respond to the bar's OWN width, not the viewport: the sidebar steals
+       ~280px, so at a wide viewport the bar can still be cramped. Without this
+       the centre controls (which grow with playback state) overflow the side
+       columns and the repeat icon lands on the zone name. */
+    container-type: inline-size;
+    container-name: tbar;
+  }
+
+  /* When the bar itself is narrow, drop the secondary centre buttons and
+     tighten gaps so left (title) / centre (transport) / right (zone+volume)
+     keep their lanes instead of overlapping. */
+  @container tbar (max-width: 1080px) {
+    .transport-controls {
+      gap: 4px;
+    }
+    .transport-controls .signal-dot-btn,
+    .transport-controls .audiophile-btn {
+      display: none;
+    }
+    /* Decorative spectrum eats ~80-150px on the left — drop it first so the
+       title and zone label keep their room. */
+    .tb-mini-viz {
+      display: none;
+    }
+    .zone-selector-btn {
+      max-width: 140px;
+    }
+  }
+
+  @container tbar (max-width: 980px) {
+    /* Same trade-off the mobile breakpoint makes: drop the secondary
+       transport buttons (shuffle/repeat) so the centre stays compact and
+       can't spill its icons onto the zone chip. */
+    .transport-controls .control-btn.small {
+      display: none;
+    }
+    .zone-selector-btn .pro-pill {
+      display: none;
+    }
+    .zone-selector-btn {
+      max-width: 120px;
+    }
+    .transport-right :global(.volume-slider) {
+      width: 100px;
+    }
   }
 
   .transport-left {
+    grid-column: 1;
+    grid-row: 1 / 3;
     display: flex;
     align-items: center;
     gap: var(--space-md);
@@ -942,6 +1016,24 @@
     letter-spacing: 0.3px;
     text-transform: uppercase;
     margin-left: 2px;
+  }
+
+  /* Clickable when a signal path is available — opens the signal-path panel.
+     Persistent ring + chevron so it reads as a control, not a passive label. */
+  .tb-quality-badge.sp-clickable {
+    cursor: pointer;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18) inset;
+    transition: filter 0.12s ease-out, box-shadow 0.12s ease-out;
+  }
+  .tb-quality-badge.sp-clickable::after {
+    content: "›";
+    margin-left: 4px;
+    font-weight: 700;
+    opacity: 0.75;
+  }
+  .tb-quality-badge.sp-clickable:hover {
+    filter: brightness(1.25);
+    box-shadow: 0 0 0 1px currentColor inset;
   }
 
   .tb-quality-badge.tier-gold-max {
@@ -1039,17 +1131,22 @@
   }
 
   .transport-controls {
+    grid-column: 2;
+    grid-row: 1;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 24px;
   }
 
   .transport-progress {
+    grid-column: 2;
+    grid-row: 2;
     display: flex;
     align-items: center;
     gap: 8px;
-    grid-column: 1 / -1;
-    padding: 0 16px;
+    width: 100%;
+    padding: 0;
   }
 
   .progress-time {
@@ -1108,6 +1205,9 @@
     justify-content: center;
     width: 40px;
     height: 40px;
+    /* Never let a flex squeeze turn the round buttons (esp. play) into ovals. */
+    flex-shrink: 0;
+    aspect-ratio: 1;
   }
 
   .control-btn svg {
@@ -1174,28 +1274,29 @@
     border: none;
     cursor: pointer;
     padding: 8px;
+    /* Always shown (even inactive); the dot colour conveys the state. */
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s;
-  }
-
-  .signal-dot-btn.visible {
-    opacity: 1;
-    pointer-events: auto;
   }
 
   .signal-dot-indicator {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #f59e0b;
-    box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+    /* Inactive (not playing / no signal path): muted, no glow. */
+    background: var(--tune-text-muted, #666);
+    box-shadow: none;
     transition: background 0.3s, box-shadow 0.3s, transform 0.15s;
   }
 
+  /* Active but not bit-perfect (lossy/processed): amber. */
+  .signal-dot-btn.visible .signal-dot-indicator {
+    background: #f59e0b;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+  }
+
+  /* Bit-perfect / audiophile: green. */
   .signal-dot-btn.bit-perfect .signal-dot-indicator {
     background: #4ade80;
     box-shadow: 0 0 6px rgba(74, 222, 128, 0.5);
@@ -1206,17 +1307,76 @@
   }
 
   .transport-right {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    /* Two stacked rows (mirrors the centre): icons on top, volume below. */
     display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: var(--space-md);
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 4px;
     min-width: 0;
+    /* Must stay visible: the zone popover opens below the icon and the
+       audiophile icon would otherwise be clipped. */
     overflow: visible;
+  }
+
+  .transport-right-top {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-md);
   }
 
   .zone-selector {
     position: relative;
     flex-shrink: 0;
+  }
+
+  /* Spotify-style icon-only zone/device button. */
+  .zone-icon-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    max-width: none;
+    min-width: 0;
+    background: none;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    transition: color 0.12s ease-out, background 0.12s ease-out;
+  }
+  .zone-icon-btn:hover {
+    color: var(--tune-text);
+    background: var(--tune-surface-hover);
+  }
+  /* Connected → accent (like Spotify's green connect icon). */
+  .zone-icon-btn.zone-online {
+    color: var(--tune-accent, #1db954);
+  }
+  .zone-icon-btn.zone-recovering {
+    color: var(--tune-warning, #f59e0b);
+  }
+  .zone-icon-btn.zone-offline {
+    color: var(--tune-text-muted, #666);
+  }
+  /* Small status pip at the icon's corner. */
+  .zone-status-pip {
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .zone-icon-btn.zone-recovering .zone-status-pip {
+    animation: dot-pulse 1.5s ease-in-out infinite;
   }
 
   .zone-selector-btn {
@@ -1232,9 +1392,21 @@
     font-family: var(--font-body);
     font-size: 13px;
     max-width: 180px;
-    min-width: 60px;
+    min-width: 0;
     overflow: hidden;
     transition: all 0.12s ease-out;
+  }
+
+  /* Keep the dot, badges and chevron at full size; only the name truncates. */
+  .zone-selector-btn > :global(.zone-dot-current),
+  .zone-selector-btn > :global(svg),
+  .zone-selector-btn > :global(.zone-status-badge),
+  .zone-selector-btn > :global(.pro-pill) {
+    flex-shrink: 0;
+  }
+  .zone-selector-btn > :global(.truncate) {
+    min-width: 0;
+    flex: 0 1 auto;
   }
 
   .zone-selector-btn:hover {
@@ -1638,8 +1810,8 @@
     cursor: pointer;
     padding: 4px 6px;
     border-radius: var(--radius-sm);
-    color: var(--tune-text-muted);
-    opacity: 0.5;
+    color: var(--tune-text-secondary);
+    opacity: 1;
     transition: all 0.2s ease-out;
     font-family: var(--font-label);
     font-size: 9px;
@@ -1648,7 +1820,7 @@
   }
 
   .audiophile-btn:hover {
-    opacity: 0.8;
+    color: var(--tune-text);
     background: var(--tune-surface-hover);
   }
 
@@ -1662,9 +1834,85 @@
     filter: drop-shadow(0 0 4px rgba(212, 160, 23, 0.5));
   }
 
+  /* Merged shield = signal status + audiophile toggle.
+     Colour conveys the live signal path; these override the gold .active rule. */
+  .signal-shield-btn.lossy {
+    color: #f59e0b;
+  }
+  .signal-shield-btn.lossy svg {
+    filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.45));
+  }
+  .signal-shield-btn.bit-perfect,
+  .signal-shield-btn.active.bit-perfect {
+    color: #4ade80;
+    text-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+  }
+  .signal-shield-btn.bit-perfect svg {
+    filter: drop-shadow(0 0 4px rgba(74, 222, 128, 0.5));
+  }
+
   .audiophile-label {
     color: inherit;
     pointer-events: none;
+  }
+
+  /* Audiophile toggle row inside the signal-path panel. */
+  .sp-audiophile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: 10px 12px;
+    margin: 4px 0 10px;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+  }
+  .sp-ap-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sp-ap-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tune-text);
+  }
+  .sp-ap-sub {
+    font-size: 11px;
+    color: var(--tune-text-muted);
+  }
+  .sp-ap-switch {
+    flex-shrink: 0;
+    width: 38px;
+    height: 22px;
+    border-radius: 11px;
+    border: none;
+    background: var(--tune-border);
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+    transition: background 0.18s ease-out;
+  }
+  .sp-ap-switch.on {
+    background: #4ade80;
+  }
+  .sp-ap-switch:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+  .sp-ap-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.18s ease-out;
+  }
+  .sp-ap-switch.on .sp-ap-knob {
+    transform: translateX(16px);
   }
 
   /* --- Sleep Timer --- */
@@ -1855,7 +2103,7 @@
     }
 
     .transport-right :global(.volume-slider) {
-      width: 60px;
+      width: 90px;
     }
 
     .transport-right :global(.step-btn) {

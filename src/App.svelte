@@ -80,6 +80,9 @@ import AlarmsView from './components/AlarmsView.svelte';
   import type { Track } from './lib/types';
 
   let cleanupKeyboard: (() => void) | null = null;
+  // Declared at component scope so onDestroy can unsubscribe (was a const inside
+  // onMount → ReferenceError in onDestroy that blanked the app on teardown/HMR).
+  let unsubZoneForPolling: (() => void) | null = null;
   let scanIndicator = $state(false);
   let playlistModalTrack = $state<Track | null>(null);
   let showOnboarding = $state(false);
@@ -505,7 +508,7 @@ import AlarmsView from './components/AlarmsView.svelte';
     checkWhatsNew();
 
     // Keep polling aware of the active zone so it can fetch the queue
-    const unsubZoneForPolling = currentZoneId.subscribe((zoneId) => {
+    unsubZoneForPolling = currentZoneId.subscribe((zoneId) => {
       tuneWS.setCurrentZoneId(zoneId);
     });
 
@@ -938,7 +941,7 @@ import AlarmsView from './components/AlarmsView.svelte';
 
     <!-- Global search bar: sticky top-right overlay accessible from any view -->
     {#if !isKiosk && $activeView !== 'nowplaying' && $activeView !== 'login' && $activeView !== 'onboarding' && $activeView !== 'offline'}
-      <div class="global-search-wrapper">
+      <div class="global-search-wrapper" class:has-banner={$updateAvailable && !$updateBannerDismissed}>
         <GlobalSearchBar />
       </div>
     {/if}
@@ -1063,7 +1066,11 @@ import AlarmsView from './components/AlarmsView.svelte';
   .app-layout {
     display: grid;
     grid-template-columns: var(--sidebar-width) 1fr;
-    grid-template-rows: 1fr var(--transport-height);
+    /* Transport row must never clip: pin it to at least --transport-height but
+       let it grow to fit its content (the right tier stacks icons over volume,
+       which can exceed the fixed height on some fonts/zoom levels). The content
+       row (minmax(0,1fr)) shrinks to compensate. */
+    grid-template-rows: minmax(0, 1fr) minmax(var(--transport-height), auto);
     height: 100vh;
     height: 100dvh;
     overflow: hidden;
@@ -1073,11 +1080,13 @@ import AlarmsView from './components/AlarmsView.svelte';
 
   .app-layout > :global(.sidebar) {
     grid-column: 1;
-    grid-row: 1 / -1;
+    /* Row 1 only: the player bar runs full-width beneath it (Spotify-style),
+       so the sidebar no longer crams the bar into the content column. */
+    grid-row: 1;
   }
 
   .app-layout > :global(.transport-bar) {
-    grid-column: 2;
+    grid-column: 1 / -1;
     grid-row: 2;
     z-index: 10;
     position: relative;
@@ -1103,6 +1112,9 @@ import AlarmsView from './components/AlarmsView.svelte';
     display: flex;
     align-items: center;
     justify-content: flex-end;
+  }
+  .global-search-wrapper.has-banner {
+    top: 38px;
   }
 
   .global-search-wrapper > :global(*) {

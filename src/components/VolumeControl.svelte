@@ -91,9 +91,6 @@
       </svg>
     {/if}
   </button>
-  <button class="step-btn" onclick={stepDown} title="-" aria-label="Decrease volume">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12" /></svg>
-  </button>
   <input
     type="range"
     class="volume-slider"
@@ -104,10 +101,6 @@
     oninput={handleVolume}
     aria-label="Volume"
   />
-  <button class="step-btn" onclick={stepUp} title="+" aria-label="Increase volume">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-  </button>
-  <span class="volume-value">{volumeDisplay(vol)}</span>
 </div>
 
 <style>
@@ -161,8 +154,8 @@
   }
 
   .volume-slider {
-    width: 100px;
-    height: 4px;
+    width: 140px;
+    height: 5px;
     -webkit-appearance: none;
     appearance: none;
     background: var(--tune-border);
@@ -172,16 +165,16 @@
 
   .volume-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
     background: var(--tune-accent);
     cursor: pointer;
   }
 
   .volume-slider::-moz-range-thumb {
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
     background: var(--tune-accent);
     border: none;
