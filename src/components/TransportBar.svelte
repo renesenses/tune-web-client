@@ -172,11 +172,18 @@
   // Determine favorite type for the current track
   type FavKind = 'radio' | 'library' | 'streaming' | 'none';
 
+  // The numeric library id is exposed as `track_id` by /zones + WS events but as
+  // `id` by the /play response. Read both so the favourite state is stable
+  // across those payloads (otherwise the heart flickers on play).
+  function libId(track: any): number | null {
+    return (track?.track_id ?? track?.id) ?? null;
+  }
+
   function getFavKind(track: typeof displayTrack): FavKind {
     if (!track) return 'none';
     if (track.source === 'radio') return 'radio';
     if (track.source && track.source !== 'local' && track.source !== 'radio' && track.source_id) return 'streaming';
-    if (track.id) return 'library';
+    if (libId(track) != null) return 'library';
     return 'none';
   }
 
@@ -186,8 +193,8 @@
     const kind = getFavKind(track);
     if (kind === 'radio' && track?.title && track?.artist_name) {
       checkRadioFavorite(track.title, track.artist_name);
-    } else if (kind === 'library' && track?.id) {
-      isFavorite = $favoriteTrackIds.has(track.id);
+    } else if (kind === 'library' && libId(track) != null) {
+      isFavorite = $favoriteTrackIds.has(libId(track)!);
     } else if (kind === 'streaming') {
       // Streaming favorites are per-service; check via API
       checkStreamingFavorite(track!);
@@ -200,8 +207,8 @@
   $effect(() => {
     const track = $currentTrack;
     const ids = $favoriteTrackIds;
-    if (track?.id && getFavKind(track) === 'library') {
-      isFavorite = ids.has(track.id);
+    if (libId(track) != null && getFavKind(track) === 'library') {
+      isFavorite = ids.has(libId(track)!);
     }
   });
 
@@ -247,14 +254,15 @@
         }
       } else if (kind === 'library') {
         const pid = $currentProfileId;
-        if (!pid || !track?.id) { favChecking = false; return; }
+        const tid = libId(track);
+        if (!pid || tid == null) { favChecking = false; return; }
         if (isFavorite) {
-          await api.removeFavorite(pid, { track_id: track.id });
-          favoriteTrackIds.update((s) => { s.delete(track.id!); return s; });
+          await api.removeFavorite(pid, { track_id: tid });
+          favoriteTrackIds.update((s) => { s.delete(tid); return s; });
           isFavorite = false;
         } else {
-          await api.addFavorite(pid, { track_id: track.id });
-          favoriteTrackIds.update((s) => { s.add(track.id!); return s; });
+          await api.addFavorite(pid, { track_id: tid });
+          favoriteTrackIds.update((s) => { s.add(tid); return s; });
           isFavorite = true;
         }
       } else if (kind === 'streaming') {
