@@ -2434,6 +2434,9 @@
     margin-bottom: var(--space-lg);
     gap: var(--space-md);
     flex-wrap: wrap;
+    /* Keep the right-side controls (year switches etc.) clear of the floating
+       global search button pinned to the top-right. */
+    padding-right: 52px;
   }
 
   .library-header h2 {
