@@ -27,7 +27,9 @@
   let nowListeningLoaded = $state(true);
   let nowListening = $derived(
     ($zones as any[])
-      .filter((z: any) => z.state === 'playing' && (z.now_playing || z.current_track))
+      // Show paused zones too (state !== 'stopped'), so pausing doesn't make
+      // the "En cours d'écoute" card vanish and shift the page below it.
+      .filter((z: any) => z.state !== 'stopped' && (z.now_playing || z.current_track))
       .map((z: any) => {
         const np = z.now_playing ?? z.current_track ?? {};
         return {
