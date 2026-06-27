@@ -316,12 +316,12 @@
   .meta { display: grid; grid-template-columns: 1fr 50px 200px; gap: 0.5rem; margin-bottom: 0.5rem; }
   .meta input.name { padding: 0.5rem 0.7rem; background: transparent; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); color: var(--tune-text); border-radius: 6px; }
   .meta input.color { width: 50px; height: 38px; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); border-radius: 6px; padding: 2px; cursor: pointer; }
-  .meta select { padding: 0.5rem; background: transparent; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); color: var(--tune-text); border-radius: 6px; }
+  .meta select { padding: 0.5rem; background: var(--tune-surface, #1e1e1e); border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); color: var(--tune-text); border-radius: 6px; }
   .desc { width: 100%; min-height: 40px; padding: 0.5rem 0.7rem; background: transparent; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); color: var(--tune-text); border-radius: 6px; resize: vertical; box-sizing: border-box; margin-bottom: 0.8rem; font-family: inherit; }
 
   .rules { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.8rem; }
   .rule { display: grid; grid-template-columns: 200px 130px 1fr auto; gap: 0.4rem; align-items: center; padding: 0.4rem; border: 1px dashed rgba(var(--tune-accent-rgb, 99, 102, 241), 0.25); border-radius: 8px; }
-  .rule select, .rule input { padding: 0.35rem 0.5rem; background: transparent; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.3); color: var(--tune-text); border-radius: 4px; font-size: 0.85rem; }
+  .rule select, .rule input { padding: 0.35rem 0.5rem; background: var(--tune-surface, #1e1e1e); border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.3); color: var(--tune-text); border-radius: 4px; font-size: 0.85rem; }
   .rule .rm { background: transparent; border: none; color: #dc2626; font-size: 1.1rem; cursor: pointer; padding: 0 0.3rem; }
   .credit-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.3rem; }
   .value-na { color: var(--tune-text-muted); padding: 0 0.5rem; }
@@ -330,7 +330,7 @@
 
   .sort { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0; border-top: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.15); border-bottom: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.15); margin-bottom: 0.8rem; font-size: 0.85rem; }
   .sort label { color: var(--tune-text-muted); }
-  .sort select, .sort input { padding: 0.3rem 0.4rem; background: transparent; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.3); color: var(--tune-text); border-radius: 4px; }
+  .sort select, .sort input { padding: 0.3rem 0.4rem; background: var(--tune-surface, #1e1e1e); border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.3); color: var(--tune-text); border-radius: 4px; }
   .sort .max { display: flex; align-items: center; gap: 0.3rem; margin-left: auto; }
   .sort .max input { width: 70px; }
 
@@ -344,4 +344,8 @@
   .cancel { background: transparent; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); color: var(--tune-text); }
   .save { background: var(--tune-accent, #6366f1); color: white; border: none; }
   .save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Fix dropdown popup readability in dark theme: option elements need
+     explicit bg/color because browsers render them independently. */
+  select option { background: var(--tune-surface, #1e1e1e); color: var(--tune-text, #fff); }
 </style>
