@@ -786,6 +786,15 @@
       {/if}
     </div>
     </div>
+    {#if zone?.state === 'playing' && zone?.signal_path}
+      <button
+        class="signal-led"
+        class:bit-perfect={zone.signal_path.bit_perfect}
+        class:lossy={!zone.signal_path.bit_perfect}
+        onclick={(e) => { e.stopPropagation(); showSignalPath = true; }}
+        title={zone.signal_path.summary ?? ''}
+      ></button>
+    {/if}
     <VolumeControl />
   </div>
 </div>
@@ -1827,6 +1836,27 @@
   }
 
   /* Audiophile mode button */
+  .signal-led {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-right: 4px;
+    background: #9ca3af;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  .signal-led.bit-perfect {
+    background: #22c55e;
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+  }
+  .signal-led.lossy {
+    background: #f59e0b;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+  }
+
   .audiophile-btn {
     display: flex;
     align-items: center;
