@@ -2202,7 +2202,9 @@
   @media (max-width: 768px) {
     .now-playing {
       padding: var(--space-md);
-      padding-top: 56px; /* espace pour le bouton close */
+      padding-top: calc(env(safe-area-inset-top, 0px) + 48px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      align-items: flex-start;
     }
 
     .content-layout {
@@ -2211,6 +2213,8 @@
 
     .artwork-container {
       max-width: 280px;
+      flex-shrink: 1;
+      min-height: 120px;
     }
 
     .track-title {
@@ -2223,6 +2227,22 @@
 
     .track-album {
       font-size: 13px;
+    }
+  }
+
+  @media (max-height: 600px) {
+    .artwork-container {
+      max-width: 160px;
+      flex-shrink: 1;
+    }
+    .content-layout {
+      gap: var(--space-sm);
+    }
+    .track-title {
+      font-size: 18px;
+    }
+    .track-artist {
+      font-size: 14px;
     }
   }
 
