@@ -67,7 +67,8 @@ export function getQualityTier(
   } | null | undefined,
 ): QualityTier {
   if (!track) return 'lossy';
-  const fmt = (track.format ?? '').toLowerCase();
+  const raw = (track.format ?? '').toLowerCase();
+  const fmt = raw.startsWith('audio/') ? raw.slice(6).replace('x-', '') : raw;
   const sr = track.sample_rate ?? 0;
   const bd = track.bit_depth ?? 0;
 
