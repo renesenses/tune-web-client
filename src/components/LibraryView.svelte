@@ -897,12 +897,12 @@
           const q = searchQuery.toLowerCase();
           return a.title.toLowerCase().includes(q)
             || (a.artist_name ?? '').toLowerCase().includes(q)
-            || String(a.year ?? '').includes(q);
+            || String(a.year ?? a.original_year ?? '').includes(q);
         })
       : $albums;
     for (const album of filtered) {
-      const raw = album.year ?? album.original_year ?? null;
-      const y = (raw === 0 || raw === null || raw === undefined) ? null : raw;
+      const raw = (album.year && album.year > 0) ? album.year : (album.original_year && album.original_year > 0) ? album.original_year : null;
+      const y = raw;
       if (!map.has(y)) map.set(y, []);
       map.get(y)!.push(album);
     }
