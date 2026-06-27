@@ -2398,6 +2398,14 @@
         </div>
       {:else}
         <!-- Genre tree: branches first, then orphans. -->
+        {#if !genreSearchQuery}
+          <div class="year-summary">
+            <span class="year-summary-total">{$albums.length} {$albums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
+            {#if noGenreAlbums.length > 0}
+              <span class="year-summary-groups">dont {noGenreAlbums.length} sans genre</span>
+            {/if}
+          </div>
+        {/if}
         {#if filteredGenreTreeKeys.length > 0}
           <div class="branches">
             {#each filteredGenreTreeKeys.sort((a, b) => (parentAlbumCounts[b] ?? 0) - (parentAlbumCounts[a] ?? 0)) as parent (parent)}
