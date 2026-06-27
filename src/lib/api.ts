@@ -818,6 +818,10 @@ export function getPlaybackHistory(limit = 50) {
   return fetchJSON<{ items: any[]; total: number }>(`${BASE}/library/history?limit=${limit}`);
 }
 
+export function clearPlaybackHistory() {
+  return apiDelete('/library/history');
+}
+
 export function getTopTracks(limit = 20) {
   return fetchJSON<import('./types').TopTrack[]>(`${BASE}/library/history/top-tracks?limit=${limit}`);
 }

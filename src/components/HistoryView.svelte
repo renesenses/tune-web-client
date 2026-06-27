@@ -57,6 +57,18 @@
     return `il y a ${days}j`;
   }
 
+  async function clearHistory() {
+    try {
+      await api.clearPlaybackHistory();
+      playbackHistory.clear();
+      serverHistory = [];
+      notifications.success($t('history.cleared'));
+    } catch (e) {
+      console.error('Clear history error:', e);
+      notifications.error('Erreur lors de la suppression');
+    }
+  }
+
   async function replay(entry: HistoryEntry, index: number) {
     if (!zone?.id) {
       notifications.error('Aucune zone selectionnee');
@@ -108,7 +120,7 @@
     <h2>{$t('history.title')}</h2>
     <span class="history-count">{mergedHistory.length} {$t('history.plays')}</span>
     {#if mergedHistory.length > 0}
-      <button class="clear-btn" onclick={() => playbackHistory.clear()}>{$t('history.clear')}</button>
+      <button class="clear-btn" onclick={() => clearHistory()}>{$t('history.clear')}</button>
     {/if}
   </div>
 
