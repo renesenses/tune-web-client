@@ -2,6 +2,7 @@
 /* Fonts loaded via <link> in index.html for non-blocking render */
 
 :root {
+  color-scheme: dark;
   /* Colors — native dark palette */
   --tune-bg: #181818;
   --tune-surface: #1E1E1E;
@@ -150,6 +151,7 @@ body {
 
 /* Light theme overrides */
 [data-theme="light"] {
+  color-scheme: light;
   --tune-bg: #F5F5F5;
   --tune-surface: #FFFFFF;
   --tune-footer: #F0F0F0;
@@ -181,6 +183,7 @@ body {
 
 /* OLED theme — pure black for AMOLED screens */
 [data-theme="oled"] {
+  color-scheme: dark;
   --tune-bg: #000000;
   --tune-surface: #0A0A0A;
   --tune-footer: #0A0A0A;
@@ -212,6 +215,7 @@ body {
 
 /* Midnight blue theme */
 [data-theme="midnight"] {
+  color-scheme: dark;
   --tune-bg: #0A1628;
   --tune-surface: #0F1D32;
   --tune-footer: #0D192C;
