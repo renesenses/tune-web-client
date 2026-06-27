@@ -1947,6 +1947,26 @@
       </div>
     </section>
 
+    <!-- Quality Split -->
+    <section class="settings-section">
+      <h3>Options de scan</h3>
+      <div class="setting-row">
+        <div class="setting-label">
+          <span>Séparer les albums par qualité</span>
+          <span class="setting-hint">Si un même album existe en CD et Hi-Res, créer deux entrées distinctes (ex: "Album (96kHz/24bit)")</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" checked={config?.quality_split !== false} onchange={async (e) => {
+            const val = (e.target as HTMLInputElement).checked;
+            await api.apiFetch('/system/config', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({quality_split: val}) });
+            if (config) config.quality_split = val;
+            notifications.success('Sauvegardé. Relancez un scan complet pour appliquer.');
+          }} />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </section>
+
     <!-- Scan Schedule -->
     <section class="settings-section">
       <h3>{$t('settings.scanSchedule' as any)}</h3>
