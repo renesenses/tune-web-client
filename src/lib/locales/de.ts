@@ -153,6 +153,7 @@ export default {
   'history.title': 'Verlauf',
   'history.plays': 'Wiedergaben',
   'history.clear': 'Löschen',
+  'history.cleared': 'Verlauf gelöscht',
   'history.noHistory': 'Kein Wiedergabeverlauf',
 
   // Library

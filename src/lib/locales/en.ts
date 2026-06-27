@@ -161,6 +161,7 @@ export default {
   'history.title': 'History',
   'history.plays': 'plays',
   'history.clear': 'Clear',
+  'history.cleared': 'History cleared',
   'history.noHistory': 'No playback history',
 
   // Library

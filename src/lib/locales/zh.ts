@@ -153,6 +153,7 @@ export default {
   'history.title': '历史记录',
   'history.plays': '次播放',
   'history.clear': '清空',
+  'history.cleared': '历史记录已清空',
   'history.noHistory': '无播放历史',
 
   // Library

@@ -153,6 +153,7 @@ export default {
   'history.title': 'Cronologia',
   'history.plays': 'riproduzioni',
   'history.clear': 'Cancella',
+  'history.cleared': 'Cronologia cancellata',
   'history.noHistory': 'Nessuna cronologia di riproduzione',
 
   // Library

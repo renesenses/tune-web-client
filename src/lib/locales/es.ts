@@ -153,6 +153,7 @@ export default {
   'history.title': 'Historial',
   'history.plays': 'reproducciones',
   'history.clear': 'Limpiar',
+  'history.cleared': 'Historial eliminado',
   'history.noHistory': 'Sin historial de reproducción',
 
   // Library

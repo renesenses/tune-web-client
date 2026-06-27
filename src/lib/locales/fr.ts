@@ -161,6 +161,7 @@ export default {
   'history.title': 'Historique',
   'history.plays': 'lectures',
   'history.clear': 'Vider',
+  'history.cleared': 'Historique supprimé',
   'history.noHistory': 'Aucun historique de lecture',
 
   // Library

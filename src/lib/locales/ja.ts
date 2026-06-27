@@ -153,6 +153,7 @@ export default {
   'history.title': '履歴',
   'history.plays': '再生',
   'history.clear': 'クリア',
+  'history.cleared': '履歴を削除しました',
   'history.noHistory': '再生履歴がありません',
 
   // Library

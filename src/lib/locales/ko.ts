@@ -153,6 +153,7 @@ export default {
   'history.title': '재생 기록',
   'history.plays': '재생',
   'history.clear': '지우기',
+  'history.cleared': '재생 기록이 삭제되었습니다',
   'history.noHistory': '재생 기록 없음',
 
   // Library
