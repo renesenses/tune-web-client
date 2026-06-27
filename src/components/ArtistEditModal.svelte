@@ -24,6 +24,18 @@
   let dragOver = $state(false);
   let coverMessage = $state<string | null>(null);
   let fileInput: HTMLInputElement;
+  let fileDialogOpen = $state(false);
+
+  function openFileDialog() {
+    fileDialogOpen = true;
+    fileInput.click();
+    // When the OS file picker closes, the window regains focus.
+    // Wait a tick after that to clear the guard so any phantom click
+    // dispatched by the browser is ignored by handleBackdropClick.
+    window.addEventListener('focus', () => {
+      setTimeout(() => { fileDialogOpen = false; }, 300);
+    }, { once: true });
+  }
 
   async function handleUpload(file: File) {
     if (!artist.id) return;
@@ -48,6 +60,7 @@
 
   function handleDrop(e: DragEvent) {
     e.preventDefault();
+    e.stopPropagation();
     dragOver = false;
     const file = e.dataTransfer?.files?.[0];
     if (file?.type.startsWith('image/')) handleUpload(file);
@@ -57,8 +70,10 @@
   function handleDragLeave() { dragOver = false; }
 
   function handleBackdropClick(e: MouseEvent) {
+    if (fileDialogOpen) return;
     if (e.target === e.currentTarget) onClose();
   }
+  function preventDrop(e: DragEvent) { e.preventDefault(); }
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') onClose();
   }
@@ -94,7 +109,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown}>
+<div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown} ondragover={preventDrop} ondrop={preventDrop}>
   <div class="modal">
     {#if success}
       <div class="success-state">
@@ -120,8 +135,8 @@
             ondragleave={handleDragLeave}
             role="button"
             tabindex="0"
-            onclick={() => fileInput.click()}
-            onkeydown={(e) => e.key === 'Enter' && fileInput.click()}
+            onclick={() => openFileDialog()}
+            onkeydown={(e) => e.key === 'Enter' && openFileDialog()}
           >
             {#if imagePath}
               <img src={artworkUrl(imagePath)} alt={artist.name} class="cover-preview round" />
@@ -144,7 +159,7 @@
             onchange={handleFileSelect}
           />
           <div class="cover-actions">
-            <button class="btn-secondary" onclick={() => fileInput.click()} disabled={uploading}>
+            <button class="btn-secondary" onclick={() => openFileDialog()} disabled={uploading}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
               Envoyer image
             </button>
