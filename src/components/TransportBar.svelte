@@ -711,10 +711,16 @@
       {/if}
     </div>
 
-    <!-- Merged status + audiophile control: the shield's colour reflects the
-         live signal path (grey idle / amber lossy / green bit-perfect), its
-         fill reflects whether audiophile mode is on. Clicking toggles audiophile
-         mode directly; the signal-path detail opens from the quality badge. -->
+    {#if zone?.state === 'playing' && zone?.signal_path}
+      <button
+        class="signal-led"
+        class:bit-perfect={zone.signal_path.bit_perfect}
+        class:lossy={!zone.signal_path.bit_perfect}
+        onclick={(e) => { e.stopPropagation(); showSignalPath = true; }}
+        title={zone.signal_path.summary ?? ''}
+      ></button>
+    {/if}
+
     <button
       class="audiophile-btn signal-shield-btn"
       class:active={audiophileEnabled}
@@ -786,15 +792,6 @@
       {/if}
     </div>
     </div>
-    {#if zone?.state === 'playing' && zone?.signal_path}
-      <button
-        class="signal-led"
-        class:bit-perfect={zone.signal_path.bit_perfect}
-        class:lossy={!zone.signal_path.bit_perfect}
-        onclick={(e) => { e.stopPropagation(); showSignalPath = true; }}
-        title={zone.signal_path.summary ?? ''}
-      ></button>
-    {/if}
     <VolumeControl />
   </div>
 </div>
