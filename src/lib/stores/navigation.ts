@@ -2,6 +2,17 @@ import { writable, get } from 'svelte/store';
 
 export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'playlistmanager' | 'playlistshub' | 'smartplaylists' | 'smart-ai' | 'browse' | 'search' | 'settings' | 'history' | 'streaming' | 'metadata' | 'radios' | 'radiofavorites' | 'genres' | 'mediaservers' | 'favorites' | 'podcasts' | 'zonemanager' | 'diagnostics' | 'dj' | 'party' | 'collections' | 'smartcollections' | 'dashboard' | 'services' | 'genretree' | 'equalizer' | 'plugins' | 'admin' | 'onboarding' | 'offline' | 'alarms' | 'login' | 'bridge' | 'converter';
 export const activeView = writable<View>('home');
+export const previousView = writable<View | null>(null);
+
+// Track previous view on every navigation
+let _lastView: View = 'home';
+activeView.subscribe(v => {
+  if (v !== _lastView) {
+    previousView.set(_lastView);
+    _lastView = v;
+  }
+});
+
 // Optional tab to open when navigating to settings (consumed once by SettingsView)
 export const settingsInitialTab = writable<string | null>(null);
 export const mobileNowPlayingOpen = writable(false);

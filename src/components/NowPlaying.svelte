@@ -14,7 +14,7 @@
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { selectedArtist, selectedAlbum, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
-  import { activeView } from '../lib/stores/navigation';
+  import { activeView, previousView } from '../lib/stores/navigation';
   import VolumeControl from './VolumeControl.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
@@ -794,6 +794,11 @@
 </script>
 
 <div class="now-playing" class:wide={isWide} class:queue-open={queueSheetState !== 'collapsed'} bind:clientWidth={containerWidth} onwheel={handleNpWheel}>
+  {#if $previousView && $previousView !== 'nowplaying'}
+    <button class="np-back-btn" onclick={() => activeView.set($previousView!)} title="Retour">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+  {/if}
   {#if resolvedCoverUrl}
     <div class="bg-blur" style="background-image: url({resolvedCoverUrl})"></div>
   {/if}
@@ -1480,6 +1485,26 @@
     overflow: hidden;
     overflow-y: auto;
   }
+
+  .np-back-btn {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.3);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background 0.2s;
+  }
+  .np-back-btn:hover { background: rgba(0, 0, 0, 0.5); }
 
   .bg-blur {
     position: absolute;
