@@ -2477,7 +2477,8 @@
       <div class="about-row" style="margin-bottom: 0.75rem">
         <span class="about-label">Backend audio</span>
         <select class="log-level-select" value={audioBackend} onchange={(e) => changeAudioBackend((e.target as HTMLSelectElement).value)}>
-          <option value="wasapi">WASAPI (defaut)</option>
+          <option value="auto">Auto (defaut)</option>
+          <option value="wasapi">WASAPI</option>
           <option value="asio">ASIO (bit-perfect)</option>
         </select>
       </div>
