@@ -1769,11 +1769,11 @@ export async function uploadRadioCover(radioId: number, file: File): Promise<imp
 }
 
 export async function importRadios(file: File): Promise<import('./types').RadioImportResult> {
-  const formData = new FormData();
-  formData.append('file', file);
-  const response = await fetch(`${BASE}/radios/import`, {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const response = await fetch(`${BASE}/radios/import/m3u`, {
     method: 'POST',
-    body: formData,
+    headers: { 'Content-Type': 'application/octet-stream' },
+    body: bytes,
   });
   if (!response.ok) throw await apiError(response);
   return response.json();
