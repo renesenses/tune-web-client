@@ -45,7 +45,6 @@
       const updated = await api.uploadArtistImage(artist.id, file);
       imagePath = updated.image_path ?? null;
       coverMessage = 'Image mise à jour';
-      onSaved?.({ ...artist, ...updated });
     } catch (e) {
       console.error('Upload artist image error:', e);
       coverMessage = 'Erreur lors de l\'envoi';
