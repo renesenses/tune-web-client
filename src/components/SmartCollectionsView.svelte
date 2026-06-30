@@ -158,7 +158,7 @@
             <span class="card-name">{col.name}</span>
             <button class="del" onclick={(e) => deleteCollection(col, e)} title="Supprimer">×</button>
           </div>
-          <div class="card-rules">{ruleSummary(col)}</div>
+          <div class="card-rules">{ruleSummary(col)}{#if col.album_count != null} · <strong>{col.album_count}</strong> albums{/if}</div>
           {#if col.description}<div class="card-desc">{col.description}</div>{/if}
         </div>
       {/each}
