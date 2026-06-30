@@ -883,6 +883,7 @@
 
   // "No genre" filter state for genres tab
   let selectedNoGenre = $state(false);
+  let genreBranchSort = $state<'count' | 'name'>('count');
 
   // Albums without genre
   let noGenreAlbums = $derived.by(() => {
@@ -2416,11 +2417,15 @@
             {#if noGenreAlbums.length > 0}
               <span class="year-summary-groups">dont {noGenreAlbums.length} sans genre</span>
             {/if}
+            <div class="genre-sort-btns">
+              <button class="genre-sort-btn" class:active={genreBranchSort === 'count'} onclick={() => genreBranchSort = 'count'}>Par nombre</button>
+              <button class="genre-sort-btn" class:active={genreBranchSort === 'name'} onclick={() => genreBranchSort = 'name'}>A-Z</button>
+            </div>
           </div>
         {/if}
         {#if filteredGenreTreeKeys.length > 0}
           <div class="branches">
-            {#each filteredGenreTreeKeys.sort((a, b) => (parentAlbumCounts[b] ?? 0) - (parentAlbumCounts[a] ?? 0)) as parent (parent)}
+            {#each filteredGenreTreeKeys.sort((a, b) => genreBranchSort === 'name' ? a.localeCompare(b) : (parentAlbumCounts[b] ?? 0) - (parentAlbumCounts[a] ?? 0)) as parent (parent)}
               {@const total = parentAlbumCounts[parent] ?? 0}
               {#if total > 0}
                 <div class="branch-row">
@@ -2447,7 +2452,7 @@
         {#if filteredOrphanGenres.length > 0}
           <h3 class="bc-section-title">Hors arbre</h3>
           <div class="genres-grid">
-            {#each filteredOrphanGenres.sort((a, b) => b.count - a.count) as g}
+            {#each filteredOrphanGenres.sort((a, b) => genreBranchSort === 'name' ? a.name.localeCompare(b.name) : b.count - a.count) as g}
               <button class="genre-card" onclick={() => selectGenreInTab(g.name)}>
                 <span class="genre-card-name">{g.name}</span>
                 <span class="genre-card-count">{g.count} {g.count > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
@@ -4747,13 +4752,36 @@
   /* Years tab summary */
   .year-summary {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: var(--space-md);
     margin-bottom: var(--space-md);
     padding: var(--space-sm) 0;
     font-family: var(--font-body);
     font-size: 13px;
     color: var(--tune-text-muted);
+  }
+
+  .genre-sort-btns {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+  }
+
+  .genre-sort-btn {
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .genre-sort-btn.active {
+    background: var(--tune-accent);
+    border-color: var(--tune-accent);
+    color: white;
   }
 
   .year-summary-total {
