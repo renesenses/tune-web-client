@@ -800,11 +800,9 @@
 </script>
 
 <div class="now-playing" class:wide={isWide} class:queue-open={queueSheetState !== 'collapsed'} bind:clientWidth={containerWidth} onwheel={handleNpWheel}>
-  {#if $previousView && $previousView !== 'nowplaying'}
-    <button class="np-back-btn" onclick={() => activeView.set($previousView!)} title="Retour">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-  {/if}
+  <button class="np-back-btn" onclick={() => activeView.set($previousView && $previousView !== 'nowplaying' ? $previousView : 'library')} title="Retour">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
   {#if resolvedCoverUrl}
     <div class="bg-blur" style="background-image: url({resolvedCoverUrl})"></div>
   {/if}

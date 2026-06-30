@@ -604,6 +604,7 @@
   let albumGridViewport = $state<HTMLDivElement | null>(null);
   let albumScrollTop = $state(0);
   let savedAlbumScrollTop = $state(0);
+  let savedArtistScrollTop = $state(0);
   let restoringScroll = $state(false);
   let albumViewportHeight = $state(800);
   let albumViewportWidth = $state(1200);
@@ -1072,6 +1073,8 @@
     if (!$selectedAlbum) {
       savedAlbumScrollTop = albumScrollTop;
     }
+    const mainEl = document.querySelector('.main-content');
+    if (mainEl) savedArtistScrollTop = mainEl.scrollTop;
     selectedArtist.set(artist);
     window.history.pushState({ view: 'library', artistId: artist.id, tab: $libraryTab }, '', '#library');
     selectedAlbum.set(null);
@@ -1213,8 +1216,10 @@
   }
 
   function goBack() {
-    const restoreScroll = savedAlbumScrollTop;
-    restoringScroll = restoreScroll > 0;
+    const restoreAlbumScroll = savedAlbumScrollTop;
+    const restoreArtistScroll = savedArtistScrollTop;
+    const wasArtistTab = $libraryTab === 'artists';
+    restoringScroll = restoreAlbumScroll > 0;
     selectedAlbum.set(null);
     selectedArtist.set(null);
     albumTracks.set([]);
@@ -1223,17 +1228,18 @@
     artistMetadata = null;
     artistMetadataError = false;
     artistMetadataLoading = false;
-    // Keep browser history in sync — navigate back so the popstate handler
-    // sees the grid entry.  This prevents a stale album-detail entry from
-    // remaining at the top of the history stack (Safari back-forward issue).
     window.history.back();
-    if (restoreScroll > 0) {
-      // Wait for the grid to re-render, then restore scroll position
+    if (restoreAlbumScroll > 0) {
       requestAnimationFrame(() => {
-        albumScrollTop = restoreScroll;
-        if (albumGridViewport) albumGridViewport.scrollTop = restoreScroll;
-        // Clear the flag after a tick so future filter changes reset normally
+        albumScrollTop = restoreAlbumScroll;
+        if (albumGridViewport) albumGridViewport.scrollTop = restoreAlbumScroll;
         requestAnimationFrame(() => { restoringScroll = false; });
+      });
+    }
+    if (wasArtistTab && restoreArtistScroll > 0) {
+      requestAnimationFrame(() => {
+        const mainEl = document.querySelector('.main-content');
+        if (mainEl) mainEl.scrollTop = restoreArtistScroll;
       });
     }
   }
