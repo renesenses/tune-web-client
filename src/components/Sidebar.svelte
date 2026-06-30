@@ -14,6 +14,7 @@
   import ProfileSelector from './ProfileSelector.svelte';
   import { notifications } from '../lib/stores/notifications';
   import { updateAvailable, latestVersion } from '../lib/stores/updates';
+  import { shortcuts, loadShortcuts, addShortcut, removeShortcut, renameShortcut, navigateToShortcut } from '../lib/stores/shortcuts';
 
   function handleSelectZone(zoneId: number) {
     currentZoneId.set(zoneId);
@@ -123,10 +124,44 @@
     activeView.set('streaming');
   }
 
-  // Fetch groups, audio devices, and streaming services on mount
+  // Fetch groups, audio devices, streaming services, and shortcuts on mount
   fetchGroups();
   fetchAudioDevices();
   fetchStreamingServices();
+  loadShortcuts();
+
+  let showAddShortcut = $state(false);
+  let newShortcutName = $state('');
+  let newShortcutIcon = $state('⭐');
+  let contextShortcutId = $state<string | null>(null);
+  let renamingShortcutId = $state<string | null>(null);
+  let renameValue = $state('');
+
+  async function handleAddShortcut() {
+    if (!newShortcutName.trim()) return;
+    await addShortcut(newShortcutName.trim(), newShortcutIcon);
+    newShortcutName = '';
+    newShortcutIcon = '⭐';
+    showAddShortcut = false;
+  }
+
+  function handleShortcutContext(e: MouseEvent, id: string) {
+    e.preventDefault();
+    contextShortcutId = contextShortcutId === id ? null : id;
+  }
+
+  function startRenaming(id: string, currentName: string) {
+    renamingShortcutId = id;
+    renameValue = currentName;
+    contextShortcutId = null;
+  }
+
+  async function finishRenaming() {
+    if (renamingShortcutId && renameValue.trim()) {
+      await renameShortcut(renamingShortcutId, renameValue.trim());
+    }
+    renamingShortcutId = null;
+  }
 
   function openConfig(zone: Zone, e: MouseEvent) {
     e.stopPropagation();
@@ -613,6 +648,62 @@
       {$t('nav.dashboard')}
     </button>
   </nav>
+
+  <!-- SHORTCUTS -->
+  {#if $shortcuts.length > 0 || showAddShortcut}
+  <nav class="nav-section shortcuts-section">
+    <div class="shortcuts-header">
+      <span class="section-label">Raccourcis</span>
+      <button class="add-zone-btn" onclick={() => showAddShortcut = !showAddShortcut} title="Ajouter un raccourci">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+      </button>
+    </div>
+    {#if showAddShortcut}
+      <div class="shortcut-create">
+        <select class="shortcut-icon-picker" bind:value={newShortcutIcon}>
+          {#each ['⭐','📚','🎵','🎧','📻','💎','🎸','🎹','🎷','🎺','🎻','🎤','💿','🔊','❤️','🏠'] as emoji}
+            <option value={emoji}>{emoji}</option>
+          {/each}
+        </select>
+        <input
+          type="text"
+          class="shortcut-name-input"
+          placeholder="Nom du raccourci"
+          bind:value={newShortcutName}
+          onkeydown={(e) => e.key === 'Enter' && handleAddShortcut()}
+        />
+        <button class="create-zone-confirm" onclick={handleAddShortcut}>OK</button>
+      </div>
+    {/if}
+    {#each $shortcuts as sc}
+      {#if renamingShortcutId === sc.id}
+        <div class="shortcut-rename">
+          <input
+            type="text"
+            bind:value={renameValue}
+            onkeydown={(e) => { if (e.key === 'Enter') finishRenaming(); if (e.key === 'Escape') { renamingShortcutId = null; } }}
+          />
+          <button class="create-zone-confirm" onclick={finishRenaming}>OK</button>
+        </div>
+      {:else}
+        <button
+          class="nav-item shortcut-item"
+          onclick={() => navigateToShortcut(sc)}
+          oncontextmenu={(e) => handleShortcutContext(e, sc.id)}
+        >
+          <span class="shortcut-icon">{sc.icon}</span>
+          {sc.name}
+        </button>
+        {#if contextShortcutId === sc.id}
+          <div class="shortcut-context">
+            <button onclick={() => startRenaming(sc.id, sc.name)}>Renommer</button>
+            <button class="danger" onclick={() => { removeShortcut(sc.id); contextShortcutId = null; }}>Supprimer</button>
+          </div>
+        {/if}
+      {/if}
+    {/each}
+  </nav>
+  {/if}
 
   <!-- GROUP 2: SERVICES (streaming + media) -->
   <nav class="nav-section services-section">
@@ -1135,6 +1226,112 @@
     height: 16px;
     flex-shrink: 0;
     opacity: 0.8;
+  }
+
+  .shortcuts-section {
+    border-top: 1px solid var(--tune-border);
+    padding-top: var(--space-md);
+  }
+
+  .shortcuts-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 18px;
+    margin-bottom: 6px;
+  }
+
+  .shortcuts-header .section-label {
+    margin-bottom: 0;
+  }
+
+  .shortcut-create {
+    display: flex;
+    gap: 4px;
+    padding: 4px 18px 8px;
+  }
+
+  .shortcut-icon-picker {
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+    font-size: 14px;
+    width: 36px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .shortcut-name-input {
+    flex: 1;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 12px;
+    outline: none;
+  }
+
+  .shortcut-name-input:focus {
+    border-color: var(--tune-accent);
+  }
+
+  .shortcut-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+    width: 16px;
+    text-align: center;
+  }
+
+  .shortcut-item {
+    position: relative;
+  }
+
+  .shortcut-context {
+    display: flex;
+    gap: 4px;
+    padding: 2px 18px 4px 46px;
+  }
+
+  .shortcut-context button {
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    padding: 2px 8px;
+    color: var(--tune-text-secondary);
+    font-family: var(--font-body);
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  .shortcut-context button:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-text);
+  }
+
+  .shortcut-context button.danger:hover {
+    border-color: var(--tune-error, #ef4444);
+    color: var(--tune-error, #ef4444);
+  }
+
+  .shortcut-rename {
+    display: flex;
+    gap: 4px;
+    padding: 4px 18px;
+  }
+
+  .shortcut-rename input {
+    flex: 1;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-accent);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 12px;
+    outline: none;
   }
 
   .services-section {
