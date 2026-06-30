@@ -841,6 +841,13 @@ export function updateAlbum(id: number, data: { title?: string; artist_id?: numb
   });
 }
 
+export function batchUpdateAlbums(albumIds: number[], updates: { genre?: string; year?: number; artist_id?: number; artist_name?: string; label?: string }) {
+  return fetchJSON<{ updated: number; total: number }>(`${BASE}/library/albums/batch-update`, {
+    method: 'POST',
+    body: JSON.stringify({ album_ids: albumIds, ...updates }),
+  });
+}
+
 export function updateTrack(id: number, data: { title?: string; album_id?: number; artist_id?: number; disc_number?: number; track_number?: number; genre?: string; year?: string }) {
   return fetchJSON<Track>(`${BASE}/library/tracks/${id}`, {
     method: 'PUT',

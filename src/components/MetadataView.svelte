@@ -827,17 +827,10 @@
     batchApplying = true;
     batchMessage = null;
     const ids = [...batchSelectedIds];
-    const total = ids.length;
-    let done = 0;
     try {
-      for (const id of ids) {
-        batchProgress = { current: done + 1, total };
-        await api.updateAlbum(id, { genre: batchGenre.trim() });
-        done++;
-        // Update local state
-        allAlbums = allAlbums.map(a => a.id === id ? { ...a, genre: batchGenre.trim() } : a);
-      }
-      batchMessage = $t('metadata.batchDone').replace('{count}', String(done));
+      const result = await api.batchUpdateAlbums(ids, { genre: batchGenre.trim() });
+      allAlbums = allAlbums.map(a => ids.includes(a.id!) ? { ...a, genre: batchGenre.trim() } : a);
+      batchMessage = $t('metadata.batchDone').replace('{count}', String(result.updated));
       batchSelectedIds = new Set();
       batchGenre = '';
       api.getCompletenessStats().then(s => stats = s);
@@ -854,16 +847,10 @@
     batchApplying = true;
     batchMessage = null;
     const ids = [...batchSelectedIds];
-    const total = ids.length;
-    let done = 0;
     try {
-      for (const id of ids) {
-        batchProgress = { current: done + 1, total };
-        await api.updateAlbum(id, { year: batchYear });
-        done++;
-        allAlbums = allAlbums.map(a => a.id === id ? { ...a, year: batchYear } : a);
-      }
-      batchMessage = $t('metadata.batchDone').replace('{count}', String(done));
+      const result = await api.batchUpdateAlbums(ids, { year: batchYear });
+      allAlbums = allAlbums.map(a => ids.includes(a.id!) ? { ...a, year: batchYear } : a);
+      batchMessage = $t('metadata.batchDone').replace('{count}', String(result.updated));
       batchSelectedIds = new Set();
       batchYear = null;
       api.getCompletenessStats().then(s => stats = s);
@@ -893,16 +880,10 @@
     batchApplying = true;
     batchMessage = null;
     const ids = [...batchSelectedIds];
-    const total = ids.length;
-    let done = 0;
     try {
-      for (const id of ids) {
-        batchProgress = { current: done + 1, total };
-        await api.updateAlbum(id, { artist_id: batchArtistId });
-        done++;
-        allAlbums = allAlbums.map(a => a.id === id ? { ...a, artist_name: artist.name, artist_id: batchArtistId } : a);
-      }
-      batchMessage = $t('metadata.batchDone').replace('{count}', String(done));
+      const result = await api.batchUpdateAlbums(ids, { artist_id: batchArtistId });
+      allAlbums = allAlbums.map(a => ids.includes(a.id!) ? { ...a, artist_name: artist.name, artist_id: batchArtistId } : a);
+      batchMessage = $t('metadata.batchDone').replace('{count}', String(result.updated));
       batchSelectedIds = new Set();
       batchArtistSearch = '';
       batchArtistId = null;
