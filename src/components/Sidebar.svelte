@@ -650,7 +650,6 @@
   </nav>
 
   <!-- SHORTCUTS -->
-  {#if $shortcuts.length > 0 || showAddShortcut}
   <nav class="nav-section shortcuts-section">
     <div class="shortcuts-header">
       <span class="section-label">Raccourcis</span>
@@ -703,7 +702,6 @@
       {/if}
     {/each}
   </nav>
-  {/if}
 
   <!-- GROUP 2: SERVICES (streaming + media) -->
   <nav class="nav-section services-section">
