@@ -225,6 +225,13 @@ export function updateZoneSyncDelay(id: number, syncDelayMs: number) {
   });
 }
 
+export function updateZoneDsdMode(id: number, dsdMode: string) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ dsd_mode: dsdMode }),
+  });
+}
+
 export function changeZoneOutput(id: number, outputType: string, outputDeviceId?: string | null) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',

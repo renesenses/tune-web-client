@@ -3004,6 +3004,39 @@
       </section>
     {/if}
 
+    <!-- Zone audio settings (DSD mode, gapless, fixed volume) -->
+    {#if $zones.length > 0}
+      <section class="settings-section">
+        <h3>Réglages par zone</h3>
+        <p class="section-hint">Mode DSD, volume fixe et gapless pour chaque zone de lecture.</p>
+        <div class="zone-settings-list">
+          {#each $zones as z (z.id)}
+            <div class="zone-setting-row">
+              <span class="zone-setting-name">{z.name}</span>
+              <div class="zone-setting-controls">
+                <label class="zone-setting-label">
+                  <span>DSD</span>
+                  <select
+                    class="zone-select"
+                    value={z.dsd_mode ?? 'auto'}
+                    onchange={async (e) => {
+                      const mode = (e.target as HTMLSelectElement).value;
+                      await api.updateZoneDsdMode(z.id, mode);
+                    }}
+                  >
+                    <option value="auto">Auto</option>
+                    <option value="native">Natif (passthrough)</option>
+                    <option value="dop">DoP</option>
+                    <option value="pcm">PCM (conversion)</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          {/each}
+        </div>
+      </section>
+    {/if}
+
     <!-- Squeezebox / Lyrion Music Server -->
     {#if config}
       <section class="settings-section">
@@ -5367,5 +5400,20 @@
     padding: 1px 6px;
     border-radius: var(--radius-sm);
     flex-shrink: 0;
+  }
+
+  .zone-settings-list { display: flex; flex-direction: column; gap: 8px; }
+  .zone-setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.04);
+    border-radius: var(--radius-md, 8px); gap: 12px;
+  }
+  .zone-setting-name { font-size: 14px; font-weight: 500; color: var(--tune-text); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .zone-setting-controls { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .zone-setting-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tune-text-muted); }
+  .zone-select {
+    padding: 4px 8px; font-size: 12px; border-radius: var(--radius-sm, 4px);
+    border: 1px solid var(--tune-border, #333); background: var(--tune-surface, #1a1a1a);
+    color: var(--tune-text); cursor: pointer;
   }
 </style>

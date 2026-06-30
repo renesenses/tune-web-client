@@ -157,6 +157,8 @@ export interface Zone {
   recovery_attempts?: number;
   /** Whether this zone is the server-side default */
   is_default?: boolean;
+  /** DSD playback mode: auto, native, dop, pcm */
+  dsd_mode?: string;
 }
 
 export interface DiscoveredDevice {
