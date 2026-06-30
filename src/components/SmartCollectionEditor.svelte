@@ -254,6 +254,7 @@
         <option value="year">Année</option>
         <option value="label">Label</option>
         <option value="sample_rate">Sample rate</option>
+        <option value="random">Aléatoire</option>
       </select>
       <select bind:value={sortOrder}>
         <option value="desc">↓ desc</option>

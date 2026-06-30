@@ -6,6 +6,8 @@
   import SmartCollectionEditor from './SmartCollectionEditor.svelte';
   import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
+  import { currentZone } from '../lib/stores/zones';
+  import { notifications } from '../lib/stores/notifications';
 
   function navigateToAlbum(album: any) {
     selectedAlbum.set(album);
@@ -14,6 +16,29 @@
       libraryTab.set('albums');
       activeView.set('library');
     });
+  }
+
+  let shuffleLoading = $state(false);
+
+  async function shuffleCollection() {
+    const zone = $currentZone;
+    if (!zone?.id || !selected) return;
+    shuffleLoading = true;
+    try {
+      const allTracks = await api.getSmartPlaylistTracks(selected.id!);
+      if (!allTracks.length) {
+        notifications.error('Aucune piste trouvée');
+        shuffleLoading = false;
+        return;
+      }
+      const shuffled = [...allTracks].sort(() => Math.random() - 0.5);
+      const trackIds = shuffled.map((t: any) => t.id).filter(Boolean);
+      await api.play(zone.id, { track_ids: trackIds });
+      notifications.success(`${trackIds.length} pistes en lecture aléatoire`);
+    } catch (e: any) {
+      notifications.error(e?.message || 'Erreur lecture aléatoire');
+    }
+    shuffleLoading = false;
   }
 
   let collections = $state<SmartCollection[]>([]);
@@ -145,7 +170,13 @@
         <h2 style:color={selected.color}>{selected.name}</h2>
         <button class="edit-btn" onclick={() => openEditor(selected!)}>Modifier les règles</button>
       </div>
-      <div class="detail-rules">{ruleSummary(selected)}</div>
+      <div class="detail-rules">
+        {ruleSummary(selected)}
+        <button class="shuffle-btn" onclick={shuffleCollection} disabled={shuffleLoading || albumsLoading}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+          {shuffleLoading ? '...' : 'Lecture aléatoire'}
+        </button>
+      </div>
       {#if albumsLoading}
         <div class="state">…</div>
       {:else if !selectedAlbums.length}
@@ -218,7 +249,10 @@
   .detail-head h2 { flex: 1; margin: 0; font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; }
   .back { background: transparent; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); color: var(--tune-text); padding: 6px 13px; border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; }
   .edit-btn { background: var(--tune-accent, #6366f1); color: white; border: none; padding: 6px 13px; border-radius: var(--radius-sm); cursor: pointer; font-family: var(--font-label); font-size: 14px; }
-  .detail-rules { color: var(--tune-text-muted); font-size: 14px; margin-bottom: 16px; }
+  .detail-rules { color: var(--tune-text-muted); font-size: 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .shuffle-btn { background: var(--tune-accent); color: white; border: none; border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .shuffle-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .shuffle-btn:hover:not(:disabled) { filter: brightness(1.1); }
   .hint { margin-top: 8px; font-size: 13px; }
   .hint code { background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12); padding: 2px 6px; border-radius: var(--radius-sm); font-family: monospace; }
 
