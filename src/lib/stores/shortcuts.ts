@@ -67,10 +67,18 @@ export function captureCurrentView(): Partial<Shortcut> {
   return { view, state };
 }
 
+function generateId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return 'sc-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+  }
+}
+
 export async function addShortcut(name: string, icon: string) {
   const captured = captureCurrentView();
   const shortcut: Shortcut = {
-    id: crypto.randomUUID(),
+    id: generateId(),
     name,
     icon: icon || '⭐',
     view: captured.view!,
