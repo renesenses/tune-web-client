@@ -3,6 +3,7 @@
   import { isBrowserZone, browserPlay } from '../lib/stores/browserAudio';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
+  import AddShortcutButton from './AddShortcutButton.svelte';
   import { tuneWS } from '../lib/websocket';
   import { onMount } from 'svelte';
   import type { RadioStation } from '../lib/types';
@@ -239,6 +240,7 @@
 <div class="radios-view">
   <header class="radios-header">
     <h2>{$t('radio.title')}</h2>
+    <AddShortcutButton />
     <div class="tab-bar">
       <button class="tab-btn" class:active={activeTab === 'stations'} onclick={() => switchTab('stations')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5"></path></svg>

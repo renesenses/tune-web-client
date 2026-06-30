@@ -4,6 +4,7 @@
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { activeView, settingsInitialTab } from '../lib/stores/navigation';
   import * as api from '../lib/api';
+  import AddShortcutButton from './AddShortcutButton.svelte';
   import { formatTime, formatAlbumYear } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
@@ -907,6 +908,7 @@
     <!-- Main search/browse view -->
     <div class="streaming-header">
       <h2>{serviceName(service)}</h2>
+      <AddShortcutButton />
       {#if service === 'qobuz' || service === 'tidal' || service === 'deezer' || service === 'spotify'}
         <button class="genres-btn" onclick={openGenreBrowser}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>

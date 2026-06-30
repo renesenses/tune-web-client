@@ -6,6 +6,7 @@
   import { get } from 'svelte/store';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
+  import AddShortcutButton from './AddShortcutButton.svelte';
   import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
@@ -659,6 +660,7 @@
         <div class="search-spinner"></div>
       {/if}
     </div>
+    <AddShortcutButton />
 
     {#if availableSources.length > 1}
       <div class="source-pills">
