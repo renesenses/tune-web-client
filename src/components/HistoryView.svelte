@@ -77,7 +77,15 @@
     }
     playingIndex = index;
     try {
-      if (entry.track.id) {
+      if (entry.track.source === 'radio' && entry.track.source_id) {
+        const radioId = parseInt(entry.track.source_id, 10);
+        if (!isNaN(radioId)) {
+          await api.playRadio(radioId, zone.id);
+          notifications.success(`Radio : ${entry.track.album_title || entry.track.title}`);
+        } else {
+          notifications.error('ID radio invalide');
+        }
+      } else if (entry.track.id) {
         await playAndSync(zone.id, { track_id: entry.track.id });
         notifications.success(`Lecture : ${entry.track.title}`);
       } else if (entry.track.source && entry.track.source !== 'local' && entry.track.source_id) {
