@@ -203,14 +203,27 @@
     const items = browseResult.items.filter(i => i.res_url);
     if (items.length === 0) return;
     try {
-      // Play first track
       await playItem(items[0]);
-      // Add rest to queue
       for (let i = 1; i < items.length; i++) {
         await addItemToQueue(items[i]);
       }
     } catch (e) {
       console.error('Play all items error:', e);
+    }
+  }
+
+  async function shuffleAllItems() {
+    if (!zone?.id || !browseResult) return;
+    const items = browseResult.items.filter(i => i.res_url);
+    if (items.length === 0) return;
+    const shuffled = [...items].sort(() => Math.random() - 0.5);
+    try {
+      await playItem(shuffled[0]);
+      for (let i = 1; i < shuffled.length; i++) {
+        await addItemToQueue(shuffled[i]);
+      }
+    } catch (e) {
+      console.error('Shuffle all items error:', e);
     }
   }
 
@@ -331,6 +344,10 @@
             <button class="play-all-btn" onclick={() => playAllItems()}>
               <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
               Lire l'album
+            </button>
+            <button class="play-all-btn" onclick={() => shuffleAllItems()}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+              Aléatoire
             </button>
             <button class="add-all-btn" onclick={() => addAllItemsToQueue()}>+ Tout ajouter</button>
           </div>
