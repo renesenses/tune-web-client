@@ -276,12 +276,6 @@
     align-items: center;
     gap: 2px;
     padding: 0 8px;
-    opacity: 0;
-    transition: opacity 0.12s;
-  }
-
-  .shortcut-card:hover .card-actions {
-    opacity: 1;
   }
 
   .action-btn {
