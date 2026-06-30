@@ -37,12 +37,17 @@ import type {
 
 const BASE = '/api/v1';
 
+function stripDoubleBase(path: string): string {
+  if (path.startsWith(BASE)) return path.slice(BASE.length);
+  return path;
+}
+
 // Generic helpers for radio favorites and custom endpoints
 export async function apiFetch(path: string): Promise<any> {
   const token = getToken();
   const headers: Record<string, string> = { 'Accept': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${path}`, { headers });
+  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { headers });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
   if (!resp.ok) throw new Error(`${resp.status}`);
   const text = await resp.text();
@@ -57,7 +62,7 @@ export async function apiPost(path: string, body?: any): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json' };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${path}`, {
+  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
     method: 'POST',
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -75,7 +80,7 @@ export async function apiDelete(path: string): Promise<any> {
   const token = getToken();
   const headers: Record<string, string> = { 'Accept': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${path}`, { method: 'DELETE', headers });
+  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { method: 'DELETE', headers });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
   if (!resp.ok) throw new Error(`${resp.status}`);
   const text = await resp.text();

@@ -455,7 +455,7 @@
 
   async function loadHqplayerConfig() {
     try {
-      const cfg = await api.apiFetch(`${api.BASE}/hqplayer/config`);
+      const cfg = await api.apiFetch('/hqplayer/config');
       hqplayerEnabled = cfg?.enabled ?? false;
       hqplayerHostInput = cfg?.host ?? '';
       hqplayerPortInput = cfg?.port ?? 4321;
@@ -466,7 +466,7 @@
     hqplayerSaving = true;
     try {
       hqplayerEnabled = !hqplayerEnabled;
-      await api.apiPost(`${api.BASE}/hqplayer/config`, { host: hqplayerHostInput, port: hqplayerPortInput, enabled: hqplayerEnabled });
+      await api.apiPost('/hqplayer/config', { host: hqplayerHostInput, port: hqplayerPortInput, enabled: hqplayerEnabled });
     } catch (e: any) { notifications.error(e?.message ?? 'Error'); }
     hqplayerSaving = false;
   }
@@ -474,7 +474,7 @@
   async function saveHqplayer() {
     hqplayerSaving = true;
     try {
-      await api.apiPost(`${api.BASE}/hqplayer/config`, { host: hqplayerHostInput.trim(), port: hqplayerPortInput, enabled: hqplayerEnabled });
+      await api.apiPost('/hqplayer/config', { host: hqplayerHostInput.trim(), port: hqplayerPortInput, enabled: hqplayerEnabled });
       notifications.success('HQPlayer configuré');
       await checkHqplayer();
     } catch (e: any) { notifications.error(e?.message ?? 'Error'); }
@@ -484,7 +484,7 @@
   async function checkHqplayer() {
     hqplayerChecking = true;
     try {
-      const status = await api.apiFetch(`${api.BASE}/hqplayer/status`);
+      const status = await api.apiFetch('/hqplayer/status');
       hqplayerReachable = status?.reachable ?? false;
     } catch { hqplayerReachable = false; }
     hqplayerChecking = false;
