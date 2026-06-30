@@ -599,6 +599,7 @@ export interface SmartCollection {
   sort_order: 'asc' | 'desc';
   max_albums: number;
   auto_refresh: number;
+  album_count?: number;
   created_at: string;
   updated_at: string;
 }
