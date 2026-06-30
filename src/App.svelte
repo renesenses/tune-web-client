@@ -44,6 +44,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import PodcastsView from './components/PodcastsView.svelte';
   import GenresView from './components/GenresView.svelte';
   import MediaServersView from './components/MediaServersView.svelte';
+  import ShortcutsView from './components/ShortcutsView.svelte';
   import FavoritesView from './components/FavoritesView.svelte';
   import RadioFavoritesView from './components/RadioFavoritesView.svelte';
   import PlaylistManagerView from './components/PlaylistManagerView.svelte';
@@ -993,6 +994,8 @@ import AlarmsView from './components/AlarmsView.svelte';
       <GenreTreeView />
     {:else if $activeView === 'mediaservers'}
       <MediaServersView />
+    {:else if $activeView === 'shortcuts'}
+      <ShortcutsView />
     {:else if $activeView === 'favorites'}
       <FavoritesView onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'radiofavorites'}

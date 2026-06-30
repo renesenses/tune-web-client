@@ -10,6 +10,7 @@ export interface Shortcut {
   icon: string;
   view: View;
   state: Record<string, any>;
+  pinned?: boolean;
 }
 
 export const shortcuts = writable<Shortcut[]>([]);
@@ -80,6 +81,7 @@ export async function addShortcut(name: string, icon: string) {
     icon: icon || '⭐',
     view: captured.view!,
     state: captured.state || {},
+    pinned: true,
   };
   shortcuts.update(s => [...s, shortcut]);
   await persist();
@@ -97,6 +99,11 @@ export async function renameShortcut(id: string, name: string) {
 
 export async function reorderShortcuts(newOrder: Shortcut[]) {
   shortcuts.set(newOrder);
+  await persist();
+}
+
+export async function togglePin(id: string) {
+  shortcuts.update(s => s.map(sc => sc.id === id ? { ...sc, pinned: !sc.pinned } : sc));
   await persist();
 }
 

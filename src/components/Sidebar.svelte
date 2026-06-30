@@ -14,7 +14,7 @@
   import ProfileSelector from './ProfileSelector.svelte';
   import { notifications } from '../lib/stores/notifications';
   import { updateAvailable, latestVersion } from '../lib/stores/updates';
-  import { shortcuts, loadShortcuts, addShortcut, removeShortcut, renameShortcut, navigateToShortcut } from '../lib/stores/shortcuts';
+  import { shortcuts, loadShortcuts, addShortcut, removeShortcut, renameShortcut, navigateToShortcut, togglePin } from '../lib/stores/shortcuts';
 
   function handleSelectZone(zoneId: number) {
     currentZoneId.set(zoneId);
@@ -674,7 +674,7 @@
         <button class="create-zone-confirm" onclick={handleAddShortcut}>OK</button>
       </div>
     {/if}
-    {#each $shortcuts as sc}
+    {#each $shortcuts.filter(s => s.pinned !== false) as sc}
       {#if renamingShortcutId === sc.id}
         <div class="shortcut-rename">
           <input
@@ -696,11 +696,18 @@
         {#if contextShortcutId === sc.id}
           <div class="shortcut-context">
             <button onclick={() => startRenaming(sc.id, sc.name)}>Renommer</button>
+            <button onclick={() => { togglePin(sc.id); contextShortcutId = null; }}>Désépingler</button>
             <button class="danger" onclick={() => { removeShortcut(sc.id); contextShortcutId = null; }}>Supprimer</button>
           </div>
         {/if}
       {/if}
     {/each}
+    {#if $shortcuts.length > 0}
+      <button class="nav-item shortcut-see-all" onclick={() => navigate('shortcuts' as View)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        Tous les raccourcis ({$shortcuts.length})
+      </button>
+    {/if}
   </nav>
 
   <!-- GROUP 2: SERVICES (streaming + media) -->
@@ -1330,6 +1337,13 @@
     font-family: var(--font-body);
     font-size: 12px;
     outline: none;
+  }
+
+  .shortcut-see-all {
+    font-size: 12px !important;
+    color: var(--tune-text-muted) !important;
+    margin-top: 2px;
+    gap: 8px !important;
   }
 
   .services-section {
