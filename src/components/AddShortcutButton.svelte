@@ -10,11 +10,16 @@
 
   async function save() {
     if (!name.trim()) return;
-    await addShortcut(name.trim(), icon);
-    notifications.success(`Raccourci "${name.trim()}" ajouté`);
-    name = '';
-    icon = '⭐';
-    showInput = false;
+    try {
+      await addShortcut(name.trim(), icon);
+      notifications.success(`Raccourci "${name.trim()}" ajouté`);
+      name = '';
+      icon = '⭐';
+      showInput = false;
+    } catch (e: any) {
+      console.error('shortcut_save_error', e);
+      notifications.error(`Erreur : ${e?.message || String(e)}`);
+    }
   }
 </script>
 

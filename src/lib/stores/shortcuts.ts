@@ -32,11 +32,8 @@ export async function loadShortcuts() {
 
 async function persist() {
   const items = get(shortcuts);
-  try {
-    await api.updateConfig({ shortcuts: JSON.stringify(items) });
-  } catch (e) {
-    console.error('shortcuts_persist_failed', e);
-  }
+  const resp = await api.updateConfig({ shortcuts: JSON.stringify(items) });
+  console.log('shortcuts_persisted', items.length, resp);
 }
 
 export function captureCurrentView(): Partial<Shortcut> {
