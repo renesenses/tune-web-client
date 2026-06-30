@@ -675,12 +675,15 @@ import AlarmsView from './components/AlarmsView.svelte';
                 if (z.id !== zoneId) return z;
                 const d = event.data;
                 const partial: Record<string, unknown> = {};
-                if (d.track_title !== undefined) partial.title = d.track_title;
+                if (d.title !== undefined) partial.title = d.title;
+                else if (d.track_title !== undefined) partial.title = d.track_title;
                 if (d.artist_name !== undefined) partial.artist_name = d.artist_name;
                 if (d.album_title !== undefined) partial.album_title = d.album_title;
                 if (d.cover_path !== undefined) partial.cover_path = d.cover_path;
                 if (d.track_id !== undefined) partial.id = d.track_id;
                 if (d.duration_ms !== undefined) partial.duration_ms = d.duration_ms;
+                if (d.source !== undefined) partial.source = d.source;
+                if (d.source_id !== undefined) partial.source_id = d.source_id;
                 const updatedTrack = z.current_track
                   ? { ...z.current_track, ...partial }
                   : { ...partial } as any;
