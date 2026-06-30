@@ -88,7 +88,8 @@
         }
         return `${r.field} ${r.op} ${typeof r.value === 'object' ? '…' : r.value}`;
       });
-      const summary = parts.join(col.match_mode === 'all' ? ' ET ' : ' OU ');
+      const mode = (col.match_mode || '').replace(/"/g, '');
+      const summary = parts.join(mode === 'all' ? ' ET ' : ' OU ');
       return rules.length > 2 ? `${summary} … (+${rules.length - 2})` : summary;
     } catch {
       return '';

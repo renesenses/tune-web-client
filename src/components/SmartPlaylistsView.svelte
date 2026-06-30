@@ -211,7 +211,8 @@
     const rules = parseRules(sp);
     if (!rules.length) return 'aucune règle';
     const parts = rules.slice(0, 2).map(r => `${r.field} ${r.operator} ${r.value}`);
-    const summary = parts.join(sp.match_mode === 'all' ? ' ET ' : ' OU ');
+    const mode = (sp.match_mode || '').replace(/"/g, '');
+    const summary = parts.join(mode === 'all' ? ' ET ' : ' OU ');
     return rules.length > 2 ? `${summary} … (+${rules.length - 2})` : summary;
   }
 
