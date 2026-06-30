@@ -35,7 +35,7 @@ import type {
   OutputType,
 } from './types';
 
-const BASE = '/api/v1';
+export const BASE = '/api/v1';
 
 function stripDoubleBase(path: string): string {
   if (path.startsWith(BASE)) return path.slice(BASE.length);
@@ -99,7 +99,7 @@ async function apiError(response: Response): Promise<Error> {
   return new Error(detail);
 }
 
-async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
+export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   let response: Response;
   try {
     const token = getToken();

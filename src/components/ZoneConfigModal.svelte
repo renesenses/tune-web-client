@@ -54,6 +54,63 @@
   let loading = $state(false);
   let error = $state('');
 
+  // FIR Room Correction
+  let irActive = $state(false);
+  let irPath = $state<string | null>(null);
+  let irLoading = $state(true);
+  let irMessage = $state<string | null>(null);
+
+  async function loadIrStatus() {
+    if (!zone.id) { irLoading = false; return; }
+    try {
+      const res = await api.fetchJSON<any>(`${api.BASE}/room-correction/ir/status/${zone.id}`);
+      irActive = res?.active ?? false;
+      irPath = res?.ir_path ?? null;
+    } catch { /* ignore */ }
+    irLoading = false;
+  }
+  loadIrStatus();
+
+  async function handleIrUpload(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file || !zone.id) return;
+    irMessage = null;
+    irLoading = true;
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const res = await fetch(`${api.BASE}/room-correction/ir/upload/${zone.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: bytes,
+      });
+      const data = await res.json();
+      if (data.ok) {
+        irActive = true;
+        irPath = data.ir_path;
+        irMessage = `IR chargé (${(file.size / 1024).toFixed(0)} KB)`;
+      } else {
+        irMessage = `Erreur : ${data.error}`;
+      }
+    } catch (e: any) {
+      irMessage = `Erreur : ${e?.message || String(e)}`;
+    }
+    irLoading = false;
+    input.value = '';
+  }
+
+  async function clearIr() {
+    if (!zone.id) return;
+    irLoading = true;
+    try {
+      await fetch(`${api.BASE}/room-correction/ir/clear/${zone.id}`, { method: 'POST' });
+      irActive = false;
+      irPath = null;
+      irMessage = 'FIR désactivé';
+    } catch { irMessage = 'Erreur'; }
+    irLoading = false;
+  }
+
   async function handleRename() {
     if (zone.id === null || !editName.trim() || editName.trim() === zone.name) return;
     renaming = true;
@@ -389,6 +446,38 @@
           </button>
         </div>
       </div>
+    {/if}
+
+    {#if zone.output_type === 'local' || zone.output_device_id?.startsWith('local:')}
+    <div class="modal-section">
+      <h3 class="section-title">Correction acoustique (FIR)</h3>
+      <p class="section-desc">Chargez un fichier d'impulsion (WAV) généré par REW, ARTA ou Dirac pour corriger l'acoustique de la pièce.</p>
+      {#if irLoading}
+        <div class="ir-status">Chargement...</div>
+      {:else if irActive}
+        <div class="ir-status ir-active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
+          FIR actif
+          {#if irPath}<span class="ir-path">{irPath.split('/').pop()}</span>{/if}
+        </div>
+        <div class="ir-actions">
+          <label class="btn btn-secondary ir-upload-btn">
+            Remplacer
+            <input type="file" accept=".wav" class="ir-file-input" onchange={handleIrUpload} />
+          </label>
+          <button class="btn btn-danger-outline" onclick={clearIr}>Désactiver</button>
+        </div>
+      {:else}
+        <label class="btn btn-primary ir-upload-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+          Charger un fichier IR (.wav)
+          <input type="file" accept=".wav" class="ir-file-input" onchange={handleIrUpload} />
+        </label>
+      {/if}
+      {#if irMessage}
+        <div class="ir-message" class:ir-error={irMessage.startsWith('Erreur')}>{irMessage}</div>
+      {/if}
+    </div>
     {/if}
 
     <div class="modal-section danger-section">
@@ -729,6 +818,31 @@
 
   .save-queue-input {
     flex: 1;
+  }
+
+  .ir-status {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--tune-text-muted); margin-bottom: 8px;
+  }
+  .ir-active { color: var(--tune-success, #4ade80); font-weight: 600; }
+  .ir-path { font-size: 11px; color: var(--tune-text-muted); font-weight: 400; }
+  .ir-actions { display: flex; gap: 8px; margin-bottom: 8px; }
+  .ir-upload-btn {
+    display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  }
+  .ir-file-input { display: none; }
+  .ir-message { font-size: 12px; color: var(--tune-text-muted); margin-top: 4px; }
+  .ir-message.ir-error { color: var(--tune-error, #ef4444); }
+  .btn-danger-outline {
+    background: none; border: 1px solid var(--tune-error, #ef4444);
+    color: var(--tune-error, #ef4444); padding: 6px 12px;
+    border-radius: var(--radius-sm); font-size: 12px; cursor: pointer;
+  }
+  .btn-danger-outline:hover { background: rgba(239, 68, 68, 0.1); }
+  .btn-primary {
+    background: var(--tune-accent); color: white; border: none;
+    padding: 8px 14px; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 600; cursor: pointer;
   }
 
   .danger-section {
