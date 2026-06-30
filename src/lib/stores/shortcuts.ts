@@ -59,6 +59,11 @@ export function captureCurrentView(): Partial<Shortcut> {
     }
   }
 
+  if (view === 'mediaservers') {
+    const msState = (window as any).__tuneMediaServerState?.();
+    if (msState) state.mediaServer = msState;
+  }
+
   return { view, state };
 }
 
@@ -105,6 +110,14 @@ export function navigateToShortcut(shortcut: Shortcut) {
         detail: shortcut.state,
       }));
     }, 100);
+  }
+
+  if (shortcut.state?.mediaServer && shortcut.view === 'mediaservers') {
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('tune:shortcut-restore-mediaserver', {
+        detail: shortcut.state,
+      }));
+    }, 200);
   }
 
   if (shortcut.state?.albumSort) {

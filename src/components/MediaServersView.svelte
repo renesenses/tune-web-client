@@ -2,6 +2,8 @@
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import * as api from '../lib/api';
+  import { onMount, onDestroy } from 'svelte';
+  import AddShortcutButton from './AddShortcutButton.svelte';
   import { t as tr } from '../lib/i18n';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import type { MediaServer, MediaServerBrowseResult, MediaServerItem } from '../lib/types';
@@ -116,6 +118,47 @@
     navigationStack = [];
   }
 
+  export function getMediaServerState() {
+    if (!selectedServer) return null;
+    return {
+      serverId: selectedServer.id,
+      serverName: selectedServer.name,
+      navigationStack: [...navigationStack],
+    };
+  }
+
+  async function handleShortcutRestore(e: Event) {
+    const detail = (e as CustomEvent).detail;
+    if (!detail?.mediaServer) return;
+    const { serverId, serverName, navigationStack: stack } = detail.mediaServer;
+    if (!serverId) return;
+    await loadServers();
+    const server = servers.find(s => s.id === serverId);
+    if (!server) return;
+    selectedServer = server;
+    navigationStack = [];
+    loading = true;
+    try {
+      browseResult = await api.browseMediaServer(serverId, '0');
+      for (const entry of (stack || [])) {
+        navigationStack = [...navigationStack, entry];
+        browseResult = await api.browseMediaServer(serverId, entry.objectId);
+      }
+    } catch (e) {
+      console.error('restore_media_server_error', e);
+    }
+    loading = false;
+  }
+
+  onMount(() => {
+    (window as any).__tuneMediaServerState = getMediaServerState;
+    window.addEventListener('tune:shortcut-restore-mediaserver', handleShortcutRestore);
+  });
+  onDestroy(() => {
+    delete (window as any).__tuneMediaServerState;
+    window.removeEventListener('tune:shortcut-restore-mediaserver', handleShortcutRestore);
+  });
+
   async function playItem(item: MediaServerItem) {
     if (!zone?.id || !item.res_url) return;
     try {
@@ -211,6 +254,7 @@
   {#if selectedServer && browseResult}
     <!-- Browsing a server -->
     <div class="ms-header">
+      <AddShortcutButton />
       <button class="back-btn" onclick={goBack}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
         {$tr('common.back')}
@@ -335,6 +379,7 @@
     <!-- Server list -->
     <div class="ms-header">
       <h2>{$tr('mediaservers.title')}</h2>
+      <AddShortcutButton />
       <button class="refresh-btn" onclick={loadServers} disabled={loading}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
         {$tr('mediaservers.refresh')}
