@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
+  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices as streamingServicesStore, streamingGenreBreadcrumb } from '../lib/stores/streaming';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { activeView, settingsInitialTab } from '../lib/stores/navigation';
@@ -60,6 +60,52 @@
   let genreAlbums = $state<Album[]>([]);
   let genreLoading = $state(false);
   let browsingGenres = $state(false);
+
+  $effect(() => {
+    streamingGenreBreadcrumb.set(browsingGenres ? genreBreadcrumb : []);
+  });
+
+  function handleShortcutRestore(e: Event) {
+    const detail = (e as CustomEvent).detail;
+    if (detail?.genreBreadcrumb?.length > 0 && detail?.streamingService) {
+      restoreGenreBrowsing(detail.genreBreadcrumb);
+    }
+  }
+
+  async function restoreGenreBrowsing(breadcrumb: { id: string | null; name: string }[]) {
+    if (!service) return;
+    browsingGenres = true;
+    genreBreadcrumb = [breadcrumb[0]];
+    genreLoading = true;
+    try {
+      genres = await api.getStreamingGenres(service);
+      for (let i = 1; i < breadcrumb.length; i++) {
+        const item = breadcrumb[i];
+        genreBreadcrumb = [...genreBreadcrumb, item];
+        if (item.id) {
+          const subGenres = await api.getStreamingGenres(service, item.id);
+          if (subGenres.length > 0) {
+            genres = subGenres;
+          } else {
+            genres = [];
+          }
+          const albums = await api.getStreamingGenreAlbums(service, item.id);
+          genreAlbums = albums;
+        }
+      }
+    } catch (e) {
+      console.error('restore_genre_browsing_error', e);
+    }
+    genreLoading = false;
+  }
+
+  import { onMount, onDestroy } from 'svelte';
+  onMount(() => {
+    window.addEventListener('tune:shortcut-restore-genre', handleShortcutRestore);
+  });
+  onDestroy(() => {
+    window.removeEventListener('tune:shortcut-restore-genre', handleShortcutRestore);
+  });
 
   // YouTube Music browse state
   type YtmBrowseTab = 'home' | 'charts' | 'moods' | null;

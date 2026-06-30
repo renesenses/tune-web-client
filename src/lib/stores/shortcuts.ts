@@ -1,7 +1,7 @@
 import { writable, get } from 'svelte/store';
 import { activeView, type View } from './navigation';
 import { libraryTab } from './library';
-import { activeStreamingService } from './streaming';
+import { activeStreamingService, streamingGenreBreadcrumb } from './streaming';
 import * as api from '../api';
 
 export interface Shortcut {
@@ -53,6 +53,10 @@ export function captureCurrentView(): Partial<Shortcut> {
 
   if (view === 'streaming') {
     state.streamingService = get(activeStreamingService);
+    const breadcrumb = get(streamingGenreBreadcrumb);
+    if (breadcrumb.length > 0) {
+      state.genreBreadcrumb = breadcrumb;
+    }
   }
 
   return { view, state };
@@ -94,6 +98,14 @@ export function navigateToShortcut(shortcut: Shortcut) {
     activeStreamingService.set(shortcut.state.streamingService);
   }
   activeView.set(shortcut.view);
+
+  if (shortcut.state?.genreBreadcrumb && shortcut.view === 'streaming') {
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('tune:shortcut-restore-genre', {
+        detail: shortcut.state,
+      }));
+    }, 100);
+  }
 
   if (shortcut.state?.albumSort) {
     localStorage.setItem('tune_album_sort', shortcut.state.albumSort);
