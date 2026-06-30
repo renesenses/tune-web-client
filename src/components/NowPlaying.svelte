@@ -13,7 +13,7 @@
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
-  import { selectedArtist, selectedAlbum, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
+  import { selectedArtist, selectedAlbum, albumTracks, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
   import { activeView, previousView } from '../lib/stores/navigation';
   import VolumeControl from './VolumeControl.svelte';
   import MetadataChips from './MetadataChips.svelte';
@@ -317,6 +317,7 @@
     // artist record (with bio / image_path) and the album list so the
     // detail view doesn't show an empty shell while the user gets there
     // from a credit click.
+    selectedAlbum.set(null);
     try {
       const [artist, albums] = await Promise.all([
         api.getArtist(artistId).catch(() => null),
@@ -333,9 +334,14 @@
 
   async function navigateToAlbum(albumId: number | undefined, albumTitle?: string) {
     if (!albumId) return;
+    selectedArtist.set(null);
     try {
-      const album = await api.getAlbum(albumId).catch(() => null);
+      const [album, tracks] = await Promise.all([
+        api.getAlbum(albumId).catch(() => null),
+        api.getAlbumTracks(albumId).catch(() => []),
+      ]);
       selectedAlbum.set(album ?? ({ id: albumId, title: albumTitle ?? '' } as any));
+      albumTracks.set(tracks ?? []);
     } catch {
       selectedAlbum.set({ id: albumId, title: albumTitle ?? '' } as any);
     }
