@@ -28,3 +28,13 @@ export interface NavContext {
 export function getNavContext(extra?: Partial<NavContext>): NavContext {
   return { view: get(activeView), ...extra };
 }
+
+const scrollPositions = new Map<string, number>();
+
+export function saveScrollPosition(view: string, scrollTop: number) {
+  scrollPositions.set(view, scrollTop);
+}
+
+export function getScrollPosition(view: string): number {
+  return scrollPositions.get(view) ?? 0;
+}

@@ -8,7 +8,7 @@
   import { queueTracks, queuePosition, queueLength } from './lib/stores/queue';
   import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
   import { connectionState, reconnectAttempts } from './lib/stores/connection';
-  import { activeView, settingsInitialTab } from './lib/stores/navigation';
+  import { activeView, settingsInitialTab, saveScrollPosition, getScrollPosition } from './lib/stores/navigation';
   import { selectedAlbum, selectedArtist, libraryTab } from './lib/stores/library';
   import { preferences, applyTheme, syncPreferencesFromServer } from './lib/stores/preferences';
   import { syncDisplayFieldsFromServer } from './lib/stores/displayFields';
@@ -419,22 +419,34 @@ import AlarmsView from './components/AlarmsView.svelte';
     // Browser history integration for mouse back/forward buttons
     let _pushingState = false;
     let _viewInitialized = false;
+    let _previousViewForScroll: string | null = null;
     activeView.subscribe(view => {
       if (!_pushingState && typeof window !== 'undefined') {
+        // Save scroll position of the view we're leaving
+        if (_previousViewForScroll && _previousViewForScroll !== view) {
+          const mainEl = document.querySelector('.main-content');
+          if (mainEl) saveScrollPosition(_previousViewForScroll, mainEl.scrollTop);
+        }
+        _previousViewForScroll = view;
+
         const ctx = {
           view,
           albumId: $selectedAlbum?.id ?? null,
           artistId: $selectedArtist?.id ?? null,
           tab: $libraryTab ?? null,
         };
-        // First call (on subscription) replaces the current entry to avoid
-        // polluting the history stack; subsequent view changes push.
         if (!_viewInitialized) {
           _viewInitialized = true;
           window.history.replaceState(ctx, '', `#${view}`);
         } else {
           window.history.pushState(ctx, '', `#${view}`);
         }
+
+        // Restore scroll position of the view we're entering
+        requestAnimationFrame(() => {
+          const mainEl = document.querySelector('.main-content');
+          if (mainEl) mainEl.scrollTop = getScrollPosition(view);
+        });
       }
     });
 

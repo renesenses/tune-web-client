@@ -1966,6 +1966,9 @@
         <div class="artist-section-header-static">
           <span class="artist-section-title">{$tr('artist.albumsInLibrary')}</span>
         </div>
+        {#if $artistAlbums.length === 0 && !streamingArtistAlbumsLoading}
+          <div class="empty-hint" style="padding: 8px 0; color: var(--tune-text-muted); font-size: 13px;">Aucun album local. Consultez les albums en streaming ci-dessous.</div>
+        {/if}
         <div class="albums-grid">
           {#each $artistAlbums as album}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -1994,6 +1997,13 @@
             <span class="artist-section-title">Albums en streaming</span>
           </div>
           <div class="streaming-loading">Chargement...</div>
+        </div>
+      {:else if streamingArtistAlbums.length === 0 && $artistAlbums.length === 0}
+        <div class="artist-section">
+          <div class="artist-section-header-static">
+            <span class="artist-section-title">Albums en streaming</span>
+          </div>
+          <div class="empty-hint" style="padding: 8px 0; color: var(--tune-text-muted); font-size: 13px;">Aucun album trouvé sur les services de streaming connectés.</div>
         </div>
       {/if}
       {#each streamingArtistAlbums as { service, albums: svcAlbums }}
