@@ -1910,9 +1910,11 @@ export function discoverSmbShares() {
   return fetchJSON<any[]>(`${BASE}/network/shares`);
 }
 
-export function scanHost(host: string, protocol?: string) {
+export function scanHost(host: string, protocol?: string, username?: string, password?: string) {
   let url = `${BASE}/network/scan-host?host=${encodeURIComponent(host)}`;
   if (protocol) url += `&protocol=${encodeURIComponent(protocol)}`;
+  if (username) url += `&username=${encodeURIComponent(username)}`;
+  if (password) url += `&password=${encodeURIComponent(password)}`;
   return fetchJSON<any>(url);
 }
 

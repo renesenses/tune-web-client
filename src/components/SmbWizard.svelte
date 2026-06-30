@@ -26,6 +26,7 @@
   let scanning = $state(false);
   let scanError = $state<string | null>(null);
   let manualHost = $state('');
+  let showScanCredentials = $state(false);
   let selectedHost = $state<NetworkShareInfo | null>(null);
   let hostShares = $state<string[]>([]);
   let loadingShares = $state(false);
@@ -72,26 +73,35 @@
     scanning = true;
     scanError = null;
     try {
-      const result = await api.scanHost(manualHost.trim(), 'smb');
-      if (result.shares && result.shares.length > 0) {
+      const scanUser = showScanCredentials && username !== 'guest' ? username : undefined;
+      const scanPass = showScanCredentials && password ? password : undefined;
+      const result = await api.scanHost(manualHost.trim(), 'smb', scanUser, scanPass);
+      const shares = result.shares ?? (Array.isArray(result) ? result : []);
+      if (shares.length > 0) {
         const share: NetworkShareInfo = {
           id: `smb://${manualHost.trim()}`,
           name: manualHost.trim(),
           host: manualHost.trim(),
           protocol: 'smb',
-          shares: result.shares,
+          shares: shares,
           available: true,
         };
-        // Add to list if not already present
         if (!networkShares.find(s => s.host === share.host)) {
           networkShares = [...networkShares, share];
         }
         selectHost(share);
       } else {
-        scanError = `Aucun partage trouvé sur ${manualHost.trim()}`;
+        const errMsg = result.error || `Aucun partage trouvé sur ${manualHost.trim()}`;
+        scanError = errMsg;
+        if (errMsg.includes('refusé') || errMsg.includes('auth') || errMsg.includes('Authentication') || errMsg.includes('ACCESS_DENIED')) {
+          showScanCredentials = true;
+        }
       }
     } catch (e: any) {
       scanError = e?.message || 'Impossible de scanner cet hôte';
+      if (scanError!.includes('500') || scanError!.includes('auth')) {
+        showScanCredentials = true;
+      }
     }
     scanning = false;
   }
@@ -276,6 +286,35 @@
 
         {#if scanError}
           <div class="wizard-error">{scanError}</div>
+        {/if}
+
+        {#if !showScanCredentials}
+          <button class="link-btn" onclick={() => showScanCredentials = true}>
+            Identifiants de connexion (si accès protégé)
+          </button>
+        {/if}
+
+        {#if showScanCredentials}
+          <div class="scan-credentials">
+            <span class="list-label">Identifiants de connexion</span>
+            <div class="cred-row">
+              <input
+                type="text"
+                class="auth-input"
+                placeholder="Nom d'utilisateur"
+                bind:value={username}
+              />
+              <input
+                type="password"
+                class="auth-input"
+                placeholder="Mot de passe"
+                bind:value={password}
+              />
+            </div>
+            <button class="scan-btn small" onclick={scanManualHost} disabled={scanning || !manualHost.trim()}>
+              Réessayer avec ces identifiants
+            </button>
+          </div>
         {/if}
 
         {#if networkShares.length > 0}
@@ -993,4 +1032,18 @@
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+
+  .link-btn {
+    background: none; border: none; color: var(--tune-accent, #6366f1);
+    font-size: 12px; cursor: pointer; padding: 4px 0; text-decoration: underline;
+  }
+  .link-btn:hover { opacity: 0.8; }
+  .scan-credentials {
+    margin-top: 10px; padding: 12px; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.06);
+    border-radius: var(--radius-md, 8px); display: flex; flex-direction: column; gap: 8px;
+  }
+  .cred-row {
+    display: flex; gap: 8px;
+  }
+  .cred-row .auth-input { flex: 1; }
 </style>

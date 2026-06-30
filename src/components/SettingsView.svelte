@@ -1811,7 +1811,7 @@
       <div class="setting-row">
         <div class="setting-label">
           <span>Crossfade</span>
-          <span class="setting-hint">Fondu enchaîné entre les pistes. Désactivé = gapless automatique.</span>
+          <span class="setting-hint">Fondu enchaîné entre les pistes. Décochez pour un enchaînement gapless (sans silence ni fondu).</span>
         </div>
         <label class="toggle">
           <input type="checkbox" bind:checked={crossfadeEnabled} onchange={() => applyCrossfade()} />
