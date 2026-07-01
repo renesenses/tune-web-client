@@ -23,6 +23,7 @@
   let coverPath = $state(album.cover_path ?? null);
   let label = $state(album.label ?? '');
   let catalogNumber = $state(album.catalog_number ?? '');
+  let albumArtistInput = $state('');
 
   let artists = $state<Artist[]>([]);
   let saving = $state(false);
@@ -123,6 +124,7 @@
         const vals: Record<string, string> = {};
         for (const k of enabledKeys) vals[k] = meta[k] ?? '';
         extValues = vals;
+        if (meta['album_artist']) albumArtistInput = meta['album_artist'];
       } else {
         const vals: Record<string, string> = {};
         for (const k of enabledKeys) vals[k] = '';
@@ -180,6 +182,9 @@
               extChanged[f.key] = newVal;
             }
           }
+        }
+        if (albumArtistInput.trim() && albumArtistInput.trim() !== (extOriginal['album_artist'] ?? '').trim()) {
+          extChanged['album_artist'] = albumArtistInput.trim();
         }
         if (Object.keys(extChanged).length > 0) {
           await api.updateTrackExtendedMetadata(firstTrackId, extChanged);
@@ -388,6 +393,18 @@
             {#if artistInput && !resolveArtistByName(artistInput) && artistInput.trim().toLowerCase() !== (album.artist_name ?? '').toLowerCase()}
               <span class="hint-info">Nouvel artiste « {artistInput.trim()} » sera créé à la sauvegarde.</span>
             {/if}
+          </label>
+
+          <label class="field">
+            <span class="field-label">Album Artist</span>
+            <input
+              type="text"
+              bind:value={albumArtistInput}
+              list="artist-suggestions"
+              autocomplete="off"
+              placeholder={artistInput || 'Identique à l\'artiste si vide'}
+            />
+            <span class="hint-muted">Tag ALBUMARTIST — important pour les compilations et Best of</span>
           </label>
 
           <div class="field-row">
@@ -880,6 +897,11 @@
     font-size: 11px;
     color: #93c5fd;
     margin-top: 4px;
+  }
+  .hint-muted {
+    font-size: 11px;
+    color: var(--tune-text-muted, #888);
+    margin-top: 2px;
   }
 
   /* Tracks section (collapsible) */
