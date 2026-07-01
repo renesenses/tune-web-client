@@ -300,8 +300,8 @@
   let hasNoZone = $derived($zones.length === 0);
   let queuePos = $derived(zone?.queue_position ?? 0);
   let queueLen = $derived(zone?.queue_length ?? 0);
-  let isFirstInQueue = $derived(queuePos <= 0);
-  let isLastInQueue = $derived(queueLen <= 0 || queuePos >= queueLen - 1);
+  let isFirstInQueue = $derived(queueLen > 1 && queuePos <= 0);
+  let isLastInQueue = $derived(queueLen > 1 && queuePos >= queueLen - 1);
 
   // YouTube IFrame state — for badge display and fallback when no zone
   let ytActive = $derived($ytPlayerState.active);
