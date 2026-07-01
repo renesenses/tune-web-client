@@ -868,6 +868,14 @@
         ...(genreTree[selectedParent] ?? []).map(c => c.toLowerCase())]);
       result = $albums.filter(a => a.genre && branch.has(a.genre.toLowerCase()));
     }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(a =>
+        a.title.toLowerCase().includes(q)
+        || (a.artist_name ?? '').toLowerCase().includes(q)
+        || String(a.year ?? a.original_year ?? '').includes(q)
+      );
+    }
     const dir = genreSortOrder === 'asc' ? 1 : -1;
     return result.sort((a, b) => {
       if (genreSort === 'year') {
