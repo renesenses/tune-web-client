@@ -172,6 +172,9 @@
       </div>
       <div class="detail-rules">
         {ruleSummary(selected)}
+        {#if !albumsLoading && selectedAlbums.length > 0}
+          <span class="album-count">{selectedAlbums.length} album{selectedAlbums.length > 1 ? 's' : ''}</span>
+        {/if}
         <button class="shuffle-btn" onclick={shuffleCollection} disabled={shuffleLoading || albumsLoading}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
           {shuffleLoading ? '...' : 'Lecture aléatoire'}
@@ -250,6 +253,7 @@
   .back { background: transparent; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); color: var(--tune-text); padding: 6px 13px; border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; }
   .edit-btn { background: var(--tune-accent, #6366f1); color: white; border: none; padding: 6px 13px; border-radius: var(--radius-sm); cursor: pointer; font-family: var(--font-label); font-size: 14px; }
   .detail-rules { color: var(--tune-text-muted); font-size: 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .album-count { background: var(--tune-bg-hover, rgba(255,255,255,0.1)); padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 600; white-space: nowrap; }
   .shuffle-btn { background: var(--tune-accent); color: white; border: none; border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
   .shuffle-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .shuffle-btn:hover:not(:disabled) { filter: brightness(1.1); }
