@@ -963,6 +963,14 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <p class="track-album truncate clickable" onclick={() => navigateToAlbum(displayTrack.album_id, displayTrack.album_title)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
           {/if}
+          {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth)}
+            <p class="track-tech-info">
+              {#if displayTrack.format}<span class="tech-chip">{displayTrack.format.toUpperCase()}</span>{/if}
+              {#if displayTrack.sample_rate}<span class="tech-chip">{displayTrack.sample_rate >= 1000000 ? (displayTrack.sample_rate / 1000000).toFixed(1) + ' MHz' : (displayTrack.sample_rate / 1000).toFixed(1) + ' kHz'}</span>{/if}
+              {#if displayTrack.bit_depth}<span class="tech-chip">{displayTrack.bit_depth}-bit</span>{/if}
+              {#if displayTrack.channels}<span class="tech-chip">{displayTrack.channels}ch</span>{/if}
+            </p>
+          {/if}
           {#if !isRadio && displayTrack.id}
             <div class="np-extra-btns">
             <button class="np-credits-btn" class:active={showCredits} onclick={() => { showCredits = !showCredits; showLyrics = false; if (showCredits && displayTrack.id) loadNpCredits(displayTrack.id); }}>
@@ -1765,6 +1773,25 @@
   .track-album.clickable:hover {
     color: var(--tune-accent);
     text-decoration: underline;
+  }
+
+  .track-tech-info {
+    display: flex;
+    gap: 6px;
+    margin: 4px 0 0;
+    flex-wrap: wrap;
+  }
+
+  .tech-chip {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--tune-text-muted);
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: 10px;
+    padding: 1px 8px;
   }
 
   .audio-badge {
