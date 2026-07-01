@@ -19,7 +19,7 @@
   import type { Album, Artist, Track, TrackCredit, UserTag } from '../lib/types';
   import { t as tr, locale } from '../lib/i18n';
   import { streamingServices, activeStreamingService, pendingStreamingAlbum } from '../lib/stores/streaming';
-  import { activeView } from '../lib/stores/navigation';
+  import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
   import ServiceBadge from './ServiceBadge.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import { displayFields } from '../lib/stores/displayFields';
@@ -1164,7 +1164,8 @@
       if (match) {
         selectArtistDetail(match);
       } else {
-        notifications.info(`${name} n'est pas dans votre bibliothèque`);
+        pendingSearchQuery.set(name);
+        activeView.set('search');
       }
     } catch (e) {
       console.error('Navigate to similar artist error:', e);
