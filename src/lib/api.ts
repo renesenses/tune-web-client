@@ -3002,3 +3002,33 @@ export function cancelConversion(jobId: string): Promise<{ status: string }> {
     method: 'POST',
   });
 }
+
+// --- Audio File Upload (drag & drop) ---
+
+export async function uploadAudioFile(file: File): Promise<{
+  file_id: string;
+  file_path: string;
+  title: string;
+  artist?: string;
+  album?: string;
+  duration_ms: number;
+  format: string;
+  sample_rate?: number;
+  bit_depth?: number;
+}> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const resp = await fetch(`${BASE}/playback/upload`, { method: 'POST', headers, body: formData });
+  if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
+  return resp.json();
+}
+
+export function playUploadedFile(zoneId: number, filePath: string, meta?: { title?: string; artist_name?: string; album_title?: string; duration_ms?: number }) {
+  return fetchJSON(`${BASE}/zones/${zoneId}/play`, {
+    method: 'POST',
+    body: JSON.stringify({ temp_file_path: filePath, ...meta }),
+  });
+}

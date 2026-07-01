@@ -35,9 +35,55 @@
     });
   });
 
-  // Drag state
+  // Drag state (internal reorder)
   let dragIndex = $state<number | null>(null);
   let dropIndex = $state<number | null>(null);
+
+  // External file drop state
+  let externalDragOver = $state(false);
+  let uploading = $state(false);
+
+  const AUDIO_EXTENSIONS = new Set(['flac', 'wav', 'mp3', 'aac', 'm4a', 'ogg', 'opus', 'wma', 'aiff', 'aif', 'dsf', 'dff', 'wv', 'ape', 'alac']);
+
+  function isAudioFile(file: File): boolean {
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+    return AUDIO_EXTENSIONS.has(ext);
+  }
+
+  function handleExternalDragOver(e: DragEvent) {
+    if (e.dataTransfer?.types.includes('Files')) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      externalDragOver = true;
+    }
+  }
+
+  function handleExternalDragLeave() {
+    externalDragOver = false;
+  }
+
+  async function handleExternalDrop(e: DragEvent) {
+    e.preventDefault();
+    externalDragOver = false;
+    const files = Array.from(e.dataTransfer?.files ?? []).filter(isAudioFile);
+    if (!files.length || !zone?.id) return;
+    uploading = true;
+    for (const file of files) {
+      try {
+        const result = await api.uploadAudioFile(file);
+        await api.playUploadedFile(zone.id, result.file_path, {
+          title: result.title,
+          artist_name: result.artist,
+          album_title: result.album,
+          duration_ms: result.duration_ms,
+        });
+        notifications.success(`${result.title}`);
+      } catch (err: any) {
+        notifications.error(`${file.name}: ${err?.message ?? 'erreur'}`);
+      }
+    }
+    uploading = false;
+  }
 
   function isCurrent(index: number): boolean {
     return index === $queuePosition;
@@ -237,7 +283,13 @@
   }
 </script>
 
-<div class="queue-view">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="queue-view"
+  ondragover={handleExternalDragOver}
+  ondragleave={handleExternalDragLeave}
+  ondrop={handleExternalDrop}
+  class:drop-active={externalDragOver}
+>
   <div class="queue-header">
     <h2>{$t('queue.title')}</h2>
     {#if zone}
@@ -400,6 +452,19 @@
       </div>
     {/if}
   {/if}
+
+  {#if externalDragOver}
+    <div class="drop-overlay">
+      <div class="drop-overlay-content">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+        <span>Déposez vos fichiers audio ici</span>
+      </div>
+    </div>
+  {/if}
+
+  {#if uploading}
+    <div class="upload-bar">Upload en cours…</div>
+  {/if}
 </div>
 
 <style>
@@ -408,6 +473,7 @@
     display: flex;
     flex-direction: column;
     padding: var(--space-lg) 28px;
+    position: relative;
   }
 
   .queue-header {
@@ -873,5 +939,21 @@
     .mood-grid {
       grid-template-columns: repeat(2, 1fr);
     }
+  }
+
+  .queue-view.drop-active { outline: 2px dashed var(--tune-accent, #6366f1); outline-offset: -4px; }
+  .drop-overlay {
+    position: absolute; inset: 0; background: rgba(99, 102, 241, 0.12);
+    display: flex; align-items: center; justify-content: center; z-index: 50;
+    pointer-events: none; border-radius: var(--radius-md, 8px);
+  }
+  .drop-overlay-content {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    color: var(--tune-accent, #6366f1); font-size: 14px; font-weight: 600;
+  }
+  .upload-bar {
+    padding: 8px 16px; background: var(--tune-accent, #6366f1); color: white;
+    text-align: center; font-size: 13px; border-radius: var(--radius-sm, 4px);
+    margin: 8px 16px;
   }
 </style>
