@@ -14,7 +14,7 @@
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { selectedArtist, selectedAlbum, albumTracks, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
-  import { activeView, previousView } from '../lib/stores/navigation';
+  import { activeView, previousView, pendingSearchQuery } from '../lib/stores/navigation';
   import VolumeControl from './VolumeControl.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
@@ -312,41 +312,69 @@
   }
 
   async function navigateToArtist(artistId: number | undefined, artistName: string) {
-    if (!artistId) return;
-    // Open the Library → Artists tab on this artist. We fetch the full
-    // artist record (with bio / image_path) and the album list so the
-    // detail view doesn't show an empty shell while the user gets there
-    // from a credit click.
     selectedAlbum.set(null);
-    try {
-      const [artist, albums] = await Promise.all([
-        api.getArtist(artistId).catch(() => null),
-        api.getArtistAlbums(artistId).catch(() => []),
-      ]);
-      selectedArtist.set(artist ?? ({ id: artistId, name: artistName } as any));
-      artistAlbums.set(albums ?? []);
-    } catch {
-      selectedArtist.set({ id: artistId, name: artistName } as any);
+    if (artistId) {
+      try {
+        const [artist, albums] = await Promise.all([
+          api.getArtist(artistId).catch(() => null),
+          api.getArtistAlbums(artistId).catch(() => []),
+        ]);
+        selectedArtist.set(artist ?? ({ id: artistId, name: artistName } as any));
+        artistAlbums.set(albums ?? []);
+      } catch {
+        selectedArtist.set({ id: artistId, name: artistName } as any);
+      }
+      libraryTab.set('artists');
+      activeView.set('library');
+    } else if (artistName) {
+      try {
+        const results = await api.searchLibrary(artistName);
+        const match = results?.artists?.[0];
+        if (match?.id) {
+          const albums = await api.getArtistAlbums(match.id).catch(() => []);
+          selectedArtist.set(match);
+          artistAlbums.set(albums);
+          libraryTab.set('artists');
+          activeView.set('library');
+          return;
+        }
+      } catch { /* fallthrough to search */ }
+      pendingSearchQuery.set(artistName);
+      activeView.set('search');
     }
-    libraryTab.set('artists');
-    activeView.set('library');
   }
 
   async function navigateToAlbum(albumId: number | undefined, albumTitle?: string) {
-    if (!albumId) return;
     selectedArtist.set(null);
-    try {
-      const [album, tracks] = await Promise.all([
-        api.getAlbum(albumId).catch(() => null),
-        api.getAlbumTracks(albumId).catch(() => []),
-      ]);
-      selectedAlbum.set(album ?? ({ id: albumId, title: albumTitle ?? '' } as any));
-      albumTracks.set(tracks ?? []);
-    } catch {
-      selectedAlbum.set({ id: albumId, title: albumTitle ?? '' } as any);
+    if (albumId) {
+      try {
+        const [album, tracks] = await Promise.all([
+          api.getAlbum(albumId).catch(() => null),
+          api.getAlbumTracks(albumId).catch(() => []),
+        ]);
+        selectedAlbum.set(album ?? ({ id: albumId, title: albumTitle ?? '' } as any));
+        albumTracks.set(tracks ?? []);
+      } catch {
+        selectedAlbum.set({ id: albumId, title: albumTitle ?? '' } as any);
+      }
+      libraryTab.set('albums');
+      activeView.set('library');
+    } else if (albumTitle) {
+      try {
+        const results = await api.searchLibrary(albumTitle);
+        const match = results?.albums?.[0];
+        if (match?.id) {
+          const tracks = await api.getAlbumTracks(match.id).catch(() => []);
+          selectedAlbum.set(match);
+          albumTracks.set(tracks);
+          libraryTab.set('albums');
+          activeView.set('library');
+          return;
+        }
+      } catch { /* fallthrough to search */ }
+      pendingSearchQuery.set(albumTitle);
+      activeView.set('search');
     }
-    libraryTab.set('albums');
-    activeView.set('library');
   }
 
   function navigateToYear(year: number | undefined) {
@@ -923,13 +951,9 @@
             {/if}
           </div>
           {#if displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title}
-            {#if displayTrack.artist_id}
-              <!-- svelte-ignore a11y_click_events_have_key_events -->
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <p class="track-artist truncate clickable" onclick={() => navigateToArtist(displayTrack.artist_id!, displayTrack.artist_name!)}>{displayTrack.artist_name}</p>
-            {:else}
-              <p class="track-artist truncate">{displayTrack.artist_name}</p>
-            {/if}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <p class="track-artist truncate clickable" onclick={() => navigateToArtist(displayTrack.artist_id, displayTrack.artist_name!)}>{displayTrack.artist_name}</p>
           {/if}
           {#if !isRadio && inlineCredits}
             <p class="inline-credits">{inlineCredits}</p>
@@ -937,11 +961,7 @@
           {#if !isRadio && displayTrack.album_title}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            {#if displayTrack.album_id}
-              <p class="track-album truncate clickable" onclick={() => navigateToAlbum(displayTrack.album_id, displayTrack.album_title)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
-            {:else}
-              <p class="track-album truncate">{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
-            {/if}
+            <p class="track-album truncate clickable" onclick={() => navigateToAlbum(displayTrack.album_id, displayTrack.album_title)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
           {/if}
           {#if !isRadio && displayTrack.id}
             <div class="np-extra-btns">
