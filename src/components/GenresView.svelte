@@ -83,7 +83,8 @@
   let genreAlbums = $derived.by(() => {
     if (selectedGenreName) {
       // Subgenre or orphan — exact match.
-      return $albums.filter(a => a.genre === selectedGenreName);
+      const sel = selectedGenreName.toLowerCase();
+      return $albums.filter(a => a.genre && a.genre.toLowerCase() === sel);
     }
     if (selectedParent) {
       const branch = branchOf.get(selectedParent.toLowerCase()) ?? [selectedParent];

@@ -831,8 +831,8 @@
       <div class="recs-carousel">
         {#each radioPicks as radio}
           <button class="rec-card radio-card" onclick={() => playRadioEntry(radio)}>
-            {#if radio.logo_url || radio.cover_path}
-              <img src={api.artworkUrl(radio.logo_url ?? radio.cover_path)} alt={radio.name ?? ''} class="radio-logo" loading="lazy" />
+            {#if radio.logo_url || radio.cover_url}
+              <img src={api.artworkUrl(radio.logo_url ?? radio.cover_url)} alt={radio.name ?? ''} class="radio-logo" loading="lazy" />
             {:else}
               <div class="radio-placeholder">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
