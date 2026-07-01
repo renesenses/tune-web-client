@@ -298,10 +298,10 @@
   let showZoneDropdown = $state(false);
   let configZone = $state<typeof zone | null>(null);
   let hasNoZone = $derived($zones.length === 0);
-  let queuePos = $derived(zone?.queue_position ?? 0);
-  let queueLen = $derived(zone?.queue_length ?? 0);
-  let isFirstInQueue = $derived(queueLen > 1 && queuePos <= 0);
-  let isLastInQueue = $derived(queueLen > 1 && queuePos >= queueLen - 1);
+  // Prev/next are always enabled when a track is loaded — the server
+  // handles boundary cases (loops back or stops gracefully).
+  // Disabling based on queue_position was unreliable because WS events
+  // don't always include updated queue info.
 
   // YouTube IFrame state — for badge display and fallback when no zone
   let ytActive = $derived($ytPlayerState.active);
@@ -544,7 +544,7 @@
 
     <button
       class="control-btn"
-      disabled={(state === 'stopped' && !ytActive && !track) || isFirstInQueue}
+      disabled={state === 'stopped' && !ytActive && !track}
       onclick={handlePrevious}
       title={$t('transport.previous')}
     >
@@ -590,7 +590,7 @@
 
     <button
       class="control-btn"
-      disabled={(state === 'stopped' && !ytActive && !track) || isLastInQueue}
+      disabled={state === 'stopped' && !ytActive && !track}
       onclick={handleNext}
       title={$t('transport.next')}
     >
