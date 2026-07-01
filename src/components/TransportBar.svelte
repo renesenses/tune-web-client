@@ -298,6 +298,10 @@
   let showZoneDropdown = $state(false);
   let configZone = $state<typeof zone | null>(null);
   let hasNoZone = $derived($zones.length === 0);
+  let queuePos = $derived(zone?.queue_position ?? 0);
+  let queueLen = $derived(zone?.queue_length ?? 0);
+  let isFirstInQueue = $derived(queuePos <= 0);
+  let isLastInQueue = $derived(queueLen <= 0 || queuePos >= queueLen - 1);
 
   // YouTube IFrame state — for badge display and fallback when no zone
   let ytActive = $derived($ytPlayerState.active);
@@ -540,7 +544,7 @@
 
     <button
       class="control-btn"
-      disabled={state === 'stopped' && !ytActive && !track}
+      disabled={(state === 'stopped' && !ytActive && !track) || isFirstInQueue}
       onclick={handlePrevious}
       title={$t('transport.previous')}
     >
@@ -586,7 +590,7 @@
 
     <button
       class="control-btn"
-      disabled={state === 'stopped' && !ytActive && !track}
+      disabled={(state === 'stopped' && !ytActive && !track) || isLastInQueue}
       onclick={handleNext}
       title={$t('transport.next')}
     >
