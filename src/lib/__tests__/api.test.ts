@@ -246,10 +246,10 @@ describe('critical endpoint URLs', () => {
     expect(fetchCalls[0].url).toBe('/api/v1/zones');
   });
 
-  it('getAdminHealth() calls /api/v1/admin/health', async () => {
+  it('getAdminHealth() calls /api/v1/system/admin/health', async () => {
     mockFetch({ cpu_percent: 5, ram_mb: 200 });
     await api.getAdminHealth();
-    expect(fetchCalls[0].url).toBe('/api/v1/admin/health');
+    expect(fetchCalls[0].url).toBe('/api/v1/system/admin/health');
   });
 
   it('getNetworkDiagnostics() calls /api/v1/system/diagnostics/network', async () => {

@@ -2681,23 +2681,23 @@ export interface AdminDiscovery {
 }
 
 export function getAdminHealth() {
-  return fetchJSON<AdminHealth>(`${BASE}/admin/health`);
+  return fetchJSON<AdminHealth>(`${BASE}/system/admin/health`);
 }
 
 export function getAdminZones() {
-  return fetchJSON<AdminZone[]>(`${BASE}/admin/zones`);
+  return fetchJSON<AdminZone[]>(`${BASE}/system/admin/zones`);
 }
 
 export function getAdminErrors() {
-  return fetchJSON<AdminError[]>(`${BASE}/admin/errors`);
+  return fetchJSON<AdminError[]>(`${BASE}/system/admin/errors`);
 }
 
 export function getAdminConnections() {
-  return fetchJSON<AdminConnections>(`${BASE}/admin/connections`);
+  return fetchJSON<AdminConnections>(`${BASE}/system/admin/connections`);
 }
 
 export function getAdminDiscovery() {
-  return fetchJSON<AdminDiscovery>(`${BASE}/admin/discovery`);
+  return fetchJSON<AdminDiscovery>(`${BASE}/system/admin/discovery`);
 }
 
 // Service tokens (API keys for third-party services like Last.fm, Discogs, etc.)
