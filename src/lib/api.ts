@@ -76,6 +76,25 @@ export async function apiPost(path: string, body?: any): Promise<any> {
   try { return JSON.parse(text); } catch { throw new Error('Invalid JSON response'); }
 }
 
+export async function apiPatch(path: string, body?: any): Promise<any> {
+  const token = getToken();
+  const headers: Record<string, string> = { 'Accept': 'application/json' };
+  if (body) headers['Content-Type'] = 'application/json';
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
+    method: 'PATCH',
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (!resp.ok) throw new Error(`${resp.status}`);
+  const text = await resp.text();
+  if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
+    throw new Error('Expected JSON but received HTML — check the endpoint URL');
+  }
+  try { return JSON.parse(text); } catch { throw new Error('Invalid JSON response'); }
+}
+
 export async function apiDelete(path: string): Promise<any> {
   const token = getToken();
   const headers: Record<string, string> = { 'Accept': 'application/json' };

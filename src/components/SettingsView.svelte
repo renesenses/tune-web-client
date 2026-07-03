@@ -179,13 +179,13 @@
     bridgeLoading = true;
     try {
       if (bridgeEnabled) {
-        await api.apiFetch('/cloud/bridge/disable', { method: 'POST' });
+        await api.apiPost('/cloud/bridge/disable');
         bridgeEnabled = false;
         bridgeConnected = false;
         bridgeAccessUrl = '';
         bridgeToken = '';
       } else {
-        const data = await api.apiFetch('/cloud/bridge/enable', { method: 'POST' });
+        const data = await api.apiPost('/cloud/bridge/enable');
         bridgeEnabled = true;
         bridgeServerId = data?.server_id || '';
         bridgeAccessUrl = data?.access_url || '';
@@ -1958,7 +1958,7 @@
         <label class="toggle">
           <input type="checkbox" checked={!(config?.quality_split === false || config?.quality_split === 'false' || config?.quality_split === 0 || config?.quality_split === '0')} onchange={async (e) => {
             const val = (e.target as HTMLInputElement).checked;
-            await api.apiFetch('/system/config', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({quality_split: val}) });
+            await api.apiPatch('/system/config', { quality_split: val });
             if (config) config.quality_split = val;
             notifications.success('Sauvegardé. Relancez un scan complet pour appliquer.');
           }} />
