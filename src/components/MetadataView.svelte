@@ -380,11 +380,7 @@
         const existing = albums.find((a: any) => a.title?.toLowerCase() === name.toLowerCase());
         let albumId = existing?.id;
         if (!albumId) {
-          const res = await api.apiFetch(`/library/albums`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: name }),
-          });
+          const res = await api.apiPost(`/library/albums`, { title: name });
           albumId = res?.id;
         }
         if (albumId) {
@@ -443,11 +439,7 @@
         albumId = existing.id;
       } else {
         // Create album via library API
-        const res = await api.apiFetch(`/library/albums`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: name }),
-        });
+        const res = await api.apiPost(`/library/albums`, { title: name });
         albumId = res?.id;
       }
       if (albumId) {
