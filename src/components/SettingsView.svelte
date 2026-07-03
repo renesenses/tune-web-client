@@ -3405,9 +3405,8 @@
         {:else}
           <div class="cloud-row">
             <span class="cloud-status-dot disconnected"></span>
-            <span class="cloud-status-text">Non connecté</span>
-            <button class="scan-btn small" onclick={cloudSsoConnect}>Se connecter</button>
-            <span style="margin-left:0.5em;font-size:0.85em">ou <a href="https://mozaiklabs.fr" target="_blank" rel="noopener noreferrer" style="color:var(--tune-accent)">Créer un compte</a></span>
+            <span class="cloud-status-text">Cloud bientôt disponible sur ce serveur</span>
+            <span style="margin-left:0.5em;font-size:0.85em"><a href="https://mozaiklabs.fr" target="_blank" rel="noopener noreferrer" style="color:var(--tune-accent)">En savoir plus</a></span>
           </div>
         {/if}
       </div>
