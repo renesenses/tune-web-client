@@ -130,7 +130,7 @@
       lines.push('');
       lines.push('## System Health');
       lines.push(`Status: ${health.status}`);
-      for (const [name, ok] of Object.entries(health.components)) {
+      for (const [name, ok] of Object.entries(health.components ?? {})) {
         lines.push(`  ${name}: ${ok ? 'OK' : 'ERROR'}`);
       }
     }
@@ -615,7 +615,7 @@
           {health.status === 'ok' ? $t('settings.operational') : $t('settings.degraded')}
         </div>
         <div class="component-grid">
-          {#each Object.entries(health.components) as [name, ok]}
+          {#each Object.entries(health.components ?? {}) as [name, ok]}
             <div class="component-row">
               <span class="component-name">{name}</span>
               <span class="status-badge" class:ok={ok} class:error={!ok}>

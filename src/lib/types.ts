@@ -222,7 +222,9 @@ export interface StreamingAuthResponse {
 
 export interface SystemHealth {
   status: string;
-  components: Record<string, boolean>;
+  // Server /system/health does not currently send a components map; keep optional
+  // so the Diagnostics view degrades gracefully instead of crashing on render.
+  components?: Record<string, boolean>;
 }
 
 export interface SystemConfig {
