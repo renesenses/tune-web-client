@@ -7,7 +7,7 @@
   import { currentProfileId } from '../lib/stores/profile';
   import * as api from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
-  import { formatTime, formatDuration, formatAudioBadge, formatAlbumYear } from '../lib/utils';
+  import { formatTime, formatDuration, formatAudioBadge, formatAlbumYear, fold } from '../lib/utils';
   import AddShortcutButton from './AddShortcutButton.svelte';
   import AlbumArt from './AlbumArt.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
@@ -368,17 +368,17 @@
   let orphanGenres = $derived($genres.filter(g => !knownTreeGenres.has(g.name.toLowerCase())));
 
   // Genres filtered by search query (for the Genres tab)
-  let genreSearchQuery = $derived(searchQuery.trim().toLowerCase());
+  let genreSearchQuery = $derived(fold(searchQuery));
   let filteredGenreTreeKeys = $derived.by(() => {
     if (!genreSearchQuery) return Object.keys(genreTree);
     return Object.keys(genreTree).filter(parent => {
-      if (parent.toLowerCase().includes(genreSearchQuery)) return true;
-      return (genreTree[parent] ?? []).some(child => child.toLowerCase().includes(genreSearchQuery));
+      if (fold(parent).includes(genreSearchQuery)) return true;
+      return (genreTree[parent] ?? []).some(child => fold(child).includes(genreSearchQuery));
     });
   });
   let filteredOrphanGenres = $derived.by(() => {
     if (!genreSearchQuery) return orphanGenres;
-    return orphanGenres.filter(g => g.name.toLowerCase().includes(genreSearchQuery));
+    return orphanGenres.filter(g => fold(g.name).includes(genreSearchQuery));
   });
 
   // Use onMount (not $effect) — the $effect(() => { untrack(...) }) pattern
@@ -688,11 +688,11 @@
   // Albums filtered by search only (for quality chip counts)
   let searchFilteredAlbums = $derived.by(() => {
     if (!searchQuery.trim()) return $albums;
-    const terms = searchQuery.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+    const terms = fold(searchQuery).split(/\s+/).filter(t => t.length > 0);
     return $albums.filter(a => terms.every(q =>
-      a.title.toLowerCase().includes(q)
-      || (a.artist_name ?? '').toLowerCase().includes(q)
-      || (a.genre ?? '').toLowerCase().includes(q)
+      fold(a.title).includes(q)
+      || fold(a.artist_name).includes(q)
+      || fold(a.genre).includes(q)
       || String(a.year ?? '').includes(q)
     ));
   });
@@ -729,7 +729,7 @@
 
   let filteredArtists = $derived.by(() => {
     let result = searchQuery.trim()
-      ? $artists.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      ? $artists.filter(a => fold(a.name).includes(fold(searchQuery)))
       : [...$artists];
     result.sort((a, b) => {
       const nameA = (a.sort_name || a.name || '').toLowerCase();
@@ -846,11 +846,11 @@
       result = result.filter(t => t.id !== null && favTrackIds.has(t.id!));
     }
     if (searchQuery.trim()) {
-      const terms = searchQuery.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+      const terms = fold(searchQuery).split(/\s+/).filter(t => t.length > 0);
       result = result.filter(t => terms.every(q =>
-        t.title.toLowerCase().includes(q)
-        || (t.artist_name ?? '').toLowerCase().includes(q)
-        || (t.album_title ?? '').toLowerCase().includes(q)
+        fold(t.title).includes(q)
+        || fold(t.artist_name).includes(q)
+        || fold(t.album_title).includes(q)
       ));
     }
     return result;
@@ -869,10 +869,10 @@
       result = $albums.filter(a => a.genre && branch.has(a.genre.toLowerCase()));
     }
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+      const q = fold(searchQuery);
       result = result.filter(a =>
-        a.title.toLowerCase().includes(q)
-        || (a.artist_name ?? '').toLowerCase().includes(q)
+        fold(a.title).includes(q)
+        || fold(a.artist_name).includes(q)
         || String(a.year ?? a.original_year ?? '').includes(q)
       );
     }
@@ -905,9 +905,9 @@
     const map = new Map<number | null, Album[]>();
     const filtered = searchQuery.trim()
       ? $albums.filter(a => {
-          const q = searchQuery.toLowerCase();
-          return a.title.toLowerCase().includes(q)
-            || (a.artist_name ?? '').toLowerCase().includes(q)
+          const q = fold(searchQuery);
+          return fold(a.title).includes(q)
+            || fold(a.artist_name).includes(q)
             || String(a.year ?? a.original_year ?? '').includes(q);
         })
       : $albums;

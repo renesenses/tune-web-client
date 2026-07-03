@@ -218,3 +218,9 @@ export function formatQualityTooltip(
   if (bd > 0) lines.push(`Bit depth: ${bd}-bit`);
   return lines.join('\n');
 }
+
+/** Lowercase and strip diacritics, for accent-insensitive substring matching
+ * (e.g. searching "carlao" should match "Carlão"). */
+export function fold(s: string | null | undefined): string {
+  return (s ?? '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+}

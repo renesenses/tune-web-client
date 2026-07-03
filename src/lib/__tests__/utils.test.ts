@@ -1,5 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { getQualityTier } from '../utils';
+import { getQualityTier, fold } from '../utils';
+
+describe('fold', () => {
+  it('strips accents and lowercases for accent-insensitive matching (Sergio: carlao ↔ Carlão)', () => {
+    expect(fold('Carlão')).toBe('carlao');
+    expect(fold('CARLAO').includes(fold('carlao'))).toBe(true);
+    expect(fold('Carlão').includes(fold('carlao'))).toBe(true);
+    expect(fold('Motörhead').includes(fold('motorhead'))).toBe(true);
+    expect(fold('Beyoncé').includes(fold('beyonce'))).toBe(true);
+  });
+  it('handles null/undefined', () => {
+    expect(fold(null)).toBe('');
+    expect(fold(undefined)).toBe('');
+  });
+});
 
 describe('getQualityTier', () => {
   it('classifies Qobuz hi-res as Hi-Res even when the format string is missing (Progman: shown as "compressé")', () => {
