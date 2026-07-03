@@ -64,6 +64,7 @@ export function getQualityTier(
     format?: string | null;
     sample_rate?: number | null;
     bit_depth?: number | null;
+    source?: string | null;
   } | null | undefined,
 ): QualityTier {
   if (!track) return 'lossy';
@@ -71,6 +72,7 @@ export function getQualityTier(
   const fmt = raw.startsWith('audio/') ? raw.slice(6).replace('x-', '') : raw;
   const sr = track.sample_rate ?? 0;
   const bd = track.bit_depth ?? 0;
+  const source = (track.source ?? '').toLowerCase();
 
   // MQA is identifiable by format string
   if (fmt === 'mqa' || fmt.includes('mqa')) return 'mqa';
@@ -78,17 +80,24 @@ export function getQualityTier(
   // DSD — native 1-bit format, always its own tier
   if (fmt === 'dsd' || fmt.startsWith('dsd')) return 'dsd';
 
-  // Hi-Res Max: lossless 24-bit at 176.4 kHz or above (176400, 192000, 352800, 384000 …)
-  if (LOSSLESS_FORMATS.has(fmt) && bd >= 24 && sr >= 176400) return 'hires_max';
+  // A track is lossless when its declared format says so, OR when its specs /
+  // source make it unambiguous: no lossy codec (MP3/AAC/OGG/Opus/WMA) can exceed
+  // 48 kHz or carry a bit depth, and Qobuz only ever streams FLAC. Without this,
+  // streaming tracks whose `format` string is missing were mislabelled "Lossy"
+  // despite 24-bit / hi-res specs (Progman: Qobuz shown as "compressé").
+  const lossless =
+    LOSSLESS_FORMATS.has(fmt) || bd >= 24 || sr > 48000 || source === 'qobuz';
 
-  // Hi-Res: lossless 24-bit at 88.2–96 kHz OR 32-bit at any rate above CD
-  if (LOSSLESS_FORMATS.has(fmt) && bd >= 24 && sr >= 88200) return 'hires';
-
-  // Also treat 24-bit at 44.1/48 kHz as Hi-Res (e.g. Qobuz 24/44.1)
-  if (LOSSLESS_FORMATS.has(fmt) && bd > 16) return 'hires';
-
-  // CD quality: lossless 16-bit at ≤ 48 kHz
-  if (LOSSLESS_FORMATS.has(fmt)) return 'cd';
+  if (lossless) {
+    // Hi-Res Max: 24-bit at 176.4 kHz or above (176400, 192000, 352800, 384000 …)
+    if (bd >= 24 && sr >= 176400) return 'hires_max';
+    // Hi-Res: 24-bit at 88.2–96 kHz
+    if (bd >= 24 && sr >= 88200) return 'hires';
+    // 24-bit (or higher) at 44.1/48 kHz is still Hi-Res (e.g. Qobuz 24/44.1)
+    if (bd > 16) return 'hires';
+    // Otherwise CD quality: lossless 16-bit at ≤ 48 kHz
+    return 'cd';
+  }
 
   // Everything else (MP3, AAC, OGG, Opus, WMA, unknown) is lossy
   return 'lossy';
