@@ -397,8 +397,11 @@
 
   // Duplicate album detection: same title + same artist but different format/quality
   function normalizeDupKey(title: string, artist: string): string {
-    return (title.trim().toLowerCase().replace(/[\s\-_.:;,!?'"()[\]{}]+/g, '') + '|||' +
-            artist.trim().toLowerCase().replace(/[\s\-_.:;,!?'"()[\]{}]+/g, ''));
+    // Strip formatting punctuation/spacing, but keep '!' and '?' — they are
+    // part of the title, not noise, so "Joe Cocker!" and "Joe Cocker" are not
+    // flagged as duplicates (Alain).
+    const strip = (s: string) => s.trim().toLowerCase().replace(/[\s\-_.:;,'"()[\]{}]+/g, '');
+    return strip(title) + '|||' + strip(artist);
   }
 
   function formatAlbumQualityLabel(album: Album): string {
