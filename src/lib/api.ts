@@ -1227,6 +1227,12 @@ export function federatedSearch(q: string, sources?: string[], limit = 20) {
       for (const key of Object.keys(result.services)) {
         result.services[key].tracks = mapStreamingTracks(result.services[key].tracks);
         result.services[key].albums = mapStreamingAlbums(result.services[key].albums);
+        // The server's StreamTrack/StreamAlbum carry no `source` field, so a
+        // track played from global search had no source and did nothing
+        // (DEvir). Stamp the service key as the source so play/queue actions
+        // can route these streaming results.
+        for (const t of result.services[key].tracks ?? []) if (t && !t.source) t.source = key;
+        for (const a of result.services[key].albums ?? []) if (a && !a.source) a.source = key;
       }
     }
     return result;
