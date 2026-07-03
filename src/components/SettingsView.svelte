@@ -1956,7 +1956,7 @@
           <span class="setting-hint">Si un même album existe en CD et Hi-Res, créer deux entrées distinctes (ex: "Album (96kHz/24bit)")</span>
         </div>
         <label class="toggle">
-          <input type="checkbox" checked={config?.quality_split !== false} onchange={async (e) => {
+          <input type="checkbox" checked={!(config?.quality_split === false || config?.quality_split === 'false' || config?.quality_split === 0 || config?.quality_split === '0')} onchange={async (e) => {
             const val = (e.target as HTMLInputElement).checked;
             await api.apiFetch('/system/config', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({quality_split: val}) });
             if (config) config.quality_split = val;
