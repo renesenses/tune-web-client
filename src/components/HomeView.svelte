@@ -168,20 +168,25 @@
   async function playRecentEntry(album: RecentAlbumEntry) {
     if (!zone?.id) return;
     try {
-      if (album.source === 'radio' && album.firstTrack.source_id) {
-        const radioId = parseInt(album.firstTrack.source_id);
+      // Radio entries must be replayed as the STATION, never resolved by title:
+      // a radio's now-playing carries live ICY metadata (the current song's
+      // title/artist), so falling through to a local title search plays an
+      // unrelated track (Bilou: clicking a radio history line played
+      // "Mother Nature"/"Episode"). Detect radio at album OR firstTrack level.
+      const isRadio = album.source === 'radio' || album.firstTrack?.source === 'radio';
+      if (isRadio) {
+        const radioId = album.firstTrack?.source_id ? parseInt(album.firstTrack.source_id) : NaN;
         if (!isNaN(radioId)) {
           await api.playRadio(radioId, zone.id);
         } else {
-          await playAndSync(zone.id, {
-            source: 'radio' as Source,
-            source_id: album.firstTrack.source_id,
-            title: album.firstTrack.title ?? album.title,
-            artist_name: album.firstTrack.artist_name,
-            cover_path: album.firstTrack.cover_path,
-          } as any);
+          // No station id captured (ICY metadata overwrote it) — send the user
+          // to Radios rather than fabricating a wrong local record.
+          activeView.set('radios');
+          notifications.info('Relancez la station depuis la page Radios');
         }
-      } else if (album.source && album.source !== 'local' && album.firstTrack.source_id) {
+        return;
+      }
+      if (album.source && album.source !== 'local' && album.firstTrack.source_id) {
         await playAndSync(zone.id, { source: album.source as Source, source_id: album.firstTrack.source_id });
       } else if (album.source && album.source !== 'local') {
         const q = `${album.firstTrack.title ?? album.title} ${album.firstTrack.artist_name ?? album.artist_name ?? ''}`.trim();
@@ -198,6 +203,10 @@
         await playAndSync(zone.id, { album_id: album.id });
       } else if (album.firstTrack.id) {
         await playAndSync(zone.id, { track_id: album.firstTrack.id });
+      } else if (typeof album.firstTrack.file_path === 'string' && /^https?:\/\//.test(album.firstTrack.file_path)) {
+        // Stream/URL-backed entry (radio-like) — replay the URL directly rather
+        // than searching the local library by title, which matches unrelated tracks.
+        await playAndSync(zone.id, { file_path: album.firstTrack.file_path });
       } else {
         // No DB id — try search by title first (more reliable than stale URLs)
         const searchTitle = album.firstTrack.album_title || album.title;
