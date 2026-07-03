@@ -1246,9 +1246,16 @@
       });
     }
     if (wasArtistTab && restoreArtistScroll > 0) {
+      // Double rAF: the artist list re-renders after selectedArtist is cleared,
+      // so its scroll height is only restored on the following frame. Setting
+      // scrollTop on the first frame clamps to 0 (list still short) and the user
+      // lands at the top instead of the saved position (Bilou). Mirror the
+      // album-grid restore, which already waits two frames.
       requestAnimationFrame(() => {
-        const mainEl = document.querySelector('.main-content');
-        if (mainEl) mainEl.scrollTop = restoreArtistScroll;
+        requestAnimationFrame(() => {
+          const mainEl = document.querySelector('.main-content');
+          if (mainEl) mainEl.scrollTop = restoreArtistScroll;
+        });
       });
     }
   }
