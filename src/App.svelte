@@ -697,6 +697,11 @@ import AlarmsView from './components/AlarmsView.svelte';
                 if (d.duration_ms !== undefined) partial.duration_ms = d.duration_ms;
                 if (d.source !== undefined) partial.source = d.source;
                 if (d.source_id !== undefined) partial.source_id = d.source_id;
+                // Technical info for the quality / signal-path badge, so it
+                // renders immediately on play instead of only after a refresh.
+                if (d.format !== undefined) partial.format = d.format;
+                if (d.sample_rate !== undefined) partial.sample_rate = d.sample_rate;
+                if (d.bit_depth !== undefined) partial.bit_depth = d.bit_depth;
                 const updatedTrack = z.current_track
                   ? { ...z.current_track, ...partial }
                   : { ...partial } as any;
