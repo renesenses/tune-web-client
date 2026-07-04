@@ -69,28 +69,28 @@
   ] as const;
 
   async function handleNpMoodSelect(mood: typeof npMoods[number]) {
-    if (!zone?.id) { notifications.error("Aucune zone sélectionnée"); return; }
+    if (!zone?.id) { notifications.error($t('nowplaying.noZoneSelected')); return; }
     moodLoading = mood.id;
     try {
       const data = await api.smartAIMood({ mood: mood.id, limit: 20 });
       const tracks = data.tracks || [];
       if (tracks.length === 0) {
-        notifications.error('Aucun titre trouvé pour cette ambiance');
+        notifications.error($t('nowplaying.noTracksForMood'));
         moodLoading = null;
         return;
       }
       const ids = tracks.map(t => t.id).filter((id): id is number => id != null && id > 0);
       if (ids.length === 0) {
-        notifications.error('Aucun titre local pour cette ambiance');
+        notifications.error($t('nowplaying.noLocalTracksForMood'));
         moodLoading = null;
         return;
       }
       if ($queueTracks.length === 0) {
         await playAndSync(zone.id, { track_ids: ids });
-        notifications.success(`${mood.label} Mix : ${ids.length} titres en lecture`);
+        notifications.success(`${mood.label} Mix : ${ids.length} ${$t('nowplaying.tracksPlaying')}`);
       } else {
         await api.addToQueue(zone.id, { track_ids: ids });
-        notifications.success(`${mood.label} Mix : ${ids.length} titres ajoutés`);
+        notifications.success(`${mood.label} Mix : ${ids.length} ${$t('nowplaying.tracksAdded')}`);
       }
       // Refresh queue
       const qs = await api.getQueue(zone.id);
@@ -100,7 +100,7 @@
       showMoodPicker = false;
     } catch (e) {
       console.error('NP Mood error:', e);
-      notifications.error('Erreur lors de la génération');
+      notifications.error($t('nowplaying.generationError'));
     }
     moodLoading = null;
   }
@@ -118,10 +118,10 @@
       await api.setAlarm(zone.id, alarmTime);
       alarmActive = true;
       showAlarm = false;
-      notifications.success(`Reveil programme a ${alarmTime}`);
+      notifications.success(`${$t('nowplaying.alarmSetAt')} ${alarmTime}`);
     } catch (e) {
       console.error('Alarm error:', e);
-      notifications.error('Erreur reveil');
+      notifications.error($t('nowplaying.alarmError'));
     }
     alarmSetting = false;
   }
@@ -131,7 +131,7 @@
       await api.cancelAlarm(zone.id);
       alarmActive = false;
       alarmTime = '';
-      notifications.success('Reveil annule');
+      notifications.success($t('nowplaying.alarmCancelled'));
     } catch (e) {
       console.error('Cancel alarm error:', e);
     }
@@ -168,7 +168,7 @@
       notifications.success(minutes > 0 ? `Sleep timer: ${minutes} min` : 'Sleep timer off');
     } catch (e) {
       console.error('Sleep timer error:', e);
-      notifications.error('Erreur sleep timer');
+      notifications.error($t('nowplaying.sleepTimerError'));
     }
   }
 
@@ -252,7 +252,7 @@
     try {
       const card = await api.shareNowPlaying(zone.id);
       await navigator.clipboard.writeText(card.text);
-      notifications.success('Copie dans le presse-papier !');
+      notifications.success($t('nowplaying.copiedToClipboard'));
     } catch (e) { console.error('Share error:', e); }
   }
 
@@ -798,7 +798,7 @@
       queueSheetState = 'collapsed';
     } catch (e) {
       console.error('Queue sheet clear error:', e);
-      notifications.error('Erreur lors du vidage');
+      notifications.error($t('nowplaying.clearQueueError'));
     }
     qsClearingQueue = false;
   }
@@ -806,15 +806,15 @@
   let qsSavingQueue = $state(false);
 
   async function qsHandleSaveAsPlaylist() {
-    const name = prompt('Nom de la playlist :');
+    const name = prompt($t('nowplaying.playlistNamePrompt'));
     if (!name?.trim()) return;
     qsSavingQueue = true;
     try {
       await api.saveQueueAsPlaylist(zone.id, name.trim());
-      notifications.success(`Playlist "${name.trim()}" creee`);
+      notifications.success(`Playlist "${name.trim()}" ${$t('nowplaying.playlistCreatedSuffix')}`);
     } catch (e) {
       console.error('Queue sheet save error:', e);
-      notifications.error('Erreur lors de la sauvegarde');
+      notifications.error($t('nowplaying.saveError'));
     }
     qsSavingQueue = false;
   }
@@ -828,7 +828,7 @@
 </script>
 
 <div class="now-playing" class:wide={isWide} class:queue-open={queueSheetState !== 'collapsed'} bind:clientWidth={containerWidth} onwheel={handleNpWheel}>
-  <button class="np-back-btn" onclick={() => activeView.set($previousView && $previousView !== 'nowplaying' ? $previousView : 'library')} title="Retour">
+  <button class="np-back-btn" onclick={() => activeView.set($previousView && $previousView !== 'nowplaying' ? $previousView : 'library')} title={$t('nowplaying.back')}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
   {#if resolvedCoverUrl}
@@ -910,7 +910,7 @@
                     {/if}
                     {#if displayTrack.channels}
                       <span class="td-label">Channels</span>
-                      <span class="td-value">{displayTrack.channels === 2 ? 'Stéréo' : displayTrack.channels === 1 ? 'Mono' : displayTrack.channels + ' ch'}</span>
+                      <span class="td-value">{displayTrack.channels === 2 ? $t('nowplaying.stereo') : displayTrack.channels === 1 ? 'Mono' : displayTrack.channels + ' ch'}</span>
                     {/if}
                     {#if displayTrack.source}
                       <span class="td-label">Source</span>
@@ -936,7 +936,7 @@
                 <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19" />
                 <circle cx="12" cy="12" r="2" fill="currentColor" />
               </svg>
-              EN DIRECT
+              {$t('nowplaying.liveNow')}
             </div>
             <p class="radio-station-name truncate">{displayTrack.album_title || zone?.name || 'Radio'}</p>
           {/if}
@@ -1013,7 +1013,7 @@
             {/if}
             <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; showCredits = false; showEq = false; if (!showLyrics) karaokeMode = false; if (showLyrics && displayTrack.id) loadNpLyrics(displayTrack.id); }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
-              Paroles
+              {$t('nowplaying.lyrics')}
             </button>
             <button class="np-credits-btn" class:active={showEq} onclick={() => { showEq = !showEq; showCredits = false; showLyrics = false; karaokeMode = false; }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>
@@ -1021,7 +1021,7 @@
             </button>
             <button class="np-credits-btn" onclick={handleShare}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
-              Partager
+              {$t('nowplaying.share')}
             </button>
             <div class="np-sleep-wrapper" style="position:relative;display:inline-flex">
               <button class="np-credits-btn" class:active={sleepActive} onclick={() => { showSleepMenu = !showSleepMenu; showDspMenu = false; }}>
@@ -1052,7 +1052,7 @@
             </div>
             <button class="np-credits-btn" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
-              Reveil
+              {$t('nowplaying.alarm')}
             </button>
             </div>
             {#if showAlarm}
@@ -1060,14 +1060,14 @@
                 <div class="alarm-row">
                   <input type="time" class="alarm-time-input" bind:value={alarmTime} />
                   <button class="alarm-set-btn" onclick={handleSetAlarm} disabled={alarmSetting || !alarmTime}>
-                    {alarmSetting ? '...' : 'Activer'}
+                    {alarmSetting ? '...' : $t('nowplaying.activate')}
                   </button>
                   {#if alarmActive}
-                    <button class="alarm-cancel-btn" onclick={handleCancelAlarm}>Annuler</button>
+                    <button class="alarm-cancel-btn" onclick={handleCancelAlarm}>{$t('nowplaying.cancel')}</button>
                   {/if}
                 </div>
                 {#if alarmActive}
-                  <span class="alarm-status">Reveil actif : {alarmTime}</span>
+                  <span class="alarm-status">{$t('nowplaying.alarmActive')} {alarmTime}</span>
                 {/if}
               </div>
             {/if}
@@ -1201,7 +1201,7 @@
               <path d="M2 6c4 0 6 6 10 6s6-6 10-6" /><path d="M2 18c4 0 6-6 10-6s6 6 10 6" />
             </svg>
           </button>
-          <button class="setting-btn" class:active={normEnabled} onclick={toggleNormalization} title="Normalisation">
+          <button class="setting-btn" class:active={normEnabled} onclick={toggleNormalization} title={$t('nowplaying.normalization')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
               <line x1="2" y1="12" x2="6" y2="12" /><line x1="18" y1="12" x2="22" y2="12" /><line x1="8" y1="8" x2="8" y2="16" /><line x1="12" y1="6" x2="12" y2="18" /><line x1="16" y1="9" x2="16" y2="15" />
             </svg>
@@ -1314,7 +1314,7 @@
         <p class="hint">{$t('nowplaying.waitingServer')}</p>
       {:else}
         <div class="np-empty-mood">
-          <p class="np-empty-mood-hint">Lancez une ambiance</p>
+          <p class="np-empty-mood-hint">{$t('nowplaying.startAmbiance')}</p>
           <div class="np-empty-mood-grid">
             {#each npMoods as mood}
               <button
@@ -1368,14 +1368,14 @@
         </div>
         <div class="qs-header-actions">
           {#if $queueTracks.length > 0}
-            <button class="qs-action-btn" onclick={qsHandleSaveAsPlaylist} disabled={qsSavingQueue} title="Sauver en playlist">
+            <button class="qs-action-btn" onclick={qsHandleSaveAsPlaylist} disabled={qsSavingQueue} title={$t('nowplaying.saveAsPlaylist')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
             </button>
-            <button class="qs-action-btn qs-clear-btn" onclick={qsHandleClearQueue} disabled={qsClearingQueue} title="Vider la file">
+            <button class="qs-action-btn qs-clear-btn" onclick={qsHandleClearQueue} disabled={qsClearingQueue} title={$t('nowplaying.clearQueue')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
             </button>
           {/if}
-          <button class="qs-close-btn" onclick={closeQueueSheet} title="Fermer">
+          <button class="qs-close-btn" onclick={closeQueueSheet} title={$t('nowplaying.close')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
               <polyline points="6 9 12 15 18 9" />
             </svg>
@@ -1419,7 +1419,7 @@
                 <AlbumArt albumId={queueTrack.album_id} size={36} alt={queueTrack.title} />
               {/if}
               <div class="qs-track-info">
-                <span class="qs-track-title truncate">{queueTrack.title || 'Piste inconnue'}</span>
+                <span class="qs-track-title truncate">{queueTrack.title || $t('nowplaying.unknownTrack')}</span>
                 {#if queueTrack.artist_name}
                   <span class="qs-track-artist truncate">{queueTrack.artist_name}</span>
                 {/if}

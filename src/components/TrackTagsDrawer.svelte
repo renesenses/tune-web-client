@@ -3,6 +3,7 @@
   import * as api from '../lib/api';
   import type { TrackAllTags } from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
+  import { t } from '../lib/i18n';
 
   interface Props {
     trackId: number;
@@ -25,7 +26,7 @@
       originalDb = { ...(data.db_fields ?? {}) };
       dbEdits = { ...originalDb };
     } catch (e: any) {
-      notifications.error(`Erreur chargement : ${e?.message || e}`);
+      notifications.error(`${$t('trackTags.loadError')} : ${e?.message || e}`);
     }
     loading = false;
   }
@@ -53,11 +54,11 @@
     saving = true;
     try {
       await api.updateTrackMetadata(trackId, dirtyFields);
-      notifications.success(`Piste mise à jour (${Object.keys(dirtyFields).length} champs).`);
+      notifications.success($t('trackTags.trackUpdated').replace('{count}', String(Object.keys(dirtyFields).length)));
       // Refresh
       await load();
     } catch (e: any) {
-      notifications.error(`Erreur sauvegarde : ${e?.message || e}`);
+      notifications.error(`${$t('trackTags.saveError')} : ${e?.message || e}`);
     }
     saving = false;
   }
@@ -66,9 +67,9 @@
     saving = true;
     try {
       const r = await api.writeTrackTags(trackId);
-      notifications.success(`Tags gravés dans le fichier${r?.message ? ' : ' + r.message : ''}.`);
+      notifications.success(`${$t('trackTags.tagsWritten')}${r?.message ? ' : ' + r.message : ''}.`);
     } catch (e: any) {
-      notifications.error(`Erreur gravure : ${e?.message || e}`);
+      notifications.error(`${$t('trackTags.writeError')} : ${e?.message || e}`);
     }
     saving = false;
   }
@@ -102,22 +103,34 @@
   function isWritable(field: string): boolean {
     return WRITABLE_DB.has(field);
   }
+
+  // Group keys stay as stable identifiers (used to index FIELD_GROUPS);
+  // only the displayed label is localized.
+  function groupLabel(group: string): string {
+    const labels: Record<string, string> = {
+      'Identification': $t('trackTags.groupIdentification'),
+      'Classique / crédits': $t('trackTags.groupClassical'),
+      'Audio': $t('trackTags.groupAudio'),
+      'Système': $t('trackTags.groupSystem'),
+    };
+    return labels[group] ?? group;
+  }
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown}>
   <div class="drawer">
     <div class="drawer-header">
-      <h3>Tous les champs piste</h3>
-      <button class="close-btn" onclick={onClose} title="Fermer">
+      <h3>{$t('trackTags.title')}</h3>
+      <button class="close-btn" onclick={onClose} title={$t('common.close')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
       </button>
     </div>
 
     {#if loading}
-      <div class="state">Chargement…</div>
+      <div class="state">{$t('trackTags.loading')}</div>
     {:else if !data}
-      <div class="state err">Erreur de chargement</div>
+      <div class="state err">{$t('trackTags.loadFailed')}</div>
     {:else}
       <div class="drawer-body">
         <!-- DB fields, grouped -->
@@ -125,7 +138,7 @@
           {@const fields = visibleDbFields(group)}
           {#if fields.length > 0}
             <div class="group">
-              <h4>{group}</h4>
+              <h4>{groupLabel(group)}</h4>
               <div class="kv">
                 {#each fields as field}
                   <div class="row">
@@ -149,7 +162,7 @@
         <!-- Track credits -->
         {#if data.db_credits?.length}
           <div class="group">
-            <h4>Crédits piste ({data.db_credits.length})</h4>
+            <h4>{$t('trackTags.trackCredits')} ({data.db_credits.length})</h4>
             <div class="kv">
               {#each data.db_credits as c}
                 <div class="row">
@@ -164,7 +177,7 @@
         <!-- Audio info -->
         {#if Object.keys(data.audio_info ?? {}).length}
           <div class="group">
-            <h4>Audio info (depuis le fichier)</h4>
+            <h4>{$t('trackTags.audioInfoFromFile')}</h4>
             <div class="kv">
               {#each Object.entries(data.audio_info) as [k, v]}
                 <div class="row">
@@ -179,11 +192,11 @@
         <!-- Raw file tags -->
         <div class="group">
           <h4>
-            Tags bruts du fichier ({Object.keys(data.file_tags ?? {}).length})
-            {#if !data.file_exists}<span class="badge-warn">Fichier absent</span>{/if}
+            {$t('trackTags.rawFileTags')} ({Object.keys(data.file_tags ?? {}).length})
+            {#if !data.file_exists}<span class="badge-warn">{$t('trackTags.fileMissing')}</span>{/if}
           </h4>
           {#if Object.keys(data.file_tags ?? {}).length === 0}
-            <div class="state-small">Aucun tag lisible dans le fichier (ou pas de tags).</div>
+            <div class="state-small">{$t('trackTags.noReadableTags')}</div>
           {:else}
             <div class="kv">
               {#each Object.entries(data.file_tags) as [k, vals]}
@@ -198,10 +211,10 @@
       </div>
 
       <div class="drawer-footer">
-        <button class="btn-cancel" onclick={onClose}>Fermer</button>
-        <button class="btn-write-tags" onclick={writeTagsToFile} disabled={saving}>Graver tags</button>
+        <button class="btn-cancel" onclick={onClose}>{$t('common.close')}</button>
+        <button class="btn-write-tags" onclick={writeTagsToFile} disabled={saving}>{$t('trackTags.writeTags')}</button>
         <button class="btn-save" onclick={save} disabled={saving || Object.keys(dirtyFields).length === 0}>
-          {saving ? 'Enregistre…' : `Enregistrer${Object.keys(dirtyFields).length ? ` (${Object.keys(dirtyFields).length})` : ''}`}
+          {saving ? $t('trackTags.savingProgress') : `${$t('common.save')}${Object.keys(dirtyFields).length ? ` (${Object.keys(dirtyFields).length})` : ''}`}
         </button>
       </div>
     {/if}

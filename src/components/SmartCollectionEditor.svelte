@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as api from '../lib/api';
   import type { SmartRule, SmartCollection } from '../lib/types';
+  import { t } from '../lib/i18n';
 
   // Editor for one Smart Collection: name + rules + match_mode + sort.
   // Live preview count via POST /library/smart-collections/preview as
@@ -38,58 +39,58 @@
   // Field grammar mirrors tune_server.library.smart_collection field
   // whitelist. Keep this in sync with the server compiler.
   const FIELDS = [
-    { value: 'artist_name', label: 'Artiste',           type: 'text' },
-    { value: 'title',       label: "Titre d'album",     type: 'text' },
-    { value: 'genre',       label: 'Genre',             type: 'text' },
-    { value: 'composer',    label: 'Compositeur',       type: 'text' },
-    { value: 'label',       label: 'Label',             type: 'text' },
-    { value: 'format',      label: 'Format',            type: 'text' },
-    { value: 'source',      label: 'Source',            type: 'text' },
-    { value: 'year',        label: 'Année',             type: 'int' },
-    { value: 'sample_rate', label: 'Sample rate (Hz)',  type: 'int' },
-    { value: 'bit_depth',   label: 'Bit depth',         type: 'int' },
-    { value: 'track_count', label: 'Nb pistes',         type: 'int' },
-    { value: 'duration',    label: 'Durée (ms)',         type: 'int' },
-    { value: 'track_number', label: 'N° de piste',      type: 'int' },
-    { value: 'disc_number', label: 'N° de disque',      type: 'int' },
-    { value: 'bpm',         label: 'BPM',               type: 'int' },
-    { value: 'rating',      label: 'Note',              type: 'int' },
-    { value: 'cover_path',  label: 'Pochette',          type: 'nullable' },
-    { value: 'added_at',    label: 'Date d\'ajout',     type: 'timestamp' },
-    { value: 'credit',      label: 'Crédit (engineer/performer/...)', type: 'credit' },
-    { value: 'play_count',  label: 'Nb de lectures',    type: 'count' },
-    { value: 'last_played_at', label: 'Dernière lecture', type: 'timestamp' },
+    { value: 'artist_name', labelKey: 'smartCollection.fieldArtist',      type: 'text' },
+    { value: 'title',       labelKey: 'smartCollection.fieldAlbumTitle',  type: 'text' },
+    { value: 'genre',       labelKey: 'smartCollection.fieldGenre',       type: 'text' },
+    { value: 'composer',    labelKey: 'smartCollection.fieldComposer',    type: 'text' },
+    { value: 'label',       labelKey: 'smartCollection.fieldLabel',       type: 'text' },
+    { value: 'format',      labelKey: 'smartCollection.fieldFormat',      type: 'text' },
+    { value: 'source',      labelKey: 'smartCollection.fieldSource',      type: 'text' },
+    { value: 'year',        labelKey: 'smartCollection.fieldYear',        type: 'int' },
+    { value: 'sample_rate', labelKey: 'smartCollection.fieldSampleRate',  type: 'int' },
+    { value: 'bit_depth',   labelKey: 'smartCollection.fieldBitDepth',    type: 'int' },
+    { value: 'track_count', labelKey: 'smartCollection.fieldTrackCount',  type: 'int' },
+    { value: 'duration',    labelKey: 'smartCollection.fieldDuration',    type: 'int' },
+    { value: 'track_number', labelKey: 'smartCollection.fieldTrackNumber', type: 'int' },
+    { value: 'disc_number', labelKey: 'smartCollection.fieldDiscNumber',  type: 'int' },
+    { value: 'bpm',         labelKey: 'smartCollection.fieldBpm',         type: 'int' },
+    { value: 'rating',      labelKey: 'smartCollection.fieldRating',      type: 'int' },
+    { value: 'cover_path',  labelKey: 'smartCollection.fieldCover',       type: 'nullable' },
+    { value: 'added_at',    labelKey: 'smartCollection.fieldAddedAt',     type: 'timestamp' },
+    { value: 'credit',      labelKey: 'smartCollection.fieldCredit',      type: 'credit' },
+    { value: 'play_count',  labelKey: 'smartCollection.fieldPlayCount',   type: 'count' },
+    { value: 'last_played_at', labelKey: 'smartCollection.fieldLastPlayed', type: 'timestamp' },
   ];
 
-  const OPS_BY_TYPE: Record<string, { value: string; label: string }[]> = {
+  const OPS_BY_TYPE: Record<string, { value: string; label?: string; labelKey?: string }[]> = {
     int: [
       { value: '=', label: '=' }, { value: '!=', label: '≠' },
       { value: '>=', label: '≥' }, { value: '>', label: '>' },
       { value: '<=', label: '≤' }, { value: '<', label: '<' },
-      { value: 'between', label: 'entre' },
+      { value: 'between', labelKey: 'smartCollection.opBetween' },
     ],
     text: [
       { value: '=', label: '=' }, { value: '!=', label: '≠' },
-      { value: 'contains', label: 'contient' },
-      { value: 'starts_with', label: 'commence par' },
-      { value: 'in', label: 'parmi' },
-      { value: 'is_null', label: 'est vide' },
-      { value: 'is_not_null', label: "n'est pas vide" },
+      { value: 'contains', labelKey: 'smartCollection.opContains' },
+      { value: 'starts_with', labelKey: 'smartCollection.opStartsWith' },
+      { value: 'in', labelKey: 'smartCollection.opIn' },
+      { value: 'is_null', labelKey: 'smartCollection.opIsEmpty' },
+      { value: 'is_not_null', labelKey: 'smartCollection.opIsNotEmpty' },
     ],
     nullable: [
-      { value: 'is_null', label: 'est vide' },
-      { value: 'is_not_null', label: "n'est pas vide" },
+      { value: 'is_null', labelKey: 'smartCollection.opIsEmpty' },
+      { value: 'is_not_null', labelKey: 'smartCollection.opIsNotEmpty' },
     ],
     timestamp: [
-      { value: '>', label: 'après' }, { value: '<', label: 'avant' },
-      { value: 'between', label: 'entre' },
-      { value: 'is_null', label: 'jamais' },
+      { value: '>', labelKey: 'smartCollection.opAfter' }, { value: '<', labelKey: 'smartCollection.opBefore' },
+      { value: 'between', labelKey: 'smartCollection.opBetween' },
+      { value: 'is_null', labelKey: 'smartCollection.opNever' },
     ],
-    credit: [{ value: 'has', label: 'contient' }],
+    credit: [{ value: 'has', labelKey: 'smartCollection.opContains' }],
     count: [
       { value: '>=', label: '≥' }, { value: '>', label: '>' },
       { value: '<', label: '<' }, { value: '=', label: '=' },
-      { value: 'between', label: 'entre' },
+      { value: 'between', labelKey: 'smartCollection.opBetween' },
     ],
   };
 
@@ -131,7 +132,7 @@
     saving = true;
     try {
       const payload = {
-        name: name.trim() || 'Smart Collection',
+        name: name.trim() || $t('smartCollection.defaultName'),
         description, icon, color,
         rules, match_mode: matchMode,
         sort_by: sortBy, sort_order: sortOrder,
@@ -155,19 +156,19 @@
 <div class="overlay" role="dialog" aria-modal="true">
   <div class="modal" role="presentation">
     <header>
-      <h2>{collection ? 'Modifier' : 'Nouvelle'} Smart Collection</h2>
+      <h2>{collection ? $t('smartCollection.edit') : $t('smartCollection.new')} Smart Collection</h2>
       <button class="close" onclick={onCancel}>✕</button>
     </header>
 
     <div class="meta">
-      <input class="name" placeholder="Nom" bind:value={name} />
+      <input class="name" placeholder={$t('smartCollection.namePlaceholder')} bind:value={name} />
       <input class="color" type="color" bind:value={color} />
       <select bind:value={matchMode}>
-        <option value="all">Toutes les règles</option>
-        <option value="any">Au moins une règle</option>
+        <option value="all">{$t('smartCollection.allRules')}</option>
+        <option value="any">{$t('smartCollection.anyRule')}</option>
       </select>
     </div>
-    <textarea class="desc" placeholder="Description (optionnel)" bind:value={description}></textarea>
+    <textarea class="desc" placeholder={$t('smartCollection.descPlaceholder')} bind:value={description}></textarea>
 
     <div class="rules">
       {#each rules as rule, i (i)}
@@ -181,12 +182,12 @@
               updateRule(i, { field: newField, op, value: '' });
             }}
           >
-            {#each FIELDS as f}<option value={f.value}>{f.label}</option>{/each}
+            {#each FIELDS as f}<option value={f.value}>{$t(f.labelKey)}</option>{/each}
           </select>
 
           <select value={rule.op} onchange={(e) => updateRule(i, { op: (e.target as HTMLSelectElement).value, value: rule.value })}>
             {#each OPS_BY_TYPE[fieldType(rule.field)] ?? [] as op}
-              <option value={op.value}>{op.label}</option>
+              <option value={op.value}>{op.labelKey ? $t(op.labelKey) : op.label}</option>
             {/each}
           </select>
 
@@ -195,17 +196,17 @@
           {:else if rule.field === 'credit'}
             <span class="credit-grid">
               <input
-                placeholder="rôle (engineer, performer, …)"
+                placeholder={$t('smartCollection.rolePlaceholder')}
                 value={rule.value?.role ?? ''}
                 oninput={(e) => updateRule(i, { value: { ...rule.value, role: (e.target as HTMLInputElement).value || undefined } })}
               />
               <input
-                placeholder="artiste (Rudy Van Gelder, …)"
+                placeholder={$t('smartCollection.artistPlaceholder')}
                 value={rule.value?.artist_name ?? ''}
                 oninput={(e) => updateRule(i, { value: { ...rule.value, artist_name: (e.target as HTMLInputElement).value || undefined } })}
               />
               <input
-                placeholder="instrument (Piano, …) — optionnel"
+                placeholder={$t('smartCollection.instrumentPlaceholder')}
                 value={rule.value?.instrument ?? ''}
                 oninput={(e) => updateRule(i, { value: { ...rule.value, instrument: (e.target as HTMLInputElement).value || undefined } })}
               />
@@ -226,35 +227,35 @@
           {:else if rule.op === 'in'}
             <input
               class="value"
-              placeholder="valeurs séparées par des virgules"
+              placeholder={$t('smartCollection.commaSeparated')}
               value={Array.isArray(rule.value) ? rule.value.join(',') : ''}
               oninput={(e) => updateRule(i, { value: (e.target as HTMLInputElement).value.split(',').map(s => s.trim()).filter(Boolean) })}
             />
           {:else}
             <input
               class="value"
-              placeholder={fieldType(rule.field) === 'timestamp' ? 'now-30d ou 2024-01-01' : 'valeur'}
+              placeholder={fieldType(rule.field) === 'timestamp' ? $t('smartCollection.timestampPlaceholder') : $t('smartCollection.valuePlaceholder')}
               value={rule.value ?? ''}
               oninput={(e) => updateRule(i, { value: coerce((e.target as HTMLInputElement).value, fieldType(rule.field)) })}
             />
           {/if}
 
-          <button class="rm" onclick={() => removeRule(i)} title="Supprimer la règle">×</button>
+          <button class="rm" onclick={() => removeRule(i)} title={$t('smartCollection.removeRule')}>×</button>
         </div>
       {/each}
-      <button class="add" onclick={addRule}>+ Ajouter une règle</button>
+      <button class="add" onclick={addRule}>{$t('smartCollection.addRule')}</button>
     </div>
 
     <div class="sort">
-      <label>Tri :</label>
+      <label>{$t('smartCollection.sortLabel')}</label>
       <select bind:value={sortBy}>
-        <option value="added_at">Date d'ajout</option>
-        <option value="title">Titre</option>
-        <option value="artist_name">Artiste</option>
-        <option value="year">Année</option>
-        <option value="label">Label</option>
+        <option value="added_at">{$t('smartCollection.fieldAddedAt')}</option>
+        <option value="title">{$t('smartCollection.sortTitle')}</option>
+        <option value="artist_name">{$t('smartCollection.fieldArtist')}</option>
+        <option value="year">{$t('smartCollection.fieldYear')}</option>
+        <option value="label">{$t('smartCollection.fieldLabel')}</option>
         <option value="sample_rate">Sample rate</option>
-        <option value="random">Aléatoire</option>
+        <option value="random">{$t('smartCollection.sortRandom')}</option>
       </select>
       <select bind:value={sortOrder}>
         <option value="desc">↓ desc</option>
@@ -273,13 +274,13 @@
         {:else if preview.loading}
           <span class="muted">…</span>
         {:else}
-          <span class="count">{preview.count}</span> album{preview.count > 1 ? 's' : ''} correspondant{preview.count > 1 ? 's' : ''}
+          <span class="count">{preview.count}</span> {preview.count > 1 ? $t('smartCollection.albumsMatching') : $t('smartCollection.albumMatching')}
         {/if}
       </div>
       <div class="actions">
-        <button class="cancel" onclick={onCancel}>Annuler</button>
+        <button class="cancel" onclick={onCancel}>{$t('common.cancel')}</button>
         <button class="save" onclick={save} disabled={saving || !!preview.error}>
-          {saving ? 'Enregistrement…' : (collection ? 'Mettre à jour' : 'Créer')}
+          {saving ? $t('smartCollection.savingProgress') : (collection ? $t('smartCollection.update') : $t('smartCollection.create'))}
         </button>
       </div>
     </footer>

@@ -73,8 +73,8 @@
   async function handleFixYears(source: string) {
     fixYearsResult = null;
     const r = await runAsyncOp({
-      pending: `Années (${source}) en cours… (peut prendre plusieurs minutes)`,
-      errorPrefix: `Échec années ${source}`,
+      pending: $t('metadata.yearsRunning').replace('{source}', source),
+      errorPrefix: $t('metadata.yearsFailed').replace('{source}', source),
       setRunning: (on) => fixYearsRunning = on ? source : null,
       run: () => {
         if (source === 'musicbrainz') return api.fixYearsMusicBrainz();
@@ -85,7 +85,8 @@
       success: (result) => {
         const fixed = result.fixed ?? 0, total = result.total ?? 0, nf = result.not_found ?? 0;
         fixYearsResult = { source, total, fixed, not_found: nf };
-        return `Années ${source} : ${fixed} corrigées sur ${total}${nf ? ` (${nf} introuvables)` : ''}`;
+        const base = $t('metadata.yearsResult').replace('{source}', source).replace('{fixed}', String(fixed)).replace('{total}', String(total));
+        return base + (nf ? ` ${$t('metadata.notFoundParen').replace('{n}', String(nf))}` : '');
       },
     });
     if (r) await refreshLibraryView();
@@ -95,18 +96,18 @@
   async function handleFixGenres() {
     fixGenresResult = null;
     const r = await runAsyncOp({
-      pending: 'Genres Last.fm en cours… (peut prendre plusieurs minutes)',
-      errorPrefix: 'Échec genres',
+      pending: $t('metadata.genresRunning'),
+      errorPrefix: $t('metadata.genresFailed'),
       setRunning: (on) => fixGenresRunning = on,
       run: () => api.fixGenres(),
       success: (result) => {
         if (result == null || (result.fixed == null && result.total == null)) {
-          notifications.info(`Cette fonctionnalité n'est pas encore disponible dans le serveur Rust. Elle arrive bientôt !`);
+          notifications.info($t('metadata.featureNotAvailable'));
           return null;
         }
         const fixed = result.fixed ?? 0, total = result.total ?? 0;
         fixGenresResult = { total, fixed };
-        return `Genres : ${fixed} corrigés sur ${total}`;
+        return $t('metadata.genresResult').replace('{fixed}', String(fixed)).replace('{total}', String(total));
       },
     });
     if (r) await refreshLibraryView();
@@ -116,17 +117,17 @@
   let fixingGenresByArtist = $state(false);
   async function handleFixGenresByArtist() {
     const r = await runAsyncOp({
-      pending: 'Propagation par artiste en cours…',
-      errorPrefix: 'Échec propagation',
+      pending: $t('metadata.propagationByArtistRunning'),
+      errorPrefix: $t('metadata.propagationFailed'),
       setRunning: (on) => fixingGenresByArtist = on,
       run: () => api.fixGenresByArtist(0.7),
       success: (r) => {
         if (r == null || (r.fixed == null && r.total == null)) {
-          notifications.info(`Cette fonctionnalité n’est pas encore disponible dans le serveur Rust. Elle arrive bientôt !`);
+          notifications.info($t('metadata.featureNotAvailable'));
           return null;
         }
-        return `Propagation : ${r.fixed ?? 0} albums corrigés sur ${r.total ?? 0} candidats. ` +
-          `Ignorés : ${r.skipped_low_coherence ?? 0} (artistes trop hétérogènes), ${r.skipped_no_known_genre ?? 0} (artiste sans genre connu).`;
+        return $t('metadata.propagationResult').replace('{fixed}', String(r.fixed ?? 0)).replace('{total}', String(r.total ?? 0)) + ' ' +
+          $t('metadata.propagationSkipped').replace('{lowCoherence}', String(r.skipped_low_coherence ?? 0)).replace('{noGenre}', String(r.skipped_no_known_genre ?? 0));
       },
     });
     if (r) await refreshLibraryView();
@@ -135,17 +136,17 @@
   let fixingGenresFuzzy = $state(false);
   async function handleFixGenresFuzzy() {
     const r = await runAsyncOp({
-      pending: 'Propagation fuzzy (variantes Quartet/Trio/…) en cours…',
-      errorPrefix: 'Échec fuzzy',
+      pending: $t('metadata.fuzzyRunning'),
+      errorPrefix: $t('metadata.fuzzyFailed'),
       setRunning: (on) => fixingGenresFuzzy = on,
       run: () => api.fixGenresByArtistFuzzy(0.7),
       success: (r) => {
         if (r == null || (r.fixed == null && r.total == null)) {
-          notifications.info(`Cette fonctionnalité n'est pas encore disponible dans le serveur Rust. Elle arrive bientôt !`);
+          notifications.info($t('metadata.featureNotAvailable'));
           return null;
         }
-        return `Fuzzy : ${r.fixed ?? 0} corrigés sur ${r.total ?? 0} candidats. ` +
-          `Ignorés : ${r.skipped_low_coherence ?? 0} hétérogènes, ${r.skipped_no_known_genre ?? 0} sans genre connu.`;
+        return $t('metadata.fuzzyResult').replace('{fixed}', String(r.fixed ?? 0)).replace('{total}', String(r.total ?? 0)) + ' ' +
+          $t('metadata.fuzzySkipped').replace('{lowCoherence}', String(r.skipped_low_coherence ?? 0)).replace('{noGenre}', String(r.skipped_no_known_genre ?? 0));
       },
     });
     if (r) await refreshLibraryView();
@@ -154,11 +155,11 @@
   let fixingYearsFromPath = $state(false);
   async function handleFixYearsFromPath() {
     const r = await runAsyncOp({
-      pending: 'Extraction années depuis chemin de fichier…',
-      errorPrefix: 'Échec',
+      pending: $t('metadata.yearsFromPathRunning'),
+      errorPrefix: $t('metadata.failed'),
       setRunning: (on) => fixingYearsFromPath = on,
       run: () => api.fixYearsFromPath(),
-      success: (r) => `Années (chemin) : ${r.fixed} corrigées sur ${r.total}, ${r.not_found} sans année dans le chemin.`,
+      success: (r) => $t('metadata.yearsFromPathResult').replace('{fixed}', String(r.fixed)).replace('{total}', String(r.total)).replace('{notFound}', String(r.not_found)),
     });
     if (r) await refreshLibraryView();
   }
@@ -166,11 +167,11 @@
   let fixingYearsItunes = $state(false);
   async function handleFixYearsItunes() {
     const r = await runAsyncOp({
-      pending: 'Recherche années sur iTunes Search API…',
-      errorPrefix: 'Échec iTunes',
+      pending: $t('metadata.yearsItunesRunning'),
+      errorPrefix: $t('metadata.itunesFailed'),
       setRunning: (on) => fixingYearsItunes = on,
       run: () => api.fixYearsItunes(),
-      success: (r) => `iTunes : ${r.fixed} années corrigées sur ${r.total}, ${r.not_found} non trouvées.`,
+      success: (r) => $t('metadata.itunesResult').replace('{fixed}', String(r.fixed)).replace('{total}', String(r.total)).replace('{notFound}', String(r.not_found)),
     });
     if (r) await refreshLibraryView();
   }
@@ -183,8 +184,8 @@
 
   async function handleDiagnoseMp3() {
     await runAsyncOp({
-      pending: 'Diagnostic MP3 en cours (mutagen + ffprobe)…',
-      errorPrefix: 'Échec diagnostic MP3',
+      pending: $t('metadata.mp3DiagnoseRunning'),
+      errorPrefix: $t('metadata.mp3DiagnoseFailed'),
       setRunning: (on) => mp3DiagnoseRunning = on,
       run: () => api.diagnoseMp3(),
       success: (r) => {
@@ -197,9 +198,9 @@
         };
         mp3PanelOpen = true;
         if ((r.issues_found ?? 0) === 0) {
-          return `MP3 OK : ${r.ok_files} fichiers sains, aucun problème détecté.`;
+          return $t('metadata.mp3AllOk').replace('{okFiles}', String(r.ok_files));
         }
-        notifications.info(`MP3 : ${r.issues_found} problèmes détectés sur ${r.scanned}. Panel ouvert pour réparation.`, 0);
+        notifications.info($t('metadata.mp3IssuesFound').replace('{issues}', String(r.issues_found)).replace('{scanned}', String(r.scanned)), 0);
         return null;
       },
     });
@@ -207,28 +208,28 @@
 
   async function handleRepairMp3All() {
     if (!mp3Issues.length) return;
-    if (!confirm(`Réparer ${mp3Issues.length} fichier(s) MP3 via ffmpeg -c:a copy ?\n\nLes fichiers sont réécrits sur disque (sans transcodage = sans perte de qualité).`)) return;
+    if (!confirm($t('metadata.mp3RepairConfirm').replace('{count}', String(mp3Issues.length)))) return;
     const r = await runAsyncOp({
-      pending: `Réparation de ${mp3Issues.length} fichiers MP3…`,
-      errorPrefix: 'Échec réparation',
+      pending: $t('metadata.mp3RepairRunning').replace('{count}', String(mp3Issues.length)),
+      errorPrefix: $t('metadata.mp3RepairFailed'),
       setRunning: (on) => mp3Repairing = on,
       run: () => api.repairMp3(mp3Issues.map((i: any) => i.track_id).filter(Boolean)),
-      success: (r) => `MP3 réparés : ${r.repaired}/${r.requested}, ${r.failed?.length ?? 0} échecs, ${r.skipped} ignorés.`,
+      success: (r) => $t('metadata.mp3RepairResult').replace('{repaired}', String(r.repaired)).replace('{requested}', String(r.requested)).replace('{failed}', String(r.failed?.length ?? 0)).replace('{skipped}', String(r.skipped)),
     });
     if (r) await handleDiagnoseMp3();
   }
 
   async function handleRepairMp3One(trackId: number) {
     await runAsyncOp({
-      pending: 'Réparation…',
+      pending: $t('metadata.repairing'),
       run: () => api.repairMp3([trackId]),
       success: (r) => {
         if ((r.repaired ?? 0) > 0) {
           mp3Issues = mp3Issues.filter((i: any) => i.track_id !== trackId);
-          return 'Fichier réparé.';
+          return $t('metadata.fileRepaired');
         }
         if (r.failed?.length) {
-          notifications.error(`Échec : ${r.failed[0].error}`);
+          notifications.error($t('metadata.failurePrefix').replace('{error}', String(r.failed[0].error)));
         }
         return null;
       },
@@ -237,16 +238,16 @@
 
   let mergingAlbums = $state(false);
   async function handleMergeDuplicates() {
-    if (!confirm("Fusionner les albums dupliqués (titre+artiste normalisés, par niveau de qualité) ?\n\nLes pistes sont réassignées au gagnant (plus de pistes), les doublons de fichiers sont supprimés. Action irréversible.")) return;
+    if (!confirm($t('metadata.mergeDuplicatesConfirm'))) return;
     const r = await runAsyncOp({
-      pending: 'Fusion des albums dupliqués…',
-      errorPrefix: 'Échec fusion',
+      pending: $t('metadata.mergeDuplicatesRunning'),
+      errorPrefix: $t('metadata.mergeFailed'),
       setRunning: (on) => mergingAlbums = on,
       run: () => api.mergeDuplicateAlbums(),
       success: (r) => {
         const grp = (r.groups_merged as number) ?? 0;
         const del = (r.albums_deleted as number) ?? (r.merged as number) ?? 0;
-        return `Fusion : ${grp} groupes traités, ${del} albums dupliqués supprimés.`;
+        return $t('metadata.mergeDuplicatesResult').replace('{groups}', String(grp)).replace('{deleted}', String(del));
       },
     });
     if (r) await refreshLibraryView();
@@ -255,11 +256,11 @@
   let fixingYearsWikidata = $state(false);
   async function handleFixYearsWikidata() {
     const r = await runAsyncOp({
-      pending: 'Recherche années sur Wikidata…',
-      errorPrefix: 'Échec Wikidata',
+      pending: $t('metadata.yearsWikidataRunning'),
+      errorPrefix: $t('metadata.wikidataFailed'),
       setRunning: (on) => fixingYearsWikidata = on,
       run: () => api.fixYearsWikidata(),
-      success: (r) => `Wikidata : ${r.fixed} années corrigées sur ${r.total}, ${r.not_found} non trouvées.`,
+      success: (r) => $t('metadata.wikidataResult').replace('{fixed}', String(r.fixed)).replace('{total}', String(r.total)).replace('{notFound}', String(r.not_found)),
     });
     if (r) await refreshLibraryView();
   }
@@ -267,24 +268,24 @@
   let reclassifyingByPath = $state(false);
   async function handleReclassifyByPath(dryRun: boolean = false) {
     const r = await runAsyncOp({
-      pending: dryRun ? 'Aperçu reclassification…' : 'Reclassification par chemin en cours…',
-      errorPrefix: 'Échec',
+      pending: dryRun ? $t('metadata.reclassifyPreviewRunning') : $t('metadata.reclassifyRunning'),
+      errorPrefix: $t('metadata.failed'),
       setRunning: (on) => reclassifyingByPath = on,
       run: () => api.reclassifyGenresByPath(dryRun),
       success: (r) => {
         if (r == null || (r.fixed == null && r.suggestions_total == null && r.scanned == null)) {
-          notifications.info(`Cette fonctionnalité n’est pas encore disponible dans le serveur Rust. Elle arrive bientôt !`);
+          notifications.info($t('metadata.featureNotAvailable'));
           return null;
         }
         if (dryRun) {
           const sugTotal = (r.suggestions_total as number) ?? 0;
           const scanned = (r.scanned as number) ?? 0;
           const details = (r.details as any[]) ?? [];
-          const example = details.length ? ` Ex: "${details[0].title}" → ${details[0].suggested}.` : '';
-          notifications.info(`Aperçu : ${sugTotal} albums seraient reclassés (${scanned} scannés).${example}`, 0);
+          const example = details.length ? ` ${$t('metadata.reclassifyExample').replace('{title}', String(details[0].title)).replace('{suggested}', String(details[0].suggested))}` : '';
+          notifications.info($t('metadata.reclassifyPreviewResult').replace('{total}', String(sugTotal)).replace('{scanned}', String(scanned)) + example, 0);
           return null;
         }
-        return `${r.fixed ?? 0} albums reclassés en sous-genre selon leur chemin.`;
+        return $t('metadata.reclassifyResult').replace('{fixed}', String(r.fixed ?? 0));
       },
     });
     if (r) await refreshLibraryView();
@@ -292,19 +293,19 @@
 
   let fixingGenresByFamily = $state(false);
   async function handleFixGenresByFamily(threshold = 0.7) {
-    const label = threshold >= 0.7 ? 'prudent' : 'agressif';
+    const label = threshold >= 0.7 ? $t('metadata.thresholdCautious') : $t('metadata.thresholdAggressive');
     const r = await runAsyncOp({
-      pending: `Propagation par famille (${label}, ≥${Math.round(threshold * 100)}%) en cours…`,
-      errorPrefix: 'Échec famille',
+      pending: $t('metadata.familyRunning').replace('{label}', label).replace('{pct}', String(Math.round(threshold * 100))),
+      errorPrefix: $t('metadata.familyFailed'),
       setRunning: (on) => fixingGenresByFamily = on,
       run: () => api.fixGenresByFamily(threshold),
       success: (r) => {
         if (r == null || (r.fixed == null && r.total == null)) {
-          notifications.info(`Cette fonctionnalité n'est pas encore disponible dans le serveur Rust. Elle arrive bientôt !`);
+          notifications.info($t('metadata.featureNotAvailable'));
           return null;
         }
-        return `Famille (${label}) : ${r.fixed ?? 0} corrigés sur ${r.total ?? 0}. ` +
-          `Ignorés : ${r.skipped_low_coherence ?? 0} familles trop éparpillées, ${r.skipped_no_known_genre ?? 0} artistes sans genre connu.`;
+        return $t('metadata.familyResult').replace('{label}', label).replace('{fixed}', String(r.fixed ?? 0)).replace('{total}', String(r.total ?? 0)) + ' ' +
+          $t('metadata.familySkipped').replace('{lowCoherence}', String(r.skipped_low_coherence ?? 0)).replace('{noGenre}', String(r.skipped_no_known_genre ?? 0));
       },
     });
     if (r) await refreshLibraryView();
@@ -321,15 +322,15 @@
   let writeResult = $state<{ type: string; message: string } | null>(null);
 
   async function handleWriteTags() {
-    if (!confirm('Écrire les métadonnées (genre, année, artiste...) dans tous les fichiers musicaux ?')) return;
+    if (!confirm($t('metadata.writeTagsConfirm'))) return;
     writeResult = null;
     await runAsyncOp({
-      pending: 'Écriture des tags en cours… (peut prendre plusieurs minutes)',
-      errorPrefix: 'Écriture tags',
+      pending: $t('metadata.writeTagsRunning'),
+      errorPrefix: $t('metadata.writeTagsError'),
       setRunning: (on) => writingTags = on,
       run: () => api.writeAllTags(),
       success: (r) => {
-        const msg = `Tags écrits : ${r.updated} fichiers modifiés, ${r.skipped} ignorés, ${r.errors} erreurs`;
+        const msg = $t('metadata.writeTagsResult').replace('{updated}', String(r.updated)).replace('{skipped}', String(r.skipped)).replace('{errors}', String(r.errors));
         writeResult = { type: 'tags', message: msg };
         return msg;
       },
@@ -337,15 +338,15 @@
   }
 
   async function handleWriteCovers() {
-    if (!confirm('Copier les covers dans les dossiers albums (cover.jpg) ?')) return;
+    if (!confirm($t('metadata.writeCoversConfirm'))) return;
     writeResult = null;
     await runAsyncOp({
-      pending: 'Copie des covers en cours…',
-      errorPrefix: 'Covers',
+      pending: $t('metadata.writeCoversRunning'),
+      errorPrefix: $t('metadata.writeCoversError'),
       setRunning: (on) => writingCovers = on,
       run: () => api.writeAllCovers(),
       success: (r) => {
-        const msg = `Covers : ${r.written} copiées, ${r.skipped} déjà présentes, ${r.errors} erreurs`;
+        const msg = $t('metadata.writeCoversResult').replace('{written}', String(r.written)).replace('{skipped}', String(r.skipped)).replace('{errors}', String(r.errors));
         writeResult = { type: 'covers', message: msg };
         return msg;
       },
@@ -417,11 +418,11 @@
         const r = await api.writeAlbumTags(aid);
         total += r.success ?? r.tracks_processed ?? 0;
       }
-      writeResult = { type: 'tags', message: `Tags gravés : ${total} fichiers` };
+      writeResult = { type: 'tags', message: $t('metadata.tagsBurned').replace('{total}', String(total)) };
       unknownGraved = false;
       unknownGravedTrackIds = [];
     } catch (e: any) {
-      writeResult = { type: 'tags', message: `Erreur gravure : ${e?.message || e}` };
+      writeResult = { type: 'tags', message: $t('metadata.burnError').replace('{error}', String(e?.message || e)) };
     }
   }
 
@@ -466,13 +467,13 @@
     fixingAlbums = true;
     try {
       const r = await api.autoFixAlbums();
-      fixAlbumsResult = `${r.tracks_fixed} tracks corrigés, ${r.albums_created} albums créés`;
+      fixAlbumsResult = $t('metadata.autoFixAlbumsResult').replace('{tracks}', String(r.tracks_fixed)).replace('{albums}', String(r.albums_created));
       // Refresh stats
       // Refresh data without full reload
       const sc = await api.getCompletenessStats();
       stats = sc;
     } catch (e) {
-      fixAlbumsResult = 'Erreur';
+      fixAlbumsResult = $t('metadata.error');
     }
     fixingAlbums = false;
   }
@@ -501,8 +502,8 @@
   async function handleScanDuplicates() {
     scanDupMessage = null;
     await runAsyncOp({
-      pending: 'Scan doublons audio en cours… (peut prendre plusieurs minutes)',
-      errorPrefix: 'Erreur scan',
+      pending: $t('metadata.scanDuplicatesRunning'),
+      errorPrefix: $t('metadata.scanError'),
       setRunning: (on) => scanningDuplicates = on,
       run: async () => {
         const result = await api.scanDuplicates();
@@ -512,10 +513,10 @@
       success: ({ result, d }) => {
         duplicates = d as any[];
         if ((d as any[]).length === 0 && result.duplicates_found === 0) {
-          return `Aucun doublon audio détecté (${result.total_scanned} pistes analysées)`;
+          return $t('metadata.scanNoDuplicates').replace('{scanned}', String(result.total_scanned));
         }
         filter = 'duplicates';
-        return `Scan : ${result.duplicates_found} doublons sur ${result.total_scanned} pistes — onglet Doublons pour voir`;
+        return $t('metadata.scanDuplicatesResult').replace('{found}', String(result.duplicates_found)).replace('{scanned}', String(result.total_scanned));
       },
     });
   }
@@ -726,7 +727,7 @@
 
   async function moveToDuplicates(album: Album, groupIndex: number) {
     if (!album.id) return;
-    if (!confirm(`Déplacer "${album.title}" (${album.artist_name}) dans /data/duplicates ?\n\nLes fichiers seront déplacés et l'album supprimé de la bibliothèque.`)) return;
+    if (!confirm($t('metadata.moveToDuplicatesConfirm').replace('{title}', String(album.title)).replace('{artist}', String(album.artist_name)))) return;
     try {
       const result = await api.moveAlbumToDuplicates(album.id);
       // Remove from allAlbums — triggers recompute of duplicateGroups
@@ -738,7 +739,7 @@
       dupAlbumPaths = { ...dupAlbumPaths };
     } catch (e: any) {
       console.error('Move to duplicates error:', e);
-      alert(`Erreur : ${e?.message || e}`);
+      alert($t('metadata.failurePrefix').replace('{error}', String(e?.message || e)));
     }
   }
 
@@ -746,8 +747,8 @@
     const group = duplicateGroups[groupIndex];
     if (!group || group.length < 2) return;
     const ids = group.map((a: Album) => a.id!).filter(Boolean);
-    const trackCounts = group.map((a: any) => `${a.title} (${a.track_count ?? '?'} pistes)`).join('\n');
-    if (!confirm(`Fusionner ${group.length} albums en un seul ?\n\n${trackCounts}\n\nL'album avec le plus de pistes sera conservé, les autres seront supprimés.`)) return;
+    const trackCounts = group.map((a: any) => $t('metadata.mergeGroupItem').replace('{title}', String(a.title)).replace('{count}', String(a.track_count ?? '?'))).join('\n');
+    if (!confirm($t('metadata.mergeGroupConfirm').replace('{count}', String(group.length)).replace('{list}', trackCounts))) return;
     try {
       const result = await api.mergeAlbums(ids);
       // Remove merged albums from allAlbums, keep master
@@ -756,10 +757,10 @@
       // Update master track count
       allAlbums = allAlbums.map(a => a.id === result.master_id ? { ...a, track_count: result.total_tracks } : a);
       api.getCompletenessStats().then(s => stats = s);
-      writeResult = { type: 'tags', message: `Fusionné : ${result.tracks_moved} pistes déplacées, total ${result.total_tracks} pistes` };
+      writeResult = { type: 'tags', message: $t('metadata.mergeGroupResult').replace('{moved}', String(result.tracks_moved)).replace('{total}', String(result.total_tracks)) };
     } catch (e: any) {
       console.error('Merge error:', e);
-      alert(`Erreur fusion : ${e?.message || e}`);
+      alert($t('metadata.mergeErrorPrefix').replace('{error}', String(e?.message || e)));
     }
   }
 
@@ -1346,13 +1347,13 @@
     }
   }
 
-  const REASON_LABELS: Record<string, string> = {
-    artist_uppercase: 'Artiste MAJ',
-    artist_placeholder: 'Artiste provisoire',
-    artist_has_year: 'Artiste = dossier',
-    genre_placeholder: 'Genre provisoire',
-    year_suspicious: 'Année suspecte',
-    title_uppercase: 'Titre MAJ',
+  const REASON_LABEL_KEYS: Record<string, string> = {
+    artist_uppercase: 'metadata.reasonArtistUppercase',
+    artist_placeholder: 'metadata.reasonArtistPlaceholder',
+    artist_has_year: 'metadata.reasonArtistHasYear',
+    genre_placeholder: 'metadata.reasonGenrePlaceholder',
+    year_suspicious: 'metadata.reasonYearSuspicious',
+    title_uppercase: 'metadata.reasonTitleUppercase',
   };
 
   $effect(() => {
@@ -1385,17 +1386,17 @@
     <h1>{$t('metadata.title')}</h1>
     <div class="header-actions">
       <button class="btn-action" onclick={async () => {
-        const tid = notifications.info('Rafraîchissement…', 0);
-        try { await loadData(); notifications.dismiss(tid); notifications.success('Vue rafraîchie'); }
-        catch (e: any) { notifications.dismiss(tid); notifications.error(`Erreur : ${e?.message || e}`); }
-      }} disabled={loading} title="Rafraîchir la vue">
+        const tid = notifications.info($t('metadata.refreshing'), 0);
+        try { await loadData(); notifications.dismiss(tid); notifications.success($t('metadata.viewRefreshed')); }
+        catch (e: any) { notifications.dismiss(tid); notifications.error($t('metadata.failurePrefix').replace('{error}', String(e?.message || e))); }
+      }} disabled={loading} title={$t('metadata.refreshView')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-        Rafraîchir
+        {$t('metadata.refresh')}
       </button>
       <div class="tools-menu-wrap">
         <button class="btn-action" onclick={(e) => { e.stopPropagation(); toolsMenuOpen = !toolsMenuOpen; }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Outils
+          {$t('metadata.tools')}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         {#if toolsMenuOpen}
@@ -1403,7 +1404,7 @@
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="tools-backdrop" onclick={closeToolsMenu}></div>
           <div class="tools-menu" onclick={(e) => e.stopPropagation()}>
-            <div class="tools-group-label">Bibliothèque</div>
+            <div class="tools-group-label">{$t('metadata.groupLibrary')}</div>
             <button class="tools-item" onclick={() => runFromMenu(triggerScan, 'scan')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12a9 9 0 1 1-9-9"/><polyline points="21 3 21 9 15 9"/></svg>
               {$t('settings.scanLibrary')}
@@ -1413,96 +1414,96 @@
               {rescanningAll ? '…' : $t('metadata.rescanAll')}
             </button>
 
-            <div class="tools-group-label">Enrichir</div>
+            <div class="tools-group-label">{$t('metadata.groupEnrich')}</div>
             <button class="tools-item" onclick={() => runFromMenu(() => handleFixYears('musicbrainz'), 'mb')} disabled={!!fixYearsRunning}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-              Années (MusicBrainz)
+              {$t('metadata.yearsMusicBrainz')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(() => handleFixYears('discogs'), 'discogs')} disabled={!!fixYearsRunning}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-              Années (Discogs)
+              {$t('metadata.yearsDiscogs')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(() => handleFixYears('tidal'), 'tidal')} disabled={!!fixYearsRunning}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-              Années (Tidal)
+              {$t('metadata.yearsTidal')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(() => handleFixYears('tags'), 'tags')} disabled={!!fixYearsRunning}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-              Années (tags audio re-lus)
+              {$t('metadata.yearsTags')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(handleFixYearsFromPath, 'years_path')} disabled={fixingYearsFromPath}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-              Années (depuis chemin du fichier)
+              {$t('metadata.yearsFromPath')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(handleFixYearsItunes, 'years_itunes')} disabled={fixingYearsItunes}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-              Années (iTunes Search)
+              {$t('metadata.yearsItunes')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(handleFixYearsWikidata, 'years_wikidata')} disabled={fixingYearsWikidata}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-              Années (Wikidata)
+              {$t('metadata.yearsWikidata')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(handleFixGenresByArtist, 'genres_artist')} disabled={fixingGenresByArtist}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
-              Genres par artiste (instantané)
+              {$t('metadata.genresByArtist')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(handleFixGenresFuzzy, 'genres_fuzzy')} disabled={fixingGenresFuzzy}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M11 8v6M8 11h6"/></svg>
-              Genres fuzzy (variantes Quartet/Trio/…)
+              {$t('metadata.genresFuzzy')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(() => handleFixGenresByFamily(0.7), 'genres_family')} disabled={fixingGenresByFamily}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h20M12 2v20M2 2l20 20M22 2L2 22"/></svg>
-              Genres par famille (prudent ≥70%)
+              {$t('metadata.genresByFamilyCautious')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(() => handleFixGenresByFamily(0.6), 'genres_family_aggressive')} disabled={fixingGenresByFamily}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h20M12 2v20"/><circle cx="12" cy="12" r="10"/></svg>
-              Genres par famille (agressif ≥60%)
+              {$t('metadata.genresByFamilyAggressive')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(() => handleReclassifyByPath(true), 'reclass_dry')} disabled={reclassifyingByPath}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-              Reclassifier sous-genres (aperçu chemins)
+              {$t('metadata.reclassifyPreview')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(() => handleReclassifyByPath(false), 'reclass_apply')} disabled={reclassifyingByPath}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
-              Reclassifier sous-genres (appliquer)
+              {$t('metadata.reclassifyApply')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(handleFixGenres, 'genres')} disabled={fixGenresRunning}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-              Genres (Last.fm)
+              {$t('metadata.genresLastfm')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(triggerEnrich, 'enrich')} disabled={enriching}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>
-              Enrichir via MusicBrainz
+              {$t('metadata.enrichMusicBrainz')}
             </button>
 
-            <div class="tools-group-label">Tags &amp; covers</div>
+            <div class="tools-group-label">{$t('metadata.groupTagsCovers')}</div>
             <button class="tools-item" onclick={() => runFromMenu(handleWriteTags, 'tags')} disabled={writingTags}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 3v13M5 10l7 7 7-7"/><line x1="4" y1="21" x2="20" y2="21"/></svg>
-              Graver tags dans les fichiers
+              {$t('metadata.burnTags')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(handleWriteCovers, 'covers')} disabled={writingCovers}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              Copier covers dans dossiers
+              {$t('metadata.copyCovers')}
             </button>
 
-            <div class="tools-group-label">Doublons &amp; Suggestions</div>
+            <div class="tools-group-label">{$t('metadata.groupDuplicatesSuggestions')}</div>
             <button class="tools-item" onclick={() => runFromMenu(handleScanDuplicates, 'scan_dup')} disabled={scanningDuplicates}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              {scanningDuplicates ? 'Scan en cours…' : 'Scanner les doublons audio'}
+              {scanningDuplicates ? $t('metadata.scanning') : $t('metadata.scanAudioDuplicates')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(handleMergeDuplicates, 'merge_dup')} disabled={mergingAlbums}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-              Fusionner doublons (titre+artiste normalisés)
+              {$t('metadata.mergeDuplicatesMenu')}
             </button>
 
-            <div class="tools-group-label">MP3 — diagnostic</div>
+            <div class="tools-group-label">{$t('metadata.groupMp3Diagnostic')}</div>
             <button class="tools-item" onclick={() => runFromMenu(handleDiagnoseMp3, 'mp3_diag')} disabled={mp3DiagnoseRunning}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              {mp3DiagnoseRunning ? 'Diagnostic…' : 'Diagnostiquer MP3 (Jacques)'}
+              {mp3DiagnoseRunning ? $t('metadata.diagnosing') : $t('metadata.diagnoseMp3')}
             </button>
             <button class="tools-item" onclick={() => { closeToolsMenu(); handleShowSuggestions(); }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-              Voir suggestions{suggestionCount ? ` (${suggestionCount})` : ''}
+              {$t('metadata.viewSuggestions')}{suggestionCount ? ` (${suggestionCount})` : ''}
             </button>
           </div>
         {/if}
@@ -1526,13 +1527,13 @@
         <button class="filter-btn" class:active={filter === 'no_artist'} onclick={() => filter = 'no_artist'}>{$t('metadata.missingArtist')} <span class="pill">{stats.tracks_without_artist}</span></button>
         <button class="filter-btn" class:active={filter === 'unknown'} onclick={() => filter = 'unknown'}>{$t('metadata.unknown')} <span class="pill">{unknownAlbums.length}</span></button>
         <button class="filter-btn" class:active={filter === 'doubtful'} onclick={() => filter = 'doubtful'}>{$t('metadata.doubtful')} <span class="pill">{stats?.doubtful_count ?? 0}</span></button>
-        <button class="filter-btn" class:active={filter === 'duplicates'} onclick={() => filter = 'duplicates'}>Doublons <span class="pill">{duplicateCount}</span></button>
+        <button class="filter-btn" class:active={filter === 'duplicates'} onclick={() => filter = 'duplicates'}>{$t('metadata.duplicates')} <span class="pill">{duplicateCount}</span></button>
       </div>
       <div class="meta-search-row">
         <input
           type="text"
           class="metadata-search"
-          placeholder="Rechercher..."
+          placeholder={$t('metadata.searchPlaceholder')}
           bind:value={metadataSearch}
           oninput={() => { if (metadataSearch.trim() && !['all', 'no_cover', 'no_genre', 'no_year', 'doubtful'].includes(filter)) filter = 'all'; }}
         />
@@ -1542,7 +1543,7 @@
           onchange={(e) => { filterArtist = (e.target as HTMLSelectElement).value; if (filterArtist) filter = 'all'; }}
           onfocus={ensureArtistsLoaded}
         >
-          <option value="">-- Artiste --</option>
+          <option value="">{$t('metadata.filterArtist')}</option>
           {#each artists as a (a.id)}
             <option value={a.name}>{a.name}</option>
           {/each}
@@ -1552,7 +1553,7 @@
           value={filterGenre}
           onchange={(e) => { filterGenre = (e.target as HTMLSelectElement).value; if (filterGenre) filter = 'all'; }}
         >
-          <option value="">-- Genre --</option>
+          <option value="">{$t('metadata.filterGenre')}</option>
           {#each availableGenres as g}
             <option value={g}>{g}</option>
           {/each}
@@ -1561,7 +1562,7 @@
           class="filter-btn smart-toggle"
           class:active={smartSearchOpen || activeSmartFilters > 0}
           onclick={() => smartSearchOpen = !smartSearchOpen}
-          title="Filtres avancés"
+          title={$t('metadata.advancedFilters')}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
           Smart{activeSmartFilters > 0 ? ` (${activeSmartFilters})` : ''}
@@ -1575,7 +1576,7 @@
             value={filterLabel}
             onchange={(e) => { filterLabel = (e.target as HTMLSelectElement).value; if (filterLabel) filter = 'all'; }}
           >
-            <option value="">-- Label --</option>
+            <option value="">{$t('metadata.filterLabel')}</option>
             {#each availableLabels as l}
               <option value={l}>{l}</option>
             {/each}
@@ -1583,21 +1584,21 @@
           <input
             type="number"
             class="metadata-search metadata-input-year"
-            placeholder="Année min"
+            placeholder={$t('metadata.yearMin')}
             bind:value={filterYearFrom}
             oninput={() => { if (filterYearFrom != null) filter = 'all'; }}
           />
           <input
             type="number"
             class="metadata-search metadata-input-year"
-            placeholder="Année max"
+            placeholder={$t('metadata.yearMax')}
             bind:value={filterYearTo}
             oninput={() => { if (filterYearTo != null) filter = 'all'; }}
           />
           {#if activeSmartFilters > 0}
-            <button class="filter-btn smart-clear" onclick={clearSmartFilters} title="Effacer les filtres avancés">
+            <button class="filter-btn smart-clear" onclick={clearSmartFilters} title={$t('metadata.clearAdvancedFilters')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              Effacer
+              {$t('metadata.clear')}
             </button>
           {/if}
         </div>
@@ -1639,23 +1640,23 @@
     <!-- Content -->
     {#if filter === 'duplicates'}
       {#if duplicateGroups.length === 0}
-        <div class="empty">Aucun doublon détecté</div>
+        <div class="empty">{$t('metadata.noDuplicates')}</div>
       {:else}
         <div class="dup-groups">
           {#each duplicateGroups as group, gi}
             <div class="dup-group-card">
               <div class="dup-group-header">
                 {#if dupGroupType(group).type === 'album'}
-                <span class="dup-badge dup-badge-album">Album</span>
+                <span class="dup-badge dup-badge-album">{$t('metadata.badgeAlbum')}</span>
               {:else}
-                <span class="dup-badge dup-badge-track">Piste</span>
+                <span class="dup-badge dup-badge-track">{$t('metadata.badgeTrack')}</span>
               {/if}
               <span class="dup-group-title">{group[0].title}</span>
               <span class="dup-group-artist">{group[0].artist_name ?? '—'}</span>
               <span class="dup-group-count">{group.length} copies</span>
-              <button class="btn-merge" onclick={() => mergeGroup(gi)} title="Fusionner en un seul album">
+              <button class="btn-merge" onclick={() => mergeGroup(gi)} title={$t('metadata.mergeIntoOne')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-                Fusionner
+                {$t('metadata.merge')}
               </button>
               </div>
               <div class="dup-group-items">
@@ -1673,18 +1674,18 @@
                     <div class="dup-group-item-info">
                       <div style="font-weight:600;font-size:13px;color:var(--tune-text)">{album.title}</div>
                       <div style="font-size:12px;color:var(--tune-text-muted)">
-                        {album.track_count ?? '?'} pistes · {album.format ?? '?'} · {album.sample_rate ? Math.round(album.sample_rate/1000) + 'kHz' : '?'} · {album.bit_depth ?? '?'}bit · {album.genre ?? '—'} · {album.year ?? '—'}
+                        {album.track_count ?? '?'} {$t('metadata.tracksWord')} · {album.format ?? '?'} · {album.sample_rate ? Math.round(album.sample_rate/1000) + 'kHz' : '?'} · {album.bit_depth ?? '?'}bit · {album.genre ?? '—'} · {album.year ?? '—'}
                       </div>
                       {#if album.id && dupAlbumPaths[album.id]}
                         <div style="font-size:10px;color:var(--tune-text-muted);margin-top:2px;word-break:break-all">{dupAlbumPaths[album.id]}</div>
                       {/if}
                     </div>
                     <div class="dup-group-item-actions">
-                      <button class="btn-doubtful-edit" title="Éditer" onclick={() => editAlbum = album}>
+                      <button class="btn-doubtful-edit" title={$t('metadata.edit')} onclick={() => editAlbum = album}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                       </button>
                       {#if group.length > 1}
-                        <button class="btn-dup-move" title="Déplacer dans /data/duplicates" onclick={() => moveToDuplicates(album, gi)}>
+                        <button class="btn-dup-move" title={$t('metadata.moveToDuplicates')} onclick={() => moveToDuplicates(album, gi)}>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                         </button>
                       {/if}
@@ -1734,13 +1735,13 @@
                 <div class="dcard-tags">
                   {#if albumAny.reasons}
                     {#each albumAny.reasons as reason}
-                      <span class="doubtful-tag">{REASON_LABELS[reason] ?? reason}</span>
+                      <span class="doubtful-tag">{REASON_LABEL_KEYS[reason] ? $t(REASON_LABEL_KEYS[reason]) : reason}</span>
                     {/each}
                   {/if}
                 </div>
               </div>
               <div class="dcard-actions">
-                <button class="btn-doubtful-edit" title="Éditer" onclick={() => editAlbum = album}>
+                <button class="btn-doubtful-edit" title={$t('metadata.edit')} onclick={() => editAlbum = album}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                 </button>
               </div>
@@ -1772,7 +1773,7 @@
                 <input
                   type="text"
                   class="batch-input"
-                  placeholder="Artiste..."
+                  placeholder={$t('metadata.artistPlaceholder')}
                   bind:value={batchArtistSearch}
                   onfocus={() => { ensureArtistsLoaded(); batchArtistDropdownOpen = true; }}
                   onblur={() => setTimeout(() => batchArtistDropdownOpen = false, 200)}
@@ -1791,7 +1792,7 @@
                 {#if batchApplying && batchArtistId}
                   <div class="spinner small"></div>
                 {/if}
-                Artiste ({batchSelectedIds.size})
+                {$t('metadata.artist')} ({batchSelectedIds.size})
               </button>
             </div>
 
@@ -1813,7 +1814,7 @@
                 {/each}
               </datalist>
               <button class="btn-action btn-primary" onclick={applyBatchGenre} disabled={batchApplying || !batchGenre.trim() || batchSelectedIds.size === 0}>
-                Genre ({batchSelectedIds.size})
+                {$t('metadata.genre')} ({batchSelectedIds.size})
               </button>
             </div>
 
@@ -1830,7 +1831,7 @@
                 max="2100"
               />
               <button class="btn-action btn-primary" onclick={applyBatchYear} disabled={batchApplying || !batchYear || batchSelectedIds.size === 0}>
-                Année ({batchSelectedIds.size})
+                {$t('metadata.year')} ({batchSelectedIds.size})
               </button>
             </div>
           {/if}
@@ -1868,14 +1869,14 @@
                 <div class="dcard-path">{(album as any).folder_path}</div>
               {/if}
               <div class="dcard-tags">
-                {#if !album.cover_path}<span class="doubtful-tag">Cover manquante</span>{/if}
-                {#if !album.genre}<span class="doubtful-tag">Genre manquant</span>{/if}
-                {#if !album.year}<span class="doubtful-tag">Année manquante</span>{/if}
+                {#if !album.cover_path}<span class="doubtful-tag">{$t('metadata.coverMissing')}</span>{/if}
+                {#if !album.genre}<span class="doubtful-tag">{$t('metadata.genreMissing')}</span>{/if}
+                {#if !album.year}<span class="doubtful-tag">{$t('metadata.yearMissing')}</span>{/if}
               </div>
             </div>
             <div class="dcard-actions">
               <input type="checkbox" checked={batchSelectedIds.has(album.id!)} onchange={() => toggleBatchSelect(album.id!)} onclick={(e) => e.stopPropagation()} />
-              <button class="btn-doubtful-edit" title="Éditer" onclick={() => editAlbum = album}>
+              <button class="btn-doubtful-edit" title={$t('metadata.edit')} onclick={() => editAlbum = album}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
               </button>
             </div>

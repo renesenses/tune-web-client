@@ -3,6 +3,7 @@
   import * as api from '../lib/api';
   import type { GroupDelay, Zone } from '../lib/types';
   import { zones } from '../lib/stores/zones';
+  import { t } from '../lib/i18n';
 
   const TECHS = ['snapcast', 'sonos', 'dlna', 'airplay', 'local'] as const;
   type Tech = typeof TECHS[number];
@@ -42,7 +43,7 @@
     const value = edited[key] ?? 0;
     try {
       await api.setGroupDelay(a, b, value);
-      savedNote = `${a} ↔ ${b} : ${value} ms enregistré`;
+      savedNote = `${a} ↔ ${b} : ${value} ms ${$t('multiroom.saved')}`;
       setTimeout(() => { savedNote = null; }, 2500);
     } catch (e) {
       console.error('group_delay_save_failed', e);
@@ -56,7 +57,7 @@
       const allZones: Zone[] = await api.getZones();
       const offlineZones = allZones.filter(z => z.online === false && z.output_type !== 'local');
       if (offlineZones.length === 0) {
-        cleanupResult = 'Aucune zone hors ligne a supprimer.';
+        cleanupResult = $t('multiroom.noOfflineZones');
         return;
       }
       let deleted = 0;
@@ -66,9 +67,9 @@
           deleted++;
         } catch {}
       }
-      cleanupResult = `${deleted} zone${deleted > 1 ? 's' : ''} hors ligne supprimee${deleted > 1 ? 's' : ''}.`;
+      cleanupResult = (deleted > 1 ? $t('multiroom.zonesDeletedPlural') : $t('multiroom.zonesDeleted')).replace('{count}', String(deleted));
     } catch (e) {
-      cleanupResult = 'Erreur lors du nettoyage.';
+      cleanupResult = $t('multiroom.cleanupError');
     } finally {
       cleanupRunning = false;
     }
@@ -92,15 +93,14 @@
 </script>
 
 <section class="settings-section zone-cleanup">
-  <h2>Zones de lecture</h2>
+  <h2>{$t('multiroom.playbackZones')}</h2>
   <p class="hint">
-    Les zones hors ligne (appareils DLNA, AirPlay, etc. deconnectes) encombrent
-    la liste. Ce bouton supprime toutes les zones dont l'appareil n'est plus accessible.
+    {$t('multiroom.cleanupHint')}
   </p>
   <div class="cleanup-row">
-    <span class="zone-count">{$zones.length} zone{$zones.length !== 1 ? 's' : ''} active{$zones.length !== 1 ? 's' : ''}</span>
+    <span class="zone-count">{$zones.length} {$zones.length !== 1 ? $t('multiroom.zonesActivePlural') : $t('multiroom.zoneActive')}</span>
     <button class="cleanup-btn" onclick={cleanupOfflineZones} disabled={cleanupRunning}>
-      {cleanupRunning ? 'Nettoyage...' : 'Nettoyer les zones hors ligne'}
+      {cleanupRunning ? $t('multiroom.cleaning') : $t('multiroom.cleanupBtn')}
     </button>
   </div>
   {#if cleanupResult}
@@ -110,14 +110,11 @@
 
 <section class="settings-section multiroom-settings">
   <div class="header">
-    <h2>Multi-room — calibration inter-techno</h2>
+    <h2>{$t('multiroom.title')}</h2>
     <button class="refresh" onclick={load} disabled={loading}>{loading ? '…' : '⟲'}</button>
   </div>
   <p class="hint">
-    Une seule fois par paire de technologies. La valeur s'applique
-    chaque démarrage d'un groupe mixte (par exemple Snapcast Pi +
-    Sonos). Positif = la deuxième technologie démarre plus tard
-    pour rattraper la première à l'oreille.
+    {$t('multiroom.calibrationHint')}
   </p>
 
   {#if loading}
@@ -143,7 +140,7 @@
             class="num"
           />
           <span class="unit">ms</span>
-          <button class="save" onclick={() => savePair(a, b)}>Enregistrer</button>
+          <button class="save" onclick={() => savePair(a, b)}>{$t('common.save')}</button>
         </div>
       {/each}
     </div>

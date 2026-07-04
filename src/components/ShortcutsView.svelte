@@ -1,6 +1,7 @@
 <script lang="ts">
   import { shortcuts, removeShortcut, renameShortcut, togglePin, navigateToShortcut, type Shortcut } from '../lib/stores/shortcuts';
   import { notifications } from '../lib/stores/notifications';
+  import { t } from '../lib/i18n';
   import AddShortcutButton from './AddShortcutButton.svelte';
 
   let editingId = $state<string | null>(null);
@@ -14,12 +15,12 @@
 
   function viewLabel(view: string): string {
     const labels: Record<string, string> = {
-      home: 'Accueil', library: 'Bibliothèque', streaming: 'Streaming',
-      radios: 'Radios', favorites: 'Favoris', history: 'Historique',
-      search: 'Recherche', mediaservers: 'Serveurs multimédia',
-      playlists: 'Playlists', collections: 'Collections', queue: 'File d\'attente',
-      nowplaying: 'Lecture en cours', dashboard: 'Tableau de bord',
-      settings: 'Paramètres', equalizer: 'Égaliseur',
+      home: $t('shortcuts.viewHome'), library: $t('shortcuts.viewLibrary'), streaming: $t('shortcuts.viewStreaming'),
+      radios: $t('shortcuts.viewRadios'), favorites: $t('shortcuts.viewFavorites'), history: $t('shortcuts.viewHistory'),
+      search: $t('shortcuts.viewSearch'), mediaservers: $t('shortcuts.viewMediaservers'),
+      playlists: $t('shortcuts.viewPlaylists'), collections: $t('shortcuts.viewCollections'), queue: $t('shortcuts.viewQueue'),
+      nowplaying: $t('shortcuts.viewNowplaying'), dashboard: $t('shortcuts.viewDashboard'),
+      settings: $t('shortcuts.viewSettings'), equalizer: $t('shortcuts.viewEqualizer'),
     };
     return labels[view] || view;
   }
@@ -54,13 +55,13 @@
 
   async function handleDelete(id: string, name: string) {
     await removeShortcut(id);
-    notifications.success(`Raccourci "${name}" supprimé`);
+    notifications.success($t('shortcuts.deleted').replace('{name}', name));
   }
 </script>
 
 <div class="shortcuts-view">
   <div class="shortcuts-page-header">
-    <h2>Raccourcis</h2>
+    <h2>{$t('shortcuts.title')}</h2>
     <AddShortcutButton />
   </div>
 
@@ -69,17 +70,17 @@
       <div class="empty-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
       </div>
-      <p>Aucun raccourci</p>
-      <p class="empty-hint">Naviguez vers une vue puis cliquez l'icône
+      <p>{$t('shortcuts.empty')}</p>
+      <p class="empty-hint">{$t('shortcuts.emptyHintBefore')}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align: middle;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-        pour sauvegarder un raccourci.
+        {$t('shortcuts.emptyHintAfter')}
       </p>
     </div>
   {:else}
     {#if pinnedShortcuts.length > 0}
       <h3 class="section-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/></svg>
-        Dans la sidebar
+        {$t('shortcuts.inSidebar')}
       </h3>
       <div class="shortcuts-grid">
         {#each pinnedShortcuts as sc}
@@ -107,13 +108,13 @@
                 </div>
               </button>
               <div class="card-actions">
-                <button class="action-btn pin-btn pinned" onclick={() => togglePin(sc.id)} title="Désépingler de la sidebar">
+                <button class="action-btn pin-btn pinned" onclick={() => togglePin(sc.id)} title={$t('shortcuts.unpinFromSidebar')}>
                   <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="14" height="14"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/></svg>
                 </button>
-                <button class="action-btn" onclick={() => startEdit(sc)} title="Modifier">
+                <button class="action-btn" onclick={() => startEdit(sc)} title={$t('shortcuts.edit')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
-                <button class="action-btn danger" onclick={() => handleDelete(sc.id, sc.name)} title="Supprimer">
+                <button class="action-btn danger" onclick={() => handleDelete(sc.id, sc.name)} title={$t('common.delete')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 </button>
               </div>
@@ -126,7 +127,7 @@
     {#if unpinnedShortcuts.length > 0}
       <h3 class="section-title unpinned-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-        Autres raccourcis
+        {$t('shortcuts.others')}
       </h3>
       <div class="shortcuts-grid">
         {#each unpinnedShortcuts as sc}
@@ -139,13 +140,13 @@
               </div>
             </button>
             <div class="card-actions">
-              <button class="action-btn" onclick={() => togglePin(sc.id)} title="Épingler dans la sidebar">
+              <button class="action-btn" onclick={() => togglePin(sc.id)} title={$t('shortcuts.pinToSidebar')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/></svg>
               </button>
-              <button class="action-btn" onclick={() => startEdit(sc)} title="Modifier">
+              <button class="action-btn" onclick={() => startEdit(sc)} title={$t('shortcuts.edit')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
-              <button class="action-btn danger" onclick={() => handleDelete(sc.id, sc.name)} title="Supprimer">
+              <button class="action-btn danger" onclick={() => handleDelete(sc.id, sc.name)} title={$t('common.delete')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               </button>
             </div>

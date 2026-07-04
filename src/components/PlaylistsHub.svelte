@@ -10,6 +10,7 @@
   import * as api from '../lib/api';
   import type { Playlist, StreamingPlaylist } from '../lib/types';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
+  import { t } from '../lib/i18n';
 
   type HubTab = 'library' | 'transfers' | 'sync' | 'snapshots';
   let activeTab = $state<HubTab>('library');
@@ -273,17 +274,17 @@
   <!-- ── Header ─────────────────────────────────────── -->
   <header class="hub-header">
     {#if selectionMode}
-      <button class="icon-btn" onclick={clearSelection} aria-label="Annuler">✕</button>
-      <h2>{selected.size} sélectionnée{selected.size > 1 ? 's' : ''}</h2>
+      <button class="icon-btn" onclick={clearSelection} aria-label={$t('common.cancel')}>✕</button>
+      <h2>{selected.size} {selected.size > 1 ? $t('playlists.selectedPlural') : $t('playlists.selected')}</h2>
       <div class="actions">
-        <button class="icon-btn" title="Transférer">→</button>
+        <button class="icon-btn" title={$t('playlists.transfer')}>→</button>
         <button class="icon-btn" title="Backup">💾</button>
-        <button class="icon-btn" title="Supprimer">🗑</button>
+        <button class="icon-btn" title={$t('common.delete')}>🗑</button>
       </div>
     {:else}
       <h2>Playlists</h2>
       <div class="actions">
-        <button class="icon-btn" title="Nouveau transfert" aria-label="Nouveau transfert">+</button>
+        <button class="icon-btn" title={$t('playlists.newTransfer')} aria-label={$t('playlists.newTransfer')}>+</button>
       </div>
     {/if}
   </header>
@@ -291,11 +292,11 @@
   <!-- ── Sub-tabs ───────────────────────────────────── -->
   <nav class="tabs" role="tablist">
     <button class="tab" class:active={activeTab === 'library'}
-            onclick={() => activeTab = 'library'} role="tab">Mes Playlists</button>
+            onclick={() => activeTab = 'library'} role="tab">{$t('playlists.myPlaylists')}</button>
     <button class="tab" class:active={activeTab === 'transfers'}
-            onclick={() => activeTab = 'transfers'} role="tab">Transferts</button>
+            onclick={() => activeTab = 'transfers'} role="tab">{$t('playlists.transfers')}</button>
     <button class="tab" class:active={activeTab === 'sync'}
-            onclick={() => activeTab = 'sync'} role="tab">Liens auto-sync</button>
+            onclick={() => activeTab = 'sync'} role="tab">{$t('playlists.autoSyncLinks')}</button>
     <button class="tab" class:active={activeTab === 'snapshots'}
             onclick={() => activeTab = 'snapshots'} role="tab">Snapshots</button>
   </nav>
@@ -311,7 +312,7 @@
           style:--chip-color={serviceColor[svc] ?? '#888'}
           onclick={() => serviceFilter = svc}
         >
-          {svc === 'all' ? 'Toutes' : serviceLabel[svc] ?? svc}
+          {svc === 'all' ? $t('playlists.all') : serviceLabel[svc] ?? svc}
           <span class="count">{serviceCounts[svc] ?? 0}</span>
         </button>
       {/each}
@@ -321,7 +322,7 @@
     <div class="search">
       <input
         type="search"
-        placeholder="Rechercher dans {filtered.length} playlist{filtered.length > 1 ? 's' : ''}…"
+        placeholder={$t('playlists.searchPlaceholder').replace('{count}', String(filtered.length))}
         bind:value={searchQuery}
       />
     </div>
@@ -334,9 +335,9 @@
     <!-- List -->
     <div class="grid">
       {#if loading}
-        <div class="loading">Chargement de tes playlists…</div>
+        <div class="loading">{$t('playlists.loadingPlaylists')}</div>
       {:else if filtered.length === 0}
-        <div class="empty">Aucune playlist ne correspond.</div>
+        <div class="empty">{$t('playlists.noMatch')}</div>
       {:else}
         {#each filtered as p (p.id)}
           {@const checked = selected.has(p.id)}
@@ -376,21 +377,20 @@
     </div>
 
     <!-- FAB quick-play -->
-    <button class="fab" title="Lire dans la zone active" aria-label="Lire">⏵</button>
+    <button class="fab" title={$t('playlists.playInActiveZone')} aria-label={$t('playlists.play')}>⏵</button>
 
   {:else if activeTab === 'transfers'}
     <div class="transfers">
       <button class="primary-btn" onclick={() => openWizard()}>
-        + Nouveau transfert
+        {$t('playlists.newTransferBtn')}
       </button>
 
-      <h3 class="section-title">Historique récent</h3>
+      <h3 class="section-title">{$t('playlists.recentHistory')}</h3>
       {#if transferHistoryLoading}
-        <div class="loading">Chargement…</div>
+        <div class="loading">{$t('playlists.loading')}</div>
       {:else if transferHistory.length === 0}
         <div class="empty">
-          Aucun transfert. Lance ton premier avec le bouton ci-dessus, ou
-          depuis le détail d'une playlist (Mes Playlists → tap → Transférer).
+          {$t('playlists.noTransfers')}
         </div>
       {:else}
         <ul class="history-list">
@@ -425,15 +425,15 @@
 
   {:else if activeTab === 'sync'}
     <div class="placeholder">
-      <h3>Liens auto-sync</h3>
-      <p>Sync bidirectionnel entre playlists de services différents — arrive en
-        <strong>v0.7.32</strong> avec la résolution de conflits.</p>
+      <h3>{$t('playlists.autoSyncLinks')}</h3>
+      <p>{$t('playlists.syncPlaceholderBefore')}
+        <strong>v0.7.32</strong>{$t('playlists.syncPlaceholderAfter')}</p>
     </div>
 
   {:else if activeTab === 'snapshots'}
     <div class="placeholder">
       <h3>Snapshots</h3>
-      <p>Timeline des versions de chaque playlist + diff visuel — arrive en
+      <p>{$t('playlists.snapshotsPlaceholderBefore')}
         <strong>v0.7.33</strong>.</p>
     </div>
   {/if}
@@ -442,10 +442,10 @@
 <!-- Wizard sheet (transfert 4-step) -->
 {#if wizardOpen}
   <div class="sheet-backdrop" onclick={closeWizard} role="presentation"></div>
-  <div class="wizard" role="dialog" aria-label="Wizard transfert">
+  <div class="wizard" role="dialog" aria-label={$t('playlists.transferWizard')}>
     <header class="wizard-header">
-      <button class="icon-btn" onclick={closeWizard} aria-label="Fermer">✕</button>
-      <h3>Transfert · Étape {wizardStep}/4</h3>
+      <button class="icon-btn" onclick={closeWizard} aria-label={$t('common.close')}>✕</button>
+      <h3>{$t('playlists.transferStep').replace('{step}', String(wizardStep))}</h3>
       <div style="width: 36px"></div>
     </header>
 
@@ -457,11 +457,11 @@
 
     <div class="wizard-body">
       {#if wizardStep === 1}
-        <h4>Quelle playlist veux-tu transférer ?</h4>
-        <p class="muted">Choisis une playlist parmi celles authentifiées.</p>
+        <h4>{$t('playlists.step1Title')}</h4>
+        <p class="muted">{$t('playlists.step1Sub')}</p>
         {#if loading}
           <div class="loading-bar"><span></span></div>
-          <p class="muted" style="margin-top: 0.6rem">Chargement des playlists…</p>
+          <p class="muted" style="margin-top: 0.6rem">{$t('playlists.loadingPlaylists')}</p>
         {/if}
         <div class="picker-grid">
           {#each unified.slice(0, 60) as p (p.id)}
@@ -480,9 +480,9 @@
         </div>
 
       {:else if wizardStep === 2}
-        <h4>Vers quel service ?</h4>
+        <h4>{$t('playlists.step2Title')}</h4>
         <p class="muted">
-          Source : <strong>{wizardSource?.name}</strong>
+          {$t('playlists.source')} : <strong>{wizardSource?.name}</strong>
           (<span class="badge" style:--badge-color={serviceColor[wizardSource?.source ?? '']}>{serviceLabel[wizardSource?.source ?? ''] ?? wizardSource?.source}</span>)
         </p>
         <div class="services-grid">
@@ -498,10 +498,10 @@
                 <div class="service-color" style:background={serviceColor[svc] ?? '#666'}>{(serviceLabel[svc] ?? svc).slice(0, 1)}</div>
                 <div class="service-name">{serviceLabel[svc] ?? svc}</div>
                 <div class="service-status">
-                  {#if !info.authenticated}🔒 non auth
-                  {:else if !info.supports_write}📖 lecture seule
-                  {:else if wizardTarget === svc}✓ choisi
-                  {:else}prêt{/if}
+                  {#if !info.authenticated}🔒 {$t('playlists.notAuth')}
+                  {:else if !info.supports_write}📖 {$t('playlists.readOnly')}
+                  {:else if wizardTarget === svc}✓ {$t('playlists.chosen')}
+                  {:else}{$t('playlists.ready')}{/if}
                 </div>
               </button>
             {/if}
@@ -509,9 +509,9 @@
         </div>
 
       {:else if wizardStep === 3}
-        <h4>Aperçu du matching</h4>
+        <h4>{$t('playlists.step3Title')}</h4>
         {#if wizardLoading}
-          <div class="loading">Analyse en cours…</div>
+          <div class="loading">{$t('playlists.analyzing')}</div>
         {:else if wizardError}
           <div class="error-block">{wizardError}</div>
         {:else if wizardPreview}
@@ -533,19 +533,19 @@
         {/if}
 
       {:else if wizardStep === 4}
-        <h4>Transfert exécuté</h4>
+        <h4>{$t('playlists.step4Title')}</h4>
         {#if wizardError}
           <div class="error-block">{wizardError}</div>
         {:else if wizardResult}
           {@const total = wizardResult.total_tracks ?? wizardResult.total ?? wizardResult.tracks_total ?? 0}
           {@const matched = wizardResult.matched ?? wizardResult.tracks_matched ?? 0}
           <div class="success-block">
-            ✅ {matched}/{total} tracks transférées vers <strong>{serviceLabel[wizardTarget] ?? wizardTarget}</strong>.
+            ✅ {matched}/{total} {$t('playlists.tracksTransferredTo')} <strong>{serviceLabel[wizardTarget] ?? wizardTarget}</strong>.
             {#if wizardResult.target_playlist_id ?? wizardResult.target_id}
-              Nouvelle playlist créée.
+              {$t('playlists.newPlaylistCreated')}
             {/if}
           </div>
-          <p class="muted">La résolution manuelle des failed tracks arrive en v0.7.31.</p>
+          <p class="muted">{$t('playlists.manualResolution')}</p>
         {/if}
       {/if}
     </div>
@@ -553,20 +553,20 @@
     <footer class="wizard-footer">
       {#if wizardStep === 1}
         <button class="primary-btn" disabled={!wizardSource} onclick={() => wizardStep = 2}>
-          Suivant →
+          {$t('playlists.next')}
         </button>
       {:else if wizardStep === 2}
-        <button class="ghost-btn" onclick={() => wizardStep = 1}>← Retour</button>
+        <button class="ghost-btn" onclick={() => wizardStep = 1}>← {$t('common.back')}</button>
         <button class="primary-btn" disabled={!wizardTarget || wizardLoading} onclick={runDryRun}>
-          {wizardLoading ? 'Analyse…' : 'Aperçu →'}
+          {wizardLoading ? $t('playlists.analyzingShort') : $t('playlists.previewArrow')}
         </button>
       {:else if wizardStep === 3}
-        <button class="ghost-btn" onclick={() => wizardStep = 2}>← Retour</button>
+        <button class="ghost-btn" onclick={() => wizardStep = 2}>← {$t('common.back')}</button>
         <button class="primary-btn" disabled={wizardLoading} onclick={runTransfer}>
-          {wizardLoading ? 'Transfert…' : 'Lancer le transfert'}
+          {wizardLoading ? $t('playlists.transferring') : $t('playlists.startTransfer')}
         </button>
       {:else}
-        <button class="primary-btn" onclick={closeWizard}>Terminer</button>
+        <button class="primary-btn" onclick={closeWizard}>{$t('playlists.finish')}</button>
       {/if}
     </footer>
   </div>
@@ -575,7 +575,7 @@
 <!-- Detail bottom sheet -->
 {#if detailPlaylist}
   <div class="sheet-backdrop" onclick={() => detailPlaylist = null} role="presentation"></div>
-  <div class="sheet" role="dialog" aria-label="Détail playlist">
+  <div class="sheet" role="dialog" aria-label={$t('playlists.playlistDetail')}>
     <div class="sheet-handle"></div>
     <header class="sheet-header">
       <div class="sheet-cover" style:background={serviceColor[detailPlaylist.source] ?? '#444'}>
@@ -596,19 +596,19 @@
       </div>
     </header>
     <div class="sheet-actions">
-      <button class="action primary">⏵ Lire dans la zone active</button>
-      <button class="action">+ Ajouter à la file</button>
+      <button class="action primary">⏵ {$t('playlists.playInActiveZone')}</button>
+      <button class="action">{$t('playlists.addToQueue')}</button>
       <div class="action-row">
-        <button class="action small" onclick={() => { const s = detailPlaylist; detailPlaylist = null; openWizard(s); }}>Transférer →</button>
-        <button class="action small">↻ Lier auto-sync</button>
+        <button class="action small" onclick={() => { const s = detailPlaylist; detailPlaylist = null; openWizard(s); }}>{$t('playlists.transfer')} →</button>
+        <button class="action small">↻ {$t('playlists.linkAutoSync')}</button>
       </div>
       <div class="action-row">
         <button class="action small">💾 Backup</button>
-        <button class="action small">⇄ Comparer</button>
+        <button class="action small">⇄ {$t('playlists.compare')}</button>
       </div>
     </div>
     <div class="sheet-tracks">
-      <p class="muted">Liste des tracks à venir dans la prochaine itération.</p>
+      <p class="muted">{$t('playlists.tracksComingSoon')}</p>
     </div>
   </div>
 {/if}

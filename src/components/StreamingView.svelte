@@ -635,7 +635,7 @@
             <ServiceBadge source={t.source} compact />
             <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
-            <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title="Lire ensuite">
+            <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
@@ -690,7 +690,7 @@
             <ServiceBadge source={t.source} compact />
             <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
-            <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title="Lire ensuite">
+            <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
@@ -840,7 +840,7 @@
                   <span class="track-artist truncate">{t.artist_name ?? ''}</span>
                 </div>
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
-                <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title="Lire ensuite">
+                <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
@@ -864,7 +864,7 @@
                   <span class="track-artist truncate">{t.artist_name ?? ''}</span>
                 </div>
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
-                <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title="Lire ensuite">
+                <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
@@ -888,7 +888,7 @@
                   <span class="track-artist truncate">{t.artist_name ?? ''}</span>
                 </div>
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
-                <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title="Lire ensuite">
+                <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
@@ -1026,7 +1026,7 @@
                   <span class="album-card-artist truncate">{album.artist_name}</span>
                 {/if}
               </div>
-              <button class="fav-btn" class:is-fav={favAlbumIds.has(String(album.source_id ?? album.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('albums', String(album.source_id ?? album.id)); }} title="Favori">♥</button>
+              <button class="fav-btn" class:is-fav={favAlbumIds.has(String(album.source_id ?? album.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('albums', String(album.source_id ?? album.id)); }} title={$tr('streaming.favorite')}>♥</button>
             </div>
           {/each}
         </div>
@@ -1039,7 +1039,7 @@
             <div class="artist-item" onclick={() => selectArtist(artist)}>
               <div class="artist-avatar">{artist.name.charAt(0).toUpperCase()}</div>
               <span class="artist-name">{artist.name}</span>
-              <button class="fav-btn" class:is-fav={favArtistIds.has(String(artist.source_id ?? artist.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('artists', String(artist.source_id ?? artist.id)); }} title="Favori">♥</button>
+              <button class="fav-btn" class:is-fav={favArtistIds.has(String(artist.source_id ?? artist.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('artists', String(artist.source_id ?? artist.id)); }} title={$tr('streaming.favorite')}>♥</button>
               <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
             </div>
           {/each}
@@ -1059,8 +1059,8 @@
               <ServiceBadge source={t.source} compact />
               <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
-              <button class="fav-btn small" class:is-fav={favTrackIds.has(String(t.source_id ?? t.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('tracks', String(t.source_id ?? t.id)); }} title="Favori">♥</button>
-              <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title="Lire ensuite">
+              <button class="fav-btn small" class:is-fav={favTrackIds.has(String(t.source_id ?? t.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('tracks', String(t.source_id ?? t.id)); }} title={$tr('streaming.favorite')}>♥</button>
+              <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
@@ -1084,12 +1084,11 @@
         <div class="dev-mode-banner">
           <div class="dev-mode-icon">ℹ️</div>
           <div class="dev-mode-text">
-            <strong>Spotify en mode développement</strong>
+            <strong>{$tr('streaming.spotifyDevMode')}</strong>
             <p>
-              Spotify limite l'app à tes propres playlists. Les Nouveautés,
-              catégories et top tracks nécessitent une demande
+              {$tr('streaming.spotifyDevModeText1')}
               <a href="https://developer.spotify.com/documentation/web-api/concepts/quota-modes" target="_blank" rel="noopener noreferrer">Extended Quota</a>
-              dans le dashboard Spotify (review 5–7 jours).
+              {$tr('streaming.spotifyDevModeText2')}
             </p>
           </div>
         </div>
