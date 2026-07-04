@@ -224,7 +224,7 @@
       bugReportText = await resp.text();
     } catch (e) {
       if (destroyed) return;
-      bugReportText = 'Erreur lors de la generation du rapport de bug.';
+      bugReportText = $t('diagnostics.bugReportError' as any);
       console.error('Bug report error:', e);
     }
     bugReportLoading = false;
@@ -257,7 +257,7 @@
   let logsLoading = $state(false);
 
   async function restartServer() {
-    if (!confirm('Redemarrer le serveur Tune ?')) return;
+    if (!confirm($t('diagnostics.confirmRestart' as any))) return;
     restarting = true;
     try {
       await api.apiPost('/system/restart');
@@ -274,7 +274,7 @@
   }
 
   async function cleanupServer() {
-    if (!confirm('Lancer le nettoyage complet ? (albums/artistes orphelins, artwork inutilisé, historique > 90j, vacuum DB)')) return;
+    if (!confirm($t('diagnostics.confirmCleanup' as any))) return;
     cleaning = true;
     cleanupResults = null;
     try {
@@ -288,7 +288,7 @@
     clearing = true;
     try {
       const r = await api.apiPost('/system/clear-cache');
-      alert(`${r.cleared} fichiers supprimés`);
+      alert($t('diagnostics.filesDeleted' as any).replace('{count}', String(r.cleared)));
     } catch (e) { console.error(e); }
     clearing = false;
   }
@@ -299,9 +299,9 @@
     logsLoading = true;
     try {
       const r = await api.apiFetch('/system/logs?lines=1000');
-      logs = r.logs || 'Aucun log disponible';
+      logs = r.logs || $t('diagnostics.noLogs' as any);
       logsSource = r.source || 'unknown';
-    } catch { logs = 'Erreur chargement logs'; logsSource = 'error'; }
+    } catch { logs = $t('diagnostics.logsError' as any); logsSource = 'error'; }
     logsLoading = false;
   }
 
@@ -312,7 +312,7 @@
     downloadingLogs = true;
     try {
       const r = await api.apiFetch('/system/logs?lines=1000');
-      const logText = r.logs || 'Aucun log disponible';
+      const logText = r.logs || $t('diagnostics.noLogs' as any);
       const source = r.source || 'unknown';
       const diag = await api.apiFetch('/system/diagnostics').catch(() => null);
       const version = diag?.server_version || 'inconnue';
@@ -329,7 +329,7 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      alert('Erreur : ' + (e?.message || e));
+      alert($t('common.error') + ' : ' + (e?.message || e));
     }
     downloadingLogs = false;
   }
@@ -477,7 +477,7 @@
         </div>
         <div class="stat-card">
           <span class="stat-value">{serverDiag.active_zones ?? 0}</span>
-          <span class="stat-label">Zones</span>
+          <span class="stat-label">{$t('diagnostics.zones' as any)}</span>
         </div>
         {#if serverDiag.tracks_count != null}
         <div class="stat-card">
@@ -488,13 +488,13 @@
         {#if serverDiag.albums_count != null}
         <div class="stat-card">
           <span class="stat-value">{serverDiag.albums_count.toLocaleString()}</span>
-          <span class="stat-label">Albums</span>
+          <span class="stat-label">{$t('common.albums')}</span>
         </div>
         {/if}
         {#if serverDiag.artists_count != null}
         <div class="stat-card">
           <span class="stat-value">{serverDiag.artists_count.toLocaleString()}</span>
-          <span class="stat-label">Artistes</span>
+          <span class="stat-label">{$t('common.artists')}</span>
         </div>
         {/if}
         {#if serverDiag.connectors != null}
@@ -523,31 +523,31 @@
 
     <!-- Server Actions -->
     <section class="diag-section actions-section">
-      <h3>Actions serveur</h3>
+      <h3>{$t('diagnostics.serverActions' as any)}</h3>
       <div class="actions-grid">
         <button class="server-action-btn" onclick={restartServer} disabled={restarting}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
-          <span>{restarting ? 'Redemarrage...' : 'Redemarrer le serveur'}</span>
+          <span>{restarting ? $t('diagnostics.restarting' as any) : $t('diagnostics.restartServer' as any)}</span>
         </button>
         <button class="server-action-btn" onclick={rescanLibrary} disabled={scanning}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-          <span>{scanning ? 'Scan en cours...' : 'Rescanner la bibliotheque'}</span>
+          <span>{scanning ? $t('diagnostics.scanning' as any) : $t('diagnostics.rescanLibrary' as any)}</span>
         </button>
         <button class="server-action-btn" onclick={clearCache} disabled={clearing}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-          <span>{clearing ? 'Nettoyage...' : 'Vider le cache artwork'}</span>
+          <span>{clearing ? $t('diagnostics.cleaning' as any) : $t('diagnostics.clearCache' as any)}</span>
         </button>
         <button class="server-action-btn" onclick={fetchLogs}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
-          <span>{showLogs ? 'Masquer les logs' : 'Voir les logs serveur'}</span>
+          <span>{showLogs ? $t('diagnostics.hideLogs' as any) : $t('diagnostics.showLogs' as any)}</span>
         </button>
         <button class="server-action-btn" onclick={downloadLogs} disabled={downloadingLogs}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-          <span>{downloadingLogs ? 'Export...' : 'Exporter les logs'}</span>
+          <span>{downloadingLogs ? $t('diagnostics.exporting' as any) : $t('diagnostics.exportLogs' as any)}</span>
         </button>
         <button class="server-action-btn cleanup-btn" onclick={cleanupServer} disabled={cleaning}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>
-          <span>{cleaning ? 'Nettoyage...' : 'Nettoyage du serveur'}</span>
+          <span>{cleaning ? $t('diagnostics.cleaning' as any) : $t('diagnostics.cleanupServer' as any)}</span>
         </button>
         <button class="server-action-btn bug-report-btn" onclick={fetchBugReport} disabled={bugReportLoading}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
@@ -556,13 +556,13 @@
       </div>
       {#if cleanupResults}
         <div class="cleanup-results">
-          <h4>Résultats du nettoyage</h4>
+          <h4>{$t('diagnostics.cleanupResults' as any)}</h4>
           <ul>
-            {#if cleanupResults.orphan_albums_deleted != null}<li>Albums orphelins supprimés : <strong>{cleanupResults.orphan_albums_deleted}</strong></li>{/if}
-            {#if cleanupResults.orphan_artists_deleted != null}<li>Artistes orphelins supprimés : <strong>{cleanupResults.orphan_artists_deleted}</strong></li>{/if}
-            {#if cleanupResults.stale_artwork_deleted != null}<li>Fichiers artwork inutilisés supprimés : <strong>{cleanupResults.stale_artwork_deleted}</strong></li>{/if}
-            {#if cleanupResults.old_history_deleted != null}<li>Entrées historique > 90j supprimées : <strong>{cleanupResults.old_history_deleted}</strong></li>{/if}
-            {#if cleanupResults.db_vacuumed}<li>Base de données compactée (VACUUM)</li>{/if}
+            {#if cleanupResults.orphan_albums_deleted != null}<li>{$t('diagnostics.orphanAlbums' as any)} <strong>{cleanupResults.orphan_albums_deleted}</strong></li>{/if}
+            {#if cleanupResults.orphan_artists_deleted != null}<li>{$t('diagnostics.orphanArtists' as any)} <strong>{cleanupResults.orphan_artists_deleted}</strong></li>{/if}
+            {#if cleanupResults.stale_artwork_deleted != null}<li>{$t('diagnostics.staleArtwork' as any)} <strong>{cleanupResults.stale_artwork_deleted}</strong></li>{/if}
+            {#if cleanupResults.old_history_deleted != null}<li>{$t('diagnostics.oldHistory' as any)} <strong>{cleanupResults.old_history_deleted}</strong></li>{/if}
+            {#if cleanupResults.db_vacuumed}<li>{$t('diagnostics.dbVacuumed' as any)}</li>{/if}
           </ul>
         </div>
       {/if}
@@ -693,7 +693,7 @@
           </div>
           <div class="stat-card">
             <span class="stat-value">{stats.zones}</span>
-            <span class="stat-label">Zones</span>
+            <span class="stat-label">{$t('diagnostics.zones' as any)}</span>
           </div>
           <div class="stat-card">
             <span class="stat-value">{stats.devices}</span>
@@ -841,7 +841,7 @@
           {/if}
         </div>
       {:else if networkExpanded && !networkLoading}
-        <p class="empty">Diagnostic reseau indisponible</p>
+        <p class="empty">{$t('diagnostics.networkUnavailable' as any)}</p>
       {/if}
     </section>
   {/if}

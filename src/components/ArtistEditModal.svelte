@@ -23,6 +23,7 @@
   let uploading = $state(false);
   let dragOver = $state(false);
   let coverMessage = $state<string | null>(null);
+  let coverOk = $state(false);
   let fileInput: HTMLInputElement;
   let fileDialogOpen = $state(false);
 
@@ -41,13 +42,15 @@
     if (!artist.id) return;
     uploading = true;
     coverMessage = null;
+    coverOk = false;
     try {
       const updated = await api.uploadArtistImage(artist.id, file);
       imagePath = updated.image_path ?? null;
-      coverMessage = 'Image mise à jour';
+      coverMessage = $t('artistEdit.imageUpdated');
+      coverOk = true;
     } catch (e) {
       console.error('Upload artist image error:', e);
-      coverMessage = 'Erreur lors de l\'envoi';
+      coverMessage = $t('artistEdit.uploadError');
     }
     uploading = false;
   }
@@ -113,11 +116,11 @@
     {#if success}
       <div class="success-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><polyline points="20 6 9 17 4 12" /></svg>
-        <p>Sauvegardé</p>
+        <p>{$t('artistEdit.saved')}</p>
       </div>
     {:else}
       <div class="modal-header">
-        <h3>Éditer l'artiste</h3>
+        <h3>{$t('artistEdit.title')}</h3>
         <button class="close-btn" onclick={onClose}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
@@ -142,8 +145,8 @@
             {:else}
               <div class="cover-placeholder round">
                 <span class="artist-initials">{initials(name)}</span>
-                <span class="drop-hint">Glisser une image</span>
-                <span class="drop-sub">ou cliquer pour envoyer</span>
+                <span class="drop-hint">{$t('artistEdit.dragImage')}</span>
+                <span class="drop-sub">{$t('artistEdit.orClickUpload')}</span>
               </div>
             {/if}
             {#if uploading}
@@ -160,29 +163,29 @@
           <div class="cover-actions">
             <button class="btn-secondary" onclick={() => openFileDialog()} disabled={uploading}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-              Envoyer image
+              {$t('artistEdit.uploadImage')}
             </button>
           </div>
           {#if coverMessage}
-            <p class="cover-message" class:found={coverMessage === 'Image mise à jour'}>{coverMessage}</p>
+            <p class="cover-message" class:found={coverOk}>{coverMessage}</p>
           {/if}
         </div>
 
         <!-- Fields -->
         <div class="fields">
           <label class="field">
-            <span class="field-label">Nom</span>
+            <span class="field-label">{$t('artistEdit.name')}</span>
             <input type="text" bind:value={name} placeholder={artist.name} />
           </label>
 
           <label class="field">
-            <span class="field-label">Nom de tri</span>
-            <input type="text" bind:value={sortName} placeholder="ex: Beatles, The" />
+            <span class="field-label">{$t('artistEdit.sortName')}</span>
+            <input type="text" bind:value={sortName} placeholder={$t('artistEdit.sortNamePlaceholder')} />
           </label>
 
           <label class="field">
-            <span class="field-label">Biographie</span>
-            <textarea bind:value={bio} rows="6" placeholder="Biographie de l'artiste…"></textarea>
+            <span class="field-label">{$t('artistEdit.biography')}</span>
+            <textarea bind:value={bio} rows="6" placeholder={$t('artistEdit.bioPlaceholder')}></textarea>
           </label>
         </div>
 

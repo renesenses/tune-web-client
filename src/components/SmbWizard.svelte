@@ -60,10 +60,10 @@
       const shares = await api.discoverSmbShares();
       networkShares = shares;
       if (shares.length === 0) {
-        scanError = 'Aucun partage SMB trouvé sur le réseau';
+        scanError = $t('smb.noSharesFound');
       }
     } catch (e: any) {
-      scanError = e?.message || 'Erreur lors du scan réseau';
+      scanError = e?.message || $t('smb.scanNetworkError');
     }
     scanning = false;
   }
@@ -91,14 +91,14 @@
         }
         selectHost(share);
       } else {
-        const errMsg = result.error || `Aucun partage trouvé sur ${manualHost.trim()}`;
+        const errMsg = result.error || $t('smb.noSharesOnHost').replace('{host}', manualHost.trim());
         scanError = errMsg;
         if (errMsg.includes('refusé') || errMsg.includes('auth') || errMsg.includes('Authentication') || errMsg.includes('ACCESS_DENIED')) {
           showScanCredentials = true;
         }
       }
     } catch (e: any) {
-      scanError = e?.message || 'Impossible de scanner cet hôte';
+      scanError = e?.message || $t('smb.cannotScanHost');
       if (scanError!.includes('500') || scanError!.includes('auth')) {
         showScanCredentials = true;
       }
@@ -146,14 +146,14 @@
       );
       if (result.ok) {
         testResult = 'success';
-        testMessage = result.message || 'Connexion réussie';
+        testMessage = result.message || $t('smb.connectionSuccess');
       } else {
         testResult = 'error';
-        testMessage = result.error || 'Échec de la connexion';
+        testMessage = result.error || $t('smb.connectionFailed');
       }
     } catch (e: any) {
       testResult = 'error';
-      testMessage = e?.message || 'Erreur de connexion';
+      testMessage = e?.message || $t('smb.connectionError');
     }
     testingConnection = false;
   }
@@ -171,7 +171,7 @@
       );
       mountResult = { mount_path: result.mount_path, id: result.id };
     } catch (e: any) {
-      mountError = e?.message || 'Erreur lors du montage';
+      mountError = e?.message || $t('smb.mountError');
     }
     mounting = false;
   }
@@ -184,7 +184,7 @@
       addedToLibrary = true;
       onMusicDirsChanged();
     } catch (e: any) {
-      notifications.error(e?.message || 'Erreur lors de l\'ajout du dossier');
+      notifications.error(e?.message || $t('smb.addDirError'));
     }
     addingToLibrary = false;
   }
@@ -198,7 +198,7 @@
       if (e?.message?.includes('409') || e?.message?.includes('already')) {
         scanStarted = true;
       } else {
-        notifications.error(e?.message || 'Erreur lors du scan');
+        notifications.error(e?.message || $t('smb.scanError'));
       }
     }
     scanningLibrary = false;
@@ -228,7 +228,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
           <rect x="2" y="2" width="20" height="8" rx="2" ry="2" /><rect x="2" y="14" width="20" height="8" rx="2" ry="2" /><line x1="6" y1="6" x2="6.01" y2="6" /><line x1="6" y1="18" x2="6.01" y2="18" />
         </svg>
-        <h3>Ajouter un partage réseau (SMB)</h3>
+        <h3>{$t('smb.title')}</h3>
       </div>
       <button class="close-btn" onclick={onClose}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
@@ -252,34 +252,34 @@
     <!-- Step 1: Scan Network -->
     {#if step === 1}
       <div class="wizard-body">
-        <p class="wizard-desc">Recherchez les partages réseau disponibles ou entrez manuellement l'adresse d'un serveur.</p>
+        <p class="wizard-desc">{$t('smb.step1Desc')}</p>
 
         <div class="scan-actions">
           <button class="scan-btn" onclick={scanNetwork} disabled={scanning}>
             {#if scanning}
               <div class="spinner small"></div>
-              Scan en cours...
+              {$t('smb.scanning')}
             {:else}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                 <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
               </svg>
-              Scanner le réseau
+              {$t('smb.scanNetwork')}
             {/if}
           </button>
         </div>
 
         <div class="manual-input">
-          <span class="manual-label">Ou entrez une adresse :</span>
+          <span class="manual-label">{$t('smb.orEnterAddress')}</span>
           <div class="manual-row">
             <input
               type="text"
               class="auth-input"
-              placeholder="192.168.1.x ou nom-serveur"
+              placeholder={$t('smb.hostPlaceholder')}
               bind:value={manualHost}
               onkeydown={(e) => { if (e.key === 'Enter') scanManualHost(); }}
             />
             <button class="scan-btn small" onclick={scanManualHost} disabled={scanning || !manualHost.trim()}>
-              Scanner
+              {$t('smb.scan')}
             </button>
           </div>
         </div>
@@ -290,36 +290,36 @@
 
         {#if !showScanCredentials}
           <button class="link-btn" onclick={() => showScanCredentials = true}>
-            Identifiants de connexion (si accès protégé)
+            {$t('smb.credentialsIfProtected')}
           </button>
         {/if}
 
         {#if showScanCredentials}
           <div class="scan-credentials">
-            <span class="list-label">Identifiants de connexion</span>
+            <span class="list-label">{$t('smb.credentials')}</span>
             <div class="cred-row">
               <input
                 type="text"
                 class="auth-input"
-                placeholder="Nom d'utilisateur"
+                placeholder={$t('smb.username')}
                 bind:value={username}
               />
               <input
                 type="password"
                 class="auth-input"
-                placeholder="Mot de passe"
+                placeholder={$t('smb.password')}
                 bind:value={password}
               />
             </div>
             <button class="scan-btn small" onclick={scanManualHost} disabled={scanning || !manualHost.trim()}>
-              Réessayer avec ces identifiants
+              {$t('smb.retryWithCredentials')}
             </button>
           </div>
         {/if}
 
         {#if networkShares.length > 0}
           <div class="shares-list">
-            <span class="list-label">Serveurs trouvés :</span>
+            <span class="list-label">{$t('smb.serversFound')}</span>
             {#each networkShares as share}
               <button
                 class="share-item"
@@ -334,7 +334,7 @@
                   <span class="share-host">{share.host}</span>
                 </div>
                 {#if share.shares.length > 0}
-                  <span class="share-count">{share.shares.length} partage{share.shares.length > 1 ? 's' : ''}</span>
+                  <span class="share-count">{$t('smb.shareCount').replace('{count}', String(share.shares.length))}</span>
                 {/if}
               </button>
             {/each}
@@ -343,11 +343,11 @@
 
         {#if selectedHost}
           <div class="sub-shares">
-            <span class="list-label">Partages sur {selectedHost.name} :</span>
+            <span class="list-label">{$t('smb.sharesOnHost').replace('{host}', selectedHost.name)}</span>
             {#if loadingShares}
-              <div class="loading-inline"><div class="spinner small"></div> Chargement...</div>
+              <div class="loading-inline"><div class="spinner small"></div> {$t('common.loading')}</div>
             {:else if hostShares.length === 0}
-              <p class="muted">Aucun partage disponible</p>
+              <p class="muted">{$t('smb.noSharesAvailable')}</p>
             {:else}
               {#each hostShares as shareName}
                 <button
@@ -367,9 +367,9 @@
       </div>
 
       <div class="wizard-footer">
-        <button class="btn-secondary" onclick={onClose}>Annuler</button>
+        <button class="btn-secondary" onclick={onClose}>{$t('common.cancel')}</button>
         <button class="btn-primary" onclick={() => goToStep(2)} disabled={!canGoToStep2()}>
-          Suivant
+          {$t('smb.next')}
         </button>
       </div>
 
@@ -377,34 +377,34 @@
     {:else if step === 2}
       <div class="wizard-body">
         <p class="wizard-desc">
-          Entrez les identifiants pour accéder à
+          {$t('smb.step2Desc')}
           <strong>{selectedHost?.name}</strong> / <strong>{selectedShare}</strong>
         </p>
 
         <div class="form-group">
-          <label class="form-label">Nom d'utilisateur</label>
+          <label class="form-label">{$t('smb.username')}</label>
           <input type="text" class="auth-input" bind:value={username} placeholder="guest" />
         </div>
 
         <div class="form-group">
-          <label class="form-label">Mot de passe</label>
-          <input type="password" class="auth-input" bind:value={password} placeholder="(optionnel)" />
+          <label class="form-label">{$t('smb.password')}</label>
+          <input type="password" class="auth-input" bind:value={password} placeholder={$t('smb.optional')} />
         </div>
 
         <div class="form-group">
-          <label class="form-label">Domaine (optionnel)</label>
+          <label class="form-label">{$t('smb.domain')}</label>
           <input type="text" class="auth-input" bind:value={domain} placeholder="WORKGROUP" />
         </div>
 
         <button class="scan-btn" onclick={testConnection} disabled={testingConnection}>
           {#if testingConnection}
             <div class="spinner small"></div>
-            Test en cours...
+            {$t('smb.testing')}
           {:else}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
             </svg>
-            Tester la connexion
+            {$t('smb.testConnection')}
           {/if}
         </button>
 
@@ -416,29 +416,29 @@
       </div>
 
       <div class="wizard-footer">
-        <button class="btn-secondary" onclick={() => goToStep(1)}>Retour</button>
+        <button class="btn-secondary" onclick={() => goToStep(1)}>{$t('common.back')}</button>
         <button class="btn-primary" onclick={() => goToStep(3)} disabled={testResult !== 'success'}>
-          Suivant
+          {$t('smb.next')}
         </button>
       </div>
 
     <!-- Step 3: Mount & Add -->
     {:else if step === 3}
       <div class="wizard-body">
-        <p class="wizard-desc">Montez le partage et ajoutez-le à votre bibliothèque musicale.</p>
+        <p class="wizard-desc">{$t('smb.step3Desc')}</p>
 
         {#if !mountResult}
           <div class="mount-info">
             <div class="mount-detail">
-              <span class="mount-label">Serveur</span>
+              <span class="mount-label">{$t('smb.server')}</span>
               <span class="mount-value">{selectedHost?.host}</span>
             </div>
             <div class="mount-detail">
-              <span class="mount-label">Partage</span>
+              <span class="mount-label">{$t('smb.share')}</span>
               <span class="mount-value">{selectedShare}</span>
             </div>
             <div class="mount-detail">
-              <span class="mount-label">Utilisateur</span>
+              <span class="mount-label">{$t('smb.user')}</span>
               <span class="mount-value">{username || 'guest'}</span>
             </div>
           </div>
@@ -446,12 +446,12 @@
           <button class="scan-btn" onclick={mountShare} disabled={mounting}>
             {#if mounting}
               <div class="spinner small"></div>
-              Montage en cours...
+              {$t('smb.mounting')}
             {:else}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
               </svg>
-              Monter le partage
+              {$t('smb.mountShare')}
             {/if}
           </button>
 
@@ -460,7 +460,7 @@
           {/if}
         {:else}
           <div class="wizard-success">
-            Partage monté avec succes !
+            {$t('smb.mountSuccess')}
             <span class="mount-path">{mountResult.mount_path}</span>
           </div>
 
@@ -468,40 +468,40 @@
             <button class="scan-btn" onclick={addToLibrary} disabled={addingToLibrary}>
               {#if addingToLibrary}
                 <div class="spinner small"></div>
-                Ajout en cours...
+                {$t('smb.adding')}
               {:else}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                   <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                Ajouter à la bibliothèque
+                {$t('smb.addToLibrary')}
               {/if}
             </button>
           {:else}
-            <div class="wizard-success">Dossier ajouté à la bibliothèque</div>
+            <div class="wizard-success">{$t('smb.folderAdded')}</div>
 
             {#if !scanStarted}
               <button class="scan-btn" onclick={startScan} disabled={scanningLibrary}>
                 {#if scanningLibrary}
                   <div class="spinner small"></div>
-                  Lancement du scan...
+                  {$t('smb.scanStarting')}
                 {:else}
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                     <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                   </svg>
-                  Scanner la bibliothèque
+                  {$t('smb.scanLibrary')}
                 {/if}
               </button>
             {:else}
-              <div class="wizard-success">Scan de la bibliothèque lancé</div>
+              <div class="wizard-success">{$t('smb.scanLaunched')}</div>
             {/if}
           {/if}
         {/if}
       </div>
 
       <div class="wizard-footer">
-        <button class="btn-secondary" onclick={() => goToStep(2)}>Retour</button>
+        <button class="btn-secondary" onclick={() => goToStep(2)}>{$t('common.back')}</button>
         <button class="btn-primary" onclick={() => goToStep(4)} disabled={!mountResult}>
-          {addedToLibrary ? 'Suivant' : 'Passer'}
+          {addedToLibrary ? $t('smb.next') : $t('smb.skip')}
         </button>
       </div>
 
@@ -513,37 +513,37 @@
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
           </svg>
         </div>
-        <h4 class="done-title">Configuration terminée</h4>
+        <h4 class="done-title">{$t('smb.configDone')}</h4>
         <div class="summary">
           <div class="summary-row">
-            <span class="summary-label">Serveur</span>
+            <span class="summary-label">{$t('smb.server')}</span>
             <span class="summary-value">{selectedHost?.host}</span>
           </div>
           <div class="summary-row">
-            <span class="summary-label">Partage</span>
+            <span class="summary-label">{$t('smb.share')}</span>
             <span class="summary-value">{selectedShare}</span>
           </div>
           {#if summaryPath}
             <div class="summary-row">
-              <span class="summary-label">Point de montage</span>
+              <span class="summary-label">{$t('smb.mountPoint')}</span>
               <span class="summary-value mono">{summaryPath}</span>
             </div>
           {/if}
           <div class="summary-row">
-            <span class="summary-label">Bibliothèque</span>
-            <span class="summary-value">{addedToLibrary ? 'Ajouté' : 'Non ajouté'}</span>
+            <span class="summary-label">{$t('smb.library')}</span>
+            <span class="summary-value">{addedToLibrary ? $t('smb.added') : $t('smb.notAdded')}</span>
           </div>
           {#if scanStarted}
             <div class="summary-row">
-              <span class="summary-label">Scan</span>
-              <span class="summary-value">En cours</span>
+              <span class="summary-label">{$t('smb.scanLabel')}</span>
+              <span class="summary-value">{$t('smb.inProgress')}</span>
             </div>
           {/if}
         </div>
       </div>
 
       <div class="wizard-footer">
-        <button class="btn-primary" onclick={onClose}>Fermer</button>
+        <button class="btn-primary" onclick={onClose}>{$t('common.close')}</button>
       </div>
     {/if}
   </div>

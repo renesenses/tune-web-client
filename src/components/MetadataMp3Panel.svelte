@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
+
   interface Mp3Summary {
     scanned: number;
     ok_files: number;
@@ -20,16 +22,16 @@
 
 <div class="suggestions-panel">
   <div class="suggestions-header">
-    <h3>Diagnostic MP3 — {summary.issues_found} problème{summary.issues_found > 1 ? 's' : ''} sur {summary.scanned}</h3>
+    <h3>{$t('metadataMp3.diagnostic').replace('{count}', String(summary.issues_found)).replace('{total}', String(summary.scanned))}</h3>
     {#if issues.length > 0}
       <button class="action-btn" onclick={onRepairAll} disabled={repairing}>
-        {repairing ? 'Réparation…' : `Réparer les ${issues.length}`}
+        {repairing ? $t('metadataMp3.repairing') : $t('metadataMp3.repairAll').replace('{n}', String(issues.length))}
       </button>
     {/if}
-    <button class="action-btn ghost" onclick={onClose}>Fermer</button>
+    <button class="action-btn ghost" onclick={onClose}>{$t('common.close')}</button>
   </div>
   {#if issues.length === 0}
-    <div class="state">Tous les MP3 sont sains ({summary.ok_files} fichiers OK).</div>
+    <div class="state">{$t('metadataMp3.allHealthy').replace('{count}', String(summary.ok_files))}</div>
   {:else}
     <div class="dup-groups">
       {#each issues as iss}
@@ -41,7 +43,7 @@
             <div class="row-detail">{iss.detail}</div>
             <div class="row-detail">{iss.path}</div>
           </div>
-          <button class="action-btn" onclick={() => onRepairOne(iss.track_id)} disabled={!iss.track_id || iss.issue === 'missing_file'}>Réparer</button>
+          <button class="action-btn" onclick={() => onRepairOne(iss.track_id)} disabled={!iss.track_id || iss.issue === 'missing_file'}>{$t('metadataMp3.repair')}</button>
         </div>
       {/each}
     </div>

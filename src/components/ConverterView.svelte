@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import * as api from '../lib/api';
   import type { Album, Track } from '../lib/types';
+  import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { isPremium } from '../lib/stores/license';
 
@@ -153,7 +155,7 @@
       albums = await api.getAllAlbums(2000);
     } catch (e: any) {
       console.error('Failed to load albums:', e);
-      notifications.error('Impossible de charger les albums');
+      notifications.error(get(t)('converter.loadAlbumsError'));
     }
     albumsLoading = false;
   }
@@ -183,7 +185,7 @@
       browseParent = result.parent;
     } catch (e: any) {
       console.error('Failed to browse directory:', e);
-      notifications.error('Impossible de parcourir le repertoire');
+      notifications.error(get(t)('converter.browseError'));
     }
     browseLoading = false;
   }
@@ -284,7 +286,7 @@
       startPolling();
     } catch (e: any) {
       conversionState = 'error';
-      conversionError = e?.message || 'Erreur lors du lancement de la conversion';
+      conversionError = e?.message || get(t)('converter.startError');
       notifications.error(conversionError);
     }
   }
@@ -306,7 +308,7 @@
           stopPolling();
         } else if (status.state === 'error') {
           conversionState = 'error';
-          conversionError = status.error ?? 'Erreur de conversion';
+          conversionError = status.error ?? get(t)('converter.conversionError');
           stopPolling();
         }
       } catch (e: any) {
@@ -328,7 +330,7 @@
       await api.cancelConversion(jobId);
       conversionState = 'idle';
       stopPolling();
-      notifications.info('Conversion annulee');
+      notifications.info(get(t)('converter.cancelled'));
     } catch (e: any) {
       console.error('Cancel error:', e);
     }
@@ -346,7 +348,7 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
     } catch (e: any) {
-      notifications.error('Erreur lors du telechargement');
+      notifications.error(get(t)('converter.downloadError'));
     }
   }
 
@@ -377,8 +379,8 @@
 
 <div class="converter-view">
   <header class="converter-header">
-    <h2>Convertisseur audio</h2>
-    <p class="converter-subtitle">Convertissez vos albums en differents formats audio</p>
+    <h2>{$t('converter.title')}</h2>
+    <p class="converter-subtitle">{$t('converter.subtitle')}</p>
   </header>
 
   <!-- Source selection -->
@@ -389,7 +391,7 @@
         <circle cx="6" cy="18" r="3"/>
         <circle cx="18" cy="16" r="3"/>
       </svg>
-      Source
+      {$t('converter.source')}
     </div>
 
     <div class="source-tabs">
@@ -402,7 +404,7 @@
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
         </svg>
-        Bibliotheque
+        {$t('converter.library')}
       </button>
       <button
         class="source-tab"
@@ -412,7 +414,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
         </svg>
-        Repertoires
+        {$t('converter.directories')}
       </button>
     </div>
 
@@ -422,19 +424,19 @@
         <input
           type="text"
           class="album-search"
-          placeholder="Rechercher un album..."
+          placeholder={$t('converter.searchAlbum')}
           bind:value={albumSearch}
         />
         <div class="selection-actions">
-          <button class="action-btn" onclick={selectAllAlbums}>Tout selectionner</button>
-          <button class="action-btn" onclick={deselectAllAlbums}>Deselectionner</button>
+          <button class="action-btn" onclick={selectAllAlbums}>{$t('converter.selectAll')}</button>
+          <button class="action-btn" onclick={deselectAllAlbums}>{$t('converter.deselectAll')}</button>
         </div>
       </div>
 
       {#if albumsLoading}
         <div class="loading-state">
           <div class="spinner"></div>
-          Chargement des albums...
+          {$t('converter.loadingAlbums')}
         </div>
       {:else}
         <div class="albums-grid">
@@ -475,10 +477,10 @@
         {#if browseLoading}
           <div class="loading-state">
             <div class="spinner"></div>
-            Chargement...
+            {$t('common.loading')}
           </div>
         {:else if browseRoots.length === 0}
-          <div class="empty-state">Aucun repertoire musical configure</div>
+          <div class="empty-state">{$t('converter.noMusicDir')}</div>
         {:else}
           <div class="dir-list">
             {#each browseRoots as root}
@@ -493,7 +495,7 @@
                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                   </svg>
                   <span>{root.name}</span>
-                  <span class="dir-count">{root.track_count} pistes</span>
+                  <span class="dir-count">{root.track_count} {$t('common.tracks')}</span>
                 </button>
               </div>
             {/each}
@@ -506,7 +508,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
               <polyline points="15 18 9 12 15 6"/>
             </svg>
-            Retour
+            {$t('common.back')}
           </button>
           <span class="browse-path">{currentBrowsePath}</span>
         </div>
@@ -514,7 +516,7 @@
         {#if browseLoading}
           <div class="loading-state">
             <div class="spinner"></div>
-            Chargement...
+            {$t('common.loading')}
           </div>
         {:else}
           <div class="dir-list">
@@ -530,12 +532,12 @@
                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                   </svg>
                   <span>{dir.name}</span>
-                  <span class="dir-count">{dir.track_count} pistes</span>
+                  <span class="dir-count">{dir.track_count} {$t('common.tracks')}</span>
                 </button>
               </div>
             {/each}
             {#if browseDirectories.length === 0 && browseTracks.length === 0}
-              <div class="empty-state">Repertoire vide</div>
+              <div class="empty-state">{$t('converter.emptyDir')}</div>
             {/if}
           </div>
         {/if}
@@ -560,7 +562,7 @@
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
-      Format de sortie
+      {$t('converter.outputFormat')}
     </div>
 
     <div class="preset-grid">
@@ -602,7 +604,7 @@
         </div>
 
         <div class="setting-row">
-          <label class="setting-label" for="conv-quality">Qualite / Bitrate</label>
+          <label class="setting-label" for="conv-quality">{$t('converter.quality')}</label>
           <select id="conv-quality" class="setting-select" bind:value={customQuality}>
             {#each qualityOptions as opt}
               <option value={opt.value}>{opt.label}</option>
@@ -611,7 +613,7 @@
         </div>
 
         <div class="setting-row">
-          <label class="setting-label" for="conv-samplerate">Frequence d'echantillonnage</label>
+          <label class="setting-label" for="conv-samplerate">{$t('converter.sampleRate')}</label>
           <select id="conv-samplerate" class="setting-select" bind:value={customSampleRate}>
             {#each sampleRateOptions as opt}
               <option value={opt.value}>{opt.label}</option>
@@ -620,7 +622,7 @@
         </div>
 
         <div class="setting-row">
-          <label class="setting-label" for="conv-bitdepth">Profondeur</label>
+          <label class="setting-label" for="conv-bitdepth">{$t('converter.bitDepth')}</label>
           <select id="conv-bitdepth" class="setting-select" bind:value={customBitDepth}>
             {#each bitDepthOptions as opt}
               <option value={opt.value}>{opt.label}</option>
@@ -636,7 +638,7 @@
     {#if !$isPremium}
       <div class="premium-gate">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <span>Le convertisseur audio est une fonctionnalité <strong>Tune Premium</strong>.</span>
+        <span>{$t('converter.premiumGatePrefix')} <strong>Tune Premium</strong>.</span>
       </div>
     {:else if conversionState === 'idle'}
       <button
@@ -651,7 +653,7 @@
           <line x1="15" y1="15" x2="21" y2="21"/>
           <line x1="4" y1="4" x2="9" y2="9"/>
         </svg>
-        Convertir
+        {$t('converter.convert')}
       </button>
     {:else if conversionState === 'converting'}
       <div class="progress-section">
@@ -661,13 +663,13 @@
         <div class="progress-info">
           <span class="progress-pct">{Math.round(progress)}%</span>
           <span class="progress-file" title={currentFile}>{currentFile}</span>
-          <span class="progress-count">{convertedCount}/{totalCount} pistes converties</span>
+          <span class="progress-count">{$t('converter.tracksConverted').replace('{done}', String(convertedCount)).replace('{total}', String(totalCount))}</span>
         </div>
         <button class="cancel-btn" onclick={cancelConversion}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
-          Annuler
+          {$t('common.cancel')}
         </button>
       </div>
     {:else if conversionState === 'done'}
@@ -677,7 +679,7 @@
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
             <polyline points="22 4 12 14.01 9 11.01"/>
           </svg>
-          Conversion terminee — {convertedCount} pistes
+          {$t('converter.done').replace('{count}', String(convertedCount))}
         </div>
         <div class="done-actions">
           <button class="download-btn" onclick={downloadResult}>
@@ -686,9 +688,9 @@
               <polyline points="7 10 12 15 17 10"/>
               <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            Telecharger{downloadSize ? ` (ZIP, ${downloadSize})` : ' (ZIP)'}
+            {$t('converter.download')}{downloadSize ? ` (ZIP, ${downloadSize})` : ' (ZIP)'}
           </button>
-          <button class="reset-btn" onclick={resetConversion}>Nouvelle conversion</button>
+          <button class="reset-btn" onclick={resetConversion}>{$t('converter.newConversion')}</button>
         </div>
       </div>
     {:else if conversionState === 'error'}
@@ -697,9 +699,9 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
             <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
           </svg>
-          {conversionError || 'Erreur de conversion'}
+          {conversionError || $t('converter.conversionError')}
         </div>
-        <button class="reset-btn" onclick={resetConversion}>Reessayer</button>
+        <button class="reset-btn" onclick={resetConversion}>{$t('converter.retry')}</button>
       </div>
     {/if}
   </section>

@@ -265,12 +265,12 @@
     <div class="view-header">
       <h2>{$tr('nav.genres')}</h2>
       <div style="display:flex;gap:8px;align-items:center;">
-        <button class="sort-toggle" title={sortByAlpha ? 'Tri par nombre d\'albums' : 'Tri alphabétique'} onclick={() => sortByAlpha = !sortByAlpha}>
+        <button class="sort-toggle" title={sortByAlpha ? $tr('genres.sortByCount') : $tr('genres.sortByAlpha')} onclick={() => sortByAlpha = !sortByAlpha}>
           {sortByAlpha ? 'A→Z' : '#'}
         </button>
         <div class="genre-search-box">
           <svg class="genre-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-          <input type="text" placeholder="Filtrer les genres..." bind:value={searchQuery} />
+          <input type="text" placeholder={$tr('genres.filterPlaceholder')} bind:value={searchQuery} />
           {#if searchQuery}
             <button class="genre-search-clear" onclick={() => searchQuery = ''}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
@@ -306,7 +306,7 @@
     {/if}
 
     {#if filteredOrphanGenres.length > 0}
-      <h3 class="section-title">Hors arbre</h3>
+      <h3 class="section-title">{$tr('genres.outsideTree')}</h3>
       <div class="genres-grid">
         {#each filteredOrphanGenres as g}
           <button class="genre-card" onclick={() => selectGenre(g.name)}>
@@ -320,7 +320,7 @@
     {#if $genres.length === 0}
       <div class="empty">{$tr('library.noGenres')}</div>
     {:else if searchQuery.trim() && filteredBranches.length === 0 && filteredOrphanGenres.length === 0}
-      <div class="empty">Aucun genre ne correspond a "{searchQuery.trim()}"</div>
+      <div class="empty">{$tr('genres.noMatch').replace('{query}', searchQuery.trim())}</div>
     {/if}
 
   {:else if level === 'genre' && (displayParent || selectedGenreName)}
@@ -348,9 +348,9 @@
     {#if displayParent && tree[displayParent]}
       <div class="subchips">
         {#if selectedGenreName}
-          <button class="subchip" onclick={() => { selectedParent = displayParent; goToParent(); }}>Tous</button>
+          <button class="subchip" onclick={() => { selectedParent = displayParent; goToParent(); }}>{$tr('genres.all')}</button>
         {:else}
-          <button class="subchip subchip-all" disabled>Tous</button>
+          <button class="subchip subchip-all" disabled>{$tr('genres.all')}</button>
         {/if}
         {#each tree[displayParent] as child}
           {@const c = ($genres.find(g => g.name.toLowerCase() === child.toLowerCase())?.count ?? 0)}

@@ -3,6 +3,7 @@
   import * as api from '../lib/api';
   import { currentZoneId } from '../lib/stores/zones';
   import { get } from 'svelte/store';
+  import { t } from '../lib/i18n';
 
   // --- State ---
   let activeTab = $state<'subscriptions' | 'discover' | 'search'>('discover');
@@ -143,7 +144,7 @@
       await loadSubscriptions();
     } catch (e) {
       console.error('Subscribe error:', e);
-      errorMessage = "Erreur lors de l'abonnement";
+      errorMessage = get(t)('podcasts.subscribeError');
     }
   }
 
@@ -153,7 +154,7 @@
       await loadSubscriptions();
     } catch (e) {
       console.error('Unsubscribe error:', e);
-      errorMessage = 'Erreur lors du desabonnement';
+      errorMessage = get(t)('podcasts.unsubscribeError');
     }
   }
 
@@ -230,7 +231,7 @@
       searchResults = await api.searchPodcasts(searchQuery, 20, podcastCountry, podcastLang);
     } catch (e) {
       console.error('Search podcasts error:', e);
-      errorMessage = 'Erreur lors de la recherche de podcasts';
+      errorMessage = get(t)('podcasts.searchError');
     } finally {
       isSearching = false;
     }
@@ -248,7 +249,7 @@
       episodes = await api.getPodcastEpisodes(feedUrl, 50);
     } catch (e) {
       console.error('Load podcast episodes error:', e);
-      errorMessage = 'Impossible de charger les episodes';
+      errorMessage = get(t)('podcasts.loadEpisodesError');
     } finally {
       isLoadingEpisodes = false;
     }
@@ -263,7 +264,7 @@
   async function playEpisode(episode: any) {
     const zoneId = get(currentZoneId);
     if (!zoneId) {
-      errorMessage = 'Aucune zone selectionnee';
+      errorMessage = get(t)('podcasts.noZone');
       return;
     }
     playingEpisodeUrl = episode.audio_url;
@@ -277,7 +278,7 @@
       });
     } catch (e) {
       console.error('Play podcast error:', e);
-      errorMessage = 'Erreur de lecture';
+      errorMessage = get(t)('podcasts.playError');
     } finally {
       setTimeout(() => { playingEpisodeUrl = null; }, 2000);
     }
@@ -286,7 +287,7 @@
   async function playNewEpisode(episode: any) {
     const zoneId = get(currentZoneId);
     if (!zoneId) {
-      errorMessage = 'Aucune zone selectionnee';
+      errorMessage = get(t)('podcasts.noZone');
       return;
     }
     playingEpisodeUrl = episode.audio_url;
@@ -300,7 +301,7 @@
       });
     } catch (e) {
       console.error('Play podcast error:', e);
-      errorMessage = 'Erreur de lecture';
+      errorMessage = get(t)('podcasts.playError');
     } finally {
       setTimeout(() => { playingEpisodeUrl = null; }, 2000);
     }
@@ -358,9 +359,9 @@
   {#if selectedPodcast}
     <!-- ====== PODCAST DETAIL / EPISODES ====== -->
     <div class="detail-view">
-      <button class="back-btn" onclick={goBack} aria-label="Retour">
+      <button class="back-btn" onclick={goBack} aria-label={$t('common.back')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6" /></svg>
-        <span>Retour</span>
+        <span>{$t('common.back')}</span>
       </button>
 
       <div class="detail-header">
@@ -381,10 +382,10 @@
             {#if isSubscribed(podcastFeed(selectedPodcast))}
               <button class="btn-subscribed" onclick={() => { const id = getSubscriptionId(podcastFeed(selectedPodcast)); if (id) unsubscribe(id); }}>
                 <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                Abonne
+                {$t('podcasts.subscribed')}
               </button>
             {:else}
-              <button class="btn-subscribe" onclick={() => subscribe(selectedPodcast)}>+ S'abonner</button>
+              <button class="btn-subscribe" onclick={() => subscribe(selectedPodcast)}>{$t('podcasts.subscribe')}</button>
             {/if}
           </div>
         </div>
@@ -393,10 +394,10 @@
       {#if isLoadingEpisodes}
         <div class="loading-state">
           <div class="spinner"></div>
-          <span>Chargement des episodes...</span>
+          <span>{$t('podcasts.loadingEpisodes')}</span>
         </div>
       {:else if episodes.length === 0}
-        <div class="empty-state">Aucun episode trouve</div>
+        <div class="empty-state">{$t('podcasts.noEpisodes')}</div>
       {:else}
         <div class="episodes-header">{episodes.length} episode{episodes.length > 1 ? 's' : ''}</div>
         <div class="episodes-list">
@@ -436,9 +437,9 @@
   {:else}
     <!-- ====== TABS ====== -->
     <div class="view-tabs">
-      <button class="view-tab" class:active={activeTab === 'discover'} onclick={() => activeTab = 'discover'}>Découvrir</button>
-      <button class="view-tab" class:active={activeTab === 'subscriptions'} onclick={() => activeTab = 'subscriptions'}>Abonnements</button>
-      <button class="view-tab" class:active={activeTab === 'search'} onclick={() => activeTab = 'search'}>Recherche</button>
+      <button class="view-tab" class:active={activeTab === 'discover'} onclick={() => activeTab = 'discover'}>{$t('podcasts.discover')}</button>
+      <button class="view-tab" class:active={activeTab === 'subscriptions'} onclick={() => activeTab = 'subscriptions'}>{$t('podcasts.subscriptions')}</button>
+      <button class="view-tab" class:active={activeTab === 'search'} onclick={() => activeTab = 'search'}>{$t('podcasts.search')}</button>
       <div class="country-selector">
         <select class="country-select" value={podcastLang} onchange={(e) => { podcastLang = (e.target as HTMLSelectElement).value; }}>
           {#each languages as l}
@@ -458,12 +459,12 @@
       {#if subscriptions.length === 0}
         <div class="empty-state-full">
           <svg viewBox="0 0 24 24" fill="currentColor" width="56" height="56" class="empty-icon-svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-          <h3>Aucun abonnement</h3>
-          <p>Explorez l'onglet Decouvrir ou Recherche pour vous abonner a des podcasts.</p>
+          <h3>{$t('podcasts.noSubscriptions')}</h3>
+          <p>{$t('podcasts.noSubscriptionsHint')}</p>
         </div>
       {:else}
         <section class="section">
-          <h3 class="section-title">Mes podcasts</h3>
+          <h3 class="section-title">{$t('podcasts.myPodcasts')}</h3>
           <div class="podcast-grid">
             {#each subscriptions as podcast}
               <div
@@ -486,9 +487,9 @@
                 {#if podcast.author}
                   <span class="card-artist">{podcast.author}</span>
                 {/if}
-                <button class="btn-unsub" onclick={(e: MouseEvent) => { e.stopPropagation(); unsubscribe(podcast.id); }} title="Se desabonner">
+                <button class="btn-unsub" onclick={(e: MouseEvent) => { e.stopPropagation(); unsubscribe(podcast.id); }} title={$t('podcasts.unsubscribe')}>
                   <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                  Abonne
+                  {$t('podcasts.subscribed')}
                 </button>
               </div>
             {/each}
@@ -497,14 +498,14 @@
 
         <!-- Nouveaux episodes -->
         <section class="section">
-          <h3 class="section-title">Nouveaux episodes</h3>
+          <h3 class="section-title">{$t('podcasts.newEpisodes')}</h3>
           {#if isLoadingNewEpisodes}
             <div class="loading-state">
               <div class="spinner"></div>
-              <span>Chargement...</span>
+              <span>{$t('common.loading')}</span>
             </div>
           {:else if newEpisodes.length === 0}
-            <p class="empty-hint">Aucun nouvel episode</p>
+            <p class="empty-hint">{$t('podcasts.noNewEpisodes')}</p>
           {:else}
             <div class="new-episodes-list">
               {#each newEpisodes as episode}
@@ -557,7 +558,7 @@
       <section class="section">
         <h3 class="section-title">
           {#if selectedGenre === null}
-            Tendances France
+            {$t('podcasts.trendingFrance')}
           {:else}
             Top {selectedGenreLabel}
           {/if}
@@ -565,7 +566,7 @@
         {#if isLoadingTop}
           <div class="loading-state">
             <div class="spinner"></div>
-            <span>Chargement...</span>
+            <span>{$t('common.loading')}</span>
           </div>
         {:else if topTen.length > 0}
           <div class="trending-scroll-wrapper">
@@ -595,14 +596,14 @@
                       <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                     </span>
                   {:else}
-                    <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>+ S'abonner</button>
+                    <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>{$t('podcasts.subscribe')}</button>
                   {/if}
                 </div>
               {/each}
             </div>
           </div>
         {:else}
-          <p class="empty-hint">Aucun podcast disponible</p>
+          <p class="empty-hint">{$t('podcasts.noPodcasts')}</p>
         {/if}
       </section>
 
@@ -642,7 +643,7 @@
                     <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                   </span>
                 {:else}
-                  <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>+ S'abonner</button>
+                  <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>{$t('podcasts.subscribe')}</button>
                 {/if}
               </div>
             {/each}
@@ -656,10 +657,10 @@
         {#if isLoadingRadioFrance}
           <div class="loading-state">
             <div class="spinner"></div>
-            <span>Chargement...</span>
+            <span>{$t('common.loading')}</span>
           </div>
         {:else if radioFrancePodcasts.length === 0}
-          <p class="empty-hint">Aucun podcast Radio France disponible</p>
+          <p class="empty-hint">{$t('podcasts.noRadioFrance')}</p>
         {:else}
           <div class="podcast-grid">
             {#each radioFrancePodcasts as podcast}
@@ -686,7 +687,7 @@
                     <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                   </span>
                 {:else}
-                  <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>+ S'abonner</button>
+                  <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>{$t('podcasts.subscribe')}</button>
                 {/if}
               </div>
             {/each}
@@ -701,7 +702,7 @@
         <input
           type="text"
           bind:value={searchQuery}
-          placeholder="Rechercher un podcast..."
+          placeholder={$t('podcasts.searchPlaceholder')}
           oninput={handleSearchInput}
         />
         {#if searchQuery}
@@ -712,7 +713,7 @@
       {#if isSearching}
         <div class="loading-state">
           <div class="spinner"></div>
-          <span>Recherche en cours...</span>
+          <span>{$t('podcasts.searching')}</span>
         </div>
       {:else if searchResults.length > 0}
         <div class="podcast-grid">
@@ -737,24 +738,24 @@
               <span class="card-title">{podcastName(podcast)}</span>
               <span class="card-artist">{podcastArtist(podcast)}</span>
               {#if !podcastFeed(podcast)}
-                <span class="no-feed">Pas de flux RSS</span>
+                <span class="no-feed">{$t('podcasts.noRss')}</span>
               {:else if isSubscribed(podcastFeed(podcast))}
                 <span class="card-badge-subscribed">
                   <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                  Abonne
+                  {$t('podcasts.subscribed')}
                 </span>
               {:else}
-                <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>+ S'abonner</button>
+                <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>{$t('podcasts.subscribe')}</button>
               {/if}
             </div>
           {/each}
         </div>
       {:else if searchQuery.trim()}
-        <div class="empty-state">Aucun resultat pour "{searchQuery}"</div>
+        <div class="empty-state">{$t('podcasts.noResults').replace('{query}', searchQuery)}</div>
       {:else}
         <div class="search-placeholder">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" class="search-placeholder-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <p>Recherchez parmi des millions de podcasts</p>
+          <p>{$t('podcasts.searchHint')}</p>
         </div>
       {/if}
     {/if}

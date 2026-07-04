@@ -24,9 +24,12 @@
   let editing = $state<Alarm | null>(null);
   let showForm = $state(false);
 
-  const dayLabels = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+  const dayLabels = $derived([
+    $t('alarms.daySun'), $t('alarms.dayMon'), $t('alarms.dayTue'),
+    $t('alarms.dayWed'), $t('alarms.dayThu'), $t('alarms.dayFri'), $t('alarms.daySat'),
+  ]);
 
-  let formName = $state('Réveil');
+  let formName = $state($t('alarms.defaultName'));
   let formTime = $state('07:00');
   let formDays = $state([1, 2, 3, 4, 5]);
   let formSkipHolidays = $state(true);
@@ -60,7 +63,7 @@
 
   function openCreate() {
     editing = null;
-    formName = 'Réveil';
+    formName = $t('alarms.defaultName');
     formTime = '07:00';
     formDays = [1, 2, 3, 4, 5];
     formSkipHolidays = true;
@@ -149,17 +152,17 @@
 
   function formatDays(days: string): string {
     const nums = days.split(',').map(Number);
-    if (nums.length === 7) return 'Tous les jours';
-    if (nums.length === 5 && [1,2,3,4,5].every(d => nums.includes(d))) return 'Lun-Ven';
-    if (nums.length === 2 && [0,6].every(d => nums.includes(d))) return 'Week-end';
+    if (nums.length === 7) return $t('alarms.everyday');
+    if (nums.length === 5 && [1,2,3,4,5].every(d => nums.includes(d))) return $t('alarms.weekdays');
+    if (nums.length === 2 && [0,6].every(d => nums.includes(d))) return $t('alarms.weekend');
     return nums.map(d => dayLabels[d]).join(', ');
   }
 </script>
 
 <div class="alarms-view">
   <div class="alarms-header">
-    <h2>Réveils & Programmations</h2>
-    <button class="create-btn" onclick={openCreate}>+ Nouveau réveil</button>
+    <h2>{$t('alarms.title')}</h2>
+    <button class="create-btn" onclick={openCreate}>+ {$t('alarms.newAlarm')}</button>
   </div>
 
   {#if alarms.length === 0 && !showForm}
@@ -170,8 +173,8 @@
         <path d="M5 3L2 6"></path>
         <path d="M22 6l-3-3"></path>
       </svg>
-      <p>Aucun réveil configuré</p>
-      <p class="hint">Programmez un réveil pour démarrer la musique automatiquement.</p>
+      <p>{$t('alarms.noneConfigured')}</p>
+      <p class="hint">{$t('alarms.emptyHint')}</p>
     </div>
   {/if}
 
@@ -183,7 +186,7 @@
             <span class="alarm-time">{alarm.time}</span>
             <div class="alarm-info">
               <span class="alarm-name">{alarm.name}</span>
-              <span class="alarm-days">{formatDays(alarm.days)}{alarm.skip_holidays ? ' (hors fériés)' : ''}</span>
+              <span class="alarm-days">{formatDays(alarm.days)}{alarm.skip_holidays ? ' ' + $t('alarms.exceptHolidays') : ''}</span>
               <span class="alarm-source">{alarm.source_name || alarm.source_id}</span>
             </div>
           </div>
@@ -192,7 +195,7 @@
               <input type="checkbox" checked={!!alarm.enabled} onchange={() => toggleEnabled(alarm)} />
               <span class="slider"></span>
             </label>
-            <button class="delete-btn" onclick={() => deleteAlarm(alarm)} title="Supprimer">×</button>
+            <button class="delete-btn" onclick={() => deleteAlarm(alarm)} title={$t('common.delete')}>×</button>
           </div>
         </div>
       {/each}
@@ -201,20 +204,20 @@
 
   {#if showForm}
     <div class="alarm-form">
-      <h3>{editing ? 'Modifier le réveil' : 'Nouveau réveil'}</h3>
+      <h3>{editing ? $t('alarms.editAlarm') : $t('alarms.newAlarm')}</h3>
 
       <label class="form-field">
-        <span>Nom</span>
+        <span>{$t('alarms.fieldName')}</span>
         <input type="text" bind:value={formName} />
       </label>
 
       <label class="form-field">
-        <span>Heure</span>
+        <span>{$t('alarms.fieldTime')}</span>
         <input type="time" bind:value={formTime} />
       </label>
 
       <div class="form-field">
-        <span>Jours</span>
+        <span>{$t('alarms.fieldDays')}</span>
         <div class="day-picker">
           {#each dayLabels as label, i}
             <button
@@ -228,13 +231,13 @@
 
       <label class="form-field checkbox-field">
         <input type="checkbox" bind:checked={formSkipHolidays} />
-        <span>Ignorer les jours fériés</span>
+        <span>{$t('alarms.skipHolidays')}</span>
       </label>
 
       <label class="form-field">
-        <span>Zone de lecture</span>
+        <span>{$t('alarms.playbackZone')}</span>
         <select bind:value={formZoneId}>
-          <option value={null}>Zone par défaut</option>
+          <option value={null}>{$t('alarms.defaultZone')}</option>
           {#each zones as zone}
             <option value={zone.id}>{zone.name}</option>
           {/each}
@@ -242,37 +245,37 @@
       </label>
 
       <label class="form-field">
-        <span>Source</span>
+        <span>{$t('alarms.source')}</span>
         <select bind:value={formSourceType}>
-          <option value="radio">Radio</option>
-          <option value="playlist">Playlist</option>
-          <option value="album">Album</option>
+          <option value="radio">{$t('alarms.sourceRadio')}</option>
+          <option value="playlist">{$t('alarms.sourcePlaylist')}</option>
+          <option value="album">{$t('alarms.sourceAlbum')}</option>
         </select>
       </label>
 
       <label class="form-field">
-        <span>{formSourceType === 'radio' ? 'URL de la radio' : 'ID'}</span>
-        <input type="text" bind:value={formSourceId} placeholder={formSourceType === 'radio' ? 'https://stream.fip.fr/fip-hifi.aac' : 'ID de la playlist ou album'} />
+        <span>{formSourceType === 'radio' ? $t('alarms.radioUrl') : $t('alarms.id')}</span>
+        <input type="text" bind:value={formSourceId} placeholder={formSourceType === 'radio' ? 'https://stream.fip.fr/fip-hifi.aac' : $t('alarms.idPlaceholder')} />
       </label>
 
       <label class="form-field">
-        <span>Nom (optionnel)</span>
-        <input type="text" bind:value={formSourceName} placeholder="FIP, Ma playlist..." />
+        <span>{$t('alarms.nameOptional')}</span>
+        <input type="text" bind:value={formSourceName} placeholder={$t('alarms.namePlaceholder')} />
       </label>
 
       <label class="form-field">
-        <span>Volume ({formVolume}%)</span>
+        <span>{$t('alarms.volume').replace('{value}', String(formVolume))}</span>
         <input type="range" min="0" max="100" bind:value={formVolume} />
       </label>
 
       <label class="form-field">
-        <span>Fondu ({formFadeIn}s)</span>
+        <span>{$t('alarms.fadeIn').replace('{value}', String(formFadeIn))}</span>
         <input type="range" min="0" max="120" step="5" bind:value={formFadeIn} />
       </label>
 
       <div class="form-actions">
-        <button class="cancel-btn" onclick={() => showForm = false}>Annuler</button>
-        <button class="save-btn" onclick={save}>Enregistrer</button>
+        <button class="cancel-btn" onclick={() => showForm = false}>{$t('common.cancel')}</button>
+        <button class="save-btn" onclick={save}>{$t('common.save')}</button>
       </div>
     </div>
   {/if}

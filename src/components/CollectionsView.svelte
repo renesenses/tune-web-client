@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import * as api from '../lib/api';
+  import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
@@ -37,10 +39,10 @@
       collections = [...collections, col];
       newName = '';
       showCreate = false;
-      notifications.success('Collection creee');
+      notifications.success(get(t)('collections.created'));
     } catch (e) {
       console.error('Create collection error:', e);
-      notifications.error('Erreur creation');
+      notifications.error(get(t)('collections.createError'));
     }
   }
 
@@ -52,10 +54,10 @@
         selectedCollection = null;
         collectionAlbums = [];
       }
-      notifications.success('Collection supprimee');
+      notifications.success(get(t)('collections.deleted'));
     } catch (e) {
       console.error('Delete collection error:', e);
-      notifications.error('Erreur suppression');
+      notifications.error(get(t)('collections.deleteError'));
     }
   }
 
@@ -76,7 +78,7 @@
     try {
       await api.removeAlbumFromCollection(selectedCollection.id, albumId);
       collectionAlbums = collectionAlbums.filter(a => a.id !== albumId);
-      notifications.success('Album retire');
+      notifications.success(get(t)('collections.albumRemoved'));
     } catch (e) {
       console.error('Remove album error:', e);
     }
@@ -118,7 +120,7 @@
         <div class="detail-header">
           <button class="back-btn" onclick={() => { selectedCollection = null; collectionAlbums = []; }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
-            Retour
+            {$t('common.back')}
           </button>
         </div>
         <div class="collection-detail">
@@ -135,7 +137,7 @@
           {#if detailLoading}
             <div class="loading"><div class="spinner"></div></div>
           {:else if collectionAlbums.length === 0}
-            <p class="empty-msg">Aucun album dans cette collection</p>
+            <p class="empty-msg">{$t('collections.emptyCollection')}</p>
           {:else}
             <div class="albums-grid">
               {#each collectionAlbums as album}
@@ -145,7 +147,7 @@
                   </button>
                   <span class="album-title truncate">{album.title}</span>
                   <span class="album-artist truncate">{album.artist_name ?? ''}</span>
-                  <button class="remove-btn" onclick={() => removeAlbum(album.id)} title="Retirer">
+                  <button class="remove-btn" onclick={() => removeAlbum(album.id)} title={$t('collections.remove')}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                   </button>
                 </div>
@@ -157,22 +159,22 @@
         <div class="collections-header">
           <button class="create-btn" onclick={() => showCreate = !showCreate}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-            Nouvelle collection
+            {$t('collections.newCollection')}
           </button>
         </div>
 
         {#if showCreate}
           <div class="create-form">
-            <input type="text" placeholder="Nom de la collection" bind:value={newName} onkeydown={(e) => e.key === 'Enter' && handleCreate()} />
+            <input type="text" placeholder={$t('collections.namePlaceholder')} bind:value={newName} onkeydown={(e) => e.key === 'Enter' && handleCreate()} />
             <input type="color" bind:value={newColor} class="color-picker" />
-            <button class="confirm-btn" onclick={handleCreate}>Créer</button>
+            <button class="confirm-btn" onclick={handleCreate}>{$t('common.create')}</button>
           </div>
         {/if}
 
         {#if loading}
           <div class="loading"><div class="spinner"></div></div>
         {:else if collections.length === 0}
-          <p class="empty-msg">Aucune collection. Créez-en une pour organiser vos albums.</p>
+          <p class="empty-msg">{$t('collections.noCollections')}</p>
         {:else}
           <div class="collections-list">
             {#each collections as col}
@@ -187,7 +189,7 @@
                   </div>
                   <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
                 </button>
-                <button class="delete-col-btn" onclick={() => handleDelete(col.id)} title="Supprimer">
+                <button class="delete-col-btn" onclick={() => handleDelete(col.id)} title={$t('common.delete')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                 </button>
               </div>

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
+
   interface Props {
     duplicates: any[];
     onResolve: (dupId: number, keepTrackId: number | undefined) => void;
@@ -21,21 +23,21 @@
 
 <div class="duplicates-panel">
   <div class="dup-header">
-    <h3>Doublons détectés ({duplicates.length})</h3>
-    <button class="action-btn" onclick={onClose}>Fermer</button>
+    <h3>{$t('duplicates.title').replace('{count}', String(duplicates.length))}</h3>
+    <button class="action-btn" onclick={onClose}>{$t('common.close')}</button>
   </div>
   {#each duplicates as d (d.id)}
     <div class="dup-card">
       <div class="dup-card-top">
         <div class="dup-card-title">{d.a?.title || d.track_a_title || '?'}</div>
         {#if d.type === 'album'}
-          <span class="dup-badge dup-badge-album">Album complet ({d.album_duplicate_count} pistes)</span>
+          <span class="dup-badge dup-badge-album">{$t('duplicates.fullAlbum').replace('{count}', String(d.album_duplicate_count))}</span>
         {:else}
-          <span class="dup-badge dup-badge-track">Piste seule</span>
+          <span class="dup-badge dup-badge-track">{$t('duplicates.singleTrack')}</span>
         {/if}
       </div>
       {#if d.differences?.length > 0}
-        <div class="dup-diff-notice">Métadonnées différentes : {d.differences.join(', ')}</div>
+        <div class="dup-diff-notice">{$t('duplicates.differentMetadata').replace('{fields}', d.differences.join(', '))}</div>
       {/if}
       <div class="dup-compare">
         {#each ['a', 'b'] as side}
@@ -43,18 +45,18 @@
           {@const fallbackTitle = side === 'a' ? d.track_a_title : d.track_b_title}
           {@const fallbackPath = side === 'a' ? d.track_a_path : d.track_b_path}
           <div class="dup-copy" class:dup-selected={side === 'a'}>
-            <div class="dup-copy-label">Copie {side.toUpperCase()}</div>
-            <div class="dup-field"><span class="dup-key">Titre</span> <span class:dup-diff={d.differences?.includes('title')}>{c?.title ?? fallbackTitle ?? '—'}</span></div>
-            <div class="dup-field"><span class="dup-key">Artiste</span> <span class:dup-diff={d.differences?.includes('artist')}>{c?.artist ?? '—'}</span></div>
-            <div class="dup-field"><span class="dup-key">Album</span> <span class:dup-diff={d.differences?.includes('album')}>{c?.album ?? '—'}</span></div>
-            <div class="dup-field"><span class="dup-key">Genre</span> <span class:dup-diff={d.differences?.includes('genre')}>{c?.genre ?? '—'}</span></div>
-            <div class="dup-field"><span class="dup-key">Année</span> <span class:dup-diff={d.differences?.includes('year')}>{c?.year ?? '—'}</span></div>
-            <div class="dup-field"><span class="dup-key">Format</span> <span>{fmtFormat(c)}</span></div>
+            <div class="dup-copy-label">{$t('duplicates.copy').replace('{label}', side.toUpperCase())}</div>
+            <div class="dup-field"><span class="dup-key">{$t('common.title')}</span> <span class:dup-diff={d.differences?.includes('title')}>{c?.title ?? fallbackTitle ?? '—'}</span></div>
+            <div class="dup-field"><span class="dup-key">{$t('common.artist')}</span> <span class:dup-diff={d.differences?.includes('artist')}>{c?.artist ?? '—'}</span></div>
+            <div class="dup-field"><span class="dup-key">{$t('common.album')}</span> <span class:dup-diff={d.differences?.includes('album')}>{c?.album ?? '—'}</span></div>
+            <div class="dup-field"><span class="dup-key">{$t('duplicates.genre')}</span> <span class:dup-diff={d.differences?.includes('genre')}>{c?.genre ?? '—'}</span></div>
+            <div class="dup-field"><span class="dup-key">{$t('duplicates.year')}</span> <span class:dup-diff={d.differences?.includes('year')}>{c?.year ?? '—'}</span></div>
+            <div class="dup-field"><span class="dup-key">{$t('duplicates.format')}</span> <span>{fmtFormat(c)}</span></div>
             <div class="dup-field dup-path">{c?.path ?? fallbackPath ?? ''}</div>
-            {#if c?.size}<div class="dup-field"><span class="dup-key">Taille</span> {fmtSize(c.size)}</div>{/if}
+            {#if c?.size}<div class="dup-field"><span class="dup-key">{$t('duplicates.size')}</span> {fmtSize(c.size)}</div>{/if}
             <button class="btn-keep" onclick={() => onResolve(d.id, c?.track_id)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><polyline points="20 6 9 17 4 12" /></svg>
-              Garder {side.toUpperCase()}
+              {$t('duplicates.keep').replace('{label}', side.toUpperCase())}
             </button>
           </div>
         {/each}
