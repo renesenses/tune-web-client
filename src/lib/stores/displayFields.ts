@@ -61,11 +61,16 @@ export async function syncDisplayFieldsFromServer() {
       }
     }
     if (enabled.length > 0) {
-      const hadLocal = !!localStorage.getItem(STORAGE_KEY);
-      if (!hadLocal) {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(enabled)); } catch {}
-        displayFields.set(enabled);
-      }
+      // Server is authoritative: ALWAYS re-hydrate the display store from the
+      // saved server value (localStorage is only an offline cache / immediate
+      // paint), instead of a one-time seed when localStorage is empty. The old
+      // `if (!hadLocal)` guard meant that once localStorage existed the server
+      // value was never re-applied, so any loss of the webview's localStorage on
+      // an update reverted the display to defaults — "les métadonnées doivent
+      // être re-saisies à chaque version" (Bilou). It also keeps the Settings
+      // editor and the track-detail display from silently diverging.
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(enabled)); } catch {}
+      displayFields.set(enabled);
     }
   } catch {}
 }
