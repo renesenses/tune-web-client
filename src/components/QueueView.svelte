@@ -84,7 +84,7 @@
         });
         notifications.success(`${result.title}`);
       } catch (err: any) {
-        notifications.error(`${file.name}: ${err?.message ?? 'erreur'}`);
+        notifications.error(`${file.name}: ${err?.message ?? $t('queue.uploadError')}`);
       }
     }
     uploading = false;
@@ -199,7 +199,7 @@
       seekPositionMs.set(0);
     } catch (e) {
       console.error('Clear queue error:', e);
-      notifications.error('Erreur lors du vidage');
+      notifications.error($t('queue.clearError'));
     }
     clearingQueue = false;
   }
@@ -208,15 +208,15 @@
 
   async function handleSaveAsPlaylist() {
     if (!zone?.id) return;
-    const name = prompt('Nom de la playlist :');
+    const name = prompt($t('queue.playlistNamePrompt'));
     if (!name?.trim()) return;
     savingQueue = true;
     try {
       await api.saveQueueAsPlaylist(zone.id, name.trim());
-      notifications.success(`Playlist "${name.trim()}" créée`);
+      notifications.success(`${$t('queue.playlistCreatedPrefix')} "${name.trim()}"`);
     } catch (e) {
       console.error('Save queue as playlist error:', e);
-      notifications.error('Erreur lors de la sauvegarde');
+      notifications.error($t('queue.saveError'));
     }
     savingQueue = false;
   }
@@ -230,7 +230,7 @@
     autoPlayEnabled = !autoPlayEnabled;
     localStorage.setItem(AUTOPLAY_KEY, String(autoPlayEnabled));
     if (autoPlayEnabled) {
-      notifications.success('AutoPlay activé');
+      notifications.success($t('queue.autoplayOn'));
     }
   }
 
@@ -249,7 +249,7 @@
 
   async function handleMoodSelect(mood: typeof moods[number]) {
     if (!zone?.id) {
-      notifications.error('Aucune zone sélectionnée');
+      notifications.error($t('queue.noZoneSelected'));
       return;
     }
     moodLoading = mood.id;
@@ -257,23 +257,23 @@
       const data = await api.smartAIMood({ mood: mood.id, limit: 20 });
       const tracks = data.tracks || [];
       if (tracks.length === 0) {
-        notifications.error('Aucun titre trouvé pour cette ambiance');
+        notifications.error($t('queue.noTracksForMood'));
         moodLoading = null;
         return;
       }
       const ids = tracks.map(t => t.id).filter((id): id is number => id != null && id > 0);
       if (ids.length === 0) {
-        notifications.error('Aucun titre local pour cette ambiance');
+        notifications.error($t('queue.noLocalTracksForMood'));
         moodLoading = null;
         return;
       }
       // If queue is empty, play directly; otherwise add to queue
       if ($queueTracks.length === 0) {
         await playAndSync(zone.id, { track_ids: ids });
-        notifications.success(`${mood.label} Mix : ${ids.length} titres en lecture`);
+        notifications.success(`${mood.label} Mix : ${ids.length} ${$t('queue.tracksPlaying')}`);
       } else {
         await api.addToQueue(zone.id, { track_ids: ids });
-        notifications.success(`${mood.label} Mix : ${ids.length} titres ajoutés`);
+        notifications.success(`${mood.label} Mix : ${ids.length} ${$t('queue.tracksAdded')}`);
       }
       // Refresh queue
       const qs = await api.getQueue(zone.id);
@@ -282,7 +282,7 @@
       queueLength.set(qs.length);
     } catch (e) {
       console.error('Mood AutoPlay error:', e);
-      notifications.error('Erreur lors de la génération');
+      notifications.error($t('queue.generationError'));
     }
     moodLoading = null;
   }
@@ -306,7 +306,7 @@
       class="autoplay-toggle"
       class:active={autoPlayEnabled}
       onclick={toggleAutoPlay}
-      title={autoPlayEnabled ? 'AutoPlay activé' : 'AutoPlay désactivé'}
+      title={autoPlayEnabled ? $t('queue.autoplayOn') : $t('queue.autoplayOff')}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
         <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
@@ -316,9 +316,9 @@
     {#if $queueTracks.length > 0}
       <button class="save-queue-btn" onclick={handleSaveAsPlaylist} disabled={savingQueue}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
-        {savingQueue ? 'Sauvegarde...' : 'Sauver en playlist'}
+        {savingQueue ? $t('queue.saving') : $t('queue.saveAsPlaylist')}
       </button>
-      <button class="clear-queue-btn" onclick={handleClearQueue} disabled={clearingQueue} title="Vider la file d'attente">
+      <button class="clear-queue-btn" onclick={handleClearQueue} disabled={clearingQueue} title={$t('queue.clearQueue')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
       </button>
     {/if}
@@ -336,7 +336,7 @@
         </svg>
         <span>Smart AutoPlay</span>
       </div>
-      <p class="mood-hint">Choisissez une ambiance pour remplir la file automatiquement</p>
+      <p class="mood-hint">{$t('queue.moodHint')}</p>
       <div class="mood-grid">
         {#each moods as mood}
           <button
@@ -391,7 +391,7 @@
               <AlbumArt albumId={queueTrack.album_id} size={40} alt={queueTrack.title} />
             {/if}
             <div class="queue-info">
-              <span class="queue-title truncate">{queueTrack.title || 'Piste inconnue'}</span>
+              <span class="queue-title truncate">{queueTrack.title || $t('queue.unknownTrack')}</span>
               {#if queueTrack.artist_name}
                 <span class="queue-artist truncate">{queueTrack.artist_name}</span>
               {/if}
@@ -435,7 +435,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
             <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
           </svg>
-          <span>Continuer avec...</span>
+          <span>{$t('queue.continueWith')}</span>
         </div>
         <div class="mood-grid mood-grid-compact">
           {#each moods as mood}
@@ -462,13 +462,13 @@
     <div class="drop-overlay">
       <div class="drop-overlay-content">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-        <span>Déposez vos fichiers audio ici</span>
+        <span>{$t('queue.dropFilesHere')}</span>
       </div>
     </div>
   {/if}
 
   {#if uploading}
-    <div class="upload-bar">Upload en cours…</div>
+    <div class="upload-bar">{$t('queue.uploading')}</div>
   {/if}
 </div>
 

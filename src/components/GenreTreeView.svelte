@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import * as api from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
+  import { t } from '../lib/i18n';
 
   type Tree = Record<string, string[]>;
 
@@ -30,7 +31,7 @@
         knownGenres = [];
       }
     } catch (e: any) {
-      notifications.error(`Chargement : ${e?.message || e}`);
+      notifications.error(`${$t('genreTree.loadError')} : ${e?.message || e}`);
     }
     loading = false;
   }
@@ -40,9 +41,9 @@
     try {
       await api.putGenreTree(tree);
       originalJson = JSON.stringify(tree);
-      notifications.success('Arbre des genres enregistré.');
+      notifications.success($t('genreTree.saved'));
     } catch (e: any) {
-      notifications.error(`Échec : ${e?.message || e}`);
+      notifications.error(`${$t('genreTree.saveError')} : ${e?.message || e}`);
     }
     saving = false;
   }
@@ -50,14 +51,14 @@
   function addParent() {
     const p = newParent.trim();
     if (!p) return;
-    if (tree[p]) { notifications.error(`"${p}" existe déjà.`); return; }
+    if (tree[p]) { notifications.error($t('genreTree.alreadyExists').replace('{name}', p)); return; }
     tree = { ...tree, [p]: [] };
     newParent = '';
   }
 
   function removeParent(parent: string) {
     if (!tree[parent]) return;
-    if (!confirm(`Supprimer la branche "${parent}" et ses ${tree[parent].length} sous-genres ?`)) return;
+    if (!confirm($t('genreTree.confirmRemoveBranch').replace('{name}', parent).replace('{count}', String(tree[parent].length)))) return;
     const { [parent]: _, ...rest } = tree;
     tree = rest;
   }
@@ -66,7 +67,7 @@
     const newName = (ev.target as HTMLInputElement).value.trim();
     if (!newName || newName === oldName) return;
     if (tree[newName]) {
-      notifications.error(`"${newName}" existe déjà.`);
+      notifications.error($t('genreTree.alreadyExists').replace('{name}', newName));
       (ev.target as HTMLInputElement).value = oldName;
       return;
     }
@@ -81,7 +82,7 @@
     const c = (child || '').trim();
     if (!c) return;
     if (tree[parent].some(x => x.toLowerCase() === c.toLowerCase())) {
-      notifications.error(`"${c}" est déjà dans "${parent}".`);
+      notifications.error($t('genreTree.childAlreadyIn').replace('{child}', c).replace('{parent}', parent));
       return;
     }
     tree = { ...tree, [parent]: [...tree[parent], c] };
@@ -137,7 +138,7 @@
   }
 
   function reset() {
-    if (!confirm('Annuler les modifications non enregistrées ?')) return;
+    if (!confirm($t('genreTree.confirmReset'))) return;
     tree = JSON.parse(originalJson);
   }
 
@@ -146,18 +147,18 @@
 
 <section class="gt-view">
   <header>
-    <h1>Arbre des genres</h1>
+    <h1>{$t('genreTree.title')}</h1>
     <p class="lede">
-      Définit les regroupements parent → sous-genres pour le filtrage hiérarchique.
-      Une Smart Playlist <code>genre branch_of "Jazz"</code> matchera <em>"Jazz"</em>
-      et tous ses sous-genres listés ici. Les noms de genre dans <code>albums.genre</code>
-      restent inchangés (pas de migration).
+      {$t('genreTree.ledePart1')}
+      <code>genre branch_of "Jazz"</code> {$t('genreTree.ledePart2')} <em>"Jazz"</em>
+      {$t('genreTree.ledePart3')} <code>albums.genre</code>
+      {$t('genreTree.ledePart4')}
     </p>
     <div class="actions">
       <button class="btn-save" disabled={saving || !dirty} onclick={save}>
-        {saving ? 'Enregistre…' : dirty ? 'Enregistrer' : 'À jour'}
+        {saving ? $t('genreTree.savingProgress') : dirty ? $t('common.save') : $t('genreTree.upToDate')}
       </button>
-      <button class="btn-secondary" disabled={!dirty} onclick={reset}>Annuler</button>
+      <button class="btn-secondary" disabled={!dirty} onclick={reset}>{$t('common.cancel')}</button>
     </div>
   </header>
 
@@ -165,8 +166,8 @@
     <div class="state">…</div>
   {:else}
     <div class="add-parent">
-      <input type="text" placeholder="Nouvelle branche (ex: Reggae)" bind:value={newParent} onkeydown={(e) => { if (e.key === 'Enter') addParent(); }} />
-      <button class="btn-add" onclick={addParent} disabled={!newParent.trim()}>+ Ajouter une branche</button>
+      <input type="text" placeholder={$t('genreTree.newBranchPlaceholder')} bind:value={newParent} onkeydown={(e) => { if (e.key === 'Enter') addParent(); }} />
+      <button class="btn-add" onclick={addParent} disabled={!newParent.trim()}>{$t('genreTree.addBranch')}</button>
     </div>
 
     <div class="grid">
@@ -185,8 +186,8 @@
               value={parent}
               onblur={(e) => renameParent(parent, e)}
             />
-            <span class="count">{tree[parent].length} sous-genre{tree[parent].length > 1 ? 's' : ''}</span>
-            <button class="btn-del" onclick={() => removeParent(parent)} title="Supprimer la branche">×</button>
+            <span class="count">{tree[parent].length} {tree[parent].length > 1 ? $t('genreTree.subGenresPlural') : $t('genreTree.subGenre')}</span>
+            <button class="btn-del" onclick={() => removeParent(parent)} title={$t('genreTree.removeBranchTitle')}>×</button>
           </div>
           <div class="children">
             {#each tree[parent] as child (child)}
@@ -195,18 +196,18 @@
                 draggable="true"
                 ondragstart={(e) => onDragStart(parent, child, e)}
                 ondragend={onDragEnd}
-                title="Glisse vers une autre branche pour déplacer"
+                title={$t('genreTree.dragHint')}
               >
                 <span class="child-grip">⋮⋮</span>
                 {child}
-                <button class="child-del" onclick={() => removeChild(parent, child)} title="Retirer">×</button>
+                <button class="child-del" onclick={() => removeChild(parent, child)} title={$t('genreTree.removeChildTitle')}>×</button>
               </span>
             {/each}
           </div>
           <input
             type="text"
             class="add-child-input"
-            placeholder="+ sous-genre"
+            placeholder={$t('genreTree.addChildPlaceholder')}
             list="known-genres"
             onkeydown={(e) => {
               if (e.key === 'Enter') {

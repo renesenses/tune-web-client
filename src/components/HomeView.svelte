@@ -182,7 +182,7 @@
           // No station id captured (ICY metadata overwrote it) — send the user
           // to Radios rather than fabricating a wrong local record.
           activeView.set('radios');
-          notifications.info('Relancez la station depuis la page Radios');
+          notifications.info($t('home.relaunchStation'));
         }
         return;
       }
@@ -197,7 +197,7 @@
         if (match?.source_id) {
           await playAndSync(zone.id, { source: album.source as Source, source_id: match.source_id });
         } else {
-          notifications.error('Piste introuvable sur ' + album.source);
+          notifications.error(`${$t('home.trackNotFoundOn')} ${album.source}`);
         }
       } else if (album.id && (!album.source || album.source === 'local')) {
         await playAndSync(zone.id, { album_id: album.id });
@@ -528,7 +528,7 @@
   <!-- Now Listening across zones -->
   {#if nowListeningLoaded && nowListening.length > 0}
     <div class="now-listening-section">
-      <h2 class="section-title">En cours d'écoute</h2>
+      <h2 class="section-title">{$t('home.nowListening')}</h2>
       <div class="now-listening-row">
         {#each nowListening as item}
           <button class="nl-card" onclick={() => goToZoneNowPlaying(item.zone_id)}>
@@ -552,7 +552,7 @@
   <!-- Continue Listening (from home API) -->
   {#if continueListeningLoaded && continueListening.length > 0}
     <div class="top-section">
-      <h2 class="section-title">Continuer l'écoute</h2>
+      <h2 class="section-title">{$t('home.continueListening')}</h2>
       <div class="carousel-wrapper">
         <button class="carousel-arrow left" onclick={() => scrollCarousel(continueCarousel, -1)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
@@ -633,13 +633,13 @@
       {#if (stats as any).listens > 0}
         <button class="stat-card" onclick={() => activeView.set('dashboard')}>
           <span class="stat-number">{formatNumber((stats as any).listens)}</span>
-          <span class="stat-name">Écoutes</span>
+          <span class="stat-name">{$t('home.listens')}</span>
         </button>
       {/if}
       {#if (stats as any).total_duration_ms > 0}
         <button class="stat-card" onclick={() => activeView.set('dashboard')}>
           <span class="stat-number">{Math.round((stats as any).total_duration_ms / 3600000)}h</span>
-          <span class="stat-name">Écouté</span>
+          <span class="stat-name">{$t('home.listened')}</span>
         </button>
       {/if}
     </div>
@@ -702,7 +702,7 @@
             {#each activeStreamingServices as svc}
               <button class="empty-state-btn" onclick={() => { activeStreamingService.set(svc); activeView.set('streaming'); }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
-                Explorer {svc.charAt(0).toUpperCase() + svc.slice(1)}
+                {$t('home.explore')} {svc.charAt(0).toUpperCase() + svc.slice(1)}
               </button>
             {/each}
           </div>
@@ -798,7 +798,7 @@
   <!-- Recommendations -->
   {#if recsLoaded && recommendations.length > 0}
     <div class="top-section">
-      <h2 class="section-title">Recommandations</h2>
+      <h2 class="section-title">{$t('home.recommendations')}</h2>
       <div class="recs-carousel">
         {#each recommendations as rec}
           <button class="rec-card" onclick={() => rec.id ? navigateToAlbum(rec.id) : (rec.album_id ? navigateToAlbum(rec.album_id) : null)}>
@@ -817,14 +817,14 @@
   <!-- Top Mixes by Genre -->
   {#if topMixesLoaded && topMixes.length > 0}
     <div class="top-section">
-      <h2 class="section-title">Mix par genre</h2>
+      <h2 class="section-title">{$t('home.mixByGenre')}</h2>
       <div class="mixes-row">
         {#each topMixes as mix}
           <button class="mix-card" onclick={() => playMix(mix)}>
             <div class="mix-cover" style="background: linear-gradient(135deg, {mix.color ?? 'var(--tune-accent)'}, {mix.color_end ?? 'rgba(99, 102, 241, 0.4)'})">
               <span class="mix-genre">{mix.genre ?? mix.name ?? ''}</span>
               {#if mix.track_count}
-                <span class="mix-count">{mix.track_count} pistes</span>
+                <span class="mix-count">{mix.track_count} {$t('home.tracks').toLowerCase()}</span>
               {/if}
             </div>
           </button>
@@ -836,7 +836,7 @@
   <!-- Radio Picks -->
   {#if radioPicksLoaded && radioPicks.length > 0}
     <div class="top-section">
-      <h2 class="section-title">Radios favorites</h2>
+      <h2 class="section-title">{$t('home.favoriteRadios')}</h2>
       <div class="recs-carousel">
         {#each radioPicks as radio}
           <button class="rec-card radio-card" onclick={() => playRadioEntry(radio)}>
@@ -863,7 +863,7 @@
   <!-- Listening Dashboard empty state: show library stats + quick links when no history -->
   {#if dashboardLoaded && !dashboard && stats}
     <div class="top-section">
-      <h2 class="section-title">Statistiques</h2>
+      <h2 class="section-title">{$t('home.statistics')}</h2>
       <div class="dash-empty-state">
         <p class="dash-empty-hint">{$t('home.emptyState.hint')}</p>
         <div class="dash-empty-library">
@@ -890,30 +890,30 @@
   <!-- Listening Dashboard -->
   {#if dashboardLoaded && dashboard}
     <div class="top-section">
-      <h2 class="section-title">Statistiques</h2>
+      <h2 class="section-title">{$t('home.statistics')}</h2>
       <div class="dash-stats">
         {#if dashboard.total_plays != null}
           <button class="dash-big-stat clickable" onclick={() => activeView.set('history')}>
             <span class="dash-big-number">{formatNumber(dashboard.total_plays)}</span>
-            <span class="dash-big-label">lectures</span>
+            <span class="dash-big-label">{$t('home.playbacks')}</span>
           </button>
         {/if}
         {#if dashboard.total_hours != null}
           <button class="dash-big-stat clickable" onclick={() => activeView.set('history')}>
             <span class="dash-big-number">{dashboard.total_hours < 1 ? dashboard.total_hours.toFixed(1) : Math.round(dashboard.total_hours)}</span>
-            <span class="dash-big-label">heures d'ecoute</span>
+            <span class="dash-big-label">{$t('home.hoursListened')}</span>
           </button>
         {/if}
         {#if dashboard.new_artists != null}
           <button class="dash-big-stat clickable" onclick={() => activeView.set('library')}>
             <span class="dash-big-number">{dashboard.new_artists}</span>
-            <span class="dash-big-label">nouveaux artistes</span>
+            <span class="dash-big-label">{$t('home.newArtists')}</span>
           </button>
         {/if}
         {#if dashboard.peak_hour != null}
           <button class="dash-big-stat clickable" onclick={() => activeView.set('history')}>
             <span class="dash-big-number">{dashboard.peak_hour}h</span>
-            <span class="dash-big-label">heure de pointe</span>
+            <span class="dash-big-label">{$t('home.peakHour')}</span>
           </button>
         {/if}
       </div>
@@ -922,7 +922,7 @@
         {@const last7 = dashboard.daily.slice(-7)}
         {@const maxPlays = Math.max(...last7.map((d: any) => d.plays ?? d.count ?? 0), 1)}
         <div class="dash-chart">
-          <span class="dash-chart-label">Ecoutes — 7 derniers jours</span>
+          <span class="dash-chart-label">{$t('home.listens7days')}</span>
           <div class="dash-bars">
             {#each last7 as day}
               {@const plays = day.plays ?? day.count ?? 0}

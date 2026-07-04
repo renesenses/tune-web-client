@@ -5,6 +5,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { activeView } from '../lib/stores/navigation';
   import { activeStreamingService } from '../lib/stores/streaming';
+  import { t } from '../lib/i18n';
 
   let services = $state<ServiceTokenInfo[]>([]);
   let loading = $state(true);
@@ -28,7 +29,7 @@
         for (const f of s.fields) editing[s.id][f.key] = '';
       }
     } catch (e: any) {
-      notifications.error(`Échec chargement: ${e?.message || e}`);
+      notifications.error(`${$t('serviceTokens.loadError')}: ${e?.message || e}`);
     }
     loading = false;
   }
@@ -36,22 +37,22 @@
   async function save(service: ServiceTokenInfo) {
     const data = editing[service.id];
     if (!data || Object.values(data).every(v => !v?.trim())) {
-      notifications.error('Aucune valeur saisie.');
+      notifications.error($t('serviceTokens.noValueEntered'));
       return;
     }
     busy = service.id;
     try {
       const r = await api.saveServiceToken(service.id, data);
       if (r.valid === true) {
-        notifications.success(`${service.name}: ${r.validation_message ?? 'Token valide.'}`);
+        notifications.success(`${service.name}: ${r.validation_message ?? $t('serviceTokens.tokenValid')}`);
       } else if (r.valid === false) {
-        notifications.error(`${service.name}: ${r.validation_message ?? 'Échec validation.'}`);
+        notifications.error(`${service.name}: ${r.validation_message ?? $t('serviceTokens.validationFailed')}`);
       } else {
-        notifications.success(`${service.name}: enregistré (validation indisponible).`);
+        notifications.success(`${service.name}: ${$t('serviceTokens.savedNoValidation')}`);
       }
       await load();
     } catch (e: any) {
-      notifications.error(`Erreur: ${e?.message || e}`);
+      notifications.error(`${$t('serviceTokens.error')}: ${e?.message || e}`);
     }
     busy = null;
   }
@@ -63,26 +64,26 @@
       if (r.valid === true) {
         notifications.success(`${service.name}: ${r.validation_message ?? 'OK'}`);
       } else if (r.valid === false) {
-        notifications.error(`${service.name}: ${r.validation_message ?? 'Échec'}`);
+        notifications.error(`${service.name}: ${r.validation_message ?? $t('serviceTokens.failed')}`);
       } else {
-        notifications.info(r.validation_message ?? 'Pas de validation disponible.');
+        notifications.info(r.validation_message ?? $t('serviceTokens.noValidationAvailable'));
       }
       await load();
     } catch (e: any) {
-      notifications.error(`Erreur test: ${e?.message || e}`);
+      notifications.error(`${$t('serviceTokens.testError')}: ${e?.message || e}`);
     }
     busy = null;
   }
 
   async function remove(service: ServiceTokenInfo) {
-    if (!confirm(`Supprimer le token ${service.name} ? L'enrichissement utilisera la valeur d'environnement (.env) comme fallback si elle existe.`)) return;
+    if (!confirm($t('serviceTokens.confirmRemove').replace('{name}', service.name))) return;
     busy = service.id;
     try {
       await api.deleteServiceToken(service.id);
-      notifications.success(`${service.name}: token supprimé.`);
+      notifications.success(`${service.name}: ${$t('serviceTokens.tokenDeleted')}`);
       await load();
     } catch (e: any) {
-      notifications.error(`Erreur: ${e?.message || e}`);
+      notifications.error(`${$t('serviceTokens.error')}: ${e?.message || e}`);
     }
     busy = null;
   }
@@ -110,7 +111,7 @@
     busy = 'lastfm';
     try {
       const r = await api.lastfmGetSession(lastfmAuthToken);
-      notifications.success(`Last.fm: connecté${r.username ? ` (${r.username})` : ''} — scrobbling activé.`);
+      notifications.success(`Last.fm: ${$t('serviceTokens.lastfmConnected')}${r.username ? ` (${r.username})` : ''} — ${$t('serviceTokens.scrobblingEnabled')}.`);
       lastfmAuthPending = false;
       lastfmAuthToken = null;
       await load();
@@ -129,34 +130,34 @@
     busy = 'lastfm';
     try {
       await api.lastfmToggleScrobble(enabled);
-      notifications.success(`Scrobbling ${enabled ? 'activé' : 'désactivé'}.`);
+      notifications.success(enabled ? $t('serviceTokens.scrobblingOn') : $t('serviceTokens.scrobblingOff'));
       await load();
     } catch (e: any) {
-      notifications.error(`Erreur: ${e?.message || e}`);
+      notifications.error(`${$t('serviceTokens.error')}: ${e?.message || e}`);
     }
     busy = null;
   }
 
   async function lastfmDisconnect() {
-    if (!confirm('Déconnecter ton compte Last.fm ? Le scrobbling sera désactivé.')) return;
+    if (!confirm($t('serviceTokens.confirmDisconnect'))) return;
     busy = 'lastfm';
     try {
       await api.lastfmDisconnect();
-      notifications.success('Last.fm: compte déconnecté.');
+      notifications.success(`Last.fm: ${$t('serviceTokens.accountDisconnected')}`);
       await load();
     } catch (e: any) {
-      notifications.error(`Erreur: ${e?.message || e}`);
+      notifications.error(`${$t('serviceTokens.error')}: ${e?.message || e}`);
     }
     busy = null;
   }
 
   function statusDot(s: ServiceTokenInfo): { color: string; label: string } {
-    if (s.kind === 'no_auth') return { color: '#22c55e', label: 'Disponible (aucun token requis)' };
-    if (!s.configured) return { color: 'transparent', label: 'Non configuré' };
-    if (s.valid === true) return { color: '#22c55e', label: 'Valide' };
-    if (s.valid === false) return { color: '#ef4444', label: 'Invalide' };
-    if (s.source === 'env') return { color: '#eab308', label: 'Configuré via .env (non testé)' };
-    return { color: '#eab308', label: 'Non testé' };
+    if (s.kind === 'no_auth') return { color: '#22c55e', label: $t('serviceTokens.statusAvailable') };
+    if (!s.configured) return { color: 'transparent', label: $t('serviceTokens.statusNotConfigured') };
+    if (s.valid === true) return { color: '#22c55e', label: $t('serviceTokens.statusValid') };
+    if (s.valid === false) return { color: '#ef4444', label: $t('serviceTokens.statusInvalid') };
+    if (s.source === 'env') return { color: '#eab308', label: $t('serviceTokens.statusEnv') };
+    return { color: '#eab308', label: $t('serviceTokens.statusUntested') };
   }
 
   function fmtTime(ts: number | null): string {
@@ -182,7 +183,7 @@
 <section class="services-view">
   <header>
     <h1>Services & Tokens</h1>
-    <p class="lede">Configure ici les tokens d'enrichissement de métadonnées (Discogs, Last.fm, …) sans toucher au fichier <code>.env</code>. Chaque token est validé avant d'être enregistré.</p>
+    <p class="lede">{$t('serviceTokens.ledeBefore')} <code>.env</code>{$t('serviceTokens.ledeAfter')}</p>
   </header>
 
   {#if loading}
@@ -196,7 +197,7 @@
             <span class="dot" style:background={dot.color}></span>
             <span class="card-title">{s.name}</span>
             <span class="pricing pricing-{s.pricing}" title={s.pricing_note}>
-              {s.pricing === 'free' ? 'Gratuit' : s.pricing === 'paid' ? 'Payant' : s.pricing === 'freemium' ? 'Freemium' : '?'}
+              {s.pricing === 'free' ? $t('serviceTokens.pricingFree') : s.pricing === 'paid' ? $t('serviceTokens.pricingPaid') : s.pricing === 'freemium' ? 'Freemium' : '?'}
             </span>
           </div>
           <p class="card-purpose">{s.purpose}</p>
@@ -204,7 +205,7 @@
           <div class="card-status">
             {dot.label}
             {#if s.validated_at}
-              <span class="ts">— testé le {fmtTime(s.validated_at)}</span>
+              <span class="ts">— {$t('serviceTokens.testedOn')} {fmtTime(s.validated_at)}</span>
             {/if}
           </div>
           {#if s.validation_message}
@@ -219,22 +220,22 @@
                   <input
                     type={f.type}
                     bind:value={editing[s.id][f.key]}
-                    placeholder={s.configured ? '••••• (déjà configuré, ressaisis pour modifier)' : ''}
+                    placeholder={s.configured ? $t('serviceTokens.configuredPlaceholder') : ''}
                   />
                 </label>
               {/each}
               <div class="actions">
                 <button class="btn-save" disabled={busy === s.id} onclick={() => save(s)}>
-                  {busy === s.id ? '…' : 'Enregistrer & valider'}
+                  {busy === s.id ? '…' : $t('serviceTokens.saveValidate')}
                 </button>
                 {#if s.configured && s.source === 'db'}
-                  <button class="btn-secondary" disabled={busy === s.id} onclick={() => test(s)}>Tester</button>
-                  <button class="btn-danger" disabled={busy === s.id} onclick={() => remove(s)}>Supprimer</button>
+                  <button class="btn-secondary" disabled={busy === s.id} onclick={() => test(s)}>{$t('serviceTokens.test')}</button>
+                  <button class="btn-danger" disabled={busy === s.id} onclick={() => remove(s)}>{$t('common.delete')}</button>
                 {/if}
               </div>
             </div>
           {:else if s.kind === 'oauth' || s.kind === 'login_password' || s.kind === 'arl_token'}
-            <button class="btn-link" onclick={() => navigateConfigure(s)}>Configurer →</button>
+            <button class="btn-link" onclick={() => navigateConfigure(s)}>{$t('serviceTokens.configure')}</button>
           {/if}
 
           {#if s.id === 'lastfm' && s.configured}
@@ -246,9 +247,9 @@
                   <span class="scrobble-dot" style:background={s.scrobble_enabled ? '#22c55e' : '#6b7280'}></span>
                   <span>
                     {#if s.lastfm_username}
-                      Connecté : <strong>{s.lastfm_username}</strong>
+                      {$t('serviceTokens.connected')} : <strong>{s.lastfm_username}</strong>
                     {:else}
-                      Compte connecté
+                      {$t('serviceTokens.accountConnected')}
                     {/if}
                   </span>
                 </div>
@@ -260,38 +261,38 @@
                       disabled={busy === 'lastfm'}
                       onchange={(e) => lastfmToggleScrobble((e.target as HTMLInputElement).checked)}
                     />
-                    <span class="toggle-text">Scrobbling {s.scrobble_enabled ? 'actif' : 'inactif'}</span>
+                    <span class="toggle-text">Scrobbling {s.scrobble_enabled ? $t('serviceTokens.active') : $t('serviceTokens.inactive')}</span>
                   </label>
                 </div>
                 <button class="btn-danger btn-sm" disabled={busy === 'lastfm'} onclick={lastfmDisconnect}>
-                  Déconnecter Last.fm
+                  {$t('serviceTokens.disconnectLastfm')}
                 </button>
               {:else if lastfmAuthPending}
                 <div class="scrobble-pending">
                   <p class="pending-text">
-                    Autorise Tune sur la page Last.fm ouverte dans ton navigateur, puis clique ci-dessous.
+                    {$t('serviceTokens.pendingText')}
                   </p>
                   <div class="actions">
                     <button class="btn-save" disabled={busy === 'lastfm'} onclick={lastfmCompleteAuth}>
-                      {busy === 'lastfm' ? '…' : "J'ai autorisé — continuer"}
+                      {busy === 'lastfm' ? '…' : $t('serviceTokens.authorizedContinue')}
                     </button>
-                    <button class="btn-secondary" onclick={lastfmCancelAuth}>Annuler</button>
+                    <button class="btn-secondary" onclick={lastfmCancelAuth}>{$t('common.cancel')}</button>
                   </div>
                 </div>
               {:else}
                 <div class="scrobble-status scrobble-disconnected">
                   <span class="scrobble-dot" style:background="transparent"></span>
-                  <span>Non connecté — connecte ton compte Last.fm pour activer le scrobbling.</span>
+                  <span>{$t('serviceTokens.notConnected')}</span>
                 </div>
                 <button class="btn-lastfm" disabled={busy === 'lastfm'} onclick={lastfmStartAuth}>
-                  {busy === 'lastfm' ? '…' : 'Connecter mon compte Last.fm'}
+                  {busy === 'lastfm' ? '…' : $t('serviceTokens.connectLastfm')}
                 </button>
               {/if}
             </div>
           {/if}
 
           <button class="help-toggle" onclick={() => helpOpen[s.id] = !helpOpen[s.id]}>
-            {helpOpen[s.id] ? '▾' : '▸'} Comment obtenir mon token ?
+            {helpOpen[s.id] ? '▾' : '▸'} {$t('serviceTokens.howToGetToken')}
           </button>
           {#if helpOpen[s.id]}
             <ol class="help-steps">

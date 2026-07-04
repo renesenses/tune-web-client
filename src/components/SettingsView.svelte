@@ -216,7 +216,7 @@
       await api.apiPost(endpoint);
       cloudTelemetryEnabled = !cloudTelemetryEnabled;
     } catch (err: any) {
-      notifications.error(err?.message ?? 'Erreur telemetrie');
+      notifications.error(err?.message ?? get(t)('settings.telemetryError'));
     }
     cloudTelemetryLoading = false;
   }
@@ -236,27 +236,27 @@
     try {
       const result = await api.activateLicense(key);
       if (result.status === 'ok' || result.tier === 'premium' || result.tier === 'pro') {
-        notifications.success('Licence activee avec succes !');
+        notifications.success(get(t)('settings.licenseActivated'));
         licenseKeyInput = '';
         await loadLicense();
       } else {
-        licenseError = 'Cle invalide ou expiree';
+        licenseError = get(t)('settings.licenseInvalidOrExpired');
       }
     } catch (e: any) {
-      licenseError = e?.message === 'premium_required' ? 'Cle invalide' : (e?.message ?? 'Erreur');
+      licenseError = e?.message === 'premium_required' ? get(t)('settings.licenseInvalid') : (e?.message ?? get(t)('common.error'));
     }
     licenseActivating = false;
   }
 
   async function handleDeactivateLicense() {
-    if (!confirm('Desactiver votre licence Premium ? Vous perdrez l\'acces aux fonctionnalites Premium.')) return;
+    if (!confirm(get(t)('settings.deactivateLicenseConfirm'))) return;
     licenseDeactivating = true;
     try {
       await api.deactivateLicense();
-      notifications.success('Licence desactivee');
+      notifications.success(get(t)('settings.licenseDeactivated'));
       await loadLicense();
     } catch (e: any) {
-      notifications.error(e?.message ?? 'Erreur');
+      notifications.error(e?.message ?? get(t)('common.error'));
     }
     licenseDeactivating = false;
   }
@@ -266,9 +266,9 @@
     try {
       await api.validateLicense();
       await loadLicense();
-      notifications.success('Licence validee');
+      notifications.success(get(t)('settings.licenseValidated'));
     } catch (e: any) {
-      notifications.error(e?.message ?? 'Erreur de validation');
+      notifications.error(e?.message ?? get(t)('settings.licenseValidationError'));
     }
     licenseValidating = false;
   }
@@ -353,9 +353,9 @@
         body: JSON.stringify({ local_audio_backend: backend, local_exclusive_mode: newExclusive }),
       });
       exclusiveMode = newExclusive;
-      notifications.success(`Backend audio: ${backend.toUpperCase()}. Redemarrez le serveur.`);
+      notifications.success(`${get(t)('settings.audioBackend')}: ${backend.toUpperCase()}. ${get(t)('settings.restartServerNeeded')}`);
     } catch {
-      notifications.error('Erreur changement backend audio');
+      notifications.error(get(t)('settings.audioBackendError'));
     }
   }
 
@@ -368,9 +368,9 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ local_exclusive_mode: newVal }),
       });
-      notifications.success(newVal ? 'Mode exclusif active. Redemarrez le serveur.' : 'Mode partage active. Redemarrez le serveur.');
+      notifications.success((newVal ? get(t)('settings.exclusiveModeOn') : get(t)('settings.sharedModeOn')) + ' ' + get(t)('settings.restartServerNeeded'));
     } catch {
-      notifications.error('Erreur changement mode exclusif');
+      notifications.error(get(t)('settings.exclusiveModeError'));
     }
   }
 
@@ -393,9 +393,9 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ level }),
       });
-      notifications.success(`Niveau de log: ${level}`);
+      notifications.success(`${get(t)('settings.logLevel')}: ${level}`);
     } catch {
-      notifications.error('Erreur changement log level');
+      notifications.error(get(t)('settings.logLevelError'));
     }
   }
 
@@ -417,7 +417,7 @@
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert('Erreur logs: ' + (err?.message ?? String(err)));
+      alert(get(t)('settings.logsError') + ': ' + (err?.message ?? String(err)));
     } finally {
       logsDownloading = false;
     }
@@ -439,7 +439,7 @@
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert('Erreur diagnostic: ' + (err?.message ?? String(err)));
+      alert(get(t)('settings.diagnosticError') + ': ' + (err?.message ?? String(err)));
     } finally {
       diagDownloading = false;
     }
@@ -475,7 +475,7 @@
     hqplayerSaving = true;
     try {
       await api.apiPost('/hqplayer/config', { host: hqplayerHostInput.trim(), port: hqplayerPortInput, enabled: hqplayerEnabled });
-      notifications.success('HQPlayer configuré');
+      notifications.success(get(t)('settings.hqplayerConfigured'));
       await checkHqplayer();
     } catch (e: any) { notifications.error(e?.message ?? 'Error'); }
     hqplayerSaving = false;
@@ -587,7 +587,7 @@
         spotifyConnect = await api.disableSpotifyConnect();
       } else {
         if (spotifyConnectZoneId == null) {
-          spotifyConnectError = 'Choisissez une zone';
+          spotifyConnectError = get(t)('settings.chooseZone');
           return;
         }
         spotifyConnect = await api.enableSpotifyConnect(
@@ -1026,12 +1026,12 @@
       const data = await res.json();
       if (data.ok) {
         pgTestOk = true;
-        pgTestResult = `PostgreSQL ${data.version} — connexion OK`;
+        pgTestResult = `PostgreSQL ${data.version} — ${get(t)('settings.connectionOk')}`;
       } else {
-        pgTestResult = `Erreur: ${data.error}`;
+        pgTestResult = `${get(t)('common.error')}: ${data.error}`;
       }
     } catch (e: any) {
-      pgTestResult = `Erreur: ${e.message}`;
+      pgTestResult = `${get(t)('common.error')}: ${e.message}`;
     }
     pgTesting = false;
   }
@@ -1041,9 +1041,9 @@
     pgMigrating = true;
     try {
       await fetch(`/api/v1/system/database/migrate?target=postgres&url=${encodeURIComponent(pgUrl)}`, { method: 'POST' });
-      pgTestResult = 'Migration lancée ! Le serveur va redémarrer...';
+      pgTestResult = get(t)('settings.migrationStarted');
     } catch (e: any) {
-      pgTestResult = `Erreur migration: ${e.message}`;
+      pgTestResult = `${get(t)('settings.migrationError')}: ${e.message}`;
     }
     pgMigrating = false;
   }
@@ -1052,9 +1052,9 @@
     pgMigrating = true;
     try {
       await fetch(`/api/v1/system/database/migrate?target=sqlite`, { method: 'POST' });
-      pgTestResult = 'Migration vers SQLite lancée...';
+      pgTestResult = get(t)('settings.migrationToSqliteStarted');
     } catch (e: any) {
-      pgTestResult = `Erreur: ${e.message}`;
+      pgTestResult = `${get(t)('common.error')}: ${e.message}`;
     }
     pgMigrating = false;
   }
@@ -1073,9 +1073,9 @@
     ftsResult = '';
     try {
       const result = await api.rebuildFts();
-      ftsResult = `Index reconstruit : ${result.rows_indexed} enregistrements indexes.`;
+      ftsResult = `${get(t)('settings.ftsRebuilt')} : ${result.rows_indexed} ${get(t)('settings.recordsIndexed')}`;
     } catch (err: any) {
-      ftsResult = `Erreur : ${err.message}`;
+      ftsResult = `${get(t)('common.error')} : ${err.message}`;
     } finally {
       ftsRebuilding = false;
     }
@@ -1089,7 +1089,7 @@
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
-    if (!confirm(`Importer "${file.name}" va remplacer la base de données actuelle.\nUn backup de sécurité sera créé.\nLe serveur devra être redémarré après l'import.\n\nContinuer ?`)) {
+    if (!confirm(get(t)('settings.importDbConfirm').replace('{name}', file.name))) {
       input.value = '';
       return;
     }
@@ -1097,9 +1097,9 @@
     dbImportResult = '';
     try {
       const result = await api.importDatabase(file);
-      dbImportResult = `Import réussi (${(result.size / 1024 / 1024).toFixed(1)} MB). Redémarrez le serveur pour prendre en compte les changements.`;
+      dbImportResult = `${get(t)('settings.importDbSuccess')} (${(result.size / 1024 / 1024).toFixed(1)} MB). ${get(t)('settings.restartToApply')}`;
     } catch (err: any) {
-      dbImportResult = `Erreur import: ${err.message}`;
+      dbImportResult = `${get(t)('settings.importDbError')}: ${err.message}`;
     } finally {
       dbImporting = false;
       input.value = '';
@@ -1251,9 +1251,9 @@
     try {
       await api.deleteDevice(deviceId);
       devices.update(list => list.filter(d => d.id !== deviceId));
-      notifications.success(`${deviceName} supprimé`);
+      notifications.success(get(t)('settings.deviceDeleted').replace('{name}', deviceName));
     } catch (e: any) {
-      notifications.error(e?.message || 'Erreur');
+      notifications.error(e?.message || get(t)('common.error'));
     }
   }
 
@@ -1261,9 +1261,9 @@
     try {
       const result = await api.clearDevices();
       devices.set([]);
-      notifications.success(`${result.cleared} appareils supprimés`);
+      notifications.success(get(t)('settings.devicesCleared').replace('{count}', String(result.cleared)));
     } catch (e: any) {
-      notifications.error(e?.message || 'Erreur');
+      notifications.error(e?.message || get(t)('common.error'));
     }
   }
 
@@ -1313,18 +1313,18 @@
   let clearingLibrary = $state(false);
 
   async function handleClearLibrary() {
-    if (!confirm('Vider toute la bibliothèque ? (tracks, albums, artistes)\nLes zones, playlists et radios seront conservées.')) return;
+    if (!confirm(get(t)('settings.clearLibraryConfirm'))) return;
     clearingLibrary = true;
     try {
       const result = await api.clearLibrary();
       if (result) {
-        scanMessage = 'Bibliothèque vidée. Lancez un scan pour reconstruire.';
+        scanMessage = get(t)('settings.libraryCleared');
         stats = await api.getStats();
       } else {
-        scanMessage = 'Erreur lors de la suppression';
+        scanMessage = get(t)('settings.deletionError');
       }
     } catch (e: any) {
-      scanMessage = `Erreur: ${e?.message || e}`;
+      scanMessage = `${get(t)('common.error')}: ${e?.message || e}`;
     }
     clearingLibrary = false;
   }
@@ -1334,15 +1334,15 @@
     scanMessage = '';
     try {
       await api.triggerScan(undefined, full);
-      scanMessage = full ? 'Scan complet lance !' : 'Scan lance !';
-      notifications.success(full ? 'Scan complet (relecture de tous les tags)' : 'Scan de la bibliotheque lance');
+      scanMessage = full ? get(t)('settings.fullScanStarted') : get(t)('settings.scanStarted');
+      notifications.success(full ? get(t)('settings.fullScanNotice') : get(t)('settings.scanLibraryStarted'));
     } catch (e: any) {
       if (e?.message?.includes('already') || e?.message?.includes('409')) {
-        scanMessage = 'Scan deja en cours...';
-        notifications.success('Scan deja en cours');
+        scanMessage = get(t)('settings.scanAlreadyRunning') + '...';
+        notifications.success(get(t)('settings.scanAlreadyRunning'));
       } else {
-        scanMessage = `Erreur: ${e?.message || e}`;
-        notifications.error(`Erreur scan: ${e?.message || e}`);
+        scanMessage = `${get(t)('common.error')}: ${e?.message || e}`;
+        notifications.error(`${get(t)('settings.scanError')}: ${e?.message || e}`);
       }
       scanning = false;
     }
@@ -1589,7 +1589,11 @@
         scanProgress = null;
         scanningPath = null;
         const d = event.data ?? {};
-        scanMessage = `Scan termine : ${d.scanned ?? '?'} fichiers, ${d.added ?? 0} ajoutes, ${d.updated ?? 0} mis a jour, ${d.removed ?? 0} supprimes`;
+        scanMessage = get(t)('settings.scanCompleted')
+          .replace('{scanned}', String(d.scanned ?? '?'))
+          .replace('{added}', String(d.added ?? 0))
+          .replace('{updated}', String(d.updated ?? 0))
+          .replace('{removed}', String(d.removed ?? 0));
         notifications.success(scanMessage);
         loadAll();
       } else if (event.type === 'library.artwork.progress') {
@@ -1627,37 +1631,37 @@
         <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="14" y2="12" /><line x1="4" y1="18" x2="18" y2="18" />
         <circle cx="19" cy="6" r="3" /><circle cx="19" cy="12" r="3" />
       </svg>
-      Général
+      {$t('settings.tabGeneral')}
     </button>
     <button class="settings-tab" class:active={settingsTab === 'library'} onclick={() => settingsTab = 'library'}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
       </svg>
-      Bibliothèque
+      {$t('settings.library')}
     </button>
     <button class="settings-tab" class:active={settingsTab === 'services'} onclick={() => settingsTab = 'services'}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
       </svg>
-      Services
+      {$t('settings.tabServices')}
     </button>
     <button class="settings-tab" class:active={settingsTab === 'network'} onclick={() => settingsTab = 'network'}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
         <path d="M5 12.55a11 11 0 0 1 14.08 0" /><path d="M1.42 9a16 16 0 0 1 21.16 0" /><path d="M8.53 16.11a6 6 0 0 1 6.95 0" /><line x1="12" y1="20" x2="12.01" y2="20" />
       </svg>
-      Réseau &amp; Audio
+      {$t('settings.tabNetworkAudio')}
     </button>
     <button class="settings-tab" class:active={settingsTab === 'system'} onclick={() => settingsTab = 'system'}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
         <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
       </svg>
-      Système
+      {$t('settings.tabSystem')}
     </button>
     <button class="settings-tab" class:active={settingsTab === 'multiroom'} onclick={() => settingsTab = 'multiroom'}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
         <rect x="2" y="7" width="8" height="10" rx="1" /><rect x="14" y="7" width="8" height="10" rx="1" /><path d="M10 12h4" />
       </svg>
-      Multi-room
+      {$t('settings.tabMultiroom')}
     </button>
   </div>
 
@@ -1675,30 +1679,30 @@
     {#if settingsTab === 'network'}
     <!-- Audio diagnostic -->
     <section class="settings-section audio-diagnostic">
-      <h3>Diagnostic audio</h3>
+      <h3>{$t('settings.audioDiagnostic')}</h3>
       <div class="diag-checks">
         <div class="diag-check">
           <span class="diag-icon">{$zones.length > 0 ? '✅' : '⚠️'}</span>
-          <span class="diag-label">Zones de lecture</span>
+          <span class="diag-label">{$t('settings.playbackZones')}</span>
           <span class="diag-value">{$zones.length} configurée{$zones.length !== 1 ? 's' : ''}</span>
         </div>
         <div class="diag-check">
           <span class="diag-icon">{audioDevices.length > 0 ? '✅' : '⚠️'}</span>
-          <span class="diag-label">Sorties audio</span>
+          <span class="diag-label">{$t('settings.audioOutputs')}</span>
           <span class="diag-value">{audioDevices.length} détectée{audioDevices.length !== 1 ? 's' : ''}</span>
         </div>
         <div class="diag-check">
           <span class="diag-icon">{$devices.length > 0 ? '✅' : 'ℹ️'}</span>
-          <span class="diag-label">Appareils réseau</span>
+          <span class="diag-label">{$t('settings.networkDevicesLabel')}</span>
           <span class="diag-value">{$devices.length} trouvé{$devices.length !== 1 ? 's' : ''}</span>
         </div>
       </div>
       {#if $zones.length === 0 || audioDevices.length === 0}
         <p class="diag-hint">
           {#if $zones.length === 0}
-            Aucune zone configurée. Créez-en une dans la section Zones ci-dessous.
+            {$t('settings.noZonesHint')}
           {:else if audioDevices.length === 0}
-            Aucune sortie audio détectée. Vérifiez vos connexions (USB DAC, HDMI, etc.).
+            {$t('settings.noAudioOutputHint')}
           {/if}
         </p>
       {/if}
@@ -1712,17 +1716,17 @@
         <div class="update-banner" style="margin-bottom: 1rem;">
           <span class="update-icon">🔄</span>
           <span class="update-text">
-            Mise à jour disponible : <strong>v{updateInfo.latest_version}</strong>
-            (actuel : v{updateInfo.current_version})
+            {$t('settings.updateAvailable')} : <strong>v{updateInfo.latest_version}</strong>
+            ({$t('settings.current')} : v{updateInfo.current_version})
           </span>
           {#if updateDmgReady}
-            <span class="update-done">DMG téléchargé et ouvert dans le Finder.</span>
+            <span class="update-done">{$t('settings.dmgReady')}</span>
           {:else if updateDone}
-            <span class="update-done">Installée — redémarrage...</span>
+            <span class="update-done">{$t('settings.installedRestarting')}</span>
           {:else if updateInstalling}
-            <span class="update-btn" style="opacity:0.6">Installation...</span>
+            <span class="update-btn" style="opacity:0.6">{$t('settings.installing')}</span>
           {:else}
-            <button class="update-btn" onclick={installUpdate}>Mettre à jour</button>
+            <button class="update-btn" onclick={installUpdate}>{$t('settings.updateButton')}</button>
           {/if}
         </div>
       </section>
@@ -1772,11 +1776,11 @@
     {#if settingsTab === 'network'}
     <!-- Tune Peers on the network -->
     <section class="settings-section">
-      <h3>Serveurs Tune sur le réseau</h3>
+      <h3>{$t('settings.tuneServersOnNetwork')}</h3>
       {#if peersLoading}
-        <div class="loading"><div class="spinner small"></div> Recherche...</div>
+        <div class="loading"><div class="spinner small"></div> {$t('settings.searching')}</div>
       {:else if tunePeers.length === 0}
-        <p class="diag-hint">Aucun autre serveur Tune détecté sur le réseau local.</p>
+        <p class="diag-hint">{$t('settings.noTunePeers')}</p>
       {:else}
         <div class="peers-list">
           {#each tunePeers as peer}
@@ -1784,11 +1788,11 @@
               <div class="peer-info">
                 <span class="peer-name">{peer.name}</span>
                 <span class="peer-details">{peer.host}:{peer.port} — v{peer.version}</span>
-                <span class="peer-stats">{peer.tracks} pistes, {peer.zones} zone{peer.zones !== 1 ? 's' : ''}</span>
+                <span class="peer-stats">{peer.tracks} {$t('common.tracks')}, {peer.zones} zone{peer.zones !== 1 ? 's' : ''}</span>
               </div>
               <div class="peer-actions">
                 <button class="btn-secondary" onclick={() => window.open(`http://${peer.host}:${peer.port}`, '_blank')}>
-                  Parcourir
+                  {$t('settings.browse')}
                 </button>
               </div>
             </div>
@@ -1799,7 +1803,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
           <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
         </svg>
-        Actualiser
+        {$t('settings.refresh')}
       </button>
     </section>
     {/if}
@@ -1807,11 +1811,11 @@
     {#if settingsTab === 'general'}
     <!-- Playback / Crossfade -->
     <section class="settings-section">
-      <h3>Lecture</h3>
+      <h3>{$t('settings.playback')}</h3>
       <div class="setting-row">
         <div class="setting-label">
           <span>Crossfade</span>
-          <span class="setting-hint">Fondu enchaîné entre les pistes. Décochez pour un enchaînement gapless (sans silence ni fondu).</span>
+          <span class="setting-hint">{$t('settings.crossfadeHint')}</span>
         </div>
         <label class="toggle">
           <input type="checkbox" bind:checked={crossfadeEnabled} onchange={() => applyCrossfade()} />
@@ -1821,7 +1825,7 @@
       {#if crossfadeEnabled}
         <div class="setting-row">
           <div class="setting-label">
-            <span>Durée : {crossfadeDuration}s</span>
+            <span>{$t('settings.duration')} : {crossfadeDuration}s</span>
           </div>
           <input
             type="range"
@@ -1839,8 +1843,8 @@
       <h3>Tune Voice AI</h3>
       <div class="setting-row">
         <div class="setting-label">
-          <span>Commande vocale</span>
-          <span class="setting-hint">Activez le micro pour parler a Tune AI au lieu de taper.</span>
+          <span>{$t('settings.voiceCommand')}</span>
+          <span class="setting-hint">{$t('settings.voiceCommandHint')}</span>
         </div>
         <label class="toggle">
           <input type="checkbox" checked={localStorage.getItem('tune_voice_ai_enabled') === 'true'} onchange={(e) => {
@@ -1848,9 +1852,9 @@
             localStorage.setItem('tune_voice_ai_enabled', String(enabled));
             if (enabled) {
               navigator.mediaDevices?.getUserMedia({ audio: true }).then(() => {
-                notifications.success('Micro autorise. Rechargez la page pour activer le bouton micro dans Tune AI.');
+                notifications.success($t('settings.micAuthorized'));
               }).catch(() => {
-                notifications.error('Acces au micro refuse par le navigateur.');
+                notifications.error($t('settings.micDenied'));
                 localStorage.setItem('tune_voice_ai_enabled', 'false');
                 (e.target as HTMLInputElement).checked = false;
               });
@@ -1895,7 +1899,7 @@
         <button class="scan-btn" onclick={() => handleScan(false)} disabled={scanning}>
           {#if scanning}
             <div class="spinner small"></div>
-            {$t('settings.scanning')}{#if scanProgress} — {scanProgress.scanned} fichiers ({scanProgress.added} ajoutés){/if}
+            {$t('settings.scanning')}{#if scanProgress} — {scanProgress.scanned} {$t('settings.filesWord')} ({scanProgress.added} {$t('settings.addedWord')}){/if}
           {:else}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
               <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
@@ -1903,14 +1907,14 @@
             {$t('settings.scanLibrary')}
           {/if}
         </button>
-        <button class="scan-btn" onclick={() => handleScan(true)} disabled={scanning} title="Relit tous les tags audio (plus long)">
+        <button class="scan-btn" onclick={() => handleScan(true)} disabled={scanning} title={$t('settings.fullScanTitle')}>
           {#if scanning}
             <div class="spinner small"></div>
           {:else}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
               <path d="M21.5 2v6h-6" /><path d="M2.5 22v-6h6" /><path d="M22 11.5A10 10 0 0 0 3.2 7.2" /><path d="M2 12.5a10 10 0 0 0 18.8 4.2" />
             </svg>
-            Scan complet
+            {$t('settings.fullScan')}
           {/if}
         </button>
         {#if scanMessage}
@@ -1936,12 +1940,12 @@
         <button class="scan-btn danger-btn" onclick={handleClearLibrary} disabled={clearingLibrary}>
           {#if clearingLibrary}
             <div class="spinner small"></div>
-            Suppression...
+            {$t('settings.deleting')}
           {:else}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
               <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
             </svg>
-            Vider la bibliothèque
+            {$t('settings.clearLibrary')}
           {/if}
         </button>
       </div>
@@ -1949,18 +1953,18 @@
 
     <!-- Quality Split -->
     <section class="settings-section">
-      <h3>Options de scan</h3>
+      <h3>{$t('settings.scanOptions')}</h3>
       <div class="setting-row">
         <div class="setting-label">
-          <span>Séparer les albums par qualité</span>
-          <span class="setting-hint">Si un même album existe en CD et Hi-Res, créer deux entrées distinctes (ex: "Album (96kHz/24bit)")</span>
+          <span>{$t('settings.qualitySplit')}</span>
+          <span class="setting-hint">{$t('settings.qualitySplitHint')}</span>
         </div>
         <label class="toggle">
           <input type="checkbox" checked={!(config?.quality_split === false || config?.quality_split === 'false' || config?.quality_split === 0 || config?.quality_split === '0')} onchange={async (e) => {
             const val = (e.target as HTMLInputElement).checked;
             await api.apiPatch('/system/config', { quality_split: val });
             if (config) config.quality_split = val;
-            notifications.success('Sauvegardé. Relancez un scan complet pour appliquer.');
+            notifications.success($t('settings.savedRescanFull'));
           }} />
           <span class="toggle-slider"></span>
         </label>
@@ -2056,7 +2060,7 @@
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              Exporter la base
+              {$t('settings.exportDatabase')}
             </button>
             <button class="btn-secondary" onclick={() => dbImportFileInput?.click()} disabled={dbImporting}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
@@ -2064,7 +2068,7 @@
                 <polyline points="17 8 12 3 7 8" />
                 <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
-              {dbImporting ? 'Import...' : 'Importer un fichier'}
+              {dbImporting ? $t('settings.importInProgress') : $t('settings.importFile')}
             </button>
             <input
               bind:this={dbImportFileInput}
@@ -2075,7 +2079,7 @@
             />
           </div>
           {#if dbImportResult}
-            <div class="migrate-result" class:ok={dbImportResult.startsWith('Import réussi')} class:error={dbImportResult.startsWith('Erreur')}>
+            <div class="migrate-result" class:ok={dbImportResult.startsWith($t('settings.importDbSuccess'))} class:error={dbImportResult.startsWith($t('settings.importDbError'))}>
               {dbImportResult}
             </div>
           {/if}
@@ -2083,19 +2087,19 @@
 
         <!-- Rebuild search index -->
         <div class="db-importexport">
-          <h4>Index de recherche</h4>
-          <p class="db-hint" style="margin-top:0">Reconstruire l'index si la recherche ne renvoie pas de resultats apres des modifications manuelles de la base.</p>
+          <h4>{$t('settings.searchIndex')}</h4>
+          <p class="db-hint" style="margin-top:0">{$t('settings.rebuildIndexHint')}</p>
           <div class="db-ie-actions">
             <button class="btn-secondary" onclick={rebuildFtsIndex} disabled={ftsRebuilding}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                 <polyline points="23 4 23 10 17 10" />
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
               </svg>
-              {ftsRebuilding ? 'Reconstruction...' : 'Reconstruire l\'index'}
+              {ftsRebuilding ? $t('settings.rebuilding') : $t('settings.rebuildIndex')}
             </button>
           </div>
           {#if ftsResult}
-            <div class="migrate-result" class:ok={ftsResult.startsWith('Index')} class:error={ftsResult.startsWith('Erreur')}>
+            <div class="migrate-result" class:ok={ftsResult.startsWith($t('settings.ftsRebuilt'))} class:error={ftsResult.startsWith($t('common.error'))}>
               {ftsResult}
             </div>
           {/if}
@@ -2106,15 +2110,15 @@
         <!-- Migration section -->
         {#if config.db_engine === 'sqlite'}
           <div class="db-migrate">
-            <h4>Migrer vers PostgreSQL</h4>
+            <h4>{$t('settings.migrateToPostgres')}</h4>
             <div class="migrate-form">
               <input type="text" class="auth-input" placeholder="postgresql://user:password@localhost/tune" bind:value={pgUrl} />
               <div class="migrate-actions">
                 <button class="btn-secondary" onclick={testPgConnection} disabled={!pgUrl || pgTesting}>
-                  {pgTesting ? 'Test...' : 'Tester la connexion'}
+                  {pgTesting ? $t('settings.testing') : $t('settings.testConnection')}
                 </button>
                 <button class="btn-primary" onclick={migrateToPg} disabled={!pgTestOk || pgMigrating}>
-                  {pgMigrating ? 'Migration en cours...' : 'Migrer'}
+                  {pgMigrating ? $t('settings.migrating') : $t('settings.migrate')}
                 </button>
               </div>
               {#if pgTestResult}
@@ -2126,9 +2130,9 @@
           </div>
         {:else}
           <div class="db-migrate">
-            <h4>Migrer vers SQLite</h4>
+            <h4>{$t('settings.migrateToSqlite')}</h4>
             <button class="btn-secondary" onclick={migrateToSqlite} disabled={pgMigrating}>
-              {pgMigrating ? 'Migration en cours...' : 'Migrer vers SQLite'}
+              {pgMigrating ? $t('settings.migrating') : $t('settings.migrateToSqliteBtn')}
             </button>
           </div>
         {/if}
@@ -2230,9 +2234,9 @@
                     <table>
                       <thead>
                         <tr>
-                          <th>Titre</th>
-                          <th>Artiste</th>
-                          <th>Statut</th>
+                          <th>{$t('settings.columnTitle')}</th>
+                          <th>{$t('settings.columnArtist')}</th>
+                          <th>{$t('settings.columnStatus')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2250,7 +2254,7 @@
                           </tr>
                         {/each}
                         {#if importReport.details.length > 100}
-                          <tr><td colspan="3" class="more-rows">+ {importReport.details.length - 100} lignes...</td></tr>
+                          <tr><td colspan="3" class="more-rows">+ {importReport.details.length - 100} {$t('settings.rowsWord')}...</td></tr>
                         {/if}
                       </tbody>
                     </table>
@@ -2475,9 +2479,9 @@
     <section class="settings-section">
       <h3>{$t('settings.localAudio')}</h3>
       <div class="about-row" style="margin-bottom: 0.75rem">
-        <span class="about-label">Backend audio</span>
+        <span class="about-label">{$t('settings.audioBackend')}</span>
         <select class="log-level-select" value={audioBackend} onchange={(e) => changeAudioBackend((e.target as HTMLSelectElement).value)}>
-          <option value="auto">Auto (defaut)</option>
+          <option value="auto">{$t('settings.autoDefault')}</option>
           <option value="wasapi">WASAPI</option>
           <option value="asio">ASIO (bit-perfect)</option>
         </select>
@@ -2486,8 +2490,8 @@
       <div class="about-row" style="margin-bottom: 0.75rem">
         <span class="about-label">Mode WASAPI</span>
         <select class="log-level-select" value={exclusiveMode ? 'exclusive' : 'shared'} onchange={(e) => { const v = (e.target as HTMLSelectElement).value; if ((v === 'exclusive') !== exclusiveMode) toggleExclusiveMode(); }}>
-          <option value="shared">Partage (defaut)</option>
-          <option value="exclusive">Exclusif (bit-perfect)</option>
+          <option value="shared">{$t('settings.sharedDefault')}</option>
+          <option value="exclusive">{$t('settings.exclusiveBitPerfect')}</option>
         </select>
       </div>
       {/if}
@@ -2600,7 +2604,7 @@
         </span>
       </div>
       <p class="settings-note">{$t('settings.discogsTokenHelp')}</p>
-      <p class="settings-note">TUNE_DISCOGS_TOKEN=... dans .env</p>
+      <p class="settings-note">{$t('settings.discogsEnvHint')}</p>
       <div class="settings-actions">
         <button class="action-btn" onclick={async () => { await api.apiPost('/system/enrich'); enrichMsg = $t('settings.enrichStarted'); setTimeout(() => enrichMsg = '', 3000); }}>
           {$t('settings.enrichNow')}
@@ -2608,11 +2612,11 @@
         {#if enrichMsg}<span class="action-feedback">{enrichMsg}</span>{/if}
       </div>
       <div class="settings-actions" style="margin-top: 12px;">
-        <button class="action-btn" onclick={async () => { await api.apiPost('/library/enrich-all'); enrichMsg = 'Enrichissement MusicBrainz lancé (genre, label, année, compositeur, ISRC)...'; setTimeout(() => enrichMsg = '', 5000); }}>
-          Enrichir via MusicBrainz
+        <button class="action-btn" onclick={async () => { await api.apiPost('/library/enrich-all'); enrichMsg = $t('settings.enrichMbStarted'); setTimeout(() => enrichMsg = '', 5000); }}>
+          {$t('settings.enrichViaMb')}
         </button>
-        <button class="action-btn" style="margin-left: 8px;" onclick={async () => { await api.apiPost('/library/write-tags', { only_missing: true }); enrichMsg = 'Écriture des tags dans les fichiers lancée (champs manquants uniquement)...'; setTimeout(() => enrichMsg = '', 5000); }}>
-          Écrire les tags dans les fichiers
+        <button class="action-btn" style="margin-left: 8px;" onclick={async () => { await api.apiPost('/library/write-tags', { only_missing: true }); enrichMsg = $t('settings.writeTagsStarted'); setTimeout(() => enrichMsg = '', 5000); }}>
+          {$t('settings.writeTags')}
         </button>
       </div>
     </section>
@@ -2692,10 +2696,10 @@
 
     <!-- Display metadata fields -->
     <section class="settings-section">
-      <h3>Champs métadonnées affichés</h3>
-      <p class="section-hint">Champs affichés sous chaque titre dans les résultats de recherche, la bibliothèque, la file d'attente et l'historique.</p>
+      <h3>{$t('settings.displayedMetadataFields')}</h3>
+      <p class="section-hint">{$t('settings.displayedMetadataHint')}</p>
       {#if metadataLoading}
-        <p style="opacity:0.5">Chargement…</p>
+        <p style="opacity:0.5">{$t('common.loading')}</p>
       {:else if metadataCategories.length > 0}
         {#each metadataCategories as cat, catIndex}
           <div class="metadata-category">
@@ -2927,21 +2931,17 @@
       <section class="settings-section">
         <h3>Spotify Connect</h3>
         <p class="section-hint">
-          Tune apparaît comme un récepteur Spotify Connect sur le réseau local.
-          Depuis l'app Spotify, sélectionnez "Tune (…)" dans la liste des appareils.
-          Compte Spotify Premium requis côté client.
+          {$t('settings.spotifyConnectHint')}
         </p>
 
         {#if !spotifyConnect.binary_available}
           <p class="auth-error">
-            librespot non détecté. Réinstallez Tune Server depuis le .pkg /
-            archive officiel pour que le binaire soit livré, ou installez-le
-            séparément (<code>brew install librespot</code> /
+            {$t('settings.librespotNotDetected')} (<code>brew install librespot</code> /
             <code>apt install librespot</code>).
           </p>
         {:else}
           <div class="form-row">
-            <label for="sc-zone">Zone cible</label>
+            <label for="sc-zone">{$t('settings.targetZone')}</label>
             <select id="sc-zone" bind:value={spotifyConnectZoneId} disabled={spotifyConnect.enabled || spotifyConnectBusy}>
               <option value={null}>—</option>
               {#each $zones as z (z.id)}
@@ -2950,7 +2950,7 @@
             </select>
           </div>
           <div class="form-row">
-            <label for="sc-name">Nom du device (optionnel)</label>
+            <label for="sc-name">{$t('settings.deviceNameOptional')}</label>
             <input
               id="sc-name"
               type="text"
@@ -2972,16 +2972,16 @@
             >
               {#if spotifyConnectBusy}
                 <div class="spinner small"></div>
-                Patience…
+                {$t('settings.pleaseWait')}
               {:else if spotifyConnect.enabled}
-                Désactiver
+                {$t('settings.disable')}
               {:else}
-                Activer
+                {$t('settings.enable')}
               {/if}
             </button>
             {#if spotifyConnect.enabled}
               <span class="status-pill" class:active={spotifyConnect.active}>
-                {spotifyConnect.active ? '● En lecture' : '○ En attente'}
+                {spotifyConnect.active ? '● ' + $t('settings.playing') : '○ ' + $t('settings.waiting')}
               </span>
             {/if}
           </div>
@@ -3007,8 +3007,8 @@
     <!-- Zone audio settings (DSD mode, gapless, fixed volume) -->
     {#if $zones.length > 0}
       <section class="settings-section">
-        <h3>Réglages par zone</h3>
-        <p class="section-hint">Mode DSD, volume fixe et gapless pour chaque zone de lecture.</p>
+        <h3>{$t('settings.perZoneSettings')}</h3>
+        <p class="section-hint">{$t('settings.perZoneHint')}</p>
         <div class="zone-settings-list">
           {#each $zones as z (z.id)}
             <div class="zone-setting-row">
@@ -3025,9 +3025,9 @@
                     }}
                   >
                     <option value="auto">Auto</option>
-                    <option value="native">Natif (passthrough)</option>
+                    <option value="native">{$t('settings.dsdNative')}</option>
                     <option value="dop">DoP</option>
-                    <option value="pcm">PCM (conversion)</option>
+                    <option value="pcm">{$t('settings.dsdPcm')}</option>
                   </select>
                 </label>
               </div>
@@ -3133,11 +3133,11 @@
     {#if config}
       <section class="settings-section">
         <h3>HQPlayer</h3>
-        <p class="section-hint">Connectez Tune à HQPlayer pour l'upsampling et les filtres audiophiles. Port par défaut : 4321 (v4/v5) ou 8019 (v6).</p>
+        <p class="section-hint">{$t('settings.hqplayerHint')}</p>
 
         <div class="setting-row">
           <div class="setting-label">
-            <span>Activer HQPlayer</span>
+            <span>{$t('settings.enableHqplayer')}</span>
           </div>
           <label class="toggle">
             <input type="checkbox" checked={hqplayerEnabled} onchange={() => toggleHqplayer()} disabled={hqplayerSaving} />
@@ -3148,7 +3148,7 @@
         {#if hqplayerEnabled}
           <div class="setting-row" style="margin-top: 0.5rem;">
             <div class="setting-label">
-              <span>Adresse IP HQPlayer</span>
+              <span>{$t('settings.hqplayerIp')}</span>
             </div>
             <div class="squeezebox-host-row">
               <input
@@ -3169,27 +3169,27 @@
                 style="max-width: 80px;"
               />
               <button class="scan-btn small" onclick={saveHqplayer} disabled={hqplayerSaving}>
-                {hqplayerSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+                {hqplayerSaving ? $t('settings.saving') : $t('common.save')}
               </button>
             </div>
           </div>
 
           <div class="setting-row" style="margin-top: 0.5rem;">
             <div class="setting-label">
-              <span>État</span>
+              <span>{$t('settings.status')}</span>
             </div>
             <div>
               {#if hqplayerChecking}
                 <div class="spinner small"></div>
               {:else if hqplayerReachable === true}
-                <span class="squeezebox-status-badge connected">Connecté</span>
+                <span class="squeezebox-status-badge connected">{$t('settings.connected')}</span>
               {:else if hqplayerReachable === false}
-                <span class="squeezebox-status-badge disconnected">Injoignable</span>
+                <span class="squeezebox-status-badge disconnected">{$t('settings.unreachable')}</span>
               {:else}
-                <span class="muted">Non testé</span>
+                <span class="muted">{$t('settings.notTested')}</span>
               {/if}
               <button class="scan-btn small" onclick={checkHqplayer} disabled={hqplayerChecking} style="margin-left: 8px;">
-                Tester la connexion
+                {$t('settings.testConnection')}
               </button>
             </div>
           </div>
@@ -3293,32 +3293,32 @@
     </section>
 
     <section class="settings-section">
-      <h3>Exporter CSV</h3>
-      <p class="section-hint">Téléchargez votre bibliothèque au format CSV.</p>
+      <h3>{$t('settings.exportCsv')}</h3>
+      <p class="section-hint">{$t('settings.exportCsvHint')}</p>
       <div class="db-ie-actions">
-        <button class="btn-secondary" onclick={async () => { csvExporting = 'albums'; try { await api.exportAlbumsCsv(); } catch (e) { alert('Erreur : ' + (e as Error).message); } finally { csvExporting = null; } }} disabled={csvExporting !== null}>
+        <button class="btn-secondary" onclick={async () => { csvExporting = 'albums'; try { await api.exportAlbumsCsv(); } catch (e) { alert($t('common.error') + ' : ' + (e as Error).message); } finally { csvExporting = null; } }} disabled={csvExporting !== null}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          {csvExporting === 'albums' ? 'Export...' : 'Albums (CSV)'}
+          {csvExporting === 'albums' ? $t('settings.exportInProgress') : $t('settings.albums') + ' (CSV)'}
         </button>
-        <button class="btn-secondary" onclick={async () => { csvExporting = 'tracks'; try { await api.exportTracksCsv(); } catch (e) { alert('Erreur : ' + (e as Error).message); } finally { csvExporting = null; } }} disabled={csvExporting !== null}>
+        <button class="btn-secondary" onclick={async () => { csvExporting = 'tracks'; try { await api.exportTracksCsv(); } catch (e) { alert($t('common.error') + ' : ' + (e as Error).message); } finally { csvExporting = null; } }} disabled={csvExporting !== null}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          {csvExporting === 'tracks' ? 'Export...' : 'Pistes (CSV)'}
+          {csvExporting === 'tracks' ? $t('settings.exportInProgress') : $t('settings.tracks') + ' (CSV)'}
         </button>
-        <button class="btn-secondary" onclick={async () => { csvExporting = 'artists'; try { await api.exportArtistsCsv(); } catch (e) { alert('Erreur : ' + (e as Error).message); } finally { csvExporting = null; } }} disabled={csvExporting !== null}>
+        <button class="btn-secondary" onclick={async () => { csvExporting = 'artists'; try { await api.exportArtistsCsv(); } catch (e) { alert($t('common.error') + ' : ' + (e as Error).message); } finally { csvExporting = null; } }} disabled={csvExporting !== null}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          {csvExporting === 'artists' ? 'Export...' : 'Artistes (CSV)'}
+          {csvExporting === 'artists' ? $t('settings.exportInProgress') : $t('settings.artists') + ' (CSV)'}
         </button>
       </div>
     </section>
@@ -3327,10 +3327,10 @@
     {#if settingsTab === 'library'}
     <!-- Metadata Fields Configuration -->
     <section class="settings-section">
-      <h3>Metadonnees</h3>
-      <p class="meta-fields-hint">Choisissez les champs de metadonnees affichees dans les vues album et piste.</p>
+      <h3>{$t('metadata.title')}</h3>
+      <p class="meta-fields-hint">{$t('settings.metaFieldsHint')}</p>
       {#if metadataLoading}
-        <div class="loading"><div class="spinner small"></div> Chargement...</div>
+        <div class="loading"><div class="spinner small"></div> {$t('common.loading')}</div>
       {:else}
         <div class="meta-fields-categories">
           {#each metadataCategories as cat, catIndex}
@@ -3386,7 +3386,7 @@
       <div class="cloud-subsection">
         <h4 class="cloud-label">mozaiklabs.fr</h4>
         {#if cloudSsoLoading}
-          <div class="cloud-row"><div class="spinner small"></div> Chargement...</div>
+          <div class="cloud-row"><div class="spinner small"></div> {$t('common.loading')}</div>
         {:else if cloudSsoEmail}
           <div class="cloud-row">
             {#if cloudSsoAvatar}
@@ -3394,19 +3394,19 @@
             {:else}
               <span class="cloud-status-dot connected"></span>
             {/if}
-            <span class="cloud-status-text">Connecté en tant que <strong>{cloudSsoName || cloudSsoEmail}</strong></span>
+            <span class="cloud-status-text">{$t('settings.connectedAs')} <strong>{cloudSsoName || cloudSsoEmail}</strong></span>
           </div>
         {:else if cloudSsoConfigured}
           <div class="cloud-row">
             <span class="cloud-status-dot disconnected"></span>
-            <span class="cloud-status-text">Non connecte</span>
-            <button class="scan-btn small" onclick={cloudSsoConnect}>Se connecter</button>
+            <span class="cloud-status-text">{$t('settings.notConnected')}</span>
+            <button class="scan-btn small" onclick={cloudSsoConnect}>{$t('settings.signIn')}</button>
           </div>
         {:else}
           <div class="cloud-row">
             <span class="cloud-status-dot disconnected"></span>
-            <span class="cloud-status-text">Cloud bientôt disponible sur ce serveur</span>
-            <span style="margin-left:0.5em;font-size:0.85em"><a href="https://mozaiklabs.fr" target="_blank" rel="noopener noreferrer" style="color:var(--tune-accent)">En savoir plus</a></span>
+            <span class="cloud-status-text">{$t('settings.cloudComingSoon')}</span>
+            <span style="margin-left:0.5em;font-size:0.85em"><a href="https://mozaiklabs.fr" target="_blank" rel="noopener noreferrer" style="color:var(--tune-accent)">{$t('settings.learnMore')}</a></span>
           </div>
         {/if}
       </div>
@@ -3415,8 +3415,8 @@
       <div class="cloud-subsection">
         <div class="cloud-toggle-row">
           <div class="cloud-toggle-label">
-            <span>Telemetrie</span>
-            <span class="cloud-toggle-hint">Envoyer des statistiques anonymes pour ameliorer Tune.</span>
+            <span>{$t('settings.telemetry')}</span>
+            <span class="cloud-toggle-hint">{$t('settings.telemetryHint')}</span>
           </div>
           <label class="cloud-toggle">
             <input type="checkbox" checked={cloudTelemetryEnabled} onchange={toggleCloudTelemetry} disabled={cloudTelemetryLoading} />
@@ -3424,7 +3424,7 @@
           </label>
         </div>
         {#if cloudTelemetryInstanceId}
-          <div class="cloud-instance-id">Instance : <code>{cloudTelemetryInstanceId}</code></div>
+          <div class="cloud-instance-id">{$t('settings.instance')} : <code>{cloudTelemetryInstanceId}</code></div>
         {/if}
       </div>
 
@@ -3434,14 +3434,14 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
             <path d="M20 16V7a2 2 0 0 0-2-2h-3a2 2 0 0 1-2-2 2 2 0 0 0-2 2H8a2 2 0 0 0-2 2v3a2 2 0 0 1 2 2 2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h3a2 2 0 0 1 2 2 2 2 0 0 0 2-2h3a2 2 0 0 0 2-2z"/>
           </svg>
-          Parcourir les plugins
+          {$t('settings.browsePlugins')}
         </button>
       </div>
     </section>
 
     <!-- Licence Tune Premium -->
     <section class="settings-section">
-      <h3>Licence Tune Premium</h3>
+      <h3>{$t('settings.tunePremiumLicense')}</h3>
 
       <!-- Tier badge -->
       <div class="license-tier-row">
@@ -3451,7 +3451,7 @@
           <span class="license-badge free">Free</span>
         {/if}
         {#if $licenseState.expiresAt}
-          <span class="license-expires">Expire le {new Date($licenseState.expiresAt).toLocaleDateString('fr-FR')}</span>
+          <span class="license-expires">{$t('settings.expiresOn')} {new Date($licenseState.expiresAt).toLocaleDateString('fr-FR')}</span>
         {/if}
       </div>
 
@@ -3461,10 +3461,10 @@
           <span class="license-key-display">{maskLicenseKey($licenseState.licenseKey)}</span>
           <div class="license-actions">
             <button class="scan-btn small" onclick={handleValidateLicense} disabled={licenseValidating}>
-              {licenseValidating ? 'Validation...' : 'Valider'}
+              {licenseValidating ? $t('settings.validating') : $t('settings.validate')}
             </button>
             <button class="scan-btn small danger-btn" onclick={handleDeactivateLicense} disabled={licenseDeactivating}>
-              {licenseDeactivating ? 'Desactivation...' : 'Desactiver'}
+              {licenseDeactivating ? $t('settings.deactivating') : $t('settings.deactivate')}
             </button>
           </div>
         </div>
@@ -3479,7 +3479,7 @@
             onkeydown={(e) => { if (e.key === 'Enter') handleActivateLicense(); }}
           />
           <button class="scan-btn" onclick={handleActivateLicense} disabled={licenseActivating || !licenseKeyInput.trim()}>
-            {licenseActivating ? 'Activation...' : 'Activer'}
+            {licenseActivating ? $t('settings.activating') : $t('settings.activate')}
           </button>
         </div>
         {#if licenseError}
@@ -3490,7 +3490,7 @@
       <!-- Features list -->
       {#if Object.keys($licenseState.features).length > 0}
         <div class="license-features">
-          <h4 class="cloud-label">Fonctionnalites</h4>
+          <h4 class="cloud-label">{$t('settings.features')}</h4>
           <div class="license-features-grid">
             {#each Object.entries($licenseState.features) as [key, feat]}
               <div class="license-feature-item" class:enabled={feat.enabled} class:locked={!feat.enabled}>
@@ -3504,7 +3504,7 @@
 
       <div class="license-footer">
         <a href="https://mozaiklabs.fr/pricing" target="_blank" rel="noopener noreferrer" class="license-pricing-link">
-          Voir les offres sur mozaiklabs.fr/pricing
+          {$t('settings.viewPricing')}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
         </a>
       </div>
@@ -3526,13 +3526,13 @@
           <div class="update-banner">
             <span class="update-icon">🔄</span>
             <span class="update-text">
-              Mise à jour disponible : <strong>v{updateInfo.latest_version}</strong>
-              (actuel : v{updateInfo.current_version})
+              {$t('settings.updateAvailable')} : <strong>v{updateInfo.latest_version}</strong>
+              ({$t('settings.current')} : v{updateInfo.current_version})
             </span>
             {#if updateDmgReady}
-              <span class="update-done">Le DMG a été téléchargé et ouvert. Glissez la nouvelle app dans Applications, puis relancez Tune Server.</span>
+              <span class="update-done">{$t('settings.dmgDownloadedMac')}</span>
             {:else if updateDone}
-              <span class="update-done">Installée</span>
+              <span class="update-done">{$t('settings.installed')}</span>
               <button
                 class="update-btn"
                 disabled={restarting}
@@ -3552,11 +3552,11 @@
               </button>
             {:else if updateInfo.installable === false}
               <span class="update-done" title={updateInfo.install_hint ?? ''}>
-                ⚠️ Source install — voir notes
+                ⚠️ {$t('settings.sourceInstallNote')}
               </span>
             {:else}
               <button class="update-btn" onclick={installUpdate} disabled={updateInstalling}>
-                {updateInstalling ? 'Installation...' : 'Installer'}
+                {updateInstalling ? $t('settings.installing') : $t('settings.install')}
               </button>
             {/if}
           </div>
@@ -3565,8 +3565,8 @@
           {/if}
         {:else}
           <div class="about-row">
-            <span class="about-label">Mises à jour</span>
-            <span class="about-value" style="color: var(--tune-accent)">✓ À jour</span>
+            <span class="about-label">{$t('settings.updates')}</span>
+            <span class="about-value" style="color: var(--tune-accent)">✓ {$t('settings.upToDate')}</span>
           </div>
         {/if}
 
@@ -3578,25 +3578,25 @@
               class="scan-btn"
               onclick={downloadDiagnostics}
               disabled={diagDownloading}
-              title="Télécharge un ZIP avec logs + diagnostics + config (creds masqués) à envoyer au support"
+              title={$t('settings.downloadDiagTitle')}
             >
               {#if diagDownloading}
                 <div class="spinner small"></div>
-                Préparation…
+                {$t('settings.preparing')}
               {:else}
-                Télécharger le diagnostic
+                {$t('settings.downloadDiag')}
               {/if}
             </button>
             <button
               class="scan-btn"
               onclick={downloadLogs}
               disabled={logsDownloading}
-              title="Télécharge les derniers logs du serveur"
+              title={$t('settings.downloadLogsTitle')}
             >
               {#if logsDownloading}
                 <div class="spinner small"></div>
               {:else}
-                Télécharger les logs
+                {$t('settings.downloadLogs')}
               {/if}
             </button>
           </div>
@@ -3604,7 +3604,7 @@
 
         <!-- Log Level -->
         <div class="about-row" style="margin-top: 0.75rem">
-          <span class="about-label">Niveau de log</span>
+          <span class="about-label">{$t('settings.logLevel')}</span>
           <select
             class="log-level-select"
             value={logLevel}

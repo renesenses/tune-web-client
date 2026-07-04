@@ -8,6 +8,7 @@
   import { activeView } from '../lib/stores/navigation';
   import { currentZone } from '../lib/stores/zones';
   import { notifications } from '../lib/stores/notifications';
+  import { t } from '../lib/i18n';
 
   function navigateToAlbum(album: any) {
     selectedAlbum.set(album);
@@ -27,16 +28,16 @@
     try {
       const allTracks = await api.getSmartPlaylistTracks(selected.id!);
       if (!allTracks.length) {
-        notifications.error('Aucune piste trouvée');
+        notifications.error($t('smartCollection.noTracksFound'));
         shuffleLoading = false;
         return;
       }
       const shuffled = [...allTracks].sort(() => Math.random() - 0.5);
-      const trackIds = shuffled.map((t: any) => t.id).filter(Boolean);
+      const trackIds = shuffled.map((tk: any) => tk.id).filter(Boolean);
       await api.play(zone.id, { track_ids: trackIds });
-      notifications.success(`${trackIds.length} pistes en lecture aléatoire`);
+      notifications.success($t('smartCollection.shufflePlaying').replace('{count}', String(trackIds.length)));
     } catch (e: any) {
-      notifications.error(e?.message || 'Erreur lecture aléatoire');
+      notifications.error(e?.message || $t('smartCollection.shuffleError'));
     }
     shuffleLoading = false;
   }
@@ -76,7 +77,7 @@
 
   async function deleteCollection(col: SmartCollection, ev: MouseEvent) {
     ev.stopPropagation();
-    if (!confirm(`Supprimer la Smart Collection "${col.name}" ?`)) return;
+    if (!confirm($t('smartCollection.confirmDelete').replace('{name}', col.name))) return;
     try {
       await api.deleteSmartCollection(col.id);
       collections = collections.filter(c => c.id !== col.id);
@@ -105,16 +106,16 @@
   function ruleSummary(col: SmartCollection): string {
     try {
       const rules = JSON.parse(col.rules ?? '[]');
-      if (!rules.length) return 'aucune règle';
+      if (!rules.length) return $t('smartCollection.noRule');
       const parts = rules.slice(0, 2).map((r: any) => {
         if (r.field === 'credit') {
           const v = r.value || {};
-          return `crédit: ${v.role || 'tout'}=${v.artist_name || '*'}`;
+          return `${$t('smartCollection.creditLabel')}: ${v.role || $t('smartCollection.any')}=${v.artist_name || '*'}`;
         }
         return `${r.field} ${r.op} ${typeof r.value === 'object' ? '…' : r.value}`;
       });
       const mode = (col.match_mode || '').replace(/"/g, '');
-      const summary = parts.join(mode === 'all' ? ' ET ' : ' OU ');
+      const summary = parts.join(mode === 'all' ? ` ${$t('smartCollection.and')} ` : ` ${$t('smartCollection.or')} `);
       return rules.length > 2 ? `${summary} … (+${rules.length - 2})` : summary;
     } catch {
       return '';
@@ -127,7 +128,7 @@
 <section class="sc-view">
   <header class="sc-header">
     <h2>Smart Collections</h2>
-    <button class="new-btn" onclick={() => openEditor(null)}>+ Nouvelle Smart Collection</button>
+    <button class="new-btn" onclick={() => openEditor(null)}>{$t('smartCollection.newCollection')}</button>
   </header>
 
   {#if loading}
@@ -136,9 +137,9 @@
     <div class="state err">{error}</div>
   {:else if !collections.length}
     <div class="state">
-      Aucune Smart Collection. Le serveur seed normalement 7 collections par défaut au premier démarrage (Hi-Res, DSD, Récents, Sans pochette, …).
+      {$t('smartCollection.emptyState')}
       <div class="cta-row">
-        <button class="cta" onclick={() => openEditor(null)}>Créer ma première Smart Collection</button>
+        <button class="cta" onclick={() => openEditor(null)}>{$t('smartCollection.createFirst')}</button>
       </div>
     </div>
   {:else if !selected}
@@ -156,9 +157,9 @@
           <div class="card-head">
             <span class="card-color" style:background={col.color}></span>
             <span class="card-name">{col.name}</span>
-            <button class="del" onclick={(e) => deleteCollection(col, e)} title="Supprimer">×</button>
+            <button class="del" onclick={(e) => deleteCollection(col, e)} title={$t('common.delete')}>×</button>
           </div>
-          <div class="card-rules">{ruleSummary(col)}{#if col.album_count != null} · <strong>{col.album_count}</strong> album{col.album_count !== 1 ? 's' : ''}{/if}{#if (col as any).track_count != null} · {(col as any).track_count} piste{(col as any).track_count !== 1 ? 's' : ''}{/if}</div>
+          <div class="card-rules">{ruleSummary(col)}{#if col.album_count != null} · <strong>{col.album_count}</strong> {col.album_count !== 1 ? $t('smartCollection.albumsPlural') : $t('smartCollection.album')}{/if}{#if (col as any).track_count != null} · {(col as any).track_count} {(col as any).track_count !== 1 ? $t('smartCollection.tracksPlural') : $t('smartCollection.track')}{/if}</div>
           {#if col.description}<div class="card-desc">{col.description}</div>{/if}
         </div>
       {/each}
@@ -166,28 +167,27 @@
   {:else}
     <div class="detail">
       <div class="detail-head">
-        <button class="back" onclick={() => selected = null}>← Retour</button>
+        <button class="back" onclick={() => selected = null}>← {$t('common.back')}</button>
         <h2 style:color={selected.color}>{selected.name}</h2>
-        <button class="edit-btn" onclick={() => openEditor(selected!)}>Modifier les règles</button>
+        <button class="edit-btn" onclick={() => openEditor(selected!)}>{$t('smartCollection.editRules')}</button>
       </div>
       <div class="detail-rules">
         {ruleSummary(selected)}
         {#if !albumsLoading && selectedAlbums.length > 0}
-          <span class="album-count">{selectedAlbums.length} album{selectedAlbums.length > 1 ? 's' : ''}</span>
+          <span class="album-count">{selectedAlbums.length} {selectedAlbums.length > 1 ? $t('smartCollection.albumsPlural') : $t('smartCollection.album')}</span>
         {/if}
         <button class="shuffle-btn" onclick={shuffleCollection} disabled={shuffleLoading || albumsLoading}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
-          {shuffleLoading ? '...' : 'Lecture aléatoire'}
+          {shuffleLoading ? '...' : $t('smartCollection.shuffle')}
         </button>
       </div>
       {#if albumsLoading}
         <div class="state">…</div>
       {:else if !selectedAlbums.length}
         <div class="state">
-          Aucun album ne correspond aux règles actuelles.
+          {$t('smartCollection.noAlbumsMatch')}
           <div class="hint">
-            Astuce : pour les Smart Collections basées sur des crédits (engineer, performer, …), il faut d'abord enrichir
-            les credits via <code>POST /library/enrich-credits</code>.
+            {$t('smartCollection.creditHint')} <code>POST /library/enrich-credits</code>.
           </div>
         </div>
       {:else}

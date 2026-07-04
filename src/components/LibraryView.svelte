@@ -68,7 +68,7 @@
     try {
       await api.quickFavTrack(trackId);
       quickFavTrackIds = new Set([...quickFavTrackIds, trackId]);
-      notifications.success('Favori rapide ajoute');
+      notifications.success($tr('library.quickFavAdded'));
     } catch (err) {
       console.error('Quick fav error:', err);
     }
@@ -94,10 +94,10 @@
     try {
       await api.addAlbumToCollection(collectionId, $selectedAlbum.id);
       showCollectionMenu = false;
-      notifications.success('Album ajoute a la collection');
+      notifications.success($tr('library.albumAddedToCollection'));
     } catch (e) {
       console.error('Add to collection error:', e);
-      notifications.error('Erreur ajout collection');
+      notifications.error($tr('library.collectionAddError'));
     }
   }
 
@@ -161,10 +161,10 @@
       const newRating = star === albumRating ? 0 : star;
       await api.rateAlbum(albumId, newRating, albumRatingNote);
       albumRating = newRating;
-      notifications.success(newRating > 0 ? `Note: ${newRating}/5` : 'Note retirée');
+      notifications.success(newRating > 0 ? `${$tr('library.rating')}: ${newRating}/5` : $tr('library.ratingRemoved'));
     } catch (e) {
       console.error('Rate album error:', e);
-      notifications.error('Erreur notation');
+      notifications.error($tr('library.ratingError'));
     }
     ratingSubmitting = false;
   }
@@ -173,7 +173,7 @@
     ratingSubmitting = true;
     try {
       await api.rateAlbum(albumId, albumRating, albumRatingNote);
-      notifications.success('Note enregistrée');
+      notifications.success($tr('library.ratingSaved'));
     } catch (e) {
       console.error('Rate album note error:', e);
     }
@@ -296,10 +296,10 @@
     writeTagsMessage = null;
     try {
       const result = await api.writeAlbumTags(albumId);
-      writeTagsMessage = `Tags gravés : ${result.success}/${result.tracks_processed} pistes`;
+      writeTagsMessage = $tr('library.tagsWritten').replace('{success}', String(result.success)).replace('{total}', String(result.tracks_processed));
       setTimeout(() => writeTagsMessage = null, 5000);
     } catch (e: any) {
-      writeTagsMessage = `Erreur : ${e?.message || e}`;
+      writeTagsMessage = `${$tr('common.error')} : ${e?.message || e}`;
     }
     writingAlbumTags = false;
   }
@@ -475,20 +475,20 @@
   // Sort options
   type AlbumSortKey = 'title' | 'artist' | 'release_date' | 'original_year' | 'added_date';
   const ALBUM_SORT_OPTIONS: { key: AlbumSortKey; label: string; defaultOrder: 'asc' | 'desc' }[] = [
-    { key: 'title', label: 'Titre', defaultOrder: 'asc' },
-    { key: 'artist', label: 'Artiste', defaultOrder: 'asc' },
-    { key: 'release_date', label: 'Date de sortie', defaultOrder: 'desc' },
-    { key: 'original_year', label: 'Année originale', defaultOrder: 'desc' },
-    { key: 'added_date', label: "Date d'ajout", defaultOrder: 'desc' },
+    { key: 'title', label: 'library.sortTitle', defaultOrder: 'asc' },
+    { key: 'artist', label: 'library.sortArtist', defaultOrder: 'asc' },
+    { key: 'release_date', label: 'library.sortReleaseDate', defaultOrder: 'desc' },
+    { key: 'original_year', label: 'library.sortOriginalYear', defaultOrder: 'desc' },
+    { key: 'added_date', label: 'library.sortAddedDate', defaultOrder: 'desc' },
   ];
   let albumSort = $state<AlbumSortKey>((localStorage.getItem('tune_album_sort') as AlbumSortKey) || 'title');
   let albumSortOrder = $state<'asc' | 'desc'>((localStorage.getItem('tune_album_sort_order') as 'asc' | 'desc') || 'asc');
 
   type GenreSortKey = 'title' | 'artist' | 'year';
   const GENRE_SORT_OPTIONS: { key: GenreSortKey; label: string; defaultOrder: 'asc' | 'desc' }[] = [
-    { key: 'title', label: 'Titre', defaultOrder: 'asc' },
-    { key: 'artist', label: 'Artiste', defaultOrder: 'asc' },
-    { key: 'year', label: 'Année', defaultOrder: 'desc' },
+    { key: 'title', label: 'library.sortTitle', defaultOrder: 'asc' },
+    { key: 'artist', label: 'library.sortArtist', defaultOrder: 'asc' },
+    { key: 'year', label: 'library.sortYear', defaultOrder: 'desc' },
   ];
   let genreSort = $state<GenreSortKey>((localStorage.getItem('tune_genre_sort') as GenreSortKey) || 'artist');
   let genreSortOrder = $state<'asc' | 'desc'>((localStorage.getItem('tune_genre_sort_order') as 'asc' | 'desc') || 'asc');
@@ -1217,15 +1217,15 @@
       // Auto-expand sections after enrichment
       if (raw.similar_artists?.length) openSections['similar'] = true;
       if (raw.bio) {
-        notifications.success('Biographie enrichie');
+        notifications.success($tr('library.bioEnriched'));
       } else if (raw.similar_artists?.length || raw.tags?.length) {
-        notifications.success('Artistes similaires et tags trouves');
+        notifications.success($tr('library.similarAndTagsFound'));
       } else {
-        notifications.info('Aucune information trouvee pour cet artiste');
+        notifications.info($tr('library.noInfoFound'));
       }
     } catch (e) {
       console.error('Enrich artist error:', e);
-      notifications.error('Enrichissement indisponible');
+      notifications.error($tr('library.enrichUnavailable'));
     }
     enrichLoading = false;
   }
@@ -1283,7 +1283,7 @@
 
   async function shuffleAllLibrary() {
     if (!zone?.id) {
-      notifications.error('Aucune zone sélectionnée — sélectionnez une zone pour lancer la lecture');
+      notifications.error($tr('library.noZoneSelected'));
       return;
     }
     shuffleAllLoading = true;
@@ -1293,10 +1293,10 @@
       if (searchQuery.trim()) opts.search_query = searchQuery.trim();
       else if (selectedGenre) opts.genre = selectedGenre;
       const result = await api.shuffleAll(zone.id, Object.keys(opts).length ? opts : undefined);
-      notifications.success(`Lecture aléatoire : ${result.track_count} pistes`);
+      notifications.success($tr('library.shufflePlaying').replace('{count}', String(result.track_count)));
     } catch (e) {
       console.error('Shuffle all error:', e);
-      notifications.error('Erreur : ' + (e instanceof Error ? e.message : String(e)));
+      notifications.error($tr('common.error') + ' : ' + (e instanceof Error ? e.message : String(e)));
     } finally {
       shuffleAllLoading = false;
     }
@@ -1304,20 +1304,20 @@
 
   async function playAlbum(albumId: number) {
     if (!zone?.id) {
-      notifications.error('Aucune zone sélectionnée — sélectionnez une zone pour lancer la lecture');
+      notifications.error($tr('library.noZoneSelected'));
       return;
     }
     try {
       await playAndSync(zone.id, { album_id: albumId });
     } catch (e) {
       console.error('Play album error:', e);
-      notifications.error('Erreur de lecture : ' + (e instanceof Error ? e.message : String(e)));
+      notifications.error($tr('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e)));
     }
   }
 
   async function playTrack(trackId: number) {
     if (!zone?.id) {
-      notifications.error('Aucune zone sélectionnée — sélectionnez une zone pour lancer la lecture');
+      notifications.error($tr('library.noZoneSelected'));
       return;
     }
     try {
@@ -1330,13 +1330,13 @@
       }
     } catch (e) {
       console.error('Play track error:', e);
-      notifications.error('Erreur de lecture : ' + (e instanceof Error ? e.message : String(e)));
+      notifications.error($tr('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e)));
     }
   }
 
   async function playNext(track: Track) {
     if (!zone?.id) {
-      notifications.error('Aucune zone sélectionnée');
+      notifications.error($tr('library.noZoneSelectedShort'));
       return;
     }
     try {
@@ -1350,15 +1350,15 @@
       const updated = await api.getQueue(zone.id);
       queueTracks.set(updated.tracks);
       queuePosition.set(updated.position);
-      notifications.success(`"${track.title}" — lire ensuite`);
+      notifications.success(`"${track.title}" — ${$tr('library.playNext').toLowerCase()}`);
     } catch (e: any) {
-      notifications.error(e?.message || 'Erreur');
+      notifications.error(e?.message || $tr('common.error'));
     }
   }
 
   async function addTrackToQueue(track: Track) {
     if (!zone?.id) {
-      notifications.error('Aucune zone sélectionnée — sélectionnez une zone');
+      notifications.error($tr('library.noZoneSelectedSelectZone'));
       return;
     }
     try {
@@ -1455,7 +1455,7 @@
             {#if !$selectedAlbum.source || $selectedAlbum.source === 'local'}
               <button class="write-tags-btn" onclick={() => $selectedAlbum?.id && handleWriteAlbumTags($selectedAlbum.id)} disabled={writingAlbumTags}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
-                {writingAlbumTags ? 'Gravure...' : 'Graver tags'}
+                {writingAlbumTags ? $tr('library.writingTags') : $tr('library.writeTags')}
               </button>
             {/if}
             <div class="collection-dropdown-wrap" style="position:relative;display:inline-flex">
@@ -1466,7 +1466,7 @@
               {#if showCollectionMenu}
                 <div class="collection-dropdown">
                   {#if collections.length === 0}
-                    <span class="collection-empty">Aucune collection</span>
+                    <span class="collection-empty">{$tr('library.noCollections')}</span>
                   {:else}
                     {#each collections as col}
                       <button class="collection-option" onclick={() => handleAddToCollection(col.id)}>
@@ -1500,7 +1500,7 @@
             {/key}
             {#if showTagPicker}
               <div class="tag-picker">
-                <input class="tag-picker-input" type="text" placeholder="Nouveau tag..." bind:value={newTagName} onkeydown={(e) => { if (e.key === 'Enter' && newTagName.trim()) handleCreateAndAssignTag(albumId); }} />
+                <input class="tag-picker-input" type="text" placeholder={$tr('library.newTagPlaceholder')} bind:value={newTagName} onkeydown={(e) => { if (e.key === 'Enter' && newTagName.trim()) handleCreateAndAssignTag(albumId); }} />
                 {#each userTags as tag}
                   <button class="tag-picker-option" onclick={async () => { await api.tagItem(tag.id!, 'album', albumId); showTagPicker = false; await loadUserTags(); albumTagsKey++; }}>
                     <span class="tag-dot" style="background:{tag.color}"></span>
@@ -1512,7 +1512,7 @@
           {/if}
           <button class="bio-toggle-btn" onclick={() => { showAlbumBio = !showAlbumBio; if (showAlbumBio && $selectedAlbum?.id) loadAlbumBio($selectedAlbum.id); }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
-            {showAlbumBio ? 'Masquer notes' : 'Notes / Bio'}
+            {showAlbumBio ? $tr('library.hideNotes') : $tr('library.notesBio')}
           </button>
           {#if showAlbumBio}
             <div class="album-bio-section">
@@ -1526,14 +1526,14 @@
                 {@const displayAlbumBio = albumBioLevel === 'simple' ? simpleText : albumBioLevel === 'complete' ? completeText : albumBio}
                 {#if albumBio.length > 300}
                   <div class="bio-level-pills">
-                    <button class="bio-level-pill" class:active={albumBioLevel === 'simple'} onclick={() => albumBioLevel = 'simple'}>Essentiel</button>
-                    <button class="bio-level-pill" class:active={albumBioLevel === 'complete'} onclick={() => albumBioLevel = 'complete'}>Complete</button>
-                    <button class="bio-level-pill" class:active={albumBioLevel === 'full'} onclick={() => albumBioLevel = 'full'}>Detaillee</button>
+                    <button class="bio-level-pill" class:active={albumBioLevel === 'simple'} onclick={() => albumBioLevel = 'simple'}>{$tr('library.bioLevelSimple')}</button>
+                    <button class="bio-level-pill" class:active={albumBioLevel === 'complete'} onclick={() => albumBioLevel = 'complete'}>{$tr('library.bioLevelComplete')}</button>
+                    <button class="bio-level-pill" class:active={albumBioLevel === 'full'} onclick={() => albumBioLevel = 'full'}>{$tr('library.bioLevelFull')}</button>
                   </div>
                 {/if}
                 <p class="album-bio-text">{displayAlbumBio}</p>
               {:else}
-                <p class="album-bio-empty">Aucune note disponible pour cet album</p>
+                <p class="album-bio-empty">{$tr('library.noAlbumNote')}</p>
               {/if}
             </div>
           {/if}
@@ -1562,7 +1562,7 @@
                 <input
                   type="text"
                   class="rating-note-input"
-                  placeholder="Note personnelle..."
+                  placeholder={$tr('library.ratingNotePlaceholder')}
                   bind:value={albumRatingNote}
                   onkeydown={(e) => e.key === 'Enter' && submitRatingNote(ratingAlbumId)}
                   onblur={() => { if (albumRatingNote !== '' || albumRating > 0) submitRatingNote(ratingAlbumId); }}
@@ -1595,12 +1595,12 @@
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
                 <span class="track-heart" onclick={(e) => e.stopPropagation()}><HeartButton trackId={t.id} size={14} /></span>
                 {#if t.id}
-                  <button class="quick-fav-btn" class:faved={quickFavTrackIds.has(t.id)} onclick={(e) => handleQuickFavTrack(t.id!, e)} title="Favori rapide">
+                  <button class="quick-fav-btn" class:faved={quickFavTrackIds.has(t.id)} onclick={(e) => handleQuickFavTrack(t.id!, e)} title={$tr('library.quickFav')}>
                     <svg viewBox="0 0 24 24" fill={quickFavTrackIds.has(t.id) ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                   </button>
                 {/if}
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
-              <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title="Lire ensuite">
+              <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title={$tr('library.playNext')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
               </button>
                 {#if onAddToPlaylist && (t.id || t.source_id)}
@@ -1616,7 +1616,7 @@
                 </button>
                 <!-- Track context menu -->
                 <div class="track-more-wrap">
-                  <button class="track-more-btn" onclick={(e) => openTrackMenu(e, t.id)} title="Plus d'options">···</button>
+                  <button class="track-more-btn" onclick={(e) => openTrackMenu(e, t.id)} title={$tr('library.moreOptions')}>···</button>
                   {#if trackMenuOpenId === t.id}
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -1624,22 +1624,22 @@
                     <div class="track-menu">
                       <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); t.id && playTrack(t.id); }}>
                         <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
-                        Lire
+                        {$tr('common.play')}
                       </button>
                       <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); addTrackToQueue(t); }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                        Ajouter à la file
+                        {$tr('queue.addToQueue')}
                       </button>
                       {#if onAddToPlaylist}
                         <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); onAddToPlaylist!(t); }}>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><line x1="16" y1="3" x2="16" y2="11"/><line x1="12" y1="7" x2="20" y2="7"/></svg>
-                          Ajouter à une playlist
+                          {$tr('nowplaying.addToPlaylist')}
                         </button>
                       {/if}
                       {#if t.artist_name}
                         <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); const a = $artists.find(ar => ar.name === t.artist_name); if (a) selectArtistDetail(a); }}>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                          Aller à l'artiste
+                          {$tr('library.goToArtist')}
                         </button>
                       {/if}
                     </div>
@@ -1692,12 +1692,12 @@
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
               <span class="track-heart" onclick={(e) => e.stopPropagation()}><HeartButton trackId={t.id} size={14} /></span>
               {#if t.id}
-                <button class="quick-fav-btn" class:faved={quickFavTrackIds.has(t.id)} onclick={(e) => handleQuickFavTrack(t.id!, e)} title="Favori rapide">
+                <button class="quick-fav-btn" class:faved={quickFavTrackIds.has(t.id)} onclick={(e) => handleQuickFavTrack(t.id!, e)} title={$tr('library.quickFav')}>
                   <svg viewBox="0 0 24 24" fill={quickFavTrackIds.has(t.id) ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                 </button>
               {/if}
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
-              <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title="Lire ensuite">
+              <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title={$tr('library.playNext')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
               </button>
               {#if onAddToPlaylist && (t.id || t.source_id)}
@@ -1713,7 +1713,7 @@
               </button>
               <!-- Track context menu -->
               <div class="track-more-wrap">
-                <button class="track-more-btn" onclick={(e) => openTrackMenu(e, t.id)} title="Plus d'options">···</button>
+                <button class="track-more-btn" onclick={(e) => openTrackMenu(e, t.id)} title={$tr('library.moreOptions')}>···</button>
                 {#if trackMenuOpenId === t.id}
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -1721,27 +1721,27 @@
                   <div class="track-menu">
                     <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); t.id && playTrack(t.id); }}>
                       <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
-                      Lire
+                      {$tr('common.play')}
                     </button>
                     <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); addTrackToQueue(t); }}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                      Ajouter à la file
+                      {$tr('queue.addToQueue')}
                     </button>
                     {#if onAddToPlaylist}
                       <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); onAddToPlaylist!(t); }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><line x1="16" y1="3" x2="16" y2="11"/><line x1="12" y1="7" x2="20" y2="7"/></svg>
-                        Ajouter à une playlist
+                        {$tr('nowplaying.addToPlaylist')}
                       </button>
                     {/if}
                     {#if t.artist_name}
                       <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); const a = $artists.find(ar => ar.name === t.artist_name); if (a) selectArtistDetail(a); }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        Aller à l'artiste
+                        {$tr('library.goToArtist')}
                       </button>
                     {/if}
                     <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); selectAlbumDetail($selectedAlbum!); }}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h4"/></svg>
-                      Aller à l'album
+                      {$tr('library.goToAlbum')}
                     </button>
                   </div>
                 {/if}
@@ -1819,7 +1819,7 @@
           {:else}
             <h2 class="artist-detail-name">
               {$selectedArtist.name}
-              <button class="artist-edit-btn" onclick={() => showArtistEdit = true} title="Éditer l'artiste">
+              <button class="artist-edit-btn" onclick={() => showArtistEdit = true} title={$tr('library.editArtist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
               </button>
             </h2>
@@ -1856,9 +1856,9 @@
         {@const displayBio = !isLong ? artistBio : bioLevel === 'simple' ? simpleText : bioLevel === 'complete' ? completeText : artistBio}
         {#if isLong}
           <div class="bio-level-pills">
-            <button class="bio-level-pill" class:active={bioLevel === 'simple'} onclick={() => bioLevel = 'simple'}>Essentiel</button>
-            <button class="bio-level-pill" class:active={bioLevel === 'complete'} onclick={() => bioLevel = 'complete'}>Complete</button>
-            <button class="bio-level-pill" class:active={bioLevel === 'full'} onclick={() => bioLevel = 'full'}>Detaillee</button>
+            <button class="bio-level-pill" class:active={bioLevel === 'simple'} onclick={() => bioLevel = 'simple'}>{$tr('library.bioLevelSimple')}</button>
+            <button class="bio-level-pill" class:active={bioLevel === 'complete'} onclick={() => bioLevel = 'complete'}>{$tr('library.bioLevelComplete')}</button>
+            <button class="bio-level-pill" class:active={bioLevel === 'full'} onclick={() => bioLevel = 'full'}>{$tr('library.bioLevelFull')}</button>
           </div>
         {/if}
         <blockquote class="artist-bio">
@@ -1870,10 +1870,10 @@
           <button class="bio-enrich-btn" onclick={enrichArtistBio} disabled={enrichLoading}>
             {#if enrichLoading}
               <div class="btn-spinner"></div>
-              Enrichissement...
+              {$tr('artist.enriching')}
             {:else}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" /></svg>
-              {isLong ? 'Re-enrichir' : 'Enrichir la biographie'}
+              {isLong ? $tr('library.reEnrich') : $tr('library.enrichBio')}
             {/if}
           </button>
         </div>
@@ -1882,10 +1882,10 @@
           <button class="bio-enrich-btn bio-enrich-btn--prominent" onclick={enrichArtistBio} disabled={enrichLoading}>
             {#if enrichLoading}
               <div class="btn-spinner"></div>
-              Enrichissement...
+              {$tr('artist.enriching')}
             {:else}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" /></svg>
-              Obtenir une biographie
+              {$tr('library.getBio')}
             {/if}
           </button>
         </div>
@@ -1996,7 +1996,7 @@
           <span class="artist-section-title">{$tr('artist.albumsInLibrary')}</span>
         </div>
         {#if $artistAlbums.length === 0 && !streamingArtistAlbumsLoading}
-          <div class="empty-hint" style="padding: 8px 0; color: var(--tune-text-muted); font-size: 13px;">Aucun album local. Consultez les albums en streaming ci-dessous.</div>
+          <div class="empty-hint" style="padding: 8px 0; color: var(--tune-text-muted); font-size: 13px;">{$tr('library.noLocalAlbumsHint')}</div>
         {/if}
         <div class="albums-grid">
           {#each $artistAlbums as album}
@@ -2023,16 +2023,16 @@
       {#if streamingArtistAlbumsLoading}
         <div class="artist-section">
           <div class="artist-section-header-static">
-            <span class="artist-section-title">Albums en streaming</span>
+            <span class="artist-section-title">{$tr('library.streamingAlbums')}</span>
           </div>
-          <div class="streaming-loading">Chargement...</div>
+          <div class="streaming-loading">{$tr('common.loading')}</div>
         </div>
       {:else if streamingArtistAlbums.length === 0 && $artistAlbums.length === 0}
         <div class="artist-section">
           <div class="artist-section-header-static">
-            <span class="artist-section-title">Albums en streaming</span>
+            <span class="artist-section-title">{$tr('library.streamingAlbums')}</span>
           </div>
-          <div class="empty-hint" style="padding: 8px 0; color: var(--tune-text-muted); font-size: 13px;">Aucun album trouvé sur les services de streaming connectés.</div>
+          <div class="empty-hint" style="padding: 8px 0; color: var(--tune-text-muted); font-size: 13px;">{$tr('library.noStreamingAlbumsHint')}</div>
         </div>
       {/if}
       {#each streamingArtistAlbums as { service, albums: svcAlbums }}
@@ -2060,7 +2060,7 @@
                     if (zoneId && album.source_id) {
                       playAndSync(zoneId, { source: service, streaming_album_id: album.source_id });
                     }
-                  }} title="Lire">
+                  }} title={$tr('common.play')}>
                     <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                   </button>
                 </div>
@@ -2080,9 +2080,9 @@
     <div class="library-header">
       <h2>{$tr('library.title')}</h2>
       <AddShortcutButton />
-      <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title={searchQuery.trim() || selectedGenre ? 'Lecture aléatoire des résultats' : 'Tout lire en aléatoire'}>
+      <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title={searchQuery.trim() || selectedGenre ? $tr('library.shuffleResults') : $tr('library.shuffleAll')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
-        {shuffleAllLoading ? 'Chargement...' : (searchQuery.trim() || selectedGenre ? 'Lecture aléatoire' : 'Tout lire en aléatoire')}
+        {shuffleAllLoading ? $tr('common.loading') : (searchQuery.trim() || selectedGenre ? $tr('library.shuffle') : $tr('library.shuffleAll'))}
       </button>
       <div class="library-header-right">
         <div class="search-box">
@@ -2109,12 +2109,12 @@
         <div class="spinner"></div>
         {$tr('common.loading')}
         {#if scanProgress}
-          <span class="scan-progress">{scanProgress.scanned} fichiers scannés, {scanProgress.added} ajoutés</span>
+          <span class="scan-progress">{$tr('library.scanProgress').replace('{scanned}', String(scanProgress.scanned)).replace('{added}', String(scanProgress.added))}</span>
         {/if}
       </div>
     {:else if $libraryTab === 'albums'}
       <div class="quality-filters">
-        <button class="quality-chip" class:active={!albumQualityFilter} onclick={() => setAlbumQualityChip(null)}>Tous ({searchFilteredAlbums.length})</button>
+        <button class="quality-chip" class:active={!albumQualityFilter} onclick={() => setAlbumQualityChip(null)}>{$tr('metadata.all')} ({searchFilteredAlbums.length})</button>
         {#each [
           { key: 'dsd', label: 'DSD' },
           { key: 'hi-res', label: 'Hi-Res' },
@@ -2158,7 +2158,7 @@
         {#if duplicateAlbumCount > 0}
           <button class="quality-chip duplicates" class:active={albumDuplicatesFilter} onclick={() => albumDuplicatesFilter = !albumDuplicatesFilter}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="8" y="2" width="13" height="13" rx="2" /><path d="M4 8H3a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-1" /></svg>
-            Doublons ({duplicateAlbumCount})
+            {$tr('library.duplicates')} ({duplicateAlbumCount})
           </button>
         {/if}
         {#if userTags.length > 0}
@@ -2188,10 +2188,10 @@
           <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M3 6h18M3 12h12M3 18h6" /></svg>
           <select class="sort-select" value={albumSort} onchange={(e) => setAlbumSort((e.currentTarget as HTMLSelectElement).value as AlbumSortKey)}>
             {#each ALBUM_SORT_OPTIONS as opt}
-              <option value={opt.key}>{opt.label}</option>
+              <option value={opt.key}>{$tr(opt.label)}</option>
             {/each}
           </select>
-          <button class="sort-order-btn" onclick={() => { albumSortOrder = albumSortOrder === 'asc' ? 'desc' : 'asc'; localStorage.setItem('tune_album_sort_order', albumSortOrder); loadAlbums(); }} title={albumSortOrder === 'asc' ? 'Croissant' : 'Decroissant'}>
+          <button class="sort-order-btn" onclick={() => { albumSortOrder = albumSortOrder === 'asc' ? 'desc' : 'asc'; localStorage.setItem('tune_album_sort_order', albumSortOrder); loadAlbums(); }} title={albumSortOrder === 'asc' ? $tr('library.ascending') : $tr('library.descending')}>
             {#if albumSortOrder === 'asc'}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="18 15 12 9 6 15" /></svg>
             {:else}
@@ -2229,7 +2229,7 @@
                     <span class="heart-overlay"><HeartButton albumId={album.id} size={14} /></span>
                     {#if album.id !== null && album.id !== undefined && duplicateAlbumIds.has(album.id)}
                       {@const siblings = getDuplicateSiblings(album)}
-                      <button class="dup-badge" onclick={(e) => toggleDupPopup(album.id!, e)} title="Cet album existe en {siblings.length} versions">
+                      <button class="dup-badge" onclick={(e) => toggleDupPopup(album.id!, e)} title={$tr('library.existsInVersions').replace('{count}', String(siblings.length))}>
                         {siblings.length} versions
                       </button>
                       {#if dupPopupAlbumId === album.id}
@@ -2242,7 +2242,7 @@
                             <button class="dup-popup-item" class:current={sib.id === album.id} onclick={(e) => { e.stopPropagation(); closeDupPopup(); selectAlbumDetail(sib); }}>
                               <span class="dup-popup-format">{formatAlbumQualityLabel(sib)}</span>
                               {#if sib.year}<span class="dup-popup-year">{sib.year}</span>{/if}
-                              {#if sib.id === album.id}<span class="dup-popup-current">actuel</span>{/if}
+                              {#if sib.id === album.id}<span class="dup-popup-current">{$tr('library.current')}</span>{/if}
                             </button>
                           {/each}
                         </div>
@@ -2299,7 +2299,7 @@
           </div>
         {/if}
         <div class="format-filters">
-          <span class="filter-label">Qualité</span>
+          <span class="filter-label">{$tr('library.quality')}</span>
           <button class="format-btn" class:active={!qualityFilter} onclick={() => qualityFilter = null}>{$tr('metadata.all')}</button>
           {#each qualityBuckets as bucket}
             {#if qualityCounts[bucket.key]}
@@ -2338,7 +2338,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
               </button>
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
-              <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title="Lire ensuite">
+              <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title={$tr('library.playNext')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
               </button>
               {#if onAddToPlaylist && (t.id || t.source_id)}
@@ -2384,10 +2384,10 @@
             <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M3 6h18M3 12h12M3 18h6" /></svg>
             <select class="sort-select" value={genreSort} onchange={(e) => setGenreSort((e.currentTarget as HTMLSelectElement).value as GenreSortKey)}>
               {#each GENRE_SORT_OPTIONS as opt}
-                <option value={opt.key}>{opt.label}</option>
+                <option value={opt.key}>{$tr(opt.label)}</option>
               {/each}
             </select>
-            <button class="sort-order-btn" onclick={() => { genreSortOrder = genreSortOrder === 'asc' ? 'desc' : 'asc'; localStorage.setItem('tune_genre_sort_order', genreSortOrder); }} title={genreSortOrder === 'asc' ? 'Croissant' : 'Décroissant'}>
+            <button class="sort-order-btn" onclick={() => { genreSortOrder = genreSortOrder === 'asc' ? 'desc' : 'asc'; localStorage.setItem('tune_genre_sort_order', genreSortOrder); }} title={genreSortOrder === 'asc' ? $tr('library.ascending') : $tr('library.descending')}>
               {#if genreSortOrder === 'asc'}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14M5 12l7-7 7 7" /></svg>
               {:else}
@@ -2401,9 +2401,9 @@
         {#if displayParent && genreTree[displayParent]}
           <div class="bc-chips">
             {#if selectedGenre}
-              <button class="bc-chip" onclick={backToParent}>Tous</button>
+              <button class="bc-chip" onclick={backToParent}>{$tr('metadata.all')}</button>
             {:else}
-              <button class="bc-chip bc-chip-all" disabled>Tous</button>
+              <button class="bc-chip bc-chip-all" disabled>{$tr('metadata.all')}</button>
             {/if}
             {#each genreTree[displayParent] as child}
               {@const c = ($genres.find(g => g.name.toLowerCase() === child.toLowerCase())?.count ?? 0)}
@@ -2443,10 +2443,10 @@
           <div class="year-summary">
             <span class="year-summary-total">{$albums.length} {$albums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
             {#if noGenreAlbums.length > 0}
-              <span class="year-summary-groups">dont {noGenreAlbums.length} sans genre</span>
+              <span class="year-summary-groups">{$tr('library.ofWhichNoGenre').replace('{count}', String(noGenreAlbums.length))}</span>
             {/if}
             <div class="genre-sort-btns">
-              <button class="genre-sort-btn" class:active={genreBranchSort === 'count'} onclick={() => genreBranchSort = 'count'}>Par nombre</button>
+              <button class="genre-sort-btn" class:active={genreBranchSort === 'count'} onclick={() => genreBranchSort = 'count'}>{$tr('library.sortByCount')}</button>
               <button class="genre-sort-btn" class:active={genreBranchSort === 'name'} onclick={() => genreBranchSort = 'name'}>A-Z</button>
             </div>
           </div>
@@ -2478,7 +2478,7 @@
         {/if}
 
         {#if filteredOrphanGenres.length > 0}
-          <h3 class="bc-section-title">Hors arbre</h3>
+          <h3 class="bc-section-title">{$tr('library.outsideTree')}</h3>
           <div class="genres-grid">
             {#each filteredOrphanGenres.sort((a, b) => genreBranchSort === 'name' ? a.name.localeCompare(b.name) : b.count - a.count) as g}
               <button class="genre-card" onclick={() => selectGenreInTab(g.name)}>

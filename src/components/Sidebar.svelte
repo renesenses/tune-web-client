@@ -263,7 +263,7 @@
       if (zone.id !== null) currentZoneId.set(zone.id);
     } catch (e: any) {
       const msg = e?.message || e?.detail || String(e);
-      notifications.error(`Impossible de créer la zone : ${msg}`);
+      notifications.error(`${$t('sidebar.createZoneFailed')} : ${msg}`);
       console.error('Create zone from audio device error:', e);
     }
   }
@@ -275,7 +275,7 @@
       if (zone.id !== null) currentZoneId.set(zone.id);
     } catch (e: any) {
       const msg = e?.message || e?.detail || String(e);
-      notifications.error(`Impossible de créer la zone : ${msg}`);
+      notifications.error(`${$t('sidebar.createZoneFailed')} : ${msg}`);
       console.error('Create zone from device error:', e);
     }
   }
@@ -587,7 +587,7 @@
 
 <aside class="sidebar">
   <div class="sidebar-header">
-    <h1 class="logo"><a href="https://mozaiklabs.fr/forum" target="_blank" rel="noopener noreferrer" class="logo-link" title="Forum Mozaiklabs"><img src="/tune-logo.png" alt="Tune" class="logo-img" /></a> <span class="version">{#if $updateAvailable}<button class="version-link" onclick={() => navigateToSettingsTab('system')} title="Mise à jour disponible">v{serverVersion ?? __APP_VERSION__}<span class="version-update-dot"></span><span class="version-latest">v{$latestVersion}</span></button>{:else}v{serverVersion ?? __APP_VERSION__}{/if}</span>
+    <h1 class="logo"><a href="https://mozaiklabs.fr/forum" target="_blank" rel="noopener noreferrer" class="logo-link" title={$t('sidebar.forumMozaiklabs')}><img src="/tune-logo.png" alt="Tune" class="logo-img" /></a> <span class="version">{#if $updateAvailable}<button class="version-link" onclick={() => navigateToSettingsTab('system')} title={$t('sidebar.updateAvailable')}>v{serverVersion ?? __APP_VERSION__}<span class="version-update-dot"></span><span class="version-latest">v{$latestVersion}</span></button>{:else}v{serverVersion ?? __APP_VERSION__}{/if}</span>
       <button class="whatsnew-btn" onclick={() => window.dispatchEvent(new CustomEvent('tune:open-whatsnew'))} title={$t('whatsnew.title')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       </button>
@@ -598,10 +598,10 @@
       </span>
       <span class="state-text truncate">{stateLabel($connectionState, $reconnectAttempts)}</span>
       {#if $connectionState === 'polling'}
-        <span class="polling-badge" title="Mode polling actif (WebSocket indisponible)">P</span>
+        <span class="polling-badge" title={$t('sidebar.pollingMode')}>P</span>
       {/if}
       {#if $healthStatus !== 'ok'}
-        <span class="health-dot" class:health-warning={$healthStatus === 'warning'} class:health-critical={$healthStatus === 'critical'} title="Serveur : {$healthStatus}"></span>
+        <span class="health-dot" class:health-warning={$healthStatus === 'warning'} class:health-critical={$healthStatus === 'critical'} title="{$t('sidebar.serverStatus')} : {$healthStatus}"></span>
       {/if}
     </div>
   </div>
@@ -652,8 +652,8 @@
   <!-- SHORTCUTS -->
   <nav class="nav-section shortcuts-section">
     <div class="shortcuts-header">
-      <span class="section-label">Raccourcis</span>
-      <button class="add-zone-btn" onclick={() => showAddShortcut = !showAddShortcut} title="Ajouter un raccourci">
+      <span class="section-label">{$t('sidebar.shortcuts')}</span>
+      <button class="add-zone-btn" onclick={() => showAddShortcut = !showAddShortcut} title={$t('sidebar.addShortcut')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
       </button>
     </div>
@@ -667,7 +667,7 @@
         <input
           type="text"
           class="shortcut-name-input"
-          placeholder="Nom du raccourci"
+          placeholder={$t('sidebar.shortcutName')}
           bind:value={newShortcutName}
           onkeydown={(e) => e.key === 'Enter' && handleAddShortcut()}
         />
@@ -695,9 +695,9 @@
         </button>
         {#if contextShortcutId === sc.id}
           <div class="shortcut-context">
-            <button onclick={() => startRenaming(sc.id, sc.name)}>Renommer</button>
-            <button onclick={() => { togglePin(sc.id); contextShortcutId = null; }}>Désépingler</button>
-            <button class="danger" onclick={() => { removeShortcut(sc.id); contextShortcutId = null; }}>Supprimer</button>
+            <button onclick={() => startRenaming(sc.id, sc.name)}>{$t('zone.rename')}</button>
+            <button onclick={() => { togglePin(sc.id); contextShortcutId = null; }}>{$t('sidebar.unpin')}</button>
+            <button class="danger" onclick={() => { removeShortcut(sc.id); contextShortcutId = null; }}>{$t('common.delete')}</button>
           </div>
         {/if}
       {/if}
@@ -705,7 +705,7 @@
     {#if $shortcuts.length > 0}
       <button class="nav-item shortcut-see-all" onclick={() => navigate('shortcuts' as View)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-        Tous les raccourcis ({$shortcuts.length})
+        {$t('sidebar.allShortcuts')} ({$shortcuts.length})
       </button>
     {/if}
   </nav>
@@ -730,7 +730,7 @@
     </button>
     <button class="nav-item" class:active={$activeView === 'radiofavorites'} onclick={() => navigate('radiofavorites')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-      Favoris Radio
+      {$t('sidebar.radioFavorites')}
     </button>
     <button class="nav-item" class:active={$activeView === 'podcasts'} onclick={() => navigate('podcasts')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
@@ -771,11 +771,11 @@
       </button>
       <button class="nav-item" class:active={$activeView === 'settings' && false} onclick={() => navigateToSettingsTab('services')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Services connectés
+        {$t('sidebar.connectedServices')}
       </button>
       <button class="nav-item" class:active={$activeView === 'genretree'} onclick={() => navigate('genretree')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6"/><circle cx="12" cy="10" r="2"/><path d="M12 12v3"/><path d="M5 17a3 3 0 1 0 6 0 3 3 0 0 0-6 0zm8 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0z"/><path d="M8 14h8"/><path d="M8 14v3"/><path d="M16 14v3"/></svg>
-        Arbre des genres
+        {$t('sidebar.genreTree')}
       </button>
       <button class="nav-item" class:active={$activeView === 'plugins'} onclick={() => navigate('plugins')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 16V7a2 2 0 0 0-2-2h-3a2 2 0 0 1-2-2 2 2 0 0 0-2 2H8a2 2 0 0 0-2 2v3a2 2 0 0 1 2 2 2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h3a2 2 0 0 1 2 2 2 2 0 0 0 2-2h3a2 2 0 0 0 2-2z"/></svg>
@@ -788,7 +788,7 @@
       </button>
       <button class="nav-item" class:active={$activeView === 'dj'} onclick={() => navigate('dj')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /></svg>
-        Mode DJ
+        {$t('sidebar.djMode')}
         <span class="badge-new">POC</span>
       </button>
       <button class="nav-item" class:active={$activeView === 'party'} onclick={() => navigate('party')}>
@@ -814,7 +814,7 @@
       </button>
       <button class="nav-item" class:active={$activeView === 'converter'} onclick={() => navigate('converter')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
-        Convertisseur
+        {$t('sidebar.converter')}
       </button>
     </div>
   </nav>
@@ -993,7 +993,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </button>
             {:else}
-            <span class="device-bound" title="Zone existante">&#x2713;</span>
+            <span class="device-bound" title={$t('sidebar.existingZone')}>&#x2713;</span>
             {/if}
           {:else}
             <span class="device-status offline" title={$t('zone.offline')}>&#x25CB;</span>
