@@ -77,7 +77,10 @@
 <div class="profile-selector">
   <button class="profile-current" onclick={toggleDropdown} title={$t('profile.select')}>
     {#if cloudAvatarUrl}
-      <img src={cloudAvatarUrl} alt="" class="avatar-circle avatar-img" />
+      <!-- Fall back to the local profile's colored avatar if the SSO cloud
+           avatar image is empty/broken — otherwise the header shows an empty
+           circle (Bilou: profile avatar color lost after connecting SSO). -->
+      <img src={cloudAvatarUrl} alt="" class="avatar-circle avatar-img" onerror={() => (cloudAvatarUrl = null)} />
     {:else}
       <span class="avatar-circle" style="background: {currentProfile?.avatar_color ?? '#6366f1'}">
         {currentProfile ? currentProfile.name.charAt(0).toUpperCase() : '?'}
