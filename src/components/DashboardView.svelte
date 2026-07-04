@@ -281,7 +281,7 @@
                 {:else}
                   <div class="rank-cover-empty rank-clickable" onclick={() => openArtist(a.artist_name)}>🎤</div>
                 {/if}
-                <button class="rank-name rank-link" onclick={() => openArtist(a.artist_name)} title="Voir l'artiste">{a.artist_name}</button>
+                <button class="rank-name rank-link" onclick={() => openArtist(a.artist_name)} title={$t('dashboard.viewArtist')}>{a.artist_name}</button>
                 <span class="rank-meta">{a.plays} · {formatMs(a.listening_ms)}</span>
               </li>
             {/each}
@@ -303,8 +303,8 @@
                   {/if}
                 </div>
                 <span class="rank-info">
-                  <button class="rank-name rank-link" onclick={() => openAlbum(a.album_title, a.artist_name)} title="Voir l'album">{a.album_title}</button>
-                  <button class="rank-artist-link" onclick={() => openArtist(a.artist_name)} title="Voir l'artiste">{a.artist_name}</button>
+                  <button class="rank-name rank-link" onclick={() => openAlbum(a.album_title, a.artist_name)} title={$t('dashboard.viewAlbum')}>{a.album_title}</button>
+                  <button class="rank-artist-link" onclick={() => openArtist(a.artist_name)} title={$t('dashboard.viewArtist')}>{a.artist_name}</button>
                 </span>
                 <span class="rank-meta">{a.plays}</span>
               </li>
@@ -317,20 +317,20 @@
         <div class="card">
           <h3>{$t('dashboard.section.top_tracks')}</h3>
           <ol class="rank-list rank-list-with-cover">
-            {#each data.top_tracks as t}
+            {#each data.top_tracks as tk}
               <li>
-                <div class="rank-cover-wrap" onclick={() => playTrack(t.track_id)}>
-                  {#if t.cover_path}
-                    <img class="rank-cover rank-clickable" src={artworkUrl(t.cover_path, 80)} alt="" loading="lazy" />
+                <div class="rank-cover-wrap" onclick={() => playTrack(tk.track_id)}>
+                  {#if tk.cover_path}
+                    <img class="rank-cover rank-clickable" src={artworkUrl(tk.cover_path, 80)} alt="" loading="lazy" />
                   {:else}
                     <div class="rank-cover-empty rank-clickable">🎵</div>
                   {/if}
                 </div>
                 <span class="rank-info">
-                  <button class="rank-name rank-link" onclick={() => openTrack(t.track_id, t.title, t.artist_name)} title="Voir la piste">{t.title}</button>
-                  <button class="rank-artist-link" onclick={() => openArtist(t.artist_name)} title="Voir l'artiste">{t.artist_name}</button>
+                  <button class="rank-name rank-link" onclick={() => openTrack(tk.track_id, tk.title, tk.artist_name)} title={$t('dashboard.viewTrack')}>{tk.title}</button>
+                  <button class="rank-artist-link" onclick={() => openArtist(tk.artist_name)} title={$t('dashboard.viewArtist')}>{tk.artist_name}</button>
                 </span>
-                <span class="rank-meta">{t.plays}</span>
+                <span class="rank-meta">{tk.plays}</span>
               </li>
             {/each}
           </ol>
@@ -338,7 +338,7 @@
       {/if}
       {#if data.top_radios && data.top_radios.length > 0}
         <div class="card">
-          <h3>Top radios</h3>
+          <h3>{$t('dashboard.topRadios')}</h3>
           <ol class="rank-list rank-list-with-cover">
             {#each data.top_radios as r}
               <li>
@@ -368,11 +368,11 @@
           <div class="streak-row">
             <div>
               <div class="streak-num">{data.streak.current}</div>
-              <div class="streak-label">jour{data.streak.current > 1 ? 's' : ''} consécutif{data.streak.current > 1 ? 's' : ''}</div>
+              <div class="streak-label">{$t('dashboard.consecutiveDays')}</div>
             </div>
             <div class="streak-best">
               <div class="streak-best-num">{data.streak.best}</div>
-              <div class="streak-best-label">record perso</div>
+              <div class="streak-best-label">{$t('dashboard.personalRecord')}</div>
             </div>
           </div>
         </div>
@@ -380,7 +380,7 @@
 
       {#if data.on_this_day && data.on_this_day.length > 0}
         <div class="card otd-card">
-          <h3>📅 Il y a quelques années…</h3>
+          <h3>📅 {$t('dashboard.onThisDay')}</h3>
           <ul class="otd-list">
             {#each data.on_this_day.slice(0, 8) as t}
               <li class="otd-clickable" onclick={() => openTrack(null, t.track_title ?? '', t.artist_name ?? '')}>
@@ -399,7 +399,7 @@
     <!-- Genres par branche (rolled up via le genre tree) -->
     {#if visibleGenreBranches.length > 0}
       <div class="card">
-        <h3>Écoutes par branche genre</h3>
+        <h3>{$t('dashboard.genreBranches')}</h3>
         <ul class="bar-list">
           {#each visibleGenreBranches as b}
             <li>
@@ -411,7 +411,7 @@
         </ul>
         {#if genreBranches.length > 20}
           <button class="show-more-btn" onclick={() => showAllGenres = !showAllGenres}>
-            {showAllGenres ? 'Afficher moins' : `Afficher les ${genreBranches.length - 20} autres`}
+            {showAllGenres ? $t('dashboard.showLess') : $t('dashboard.showMoreGenres').replace('{n}', String(genreBranches.length - 20))}
           </button>
         {/if}
       </div>

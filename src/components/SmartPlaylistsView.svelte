@@ -42,39 +42,39 @@
   let newMaxTracks = $state(200);
   let newRules: Rule[] = $state([{ field: 'genre', operator: 'contains', value: '' }]);
 
-  const FIELDS = [
-    { value: 'title', label: 'Titre' },
-    { value: 'artist', label: 'Artiste' },
-    { value: 'album', label: 'Album' },
-    { value: 'genre', label: 'Genre' },
-    { value: 'year', label: 'Annee' },
-    { value: 'format', label: 'Format' },
-    { value: 'sample_rate', label: 'Freq. (Hz)' },
-    { value: 'bit_depth', label: 'Bits' },
-    { value: 'source', label: 'Source' },
-    { value: 'composer', label: 'Compositeur' },
-    { value: 'comments', label: 'Commentaires' },
+  const FIELDS: { value: string; key: string }[] = [
+    { value: 'title', key: 'common.title' },
+    { value: 'artist', key: 'common.artist' },
+    { value: 'album', key: 'common.album' },
+    { value: 'genre', key: 'smartPlaylists.fieldGenre' },
+    { value: 'year', key: 'smartPlaylists.fieldYear' },
+    { value: 'format', key: 'smartPlaylists.fieldFormat' },
+    { value: 'sample_rate', key: 'smartPlaylists.fieldSampleRate' },
+    { value: 'bit_depth', key: 'smartPlaylists.fieldBitDepth' },
+    { value: 'source', key: 'smartPlaylists.fieldSource' },
+    { value: 'composer', key: 'smartPlaylists.fieldComposer' },
+    { value: 'comments', key: 'smartPlaylists.fieldComments' },
   ];
 
-  const OPERATORS = [
-    { value: 'contains', label: 'contient' },
+  const OPERATORS: { value: string; key?: string; label?: string }[] = [
+    { value: 'contains', key: 'smartPlaylists.opContains' },
     { value: 'equals', label: '=' },
     { value: 'not_equals', label: '!=' },
-    { value: 'starts_with', label: 'commence par' },
+    { value: 'starts_with', key: 'smartPlaylists.opStartsWith' },
     { value: 'greater_than', label: '>' },
     { value: 'less_than', label: '<' },
-    { value: 'branch_of', label: 'branche de (genre + sous-genres)' },
-    { value: 'is_empty', label: 'est vide' },
-    { value: 'is_not_empty', label: "n'est pas vide" },
+    { value: 'branch_of', key: 'smartPlaylists.opBranchOf' },
+    { value: 'is_empty', key: 'smartPlaylists.opIsEmpty' },
+    { value: 'is_not_empty', key: 'smartPlaylists.opIsNotEmpty' },
   ];
 
-  const SORT_OPTIONS = [
-    { value: 'title', label: 'Titre' },
-    { value: 'artist', label: 'Artiste' },
-    { value: 'album', label: 'Album' },
-    { value: 'year', label: 'Annee' },
-    { value: 'duration', label: 'Duree' },
-    { value: 'random', label: 'Aleatoire' },
+  const SORT_OPTIONS: { value: string; key: string }[] = [
+    { value: 'title', key: 'common.title' },
+    { value: 'artist', key: 'common.artist' },
+    { value: 'album', key: 'common.album' },
+    { value: 'year', key: 'smartPlaylists.fieldYear' },
+    { value: 'duration', key: 'smartPlaylists.sortDuration' },
+    { value: 'random', key: 'smartPlaylists.sortRandom' },
   ];
 
   async function loadSmartPlaylists() {
@@ -109,7 +109,7 @@
         sort_order: newSortOrder,
         max_tracks: newMaxTracks,
       });
-      notifications.success(`Smart playlist "${newName}" creee`);
+      notifications.success($tr('smartPlaylists.created').replace('{name}', newName));
       showCreate = false;
       newName = '';
       newDescription = '';
@@ -119,7 +119,7 @@
       const created = smartPlaylists.find(sp => sp.id === result.id);
       if (created) selectSp(created);
     } catch (e: any) {
-      notifications.error(e?.message || 'Erreur');
+      notifications.error(e?.message || $tr('common.error'));
     }
   }
 
@@ -131,9 +131,9 @@
         selectedSp = null;
         spTracks = [];
       }
-      notifications.success(`"${sp.name}" supprimee`);
+      notifications.success($tr('smartPlaylists.deleted').replace('{name}', sp.name));
     } catch (e: any) {
-      notifications.error(e?.message || 'Erreur');
+      notifications.error(e?.message || $tr('common.error'));
     }
   }
 
@@ -161,7 +161,7 @@
         sort_order: newSortOrder,
         max_tracks: newMaxTracks,
       });
-      notifications.success(`Smart playlist "${newName}" modifiee`);
+      notifications.success($tr('smartPlaylists.updated').replace('{name}', newName));
       editingSp = null;
       showCreate = false;
       newName = '';
@@ -169,7 +169,7 @@
       newRules = [{ field: 'genre', operator: 'contains', value: '' }];
       await loadSmartPlaylists();
     } catch (e: any) {
-      notifications.error(e?.message || 'Erreur');
+      notifications.error(e?.message || $tr('common.error'));
     }
   }
 
@@ -209,7 +209,7 @@
 
   function ruleSummary(sp: SmartPlaylist): string {
     const rules = parseRules(sp);
-    if (!rules.length) return 'aucune règle';
+    if (!rules.length) return $tr('smartPlaylists.noRules');
     const parts = rules.slice(0, 2).map(r => `${r.field} ${r.operator} ${r.value}`);
     const mode = (sp.match_mode || '').replace(/"/g, '');
     const summary = parts.join(mode === 'all' ? ' ET ' : ' OU ');
@@ -237,7 +237,7 @@
         <div class="sp-detail-info">
           <h2>{selectedSp.name}</h2>
           {#if selectedSp.description}<p class="sp-desc">{selectedSp.description}</p>{/if}
-          <p class="sp-meta">{spTracks.length} pistes</p>
+          <p class="sp-meta">{spTracks.length} {$tr('common.tracks')}</p>
           <div class="sp-rules-display">
             {#each parseRules(selectedSp) as rule}
               <span class="sp-rule-chip">{rule.field} {rule.operator} "{rule.value}"</span>
@@ -249,11 +249,11 @@
       <div class="sp-detail-actions">
         <button class="play-all-btn" onclick={playAll} disabled={spTracks.length === 0}>
           <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
-          Lire tout ({spTracks.length})
+          {$tr('smartPlaylists.playAll')} ({spTracks.length})
         </button>
         <button class="edit-btn" onclick={() => { const sp = selectedSp!; selectedSp = null; spTracks = []; startEdit(sp); }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-          Editer
+          {$tr('smartPlaylists.edit')}
         </button>
       </div>
 
@@ -285,64 +285,64 @@
       <h2>Smart Playlists</h2>
       <button class="create-btn" onclick={() => { if (showCreate) { cancelForm(); } else { editingSp = null; newName = ''; newDescription = ''; newRules = [{ field: 'genre', operator: 'contains', value: '' }]; newMatchMode = 'all'; newSortBy = 'title'; newSortOrder = 'asc'; newMaxTracks = 200; showCreate = true; } }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-        Nouvelle Smart Playlist
+        {$tr('smartPlaylists.new')}
       </button>
     </div>
 
     {#if showCreate}
       <div class="sp-create-form">
-        <input type="text" placeholder="Nom" bind:value={newName} class="sp-input" />
-        <input type="text" placeholder="Description (optionnel)" bind:value={newDescription} class="sp-input" />
+        <input type="text" placeholder={$tr('smartPlaylists.namePlaceholder')} bind:value={newName} class="sp-input" />
+        <input type="text" placeholder={$tr('smartPlaylists.descPlaceholder')} bind:value={newDescription} class="sp-input" />
 
         <div class="sp-rules-builder">
-          <h4>Règles</h4>
+          <h4>{$tr('smartPlaylists.rules')}</h4>
           {#each newRules as rule, i}
             <div class="sp-rule-row">
               <select bind:value={rule.field} class="sp-select">
-                {#each FIELDS as f}<option value={f.value}>{f.label}</option>{/each}
+                {#each FIELDS as f}<option value={f.value}>{$tr(f.key)}</option>{/each}
               </select>
               <select bind:value={rule.operator} class="sp-select">
-                {#each OPERATORS as op}<option value={op.value}>{op.label}</option>{/each}
+                {#each OPERATORS as op}<option value={op.value}>{op.key ? $tr(op.key) : op.label}</option>{/each}
               </select>
-              <input type="text" placeholder="Valeur" bind:value={rule.value} class="sp-input sp-input-sm" />
+              <input type="text" placeholder={$tr('smartPlaylists.valuePlaceholder')} bind:value={rule.value} class="sp-input sp-input-sm" />
               <button class="sp-remove-rule" onclick={() => removeRule(i)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
           {/each}
-          <button class="sp-add-rule" onclick={addRule}>+ Ajouter une règle</button>
+          <button class="sp-add-rule" onclick={addRule}>{$tr('smartPlaylists.addRule')}</button>
         </div>
 
         <div class="sp-options">
           <label>
-            Correspondance :
+            {$tr('smartPlaylists.matchMode')}
             <select bind:value={newMatchMode} class="sp-select">
-              <option value="all">Toutes (ET)</option>
-              <option value="any">Au moins une (OU)</option>
+              <option value="all">{$tr('smartPlaylists.matchAll')}</option>
+              <option value="any">{$tr('smartPlaylists.matchAny')}</option>
             </select>
           </label>
           <label>
-            Tri :
+            {$tr('smartPlaylists.sort')}
             <select bind:value={newSortBy} class="sp-select">
-              {#each SORT_OPTIONS as s}<option value={s.value}>{s.label}</option>{/each}
+              {#each SORT_OPTIONS as s}<option value={s.value}>{$tr(s.key)}</option>{/each}
             </select>
           </label>
           <label>
-            Ordre :
+            {$tr('smartPlaylists.order')}
             <select bind:value={newSortOrder} class="sp-select">
-              <option value="asc">Croissant</option>
-              <option value="desc">Décroissant</option>
+              <option value="asc">{$tr('smartPlaylists.asc')}</option>
+              <option value="desc">{$tr('smartPlaylists.desc')}</option>
             </select>
           </label>
           <label>
-            Max :
+            {$tr('smartPlaylists.max')}
             <input type="number" bind:value={newMaxTracks} min="1" max="1000" class="sp-input sp-input-num" />
           </label>
         </div>
 
         <div class="sp-form-actions">
-          <button class="play-all-btn" onclick={editingSp ? handleUpdate : handleCreate} disabled={!newName.trim()}>{editingSp ? 'Modifier' : 'Créer'}</button>
-          <button class="cancel-btn" onclick={cancelForm}>Annuler</button>
+          <button class="play-all-btn" onclick={editingSp ? handleUpdate : handleCreate} disabled={!newName.trim()}>{editingSp ? $tr('smartPlaylists.modify') : $tr('common.create')}</button>
+          <button class="cancel-btn" onclick={cancelForm}>{$tr('common.cancel')}</button>
         </div>
       </div>
     {/if}
@@ -362,17 +362,17 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
             </span>
             <span class="card-name">{sp.name}</span>
-            <button class="edit-icon" onclick={(e) => { e.stopPropagation(); startEdit(sp); }} title="Editer">
+            <button class="edit-icon" onclick={(e) => { e.stopPropagation(); startEdit(sp); }} title={$tr('smartPlaylists.edit')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
             </button>
-            <button class="del" onclick={(e) => { e.stopPropagation(); handleDelete(sp); }} title="Supprimer">×</button>
+            <button class="del" onclick={(e) => { e.stopPropagation(); handleDelete(sp); }} title={$tr('common.delete')}>×</button>
           </div>
           <div class="card-rules">{ruleSummary(sp)}</div>
           {#if sp.description}<div class="card-desc">{sp.description}</div>{/if}
         </div>
       {/each}
       {#if smartPlaylists.length === 0 && !showCreate}
-        <p class="sp-empty">Aucune smart playlist. Cliquez "Nouvelle Smart Playlist" pour commencer.</p>
+        <p class="sp-empty">{$tr('smartPlaylists.emptyList')}</p>
       {/if}
     </div>
   {/if}

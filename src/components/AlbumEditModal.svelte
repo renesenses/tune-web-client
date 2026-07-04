@@ -1,5 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
+  import { get } from 'svelte/store';
   import * as api from '../lib/api';
   import { artworkUrl } from '../lib/api';
   import type { Album, Artist, Track } from '../lib/types';
@@ -206,9 +207,11 @@
     writeTagsResult = null;
     try {
       const result = await api.writeAlbumTags(album.id);
-      writeTagsResult = `Tags gravés : ${result.success}/${result.tracks_processed} pistes`;
+      writeTagsResult = get(t)('albumEdit.tagsWritten')
+        .replace('{success}', String(result.success))
+        .replace('{total}', String(result.tracks_processed));
     } catch (e: any) {
-      writeTagsResult = `Erreur : ${e?.message || e}`;
+      writeTagsResult = get(t)('albumEdit.writeTagsError').replace('{error}', String(e?.message || e));
     }
     writingTags = false;
   }
@@ -383,7 +386,7 @@
                 // create new artists from this drawer; use a dedicated
                 // 'New artist' flow if needed).
               }}
-              placeholder="Tape pour chercher (autocomplétion)…"
+              placeholder={$t('albumEdit.artistSearchPlaceholder')}
             />
             <datalist id="artist-suggestions">
               {#each artists as a (a.id)}
@@ -391,7 +394,7 @@
               {/each}
             </datalist>
             {#if artistInput && !resolveArtistByName(artistInput) && artistInput.trim().toLowerCase() !== (album.artist_name ?? '').toLowerCase()}
-              <span class="hint-info">Nouvel artiste « {artistInput.trim()} » sera créé à la sauvegarde.</span>
+              <span class="hint-info">{$t('albumEdit.newArtistHint').replace('{name}', artistInput.trim())}</span>
             {/if}
           </label>
 
@@ -402,9 +405,9 @@
               bind:value={albumArtistInput}
               list="artist-suggestions"
               autocomplete="off"
-              placeholder={artistInput || 'Identique à l\'artiste si vide'}
+              placeholder={artistInput || $t('albumEdit.sameAsArtist')}
             />
-            <span class="hint-muted">Tag ALBUMARTIST — important pour les compilations et Best of</span>
+            <span class="hint-muted">{$t('albumEdit.albumArtistHint')}</span>
           </label>
 
           <div class="field-row">
@@ -432,8 +435,8 @@
           </label>
 
           <label class="field">
-            <span class="field-label">Catalogue</span>
-            <input type="text" bind:value={catalogNumber} placeholder="N° de catalogue" />
+            <span class="field-label">{$t('albumEdit.catalog')}</span>
+            <input type="text" bind:value={catalogNumber} placeholder={$t('albumEdit.catalogPlaceholder')} />
           </label>
         </div>
 
@@ -441,7 +444,7 @@
         {#if !extLoading && enabledCategories.length > 0}
           <div class="ext-divider"></div>
           <div class="ext-section">
-            <span class="ext-heading">Métadonnées étendues</span>
+            <span class="ext-heading">{$t('albumEdit.extendedMetadata')}</span>
             {#each enabledCategories as cat}
               <div class="ext-category">
                 <span class="ext-cat-label">{cat.name}</span>
@@ -464,8 +467,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="transform: rotate({tracksOpen ? 90 : 0}deg); transition: transform 0.15s">
               <polyline points="9 18 15 12 9 6"/>
             </svg>
-            Pistes {tracksLoaded ? `(${tracks.length})` : ''}
-            <span class="tracks-hint">— clic = tous les champs</span>
+            {$t('albumEdit.tracks')} {tracksLoaded ? `(${tracks.length})` : ''}
+            <span class="tracks-hint">{$t('albumEdit.tracksHint')}</span>
           </button>
           {#if tracksOpen}
             <div class="tracks-list">
@@ -477,7 +480,7 @@
                 </button>
               {/each}
               {#if tracks.length === 0 && tracksLoaded}
-                <div class="state-empty">Aucune piste.</div>
+                <div class="state-empty">{$t('albumEdit.noTracks')}</div>
               {/if}
             </div>
           {/if}
@@ -493,7 +496,7 @@
         {#if !album.source || album.source === 'local'}
           <button class="btn-write-tags" onclick={writeAlbumTags} disabled={writingTags || !hasSaved}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
-            {writingTags ? 'Gravure...' : 'Graver tags'}
+            {writingTags ? $t('albumEdit.writing') : $t('albumEdit.writeTags')}
           </button>
         {/if}
         <button class="btn-save" onclick={saveAlbum} disabled={saving}>

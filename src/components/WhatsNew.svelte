@@ -99,7 +99,7 @@
               <span class="version-tag">v{entry.version}</span>
               <span class="version-date">{entry.date}</span>
               {#if i === 0}
-                <span class="version-latest-badge">Latest</span>
+                <span class="version-latest-badge">{$t('whatsNew.latest')}</span>
               {/if}
             </div>
 

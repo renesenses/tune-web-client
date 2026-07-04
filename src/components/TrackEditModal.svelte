@@ -202,7 +202,7 @@
 
           <div class="field">
             <span class="field-label">{$t('metadata.artist')}</span>
-            <input type="text" bind:value={artistSearch} placeholder="Rechercher ou créer un artiste..." onfocus={() => artistFocused = true} onblur={() => setTimeout(() => artistFocused = false, 300)} oninput={() => searchArtists(artistSearch)} />
+            <input type="text" bind:value={artistSearch} placeholder={$t('trackEdit.searchOrCreateArtist')} onfocus={() => artistFocused = true} onblur={() => setTimeout(() => artistFocused = false, 300)} oninput={() => searchArtists(artistSearch)} />
             {#if artistFocused && artistSearch.length > 0 && filteredArtists.length > 0}
               <div class="dropdown-list">
                 {#each filteredArtists as a}
@@ -211,13 +211,13 @@
               </div>
             {/if}
             {#if artistSearch && !filteredArtists.some(a => (a.name ?? '').toLowerCase() === artistSearch.toLowerCase())}
-              <span class="create-hint">Nouvel artiste : "{artistSearch}"</span>
+              <span class="create-hint">{$t('trackEdit.newArtist').replace('{name}', artistSearch)}</span>
             {/if}
           </div>
 
           <label class="field">
             <span class="field-label">{$t('metadata.albumTitle')}</span>
-            <input type="text" bind:value={albumSearch} placeholder="Rechercher ou créer un album..." onfocus={() => albumFocused = true} onblur={() => setTimeout(() => albumFocused = false, 200)} oninput={() => searchAlbums(albumSearch)} />
+            <input type="text" bind:value={albumSearch} placeholder={$t('trackEdit.searchOrCreateAlbum')} onfocus={() => albumFocused = true} onblur={() => setTimeout(() => albumFocused = false, 200)} oninput={() => searchAlbums(albumSearch)} />
             {#if albumFocused && albumSearch.length > 0 && filteredAlbums.length > 0}
               <div class="dropdown-list">
                 {#each filteredAlbums as al}
@@ -226,7 +226,7 @@
               </div>
             {/if}
             {#if albumSearch && !filteredAlbums.some(a => (a.title ?? '').toLowerCase() === albumSearch.toLowerCase())}
-              <span class="create-hint">Nouvel album : "{albumSearch}"</span>
+              <span class="create-hint">{$t('trackEdit.newAlbum').replace('{name}', albumSearch)}</span>
             {/if}
           </label>
 
@@ -259,7 +259,7 @@
         {#if !extLoading && enabledCategories.length > 0}
           <div class="ext-divider"></div>
           <div class="ext-section">
-            <span class="ext-heading">Métadonnées étendues</span>
+            <span class="ext-heading">{$t('trackEdit.extendedMetadata')}</span>
             {#each enabledCategories as cat}
               <div class="ext-category">
                 <span class="ext-cat-label">{cat.name}</span>

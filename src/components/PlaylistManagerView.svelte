@@ -19,10 +19,10 @@
       const result = await api.sharePlaylist(playlistId);
       const text = result.text ?? result.share_url ?? JSON.stringify(result);
       await navigator.clipboard.writeText(text);
-      notifications.success('Lien copie dans le presse-papier');
+      notifications.success($tr('playlistManager.linkCopied'));
     } catch (e) {
       console.error('Share playlist error:', e);
-      notifications.error('Erreur partage');
+      notifications.error($tr('playlistManager.shareError'));
     }
   }
 
@@ -136,7 +136,7 @@
       // Reload local playlists
       try { localPlaylists = await api.getPlaylists(); } catch {}
     } catch (err: any) {
-      alert(`Erreur merge : ${err.message || err}`);
+      alert($tr('playlistManager.mergeError').replace('{error}', String(err.message || err)));
     }
     merging = false;
   }
@@ -333,7 +333,7 @@
       showCollabCreate = false;
       await loadCollabPlaylists();
     } catch (err: any) {
-      alert(`Erreur : ${err.message || err}`);
+      alert($tr('playlistManager.errorGeneric').replace('{error}', String(err.message || err)));
     }
     creatingCollab = false;
   }
@@ -348,7 +348,7 @@
   }
 
   async function deleteCollab(playlistId: number) {
-    if (!confirm('Supprimer cette playlist collaborative ?')) return;
+    if (!confirm($tr('playlistManager.confirmDeleteCollab'))) return;
     deletingCollab = playlistId;
     try {
       await api.deleteCollaborativePlaylist(playlistId);
@@ -358,7 +358,7 @@
         collabTracks = [];
       }
     } catch (err: any) {
-      alert(`Erreur : ${err.message || err}`);
+      alert($tr('playlistManager.errorGeneric').replace('{error}', String(err.message || err)));
     }
     deletingCollab = null;
   }
@@ -389,7 +389,7 @@
   }
 
   async function restoreSnapshot(snap: api.PlaylistSnapshot) {
-    const name = prompt(`Restaurer "${snap.playlist_name}" en tant que playlist locale.\nNom (laisser vide = "${snap.playlist_name}") :`, snap.playlist_name);
+    const name = prompt($tr('playlistManager.restorePrompt').replaceAll('{name}', snap.playlist_name), snap.playlist_name);
     if (name === null) return;
     restoringSnapshotId = snap.id;
     restoreMessage = '';
@@ -397,35 +397,41 @@
       const result = await api.restorePlaylistSnapshot(snap.id, {
         target_name: name || undefined,
       });
-      restoreMessage = `"${result.name}" restaurée : ${result.tracks_matched} pistes trouvées localement, ${result.tracks_not_found} introuvables.`;
+      restoreMessage = $tr('playlistManager.restoreSuccess')
+        .replace('{name}', result.name)
+        .replace('{matched}', String(result.tracks_matched))
+        .replace('{notFound}', String(result.tracks_not_found));
     } catch (err: any) {
       // If conflict, ask user about overwrite
       if (err?.message?.includes('already exists') || err?.status === 409) {
-        if (confirm(`Une playlist "${name || snap.playlist_name}" existe déjà. La remplacer ?`)) {
+        if (confirm($tr('playlistManager.confirmOverwrite').replace('{name}', name || snap.playlist_name))) {
           try {
             const result = await api.restorePlaylistSnapshot(snap.id, {
               target_name: name || undefined,
               overwrite_existing: true,
             });
-            restoreMessage = `"${result.name}" remplacée : ${result.tracks_matched} pistes trouvées, ${result.tracks_not_found} introuvables.`;
+            restoreMessage = $tr('playlistManager.overwriteSuccess')
+              .replace('{name}', result.name)
+              .replace('{matched}', String(result.tracks_matched))
+              .replace('{notFound}', String(result.tracks_not_found));
           } catch (err2: any) {
-            restoreMessage = `Erreur : ${err2.message || err2}`;
+            restoreMessage = $tr('playlistManager.errorGeneric').replace('{error}', String(err2.message || err2));
           }
         }
       } else {
-        restoreMessage = `Erreur : ${err.message || err}`;
+        restoreMessage = $tr('playlistManager.errorGeneric').replace('{error}', String(err.message || err));
       }
     }
     restoringSnapshotId = null;
   }
 
   async function deleteSnapshot(snap: api.PlaylistSnapshot) {
-    if (!confirm(`Supprimer le snapshot de "${snap.playlist_name}" ?`)) return;
+    if (!confirm($tr('playlistManager.confirmDeleteSnapshot').replace('{name}', snap.playlist_name))) return;
     try {
       await api.deletePlaylistSnapshot(snap.id);
       snapshots = snapshots.filter(s => s.id !== snap.id);
     } catch (err: any) {
-      alert(`Erreur : ${err.message || err}`);
+      alert($tr('playlistManager.errorGeneric').replace('{error}', String(err.message || err)));
     }
   }
 
@@ -476,30 +482,33 @@
   async function loadAll() {
     loading = true;
     loadedCount = 0;
-    loadingStatus = 'Chargement des playlists locales...';
+    loadingStatus = $tr('playlistManager.loadingLocal');
     try {
       // Load local playlists first (fast)
       const localData = await api.getPlaylists();
       localPlaylists = localData;
       loadedCount = localData.length;
-      loadingStatus = `${loadedCount} playlists locales`;
+      loadingStatus = $tr('playlistManager.localPlaylistsCount').replace('{count}', String(loadedCount));
 
       // Load streaming services in parallel
       const services = await api.getStreamingServices();
       const serviceNames = Object.keys(services).filter(s => services[s].authenticated);
 
       for (const svc of serviceNames) {
-        loadingStatus = `Chargement ${svc}...`;
+        loadingStatus = $tr('playlistManager.loadingService').replace('{service}', svc);
         try {
           const playlists = await api.getStreamingPlaylists(svc);
           streamingPlaylists = { ...streamingPlaylists, [svc]: playlists };
           loadedCount += playlists.length;
-          loadingStatus = `${loadedCount} playlists (${svc}: ${playlists.length})`;
+          loadingStatus = $tr('playlistManager.playlistsCountService')
+            .replace('{count}', String(loadedCount))
+            .replace('{service}', svc)
+            .replace('{n}', String(playlists.length));
         } catch (e) {
           console.error(`Load ${svc} playlists error:`, e);
         }
       }
-      loadingStatus = `${loadedCount} playlists chargées`;
+      loadingStatus = $tr('playlistManager.playlistsLoaded').replace('{count}', String(loadedCount));
     } catch (e) {
       console.error('Load playlists error:', e);
     }
@@ -849,7 +858,7 @@
           });
         }
       }
-      notifications.success(`${manualTracks.length} piste(s) ajoutée(s)`);
+      notifications.success($tr('playlistManager.tracksAdded').replace('{count}', String(manualTracks.length)));
       // Mark manual tracks as confirmed (remove manual flag to avoid re-confirm)
       for (const t of manualTracks) {
         t.match_method = 'confirmed';
@@ -860,7 +869,7 @@
       playlistsStore.set(list);
     } catch (e: any) {
       console.error('Confirm manual choices error:', e);
-      notifications.error(`Erreur : ${e.message || e}`);
+      notifications.error($tr('playlistManager.errorGeneric').replace('{error}', String(e.message || e)));
     }
     confirmingTransfer = false;
   }
@@ -1170,11 +1179,11 @@
       <h2>{$tr('playlist.manager')}</h2>
       <div class="pm-tabs">
         <button class="pm-tab" class:active={managerTab === 'playlists'} onclick={() => managerTab = 'playlists'}>Playlists</button>
-        <button class="pm-tab" class:active={managerTab === 'transfers'} onclick={() => { managerTab = 'transfers'; loadManagerData(); }}>Transferts</button>
+        <button class="pm-tab" class:active={managerTab === 'transfers'} onclick={() => { managerTab = 'transfers'; loadManagerData(); }}>{$tr('playlistManager.tabTransfers')}</button>
         <button class="pm-tab" class:active={managerTab === 'smart-ai'} onclick={() => managerTab = 'smart-ai'}>Smart AI</button>
         <button class="pm-tab" class:active={managerTab === 'sync'} onclick={() => { managerTab = 'sync'; loadManagerData(); }}>Sync</button>
         <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>Backup</button>
-        <button class="pm-tab" class:active={managerTab === 'collab'} onclick={() => { managerTab = 'collab'; loadManagerData(); }}>Collaboratives</button>
+        <button class="pm-tab" class:active={managerTab === 'collab'} onclick={() => { managerTab = 'collab'; loadManagerData(); }}>{$tr('playlistManager.tabCollab')}</button>
       </div>
       <div class="pm-header-right">
         <div class="search-box">
@@ -1348,12 +1357,12 @@
         <!-- Transfer History -->
         <div class="qt-history-section">
           <div class="tab-actions">
-            <h3>Historique des transferts</h3>
+            <h3>{$tr('playlistManager.transferHistory')}</h3>
           </div>
           {#if historyLoading}
-            <div class="loading"><div class="spinner"></div>Chargement...</div>
+            <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
           {:else if transferHistory.length === 0}
-            <div class="empty">Aucun transfert effectué</div>
+            <div class="empty">{$tr('playlistManager.noTransfers')}</div>
           {:else}
             <div class="history-list">
               {#each transferHistory as entry}
@@ -1386,12 +1395,12 @@
       <!-- Sync Links Tab -->
       <div class="pm-tab-content">
         <div class="tab-actions">
-          <h3>Liens de synchronisation</h3>
+          <h3>{$tr('playlistManager.syncLinks')}</h3>
         </div>
         {#if syncLoading}
-          <div class="loading"><div class="spinner"></div>Chargement...</div>
+          <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
         {:else if syncLinks.length === 0}
-          <div class="empty">Aucun lien de sync. Utilisez le transfert pour créer des liens.</div>
+          <div class="empty">{$tr('playlistManager.noSyncLinks')}</div>
         {:else}
           {#each syncLinks as link}
             <div class="sync-row">
@@ -1407,7 +1416,7 @@
                 <button class="btn-sm danger" onclick={() => deleteLink(link.id)}>✕</button>
               </div>
               {#if link.last_synced_at}
-                <span class="sync-date">Dernier: {link.last_synced_at.substring(0, 16)}</span>
+                <span class="sync-date">{$tr('playlistManager.last')}: {link.last_synced_at.substring(0, 16)}</span>
               {/if}
             </div>
           {/each}
@@ -1421,27 +1430,27 @@
           <h3>Backup & Export</h3>
           <div class="tab-btns">
             <button class="btn-action" onclick={doBackup} disabled={backingUp}>
-              {backingUp ? 'Backup en cours...' : 'Backup toutes les playlists'}
+              {backingUp ? $tr('playlistManager.backingUp') : $tr('playlistManager.backupAll')}
             </button>
           </div>
         </div>
         {#if backupResult}
           <div class="backup-result">
             <span class="stat-ok">{backupResult.playlists_backed_up} playlists</span>
-            <span class="stat-ok">{backupResult.total_tracks_snapshot} tracks snapshottés</span>
+            <span class="stat-ok">{$tr('playlistManager.tracksSnapshotted').replace('{count}', String(backupResult.total_tracks_snapshot))}</span>
           </div>
         {/if}
 
-        <h4 style="margin-top: 24px;">Snapshots sauvegardés</h4>
+        <h4 style="margin-top: 24px;">{$tr('playlistManager.savedSnapshots')}</h4>
         {#if restoreMessage}
           <div class="backup-result" style="margin-bottom: 8px;">
             <span>{restoreMessage}</span>
           </div>
         {/if}
         {#if snapshotsLoading}
-          <p class="muted">Chargement...</p>
+          <p class="muted">{$tr('common.loading')}</p>
         {:else if snapshots.length === 0}
-          <p class="muted">Aucun snapshot. Lance un backup pour en créer.</p>
+          <p class="muted">{$tr('playlistManager.noSnapshots')}</p>
         {:else}
           <div class="snapshots-list">
             {#each snapshots as snap (snap.id)}
@@ -1449,7 +1458,7 @@
                 <div class="snapshot-info">
                   <span class="snapshot-name">{snap.playlist_name}</span>
                   <span class="snapshot-meta">
-                    {snap.source_service} · {snap.track_count} pistes
+                    {snap.source_service} · {snap.track_count} {$tr('common.tracks')}
                     {#if snap.created_at}· {new Date(snap.created_at).toLocaleString()}{/if}
                   </span>
                 </div>
@@ -1459,10 +1468,10 @@
                     onclick={() => restoreSnapshot(snap)}
                     disabled={restoringSnapshotId === snap.id}
                   >
-                    {restoringSnapshotId === snap.id ? 'Restauration...' : 'Restaurer'}
+                    {restoringSnapshotId === snap.id ? $tr('playlistManager.restoring') : $tr('playlistManager.restore')}
                   </button>
                   <button class="btn-action btn-danger" onclick={() => deleteSnapshot(snap)}>
-                    Supprimer
+                    {$tr('common.delete')}
                   </button>
                 </div>
               </div>
@@ -1480,18 +1489,18 @@
           </select>
           <span>→</span>
           <select bind:value={batchTarget}>
-            <option value="local">Local</option>
+            <option value="local">{$tr('playlist.local')}</option>
             {#each authenticatedServices as svc}
               <option value={svc}>{svc}</option>
             {/each}
           </select>
           <button class="btn-action" onclick={doBatchTransfer} disabled={batching || !batchSource}>
-            {batching ? 'Transfert...' : 'Transférer tout'}
+            {batching ? $tr('playlistManager.transferringShort') : $tr('playlistManager.transferAll')}
           </button>
         </div>
         {#if batchResult}
           <div class="backup-result">
-            <span>{batchResult.total_playlists} playlists traitées — {batchResult.status}</span>
+            <span>{$tr('playlistManager.playlistsProcessed').replace('{count}', String(batchResult.total_playlists))} — {batchResult.status}</span>
           </div>
         {/if}
       </div>
@@ -1500,26 +1509,26 @@
       <!-- Collaborative Playlists Tab -->
       <div class="pm-tab-content">
         <div class="tab-actions">
-          <h3>Playlists collaboratives</h3>
+          <h3>{$tr('playlistManager.collabPlaylists')}</h3>
           <div class="tab-btns">
-            <button class="btn-action" onclick={() => showCollabCreate = true}>Créer</button>
+            <button class="btn-action" onclick={() => showCollabCreate = true}>{$tr('common.create')}</button>
           </div>
         </div>
 
         {#if showCollabCreate}
           <div class="collab-create-form">
-            <input type="text" placeholder="Nom de la playlist..." bind:value={newCollabName} onkeydown={(e) => e.key === 'Enter' && createCollab()} />
+            <input type="text" placeholder={$tr('playlistManager.playlistNamePlaceholder')} bind:value={newCollabName} onkeydown={(e) => e.key === 'Enter' && createCollab()} />
             <button class="btn-action" onclick={createCollab} disabled={creatingCollab || !newCollabName.trim()}>
-              {creatingCollab ? 'Création...' : 'Créer'}
+              {creatingCollab ? $tr('playlistManager.creating') : $tr('common.create')}
             </button>
-            <button class="btn-action" style="background: var(--tune-text-muted)" onclick={() => { showCollabCreate = false; newCollabName = ''; }}>Annuler</button>
+            <button class="btn-action" style="background: var(--tune-text-muted)" onclick={() => { showCollabCreate = false; newCollabName = ''; }}>{$tr('common.cancel')}</button>
           </div>
         {/if}
 
         {#if collabLoading}
-          <div class="loading"><div class="spinner"></div>Chargement...</div>
+          <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
         {:else if collabPlaylists.length === 0}
-          <div class="empty">Aucune playlist collaborative</div>
+          <div class="empty">{$tr('playlistManager.noCollabPlaylists')}</div>
         {:else}
           <div class="collab-list">
             {#each collabPlaylists as pl}
@@ -1528,11 +1537,11 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                   <span class="collab-name">{pl.name}</span>
                   {#if pl.track_count != null}
-                    <span class="collab-count">{pl.track_count} pistes</span>
+                    <span class="collab-count">{pl.track_count} {$tr('common.tracks')}</span>
                   {/if}
                 </button>
                 <button class="btn-action btn-danger" onclick={() => deleteCollab(pl.id)} disabled={deletingCollab === pl.id}>
-                  {deletingCollab === pl.id ? '...' : 'Supprimer'}
+                  {deletingCollab === pl.id ? '...' : $tr('common.delete')}
                 </button>
               </div>
             {/each}
@@ -1540,11 +1549,11 @@
 
           {#if collabSelectedId}
             <div class="collab-tracks-section">
-              <h4>Pistes</h4>
+              <h4>{$tr('playlistManager.tracksHeader')}</h4>
               {#if collabTracksLoading}
                 <div class="loading"><div class="spinner"></div></div>
               {:else if collabTracks.length === 0}
-                <div class="empty">Aucune piste dans cette playlist</div>
+                <div class="empty">{$tr('playlistManager.noTracksInPlaylist')}</div>
               {:else}
                 <div class="collab-tracks-list">
                   {#each collabTracks as track, i}
@@ -1588,16 +1597,16 @@
       class="merge-toggle-btn"
       class:active={mergeMode}
       onclick={() => { mergeMode = !mergeMode; if (!mergeMode) cancelMerge(); }}
-      title="Fusionner plusieurs playlists"
+      title={$tr('playlistManager.mergeTooltip')}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-      {mergeMode ? 'Annuler fusion' : 'Fusionner'}
+      {mergeMode ? $tr('playlistManager.cancelMerge') : $tr('playlistManager.merge')}
     </button>
 
     {#if mergeResult}
       <div class="backup-result" style="margin-bottom: 8px;">
-        <span class="stat-ok">Playlist "{mergeResult.name}" créée avec {mergeResult.total_tracks} pistes.</span>
-        <button class="cancel-btn" onclick={() => mergeResult = null}>OK</button>
+        <span class="stat-ok">{$tr('playlistManager.mergeCreated').replace('{name}', mergeResult.name).replace('{count}', String(mergeResult.total_tracks))}</span>
+        <button class="cancel-btn" onclick={() => mergeResult = null}>{$tr('common.ok')}</button>
       </div>
     {/if}
 
@@ -1624,25 +1633,25 @@
 
     {#if mergeMode && mergeSelected.size > 0}
       <div class="merge-bar">
-        <span class="merge-count">{mergeSelected.size} playlists sélectionnées</span>
+        <span class="merge-count">{$tr('playlistManager.playlistsSelected').replace('{count}', String(mergeSelected.size))}</span>
         <input
           type="text"
-          placeholder="Nom de la playlist fusionnée"
+          placeholder={$tr('playlistManager.mergedNamePlaceholder')}
           bind:value={mergeName}
           class="merge-input"
         />
         <label class="merge-dedup">
           <input type="checkbox" bind:checked={mergeDedup} />
-          Dédupliquer
+          {$tr('playlistManager.deduplicate')}
         </label>
         <button
           class="confirm-btn"
           onclick={doMerge}
           disabled={merging || mergeSelected.size < 2 || !mergeName.trim()}
         >
-          {merging ? 'Fusion...' : 'Fusionner'}
+          {merging ? $tr('playlistManager.merging') : $tr('playlistManager.merge')}
         </button>
-        <button class="cancel-btn" onclick={cancelMerge}>Annuler</button>
+        <button class="cancel-btn" onclick={cancelMerge}>{$tr('common.cancel')}</button>
       </div>
     {/if}
 
@@ -1683,7 +1692,7 @@
               </button>
             {/if}
             {#if item.type === 'local' && item.local?.id}
-              <button class="share-btn" onclick={(e) => { e.stopPropagation(); handleSharePlaylist(item.local!.id); }} title="Partager">
+              <button class="share-btn" onclick={(e) => { e.stopPropagation(); handleSharePlaylist(item.local!.id); }} title={$tr('playlistManager.share')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
               </button>
               <button class="delete-btn" onclick={() => item.local?.id && deletePlaylist(item.local.id)} title={$tr('common.delete')}>

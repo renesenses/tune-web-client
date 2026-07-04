@@ -59,6 +59,7 @@
   let irPath = $state<string | null>(null);
   let irLoading = $state(true);
   let irMessage = $state<string | null>(null);
+  let irError = $state(false);
 
   async function loadIrStatus() {
     if (!zone.id) { irLoading = false; return; }
@@ -88,12 +89,15 @@
       if (data.ok) {
         irActive = true;
         irPath = data.ir_path;
-        irMessage = `IR chargé (${(file.size / 1024).toFixed(0)} KB)`;
+        irMessage = $t('zoneConfig.irLoaded').replace('{size}', (file.size / 1024).toFixed(0));
+        irError = false;
       } else {
-        irMessage = `Erreur : ${data.error}`;
+        irMessage = $t('common.error') + ' : ' + data.error;
+        irError = true;
       }
     } catch (e: any) {
-      irMessage = `Erreur : ${e?.message || String(e)}`;
+      irMessage = $t('common.error') + ' : ' + (e?.message || String(e));
+      irError = true;
     }
     irLoading = false;
     input.value = '';
@@ -106,8 +110,9 @@
       await fetch(`${api.BASE}/room-correction/ir/clear/${zone.id}`, { method: 'POST' });
       irActive = false;
       irPath = null;
-      irMessage = 'FIR désactivé';
-    } catch { irMessage = 'Erreur'; }
+      irMessage = $t('zoneConfig.firDisabled');
+      irError = false;
+    } catch { irMessage = $t('common.error'); irError = true; }
     irLoading = false;
   }
 
@@ -450,32 +455,32 @@
 
     {#if zone.output_type === 'local' || zone.output_device_id?.startsWith('local:')}
     <div class="modal-section">
-      <h3 class="section-title">Correction acoustique (FIR)</h3>
-      <p class="section-desc">Chargez un fichier d'impulsion (WAV) généré par REW, ARTA ou Dirac pour corriger l'acoustique de la pièce.</p>
+      <h3 class="section-title">{$t('zoneConfig.firTitle')}</h3>
+      <p class="section-desc">{$t('zoneConfig.firDesc')}</p>
       {#if irLoading}
-        <div class="ir-status">Chargement...</div>
+        <div class="ir-status">{$t('common.loading')}</div>
       {:else if irActive}
         <div class="ir-status ir-active">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
-          FIR actif
+          {$t('zoneConfig.firActive')}
           {#if irPath}<span class="ir-path">{irPath.split('/').pop()}</span>{/if}
         </div>
         <div class="ir-actions">
           <label class="btn btn-secondary ir-upload-btn">
-            Remplacer
+            {$t('zoneConfig.replace')}
             <input type="file" accept=".wav" class="ir-file-input" onchange={handleIrUpload} />
           </label>
-          <button class="btn btn-danger-outline" onclick={clearIr}>Désactiver</button>
+          <button class="btn btn-danger-outline" onclick={clearIr}>{$t('zoneConfig.disable')}</button>
         </div>
       {:else}
         <label class="btn btn-primary ir-upload-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-          Charger un fichier IR (.wav)
+          {$t('zoneConfig.loadIrFile')}
           <input type="file" accept=".wav" class="ir-file-input" onchange={handleIrUpload} />
         </label>
       {/if}
       {#if irMessage}
-        <div class="ir-message" class:ir-error={irMessage.startsWith('Erreur')}>{irMessage}</div>
+        <div class="ir-message" class:ir-error={irError}>{irMessage}</div>
       {/if}
     </div>
     {/if}

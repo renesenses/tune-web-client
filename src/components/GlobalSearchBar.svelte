@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { notifications } from '../lib/stores/notifications';
@@ -81,7 +82,7 @@
   async function playTrack(track: Track) {
     const zone = $currentZone;
     if (!zone?.id) {
-      notifications.error('Aucune zone sélectionnée — sélectionnez une zone pour lancer la lecture');
+      notifications.error(get(t)('search.noZone'));
       return;
     }
     try {
@@ -211,7 +212,7 @@
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            Voir tous les résultats pour « {query.trim()} »
+            {$t('search.viewAllResults').replace('{query}', query.trim())}
           </button>
         {/if}
       </div>

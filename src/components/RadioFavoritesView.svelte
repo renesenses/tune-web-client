@@ -30,7 +30,7 @@
   }
 
   async function clearAll() {
-    if (!confirm('Supprimer tous les favoris radio ?')) return;
+    if (!confirm($t('radioFav.confirmClearAll'))) return;
     try {
       await api.apiDelete('/radio-favorites');
       savedTracks = [];
@@ -43,9 +43,9 @@
     try {
       const r = await api.createPlaylistFromRadioFavorites(playlistService, playlistName, savedTracks.length);
       createResult = r;
-      notifications.success(`Playlist creee : ${r.matched || 0} titres trouves`);
+      notifications.success($t('radioFav.playlistCreated').replace('{count}', String(r.matched || 0)));
     } catch (e: any) {
-      notifications.error(e?.message || 'Erreur creation playlist');
+      notifications.error(e?.message || $t('radioFav.createError'));
     }
     creating = false;
   }
@@ -60,33 +60,33 @@
 
 <div class="radio-favorites">
   <header class="view-header">
-    <h2>Favoris Radio</h2>
+    <h2>{$t('radioFav.title')}</h2>
     {#if savedTracks.length > 0}
       <div class="actions">
-        <span class="count">{savedTracks.length} titre{savedTracks.length > 1 ? 's' : ''}</span>
+        <span class="count">{savedTracks.length} {savedTracks.length > 1 ? $t('radioFav.trackPlural') : $t('radioFav.trackSingular')}</span>
         <button class="btn accent" onclick={() => { showCreatePlaylist = true; createResult = null; }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-          Créer playlist
+          {$t('radioFav.createPlaylist')}
         </button>
         <a class="btn" href="/api/v1/radio-favorites/export" download="radio_favorites.csv">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-          Export CSV
+          {$t('radioFav.exportCsv')}
         </a>
         <button class="btn danger" onclick={clearAll}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-          Tout supprimer
+          {$t('radioFav.clearAll')}
         </button>
       </div>
     {/if}
   </header>
 
   {#if loading}
-    <div class="empty">Chargement...</div>
+    <div class="empty">{$t('common.loading')}</div>
   {:else if savedTracks.length === 0}
     <div class="empty">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-      <p>Aucun favori radio</p>
-      <p class="hint">Appuyez sur le coeur pendant l'écoute d'une radio pour sauvegarder le titre en cours</p>
+      <p>{$t('radioFav.empty')}</p>
+      <p class="hint">{$t('radioFav.emptyHint')}</p>
     </div>
   {:else}
     <div class="list">
@@ -104,7 +104,7 @@
             <span class="artist">{fav.artist}</span>
             <span class="station">{fav.station_name} · {formatDate(fav.saved_at)}</span>
           </div>
-          <button class="remove-btn" onclick={() => remove(fav)} title="Retirer">
+          <button class="remove-btn" onclick={() => remove(fav)} title={$t('radioFav.remove')}>
             <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
           </button>
         </div>
@@ -119,10 +119,10 @@
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div class="modal-card" onclick={(e) => e.stopPropagation()}>
-        <h3>Créer une playlist streaming</h3>
-        <p class="modal-hint">Convertir vos {savedTracks.length} favoris radio en playlist sur un service de streaming</p>
+        <h3>{$t('radioFav.modalTitle')}</h3>
+        <p class="modal-hint">{$t('radioFav.modalHint').replace('{count}', String(savedTracks.length))}</p>
         <div class="modal-field">
-          <label>Service</label>
+          <label>{$t('radioFav.service')}</label>
           <select bind:value={playlistService}>
             <option value="tidal">TIDAL</option>
             <option value="qobuz">Qobuz</option>
@@ -130,23 +130,23 @@
           </select>
         </div>
         <div class="modal-field">
-          <label>Nom de la playlist</label>
+          <label>{$t('radioFav.playlistName')}</label>
           <input type="text" bind:value={playlistName} />
         </div>
         {#if createResult}
           <div class="create-result">
-            <div class="result-stat good">{createResult.matched || 0} trouves</div>
-            <div class="result-stat warn">{createResult.approximate || 0} approximatifs</div>
-            <div class="result-stat bad">{createResult.not_found || 0} non trouves</div>
+            <div class="result-stat good">{$t('radioFav.found').replace('{count}', String(createResult.matched || 0))}</div>
+            <div class="result-stat warn">{$t('radioFav.approximate').replace('{count}', String(createResult.approximate || 0))}</div>
+            <div class="result-stat bad">{$t('radioFav.notFound').replace('{count}', String(createResult.not_found || 0))}</div>
             {#if createResult.playlist_id}
-              <p class="result-ok">Playlist creee avec succes !</p>
+              <p class="result-ok">{$t('radioFav.createSuccess')}</p>
             {/if}
           </div>
         {/if}
         <div class="modal-actions">
-          <button class="btn" onclick={() => showCreatePlaylist = false}>Fermer</button>
+          <button class="btn" onclick={() => showCreatePlaylist = false}>{$t('common.close')}</button>
           <button class="btn accent" onclick={createPlaylist} disabled={creating}>
-            {creating ? 'Création...' : 'Créer'}
+            {creating ? $t('radioFav.creating') : $t('common.create')}
           </button>
         </div>
       </div>
