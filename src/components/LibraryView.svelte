@@ -1068,7 +1068,10 @@
       // Fetch full album if cover_path is missing (e.g. navigating from tracks view)
       const full = album.cover_path !== undefined ? album : await api.getAlbum(album.id);
       selectedAlbum.set(full);
-      const result = await api.getAlbumTracks(album.id);
+      // Forward the active grid quality/format filter so the detail shows only
+      // the matching tracks (a mixed album opened under a Hi-Res/FLAC filter
+      // no longer reveals its MP3/44.1 tracks).
+      const result = await api.getAlbumTracks(album.id, albumQualityFilter, albumFormatFilter);
       albumTracks.set(result);
       window.history.pushState({ view: 'library', albumId: album.id, tab: $libraryTab }, '', '#library');
     } catch (e) {

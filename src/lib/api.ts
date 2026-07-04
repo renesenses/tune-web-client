@@ -599,8 +599,15 @@ export function getAlbum(id: number) {
   return fetchJSON<Album>(`${BASE}/library/albums/${id}`);
 }
 
-export function getAlbumTracks(id: number) {
-  return fetchJSON<Track[]>(`${BASE}/library/albums/${id}/tracks`);
+export function getAlbumTracks(id: number, quality?: string | null, format?: string | null) {
+  // Forward the active library quality/format filter so the album detail shows
+  // only the matching tracks (Sergio: a Hi-Res/FLAC filter must not reveal the
+  // album's MP3/44.1 tracks). No params → all tracks, as before.
+  const p = new URLSearchParams();
+  if (quality) p.set('quality', quality);
+  if (format) p.set('format', format);
+  const qs = p.toString();
+  return fetchJSON<Track[]>(`${BASE}/library/albums/${id}/tracks${qs ? `?${qs}` : ''}`);
 }
 
 export async function getArtists(limit = 100, offset = 0) {
