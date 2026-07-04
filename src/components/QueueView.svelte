@@ -71,7 +71,12 @@
     for (const file of files) {
       try {
         const result = await api.uploadAudioFile(file);
-        await api.playUploadedFile(zone.id, result.file_path, {
+        // Add the out-of-library file to the CURRENT queue (Sergio: "glisser
+        // dans la playlist de la lecture en cours"), as a source="upload" item
+        // — not replace playback.
+        await api.addToQueue(zone.id, {
+          source: 'upload',
+          source_id: result.file_path,
           title: result.title,
           artist_name: result.artist,
           album_title: result.album,
