@@ -768,7 +768,11 @@
     }
   }
 
-  const MONTH_NAMES = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+  const MONTH_NAMES = $derived([
+    $tr('date.month1'), $tr('date.month2'), $tr('date.month3'), $tr('date.month4'),
+    $tr('date.month5'), $tr('date.month6'), $tr('date.month7'), $tr('date.month8'),
+    $tr('date.month9'), $tr('date.month10'), $tr('date.month11'), $tr('date.month12'),
+  ]);
 
   function albumDateKey(a: any): string {
     const date = a.original_date || a.release_date;

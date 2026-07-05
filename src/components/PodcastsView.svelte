@@ -399,7 +399,7 @@
       {:else if episodes.length === 0}
         <div class="empty-state">{$t('podcasts.noEpisodes')}</div>
       {:else}
-        <div class="episodes-header">{episodes.length} episode{episodes.length > 1 ? 's' : ''}</div>
+        <div class="episodes-header">{$t('podcasts.episodeCount').replace('{n}', String(episodes.length))}</div>
         <div class="episodes-list">
           {#each episodes as episode, i}
             <button

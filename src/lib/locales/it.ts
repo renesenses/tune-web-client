@@ -1920,6 +1920,25 @@ export default {
   "podcasts.noRss": "Nessun feed RSS",
   "podcasts.noResults": "Nessun risultato per \"{query}\"",
   "podcasts.searchHint": "Cerca tra milioni di podcast",
+
+  // === i18n client-rest (months + plural counts) ===
+  "date.month1": "Gen",
+  "date.month2": "Feb",
+  "date.month3": "Mar",
+  "date.month4": "Apr",
+  "date.month5": "Mag",
+  "date.month6": "Giu",
+  "date.month7": "Lug",
+  "date.month8": "Ago",
+  "date.month9": "Set",
+  "date.month10": "Ott",
+  "date.month11": "Nov",
+  "date.month12": "Dic",
+  "settings.zonesConfigured": "{n} configurata/e",
+  "settings.outputsDetected": "{n} rilevata/e",
+  "settings.devicesFound": "{n} trovato/i",
+  "settings.peerZones": "{n} zona/e",
+  "podcasts.episodeCount": "{n} episodio/i",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

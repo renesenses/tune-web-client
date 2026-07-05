@@ -1919,6 +1919,25 @@ export default {
   "podcasts.noRss": "RSS 피드 없음",
   "podcasts.noResults": "\"{query}\"에 대한 결과 없음",
   "podcasts.searchHint": "수백만 개의 팟캐스트 중에서 검색",
+
+  // === i18n client-rest (months + plural counts) ===
+  "date.month1": "1월",
+  "date.month2": "2월",
+  "date.month3": "3월",
+  "date.month4": "4월",
+  "date.month5": "5월",
+  "date.month6": "6월",
+  "date.month7": "7월",
+  "date.month8": "8월",
+  "date.month9": "9월",
+  "date.month10": "10월",
+  "date.month11": "11월",
+  "date.month12": "12월",
+  "settings.zonesConfigured": "{n}개 구성됨",
+  "settings.outputsDetected": "{n}개 감지됨",
+  "settings.devicesFound": "{n}개 발견됨",
+  "settings.peerZones": "{n}개 존",
+  "podcasts.episodeCount": "{n}개 에피소드",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
