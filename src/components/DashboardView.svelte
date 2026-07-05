@@ -198,7 +198,10 @@
     Math.max(0, ...weekdayHourlyGrid.flat())
   );
 
-  const WEEKDAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const WEEKDAY_LABELS = $derived([
+    $t('alarms.dayMon'), $t('alarms.dayTue'), $t('alarms.dayWed'),
+    $t('alarms.dayThu'), $t('alarms.dayFri'), $t('alarms.daySat'), $t('alarms.daySun'),
+  ]);
 </script>
 
 <section class="dashboard">

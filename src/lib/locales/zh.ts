@@ -1919,6 +1919,25 @@ export default {
   "podcasts.noRss": "无 RSS 订阅源",
   "podcasts.noResults": "没有“{query}”的结果",
   "podcasts.searchHint": "在数百万个播客中搜索",
+
+  // === i18n client-rest (months + plural counts) ===
+  "date.month1": "1月",
+  "date.month2": "2月",
+  "date.month3": "3月",
+  "date.month4": "4月",
+  "date.month5": "5月",
+  "date.month6": "6月",
+  "date.month7": "7月",
+  "date.month8": "8月",
+  "date.month9": "9月",
+  "date.month10": "10月",
+  "date.month11": "11月",
+  "date.month12": "12月",
+  "settings.zonesConfigured": "已配置 {n}",
+  "settings.outputsDetected": "已检测 {n}",
+  "settings.devicesFound": "找到 {n}",
+  "settings.peerZones": "{n} 个区域",
+  "podcasts.episodeCount": "{n} 集",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

@@ -1684,17 +1684,17 @@
         <div class="diag-check">
           <span class="diag-icon">{$zones.length > 0 ? '✅' : '⚠️'}</span>
           <span class="diag-label">{$t('settings.playbackZones')}</span>
-          <span class="diag-value">{$zones.length} configurée{$zones.length !== 1 ? 's' : ''}</span>
+          <span class="diag-value">{$t('settings.zonesConfigured').replace('{n}', String($zones.length))}</span>
         </div>
         <div class="diag-check">
           <span class="diag-icon">{audioDevices.length > 0 ? '✅' : '⚠️'}</span>
           <span class="diag-label">{$t('settings.audioOutputs')}</span>
-          <span class="diag-value">{audioDevices.length} détectée{audioDevices.length !== 1 ? 's' : ''}</span>
+          <span class="diag-value">{$t('settings.outputsDetected').replace('{n}', String(audioDevices.length))}</span>
         </div>
         <div class="diag-check">
           <span class="diag-icon">{$devices.length > 0 ? '✅' : 'ℹ️'}</span>
           <span class="diag-label">{$t('settings.networkDevicesLabel')}</span>
-          <span class="diag-value">{$devices.length} trouvé{$devices.length !== 1 ? 's' : ''}</span>
+          <span class="diag-value">{$t('settings.devicesFound').replace('{n}', String($devices.length))}</span>
         </div>
       </div>
       {#if $zones.length === 0 || audioDevices.length === 0}
@@ -1788,7 +1788,7 @@
               <div class="peer-info">
                 <span class="peer-name">{peer.name}</span>
                 <span class="peer-details">{peer.host}:{peer.port} — v{peer.version}</span>
-                <span class="peer-stats">{peer.tracks} {$t('common.tracks')}, {peer.zones} zone{peer.zones !== 1 ? 's' : ''}</span>
+                <span class="peer-stats">{peer.tracks} {$t('common.tracks')}, {$t('settings.peerZones').replace('{n}', String(peer.zones))}</span>
               </div>
               <div class="peer-actions">
                 <button class="btn-secondary" onclick={() => window.open(`http://${peer.host}:${peer.port}`, '_blank')}>
