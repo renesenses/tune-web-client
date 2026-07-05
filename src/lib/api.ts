@@ -2,6 +2,18 @@
 
 import { notifications } from './stores/notifications';
 import { getToken, clearToken } from './auth';
+import { get } from 'svelte/store';
+import { locale } from './i18n';
+
+/** Current UI locale, sent as Accept-Language so server-provided strings
+ *  (metadata labels, errors, …) match the app's chosen language. */
+const acceptLang = (): string => {
+  try {
+    return get(locale);
+  } catch {
+    return 'fr';
+  }
+};
 
 let _lastNetworkError = 0;
 function showNetworkError() {
@@ -45,7 +57,7 @@ function stripDoubleBase(path: string): string {
 // Generic helpers for radio favorites and custom endpoints
 export async function apiFetch(path: string): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = { 'Accept': 'application/json' };
+  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { headers });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
@@ -59,7 +71,7 @@ export async function apiFetch(path: string): Promise<any> {
 
 export async function apiPost(path: string, body?: any): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = { 'Accept': 'application/json' };
+  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
@@ -78,7 +90,7 @@ export async function apiPost(path: string, body?: any): Promise<any> {
 
 export async function apiPatch(path: string, body?: any): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = { 'Accept': 'application/json' };
+  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
@@ -97,7 +109,7 @@ export async function apiPatch(path: string, body?: any): Promise<any> {
 
 export async function apiDelete(path: string): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = { 'Accept': 'application/json' };
+  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { method: 'DELETE', headers });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
@@ -124,6 +136,7 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
     const token = getToken();
     const headers: Record<string, string> = {
       'Accept': 'application/json',
+      'Accept-Language': acceptLang(),
       'Content-Type': 'application/json',
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -183,6 +196,7 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
     const token = getToken();
     const headers: Record<string, string> = {
       'Accept': 'application/json',
+      'Accept-Language': acceptLang(),
       'Content-Type': 'application/json',
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
