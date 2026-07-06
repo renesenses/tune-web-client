@@ -62,6 +62,11 @@
     { value: 'last_played_at', labelKey: 'smartCollection.fieldLastPlayed', type: 'timestamp' },
   ];
 
+  // Rule-type dropdown sorted alphabetically by translated label (Elie).
+  let sortedFields = $derived(
+    [...FIELDS].sort((a, b) => $t(a.labelKey).localeCompare($t(b.labelKey)))
+  );
+
   const OPS_BY_TYPE: Record<string, { value: string; label?: string; labelKey?: string }[]> = {
     int: [
       { value: '=', label: '=' }, { value: '!=', label: '≠' },
@@ -182,7 +187,7 @@
               updateRule(i, { field: newField, op, value: '' });
             }}
           >
-            {#each FIELDS as f}<option value={f.value}>{$t(f.labelKey)}</option>{/each}
+            {#each sortedFields as f}<option value={f.value}>{$t(f.labelKey)}</option>{/each}
           </select>
 
           <select value={rule.op} onchange={(e) => updateRule(i, { op: (e.target as HTMLSelectElement).value, value: rule.value })}>

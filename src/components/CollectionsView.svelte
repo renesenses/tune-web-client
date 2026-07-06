@@ -4,7 +4,7 @@
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
-  import { activeView } from '../lib/stores/navigation';
+  import { activeView, listResetNonce } from '../lib/stores/navigation';
   import AlbumArt from './AlbumArt.svelte';
   import type { Album } from '../lib/types';
   import SmartCollectionsView from './SmartCollectionsView.svelte';
@@ -17,6 +17,13 @@
   let selectedCollection: any = $state(null);
   let collectionAlbums: any[] = $state([]);
   let detailLoading = $state(false);
+
+  // Clicking the Collections nav entry (even while viewing a collection) resets
+  // to the list (Elie).
+  $effect(() => {
+    $listResetNonce;
+    selectedCollection = null;
+  });
 
   let showCreate = $state(false);
   let newName = $state('');
