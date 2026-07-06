@@ -914,7 +914,7 @@
     /* Spotify-style: three equal thirds. Centre third stacks controls (row 1)
        over a centred progress bar (row 2); left (track) and right (device +
        volume) span both rows and truncate within their third. */
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
     grid-template-rows: auto auto;
     align-items: center;
     padding: 6px var(--space-lg);
@@ -1182,6 +1182,10 @@
     align-items: center;
     gap: 8px;
     width: 100%;
+    /* Widen the seek bar (Spotify-style, centred under the controls) but cap it
+       so it stays readable and centred on ultra-wide screens. */
+    max-width: 760px;
+    margin-inline: auto;
     padding: 0;
   }
 
