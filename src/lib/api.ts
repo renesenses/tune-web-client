@@ -270,6 +270,13 @@ export function updateZoneDsdMode(id: number, dsdMode: string) {
   });
 }
 
+export function updateZoneDlnaNativeFlac(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ dlna_native_flac: enabled }),
+  });
+}
+
 export function changeZoneOutput(id: number, outputType: string, outputDeviceId?: string | null) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',

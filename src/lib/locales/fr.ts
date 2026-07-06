@@ -1301,6 +1301,8 @@ export default {
   "settings.perZoneHint": "Mode DSD, volume fixe et gapless pour chaque zone de lecture.",
   "settings.dsdNative": "Natif (passthrough)",
   "settings.dsdPcm": "PCM (conversion)",
+  "settings.dlnaNativeFlac": "FLAC natif",
+  "settings.dlnaNativeFlacHint": "Envoyer le FLAC \u00e0 ce lecteur m\u00eame s\u2019il n\u2019annonce pas le support FLAC (pour les lecteurs qui d\u00e9codent le FLAC mais renvoient une liste de capacit\u00e9s vide).",
   "settings.hqplayerHint": "Connectez Tune à HQPlayer pour l'upsampling et les filtres audiophiles. Port par défaut : 4321 (v4/v5) ou 8019 (v6).",
   "settings.enableHqplayer": "Activer HQPlayer",
   "settings.hqplayerIp": "Adresse IP HQPlayer",

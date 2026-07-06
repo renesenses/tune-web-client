@@ -1300,6 +1300,8 @@ export default {
   "settings.perZoneHint": "DSD mode, fixed volume and gapless for each playback zone.",
   "settings.dsdNative": "Native (passthrough)",
   "settings.dsdPcm": "PCM (conversion)",
+  "settings.dlnaNativeFlac": "Native FLAC",
+  "settings.dlnaNativeFlacHint": "Send FLAC to this renderer even if it doesn\u2019t advertise FLAC support (for renderers that decode FLAC but report an empty capability list).",
   "settings.hqplayerHint": "Connect Tune to HQPlayer for upsampling and audiophile filters. Default port: 4321 (v4/v5) or 8019 (v6).",
   "settings.enableHqplayer": "Enable HQPlayer",
   "settings.hqplayerIp": "HQPlayer IP address",
