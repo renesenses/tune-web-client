@@ -706,6 +706,41 @@
   let youtubeAuthError: string | null = $state(null);
   let youtubeEmail: string | null = $state(null);
 
+  // YouTube playback (managed yt-dlp helper) — opt-in download.
+  let ytPlaybackInstalled = $state(false);
+  let ytPlaybackVersion = $state<string | null>(null);
+  let ytPlaybackStatus = $state<string>('absent');
+  let ytPlaybackBusy = $state(false);
+  let ytPollTimer: ReturnType<typeof setInterval> | null = null;
+
+  async function refreshYoutubePlayback() {
+    try {
+      const s = await api.getYoutubeStatus();
+      ytPlaybackInstalled = !!s.installed;
+      ytPlaybackVersion = s.version ?? null;
+      ytPlaybackStatus = s.status ?? (s.installed ? 'ready' : 'absent');
+      ytPlaybackBusy = ytPlaybackStatus === 'downloading';
+      if (ytPlaybackStatus !== 'downloading' && ytPollTimer) {
+        clearInterval(ytPollTimer); ytPollTimer = null;
+      }
+    } catch { /* endpoint may be older server — ignore */ }
+  }
+
+  async function enableYoutubePlayback() {
+    ytPlaybackBusy = true;
+    try {
+      await api.enableYoutubePlayback();
+      ytPlaybackStatus = 'downloading';
+      if (ytPollTimer) clearInterval(ytPollTimer);
+      ytPollTimer = setInterval(refreshYoutubePlayback, 2000);
+    } catch (e: any) {
+      ytPlaybackBusy = false;
+      notifications.error(e?.message ?? 'Error');
+    }
+  }
+
+  $effect(() => { refreshYoutubePlayback(); });
+
   async function handleQobuzAuth() {
     qobuzAuthLoading = true;
     qobuzAuthError = null;
@@ -2929,6 +2964,30 @@
               {/if}
             </div>
           {/each}
+        </div>
+
+        <!-- YouTube playback (managed yt-dlp helper) -->
+        <div class="yt-playback">
+          <div class="yt-playback-head">
+            <span class="yt-playback-title">{$t('settings.youtubePlaybackTitle')}</span>
+            {#if ytPlaybackInstalled}
+              <span class="badge-ok">{$t('settings.youtubePlaybackReady')}{ytPlaybackVersion ? ` (${ytPlaybackVersion})` : ''}</span>
+            {/if}
+          </div>
+          <p class="settings-note">{$t('settings.youtubePlaybackHelp')}</p>
+          {#if !ytPlaybackInstalled}
+            <button class="action-btn" onclick={enableYoutubePlayback} disabled={ytPlaybackBusy}>
+              {#if ytPlaybackBusy}
+                <div class="spinner small"></div>
+                {$t('settings.youtubePlaybackDownloading')}
+              {:else}
+                {$t('settings.youtubePlaybackEnable')}
+              {/if}
+            </button>
+          {/if}
+          {#if ytPlaybackStatus.startsWith('failed')}
+            <p class="auth-error">{ytPlaybackStatus}</p>
+          {/if}
         </div>
     </section>
 

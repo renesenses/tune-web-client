@@ -2430,6 +2430,21 @@ export function enrichArtistImages() {
   );
 }
 
+// YouTube playback: managed yt-dlp helper (opt-in). YouTube blocked Tune's
+// native extraction server-side, so playback goes through yt-dlp.
+export function getYoutubeStatus() {
+  return fetchJSON<{ installed: boolean; version: string | null; status: string }>(
+    `${BASE}/system/youtube/status`
+  );
+}
+
+export function enableYoutubePlayback() {
+  return fetchJSON<{ status: string; installed: boolean }>(
+    `${BASE}/system/youtube/enable`,
+    { method: 'POST' }
+  );
+}
+
 // --- Network Diagnostics ---
 
 export function getNetworkDiagnostics() {
