@@ -772,7 +772,10 @@ import AlarmsView from './components/AlarmsView.svelte';
                 if (z?.stream_url) browserPlay(z.stream_url);
                 else browserResume();
               } else if (type === 'playback.started' || type === 'playback.track_changed') {
-                if (z?.stream_url) browserPlay(z.stream_url);
+                // Force a reload on a track change: the next track may reuse the
+                // same per-zone stream URL, and without this the ended element
+                // just replays the old track (album "repeats" — Elie).
+                if (z?.stream_url) browserPlay(z.stream_url, type === 'playback.track_changed');
               }
             }
 

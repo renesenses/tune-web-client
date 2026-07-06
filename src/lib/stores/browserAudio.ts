@@ -67,8 +67,16 @@ function getAudio(): HTMLAudioElement {
   return audioElement;
 }
 
-/** Load and play a stream URL in the browser */
-export function browserPlay(streamUrl: string) {
+/**
+ * Load and play a stream URL in the browser.
+ *
+ * `force` reloads the element even when the URL string is unchanged. On a
+ * track change the server may serve the next track under the SAME per-zone
+ * stream URL; without a forced reload, `audio.play()` on the just-ended element
+ * replayed the OLD buffered track — the album "repeated instead of advancing"
+ * (Elie, browser output). Track-change callers pass `force: true`.
+ */
+export function browserPlay(streamUrl: string, force = false) {
   const audio = getAudio();
   const currentUrl = get(browserStreamUrl);
   // Use a relative URL so the browser connects to the same host
@@ -81,8 +89,14 @@ export function browserPlay(streamUrl: string) {
   } catch {
     // keep as-is if not a valid URL
   }
-  if (currentUrl !== relativeUrl) {
-    audio.src = relativeUrl;
+  if (force || currentUrl !== relativeUrl) {
+    // Cache-bust when the URL is unchanged so the element fetches the new
+    // track instead of replaying its buffered contents.
+    audio.src =
+      force && currentUrl === relativeUrl
+        ? relativeUrl + (relativeUrl.includes('?') ? '&' : '?') + '_t=' + Date.now()
+        : relativeUrl;
+    audio.load();
     browserStreamUrl.set(relativeUrl);
   }
   audio.volume = get(browserAudioVolume);
