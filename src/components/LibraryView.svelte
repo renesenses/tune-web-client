@@ -8,7 +8,6 @@
   import * as api from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
   import { formatTime, formatDuration, formatAudioBadge, formatAlbumYear, fold } from '../lib/utils';
-  import AddShortcutButton from './AddShortcutButton.svelte';
   import AlbumArt from './AlbumArt.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
   import ArtistEditModal from './ArtistEditModal.svelte';
@@ -2095,7 +2094,6 @@
     <!-- Main library view -->
     <div class="library-header">
       <h2>{$tr('library.title')}</h2>
-      <AddShortcutButton />
       <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title={searchQuery.trim() || selectedGenre ? $tr('library.shuffleResults') : $tr('library.shuffleAll')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
         {shuffleAllLoading ? $tr('common.loading') : (searchQuery.trim() || selectedGenre ? $tr('library.shuffle') : $tr('library.shuffleAll'))}

@@ -5,7 +5,6 @@
   import { selectedAlbum, albumTracks, selectedArtist, artistAlbums } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
   import * as api from '../lib/api';
-  import AddShortcutButton from './AddShortcutButton.svelte';
   import { t as tr } from '../lib/i18n';
   import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
@@ -142,7 +141,6 @@
 <div class="favorites-view">
   <div class="favorites-header">
     <h2>{$tr('nav.favorites')}</h2>
-    <AddShortcutButton />
     <div class="tab-bar">
       <button class="tab" class:active={activeTab === 'tracks'} onclick={() => activeTab = 'tracks'}>{$tr('favorites.tracks')} ({favTracks.length})</button>
       <button class="tab" class:active={activeTab === 'albums'} onclick={() => activeTab = 'albums'}>{$tr('favorites.albums')} ({favAlbums.length})</button>

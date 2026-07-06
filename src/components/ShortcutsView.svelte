@@ -2,7 +2,6 @@
   import { shortcuts, removeShortcut, renameShortcut, togglePin, navigateToShortcut, type Shortcut } from '../lib/stores/shortcuts';
   import { notifications } from '../lib/stores/notifications';
   import { t } from '../lib/i18n';
-  import AddShortcutButton from './AddShortcutButton.svelte';
 
   let editingId = $state<string | null>(null);
   let editName = $state('');
@@ -62,7 +61,6 @@
 <div class="shortcuts-view">
   <div class="shortcuts-page-header">
     <h2>{$t('shortcuts.title')}</h2>
-    <AddShortcutButton />
   </div>
 
   {#if $shortcuts.length === 0}

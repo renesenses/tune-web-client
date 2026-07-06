@@ -9,7 +9,6 @@
   import { formatNumber } from '../lib/utils';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
-  import AddShortcutButton from './AddShortcutButton.svelte';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import type { Album, Track, Source, TopTrack, TopArtist } from '../lib/types';
@@ -523,7 +522,6 @@
 <div class="home-view">
   <div class="home-title-row">
     <h1 class="greeting">{greeting()}{#if homeProfile}, {homeProfile}{/if}</h1>
-    <AddShortcutButton />
   </div>
 
   <!-- Now Listening across zones -->
