@@ -1197,8 +1197,14 @@ export function addPlaylistTracks(id: number, trackIds: number[], position?: num
   });
 }
 
-export function removePlaylistTrack(playlistId: number, trackId: number) {
-  return fetchVoid(`${BASE}/playlists/${playlistId}/tracks/${trackId}`, { method: 'DELETE' });
+// Remove a track by its position (0-based index) in the playlist. The server
+// removes by position (POST /tracks/remove); there is no DELETE-by-track-id
+// route, so the old removePlaylistTrack(playlistId, trackId) silently 404'd.
+export function removePlaylistTrackAt(playlistId: number, position: number) {
+  return fetchVoid(`${BASE}/playlists/${playlistId}/tracks/remove`, {
+    method: 'POST',
+    body: JSON.stringify({ position }),
+  });
 }
 
 export function reorderPlaylistTracks(playlistId: number, trackIds: number[]) {

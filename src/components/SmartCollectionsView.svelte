@@ -26,14 +26,30 @@
     if (!zone?.id || !selected) return;
     shuffleLoading = true;
     try {
-      const allTracks = await api.getSmartPlaylistTracks(selected.id!);
-      if (!allTracks.length) {
+      // Smart collections resolve to albums (there is no smart-playlist tracks
+      // endpoint for them — the old call errored). Gather tracks from the
+      // collection's albums, shuffle, and play (Elie).
+      const albums = await api.getSmartCollectionAlbums(selected.id!);
+      const albumIds = (albums || []).map((a: any) => a.id).filter(Boolean);
+      if (!albumIds.length) {
         notifications.error($t('smartCollection.noTracksFound'));
         shuffleLoading = false;
         return;
       }
-      const shuffled = [...allTracks].sort(() => Math.random() - 0.5);
-      const trackIds = shuffled.map((tk: any) => tk.id).filter(Boolean);
+      const trackLists = await Promise.all(
+        albumIds.map((id: number) => api.getAlbumTracks(id).catch(() => [])),
+      );
+      const trackIds = trackLists.flat().map((tk: any) => tk.id).filter(Boolean);
+      if (!trackIds.length) {
+        notifications.error($t('smartCollection.noTracksFound'));
+        shuffleLoading = false;
+        return;
+      }
+      // Fisher–Yates shuffle.
+      for (let i = trackIds.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [trackIds[i], trackIds[j]] = [trackIds[j], trackIds[i]];
+      }
       await api.play(zone.id, { track_ids: trackIds });
       notifications.success($t('smartCollection.shufflePlaying').replace('{count}', String(trackIds.length)));
     } catch (e: any) {
