@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import {
     currentProfileId,
     favoriteTrackIds,
     favoriteAlbumIds,
     favoriteArtistIds,
+    loadProfiles,
   } from '../lib/stores/profile';
   import * as api from '../lib/api';
 
@@ -28,9 +30,16 @@
   async function toggle(e: MouseEvent) {
     e.stopPropagation();
     e.preventDefault();
-    const pid = $currentProfileId;
-    if (!pid || toggling) return;
+    if (toggling) return;
     toggling = true;
+    let pid = $currentProfileId;
+    if (!pid) {
+      // No profile loaded yet — ensure one exists (loadProfiles auto-creates
+      // "Default") so the heart isn't a silent no-op (Elie).
+      try { await loadProfiles(); } catch {}
+      pid = get(currentProfileId);
+    }
+    if (!pid) { toggling = false; return; }
 
     const wasFav = isFavorite;
     // Optimistic update of the store so UI flips instantly.
