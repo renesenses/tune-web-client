@@ -1249,10 +1249,17 @@
     artistMetadataLoading = false;
     window.history.back();
     if (restoreAlbumScroll > 0) {
+      // Double rAF: the album grid re-renders after selectedAlbum is cleared,
+      // so its virtual-scroll height is only ready on the following frame.
+      // Setting scrollTop on the first frame clamps to 0 (grid still short) and
+      // the user lands at the top instead of the saved position (Pierre). Mirror
+      // the artist-list restore below, which already waits two frames.
       requestAnimationFrame(() => {
-        albumScrollTop = restoreAlbumScroll;
-        if (albumGridViewport) albumGridViewport.scrollTop = restoreAlbumScroll;
-        requestAnimationFrame(() => { restoringScroll = false; });
+        requestAnimationFrame(() => {
+          albumScrollTop = restoreAlbumScroll;
+          if (albumGridViewport) albumGridViewport.scrollTop = restoreAlbumScroll;
+          requestAnimationFrame(() => { restoringScroll = false; });
+        });
       });
     }
     if (wasArtistTab && restoreArtistScroll > 0) {
@@ -1392,10 +1399,15 @@
       // Restore scroll when transitioning from detail back to grid (e.g. browser back button)
       if (wasInDetail && !inDetail && savedAlbumScrollTop > 0 && !restoringScroll) {
         restoringScroll = true;
+        // Double rAF (see goBack): wait for the grid's virtual-scroll height to
+        // be laid out before setting scrollTop, otherwise it clamps to 0 and the
+        // user lands at the top on browser-back (Pierre).
         requestAnimationFrame(() => {
-          albumScrollTop = savedAlbumScrollTop;
-          if (albumGridViewport) albumGridViewport.scrollTop = savedAlbumScrollTop;
-          requestAnimationFrame(() => { restoringScroll = false; });
+          requestAnimationFrame(() => {
+            albumScrollTop = savedAlbumScrollTop;
+            if (albumGridViewport) albumGridViewport.scrollTop = savedAlbumScrollTop;
+            requestAnimationFrame(() => { restoringScroll = false; });
+          });
         });
       }
     });
