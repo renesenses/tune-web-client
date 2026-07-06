@@ -3120,6 +3120,18 @@
                     <option value="pcm">{$t('settings.dsdPcm')}</option>
                   </select>
                 </label>
+                {#if z.output_type === 'dlna'}
+                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaNativeFlacHint')}>
+                    <input
+                      type="checkbox"
+                      checked={z.dlna_native_flac ?? false}
+                      onchange={async (e) => {
+                        await api.updateZoneDlnaNativeFlac(z.id, (e.target as HTMLInputElement).checked);
+                      }}
+                    />
+                    <span>{$t('settings.dlnaNativeFlac')}</span>
+                  </label>
+                {/if}
               </div>
             </div>
           {/each}
