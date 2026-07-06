@@ -779,11 +779,11 @@
     }
   }
 
-  async function removeTrack(trackId: number) {
-    if (!selectedPlaylist?.id) return;
+  async function removeTrack(position: number) {
+    if (!selectedPlaylist?.id || position < 0) return;
     try {
-      await api.removePlaylistTrack(selectedPlaylist.id, trackId);
-      detailTracks = detailTracks.filter((t) => t.id !== trackId);
+      await api.removePlaylistTrackAt(selectedPlaylist.id, position);
+      detailTracks = detailTracks.filter((_, i) => i !== position);
     } catch (e) {
       console.error('Remove track error:', e);
     }
@@ -1172,8 +1172,8 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
               </button>
             {/if}
-            {#if selectedPlaylist && t.id}
-              <button class="remove-btn" onclick={() => t.id && removeTrack(t.id)} title={$tr('playlist.remove')}>
+            {#if selectedPlaylist}
+              <button class="remove-btn" onclick={() => removeTrack(index)} title={$tr('playlist.remove')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             {/if}
