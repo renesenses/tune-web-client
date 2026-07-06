@@ -3,7 +3,7 @@
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
   import { tuneWS } from '../lib/websocket';
-  import { zones } from '../lib/stores/zones';
+  import { zones, currentZoneId } from '../lib/stores/zones';
   import { devices } from '../lib/stores/devices';
   import { preferences, applyTheme, type ThemeMode, type VolumeDisplay, type StartupView } from '../lib/stores/preferences';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
@@ -560,6 +560,22 @@
       notifications.error(err?.message ?? 'Error');
     }
     squeezeboxCreatingZone = null;
+  }
+
+  // Create a "browser" output zone so the user can play on THIS device
+  // (browser → OS default output: PC speakers / AirPods), useful when the
+  // server has no local audio output (headless / remote).
+  let creatingBrowserZone = $state(false);
+  async function createBrowserZoneHere() {
+    creatingBrowserZone = true;
+    try {
+      const zone: any = await api.createZone(get(t)('settings.thisComputer'), 'browser');
+      if (zone?.id != null) currentZoneId.set(zone.id);
+      notifications.success(get(t)('settings.browserZoneCreated'));
+    } catch (err: any) {
+      notifications.error(err?.message ?? 'Error');
+    }
+    creatingBrowserZone = false;
   }
 
   // Spotify Connect (receiver)
@@ -2549,6 +2565,15 @@
         {#if audioDevices.length === 0}
           <p class="muted">{$t('settings.noAudioDevices')}</p>
         {/if}
+      </div>
+      <!-- Play on THIS device (browser output) — works even on a headless
+           server or in remote mode, where the server has no audio output. -->
+      <p class="settings-note" style="margin-top: 0.5rem">{$t('settings.playHereHint')}</p>
+      <div class="settings-actions">
+        <button class="action-btn" onclick={createBrowserZoneHere} disabled={creatingBrowserZone}>
+          {#if creatingBrowserZone}<div class="spinner small"></div>{/if}
+          {$t('settings.createBrowserZone')}
+        </button>
       </div>
     </section>
 
