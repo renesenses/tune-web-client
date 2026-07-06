@@ -491,6 +491,10 @@
       api.apiFetch(`/radio-favorites/is-favorite?title=${encodeURIComponent(tr.title)}&artist=${encodeURIComponent(tr.artist_name)}`)
         .then((r: any) => { isFavorite = r.is_favorite; })
         .catch(() => { isFavorite = false; });
+    } else if (typeof tr?.id === 'number') {
+      // Music track: reflect the per-profile favorite set (Elie — the heart did
+      // nothing for non-radio tracks).
+      isFavorite = $favoriteTrackIds.has(tr.id);
     } else {
       isFavorite = false;
     }
@@ -500,16 +504,34 @@
     if (favChecking) return;
     favChecking = true;
     try {
-      if (isFavorite) {
-        const favs = await api.apiFetch('/radio-favorites?limit=500');
-        const match = favs.find((f: any) => f.title === track?.title && f.artist === track?.artist_name);
-        if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
-        isFavorite = false;
-      } else {
-        const zid = zone?.id;
-        if (zid != null) {
-          await api.apiPost('/radio-favorites/save-current', { zone_id: zid });
-          isFavorite = true;
+      const tr = track;
+      if (tr?.source === 'radio') {
+        if (isFavorite) {
+          const favs = await api.apiFetch('/radio-favorites?limit=500');
+          const match = favs.find((f: any) => f.title === tr.title && f.artist === tr.artist_name);
+          if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
+          isFavorite = false;
+        } else {
+          const zid = zone?.id;
+          if (zid != null) {
+            await api.apiPost('/radio-favorites/save-current', { zone_id: zid });
+            isFavorite = true;
+          }
+        }
+      } else if (typeof tr?.id === 'number') {
+        // Music track → per-profile favorite. Ensure a profile exists first.
+        let pid = get(currentProfileId);
+        if (!pid) { try { await loadProfiles(); } catch {} pid = get(currentProfileId); }
+        if (pid) {
+          if (isFavorite) {
+            await api.removeFavorite(pid, { track_id: tr.id });
+            favoriteTrackIds.update((s) => { s.delete(tr.id!); return s; });
+            isFavorite = false;
+          } else {
+            await api.addFavorite(pid, { track_id: tr.id });
+            favoriteTrackIds.update((s) => { s.add(tr.id!); return s; });
+            isFavorite = true;
+          }
         }
       }
     } catch (e) {
@@ -519,6 +541,8 @@
   }
   import { ytPlayerState, ytVideoRect, showYTVideo, hideYTVideo } from '../lib/stores/ytPlayer';
   import { onDestroy, onMount } from 'svelte';
+  import { get } from 'svelte/store';
+  import { currentProfileId, favoriteTrackIds, loadProfiles } from '../lib/stores/profile';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
