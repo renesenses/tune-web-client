@@ -48,7 +48,7 @@ export default {
   'zone.zoneName': 'Nom de la zone',
   'zone.selectDevice': '-- Appareil --',
   'zone.defaultOutput': '-- Sortie par défaut --',
-  'zone.browserOutput': 'Ce navigateur',
+  'zone.browserOutput': 'Cet ordinateur (navigateur)',
   'zone.devices': 'APPAREILS',
   'zone.clearDevices': 'Tout supprimer',
   'zone.createZone': 'Créer une zone',
