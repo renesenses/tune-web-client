@@ -3,7 +3,6 @@
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import * as api from '../lib/api';
   import { onMount, onDestroy } from 'svelte';
-  import AddShortcutButton from './AddShortcutButton.svelte';
   import { t as tr } from '../lib/i18n';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import type { MediaServer, MediaServerBrowseResult, MediaServerItem } from '../lib/types';
@@ -267,7 +266,6 @@
   {#if selectedServer && browseResult}
     <!-- Browsing a server -->
     <div class="ms-header">
-      <AddShortcutButton />
       <button class="back-btn" onclick={goBack}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
         {$tr('common.back')}
@@ -396,7 +394,6 @@
     <!-- Server list -->
     <div class="ms-header">
       <h2>{$tr('mediaservers.title')}</h2>
-      <AddShortcutButton />
       <button class="refresh-btn" onclick={loadServers} disabled={loading}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
         {$tr('mediaservers.refresh')}

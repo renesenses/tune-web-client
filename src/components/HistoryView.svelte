@@ -5,7 +5,6 @@
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
-  import AddShortcutButton from './AddShortcutButton.svelte';
   import AlbumArt from './AlbumArt.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
@@ -128,7 +127,6 @@
 <div class="history-view">
   <div class="history-header">
     <h2>{$t('history.title')}</h2>
-    <AddShortcutButton />
     <span class="history-count">{mergedHistory.length} {$t('history.plays')}</span>
     {#if mergedHistory.length > 0}
       <button class="clear-btn" onclick={() => clearHistory()}>{$t('history.clear')}</button>

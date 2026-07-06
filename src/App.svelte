@@ -71,6 +71,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import ConverterView from './components/ConverterView.svelte';
   import AiChat from './components/AiChat.svelte';
   import GlobalSearchBar from './components/GlobalSearchBar.svelte';
+  import AddShortcutButton from './components/AddShortcutButton.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
   import { loadProfiles } from './lib/stores/profile';
   import { loadLicense } from './lib/stores/license';
@@ -965,9 +966,12 @@ import AlarmsView from './components/AlarmsView.svelte';
       </div>
     {/if}
 
-    <!-- Global search bar: sticky top-right overlay accessible from any view -->
+    <!-- Global search bar + "add to shortcuts": sticky top-right overlay
+         accessible from ANY view, so the shortcut button lives in one standard
+         place instead of being scattered/absent across views (Elie). -->
     {#if !isKiosk && $activeView !== 'nowplaying' && $activeView !== 'login' && $activeView !== 'onboarding' && $activeView !== 'offline'}
       <div class="global-search-wrapper" class:has-banner={$updateAvailable && !$updateBannerDismissed}>
+        <AddShortcutButton />
         <GlobalSearchBar />
       </div>
     {/if}
