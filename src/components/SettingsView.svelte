@@ -2619,6 +2619,12 @@
           {$t('settings.writeTags')}
         </button>
       </div>
+      <div class="settings-actions" style="margin-top: 12px;">
+        <button class="action-btn" onclick={async () => { try { await api.enrichArtistImages(); enrichMsg = $t('settings.enrichArtistImagesStarted'); } catch { enrichMsg = $t('settings.enrichArtistImagesStarted'); } setTimeout(() => enrichMsg = '', 5000); }}>
+          {$t('settings.enrichArtistImages')}
+        </button>
+      </div>
+      <p class="settings-note">{$t('settings.autoEnrichPremiumNote')}</p>
     </section>
     {/if}
     {/if}

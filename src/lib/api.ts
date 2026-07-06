@@ -2420,6 +2420,16 @@ export function getBatchEnrichStatus() {
   return fetchJSON<{ running: boolean; processed: number; total: number }>(`${BASE}/library/enrich-all/status`);
 }
 
+// Artist image enrichment (community + Fanart/TheAudioDB/MusicBrainz by MBID,
+// then Discogs/Last.fm by name). Runs manually for everyone; the automatic
+// post-scan run is Premium-only.
+export function enrichArtistImages() {
+  return fetchJSON<{ status: string; artists_without_image?: number }>(
+    `${BASE}/library/artwork/enrich-artists`,
+    { method: 'POST' }
+  );
+}
+
 // --- Network Diagnostics ---
 
 export function getNetworkDiagnostics() {
