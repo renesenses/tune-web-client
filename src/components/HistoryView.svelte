@@ -17,12 +17,29 @@
   // Merge local + server history
   let mergedHistory = $derived.by(() => {
     const local = $playbackHistory;
-    if (serverHistory.length === 0) return local;
-    if (local.length === 0) return serverHistory;
-    // Merge: local first (most recent), then server entries not in local
-    const localTitles = new Set(local.map(e => e.track.title + e.playedAt));
-    const extra = serverHistory.filter(e => !localTitles.has(e.track.title + e.playedAt));
-    return [...local, ...extra].slice(0, 200);
+    let combined: HistoryEntry[];
+    if (serverHistory.length === 0) combined = local;
+    else if (local.length === 0) combined = serverHistory;
+    else {
+      // Merge: local first (most recent), then server entries not in local
+      const localTitles = new Set(local.map(e => e.track.title + e.playedAt));
+      const extra = serverHistory.filter(e => !localTitles.has(e.track.title + e.playedAt));
+      combined = [...local, ...extra];
+    }
+    // Show each track only once — its most recent listen (Elie). The list is
+    // ordered most-recent-first, so keep the first occurrence per track.
+    const seen = new Set<string>();
+    const deduped: HistoryEntry[] = [];
+    for (const e of combined) {
+      const t = e.track;
+      const key = t.id != null
+        ? `id:${t.id}`
+        : `s:${t.source ?? ''}:${t.source_id ?? ''}:${(t.title || '').toLowerCase()}:${(t.artist_name || '').toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(e);
+    }
+    return deduped.slice(0, 200);
   });
 
   // Load server history on mount

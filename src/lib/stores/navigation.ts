@@ -13,6 +13,14 @@ activeView.subscribe(v => {
   }
 });
 
+// Bumped when a sidebar nav item is clicked, so a list/detail view (playlists,
+// collections) can reset to its list when the user clicks its nav entry while
+// already inside a detail. Views watch this and clear their local selection.
+export const listResetNonce = writable(0);
+export function requestListReset() {
+  listResetNonce.update(n => n + 1);
+}
+
 // Optional tab to open when navigating to settings (consumed once by SettingsView)
 export const settingsInitialTab = writable<string | null>(null);
 export const mobileNowPlayingOpen = writable(false);

@@ -11,6 +11,7 @@
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
   import PlaylistsHub from './PlaylistsHub.svelte';
+  import { listResetNonce } from '../lib/stores/navigation';
 
   let viewTab = $state<'manual' | 'smart' | 'smart-ai' | 'hub'>('manual');
 
@@ -48,6 +49,14 @@
   let selectedService = $state('');
   let detailTracks = $state<Track[]>([]);
   let detailLoading = $state(false);
+
+  // Clicking the Playlists nav entry (even while viewing a playlist) returns to
+  // the list (Elie).
+  $effect(() => {
+    $listResetNonce;
+    selectedPlaylist = null;
+    selectedStreamingPl = null;
+  });
 
   // Import dialog
   let importTarget = $state<{ service: string; playlist: StreamingPlaylist } | null>(null);
@@ -949,11 +958,11 @@
     diffTargetPlaylistId = '';
     diffLoadingPlaylists = true;
     try {
-      if (service === 'local') {
-        diffTargetPlaylists = localPlaylists;
-      } else {
-        diffTargetPlaylists = streamingPlaylists[service] ?? [];
-      }
+      const list = service === 'local' ? localPlaylists : (streamingPlaylists[service] ?? []);
+      // Sort the comparison list alphabetically by name (Elie).
+      diffTargetPlaylists = [...list].sort((a: any, b: any) =>
+        (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }),
+      );
     } catch (e) {
       console.error('Load diff playlists error:', e);
     }

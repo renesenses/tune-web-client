@@ -75,6 +75,12 @@ function generateId(): string {
 
 export async function addShortcut(name: string, icon: string) {
   const captured = captureCurrentView();
+  const targetKey = `${captured.view}:${JSON.stringify(captured.state || {})}`;
+  // Don't create a second shortcut to the exact same view + state (Elie).
+  const existing = get(shortcuts).find(
+    s => `${s.view}:${JSON.stringify(s.state || {})}` === targetKey,
+  );
+  if (existing) return existing;
   const shortcut: Shortcut = {
     id: generateId(),
     name,
@@ -85,6 +91,7 @@ export async function addShortcut(name: string, icon: string) {
   };
   shortcuts.update(s => [...s, shortcut]);
   await persist();
+  return shortcut;
 }
 
 export async function removeShortcut(id: string) {

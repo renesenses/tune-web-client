@@ -3,7 +3,7 @@
   import { zones, currentZoneId } from '../lib/stores/zones';
   import { devices, unboundDevices } from '../lib/stores/devices';
   import { connectionState, reconnectAttempts } from '../lib/stores/connection';
-  import { activeView, settingsInitialTab, type View } from '../lib/stores/navigation';
+  import { activeView, settingsInitialTab, requestListReset, type View } from '../lib/stores/navigation';
   import { resetLibraryNavigation } from '../lib/stores/library';
   import { activeStreamingService, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { preferences } from '../lib/stores/preferences';
@@ -350,6 +350,9 @@
 
   function navigate(view: View) {
     if (view === 'library') resetLibraryNavigation();
+    // Clicking Playlists/Collections returns to the list even if we're already
+    // on that view showing a detail (Elie).
+    requestListReset();
     activeView.set(view);
   }
 

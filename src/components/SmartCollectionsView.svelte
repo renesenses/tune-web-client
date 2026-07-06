@@ -5,7 +5,7 @@
   import type { SmartCollection } from '../lib/types';
   import SmartCollectionEditor from './SmartCollectionEditor.svelte';
   import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
-  import { activeView } from '../lib/stores/navigation';
+  import { activeView, listResetNonce } from '../lib/stores/navigation';
   import { currentZone } from '../lib/stores/zones';
   import { notifications } from '../lib/stores/notifications';
   import { t } from '../lib/i18n';
@@ -49,6 +49,13 @@
   let selected = $state<SmartCollection | null>(null);
   let selectedAlbums = $state<any[]>([]);
   let albumsLoading = $state(false);
+
+  // Clicking the Collections nav entry returns to the list (Elie).
+  $effect(() => {
+    $listResetNonce;
+    selected = null;
+    editing = null;
+  });
 
   async function load() {
     loading = true;
