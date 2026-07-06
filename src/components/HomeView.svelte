@@ -40,6 +40,7 @@
           artist_name: np.artist_name ?? '',
           cover_path: np.cover_path ?? null,
           album_id: np.album_id ?? null,
+          state: z.state ?? 'playing',
         };
       })
   );
@@ -541,7 +542,7 @@
               <span class="nl-artist truncate">{item.artist_name ?? ''}</span>
             </div>
             <span class="nl-playing-indicator">
-              <span class="eq-bars"><span></span><span></span><span></span></span>
+              <span class="eq-bars" class:paused={item.state === 'paused'}><span></span><span></span><span></span></span>
             </span>
           </button>
         {/each}
@@ -1159,6 +1160,14 @@
   .eq-bars span:nth-child(1) { height: 60%; animation-delay: 0s; }
   .eq-bars span:nth-child(2) { height: 100%; animation-delay: 0.2s; }
   .eq-bars span:nth-child(3) { height: 40%; animation-delay: 0.4s; }
+
+  /* Paused zone: bars stop bouncing and sit flat (Elie). */
+  .eq-bars.paused span {
+    animation: none;
+    height: 30%;
+    transform: none;
+    opacity: 0.6;
+  }
 
   @keyframes eq-bounce {
     0% { transform: scaleY(0.3); }
