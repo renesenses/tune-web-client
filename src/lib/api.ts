@@ -757,8 +757,8 @@ export interface DashboardData {
   range: { from: string | null; to: string };
   totals: { plays: number; listening_ms: number; unique_tracks: number; unique_artists: number };
   top_artists: { artist_name: string; plays: number; listening_ms: number }[];
-  top_albums: { album_title: string; artist_name: string; cover_path: string | null; plays: number }[];
-  top_tracks: { track_id: number | null; title: string; artist_name: string; plays: number; listening_ms: number }[];
+  top_albums: { album_title: string; artist_name: string; cover_path: string | null; plays: number; album_id?: number | null; source?: string | null; source_id?: string | null }[];
+  top_tracks: { track_id: number | null; title: string; artist_name: string; plays: number; listening_ms: number; source?: string | null; source_id?: string | null }[];
   trend: { day: string; plays: number; listening_ms: number }[];
   hourly: { hour: number; plays: number }[];
   by_zone: { zone_id: number | null; zone_name: string | null; plays: number; listening_ms: number }[];

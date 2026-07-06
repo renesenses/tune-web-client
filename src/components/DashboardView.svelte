@@ -139,6 +139,40 @@
     try { await api.playRadio(radioId, zoneId); } catch (e) { console.error('Dashboard playRadio error:', e); }
   }
 
+  async function playStreamingItem(source?: string | null, sourceId?: string | null) {
+    if (!source || source === 'local' || !sourceId) return;
+    const zoneId = await getZoneId();
+    if (!zoneId) return;
+    try {
+      await playAndSync(zoneId, { source: source as any, source_id: sourceId });
+    } catch (e) {
+      console.error('Dashboard playStreamingItem error:', e);
+    }
+  }
+
+  // Dashboard top items may be streaming (Qobuz/Tidal/YouTube) with no local
+  // id: local library navigation/search silently fails for those. Play them
+  // directly via source+source_id instead so the click always does something.
+  async function playTopTrack(tk: { track_id: number | null; source?: string | null; source_id?: string | null }) {
+    if (tk.track_id) { await playTrack(tk.track_id); return; }
+    await playStreamingItem(tk.source, tk.source_id);
+  }
+
+  async function openTopTrack(tk: { track_id: number | null; title: string; artist_name: string; source?: string | null; source_id?: string | null }) {
+    if (tk.track_id) { await openTrack(tk.track_id, tk.title, tk.artist_name); return; }
+    await playStreamingItem(tk.source, tk.source_id);
+  }
+
+  async function playTopAlbum(a: { album_id?: number | null; source?: string | null; source_id?: string | null }) {
+    if (a.album_id) { await playAlbumById(a.album_id); return; }
+    await playStreamingItem(a.source, a.source_id);
+  }
+
+  async function openTopAlbum(a: { album_id?: number | null; album_title: string; artist_name: string; source?: string | null; source_id?: string | null }) {
+    if (a.album_id || (!a.source || a.source === 'local')) { await openAlbum(a.album_title, a.artist_name); return; }
+    await playStreamingItem(a.source, a.source_id);
+  }
+
   let period = $state<DashboardPeriod>('30d');
   let data = $state<DashboardData | null>(null);
   let loading = $state(false);
@@ -298,7 +332,7 @@
           <ol class="rank-list rank-list-with-cover">
             {#each data.top_albums as a}
               <li>
-                <div class="rank-cover-wrap" onclick={() => a.album_id && playAlbumById(a.album_id)}>
+                <div class="rank-cover-wrap" onclick={() => playTopAlbum(a)}>
                   {#if a.cover_path}
                     <img class="rank-cover rank-clickable" src={artworkUrl(a.cover_path, 80)} alt="" loading="lazy" />
                   {:else}
@@ -306,7 +340,7 @@
                   {/if}
                 </div>
                 <span class="rank-info">
-                  <button class="rank-name rank-link" onclick={() => openAlbum(a.album_title, a.artist_name)} title={$t('dashboard.viewAlbum')}>{a.album_title}</button>
+                  <button class="rank-name rank-link" onclick={() => openTopAlbum(a)} title={$t('dashboard.viewAlbum')}>{a.album_title}</button>
                   <button class="rank-artist-link" onclick={() => openArtist(a.artist_name)} title={$t('dashboard.viewArtist')}>{a.artist_name}</button>
                 </span>
                 <span class="rank-meta">{a.plays}</span>
@@ -322,7 +356,7 @@
           <ol class="rank-list rank-list-with-cover">
             {#each data.top_tracks as tk}
               <li>
-                <div class="rank-cover-wrap" onclick={() => playTrack(tk.track_id)}>
+                <div class="rank-cover-wrap" onclick={() => playTopTrack(tk)}>
                   {#if tk.cover_path}
                     <img class="rank-cover rank-clickable" src={artworkUrl(tk.cover_path, 80)} alt="" loading="lazy" />
                   {:else}
@@ -330,7 +364,7 @@
                   {/if}
                 </div>
                 <span class="rank-info">
-                  <button class="rank-name rank-link" onclick={() => openTrack(tk.track_id, tk.title, tk.artist_name)} title={$t('dashboard.viewTrack')}>{tk.title}</button>
+                  <button class="rank-name rank-link" onclick={() => openTopTrack(tk)} title={$t('dashboard.viewTrack')}>{tk.title}</button>
                   <button class="rank-artist-link" onclick={() => openArtist(tk.artist_name)} title={$t('dashboard.viewArtist')}>{tk.artist_name}</button>
                 </span>
                 <span class="rank-meta">{tk.plays}</span>
