@@ -633,8 +633,8 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: var(--space-md);
-    flex: 1;
-    overflow-y: auto;
+    /* No inner flex:1 + overflow — the whole .genres-view scrolls as one page.
+       Previously only this grid moved while the header stayed put (Elie). */
   }
 
   .genre-card {
