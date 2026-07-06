@@ -6,3 +6,4 @@ export { default as it } from './it';
 export { default as zh } from './zh';
 export { default as ja } from './ja';
 export { default as ko } from './ko';
+export { default as ro } from './ro';
