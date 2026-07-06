@@ -552,6 +552,28 @@
     albumTagsKey++;
   }
 
+  // Tag management (rename / delete). Backend + api already support these
+  // (PUT/DELETE /tags/{id}); this surfaces them in the UI.
+  let manageTags = $state(false);
+  async function handleRenameTag(tag: UserTag) {
+    const next = prompt($tr('library.renameTagPrompt' as any), tag.name);
+    if (next === null) return;
+    const name = next.trim();
+    if (!name || name === tag.name) return;
+    try {
+      await api.updateTag(tag.id!, name);
+      await loadUserTags();
+    } catch (e) { console.error('updateTag error:', e); }
+  }
+  async function handleDeleteTag(tag: UserTag) {
+    if (!confirm($tr('library.deleteTagConfirm' as any).replace('{name}', tag.name))) return;
+    try {
+      await api.deleteTag(tag.id!);
+      if (albumTagFilter === tag.id) applyTagFilter(null);
+      await loadUserTags();
+    } catch (e) { console.error('deleteTag error:', e); }
+  }
+
   async function applyTagFilter(tagId: number | null) {
     albumTagFilter = tagId;
     if (tagId) {
@@ -2179,16 +2201,29 @@
           <span class="filter-sep">|</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="opacity:0.5;flex-shrink:0"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
           {#each userTags as tag}
-            <button
-              class="quality-chip user-tag"
-              class:active={albumTagFilter === tag.id}
-              style="--tag-color: {tag.color}"
-              onclick={() => applyTagFilter(albumTagFilter === tag.id ? null : tag.id!)}
-            >
-              <span class="tag-dot" style="background:{tag.color}"></span>
-              {tag.name} ({tag.count ?? 0})
-            </button>
+            <span class="user-tag-wrap">
+              <button
+                class="quality-chip user-tag"
+                class:active={albumTagFilter === tag.id}
+                style="--tag-color: {tag.color}"
+                onclick={() => applyTagFilter(albumTagFilter === tag.id ? null : tag.id!)}
+              >
+                <span class="tag-dot" style="background:{tag.color}"></span>
+                {tag.name} ({tag.count ?? 0})
+              </button>
+              {#if manageTags}
+                <button class="tag-manage-btn" title={$tr('library.renameTag' as any)} onclick={() => handleRenameTag(tag)} aria-label={$tr('library.renameTag' as any)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                </button>
+                <button class="tag-manage-btn danger" title={$tr('library.deleteTag' as any)} onclick={() => handleDeleteTag(tag)} aria-label={$tr('library.deleteTag' as any)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              {/if}
+            </span>
           {/each}
+          <button class="tag-manage-toggle" class:active={manageTags} title={$tr('library.manageTags' as any)} aria-label={$tr('library.manageTags' as any)} onclick={() => manageTags = !manageTags}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
         {/if}
         {#if albumYearFilter}
           <span class="filter-sep">|</span>
@@ -3178,6 +3213,37 @@
     height: 6px;
     border-radius: 50%;
     flex-shrink: 0;
+  }
+  .user-tag-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .tag-manage-btn,
+  .tag-manage-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px;
+    border: none;
+    background: transparent;
+    color: var(--tune-text, #ccc);
+    opacity: 0.6;
+    border-radius: 4px;
+    cursor: pointer;
+    line-height: 0;
+  }
+  .tag-manage-btn:hover,
+  .tag-manage-toggle:hover {
+    opacity: 1;
+    background: rgba(128, 128, 128, 0.18);
+  }
+  .tag-manage-btn.danger:hover {
+    color: #e74c3c;
+  }
+  .tag-manage-toggle.active {
+    opacity: 1;
+    color: var(--tune-accent, #3498db);
   }
 
   .album-tags-row {
