@@ -68,6 +68,24 @@
     }
   }
 
+  // Shortcut capture/restore for a SPECIFIC collection (Elie).
+  $effect(() => {
+    (window as any).__tuneCollectionShortcut = () =>
+      selectedCollection?.id ? { collectionId: selectedCollection.id, name: selectedCollection.name } : null;
+    const onRestore = async (e: Event) => {
+      const id = (e as CustomEvent).detail?.collectionId;
+      if (id == null) return;
+      let col = collections.find((c) => c.id === id);
+      if (!col) { await loadCollections(); col = collections.find((c) => c.id === id); }
+      if (col) selectCollection(col);
+    };
+    window.addEventListener('tune:shortcut-restore-collection', onRestore);
+    return () => {
+      window.removeEventListener('tune:shortcut-restore-collection', onRestore);
+      delete (window as any).__tuneCollectionShortcut;
+    };
+  });
+
   async function selectCollection(col: any) {
     selectedCollection = col;
     detailLoading = true;
