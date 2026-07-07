@@ -1892,32 +1892,49 @@ export function deleteProfile(id: number) {
 
 // --- Favorites ---
 
+// Server favorites API is keyed by {item_type, item_id}; the web callers pass
+// {track_id|album_id|artist_id}. Normalise here so callers stay ergonomic.
+function favItem(p: { track_id?: number; album_id?: number; artist_id?: number }): { item_type: 'track' | 'album' | 'artist'; item_id: number } | null {
+  if (p.track_id != null) return { item_type: 'track', item_id: p.track_id };
+  if (p.album_id != null) return { item_type: 'album', item_id: p.album_id };
+  if (p.artist_id != null) return { item_type: 'artist', item_id: p.artist_id };
+  return null;
+}
+
 export function getFavorites(profileId: number, type?: 'track' | 'album' | 'artist') {
-  const q = type ? `?type=${type}` : '';
+  // Server reads the `item_type` query param (not `type`).
+  const q = type ? `?item_type=${type}` : '';
   return fetchJSON<{ tracks: import('./types').Track[]; albums: import('./types').Album[]; artists: import('./types').Artist[] }>(`${BASE}/profiles/${profileId}/favorites${q}`);
 }
 
 export function addFavorite(profileId: number, body: { track_id?: number; album_id?: number; artist_id?: number }) {
-  return fetchJSON<any>(`${BASE}/profiles/${profileId}/favorites`, {
+  const it = favItem(body);
+  if (!it) return Promise.reject(new Error('addFavorite: no item id'));
+  return fetchJSON<any>(`${BASE}/profiles/${profileId}/favorites/add`, {
     method: 'POST',
-    body: JSON.stringify(body),
+    body: JSON.stringify(it),
   });
 }
 
 export function removeFavorite(profileId: number, params: { track_id?: number; album_id?: number; artist_id?: number }) {
-  const q = new URLSearchParams();
-  if (params.track_id !== undefined) q.set('track_id', String(params.track_id));
-  if (params.album_id !== undefined) q.set('album_id', String(params.album_id));
-  if (params.artist_id !== undefined) q.set('artist_id', String(params.artist_id));
-  return fetchVoid(`${BASE}/profiles/${profileId}/favorites?${q.toString()}`, { method: 'DELETE' });
+  const it = favItem(params);
+  if (!it) return Promise.reject(new Error('removeFavorite: no item id'));
+  return fetchVoid(`${BASE}/profiles/${profileId}/favorites/remove`, {
+    method: 'POST',
+    body: JSON.stringify(it),
+  });
 }
 
-export function checkFavorite(profileId: number, params: { track_id?: number; album_id?: number; artist_id?: number }) {
-  const q = new URLSearchParams();
-  if (params.track_id !== undefined) q.set('track_id', String(params.track_id));
-  if (params.album_id !== undefined) q.set('album_id', String(params.album_id));
-  if (params.artist_id !== undefined) q.set('artist_id', String(params.artist_id));
-  return fetchJSON<{ is_favorite: boolean }>(`${BASE}/profiles/${profileId}/favorites/check?${q.toString()}`);
+export async function checkFavorite(profileId: number, params: { track_id?: number; album_id?: number; artist_id?: number }) {
+  const it = favItem(params);
+  if (!it) return { is_favorite: false };
+  // Server exposes a batch check (POST {item_type, item_ids}) returning an
+  // array of {item_id, is_favorite}.
+  const res = await fetchJSON<Array<{ item_id: number; is_favorite: boolean }>>(`${BASE}/profiles/${profileId}/favorites/check`, {
+    method: 'POST',
+    body: JSON.stringify({ item_type: it.item_type, item_ids: [it.item_id] }),
+  });
+  return { is_favorite: Array.isArray(res) ? !!res[0]?.is_favorite : false };
 }
 
 // --- Artwork ---
