@@ -2269,6 +2269,24 @@ export async function getRadioFrancePodcasts(): Promise<any[]> {
   return res.json();
 }
 
+export async function getRadioFranceShows(station = 'FRANCEINTER'): Promise<any> {
+  const res = await fetch(`${BASE}/podcasts/radiofrance/shows?station=${encodeURIComponent(station)}`);
+  if (!res.ok) throw new Error(`RF shows failed: ${res.status}`);
+  return res.json();
+}
+
+export async function searchRadioFranceShows(query: string): Promise<any> {
+  const res = await fetch(`${BASE}/podcasts/radiofrance/shows/search?q=${encodeURIComponent(query)}`);
+  if (!res.ok) throw new Error(`RF search failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getRadioFranceEpisodes(showUrl: string, limit = 20): Promise<any> {
+  const res = await fetch(`${BASE}/podcasts/radiofrance/episodes?show_url=${encodeURIComponent(showUrl)}&limit=${limit}`);
+  if (!res.ok) throw new Error(`RF episodes failed: ${res.status}`);
+  return res.json();
+}
+
 export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: string): Promise<any[]> {
   let url = `${BASE}/podcasts/episodes?limit=${limit}`;
   if (feedUrl) url += `&feed_url=${encodeURIComponent(feedUrl)}`;
