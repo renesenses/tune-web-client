@@ -42,13 +42,14 @@ export function setupKeyboardShortcuts(): () => void {
       case 'ArrowUp': {
         e.preventDefault();
         const vol = zone.volume ?? 0.5;
-        api.setVolume(zone.id, Math.min(1, vol + 0.05));
+        // Step by 1% (round to avoid float drift), not 5%.
+        api.setVolume(zone.id, Math.min(1, Math.round((vol + 0.01) * 100) / 100));
         break;
       }
       case 'ArrowDown': {
         e.preventDefault();
         const vol = zone.volume ?? 0.5;
-        api.setVolume(zone.id, Math.max(0, vol - 0.05));
+        api.setVolume(zone.id, Math.max(0, Math.round((vol - 0.01) * 100) / 100));
         break;
       }
       case 'KeyN':
