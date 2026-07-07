@@ -738,6 +738,12 @@
   async function qsRemoveFromQueue(index: number) {
     try {
       await api.removeFromQueue(zone.id, index);
+      // Refresh the queue so the removed track disappears from the list
+      // (the API call alone left the UI showing the old queue).
+      const qs = await api.getQueue(zone.id);
+      queueTracks.set(qs.tracks);
+      queuePosition.set(qs.position);
+      queueLength.set(qs.length);
     } catch (e) {
       console.error('Queue sheet remove error:', e);
     }
