@@ -3,7 +3,7 @@
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
   import { tuneWS } from '../lib/websocket';
-  import { zones, currentZoneId } from '../lib/stores/zones';
+  import { zones, currentZoneId, followMe } from '../lib/stores/zones';
   import { devices } from '../lib/stores/devices';
   import { preferences, applyTheme, type ThemeMode, type VolumeDisplay, type StartupView } from '../lib/stores/preferences';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
@@ -3088,6 +3088,19 @@
         <p class="settings-note">{$t('settings.zoneAutoCreateHint' as any)}</p>
       </section>
     {/if}
+
+    <!-- Follow me: pause the zone you leave when switching zones (client pref) -->
+    <section class="settings-section">
+      <h3>{$t('settings.followMe' as any)}</h3>
+      <div class="pref-grid">
+        <label class="pref-label">{$t('settings.followMeLabel' as any)}</label>
+        <label class="toggle-switch">
+          <input type="checkbox" bind:checked={$followMe} />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <p class="settings-note">{$t('settings.followMeHint' as any)}</p>
+    </section>
 
     <!-- Zone audio settings (DSD mode, gapless, fixed volume) -->
     {#if $zones.length > 0}

@@ -778,6 +778,9 @@ export default {
   'settings.zoneAutoCreate': 'Zone de redare',
   'settings.zoneAutoCreateLabel': 'Creare automată de zone',
   'settings.zoneAutoCreateHint': 'Când este dezactivat, dispozitivele descoperite apar în listă, dar zonele trebuie create manual.',
+  "settings.followMe": "Urmărește-mă",
+  "settings.followMeLabel": "Pune pe pauză zona părăsită",
+  "settings.followMeHint": "La schimbarea zonei, pune pe pauză redarea din zona pe care o părăsești, ca să nu continue nimic în spate. Dezactivat implicit (zonele rămân independente pentru multi-room).",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',

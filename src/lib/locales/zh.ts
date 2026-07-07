@@ -770,6 +770,9 @@ export default {
   'settings.zoneAutoCreate': 'Playback zones',
   'settings.zoneAutoCreateLabel': 'Auto-create zones',
   'settings.zoneAutoCreateHint': 'When disabled, discovered devices appear in the list but zones must be created manually.',
+  "settings.followMe": "跟随我",
+  "settings.followMeLabel": "暂停离开的区域",
+  "settings.followMeHint": "切换区域时，暂停你离开的区域的播放，这样身后就不会继续播放。默认关闭（多房间下区域保持独立）。",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',
