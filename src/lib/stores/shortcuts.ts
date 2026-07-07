@@ -74,6 +74,13 @@ export function captureCurrentView(): Partial<Shortcut> {
     if (col) state.collection = col;
   }
 
+  // A shortcut from a specific settings sub-page should reopen THAT tab
+  // (e.g. "Réseau et audio"), not the default general tab (Elie).
+  if (view === 'settings') {
+    const tab = (window as any).__tuneSettingsShortcut?.();
+    if (tab) state.settingsTab = tab;
+  }
+
   return { view, state };
 }
 
@@ -163,6 +170,14 @@ export function navigateToShortcut(shortcut: Shortcut) {
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('tune:shortcut-restore-collection', {
         detail: shortcut.state!.collection,
+      }));
+    }, 150);
+  }
+
+  if (shortcut.state?.settingsTab && shortcut.view === 'settings') {
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('tune:shortcut-restore-settings', {
+        detail: shortcut.state,
       }));
     }, 150);
   }

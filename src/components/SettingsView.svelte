@@ -1639,6 +1639,22 @@
     if (pushEnabled) initPushNotifications();
   });
 
+  // Shortcut capture/restore for a SPECIFIC settings sub-page (Elie): expose
+  // the open tab so a shortcut records it, and re-open that tab when the
+  // shortcut is activated (instead of always landing on "general").
+  $effect(() => {
+    (window as any).__tuneSettingsShortcut = () => settingsTab;
+    const onRestore = (e: Event) => {
+      const tab = (e as CustomEvent).detail?.settingsTab;
+      if (typeof tab === 'string') settingsTab = tab;
+    };
+    window.addEventListener('tune:shortcut-restore-settings', onRestore);
+    return () => {
+      window.removeEventListener('tune:shortcut-restore-settings', onRestore);
+      delete (window as any).__tuneSettingsShortcut;
+    };
+  });
+
   // WS event subscription for scan/enrich progress — use $effect for
   // automatic cleanup on component destruction.
   $effect(() => {
