@@ -951,6 +951,7 @@
   let diffServices = $derived([
     'local',
     ...authenticatedServices,
+    'collection',
   ]);
 
   async function loadDiffPlaylists(service: string) {
@@ -958,7 +959,13 @@
     diffTargetPlaylistId = '';
     diffLoadingPlaylists = true;
     try {
-      const list = service === 'local' ? localPlaylists : (streamingPlaylists[service] ?? []);
+      // Compare targets: local playlists, streaming playlists, or manual
+      // collections (Elie). Collections are fetched on demand.
+      const list = service === 'local'
+        ? localPlaylists
+        : service === 'collection'
+          ? await api.getCollections()
+          : (streamingPlaylists[service] ?? []);
       // Sort the comparison list alphabetically by name (Elie).
       diffTargetPlaylists = [...list].sort((a: any, b: any) =>
         (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }),
@@ -1958,7 +1965,7 @@
         <select class="import-input" bind:value={diffTargetService} onchange={(e) => loadDiffPlaylists((e.target as HTMLSelectElement).value)}>
           <option value="">--</option>
           {#each diffServices as svc}
-            <option value={svc}>{svc === 'local' ? $tr('playlist.local') : serviceName(svc)}</option>
+            <option value={svc}>{svc === 'local' ? $tr('playlist.local') : svc === 'collection' ? $tr('collections.title') : serviceName(svc)}</option>
           {/each}
         </select>
         {#if diffTargetService}
