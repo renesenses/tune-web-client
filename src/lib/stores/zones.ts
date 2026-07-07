@@ -28,6 +28,30 @@ currentZoneId.subscribe((id) => {
   } catch {}
 });
 
+// "Follow me" (opt-in): switching the active zone pauses the zone you leave,
+// so nothing keeps playing behind you. When OFF, zones stay fully independent
+// (multi-room). Elie.
+function loadFollowMe(): boolean {
+  try { return localStorage.getItem('tune_follow_me') === '1'; } catch { return false; }
+}
+export const followMe = writable<boolean>(loadFollowMe());
+followMe.subscribe((v) => {
+  try { localStorage.setItem('tune_follow_me', v ? '1' : '0'); } catch {}
+});
+
+/** Switch the active zone. With "follow me" enabled, pauses the zone being
+ *  left if it is currently playing (nothing keeps playing behind you). */
+export async function switchZone(id: number) {
+  const prevId = get(currentZoneId);
+  currentZoneId.set(id);
+  if (get(followMe) && prevId !== null && prevId !== id) {
+    const prev = get(zones).find((z) => z.id === prevId);
+    if (prev && prev.state === 'playing') {
+      try { await api.pause(prevId); } catch { /* ignore */ }
+    }
+  }
+}
+
 export const currentZone = derived(
   [zones, currentZoneId],
   ([$zones, $currentZoneId]) => {
