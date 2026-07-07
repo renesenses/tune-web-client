@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { playlists as playlistsStore, playlistsLoaded, streamingPlaylistsCache, streamingPlaylistsLoaded } from '../lib/stores/playlists';
   import { streamingServices } from '../lib/stores/streaming';
@@ -159,6 +160,26 @@
     streamingPlTracks = [];
     selectedService = '';
   }
+
+  // Shortcut capture/restore for a SPECIFIC playlist (Elie): expose the open
+  // playlist so a shortcut records its id, and re-open it when that shortcut
+  // is activated (instead of only landing on the playlists list).
+  $effect(() => {
+    (window as any).__tunePlaylistShortcut = () =>
+      selectedPlaylist?.id ? { playlistId: selectedPlaylist.id, name: selectedPlaylist.name } : null;
+    const onRestore = async (e: Event) => {
+      const id = (e as CustomEvent).detail?.playlistId;
+      if (id == null) return;
+      let pl = get(playlistsStore).find((p) => p.id === id);
+      if (!pl) { await refreshPlaylists(); pl = get(playlistsStore).find((p) => p.id === id); }
+      if (pl) selectPlaylist(pl);
+    };
+    window.addEventListener('tune:shortcut-restore-playlist', onRestore);
+    return () => {
+      window.removeEventListener('tune:shortcut-restore-playlist', onRestore);
+      delete (window as any).__tunePlaylistShortcut;
+    };
+  });
 
   async function createPlaylist() {
     if (!newName.trim()) return;

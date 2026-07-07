@@ -62,6 +62,18 @@ export function captureCurrentView(): Partial<Shortcut> {
     if (msState) state.mediaServer = msState;
   }
 
+  // A shortcut from a specific playlist/collection should reopen THAT item,
+  // not just its list (Elie). The view exposes the open item via a getter.
+  if (view === 'playlists') {
+    const pl = (window as any).__tunePlaylistShortcut?.();
+    if (pl) state.playlist = pl;
+  }
+
+  if (view === 'collections') {
+    const col = (window as any).__tuneCollectionShortcut?.();
+    if (col) state.collection = col;
+  }
+
   return { view, state };
 }
 
@@ -137,6 +149,22 @@ export function navigateToShortcut(shortcut: Shortcut) {
         detail: shortcut.state,
       }));
     }, 200);
+  }
+
+  if (shortcut.state?.playlist && shortcut.view === 'playlists') {
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('tune:shortcut-restore-playlist', {
+        detail: shortcut.state!.playlist,
+      }));
+    }, 150);
+  }
+
+  if (shortcut.state?.collection && shortcut.view === 'collections') {
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('tune:shortcut-restore-collection', {
+        detail: shortcut.state!.collection,
+      }));
+    }, 150);
   }
 
   if (shortcut.state?.albumSort) {
