@@ -333,6 +333,8 @@ export default {
   'settings.spotifyOpenAuth': 'Spotify에 로그인',
   'settings.spotifyWaiting': 'Spotify 확인 대기 중...',
   'settings.deezerConnect': 'Deezer에 연결',
+  "settings.deezerArlHint": "Deezer는 deezer.com에 로그인하면 브라우저에 저장되는 ARL 쿠키 토큰(약 192자)을 사용합니다. 아래에 붙여넣으세요. F12 → 애플리케이션/저장소 → 쿠키 → deezer.com → \"arl\" 전체 값 복사.",
+  "settings.deezerArlPlaceholder": "ARL 토큰 (약 192자)",
   'settings.deezerLink': '이 링크를 열어 Deezer에 로그인하세요:',
   'settings.deezerOpenAuth': 'Deezer에 로그인',
   'settings.deezerWaiting': 'Deezer 확인 대기 중...',

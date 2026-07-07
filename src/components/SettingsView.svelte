@@ -709,6 +709,7 @@
   let spotifyAuthError: string | null = $state(null);
 
   let deezerAuthLoading = $state(false);
+  let deezerArl = $state('');
   let deezerVerificationUrl: string | null = $state(null);
   let deezerPollingInterval: ReturnType<typeof setInterval> | null = $state(null);
   let deezerAuthError: string | null = $state(null);
@@ -889,31 +890,28 @@
     }
   }
 
+  // Deezer authenticates with an ARL cookie token (not OAuth/device-code):
+  // save it via the service-token endpoint, which validates the ARL server-side.
   async function handleDeezerAuth() {
+    const arl = deezerArl.trim();
+    if (!arl) return;
     deezerAuthLoading = true;
     deezerAuthError = null;
-    deezerVerificationUrl = null;
     try {
-      const res = await api.authenticateStreaming('deezer');
-      if (res.authenticated) {
+      const res = await api.saveServiceToken('deezer', { arl });
+      if (res.valid === false) {
+        deezerAuthError = res.validation_message ?? get(t)('settings.connectionError');
+      } else {
         $streamingServicesStore = {
           ...$streamingServicesStore,
           deezer: { ...$streamingServicesStore['deezer'], authenticated: true },
         };
-        deezerAuthLoading = false;
-        return;
+        deezerArl = '';
       }
-      if (res.verification_url) {
-        deezerVerificationUrl = res.verification_url;
-        startDeezerPolling();
-      } else {
-        deezerAuthError = get(t)('settings.connectionError');
-        deezerAuthLoading = false;
-      }
-    } catch (e) {
-      deezerAuthError = get(t)('settings.connectionError');
-      deezerAuthLoading = false;
+    } catch (e: any) {
+      deezerAuthError = e?.message ?? get(t)('settings.connectionError');
     }
+    deezerAuthLoading = false;
   }
 
   function startDeezerPolling() {
@@ -2926,32 +2924,29 @@
                   </div>
                 {:else if name === 'deezer'}
                   <div class="service-auth-form">
-                    {#if deezerVerificationUrl}
-                      <p class="auth-hint">{$t('settings.deezerLink')}</p>
-                      <a href={deezerVerificationUrl} target="_blank" rel="noopener noreferrer" class="auth-link">
-                        {$t('settings.deezerOpenAuth')}
-                      </a>
-                      <div class="auth-waiting">
-                        <div class="spinner small"></div>
-                        {$t('settings.deezerWaiting')}
-                      </div>
-                    {:else}
-                      {#if deezerAuthError}
-                        <p class="auth-error">{deezerAuthError}</p>
-                      {/if}
-                      <button
-                        class="scan-btn"
-                        onclick={handleDeezerAuth}
-                        disabled={deezerAuthLoading}
-                      >
-                        {#if deezerAuthLoading}
-                          <div class="spinner small"></div>
-                          {$t('settings.connecting')}
-                        {:else}
-                          {$t('settings.deezerConnect')}
-                        {/if}
-                      </button>
+                    <p class="auth-hint">{$t('settings.deezerArlHint')}</p>
+                    <input
+                      class="auth-input"
+                      type="password"
+                      autocomplete="off"
+                      bind:value={deezerArl}
+                      placeholder={$t('settings.deezerArlPlaceholder')}
+                    />
+                    {#if deezerAuthError}
+                      <p class="auth-error">{deezerAuthError}</p>
                     {/if}
+                    <button
+                      class="scan-btn"
+                      onclick={handleDeezerAuth}
+                      disabled={deezerAuthLoading || !deezerArl.trim()}
+                    >
+                      {#if deezerAuthLoading}
+                        <div class="spinner small"></div>
+                        {$t('settings.connecting')}
+                      {:else}
+                        {$t('settings.deezerConnect')}
+                      {/if}
+                    </button>
                   </div>
                 {:else if name === 'youtube'}
                   <div class="service-auth-form">
