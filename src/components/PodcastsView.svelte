@@ -19,6 +19,17 @@
   let radioFrancePodcasts = $state<any[]>([]);
   let isLoadingTop = $state(false);
   let isLoadingRadioFrance = $state(false);
+
+  // Radio France GraphQL
+  let rfStations = ['FRANCEINTER', 'FRANCECULTURE', 'FRANCEMUSIQUE', 'FIP', 'MOUV', 'FRANCEINFO'];
+  let rfStationLabels: Record<string, string> = { FRANCEINTER: 'France Inter', FRANCECULTURE: 'France Culture', FRANCEMUSIQUE: 'France Musique', FIP: 'FIP', MOUV: "Mouv'", FRANCEINFO: 'franceinfo' };
+  let rfSelectedStation = $state('FRANCEINTER');
+  let rfShows = $state<any[]>([]);
+  let rfShowsLoading = $state(false);
+  let rfSearchQuery = $state('');
+  let rfSearchResults = $state<any[]>([]);
+  let rfSearching = $state(false);
+  let rfHasApiKey = $state(false);
   let selectedGenre = $state<number | null>(null);
   const genreCache = new Map<string, any[]>();
 
@@ -204,6 +215,50 @@
       radioFrancePodcasts = [];
     } finally {
       isLoadingRadioFrance = false;
+    }
+    // Try GraphQL API (requires api key)
+    loadRfShows(rfSelectedStation);
+  }
+
+  async function loadRfShows(station: string) {
+    rfShowsLoading = true;
+    try {
+      const data = await api.getRadioFranceShows(station);
+      rfShows = data.shows ?? [];
+      rfHasApiKey = true;
+    } catch {
+      rfShows = [];
+      rfHasApiKey = false;
+    } finally {
+      rfShowsLoading = false;
+    }
+  }
+
+  async function searchRfShows() {
+    if (!rfSearchQuery.trim()) { rfSearchResults = []; return; }
+    rfSearching = true;
+    try {
+      const data = await api.searchRadioFranceShows(rfSearchQuery);
+      rfSearchResults = data.shows ?? [];
+    } catch { rfSearchResults = []; }
+    finally { rfSearching = false; }
+  }
+
+  async function openRfShow(show: any) {
+    try {
+      const data = await api.getRadioFranceEpisodes(show.url, 30);
+      const episodes = (data.episodes ?? []).map((ep: any) => ({
+        title: ep.title,
+        description: ep.description,
+        audio_url: ep.audio_url,
+        duration_ms: (ep.duration_secs ?? 0) * 1000,
+        published: ep.published_date,
+        cover_url: ep.cover_url || show.cover_url || '',
+      }));
+      selectedPodcast = { name: show.title, artist: show.station || 'Radio France', feed_url: show.rss_url || '', cover_url: show.cover_url || '', description: show.description, episode_count: episodes.length, source_id: show.id };
+      selectedEpisodes = episodes;
+    } catch (e) {
+      console.error('Load RF episodes error:', e);
     }
   }
 
@@ -654,44 +709,82 @@
       <!-- Radio France -->
       <section class="section">
         <h3 class="section-title">Radio France</h3>
-        {#if isLoadingRadioFrance}
-          <div class="loading-state">
-            <div class="spinner"></div>
-            <span>{$t('common.loading')}</span>
-          </div>
-        {:else if radioFrancePodcasts.length === 0}
-          <p class="empty-hint">{$t('podcasts.noRadioFrance')}</p>
-        {:else}
-          <div class="podcast-grid">
-            {#each radioFrancePodcasts as podcast}
-              <div
-                class="podcast-card"
-                role="button"
-                tabindex="0"
-                onclick={() => selectPodcast(podcast)}
-                onkeydown={(e) => e.key === 'Enter' && selectPodcast(podcast)}
-              >
-                <div class="card-cover-wrap">
-                  {#if podcastCover(podcast)}
-                    <img src={podcastCover(podcast)} alt="" class="card-cover" loading="lazy" />
-                  {:else}
-                    <div class="card-cover card-cover-placeholder">
-                      <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-                    </div>
-                  {/if}
-                </div>
-                <span class="card-title">{podcastName(podcast)}</span>
-                <span class="card-artist">{podcastArtist(podcast)}</span>
-                {#if isSubscribed(podcastFeed(podcast))}
-                  <span class="card-badge-subscribed">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                  </span>
-                {:else}
-                  <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>{$t('podcasts.subscribe')}</button>
-                {/if}
-              </div>
+
+        {#if rfHasApiKey}
+          <!-- GraphQL API mode: station tabs + search -->
+          <div class="rf-station-tabs">
+            {#each rfStations as st}
+              <button class="rf-tab" class:active={rfSelectedStation === st} onclick={() => { rfSelectedStation = st; loadRfShows(st); }}>{rfStationLabels[st]}</button>
             {/each}
           </div>
+          <div class="rf-search-row">
+            <input type="text" class="rf-search-input" placeholder="Rechercher une emission..." bind:value={rfSearchQuery} onkeydown={(e) => e.key === 'Enter' && searchRfShows()} />
+            <button class="rf-search-btn" onclick={searchRfShows} disabled={rfSearching}>{rfSearching ? '...' : 'Rechercher'}</button>
+          </div>
+
+          {#if rfSearchResults.length > 0}
+            <div class="rf-results-label">{rfSearchResults.length} resultat{rfSearchResults.length > 1 ? 's' : ''}</div>
+            <div class="podcast-grid">
+              {#each rfSearchResults as show}
+                <div class="podcast-card" role="button" tabindex="0" onclick={() => openRfShow(show)} onkeydown={(e) => e.key === 'Enter' && openRfShow(show)}>
+                  <div class="card-cover card-cover-placeholder">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                  </div>
+                  <span class="card-title">{show.title}</span>
+                  <span class="card-artist">{show.station}</span>
+                </div>
+              {/each}
+            </div>
+          {:else if rfShowsLoading}
+            <div class="loading-state"><div class="spinner"></div><span>{$t('common.loading')}</span></div>
+          {:else if rfShows.length > 0}
+            <div class="podcast-grid">
+              {#each rfShows as show}
+                <div class="podcast-card" role="button" tabindex="0" onclick={() => openRfShow(show)} onkeydown={(e) => e.key === 'Enter' && openRfShow(show)}>
+                  <div class="card-cover card-cover-placeholder">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                  </div>
+                  <span class="card-title">{show.title}</span>
+                  <span class="card-artist">{show.station}</span>
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <p class="empty-hint">Aucune emission trouvee</p>
+          {/if}
+
+        {:else}
+          <!-- Fallback: curated hardcoded list (no API key) -->
+          {#if isLoadingRadioFrance}
+            <div class="loading-state"><div class="spinner"></div><span>{$t('common.loading')}</span></div>
+          {:else if radioFrancePodcasts.length === 0}
+            <p class="empty-hint">{$t('podcasts.noRadioFrance')}</p>
+          {:else}
+            <div class="podcast-grid">
+              {#each radioFrancePodcasts as podcast}
+                <div class="podcast-card" role="button" tabindex="0" onclick={() => selectPodcast(podcast)} onkeydown={(e) => e.key === 'Enter' && selectPodcast(podcast)}>
+                  <div class="card-cover-wrap">
+                    {#if podcastCover(podcast)}
+                      <img src={podcastCover(podcast)} alt="" class="card-cover" loading="lazy" />
+                    {:else}
+                      <div class="card-cover card-cover-placeholder">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                      </div>
+                    {/if}
+                  </div>
+                  <span class="card-title">{podcastName(podcast)}</span>
+                  <span class="card-artist">{podcastArtist(podcast)}</span>
+                  {#if isSubscribed(podcastFeed(podcast))}
+                    <span class="card-badge-subscribed">
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    </span>
+                  {:else}
+                    <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>{$t('podcasts.subscribe')}</button>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
         {/if}
       </section>
 
@@ -955,6 +1048,18 @@
     text-overflow: ellipsis;
     margin-bottom: 6px;
   }
+
+  /* ===== RADIO FRANCE TABS ===== */
+  .rf-station-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .rf-tab { background: var(--tune-bg-hover, rgba(255,255,255,0.08)); border: 1px solid transparent; border-radius: 16px; padding: 5px 14px; font-size: 13px; color: var(--tune-text-muted); cursor: pointer; transition: all 0.15s; }
+  .rf-tab.active { background: var(--tune-accent); color: white; border-color: var(--tune-accent); }
+  .rf-tab:hover:not(.active) { background: var(--tune-bg-hover, rgba(255,255,255,0.12)); }
+  .rf-search-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .rf-search-input { flex: 1; background: var(--tune-bg-secondary, rgba(255,255,255,0.06)); border: 1px solid var(--tune-border, rgba(255,255,255,0.1)); border-radius: 8px; padding: 8px 12px; color: var(--tune-text); font-size: 14px; }
+  .rf-search-input::placeholder { color: var(--tune-text-muted); }
+  .rf-search-btn { background: var(--tune-accent); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .rf-search-btn:disabled { opacity: 0.5; }
+  .rf-results-label { font-size: 13px; color: var(--tune-text-muted); margin-bottom: 8px; }
 
   /* ===== PODCAST GRID (cards) ===== */
   .podcast-grid {
