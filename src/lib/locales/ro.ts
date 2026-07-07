@@ -341,6 +341,8 @@ export default {
   'settings.spotifyOpenAuth': 'Autentifică-te pe Spotify',
   'settings.spotifyWaiting': 'Se așteaptă confirmarea Spotify...',
   'settings.deezerConnect': 'Conectează-te la Deezer',
+  "settings.deezerArlHint": "Deezer folosește un token cookie ARL (aproximativ 192 de caractere) din browserul tău după autentificarea pe deezer.com. Lipește-l mai jos. F12 → Aplicație/Stocare → Cookie-uri → deezer.com → copiază întreaga valoare „arl\".",
+  "settings.deezerArlPlaceholder": "Token ARL (~192 de caractere)",
   'settings.deezerLink': 'Deschide acest link pentru a te conecta la Deezer:',
   'settings.deezerOpenAuth': 'Autentifică-te pe Deezer',
   'settings.deezerWaiting': 'Se așteaptă confirmarea Deezer...',

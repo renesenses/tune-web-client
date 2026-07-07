@@ -333,6 +333,8 @@ export default {
   'settings.spotifyOpenAuth': 'Bei Spotify anmelden',
   'settings.spotifyWaiting': 'Warte auf Spotify-Bestätigung...',
   'settings.deezerConnect': 'Mit Deezer verbinden',
+  "settings.deezerArlHint": "Deezer verwendet ein ARL-Cookie-Token (ca. 192 Zeichen) aus deinem Browser, sobald du bei deezer.com angemeldet bist. Füge es unten ein. F12 → Anwendung/Speicher → Cookies → deezer.com → den vollständigen „arl\"-Wert kopieren.",
+  "settings.deezerArlPlaceholder": "ARL-Token (~192 Zeichen)",
   'settings.deezerLink': 'Öffnen Sie diesen Link, um sich bei Deezer anzumelden:',
   'settings.deezerOpenAuth': 'Bei Deezer anmelden',
   'settings.deezerWaiting': 'Warte auf Deezer-Bestätigung...',

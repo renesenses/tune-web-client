@@ -333,6 +333,8 @@ export default {
   'settings.spotifyOpenAuth': '在 Spotify 上登录',
   'settings.spotifyWaiting': '等待 Spotify 确认...',
   'settings.deezerConnect': '连接到 Deezer',
+  "settings.deezerArlHint": "Deezer 使用登录 deezer.com 后浏览器中的 ARL Cookie 令牌（约 192 个字符）。请粘贴到下方。F12 → 应用/存储 → Cookie → deezer.com → 复制完整的 \"arl\" 值。",
+  "settings.deezerArlPlaceholder": "ARL 令牌（约 192 个字符）",
   'settings.deezerLink': '打开此链接以登录 Deezer：',
   'settings.deezerOpenAuth': '在 Deezer 上登录',
   'settings.deezerWaiting': '等待 Deezer 确认...',

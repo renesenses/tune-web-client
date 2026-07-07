@@ -333,6 +333,8 @@ export default {
   'settings.spotifyOpenAuth': 'Spotifyにログイン',
   'settings.spotifyWaiting': 'Spotifyの確認を待っています...',
   'settings.deezerConnect': 'Deezerに接続',
+  "settings.deezerArlHint": "Deezerは、deezer.comにログインした際にブラウザに保存されるARLクッキートークン（約192文字）を使用します。下に貼り付けてください。F12 → アプリケーション/ストレージ → Cookie → deezer.com → 「arl」の値全体をコピー。",
+  "settings.deezerArlPlaceholder": "ARLトークン（約192文字）",
   'settings.deezerLink': 'このリンクを開いてDeezerにログインしてください：',
   'settings.deezerOpenAuth': 'Deezerにログイン',
   'settings.deezerWaiting': 'Deezerの確認を待っています...',
