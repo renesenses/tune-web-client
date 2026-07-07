@@ -1534,6 +1534,20 @@
       const input = e.target as HTMLInputElement;
       const file = input.files?.[0];
       if (!file) return;
+
+      // Linn .dpl playlists import directly (no preview step) via their own
+      // endpoint, which matches tracks to the library and creates the playlist.
+      if (source === 'playlists' && file.name.toLowerCase().endsWith('.dpl')) {
+        input.value = '';
+        try {
+          const r = await api.importLinnPlaylist(file);
+          notifications.success(`${r.name} — ${r.matched}/${r.total_entries} ✓`);
+        } catch (err: any) {
+          notifications.error(err?.message ?? 'Error');
+        }
+        return;
+      }
+
       importSource = source;
       importFile = file;
       importError = null;
@@ -2243,7 +2257,7 @@
               <strong>{$t('import.playlists' as any)}</strong>
               <span>{$t('import.playlistDesc' as any)}</span>
             </div>
-            <input bind:this={importFileInputPlaylist} type="file" accept=".m3u,.m3u8,.pls,.M3U,.M3U8,.PLS" style="display:none"
+            <input bind:this={importFileInputPlaylist} type="file" accept=".m3u,.m3u8,.pls,.dpl,.M3U,.M3U8,.PLS,.DPL" style="display:none"
                    onchange={onImportFileChosen('playlists')} />
           </div>
         </div>
