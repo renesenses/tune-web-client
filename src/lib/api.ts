@@ -2599,6 +2599,28 @@ export async function importPlaylists(file: File, preview = false): Promise<Impo
   return res.json() as Promise<ImportReport>;
 }
 
+export interface LinnImportResult {
+  id: number;
+  name: string;
+  total_entries: number;
+  matched: number;
+  not_found: number;
+  track_count: number;
+}
+
+/** Import a Linn `.dpl` playlist: parses it, matches tracks to the library and
+ *  creates a Tune playlist. Returns match stats. */
+export async function importLinnPlaylist(file: File): Promise<LinnImportResult> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${BASE}/playlists/import/linn`, { method: 'POST', body: form });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Import Linn playlist failed (${res.status}): ${text || res.statusText}`);
+  }
+  return res.json() as Promise<LinnImportResult>;
+}
+
 // --- Plugins ---
 
 export interface InstalledPlugin {
