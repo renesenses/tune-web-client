@@ -73,6 +73,7 @@
   let sleepRemainingSeconds = $state(0);
   let sleepFading = $state(false);
   let sleepPollInterval: ReturnType<typeof setInterval> | null = null;
+  let sleepCountdownInterval: ReturnType<typeof setInterval> | null = null;
 
   function formatSleepTime(totalSeconds: number): string {
     const m = Math.floor(totalSeconds / 60);
@@ -120,13 +121,25 @@
 
   function startSleepPolling() {
     stopSleepPolling();
+    // Poll the server every 10s to stay authoritative (the server owns the
+    // pause-aware countdown), and tick locally every second for a smooth
+    // display that only decrements while music actually plays.
     sleepPollInterval = setInterval(pollSleepTimer, 10000);
+    sleepCountdownInterval = setInterval(() => {
+      if (sleepActive && sleepRemainingSeconds > 0 && state === 'playing') {
+        sleepRemainingSeconds -= 1;
+      }
+    }, 1000);
   }
 
   function stopSleepPolling() {
     if (sleepPollInterval) {
       clearInterval(sleepPollInterval);
       sleepPollInterval = null;
+    }
+    if (sleepCountdownInterval) {
+      clearInterval(sleepCountdownInterval);
+      sleepCountdownInterval = null;
     }
   }
 
@@ -329,11 +342,14 @@
     } else if (zone?.id && state === 'stopped' && track) {
       // Zone stopped but has a current track — restart it. The /play endpoint
       // needs an explicit target (an empty body returns 400), so pass the
-      // track's identity: source+source_id for streaming, track_id for local.
+      // track's identity: radio uses source='radio'+source_id (the stream URL),
+      // other streaming source+source_id, local track_id.
       const trackId = (track as any).track_id ?? track.id;
-      const body = (track.source && track.source !== 'local' && track.source !== 'radio' && track.source_id)
-        ? { source: track.source as any, source_id: track.source_id }
-        : (trackId != null ? { track_id: trackId } : undefined);
+      const body = (track.source === 'radio' && track.source_id)
+        ? { source: 'radio' as any, source_id: track.source_id }
+        : (track.source && track.source !== 'local' && track.source_id)
+          ? { source: track.source as any, source_id: track.source_id }
+          : (trackId != null ? { track_id: trackId } : undefined);
       await playAndSync(zone.id, body);
     } else if (zone?.id && state === 'stopped' && ytActive && ytTrack?.source_id) {
       // Zone stopped but IFrame has a YT track — restart via API
