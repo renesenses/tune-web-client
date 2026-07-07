@@ -1,7 +1,7 @@
 <script lang="ts">
   import { activeView, type View } from '../lib/stores/navigation';
   import { resetLibraryNavigation } from '../lib/stores/library';
-  import { currentZone, zones, currentZoneId } from '../lib/stores/zones';
+  import { currentZone, zones, currentZoneId, switchZone } from '../lib/stores/zones';
   import { t } from '../lib/i18n';
   import { updateAvailable } from '../lib/stores/updates';
   import type { OutputType } from '../lib/types';
@@ -49,7 +49,7 @@
   }
 
   function selectZone(id: number) {
-    currentZoneId.set(id);
+    switchZone(id);
     zonePickerOpen = false;
   }
 </script>

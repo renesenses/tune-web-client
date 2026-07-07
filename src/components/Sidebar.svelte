@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { zones, currentZoneId } from '../lib/stores/zones';
+  import { zones, currentZoneId, switchZone } from '../lib/stores/zones';
   import { devices, unboundDevices } from '../lib/stores/devices';
   import { connectionState, reconnectAttempts } from '../lib/stores/connection';
   import { activeView, settingsInitialTab, requestListReset, type View } from '../lib/stores/navigation';
@@ -17,7 +17,7 @@
   import { shortcuts, loadShortcuts, addShortcut, removeShortcut, renameShortcut, navigateToShortcut, togglePin } from '../lib/stores/shortcuts';
 
   function handleSelectZone(zoneId: number) {
-    currentZoneId.set(zoneId);
+    switchZone(zoneId);
   }
 
   // Display the server version (single source of truth) — falls back to

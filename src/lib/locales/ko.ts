@@ -770,6 +770,9 @@ export default {
   'settings.zoneAutoCreate': 'Playback zones',
   'settings.zoneAutoCreateLabel': 'Auto-create zones',
   'settings.zoneAutoCreateHint': 'When disabled, discovered devices appear in the list but zones must be created manually.',
+  "settings.followMe": "따라오기",
+  "settings.followMeLabel": "떠난 구역 일시정지",
+  "settings.followMeHint": "구역을 전환할 때 떠난 구역의 재생을 일시정지하여 뒤에서 계속 재생되지 않도록 합니다. 기본값은 꺼짐(멀티룸을 위해 구역은 독립적).",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',

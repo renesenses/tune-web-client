@@ -770,6 +770,9 @@ export default {
   'settings.zoneAutoCreate': 'Playback zones',
   'settings.zoneAutoCreateLabel': 'Auto-create zones',
   'settings.zoneAutoCreateHint': 'When disabled, discovered devices appear in the list but zones must be created manually.',
+  "settings.followMe": "Seguirme",
+  "settings.followMeLabel": "Pausar la zona que dejas",
+  "settings.followMeHint": "Al cambiar de zona, pausa la reproducción de la zona que dejas para que nada siga sonando detrás de ti. Desactivado por defecto (zonas independientes para multisala).",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',

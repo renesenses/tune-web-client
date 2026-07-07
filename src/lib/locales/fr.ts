@@ -788,6 +788,9 @@ export default {
   'settings.zoneAutoCreate': 'Zones de lecture',
   'settings.zoneAutoCreateLabel': 'Creer automatiquement les zones',
   'settings.zoneAutoCreateHint': 'Lorsque desactive, les appareils decouverts sur le reseau apparaissent dans la liste mais les zones doivent etre creees manuellement.',
+  "settings.followMe": "Me suivre",
+  "settings.followMeLabel": "Mettre en pause la zone quittée",
+  "settings.followMeHint": "En changeant de zone, met en pause la lecture de la zone que tu quittes pour que rien ne continue derrière toi. Désactivé par défaut (zones indépendantes pour le multi-room).",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',
