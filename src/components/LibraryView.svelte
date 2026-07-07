@@ -1771,7 +1771,7 @@
                       </button>
                     {/if}
                     {#if t.artist_name}
-                      <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); const a = $artists.find(ar => ar.name === t.artist_name); if (a) selectArtistDetail(a); }}>
+                      <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); const a = $artists.find(ar => ar.id === t.artist_id) ?? $artists.find(ar => ar.name === t.artist_name) ?? (t.artist_id != null ? { id: t.artist_id, name: t.artist_name ?? '' } as Artist : undefined); if (a?.id != null) selectArtistDetail(a as Artist); }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         {$tr('library.goToArtist')}
                       </button>

@@ -542,16 +542,18 @@
       </svg>
     </button>
 
-    <button
-      class="control-btn"
-      disabled={state === 'stopped' && !ytActive && !track}
-      onclick={handlePrevious}
-      title={$t('transport.previous')}
-    >
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z" />
-      </svg>
-    </button>
+    {#if displayTrack?.source !== 'radio'}
+      <button
+        class="control-btn"
+        disabled={state === 'stopped' && !ytActive && !track}
+        onclick={handlePrevious}
+        title={$t('transport.previous')}
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z" />
+        </svg>
+      </button>
+    {/if}
 
     <button
       class="control-btn play-btn"
@@ -588,16 +590,18 @@
       </button>
     {/if}
 
-    <button
-      class="control-btn"
-      disabled={state === 'stopped' && !ytActive && !track}
-      onclick={handleNext}
-      title={$t('transport.next')}
-    >
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M6 18l8.5-6L6 6v12zm10-12v12h2V6h-2z" />
-      </svg>
-    </button>
+    {#if displayTrack?.source !== 'radio'}
+      <button
+        class="control-btn"
+        disabled={state === 'stopped' && !ytActive && !track}
+        onclick={handleNext}
+        title={$t('transport.next')}
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 18l8.5-6L6 6v12zm10-12v12h2V6h-2z" />
+        </svg>
+      </button>
+    {/if}
 
     <button
       class="control-btn small"
