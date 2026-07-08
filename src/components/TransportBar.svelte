@@ -457,30 +457,50 @@
     return `${m}:${sec.toString().padStart(2, '0')}`;
   }
 
+  // Remember the current track's duration so a transient duration_ms=0 during
+  // a restart (repeat-one on ASIO/exclusive: the re-play briefly reports no
+  // duration) doesn't make the whole progress bar vanish (DEvir). Keyed by
+  // track identity so a real track change still resets it.
+  let lastDurationMs = $state(0);
+  let lastTrackKey: string | number | null = null;
+  $effect(() => {
+    const t = displayTrack;
+    const key = t ? ((t as any).track_id ?? t.id ?? t.title ?? null) : null;
+    if (key !== lastTrackKey) {
+      lastTrackKey = key;
+      lastDurationMs = t?.duration_ms || 0;
+    } else if (t?.duration_ms) {
+      lastDurationMs = t.duration_ms;
+    }
+  });
+  let effectiveDurationMs = $derived(
+    displayTrack && displayTrack.source !== 'radio' ? (displayTrack.duration_ms || lastDurationMs) : 0
+  );
+
   let progressPercent = $derived(
-    displayTrack?.duration_ms ? Math.min(100, ($seekPositionMs / displayTrack.duration_ms) * 100) : 0
+    effectiveDurationMs ? Math.min(100, ($seekPositionMs / effectiveDurationMs) * 100) : 0
   );
 
   function handleProgressSeek(e: MouseEvent) {
     const zone = $currentZone;
-    if (!displayTrack?.duration_ms || !zone?.id) return;
+    if (!effectiveDurationMs || !zone?.id) return;
     e.stopPropagation();
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const posMs = Math.floor(pct * displayTrack.duration_ms);
+    const posMs = Math.floor(pct * effectiveDurationMs);
     seekPositionMs.set(posMs);
     api.seek(zone.id, posMs);
   }
 </script>
 
 <div class="transport-bar" class:compact style="--compact-progress: {progressPercent}%" onclick={handleBarClick} role="button" tabindex={0} aria-label="Transport bar">
-  {#if displayTrack && displayTrack.source !== 'radio' && displayTrack.duration_ms}
+  {#if displayTrack && displayTrack.source !== 'radio' && effectiveDurationMs}
     <div class="transport-progress">
       <span class="progress-time">{formatTime($seekPositionMs)}</span>
-      <div class="progress-track" onclick={handleProgressSeek} role="slider" tabindex={0} aria-label="Seek" aria-valuenow={$seekPositionMs} aria-valuemin={0} aria-valuemax={displayTrack?.duration_ms ?? 0}>
+      <div class="progress-track" onclick={handleProgressSeek} role="slider" tabindex={0} aria-label="Seek" aria-valuenow={$seekPositionMs} aria-valuemin={0} aria-valuemax={effectiveDurationMs}>
         <div class="progress-fill" style="width: {progressPercent}%"></div>
       </div>
-      <span class="progress-time">{formatTime(displayTrack.duration_ms)}</span>
+      <span class="progress-time">{formatTime(effectiveDurationMs)}</span>
     </div>
   {/if}
   <div class="transport-left">
