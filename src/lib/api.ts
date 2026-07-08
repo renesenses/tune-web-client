@@ -2304,10 +2304,22 @@ export async function getRadioFranceEpisodes(showUrl: string, limit = 20): Promi
   return res.json();
 }
 
-export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: string): Promise<any[]> {
-  let url = `${BASE}/podcasts/episodes?limit=${limit}`;
-  if (feedUrl) url += `&feed_url=${encodeURIComponent(feedUrl)}`;
-  if (showUrl) url += `&show_url=${encodeURIComponent(showUrl)}`;
+export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: string, podcastId?: number | string): Promise<any[]> {
+  let url: string;
+  if (podcastId != null && podcastId !== '') {
+    // Prefer the by-id endpoint: the server resolves feed_url from the
+    // subscription DB, so this works even when the client's copy of feed_url
+    // is empty, and returns an empty list (not a 400) for a broken
+    // subscription — avoids the "feed_url query parameter is required" spam
+    // that left the podcasts screen empty (Fabien).
+    url = `${BASE}/podcasts/episodes/${encodeURIComponent(String(podcastId))}?limit=${limit}`;
+    if (feedUrl) url += `&feed_url=${encodeURIComponent(feedUrl)}`;
+  } else {
+    if (!feedUrl && !showUrl) return []; // nothing to fetch — don't hit the 400
+    url = `${BASE}/podcasts/episodes?limit=${limit}`;
+    if (feedUrl) url += `&feed_url=${encodeURIComponent(feedUrl)}`;
+    if (showUrl) url += `&show_url=${encodeURIComponent(showUrl)}`;
+  }
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Podcast episodes failed: ${res.status} ${res.statusText}`);
   const data = await res.json();
