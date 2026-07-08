@@ -123,7 +123,7 @@
       const allEpisodes: any[] = [];
       const promises = subscriptions.slice(0, 10).map(async (sub) => {
         try {
-          const eps = await api.getPodcastEpisodes(sub.feed_url, 3);
+          const eps = await api.getPodcastEpisodes(sub.feed_url, 3, undefined, sub.id);
           return eps.map((e: any) => ({ ...e, podcast_name: sub.title, podcast_image: sub.image_url, podcast_feed_url: sub.feed_url }));
         } catch { return []; }
       });
