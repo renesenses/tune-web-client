@@ -1901,10 +1901,41 @@ function favItem(p: { track_id?: number; album_id?: number; artist_id?: number }
   return null;
 }
 
-export function getFavorites(profileId: number, type?: 'track' | 'album' | 'artist') {
-  // Server reads the `item_type` query param (not `type`).
+export function getTrack(id: number) {
+  return fetchJSON<import('./types').Track>(`${BASE}/library/tracks/${id}`);
+}
+
+// The server returns favorites as a FLAT list of rows
+// (`[{ item_type, item_id, ... }]`), but every caller (FavoritesView, the
+// favorite-id stores) expects them grouped and EXPANDED as
+// `{ tracks: Track[], albums: Album[], artists: Artist[] }`. Adapt here: group
+// the ids by type, then expand each via its by-id endpoint. Failed lookups
+// (e.g. a favorited item since deleted) are dropped rather than breaking the set.
+export async function getFavorites(
+  profileId: number,
+  type?: 'track' | 'album' | 'artist',
+): Promise<{
+  tracks: import('./types').Track[];
+  albums: import('./types').Album[];
+  artists: import('./types').Artist[];
+}> {
   const q = type ? `?item_type=${type}` : '';
-  return fetchJSON<{ tracks: import('./types').Track[]; albums: import('./types').Album[]; artists: import('./types').Artist[] }>(`${BASE}/profiles/${profileId}/favorites${q}`);
+  const rows = await fetchJSON<Array<{ item_type: string; item_id: number }>>(
+    `${BASE}/profiles/${profileId}/favorites${q}`,
+  );
+
+  const ids = (t: string) => rows.filter((r) => r.item_type === t).map((r) => r.item_id);
+  const settle = async <T>(vals: number[], fetchOne: (id: number) => Promise<T>): Promise<T[]> => {
+    const res = await Promise.allSettled(vals.map(fetchOne));
+    return res.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
+  };
+
+  const [tracks, albums, artists] = await Promise.all([
+    settle(ids('track'), getTrack),
+    settle(ids('album'), getAlbum),
+    settle(ids('artist'), getArtist),
+  ]);
+  return { tracks, albums, artists };
 }
 
 export function addFavorite(profileId: number, body: { track_id?: number; album_id?: number; artist_id?: number }) {
