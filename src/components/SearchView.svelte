@@ -394,6 +394,28 @@
     }
   }
 
+  // "Lire les albums" — enqueue every album shown in the Albums section, in
+  // order (LMS-style per-section play, distinct from "Lire les pistes"). Batch
+  // queuing is reliable only for local library albums (album_id), so streaming
+  // search albums (source_id) are excluded here — they stay playable one by one
+  // from their cover.
+  async function playAllAlbums() {
+    if (!zone?.id) {
+      notifications.error('Aucune zone selectionnee');
+      return;
+    }
+    const albums = filteredAlbums.filter(a => a.id && !(a.source ?? (a as any)._source));
+    if (albums.length === 0) return;
+    try {
+      await playAndSync(zone.id, { album_id: albums[0].id! });
+      for (const a of albums.slice(1)) {
+        await api.addToQueue(zone.id, { album_id: a.id! });
+      }
+    } catch (e) {
+      console.error('Play all albums error:', e);
+    }
+  }
+
   interface MergedArtist extends Artist {
     _source?: string;
     _sources: { source: string; artist: Artist }[];
@@ -965,7 +987,17 @@
           {#each sectionOrder as sec}
             {#if sec === 'albums' && showAlbums && filteredAlbums.length > 0}
               <section class="section">
-                <h3 class="section-title">Albums <span class="count">{filteredAlbums.length}</span></h3>
+                <div class="section-head">
+                  <h3 class="section-title">Albums <span class="count">{filteredAlbums.length}</span></h3>
+                  {#if filteredAlbums.filter(a => a.id && !(a.source ?? (a as any)._source)).length > 1}
+                    <div class="track-actions-bar">
+                      <button class="action-pill" onclick={() => playAllAlbums()}>
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><polygon points="5,3 19,12 5,21" /></svg>
+                        Lire les albums
+                      </button>
+                    </div>
+                  {/if}
+                </div>
                 <div class="album-grid">
                   {#each filteredAlbums as album}
                     <div class="album-card" role="group">
@@ -998,11 +1030,11 @@
                   <h3 class="section-title">Pistes <span class="count">{filteredTracks.length}</span></h3>
                   {#if filteredTracks.filter(t => t.id).length > 1}
                     <div class="track-actions-bar">
-                      <button class="action-pill" onclick={() => playAllTracks(groupedTracks)}>
+                      <button class="action-pill" onclick={() => playAllTracks(filteredTracks)}>
                         <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><polygon points="5,3 19,12 5,21" /></svg>
-                        Tout lire
+                        Lire les pistes
                       </button>
-                      <button class="action-pill" onclick={() => playAllTracks(groupedTracks, true)}>
+                      <button class="action-pill" onclick={() => playAllTracks(filteredTracks, true)}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="16,3 21,3 21,8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21,16 21,21 16,21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></svg>
                         Aleatoire
                       </button>
