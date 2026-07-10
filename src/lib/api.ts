@@ -785,6 +785,24 @@ export function getDashboard(period: DashboardPeriod = '30d', opts?: { zoneId?: 
   return fetchJSON<DashboardData>(`${BASE}/library/history/dashboard?${params}`);
 }
 
+export interface SlotTrack {
+  track_id: number | null;
+  title: string | null;
+  artist_name: string | null;
+  album_title: string | null;
+  album_id: number | null;
+  source: string | null;
+  source_id: string | null;
+  plays: number;
+  last_listened_at: string | null;
+}
+
+// Tracks listened during one weekday×hour heatmap cell. weekday: ISO 1=Mon..7=Sun.
+export function getHistoryAtSlot(period: DashboardPeriod, weekday: number, hour: number, limit = 50) {
+  const params = new URLSearchParams({ period, weekday: String(weekday), hour: String(hour), limit: String(limit) });
+  return fetchJSON<{ weekday: number; hour: number; period: string; tracks: SlotTrack[] }>(`${BASE}/library/history/at?${params}`);
+}
+
 export function getArtistCredits(artistId: number) {
   return fetchJSON<import('./types').TrackCredit[]>(`${BASE}/library/artists/${artistId}/credits`);
 }

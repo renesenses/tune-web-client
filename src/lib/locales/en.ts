@@ -654,6 +654,8 @@ export default {
   'nav.equalizer': 'Equalizer',
   'dashboard.title': 'My listening',
   'dashboard.period.today': 'Today',
+  'dashboard.slot.empty': 'Nothing played in this slot.',
+  'dashboard.slot.play': 'Play this track',
   'dashboard.period.7d': '7 days',
   'dashboard.period.30d': '30 days',
   'dashboard.period.all': 'All time',

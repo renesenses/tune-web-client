@@ -654,6 +654,8 @@ export default {
   'nav.equalizer': 'Égaliseur',
   'dashboard.title': 'Mon écoute',
   'dashboard.period.today': "Aujourd'hui",
+  'dashboard.slot.empty': 'Aucune écoute sur ce créneau.',
+  'dashboard.slot.play': 'Lire ce titre',
   'dashboard.period.7d': '7 jours',
   'dashboard.period.30d': '30 jours',
   'dashboard.period.all': 'Tout',
