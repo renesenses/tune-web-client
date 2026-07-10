@@ -1397,6 +1397,10 @@ export function getScanStatus() {
   return fetchJSON<{ scanning: boolean }>(`${BASE}/system/scan/status`);
 }
 
+export function cancelScan() {
+  return fetchJSON<{ status?: string }>(`${BASE}/system/scan/cancel`, { method: 'POST' });
+}
+
 export function getBackups() {
   return fetchJSON<import('./types').BackupInfo[]>(`${BASE}/system/backups`);
 }

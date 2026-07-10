@@ -1156,6 +1156,7 @@ export default {
   "library.shuffleAll": "Reproducir todo en aleatorio",
   "library.shuffle": "Aleatorio",
   "library.scanProgress": "{scanned} archivos analizados, {added} añadidos",
+  "library.stopScan": "Detener el análisis",
   "library.duplicates": "Duplicados",
   "library.manageTags": "Gestionar etiquetas",
   "library.renameTag": "Renombrar",

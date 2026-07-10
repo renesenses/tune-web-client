@@ -1176,6 +1176,7 @@ export default {
   "library.shuffleAll": "Tout lire en aléatoire",
   "library.shuffle": "Lecture aléatoire",
   "library.scanProgress": "{scanned} fichiers scannés, {added} ajoutés",
+  "library.stopScan": "Arrêter le scan",
   "library.duplicates": "Doublons",
   "library.manageTags": "Gérer les étiquettes",
   "library.renameTag": "Renommer",

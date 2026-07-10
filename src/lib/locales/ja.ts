@@ -1155,6 +1155,7 @@ export default {
   "library.shuffleAll": "すべてシャッフル",
   "library.shuffle": "シャッフル",
   "library.scanProgress": "{scanned} 件のファイルをスキャン、{added} 件を追加",
+  "library.stopScan": "スキャンを停止",
   "library.duplicates": "重複",
   "library.manageTags": "タグを管理",
   "library.renameTag": "名前を変更",
