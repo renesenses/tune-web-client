@@ -3521,6 +3521,12 @@
     justify-content: center;
     background: rgba(0, 0, 0, 0.55);
     opacity: 0;
+    /* Invisible-but-clickable would swallow a click on the (grey) art area of a
+       cover-less album (e.g. DSF), playing it instead of opening the detail view
+       (Thibaud, #989). Only capture clicks while actually shown on hover; a
+       plain click on the artwork then bubbles to the card → open detail. Also
+       prevents accidental plays on touch devices (no hover). */
+    pointer-events: none;
     transition: opacity 0.15s ease-out;
     border: none;
     cursor: pointer;
@@ -3530,6 +3536,7 @@
 
   .album-card-art:hover .play-overlay {
     opacity: 1;
+    pointer-events: auto;
   }
 
   .edit-overlay {
