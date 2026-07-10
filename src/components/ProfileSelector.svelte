@@ -5,14 +5,32 @@
 
   let dropdownOpen = $state(false);
   let cloudAvatarUrl = $state<string | null>(null);
+  // mozaiklabs account (SSO). Only offered when the server has SSO configured
+  // (graceful degradation — Tune works fully without the cloud).
+  let ssoConfigured = $state(false);
+  let ssoConnected = $state(false);
+  let ssoName = $state<string | null>(null);
 
   async function loadCloudAvatar() {
     try {
       const sso = await api.apiFetch('/cloud/sso/status');
-      if (sso?.connected && sso?.user?.avatar_url) cloudAvatarUrl = sso.user.avatar_url;
+      ssoConfigured = !!sso?.configured;
+      ssoConnected = !!sso?.connected;
+      if (sso?.connected && sso?.user) {
+        ssoName = sso.user.display_name || sso.user.email || null;
+        if (sso.user.avatar_url) cloudAvatarUrl = sso.user.avatar_url;
+      }
     } catch {}
   }
   loadCloudAvatar();
+
+  // Sign in to an existing mozaiklabs account (Elie: from the button above the
+  // nav list). Same OAuth flow the Settings page uses.
+  function cloudSsoConnect() {
+    try { localStorage.setItem('tune_sso_pending', Date.now().toString()); } catch {}
+    try { sessionStorage.setItem('tune_sso_pending', '1'); } catch {}
+    window.location.href = '/api/v1/cloud/sso/authorize';
+  }
   let showCreateDialog = $state(false);
   let newName = $state('');
   let newColor = $state('#6366f1');
@@ -118,6 +136,17 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
         <span>{$t('profile.create')}</span>
       </button>
+      {#if ssoConfigured}
+        <div class="dropdown-sep"></div>
+        {#if ssoConnected}
+          <div class="dropdown-account">{$t('settings.connectedAs')} <strong class="truncate">{ssoName}</strong></div>
+        {:else}
+          <button class="dropdown-item account-item" onclick={cloudSsoConnect}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /><polyline points="10 17 15 12 10 7" /><line x1="15" y1="12" x2="3" y2="12" /></svg>
+            <span>{$t('settings.signIn')}</span>
+          </button>
+        {/if}
+      {/if}
     </div>
   {/if}
 </div>
@@ -271,6 +300,20 @@
     overflow-y: auto;
   }
 
+  .dropdown-sep {
+    height: 1px;
+    background: var(--tune-border, rgba(255, 255, 255, 0.1));
+    margin: 4px 0;
+  }
+  .dropdown-account {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+    color: var(--tune-text-secondary);
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    min-width: 0;
+  }
   .dropdown-item {
     display: flex;
     align-items: center;
