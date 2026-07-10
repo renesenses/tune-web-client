@@ -2293,6 +2293,7 @@
                 <div class="album-card" onclick={() => selectAlbumDetail(album)}>
                   <div class="album-card-art">
                     <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                    <div class="art-scrim"></div>
                     <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                       <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                     </button>
@@ -3489,18 +3490,42 @@
     to { opacity: 1; }
   }
 
-  .play-overlay {
+  /* Hover dim over the whole cover — purely visual, lets clicks fall through
+     to the card so clicking the cover OPENS the album (a click on the cover
+     used to start playback, which was confusing — esp. for coverless albums). */
+  .art-scrim {
     position: absolute;
     inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+    pointer-events: none;
+    border-radius: var(--radius-lg);
+    z-index: 2;
+  }
+
+  .album-card-art:hover .art-scrim {
+    opacity: 1;
+  }
+
+  /* Dedicated centered play button — the only spot that triggers playback. */
+  .play-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 52px;
+    height: 52px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.55);
     opacity: 0;
     transition: opacity 0.15s ease-out;
     border: none;
     cursor: pointer;
-    border-radius: var(--radius-lg);
+    border-radius: 50%;
+    z-index: 3;
   }
 
   .album-card-art:hover .play-overlay {
