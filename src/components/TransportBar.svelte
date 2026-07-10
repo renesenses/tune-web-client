@@ -490,6 +490,10 @@
     const posMs = Math.floor(pct * effectiveDurationMs);
     seekPositionMs.set(posMs);
     api.seek(zone.id, posMs);
+    // For a browser zone the audio is an HTML5 <audio> element in this tab:
+    // the server seek only updates state, so we must move currentTime ourselves,
+    // otherwise the bar snaps back and playback doesn't move (Elie, local speakers).
+    if (isBrowserZone(zone)) browserSeek(posMs);
   }
 </script>
 
