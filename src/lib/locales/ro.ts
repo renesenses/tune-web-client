@@ -1164,6 +1164,7 @@ export default {
   "library.shuffleAll": "Amestecă tot",
   "library.shuffle": "Amestecă",
   "library.scanProgress": "{scanned} fișiere scanate, {added} adăugate",
+  "library.stopScan": "Oprește scanarea",
   "library.duplicates": "Duplicate",
   "library.manageTags": "Gestionează etichetele",
   "library.renameTag": "Redenumește",

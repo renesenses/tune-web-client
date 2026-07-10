@@ -48,6 +48,7 @@
   let { onAddToPlaylist }: Props = $props();
 
   let scanProgress = $state<{ scanned: number; added: number } | null>(null);
+  let cancellingScan = $state(false);
 
   $effect(() => {
     const unsub = tuneWS.onEvent((event) => {
@@ -59,6 +60,26 @@
     });
     return unsub;
   });
+
+  // On mount, ask the server whether a scan is already running (e.g. one started
+  // before this page loaded, or a slow NAS scan) so the "stop scan" banner shows
+  // even without a fresh scan.started event.
+  $effect(() => {
+    api.getScanStatus()
+      .then((s) => { if (s?.scanning && !scanProgress) scanProgress = { scanned: 0, added: 0 }; })
+      .catch(() => {});
+  });
+
+  async function stopScan() {
+    cancellingScan = true;
+    try {
+      await api.cancelScan();
+      scanProgress = null;
+    } catch (e) {
+      console.error('Cancel scan error:', e);
+    }
+    cancellingScan = false;
+  }
 
   // Quick Fav state
   let quickFavTrackIds = $state<Set<number>>(new Set());
@@ -2164,13 +2185,20 @@
       </div>
     </div>
 
+    {#if scanProgress}
+      <div class="scan-banner">
+        <div class="spinner small"></div>
+        <span class="scan-progress">{$tr('library.scanProgress').replace('{scanned}', String(scanProgress.scanned)).replace('{added}', String(scanProgress.added))}</span>
+        <button class="scan-stop-btn" onclick={stopScan} disabled={cancellingScan}>
+          {cancellingScan ? '…' : $tr('library.stopScan')}
+        </button>
+      </div>
+    {/if}
+
     {#if $libraryLoading}
       <div class="loading">
         <div class="spinner"></div>
         {$tr('common.loading')}
-        {#if scanProgress}
-          <span class="scan-progress">{$tr('library.scanProgress').replace('{scanned}', String(scanProgress.scanned)).replace('{added}', String(scanProgress.added))}</span>
-        {/if}
       </div>
     {:else if $libraryTab === 'albums'}
       <div class="quality-filters">
@@ -4101,8 +4129,56 @@
     animation: spin 0.8s linear infinite;
   }
 
+  .spinner.small {
+    width: 14px;
+    height: 14px;
+  }
+
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  .scan-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin: 0 var(--space-md) var(--space-md);
+    padding: 8px 14px;
+    background: var(--tune-surface, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--tune-border);
+    border-radius: 8px;
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+    font-size: 0.85em;
+  }
+
+  .scan-banner .scan-progress {
+    width: auto;
+    text-align: left;
+    flex: 1;
+    opacity: 0.85;
+  }
+
+  .scan-stop-btn {
+    border: 1px solid var(--tune-border);
+    background: transparent;
+    color: var(--tune-text, inherit);
+    padding: 4px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 1em;
+    white-space: nowrap;
+  }
+
+  .scan-stop-btn:hover:not(:disabled) {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .scan-stop-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
 
   /* Genres grid */

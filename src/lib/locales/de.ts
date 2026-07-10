@@ -1156,6 +1156,7 @@ export default {
   "library.shuffleAll": "Alle mischen",
   "library.shuffle": "Mischen",
   "library.scanProgress": "{scanned} Dateien gescannt, {added} hinzugefügt",
+  "library.stopScan": "Scan stoppen",
   "library.duplicates": "Duplikate",
   "library.manageTags": "Tags verwalten",
   "library.renameTag": "Umbenennen",

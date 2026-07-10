@@ -1155,6 +1155,7 @@ export default {
   "library.shuffleAll": "全部随机播放",
   "library.shuffle": "随机播放",
   "library.scanProgress": "已扫描 {scanned} 个文件，已添加 {added} 个",
+  "library.stopScan": "停止扫描",
   "library.duplicates": "重复项",
   "library.manageTags": "管理标签",
   "library.renameTag": "重命名",
