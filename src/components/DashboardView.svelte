@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import * as api from '../lib/api';
-  import type { DashboardData, DashboardPeriod } from '../lib/api';
+  import type { DashboardData, DashboardPeriod, SlotTrack } from '../lib/api';
   import { t } from '../lib/i18n';
   import { activeView } from '../lib/stores/navigation';
   import { selectedAlbum, selectedArtist, libraryTab, albumTracks, artistAlbums } from '../lib/stores/library';
@@ -236,6 +236,26 @@
     $t('alarms.dayMon'), $t('alarms.dayTue'), $t('alarms.dayWed'),
     $t('alarms.dayThu'), $t('alarms.dayFri'), $t('alarms.daySat'), $t('alarms.daySun'),
   ]);
+
+  // Heatmap drill-down (Elie): click a weekday×hour cell → what was played then.
+  let slotOpen = $state(false);
+  let slotLoading = $state(false);
+  let slotRow = $state(0);
+  let slotHour = $state(0);
+  let slotTracks = $state<SlotTrack[]>([]);
+
+  async function openSlot(row: number, col: number) {
+    slotRow = row; slotHour = col; slotOpen = true; slotLoading = true; slotTracks = [];
+    try {
+      const res = await api.getHistoryAtSlot(period, row + 1, col, 100);
+      slotTracks = res.tracks ?? [];
+    } catch (e) {
+      console.error('Slot tracks error:', e);
+      slotTracks = [];
+    }
+    slotLoading = false;
+  }
+  function closeSlot() { slotOpen = false; }
 </script>
 
 <section class="dashboard">
@@ -474,7 +494,12 @@
                   class="wh-cell"
                   class:wh-cell-empty={plays === 0}
                   style:opacity={plays === 0 ? 0.06 : 0.18 + intensity * 0.82}
+                  style:cursor={plays > 0 ? 'pointer' : 'default'}
                   title="{day} {col}h — {plays} plays"
+                  role="button"
+                  tabindex={plays > 0 ? 0 : -1}
+                  onclick={() => plays > 0 && openSlot(row, col)}
+                  onkeydown={(e) => { if (plays > 0 && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openSlot(row, col); } }}
                 ></div>
               {/each}
             </div>
@@ -555,7 +580,46 @@
   {/if}
 </section>
 
+{#if slotOpen}
+  <div class="slot-overlay" onclick={closeSlot} role="presentation">
+    <div class="slot-modal" role="dialog" aria-modal="true">
+      <div class="slot-modal-head">
+        <h3>{WEEKDAY_LABELS[slotRow]} · {slotHour}h–{slotHour + 1}h</h3>
+        <button class="slot-close" onclick={closeSlot} aria-label="Close">×</button>
+      </div>
+      {#if slotLoading}
+        <div class="slot-empty">…</div>
+      {:else if slotTracks.length === 0}
+        <div class="slot-empty">{$t('dashboard.slot.empty')}</div>
+      {:else}
+        <div class="slot-list">
+          {#each slotTracks as tk}
+            <button class="slot-item" onclick={() => playTopTrack(tk)} title={$t('dashboard.slot.play')}>
+              <span class="slot-title">{tk.title ?? '—'}</span>
+              <span class="slot-sub">{tk.artist_name ?? ''}{tk.album_title ? ' · ' + tk.album_title : ''}</span>
+              {#if tk.plays > 1}<span class="slot-plays">×{tk.plays}</span>{/if}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  </div>
+{/if}
+
 <style>
+  .slot-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 16px; }
+  .slot-modal { background: var(--tune-bg, #1a1a1a); border: 1px solid var(--tune-border, rgba(255,255,255,0.12)); border-radius: 12px; width: 100%; max-width: 480px; max-height: 70vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.4); }
+  .slot-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--tune-border, rgba(255,255,255,0.12)); }
+  .slot-modal-head h3 { margin: 0; font-size: 1rem; }
+  .slot-close { background: none; border: none; color: inherit; font-size: 1.4rem; line-height: 1; cursor: pointer; padding: 0 4px; }
+  .slot-empty { padding: 24px; text-align: center; opacity: 0.6; }
+  .slot-list { overflow-y: auto; padding: 6px; }
+  .slot-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; text-align: left; background: none; border: none; color: inherit; padding: 8px 12px; border-radius: 8px; cursor: pointer; position: relative; }
+  .slot-item:hover { background: var(--tune-hover, rgba(255,255,255,0.06)); }
+  .slot-title { font-weight: 600; font-size: 0.9rem; }
+  .slot-sub { font-size: 0.78rem; opacity: 0.65; }
+  .slot-plays { position: absolute; right: 12px; top: 10px; font-size: 0.75rem; opacity: 0.6; }
+
   .dashboard { padding: var(--space-lg) 28px; max-width: 1100px; margin: 0 auto; }
   .dashboard-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
   .dashboard-header h2 { margin: 0; font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; color: var(--tune-text); }
