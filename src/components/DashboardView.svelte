@@ -206,10 +206,24 @@
     return `${m}m`;
   }
 
-  // For 'all' period, limit trend to last 90 data points to avoid DOM overload
+  // One bar per day of the selected period, filling days with no plays as zero
+  // so the bar count equals the number of days studied (Elie: today / 7 / 30).
+  // 'all' falls back to the days actually returned, capped at 90 (DOM overload).
   let visibleTrend = $derived.by(() => {
-    if (!data?.trend?.length) return [];
-    return data.trend.length > 90 ? data.trend.slice(-90) : data.trend;
+    const raw = data?.trend ?? [];
+    const byDay = new Map(raw.map((d) => [d.day, d]));
+    const n =
+      period === 'today' ? 1 : period === '7d' ? 7 : period === '30d' ? 30 : Math.min(Math.max(raw.length, 1), 90);
+    const base = new Date();
+    base.setHours(0, 0, 0, 0);
+    const out: Array<{ day: string; plays: number; listening_ms: number }> = [];
+    for (let i = n - 1; i >= 0; i--) {
+      const d = new Date(base);
+      d.setDate(base.getDate() - i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      out.push(byDay.get(key) ?? { day: key, plays: 0, listening_ms: 0 });
+    }
+    return out;
   });
   let trendMax = $derived(visibleTrend.length ? Math.max(...visibleTrend.map(d => d.plays)) : 0);
   let hourlyMax = $derived(data?.hourly?.length ? Math.max(...data.hourly.map(h => h.plays)) : 0);
