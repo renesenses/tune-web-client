@@ -301,7 +301,13 @@
     episodes = [];
     try {
       const feedUrl = podcast.feed_url || podcast.feedUrl;
-      episodes = await api.getPodcastEpisodes(feedUrl, 50);
+      // For a subscribed podcast, prefer the by-id endpoint: the server
+      // resolves feed_url from the subscription DB, so episodes load even when
+      // the client's stored feed_url is empty/stale. Opening the same podcast
+      // via search worked (fresh feed_url) while opening it from Subscriptions
+      // returned "no episode found" (empty feed_url) — #1000. Search/discover
+      // results carry no subscription_id, so they keep the feed_url path.
+      episodes = await api.getPodcastEpisodes(feedUrl, 50, undefined, podcast.subscription_id);
     } catch (e) {
       console.error('Load podcast episodes error:', e);
       errorMessage = get(t)('podcasts.loadEpisodesError');
@@ -526,8 +532,8 @@
                 class="podcast-card"
                 role="button"
                 tabindex="0"
-                onclick={() => selectPodcast({ ...podcast, name: podcast.title, cover_url: podcast.image_url, artist: podcast.author })}
-                onkeydown={(e) => e.key === 'Enter' && selectPodcast({ ...podcast, name: podcast.title, cover_url: podcast.image_url, artist: podcast.author })}
+                onclick={() => selectPodcast({ ...podcast, name: podcast.title, cover_url: podcast.image_url, artist: podcast.author, subscription_id: podcast.id })}
+                onkeydown={(e) => e.key === 'Enter' && selectPodcast({ ...podcast, name: podcast.title, cover_url: podcast.image_url, artist: podcast.author, subscription_id: podcast.id })}
               >
                 <div class="card-cover-wrap">
                   {#if podcast.image_url}
