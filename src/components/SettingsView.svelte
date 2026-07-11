@@ -5,6 +5,7 @@
   import { tuneWS } from '../lib/websocket';
   import { zones, currentZoneId, followMe } from '../lib/stores/zones';
   import { devices } from '../lib/stores/devices';
+  import { loopByDefault } from '../lib/stores/loopByDefault';
   import { preferences, applyTheme, type ThemeMode, type VolumeDisplay, type StartupView } from '../lib/stores/preferences';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry, BackupInfo } from '../lib/types';
@@ -1915,6 +1916,16 @@
           />
         </div>
       {/if}
+      <div class="setting-row">
+        <div class="setting-label">
+          <span>Lire en boucle par défaut</span>
+          <span class="setting-hint">Relance chaque piste au lieu de s'arrêter à la fin.</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" bind:checked={$loopByDefault} />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
     </section>
 
     <!-- Voice AI -->

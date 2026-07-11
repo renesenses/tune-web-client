@@ -2,6 +2,8 @@ import { writable, derived, get } from 'svelte/store';
 import type { Zone } from '../types';
 import * as api from '../api';
 import { notifications } from './notifications';
+import { loopByDefault } from './loopByDefault';
+import { repeatMode } from './nowPlaying';
 // Lazy import to avoid circular dependency (browserAudio imports zones)
 function isBrowserZone(zone: { output_type?: string } | null | undefined): boolean {
   return zone?.output_type === 'browser';
@@ -85,6 +87,17 @@ export async function playAndSync(zoneId: number, body?: Parameters<typeof api.p
   checkPlayError(zone);
   syncZone(zone);
   handleBrowserPlayback(zone);
+  // "Lire en boucle par défaut" (Elie): start playback in repeat-one so a
+  // finished track restarts from the beginning. The player's repeat button
+  // stays the manual override.
+  if (get(loopByDefault) && get(repeatMode) !== 'one') {
+    try {
+      const r = await api.setRepeat(zoneId, 'one');
+      repeatMode.set(r.repeat);
+    } catch {
+      /* non-fatal */
+    }
+  }
   return zone;
 }
 
