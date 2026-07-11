@@ -297,7 +297,17 @@ import AlarmsView from './components/AlarmsView.svelte';
           }
         } else {
           stopSeekTimer();
-          seekPositionMs.set(zone.position_ms ?? 0);
+          // Don't snap the displayed time backwards on pause when the server
+          // still reports a slightly-stale position — e.g. a browser zone whose
+          // <audio> currentTime is ahead of the server, or a just-issued seek
+          // that hasn't propagated (Elie: seek 30s, play to 40s, pause → showed
+          // 30s). Keep the local position when the server is only slightly
+          // behind; take the server value otherwise.
+          const serverPos = zone.position_ms ?? 0;
+          const localPos = get(seekPositionMs);
+          if (serverPos >= localPos || localPos - serverPos > 4000) {
+            seekPositionMs.set(serverPos);
+          }
         }
       }
     } catch (e) {
