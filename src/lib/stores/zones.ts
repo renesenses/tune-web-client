@@ -3,7 +3,12 @@ import type { Zone } from '../types';
 import * as api from '../api';
 import { notifications } from './notifications';
 import { loopByDefault } from './loopByDefault';
-import { repeatMode } from './nowPlaying';
+// NOTE: do NOT statically `import { repeatMode } from './nowPlaying'` here.
+// nowPlaying.ts imports currentZone/currentZoneId from this file and builds
+// `derived(currentZone, …)` at module-init; a static back-import creates a cycle
+// where nowPlaying reads currentZone before it is initialised (TDZ) → the whole
+// SPA throws at load → blank/black screen everywhere (v0.8.297 regression).
+// repeatMode is loaded lazily inside playAndSync instead.
 // Lazy import to avoid circular dependency (browserAudio imports zones)
 function isBrowserZone(zone: { output_type?: string } | null | undefined): boolean {
   return zone?.output_type === 'browser';
@@ -90,12 +95,15 @@ export async function playAndSync(zoneId: number, body?: Parameters<typeof api.p
   // "Lire en boucle par défaut" (Elie): start playback in repeat-one so a
   // finished track restarts from the beginning. The player's repeat button
   // stays the manual override.
-  if (get(loopByDefault) && get(repeatMode) !== 'one') {
-    try {
-      const r = await api.setRepeat(zoneId, 'one');
-      repeatMode.set(r.repeat);
-    } catch {
-      /* non-fatal */
+  if (get(loopByDefault)) {
+    const { repeatMode } = await import('./nowPlaying'); // lazy: breaks the cycle
+    if (get(repeatMode) !== 'one') {
+      try {
+        const r = await api.setRepeat(zoneId, 'one');
+        repeatMode.set(r.repeat);
+      } catch {
+        /* non-fatal */
+      }
     }
   }
   return zone;
