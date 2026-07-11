@@ -61,8 +61,8 @@
     if (searchTimeout) clearTimeout(searchTimeout);
     searchTimeout = setTimeout(async () => {
       try {
-        const results = await api.search(q);
-        filteredArtists = (results?.local?.artists ?? []).slice(0, 20);
+        const results = await api.searchLibrary(q, 20);
+        filteredArtists = (results?.artists ?? []).slice(0, 20);
       } catch { filteredArtists = []; }
     }, 250);
   }
@@ -72,8 +72,8 @@
     if (searchTimeout) clearTimeout(searchTimeout);
     searchTimeout = setTimeout(async () => {
       try {
-        const results = await api.search(q);
-        filteredAlbums = (results?.local?.albums ?? []).slice(0, 20);
+        const results = await api.searchLibrary(q, 20);
+        filteredAlbums = (results?.albums ?? []).slice(0, 20);
       } catch { filteredAlbums = []; }
     }, 250);
   }
