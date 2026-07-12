@@ -62,7 +62,9 @@
     { value: 'not_equals', label: '!=' },
     { value: 'starts_with', key: 'smartPlaylists.opStartsWith' },
     { value: 'greater_than', label: '>' },
+    { value: 'gte', label: '≥' },
     { value: 'less_than', label: '<' },
+    { value: 'lte', label: '≤' },
     { value: 'branch_of', key: 'smartPlaylists.opBranchOf' },
     { value: 'is_empty', key: 'smartPlaylists.opIsEmpty' },
     { value: 'is_not_empty', key: 'smartPlaylists.opIsNotEmpty' },
@@ -202,9 +204,17 @@
     newRules = newRules.filter((_, i) => i !== index);
   }
 
+  // Map legacy/symbol operators to the option values used by OPERATORS so an
+  // existing rule (e.g. seeded "bit_depth >= 24") shows its operator selected
+  // instead of a blank dropdown.
+  const OP_ALIASES: Record<string, string> = { '>=': 'gte', '<=': 'lte', '>': 'greater_than', '<': 'less_than', '=': 'equals', '!=': 'not_equals' };
+
   function parseRules(sp: SmartPlaylist): Rule[] {
     const raw: any[] = Array.isArray(sp.rules) ? sp.rules : (() => { try { return JSON.parse(sp.rules || '[]'); } catch { return []; } })();
-    return raw.map(r => ({ field: r.field, operator: r.operator || r.op || 'contains', value: r.value }));
+    return raw.map(r => {
+      const op = r.operator || r.op || 'contains';
+      return { field: r.field, operator: OP_ALIASES[op] ?? op, value: r.value };
+    });
   }
 
   function ruleSummary(sp: SmartPlaylist): string {
