@@ -1314,6 +1314,26 @@
     requestAnimationFrame(tick);
   }
 
+  // Same poll-until-ready pattern as albums, but for the artist list, whose
+  // scroll container is `.main-content` (not the album grid viewport). A fixed
+  // 2-frame wait clamped to 0 on a large artist list, so the back button landed
+  // at the top of the list instead of the viewed artist (#870, Bilou).
+  function restoreArtistScrollWhenReady(target: number) {
+    if (target <= 0) return;
+    let attempts = 0;
+    const tick = () => {
+      const el = document.querySelector('.main-content') as HTMLElement | null;
+      const ready = el && el.scrollHeight >= target + el.clientHeight;
+      if (ready || attempts >= 30) {
+        if (el) el.scrollTop = target;
+        return;
+      }
+      attempts += 1;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
   function goBack() {
     const restoreAlbumScroll = savedAlbumScrollTop;
     const restoreArtistScroll = savedArtistScrollTop;
@@ -1332,17 +1352,9 @@
     // scroll (a fixed 2-frame wait clamps to 0 on a large library — Pierre/#1024).
     restoreAlbumScrollWhenReady(restoreAlbumScroll);
     if (wasArtistTab && restoreArtistScroll > 0) {
-      // Double rAF: the artist list re-renders after selectedArtist is cleared,
-      // so its scroll height is only restored on the following frame. Setting
-      // scrollTop on the first frame clamps to 0 (list still short) and the user
-      // lands at the top instead of the saved position (Bilou). Mirror the
-      // album-grid restore, which already waits two frames.
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const mainEl = document.querySelector('.main-content');
-          if (mainEl) mainEl.scrollTop = restoreArtistScroll;
-        });
-      });
+      // Poll until the re-rendered artist list is tall enough before restoring
+      // scroll — a fixed 2-frame wait clamped to 0 on a large list (#870).
+      restoreArtistScrollWhenReady(restoreArtistScroll);
     }
   }
 
@@ -1507,6 +1519,11 @@
         // Wait for the grid's virtual-scroll height to be laid out before setting
         // scrollTop, otherwise it clamps to 0 on browser-back (Pierre/#1024).
         restoreAlbumScrollWhenReady(savedAlbumScrollTop);
+      }
+      // Same for the artist list on browser-back (#870): restore its saved
+      // position once the re-rendered list is tall enough.
+      if (wasInDetail && !inDetail && $libraryTab === 'artists' && savedArtistScrollTop > 0) {
+        restoreArtistScrollWhenReady(savedArtistScrollTop);
       }
     });
   });
