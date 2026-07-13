@@ -818,7 +818,14 @@ import AlarmsView from './components/AlarmsView.svelte';
             let spTries = 0;
             const ensureSignalPath = () => {
               const z = get(zones).find((zz) => zz.id === zoneId);
-              if (!z || z.state !== 'playing' || z.signal_path || spTries >= 3) return;
+              // Stop only once resolved, the zone is gone, genuinely stopped, or
+              // we've tried enough. Crucially, do NOT bail on a transient
+              // non-'playing' state: on a slow cold start (NAS / SQLite /
+              // Windows) the zone is still transitioning when the first event
+              // arrives, and bailing there meant we never retried, leaving the
+              // badge absent for the whole first track (Bilou). Wider budget so
+              // signal_path resolves even on slow setups.
+              if (!z || z.signal_path || z.state === 'stopped' || spTries >= 6) return;
               spTries++;
               setTimeout(() => { syncZoneState(zoneId).then(ensureSignalPath); }, 400 * spTries);
             };
