@@ -169,6 +169,18 @@
     }
   });
 
+  // Expose the currently-open streaming album/artist so a shortcut created here
+  // records THAT item (not just the service's whole library), and reopens it on
+  // activation via the existing pendingStreaming* deep-link plumbing (Elie).
+  $effect(() => {
+    (window as any).__tuneStreamingShortcut = () => {
+      if (selectedAlbum) return { kind: 'album', album: $state.snapshot(selectedAlbum) };
+      if (selectedArtist) return { kind: 'artist', artist: $state.snapshot(selectedArtist) };
+      return null;
+    };
+    return () => { delete (window as any).__tuneStreamingShortcut; };
+  });
+
   async function loadFeatured(s: string) {
     featuredLoading = true;
     try {
