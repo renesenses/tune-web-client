@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import * as api from '../lib/api';
   import type { DashboardData, DashboardPeriod, SlotTrack } from '../lib/api';
   import { t } from '../lib/i18n';
@@ -190,8 +189,8 @@
     }
   }
 
-  onMount(load);
-
+  // Loads on mount and whenever the period changes. (No separate onMount(load)
+  // — that fired a redundant second fetch on every dashboard open.)
   $effect(() => {
     void period;
     load();
