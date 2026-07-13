@@ -2011,7 +2011,7 @@
           <span class="scan-message">{scanMessage}</span>
         {/if}
 
-        <button class="scan-btn" onclick={handleArtworkRescan} disabled={artworkScanning}>
+        <button class="scan-btn" onclick={handleArtworkRescan} disabled={artworkScanning} title={$t('settings.searchMissingCoversTitle')}>
           {#if artworkScanning}
             <div class="spinner small"></div>
             {#if artworkProgress}
