@@ -1,13 +1,17 @@
 import { writable, derived } from 'svelte/store';
 import { currentZone, currentZoneId } from './zones';
-import type { Track, PlaybackState, RepeatMode } from '../types';
+import type { Track, PlaybackState } from '../types';
 
 // Seek position in milliseconds
 export const seekPositionMs = writable<number>(0);
 
-// Shuffle & repeat as separate stores (set via API, updated via WS)
+// Shuffle as a separate store (set via API, updated via WS)
 export const shuffleEnabled = writable<boolean>(false);
-export const repeatMode = writable<RepeatMode>('off');
+
+// repeatMode lives in a leaf module (repeatStore) to break the
+// zones ↔ nowPlaying import cycle; re-export it so existing importers of
+// `./nowPlaying` keep working.
+export { repeatMode } from './repeatStore';
 
 // Mute: stores the pre-mute volume (null = not muted)
 export const mutedVolume = writable<number | null>(null);

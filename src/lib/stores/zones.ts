@@ -3,12 +3,13 @@ import type { Zone } from '../types';
 import * as api from '../api';
 import { notifications } from './notifications';
 import { loopByDefault } from './loopByDefault';
-// NOTE: do NOT statically `import { repeatMode } from './nowPlaying'` here.
-// nowPlaying.ts imports currentZone/currentZoneId from this file and builds
-// `derived(currentZone, …)` at module-init; a static back-import creates a cycle
-// where nowPlaying reads currentZone before it is initialised (TDZ) → the whole
-// SPA throws at load → blank/black screen everywhere (v0.8.297 regression).
-// repeatMode is loaded lazily inside playAndSync instead.
+// repeatMode lives in its own leaf module (repeatStore), NOT nowPlaying.ts:
+// nowPlaying.ts statically imports currentZone/currentZoneId from this file, so
+// importing repeatMode from nowPlaying here would recreate the
+// zones ↔ nowPlaying cycle that read currentZone at module-init before it was
+// initialised (TDZ → blank/black SPA, v0.8.297 regression). The leaf module
+// keeps this import static and acyclic.
+import { repeatMode } from './repeatStore';
 // Lazy import to avoid circular dependency (browserAudio imports zones)
 function isBrowserZone(zone: { output_type?: string } | null | undefined): boolean {
   return zone?.output_type === 'browser';
@@ -96,7 +97,6 @@ export async function playAndSync(zoneId: number, body?: Parameters<typeof api.p
   // finished track restarts from the beginning. The player's repeat button
   // stays the manual override.
   if (get(loopByDefault)) {
-    const { repeatMode } = await import('./nowPlaying'); // lazy: breaks the cycle
     if (get(repeatMode) !== 'one') {
       try {
         const r = await api.setRepeat(zoneId, 'one');
