@@ -271,7 +271,15 @@
   .card-rules { font-size: 12px; color: var(--tune-text-muted); margin-top: 5px; line-height: 1.4; }
   .card-desc { font-size: 12px; color: var(--tune-text-muted); margin-top: 5px; font-style: italic; }
 
-  .detail-head { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  /* Keep the back button visible while scrolling a long album grid
+     (otherwise it scrolls off-screen — Bilou: "la zone de défilement
+     masque le retour"). */
+  .detail-head {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 8px;
+    position: sticky; top: 0; z-index: 5;
+    padding: 8px 0;
+    background: var(--tune-bg, #1a1a1a);
+  }
   .detail-head h2 { flex: 1; margin: 0; font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; }
   .back { background: transparent; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); color: var(--tune-text); padding: 6px 13px; border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; }
   .edit-btn { background: var(--tune-accent, #6366f1); color: white; border: none; padding: 6px 13px; border-radius: var(--radius-sm); cursor: pointer; font-family: var(--font-label); font-size: 14px; }
