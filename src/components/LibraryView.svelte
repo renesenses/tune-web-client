@@ -644,8 +644,16 @@
     return { startIdx, endIdx, totalHeight: total * TRACK_ROW_HEIGHT };
   });
 
-  // Virtual scroll state (album grid)
-  const ALBUM_MIN_WIDTH = 156;     // 140px min + gap
+  // Virtual scroll state (album grid). These MUST mirror the CSS
+  // `.albums-grid` (`repeat(auto-fill, minmax(140px, 1fr))`, gap var(--space-lg)
+  // = 24px on desktop). CSS auto-fill fits `floor((width + gap) / (min + gap))`
+  // columns; the JS column count must use the SAME formula or the virtual-scroll
+  // slice is laid out with a different column count than the grid actually
+  // renders, shifting the whole grid by one thumbnail (#1022, triggered when a
+  // vertical scrollbar appears past ~2300px and nudges the width across a
+  // column boundary).
+  const ALBUM_COL_MIN = 140;       // CSS minmax() min
+  const ALBUM_GAP = 24;            // --space-lg (desktop)
   const ALBUM_TEXT_HEIGHT = 60;    // text + gap below artwork
   const ALBUM_OVERSCAN_ROWS = 3;
   let albumGridViewport = $state<HTMLDivElement | null>(null);
@@ -659,7 +667,8 @@
   let prevAlbumCols = $state(0);
 
   let albumGridMetrics = $derived.by(() => {
-    const cols = Math.max(1, Math.floor(albumViewportWidth / ALBUM_MIN_WIDTH));
+    // Match CSS `auto-fill minmax(140px, 1fr)` exactly: floor((w + gap)/(min + gap)).
+    const cols = Math.max(1, Math.floor((albumViewportWidth + ALBUM_GAP) / (ALBUM_COL_MIN + ALBUM_GAP)));
     const colWidth = albumViewportWidth / cols;
     const rowHeight = colWidth + ALBUM_TEXT_HEIGHT;
     const total = filteredAlbums.length;
