@@ -1,7 +1,7 @@
 import { writable, get } from 'svelte/store';
 import { activeView, type View } from './navigation';
 import { libraryTab } from './library';
-import { activeStreamingService, streamingGenreBreadcrumb } from './streaming';
+import { activeStreamingService, streamingGenreBreadcrumb, pendingStreamingAlbum, pendingStreamingArtist } from './streaming';
 import * as api from '../api';
 
 export interface Shortcut {
@@ -55,6 +55,10 @@ export function captureCurrentView(): Partial<Shortcut> {
     if (breadcrumb.length > 0) {
       state.genreBreadcrumb = breadcrumb;
     }
+    // A shortcut from a specific Qobuz/Tidal album (or artist) should reopen
+    // THAT item, not just the service's whole library (Elie).
+    const item = (window as any).__tuneStreamingShortcut?.();
+    if (item) state.streamingItem = item;
   }
 
   if (view === 'mediaservers') {
@@ -148,6 +152,19 @@ export function navigateToShortcut(shortcut: Shortcut) {
         detail: shortcut.state,
       }));
     }, 100);
+  }
+
+  // Reopen a specific streaming album/artist via the existing deep-link stores;
+  // StreamingView's pendingStreaming* effects pick it up once the service is set.
+  if (shortcut.state?.streamingItem && shortcut.view === 'streaming') {
+    const item = shortcut.state.streamingItem;
+    setTimeout(() => {
+      if (item.kind === 'album' && item.album) {
+        pendingStreamingAlbum.set(item.album);
+      } else if (item.kind === 'artist' && item.artist) {
+        pendingStreamingArtist.set(item.artist);
+      }
+    }, 150);
   }
 
   if (shortcut.state?.mediaServer && shortcut.view === 'mediaservers') {
