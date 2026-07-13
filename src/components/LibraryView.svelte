@@ -1287,6 +1287,29 @@
     enrichLoading = false;
   }
 
+  // Restore the album grid scroll once the virtual-scroll list is tall enough to
+  // hold the target offset. A fixed double-rAF isn't enough for a large library
+  // (the grid's total height is only known after albums render + measure over
+  // several frames), so scrollTop clamps to 0 and the user lands at the top
+  // (#1024). Poll a bounded number of frames until the height is ready.
+  function restoreAlbumScrollWhenReady(target: number) {
+    if (target <= 0) { restoringScroll = false; return; }
+    let attempts = 0;
+    const tick = () => {
+      const el = albumGridViewport;
+      const ready = el && el.scrollHeight >= target + el.clientHeight;
+      if (ready || attempts >= 30) {
+        albumScrollTop = target;
+        if (el) el.scrollTop = target;
+        requestAnimationFrame(() => { restoringScroll = false; });
+        return;
+      }
+      attempts += 1;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
   function goBack() {
     const restoreAlbumScroll = savedAlbumScrollTop;
     const restoreArtistScroll = savedArtistScrollTop;
@@ -1301,20 +1324,9 @@
     artistMetadataError = false;
     artistMetadataLoading = false;
     window.history.back();
-    if (restoreAlbumScroll > 0) {
-      // Double rAF: the album grid re-renders after selectedAlbum is cleared,
-      // so its virtual-scroll height is only ready on the following frame.
-      // Setting scrollTop on the first frame clamps to 0 (grid still short) and
-      // the user lands at the top instead of the saved position (Pierre). Mirror
-      // the artist-list restore below, which already waits two frames.
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          albumScrollTop = restoreAlbumScroll;
-          if (albumGridViewport) albumGridViewport.scrollTop = restoreAlbumScroll;
-          requestAnimationFrame(() => { restoringScroll = false; });
-        });
-      });
-    }
+    // Wait until the re-rendered album grid is tall enough before restoring
+    // scroll (a fixed 2-frame wait clamps to 0 on a large library — Pierre/#1024).
+    restoreAlbumScrollWhenReady(restoreAlbumScroll);
     if (wasArtistTab && restoreArtistScroll > 0) {
       // Double rAF: the artist list re-renders after selectedArtist is cleared,
       // so its scroll height is only restored on the following frame. Setting
@@ -1488,16 +1500,9 @@
       // Restore scroll when transitioning from detail back to grid (e.g. browser back button)
       if (wasInDetail && !inDetail && savedAlbumScrollTop > 0 && !restoringScroll) {
         restoringScroll = true;
-        // Double rAF (see goBack): wait for the grid's virtual-scroll height to
-        // be laid out before setting scrollTop, otherwise it clamps to 0 and the
-        // user lands at the top on browser-back (Pierre).
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            albumScrollTop = savedAlbumScrollTop;
-            if (albumGridViewport) albumGridViewport.scrollTop = savedAlbumScrollTop;
-            requestAnimationFrame(() => { restoringScroll = false; });
-          });
-        });
+        // Wait for the grid's virtual-scroll height to be laid out before setting
+        // scrollTop, otherwise it clamps to 0 on browser-back (Pierre/#1024).
+        restoreAlbumScrollWhenReady(savedAlbumScrollTop);
       }
     });
   });
