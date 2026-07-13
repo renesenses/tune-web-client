@@ -803,6 +803,27 @@ import AlarmsView from './components/AlarmsView.svelte';
           if (type === 'playback.started' || type === 'playback.resumed' || type === 'playback.track_changed') {
             fetchQueue();
           }
+          // Bit-perfect / signal-path badge depends on zone.signal_path, which
+          // the server computes from the live zone state. The optimistic update
+          // above preserves the previous track's signal_path, so on the 2nd+
+          // track the badge stays visible — but on the FIRST track of a
+          // cold-started zone there is no prior signal_path, and the
+          // authoritative syncZoneState() fetch can land before the zone has
+          // finished transitioning to Playing, so it comes back null and the
+          // badge is missing until the next track (tester: absent 1st track,
+          // apparaît en 2ème). Re-fetch a bounded number of times until it
+          // resolves, only while the zone is actually playing. Self-healing and
+          // a no-op once signal_path is present.
+          if (type === 'playback.started' || type === 'playback.track_changed') {
+            let spTries = 0;
+            const ensureSignalPath = () => {
+              const z = get(zones).find((zz) => zz.id === zoneId);
+              if (!z || z.state !== 'playing' || z.signal_path || spTries >= 3) return;
+              spTries++;
+              setTimeout(() => { syncZoneState(zoneId).then(ensureSignalPath); }, 400 * spTries);
+            };
+            ensureSignalPath();
+          }
         }
         return;
       }
