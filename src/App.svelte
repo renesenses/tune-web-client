@@ -812,13 +812,18 @@ import AlarmsView from './components/AlarmsView.svelte';
           // finished transitioning to Playing, so it comes back null and the
           // badge is missing until the next track (tester: absent 1st track,
           // apparaît en 2ème). Re-fetch a bounded number of times until it
-          // resolves, only while the zone is actually playing. Self-healing and
-          // a no-op once signal_path is present.
+          // resolves. Self-healing and a no-op once signal_path is present.
           if (type === 'playback.started' || type === 'playback.track_changed') {
             let spTries = 0;
             const ensureSignalPath = () => {
               const z = get(zones).find((zz) => zz.id === zoneId);
-              if (!z || z.state !== 'playing' || z.signal_path || spTries >= 3) return;
+              // Do NOT bail on a transient non-'playing' state: on a slow cold
+              // start (NAS / SQLite / Windows) the zone is still transitioning
+              // when the first event arrives, and bailing there meant we never
+              // retried, leaving the badge absent for the whole first track
+              // (Bilou). Keep going until resolved, gone, or genuinely stopped;
+              // wider budget (6) so it resolves even on slow setups.
+              if (!z || z.signal_path || z.state === 'stopped' || spTries >= 6) return;
               spTries++;
               setTimeout(() => { syncZoneState(zoneId).then(ensureSignalPath); }, 400 * spTries);
             };
