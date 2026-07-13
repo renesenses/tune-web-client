@@ -3483,6 +3483,14 @@
     flex: 1;
     overflow-y: auto;
     min-height: 0;
+    /* Reserve the scrollbar gutter permanently so the content-box width does not
+       shrink when the vertical scrollbar appears (content taller than viewport,
+       e.g. past ~2300px). Otherwise the width feeds back into the virtual-scroll
+       column math (floor((w+gap)/(min+gap))) and the album grid shifts by one
+       thumbnail to the left the moment the scrollbar shows up (#1022). With the
+       gutter always reserved, albumViewportWidth is invariant → JS cols == CSS
+       cols at every scroll position. */
+    scrollbar-gutter: stable;
   }
 
   .albums-grid {
