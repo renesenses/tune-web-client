@@ -475,8 +475,10 @@ import AlarmsView from './components/AlarmsView.svelte';
             tab: $libraryTab ?? null,
           };
           if (album !== null) {
-            // Entering detail: push so back returns to grid
-            window.history.pushState(ctx, '', `#${view}`);
+            // Entering detail: push so back returns to grid. Give the album
+            // detail its own URL (#album/{id}) so the address bar reflects the
+            // view and browser/mouse back is unambiguous (tester request).
+            window.history.pushState(ctx, '', `#album/${album.id}`);
           } else {
             // Returning to grid (programmatic, not via popstate): update current entry
             window.history.replaceState(ctx, '', `#${view}`);
@@ -497,7 +499,8 @@ import AlarmsView from './components/AlarmsView.svelte';
             tab: $libraryTab ?? null,
           };
           if (artist !== null) {
-            window.history.pushState(ctx, '', `#${view}`);
+            // Own URL for the artist detail view (#artist/{id}); see album case.
+            window.history.pushState(ctx, '', `#artist/${artist.id}`);
           } else {
             window.history.replaceState(ctx, '', `#${view}`);
           }

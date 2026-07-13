@@ -1130,7 +1130,10 @@
       // no longer reveals its MP3/44.1 tracks).
       const result = await api.getAlbumTracks(album.id, albumQualityFilter, albumFormatFilter);
       albumTracks.set(result);
-      window.history.pushState({ view: 'library', albumId: album.id, tab: $libraryTab }, '', '#library');
+      // History is pushed by App.svelte's `selectedAlbum` subscriber (single
+      // source of truth). Pushing here too stacked a second identical entry, so
+      // the browser Back button appeared to do nothing on the first press
+      // (it landed on the duplicate albumId entry). See App.svelte.
     } catch (e) {
       console.error('Load album tracks error:', e);
       selectedAlbum.set(album);
@@ -1147,7 +1150,8 @@
     const mainEl = document.querySelector('.main-content');
     if (mainEl) savedArtistScrollTop = mainEl.scrollTop;
     selectedArtist.set(artist);
-    window.history.pushState({ view: 'library', artistId: artist.id, tab: $libraryTab }, '', '#library');
+    // History is pushed by App.svelte's `selectedArtist` subscriber; a second
+    // pushState here made browser Back require two presses.
     selectedAlbum.set(null);
     artistMetadata = null;
     artistMetadataError = false;
