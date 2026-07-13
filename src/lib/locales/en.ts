@@ -375,6 +375,7 @@ export default {
   'metadata.dashboard': 'Dashboard',
   'metadata.completeness': 'Completeness',
   'metadata.missingCovers': 'Missing Covers',
+  'metadata.missingArtistCovers': 'Artists without image',
   'metadata.missingGenre': 'Missing Genre',
   'metadata.missingYear': 'Missing Year',
   'metadata.editAlbum': 'Edit Album',
