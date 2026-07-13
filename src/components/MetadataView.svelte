@@ -42,7 +42,7 @@
   let albumArtistSearch = $state('');
   let albumArtistDropdownOpen = $state(false);
   let loading = $state(true);
-  let filter = $state<'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist' | 'unknown' | 'doubtful' | 'duplicates'>('no_cover');
+  let filter = $state<'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist' | 'no_artist_cover' | 'unknown' | 'doubtful' | 'duplicates'>('no_cover');
   let doubtfulAlbums = $state<import('../lib/api').DoubtfulAlbum[]>([]);
   let doubtfulLoaded = $state(false);
 
@@ -1024,6 +1024,15 @@
       : artists.filter(a => a.name.toLowerCase().includes(artistSearch.toLowerCase())).slice(0, 20)
   );
 
+  // Artists with no cover image — powers the "Artistes sans pochette" metadata
+  // filter (forum request: list cover-less artists without scrolling the whole
+  // library). Honors the text search box.
+  let filteredArtistsNoCover = $derived(
+    artists
+      .filter(a => !a.image_path)
+      .filter(a => !metadataSearch.trim() || a.name.toLowerCase().includes(metadataSearch.trim().toLowerCase()))
+  );
+
   let filteredAlbumArtists = $derived(
     albumArtistSearch.length < 1
       ? artists.slice(0, 20)
@@ -1522,6 +1531,7 @@
       <div class="meta-filters-tabs">
         <button class="filter-btn" class:active={filter === 'all'} onclick={() => filter = 'all'}>{$t('metadata.all')}</button>
         <button class="filter-btn" class:active={filter === 'no_cover'} onclick={() => filter = 'no_cover'}>{$t('metadata.missingCovers')} <span class="pill">{stats.albums_without_cover}</span></button>
+        <button class="filter-btn" class:active={filter === 'no_artist_cover'} onclick={() => { filter = 'no_artist_cover'; ensureArtistsLoaded(); }}>{$t('metadata.missingArtistCovers')} <span class="pill">{stats.artists_without_image}</span></button>
         <button class="filter-btn" class:active={filter === 'no_genre'} onclick={() => filter = 'no_genre'}>{$t('metadata.missingGenre')} <span class="pill">{stats.albums_without_genre}</span></button>
         <button class="filter-btn" class:active={filter === 'no_year'} onclick={() => filter = 'no_year'}>{$t('metadata.missingYear')} <span class="pill">{stats.albums_without_year}</span></button>
         <button class="filter-btn" class:active={filter === 'no_artist'} onclick={() => filter = 'no_artist'}>{$t('metadata.missingArtist')} <span class="pill">{stats.tracks_without_artist}</span></button>
@@ -1535,7 +1545,7 @@
           class="metadata-search"
           placeholder={$t('metadata.searchPlaceholder')}
           bind:value={metadataSearch}
-          oninput={() => { if (metadataSearch.trim() && !['all', 'no_cover', 'no_genre', 'no_year', 'doubtful'].includes(filter)) filter = 'all'; }}
+          oninput={() => { if (metadataSearch.trim() && !['all', 'no_cover', 'no_genre', 'no_year', 'no_artist_cover', 'doubtful'].includes(filter)) filter = 'all'; }}
         />
         <select
           class="metadata-search metadata-select"
@@ -1744,6 +1754,23 @@
                 <button class="btn-doubtful-edit" title={$t('metadata.edit')} onclick={() => editAlbum = album}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                 </button>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    {:else if filter === 'no_artist_cover'}
+      {#if filteredArtistsNoCover.length === 0}
+        <div class="empty">{$t('common.noResult')}</div>
+      {:else}
+        <div class="doubtful-cards">
+          {#each filteredArtistsNoCover as artist (artist.id)}
+            <div class="doubtful-card">
+              <div class="doubtful-info">
+                <span class="doubtful-title">{artist.name}</span>
+                <div class="doubtful-tags">
+                  <span class="doubtful-tag">{$t('metadata.coverMissing')}</span>
+                </div>
               </div>
             </div>
           {/each}

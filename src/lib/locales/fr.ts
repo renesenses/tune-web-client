@@ -374,6 +374,7 @@ export default {
   'metadata.dashboard': 'Tableau de bord',
   'metadata.completeness': 'Complétude',
   'metadata.missingCovers': 'Covers manquantes',
+  'metadata.missingArtistCovers': 'Artistes sans pochette',
   'metadata.missingGenre': 'Genre manquant',
   'metadata.missingYear': 'Année manquante',
   'metadata.editAlbum': "Éditer l'album",
