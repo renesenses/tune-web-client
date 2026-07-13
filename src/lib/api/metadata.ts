@@ -31,11 +31,20 @@ export interface WriteTagsResult {
 }
 
 export function writeTrackTags(trackId: number) {
-  return fetchJSON<WriteTagsResult>(`${BASE}/metadata/tracks/${trackId}/write-tags`, { method: 'POST' });
+  // The real endpoint is the bulk /library/write-tags (there is no
+  // /metadata/tracks/{id}/write-tags — it 404'd). Scope it to one track.
+  return fetchJSON<WriteTagsResult>(`${BASE}/library/write-tags`, {
+    method: 'POST',
+    body: JSON.stringify({ track_ids: [trackId], only_missing: false }),
+  });
 }
 
 export function writeAlbumTags(albumId: number) {
-  return fetchJSON<WriteTagsResult>(`${BASE}/metadata/albums/${albumId}/write-tags`, { method: 'POST' });
+  // Scope the bulk /library/write-tags endpoint to one album (album_id).
+  return fetchJSON<WriteTagsResult>(`${BASE}/library/write-tags`, {
+    method: 'POST',
+    body: JSON.stringify({ album_id: albumId, only_missing: false }),
+  });
 }
 
 // --- Bulk operations ---
