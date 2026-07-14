@@ -144,7 +144,13 @@
   }
 
   // --- Mini-Player (compact mode on scroll) ---
-  let compact = $state(false);
+  // Mobile/tablet only: on desktop (wide screens) the mini-player shrank the
+  // seek bar to a thin bottom-edge progress line that starts at the screen edge
+  // and reads as broken (Bertrand). Keep the full centred progress bar on
+  // desktop by gating compact on the viewport width.
+  let scrolledDown = $state(false);
+  let isNarrowViewport = $state(false);
+  let compact = $derived(isNarrowViewport && scrolledDown);
   let scrollObserver: IntersectionObserver | null = null;
 
   function handleGlobalKeydown(e: KeyboardEvent) {
@@ -162,14 +168,17 @@
     // Global Escape key handler for popovers
     document.addEventListener('keydown', handleGlobalKeydown);
 
+    // Track viewport width so the mini-player only engages on mobile/tablet
+    // (<= 1024px). On desktop the full transport bar stays put on scroll.
+    const updateNarrow = () => { isNarrowViewport = window.innerWidth <= 1024; };
+    updateNarrow();
+    window.addEventListener('resize', updateNarrow);
+
     // Observe main-content scroll to switch to compact mode
     const mainContent = document.querySelector('.main-content');
     if (mainContent) {
-      let lastScrollTop = 0;
       mainContent.addEventListener('scroll', () => {
-        const scrollTop = (mainContent as HTMLElement).scrollTop;
-        compact = scrollTop > 100;
-        lastScrollTop = scrollTop;
+        scrolledDown = (mainContent as HTMLElement).scrollTop > 100;
       });
     }
   });
