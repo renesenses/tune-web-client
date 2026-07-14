@@ -5,7 +5,7 @@
   import type { SmartCollection } from '../lib/types';
   import SmartCollectionEditor from './SmartCollectionEditor.svelte';
   import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
-  import { activeView, listResetNonce } from '../lib/stores/navigation';
+  import { activeView, listResetNonce, saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
   import { currentZone } from '../lib/stores/zones';
   import { notifications } from '../lib/stores/notifications';
   import { t } from '../lib/i18n';
@@ -85,7 +85,18 @@
     }
   }
 
+  // Rendered inside CollectionsView's scrolling `.tab-content`; resolve that
+  // ancestor to save/restore the list scroll on open/Back.
+  let rootEl = $state<HTMLElement | null>(null);
+  const scrollContainer = () => (rootEl?.closest('.tab-content') as HTMLElement | null) ?? null;
+
+  function backToSmartList() {
+    selected = null;
+    restoreDetailScroll('smartcollections', scrollContainer());
+  }
+
   async function openCollection(col: SmartCollection) {
+    saveDetailScroll('smartcollections', scrollContainer());
     selected = col;
     albumsLoading = true;
     try {
@@ -148,7 +159,7 @@
   onMount(load);
 </script>
 
-<section class="sc-view">
+<section class="sc-view" bind:this={rootEl}>
   <header class="sc-header">
     <h2>Smart Collections</h2>
     <button class="new-btn" onclick={() => openEditor(null)}>{$t('smartCollection.newCollection')}</button>
@@ -190,7 +201,7 @@
   {:else}
     <div class="detail">
       <div class="detail-head">
-        <button class="back" onclick={() => selected = null}>← {$t('common.back')}</button>
+        <button class="back" onclick={backToSmartList}>← {$t('common.back')}</button>
         <h2 style:color={selected.color}>{selected.name}</h2>
         <button class="edit-btn" onclick={() => openEditor(selected!)}>{$t('smartCollection.editRules')}</button>
       </div>
