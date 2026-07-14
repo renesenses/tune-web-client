@@ -1401,6 +1401,15 @@ export function cancelScan() {
   return fetchJSON<{ status?: string }>(`${BASE}/system/scan/cancel`, { method: 'POST' });
 }
 
+export interface BackgroundTask { id: string; label: string; kind: string; }
+
+/** Snapshot of in-progress background tasks (enrichment, artwork, bios). The
+ *  live truth is pushed over the `system.background_tasks` WebSocket event; this
+ *  is the initial state for a client that connects mid-task. */
+export function getBackgroundTasks() {
+  return fetchJSON<{ tasks: BackgroundTask[] }>(`${BASE}/system/background-tasks`);
+}
+
 export function getBackups() {
   return fetchJSON<import('./types').BackupInfo[]>(`${BASE}/system/backups`);
 }
