@@ -4,8 +4,10 @@
   import { currentZoneId } from '../lib/stores/zones';
   import { get } from 'svelte/store';
   import { t } from '../lib/i18n';
+  import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
 
   // --- State ---
+  let viewEl = $state<HTMLDivElement | null>(null);
   let activeTab = $state<'subscriptions' | 'discover' | 'search'>('discover');
   let errorMessage = $state<string | null>(null);
 
@@ -255,6 +257,7 @@
         published: ep.published_date,
         cover_url: ep.cover_url || show.cover_url || '',
       }));
+      if (!selectedPodcast) saveDetailScroll('podcasts', viewEl);
       selectedPodcast = { name: show.title, artist: show.station || 'Radio France', feed_url: show.rss_url || '', cover_url: show.cover_url || '', description: show.description, episode_count: episodes.length, source_id: show.id };
       selectedEpisodes = episodes;
     } catch (e) {
@@ -295,6 +298,7 @@
   // --- Podcast detail ---
 
   async function selectPodcast(podcast: any) {
+    if (!selectedPodcast) saveDetailScroll('podcasts', viewEl);
     selectedPodcast = podcast;
     isLoadingEpisodes = true;
     errorMessage = null;
@@ -320,6 +324,7 @@
     selectedPodcast = null;
     episodes = [];
     errorMessage = null;
+    restoreDetailScroll('podcasts', viewEl);
   }
 
   async function playEpisode(episode: any) {
@@ -409,7 +414,7 @@
   }
 </script>
 
-<div class="podcasts-view">
+<div class="podcasts-view" bind:this={viewEl}>
   {#if errorMessage}
     <div class="error-banner">
       <span>{errorMessage}</span>

@@ -7,7 +7,10 @@
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import type { Playlist, Track, StreamingPlaylist } from '../lib/types';
   import { t as tr } from '../lib/i18n';
+  import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
   import AlbumArt from './AlbumArt.svelte';
+
+  let viewEl = $state<HTMLDivElement | null>(null);
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -131,6 +134,7 @@
 
   async function selectPlaylist(pl: Playlist) {
     if (!pl.id) return;
+    saveDetailScroll('playlists', viewEl);
     selectedPlaylist = pl;
     loading = true;
     try {
@@ -142,6 +146,7 @@
   }
 
   async function selectStreamingPlaylist(service: string, pl: StreamingPlaylist) {
+    saveDetailScroll('playlists', viewEl);
     selectedStreamingPl = pl;
     selectedService = service;
     loading = true;
@@ -159,6 +164,7 @@
     playlistTracks = [];
     streamingPlTracks = [];
     selectedService = '';
+    restoreDetailScroll('playlists', viewEl);
   }
 
   // Shortcut capture/restore for a SPECIFIC playlist (Elie): expose the open
@@ -291,7 +297,7 @@
   }
 </script>
 
-<div class="playlists-view">
+<div class="playlists-view" bind:this={viewEl}>
   {#if selectedPlaylist}
     <!-- Local playlist detail -->
     <div class="detail-header">
