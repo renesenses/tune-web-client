@@ -46,3 +46,28 @@ export function saveScrollPosition(view: string, scrollTop: number) {
 export function getScrollPosition(view: string): number {
   return scrollPositions.get(view) ?? 0;
 }
+
+// Intra-view list<->detail scroll preservation. Views that swap a list for a
+// detail inside their own scroll container (Collections, Playlists, …) save the
+// container's scrollTop under a key on open, and restore it on Back. The
+// restore polls a bounded number of frames until the re-rendered list is tall
+// enough to hold the offset (a single set clamps to 0 before layout).
+const detailScrolls = new Map<string, number>();
+export function saveDetailScroll(key: string, el: HTMLElement | null | undefined) {
+  if (el) detailScrolls.set(key, el.scrollTop);
+}
+export function restoreDetailScroll(key: string, el: HTMLElement | null | undefined) {
+  const target = detailScrolls.get(key) ?? 0;
+  if (!el) return;
+  if (target <= 0) { el.scrollTop = 0; return; }
+  let attempts = 0;
+  const tick = () => {
+    if (el.scrollHeight >= target + el.clientHeight || attempts >= 30) {
+      el.scrollTop = target;
+      return;
+    }
+    attempts += 1;
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
