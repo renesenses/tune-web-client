@@ -1400,6 +1400,20 @@
       return;
     }
     try {
+      // Respect the active quality/format filter: play only the matching tracks
+      // instead of the whole (mixed-quality) album. Sergio #910/#915 — with a
+      // FLAC / Hi-Res filter on, hitting play on an album card enqueued the
+      // album's MP3 / 44.1 tracks too. getAlbumTracks applies the same
+      // server-side filter the album detail uses. No filter (or empty result)
+      // → the fast album_id path (whole album), unchanged.
+      if (albumQualityFilter || albumFormatFilter) {
+        const tracks = await api.getAlbumTracks(albumId, albumQualityFilter, albumFormatFilter);
+        const ids = tracks.map(t => t.id).filter(Boolean) as number[];
+        if (ids.length > 0) {
+          await playAndSync(zone.id, { track_ids: ids });
+          return;
+        }
+      }
       await playAndSync(zone.id, { album_id: albumId });
     } catch (e) {
       console.error('Play album error:', e);
