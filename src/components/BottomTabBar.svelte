@@ -26,6 +26,11 @@
   ];
 
   const moreItems: { view: View; label: string; path: string }[] = [
+    // Zone manager: on compact/mobile the sidebar is hidden, so without this the
+    // zone manager had no nav entry at all — you could neither reach it nor leave
+    // it consistently (Elie, "sans barre à gauche"). Now it's a first-class item
+    // in the "Plus" drawer.
+    { view: 'zonemanager', label: 'nav.zonemanager', path: 'M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M9 12a1 1 0 11-2 0 1 1 0 012 0z' },
     { view: 'favorites', label: 'nav.favorites', path: 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z' },
     { view: 'playlists', label: 'nav.playlists', path: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
     { view: 'radios', label: 'nav.radios', path: 'M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728M9.172 15.828a5 5 0 010-7.656m5.656 0a5 5 0 010 7.656M12 12h.01' },
