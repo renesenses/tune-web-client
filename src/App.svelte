@@ -431,6 +431,31 @@ import AlarmsView from './components/AlarmsView.svelte';
     let _pushingState = false;
     let _viewInitialized = false;
     let _previousViewForScroll: string | null = null;
+
+    // Restore a view's saved scroll once its content is tall enough to hold it.
+    // A single rAF fires before the newly-shown view has laid out, so scrollTop
+    // clamps to 0 and the view lands at the top instead of where the user left
+    // it. Poll a bounded number of frames until the height is ready. Used on
+    // both sidebar navigation and browser/mouse back so "Back" returns to the
+    // same screen at the same position.
+    const restoreScrollWhenReady = (view: string) => {
+      const target = getScrollPosition(view);
+      const mainEl = () => document.querySelector('.main-content') as HTMLElement | null;
+      if (target <= 0) { const el = mainEl(); if (el) el.scrollTop = 0; return; }
+      let attempts = 0;
+      const tick = () => {
+        const el = mainEl();
+        if (!el) return;
+        if (el.scrollHeight >= target + el.clientHeight || attempts >= 30) {
+          el.scrollTop = target;
+          return;
+        }
+        attempts += 1;
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+
     activeView.subscribe(view => {
       if (!_pushingState && typeof window !== 'undefined') {
         // Save scroll position of the view we're leaving
@@ -453,11 +478,9 @@ import AlarmsView from './components/AlarmsView.svelte';
           window.history.pushState(ctx, '', `#${view}`);
         }
 
-        // Restore scroll position of the view we're entering
-        requestAnimationFrame(() => {
-          const mainEl = document.querySelector('.main-content');
-          if (mainEl) mainEl.scrollTop = getScrollPosition(view);
-        });
+        // Restore scroll position of the view we're entering (bounded poll so
+        // it survives the view's async render — a single rAF clamps to 0).
+        restoreScrollWhenReady(view);
       }
     });
 
@@ -511,11 +534,17 @@ import AlarmsView from './components/AlarmsView.svelte';
     window.addEventListener('popstate', (e) => {
       const ctx = e.state;
       _pushingState = true;
+      // Save the scroll of the view we're leaving so a later forward/back keeps it.
+      if (_previousViewForScroll) {
+        const leaving = document.querySelector('.main-content') as HTMLElement | null;
+        if (leaving) saveScrollPosition(_previousViewForScroll, leaving.scrollTop);
+      }
       if (ctx?.view) {
         activeView.set(ctx.view);
         if (ctx.view === 'library') {
           if (ctx.tab) libraryTab.set(ctx.tab);
         }
+        _previousViewForScroll = ctx.view;
       }
       // Always reconcile detail state: if the history entry has no albumId/artistId
       // (or state is null, e.g. Safari initial entry), clear any active detail view.
@@ -524,6 +553,11 @@ import AlarmsView from './components/AlarmsView.svelte';
       if (!ctx?.albumId) selectedAlbum.set(null);
       if (!ctx?.artistId) selectedArtist.set(null);
       _pushingState = false;
+      // The activeView subscriber is skipped while _pushingState is true, so
+      // restore the target view's scroll here too — otherwise browser/mouse
+      // back lands at the top. Library owns its own intra-view (album/artist
+      // detail) scroll restoration, so leave it be to avoid a double-restore.
+      if (ctx?.view && ctx.view !== 'library') restoreScrollWhenReady(ctx.view);
     });
 
     connectionState.set('connecting');
