@@ -221,7 +221,7 @@
                   {/if}
                   <div class="col-info">
                     <span class="col-name">{col.name}</span>
-                    <span class="col-meta">{col.album_count ?? 0} albums</span>
+                    <span class="col-meta">{col.album_ids?.length ?? col.album_count ?? 0} albums</span>
                   </div>
                   <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
                 </button>
