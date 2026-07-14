@@ -4,7 +4,7 @@
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
-  import { activeView, listResetNonce } from '../lib/stores/navigation';
+  import { activeView, listResetNonce, saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
   import AlbumArt from './AlbumArt.svelte';
   import type { Album } from '../lib/types';
   import SmartCollectionsView from './SmartCollectionsView.svelte';
@@ -17,6 +17,15 @@
   let selectedCollection: any = $state(null);
   let collectionAlbums: any[] = $state([]);
   let detailLoading = $state(false);
+  // Scroll container for the manual-collections tab; used to restore the list
+  // scroll position when returning from a collection's detail (Bertrand).
+  let manualTabEl = $state<HTMLDivElement | null>(null);
+
+  function backToCollectionsList() {
+    selectedCollection = null;
+    collectionAlbums = [];
+    restoreDetailScroll('collections', manualTabEl);
+  }
 
   // Clicking the Collections nav entry (even while viewing a collection) resets
   // to the list (Elie).
@@ -87,6 +96,8 @@
   });
 
   async function selectCollection(col: any) {
+    // Remember the list scroll so Back returns to the same position.
+    saveDetailScroll('collections', manualTabEl);
     selectedCollection = col;
     detailLoading = true;
     try {
@@ -140,10 +151,10 @@
       <SmartCollectionsView />
     </div>
   {:else}
-    <div class="tab-content">
+    <div class="tab-content" bind:this={manualTabEl}>
       {#if selectedCollection}
         <div class="detail-header">
-          <button class="back-btn" onclick={() => { selectedCollection = null; collectionAlbums = []; }}>
+          <button class="back-btn" onclick={backToCollectionsList}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
             {$t('common.back')}
           </button>
