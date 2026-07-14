@@ -28,10 +28,14 @@
   }
 
   // Clicking the Collections nav entry (even while viewing a collection) resets
-  // to the list (Elie).
+  // to the list (Elie) and reloads it, so the per-collection album counts pick
+  // up albums added elsewhere (from the album detail view) — otherwise the list
+  // kept a stale album_ids and showed "0 albums" while the collection actually
+  // contained one (Bilou).
   $effect(() => {
     $listResetNonce;
     selectedCollection = null;
+    if (activeTab === 'manual') loadCollections();
   });
 
   let showCreate = $state(false);
