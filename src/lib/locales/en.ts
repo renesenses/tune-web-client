@@ -1300,6 +1300,8 @@ export default {
   "settings.writeTagsStarted": "Writing tags to files started (missing fields only)...",
   "settings.writeTags": "Write tags to files",
   "settings.enrichArtistImages": "Enrich artist images",
+  "settings.forceRefetchArtistImages": "Force re-fetch",
+  "settings.forceRefetchArtistImagesHint": "Re-downloads images for ALL artists (mozaiklabs + external sources), even those already marked as having an image. Use if some images don't show up.",
   "settings.enrichArtistImagesStarted": "Artist image enrichment started…",
   "settings.autoEnrichPremiumNote": "Automatic enrichment after a scan is a Premium feature. The buttons above run it manually for everyone. Artist images use Discogs/Last.fm by name when an artist has no MusicBrainz ID.",
   "settings.displayedMetadataFields": "Displayed metadata fields",

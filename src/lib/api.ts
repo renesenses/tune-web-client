@@ -2555,6 +2555,16 @@ export function enrichArtistImages() {
   );
 }
 
+// Force re-fetch of ALL artist images (ignores the "already has an image"
+// guard) — for libraries where image_path is set to stale/broken entries that
+// never render, so the normal pass skips them (Fabien).
+export function forceRefetchArtistImages() {
+  return fetchJSON<{ status: string; artists_with_mbid?: number }>(
+    `${BASE}/library/artwork/enrich-artists/force`,
+    { method: 'POST' }
+  );
+}
+
 // YouTube playback: managed yt-dlp helper (opt-in). YouTube blocked Tune's
 // native extraction server-side, so playback goes through yt-dlp.
 export function getYoutubeStatus() {
