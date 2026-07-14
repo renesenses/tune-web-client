@@ -149,16 +149,43 @@
     }
   }
 
+  // Resolve a local track's id from its title+artist. The dashboard endpoint
+  // returns track_id:null for local top-tracks (history rows aren't joined back
+  // to a live track id), so without this a click on a local top-track resolves
+  // to neither a track_id nor a streaming source and silently does nothing.
+  async function resolveLocalTrackId(title: string, artist: string): Promise<number | null> {
+    if (!title) return null;
+    try {
+      const results = await api.searchLibrary(title, 20);
+      const norm = (s: string) => (s || '').toLowerCase();
+      const hit =
+        results.tracks?.find((t: any) => norm(t.title) === norm(title) && norm(t.artist_name) === norm(artist))
+        || results.tracks?.find((t: any) => norm(t.title) === norm(title))
+        || results.tracks?.find((t: any) => norm(t.title).includes(norm(title)));
+      return hit?.id ?? null;
+    } catch { return null; }
+  }
+
   // Dashboard top items may be streaming (Qobuz/Tidal/YouTube) with no local
   // id: local library navigation/search silently fails for those. Play them
   // directly via source+source_id instead so the click always does something.
-  async function playTopTrack(tk: { track_id: number | null; source?: string | null; source_id?: string | null }) {
+  async function playTopTrack(tk: { track_id: number | null; title?: string; artist_name?: string; source?: string | null; source_id?: string | null }) {
     if (tk.track_id) { await playTrack(tk.track_id); return; }
+    // Local top-track with no resolved id: find it by title+artist and play.
+    if (!tk.source || tk.source === 'local') {
+      const id = await resolveLocalTrackId(tk.title ?? '', tk.artist_name ?? '');
+      if (id) { await playTrack(id); return; }
+    }
     await playStreamingItem(tk.source, tk.source_id);
   }
 
   async function openTopTrack(tk: { track_id: number | null; title: string; artist_name: string; source?: string | null; source_id?: string | null }) {
     if (tk.track_id) { await openTrack(tk.track_id, tk.title, tk.artist_name); return; }
+    // Local top-track with no resolved id: resolve then open its detail.
+    if (!tk.source || tk.source === 'local') {
+      const id = await resolveLocalTrackId(tk.title, tk.artist_name);
+      if (id) { await openTrack(id, tk.title, tk.artist_name); return; }
+    }
     await playStreamingItem(tk.source, tk.source_id);
   }
 
