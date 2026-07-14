@@ -216,7 +216,16 @@
   async function playTrack(trackId: number) {
     if (!zone?.id) return;
     try {
-      await playAndSync(zone.id, { track_id: trackId });
+      // Play the whole playlist starting at the clicked track so playback
+      // auto-advances through the rest (Elie). Sending a lone track_id built a
+      // 1-entry queue that stopped after this track.
+      const idx = playlistTracks.findIndex(t => t.id === trackId);
+      if (idx >= 0) {
+        const ids = playlistTracks.slice(idx).map(t => t.id).filter(Boolean) as number[];
+        await playAndSync(zone.id, { track_ids: ids });
+      } else {
+        await playAndSync(zone.id, { track_id: trackId });
+      }
     } catch (e) {
       console.error('Play track error:', e);
     }
