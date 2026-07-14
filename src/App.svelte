@@ -87,13 +87,16 @@ import AlarmsView from './components/AlarmsView.svelte';
   // onMount → ReferenceError in onDestroy that blanked the app on teardown/HMR).
   let unsubZoneForPolling: (() => void) | null = null;
   let scanIndicator = $state(false);
+  // Background enrichment tasks (artwork, artist images, bios, metadata) in
+  // progress — shown as an indicator so long startup tasks aren't invisible.
+  let backgroundTasks = $state<{ id: string; label: string; kind: string }[]>([]);
   let playlistModalTrack = $state<Track | null>(null);
   let showOnboarding = $state(false);
   let onboardingChecked = $state(false);
   let showWhatsNew = $state(false);
 
   // Status banner state
-  type BannerStatus = 'idle' | 'scan' | 'streaming' | 'ready';
+  type BannerStatus = 'idle' | 'scan' | 'streaming' | 'ready' | 'enrichment';
   let bannerStatus = $state<BannerStatus>('idle');
   let bannerMessage = $state('');
   let bannerFadeout = $state(false);
@@ -119,6 +122,20 @@ import AlarmsView from './components/AlarmsView.svelte';
         bannerFadeTimer = null;
       }, 600);
     }, 1500);
+  }
+
+  // Reflect the current background enrichment tasks in the status banner.
+  // Scan takes priority (its own banner); enrichment only shows when no scan is
+  // running, and clears to "Prêt" when the last task finishes.
+  function applyEnrichmentBanner() {
+    if (scanIndicator) return; // don't clobber the scan banner
+    if (backgroundTasks.length > 0) {
+      const first = backgroundTasks[0]?.label ?? 'Enrichissement en cours…';
+      const extra = backgroundTasks.length > 1 ? ` (+${backgroundTasks.length - 1})` : '';
+      showBanner('enrichment', `${first}${extra}`);
+    } else if (bannerStatus === 'enrichment') {
+      showReadyBanner();
+    }
   }
 
   // Kiosk mode: ?kiosk=true forces NowPlaying view on small touchscreen
@@ -569,6 +586,11 @@ import AlarmsView from './components/AlarmsView.svelte';
     loadLicense();
     checkOnboarding();
     checkWhatsNew();
+    // Initial background-tasks state (in case enrichment is already running at
+    // load); live updates then arrive over the WebSocket.
+    api.getBackgroundTasks()
+      .then((r) => { backgroundTasks = r?.tasks ?? []; applyEnrichmentBanner(); })
+      .catch(() => {});
 
     // Keep polling aware of the active zone so it can fetch the queue
     unsubZoneForPolling = currentZoneId.subscribe((zoneId) => {
@@ -953,6 +975,14 @@ import AlarmsView from './components/AlarmsView.svelte';
         return;
       }
 
+      // Background enrichment tasks (artwork, artist images, bios, metadata)
+      if (type === 'system.background_tasks') {
+        const tasks = Array.isArray(event.data?.tasks) ? event.data.tasks : [];
+        backgroundTasks = tasks;
+        applyEnrichmentBanner();
+        return;
+      }
+
       // Streaming auth events
       if (type === 'streaming.auth.success' && event.data?.service) {
         const service = (event.data.service as string).toLowerCase();
@@ -1029,8 +1059,8 @@ import AlarmsView from './components/AlarmsView.svelte';
     {/if}
 
     {#if bannerStatus !== 'idle'}
-      <div class="status-banner" class:status-banner--scan={bannerStatus === 'scan'} class:status-banner--streaming={bannerStatus === 'streaming'} class:status-banner--ready={bannerStatus === 'ready'} class:status-banner--fadeout={bannerFadeout}>
-        {#if bannerStatus === 'scan' || bannerStatus === 'streaming'}
+      <div class="status-banner" class:status-banner--scan={bannerStatus === 'scan'} class:status-banner--streaming={bannerStatus === 'streaming'} class:status-banner--enrichment={bannerStatus === 'enrichment'} class:status-banner--ready={bannerStatus === 'ready'} class:status-banner--fadeout={bannerFadeout}>
+        {#if bannerStatus === 'scan' || bannerStatus === 'streaming' || bannerStatus === 'enrichment'}
           <span class="status-banner-spinner"></span>
         {:else if bannerStatus === 'ready'}
           <svg class="status-banner-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1257,6 +1287,12 @@ import AlarmsView from './components/AlarmsView.svelte';
     background: rgba(34, 197, 94, 0.1);
     color: #4ade80;
     border-bottom-color: rgba(34, 197, 94, 0.2);
+  }
+
+  .status-banner--enrichment {
+    background: rgba(168, 85, 247, 0.12);
+    color: #c084fc;
+    border-bottom-color: rgba(168, 85, 247, 0.22);
   }
 
   .status-banner--ready {
