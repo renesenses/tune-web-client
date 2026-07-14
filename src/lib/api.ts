@@ -2546,6 +2546,25 @@ export function enrichArtistImages() {
   );
 }
 
+// Live progress for the artist-image enrichment. `result` mirrors the
+// server-side status setting: { status: 'running'|'done', phase: 'mbid'|'images'
+// |'done', processed, total, matched?, enriched? }. Phase 'mbid' is the slow
+// MusicBrainz matching pass (~1 req/s), so a big library sits there for minutes
+// before any image appears — the UI polls this to show a real bar (Fabien).
+export function enrichArtistImagesStatus() {
+  return fetchJSON<{
+    result: {
+      status?: string;
+      phase?: string;
+      processed?: number;
+      total?: number;
+      matched?: number;
+      enriched?: number;
+    } | null;
+    artists_without_image?: number;
+  }>(`${BASE}/library/artwork/enrich-artists/status`);
+}
+
 // YouTube playback: managed yt-dlp helper (opt-in). YouTube blocked Tune's
 // native extraction server-side, so playback goes through yt-dlp.
 export function getYoutubeStatus() {
