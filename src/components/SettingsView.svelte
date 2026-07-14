@@ -34,34 +34,6 @@
   let loading = $state(true);
   let artworkScanning = $state(false);
   let enrichMsg = $state('');
-  // Live artist-image enrichment progress (Fabien: the run looked frozen because
-  // the slow MusicBrainz-matching phase showed nothing for many minutes).
-  let artistEnrich = $state<{ running: boolean; phase?: string; processed?: number; total?: number; enriched?: number } | null>(null);
-  let artistEnrichPolling = false;
-  async function pollArtistEnrich() {
-    if (artistEnrichPolling) return;
-    artistEnrichPolling = true;
-    try {
-      let iterations = 0;
-      while (iterations++ < 1200) {
-        let res;
-        try { res = await api.enrichArtistImagesStatus(); } catch { break; }
-        const r = res?.result;
-        if (r && r.status === 'running') {
-          artistEnrich = { running: true, phase: r.phase, processed: r.processed, total: r.total, enriched: r.enriched };
-        } else {
-          artistEnrich = r ? { running: false, processed: r.processed, total: r.total, enriched: r.enriched } : null;
-          break;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-      }
-    } finally {
-      artistEnrichPolling = false;
-      if (artistEnrich && !artistEnrich.running) {
-        setTimeout(() => { artistEnrich = null; }, 10000);
-      }
-    }
-  }
   let audioDevices = $state<LocalAudioDevice[]>([]);
   let artworkProgress: { current: number; total: number; found: number } | null = $state(null);
   let musicRoots = $state<BrowseRootEntry[]>([]);
@@ -2747,24 +2719,9 @@
         </button>
       </div>
       <div class="settings-actions" style="margin-top: 12px;">
-        <button class="action-btn" onclick={async () => { try { await api.enrichArtistImages(); enrichMsg = $t('settings.enrichArtistImagesStarted'); } catch { enrichMsg = $t('settings.enrichArtistImagesStarted'); } setTimeout(() => enrichMsg = '', 5000); pollArtistEnrich(); }}>
+        <button class="action-btn" onclick={async () => { try { await api.enrichArtistImages(); enrichMsg = $t('settings.enrichArtistImagesStarted'); } catch { enrichMsg = $t('settings.enrichArtistImagesStarted'); } setTimeout(() => enrichMsg = '', 5000); }}>
           {$t('settings.enrichArtistImages')}
         </button>
-        {#if artistEnrich}
-          <div class="enrich-progress">
-            {#if artistEnrich.running}
-              <span class="enrich-phase">{artistEnrich.phase === 'images' ? 'Images' : 'MusicBrainz'}</span>
-              {#if artistEnrich.total}
-                <div class="enrich-bar"><div class="enrich-bar-fill" style="width:{Math.min(100, Math.round(100 * (artistEnrich.processed ?? 0) / (artistEnrich.total || 1)))}%"></div></div>
-                <span class="enrich-count">{artistEnrich.processed ?? 0} / {artistEnrich.total}</span>
-              {:else}
-                <span class="enrich-count">…</span>
-              {/if}
-            {:else}
-              <span class="enrich-phase enrich-done">✓ {artistEnrich.enriched ?? 0}</span>
-            {/if}
-          </div>
-        {/if}
       </div>
       <p class="settings-note">{$t('settings.autoEnrichPremiumNote')}</p>
     </section>
@@ -3869,41 +3826,6 @@
 {/if}
 
 <style>
-  .enrich-progress {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 10px;
-    font-size: 13px;
-    color: var(--tune-text-secondary);
-  }
-  .enrich-phase {
-    font-weight: 600;
-    color: var(--tune-text);
-    min-width: 92px;
-  }
-  .enrich-phase.enrich-done {
-    color: #22c55e;
-  }
-  .enrich-bar {
-    flex: 1;
-    max-width: 220px;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--tune-grey2, rgba(128, 128, 128, 0.25));
-    overflow: hidden;
-  }
-  .enrich-bar-fill {
-    height: 100%;
-    background: var(--tune-accent);
-    border-radius: 3px;
-    transition: width 0.4s ease-out;
-  }
-  .enrich-count {
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-
   .settings-view {
     height: 100%;
     display: flex;

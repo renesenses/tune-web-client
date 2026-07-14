@@ -89,7 +89,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   let scanIndicator = $state(false);
   // Background enrichment tasks (artwork, artist images, bios, metadata) in
   // progress — shown as an indicator so long startup tasks aren't invisible.
-  let backgroundTasks = $state<{ id: string; label: string; kind: string }[]>([]);
+  let backgroundTasks = $state<{ id: string; label: string; kind: string; progress?: { processed: number; total: number; detail: string } }[]>([]);
   let playlistModalTrack = $state<Track | null>(null);
   let showOnboarding = $state(false);
   let onboardingChecked = $state(false);
@@ -130,9 +130,15 @@ import AlarmsView from './components/AlarmsView.svelte';
   function applyEnrichmentBanner() {
     if (scanIndicator) return; // don't clobber the scan banner
     if (backgroundTasks.length > 0) {
-      const first = backgroundTasks[0]?.label ?? 'Enrichissement en cours…';
+      const t = backgroundTasks[0];
+      const first = t?.label ?? 'Enrichissement en cours…';
+      // Show granular progress when the task reports it (e.g. artist images:
+      // "MusicBrainz 340/1183"), grafted from the enrichment phases.
+      const prog = t?.progress && t.progress.total > 0
+        ? ` — ${t.progress.detail} ${t.progress.processed}/${t.progress.total}`
+        : '';
       const extra = backgroundTasks.length > 1 ? ` (+${backgroundTasks.length - 1})` : '';
-      showBanner('enrichment', `${first}${extra}`);
+      showBanner('enrichment', `${first}${prog}${extra}`);
     } else if (bannerStatus === 'enrichment') {
       showReadyBanner();
     }
