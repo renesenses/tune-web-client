@@ -1964,6 +1964,7 @@
           {:else}
             <h2 class="artist-detail-name">
               {$selectedArtist.name}
+              <span class="artist-detail-heart"><HeartButton artistId={$selectedArtist.id} size={20} /></span>
               <button class="artist-edit-btn" onclick={() => showArtistEdit = true} title={$tr('library.editArtist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
               </button>
@@ -2436,12 +2437,15 @@
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="artist-card" onclick={() => selectArtistDetail(artist)}>
-            <div class="artist-card-avatar">
-              {#if artist.image_path}
-                <AlbumArt coverPath={artist.image_path} size={100} alt={artist.name} round />
-              {:else}
-                {initials(artist.name)}
-              {/if}
+            <div class="artist-card-avatar-wrap">
+              <div class="artist-card-avatar">
+                {#if artist.image_path}
+                  <AlbumArt coverPath={artist.image_path} size={100} alt={artist.name} round />
+                {:else}
+                  {initials(artist.name)}
+                {/if}
+              </div>
+              <span class="artist-heart"><HeartButton artistId={artist.id} size={14} /></span>
             </div>
             <span class="artist-card-name truncate">{artist.name}</span>
           </div>
@@ -3884,6 +3888,48 @@
 
   .artist-card:hover {
     transform: translateY(-2px);
+  }
+
+  .artist-card-avatar-wrap {
+    position: relative;
+    display: flex;
+  }
+
+  /* Heart sits in a non-clipped wrapper (the avatar itself is overflow:hidden
+     + round, which would clip a corner-anchored heart). */
+  .artist-heart {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    z-index: 2;
+  }
+
+  .artist-heart :global(.heart-btn) {
+    opacity: 0;
+    color: white;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  }
+
+  .artist-heart :global(.heart-btn.active) {
+    opacity: 1;
+    color: #ef4444;
+  }
+
+  .artist-card:hover .artist-heart :global(.heart-btn) {
+    opacity: 0.85;
+  }
+
+  .artist-heart :global(.heart-btn:hover) {
+    opacity: 1 !important;
+  }
+
+  .artist-detail-heart {
+    display: inline-flex;
+    vertical-align: middle;
+  }
+
+  .artist-detail-heart :global(.heart-btn.active) {
+    color: #ef4444;
   }
 
   .artist-card-avatar {
