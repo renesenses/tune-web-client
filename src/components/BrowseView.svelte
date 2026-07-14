@@ -5,6 +5,9 @@
   import AlbumArt from './AlbumArt.svelte';
   import type { BrowseRootEntry, BrowseDirectory, BrowseResult, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
+  import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
+
+  let browseEl = $state<HTMLDivElement | null>(null);
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -59,6 +62,10 @@
   }
 
   async function navigateTo(path: string) {
+    // Hierarchical browser: remember the folder we're leaving (keyed by its
+    // path) so going back up returns to the same scroll position, then restore
+    // the folder we enter (top for a folder we've never opened).
+    saveDetailScroll('browse:' + (currentPath ?? 'root'), browseEl);
     loading = true;
     currentPath = path;
     try {
@@ -67,11 +74,14 @@
       console.error('Browse directory error:', e);
     }
     loading = false;
+    restoreDetailScroll('browse:' + path, browseEl);
   }
 
   function goToRoots() {
+    saveDetailScroll('browse:' + (currentPath ?? 'root'), browseEl);
     browseResult = null;
     currentPath = null;
+    restoreDetailScroll('browse:root', browseEl);
   }
 
   function goUp() {
@@ -152,7 +162,7 @@
   loadRoots();
 </script>
 
-<div class="browse-view">
+<div class="browse-view" bind:this={browseEl}>
   {#if browseResult}
     <!-- Directory view -->
     <div class="browse-header">
