@@ -4317,9 +4317,17 @@
     margin: var(--space-md) 0 var(--space-sm);
   }
 
+  /* Grid on wide screens (desktop) instead of a single vertical column: the
+     branch cards tile in 2-3 columns, which reads better on large displays and
+     keeps the genre name close to its album count. On narrow screens auto-fill
+     collapses to one column. Both this and the orphan `.genres-grid` below are
+     grids, so the load-order flip (orphans render first, then the tree groups
+     them) no longer swaps a grid for a vertical list. */
   .branches {
-    display: flex; flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: var(--space-md);
+    align-items: start;
     margin-bottom: var(--space-xl);
   }
   .branch-row {
@@ -4329,8 +4337,12 @@
     padding: var(--space-md) var(--space-lg);
     display: flex; flex-direction: column; gap: var(--space-sm);
   }
+  /* Full-width button (whole top strip clickable) with the count sitting right
+     after the name instead of pushed to the far edge — on wide screens
+     `space-between` left the count marooned across the card from the name. */
   .branch-card {
-    display: flex; justify-content: space-between; align-items: baseline;
+    display: flex; justify-content: flex-start; align-items: baseline;
+    gap: var(--space-sm); width: 100%;
     background: none; border: none; padding: 0;
     color: var(--tune-text); cursor: pointer; text-align: left;
   }
