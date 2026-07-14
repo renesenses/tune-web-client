@@ -2722,6 +2722,9 @@
         <button class="action-btn" onclick={async () => { try { await api.enrichArtistImages(); enrichMsg = $t('settings.enrichArtistImagesStarted'); } catch { enrichMsg = $t('settings.enrichArtistImagesStarted'); } setTimeout(() => enrichMsg = '', 5000); }}>
           {$t('settings.enrichArtistImages')}
         </button>
+        <button class="action-btn" style="margin-left: 8px;" title={$t('settings.forceRefetchArtistImagesHint')} onclick={async () => { try { await api.forceRefetchArtistImages(); enrichMsg = $t('settings.enrichArtistImagesStarted'); } catch { enrichMsg = $t('settings.enrichArtistImagesStarted'); } setTimeout(() => enrichMsg = '', 5000); }}>
+          {$t('settings.forceRefetchArtistImages')}
+        </button>
       </div>
       <p class="settings-note">{$t('settings.autoEnrichPremiumNote')}</p>
     </section>
