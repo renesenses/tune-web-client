@@ -94,11 +94,17 @@
         api.getMetadataFieldSettings().catch(() => ({ categories: [] })),
         track.id ? api.getTrackExtendedMetadata(track.id).catch(() => ({})) : Promise.resolve({}),
       ]);
-      extCategories = fieldsResult.categories ?? [];
+      // Normalize so every category has a `fields` array — a category returned
+      // without one otherwise crashed the modal render (cat.fields.filter /
+      // {#each cat.fields}), so editing a track's fields "planted" (Bilou).
+      extCategories = (fieldsResult.categories ?? []).map((c: MetadataCategory) => ({
+        ...c,
+        fields: c.fields ?? [],
+      }));
       extOriginal = { ...metaResult };
       // Pre-fill all enabled keys so bind:value works on fresh fields
       const vals: Record<string, string> = {};
-      for (const cat of fieldsResult.categories ?? []) {
+      for (const cat of extCategories) {
         for (const f of cat.fields) {
           if (f.enabled) vals[f.key] = metaResult[f.key] ?? '';
         }
