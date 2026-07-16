@@ -74,6 +74,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import AddShortcutButton from './components/AddShortcutButton.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
   import { loadProfiles } from './lib/stores/profile';
+  import ProfilePicker from './components/ProfilePicker.svelte';
   import { loadLicense } from './lib/stores/license';
   import { notifications } from './lib/stores/notifications';
   import { healthStatus } from './lib/stores/health';
@@ -1050,6 +1051,8 @@ import AlarmsView from './components/AlarmsView.svelte';
     if (bannerFadeTimer) clearTimeout(bannerFadeTimer);
   });
 </script>
+
+<ProfilePicker />
 
 <div class="app-layout" class:kiosk-mode={isKiosk}>
   {#if !isKiosk}

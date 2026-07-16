@@ -16,6 +16,7 @@
   import SmbWizard from './SmbWizard.svelte';
   import FolderWizard from './FolderWizard.svelte';
   import MultiroomSettings from './MultiroomSettings.svelte';
+  import ProfilesSettings from './ProfilesSettings.svelte';
 
   const CLIENT_VERSION = __APP_VERSION__;
   let serverVersion = $state<string | null>(null);
@@ -1743,6 +1744,12 @@
       </svg>
       {$t('settings.tabMultiroom')}
     </button>
+    <button class="settings-tab" class:active={settingsTab === 'profiles'} onclick={() => settingsTab = 'profiles'}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+      {$t('settings.tabProfiles')}
+    </button>
   </div>
 
   {#if loading}
@@ -1754,6 +1761,11 @@
     {#if settingsTab === 'multiroom'}
     <!-- Multi-room settings -->
     <MultiroomSettings />
+    {/if}
+
+    {#if settingsTab === 'profiles'}
+    <!-- User profiles management -->
+    <ProfilesSettings />
     {/if}
 
     {#if settingsTab === 'network'}

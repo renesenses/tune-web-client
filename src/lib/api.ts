@@ -15,6 +15,23 @@ const acceptLang = (): string => {
   }
 };
 
+/** Active profile id, read straight from localStorage (same key the profile
+ *  store persists to) to avoid a circular import with stores/profile. Sent as
+ *  `X-Profile-Id` so the server scopes per-profile data (playlists, favorites,
+ *  theme, display columns…) to the profile this client has selected. */
+function profileHeader(): Record<string, string> {
+  try {
+    const id = localStorage.getItem('tune-profile-id');
+    if (id) return { 'X-Profile-Id': id };
+  } catch { /* ignore */ }
+  return {};
+}
+
+/** Shared request headers: Accept, Accept-Language and the active profile. */
+function baseHeaders(): Record<string, string> {
+  return { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
+}
+
 let _lastNetworkError = 0;
 function showNetworkError() {
   const now = Date.now();
@@ -57,7 +74,7 @@ function stripDoubleBase(path: string): string {
 // Generic helpers for radio favorites and custom endpoints
 export async function apiFetch(path: string): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
+  const headers: Record<string, string> = baseHeaders();
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { headers });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
@@ -71,7 +88,7 @@ export async function apiFetch(path: string): Promise<any> {
 
 export async function apiPost(path: string, body?: any): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
+  const headers: Record<string, string> = baseHeaders();
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
@@ -90,7 +107,7 @@ export async function apiPost(path: string, body?: any): Promise<any> {
 
 export async function apiPatch(path: string, body?: any): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
+  const headers: Record<string, string> = baseHeaders();
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
@@ -109,7 +126,7 @@ export async function apiPatch(path: string, body?: any): Promise<any> {
 
 export async function apiDelete(path: string): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
+  const headers: Record<string, string> = baseHeaders();
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { method: 'DELETE', headers });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
@@ -138,6 +155,7 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       'Accept': 'application/json',
       'Accept-Language': acceptLang(),
       'Content-Type': 'application/json',
+      ...profileHeader(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     response = await fetch(url, {
@@ -198,6 +216,7 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
       'Accept': 'application/json',
       'Accept-Language': acceptLang(),
       'Content-Type': 'application/json',
+      ...profileHeader(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     response = await fetch(url, {
