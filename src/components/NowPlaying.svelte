@@ -991,7 +991,12 @@
           {#if !isRadio && displayTrack.album_title}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <p class="track-album truncate clickable" onclick={() => navigateToAlbum(displayTrack.album_id, displayTrack.album_title)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
+            <p class="track-album truncate clickable" onclick={() => navigateToAlbum(displayTrack.album_id, displayTrack.album_title)}>{displayTrack.album_title}</p>
+          {/if}
+          {#if !isRadio && displayTrack.year}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <p class="track-year-line clickable" onclick={() => navigateToYear(displayTrack.year!)}>{displayTrack.year}</p>
           {/if}
           {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth)}
             <p class="track-tech-info">
@@ -1801,6 +1806,24 @@
   }
 
   .track-album.clickable:hover {
+    color: var(--tune-accent);
+    text-decoration: underline;
+  }
+
+  .track-year-line {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text-muted);
+    margin-bottom: var(--space-xs);
+    opacity: 0.85;
+  }
+
+  .track-year-line.clickable {
+    cursor: pointer;
+    transition: color 0.15s ease-out;
+  }
+
+  .track-year-line.clickable:hover {
     color: var(--tune-accent);
     text-decoration: underline;
   }
