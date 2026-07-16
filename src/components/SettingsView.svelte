@@ -3195,6 +3195,16 @@
                     />
                     <span>{$t('settings.dlnaNativeFlac')}</span>
                   </label>
+                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
+                    <input
+                      type="checkbox"
+                      checked={z.alac_passthrough ?? false}
+                      onchange={async (e) => {
+                        await api.updateZoneAlacPassthrough(z.id, (e.target as HTMLInputElement).checked);
+                      }}
+                    />
+                    <span>{$t('settings.alacPassthrough')}</span>
+                  </label>
                 {/if}
               </div>
             </div>

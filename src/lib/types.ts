@@ -160,6 +160,7 @@ export interface Zone {
   /** DSD playback mode: auto, native, dop, pcm */
   dsd_mode?: string;
   dlna_native_flac?: boolean;
+  alac_passthrough?: boolean;
 }
 
 export interface DiscoveredDevice {
