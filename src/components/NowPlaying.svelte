@@ -1134,7 +1134,7 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div class="signal-path-card" onclick={(e) => e.stopPropagation()}>
                   <div class="sp-card-header">
-                    <h3>{$t('signal.title')} : <span class:sp-quality-good={zone.signal_path.bit_perfect} class:sp-quality-lossy={!zone.signal_path.bit_perfect}>{zone.signal_path.bit_perfect ? $t('signal.lossless') : $t('signal.lossy')}</span></h3>
+                    <h3>{$t('signal.title')} : <span class:sp-quality-good={zone.signal_path.lossless ?? zone.signal_path.bit_perfect} class:sp-quality-lossy={!(zone.signal_path.lossless ?? zone.signal_path.bit_perfect)}>{(zone.signal_path.lossless ?? zone.signal_path.bit_perfect) ? $t('signal.lossless') : $t('signal.lossy')}</span></h3>
                     <button class="sp-close" onclick={() => showSignalDetail = false}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                     </button>
