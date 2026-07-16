@@ -552,7 +552,7 @@
                   onclick={(e) => { if (zone?.signal_path) { e.stopPropagation(); showSignalPath = true; } }}
                   onkeydown={(e) => { if (zone?.signal_path && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); showSignalPath = true; } }}
                   title={hasTrackFormat ? formatQualityTooltip(displayTrack) : (zone?.signal_path?.summary ?? '')}
-                >{hasTrackFormat ? formatCompactQuality(displayTrack) : (spDetail || (zone?.signal_path?.bit_perfect ? 'Lossless' : 'Lossy'))}</span>
+                >{hasTrackFormat ? formatCompactQuality(displayTrack) : (spDetail || ((zone?.signal_path?.lossless ?? zone?.signal_path?.bit_perfect) ? 'Lossless' : 'Lossy'))}</span>
               {/if}
             {/if}
           </span>
@@ -857,7 +857,7 @@
   <div class="sp-overlay" onclick={() => showSignalPath = false} role="button" tabindex={0} aria-label="Close signal path">
     <div class="sp-card" onclick={(e) => e.stopPropagation()} role="dialog" aria-label="Signal path details">
       <div class="sp-header">
-        <h3>{$t('signal.title')}{#if zone?.signal_path} : <span class:sp-good={zone.signal_path.bit_perfect} class:sp-lossy={!zone.signal_path.bit_perfect}>{zone.signal_path.bit_perfect ? $t('signal.lossless') : $t('signal.lossy')}</span>{/if}</h3>
+        <h3>{$t('signal.title')}{#if zone?.signal_path} : <span class:sp-good={zone.signal_path.lossless ?? zone.signal_path.bit_perfect} class:sp-lossy={!(zone.signal_path.lossless ?? zone.signal_path.bit_perfect)}>{(zone.signal_path.lossless ?? zone.signal_path.bit_perfect) ? $t('signal.lossless') : $t('signal.lossy')}</span>{/if}</h3>
         <button class="sp-x" onclick={() => showSignalPath = false}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
