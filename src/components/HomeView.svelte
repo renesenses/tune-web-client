@@ -11,6 +11,7 @@
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
+  import HeartButton from './HeartButton.svelte';
   import type { Album, Track, Source, TopTrack, TopArtist } from '../lib/types';
 
   let activeStreamingServices = $derived(
@@ -788,6 +789,23 @@
             {/if}
             <ServiceBadge source={track.source} compact />
             <span class="play-count-badge">{track.plays}</span>
+            <span class="top-track-heart">
+              {#if track.source && track.source !== 'local' && track.source_id}
+                <HeartButton
+                  streaming={{
+                    itemType: 'track',
+                    service: track.source,
+                    serviceId: String(track.source_id),
+                    title: track.title,
+                    artist: track.artist_name ?? undefined,
+                    coverUrl: (track as any).cover_url ?? undefined,
+                  }}
+                  size={15}
+                />
+              {:else if track.track_id}
+                <HeartButton trackId={track.track_id} size={15} />
+              {/if}
+            </span>
           </div>
         {/each}
       </div>
