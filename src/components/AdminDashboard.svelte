@@ -11,7 +11,20 @@
   let loading = $state(true);
   let lastRefresh = $state<string>('');
 
+  // Only ever render the most recent errors. getAdminErrors() can return a very
+  // large backlog on a long-running server; rendering thousands of rows (each
+  // with a nested chip loop) blocks the main thread, and the 5s poll repeats it,
+  // freezing the UI (#1001 — F5 pour sortir). Cap the rendered list.
+  const MAX_ERRORS_SHOWN = 100;
+  let visibleErrors = $derived(errors.slice(0, MAX_ERRORS_SHOWN));
+
+  // Guard against overlapping fetches: if a refresh is still in flight when the
+  // 5s interval fires (slow endpoint / large payload), skip rather than pile up.
+  let fetching = false;
+
   async function fetchAll() {
+    if (fetching) return;
+    fetching = true;
     try {
       const [h, z, e, c, d] = await Promise.all([
         api.getAdminHealth(),
@@ -30,6 +43,7 @@
       console.error('Admin dashboard fetch error:', err);
     } finally {
       loading = false;
+      fetching = false;
     }
   }
 
@@ -238,12 +252,12 @@
 
     <!-- Errors Card -->
     <div class="card errors-card">
-      <h3>Recent Errors ({errors.length})</h3>
+      <h3>Recent Errors ({errors.length}{errors.length > MAX_ERRORS_SHOWN ? ` — showing latest ${MAX_ERRORS_SHOWN}` : ''})</h3>
       {#if errors.length === 0}
         <p class="empty">No recent errors</p>
       {:else}
         <div class="errors-log">
-          {#each errors as err}
+          {#each visibleErrors as err}
             <div class="error-row">
               <span class="error-time">{formatTs(err.ts)}</span>
               <span class="error-level" style="color: {levelColor(err.level)}">{err.level.toUpperCase()}</span>
