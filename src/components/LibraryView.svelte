@@ -775,6 +775,26 @@
     if (albumGridViewport) albumGridViewport.scrollTop = 0;
   });
 
+  // Restore the album-grid scroll position whenever we return from an album
+  // detail to the grid — by ANY route. The in-app back button (goBack) and the
+  // browser/mouse Back button both end up nulling `selectedAlbum` (history is
+  // owned by App.svelte's subscriber), but only goBack used to restore scroll,
+  // so mouse/navigator Back always landed at the top (#1024, Pierre). Keying off
+  // `selectedAlbum` becoming null covers both. Guard on !artist so navigating
+  // album → artist detail doesn't trigger a grid-scroll restore.
+  let prevHadAlbum = $state(false);
+  $effect(() => {
+    const hasAlbum = !!$selectedAlbum;
+    const hasArtist = !!$selectedArtist;
+    untrack(() => {
+      if (prevHadAlbum && !hasAlbum && !hasArtist && savedAlbumScrollTop > 0) {
+        restoringScroll = true;
+        restoreAlbumScrollWhenReady(savedAlbumScrollTop);
+      }
+      prevHadAlbum = hasAlbum;
+    });
+  });
+
   let albumFormats = $derived(
     [...new Set(searchFilteredAlbums.map(a => a.format).filter(Boolean))].sort() as string[]
   );
@@ -1335,10 +1355,11 @@
   }
 
   function goBack() {
-    const restoreAlbumScroll = savedAlbumScrollTop;
     const restoreArtistScroll = savedArtistScrollTop;
     const wasArtistTab = $libraryTab === 'artists';
-    restoringScroll = restoreAlbumScroll > 0;
+    // Album-grid scroll is restored by the `selectedAlbum → null` effect, which
+    // also covers the browser/mouse Back button (this in-app button is just one
+    // of the routes back to the grid — #1024).
     selectedAlbum.set(null);
     selectedArtist.set(null);
     albumTracks.set([]);
@@ -1348,9 +1369,6 @@
     artistMetadataError = false;
     artistMetadataLoading = false;
     window.history.back();
-    // Wait until the re-rendered album grid is tall enough before restoring
-    // scroll (a fixed 2-frame wait clamps to 0 on a large library — Pierre/#1024).
-    restoreAlbumScrollWhenReady(restoreAlbumScroll);
     if (wasArtistTab && restoreArtistScroll > 0) {
       // Poll until the re-rendered artist list is tall enough before restoring
       // scroll — a fixed 2-frame wait clamped to 0 on a large list (#870).
