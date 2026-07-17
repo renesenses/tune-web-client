@@ -5,20 +5,41 @@
     favoriteTrackIds,
     favoriteAlbumIds,
     favoriteArtistIds,
+    favoriteStreamingKeys,
+    streamingFavKey,
     loadProfiles,
   } from '../lib/stores/profile';
   import * as api from '../lib/api';
+
+  /** A streaming item (Qobuz/Tidal/…) to favorite, instead of a local id. */
+  interface StreamingItem {
+    itemType: 'track' | 'album' | 'artist';
+    service: string;
+    serviceId: string;
+    title?: string;
+    artist?: string;
+    album?: string;
+    coverUrl?: string;
+  }
 
   interface Props {
     trackId?: number | null;
     albumId?: number | null;
     artistId?: number | null;
+    /** Set for a streaming item; mutually exclusive with the local ids above. */
+    streaming?: StreamingItem | null;
     size?: number;
   }
-  let { trackId = null, albumId = null, artistId = null, size = 16 }: Props = $props();
+  let { trackId = null, albumId = null, artistId = null, streaming = null, size = 16 }: Props =
+    $props();
+
+  let streamKey = $derived(
+    streaming ? streamingFavKey(streaming.itemType, streaming.service, streaming.serviceId) : null,
+  );
 
   // Read membership from the in-memory sets — populated once per profile.
   let isFavorite = $derived.by(() => {
+    if (streamKey) return $favoriteStreamingKeys.has(streamKey);
     if (trackId)  return $favoriteTrackIds.has(trackId);
     if (albumId)  return $favoriteAlbumIds.has(albumId);
     if (artistId) return $favoriteArtistIds.has(artistId);
@@ -42,6 +63,38 @@
     if (!pid) { toggling = false; return; }
 
     const wasFav = isFavorite;
+
+    // Streaming item: profile-scoped streaming favorites (keyed by service/id),
+    // a separate store/API from the local numeric-id favorites below.
+    if (streaming && streamKey) {
+      const key = streamKey;
+      favoriteStreamingKeys.update((s) => { wasFav ? s.delete(key) : s.add(key); return s; });
+      try {
+        if (wasFav) {
+          await api.removeProfileStreamingFavorite(pid, {
+            item_type: streaming.itemType,
+            service: streaming.service,
+            service_id: streaming.serviceId,
+          });
+        } else {
+          await api.addProfileStreamingFavorite(pid, {
+            item_type: streaming.itemType,
+            service: streaming.service,
+            service_id: streaming.serviceId,
+            title: streaming.title,
+            artist: streaming.artist,
+            album: streaming.album,
+            cover_url: streaming.coverUrl,
+          });
+        }
+      } catch (e) {
+        favoriteStreamingKeys.update((s) => { wasFav ? s.add(key) : s.delete(key); return s; }); // revert
+        console.error('Toggle streaming favorite error:', e);
+      }
+      toggling = false;
+      return;
+    }
+
     // Optimistic update of the store so UI flips instantly.
     const params: { track_id?: number; album_id?: number; artist_id?: number } = {};
     if (trackId) params.track_id = trackId;
