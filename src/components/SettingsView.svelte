@@ -2682,6 +2682,83 @@
         {/if}
       {/if}
     </section>
+
+    <!-- Zone audio settings (DSD mode, max rate, DLNA/ALAC passthrough) -->
+    {#if $zones.length > 0}
+      <section class="settings-section">
+        <h3>{$t('settings.perZoneSettings')}</h3>
+        <p class="section-hint">{$t('settings.perZoneHint')}</p>
+        <div class="zone-settings-list">
+          {#each $zones as z (z.id)}
+            <div class="zone-setting-row">
+              <span class="zone-setting-name">{z.name}</span>
+              <div class="zone-setting-controls">
+                <label class="zone-setting-label">
+                  <span>DSD</span>
+                  <select
+                    class="zone-select"
+                    value={z.dsd_mode ?? 'auto'}
+                    onchange={async (e) => {
+                      const mode = (e.target as HTMLSelectElement).value;
+                      await api.updateZoneDsdMode(z.id, mode);
+                    }}
+                  >
+                    <option value="auto">Auto</option>
+                    <option value="native">{$t('settings.dsdNative')}</option>
+                    <option value="dop">DoP</option>
+                    <option value="pcm">{$t('settings.dsdPcm')}</option>
+                  </select>
+                </label>
+                <label class="zone-setting-label" title={$t('settings.maxSampleRateHint')}>
+                  <span>{$t('settings.maxSampleRate')}</span>
+                  <select
+                    class="zone-select"
+                    value={String(z.max_sample_rate ?? 0)}
+                    onchange={async (e) => {
+                      const v = Number((e.target as HTMLSelectElement).value);
+                      await api.updateZoneMaxSampleRate(z.id, v > 0 ? v : null);
+                    }}
+                  >
+                    <option value="0">{$t('settings.maxSampleRateNone')}</option>
+                    <option value="48000">48 kHz</option>
+                    <option value="88200">88.2 kHz</option>
+                    <option value="96000">96 kHz</option>
+                    <option value="176400">176.4 kHz</option>
+                    <option value="192000">192 kHz</option>
+                    <option value="352800">352.8 kHz</option>
+                    <option value="384000">384 kHz</option>
+                  </select>
+                </label>
+                {#if z.output_type === 'dlna'}
+                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaNativeFlacHint')}>
+                    <input
+                      type="checkbox"
+                      checked={z.dlna_native_flac ?? false}
+                      onchange={async (e) => {
+                        await api.updateZoneDlnaNativeFlac(z.id, (e.target as HTMLInputElement).checked);
+                      }}
+                    />
+                    <span>{$t('settings.dlnaNativeFlac')}</span>
+                  </label>
+                {/if}
+                {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type)}
+                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
+                    <input
+                      type="checkbox"
+                      checked={z.alac_passthrough ?? false}
+                      onchange={async (e) => {
+                        await api.updateZoneAlacPassthrough(z.id, (e.target as HTMLInputElement).checked);
+                      }}
+                    />
+                    <span>{$t('settings.alacPassthrough')}</span>
+                  </label>
+                {/if}
+              </div>
+            </div>
+          {/each}
+        </div>
+      </section>
+    {/if}
     {/if}
 
     {#if settingsTab === 'library'}
@@ -3158,80 +3235,6 @@
       <p class="settings-note">{$t('settings.followMeHint' as any)}</p>
     </section>
 
-    <!-- Zone audio settings (DSD mode, gapless, fixed volume) -->
-    {#if $zones.length > 0}
-      <section class="settings-section">
-        <h3>{$t('settings.perZoneSettings')}</h3>
-        <p class="section-hint">{$t('settings.perZoneHint')}</p>
-        <div class="zone-settings-list">
-          {#each $zones as z (z.id)}
-            <div class="zone-setting-row">
-              <span class="zone-setting-name">{z.name}</span>
-              <div class="zone-setting-controls">
-                <label class="zone-setting-label">
-                  <span>DSD</span>
-                  <select
-                    class="zone-select"
-                    value={z.dsd_mode ?? 'auto'}
-                    onchange={async (e) => {
-                      const mode = (e.target as HTMLSelectElement).value;
-                      await api.updateZoneDsdMode(z.id, mode);
-                    }}
-                  >
-                    <option value="auto">Auto</option>
-                    <option value="native">{$t('settings.dsdNative')}</option>
-                    <option value="dop">DoP</option>
-                    <option value="pcm">{$t('settings.dsdPcm')}</option>
-                  </select>
-                </label>
-                <label class="zone-setting-label" title={$t('settings.maxSampleRateHint')}>
-                  <span>{$t('settings.maxSampleRate')}</span>
-                  <select
-                    class="zone-select"
-                    value={String(z.max_sample_rate ?? 0)}
-                    onchange={async (e) => {
-                      const v = Number((e.target as HTMLSelectElement).value);
-                      await api.updateZoneMaxSampleRate(z.id, v > 0 ? v : null);
-                    }}
-                  >
-                    <option value="0">{$t('settings.maxSampleRateNone')}</option>
-                    <option value="48000">48 kHz</option>
-                    <option value="88200">88.2 kHz</option>
-                    <option value="96000">96 kHz</option>
-                    <option value="176400">176.4 kHz</option>
-                    <option value="192000">192 kHz</option>
-                    <option value="352800">352.8 kHz</option>
-                    <option value="384000">384 kHz</option>
-                  </select>
-                </label>
-                {#if z.output_type === 'dlna'}
-                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaNativeFlacHint')}>
-                    <input
-                      type="checkbox"
-                      checked={z.dlna_native_flac ?? false}
-                      onchange={async (e) => {
-                        await api.updateZoneDlnaNativeFlac(z.id, (e.target as HTMLInputElement).checked);
-                      }}
-                    />
-                    <span>{$t('settings.dlnaNativeFlac')}</span>
-                  </label>
-                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
-                    <input
-                      type="checkbox"
-                      checked={z.alac_passthrough ?? false}
-                      onchange={async (e) => {
-                        await api.updateZoneAlacPassthrough(z.id, (e.target as HTMLInputElement).checked);
-                      }}
-                    />
-                    <span>{$t('settings.alacPassthrough')}</span>
-                  </label>
-                {/if}
-              </div>
-            </div>
-          {/each}
-        </div>
-      </section>
-    {/if}
 
     <!-- Squeezebox / Lyrion Music Server -->
     {#if config}
