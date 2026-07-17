@@ -3215,6 +3215,8 @@
                     />
                     <span>{$t('settings.dlnaNativeFlac')}</span>
                   </label>
+                {/if}
+                {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type)}
                   <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
                     <input
                       type="checkbox"
