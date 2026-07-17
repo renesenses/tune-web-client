@@ -775,25 +775,11 @@
     if (albumGridViewport) albumGridViewport.scrollTop = 0;
   });
 
-  // Restore the album-grid scroll position whenever we return from an album
-  // detail to the grid — by ANY route. The in-app back button (goBack) and the
-  // browser/mouse Back button both end up nulling `selectedAlbum` (history is
-  // owned by App.svelte's subscriber), but only goBack used to restore scroll,
-  // so mouse/navigator Back always landed at the top (#1024, Pierre). Keying off
-  // `selectedAlbum` becoming null covers both. Guard on !artist so navigating
-  // album → artist detail doesn't trigger a grid-scroll restore.
-  let prevHadAlbum = $state(false);
-  $effect(() => {
-    const hasAlbum = !!$selectedAlbum;
-    const hasArtist = !!$selectedArtist;
-    untrack(() => {
-      if (prevHadAlbum && !hasAlbum && !hasArtist && savedAlbumScrollTop > 0) {
-        restoringScroll = true;
-        restoreAlbumScrollWhenReady(savedAlbumScrollTop);
-      }
-      prevHadAlbum = hasAlbum;
-    });
-  });
+  // Album-grid scroll restore on Back (in-app AND browser/mouse — #1024) is
+  // handled by the `_prevInDetail` effect below, which already keys off
+  // selectedAlbum/selectedArtist becoming null (added for #870/#70). A separate
+  // album-only effect here duplicated it; removed to keep a single source of
+  // truth and avoid a double restore.
 
   let albumFormats = $derived(
     [...new Set(searchFilteredAlbums.map(a => a.format).filter(Boolean))].sort() as string[]
