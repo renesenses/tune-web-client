@@ -47,11 +47,26 @@ export const favoriteTrackIds = writable<Set<number>>(new Set());
 export const favoriteAlbumIds = writable<Set<number>>(new Set());
 export const favoriteArtistIds = writable<Set<number>>(new Set());
 
+// Streaming favorites (Qobuz/Tidal/… items hearted in Tune, stored per-profile
+// with metadata). Keyed by `${item_type}:${service}:${service_id}` so a shared
+// HeartButton on every streaming row answers 'is X favorited?' in O(1) without
+// an API call per row — same reasoning as the local id sets above.
+export const favoriteStreamingKeys = writable<Set<string>>(new Set());
+
+export function streamingFavKey(
+  itemType: 'track' | 'album' | 'artist',
+  service: string,
+  serviceId: string,
+): string {
+  return `${itemType}:${service}:${serviceId}`;
+}
+
 export async function loadFavoriteIds(profileId: number | null): Promise<void> {
   if (profileId === null) {
     favoriteTrackIds.set(new Set());
     favoriteAlbumIds.set(new Set());
     favoriteArtistIds.set(new Set());
+    favoriteStreamingKeys.set(new Set());
     return;
   }
   try {
@@ -61,6 +76,14 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoriteArtistIds.set(new Set((favs.artists ?? []).map((a: any) => a.id)));
   } catch (e) {
     console.error('Load favorite ids error:', e);
+  }
+  try {
+    const sfavs = await api.getProfileStreamingFavorites(profileId);
+    favoriteStreamingKeys.set(
+      new Set(sfavs.map((f) => streamingFavKey(f.item_type, f.service, f.service_id))),
+    );
+  } catch (e) {
+    console.error('Load streaming favorite keys error:', e);
   }
 }
 

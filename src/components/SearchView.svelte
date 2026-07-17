@@ -13,6 +13,7 @@
   import type { FederatedSearchResult, Track, Album, Artist, Playlist, StreamingPlaylist, Source } from '../lib/types';
   import { t } from '../lib/i18n';
   import MetadataChips from './MetadataChips.svelte';
+  import HeartButton from './HeartButton.svelte';
   import { displayFields } from '../lib/stores/displayFields';
 
   // --- Search history (localStorage) ---
@@ -1089,6 +1090,24 @@
                               <ServiceBadge source={(track as any)._source} compact />
                             {/if}
                             <QualityBadge format={track.format} sampleRate={track.sample_rate} bitDepth={track.bit_depth} source={track.source} />
+                            <span class="track-heart" onclick={(e) => e.stopPropagation()}>
+                              {#if (track.source ?? (track as any)._source) && (track.source ?? (track as any)._source) !== 'local' && track.source_id}
+                                <HeartButton
+                                  streaming={{
+                                    itemType: 'track',
+                                    service: track.source ?? (track as any)._source,
+                                    serviceId: String(track.source_id),
+                                    title: track.title,
+                                    artist: track.artist_name ?? undefined,
+                                    album: track.album_title ?? undefined,
+                                    coverUrl: (track as any).cover_url ?? undefined,
+                                  }}
+                                  size={15}
+                                />
+                              {:else if track.id}
+                                <HeartButton trackId={track.id} size={15} />
+                              {/if}
+                            </span>
                             <span class="track-dur">{formatTime(track.duration_ms)}</span>
                             <div class="track-hover-actions">
                               <button class="icon-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(track); }} title="Ajouter a la file">
