@@ -1335,6 +1335,8 @@ export default {
   "settings.dlnaNativeFlacHint": "Send FLAC to this renderer even if it doesn\u2019t advertise FLAC support (for renderers that decode FLAC but report an empty capability list).",
   "settings.alacPassthrough": "ALAC direct",
   "settings.alacPassthroughHint": "Send ALAC as-is to this renderer (bit-perfect, no FLAC transcode). Enable only if the renderer decodes ALAC natively, otherwise there is no sound.",
+  "settings.dlnaLpcm": "LPCM (WAV) to DLNA",
+  "settings.dlnaLpcmHint": "Transcode to WAV/LPCM instead of FLAC for this renderer. Enable if direct ALAC glitches (pop) at start: faster startup than FLAC and no pop.",
   "settings.hqplayerHint": "Connect Tune to HQPlayer for upsampling and audiophile filters. Default port: 4321 (v4/v5) or 8019 (v6).",
   "settings.enableHqplayer": "Enable HQPlayer",
   "settings.hqplayerIp": "HQPlayer IP address",

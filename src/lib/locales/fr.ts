@@ -1336,6 +1336,8 @@ export default {
   "settings.dlnaNativeFlacHint": "Envoyer le FLAC \u00e0 ce lecteur m\u00eame s\u2019il n\u2019annonce pas le support FLAC (pour les lecteurs qui d\u00e9codent le FLAC mais renvoient une liste de capacit\u00e9s vide).",
   "settings.alacPassthrough": "ALAC direct",
   "settings.alacPassthroughHint": "Envoyer l\u2019ALAC tel quel \u00e0 ce lecteur (bit-perfect, sans transcodage FLAC). \u00c0 activer seulement si le lecteur d\u00e9code l\u2019ALAC nativement, sinon aucun son.",
+  "settings.dlnaLpcm": "LPCM (WAV) vers DLNA",
+  "settings.dlnaLpcmHint": "Transcoder en WAV/LPCM au lieu de FLAC pour ce lecteur. \u00c0 activer si l\u2019ALAC direct \u00absaute\u00bb (ploc) au d\u00e9marrage : d\u00e9marrage plus rapide qu\u2019en FLAC et sans ploc.",
   "settings.hqplayerHint": "Connectez Tune à HQPlayer pour l'upsampling et les filtres audiophiles. Port par défaut : 4321 (v4/v5) ou 8019 (v6).",
   "settings.enableHqplayer": "Activer HQPlayer",
   "settings.hqplayerIp": "Adresse IP HQPlayer",

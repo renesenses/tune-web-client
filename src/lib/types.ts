@@ -161,6 +161,7 @@ export interface Zone {
   dsd_mode?: string;
   dlna_native_flac?: boolean;
   alac_passthrough?: boolean;
+  dlna_lpcm?: boolean;
   /** Max output sample rate (Hz); null/absent = no limit (resample only above it) */
   max_sample_rate?: number | null;
 }
