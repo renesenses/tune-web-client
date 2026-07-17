@@ -107,12 +107,19 @@
         api.getMetadataFieldSettings().catch(() => ({ categories: [] })),
         album.id ? api.getAlbumTracks(album.id).catch(() => []) : Promise.resolve([]),
       ]);
-      extCategories = fieldsResult.categories ?? [];
+      // Normalize categories so `fields` is always an array: a category served
+      // without one otherwise crashed the modal render (cat.fields.filter in the
+      // enabledCategories derived / {#each cat.fields}), so editing an album's
+      // fields "planted" — same crash TrackEditModal already guards against.
+      extCategories = (fieldsResult.categories ?? []).map((c: MetadataCategory) => ({
+        ...c,
+        fields: c.fields ?? [],
+      }));
 
       // Use first track to source album-level extended metadata
       // Pre-fill all enabled keys so bind:value works on fresh fields
       const enabledKeys = new Set<string>();
-      for (const cat of fieldsResult.categories ?? []) {
+      for (const cat of extCategories) {
         for (const f of cat.fields) {
           if (f.enabled && ALBUM_RELEVANT_KEYS.has(f.key)) enabledKeys.add(f.key);
         }
