@@ -310,6 +310,13 @@ export function updateZoneAlacPassthrough(id: number, enabled: boolean) {
   });
 }
 
+export function updateZoneDlnaLpcm(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ dlna_lpcm: enabled }),
+  });
+}
+
 export function changeZoneOutput(id: number, outputType: string, outputDeviceId?: string | null) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',

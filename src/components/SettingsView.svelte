@@ -2753,6 +2753,18 @@
                     <span>{$t('settings.alacPassthrough')}</span>
                   </label>
                 {/if}
+                {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type)}
+                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaLpcmHint')}>
+                    <input
+                      type="checkbox"
+                      checked={z.dlna_lpcm ?? false}
+                      onchange={async (e) => {
+                        await api.updateZoneDlnaLpcm(z.id, (e.target as HTMLInputElement).checked);
+                      }}
+                    />
+                    <span>{$t('settings.dlnaLpcm')}</span>
+                  </label>
+                {/if}
               </div>
             </div>
           {/each}
