@@ -26,15 +26,51 @@
 
   let zone = $derived($currentZone);
 
+  // Map a stored streaming favorite into a Track/Album/Artist-shaped object that
+  // carries `source`/`source_id`, so the existing rendering and the streaming
+  // play path both work without a separate UI.
+  function streamToTrack(f: api.StreamingFavorite): Track {
+    return {
+      title: f.title ?? '', artist_name: f.artist ?? '', album_title: f.album ?? '',
+      cover_path: f.cover_url ?? null, source: f.service, source_id: f.service_id, duration_ms: 0,
+    } as unknown as Track;
+  }
+  function streamToAlbum(f: api.StreamingFavorite): Album {
+    return {
+      title: f.title ?? '', artist_name: f.artist ?? '', cover_path: f.cover_url ?? null,
+      source: f.service, source_id: f.service_id,
+    } as unknown as Album;
+  }
+  function streamToArtist(f: api.StreamingFavorite): Artist {
+    return {
+      name: f.title ?? f.artist ?? '', image_path: f.cover_url ?? null,
+      source: f.service, source_id: f.service_id,
+    } as unknown as Artist;
+  }
+
   async function loadFavorites() {
     const pid = $currentProfileId;
     if (!pid) return;
     loading = true;
     try {
-      const result = await api.getFavorites(pid);
-      favTracks = result.tracks ?? [];
-      favAlbums = result.albums ?? [];
-      favArtists = result.artists ?? [];
+      // Local favorites (hydrated) + Tune-hearted streaming favorites, merged
+      // per tab. Streaming lookups failing must not blank the local list.
+      const [local, streaming] = await Promise.all([
+        api.getFavorites(pid),
+        api.getProfileStreamingFavorites(pid).catch(() => [] as api.StreamingFavorite[]),
+      ]);
+      favTracks = [
+        ...(local.tracks ?? []),
+        ...streaming.filter((f) => f.item_type === 'track').map(streamToTrack),
+      ];
+      favAlbums = [
+        ...(local.albums ?? []),
+        ...streaming.filter((f) => f.item_type === 'album').map(streamToAlbum),
+      ];
+      favArtists = [
+        ...(local.artists ?? []),
+        ...streaming.filter((f) => f.item_type === 'artist').map(streamToArtist),
+      ];
     } catch (e) {
       console.error('Load favorites error:', e);
     }
@@ -48,7 +84,22 @@
   });
 
   async function playTrack(track: Track) {
-    if (!zone?.id || !track.id) return;
+    if (!zone?.id) return;
+    // Streaming favorite: play via source/source_id (no local track_id).
+    const st = track as unknown as { source?: string; source_id?: string };
+    if (st.source_id && st.source) {
+      try {
+        await playAndSync(zone.id, {
+          source: st.source, source_id: st.source_id,
+          title: track.title, artist_name: track.artist_name,
+          album_title: track.album_title, cover_path: track.cover_path,
+        } as any);
+      } catch (e) {
+        console.error('Play streaming track error:', e);
+      }
+      return;
+    }
+    if (!track.id) return;
     try {
       // Play the whole favorites list starting at the clicked track so playback
       // auto-advances through the remaining favorites (Elie). Sending a lone
@@ -81,7 +132,16 @@
 
   async function removeFavTrack(track: Track) {
     const pid = $currentProfileId;
-    if (!pid || !track.id) return;
+    if (!pid) return;
+    const st = track as unknown as { source?: string; source_id?: string };
+    if (st.source_id && st.source) {
+      favTracks = favTracks.filter((t) => (t as any).source_id !== st.source_id);
+      try {
+        await api.removeProfileStreamingFavorite(pid, { item_type: 'track', service: st.source, service_id: st.source_id });
+      } catch (e) { console.error('Remove streaming favorite error:', e); loadFavorites(); }
+      return;
+    }
+    if (!track.id) return;
     favTracks = favTracks.filter(t => t.id !== track.id);
     try {
       await api.removeFavorite(pid, { track_id: track.id });
@@ -93,7 +153,16 @@
 
   async function removeFavAlbum(album: Album) {
     const pid = $currentProfileId;
-    if (!pid || !album.id) return;
+    if (!pid) return;
+    const st = album as unknown as { source?: string; source_id?: string };
+    if (st.source_id && st.source) {
+      favAlbums = favAlbums.filter((a) => (a as any).source_id !== st.source_id);
+      try {
+        await api.removeProfileStreamingFavorite(pid, { item_type: 'album', service: st.source, service_id: st.source_id });
+      } catch (e) { console.error('Remove streaming favorite error:', e); loadFavorites(); }
+      return;
+    }
+    if (!album.id) return;
     favAlbums = favAlbums.filter(a => a.id !== album.id);
     try {
       await api.removeFavorite(pid, { album_id: album.id });
@@ -105,7 +174,16 @@
 
   async function removeFavArtist(artist: Artist) {
     const pid = $currentProfileId;
-    if (!pid || !artist.id) return;
+    if (!pid) return;
+    const st = artist as unknown as { source?: string; source_id?: string };
+    if (st.source_id && st.source) {
+      favArtists = favArtists.filter((a) => (a as any).source_id !== st.source_id);
+      try {
+        await api.removeProfileStreamingFavorite(pid, { item_type: 'artist', service: st.source, service_id: st.source_id });
+      } catch (e) { console.error('Remove streaming favorite error:', e); loadFavorites(); }
+      return;
+    }
+    if (!artist.id) return;
     favArtists = favArtists.filter(a => a.id !== artist.id);
     try {
       await api.removeFavorite(pid, { artist_id: artist.id });
