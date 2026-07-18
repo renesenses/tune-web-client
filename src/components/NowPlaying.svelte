@@ -1655,6 +1655,37 @@
     }
   }
 
+  /* Very large screens (TV 4K used as a music display, Alain #1077): the
+     content island was capped at 1200px with a 640px cover, leaving most of a
+     4K panel empty and the artwork tiny. Scale the cover, the content width
+     and the info/tracklist column together so the big cover grows WITHOUT
+     hiding the tracklist (wide mode keeps them side by side). */
+  @media (min-width: 2400px) {
+    .content-layout.wide {
+      max-width: 1720px;
+    }
+    .artwork-container,
+    .content-layout.wide .artwork-container {
+      max-width: 900px;
+    }
+    .content-layout.wide .info-column {
+      max-width: 720px;
+    }
+  }
+
+  @media (min-width: 3200px) {
+    .content-layout.wide {
+      max-width: 2200px;
+    }
+    .artwork-container,
+    .content-layout.wide .artwork-container {
+      max-width: 1160px;
+    }
+    .content-layout.wide .info-column {
+      max-width: 960px;
+    }
+  }
+
   .artwork-container :global(.album-art) {
     width: 100% !important;
     height: 100% !important;
