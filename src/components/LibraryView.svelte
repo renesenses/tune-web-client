@@ -3866,6 +3866,13 @@
   }
 
   .artists-grid {
+    /* Fill the remaining width next to the vertical AlphaIndex — .artists-section
+       is a flex row, and without flex:1 the grid shrank to its min content, so
+       `auto-fill` collapsed to a SINGLE column (Bilou #1092, Jean Valjean #1096:
+       "un artiste par ligne"). min-width:0 lets it shrink past content instead
+       of overflowing. */
+    flex: 1;
+    min-width: 0;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: var(--space-lg);
