@@ -83,18 +83,6 @@
     cancellingScan = false;
   }
 
-  // Quick Fav state
-  let quickFavTrackIds = $state<Set<number>>(new Set());
-  async function handleQuickFavTrack(trackId: number, e: MouseEvent) {
-    e.stopPropagation();
-    try {
-      await api.quickFavTrack(trackId);
-      quickFavTrackIds = new Set([...quickFavTrackIds, trackId]);
-      notifications.success($tr('library.quickFavAdded'));
-    } catch (err) {
-      console.error('Quick fav error:', err);
-    }
-  }
 
   // Collections for album
   let collections: any[] = $state([]);
@@ -1748,11 +1736,6 @@
                 {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
                 <span class="track-heart" onclick={(e) => e.stopPropagation()}><HeartButton trackId={t.id} size={14} /></span>
-                {#if t.id}
-                  <button class="quick-fav-btn" class:faved={quickFavTrackIds.has(t.id)} onclick={(e) => handleQuickFavTrack(t.id!, e)} title={$tr('library.quickFav')}>
-                    <svg viewBox="0 0 24 24" fill={quickFavTrackIds.has(t.id) ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                  </button>
-                {/if}
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title={$tr('library.playNext')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
@@ -1845,11 +1828,6 @@
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
               <span class="track-heart" onclick={(e) => e.stopPropagation()}><HeartButton trackId={t.id} size={14} /></span>
-              {#if t.id}
-                <button class="quick-fav-btn" class:faved={quickFavTrackIds.has(t.id)} onclick={(e) => handleQuickFavTrack(t.id!, e)} title={$tr('library.quickFav')}>
-                  <svg viewBox="0 0 24 24" fill={quickFavTrackIds.has(t.id) ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                </button>
-              {/if}
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title={$tr('library.playNext')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
@@ -4969,33 +4947,6 @@
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-muted);
-  }
-
-  /* Quick Fav */
-  .quick-fav-btn {
-    background: none;
-    border: none;
-    color: var(--tune-text-muted);
-    cursor: pointer;
-    padding: 2px;
-    display: flex;
-    align-items: center;
-    opacity: 0;
-    transition: all 0.12s;
-  }
-
-  .track-item:hover .quick-fav-btn {
-    opacity: 1;
-  }
-
-  .quick-fav-btn.faved {
-    color: #f59e0b;
-    opacity: 1;
-  }
-
-  .quick-fav-btn:hover {
-    color: #f59e0b;
-    transform: scale(1.15);
   }
 
   /* Collection dropdown */
