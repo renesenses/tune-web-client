@@ -4307,8 +4307,9 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: var(--space-md);
-    flex: 1;
-    overflow-y: auto;
+    /* No inner scroll: the whole .library-view scrolls as one region. A second
+       overflow-y here made Firefox draw a classic scrollbar overlapping the
+       page's on the Genres tab (#1075); Chrome hid it with overlay scrollbars. */
   }
 
   .genre-card {
