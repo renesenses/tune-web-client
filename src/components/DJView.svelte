@@ -4,6 +4,7 @@
   import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
+  import HeartButton from './HeartButton.svelte';
   import { formatTime } from '../lib/utils';
 
   // Real waveform data from server API
@@ -451,14 +452,18 @@
           </div>
           <div class="search-results">
             {#each searchResults as track}
-              <button class="result-row" onclick={() => loadTrackOnDeck(track.id)}>
+              <div class="result-row" role="button" tabindex="0" onclick={() => loadTrackOnDeck(track.id)}
+                onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); loadTrackOnDeck(track.id); } }}>
                 <AlbumArt coverPath={track.cover_path} albumId={track.album_id} size={36} alt={track.title} />
                 <div class="result-info">
                   <span class="result-title">{track.title}</span>
                   <span class="result-artist">{track.artist_name} - {track.album_title}</span>
                 </div>
                 <span class="result-dur">{formatTime(track.duration_ms)}</span>
-              </button>
+                <span class="track-heart" onclick={(e) => e.stopPropagation()}>
+                  {#if track.id}<HeartButton trackId={track.id} size={14} />{/if}
+                </span>
+              </div>
             {/each}
           </div>
           <button class="close-btn" onclick={() => { loadTarget = null; searchResults = []; }}>Fermer</button>
