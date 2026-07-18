@@ -642,11 +642,20 @@
       {:else}
         <div class="slot-list">
           {#each slotTracks as tk}
-            <button class="slot-item" onclick={() => playTopTrack(tk)} title={$t('dashboard.slot.play')}>
+            <div class="slot-item" role="button" tabindex="0" onclick={() => playTopTrack(tk)}
+              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playTopTrack(tk); } }}
+              title={$t('dashboard.slot.play')}>
               <span class="slot-title">{tk.title ?? '—'}</span>
               <span class="slot-sub">{tk.artist_name ?? ''}{tk.album_title ? ' · ' + tk.album_title : ''}</span>
               {#if tk.plays > 1}<span class="slot-plays">×{tk.plays}</span>{/if}
-            </button>
+              <span class="track-heart" onclick={(e) => e.stopPropagation()}>
+                {#if (tk as any).source && (tk as any).source !== 'local' && (tk as any).source_id}
+                  <HeartButton streaming={{ itemType: 'track', service: (tk as any).source, serviceId: String((tk as any).source_id), title: tk.title ?? undefined, artist: tk.artist_name ?? undefined, album: tk.album_title ?? undefined }} size={14} />
+                {:else if (tk as any).track_id}
+                  <HeartButton trackId={(tk as any).track_id} size={14} />
+                {/if}
+              </span>
+            </div>
           {/each}
         </div>
       {/if}

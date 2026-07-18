@@ -10,6 +10,7 @@
   import { t as tr } from '../lib/i18n';
   import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
+  import HeartButton from './HeartButton.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   import type { Track, Album, Artist } from '../lib/types';
@@ -301,6 +302,13 @@
               <MetadataChips track={t} fields={$displayFields} />
             </div>
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
+            <span class="track-heart" onclick={(e) => e.stopPropagation()}>
+              {#if t.source && t.source !== 'local' && t.source_id}
+                <HeartButton streaming={{ itemType: 'track', service: t.source, serviceId: String(t.source_id), title: t.title, artist: t.artist_name ?? undefined, album: t.album_title ?? undefined, coverUrl: t.cover_path ?? undefined }} size={14} />
+              {:else if t.id}
+                <HeartButton trackId={t.id} size={14} />
+              {/if}
+            </span>
             <button class="action-btn" onclick={(e) => { e.stopPropagation(); addToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
             {#if onAddToPlaylist && (t.id || t.source_id)}
               <button class="action-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
