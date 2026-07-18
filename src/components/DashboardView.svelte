@@ -6,6 +6,7 @@
   import { selectedAlbum, selectedArtist, libraryTab, albumTracks, artistAlbums } from '../lib/stores/library';
   import { artworkUrl } from '../lib/api';
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import HeartButton from './HeartButton.svelte';
 
   let tree = $state<Record<string, string[]>>({});
 
@@ -428,6 +429,13 @@
                   <button class="rank-artist-link" onclick={() => openArtist(tk.artist_name)} title={$t('dashboard.viewArtist')}>{tk.artist_name}</button>
                 </span>
                 <span class="rank-meta">{tk.plays}</span>
+                <span class="track-heart" onclick={(e) => e.stopPropagation()}>
+                  {#if (tk as any).source && (tk as any).source !== 'local' && (tk as any).source_id}
+                    <HeartButton streaming={{ itemType: 'track', service: (tk as any).source, serviceId: String((tk as any).source_id), title: tk.title, artist: tk.artist_name ?? undefined, coverUrl: tk.cover_path ?? undefined }} size={14} />
+                  {:else if (tk as any).track_id}
+                    <HeartButton trackId={(tk as any).track_id} size={14} />
+                  {/if}
+                </span>
               </li>
             {/each}
           </ol>

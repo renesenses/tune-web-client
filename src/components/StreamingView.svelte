@@ -8,6 +8,7 @@
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
+  import HeartButton from './HeartButton.svelte';
   import type { Album, Artist, Track, SearchResult, FeaturedSection, StreamingPlaylist, StreamingGenre } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { playVideo } from '../lib/stores/ytPlayer';
@@ -646,6 +647,11 @@
             <ServiceBadge source={t.source} compact />
             <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
+            <span class="track-heart" onclick={(e) => e.stopPropagation()}>
+              {#if t.source && t.source !== 'local' && t.source_id}
+                <HeartButton streaming={{ itemType: 'track', service: t.source, serviceId: String(t.source_id), title: t.title, artist: t.artist_name ?? undefined, album: (t as any).album_title ?? undefined, coverUrl: t.cover_path ?? undefined }} size={14} />
+              {/if}
+            </span>
             <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
@@ -701,6 +707,11 @@
             <ServiceBadge source={t.source} compact />
             <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
+            <span class="track-heart" onclick={(e) => e.stopPropagation()}>
+              {#if t.source && t.source !== 'local' && t.source_id}
+                <HeartButton streaming={{ itemType: 'track', service: t.source, serviceId: String(t.source_id), title: t.title, artist: t.artist_name ?? undefined, album: (t as any).album_title ?? undefined, coverUrl: t.cover_path ?? undefined }} size={14} />
+              {/if}
+            </span>
             <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
@@ -1298,6 +1309,11 @@
                 <ServiceBadge source={track.source} compact />
                 <QualityBadge format={track.format} sampleRate={track.sample_rate} bitDepth={track.bit_depth} source={track.source} />
                 <span class="track-duration">{formatTime(track.duration_ms)}</span>
+                <span class="track-heart" onclick={(e) => e.stopPropagation()}>
+                  {#if track.source && track.source !== 'local' && track.source_id}
+                    <HeartButton streaming={{ itemType: 'track', service: track.source, serviceId: String(track.source_id), title: track.title, artist: track.artist_name ?? undefined, album: (track as any).album ?? undefined, coverUrl: track.cover_path ?? undefined }} size={14} />
+                  {/if}
+                </span>
                 <button class="track-action-btn" onclick={() => playStreamingTrack(track)} title="Play">
                   <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M8 5v14l11-7z" /></svg>
                 </button>

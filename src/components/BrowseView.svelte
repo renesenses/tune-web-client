@@ -3,6 +3,7 @@
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
+  import HeartButton from './HeartButton.svelte';
   import type { BrowseRootEntry, BrowseDirectory, BrowseResult, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
@@ -243,6 +244,9 @@
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
+              <span class="track-heart" onclick={(e) => e.stopPropagation()}>
+                {#if t.id}<HeartButton trackId={t.id} size={14} />{/if}
+              </span>
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               {#if onAddToPlaylist && (t.id || t.source_id)}
                 <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
