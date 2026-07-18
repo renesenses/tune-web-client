@@ -6,6 +6,7 @@
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './AlbumArt.svelte';
+  import HeartButton from './HeartButton.svelte';
 
   let zone = $derived($currentZone);
 
@@ -283,6 +284,9 @@
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="sp-track-duration">{formatTime(t.duration_ms)}</span>
+              <span class="track-heart" onclick={(e) => e.stopPropagation()}>
+                {#if t.id}<HeartButton trackId={t.id} size={14} />{/if}
+              </span>
             </div>
           {/each}
         </div>

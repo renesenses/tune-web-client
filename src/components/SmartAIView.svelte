@@ -3,6 +3,7 @@
   import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
+  import HeartButton from './HeartButton.svelte';
   import { formatTime } from '../lib/utils';
   import type { Track } from '../lib/types';
 
@@ -342,10 +343,13 @@
 
       <div class="track-list">
         {#each tracks as track, i}
-          <button
+          <div
             class="track-row"
             class:loading={playingIndex === i}
+            role="button"
+            tabindex="0"
             onclick={() => playTrack(track, i)}
+            onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playTrack(track, i); } }}
           >
             <span class="track-index">{i + 1}</span>
             <div class="track-play-icon">
@@ -361,7 +365,10 @@
               <span class="track-artist truncate">{track.artist_name ?? ''}</span>
             </div>
             <span class="track-duration">{formatTime(track.duration_ms)}</span>
-          </button>
+            <span class="track-heart" onclick={(e) => e.stopPropagation()}>
+              {#if track.id}<HeartButton trackId={track.id} size={14} />{/if}
+            </span>
+          </div>
         {/each}
       </div>
     </section>

@@ -7,6 +7,7 @@
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
+  import HeartButton from './HeartButton.svelte';
   import SeekBar from './SeekBar.svelte';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
@@ -1315,7 +1316,9 @@
             <span class="up-next-label">{$t('nowplaying.upNext')}</span>
             <div class="up-next-list">
               {#each $upNextTracks as nextTrack, i}
-                <button class="up-next-item" onclick={() => jumpToUpNext(nextTrack, i)}>
+                <div class="up-next-item" role="button" tabindex="0"
+                  onclick={() => jumpToUpNext(nextTrack, i)}
+                  onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jumpToUpNext(nextTrack, i); } }}>
                   <AlbumArt coverPath={nextTrack.cover_path} albumId={nextTrack.album_id} size={32} alt={nextTrack.title} />
                   <div class="up-next-info">
                     <span class="up-next-title truncate">{nextTrack.title}</span>
@@ -1330,7 +1333,14 @@
                     >{formatCompactQuality(nextTrack)}</span>
                   {/if}
                   <span class="up-next-duration">{formatTime(nextTrack.duration_ms)}</span>
-                </button>
+                  <span class="track-heart" onclick={(e) => e.stopPropagation()}>
+                    {#if nextTrack.source && nextTrack.source !== 'local' && nextTrack.source_id}
+                      <HeartButton streaming={{ itemType: 'track', service: nextTrack.source, serviceId: String(nextTrack.source_id), title: nextTrack.title, artist: nextTrack.artist_name ?? undefined, album: (nextTrack as any).album_title ?? undefined, coverUrl: (nextTrack as any).cover_url ?? undefined }} size={14} />
+                    {:else if nextTrack.id}
+                      <HeartButton trackId={nextTrack.id} size={14} />
+                    {/if}
+                  </span>
+                </div>
               {/each}
             </div>
           </div>
@@ -1467,6 +1477,13 @@
               {/if}
               <span class="qs-duration">{formatTime(queueTrack.duration_ms)}</span>
             </button>
+            <span class="track-heart" onclick={(e) => e.stopPropagation()}>
+              {#if queueTrack.source && queueTrack.source !== 'local' && queueTrack.source_id}
+                <HeartButton streaming={{ itemType: 'track', service: queueTrack.source, serviceId: String(queueTrack.source_id), title: queueTrack.title, artist: queueTrack.artist_name ?? undefined, album: (queueTrack as any).album_title ?? undefined, coverUrl: (queueTrack as any).cover_url ?? undefined }} size={14} />
+              {:else if queueTrack.id}
+                <HeartButton trackId={queueTrack.id} size={14} />
+              {/if}
+            </span>
             {#if onAddToPlaylist && (queueTrack.id || queueTrack.source_id)}
               <button class="qs-btn qs-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(queueTrack); }} title={$t('queue.addToPlaylist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
