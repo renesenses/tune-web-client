@@ -859,9 +859,10 @@ export function getArtistTracks(id: number) {
   return fetchJSON<Track[]>(`${BASE}/library/artists/${id}/tracks`);
 }
 
-export function reportArtistImage(artistId: number) {
-  return fetchJSON<{ status: string; artist_id: number }>(`${BASE}/library/artists/${artistId}/image/report`, {
+export function reportArtistImage(artistId: number, reason?: string) {
+  return fetchJSON<{ reported: boolean; artist_id: number }>(`${BASE}/library/artists/${artistId}/image/report`, {
     method: 'POST',
+    body: JSON.stringify({ reason: reason ?? null }),
   });
 }
 
