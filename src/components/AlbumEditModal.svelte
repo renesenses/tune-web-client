@@ -103,9 +103,14 @@
   async function loadExtendedMetadata() {
     try {
       // Fetch field settings + first track of album for extended metadata
+      // Bound each request so a slow/hung metadata read can't leave the editor
+      // stuck in its blocking loading state (same freeze family as #1079).
       const [fieldsResult, albumTracks] = await Promise.all([
-        api.getMetadataFieldSettings().catch(() => ({ categories: [] })),
-        album.id ? api.getAlbumTracks(album.id).catch(() => []) : Promise.resolve([]),
+        api.withTimeout(api.getMetadataFieldSettings(), 8000, 'metadata-fields')
+          .catch(() => ({ categories: [] })),
+        album.id
+          ? api.withTimeout(api.getAlbumTracks(album.id), 8000, 'album-tracks').catch(() => [])
+          : Promise.resolve([]),
       ]);
       // Normalize categories so `fields` is always an array: a category served
       // without one otherwise crashed the modal render (cat.fields.filter in the
@@ -127,7 +132,9 @@
 
       if (albumTracks.length > 0 && albumTracks[0].id) {
         firstTrackId = albumTracks[0].id;
-        const meta = await api.getTrackExtendedMetadata(albumTracks[0].id).catch(() => ({}));
+        const meta = await api
+          .withTimeout(api.getTrackExtendedMetadata(albumTracks[0].id), 8000, 'track-metadata')
+          .catch(() => ({}));
         extOriginal = { ...meta };
         const vals: Record<string, string> = {};
         for (const k of enabledKeys) vals[k] = meta[k] ?? '';

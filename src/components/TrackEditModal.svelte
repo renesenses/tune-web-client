@@ -90,9 +90,18 @@
 
   async function loadData() {
     try {
+      // Bound each request: the underlying fetchJSON has no timeout, so a slow or
+      // hung /library/tracks/{id}/metadata (server reading the file's tags) left
+      // the editor stuck in its blocking loading state — "UI figée jusqu'à F5"
+      // (Bilou, #1079). On timeout we fall back (empty) and open the editor
+      // anyway rather than freeze.
       const [fieldsResult, metaResult] = await Promise.all([
-        api.getMetadataFieldSettings().catch(() => ({ categories: [] })),
-        track.id ? api.getTrackExtendedMetadata(track.id).catch(() => ({})) : Promise.resolve({}),
+        api.withTimeout(api.getMetadataFieldSettings(), 8000, 'metadata-fields')
+          .catch(() => ({ categories: [] })),
+        track.id
+          ? api.withTimeout(api.getTrackExtendedMetadata(track.id), 8000, 'track-metadata')
+              .catch(() => ({}))
+          : Promise.resolve({}),
       ]);
       // Normalize so every category has a `fields` array — a category returned
       // without one otherwise crashed the modal render (cat.fields.filter /
