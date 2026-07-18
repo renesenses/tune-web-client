@@ -1341,11 +1341,9 @@
   }
 
   function goBack() {
+    const restoreAlbumScroll = savedAlbumScrollTop;
     const restoreArtistScroll = savedArtistScrollTop;
     const wasArtistTab = $libraryTab === 'artists';
-    // Album-grid scroll is restored by the `selectedAlbum → null` effect, which
-    // also covers the browser/mouse Back button (this in-app button is just one
-    // of the routes back to the grid — #1024).
     selectedAlbum.set(null);
     selectedArtist.set(null);
     albumTracks.set([]);
@@ -1355,6 +1353,13 @@
     artistMetadataError = false;
     artistMetadataLoading = false;
     window.history.back();
+    // Restore the album-grid scroll explicitly for this in-app back button.
+    // #103 dropped this call assuming the `selectedAlbum → null` effect covered
+    // it, but that effect is guarded by `!restoringScroll`, so the in-app button
+    // stopped restoring the position (Bertrand). Running it here sets
+    // restoringScroll first, so the effect no-ops for browser-back — no double
+    // restore. A saved value of 0 is a no-op.
+    restoreAlbumScrollWhenReady(restoreAlbumScroll);
     if (wasArtistTab && restoreArtistScroll > 0) {
       // Poll until the re-rendered artist list is tall enough before restoring
       // scroll — a fixed 2-frame wait clamped to 0 on a large list (#870).
