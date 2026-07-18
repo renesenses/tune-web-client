@@ -3875,9 +3875,9 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: var(--space-lg);
-    flex: 1;
-    overflow-y: auto;
-    padding-right: 20px;
+    /* No inner scroll: the whole .library-view scrolls as one region (same
+       Firefox double-scrollbar fix as the Genres tab — #1075). The old
+       padding-right cleared the now-removed inner scrollbar. */
   }
 
   .artist-card {
