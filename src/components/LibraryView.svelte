@@ -4504,7 +4504,9 @@
     color: var(--tune-text-muted);
     cursor: pointer;
     border-radius: 4px;
-    opacity: 0;
+    /* Always visible (subtle), not hover-only: it was invisible without a mouse
+       hover, so touch users and anyone not hovering couldn't find it (#1081). */
+    opacity: 0.55;
     transition: opacity 0.15s, color 0.15s;
   }
 
