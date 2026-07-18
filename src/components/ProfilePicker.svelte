@@ -1,11 +1,14 @@
 <script lang="ts">
-  import { profiles, currentProfileId, selectProfile } from '../lib/stores/profile';
+  import { profiles, currentProfileId, selectProfile, hadStoredProfile } from '../lib/stores/profile';
   import { t } from '../lib/i18n';
 
-  // Shown once per app load. "Picker only if >1 profile": single-profile setups
-  // never see it and go straight in.
+  // Show the "Who's listening?" picker only on genuine first use — more than one
+  // profile AND none was remembered from a previous session. On a hard refresh
+  // the persisted profile is restored, so we skip the picker and go straight in
+  // (Bertrand + Fabien); switching profiles is done via the ProfileSelector.
+  // Single-profile setups never see it.
   let dismissed = $state(false);
-  const show = $derived($profiles.length > 1 && !dismissed);
+  const show = $derived($profiles.length > 1 && !hadStoredProfile && !dismissed);
 
   async function pick(id: number) {
     await selectProfile(id);

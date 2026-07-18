@@ -33,7 +33,15 @@ function saveProfileId(id: number | null) {
   } catch { /* ignore */ }
 }
 
-export const currentProfileId = writable<number | null>(loadProfileId());
+// Capture whether a profile was already remembered at page load — BEFORE
+// loadProfiles() can default currentProfileId to profiles[0] (which persists an
+// id and would mask 'first use'). The "Who's listening?" picker uses this to
+// only appear on genuine first use, not on every hard refresh: the selected
+// profile is already persisted, so re-picking it each refresh is pure friction
+// (Bertrand + Fabien).
+const initialStoredProfileId = loadProfileId();
+export const hadStoredProfile = initialStoredProfileId !== null;
+export const currentProfileId = writable<number | null>(initialStoredProfileId);
 currentProfileId.subscribe(saveProfileId);
 
 export const profiles = writable<Profile[]>([]);

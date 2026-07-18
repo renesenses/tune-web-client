@@ -742,17 +742,22 @@
   });
 
   // Albums filtered by search + quality + format + sample rate + favorites + duplicates (final display)
-  let filteredAlbums = $derived.by(() => {
+  // All album filters EXCEPT the year filter. The album date index derives its
+  // year list from this, so every year stays selectable while one is active.
+  let albumsPreYear = $derived.by(() => {
     let result = searchFilteredAlbums;
     if (albumQualityFilter) result = result.filter(a => a.quality === albumQualityFilter);
     if (albumFormatFilter) result = result.filter(a => a.format === albumFormatFilter);
     if (albumSampleRateFilter) result = result.filter(a => (a.sample_rate ?? 0) >= albumSampleRateFilter);
     if (albumFavoritesFilter) result = result.filter(a => a.id !== null && favAlbumIds.has(a.id!));
-    if (albumYearFilter) result = result.filter(a => a.year === albumYearFilter);
     if (albumDuplicatesFilter) result = result.filter(a => a.id !== null && duplicateAlbumIds.has(a.id!));
     if (albumTagFilter) result = result.filter(a => a.id !== null && tagAlbumIds.has(a.id!));
     return result;
   });
+
+  let filteredAlbums = $derived(
+    albumYearFilter ? albumsPreYear.filter(a => a.year === albumYearFilter) : albumsPreYear
+  );
 
   // Reset album grid scroll when filters change (but not when restoring after back-nav)
   $effect(() => {
@@ -821,15 +826,15 @@
     $tr('date.month9'), $tr('date.month10'), $tr('date.month11'), $tr('date.month12'),
   ]);
 
+  // Year-only key for the album date index (months removed). Prefers `a.year`
+  // so clicking a year in the index matches the `a.year === albumYearFilter`
+  // grid filter exactly.
   function albumDateKey(a: any): string {
+    const year = a.year || a.original_year || a.release_year;
+    if (year) return `${year}`;
     const date = a.original_date || a.release_date;
-    if (date && typeof date === 'string' && date.length >= 7) {
-      const month = parseInt(date.substring(5, 7), 10);
-      const year = date.substring(0, 4);
-      if (month >= 1 && month <= 12) return `${year}-${String(month).padStart(2,'0')}`;
-    }
-    const year = a.original_year || a.release_year || a.year;
-    return year ? `${year}` : '?';
+    if (date && typeof date === 'string' && /^\d{4}/.test(date)) return date.substring(0, 4);
+    return '?';
   }
 
   function formatDateKey(key: string): string {
@@ -843,7 +848,7 @@
   // Alpha index for albums (years + months when sorted by date, letters otherwise)
   let albumIndexEntries = $derived.by(() => {
     if (albumSort === 'release_date' || albumSort === 'original_year') {
-      const keys = [...new Set(filteredAlbums.map(albumDateKey))];
+      const keys = [...new Set(albumsPreYear.map(albumDateKey))];
       return albumSortOrder === 'desc' ? keys.sort((a, b) => b.localeCompare(a)) : keys.sort();
     }
     const letters = [...new Set(filteredAlbums.map(a => {
@@ -857,12 +862,18 @@
   let activeAlbumEntry = $state('');
 
   function scrollToAlbumEntry(entry: string) {
-    activeAlbumEntry = entry;
     const isYear = albumSort === 'release_date' || albumSort === 'original_year';
+    if (isYear) {
+      // Clicking a year filters the grid to that year (toggle off if it is the
+      // active one). '?' (unknown year) can't be filtered, so it clears instead.
+      const y = parseInt(entry, 10);
+      albumYearFilter = (!Number.isNaN(y) && albumYearFilter !== y) ? y : null;
+      activeAlbumEntry = albumYearFilter ? entry : '';
+      if (albumGridViewport) albumGridViewport.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    activeAlbumEntry = entry;
     const idx = filteredAlbums.findIndex(a => {
-      if (isYear) {
-        return albumDateKey(a) === entry;
-      }
       const field = albumSort === 'artist' ? (a.artist_name || a.title) : a.title;
       const first = field.charAt(0).toUpperCase();
       const normalized = /[A-Z]/.test(first) ? first : '#';
@@ -2330,7 +2341,7 @@
         {/if}
         {#if albumYearFilter}
           <span class="filter-sep">|</span>
-          <button class="quality-chip year active" onclick={() => albumYearFilter = null}>
+          <button class="quality-chip year active" onclick={() => { albumYearFilter = null; activeAlbumEntry = ''; }}>
             {albumYearFilter}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
