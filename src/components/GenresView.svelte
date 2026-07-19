@@ -6,6 +6,7 @@
   import AlbumArt from './AlbumArt.svelte';
   import HeartButton from './HeartButton.svelte';
   import type { Album, Track } from '../lib/types';
+  import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
   import { t as tr } from '../lib/i18n';
 
   interface Props {
@@ -114,6 +115,9 @@
   let hasMultipleDiscs = $derived(tracksByDisc.length > 1);
 
   function selectGenre(name: string) {
+    // A shortcut created here reopens THIS genre (replaying selectGenre with the
+    // same name reproduces the leaf/branch resolution below), keyed generically.
+    setShortcutTarget({ key: `genre:${name}`, restore: { name }, label: name });
     // Leaf / orphan — strict subgenre filter. Find which branch it belongs
     // to so the breadcrumb shows the path.
     selectedGenreName = name;
@@ -170,7 +174,20 @@
     selectedGenreName = null;
     selectedAlbum = null;
     genreAlbumTracks = [];
+    clearShortcutTarget();
   }
+
+  // Reopen a specific genre from a shortcut (keyed `genre:<name>`).
+  $effect(() => {
+    const onRestore = (e: Event) => {
+      const target = (e as CustomEvent).detail?.target;
+      const key: string | undefined = target?.key;
+      if (!key || !key.startsWith('genre:')) return;
+      if (target.restore?.name) selectGenre(target.restore.name);
+    };
+    window.addEventListener('tune:shortcut-restore', onRestore);
+    return () => window.removeEventListener('tune:shortcut-restore', onRestore);
+  });
 
   function goToParent() {
     // Drop the subgenre filter, keep the branch view.

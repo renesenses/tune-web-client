@@ -8,6 +8,7 @@
   import { activeView, listResetNonce, saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
   import { currentZone } from '../lib/stores/zones';
   import { notifications } from '../lib/stores/notifications';
+  import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
   import { t } from '../lib/i18n';
 
   function navigateToAlbum(album: any) {
@@ -71,6 +72,26 @@
     $listResetNonce;
     selected = null;
     editing = null;
+    clearShortcutTarget();
+  });
+
+  // A shortcut created on a specific smart collection must reopen THAT one, not
+  // land on the list (the old per-view getter only saw manual collections). We
+  // publish the open item generically and reopen it on restore, keyed by
+  // `smartcollections:<id>` so this matches only our own targets.
+  $effect(() => {
+    const onRestore = async (e: Event) => {
+      const target = (e as CustomEvent).detail?.target;
+      const key: string | undefined = target?.key;
+      if (!key || !key.startsWith('smartcollections:')) return;
+      const id = target.restore?.id;
+      if (id == null) return;
+      let col = collections.find((c) => c.id === id);
+      if (!col) { await load(); col = collections.find((c) => c.id === id); }
+      if (col) openCollection(col);
+    };
+    window.addEventListener('tune:shortcut-restore', onRestore);
+    return () => window.removeEventListener('tune:shortcut-restore', onRestore);
   });
 
   async function load() {
@@ -92,12 +113,18 @@
 
   function backToSmartList() {
     selected = null;
+    clearShortcutTarget();
     restoreDetailScroll('smartcollections', scrollContainer());
   }
 
   async function openCollection(col: SmartCollection) {
     saveDetailScroll('smartcollections', scrollContainer());
     selected = col;
+    setShortcutTarget({
+      key: `smartcollections:${col.id}`,
+      restore: { id: col.id, name: col.name },
+      label: col.name,
+    });
     albumsLoading = true;
     try {
       selectedAlbums = await api.getSmartCollectionAlbums(col.id);

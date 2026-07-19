@@ -13,6 +13,7 @@
   import HeartButton from './HeartButton.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
+  import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
   import type { Track, Album, Artist } from '../lib/types';
 
   interface Props {
@@ -23,6 +24,26 @@
   type FavTab = 'tracks' | 'albums' | 'artists';
   let activeTab = $state<FavTab>('tracks');
   let loading = $state(false);
+
+  // A shortcut created on Favorites reopens the same tab (tracks/albums/artists)
+  // instead of always the default. Publish the active tab as the shortcut target
+  // while mounted; the store is cleared when we leave.
+  $effect(() => {
+    setShortcutTarget({ key: `favorites:${activeTab}`, restore: { tab: activeTab }, label: activeTab });
+    return () => clearShortcutTarget();
+  });
+  $effect(() => {
+    const onRestore = (e: Event) => {
+      const target = (e as CustomEvent).detail?.target;
+      const key: string | undefined = target?.key;
+      if (!key || !key.startsWith('favorites:')) return;
+      const tab = target.restore?.tab as FavTab | undefined;
+      if (tab === 'tracks' || tab === 'albums' || tab === 'artists') activeTab = tab;
+    };
+    window.addEventListener('tune:shortcut-restore', onRestore);
+    return () => window.removeEventListener('tune:shortcut-restore', onRestore);
+  });
+
   let favTracks = $state<Track[]>([]);
   let favAlbums = $state<Album[]>([]);
   let favArtists = $state<Artist[]>([]);
