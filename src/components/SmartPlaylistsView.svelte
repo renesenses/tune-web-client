@@ -5,6 +5,7 @@
   import type { Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
+  import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
   import AlbumArt from './AlbumArt.svelte';
 
   let zone = $derived($currentZone);
@@ -85,8 +86,31 @@
     }
   }
 
+  // A shortcut created on a specific smart playlist must reopen THAT one, not
+  // land on the list. Publish the open item generically and reopen it on the
+  // shared restore event, keyed by `smartplaylists:<id>`.
+  $effect(() => {
+    const onRestore = async (e: Event) => {
+      const target = (e as CustomEvent).detail?.target;
+      const key: string | undefined = target?.key;
+      if (!key || !key.startsWith('smartplaylists:')) return;
+      const id = target.restore?.id;
+      if (id == null) return;
+      let sp = smartPlaylists.find(p => p.id === id);
+      if (!sp) { await loadSmartPlaylists(); sp = smartPlaylists.find(p => p.id === id); }
+      if (sp) selectSp(sp);
+    };
+    window.addEventListener('tune:shortcut-restore', onRestore);
+    return () => window.removeEventListener('tune:shortcut-restore', onRestore);
+  });
+
   async function selectSp(sp: SmartPlaylist) {
     selectedSp = sp;
+    setShortcutTarget({
+      key: `smartplaylists:${sp.id}`,
+      restore: { id: sp.id, name: sp.name },
+      label: sp.name,
+    });
     loading = true;
     try {
       spTracks = await api.getSmartPlaylistTracks(sp.id);
@@ -223,7 +247,7 @@
   {#if selectedSp}
     <!-- Detail view -->
     <div class="sp-header">
-      <button class="back-btn" onclick={() => { selectedSp = null; spTracks = []; }}>
+      <button class="back-btn" onclick={() => { selectedSp = null; spTracks = []; clearShortcutTarget(); }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
         {$tr('common.back')}
       </button>
