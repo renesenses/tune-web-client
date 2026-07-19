@@ -1065,6 +1065,7 @@ export default {
   "home.continueListening": "继续收听",
   "home.listens": "收听次数",
   "home.listened": "已收听",
+  "home.libraryDuration": "音乐库",
   "home.explore": "探索",
   "home.recommendations": "推荐",
   "home.mixByGenre": "流派混合",
