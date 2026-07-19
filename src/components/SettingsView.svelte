@@ -2946,6 +2946,22 @@
     {/if}
 
     {#if settingsTab === 'services'}
+    <!-- Last.fm & scrobbling — the Services & Tokens page (Last.fm OAuth) was
+         orphaned from navigation, so users couldn't authorize scrobbling
+         anymore (forum #1113). Surface it from the Connected Services tab. -->
+    <section class="settings-section">
+      <h3>{$t('settings.lastfmScrobbling')}</h3>
+      <div class="service-list">
+        <div class="service-card">
+          <div class="service-header">
+            <span class="service-name">Last.fm</span>
+            <div class="service-header-actions">
+              <button class="scan-btn" onclick={() => activeView.set('services')}>Services &amp; Tokens →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
     <!-- Streaming services -->
     <section class="settings-section">
       <h3>{$t('settings.streaming')}</h3>

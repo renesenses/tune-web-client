@@ -310,6 +310,7 @@ export default {
   'settings.percent': '百分比（0-100）',
   'settings.decibels': '分贝（dB）',
   'settings.streaming': '流媒体服务',
+  'settings.lastfmScrobbling': 'Last.fm & scrobbling',
   'settings.noService': '无已配置服务',
   'settings.connected': '已连接',
   'settings.disconnect': '断开连接',

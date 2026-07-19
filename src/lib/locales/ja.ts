@@ -310,6 +310,7 @@ export default {
   'settings.percent': 'パーセンテージ（0-100）',
   'settings.decibels': 'デシベル（dB）',
   'settings.streaming': 'ストリーミングサービス',
+  'settings.lastfmScrobbling': 'Last.fm & scrobbling',
   'settings.noService': '設定されたサービスがありません',
   'settings.connected': '接続済み',
   'settings.disconnect': '切断',
