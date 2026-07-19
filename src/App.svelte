@@ -246,6 +246,11 @@ import AlarmsView from './components/AlarmsView.svelte';
     }
   }
 
+  // Set once syncZoneState() sees the server report queue_position (added for
+  // #1096). Until then, track changes still refetch the whole queue so an older
+  // server that doesn't report it keeps a correct highlight.
+  let serverProvidesQueuePosition = false;
+
   async function fetchQueue() {
     let zoneId: number | null = null;
     currentZone.subscribe((z) => (zoneId = z?.id ?? null))();
@@ -308,6 +313,13 @@ import AlarmsView from './components/AlarmsView.svelte';
         curZone?.id === zoneId ||
         (zone.group_id != null && curZone?.group_id === zone.group_id);
       if (isCurrentOrGroupMember) {
+        // Refresh the queue highlight from the zone's queue index. This lets the
+        // track-change handler skip refetching the whole queue (expensive under
+        // a large shuffle queue, #1096) once we've seen the server report it.
+        if (typeof zone.queue_position === 'number') {
+          serverProvidesQueuePosition = true;
+          queuePosition.set(zone.queue_position);
+        }
         if (zone.state === 'playing') {
           startSeekTimer();
           // Apply drift filter: only correct the interpolated position when
@@ -798,11 +810,15 @@ import AlarmsView from './components/AlarmsView.svelte';
               seekPositionMs.set(0);
               startSeekTimer();
             }
-            // Refresh queue on playback start / track change so the queue
-            // view shows the full list and the correct current position.
-            // The server does not emit playback.queue_changed when a
-            // streaming playlist begins or advances to the next track.
-            fetchQueue();
+            // On playback START the queue contents may be new, so refetch the
+            // full list. On a plain track advance the contents are unchanged —
+            // only the position moves — and syncZoneState() below refreshes it
+            // from zone.queue_position, so we skip the expensive full refetch of
+            // a large shuffle queue (#1096). Fall back to a full fetch against an
+            // older server that doesn't report queue_position.
+            if (type === 'playback.started' || !serverProvidesQueuePosition) {
+              fetchQueue();
+            }
           }
           // Fetch full zone state from API (authoritative update)
           syncZoneState(zoneId).then(() => {
