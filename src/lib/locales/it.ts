@@ -1066,6 +1066,7 @@ export default {
   "home.continueListening": "Continua ad ascoltare",
   "home.listens": "Ascolti",
   "home.listened": "Ascoltato",
+  "home.libraryDuration": "Libreria",
   "home.explore": "Esplora",
   "home.recommendations": "Consigli",
   "home.mixByGenre": "Mix per genere",

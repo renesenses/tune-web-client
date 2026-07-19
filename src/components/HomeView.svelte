@@ -639,7 +639,7 @@
       {#if (stats as any).total_duration_ms > 0}
         <button class="stat-card" onclick={() => activeView.set('dashboard')}>
           <span class="stat-number">{Math.round((stats as any).total_duration_ms / 3600000)}h</span>
-          <span class="stat-name">{$t('home.listened')}</span>
+          <span class="stat-name">{$t('home.libraryDuration')}</span>
         </button>
       {/if}
     </div>
