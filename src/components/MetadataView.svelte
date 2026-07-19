@@ -76,12 +76,9 @@
       pending: $t('metadata.yearsRunning').replace('{source}', source),
       errorPrefix: $t('metadata.yearsFailed').replace('{source}', source),
       setRunning: (on) => fixYearsRunning = on ? source : null,
-      run: () => {
-        if (source === 'musicbrainz') return api.fixYearsMusicBrainz();
-        if (source === 'discogs') return api.fixYearsDiscogs();
-        if (source === 'tidal') return api.fixYearsTidal();
-        return api.fixYearsTags();
-      },
+      // Only the "tags" source is implemented server-side; the online sources
+      // (MusicBrainz/Discogs/Tidal) returned 404 and their buttons are removed.
+      run: () => api.fixYearsTags(),
       success: (result) => {
         const fixed = result.fixed ?? 0, total = result.total ?? 0, nf = result.not_found ?? 0;
         fixYearsResult = { source, total, fixed, not_found: nf };
@@ -164,18 +161,6 @@
     if (r) await refreshLibraryView();
   }
 
-  let fixingYearsItunes = $state(false);
-  async function handleFixYearsItunes() {
-    const r = await runAsyncOp({
-      pending: $t('metadata.yearsItunesRunning'),
-      errorPrefix: $t('metadata.itunesFailed'),
-      setRunning: (on) => fixingYearsItunes = on,
-      run: () => api.fixYearsItunes(),
-      success: (r) => $t('metadata.itunesResult').replace('{fixed}', String(r.fixed)).replace('{total}', String(r.total)).replace('{notFound}', String(r.not_found)),
-    });
-    if (r) await refreshLibraryView();
-  }
-
   let mp3DiagnoseRunning = $state(false);
   let mp3Issues = $state<any[]>([]);
   let mp3Summary = $state<{ scanned: number; ok_files: number; missing_files: number; issues_found: number } | null>(null);
@@ -249,18 +234,6 @@
         const del = (r.albums_deleted as number) ?? (r.merged as number) ?? 0;
         return $t('metadata.mergeDuplicatesResult').replace('{groups}', String(grp)).replace('{deleted}', String(del));
       },
-    });
-    if (r) await refreshLibraryView();
-  }
-
-  let fixingYearsWikidata = $state(false);
-  async function handleFixYearsWikidata() {
-    const r = await runAsyncOp({
-      pending: $t('metadata.yearsWikidataRunning'),
-      errorPrefix: $t('metadata.wikidataFailed'),
-      setRunning: (on) => fixingYearsWikidata = on,
-      run: () => api.fixYearsWikidata(),
-      success: (r) => $t('metadata.wikidataResult').replace('{fixed}', String(r.fixed)).replace('{total}', String(r.total)).replace('{notFound}', String(r.not_found)),
     });
     if (r) await refreshLibraryView();
   }
@@ -1424,18 +1397,10 @@
             </button>
 
             <div class="tools-group-label">{$t('metadata.groupEnrich')}</div>
-            <button class="tools-item" onclick={() => runFromMenu(() => handleFixYears('musicbrainz'), 'mb')} disabled={!!fixYearsRunning}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-              {$t('metadata.yearsMusicBrainz')}
-            </button>
-            <button class="tools-item" onclick={() => runFromMenu(() => handleFixYears('discogs'), 'discogs')} disabled={!!fixYearsRunning}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-              {$t('metadata.yearsDiscogs')}
-            </button>
-            <button class="tools-item" onclick={() => runFromMenu(() => handleFixYears('tidal'), 'tidal')} disabled={!!fixYearsRunning}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-              {$t('metadata.yearsTidal')}
-            </button>
+            <!-- Online year sources (MusicBrainz/Discogs/Tidal/iTunes/Wikidata)
+                 were never ported to the Rust server (only tags + from-path are
+                 implemented), so their buttons returned 404 (Reivax66, #1089).
+                 Removed until/if the server implements them. -->
             <button class="tools-item" onclick={() => runFromMenu(() => handleFixYears('tags'), 'tags')} disabled={!!fixYearsRunning}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
               {$t('metadata.yearsTags')}
@@ -1443,14 +1408,6 @@
             <button class="tools-item" onclick={() => runFromMenu(handleFixYearsFromPath, 'years_path')} disabled={fixingYearsFromPath}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
               {$t('metadata.yearsFromPath')}
-            </button>
-            <button class="tools-item" onclick={() => runFromMenu(handleFixYearsItunes, 'years_itunes')} disabled={fixingYearsItunes}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-              {$t('metadata.yearsItunes')}
-            </button>
-            <button class="tools-item" onclick={() => runFromMenu(handleFixYearsWikidata, 'years_wikidata')} disabled={fixingYearsWikidata}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-              {$t('metadata.yearsWikidata')}
             </button>
             <button class="tools-item" onclick={() => runFromMenu(handleFixGenresByArtist, 'genres_artist')} disabled={fixingGenresByArtist}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
