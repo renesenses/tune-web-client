@@ -950,6 +950,11 @@ export function getTopTracks(limit = 20) {
   return fetchJSON<import('./types').TopTrack[]>(`${BASE}/library/history/top-tracks?limit=${limit}`);
 }
 
+/// Non-radio play count for one local track (Progman, #1056).
+export function getTrackPlays(trackId: number) {
+  return fetchJSON<{ track_id: number; plays: number }>(`${BASE}/library/history/tracks/${trackId}/plays`);
+}
+
 export function getTopArtists(limit = 20) {
   return fetchJSON<import('./types').TopArtist[]>(`${BASE}/library/history/top-artists?limit=${limit}`);
 }
