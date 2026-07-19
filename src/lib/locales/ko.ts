@@ -1073,6 +1073,7 @@ export default {
   "home.continueListening": "이어 듣기",
   "home.listens": "재생 수",
   "home.listened": "들음",
+  "home.libraryDuration": "라이브러리",
   "home.explore": "탐색",
   "home.recommendations": "추천",
   "home.mixByGenre": "장르 믹스",
