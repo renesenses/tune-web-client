@@ -591,6 +591,16 @@
     color: var(--tune-text);
     transition: background 0.12s ease-out;
     position: relative;
+    /* Virtualise off-screen rows: the browser skips layout/paint for rows that
+       aren't near the viewport — the dominant cost when a large shuffle queue
+       renders thousands of rows, each with a HeartButton (Jean Valjean #1096).
+       CSS containment is used instead of JS windowing so drag-and-drop and the
+       variable row heights (metadata chips, gapless indicator) keep working —
+       every row stays in the DOM. `auto` remembers each row's measured height
+       for scrollbar stability; 56px is the initial estimate. Nothing in a row
+       overflows its box, so the implied paint containment clips nothing. */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 56px;
   }
 
   .queue-item:hover {
