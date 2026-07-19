@@ -759,13 +759,18 @@
     albumYearFilter ? albumsPreYear.filter(a => a.year === albumYearFilter) : albumsPreYear
   );
 
-  // Reset album grid scroll when filters change (but not when restoring after back-nav)
+  // Reset album grid scroll when filters change (but not when restoring after back-nav).
+  // Only `filteredAlbums.length` is a tracked dependency: reading `restoringScroll`
+  // or `albumGridViewport` reactively made this re-fire when a Back-restore
+  // completed (restoringScroll true→false) or the grid re-mounted, zeroing the
+  // scroll a frame after it was restored → jumped to top (#1096, Jean Valjean).
   $effect(() => {
-    // Access filteredAlbums.length to subscribe to changes
     const _len = filteredAlbums.length;
-    if (restoringScroll) return;
-    albumScrollTop = 0;
-    if (albumGridViewport) albumGridViewport.scrollTop = 0;
+    untrack(() => {
+      if (restoringScroll) return;
+      albumScrollTop = 0;
+      if (albumGridViewport) albumGridViewport.scrollTop = 0;
+    });
   });
 
   // Album-grid scroll restore on Back (in-app AND browser/mouse — #1024) is
@@ -1152,8 +1157,10 @@
     if (!$selectedAlbum) {
       savedAlbumScrollTop = albumScrollTop;
     }
-    const mainEl = document.querySelector('.main-content');
-    if (mainEl) savedArtistScrollTop = mainEl.scrollTop;
+    // `.library-view` is the real scroll container (height:100% + overflow-y:auto);
+    // `.main-content` fills it exactly so its scrollTop stays 0 (#1096).
+    const scroller = document.querySelector('.library-view');
+    if (scroller) savedArtistScrollTop = scroller.scrollTop;
     selectedArtist.set(artist);
     // History is pushed by App.svelte's `selectedArtist` subscriber; a second
     // pushState here made browser Back require two presses.
@@ -1320,14 +1327,15 @@
   }
 
   // Same poll-until-ready pattern as albums, but for the artist list, whose
-  // scroll container is `.main-content` (not the album grid viewport). A fixed
-  // 2-frame wait clamped to 0 on a large artist list, so the back button landed
-  // at the top of the list instead of the viewed artist (#870, Bilou).
+  // scroll container is `.library-view` (not the album grid viewport). Reading
+  // `.main-content` returned 0 — it fills `.library-view` so it never scrolls —
+  // so restore was skipped and the list jumped to the top (#1096, Jean Valjean;
+  // #870, Bilou). A fixed 2-frame wait also clamped to 0 on a large list.
   function restoreArtistScrollWhenReady(target: number) {
     if (target <= 0) return;
     let attempts = 0;
     const tick = () => {
-      const el = document.querySelector('.main-content') as HTMLElement | null;
+      const el = document.querySelector('.library-view') as HTMLElement | null;
       const ready = el && el.scrollHeight >= target + el.clientHeight;
       if (ready || attempts >= 30) {
         if (el) el.scrollTop = target;
