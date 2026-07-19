@@ -311,7 +311,11 @@
       // via search worked (fresh feed_url) while opening it from Subscriptions
       // returned "no episode found" (empty feed_url) — #1000. Search/discover
       // results carry no subscription_id, so they keep the feed_url path.
-      episodes = await api.getPodcastEpisodes(feedUrl, 50, undefined, podcast.subscription_id);
+      //
+      // Apple top-chart (Discover) podcasts have NO feed_url, only a source_id
+      // ("apple-…"); passing it lets the server resolve the feed so episodes
+      // preview without subscribing first (Bilou, #1000).
+      episodes = await api.getPodcastEpisodes(feedUrl, 50, undefined, podcast.subscription_id, podcast.source_id);
     } catch (e) {
       console.error('Load podcast episodes error:', e);
       errorMessage = get(t)('podcasts.loadEpisodesError');
