@@ -144,6 +144,7 @@ export interface Zone {
   current_track?: Track | null;
   position_ms?: number;
   queue_length?: number;
+  queue_position?: number;
   signal_path?: SignalPath | null;
   stereo_pair_id?: string | null;
   stereo_channel?: 'left' | 'right' | null;
