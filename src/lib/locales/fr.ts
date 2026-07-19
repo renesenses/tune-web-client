@@ -1316,6 +1316,7 @@ export default {
   "settings.forceRefetchArtistImages": "Forcer la récupération",
   "settings.forceRefetchArtistImagesHint": "Re-télécharge les images de TOUS les artistes (mozaiklabs + sources externes), même ceux marqués comme ayant déjà une image. Utile si des images ne s'affichent pas.",
   "settings.enrichArtistImagesStarted": "Enrichissement des images d'artistes lancé…",
+  "settings.enrichArtistImagesResult": "Images d'artistes : {enriched} ajoutée(s), {missing} restante(s)",
   "settings.autoEnrichPremiumNote": "L'enrichissement automatique après un scan est une fonctionnalité Premium. Les boutons ci-dessus le lancent manuellement pour tout le monde. Les images d'artistes utilisent Discogs/Last.fm par nom quand un artiste n'a pas d'identifiant MusicBrainz.",
   "settings.displayedMetadataFields": "Champs métadonnées affichés",
   "settings.displayedMetadataHint": "Champs affichés sous chaque titre dans les résultats de recherche, la bibliothèque, la file d'attente et l'historique.",

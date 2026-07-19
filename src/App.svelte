@@ -125,6 +125,24 @@ import AlarmsView from './components/AlarmsView.svelte';
     }, 1500);
   }
 
+  // Fetch and surface the result of the artist-image enrichment that just
+  // finished. This manual route runs for everyone, so a 0 result means "no new
+  // images found" — never "premium required" (that only applies to the
+  // auto-after-scan run). Additive: on any error we simply stay silent.
+  async function showArtistEnrichSummary() {
+    try {
+      const s = await api.getArtistEnrichStatus();
+      const enriched = s?.result?.enriched ?? 0;
+      const missing = s?.artists_without_image ?? 0;
+      const msg = get(t)('settings.enrichArtistImagesResult')
+        .replace('{enriched}', String(enriched))
+        .replace('{missing}', String(missing));
+      notifications.info(msg, 6000);
+    } catch (e) {
+      console.error('Artist enrich status error:', e);
+    }
+  }
+
   // Reflect the current background enrichment tasks in the status banner.
   // Scan takes priority (its own banner); enrichment only shows when no scan is
   // running, and clears to "Prêt" when the last task finishes.
@@ -1001,8 +1019,14 @@ import AlarmsView from './components/AlarmsView.svelte';
       // Background enrichment tasks (artwork, artist images, bios, metadata)
       if (type === 'system.background_tasks') {
         const tasks = Array.isArray(event.data?.tasks) ? event.data.tasks : [];
+        const hadArtistEnrich = backgroundTasks.some((t) => t.id === 'artist_artwork');
+        const hasArtistEnrich = tasks.some((t: { id?: string }) => t?.id === 'artist_artwork');
         backgroundTasks = tasks;
         applyEnrichmentBanner();
+        // When the artist-image enrichment finishes, show a completion summary.
+        // The panel otherwise just disappeared with no result, reading as
+        // "counter climbs to the total then nothing happens" (Jean Valjean #1096).
+        if (hadArtistEnrich && !hasArtistEnrich) showArtistEnrichSummary();
         return;
       }
 
