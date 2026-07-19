@@ -2439,7 +2439,7 @@
     {:else if $libraryTab === 'artists'}
       <div class="artists-section">
         {#if artistLetters.length > 5}
-          <AlphaIndex letters={artistLetters} activeLetter={activeArtistLetter} onSelect={scrollToArtistLetter} />
+          <AlphaIndex letters={artistLetters} activeLetter={activeArtistLetter} onSelect={scrollToArtistLetter} sticky />
         {/if}
         <div class="artists-grid">
           {#each filteredArtists as artist}

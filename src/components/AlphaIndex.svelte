@@ -4,9 +4,14 @@
     activeLetter?: string;
     onSelect: (letter: string) => void;
     formatLabel?: (key: string) => string;
+    // When the index lives inside a single-scroll region (Artists/Genres tabs,
+    // where the whole .library-view scrolls as one), pin it so it stays visible
+    // on scroll instead of scrolling away with the grid (Benjithom, #1104). The
+    // Albums tab keeps its own inner-scrolling viewport, so it leaves this off.
+    sticky?: boolean;
   }
 
-  let { letters, activeLetter = '', onSelect, formatLabel }: Props = $props();
+  let { letters, activeLetter = '', onSelect, formatLabel, sticky = false }: Props = $props();
 
   let isDragging = $state(false);
   let compact = $derived(letters.length > 30);
@@ -45,6 +50,7 @@
 <div
   class="alpha-index"
   class:compact
+  class:sticky
   onmousedown={handleMouseDown}
   ontouchmove={handleTouchMove}
   role="navigation"
@@ -75,6 +81,17 @@
     overflow-y: auto;
     max-height: 100%;
     scrollbar-width: none;
+  }
+
+  /* Pin the index to the top of the scroll viewport in single-scroll tabs so it
+     doesn't scroll away with the grid (#1104). align-self:flex-start keeps it at
+     its content height (not stretched), and the viewport-bounded max-height lets
+     long date/letter lists scroll internally on short screens. */
+  .alpha-index.sticky {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    max-height: calc(100vh - 120px);
   }
 
   .alpha-index::-webkit-scrollbar {
