@@ -1062,6 +1062,13 @@
     selectedGenre = null;
     selectedNoGenre = false;
     searchQuery = '';
+    // Switching tabs unmounts the album grid; its viewport remounts fresh at
+    // scrollTop 0. A stale `albumScrollTop` from a previous scroll would make
+    // the virtual-scroll slice render far below the fold, leaving the grid
+    // blank until another remount (Home → back). Reset it so the grid always
+    // returns to the top and stays consistent with the fresh DOM (#1109).
+    albumScrollTop = 0;
+    if (albumGridViewport) albumGridViewport.scrollTop = 0;
     // Update current history entry so browser-back restores the correct tab
     try {
       const cur = window.history.state ?? {};
