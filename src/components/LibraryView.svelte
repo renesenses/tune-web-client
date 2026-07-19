@@ -759,13 +759,18 @@
     albumYearFilter ? albumsPreYear.filter(a => a.year === albumYearFilter) : albumsPreYear
   );
 
-  // Reset album grid scroll when filters change (but not when restoring after back-nav)
+  // Reset album grid scroll when filters change (but not when restoring after back-nav).
+  // Only `filteredAlbums.length` is a tracked dependency: reading `restoringScroll`
+  // or `albumGridViewport` reactively made this re-fire when a Back-restore
+  // completed (restoringScroll true→false) or the grid re-mounted, zeroing the
+  // scroll a frame after it was restored → jumped to top (#1096, Jean Valjean).
   $effect(() => {
-    // Access filteredAlbums.length to subscribe to changes
     const _len = filteredAlbums.length;
-    if (restoringScroll) return;
-    albumScrollTop = 0;
-    if (albumGridViewport) albumGridViewport.scrollTop = 0;
+    untrack(() => {
+      if (restoringScroll) return;
+      albumScrollTop = 0;
+      if (albumGridViewport) albumGridViewport.scrollTop = 0;
+    });
   });
 
   // Album-grid scroll restore on Back (in-app AND browser/mouse — #1024) is
