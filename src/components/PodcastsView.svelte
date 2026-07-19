@@ -301,7 +301,13 @@
     episodes = [];
     try {
       const feedUrl = podcast.feed_url || podcast.feedUrl;
-      episodes = await api.getPodcastEpisodes(feedUrl, 50);
+      // Apple top-chart (Discover) podcasts have NO feed_url, only a source_id
+      // ("apple-…"); passing it lets the server resolve the feed so episodes
+      // preview without subscribing first — otherwise the content was blank
+      // unless you subscribed or searched (Bilou, #1000 / rc3 regression #1121).
+      // A subscribed podcast also passes its id so the server resolves feed_url
+      // from the subscription DB when the stored feed_url is empty/stale.
+      episodes = await api.getPodcastEpisodes(feedUrl, 50, undefined, podcast.subscription_id, podcast.source_id);
     } catch (e) {
       console.error('Load podcast episodes error:', e);
       errorMessage = get(t)('podcasts.loadEpisodesError');

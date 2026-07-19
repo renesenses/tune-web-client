@@ -2335,7 +2335,7 @@ export async function getRadioFranceEpisodes(showUrl: string, limit = 20): Promi
   return res.json();
 }
 
-export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: string, podcastId?: number | string): Promise<any[]> {
+export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: string, podcastId?: number | string, sourceId?: string): Promise<any[]> {
   let url: string;
   if (podcastId != null && podcastId !== '') {
     // Prefer the by-id endpoint: the server resolves feed_url from the
@@ -2346,9 +2346,13 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
     url = `${BASE}/podcasts/episodes/${encodeURIComponent(String(podcastId))}?limit=${limit}`;
     if (feedUrl) url += `&feed_url=${encodeURIComponent(feedUrl)}`;
   } else {
-    if (!feedUrl && !showUrl) return []; // nothing to fetch — don't hit the 400
+    // Apple top-chart podcasts carry no feed_url — pass their source_id
+    // ("apple-…") so the server resolves the feed and episodes preview without
+    // subscribing first (Bilou, #1000).
+    if (!feedUrl && !showUrl && !sourceId) return []; // nothing to fetch — don't hit the 400
     url = `${BASE}/podcasts/episodes?limit=${limit}`;
     if (feedUrl) url += `&feed_url=${encodeURIComponent(feedUrl)}`;
+    else if (sourceId) url += `&source_id=${encodeURIComponent(sourceId)}`;
     if (showUrl) url += `&show_url=${encodeURIComponent(showUrl)}`;
   }
   const res = await fetch(url);
