@@ -8,6 +8,7 @@
   import { activeView, listResetNonce } from '../lib/stores/navigation';
   import { currentZone } from '../lib/stores/zones';
   import { notifications } from '../lib/stores/notifications';
+  import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
   import { t } from '../lib/i18n';
 
   function navigateToAlbum(album: any) {
@@ -71,6 +72,25 @@
     $listResetNonce;
     selected = null;
     editing = null;
+    clearShortcutTarget();
+  });
+
+  // A shortcut created on a specific smart collection must reopen THAT one, not
+  // land on the list (the old per-view getter only saw manual collections).
+  // Keyed `smartcollections:<id>` so this matches only our own targets.
+  $effect(() => {
+    const onRestore = async (e: Event) => {
+      const target = (e as CustomEvent).detail?.target;
+      const key: string | undefined = target?.key;
+      if (!key || !key.startsWith('smartcollections:')) return;
+      const id = target.restore?.id;
+      if (id == null) return;
+      let col = collections.find((c) => c.id === id);
+      if (!col) { await load(); col = collections.find((c) => c.id === id); }
+      if (col) openCollection(col);
+    };
+    window.addEventListener('tune:shortcut-restore', onRestore);
+    return () => window.removeEventListener('tune:shortcut-restore', onRestore);
   });
 
   async function load() {
@@ -87,6 +107,11 @@
 
   async function openCollection(col: SmartCollection) {
     selected = col;
+    setShortcutTarget({
+      key: `smartcollections:${col.id}`,
+      restore: { id: col.id, name: col.name },
+      label: col.name,
+    });
     albumsLoading = true;
     try {
       selectedAlbums = await api.getSmartCollectionAlbums(col.id);
@@ -190,7 +215,7 @@
   {:else}
     <div class="detail">
       <div class="detail-head">
-        <button class="back" onclick={() => selected = null}>← {$t('common.back')}</button>
+        <button class="back" onclick={() => { selected = null; clearShortcutTarget(); }}>← {$t('common.back')}</button>
         <h2 style:color={selected.color}>{selected.name}</h2>
         <button class="edit-btn" onclick={() => openEditor(selected!)}>{$t('smartCollection.editRules')}</button>
       </div>
