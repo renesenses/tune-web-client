@@ -1314,6 +1314,7 @@ export default {
   "settings.forceRefetchArtistImages": "Force re-fetch",
   "settings.forceRefetchArtistImagesHint": "Re-downloads images for ALL artists (mozaiklabs + external sources), even those already marked as having an image. Use if some images don't show up.",
   "settings.enrichArtistImagesStarted": "Artist image enrichment started…",
+  "settings.enrichArtistImagesResult": "Artist images: {enriched} added, {missing} remaining",
   "settings.autoEnrichPremiumNote": "Automatic enrichment after a scan is a Premium feature. The buttons above run it manually for everyone. Artist images use Discogs/Last.fm by name when an artist has no MusicBrainz ID.",
   "settings.displayedMetadataFields": "Displayed metadata fields",
   "settings.displayedMetadataHint": "Fields shown under each title in search results, the library, the queue and history.",

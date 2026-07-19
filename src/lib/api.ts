@@ -2654,6 +2654,24 @@ export function enrichArtistImages() {
   );
 }
 
+// Result of the last artist-image enrichment run (settings-backed). Used to
+// show a completion summary when the background task finishes, so the panel
+// doesn't just silently vanish (Jean Valjean #1096).
+export interface ArtistEnrichStatus {
+  result: {
+    status?: string;
+    total?: number;
+    enriched?: number;
+    failed?: number;
+    community_applied?: number;
+  } | null;
+  artists_without_image: number;
+}
+
+export function getArtistEnrichStatus() {
+  return fetchJSON<ArtistEnrichStatus>(`${BASE}/library/artwork/enrich-artists/status`);
+}
+
 // Force re-fetch of ALL artist images (ignores the "already has an image"
 // guard) — for libraries where image_path is set to stale/broken entries that
 // never render, so the normal pass skips them (Fabien).
