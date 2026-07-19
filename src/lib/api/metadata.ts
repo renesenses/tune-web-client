@@ -185,17 +185,9 @@ export function autoFixAlbums() {
   return fetchJSON<MetadataFixResult>(`${BASE}/metadata/auto-fix-albums`, { method: 'POST' });
 }
 
-export function fixYearsMusicBrainz() {
-  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-years-musicbrainz`, { method: 'POST' });
-}
-
-export function fixYearsDiscogs() {
-  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-years-discogs`, { method: 'POST' });
-}
-
-export function fixYearsTidal() {
-  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-years-tidal`, { method: 'POST' });
-}
+// Online year sources (MusicBrainz/Discogs/Tidal/iTunes/Wikidata) are not
+// implemented on the Rust server (only fix-years-tags and fix-years-from-path
+// exist), so their endpoints 404'd — removed with their buttons (#1089).
 
 export function fixYearsTags() {
   return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-years-tags`, { method: 'POST' });
@@ -213,16 +205,8 @@ export function reclassifyGenresByPath(dryRun: boolean = false) {
   return fetchJSON<MetadataFixResult>(`${BASE}/metadata/reclassify-genres-by-path?dry_run=${dryRun}`, { method: 'POST' });
 }
 
-export function fixYearsItunes() {
-  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-years-itunes`, { method: 'POST' });
-}
-
 export function mergeDuplicateAlbums() {
   return fetchJSON<MetadataFixResult>(`${BASE}/library/albums/merge-duplicates`, { method: 'POST' });
-}
-
-export function fixYearsWikidata() {
-  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-years-wikidata`, { method: 'POST' });
 }
 
 export function fixGenresByArtist(minCoherence = 0.7) {
