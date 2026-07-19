@@ -1152,8 +1152,12 @@
     if (!$selectedAlbum) {
       savedAlbumScrollTop = albumScrollTop;
     }
-    const mainEl = document.querySelector('.main-content');
-    if (mainEl) savedArtistScrollTop = mainEl.scrollTop;
+    // The artist list scrolls inside `.library-view` (height:100% + overflow-y:
+    // auto), NOT `.main-content` — whose child fills it exactly, so its scrollTop
+    // stays 0. Reading `.main-content` here always captured 0, so Back landed at
+    // the top of the artist list instead of the viewed artist (#870, Bilou).
+    const scrollEl = document.querySelector('.library-view');
+    if (scrollEl) savedArtistScrollTop = scrollEl.scrollTop;
     selectedArtist.set(artist);
     // History is pushed by App.svelte's `selectedArtist` subscriber; a second
     // pushState here made browser Back require two presses.
@@ -1320,14 +1324,16 @@
   }
 
   // Same poll-until-ready pattern as albums, but for the artist list, whose
-  // scroll container is `.main-content` (not the album grid viewport). A fixed
+  // scroll container is `.library-view` (not the album grid viewport). A fixed
   // 2-frame wait clamped to 0 on a large artist list, so the back button landed
   // at the top of the list instead of the viewed artist (#870, Bilou).
   function restoreArtistScrollWhenReady(target: number) {
     if (target <= 0) return;
     let attempts = 0;
     const tick = () => {
-      const el = document.querySelector('.main-content') as HTMLElement | null;
+      // Restore on the real scroll container `.library-view` (see the capture
+      // in selectArtistDetail) — not `.main-content`, which never scrolls (#870).
+      const el = document.querySelector('.library-view') as HTMLElement | null;
       const ready = el && el.scrollHeight >= target + el.clientHeight;
       if (ready || attempts >= 30) {
         if (el) el.scrollTop = target;
