@@ -3445,6 +3445,13 @@
     gap: 0;
     position: relative;
     transition: background 0.12s ease-out;
+    /* Virtualise off-screen rows via CSS containment — the browser skips
+       layout/paint for rows outside the viewport, so opening this sheet on a
+       large queue (e.g. a big genre shuffle) doesn't stall the main thread
+       rendering thousands of rows (#1126). ~56px initial estimate; `auto`
+       keeps scrollbar stability. */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 56px;
   }
 
   .qs-item:hover {

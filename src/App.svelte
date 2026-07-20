@@ -787,9 +787,11 @@ import AlarmsView from './components/AlarmsView.svelte';
               }
             }
           });
-          if (type === 'playback.started' || type === 'playback.resumed' || type === 'playback.track_changed') {
-            fetchQueue();
-          }
+          // NOTE: no fetchQueue() here — playback.started/track_changed already
+          // refetch the queue above, and playback.resumed never changes it. A
+          // second blanket refetch re-downloaded and re-set the ENTIRE queue on
+          // every track advance, which froze the UI under a large (e.g.
+          // whole-library shuffle) queue until refresh (#1126).
         }
         return;
       }
