@@ -1348,6 +1348,8 @@ export default {
   "settings.alacPassthroughHint": "Send ALAC as-is to this renderer (bit-perfect, no FLAC transcode). Enable only if the renderer decodes ALAC natively, otherwise there is no sound.",
   "settings.dlnaLpcm": "LPCM (WAV) to DLNA",
   "settings.dlnaLpcmHint": "Transcode to WAV/LPCM instead of FLAC for this renderer. Enable if direct ALAC glitches (pop) at start: faster startup than FLAC and no pop.",
+  "settings.dlnaCap16bit": "Cap to 16-bit",
+  "settings.dlnaCap16bitHint": "Enable if hi-res (24-bit) is silent on this renderer while 16-bit works (Ruark R3). Re-encodes to 16-bit FLAC instead of sending 24-bit direct that the renderer can't decode.",
   "settings.hqplayerHint": "Connect Tune to HQPlayer for upsampling and audiophile filters. Default port: 4321 (v4/v5) or 8019 (v6).",
   "settings.enableHqplayer": "Enable HQPlayer",
   "settings.hqplayerIp": "HQPlayer IP address",

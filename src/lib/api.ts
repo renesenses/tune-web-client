@@ -317,6 +317,13 @@ export function updateZoneDlnaLpcm(id: number, enabled: boolean) {
   });
 }
 
+export function updateZoneDlnaCap16bit(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ dlna_cap_16bit: enabled }),
+  });
+}
+
 export function changeZoneOutput(id: number, outputType: string, outputDeviceId?: string | null) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',

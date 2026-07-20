@@ -1349,6 +1349,8 @@ export default {
   "settings.alacPassthroughHint": "Envoyer l\u2019ALAC tel quel \u00e0 ce lecteur (bit-perfect, sans transcodage FLAC). \u00c0 activer seulement si le lecteur d\u00e9code l\u2019ALAC nativement, sinon aucun son.",
   "settings.dlnaLpcm": "LPCM (WAV) vers DLNA",
   "settings.dlnaLpcmHint": "Transcoder en WAV/LPCM au lieu de FLAC pour ce lecteur. \u00c0 activer si l\u2019ALAC direct \u00absaute\u00bb (ploc) au d\u00e9marrage : d\u00e9marrage plus rapide qu\u2019en FLAC et sans ploc.",
+  "settings.dlnaCap16bit": "Limiter \u00e0 16 bits",
+  "settings.dlnaCap16bitHint": "\u00c0 activer si le hi-res (24 bits) reste muet sur ce lecteur alors que le 16 bits fonctionne (Ruark R3). Reconvertit en FLAC 16 bits au lieu d\u2019envoyer du 24 bits direct que le lecteur ne d\u00e9code pas.",
   "settings.hqplayerHint": "Connectez Tune à HQPlayer pour l'upsampling et les filtres audiophiles. Port par défaut : 4321 (v4/v5) ou 8019 (v6).",
   "settings.enableHqplayer": "Activer HQPlayer",
   "settings.hqplayerIp": "Adresse IP HQPlayer",
