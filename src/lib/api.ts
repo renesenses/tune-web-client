@@ -2270,7 +2270,10 @@ export function updateCollection(id: number, data: any) { return fetchJSON<any>(
 export function deleteCollection(id: number) { return fetchJSON<any>(`${BASE}/library/collections/${id}`, { method: 'DELETE' }); }
 export function getCollectionAlbums(id: number) { return fetchJSON<any[]>(`${BASE}/library/collections/${id}/albums`); }
 export function addAlbumToCollection(collectionId: number, albumId: number) {
-  return fetchJSON<any>(`${BASE}/library/collections/${collectionId}/albums`, { method: 'POST', body: JSON.stringify({ album_id: albumId }) });
+  // Server route is POST /collections/{id}/albums/{album_id} (album_id in the
+  // path, like the DELETE below). POSTing to /albums with the id in the body
+  // matched no route -> 404 "erreur ajout collection".
+  return fetchJSON<any>(`${BASE}/library/collections/${collectionId}/albums/${albumId}`, { method: 'POST' });
 }
 export function removeAlbumFromCollection(collectionId: number, albumId: number) {
   return fetchJSON<any>(`${BASE}/library/collections/${collectionId}/albums/${albumId}`, { method: 'DELETE' });
