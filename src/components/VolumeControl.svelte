@@ -101,6 +101,7 @@
     oninput={handleVolume}
     aria-label="Volume"
   />
+  <span class="volume-value">{volumeDisplay(vol)}</span>
 </div>
 
 <style>
