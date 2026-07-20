@@ -254,10 +254,12 @@
 
   // --- Cover URL helper ---
   function coverUrl(album: Album): string {
-    if (album.cover_path) {
-      return `/api/v1/library/albums/${album.id}/cover`;
-    }
-    return '';
+    // Use the canonical artwork helper like the rest of the app. The old
+    // `/api/v1/library/albums/{id}/cover` path does not exist on the server
+    // (there is /albums/{id}/artwork and /artwork/{hash}), so every cover 404'd
+    // — albums that had a cover in the library showed none in the converter
+    // (forum #999). cover_path is already a usable artwork URL.
+    return api.artworkUrl(album.cover_path, 200);
   }
 
   // --- Conversion actions ---
