@@ -16,6 +16,7 @@ import { formatTime, formatDuration, formatAlbumYear, fold } from '../lib/utils'
   import AlbumArt from './AlbumArt.svelte';
 import TrackContextMenu from './TrackContextMenu.svelte';
 import AlbumRating from './AlbumRating.svelte';
+import CollapsibleSection from './CollapsibleSection.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
   import ArtistEditModal from './ArtistEditModal.svelte';
   import TrackEditModal from './TrackEditModal.svelte';
@@ -1978,100 +1979,70 @@ import AlbumRating from './AlbumRating.svelte';
       <!-- Collapsible sections -->
       {#if artistMetadata && !artistMetadataLoading}
         {#if artistMetadata.anecdotes && artistMetadata.anecdotes.length > 0}
-          <div class="artist-section">
-            <button class="artist-section-header" onclick={() => toggleSection('anecdotes')}>
-              <span class="artist-section-title">{$tr('artist.anecdotes')}</span>
-              <svg class="artist-section-chevron" class:open={openSections['anecdotes']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {#if openSections['anecdotes']}
-              <ul class="artist-anecdotes">
-                {#each artistMetadata.anecdotes as anecdote}
-                  <li>{anecdote}</li>
-                {/each}
-              </ul>
-            {/if}
-          </div>
+          <CollapsibleSection title={$tr('artist.anecdotes')} open={!!openSections['anecdotes']} onToggle={() => toggleSection('anecdotes')}>
+            <ul class="artist-anecdotes">
+              {#each artistMetadata.anecdotes as anecdote}
+                <li>{anecdote}</li>
+              {/each}
+            </ul>
+          </CollapsibleSection>
         {/if}
 
         {#if artistMetadata.similar_artists && artistMetadata.similar_artists.length > 0}
-          <div class="artist-section">
-            <button class="artist-section-header" onclick={() => toggleSection('similar')}>
-              <span class="artist-section-title">{$tr('artist.similarArtists')}</span>
-              <svg class="artist-section-chevron" class:open={openSections['similar']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {#if openSections['similar']}
-              <div class="artist-similar-list">
-                {#each artistMetadata.similar_artists as sa}
-                  <button class="artist-similar-chip clickable" title={sa.reason} onclick={() => navigateToSimilarArtist(sa.name)}>{sa.name}</button>
-                {/each}
-              </div>
-            {/if}
-          </div>
+          <CollapsibleSection title={$tr('artist.similarArtists')} open={!!openSections['similar']} onToggle={() => toggleSection('similar')}>
+            <div class="artist-similar-list">
+              {#each artistMetadata.similar_artists as sa}
+                <button class="artist-similar-chip clickable" title={sa.reason} onclick={() => navigateToSimilarArtist(sa.name)}>{sa.name}</button>
+              {/each}
+            </div>
+          </CollapsibleSection>
         {/if}
 
         {#if artistMetadata.members && artistMetadata.members.length > 0}
-          <div class="artist-section">
-            <button class="artist-section-header" onclick={() => toggleSection('members')}>
-              <span class="artist-section-title">{$tr('artist.members')}</span>
-              <svg class="artist-section-chevron" class:open={openSections['members']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {#if openSections['members']}
-              <div class="artist-members-list">
-                {#each artistMetadata.members as member}
-                  <div class="artist-member">
-                    <span class="artist-member-name">{member.name}</span>
-                    <span class="artist-member-role">{member.role}</span>
-                  </div>
-                {/each}
-              </div>
-            {/if}
-          </div>
+          <CollapsibleSection title={$tr('artist.members')} open={!!openSections['members']} onToggle={() => toggleSection('members')}>
+            <div class="artist-members-list">
+              {#each artistMetadata.members as member}
+                <div class="artist-member">
+                  <span class="artist-member-name">{member.name}</span>
+                  <span class="artist-member-role">{member.role}</span>
+                </div>
+              {/each}
+            </div>
+          </CollapsibleSection>
         {/if}
 
         {#if artistMetadata.discography_highlights && artistMetadata.discography_highlights.length > 0}
-          <div class="artist-section">
-            <button class="artist-section-header" onclick={() => toggleSection('discography')}>
-              <span class="artist-section-title">{$tr('artist.discography')}</span>
-              <svg class="artist-section-chevron" class:open={openSections['discography']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {#if openSections['discography']}
-              <div class="artist-discography-list">
-                {#each artistMetadata.discography_highlights as disc}
-                  <div class="artist-disc-item">
-                    <span class="artist-disc-year">{disc.year}</span>
-                    <div class="artist-disc-info">
-                      <span class="artist-disc-title">{disc.title}</span>
-                      <span class="artist-disc-desc">{disc.description}</span>
-                    </div>
+          <CollapsibleSection title={$tr('artist.discography')} open={!!openSections['discography']} onToggle={() => toggleSection('discography')}>
+            <div class="artist-discography-list">
+              {#each artistMetadata.discography_highlights as disc}
+                <div class="artist-disc-item">
+                  <span class="artist-disc-year">{disc.year}</span>
+                  <div class="artist-disc-info">
+                    <span class="artist-disc-title">{disc.title}</span>
+                    <span class="artist-disc-desc">{disc.description}</span>
                   </div>
-                {/each}
-              </div>
-            {/if}
-          </div>
+                </div>
+              {/each}
+            </div>
+          </CollapsibleSection>
         {/if}
       {/if}
 
       <!-- Credits (instruments played) -->
       {#if artistCredits && artistCredits.length > 0}
-        <div class="artist-section">
-          <button class="artist-section-header" onclick={() => toggleSection('credits')}>
-            <span class="artist-section-title">{$tr('artist.credits')}</span>
-            <svg class="artist-section-chevron" class:open={openSections['credits']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
-          </button>
-          {#if openSections['credits']}
-            {@const instruments = uniqueInstruments(artistCredits)}
-            <div class="artist-credits-list">
-              {#if instruments.length > 0}
-                <div class="credits-instruments">
-                  {#each instruments as instr}
-                    <span class="credit-chip-static">{instr}</span>
-                  {/each}
-                </div>
-              {/if}
-              <div class="credits-track-count">{artistCredits.length} {artistCredits.length > 1 ? $tr('common.tracks') : 'track'}</div>
-            </div>
-          {/if}
-        </div>
+        <CollapsibleSection title={$tr('artist.credits')} open={!!openSections['credits']} onToggle={() => toggleSection('credits')}>
+          {@const instruments = uniqueInstruments(artistCredits)}
+          <div class="artist-credits-list">
+            {#if instruments.length > 0}
+              <div class="credits-instruments">
+                {#each instruments as instr}
+                  <span class="credit-chip-static">{instr}</span>
+                {/each}
+              </div>
+            {/if}
+            <div class="credits-track-count">{artistCredits.length} {artistCredits.length > 1 ? $tr('common.tracks') : 'track'}</div>
+          </div>
+        </CollapsibleSection>
       {/if}
 
       <!-- Albums in library -->
@@ -4449,22 +4420,6 @@ import AlbumRating from './AlbumRating.svelte';
     padding-top: var(--space-sm);
   }
 
-  .artist-section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    background: none;
-    border: none;
-    padding: var(--space-sm) 0;
-    cursor: pointer;
-    color: var(--tune-text);
-  }
-
-  .artist-section-header:hover {
-    color: var(--tune-accent);
-  }
-
   .artist-section-header-static {
     display: flex;
     align-items: center;
@@ -4485,15 +4440,6 @@ import AlbumRating from './AlbumRating.svelte';
     color: var(--tune-text-muted);
     font-size: 13px;
     padding: 12px 0;
-  }
-
-  .artist-section-chevron {
-    transition: transform 0.2s ease-out;
-    color: var(--tune-text-muted);
-  }
-
-  .artist-section-chevron.open {
-    transform: rotate(180deg);
   }
 
   .artist-anecdotes {
