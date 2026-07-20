@@ -897,9 +897,14 @@ import AlarmsView from './components/AlarmsView.svelte';
               }
             }
           });
-          if (type === 'playback.started' || type === 'playback.resumed' || type === 'playback.track_changed') {
-            fetchQueue();
-          }
+          // NOTE: do NOT refetch the full queue here. `playback.started` already
+          // triggers a guarded fetchQueue() above (only when contents may be new),
+          // and `playback.track_changed` deliberately skips the full refetch — the
+          // queue highlight is refreshed cheaply from zone.queue_position in
+          // syncZoneState() (#1096). A blanket fetchQueue() on every track change
+          // re-downloaded and re-set the ENTIRE queue on each advance, which froze
+          // the UI under a large (e.g. whole-library shuffle) queue (#1126).
+          // `playback.resumed` never changes the queue, so it needs no refetch.
           // Bit-perfect / signal-path badge depends on zone.signal_path, which
           // the server computes from the live zone state. The optimistic update
           // above preserves the previous track's signal_path, so on the 2nd+
