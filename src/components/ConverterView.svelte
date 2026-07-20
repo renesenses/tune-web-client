@@ -269,17 +269,22 @@
     convertedCount = 0;
     currentFile = '';
 
+    // Flat array of sources the server understands (album / path), and numeric
+    // rates (null = keep original) — the old {type, ids} object + string rates
+    // 422'd (#1094/#1095).
     const sources = sourceTab === 'library'
-      ? { type: 'albums' as const, ids: Array.from(selectedAlbumIds) }
-      : { type: 'directories' as const, paths: Array.from(selectedDirPaths) };
+      ? Array.from(selectedAlbumIds).map((id) => ({ album_id: id }))
+      : Array.from(selectedDirPaths).map((path) => ({ path }));
+    const toRate = (s: string): number | null =>
+      !s || s === 'original' || !Number.isFinite(Number(s)) ? null : Number(s);
 
     try {
       const result = await api.startConversion(
         sources,
         effectiveFormat,
         effectiveQuality,
-        effectiveSampleRate,
-        effectiveBitDepth
+        toRate(effectiveSampleRate),
+        toRate(effectiveBitDepth)
       );
       jobId = result.job_id;
       totalCount = result.total_tracks ?? 0;

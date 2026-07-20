@@ -3160,11 +3160,15 @@ export function getConverterPresets(): Promise<{ id: string; label: string; form
 }
 
 export function startConversion(
-  sources: { type: 'albums'; ids: number[] } | { type: 'directories'; paths: string[] },
+  // The server expects a flat array of sources, each an album, a track or a
+  // path (Vec<ConvertSource>) — NOT a {type, ids} object, and numeric
+  // sample_rate/bit_depth (Option<u32>/u16), not strings. Sending the old shape
+  // 422'd (Reivax66/Bilou, #1094/#1095).
+  sources: Array<{ album_id?: number; track_id?: number; path?: string }>,
   format: string,
   quality: string,
-  sampleRate: string,
-  bitDepth: string,
+  sampleRate: number | null,
+  bitDepth: number | null,
 ): Promise<{ job_id: string; total_tracks: number }> {
   return fetchJSON(`${BASE}/converter/start`, {
     method: 'POST',
