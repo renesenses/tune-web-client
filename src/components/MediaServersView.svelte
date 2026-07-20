@@ -432,8 +432,14 @@
               <span class="server-name">{server.name}</span>
               <span class="server-detail truncate">{server.manufacturer} &middot; {server.host}:{server.port}</span>
             </div>
-            <span class="server-status" class:available={server.available} class:unavailable={!server.available}>
-              {server.available ? '' : $tr('mediaservers.unavailable')}
+            <!-- The /media-servers endpoint returns discovered servers and does
+                 not send an availability flag, so `available` is usually
+                 undefined. A listed server was just discovered = reachable;
+                 only flag "unavailable" when the server EXPLICITLY says false,
+                 otherwise every media server wrongly showed "indisponible"
+                 (rc3 regression #1122). -->
+            <span class="server-status" class:available={server.available !== false} class:unavailable={server.available === false}>
+              {server.available === false ? $tr('mediaservers.unavailable') : ''}
             </span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
           </button>
