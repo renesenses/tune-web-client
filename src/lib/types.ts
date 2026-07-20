@@ -170,6 +170,8 @@ export interface Zone {
   dlna_native_flac?: boolean;
   alac_passthrough?: boolean;
   dlna_lpcm?: boolean;
+  /** Cap output to 16-bit for renderers that advertise FLAC but only decode 16-bit (Ruark R3, #1137) */
+  dlna_cap_16bit?: boolean;
   /** Max output sample rate (Hz); null/absent = no limit (resample only above it) */
   max_sample_rate?: number | null;
 }
