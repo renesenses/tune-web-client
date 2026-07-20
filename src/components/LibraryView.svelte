@@ -10,7 +10,9 @@
   import { currentProfileId } from '../lib/stores/profile';
   import * as api from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
-  import { formatTime, formatDuration, formatAlbumYear, fold } from '../lib/utils';
+  import { groupCreditsByRole, uniqueInstruments } from '../lib/library/credits';
+import { observeHeight, observeWidth } from '../lib/actions/observeSize';
+import { formatTime, formatDuration, formatAlbumYear, fold } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
   import ArtistEditModal from './ArtistEditModal.svelte';
@@ -27,23 +29,6 @@
   import { displayFields } from '../lib/stores/displayFields';
   import type { ArtistMetadata } from '../lib/types';
 
-  function observeHeight(node: HTMLElement, callback: (h: number) => void) {
-    const ro = new ResizeObserver(entries => {
-      for (const e of entries) callback(e.contentRect.height);
-    });
-    ro.observe(node);
-    callback(node.clientHeight);
-    return { destroy() { ro.disconnect(); } };
-  }
-
-  function observeWidth(node: HTMLElement, callback: (w: number) => void) {
-    const ro = new ResizeObserver(entries => {
-      for (const e of entries) callback(e.contentRect.width);
-    });
-    ro.observe(node);
-    callback(node.clientWidth);
-    return { destroy() { ro.disconnect(); } };
-  }
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -288,23 +273,6 @@
     return translated !== key ? translated : role.charAt(0).toUpperCase() + role.slice(1);
   }
 
-  function groupCreditsByRole(credits: TrackCredit[]): Record<string, TrackCredit[]> {
-    const groups: Record<string, TrackCredit[]> = {};
-    for (const c of credits) {
-      const role = c.role || 'performer';
-      if (!groups[role]) groups[role] = [];
-      groups[role].push(c);
-    }
-    return groups;
-  }
-
-  function uniqueInstruments(credits: TrackCredit[]): string[] {
-    const set = new Set<string>();
-    for (const c of credits) {
-      if (c.instrument) set.add(c.instrument);
-    }
-    return [...set].sort();
-  }
 
   async function handleWriteAlbumTags(albumId: number) {
     writingAlbumTags = true;
