@@ -1002,6 +1002,61 @@ import { playFromHere } from '../lib/playback';
   // Total albums across all year groups (should equal total filtered albums)
   let yearGroupsTotalCount = $derived(yearGroups.reduce((sum, g) => sum + g.albums.length, 0));
 
+  // Virtual scroll state (Years tab). The Years view used to render every album
+  // across every year group as a real DOM card inside the main .library-view
+  // scroller. For a large library that is thousands of nodes + lazy <img> tags,
+  // so scrolling stuttered badly (#1125). We virtualize it the same way as the
+  // Albums tab: flatten the year groups into a flat list of fixed-height "rows"
+  // (a header row per year + one grid row per rank of albums) and only render
+  // the slice inside a dedicated viewport.
+  const YEAR_HEADER_HEIGHT = 62;   // .year-section header block (margin + text + border)
+  let yearGridViewport = $state<HTMLDivElement | null>(null);
+  let yearScrollTop = $state(0);
+  let yearViewportHeight = $state(800);
+  let yearViewportWidth = $state(1200);
+
+  type YearRow =
+    | { kind: 'header'; label: string; count: number; top: number; height: number }
+    | { kind: 'albums'; albums: Album[]; top: number; height: number };
+
+  // Flat, positioned row list for the Years tab (headers + album grid-rows).
+  let yearRowModel = $derived.by(() => {
+    const cols = Math.max(1, Math.floor((yearViewportWidth + ALBUM_GAP) / (ALBUM_COL_MIN + ALBUM_GAP)));
+    const colWidth = yearViewportWidth / cols;
+    const rowHeight = colWidth + ALBUM_TEXT_HEIGHT + ALBUM_GAP; // artwork+text + grid gap between rows
+    const rows: YearRow[] = [];
+    let top = 0;
+    for (const group of yearGroups) {
+      rows.push({ kind: 'header', label: group.label, count: group.albums.length, top, height: YEAR_HEADER_HEIGHT });
+      top += YEAR_HEADER_HEIGHT;
+      for (let i = 0; i < group.albums.length; i += cols) {
+        const slice = group.albums.slice(i, i + cols);
+        rows.push({ kind: 'albums', albums: slice, top, height: rowHeight });
+        top += rowHeight;
+      }
+    }
+    return { rows, totalHeight: top, cols };
+  });
+
+  // Visible slice of the year rows for the current scroll position.
+  let visibleYearRows = $derived.by(() => {
+    const { rows } = yearRowModel;
+    const top = yearScrollTop;
+    const bottom = yearScrollTop + yearViewportHeight;
+    const OVER = 400; // px overscan above/below the viewport
+    const out: YearRow[] = [];
+    for (const r of rows) {
+      if (r.top + r.height < top - OVER) continue;
+      if (r.top > bottom + OVER) break;
+      out.push(r);
+    }
+    return out;
+  });
+
+  function handleYearGridScroll(e: Event) {
+    yearScrollTop = (e.currentTarget as HTMLDivElement).scrollTop;
+  }
+
   let albumTotalDuration = $derived(
     $albumTracks.reduce((sum, t) => sum + (t.duration_ms ?? 0), 0)
   );
@@ -2709,30 +2764,40 @@ import { playFromHere } from '../lib/playback';
           <span class="year-summary-total">{yearGroupsTotalCount} {yearGroupsTotalCount > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
           <span class="year-summary-groups">{yearGroups.length} {yearGroups.length > 1 ? $tr('library.yearGroupPlural') : $tr('library.yearGroup')}</span>
         </div>
-        {#each yearGroups as group}
-          <div class="year-section">
-            <h3 class="year-header">{group.label}</h3>
-            <span class="year-count">{group.albums.length} {group.albums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
-          </div>
-          <div class="albums-grid">
-            {#each group.albums as album}
-              <!-- svelte-ignore a11y_click_events_have_key_events -->
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div class="album-card" onclick={() => selectAlbumDetail(album)}>
-                <div class="album-card-art">
-                  <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
-                  <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
-                    <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
-                  </button>
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="year-grid-viewport" bind:this={yearGridViewport} onscroll={handleYearGridScroll}
+          use:observeHeight={(h) => { yearViewportHeight = h; }}
+          use:observeWidth={(w) => { yearViewportWidth = w; }}>
+          <div style="height:{yearRowModel.totalHeight}px;position:relative;">
+            {#each visibleYearRows as row (row.kind === 'header' ? 'h' + row.top : 'a' + row.top)}
+              {#if row.kind === 'header'}
+                <div class="year-section" style="position:absolute;top:{row.top}px;left:0;right:0;height:{row.height}px;">
+                  <h3 class="year-header">{row.label}</h3>
+                  <span class="year-count">{row.count} {row.count > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
                 </div>
-                <span class="album-card-title truncate" title={album.title}>{album.title}</span>
-                {#if album.artist_name}
-                  <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
-                {/if}
-              </div>
+              {:else}
+                <div class="albums-grid year-albums-row" style="position:absolute;top:{row.top}px;left:0;right:0;height:{row.height}px;">
+                  {#each row.albums as album (album.id ?? album.title)}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_static_element_interactions -->
+                    <div class="album-card" onclick={() => selectAlbumDetail(album)}>
+                      <div class="album-card-art">
+                        <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                        <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
+                          <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
+                        </button>
+                      </div>
+                      <span class="album-card-title truncate" title={album.title}>{album.title}</span>
+                      {#if album.artist_name}
+                        <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {/if}
             {/each}
           </div>
-        {/each}
+        </div>
       {/if}
 
     {/if}
@@ -5197,18 +5262,29 @@ import { playFromHere } from '../lib/playback';
   }
 
   /* Years tab */
+  .year-grid-viewport {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    /* Reserve the scrollbar gutter so the content width (and therefore the
+       virtual-scroll column math) doesn't jump when the scrollbar appears —
+       same reasoning as .album-grid-viewport (#1022). */
+    scrollbar-gutter: stable;
+  }
+
+  .year-albums-row {
+    /* Rows are absolutely positioned by the virtual scroller; keep the grid
+       columns identical to the CSS auto-fill used by the album tab. */
+    align-content: start;
+  }
+
   .year-section {
     display: flex;
     align-items: baseline;
     gap: var(--space-md);
-    margin-top: var(--space-lg);
-    margin-bottom: var(--space-sm);
     padding-bottom: 6px;
     border-bottom: 1px solid var(--tune-border);
-  }
-
-  .year-section:first-child {
-    margin-top: 0;
+    box-sizing: border-box;
   }
 
   .year-header {
