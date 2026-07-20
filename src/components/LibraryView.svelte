@@ -1407,6 +1407,32 @@
     }
     shuffleAllLoading = true;
     try {
+      // When browsing the genres tab, shuffle must stay scoped to the visible
+      // genre selection — never leak to the whole library (#1126). A leaf genre
+      // (`selectedGenre`) maps 1:1 to the server's `genre` filter, but a *parent
+      // branch* (`selectedParent`, which the genres tab shows as top-level cards)
+      // and the "no genre" bucket have no single server-side genre string. For
+      // those, gather the visible albums' tracks and shuffle them client-side
+      // (same pattern as SmartCollectionsView) so only the chosen genre plays.
+      if (!searchQuery.trim() && (selectedParent || selectedNoGenre) && !selectedGenre) {
+        const albumIds = genreAlbums.map((a) => a.id).filter((id): id is number => id != null);
+        const trackLists = await Promise.all(
+          albumIds.map((id) => api.getAlbumTracks(id).catch(() => [] as Track[])),
+        );
+        const trackIds = trackLists.flat().map((t) => t.id).filter((id): id is number => id != null);
+        if (!trackIds.length) {
+          notifications.error($tr('library.noTracks'));
+          return;
+        }
+        // Fisher–Yates shuffle.
+        for (let i = trackIds.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [trackIds[i], trackIds[j]] = [trackIds[j], trackIds[i]];
+        }
+        await api.play(zone.id, { track_ids: trackIds });
+        notifications.success($tr('library.shufflePlaying').replace('{count}', String(trackIds.length)));
+        return;
+      }
       // Pass current search/filter context so shuffle applies to visible results
       const opts: { search_query?: string; genre?: string } = {};
       if (searchQuery.trim()) opts.search_query = searchQuery.trim();
@@ -2205,9 +2231,9 @@
     <!-- Main library view -->
     <div class="library-header">
       <h2>{$tr('library.title')}</h2>
-      <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title={searchQuery.trim() || selectedGenre ? $tr('library.shuffleResults') : $tr('library.shuffleAll')}>
+      <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title={searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffleResults') : $tr('library.shuffleAll')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
-        {shuffleAllLoading ? $tr('common.loading') : (searchQuery.trim() || selectedGenre ? $tr('library.shuffle') : $tr('library.shuffleAll'))}
+        {shuffleAllLoading ? $tr('common.loading') : (searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffle') : $tr('library.shuffleAll'))}
       </button>
       <div class="library-header-right">
         <div class="search-box">
