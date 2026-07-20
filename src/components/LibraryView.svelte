@@ -1373,16 +1373,24 @@ import { playFromHere } from '../lib/playback';
   // (the grid's total height is only known after albums render + measure over
   // several frames), so scrollTop clamps to 0 and the user lands at the top
   // (#1024). Poll a bounded number of frames until the height is ready.
-  function restoreAlbumScrollWhenReady(target: number) {
-    if (target <= 0) { restoringScroll = false; return; }
+  // Shared poll-until-ready core for both tabs. The list re-renders across
+  // several frames after Back, so setting scrollTop immediately clamps to 0 and
+  // lands at the top (#1024/#870). Poll a bounded number of frames until the
+  // container is tall enough to hold `target`, then restore and run `onDone`.
+  // `getEl` is a thunk because the album viewport is a bound ref while the
+  // artist list scrolls inside `.library-view`.
+  function restoreScrollWhenReady(
+    getEl: () => HTMLElement | null,
+    target: number,
+    onDone?: () => void,
+  ) {
     let attempts = 0;
     const tick = () => {
-      const el = albumGridViewport;
+      const el = getEl();
       const ready = el && el.scrollHeight >= target + el.clientHeight;
       if (ready || attempts >= 30) {
-        albumScrollTop = target;
         if (el) el.scrollTop = target;
-        requestAnimationFrame(() => { restoringScroll = false; });
+        onDone?.();
         return;
       }
       attempts += 1;
@@ -1391,26 +1399,19 @@ import { playFromHere } from '../lib/playback';
     requestAnimationFrame(tick);
   }
 
-  // Same poll-until-ready pattern as albums, but for the artist list, whose
-  // scroll container is `.library-view` (not the album grid viewport). A fixed
-  // 2-frame wait clamped to 0 on a large artist list, so the back button landed
-  // at the top of the list instead of the viewed artist (#870, Bilou).
+  function restoreAlbumScrollWhenReady(target: number) {
+    if (target <= 0) { restoringScroll = false; return; }
+    restoreScrollWhenReady(() => albumGridViewport, target, () => {
+      albumScrollTop = target;
+      requestAnimationFrame(() => { restoringScroll = false; });
+    });
+  }
+
+  // The artist list scrolls inside `.library-view` (not the album grid viewport,
+  // and not `.main-content`, which never scrolls — #870).
   function restoreArtistScrollWhenReady(target: number) {
     if (target <= 0) return;
-    let attempts = 0;
-    const tick = () => {
-      // Restore on the real scroll container `.library-view` (see the capture
-      // in selectArtistDetail) — not `.main-content`, which never scrolls (#870).
-      const el = document.querySelector('.library-view') as HTMLElement | null;
-      const ready = el && el.scrollHeight >= target + el.clientHeight;
-      if (ready || attempts >= 30) {
-        if (el) el.scrollTop = target;
-        return;
-      }
-      attempts += 1;
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
+    restoreScrollWhenReady(() => document.querySelector('.library-view') as HTMLElement | null, target);
   }
 
   function goBack() {
