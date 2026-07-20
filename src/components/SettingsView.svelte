@@ -28,7 +28,39 @@
   let config: SystemConfig | null = $state(null);
   let backups = $state<BackupInfo[]>([]);
   let scanning = $state(false);
-  let scanProgress: { scanned: number; added: number; updated: number } | null = $state(null);
+  type ScanProgress = {
+    scanned?: number; added?: number; updated?: number; skipped?: number;
+    total?: number; batch?: number; tracks_per_second?: number; eta_seconds?: number;
+    pruned?: number; artwork_backfilled?: number;
+  };
+  let scanProgress: ScanProgress | null = $state(null);
+  // Percent complete (files phase); null when total is unknown (indeterminate).
+  let scanPercent = $derived.by(() => {
+    const p = scanProgress;
+    if (!p || !p.total || !p.scanned) return null;
+    return Math.min(100, Math.round((p.scanned / p.total) * 100));
+  });
+  // Human phase label, inferred from which fields the latest event carried
+  // (metadata → prune → artwork). A server-side `phase` field is a follow-up.
+  let scanPhase = $derived.by(() => {
+    const p = scanProgress;
+    if (!p) return '';
+    if (p.artwork_backfilled != null) return get(t)('settings.scanPhaseArtwork');
+    if (p.pruned != null) return get(t)('settings.scanPhasePrune');
+    return get(t)('settings.scanPhaseFiles');
+  });
+  // ETA formatted as m:ss (or h:mm:ss) from eta_seconds.
+  let scanEta = $derived.by(() => {
+    const s = scanProgress?.eta_seconds;
+    if (s == null || !isFinite(s) || s <= 0) return '';
+    const total = Math.round(s);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const sec = total % 60;
+    return h > 0
+      ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+      : `${m}:${String(sec).padStart(2, '0')}`;
+  });
   let restarting = $state(false);
   let loading = $state(true);
   let artworkScanning = $state(false);
@@ -1661,7 +1693,10 @@
     const unsub = tuneWS.onEvent((event) => {
       if (event.type === 'library.scan.progress') {
         scanning = true;
-        scanProgress = event.data;
+        // Merge, don't replace: post-scan events carry only a single field
+        // ({pruned} / {artwork_backfilled}) and would otherwise wipe the
+        // scanned/total counters mid-run.
+        scanProgress = { ...(scanProgress ?? {}), ...event.data };
         api.getStats().then(s => { stats = s; }).catch(() => {});
       } else if (event.type === 'library.scan.completed') {
         scanning = false;
@@ -1974,11 +2009,37 @@
         </div>
       {/if}
 
+      {#if scanning && scanProgress}
+        <div class="scan-progress-panel">
+          <div class="scan-progress-head">
+            <span class="scan-progress-phase">{scanPhase}</span>
+            {#if scanPercent !== null}
+              <span class="scan-progress-pct">{scanPercent}%</span>
+            {/if}
+          </div>
+          <div class="scan-progress-bar" class:indeterminate={scanPercent === null}>
+            <div class="scan-progress-fill" style={scanPercent !== null ? `width:${scanPercent}%` : ''}></div>
+          </div>
+          <div class="scan-progress-meta">
+            {#if scanProgress.total}
+              <span>{scanProgress.scanned ?? 0} / {scanProgress.total} {$t('settings.filesWord')}</span>
+            {:else if scanProgress.scanned}
+              <span>{scanProgress.scanned} {$t('settings.filesWord')}</span>
+            {/if}
+            {#if scanProgress.added != null}<span>+{scanProgress.added} {$t('settings.addedWord')}</span>{/if}
+            {#if scanProgress.updated}<span>~{scanProgress.updated} {$t('settings.scanUpdatedWord')}</span>{/if}
+            {#if scanProgress.skipped}<span>{scanProgress.skipped} {$t('settings.scanSkippedWord')}</span>{/if}
+            {#if scanProgress.tracks_per_second}<span>{scanProgress.tracks_per_second} {$t('settings.scanPerSecond')}</span>{/if}
+            {#if scanEta}<span>{$t('settings.scanEta')} {scanEta}</span>{/if}
+          </div>
+        </div>
+      {/if}
+
       <div class="action-buttons">
         <button class="scan-btn" onclick={() => handleScan(false)} disabled={scanning}>
           {#if scanning}
             <div class="spinner small"></div>
-            {$t('settings.scanning')}{#if scanProgress} — {scanProgress.scanned} {$t('settings.filesWord')} ({scanProgress.added} {$t('settings.addedWord')}){/if}
+            {$t('settings.scanning')}{#if scanPercent !== null} — {scanPercent}%{/if}
           {:else}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
               <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
@@ -4797,6 +4858,53 @@
     to { transform: rotate(360deg); }
   }
   .scan-message { font-size: 12px; color: var(--tune-accent); margin-left: 8px; font-weight: 600; }
+
+  .scan-progress-panel {
+    margin: 8px 0 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md, 8px);
+    background: var(--tune-surface, rgba(127, 127, 127, 0.06));
+  }
+  .scan-progress-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .scan-progress-phase { font-size: 13px; font-weight: 600; color: var(--tune-text); }
+  .scan-progress-pct { font-size: 13px; font-weight: 700; color: var(--tune-accent); font-variant-numeric: tabular-nums; }
+  .scan-progress-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--tune-border);
+    overflow: hidden;
+    position: relative;
+  }
+  .scan-progress-fill {
+    height: 100%;
+    background: var(--tune-accent);
+    border-radius: 3px;
+    transition: width 0.3s ease-out;
+  }
+  .scan-progress-bar.indeterminate .scan-progress-fill {
+    width: 35%;
+    position: absolute;
+    animation: scan-indeterminate 1.2s ease-in-out infinite;
+  }
+  @keyframes scan-indeterminate {
+    0% { left: -35%; }
+    100% { left: 100%; }
+  }
+  .scan-progress-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
 
   .scan-schedule-next {
     font-family: var(--font-body);
