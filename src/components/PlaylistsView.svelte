@@ -1,6 +1,7 @@
 <script lang="ts">
   import { get } from 'svelte/store';
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { playFromHere } from '../lib/playback';
   import { playlists as playlistsStore, playlistsLoaded, streamingPlaylistsCache, streamingPlaylistsLoaded } from '../lib/stores/playlists';
   import { streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
@@ -332,6 +333,9 @@
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
             </button>
+            <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(playlistTracks, index); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6"/><line x1="3" y1="12" x2="14" y2="12"/><line x1="3" y1="18" x2="10" y2="18"/><path d="M16 8v8l6-4z" fill="currentColor" stroke="none"/></svg>
+            </button>
             {#if onAddToPlaylist && (t.id || t.source_id)}
               <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
@@ -610,6 +614,9 @@
   .add-playlist-btn { width: 28px; height: 28px; border: 1px solid var(--tune-border); border-radius: var(--radius-sm); background: none; color: var(--tune-text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s ease-out; opacity: 0; }
   .track-item:hover .add-playlist-btn { opacity: 1; }
   .add-playlist-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
+  .play-from-here-btn { width: 28px; height: 28px; border: 1px solid var(--tune-border); border-radius: var(--radius-sm); background: none; color: var(--tune-text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s ease-out; opacity: 0; }
+  .track-item:hover .play-from-here-btn { opacity: 1; }
+  .play-from-here-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
 
   .loading { display: flex; align-items: center; gap: var(--space-md); color: var(--tune-text-muted); font-family: var(--font-body); padding: var(--space-xl); justify-content: center; }
   .spinner { width: 20px; height: 20px; border: 2px solid var(--tune-border); border-top-color: var(--tune-accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
