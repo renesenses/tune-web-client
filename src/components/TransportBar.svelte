@@ -888,9 +888,9 @@
           <div class="sp-row">
             <div class="sp-icon-col">
               <div class="sp-icon" class:bp={zone.signal_path.bit_perfect}>
-                {#if step.stage === 'source'}
+                {#if step.name === 'Source'}
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /></svg>
-                {:else if step.stage === 'transport' || step.stage === 'decode'}
+                {:else if step.name === 'Transport' || step.name === 'Decoder'}
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
                 {:else}
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 010 14.14" /><path d="M15.54 8.46a5 5 0 010 7.07" /></svg>
@@ -902,9 +902,7 @@
             </div>
             <div class="sp-info">
               <span class="sp-name">{trDesc(step.description)} <span class="sp-ndot" class:bp={zone.signal_path.bit_perfect}></span></span>
-              {#if step.sample_rate}
-                <span class="sp-detail">{step.format} {step.sample_rate/1000}kHz {step.channels}ch {step.bit_depth}bit</span>
-              {:else if step.detail}
+              {#if step.detail}
                 <span class="sp-detail">{trDetail(step.detail)}</span>
               {/if}
             </div>
