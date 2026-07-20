@@ -4,6 +4,7 @@
   import * as api from '../lib/api';
   import { tuneWS } from '../lib/websocket';
   import { zones, currentZoneId, followMe } from '../lib/stores/zones';
+  import { loopByDefault } from '../lib/stores/loopByDefault';
   import { devices } from '../lib/stores/devices';
   import { preferences, applyTheme, type ThemeMode, type VolumeDisplay, type StartupView } from '../lib/stores/preferences';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
@@ -156,15 +157,14 @@
         if (field.enabled) enabledKeys.push(field.key);
       }
     }
-    try {
-      await fetch('/api/v1/system/settings/metadata-fields', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: enabledKeys }),
-      });
-    } catch (e) {
-      console.warn('saveMetadataFields failed:', e);
-    }
+    // Single source of truth: drive the displayFields store, which persists to
+    // localStorage AND PUTs the same /system/settings/metadata-fields endpoint.
+    // Previously this raw PUT and the displayFields store (which feeds the
+    // track-title chips and re-syncs from the server on startup) were separate:
+    // enabling technical fields (format/sample_rate/bit_depth) in this catalog
+    // never reached the chips and got dropped on the next sync — the display was
+    // "lost" (Bilou, #1078). Routing through the store keeps both in sync.
+    displayFields.set(enabledKeys);
   }
 
   // Cloud / mozaiklabs.fr
@@ -1959,6 +1959,16 @@
           />
         </div>
       {/if}
+      <div class="setting-row">
+        <div class="setting-label">
+          <span>{$t('settings.loopByDefault')}</span>
+          <span class="setting-hint">{$t('settings.loopByDefaultHint')}</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" bind:checked={$loopByDefault} />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
     </section>
 
     <!-- Voice AI -->
@@ -2902,6 +2912,22 @@
     {/if}
 
     {#if settingsTab === 'services'}
+    <!-- Last.fm & scrobbling — the Services & Tokens page (Last.fm OAuth) was
+         orphaned from navigation, so users couldn't authorize scrobbling
+         anymore (forum #1113). Surface it from the Connected Services tab. -->
+    <section class="settings-section">
+      <h3>{$t('settings.lastfmScrobbling')}</h3>
+      <div class="service-list">
+        <div class="service-card">
+          <div class="service-header">
+            <span class="service-name">Last.fm</span>
+            <div class="service-header-actions">
+              <button class="scan-btn" onclick={() => activeView.set('services')}>Services &amp; Tokens →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
     <!-- Streaming services -->
     <section class="settings-section">
       <h3>{$t('settings.streaming')}</h3>
@@ -3228,6 +3254,26 @@
                     <option value="pcm">{$t('settings.dsdPcm')}</option>
                   </select>
                 </label>
+                <label class="zone-setting-label" title={$t('settings.maxSampleRateHint')}>
+                  <span>{$t('settings.maxSampleRate')}</span>
+                  <select
+                    class="zone-select"
+                    value={String(z.max_sample_rate ?? 0)}
+                    onchange={async (e) => {
+                      const v = Number((e.target as HTMLSelectElement).value);
+                      await api.updateZoneMaxSampleRate(z.id, v > 0 ? v : null);
+                    }}
+                  >
+                    <option value="0">{$t('settings.maxSampleRateNone')}</option>
+                    <option value="48000">48 kHz</option>
+                    <option value="88200">88.2 kHz</option>
+                    <option value="96000">96 kHz</option>
+                    <option value="176400">176.4 kHz</option>
+                    <option value="192000">192 kHz</option>
+                    <option value="352800">352.8 kHz</option>
+                    <option value="384000">384 kHz</option>
+                  </select>
+                </label>
                 {#if z.output_type === 'dlna'}
                   <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaNativeFlacHint')}>
                     <input
@@ -3238,6 +3284,18 @@
                       }}
                     />
                     <span>{$t('settings.dlnaNativeFlac')}</span>
+                  </label>
+                {/if}
+                {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type)}
+                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
+                    <input
+                      type="checkbox"
+                      checked={z.alac_passthrough ?? false}
+                      onchange={async (e) => {
+                        await api.updateZoneAlacPassthrough(z.id, (e.target as HTMLInputElement).checked);
+                      }}
+                    />
+                    <span>{$t('settings.alacPassthrough')}</span>
                   </label>
                 {/if}
               </div>

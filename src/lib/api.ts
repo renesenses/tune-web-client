@@ -270,10 +270,24 @@ export function updateZoneDsdMode(id: number, dsdMode: string) {
   });
 }
 
+export function updateZoneMaxSampleRate(id: number, rate: number | null) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ max_sample_rate: rate }),
+  });
+}
+
 export function updateZoneDlnaNativeFlac(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ dlna_native_flac: enabled }),
+  });
+}
+
+export function updateZoneAlacPassthrough(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ alac_passthrough: enabled }),
   });
 }
 
