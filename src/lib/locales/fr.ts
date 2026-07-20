@@ -330,6 +330,7 @@ export default {
   'settings.percent': 'Pourcentage (0-100)',
   'settings.decibels': 'Décibels (dB)',
   'settings.streaming': 'Services de streaming',
+  'settings.lastfmScrobbling': 'Last.fm & scrobbling',
   'settings.noService': 'Aucun service configuré',
   'settings.connected': 'Connecté',
   'settings.disconnect': 'Déconnecter',

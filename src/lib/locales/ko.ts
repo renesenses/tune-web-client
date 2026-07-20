@@ -318,6 +318,7 @@ export default {
   'settings.percent': '백분율 (0-100)',
   'settings.decibels': '데시벨 (dB)',
   'settings.streaming': '스트리밍 서비스',
+  'settings.lastfmScrobbling': 'Last.fm & scrobbling',
   'settings.noService': '구성된 서비스 없음',
   'settings.connected': '연결됨',
   'settings.disconnect': '연결 해제',
