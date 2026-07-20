@@ -1949,6 +1949,8 @@ export default {
   "converter.sampleRate": "Sample rate",
   "converter.bitDepth": "Bit depth",
   "converter.premiumGatePrefix": "The audio converter requires",
+  "playlistsHub.premiumTitle": "Playlists Hub — Premium",
+  "playlistsHub.premiumBody": "The Playlists Hub (cross-service transfer, backup and unified playlist management) requires a Tune Premium subscription.",
   "converter.convert": "Convert",
   "converter.tracksConverted": "{done}/{total} tracks converted",
   "converter.done": "Conversion complete — {count} tracks",
