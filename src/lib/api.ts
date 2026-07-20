@@ -1450,7 +1450,10 @@ export function getScanStatus() {
 }
 
 export function cancelScan() {
-  return fetchJSON<{ status?: string }>(`${BASE}/system/scan/cancel`, { method: 'POST' });
+  // Server returns 204 No Content — use fetchVoid so the empty body doesn't
+  // fail JSON.parse and throw "Invalid JSON response", which sent stopScan()
+  // into its catch branch and left the "scanning" banner up (bug #1129).
+  return fetchVoid(`${BASE}/system/scan/cancel`, { method: 'POST' });
 }
 
 export interface BackgroundTask { id: string; label: string; kind: string; }
