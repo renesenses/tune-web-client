@@ -8,7 +8,7 @@
   import { currentProfileId } from '../lib/stores/profile';
   import * as api from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
-  import { formatTime, formatDuration, formatAudioBadge, formatAlbumYear, fold } from '../lib/utils';
+  import { formatTime, formatDuration, formatAlbumYear, fold } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
   import ArtistEditModal from './ArtistEditModal.svelte';
@@ -1657,7 +1657,6 @@
                   {/if}
                   <MetadataChips track={t} fields={$displayFields} />
                 </div>
-                {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
                 <span class="track-heart" onclick={(e) => e.stopPropagation()}><HeartButton trackId={t.id} size={14} /></span>
                 {#if t.id}
@@ -1757,7 +1756,6 @@
                 {/if}
                 <MetadataChips track={t} fields={$displayFields} />
               </div>
-              {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
               <span class="track-heart" onclick={(e) => e.stopPropagation()}><HeartButton trackId={t.id} size={14} /></span>
               {#if t.id}
@@ -2415,7 +2413,6 @@
                 <span class="track-meta truncate">{#if t.artist_name}<button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.artist_id) selectArtistDetail({ id: t.artist_id, name: t.artist_name! }); }}>{t.artist_name}</button>{/if}{#if t.album_title}<span class="track-sep"> — </span><button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.album_id) selectAlbumDetail({ id: t.album_id, title: t.album_title!, artist_name: t.artist_name } as Album); }}>{t.album_title}</button>{/if}</span>
                 <MetadataChips track={t} fields={$displayFields} />
               </div>
-              {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
               <HeartButton trackId={t.id} size={14} />
               <button class="edit-track-btn" onclick={(e) => openTrackEdit(e, t)} title={$tr('metadata.editTrack')}>
