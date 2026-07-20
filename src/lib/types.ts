@@ -114,12 +114,17 @@ export interface QueueItem {
 }
 
 export interface SignalPathStep {
-  stage: string;
+  /**
+   * Stage name as emitted by the server: 'Source', 'Decoder', 'Transcoder',
+   * 'Resampler', 'Volume', 'DSP', 'Transport', 'Renderer'.
+   * NOTE: the server sends `name`, not `stage` — reading `stage` yielded
+   * `undefined` for every step, which broke per-step icon selection and hid
+   * the format detail (forum #1127).
+   */
+  name: string;
+  /** Human-readable line, already carries the format, e.g. "FLAC 44kHz/16bit". */
   description: string;
-  format?: string | null;
-  sample_rate?: number | null;
-  bit_depth?: number | null;
-  channels?: number | null;
+  bit_perfect?: boolean;
   detail?: string | null;
 }
 
