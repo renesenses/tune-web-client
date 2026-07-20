@@ -2,6 +2,8 @@
   import { onMount, untrack } from 'svelte';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { currentTrack, seekPositionMs } from '../lib/stores/nowPlaying';
+  import { isBrowserZone, browserSeek } from '../lib/stores/browserAudio';
   import { playFromHere } from '../lib/playback';
   import { tuneWS } from '../lib/websocket';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
@@ -1505,6 +1507,18 @@
   async function playTrack(trackId: number) {
     if (!zone?.id) {
       notifications.error($tr('library.noZoneSelected'));
+      return;
+    }
+    // If this track is already the one playing, restart it from the beginning
+    // instead of rebuilding the queue (Elie: "retour au début de la piste").
+    if (trackId === $currentTrack?.id) {
+      try {
+        await api.seek(zone.id, 0);
+        if (isBrowserZone(zone)) browserSeek(0);
+        seekPositionMs.set(0);
+      } catch (e) {
+        console.error('Restart track error:', e);
+      }
       return;
     }
     try {
