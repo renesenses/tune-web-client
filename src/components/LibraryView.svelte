@@ -1113,8 +1113,12 @@
     if (!$selectedAlbum) {
       savedAlbumScrollTop = albumScrollTop;
     }
-    const mainEl = document.querySelector('.main-content');
-    if (mainEl) savedArtistScrollTop = mainEl.scrollTop;
+    // The artist list scrolls inside `.library-view` (height:100% + overflow-y:
+    // auto), NOT `.main-content` — whose child fills it exactly, so its scrollTop
+    // stays 0. Reading `.main-content` here always captured 0, so Back landed at
+    // the top of the artist list instead of the viewed artist (#1118, #870).
+    const scrollEl = document.querySelector('.library-view');
+    if (scrollEl) savedArtistScrollTop = scrollEl.scrollTop;
     selectedArtist.set(artist);
     window.history.pushState({ view: 'library', artistId: artist.id, tab: $libraryTab }, '', '#library');
     selectedAlbum.set(null);
@@ -1256,6 +1260,51 @@
     enrichLoading = false;
   }
 
+  // Restore the album grid scroll once the virtual-scroll list is tall enough to
+  // hold the target offset. A fixed double-rAF isn't enough for a large library
+  // (the grid's total height is only known after albums render + measure over
+  // several frames), so scrollTop clamps to 0 and the user lands at the top
+  // (#1024). Poll a bounded number of frames until the height is ready.
+  function restoreAlbumScrollWhenReady(target: number) {
+    if (target <= 0) { restoringScroll = false; return; }
+    let attempts = 0;
+    const tick = () => {
+      const el = albumGridViewport;
+      const ready = el && el.scrollHeight >= target + el.clientHeight;
+      if (ready || attempts >= 30) {
+        albumScrollTop = target;
+        if (el) el.scrollTop = target;
+        requestAnimationFrame(() => { restoringScroll = false; });
+        return;
+      }
+      attempts += 1;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  // Same poll-until-ready pattern as albums, but for the artist list, whose
+  // scroll container is `.library-view` (not the album grid viewport). A fixed
+  // double-rAF clamped to 0 on a large artist list, so Back landed at the top
+  // of the list instead of the viewed artist (#1118, #870).
+  function restoreArtistScrollWhenReady(target: number) {
+    if (target <= 0) return;
+    let attempts = 0;
+    const tick = () => {
+      // Restore on the real scroll container `.library-view` (see the capture
+      // in selectArtistDetail) — not `.main-content`, which never scrolls.
+      const el = document.querySelector('.library-view') as HTMLElement | null;
+      const ready = el && el.scrollHeight >= target + el.clientHeight;
+      if (ready || attempts >= 30) {
+        if (el) el.scrollTop = target;
+        return;
+      }
+      attempts += 1;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
   function goBack() {
     const restoreAlbumScroll = savedAlbumScrollTop;
     const restoreArtistScroll = savedArtistScrollTop;
@@ -1270,32 +1319,13 @@
     artistMetadataError = false;
     artistMetadataLoading = false;
     window.history.back();
-    if (restoreAlbumScroll > 0) {
-      // Double rAF: the album grid re-renders after selectedAlbum is cleared,
-      // so its virtual-scroll height is only ready on the following frame.
-      // Setting scrollTop on the first frame clamps to 0 (grid still short) and
-      // the user lands at the top instead of the saved position (Pierre). Mirror
-      // the artist-list restore below, which already waits two frames.
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          albumScrollTop = restoreAlbumScroll;
-          if (albumGridViewport) albumGridViewport.scrollTop = restoreAlbumScroll;
-          requestAnimationFrame(() => { restoringScroll = false; });
-        });
-      });
-    }
+    // Poll until the re-rendered grid/list is tall enough before restoring
+    // scroll — a fixed 2-frame wait clamped to 0 on large libraries (#1024).
+    // Running the album restore here sets restoringScroll first, so the
+    // `_prevInDetail` effect no-ops for browser-back (no double restore).
+    restoreAlbumScrollWhenReady(restoreAlbumScroll);
     if (wasArtistTab && restoreArtistScroll > 0) {
-      // Double rAF: the artist list re-renders after selectedArtist is cleared,
-      // so its scroll height is only restored on the following frame. Setting
-      // scrollTop on the first frame clamps to 0 (list still short) and the user
-      // lands at the top instead of the saved position (Bilou). Mirror the
-      // album-grid restore, which already waits two frames.
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const mainEl = document.querySelector('.main-content');
-          if (mainEl) mainEl.scrollTop = restoreArtistScroll;
-        });
-      });
+      restoreArtistScrollWhenReady(restoreArtistScroll);
     }
   }
 
@@ -1421,16 +1451,14 @@
       // Restore scroll when transitioning from detail back to grid (e.g. browser back button)
       if (wasInDetail && !inDetail && savedAlbumScrollTop > 0 && !restoringScroll) {
         restoringScroll = true;
-        // Double rAF (see goBack): wait for the grid's virtual-scroll height to
-        // be laid out before setting scrollTop, otherwise it clamps to 0 and the
-        // user lands at the top on browser-back (Pierre).
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            albumScrollTop = savedAlbumScrollTop;
-            if (albumGridViewport) albumGridViewport.scrollTop = savedAlbumScrollTop;
-            requestAnimationFrame(() => { restoringScroll = false; });
-          });
-        });
+        // Wait for the grid's virtual-scroll height to be laid out before setting
+        // scrollTop, otherwise it clamps to 0 on browser-back (Pierre/#1024).
+        restoreAlbumScrollWhenReady(savedAlbumScrollTop);
+      }
+      // Same for the artist list on browser-back (#1118, #870): restore its saved
+      // position once the re-rendered list is tall enough.
+      if (wasInDetail && !inDetail && $libraryTab === 'artists' && savedArtistScrollTop > 0) {
+        restoreArtistScrollWhenReady(savedArtistScrollTop);
       }
     });
   });
