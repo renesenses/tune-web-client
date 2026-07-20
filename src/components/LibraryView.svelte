@@ -1457,11 +1457,49 @@
       return;
     }
     try {
+      // Respect the active quality/format filter: play only the matching tracks
+      // instead of the whole (mixed-quality) album. Sergio #910/#915 — with a
+      // FLAC / Hi-Res filter on, hitting play on an album card enqueued the
+      // album's MP3 / 44.1 tracks too. getAlbumTracks applies the same
+      // server-side filter the album detail uses. No filter (or empty result)
+      // → the fast album_id path (whole album), unchanged.
+      if (albumQualityFilter || albumFormatFilter) {
+        const tracks = await api.getAlbumTracks(albumId, albumQualityFilter, albumFormatFilter);
+        const ids = tracks.map(t => t.id).filter(Boolean) as number[];
+        if (ids.length > 0) {
+          await playAndSync(zone.id, { track_ids: ids });
+          return;
+        }
+      }
       await playAndSync(zone.id, { album_id: albumId });
     } catch (e) {
       console.error('Play album error:', e);
       notifications.error($tr('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e)));
     }
+  }
+
+  // "Tout lire" from the album detail: play exactly the tracks currently shown.
+  // The detail is loaded via getAlbumTracks() with the active quality/format
+  // filter, so when a filter is on ($albumTracks holds only the matching subset)
+  // the queue matches what the user sees instead of silently enqueuing the whole
+  // (mixed-quality) album. Streaming albums (tracks without a numeric id) and any
+  // load failure fall back to the plain album_id play.
+  async function playAlbumDetail() {
+    if (!zone?.id) {
+      notifications.error($tr('library.noZoneSelected'));
+      return;
+    }
+    const ids = $albumTracks.map(t => t.id).filter(Boolean) as number[];
+    if (ids.length > 0) {
+      try {
+        await playAndSync(zone.id, { track_ids: ids });
+      } catch (e) {
+        console.error('Play album detail error:', e);
+        notifications.error($tr('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e)));
+      }
+      return;
+    }
+    if ($selectedAlbum?.id) await playAlbum($selectedAlbum.id);
   }
 
   async function playTrack(trackId: number) {
@@ -1597,7 +1635,7 @@
             <span class="source-badge">{$selectedAlbum.source}</span>
           {/if}
           <div class="detail-actions">
-            <button class="play-all-btn" onclick={() => $selectedAlbum?.id && playAlbum($selectedAlbum.id)} title={$tr('library.playAlbum')}>
+            <button class="play-all-btn" onclick={() => playAlbumDetail()} title={$tr('library.playAlbum')}>
               <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M8 5v14l11-7z" /></svg>
             </button>
             <button class="edit-btn" onclick={(e) => $selectedAlbum && openAlbumEdit(e, $selectedAlbum)} title={$tr('metadata.editAlbum')}>
