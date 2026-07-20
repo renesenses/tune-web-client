@@ -366,6 +366,21 @@ export function submitPairingPin(deviceId: string, pin: string) {
   });
 }
 
+// --- AirPlay 2 PIN pairing (#1135) — for AirPlay-2-only TVs (Samsung, LG) and
+// Apple TV that require a HomeKit 4-digit code instead of the transient PIN.
+// The device_id here is the *output* id (e.g. "airplay2:AA:BB:..").
+export function startAirplayPairing(deviceId: string): Promise<{ ok: boolean; status: string }> {
+  return apiPost(`/outputs/${encodeURIComponent(deviceId)}/airplay/pair-start`);
+}
+
+export function getAirplayPairStatus(deviceId: string): Promise<{ status: string }> {
+  return apiFetch(`/outputs/${encodeURIComponent(deviceId)}/airplay/pair-status`);
+}
+
+export function submitAirplayPairPin(deviceId: string, pin: string): Promise<{ ok: boolean }> {
+  return apiPost(`/outputs/${encodeURIComponent(deviceId)}/airplay/pair-pin`, { pin });
+}
+
 export function deleteZone(id: number) {
   return fetchVoid(`${BASE}/zones/${id}`, { method: 'DELETE' });
 }

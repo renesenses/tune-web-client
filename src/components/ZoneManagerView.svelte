@@ -5,6 +5,7 @@
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import OaatGroupsPanel from './OaatGroupsPanel.svelte';
+  import AirplayPairingModal from './AirplayPairingModal.svelte';
   import type { Zone, ZoneGroupResponse, OutputType, DiscoveredDevice, StereoPairInfo, LocalAudioDevice } from '../lib/types';
 
   // --- State ---
@@ -400,6 +401,20 @@
   let devicePickerZoneId = $state<number | null>(null);
   let devicePickerLoading = $state(false);
 
+  // AirPlay PIN pairing modal (#1135) — for AirPlay-2-only TVs / Apple TV.
+  let airplayPairing = $state<{ deviceId: string; deviceName: string } | null>(null);
+
+  // The server reports AirPlay 2 outputs as 'airplay2'; older discovery uses 'airplay'.
+  function isAirplayOutput(type: string | null | undefined): boolean {
+    return type === 'airplay' || type === 'airplay2';
+  }
+
+  function openAirplayPairing(zone: Zone) {
+    if (!zone.output_device_id) return;
+    const dev = deviceById[zone.output_device_id];
+    airplayPairing = { deviceId: zone.output_device_id, deviceName: dev?.name ?? zone.name };
+  }
+
   function openDevicePicker(zoneId: number, e: MouseEvent) {
     e.stopPropagation();
     devicePickerZoneId = devicePickerZoneId === zoneId ? null : zoneId;
@@ -651,6 +666,15 @@
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9" /></svg>
         </button>
+        {#if isAirplayOutput(zone.output_type) && zone.output_device_id}
+          <button
+            class="btn-icon btn-icon-sm"
+            onclick={(e) => { e.stopPropagation(); openAirplayPairing(zone); }}
+            title={$t('zone.airplayPair')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+          </button>
+        {/if}
       </div>
 
       <!-- Inline device picker dropdown -->
@@ -941,6 +965,14 @@
     <OaatGroupsPanel />
   </section>
 </div>
+
+{#if airplayPairing}
+  <AirplayPairingModal
+    deviceId={airplayPairing.deviceId}
+    deviceName={airplayPairing.deviceName}
+    onClose={() => (airplayPairing = null)}
+  />
+{/if}
 
 <style>
   .zone-manager {
