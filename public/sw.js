@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tune-v2';
+const CACHE_NAME = 'tune-v3';
 const PRECACHE = ['/', '/index.html'];
 
 self.addEventListener('install', (e) => {
@@ -16,6 +16,11 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+  // The Cache API only accepts http(s) GET requests. Browser extensions emit
+  // chrome-extension:// fetches that otherwise reach `cache.put` and throw
+  // ("Request scheme 'chrome-extension' is unsupported"), spamming the console.
+  // Let anything that can't be cached fall through to the network untouched.
+  if (e.request.method !== 'GET' || !/^https?:/.test(e.request.url)) return;
   if (e.request.url.includes('/api/') || e.request.url.includes('/ws') || e.request.url.includes('/stream/')) return;
   // Network-first: always try the network, fall back to cache offline
   e.respondWith(

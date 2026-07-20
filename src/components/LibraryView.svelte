@@ -166,6 +166,20 @@ import { playFromHere } from '../lib/playback';
     }
   }
 
+  // Load the rating when the open album changes. This MUST be an $effect:
+  // calling loadAlbumRating from a template expression (it was) mutates $state
+  // during render, which Svelte 5 forbids (state_unsafe_mutation → the album
+  // view crashed to a blank screen). untrack keeps the rating state it writes
+  // from re-triggering this effect.
+  $effect(() => {
+    const id = $selectedAlbum?.id;
+    if (id != null) {
+      untrack(() => {
+        loadAlbumRating(id);
+      });
+    }
+  });
+
   async function submitRating(albumId: number, star: number) {
     ratingSubmitting = true;
     try {
@@ -1801,9 +1815,6 @@ import { playFromHere } from '../lib/playback';
           <!-- Album Rating -->
           {#if $selectedAlbum?.id}
             {@const ratingAlbumId = $selectedAlbum.id}
-            {#if !albumRatingLoaded && albumRatingAlbumId !== ratingAlbumId}
-              {(() => { loadAlbumRating(ratingAlbumId); return ''; })()}
-            {/if}
             <div class="album-rating-section">
               <div class="album-stars">
                 {#each [1, 2, 3, 4, 5] as star}
