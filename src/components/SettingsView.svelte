@@ -29,6 +29,7 @@
   let backups = $state<BackupInfo[]>([]);
   let scanning = $state(false);
   type ScanProgress = {
+    phase?: string;
     scanned?: number; added?: number; updated?: number; skipped?: number;
     total?: number; batch?: number; tracks_per_second?: number; eta_seconds?: number;
     pruned?: number; artwork_backfilled?: number;
@@ -45,9 +46,17 @@
   let scanPhase = $derived.by(() => {
     const p = scanProgress;
     if (!p) return '';
-    if (p.artwork_backfilled != null) return get(t)('settings.scanPhaseArtwork');
-    if (p.pruned != null) return get(t)('settings.scanPhasePrune');
-    return get(t)('settings.scanPhaseFiles');
+    // Prefer the server-provided phase; fall back to inferring it from which
+    // payload keys are present (older servers without the `phase` field).
+    const labels: Record<string, string> = {
+      files: get(t)('settings.scanPhaseFiles'),
+      prune: get(t)('settings.scanPhasePrune'),
+      artwork: get(t)('settings.scanPhaseArtwork'),
+    };
+    if (p.phase && labels[p.phase]) return labels[p.phase];
+    if (p.artwork_backfilled != null) return labels.artwork;
+    if (p.pruned != null) return labels.prune;
+    return labels.files;
   });
   // ETA formatted as m:ss (or h:mm:ss) from eta_seconds.
   let scanEta = $derived.by(() => {
