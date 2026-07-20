@@ -4,6 +4,7 @@
   import * as api from '../lib/api';
   import { tuneWS } from '../lib/websocket';
   import { zones, currentZoneId, followMe } from '../lib/stores/zones';
+  import { loopByDefault } from '../lib/stores/loopByDefault';
   import { devices } from '../lib/stores/devices';
   import { preferences, applyTheme, type ThemeMode, type VolumeDisplay, type StartupView } from '../lib/stores/preferences';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
@@ -1959,6 +1960,16 @@
           />
         </div>
       {/if}
+      <div class="setting-row">
+        <div class="setting-label">
+          <span>{$t('settings.loopByDefault')}</span>
+          <span class="setting-hint">{$t('settings.loopByDefaultHint')}</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" bind:checked={$loopByDefault} />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
     </section>
 
     <!-- Voice AI -->

@@ -1243,6 +1243,8 @@ export default {
   "settings.refresh": "刷新",
   "settings.playback": "播放",
   "settings.crossfadeHint": "曲目之间交叉淡入淡出。取消勾选以实现无缝播放（无静音或淡变）。",
+  "settings.loopByDefault": "默认循环播放",
+  "settings.loopByDefaultHint": "每首曲目结束后重新开始播放，而不是停止。",
   "settings.duration": "时长",
   "settings.voiceCommand": "语音指令",
   "settings.voiceCommandHint": "启用麦克风以对 Tune AI 讲话，而非打字。",

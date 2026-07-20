@@ -1262,6 +1262,8 @@ export default {
   "settings.refresh": "Actualiser",
   "settings.playback": "Lecture",
   "settings.crossfadeHint": "Fondu enchaîné entre les pistes. Décochez pour un enchaînement gapless (sans silence ni fondu).",
+  "settings.loopByDefault": "Lire en boucle par défaut",
+  "settings.loopByDefaultHint": "Relance chaque piste au lieu de s'arrêter à la fin.",
   "settings.duration": "Durée",
   "settings.voiceCommand": "Commande vocale",
   "settings.voiceCommandHint": "Activez le micro pour parler à Tune AI au lieu de taper.",

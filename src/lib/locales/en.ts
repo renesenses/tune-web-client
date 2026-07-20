@@ -1261,6 +1261,8 @@ export default {
   "settings.refresh": "Refresh",
   "settings.playback": "Playback",
   "settings.crossfadeHint": "Crossfade between tracks. Uncheck for gapless playback (no silence or fade).",
+  "settings.loopByDefault": "Loop by default",
+  "settings.loopByDefaultHint": "Restarts each track instead of stopping at the end.",
   "settings.duration": "Duration",
   "settings.voiceCommand": "Voice command",
   "settings.voiceCommandHint": "Enable the microphone to talk to Tune AI instead of typing.",

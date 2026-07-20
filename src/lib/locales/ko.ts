@@ -1243,6 +1243,8 @@ export default {
   "settings.refresh": "새로고침",
   "settings.playback": "재생",
   "settings.crossfadeHint": "트랙 간 크로스페이드. 갭리스 재생(무음 또는 페이드 없음)을 원하면 체크 해제하세요.",
+  "settings.loopByDefault": "기본으로 반복 재생",
+  "settings.loopByDefaultHint": "끝에서 멈추지 않고 각 트랙을 다시 시작합니다.",
   "settings.duration": "길이",
   "settings.voiceCommand": "음성 명령",
   "settings.voiceCommandHint": "입력 대신 Tune AI와 대화하려면 마이크를 활성화하세요.",

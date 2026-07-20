@@ -1244,6 +1244,8 @@ export default {
   "settings.refresh": "Aggiorna",
   "settings.playback": "Riproduzione",
   "settings.crossfadeHint": "Dissolvenza incrociata tra le tracce. Deseleziona per la riproduzione gapless (nessun silenzio o dissolvenza).",
+  "settings.loopByDefault": "Riproduci in loop per impostazione predefinita",
+  "settings.loopByDefaultHint": "Riavvia ogni traccia invece di fermarsi alla fine.",
   "settings.duration": "Durata",
   "settings.voiceCommand": "Comando vocale",
   "settings.voiceCommandHint": "Attiva il microfono per parlare con Tune AI invece di digitare.",

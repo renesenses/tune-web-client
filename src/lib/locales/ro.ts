@@ -1252,6 +1252,8 @@ export default {
   "settings.refresh": "Reîmprospătează",
   "settings.playback": "Redare",
   "settings.crossfadeHint": "Tranziție (crossfade) între piese. Debifează pentru redare fără pauze (fără liniște sau estompare).",
+  "settings.loopByDefault": "Redă în buclă implicit",
+  "settings.loopByDefaultHint": "Reia fiecare piesă în loc să se oprească la final.",
   "settings.duration": "Durată",
   "settings.voiceCommand": "Comandă vocală",
   "settings.voiceCommandHint": "Activează microfonul pentru a vorbi cu Tune AI în loc să scrii.",

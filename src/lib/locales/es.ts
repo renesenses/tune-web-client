@@ -1244,6 +1244,8 @@ export default {
   "settings.refresh": "Actualizar",
   "settings.playback": "Reproducción",
   "settings.crossfadeHint": "Fundido encadenado entre pistas. Desmarca para reproducción sin pausas (sin silencio ni fundido).",
+  "settings.loopByDefault": "Reproducir en bucle por defecto",
+  "settings.loopByDefaultHint": "Reinicia cada pista en lugar de detenerse al final.",
   "settings.duration": "Duración",
   "settings.voiceCommand": "Comando de voz",
   "settings.voiceCommandHint": "Activa el micrófono para hablar con Tune AI en lugar de escribir.",

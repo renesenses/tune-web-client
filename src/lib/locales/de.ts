@@ -1244,6 +1244,8 @@ export default {
   "settings.refresh": "Aktualisieren",
   "settings.playback": "Wiedergabe",
   "settings.crossfadeHint": "Überblenden zwischen Titeln. Deaktivieren für lückenlose Wiedergabe (keine Stille oder Blende).",
+  "settings.loopByDefault": "Standardmäßig wiederholen",
+  "settings.loopByDefaultHint": "Startet jeden Titel neu, statt am Ende zu stoppen.",
   "settings.duration": "Dauer",
   "settings.voiceCommand": "Sprachbefehl",
   "settings.voiceCommandHint": "Aktiviere das Mikrofon, um mit Tune AI zu sprechen, statt zu tippen.",
