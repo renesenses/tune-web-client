@@ -302,21 +302,35 @@
         {#each filteredBranches as parent (parent)}
           {@const total = parentCounts[parent] ?? 0}
           {#if total > 0}
-            <div class="branch-row">
-              <button class="branch-card" onclick={() => selectParentBranch(parent)}>
+            {@const childrenWithAlbums = (tree[parent] ?? []).filter(
+              (child) => ($genres.find(g => g.name.toLowerCase() === child.toLowerCase())?.count ?? 0) > 0,
+            )}
+            <div
+              class="branch-row"
+              role="button"
+              tabindex="0"
+              onclick={() => selectParentBranch(parent)}
+              onkeydown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  selectParentBranch(parent);
+                }
+              }}
+            >
+              <div class="branch-card">
                 <span class="branch-name">{parent}</span>
                 <span class="branch-count">{total} {total > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
-              </button>
-              <div class="branch-children">
-                {#each tree[parent] as child}
-                  {@const c = ($genres.find(g => g.name.toLowerCase() === child.toLowerCase())?.count ?? 0)}
-                  {#if c > 0}
-                    <button class="child-chip" onclick={() => selectGenre(child)}>
+              </div>
+              {#if childrenWithAlbums.length > 0}
+                <div class="branch-children">
+                  {#each childrenWithAlbums as child}
+                    {@const c = ($genres.find(g => g.name.toLowerCase() === child.toLowerCase())?.count ?? 0)}
+                    <button class="child-chip" onclick={(e) => { e.stopPropagation(); selectGenre(child); }}>
                       {child} <span class="child-count">{c}</span>
                     </button>
-                  {/if}
-                {/each}
-              </div>
+                  {/each}
+                </div>
+              {/if}
             </div>
           {/if}
         {/each}
@@ -704,17 +718,23 @@
     border-radius: var(--radius-lg);
     padding: var(--space-md) var(--space-lg);
     display: flex; flex-direction: column; gap: var(--space-sm);
+    cursor: pointer;
+    transition: border-color 0.12s;
+  }
+  .branch-row:hover { border-color: var(--tune-accent); }
+  .branch-row:focus-visible {
+    outline: 2px solid var(--tune-accent);
+    outline-offset: 2px;
   }
   .branch-card {
     display: flex; justify-content: space-between; align-items: baseline;
-    background: none; border: none; padding: 0;
-    color: var(--tune-text); cursor: pointer; text-align: left;
+    color: var(--tune-text); text-align: left;
   }
   .branch-name {
     font-family: var(--font-label);
     font-size: 18px; font-weight: 700;
   }
-  .branch-card:hover .branch-name { color: var(--tune-accent); }
+  .branch-row:hover .branch-name { color: var(--tune-accent); }
   .branch-count {
     font-family: var(--font-body);
     font-size: 13px; color: var(--tune-text-muted);
