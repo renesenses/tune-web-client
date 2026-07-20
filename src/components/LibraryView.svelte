@@ -295,8 +295,12 @@
     writingAlbumTags = true;
     writeTagsMessage = null;
     try {
-      const result = await api.writeAlbumTags(albumId);
-      writeTagsMessage = $tr('library.tagsWritten').replace('{success}', String(result.success)).replace('{total}', String(result.tracks_processed));
+      // writeAlbumTags is accepted asynchronously ({status:"accepted"}) — there
+      // is no success/total count to show, so the toast used to render
+      // "undefined/undefined". Use the placeholder-free "started in background"
+      // message instead.
+      await api.writeAlbumTags(albumId);
+      writeTagsMessage = $tr('library.tagsWritten');
       setTimeout(() => writeTagsMessage = null, 5000);
     } catch (e: any) {
       writeTagsMessage = `${$tr('common.error')} : ${e?.message || e}`;
