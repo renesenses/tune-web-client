@@ -1,5 +1,6 @@
 <script lang="ts">
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { playFromHere } from '../lib/playback';
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import type { Track } from '../lib/types';
@@ -297,6 +298,9 @@
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="sp-track-duration">{formatTime(t.duration_ms)}</span>
+              <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(spTracks, i); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
+              </button>
             </div>
           {/each}
         </div>
@@ -468,6 +472,9 @@
   .sp-tracks { display: flex; flex-direction: column; }
   .sp-track-row { display: flex; align-items: center; gap: var(--space-md); padding: 8px 0; cursor: pointer; transition: background 0.12s; border-radius: var(--radius-sm); }
   .sp-track-row:hover { background: var(--tune-surface-hover); }
+  .play-from-here-btn { width: 28px; height: 28px; border: 1px solid var(--tune-border); border-radius: var(--radius-sm); background: none; color: var(--tune-text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s ease-out; opacity: 0; flex-shrink: 0; }
+  .sp-track-row:hover .play-from-here-btn { opacity: 1; }
+  .play-from-here-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
   .sp-track-num { font-family: var(--font-label); font-size: 13px; color: var(--tune-text-muted); min-width: 28px; text-align: right; }
   .sp-track-art { flex-shrink: 0; }
   .sp-track-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }

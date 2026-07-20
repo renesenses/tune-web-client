@@ -16,6 +16,7 @@ export default {
 
   // Common
   'common.play': 'Riproduci',
+  'common.playFromHere': 'Riproduci da qui',
   'common.pause': 'Pausa',
   'common.stop': 'Ferma',
   'common.loading': 'Caricamento...',

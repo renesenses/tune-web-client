@@ -1,5 +1,6 @@
 <script lang="ts">
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { playFromHere } from '../lib/playback';
   import { notifications } from '../lib/stores/notifications';
   import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
   import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading, albums, artists, tracks as libraryTracks, genres as libraryGenres } from '../lib/stores/library';
@@ -1059,6 +1060,11 @@
                             <QualityBadge format={track.format} sampleRate={track.sample_rate} bitDepth={track.bit_depth} source={track.source} />
                             <span class="track-dur">{formatTime(track.duration_ms)}</span>
                             <div class="track-hover-actions">
+                              {#if typeof track.id === 'number'}
+                                <button class="icon-btn" onclick={(e) => { e.stopPropagation(); playFromHere(group.tracks, i); }} title={$t('common.playFromHere')} aria-label={$t('common.playFromHere')}>
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
+                                </button>
+                              {/if}
                               <button class="icon-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(track); }} title="Ajouter a la file">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                               </button>

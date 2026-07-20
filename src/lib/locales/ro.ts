@@ -16,6 +16,7 @@ export default {
 
   // Common
   'common.play': 'Redă',
+  'common.playFromHere': 'Redă de aici',
   'common.pause': 'Pauză',
   'common.stop': 'Oprește',
   'common.loading': 'Se încarcă...',

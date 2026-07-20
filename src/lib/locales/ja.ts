@@ -16,6 +16,7 @@ export default {
 
   // Common
   'common.play': '再生',
+  'common.playFromHere': 'ここから再生',
   'common.pause': '一時停止',
   'common.stop': '停止',
   'common.loading': '読み込み中...',

@@ -16,6 +16,7 @@ export default {
 
   // Common
   'common.play': '播放',
+  'common.playFromHere': '从这里播放',
   'common.pause': '暂停',
   'common.stop': '停止',
   'common.loading': '加载中...',

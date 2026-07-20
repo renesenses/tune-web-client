@@ -1,6 +1,7 @@
 <script lang="ts">
   import { currentProfileId } from '../lib/stores/profile';
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { playFromHere } from '../lib/playback';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { selectedAlbum, albumTracks, selectedArtist, artistAlbums } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
@@ -193,6 +194,9 @@
               <MetadataChips track={t} fields={$displayFields} />
             </div>
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
+            <button class="action-btn play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(favTracks, favTracks.indexOf(t)); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
+            </button>
             <button class="action-btn" onclick={(e) => { e.stopPropagation(); addToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
             {#if onAddToPlaylist && (t.id || t.source_id)}
               <button class="action-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>

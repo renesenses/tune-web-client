@@ -4,6 +4,7 @@
   import { libraryTab, selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryLoading } from '../lib/stores/library';
   import { playbackHistory } from '../lib/stores/history';
   import { currentZone, currentZoneId, zones, playAndSync } from '../lib/stores/zones';
+  import { playFromHere } from '../lib/playback';
   import { activeStreamingService, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { get } from 'svelte/store';
   import { formatNumber } from '../lib/utils';
@@ -788,6 +789,11 @@
             {/if}
             <ServiceBadge source={track.source} compact />
             <span class="play-count-badge">{track.plays}</span>
+            {#if typeof track.track_id === 'number'}
+              <button class="play-from-here-btn" type="button" onclick={(e) => { e.stopPropagation(); playFromHere(topTracks.map(t => ({ id: t.track_id })), i); }} title={$t('common.playFromHere')} aria-label={$t('common.playFromHere')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
+              </button>
+            {/if}
           </div>
         {/each}
       </div>
@@ -1308,6 +1314,31 @@
 
   .top-track-row + .top-track-row {
     border-top: 1px solid var(--tune-border);
+  }
+
+  .play-from-here-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease-out;
+    opacity: 0;
+    flex-shrink: 0;
+  }
+
+  .top-track-row:hover .play-from-here-btn {
+    opacity: 1;
+  }
+
+  .play-from-here-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
   }
 
   .track-rank {
