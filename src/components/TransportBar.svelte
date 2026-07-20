@@ -618,7 +618,7 @@
       {/if}
     </button>
 
-    {#if state !== 'stopped' && zone?.id}
+    {#if state !== 'stopped' && zone?.id && displayTrack?.source !== 'radio'}
       <button
         class="control-btn stop-btn"
         onclick={async () => { if (zone?.id) await api.stop(zone.id); }}
