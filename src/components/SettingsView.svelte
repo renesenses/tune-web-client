@@ -157,15 +157,14 @@
         if (field.enabled) enabledKeys.push(field.key);
       }
     }
-    try {
-      await fetch('/api/v1/system/settings/metadata-fields', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: enabledKeys }),
-      });
-    } catch (e) {
-      console.warn('saveMetadataFields failed:', e);
-    }
+    // Single source of truth: drive the displayFields store, which persists to
+    // localStorage AND PUTs the same /system/settings/metadata-fields endpoint.
+    // Previously this raw PUT and the displayFields store (which feeds the
+    // track-title chips and re-syncs from the server on startup) were separate:
+    // enabling technical fields (format/sample_rate/bit_depth) in this catalog
+    // never reached the chips and got dropped on the next sync — the display was
+    // "lost" (Bilou, #1078). Routing through the store keeps both in sync.
+    displayFields.set(enabledKeys);
   }
 
   // Cloud / mozaiklabs.fr
