@@ -4116,8 +4116,10 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: var(--space-md);
-    flex: 1;
-    overflow-y: auto;
+    /* No inner scroll: the whole .library-view scrolls as one region. A second
+       overflow-y here made Firefox draw a classic scrollbar overlapping the
+       page's on the Genres tab (#1075); Chrome hid it with overlay scrollbars.
+       The stray flex:1 also collapsed the grid to a single column (#1119). */
   }
 
   .genre-card {
@@ -4190,9 +4192,16 @@
     margin: var(--space-md) 0 var(--space-sm);
   }
 
+  /* Grid on wide screens (desktop) instead of a single vertical column: the
+     branch cards tile in 2-3 columns, which reads better on large displays and
+     keeps the genre name close to its album count. On narrow screens auto-fill
+     collapses to one column. Both this and the orphan `.genres-grid` above are
+     grids, so the genre tree no longer regresses to a vertical list (#1119). */
   .branches {
-    display: flex; flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: var(--space-md);
+    align-items: start;
     margin-bottom: var(--space-xl);
   }
   .branch-row {
@@ -4202,8 +4211,12 @@
     padding: var(--space-md) var(--space-lg);
     display: flex; flex-direction: column; gap: var(--space-sm);
   }
+  /* Full-width button (whole top strip clickable) with the count sitting right
+     after the name instead of pushed to the far edge — on wide screens
+     `space-between` left the count marooned across the card from the name. */
   .branch-card {
-    display: flex; justify-content: space-between; align-items: baseline;
+    display: flex; justify-content: flex-start; align-items: baseline;
+    gap: var(--space-sm); width: 100%;
     background: none; border: none; padding: 0;
     color: var(--tune-text); cursor: pointer; text-align: left;
   }
