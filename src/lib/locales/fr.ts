@@ -16,6 +16,7 @@ export default {
 
   // Common
   'common.play': 'Lire',
+  'common.playFromHere': 'Lire à partir d\'ici',
   'common.pause': 'Pause',
   'common.stop': 'Arrêter',
   'common.loading': 'Chargement...',

@@ -16,6 +16,7 @@ export default {
 
   // Common
   'common.play': 'Play',
+  'common.playFromHere': 'Play from here',
   'common.pause': 'Pause',
   'common.stop': 'Stop',
   'common.loading': 'Loading...',

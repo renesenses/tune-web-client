@@ -1,6 +1,7 @@
 <script lang="ts">
   import { albums, genres } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { playFromHere } from '../lib/playback';
   import * as api from '../lib/api';
   import { formatTime, formatDuration, formatAudioBadge, formatAlbumYear } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
@@ -493,6 +494,9 @@
                     <HeartButton trackId={t.id} size={14} />
                   {/if}
                 </span>
+                <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(genreAlbumTracks, genreAlbumTracks.indexOf(t)); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
+                </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
                 {#if onAddToPlaylist && (t.id || t.source_id)}
                   <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
@@ -525,6 +529,9 @@
                   <HeartButton trackId={t.id} size={14} />
                 {/if}
               </span>
+              <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(genreAlbumTracks, index); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
+              </button>
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               {#if onAddToPlaylist && (t.id || t.source_id)}
                 <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
@@ -1042,6 +1049,30 @@
   }
 
   .add-queue-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .play-from-here-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease-out;
+    opacity: 0;
+  }
+
+  .track-item:hover .play-from-here-btn {
+    opacity: 1;
+  }
+
+  .play-from-here-btn:hover {
     border-color: var(--tune-accent);
     color: var(--tune-accent);
   }

@@ -16,6 +16,7 @@ export default {
 
   // Common
   'common.play': '재생',
+  'common.playFromHere': '여기서부터 재생',
   'common.pause': '일시 중지',
   'common.stop': '정지',
   'common.loading': '로딩 중...',
