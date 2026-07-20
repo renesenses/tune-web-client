@@ -2,6 +2,8 @@
   import { onMount, untrack } from 'svelte';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { currentTrack, seekPositionMs } from '../lib/stores/nowPlaying';
+  import { isBrowserZone, browserSeek } from '../lib/stores/browserAudio';
   import { playFromHere } from '../lib/playback';
   import { tuneWS } from '../lib/websocket';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
@@ -295,8 +297,12 @@
     writingAlbumTags = true;
     writeTagsMessage = null;
     try {
-      const result = await api.writeAlbumTags(albumId);
-      writeTagsMessage = $tr('library.tagsWritten').replace('{success}', String(result.success)).replace('{total}', String(result.tracks_processed));
+      // writeAlbumTags is accepted asynchronously ({status:"accepted"}) — there
+      // is no success/total count to show, so the toast used to render
+      // "undefined/undefined". Use the placeholder-free "started in background"
+      // message instead.
+      await api.writeAlbumTags(albumId);
+      writeTagsMessage = $tr('library.tagsWritten');
       setTimeout(() => writeTagsMessage = null, 5000);
     } catch (e: any) {
       writeTagsMessage = `${$tr('common.error')} : ${e?.message || e}`;
@@ -1453,6 +1459,20 @@
       return;
     }
     try {
+      // Respect the active quality/format filter: play only the matching tracks
+      // instead of the whole (mixed-quality) album. Sergio #910/#915 — with a
+      // FLAC / Hi-Res filter on, hitting play on an album card enqueued the
+      // album's MP3 / 44.1 tracks too. getAlbumTracks applies the same
+      // server-side filter the album detail uses. No filter (or empty result)
+      // → the fast album_id path (whole album), unchanged.
+      if (albumQualityFilter || albumFormatFilter) {
+        const tracks = await api.getAlbumTracks(albumId, albumQualityFilter, albumFormatFilter);
+        const ids = tracks.map(t => t.id).filter(Boolean) as number[];
+        if (ids.length > 0) {
+          await playAndSync(zone.id, { track_ids: ids });
+          return;
+        }
+      }
       await playAndSync(zone.id, { album_id: albumId });
     } catch (e) {
       console.error('Play album error:', e);
@@ -1460,9 +1480,45 @@
     }
   }
 
+  // "Tout lire" from the album detail: play exactly the tracks currently shown.
+  // The detail is loaded via getAlbumTracks() with the active quality/format
+  // filter, so when a filter is on ($albumTracks holds only the matching subset)
+  // the queue matches what the user sees instead of silently enqueuing the whole
+  // (mixed-quality) album. Streaming albums (tracks without a numeric id) and any
+  // load failure fall back to the plain album_id play.
+  async function playAlbumDetail() {
+    if (!zone?.id) {
+      notifications.error($tr('library.noZoneSelected'));
+      return;
+    }
+    const ids = $albumTracks.map(t => t.id).filter(Boolean) as number[];
+    if (ids.length > 0) {
+      try {
+        await playAndSync(zone.id, { track_ids: ids });
+      } catch (e) {
+        console.error('Play album detail error:', e);
+        notifications.error($tr('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e)));
+      }
+      return;
+    }
+    if ($selectedAlbum?.id) await playAlbum($selectedAlbum.id);
+  }
+
   async function playTrack(trackId: number) {
     if (!zone?.id) {
       notifications.error($tr('library.noZoneSelected'));
+      return;
+    }
+    // If this track is already the one playing, restart it from the beginning
+    // instead of rebuilding the queue (Elie: "retour au début de la piste").
+    if (trackId === $currentTrack?.id) {
+      try {
+        await api.seek(zone.id, 0);
+        if (isBrowserZone(zone)) browserSeek(0);
+        seekPositionMs.set(0);
+      } catch (e) {
+        console.error('Restart track error:', e);
+      }
       return;
     }
     try {
@@ -1593,7 +1649,7 @@
             <span class="source-badge">{$selectedAlbum.source}</span>
           {/if}
           <div class="detail-actions">
-            <button class="play-all-btn" onclick={() => $selectedAlbum?.id && playAlbum($selectedAlbum.id)} title={$tr('library.playAlbum')}>
+            <button class="play-all-btn" onclick={() => playAlbumDetail()} title={$tr('library.playAlbum')}>
               <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M8 5v14l11-7z" /></svg>
             </button>
             <button class="edit-btn" onclick={(e) => $selectedAlbum && openAlbumEdit(e, $selectedAlbum)} title={$tr('metadata.editAlbum')}>
@@ -2622,21 +2678,35 @@
             {#each filteredGenreTreeKeys.sort((a, b) => genreBranchSort === 'name' ? a.localeCompare(b) : (parentAlbumCounts[b] ?? 0) - (parentAlbumCounts[a] ?? 0)) as parent (parent)}
               {@const total = parentAlbumCounts[parent] ?? 0}
               {#if total > 0}
-                <div class="branch-row">
-                  <button class="branch-card" onclick={() => selectGenreInTab(parent)}>
+                {@const childrenWithAlbums = (genreTree[parent] ?? []).filter(
+                  (child) => ($genres.find(g => g.name.toLowerCase() === child.toLowerCase())?.count ?? 0) > 0,
+                )}
+                <div
+                  class="branch-row"
+                  role="button"
+                  tabindex="0"
+                  onclick={() => selectGenreInTab(parent)}
+                  onkeydown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      selectGenreInTab(parent);
+                    }
+                  }}
+                >
+                  <div class="branch-card">
                     <span class="branch-name">{parent}</span>
                     <span class="branch-count">{total} {total > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
-                  </button>
-                  <div class="branch-children">
-                    {#each genreTree[parent] as child}
-                      {@const c = ($genres.find(g => g.name.toLowerCase() === child.toLowerCase())?.count ?? 0)}
-                      {#if c > 0}
-                        <button class="child-chip" onclick={() => selectGenreInTab(child)}>
+                  </div>
+                  {#if childrenWithAlbums.length > 0}
+                    <div class="branch-children">
+                      {#each childrenWithAlbums as child}
+                        {@const c = ($genres.find(g => g.name.toLowerCase() === child.toLowerCase())?.count ?? 0)}
+                        <button class="child-chip" onclick={(e) => { e.stopPropagation(); selectGenreInTab(child); }}>
                           {child} <span class="child-chip-count">{c}</span>
                         </button>
-                      {/if}
-                    {/each}
-                  </div>
+                      {/each}
+                    </div>
+                  {/if}
                 </div>
               {/if}
             {/each}
@@ -4299,18 +4369,24 @@
     border-radius: var(--radius-lg);
     padding: var(--space-md) var(--space-lg);
     display: flex; flex-direction: column; gap: var(--space-sm);
+    cursor: pointer;
+    transition: border-color 0.12s;
   }
-  /* Full-width button (whole top strip clickable) with the count sitting right
-     after the name instead of pushed to the far edge — on wide screens
+  .branch-row:hover { border-color: var(--tune-accent); }
+  .branch-row:focus-visible {
+    outline: 2px solid var(--tune-accent);
+    outline-offset: 2px;
+  }
+  /* Whole top strip clickable via the .branch-row wrapper, with the count sitting
+     right after the name instead of pushed to the far edge — on wide screens
      `space-between` left the count marooned across the card from the name. */
   .branch-card {
     display: flex; justify-content: flex-start; align-items: baseline;
     gap: var(--space-sm); width: 100%;
-    background: none; border: none; padding: 0;
-    color: var(--tune-text); cursor: pointer; text-align: left;
+    color: var(--tune-text); text-align: left;
   }
   .branch-name { font-family: var(--font-label); font-size: 18px; font-weight: 700; }
-  .branch-card:hover .branch-name { color: var(--tune-accent); }
+  .branch-row:hover .branch-name { color: var(--tune-accent); }
   .branch-count { font-family: var(--font-body); font-size: 13px; color: var(--tune-text-muted); }
   .branch-children { display: flex; flex-wrap: wrap; gap: 6px; }
   .child-chip {

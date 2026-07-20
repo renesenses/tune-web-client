@@ -70,9 +70,33 @@
   });
 
   async function playTrack(track: Track) {
-    if (!zone?.id || !track.id) return;
+    if (!zone?.id) return;
+    // Streaming favorite: play via source/source_id (no local track_id).
+    const st = track as unknown as { source?: string; source_id?: string };
+    if (st.source_id && st.source) {
+      try {
+        await playAndSync(zone.id, {
+          source: st.source, source_id: st.source_id,
+          title: track.title, artist_name: track.artist_name,
+          album_title: track.album_title, cover_path: track.cover_path,
+        } as any);
+      } catch (e) {
+        console.error('Play streaming track error:', e);
+      }
+      return;
+    }
+    if (!track.id) return;
     try {
-      await playAndSync(zone.id, { track_id: track.id });
+      // Play the whole favorites list starting at the clicked track so playback
+      // auto-advances through the remaining favorites (Elie). Sending a lone
+      // track_id built a 1-entry queue that stopped after this track.
+      const idx = favTracks.findIndex(t => t.id === track.id);
+      if (idx >= 0) {
+        const ids = favTracks.slice(idx).map(t => t.id).filter(Boolean) as number[];
+        await playAndSync(zone.id, { track_ids: ids });
+      } else {
+        await playAndSync(zone.id, { track_id: track.id });
+      }
     } catch (e) {
       console.error('Play track error:', e);
     }
