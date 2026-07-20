@@ -999,11 +999,11 @@
                   <h3 class="section-title">Pistes <span class="count">{filteredTracks.length}</span></h3>
                   {#if filteredTracks.filter(t => t.id).length > 1}
                     <div class="track-actions-bar">
-                      <button class="action-pill" onclick={() => playAllTracks(groupedTracks)}>
+                      <button class="action-pill" onclick={() => playAllTracks(filteredTracks)}>
                         <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><polygon points="5,3 19,12 5,21" /></svg>
                         Tout lire
                       </button>
-                      <button class="action-pill" onclick={() => playAllTracks(groupedTracks, true)}>
+                      <button class="action-pill" onclick={() => playAllTracks(filteredTracks, true)}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="16,3 21,3 21,8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21,16 21,21 16,21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></svg>
                         Aleatoire
                       </button>
