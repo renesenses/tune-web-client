@@ -1592,10 +1592,17 @@ import { playFromHere } from '../lib/playback';
     try {
       const qs = await api.getQueue(zone.id);
       const nextPos = qs.position + 1;
+      // Idle = nothing is actually playing (stopped/paused, no current track, or empty queue).
+      // In that case "Play next" should also START playback on the inserted track.
+      const idle = qs.length === 0 || (zone.state !== 'playing' && zone.state !== 'buffering' && !zone.current_track);
       if (track.id) {
         await api.addToQueue(zone.id, { track_id: track.id, position: nextPos });
       } else if (track.source && track.source_id) {
         await api.addToQueue(zone.id, { source: track.source, source_id: track.source_id, position: nextPos });
+      }
+      if (idle) {
+        // Start playback at the just-inserted track (same action as clicking it in QueueView).
+        await api.jumpInQueue(zone.id, nextPos);
       }
       const updated = await api.getQueue(zone.id);
       queueTracks.set(updated.tracks);

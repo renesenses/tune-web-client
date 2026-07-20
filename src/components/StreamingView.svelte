@@ -528,7 +528,12 @@
     try {
       const qs = await api.getQueue(zone.id);
       const nextPos = qs.position + 1;
+      // Idle = nothing is actually playing: also START playback on the inserted track.
+      const idle = qs.length === 0 || (zone.state !== 'playing' && zone.state !== 'buffering' && !zone.current_track);
       await api.addToQueue(zone.id, { source: (track.source || service) as any, source_id: track.source_id, position: nextPos });
+      if (idle) {
+        await api.jumpInQueue(zone.id, nextPos);
+      }
       const updated = await api.getQueue(zone.id);
       queueTracks.set(updated.tracks);
       queuePosition.set(updated.position);
