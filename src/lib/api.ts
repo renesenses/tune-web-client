@@ -790,7 +790,9 @@ export function getArtistCredits(artistId: number) {
 }
 
 export function getArtistMetadata(artistId: number) {
-  return fetchJSON<import('./types').ArtistMetadata>(`${BASE}/artists/${artistId}/metadata`);
+  // Under /library like every other artist route — the missing prefix 404'd
+  // (api_not_found /artists/{id}/metadata, Jean Valjean #1096).
+  return fetchJSON<import('./types').ArtistMetadata>(`${BASE}/library/artists/${artistId}/metadata`);
 }
 
 export function enrichArtist(artistId: number) {
@@ -802,8 +804,13 @@ export function getArtistTracks(id: number) {
 }
 
 export function reportArtistImage(artistId: number) {
+  // fetchJSON always sends Content-Type: application/json, but this call had no
+  // body — axum's Json<ImageReportBody> extractor then fails to parse the empty
+  // payload and the report errors out ("erreur lors du signalement", Jean
+  // Valjean #1096). Send a JSON body (reason is optional server-side).
   return fetchJSON<{ status: string; artist_id: number }>(`${BASE}/library/artists/${artistId}/image/report`, {
     method: 'POST',
+    body: JSON.stringify({ reason: 'incorrect_image' }),
   });
 }
 
@@ -2263,7 +2270,10 @@ export function updateCollection(id: number, data: any) { return fetchJSON<any>(
 export function deleteCollection(id: number) { return fetchJSON<any>(`${BASE}/library/collections/${id}`, { method: 'DELETE' }); }
 export function getCollectionAlbums(id: number) { return fetchJSON<any[]>(`${BASE}/library/collections/${id}/albums`); }
 export function addAlbumToCollection(collectionId: number, albumId: number) {
-  return fetchJSON<any>(`${BASE}/library/collections/${collectionId}/albums`, { method: 'POST', body: JSON.stringify({ album_id: albumId }) });
+  // Server route is POST /collections/{id}/albums/{album_id} (album_id in the
+  // path, like the DELETE below). POSTing to /albums with the id in the body
+  // matched no route -> 404 "erreur ajout collection".
+  return fetchJSON<any>(`${BASE}/library/collections/${collectionId}/albums/${albumId}`, { method: 'POST' });
 }
 export function removeAlbumFromCollection(collectionId: number, albumId: number) {
   return fetchJSON<any>(`${BASE}/library/collections/${collectionId}/albums/${albumId}`, { method: 'DELETE' });
@@ -3150,11 +3160,15 @@ export function getConverterPresets(): Promise<{ id: string; label: string; form
 }
 
 export function startConversion(
-  sources: { type: 'albums'; ids: number[] } | { type: 'directories'; paths: string[] },
+  // The server expects a flat array of sources, each an album, a track or a
+  // path (Vec<ConvertSource>) — NOT a {type, ids} object, and numeric
+  // sample_rate/bit_depth (Option<u32>/u16), not strings. Sending the old shape
+  // 422'd (Reivax66/Bilou, #1094/#1095).
+  sources: Array<{ album_id?: number; track_id?: number; path?: string }>,
   format: string,
   quality: string,
-  sampleRate: string,
-  bitDepth: string,
+  sampleRate: number | null,
+  bitDepth: number | null,
 ): Promise<{ job_id: string; total_tracks: number }> {
   return fetchJSON(`${BASE}/converter/start`, {
     method: 'POST',

@@ -6,6 +6,7 @@
   import { t as tr } from '../lib/i18n';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import type { MediaServer, MediaServerBrowseResult, MediaServerItem } from '../lib/types';
+  import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
 
   let zone = $derived($currentZone);
   let loading = $state(false);
@@ -38,6 +39,12 @@
     loading = false;
   }
 
+  // Hierarchical DLNA browser: scroll position is kept per container level
+  // (objectId) so going back up returns to the same spot.
+  let msEl = $state<HTMLDivElement | null>(null);
+  const msKey = (objectId: string) => 'ms:' + (selectedServer?.id ?? '') + ':' + objectId;
+  const currentObjectId = () => navigationStack.length ? navigationStack[navigationStack.length - 1].objectId : '0';
+
   async function selectServer(server: MediaServer) {
     selectedServer = server;
     navigationStack = [];
@@ -46,6 +53,7 @@
 
   async function browseTo(objectId: string, title?: string) {
     if (!selectedServer) return;
+    saveDetailScroll(msKey(currentObjectId()), msEl);
     loading = true;
     try {
       browseResult = await api.browseMediaServer(selectedServer.id, objectId);
@@ -57,6 +65,7 @@
       console.error('Browse error:', e);
     }
     loading = false;
+    restoreDetailScroll(msKey(objectId), msEl);
   }
 
   function navigateToBreadcrumb(objectId: string | null) {
@@ -72,18 +81,21 @@
     // Find the index and truncate stack
     const idx = navigationStack.findIndex(e => e.objectId === objectId);
     if (idx >= 0) {
+      saveDetailScroll(msKey(currentObjectId()), msEl);
       navigationStack = navigationStack.slice(0, idx + 1);
       if (selectedServer) {
         loading = true;
         api.browseMediaServer(selectedServer.id, objectId).then(res => {
           browseResult = res;
           loading = false;
+          restoreDetailScroll(msKey(objectId), msEl);
         }).catch(() => { loading = false; });
       }
     }
   }
 
   function goBack() {
+    saveDetailScroll(msKey(currentObjectId()), msEl);
     if (navigationStack.length > 1) {
       // Go to parent container
       const newStack = navigationStack.slice(0, -1);
@@ -94,6 +106,7 @@
         api.browseMediaServer(selectedServer.id, parent.objectId).then(res => {
           browseResult = res;
           loading = false;
+          restoreDetailScroll(msKey(parent.objectId), msEl);
         }).catch(() => { loading = false; });
       }
     } else if (navigationStack.length === 1) {
@@ -104,6 +117,7 @@
         api.browseMediaServer(selectedServer.id, '0').then(res => {
           browseResult = res;
           loading = false;
+          restoreDetailScroll(msKey('0'), msEl);
         }).catch(() => { loading = false; });
       }
     } else {
@@ -262,7 +276,7 @@
   loadServers();
 </script>
 
-<div class="mediaservers-view">
+<div class="mediaservers-view" bind:this={msEl}>
   {#if selectedServer && browseResult}
     <!-- Browsing a server -->
     <div class="ms-header">

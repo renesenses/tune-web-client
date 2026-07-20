@@ -42,13 +42,31 @@ function getAudio(): HTMLAudioElement {
       stopSeekTimer();
     });
 
-    audioElement.addEventListener('ended', () => {
+    audioElement.addEventListener('ended', async () => {
       browserAudioPlaying.set(false);
       stopSeekTimer();
-      // Auto-advance to next track
+      // Auto-advance to next track.
+      //
+      // api.next() returns only { status, queue_position } — no zone, no
+      // stream_url — so the previous `api.next().then(syncZone)` was a no-op
+      // (syncZone matched on an undefined id) and the browser never started the
+      // next track: playback stopped at every track boundary (Rhorn, web UI).
+      // Re-fetch the zone to get the next track's stream_url and play it with
+      // force:true, since the server serves the next track under the SAME
+      // per-zone stream URL — without the forced reload the element replays the
+      // just-ended buffer ("repeat instead of advance", Elie).
       const zone = get(currentZone);
       if (zone?.id != null) {
-        api.next(zone.id).then((z) => syncZone(z)).catch(() => {});
+        try {
+          await api.next(zone.id);
+          const z = await api.getZone(zone.id);
+          syncZone(z);
+          if (isBrowserZone(z) && z.stream_url) {
+            browserPlay(z.stream_url, true);
+          }
+        } catch {
+          /* non-fatal */
+        }
       }
     });
 
