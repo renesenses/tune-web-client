@@ -804,8 +804,13 @@ export function getArtistTracks(id: number) {
 }
 
 export function reportArtistImage(artistId: number) {
+  // fetchJSON always sends Content-Type: application/json, but this call had no
+  // body — axum's Json<ImageReportBody> extractor then fails to parse the empty
+  // payload and the report errors out ("erreur lors du signalement", Jean
+  // Valjean #1096). Send a JSON body (reason is optional server-side).
   return fetchJSON<{ status: string; artist_id: number }>(`${BASE}/library/artists/${artistId}/image/report`, {
     method: 'POST',
+    body: JSON.stringify({ reason: 'incorrect_image' }),
   });
 }
 
