@@ -790,7 +790,9 @@ export function getArtistCredits(artistId: number) {
 }
 
 export function getArtistMetadata(artistId: number) {
-  return fetchJSON<import('./types').ArtistMetadata>(`${BASE}/artists/${artistId}/metadata`);
+  // Under /library like every other artist route — the missing prefix 404'd
+  // (api_not_found /artists/{id}/metadata, Jean Valjean #1096).
+  return fetchJSON<import('./types').ArtistMetadata>(`${BASE}/library/artists/${artistId}/metadata`);
 }
 
 export function enrichArtist(artistId: number) {
