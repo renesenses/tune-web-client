@@ -1073,6 +1073,7 @@ export default {
   "home.continueListening": "続きを聴く",
   "home.listens": "再生回数",
   "home.listened": "再生済み",
+  "home.libraryDuration": "ライブラリ",
   "home.explore": "探す",
   "home.recommendations": "おすすめ",
   "home.mixByGenre": "ジャンル別ミックス",

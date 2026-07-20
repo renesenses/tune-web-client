@@ -1082,6 +1082,7 @@ export default {
   "home.continueListening": "Continuă ascultarea",
   "home.listens": "Ascultări",
   "home.listened": "Ascultat",
+  "home.libraryDuration": "Bibliotecă",
   "home.explore": "Explorează",
   "home.recommendations": "Recomandări",
   "home.mixByGenre": "Mixuri pe genuri",
