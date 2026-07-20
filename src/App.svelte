@@ -75,7 +75,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
   import { loadProfiles } from './lib/stores/profile';
   import ProfilePicker from './components/ProfilePicker.svelte';
-  import { loadLicense } from './lib/stores/license';
+  import { loadLicense, isPremium } from './lib/stores/license';
   import { notifications } from './lib/stores/notifications';
   import { healthStatus } from './lib/stores/health';
   import { streamingServices as streamingServicesStore } from './lib/stores/streaming';
@@ -1146,7 +1146,15 @@ import AlarmsView from './components/AlarmsView.svelte';
     {:else if $activeView === 'playlistmanager'}
       <PlaylistManagerView onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'playlistshub'}
-      <PlaylistsHub />
+      {#if $isPremium}
+        <PlaylistsHub />
+      {:else}
+        <div class="premium-gate-view" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;height:100%;padding:40px;text-align:center;color:var(--tune-text-secondary,#888)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="40" height="40"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <h2 style="margin:0;color:var(--tune-text,#eee);font-size:20px">{$t('playlistsHub.premiumTitle')}</h2>
+          <p style="margin:0;max-width:44ch">{$t('playlistsHub.premiumBody')}</p>
+        </div>
+      {/if}
     {:else if $activeView === 'smartplaylists'}
       <SmartPlaylistsView />
     {:else if $activeView === 'smart-ai'}

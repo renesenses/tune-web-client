@@ -1950,6 +1950,8 @@ export default {
   "converter.sampleRate": "Fréquence d'échantillonnage",
   "converter.bitDepth": "Profondeur",
   "converter.premiumGatePrefix": "Le convertisseur audio est une fonctionnalité",
+  "playlistsHub.premiumTitle": "Playlists Hub — Premium",
+  "playlistsHub.premiumBody": "Le Playlists Hub (transfert entre services, sauvegarde et gestion unifiée de vos playlists) est réservé à l'abonnement Tune Premium.",
   "converter.convert": "Convertir",
   "converter.tracksConverted": "{done}/{total} pistes converties",
   "converter.done": "Conversion terminée — {count} pistes",
