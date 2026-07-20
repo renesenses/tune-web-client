@@ -532,8 +532,8 @@
                 class="podcast-card"
                 role="button"
                 tabindex="0"
-                onclick={() => selectPodcast({ ...podcast, name: podcast.title, cover_url: podcast.image_url, artist: podcast.author })}
-                onkeydown={(e) => e.key === 'Enter' && selectPodcast({ ...podcast, name: podcast.title, cover_url: podcast.image_url, artist: podcast.author })}
+                onclick={() => selectPodcast({ ...podcast, name: podcast.title, cover_url: podcast.image_url, artist: podcast.author, subscription_id: podcast.id })}
+                onkeydown={(e) => e.key === 'Enter' && selectPodcast({ ...podcast, name: podcast.title, cover_url: podcast.image_url, artist: podcast.author, subscription_id: podcast.id })}
               >
                 <div class="card-cover-wrap">
                   {#if podcast.image_url}

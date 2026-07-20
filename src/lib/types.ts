@@ -130,6 +130,13 @@ export interface SignalPathStep {
 
 export interface SignalPath {
   bit_perfect: boolean;
+  /**
+   * True when the delivered signal is lossless even if not bit-perfect, e.g. a
+   * lossless source transcoded to another lossless container (DSD→FLAC,
+   * ALAC→FLAC for a DLNA renderer). Falls back to bit_perfect on older servers
+   * that don't send it. Used for the "Lossless/Lossy" loss label (#96).
+   */
+  lossless?: boolean;
   steps: SignalPathStep[];
   summary: string;
   decisions?: string[];

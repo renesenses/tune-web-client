@@ -557,6 +557,20 @@
   // Fallback to ytPlayer track when zone has no current_track (yt-dlp loading phase)
   let ytState = $derived($ytPlayerState);
   let displayTrack = $derived(track ?? (ytState.active ? ytState.track : null));
+
+  // Play count for the current local track (Progman, #1056). Fetched on demand;
+  // guarded to the exact track id so a race doesn't show a stale count.
+  let trackPlays = $state<number | null>(null);
+  $effect(() => {
+    const dt = displayTrack;
+    const id = dt?.id;
+    trackPlays = null;
+    if (id && dt?.source === 'local') {
+      api.getTrackPlays(id)
+        .then((r) => { if (displayTrack?.id === id) trackPlays = r.plays; })
+        .catch(() => {});
+    }
+  });
   // Zone playing OR IFrame playing while yt-dlp loads
   let isEffectivePlaying = $derived(
     state === 'playing' || (ytState.active && ytState.playing && state === 'stopped')
@@ -1001,6 +1015,9 @@
               {#if displayTrack.channels}<span class="tech-chip">{displayTrack.channels}ch</span>{/if}
             </p>
           {/if}
+          {#if !isRadio && displayTrack.source === 'local' && trackPlays !== null && trackPlays > 0}
+            <p class="track-plays">{trackPlays} {$t('home.plays')}</p>
+          {/if}
           {#if !isRadio && displayTrack.id}
             <div class="np-extra-btns">
             <button class="np-credits-btn" class:active={showCredits} onclick={() => { showCredits = !showCredits; showLyrics = false; if (showCredits && displayTrack.id) loadNpCredits(displayTrack.id); }}>
@@ -1129,7 +1146,7 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div class="signal-path-card" onclick={(e) => e.stopPropagation()}>
                   <div class="sp-card-header">
-                    <h3>{$t('signal.title')} : <span class:sp-quality-good={zone.signal_path.bit_perfect} class:sp-quality-lossy={!zone.signal_path.bit_perfect}>{zone.signal_path.bit_perfect ? $t('signal.lossless') : $t('signal.lossy')}</span></h3>
+                    <h3>{$t('signal.title')} : <span class:sp-quality-good={zone.signal_path.lossless ?? zone.signal_path.bit_perfect} class:sp-quality-lossy={!(zone.signal_path.lossless ?? zone.signal_path.bit_perfect)}>{(zone.signal_path.lossless ?? zone.signal_path.bit_perfect) ? $t('signal.lossless') : $t('signal.lossy')}</span></h3>
                     <button class="sp-close" onclick={() => showSignalDetail = false}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                     </button>
@@ -1808,6 +1825,14 @@
     gap: 6px;
     margin: 4px 0 0;
     flex-wrap: wrap;
+  }
+
+  .track-plays {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    margin-top: var(--space-xs);
+    opacity: 0.75;
   }
 
   .tech-chip {
