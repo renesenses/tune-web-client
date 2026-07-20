@@ -10,8 +10,13 @@
   import { currentProfileId } from '../lib/stores/profile';
   import * as api from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
-  import { formatTime, formatDuration, formatAlbumYear, fold } from '../lib/utils';
+  import { groupCreditsByRole, uniqueInstruments } from '../lib/library/credits';
+import { observeHeight, observeWidth } from '../lib/actions/observeSize';
+import { formatTime, formatDuration, formatAlbumYear, fold } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
+import TrackContextMenu from './TrackContextMenu.svelte';
+import AlbumRating from './AlbumRating.svelte';
+import CollapsibleSection from './CollapsibleSection.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
   import ArtistEditModal from './ArtistEditModal.svelte';
   import TrackEditModal from './TrackEditModal.svelte';
@@ -27,23 +32,6 @@
   import { displayFields } from '../lib/stores/displayFields';
   import type { ArtistMetadata } from '../lib/types';
 
-  function observeHeight(node: HTMLElement, callback: (h: number) => void) {
-    const ro = new ResizeObserver(entries => {
-      for (const e of entries) callback(e.contentRect.height);
-    });
-    ro.observe(node);
-    callback(node.clientHeight);
-    return { destroy() { ro.disconnect(); } };
-  }
-
-  function observeWidth(node: HTMLElement, callback: (w: number) => void) {
-    const ro = new ResizeObserver(entries => {
-      for (const e of entries) callback(e.contentRect.width);
-    });
-    ro.observe(node);
-    callback(node.clientWidth);
-    return { destroy() { ro.disconnect(); } };
-  }
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -147,54 +135,6 @@
   let albumBioAlbumId = $state<number | null>(null);
   let showAlbumBio = $state(false);
 
-  // Album rating
-  let albumRating = $state(0);
-  let albumRatingNote = $state('');
-  let albumRatingLoaded = $state(false);
-  let albumRatingAlbumId = $state<number | null>(null);
-  let ratingSubmitting = $state(false);
-
-  async function loadAlbumRating(albumId: number) {
-    if (albumId === albumRatingAlbumId && albumRatingLoaded) return;
-    albumRatingAlbumId = albumId;
-    albumRatingLoaded = false;
-    try {
-      const r = await api.getAlbumRating(albumId);
-      albumRating = r.rating ?? 0;
-      albumRatingNote = r.note ?? '';
-      albumRatingLoaded = true;
-    } catch {
-      albumRating = 0;
-      albumRatingNote = '';
-      albumRatingLoaded = true;
-    }
-  }
-
-  async function submitRating(albumId: number, star: number) {
-    ratingSubmitting = true;
-    try {
-      const newRating = star === albumRating ? 0 : star;
-      await api.rateAlbum(albumId, newRating, albumRatingNote);
-      albumRating = newRating;
-      notifications.success(newRating > 0 ? `${$tr('library.rating')}: ${newRating}/5` : $tr('library.ratingRemoved'));
-    } catch (e) {
-      console.error('Rate album error:', e);
-      notifications.error($tr('library.ratingError'));
-    }
-    ratingSubmitting = false;
-  }
-
-  async function submitRatingNote(albumId: number) {
-    ratingSubmitting = true;
-    try {
-      await api.rateAlbum(albumId, albumRating, albumRatingNote);
-      notifications.success($tr('library.ratingSaved'));
-    } catch (e) {
-      console.error('Rate album note error:', e);
-    }
-    ratingSubmitting = false;
-  }
-
   async function loadAlbumBio(albumId: number) {
     if (albumId === albumBioAlbumId && albumBio !== null) return;
     albumBioAlbumId = albumId;
@@ -288,23 +228,6 @@
     return translated !== key ? translated : role.charAt(0).toUpperCase() + role.slice(1);
   }
 
-  function groupCreditsByRole(credits: TrackCredit[]): Record<string, TrackCredit[]> {
-    const groups: Record<string, TrackCredit[]> = {};
-    for (const c of credits) {
-      const role = c.role || 'performer';
-      if (!groups[role]) groups[role] = [];
-      groups[role].push(c);
-    }
-    return groups;
-  }
-
-  function uniqueInstruments(credits: TrackCredit[]): string[] {
-    const set = new Set<string>();
-    for (const c of credits) {
-      if (c.instrument) set.add(c.instrument);
-    }
-    return [...set].sort();
-  }
 
   async function handleWriteAlbumTags(albumId: number) {
     writingAlbumTags = true;
@@ -1160,10 +1083,8 @@
     albumBio = null;
     albumBioAlbumId = null;
     showAlbumBio = false;
-    albumRating = 0;
-    albumRatingNote = '';
-    albumRatingLoaded = false;
-    albumRatingAlbumId = null;
+    // Album rating state now lives in <AlbumRating/>, which reloads itself when
+    // its albumId prop changes.
     libraryLoading.set(true);
     try {
       // Fetch full album if cover_path is missing (e.g. navigating from tracks view)
@@ -1763,36 +1684,7 @@
           {/if}
           <!-- Album Rating -->
           {#if $selectedAlbum?.id}
-            {@const ratingAlbumId = $selectedAlbum.id}
-            {#if !albumRatingLoaded && albumRatingAlbumId !== ratingAlbumId}
-              {(() => { loadAlbumRating(ratingAlbumId); return ''; })()}
-            {/if}
-            <div class="album-rating-section">
-              <div class="album-stars">
-                {#each [1, 2, 3, 4, 5] as star}
-                  <button
-                    class="star-btn"
-                    class:filled={star <= albumRating}
-                    disabled={ratingSubmitting}
-                    onclick={() => submitRating(ratingAlbumId, star)}
-                  >
-                    <svg viewBox="0 0 24 24" fill={star <= albumRating ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="18" height="18">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                    </svg>
-                  </button>
-                {/each}
-              </div>
-              <div class="album-rating-note">
-                <input
-                  type="text"
-                  class="rating-note-input"
-                  placeholder={$tr('library.ratingNotePlaceholder')}
-                  bind:value={albumRatingNote}
-                  onkeydown={(e) => e.key === 'Enter' && submitRatingNote(ratingAlbumId)}
-                  onblur={() => { if (albumRatingNote !== '' || albumRating > 0) submitRatingNote(ratingAlbumId); }}
-                />
-              </div>
-            </div>
+            <AlbumRating albumId={$selectedAlbum.id} />
           {/if}
         </div>
       </div>
@@ -1844,31 +1736,15 @@
                 <div class="track-more-wrap">
                   <button class="track-more-btn" onclick={(e) => openTrackMenu(e, t.id)} title={$tr('library.moreOptions')}>···</button>
                   {#if trackMenuOpenId === t.id}
-                    <!-- svelte-ignore a11y_click_events_have_key_events -->
-                    <!-- svelte-ignore a11y_no_static_element_interactions -->
-                    <div class="track-menu-backdrop" onclick={closeTrackMenu}></div>
-                    <div class="track-menu">
-                      <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); t.id && playTrack(t.id); }}>
-                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
-                        {$tr('common.play')}
-                      </button>
-                      <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); addTrackToQueue(t); }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                        {$tr('queue.addToQueue')}
-                      </button>
-                      {#if onAddToPlaylist}
-                        <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); onAddToPlaylist!(t); }}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><line x1="16" y1="3" x2="16" y2="11"/><line x1="12" y1="7" x2="20" y2="7"/></svg>
-                          {$tr('nowplaying.addToPlaylist')}
-                        </button>
-                      {/if}
-                      {#if t.artist_name}
-                        <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); const a = $artists.find(ar => ar.name === t.artist_name); if (a) selectArtistDetail(a); }}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                          {$tr('library.goToArtist')}
-                        </button>
-                      {/if}
-                    </div>
+                    <TrackContextMenu
+                      onClose={closeTrackMenu}
+                      onPlay={() => t.id && playTrack(t.id)}
+                      onAddToQueue={() => addTrackToQueue(t)}
+                      onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
+                      onGoToArtist={t.artist_name
+                        ? () => { const a = $artists.find(ar => ar.name === t.artist_name); if (a) selectArtistDetail(a); }
+                        : undefined}
+                    />
                   {/if}
                 </div>
               </div>
@@ -1943,35 +1819,16 @@
               <div class="track-more-wrap">
                 <button class="track-more-btn" onclick={(e) => openTrackMenu(e, t.id)} title={$tr('library.moreOptions')}>···</button>
                 {#if trackMenuOpenId === t.id}
-                  <!-- svelte-ignore a11y_click_events_have_key_events -->
-                  <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div class="track-menu-backdrop" onclick={closeTrackMenu}></div>
-                  <div class="track-menu">
-                    <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); t.id && playTrack(t.id); }}>
-                      <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
-                      {$tr('common.play')}
-                    </button>
-                    <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); addTrackToQueue(t); }}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                      {$tr('queue.addToQueue')}
-                    </button>
-                    {#if onAddToPlaylist}
-                      <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); onAddToPlaylist!(t); }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><line x1="16" y1="3" x2="16" y2="11"/><line x1="12" y1="7" x2="20" y2="7"/></svg>
-                        {$tr('nowplaying.addToPlaylist')}
-                      </button>
-                    {/if}
-                    {#if t.artist_name}
-                      <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); const a = $artists.find(ar => ar.id === t.artist_id) ?? $artists.find(ar => ar.name === t.artist_name) ?? (t.artist_id != null ? { id: t.artist_id, name: t.artist_name ?? '' } as Artist : undefined); if (a?.id != null) selectArtistDetail(a as Artist); }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        {$tr('library.goToArtist')}
-                      </button>
-                    {/if}
-                    <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); selectAlbumDetail($selectedAlbum!); }}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h4"/></svg>
-                      {$tr('library.goToAlbum')}
-                    </button>
-                  </div>
+                  <TrackContextMenu
+                    onClose={closeTrackMenu}
+                    onPlay={() => t.id && playTrack(t.id)}
+                    onAddToQueue={() => addTrackToQueue(t)}
+                    onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
+                    onGoToArtist={t.artist_name
+                      ? () => { const a = $artists.find(ar => ar.id === t.artist_id) ?? $artists.find(ar => ar.name === t.artist_name) ?? (t.artist_id != null ? { id: t.artist_id, name: t.artist_name ?? '' } as Artist : undefined); if (a?.id != null) selectArtistDetail(a as Artist); }
+                      : undefined}
+                    onGoToAlbum={() => selectAlbumDetail($selectedAlbum!)}
+                  />
                 {/if}
               </div>
             </div>
@@ -2122,100 +1979,70 @@
       <!-- Collapsible sections -->
       {#if artistMetadata && !artistMetadataLoading}
         {#if artistMetadata.anecdotes && artistMetadata.anecdotes.length > 0}
-          <div class="artist-section">
-            <button class="artist-section-header" onclick={() => toggleSection('anecdotes')}>
-              <span class="artist-section-title">{$tr('artist.anecdotes')}</span>
-              <svg class="artist-section-chevron" class:open={openSections['anecdotes']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {#if openSections['anecdotes']}
-              <ul class="artist-anecdotes">
-                {#each artistMetadata.anecdotes as anecdote}
-                  <li>{anecdote}</li>
-                {/each}
-              </ul>
-            {/if}
-          </div>
+          <CollapsibleSection title={$tr('artist.anecdotes')} open={!!openSections['anecdotes']} onToggle={() => toggleSection('anecdotes')}>
+            <ul class="artist-anecdotes">
+              {#each artistMetadata.anecdotes as anecdote}
+                <li>{anecdote}</li>
+              {/each}
+            </ul>
+          </CollapsibleSection>
         {/if}
 
         {#if artistMetadata.similar_artists && artistMetadata.similar_artists.length > 0}
-          <div class="artist-section">
-            <button class="artist-section-header" onclick={() => toggleSection('similar')}>
-              <span class="artist-section-title">{$tr('artist.similarArtists')}</span>
-              <svg class="artist-section-chevron" class:open={openSections['similar']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {#if openSections['similar']}
-              <div class="artist-similar-list">
-                {#each artistMetadata.similar_artists as sa}
-                  <button class="artist-similar-chip clickable" title={sa.reason} onclick={() => navigateToSimilarArtist(sa.name)}>{sa.name}</button>
-                {/each}
-              </div>
-            {/if}
-          </div>
+          <CollapsibleSection title={$tr('artist.similarArtists')} open={!!openSections['similar']} onToggle={() => toggleSection('similar')}>
+            <div class="artist-similar-list">
+              {#each artistMetadata.similar_artists as sa}
+                <button class="artist-similar-chip clickable" title={sa.reason} onclick={() => navigateToSimilarArtist(sa.name)}>{sa.name}</button>
+              {/each}
+            </div>
+          </CollapsibleSection>
         {/if}
 
         {#if artistMetadata.members && artistMetadata.members.length > 0}
-          <div class="artist-section">
-            <button class="artist-section-header" onclick={() => toggleSection('members')}>
-              <span class="artist-section-title">{$tr('artist.members')}</span>
-              <svg class="artist-section-chevron" class:open={openSections['members']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {#if openSections['members']}
-              <div class="artist-members-list">
-                {#each artistMetadata.members as member}
-                  <div class="artist-member">
-                    <span class="artist-member-name">{member.name}</span>
-                    <span class="artist-member-role">{member.role}</span>
-                  </div>
-                {/each}
-              </div>
-            {/if}
-          </div>
+          <CollapsibleSection title={$tr('artist.members')} open={!!openSections['members']} onToggle={() => toggleSection('members')}>
+            <div class="artist-members-list">
+              {#each artistMetadata.members as member}
+                <div class="artist-member">
+                  <span class="artist-member-name">{member.name}</span>
+                  <span class="artist-member-role">{member.role}</span>
+                </div>
+              {/each}
+            </div>
+          </CollapsibleSection>
         {/if}
 
         {#if artistMetadata.discography_highlights && artistMetadata.discography_highlights.length > 0}
-          <div class="artist-section">
-            <button class="artist-section-header" onclick={() => toggleSection('discography')}>
-              <span class="artist-section-title">{$tr('artist.discography')}</span>
-              <svg class="artist-section-chevron" class:open={openSections['discography']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {#if openSections['discography']}
-              <div class="artist-discography-list">
-                {#each artistMetadata.discography_highlights as disc}
-                  <div class="artist-disc-item">
-                    <span class="artist-disc-year">{disc.year}</span>
-                    <div class="artist-disc-info">
-                      <span class="artist-disc-title">{disc.title}</span>
-                      <span class="artist-disc-desc">{disc.description}</span>
-                    </div>
+          <CollapsibleSection title={$tr('artist.discography')} open={!!openSections['discography']} onToggle={() => toggleSection('discography')}>
+            <div class="artist-discography-list">
+              {#each artistMetadata.discography_highlights as disc}
+                <div class="artist-disc-item">
+                  <span class="artist-disc-year">{disc.year}</span>
+                  <div class="artist-disc-info">
+                    <span class="artist-disc-title">{disc.title}</span>
+                    <span class="artist-disc-desc">{disc.description}</span>
                   </div>
-                {/each}
-              </div>
-            {/if}
-          </div>
+                </div>
+              {/each}
+            </div>
+          </CollapsibleSection>
         {/if}
       {/if}
 
       <!-- Credits (instruments played) -->
       {#if artistCredits && artistCredits.length > 0}
-        <div class="artist-section">
-          <button class="artist-section-header" onclick={() => toggleSection('credits')}>
-            <span class="artist-section-title">{$tr('artist.credits')}</span>
-            <svg class="artist-section-chevron" class:open={openSections['credits']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
-          </button>
-          {#if openSections['credits']}
-            {@const instruments = uniqueInstruments(artistCredits)}
-            <div class="artist-credits-list">
-              {#if instruments.length > 0}
-                <div class="credits-instruments">
-                  {#each instruments as instr}
-                    <span class="credit-chip-static">{instr}</span>
-                  {/each}
-                </div>
-              {/if}
-              <div class="credits-track-count">{artistCredits.length} {artistCredits.length > 1 ? $tr('common.tracks') : 'track'}</div>
-            </div>
-          {/if}
-        </div>
+        <CollapsibleSection title={$tr('artist.credits')} open={!!openSections['credits']} onToggle={() => toggleSection('credits')}>
+          {@const instruments = uniqueInstruments(artistCredits)}
+          <div class="artist-credits-list">
+            {#if instruments.length > 0}
+              <div class="credits-instruments">
+                {#each instruments as instr}
+                  <span class="credit-chip-static">{instr}</span>
+                {/each}
+              </div>
+            {/if}
+            <div class="credits-track-count">{artistCredits.length} {artistCredits.length > 1 ? $tr('common.tracks') : 'track'}</div>
+          </div>
+        </CollapsibleSection>
       {/if}
 
       <!-- Albums in library -->
@@ -3234,63 +3061,6 @@
   }
 
   /* Album Rating */
-  .album-rating-section {
-    margin-top: var(--space-sm);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-  }
-
-  .album-stars {
-    display: flex;
-    gap: 2px;
-  }
-
-  .star-btn {
-    background: none;
-    border: none;
-    padding: 2px;
-    cursor: pointer;
-    color: var(--tune-text-muted);
-    transition: color 0.1s, transform 0.1s;
-  }
-
-  .star-btn:hover {
-    color: #f59e0b;
-    transform: scale(1.2);
-  }
-
-  .star-btn.filled {
-    color: #f59e0b;
-  }
-
-  .star-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .rating-note-input {
-    background: var(--tune-surface);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-sm);
-    padding: 4px 8px;
-    font-family: var(--font-body);
-    font-size: 12px;
-    color: var(--tune-text);
-    width: 100%;
-    max-width: 250px;
-    outline: none;
-    transition: border-color 0.12s;
-  }
-
-  .rating-note-input:focus {
-    border-color: var(--tune-accent);
-  }
-
-  .rating-note-input::placeholder {
-    color: var(--tune-text-muted);
-  }
-
   .detail-meta {
     display: flex;
     flex-wrap: wrap;
@@ -4650,22 +4420,6 @@
     padding-top: var(--space-sm);
   }
 
-  .artist-section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    background: none;
-    border: none;
-    padding: var(--space-sm) 0;
-    cursor: pointer;
-    color: var(--tune-text);
-  }
-
-  .artist-section-header:hover {
-    color: var(--tune-accent);
-  }
-
   .artist-section-header-static {
     display: flex;
     align-items: center;
@@ -4686,15 +4440,6 @@
     color: var(--tune-text-muted);
     font-size: 13px;
     padding: 12px 0;
-  }
-
-  .artist-section-chevron {
-    transition: transform 0.2s ease-out;
-    color: var(--tune-text-muted);
-  }
-
-  .artist-section-chevron.open {
-    transform: rotate(180deg);
   }
 
   .artist-anecdotes {
@@ -5277,48 +5022,4 @@
     color: var(--tune-accent);
   }
 
-  .track-menu-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 99;
-  }
-
-  .track-menu {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 4px);
-    background: var(--tune-surface);
-    border: 1px solid var(--tune-border);
-    border-radius: 10px;
-    padding: 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    z-index: 100;
-    box-shadow: var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.4));
-    min-width: 190px;
-    white-space: nowrap;
-  }
-
-  .track-menu-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: none;
-    border: none;
-    padding: 7px 12px;
-    font-family: var(--font-body);
-    font-size: 13px;
-    color: var(--tune-text-secondary);
-    cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.1s;
-    text-align: left;
-    width: 100%;
-  }
-
-  .track-menu-item:hover {
-    background: var(--tune-surface-hover);
-    color: var(--tune-text);
-  }
 </style>
