@@ -557,6 +557,20 @@
   // Fallback to ytPlayer track when zone has no current_track (yt-dlp loading phase)
   let ytState = $derived($ytPlayerState);
   let displayTrack = $derived(track ?? (ytState.active ? ytState.track : null));
+
+  // Play count for the current local track (Progman, #1056). Fetched on demand;
+  // guarded to the exact track id so a race doesn't show a stale count.
+  let trackPlays = $state<number | null>(null);
+  $effect(() => {
+    const dt = displayTrack;
+    const id = dt?.id;
+    trackPlays = null;
+    if (id && dt?.source === 'local') {
+      api.getTrackPlays(id)
+        .then((r) => { if (displayTrack?.id === id) trackPlays = r.plays; })
+        .catch(() => {});
+    }
+  });
   // Zone playing OR IFrame playing while yt-dlp loads
   let isEffectivePlaying = $derived(
     state === 'playing' || (ytState.active && ytState.playing && state === 'stopped')
@@ -1000,6 +1014,9 @@
               {#if displayTrack.bit_depth}<span class="tech-chip">{displayTrack.bit_depth}-bit</span>{/if}
               {#if displayTrack.channels}<span class="tech-chip">{displayTrack.channels}ch</span>{/if}
             </p>
+          {/if}
+          {#if !isRadio && displayTrack.source === 'local' && trackPlays !== null && trackPlays > 0}
+            <p class="track-plays">{trackPlays} {$t('home.plays')}</p>
           {/if}
           {#if !isRadio && displayTrack.id}
             <div class="np-extra-btns">
@@ -1808,6 +1825,14 @@
     gap: 6px;
     margin: 4px 0 0;
     flex-wrap: wrap;
+  }
+
+  .track-plays {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    margin-top: var(--space-xs);
+    opacity: 0.75;
   }
 
   .tech-chip {
