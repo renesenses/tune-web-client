@@ -29,6 +29,7 @@
   let config: SystemConfig | null = $state(null);
   let backups = $state<BackupInfo[]>([]);
   let scanning = $state(false);
+  let cancellingScan = $state(false);
   type ScanProgress = {
     phase?: string;
     scanned?: number; added?: number; updated?: number; skipped?: number;
@@ -1438,6 +1439,21 @@
     }
   }
 
+  async function stopScan() {
+    cancellingScan = true;
+    try {
+      await api.cancelScan();
+    } catch (e) {
+      console.error('Cancel scan error:', e);
+    } finally {
+      // Clear the local banner even on the 204 so the UI reflects the stop
+      // immediately (the scan loop polls the AtomicBool and exits shortly).
+      scanning = false;
+      scanProgress = null;
+      cancellingScan = false;
+    }
+  }
+
   async function handleScanPath(path: string) {
     scanningPath = path;
     try {
@@ -2035,6 +2051,9 @@
             {#if scanPercent !== null}
               <span class="scan-progress-pct">{scanPercent}%</span>
             {/if}
+            <button class="scan-stop-btn" onclick={stopScan} disabled={cancellingScan}>
+              {cancellingScan ? '…' : $t('settings.stopScan')}
+            </button>
           </div>
           <div class="scan-progress-bar" class:indeterminate={scanPercent === null}>
             <div class="scan-progress-fill" style={scanPercent !== null ? `width:${scanPercent}%` : ''}></div>
@@ -4935,9 +4954,29 @@
   }
   .scan-progress-head {
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
+    gap: 8px;
     margin-bottom: 8px;
+  }
+  .scan-progress-phase { margin-right: auto; }
+  .scan-stop-btn {
+    border: 1px solid var(--tune-border);
+    background: transparent;
+    color: var(--tune-text, inherit);
+    padding: 3px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .scan-stop-btn:hover:not(:disabled) {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+  .scan-stop-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
   .scan-progress-phase { font-size: 13px; font-weight: 600; color: var(--tune-text); }
   .scan-progress-pct { font-size: 13px; font-weight: 700; color: var(--tune-accent); font-variant-numeric: tabular-nums; }

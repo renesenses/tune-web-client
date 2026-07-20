@@ -1405,6 +1405,12 @@ export function getScanStatus() {
   return fetchJSON<{ scanning: boolean }>(`${BASE}/system/scan/status`);
 }
 
+export function cancelScan() {
+  // Server returns 204 No Content — use fetchVoid so the empty body doesn't
+  // fail JSON.parse and throw, which would leave the "scanning" banner up (#1129).
+  return fetchVoid(`${BASE}/system/scan/cancel`, { method: 'POST' });
+}
+
 export function getBackups() {
   return fetchJSON<import('./types').BackupInfo[]>(`${BASE}/system/backups`);
 }

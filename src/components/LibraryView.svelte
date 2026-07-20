@@ -51,6 +51,19 @@
   let { onAddToPlaylist }: Props = $props();
 
   let scanProgress = $state<{ scanned: number; added: number } | null>(null);
+  let cancellingScan = $state(false);
+
+  async function stopScan() {
+    cancellingScan = true;
+    try {
+      await api.cancelScan();
+    } catch (e) {
+      console.error('Cancel scan error:', e);
+    } finally {
+      scanProgress = null;
+      cancellingScan = false;
+    }
+  }
 
   $effect(() => {
     const unsub = tuneWS.onEvent((event) => {
@@ -2317,6 +2330,9 @@
         {$tr('common.loading')}
         {#if scanProgress}
           <span class="scan-progress">{$tr('library.scanProgress').replace('{scanned}', String(scanProgress.scanned)).replace('{added}', String(scanProgress.added))}</span>
+          <button class="scan-stop-btn" onclick={stopScan} disabled={cancellingScan}>
+            {cancellingScan ? '…' : $tr('library.stopScan')}
+          </button>
         {/if}
       </div>
     {:else if $libraryTab === 'albums'}
@@ -4255,6 +4271,29 @@
     text-align: center;
     font-size: 0.85em;
     opacity: 0.7;
+  }
+
+  .scan-stop-btn {
+    border: 1px solid var(--tune-border);
+    background: transparent;
+    color: var(--tune-text, inherit);
+    padding: 4px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 0.85em;
+    white-space: nowrap;
+    margin-top: 8px;
+  }
+
+  .scan-stop-btn:hover:not(:disabled) {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .scan-stop-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
 
   .spinner {
