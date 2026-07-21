@@ -663,6 +663,12 @@ import { playFromHere } from '../lib/playback';
   let albumScrollTop = $state(0);
   let savedAlbumScrollTop = $state(0);
   let savedArtistScrollTop = $state(0);
+  // Back-stack of artists visited by drilling into "similar artists" within the
+  // detail view (#1144, Bilou). Entering the detail fresh (from grid/search/album)
+  // leaves this empty, so Back returns to the grid as before; each similar-artist
+  // hop pushes the current artist, so Back re-opens the previous one (with its
+  // own similar list) instead of dead-ending on the grid.
+  let similarArtistStack = $state<Artist[]>([]);
   let restoringScroll = $state(false);
   let albumViewportHeight = $state(800);
   let albumViewportWidth = $state(1200);
@@ -1129,6 +1135,7 @@ import { playFromHere } from '../lib/playback';
     libraryTab.set(tab);
     selectedAlbum.set(null);
     selectedArtist.set(null);
+    similarArtistStack = [];
     selectedGenre = null;
     selectedNoGenre = false;
     searchQuery = '';
@@ -1228,8 +1235,13 @@ import { playFromHere } from '../lib/playback';
     libraryLoading.set(false);
   }
 
-  async function selectArtistDetail(artist: Artist) {
+  async function selectArtistDetail(artist: Artist, keepSimilarStack = false) {
     if (!artist.id) return;
+    // Fresh entry into the artist view (from the grid, search, an album, a track
+    // or a credit) starts a new similar-artist chain, so Back returns to the
+    // grid. Only the similar-artist drill and the in-app Back button preserve the
+    // stack (#1144).
+    if (!keepSimilarStack) similarArtistStack = [];
     // Only save scroll position if navigating from the album grid (not from album detail)
     if (!$selectedAlbum) {
       savedAlbumScrollTop = albumScrollTop;
@@ -1328,7 +1340,11 @@ import { playFromHere } from '../lib/playback';
       const allArtists = await api.getArtists(5000);
       const match = allArtists.find((a: Artist) => a.name.toLowerCase() === name.toLowerCase());
       if (match) {
-        selectArtistDetail(match);
+        // Remember the artist we're leaving so the in-app Back button can return
+        // to it (and its similar list) instead of jumping straight to the grid.
+        const from = $selectedArtist;
+        if (from) similarArtistStack = [...similarArtistStack, from];
+        selectArtistDetail(match, true);
       } else {
         pendingSearchQuery.set(name);
         activeView.set('search');
@@ -1429,6 +1445,14 @@ import { playFromHere } from '../lib/playback';
   }
 
   function goBack() {
+    // If we drilled into one or more "similar artists", Back returns to the
+    // previous artist (with its similar list) rather than to the grid (#1144).
+    if (similarArtistStack.length > 0) {
+      const prev = similarArtistStack[similarArtistStack.length - 1];
+      similarArtistStack = similarArtistStack.slice(0, -1);
+      selectArtistDetail(prev, true);
+      return;
+    }
     const restoreAlbumScroll = savedAlbumScrollTop;
     const restoreArtistScroll = savedArtistScrollTop;
     const wasArtistTab = $libraryTab === 'artists';
