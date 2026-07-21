@@ -2669,6 +2669,12 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     padding-bottom: calc(var(--space-lg) + 24px);
     overflow-y: auto;
     overflow-x: hidden;
+    /* Firefox: the global `* { scrollbar-width: thin }` (tune-theme.css) makes the
+       Artists/Genres scrollbar too thin to grab (#1143, Bilou). Chrome keeps the
+       14px ::-webkit-scrollbar. Restore a full-width, grabbable bar in Firefox and
+       colour it to match the webkit thumb. WebKit rules are untouched. */
+    scrollbar-width: auto;
+    scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
   }
 
   .library-header {
@@ -3385,6 +3391,10 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     flex: 1;
     overflow-y: auto;
     min-height: 0;
+    /* Firefox: widen the too-thin virtual-list scrollbar so it stays grabbable
+       (#1143). Chrome keeps its 14px ::-webkit-scrollbar. */
+    scrollbar-width: auto;
+    scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
   }
 
   .albums-grid {
@@ -3698,6 +3708,10 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     flex: 1;
     overflow-y: auto;
     padding-right: 20px;
+    /* Firefox: widen the too-thin scrollbar so it stays grabbable (#1143).
+       Chrome keeps its 14px ::-webkit-scrollbar. */
+    scrollbar-width: auto;
+    scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
   }
 
   .artist-card {
