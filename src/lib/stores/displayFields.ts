@@ -3,6 +3,21 @@ import { writable } from 'svelte/store';
 const STORAGE_KEY = 'tune_metadata_fields';
 export const DISPLAY_FIELDS_DEFAULTS = ['format', 'sample_rate', 'bit_depth', 'genre', 'year', 'label', 'composer'];
 
+/** Active profile id → `X-Profile-Id` header (same localStorage key api.ts reads).
+ *  The server scopes metadata-fields per profile (`metadata_visible_fields:{pid}`).
+ *  These raw fetches previously sent no profile header, so their PUT/GET resolved
+ *  to the *default* profile while SettingsView's api.apiFetch sent the *selected*
+ *  profile — the editor then reloaded another profile's fields and the technical
+ *  columns looked "lost" on every menu change (Bilou, #1078). Sending the header
+ *  keeps every read/write on the same profile. */
+function profileHeaders(): Record<string, string> {
+  try {
+    const id = localStorage.getItem('tune-profile-id');
+    if (id) return { 'X-Profile-Id': id };
+  } catch { /* ignore */ }
+  return {};
+}
+
 function load(): string[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -15,7 +30,7 @@ function save(fields: string[]) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(fields)); } catch {}
   fetch('/api/v1/system/settings/metadata-fields', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...profileHeaders() },
     body: JSON.stringify({ fields }),
   }).catch(() => {});
 }
@@ -49,7 +64,7 @@ export const displayFields = createDisplayFieldsStore();
 
 export async function syncDisplayFieldsFromServer() {
   try {
-    const res = await fetch('/api/v1/system/settings/metadata-fields');
+    const res = await fetch('/api/v1/system/settings/metadata-fields', { headers: profileHeaders() });
     if (!res.ok) return;
     const data = await res.json();
     const categories = data?.categories;
