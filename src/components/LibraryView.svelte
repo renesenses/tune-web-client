@@ -2885,6 +2885,12 @@ import { playFromHere } from '../lib/playback';
     padding-bottom: calc(var(--space-lg) + 24px);
     overflow-y: auto;
     overflow-x: hidden;
+    /* Firefox: the global `* { scrollbar-width: thin }` (tune-theme.css) makes the
+       Artists/Genres scrollbar too thin to grab (#1143, Bilou). Chrome keeps the
+       14px ::-webkit-scrollbar. Restore a full-width, grabbable bar in Firefox and
+       colour it to match the webkit thumb. WebKit rules are untouched. */
+    scrollbar-width: auto;
+    scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
   }
 
   .library-header {
@@ -3666,6 +3672,10 @@ import { playFromHere } from '../lib/playback';
        gutter always reserved, albumViewportWidth is invariant → JS cols == CSS
        cols at every scroll position. */
     scrollbar-gutter: stable;
+    /* Firefox: widen the too-thin virtual-list scrollbar so it stays grabbable
+       (#1143). Chrome keeps its 14px ::-webkit-scrollbar. */
+    scrollbar-width: auto;
+    scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
   }
 
   .albums-grid {
@@ -4016,7 +4026,8 @@ import { playFromHere } from '../lib/playback';
     gap: var(--space-lg);
     /* No inner scroll: the whole .library-view scrolls as one region (same
        Firefox double-scrollbar fix as the Genres tab — #1075). The old
-       padding-right cleared the now-removed inner scrollbar. */
+       padding-right cleared the now-removed inner scrollbar. The Firefox
+       scrollbar-width/color fix (#1143) lives on .library-view here. */
   }
 
   .artist-card {
