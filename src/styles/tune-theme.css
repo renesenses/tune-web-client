@@ -96,9 +96,13 @@ body {
 }
 
 /* Scrollbar — Firefox uses scrollbar-width/scrollbar-color,
-   Chrome/Safari use ::-webkit-scrollbar below */
+   Chrome/Safari use ::-webkit-scrollbar below.
+   `auto` (not `thin`) so the Firefox bar is wide enough to grab, matching the
+   14px ::-webkit bar Chrome gets — `thin` left Firefox with a too-narrow,
+   hard-to-catch scrollbar on the albums/artists/genres lists (Bilou, #1143).
+   scrollbar-width is Firefox-only, so this does not affect Chrome/Safari. */
 * {
-  scrollbar-width: thin;
+  scrollbar-width: auto;
   scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
 }
 
