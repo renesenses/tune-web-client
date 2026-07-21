@@ -11,6 +11,7 @@
   import * as api from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
   import { groupCreditsByRole, uniqueInstruments } from '../lib/library/credits';
+  import { bioDisplayText } from '../lib/library/bio';
 import { observeHeight, observeWidth } from '../lib/actions/observeSize';
 import { formatTime, formatDuration, formatAlbumYear, fold } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
@@ -1664,11 +1665,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               {#if albumBioLoading}
                 <div class="spinner-sm"></div>
               {:else if albumBio}
-                {@const simpleCut = albumBio.indexOf('.') > 0 ? albumBio.indexOf('.', 80) + 1 || 200 : 200}
-                {@const simpleText = albumBio.slice(0, Math.min(simpleCut, 300)).trim()}
-                {@const completeCut = 800}
-                {@const completeText = albumBio.length > completeCut ? albumBio.slice(0, completeCut).trim() + '...' : albumBio}
-                {@const displayAlbumBio = albumBioLevel === 'simple' ? simpleText : albumBioLevel === 'complete' ? completeText : albumBio}
+                {@const displayAlbumBio = bioDisplayText(albumBio, albumBioLevel, { simpleSentenceStart: 80, simpleMax: 300, completeCut: 800 })}
                 {#if albumBio.length > 300}
                   <div class="bio-level-pills">
                     <button class="bio-level-pill" class:active={albumBioLevel === 'simple'} onclick={() => albumBioLevel = 'simple'}>{$tr('library.bioLevelSimple')}</button>
@@ -1934,11 +1931,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       <!-- Bio -->
       {#if artistBio}
         {@const isLong = artistBio.length > 500}
-        {@const simpleCut = artistBio.indexOf('.') > 0 ? artistBio.indexOf('.', 100) + 1 || 200 : 200}
-        {@const simpleText = artistBio.slice(0, Math.min(simpleCut, 400)).trim()}
-        {@const completeCut = 1500}
-        {@const completeText = artistBio.length > completeCut ? artistBio.slice(0, completeCut).replace(/\n[^\n]*$/, '').trim() + '...' : artistBio}
-        {@const displayBio = !isLong ? artistBio : bioLevel === 'simple' ? simpleText : bioLevel === 'complete' ? completeText : artistBio}
+        {@const displayBio = !isLong ? artistBio : bioDisplayText(artistBio, bioLevel, { simpleSentenceStart: 100, simpleMax: 400, completeCut: 1500, trimTrailingLine: true })}
         {#if isLong}
           <div class="bio-level-pills">
             <button class="bio-level-pill" class:active={bioLevel === 'simple'} onclick={() => bioLevel = 'simple'}>{$tr('library.bioLevelSimple')}</button>
