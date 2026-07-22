@@ -1494,6 +1494,19 @@ import { playFromHere } from '../lib/playback';
 
   let shuffleAllLoading = $state(false);
 
+  // Max tracks a single shuffle enqueues. Enqueuing an entire large library
+  // (Yves, 50k) froze the UI and gains nothing musically. Mirrors the server cap.
+  const SHUFFLE_MAX = 500;
+
+  // Fisher–Yates in place, then cap.
+  function shuffleAndCap(ids: number[]): number[] {
+    for (let i = ids.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+    }
+    return ids.slice(0, SHUFFLE_MAX);
+  }
+
   async function shuffleAllLibrary() {
     if (!zone?.id) {
       notifications.error($tr('library.noZoneSelected'));
@@ -1513,21 +1526,73 @@ import { playFromHere } from '../lib/playback';
         const trackLists = await Promise.all(
           albumIds.map((id) => api.getAlbumTracks(id).catch(() => [] as Track[])),
         );
-        const trackIds = trackLists.flat().map((t) => t.id).filter((id): id is number => id != null);
+        const trackIds = shuffleAndCap(
+          trackLists.flat().map((t) => t.id).filter((id): id is number => id != null),
+        );
         if (!trackIds.length) {
           notifications.error($tr('library.noTracks'));
           return;
-        }
-        // Fisher–Yates shuffle.
-        for (let i = trackIds.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [trackIds[i], trackIds[j]] = [trackIds[j], trackIds[i]];
         }
         await api.play(zone.id, { track_ids: trackIds });
         notifications.success($tr('library.shufflePlaying').replace('{count}', String(trackIds.length)));
         return;
       }
-      // Pass current search/filter context so shuffle applies to visible results
+
+      // The server shuffle-all endpoint only understands search / genre /
+      // album / artist. When a Tracks- or Albums-tab filter (quality, format,
+      // sample rate, favorites, decade…) is active, it was silently dropped and
+      // the WHOLE library shuffled (Yves). Gather the already-filtered set
+      // client-side instead so the shuffle honours exactly what's on screen.
+      const trackTabFilterActive =
+        $libraryTab === 'tracks' && !!(formatFilter || qualityFilter || trackFavoritesFilter);
+      const albumTabFilterActive =
+        $libraryTab === 'albums' &&
+        !!(albumQualityFilter || albumFormatFilter || albumSampleRateFilter ||
+           albumFavoritesFilter || albumDuplicatesFilter || albumTagFilter || albumYearFilter);
+
+      if (trackTabFilterActive) {
+        // filteredTracks already reflects every active Tracks-tab filter.
+        const ids = shuffleAndCap(
+          filteredTracks.map((t) => t.id).filter((id): id is number => id != null),
+        );
+        if (!ids.length) {
+          notifications.error($tr('library.noTracks'));
+          return;
+        }
+        await api.play(zone.id, { track_ids: ids });
+        notifications.success($tr('library.shufflePlaying').replace('{count}', String(ids.length)));
+        return;
+      }
+
+      if (albumTabFilterActive) {
+        // Shuffle the filtered albums first, then gather their tracks (respecting
+        // the album quality/format filter per album) only until we reach the cap
+        // — bounds the number of getAlbumTracks calls on a big filtered set.
+        const albumIds = filteredAlbums.map((a) => a.id).filter((id): id is number => id != null);
+        for (let i = albumIds.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [albumIds[i], albumIds[j]] = [albumIds[j], albumIds[i]];
+        }
+        const gathered: number[] = [];
+        for (const aid of albumIds) {
+          if (gathered.length >= SHUFFLE_MAX) break;
+          const tracks = await api
+            .getAlbumTracks(aid, albumQualityFilter ?? undefined, albumFormatFilter ?? undefined)
+            .catch(() => [] as Track[]);
+          for (const t of tracks) if (t.id != null) gathered.push(t.id);
+        }
+        const ids = shuffleAndCap(gathered);
+        if (!ids.length) {
+          notifications.error($tr('library.noTracks'));
+          return;
+        }
+        await api.play(zone.id, { track_ids: ids });
+        notifications.success($tr('library.shufflePlaying').replace('{count}', String(ids.length)));
+        return;
+      }
+
+      // No client-only filter: let the server shuffle (search / genre / whole
+      // library), which now caps the enqueued set itself.
       const opts: { search_query?: string; genre?: string } = {};
       if (searchQuery.trim()) opts.search_query = searchQuery.trim();
       else if (selectedGenre) opts.genre = selectedGenre;
