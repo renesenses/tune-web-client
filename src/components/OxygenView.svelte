@@ -122,7 +122,16 @@
     try { await playAndSync(zone.id, { track_ids: ids }); }
     catch (e) { notifications.error($t('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e))); }
   }
+  async function playBody(body: Record<string, unknown>) {
+    if (!zone?.id) { notifications.error($t('library.noZoneSelected')); return; }
+    try { await playAndSync(zone.id, body); }
+    catch (e) { notifications.error($t('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e))); }
+  }
   function playAlbumGroup(g: AlbumGroup) {
+    // album_id = chemin rapide serveur (une requête, la file se construit côté
+    // serveur) — l'envoi de track_ids reconstruisait la file piste à piste et
+    // se sentait lent (Bertrand). Fallback track_ids pour les groupes sans id.
+    if (typeof g.key === 'number') return playBody({ album_id: g.key });
     return playTracks(g.tracks.map(t => t.id).filter(Boolean) as number[]);
   }
   function playFromTrack(t: Track) {
@@ -130,6 +139,7 @@
     const g = albums.find(a => a.key === key);
     const list = g ? g.tracks : [t];
     const idx = Math.max(0, list.findIndex(x => x.id === t.id));
+    if (typeof t.album_id === 'number') return playBody({ album_id: t.album_id, start_index: idx });
     return playTracks(list.slice(idx).map(x => x.id).filter(Boolean) as number[]);
   }
 
