@@ -626,6 +626,12 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
       {$t('nav.library')}
     </button>
+    {#if $preferences.oxygenEnabled}
+    <button class="nav-item" class:active={$activeView === 'oxygen'} onclick={() => navigate('oxygen')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2.4"></circle><ellipse cx="12" cy="12" rx="10" ry="4.4"></ellipse><ellipse cx="12" cy="12" rx="10" ry="4.4" transform="rotate(60 12 12)"></ellipse><ellipse cx="12" cy="12" rx="10" ry="4.4" transform="rotate(120 12 12)"></ellipse></svg>
+      Oxygen
+    </button>
+    {/if}
     <button class="nav-item" class:active={$activeView === 'playlists' || $activeView === 'playlistmanager' || $activeView === 'smartplaylists'} onclick={() => navigate('playlistmanager')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
       {$t('nav.playlists')}
