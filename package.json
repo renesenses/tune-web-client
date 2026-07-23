@@ -1,7 +1,7 @@
 {
   "name": "tune-web-client",
   "private": true,
-  "version": "0.8.370",
+  "version": "0.8.371",
   "type": "module",
   "scripts": {
     "dev": "vite",
