@@ -281,13 +281,20 @@
     {:else}
       <div class="roots-list">
         {#each roots as root}
-          <button class="root-item" onclick={() => navigateTo(root.path)}>
+          {@const missing = root.exists === false}
+          {@const empty = !missing && root.track_count === 0}
+          <button class="root-item" class:root-warn={missing || empty} onclick={() => navigateTo(root.path)}>
             <svg class="root-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
               <path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
             </svg>
             <div class="root-info">
               <span class="root-name">{root.name}</span>
               <span class="root-path truncate">{root.path}</span>
+              {#if missing}
+                <span class="root-warning">{$tr('browse.rootMissing')}</span>
+              {:else if empty}
+                <span class="root-warning">{$tr('browse.rootEmpty')}</span>
+              {/if}
             </div>
             <span class="root-count">{root.track_count} {$tr('common.tracks')}</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
@@ -463,6 +470,17 @@
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-muted);
+  }
+
+  .root-warn {
+    border-color: var(--tune-warning, #d9822b);
+  }
+
+  .root-warning {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-warning, #d9822b);
+    margin-top: 2px;
   }
 
   .root-count {

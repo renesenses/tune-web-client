@@ -437,6 +437,8 @@ export default {
   'browse.title': 'Răsfoiește pe foldere',
   'browse.roots': 'Locații',
   'browse.noRoots': 'Niciun director de muzică configurat',
+  'browse.rootMissing': 'Dosar negăsit — verificați montarea',
+  'browse.rootEmpty': 'Dosar gol',
   'browse.noDirs': 'Niciun subdirector',
   'browse.noTracks': 'Nicio piesă în acest director',
   'browse.trackCount': '{count} piese',

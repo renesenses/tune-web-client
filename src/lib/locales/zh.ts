@@ -429,6 +429,8 @@ export default {
   'browse.title': '按文件夹浏览',
   'browse.roots': '位置',
   'browse.noRoots': '未配置音乐目录',
+  'browse.rootMissing': '找不到文件夹 — 请检查挂载',
+  'browse.rootEmpty': '空文件夹',
   'browse.noDirs': '没有子目录',
   'browse.noTracks': '此目录中没有曲目',
   'browse.trackCount': '{count} 首曲目',

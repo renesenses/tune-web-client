@@ -318,6 +318,10 @@ export interface BrowseRootEntry {
   name: string;
   path: string;
   track_count: number;
+  /** Whether the configured directory still exists on disk. A stale root
+   *  (renamed/unmounted share) is `false` and should be flagged in the UI.
+   *  Optional for backward-compat with older servers that omit it. */
+  exists?: boolean;
 }
 
 export interface BrowseRootsResponse {

@@ -458,6 +458,8 @@ export default {
   'browse.title': 'Browse by Folder',
   'browse.roots': 'Locations',
   'browse.noRoots': 'No music directories configured',
+  'browse.rootMissing': 'Folder not found — check the mount',
+  'browse.rootEmpty': 'Empty folder',
   'browse.noDirs': 'No subdirectories',
   'browse.noTracks': 'No tracks in this directory',
   'browse.trackCount': '{count} tracks',

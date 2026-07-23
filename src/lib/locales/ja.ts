@@ -429,6 +429,8 @@ export default {
   'browse.title': 'フォルダで閲覧',
   'browse.roots': '場所',
   'browse.noRoots': '音楽ディレクトリが設定されていません',
+  'browse.rootMissing': 'フォルダが見つかりません — マウントを確認してください',
+  'browse.rootEmpty': '空のフォルダ',
   'browse.noDirs': 'サブディレクトリなし',
   'browse.noTracks': 'このディレクトリにトラックはありません',
   'browse.trackCount': '{count}トラック',
