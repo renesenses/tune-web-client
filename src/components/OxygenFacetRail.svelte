@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Track } from '../lib/types';
   import type { FacetValue } from '../lib/api';
+  import { t } from '../lib/i18n';
 
   interface Props {
     tracks: Track[];                                  // loaded window (client fallback)
@@ -54,7 +55,7 @@
       <div class="group">
         <button class="ghead" onclick={() => toggle(f)}>
           <svg class="chev" class:closed={!isOpen(f)} viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
-          {FIELD_LABELS[f]}
+          {$t('oxygen.facet.' + f)}
           <span class="gn">{(groups[f] ?? []).length}</span>
         </button>
         {#if isOpen(f)}
@@ -71,7 +72,7 @@
       </div>
     {/if}
   {/each}
-  <p class="note">{usingServer ? 'Comptage complet (index serveur).' : 'Facettes sur les pistes chargées — l’index serveur affinera les comptes.'}</p>
+  <p class="note">{usingServer ? $t('oxygen.facetsServer') : $t('oxygen.facetsClient')}</p>
 </nav>
 
 <style>

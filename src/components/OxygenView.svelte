@@ -8,6 +8,7 @@
   import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
   import { activeView } from '../lib/stores/navigation';
   import { fold } from '../lib/utils';
+  import { t } from '../lib/i18n';
   import type { Track } from '../lib/types';
 
   const NEW_KEYS = new Set(['release_country', 'mb_release_track_id', 'encoder_software', 'source_media']);
@@ -148,29 +149,29 @@
 
 <div class="oxygen">
   <header class="bar">
-    <button class="icnbtn" onclick={() => activeView.set('library')} title="Retour à la bibliothèque" aria-label="Retour">
+    <button class="icnbtn" onclick={() => activeView.set('library')} title={$t('oxygen.back')} aria-label={$t('oxygen.back')}>
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
     </button>
-    <button class="icnbtn railtoggle" onclick={() => mobileRail = true} title="Facettes" aria-label="Facettes">
+    <button class="icnbtn railtoggle" onclick={() => mobileRail = true} title={$t('oxygen.facets')} aria-label={$t('oxygen.facets')}>
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
     </button>
-    <div class="titleblock"><div class="eyebrow">Bibliothèque · Oxygen</div><h1>Collection</h1></div>
+    <div class="titleblock"><div class="eyebrow">{$t('oxygen.eyebrow')}</div><h1>{$t('oxygen.title')}</h1></div>
 
     <div class="seg">
-      <button class:on={mode === 'album'} onclick={() => setMode('album')} title="Albums">
+      <button class:on={mode === 'album'} onclick={() => setMode('album')} title={$t('oxygen.view.album')} aria-label={$t('oxygen.view.album')}>
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="7" rx="1.5"/><path d="M13 6h8M13 10h8M3 15h18M3 19h18"/></svg>
       </button>
-      <button class:on={mode === 'grid'} onclick={() => setMode('grid')} title="Grille">
+      <button class:on={mode === 'grid'} onclick={() => setMode('grid')} title={$t('oxygen.view.grid')} aria-label={$t('oxygen.view.grid')}>
         <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
       </button>
-      <button class:on={mode === 'detail'} onclick={() => setMode('detail')} title="Détails">
+      <button class:on={mode === 'detail'} onclick={() => setMode('detail')} title={$t('oxygen.view.detail')} aria-label={$t('oxygen.view.detail')}>
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
       </button>
     </div>
 
     <div class="search">
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input placeholder="Filtrer…" bind:value={query} />
+      <input placeholder={$t('oxygen.filter')} bind:value={query} />
     </div>
     <div class="count">{visible.length.toLocaleString('fr')}</div>
   </header>
@@ -189,11 +190,11 @@
 
     <section class="main">
       {#if loading}
-        <div class="state">Chargement de la bibliothèque…</div>
+        <div class="state">{$t('oxygen.loading')}</div>
       {:else if error}
         <div class="state err">{error}</div>
       {:else if !visible.length}
-        <div class="state">Aucune piste pour ce filtre.</div>
+        <div class="state">{$t('oxygen.empty')}</div>
       {:else if mode === 'grid'}
         <div class="grid">
           {#each albums as g (g.key)}
@@ -216,7 +217,7 @@
               </div>
               <div class="abody">
                 <div class="ahead">
-                  <div><div class="at">{g.title}</div><div class="aa">{g.artist}{g.year ? ` · ${g.year}` : ''} · {g.tracks.length} titres</div></div>
+                  <div><div class="at">{g.title}</div><div class="aa">{g.artist}{g.year ? ` · ${g.year}` : ''} · {g.tracks.length} {$t('oxygen.tracks')}</div></div>
                   <QualityBadge format={g.format} sampleRate={g.sr} bitDepth={g.bd} source={g.source} />
                 </div>
                 <div class="atracks">
@@ -236,9 +237,9 @@
         <div class="tablescroll">
           <table>
             <thead><tr>
-              <th class="n">#</th><th>Titre</th><th>Artiste</th><th>Album</th><th>Qualité</th>
+              <th class="n">#</th><th>{$t('oxygen.col.title')}</th><th>{$t('oxygen.col.artist')}</th><th>{$t('oxygen.col.album')}</th><th>{$t('oxygen.col.quality')}</th>
               {#each columns as c}<th>{COLUMN_DEFS[c].label}</th>{/each}
-              <th class="r">Durée</th>
+              <th class="r">{$t('oxygen.col.duration')}</th>
             </tr></thead>
             <tbody>
               {#each visible as t (t.id)}
@@ -259,31 +260,31 @@
     </section>
 
     <aside class="inspector" class:empty={!selected} class:open={mobileInspector}>
-      <button class="drawerclose mobonly" onclick={() => mobileInspector = false} aria-label="Fermer">×</button>
+      <button class="drawerclose mobonly" onclick={() => mobileInspector = false} aria-label={$t('oxygen.close')}>×</button>
       {#if selected}
         <div class="insp-title">{selected.title}</div>
         <div class="insp-sub">{selected.artist_name ?? ''} · {selected.album_title ?? ''}</div>
         <div class="insp-badges"><QualityBadge format={selected.format} sampleRate={selected.sample_rate} bitDepth={selected.bit_depth} source={selected.source} /></div>
         {#if extLoading}
-          <div class="state small">Lecture des métadonnées…</div>
+          <div class="state small">{$t('oxygen.metaLoading')}</div>
         {:else if !inspectorGroups.length}
-          <div class="state small">Aucune métadonnée étendue.</div>
+          <div class="state small">{$t('oxygen.noMeta')}</div>
         {:else}
           {#each inspectorGroups as grp}
             <div class="mgroup"><h4>{grp.name}</h4>
               {#each grp.rows as row}
                 <div class="field" class:isnew={row.isNew}>
-                  <span class="k">{row.label}{#if row.isNew}<span class="tag">nouveau</span>{/if}</span>
+                  <span class="k">{row.label}{#if row.isNew}<span class="tag">{$t('oxygen.new')}</span>{/if}</span>
                   <span class="v" title={row.value}>{row.value}</span>
                 </div>
               {/each}
             </div>
           {/each}
         {/if}
-      {:else}<div class="state small">Sélectionnez une piste.</div>{/if}
+      {:else}<div class="state small">{$t('oxygen.selectTrack')}</div>{/if}
     </aside>
     {#if mobileRail || mobileInspector}
-      <button class="backdrop" onclick={() => { mobileRail = false; mobileInspector = false; }} aria-label="Fermer"></button>
+      <button class="backdrop" onclick={() => { mobileRail = false; mobileInspector = false; }} aria-label={$t('oxygen.close')}></button>
     {/if}
   </div>
 </div>
