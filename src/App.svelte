@@ -50,15 +50,12 @@ import AlarmsView from './components/AlarmsView.svelte';
   import RadioFavoritesView from './components/RadioFavoritesView.svelte';
   import PlaylistManagerView from './components/PlaylistManagerView.svelte';
   import PlaylistsHub from './components/PlaylistsHub.svelte';
-  import DJView from './components/DJView.svelte';
   import SmartAIView from './components/SmartAIView.svelte';
-  import PartyView from './components/PartyView.svelte';
   import CollectionsView from './components/CollectionsView.svelte';
   import SmartCollectionsView from './components/SmartCollectionsView.svelte';
   import DashboardView from './components/DashboardView.svelte';
   import EqualizerView from './components/EqualizerView.svelte';
   import PluginsView from './components/PluginsView.svelte';
-  import AdminDashboard from './components/AdminDashboard.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
   import BottomTabBar from './components/BottomTabBar.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
@@ -68,7 +65,6 @@ import AlarmsView from './components/AlarmsView.svelte';
   import OfflineView from './components/OfflineView.svelte';
   import WhatsNew from './components/WhatsNew.svelte';
   import LoginView from './components/LoginView.svelte';
-  import BridgeView from './components/BridgeView.svelte';
   import ConverterView from './components/ConverterView.svelte';
   import AiChat from './components/AiChat.svelte';
   import GlobalSearchBar from './components/GlobalSearchBar.svelte';
@@ -1031,10 +1027,6 @@ import AlarmsView from './components/AlarmsView.svelte';
       <RadioFavoritesView />
     {:else if $activeView === 'zonemanager'}
       <ZoneManagerView />
-    {:else if $activeView === 'dj'}
-      <DJView />
-    {:else if $activeView === 'party'}
-      <PartyView />
     {:else if $activeView === 'collections' || $activeView === 'smartcollections'}
       <CollectionsView />
     {:else if $activeView === 'dashboard'}
@@ -1047,16 +1039,12 @@ import AlarmsView from './components/AlarmsView.svelte';
       <AlarmsView />
     {:else if $activeView === 'diagnostics'}
       <DiagnosticsView />
-    {:else if $activeView === 'admin'}
-      <AdminDashboard />
     {:else if $activeView === 'onboarding'}
       <OnboardingView />
     {:else if $activeView === 'offline'}
       <OfflineView />
     {:else if $activeView === 'login'}
       <LoginView />
-    {:else if $activeView === 'bridge'}
-      <BridgeView />
     {:else if $activeView === 'converter'}
       <ConverterView />
     {/if}

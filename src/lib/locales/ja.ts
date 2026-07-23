@@ -43,6 +43,7 @@ export default {
   'nav.navigation': 'ナビゲーション',
   'nav.services': 'サービス',
   'nav.reglages': '設定',
+  'nav.tools': 'ツール',
   'nav.maintenance': 'メタデータ',
   'nav.genres': 'ジャンル',
 

@@ -43,6 +43,7 @@ export default {
   'nav.navigation': 'NAVEGACIÓN',
   'nav.services': 'SERVICIOS',
   'nav.reglages': 'AJUSTES',
+  'nav.tools': 'HERRAMIENTAS',
   'nav.maintenance': 'Metadatos',
   'nav.genres': 'Géneros',
 

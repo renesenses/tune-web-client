@@ -43,6 +43,7 @@ export default {
   'nav.navigation': 'NAVIGARE',
   'nav.services': 'SERVICII',
   'nav.reglages': 'SETĂRI',
+  'nav.tools': 'INSTRUMENTE',
   'nav.maintenance': 'Metadate',
   'nav.genres': 'Genuri',
 

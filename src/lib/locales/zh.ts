@@ -43,6 +43,7 @@ export default {
   'nav.navigation': '导航',
   'nav.services': '服务',
   'nav.reglages': '设置',
+  'nav.tools': '工具',
   'nav.maintenance': '元数据',
   'nav.genres': '风格',
 
