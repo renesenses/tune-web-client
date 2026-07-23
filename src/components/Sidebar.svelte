@@ -6,6 +6,7 @@
   import { activeView, settingsInitialTab, requestListReset, type View } from '../lib/stores/navigation';
   import { resetLibraryNavigation } from '../lib/stores/library';
   import { activeStreamingService, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
+  import { isPremium } from '../lib/stores/license';
   import { preferences } from '../lib/stores/preferences';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
@@ -633,7 +634,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
       {$t('nav.library')}
     </button>
-    {#if $preferences.oxygenEnabled}
+    {#if $preferences.oxygenEnabled && $isPremium}
     <button class="nav-item" class:active={$activeView === 'oxygen'} onclick={() => navigate('oxygen')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2.4"></circle><ellipse cx="12" cy="12" rx="10" ry="4.4"></ellipse><ellipse cx="12" cy="12" rx="10" ry="4.4" transform="rotate(60 12 12)"></ellipse><ellipse cx="12" cy="12" rx="10" ry="4.4" transform="rotate(120 12 12)"></ellipse></svg>
       Oxygen

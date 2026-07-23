@@ -71,7 +71,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import AddShortcutButton from './components/AddShortcutButton.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
   import { loadProfiles } from './lib/stores/profile';
-  import { loadLicense } from './lib/stores/license';
+  import { loadLicense, isPremium } from './lib/stores/license';
   import { notifications } from './lib/stores/notifications';
   import { healthStatus } from './lib/stores/health';
   import { streamingServices as streamingServicesStore } from './lib/stores/streaming';
@@ -982,7 +982,13 @@ import AlarmsView from './components/AlarmsView.svelte';
     {:else if $activeView === 'library'}
       <LibraryView onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'oxygen'}
-      <OxygenView />
+      <!-- Oxygen est une feature Premium (Bertrand, release v0.9.0) : un
+           compte Free retombe sur la bibliothèque classique. -->
+      {#if $isPremium}
+        <OxygenView />
+      {:else}
+        <LibraryView />
+      {/if}
     {:else if $activeView === 'queue'}
       <QueueView onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'playlists'}

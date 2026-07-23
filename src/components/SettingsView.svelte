@@ -2778,11 +2778,11 @@
 
     <!-- Oxygen advanced library view (parameterizable) -->
     <section class="settings-section">
-      <h3>Vue Oxygen · bibliothèque avancée</h3>
+      <h3>Vue Oxygen · bibliothèque avancée <span class="license-badge premium">Premium</span></h3>
       <div class="pref-grid">
         <label class="pref-label" for="oxy-enable">Activer la vue Oxygen</label>
         <label class="toggle-switch">
-          <input id="oxy-enable" type="checkbox" checked={$preferences.oxygenEnabled}
+          <input id="oxy-enable" type="checkbox" checked={$preferences.oxygenEnabled && $isPremium} disabled={!$isPremium}
             onchange={(e) => preferences.update((p) => ({ ...p, oxygenEnabled: (e.target as HTMLInputElement).checked }))} />
           <span class="toggle-slider"></span>
         </label>
