@@ -7,7 +7,6 @@
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
-  import HeartButton from './HeartButton.svelte';
   import SeekBar from './SeekBar.svelte';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
@@ -1006,12 +1005,7 @@
           {#if !isRadio && displayTrack.album_title}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <p class="track-album truncate clickable" onclick={() => navigateToAlbum(displayTrack.album_id, displayTrack.album_title)}>{displayTrack.album_title}</p>
-          {/if}
-          {#if !isRadio && displayTrack.year}
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <p class="track-year-line clickable" onclick={() => navigateToYear(displayTrack.year!)}>{displayTrack.year}</p>
+            <p class="track-album truncate clickable" onclick={() => navigateToAlbum(displayTrack.album_id, displayTrack.album_title)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
           {/if}
           {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth)}
             <p class="track-tech-info">
@@ -1331,9 +1325,7 @@
             <span class="up-next-label">{$t('nowplaying.upNext')}</span>
             <div class="up-next-list">
               {#each $upNextTracks as nextTrack, i}
-                <div class="up-next-item" role="button" tabindex="0"
-                  onclick={() => jumpToUpNext(nextTrack, i)}
-                  onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jumpToUpNext(nextTrack, i); } }}>
+                <button class="up-next-item" onclick={() => jumpToUpNext(nextTrack, i)}>
                   <AlbumArt coverPath={nextTrack.cover_path} albumId={nextTrack.album_id} size={32} alt={nextTrack.title} />
                   <div class="up-next-info">
                     <span class="up-next-title truncate">{nextTrack.title}</span>
@@ -1348,14 +1340,7 @@
                     >{formatCompactQuality(nextTrack)}</span>
                   {/if}
                   <span class="up-next-duration">{formatTime(nextTrack.duration_ms)}</span>
-                  <span class="track-heart" onclick={(e) => e.stopPropagation()}>
-                    {#if nextTrack.source && nextTrack.source !== 'local' && nextTrack.source_id}
-                      <HeartButton streaming={{ itemType: 'track', service: nextTrack.source, serviceId: String(nextTrack.source_id), title: nextTrack.title, artist: nextTrack.artist_name ?? undefined, album: (nextTrack as any).album_title ?? undefined, coverUrl: (nextTrack as any).cover_url ?? undefined }} size={14} />
-                    {:else if nextTrack.id}
-                      <HeartButton trackId={nextTrack.id} size={14} />
-                    {/if}
-                  </span>
-                </div>
+                </button>
               {/each}
             </div>
           </div>
@@ -1492,13 +1477,6 @@
               {/if}
               <span class="qs-duration">{formatTime(queueTrack.duration_ms)}</span>
             </button>
-            <span class="track-heart" onclick={(e) => e.stopPropagation()}>
-              {#if queueTrack.source && queueTrack.source !== 'local' && queueTrack.source_id}
-                <HeartButton streaming={{ itemType: 'track', service: queueTrack.source, serviceId: String(queueTrack.source_id), title: queueTrack.title, artist: queueTrack.artist_name ?? undefined, album: (queueTrack as any).album_title ?? undefined, coverUrl: (queueTrack as any).cover_url ?? undefined }} size={14} />
-              {:else if queueTrack.id}
-                <HeartButton trackId={queueTrack.id} size={14} />
-              {/if}
-            </span>
             {#if onAddToPlaylist && (queueTrack.id || queueTrack.source_id)}
               <button class="qs-btn qs-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(queueTrack); }} title={$t('queue.addToPlaylist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
@@ -1667,37 +1645,6 @@
     }
     .content-layout.wide .artwork-container {
       max-width: 640px;
-    }
-  }
-
-  /* Very large screens (TV 4K used as a music display, Alain #1077): the
-     content island was capped at 1200px with a 640px cover, leaving most of a
-     4K panel empty and the artwork tiny. Scale the cover, the content width
-     and the info/tracklist column together so the big cover grows WITHOUT
-     hiding the tracklist (wide mode keeps them side by side). */
-  @media (min-width: 2400px) {
-    .content-layout.wide {
-      max-width: 1720px;
-    }
-    .artwork-container,
-    .content-layout.wide .artwork-container {
-      max-width: 900px;
-    }
-    .content-layout.wide .info-column {
-      max-width: 720px;
-    }
-  }
-
-  @media (min-width: 3200px) {
-    .content-layout.wide {
-      max-width: 2200px;
-    }
-    .artwork-container,
-    .content-layout.wide .artwork-container {
-      max-width: 1160px;
-    }
-    .content-layout.wide .info-column {
-      max-width: 960px;
     }
   }
 
@@ -1873,12 +1820,11 @@
     text-decoration: underline;
   }
 
-  .track-year-line {
-    font-family: var(--font-body);
-    font-size: 14px;
-    color: var(--tune-text-muted);
-    margin-bottom: var(--space-xs);
-    opacity: 0.85;
+  .track-tech-info {
+    display: flex;
+    gap: 6px;
+    margin: 4px 0 0;
+    flex-wrap: wrap;
   }
 
   .track-plays {
@@ -1887,23 +1833,6 @@
     color: var(--tune-text-muted);
     margin-top: var(--space-xs);
     opacity: 0.75;
-  }
-
-  .track-year-line.clickable {
-    cursor: pointer;
-    transition: color 0.15s ease-out;
-  }
-
-  .track-year-line.clickable:hover {
-    color: var(--tune-accent);
-    text-decoration: underline;
-  }
-
-  .track-tech-info {
-    display: flex;
-    gap: 6px;
-    margin: 4px 0 0;
-    flex-wrap: wrap;
   }
 
   .tech-chip {
@@ -3542,10 +3471,10 @@
     position: relative;
     transition: background 0.12s ease-out;
     /* Virtualise off-screen rows via CSS containment — the browser skips
-       layout/paint for rows outside the viewport. Mirrors the QueueView fix
-       (#1096) so opening this sheet on a large queue (e.g. a big genre
-       shuffle) doesn't stall the main thread rendering thousands of rows
-       (#1126). ~56px initial estimate; `auto` keeps scrollbar stability. */
+       layout/paint for rows outside the viewport, so opening this sheet on a
+       large queue (e.g. a big genre shuffle) doesn't stall the main thread
+       rendering thousands of rows (#1126). ~56px initial estimate; `auto`
+       keeps scrollbar stability. */
     content-visibility: auto;
     contain-intrinsic-size: auto 56px;
   }

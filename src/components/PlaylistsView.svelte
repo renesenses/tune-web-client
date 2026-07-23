@@ -8,11 +8,7 @@
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import type { Playlist, Track, StreamingPlaylist } from '../lib/types';
   import { t as tr } from '../lib/i18n';
-  import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
   import AlbumArt from './AlbumArt.svelte';
-  import HeartButton from './HeartButton.svelte';
-
-  let viewEl = $state<HTMLDivElement | null>(null);
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -136,7 +132,6 @@
 
   async function selectPlaylist(pl: Playlist) {
     if (!pl.id) return;
-    saveDetailScroll('playlists', viewEl);
     selectedPlaylist = pl;
     loading = true;
     try {
@@ -148,7 +143,6 @@
   }
 
   async function selectStreamingPlaylist(service: string, pl: StreamingPlaylist) {
-    saveDetailScroll('playlists', viewEl);
     selectedStreamingPl = pl;
     selectedService = service;
     loading = true;
@@ -166,7 +160,6 @@
     playlistTracks = [];
     streamingPlTracks = [];
     selectedService = '';
-    restoreDetailScroll('playlists', viewEl);
   }
 
   // Shortcut capture/restore for a SPECIFIC playlist (Elie): expose the open
@@ -299,7 +292,7 @@
   }
 </script>
 
-<div class="playlists-view" bind:this={viewEl}>
+<div class="playlists-view">
   {#if selectedPlaylist}
     <!-- Local playlist detail -->
     <div class="detail-header">
@@ -349,13 +342,6 @@
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
             </button>
-            <span class="track-heart" onclick={(e) => e.stopPropagation()}>
-              {#if t.source && t.source !== 'local' && t.source_id}
-                <HeartButton streaming={{ itemType: 'track', service: t.source, serviceId: String(t.source_id), title: t.title, artist: t.artist_name ?? undefined, album: (t as any).album_title ?? undefined, coverUrl: (t as any).cover_url ?? undefined }} size={14} />
-              {:else if t.id}
-                <HeartButton trackId={t.id} size={14} />
-              {/if}
-            </span>
             <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(playlistTracks, index); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6"/><line x1="3" y1="12" x2="14" y2="12"/><line x1="3" y1="18" x2="10" y2="18"/><path d="M16 8v8l6-4z" fill="currentColor" stroke="none"/></svg>
             </button>
@@ -412,13 +398,6 @@
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
             </button>
-            <span class="track-heart" onclick={(e) => e.stopPropagation()}>
-              {#if t.source && t.source !== 'local' && t.source_id}
-                <HeartButton streaming={{ itemType: 'track', service: t.source, serviceId: String(t.source_id), title: t.title, artist: t.artist_name ?? undefined, album: (t as any).album_title ?? undefined, coverUrl: (t as any).cover_url ?? undefined }} size={14} />
-              {:else if t.id}
-                <HeartButton trackId={t.id} size={14} />
-              {/if}
-            </span>
             <button class="add-queue-btn" onclick={() => addStreamingTrackToQueue(t)} title={$tr('queue.addToQueue')}>+</button>
             {#if onAddToPlaylist && (t.id || t.source_id)}
               <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
@@ -643,9 +622,10 @@
   .add-queue-btn:hover { color: var(--tune-accent); border-color: var(--tune-accent); }
   .add-playlist-btn { width: 28px; height: 28px; border: 1px solid var(--tune-border); border-radius: var(--radius-sm); background: none; color: var(--tune-text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s ease-out; opacity: 0; }
   .track-item:hover .add-playlist-btn { opacity: 1; }
+  .add-playlist-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
   .play-from-here-btn { width: 28px; height: 28px; border: 1px solid var(--tune-border); border-radius: var(--radius-sm); background: none; color: var(--tune-text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s ease-out; opacity: 0; }
   .track-item:hover .play-from-here-btn { opacity: 1; }
-  .add-playlist-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
+  .play-from-here-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
 
   .loading { display: flex; align-items: center; gap: var(--space-md); color: var(--tune-text-muted); font-family: var(--font-body); padding: var(--space-xl); justify-content: center; }
   .spinner { width: 20px; height: 20px; border: 2px solid var(--tune-border); border-top-color: var(--tune-accent); border-radius: 50%; animation: spin 0.8s linear infinite; }

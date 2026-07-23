@@ -49,6 +49,7 @@ export interface Artist {
 }
 
 export interface Album {
+  added_at?: number | null;
   id: number | null;
   title: string;
   artist_id?: number | null;
@@ -130,7 +131,12 @@ export interface SignalPathStep {
 
 export interface SignalPath {
   bit_perfect: boolean;
-  /** Whether the *source* format is lossless (distinct from bit_perfect). */
+  /**
+   * True when the delivered signal is lossless even if not bit-perfect, e.g. a
+   * lossless source transcoded to another lossless container (DSD→FLAC,
+   * ALAC→FLAC for a DLNA renderer). Falls back to bit_perfect on older servers
+   * that don't send it. Used for the "Lossless/Lossy" loss label (#96).
+   */
   lossless?: boolean;
   steps: SignalPathStep[];
   summary: string;
@@ -151,7 +157,6 @@ export interface Zone {
   current_track?: Track | null;
   position_ms?: number;
   queue_length?: number;
-  queue_position?: number;
   signal_path?: SignalPath | null;
   stereo_pair_id?: string | null;
   stereo_channel?: 'left' | 'right' | null;
@@ -168,12 +173,6 @@ export interface Zone {
   /** DSD playback mode: auto, native, dop, pcm */
   dsd_mode?: string;
   dlna_native_flac?: boolean;
-  alac_passthrough?: boolean;
-  dlna_lpcm?: boolean;
-  /** Cap output to 16-bit for renderers that advertise FLAC but only decode 16-bit (Ruark R3, #1137) */
-  dlna_cap_16bit?: boolean;
-  /** Max output sample rate (Hz); null/absent = no limit (resample only above it) */
-  max_sample_rate?: number | null;
 }
 
 export interface DiscoveredDevice {
@@ -318,10 +317,6 @@ export interface BrowseRootEntry {
   name: string;
   path: string;
   track_count: number;
-  /** Whether the configured directory still exists on disk. A stale root
-   *  (renamed/unmounted share) is `false` and should be flagged in the UI.
-   *  Optional for backward-compat with older servers that omit it. */
-  exists?: boolean;
 }
 
 export interface BrowseRootsResponse {

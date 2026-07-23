@@ -1,6 +1,6 @@
 import { writable, get } from 'svelte/store';
 
-export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'playlistmanager' | 'playlistshub' | 'smartplaylists' | 'smart-ai' | 'browse' | 'search' | 'settings' | 'history' | 'streaming' | 'metadata' | 'radios' | 'radiofavorites' | 'genres' | 'mediaservers' | 'favorites' | 'podcasts' | 'zonemanager' | 'diagnostics' | 'dj' | 'party' | 'collections' | 'smartcollections' | 'dashboard' | 'services' | 'genretree' | 'equalizer' | 'plugins' | 'admin' | 'onboarding' | 'offline' | 'alarms' | 'login' | 'bridge' | 'converter' | 'shortcuts';
+export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'playlistmanager' | 'playlistshub' | 'smartplaylists' | 'smart-ai' | 'browse' | 'search' | 'settings' | 'history' | 'streaming' | 'metadata' | 'radios' | 'radiofavorites' | 'genres' | 'mediaservers' | 'favorites' | 'podcasts' | 'zonemanager' | 'diagnostics' | 'collections' | 'smartcollections' | 'dashboard' | 'services' | 'genretree' | 'equalizer' | 'plugins' | 'onboarding' | 'offline' | 'alarms' | 'login' | 'converter' | 'shortcuts' | 'oxygen';
 export const activeView = writable<View>('home');
 export const previousView = writable<View | null>(null);
 
@@ -48,10 +48,11 @@ export function getScrollPosition(view: string): number {
 }
 
 // Intra-view list<->detail scroll preservation. Views that swap a list for a
-// detail inside their own scroll container (Collections, Playlists, …) save the
-// container's scrollTop under a key on open, and restore it on Back. The
-// restore polls a bounded number of frames until the re-rendered list is tall
-// enough to hold the offset (a single set clamps to 0 before layout).
+// detail inside their own scroll container (Collections, Playlists, the
+// hierarchical Media Servers / Browse folders) save the container's scrollTop
+// under a key on open, and restore it on Back. The restore polls a bounded
+// number of frames until the re-rendered list is tall enough to hold the
+// offset (a single set clamps to 0 before layout).
 const detailScrolls = new Map<string, number>();
 export function saveDetailScroll(key: string, el: HTMLElement | null | undefined) {
   if (el) detailScrolls.set(key, el.scrollTop);

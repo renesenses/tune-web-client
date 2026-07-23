@@ -5,6 +5,13 @@ export type ThemeMode = 'dark' | 'light' | 'oled' | 'midnight';
 export type VolumeDisplay = 'percent' | 'dB';
 export type StartupView = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'search' | 'settings';
 
+/** Layout mode for the Oxygen library view. */
+export type OxygenViewMode = 'album' | 'grid' | 'detail';
+
+/** Facets available in the Oxygen browse rail (Phase 2+). Stored so users can
+ *  pick which ones show. Kept here (ui_preferences) so config syncs per install. */
+export const OXYGEN_FACETS_ALL = ['genre', 'label', 'mood', 'year', 'rating', 'collection', 'country', 'folder', 'untagged'] as const;
+
 export interface Preferences {
   theme: ThemeMode;
   language: Locale;
@@ -12,6 +19,10 @@ export interface Preferences {
   startupView: StartupView;
   defaultZoneId: number | null;
   hiddenDeviceIds: string[];
+  // --- Oxygen advanced library view (parameterizable) ---
+  oxygenEnabled: boolean;
+  oxygenView: OxygenViewMode;
+  oxygenFacets: string[];
 }
 
 const STORAGE_KEY = 'tune-preferences';
@@ -23,6 +34,9 @@ const defaults: Preferences = {
   startupView: 'home',
   defaultZoneId: null,
   hiddenDeviceIds: [],
+  oxygenEnabled: false,
+  oxygenView: 'detail',
+  oxygenFacets: ['genre', 'label', 'year', 'country', 'collection', 'folder'],
 };
 
 function loadPrefs(): Preferences {

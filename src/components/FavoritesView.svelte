@@ -6,12 +6,9 @@
   import { selectedAlbum, albumTracks, selectedArtist, artistAlbums } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
   import * as api from '../lib/api';
-  import { streamingServices } from '../lib/stores/streaming';
-  import { get } from 'svelte/store';
   import { t as tr } from '../lib/i18n';
   import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
-  import HeartButton from './HeartButton.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
@@ -51,84 +48,15 @@
 
   let zone = $derived($currentZone);
 
-  // Map a stored (Tune-hearted) streaming favorite into a Track/Album/Artist-
-  // shaped object carrying `source`/`source_id`, so the existing rendering and
-  // the streaming play path work without a separate UI. `_fk: 'tune'` marks the
-  // origin so remove routes to the profile (Tune) endpoint.
-  function streamToTrack(f: api.StreamingFavorite): Track {
-    return {
-      title: f.title ?? '', artist_name: f.artist ?? '', album_title: f.album ?? '',
-      cover_path: f.cover_url ?? null, source: f.service, source_id: f.service_id, duration_ms: 0, _fk: 'tune',
-    } as unknown as Track;
-  }
-  function streamToAlbum(f: api.StreamingFavorite): Album {
-    return {
-      title: f.title ?? '', artist_name: f.artist ?? '', cover_path: f.cover_url ?? null,
-      source: f.service, source_id: f.service_id, _fk: 'tune',
-    } as unknown as Album;
-  }
-  function streamToArtist(f: api.StreamingFavorite): Artist {
-    return {
-      name: f.title ?? f.artist ?? '', image_path: f.cover_url ?? null,
-      source: f.service, source_id: f.service_id, _fk: 'tune',
-    } as unknown as Artist;
-  }
-
-  // Fetch the connected services' OWN favorites (what the user hearted in
-  // Tidal/Qobuz…). Items already carry source/source_id; we tag `_fk: 'svc'` so
-  // remove routes to the service endpoint. Best-effort: a failing service is
-  // skipped, never blanks the list.
-  async function loadServiceFavorites(): Promise<{ tracks: Track[]; albums: Album[]; artists: Artist[] }> {
-    const services = get(streamingServices);
-    const connected = Object.entries(services)
-      .filter(([, s]) => (s as any)?.authenticated)
-      .map(([name]) => name);
-    const tag = <T>(items: any[], svc: string): T[] =>
-      (items ?? []).map((it) => ({ ...it, source: it.source ?? svc, _fk: 'svc' })) as T[];
-    const out = { tracks: [] as Track[], albums: [] as Album[], artists: [] as Artist[] };
-    await Promise.all(
-      connected.map(async (svc) => {
-        const [t, a, ar] = await Promise.allSettled([
-          api.getStreamingFavorites(svc, 'tracks'),
-          api.getStreamingFavorites(svc, 'albums'),
-          api.getStreamingFavorites(svc, 'artists'),
-        ]);
-        if (t.status === 'fulfilled') out.tracks.push(...tag<Track>((t.value as any).tracks, svc));
-        if (a.status === 'fulfilled') out.albums.push(...tag<Album>((a.value as any).albums, svc));
-        if (ar.status === 'fulfilled') out.artists.push(...tag<Artist>((ar.value as any).artists, svc));
-      }),
-    );
-    return out;
-  }
-
   async function loadFavorites() {
     const pid = $currentProfileId;
     if (!pid) return;
     loading = true;
     try {
-      // Merge three sources per tab: local favorites (hydrated), Tune-hearted
-      // streaming favorites, and each connected service's own favorites.
-      // Any source failing must not blank the others.
-      const [local, streaming, service] = await Promise.all([
-        api.getFavorites(pid),
-        api.getProfileStreamingFavorites(pid).catch(() => [] as api.StreamingFavorite[]),
-        loadServiceFavorites().catch(() => ({ tracks: [], albums: [], artists: [] })),
-      ]);
-      favTracks = [
-        ...(local.tracks ?? []),
-        ...streaming.filter((f) => f.item_type === 'track').map(streamToTrack),
-        ...service.tracks,
-      ];
-      favAlbums = [
-        ...(local.albums ?? []),
-        ...streaming.filter((f) => f.item_type === 'album').map(streamToAlbum),
-        ...service.albums,
-      ];
-      favArtists = [
-        ...(local.artists ?? []),
-        ...streaming.filter((f) => f.item_type === 'artist').map(streamToArtist),
-        ...service.artists,
-      ];
+      const result = await api.getFavorites(pid);
+      favTracks = result.tracks ?? [];
+      favAlbums = result.albums ?? [];
+      favArtists = result.artists ?? [];
     } catch (e) {
       console.error('Load favorites error:', e);
     }
@@ -188,29 +116,9 @@
     }
   }
 
-  // Remove a streaming favorite, routing to the right endpoint by origin:
-  // service-side favorites (`_fk === 'svc'`) go to the service, Tune-hearted
-  // ones to the profile table.
-  async function removeStreamingFav(pid: number, item: any, typeSingular: 'track' | 'album' | 'artist', typePlural: 'tracks' | 'albums' | 'artists') {
-    try {
-      if (item._fk === 'svc') {
-        await api.removeStreamingFavorite(item.source, typePlural, item.source_id);
-      } else {
-        await api.removeProfileStreamingFavorite(pid, { item_type: typeSingular, service: item.source, service_id: item.source_id });
-      }
-    } catch (e) { console.error('Remove streaming favorite error:', e); loadFavorites(); }
-  }
-
   async function removeFavTrack(track: Track) {
     const pid = $currentProfileId;
-    if (!pid) return;
-    const st = track as unknown as { source?: string; source_id?: string };
-    if (st.source_id && st.source) {
-      favTracks = favTracks.filter((t) => (t as any).source_id !== st.source_id);
-      await removeStreamingFav(pid, track, 'track', 'tracks');
-      return;
-    }
-    if (!track.id) return;
+    if (!pid || !track.id) return;
     favTracks = favTracks.filter(t => t.id !== track.id);
     try {
       await api.removeFavorite(pid, { track_id: track.id });
@@ -222,14 +130,7 @@
 
   async function removeFavAlbum(album: Album) {
     const pid = $currentProfileId;
-    if (!pid) return;
-    const st = album as unknown as { source?: string; source_id?: string };
-    if (st.source_id && st.source) {
-      favAlbums = favAlbums.filter((a) => (a as any).source_id !== st.source_id);
-      await removeStreamingFav(pid, album, 'album', 'albums');
-      return;
-    }
-    if (!album.id) return;
+    if (!pid || !album.id) return;
     favAlbums = favAlbums.filter(a => a.id !== album.id);
     try {
       await api.removeFavorite(pid, { album_id: album.id });
@@ -241,14 +142,7 @@
 
   async function removeFavArtist(artist: Artist) {
     const pid = $currentProfileId;
-    if (!pid) return;
-    const st = artist as unknown as { source?: string; source_id?: string };
-    if (st.source_id && st.source) {
-      favArtists = favArtists.filter((a) => (a as any).source_id !== st.source_id);
-      await removeStreamingFav(pid, artist, 'artist', 'artists');
-      return;
-    }
-    if (!artist.id) return;
+    if (!pid || !artist.id) return;
     favArtists = favArtists.filter(a => a.id !== artist.id);
     try {
       await api.removeFavorite(pid, { artist_id: artist.id });
@@ -324,13 +218,6 @@
               <MetadataChips track={t} fields={$displayFields} />
             </div>
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
-            <span class="track-heart" onclick={(e) => e.stopPropagation()}>
-              {#if t.source && t.source !== 'local' && t.source_id}
-                <HeartButton streaming={{ itemType: 'track', service: t.source, serviceId: String(t.source_id), title: t.title, artist: t.artist_name ?? undefined, album: t.album_title ?? undefined, coverUrl: t.cover_path ?? undefined }} size={14} />
-              {:else if t.id}
-                <HeartButton trackId={t.id} size={14} />
-              {/if}
-            </span>
             <button class="action-btn play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(favTracks, favTracks.indexOf(t)); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
             </button>

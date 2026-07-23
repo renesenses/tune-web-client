@@ -12,7 +12,6 @@
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
-  import HeartButton from './HeartButton.svelte';
   import type { Album, Track, Source, TopTrack, TopArtist } from '../lib/types';
 
   let activeStreamingServices = $derived(
@@ -790,23 +789,6 @@
             {/if}
             <ServiceBadge source={track.source} compact />
             <span class="play-count-badge">{track.plays}</span>
-            <span class="top-track-heart">
-              {#if track.source && track.source !== 'local' && track.source_id}
-                <HeartButton
-                  streaming={{
-                    itemType: 'track',
-                    service: track.source,
-                    serviceId: String(track.source_id),
-                    title: track.title,
-                    artist: track.artist_name ?? undefined,
-                    coverUrl: (track as any).cover_url ?? undefined,
-                  }}
-                  size={15}
-                />
-              {:else if track.track_id}
-                <HeartButton trackId={track.track_id} size={15} />
-              {/if}
-            </span>
             {#if typeof track.track_id === 'number'}
               <button class="play-from-here-btn" type="button" onclick={(e) => { e.stopPropagation(); playFromHere(topTracks.map(t => ({ id: t.track_id })), i); }} title={$t('common.playFromHere')} aria-label={$t('common.playFromHere')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>

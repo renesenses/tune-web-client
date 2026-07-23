@@ -15,23 +15,6 @@ const acceptLang = (): string => {
   }
 };
 
-/** Active profile id, read straight from localStorage (same key the profile
- *  store persists to) to avoid a circular import with stores/profile. Sent as
- *  `X-Profile-Id` so the server scopes per-profile data (playlists, favorites,
- *  theme, display columns…) to the profile this client has selected. */
-function profileHeader(): Record<string, string> {
-  try {
-    const id = localStorage.getItem('tune-profile-id');
-    if (id) return { 'X-Profile-Id': id };
-  } catch { /* ignore */ }
-  return {};
-}
-
-/** Shared request headers: Accept, Accept-Language and the active profile. */
-function baseHeaders(): Record<string, string> {
-  return { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
-}
-
 let _lastNetworkError = 0;
 function showNetworkError() {
   const now = Date.now();
@@ -74,7 +57,7 @@ function stripDoubleBase(path: string): string {
 // Generic helpers for radio favorites and custom endpoints
 export async function apiFetch(path: string): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = baseHeaders();
+  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { headers });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
@@ -88,7 +71,7 @@ export async function apiFetch(path: string): Promise<any> {
 
 export async function apiPost(path: string, body?: any): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = baseHeaders();
+  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
@@ -107,7 +90,7 @@ export async function apiPost(path: string, body?: any): Promise<any> {
 
 export async function apiPatch(path: string, body?: any): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = baseHeaders();
+  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
@@ -126,7 +109,7 @@ export async function apiPatch(path: string, body?: any): Promise<any> {
 
 export async function apiDelete(path: string): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = baseHeaders();
+  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { method: 'DELETE', headers });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
@@ -155,7 +138,6 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       'Accept': 'application/json',
       'Accept-Language': acceptLang(),
       'Content-Type': 'application/json',
-      ...profileHeader(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     response = await fetch(url, {
@@ -216,7 +198,6 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
       'Accept': 'application/json',
       'Accept-Language': acceptLang(),
       'Content-Type': 'application/json',
-      ...profileHeader(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     response = await fetch(url, {
@@ -310,20 +291,6 @@ export function updateZoneAlacPassthrough(id: number, enabled: boolean) {
   });
 }
 
-export function updateZoneDlnaLpcm(id: number, enabled: boolean) {
-  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ dlna_lpcm: enabled }),
-  });
-}
-
-export function updateZoneDlnaCap16bit(id: number, enabled: boolean) {
-  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ dlna_cap_16bit: enabled }),
-  });
-}
-
 export function changeZoneOutput(id: number, outputType: string, outputDeviceId?: string | null) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
@@ -364,21 +331,6 @@ export function submitPairingPin(deviceId: string, pin: string) {
     method: 'POST',
     body: JSON.stringify({ pin }),
   });
-}
-
-// --- AirPlay 2 PIN pairing (#1135) — for AirPlay-2-only TVs (Samsung, LG) and
-// Apple TV that require a HomeKit 4-digit code instead of the transient PIN.
-// The device_id here is the *output* id (e.g. "airplay2:AA:BB:..").
-export function startAirplayPairing(deviceId: string): Promise<{ ok: boolean; status: string }> {
-  return apiPost(`/outputs/${encodeURIComponent(deviceId)}/airplay/pair-start`);
-}
-
-export function getAirplayPairStatus(deviceId: string): Promise<{ status: string }> {
-  return apiFetch(`/outputs/${encodeURIComponent(deviceId)}/airplay/pair-status`);
-}
-
-export function submitAirplayPairPin(deviceId: string, pin: string): Promise<{ ok: boolean }> {
-  return apiPost(`/outputs/${encodeURIComponent(deviceId)}/airplay/pair-pin`, { pin });
 }
 
 export function deleteZone(id: number) {
@@ -847,24 +799,6 @@ export function getDashboard(period: DashboardPeriod = '30d', opts?: { zoneId?: 
   return fetchJSON<DashboardData>(`${BASE}/library/history/dashboard?${params}`);
 }
 
-export interface SlotTrack {
-  track_id: number | null;
-  title: string | null;
-  artist_name: string | null;
-  album_title: string | null;
-  album_id: number | null;
-  source: string | null;
-  source_id: string | null;
-  plays: number;
-  last_listened_at: string | null;
-}
-
-// Tracks listened during one weekday×hour heatmap cell. weekday: ISO 1=Mon..7=Sun.
-export function getHistoryAtSlot(period: DashboardPeriod, weekday: number, hour: number, limit = 50) {
-  const params = new URLSearchParams({ period, weekday: String(weekday), hour: String(hour), limit: String(limit) });
-  return fetchJSON<{ weekday: number; hour: number; period: string; tracks: SlotTrack[] }>(`${BASE}/library/history/at?${params}`);
-}
-
 export function getArtistCredits(artistId: number) {
   return fetchJSON<import('./types').TrackCredit[]>(`${BASE}/library/artists/${artistId}/credits`);
 }
@@ -922,6 +856,10 @@ export async function getFilteredTracks(opts: {
   label?: string;
   composer?: string;
   q?: string;
+  artist?: string;
+  country?: string;       // release_country (track_metadata k/v)
+  mood?: string;          // mood (track_metadata k/v)
+  source_media?: string;  // source_media (track_metadata k/v)
   limit?: number;
   offset?: number;
 }): Promise<{ items: Track[]; total: number }> {
@@ -934,6 +872,10 @@ export async function getFilteredTracks(opts: {
   if (opts.source) params.set('source', opts.source);
   if (opts.label) params.set('label', opts.label);
   if (opts.composer) params.set('composer', opts.composer);
+  if (opts.artist) params.set('artist', opts.artist);
+  if (opts.country) params.set('country', opts.country);
+  if (opts.mood) params.set('mood', opts.mood);
+  if (opts.source_media) params.set('source_media', opts.source_media);
   if (opts.q) params.set('q', opts.q);
   params.set('limit', String(opts.limit ?? 200));
   if (opts.offset) params.set('offset', String(opts.offset));
@@ -941,6 +883,16 @@ export async function getFilteredTracks(opts: {
   const items: Track[] = Array.isArray(raw) ? raw : (raw.items ?? []);
   const total: number = Array.isArray(raw) ? raw.length : (raw.total ?? items.length);
   return { items, total };
+}
+
+export interface FacetValue { value: string; count: number; }
+
+/** Full-library facet counts from the server index (Oxygen rail).
+ *  `country`/`mood`/`source` are read from the track_metadata k/v store. */
+export async function getLibraryFacets(fields: string[]): Promise<Record<string, FacetValue[]>> {
+  const params = new URLSearchParams({ fields: fields.join(',') });
+  const raw = await fetchJSON<any>(`${BASE}/library/facets?${params}`);
+  return (raw && typeof raw === 'object') ? raw : {};
 }
 
 export async function getAllTracks(pageSize = 2000): Promise<Track[]> {
@@ -1473,18 +1425,8 @@ export function getScanStatus() {
 
 export function cancelScan() {
   // Server returns 204 No Content — use fetchVoid so the empty body doesn't
-  // fail JSON.parse and throw "Invalid JSON response", which sent stopScan()
-  // into its catch branch and left the "scanning" banner up (bug #1129).
+  // fail JSON.parse and throw, which would leave the "scanning" banner up (#1129).
   return fetchVoid(`${BASE}/system/scan/cancel`, { method: 'POST' });
-}
-
-export interface BackgroundTask { id: string; label: string; kind: string; }
-
-/** Snapshot of in-progress background tasks (enrichment, artwork, bios). The
- *  live truth is pushed over the `system.background_tasks` WebSocket event; this
- *  is the initial state for a client that connects mid-task. */
-export function getBackgroundTasks() {
-  return fetchJSON<{ tasks: BackgroundTask[] }>(`${BASE}/system/background-tasks`);
 }
 
 export function getBackups() {
@@ -1832,6 +1774,7 @@ export interface PlaylistSnapshot {
   playlist_name: string;
   track_count: number;
   created_at?: string | null;
+  added_at?: number | null;
 }
 
 export interface SnapshotDetail extends PlaylistSnapshot {
@@ -2061,58 +2004,6 @@ export function removeFavorite(profileId: number, params: { track_id?: number; a
   return fetchVoid(`${BASE}/profiles/${profileId}/favorites/remove`, {
     method: 'POST',
     body: JSON.stringify(it),
-  });
-}
-
-// --- Tune-hearted streaming favorites (per profile) ---
-// Distinct from getStreamingFavorites(service,type) which reads the service's
-// OWN favorites. These are items the user hearted in Tune, stored server-side
-// with metadata so no per-item hydration is needed.
-export interface StreamingFavorite {
-  id: number;
-  profile_id: number;
-  item_type: 'track' | 'album' | 'artist';
-  service: string;
-  service_id: string;
-  title?: string | null;
-  artist?: string | null;
-  album?: string | null;
-  cover_url?: string | null;
-}
-
-export function getProfileStreamingFavorites(
-  profileId: number,
-  type?: 'track' | 'album' | 'artist',
-): Promise<StreamingFavorite[]> {
-  const q = type ? `?item_type=${type}` : '';
-  return fetchJSON<StreamingFavorite[]>(`${BASE}/profiles/${profileId}/favorites/streaming${q}`);
-}
-
-export function addProfileStreamingFavorite(
-  profileId: number,
-  fav: {
-    item_type: 'track' | 'album' | 'artist';
-    service: string;
-    service_id: string;
-    title?: string;
-    artist?: string;
-    album?: string;
-    cover_url?: string;
-  },
-) {
-  return fetchJSON<any>(`${BASE}/profiles/${profileId}/favorites/streaming/add`, {
-    method: 'POST',
-    body: JSON.stringify(fav),
-  });
-}
-
-export function removeProfileStreamingFavorite(
-  profileId: number,
-  params: { item_type: 'track' | 'album' | 'artist'; service: string; service_id: string },
-) {
-  return fetchVoid(`${BASE}/profiles/${profileId}/favorites/streaming/remove`, {
-    method: 'POST',
-    body: JSON.stringify(params),
   });
 }
 
@@ -2684,34 +2575,6 @@ export function getBatchEnrichStatus() {
 export function enrichArtistImages() {
   return fetchJSON<{ status: string; artists_without_image?: number }>(
     `${BASE}/library/artwork/enrich-artists`,
-    { method: 'POST' }
-  );
-}
-
-// Result of the last artist-image enrichment run (settings-backed). Used to
-// show a completion summary when the background task finishes, so the panel
-// doesn't just silently vanish (Jean Valjean #1096).
-export interface ArtistEnrichStatus {
-  result: {
-    status?: string;
-    total?: number;
-    enriched?: number;
-    failed?: number;
-    community_applied?: number;
-  } | null;
-  artists_without_image: number;
-}
-
-export function getArtistEnrichStatus() {
-  return fetchJSON<ArtistEnrichStatus>(`${BASE}/library/artwork/enrich-artists/status`);
-}
-
-// Force re-fetch of ALL artist images (ignores the "already has an image"
-// guard) — for libraries where image_path is set to stale/broken entries that
-// never render, so the normal pass skips them (Fabien).
-export function forceRefetchArtistImages() {
-  return fetchJSON<{ status: string; artists_with_mbid?: number }>(
-    `${BASE}/library/artwork/enrich-artists/force`,
     { method: 'POST' }
   );
 }

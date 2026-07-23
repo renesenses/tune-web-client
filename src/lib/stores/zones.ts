@@ -3,13 +3,6 @@ import type { Zone } from '../types';
 import * as api from '../api';
 import { notifications } from './notifications';
 import { loopByDefault } from './loopByDefault';
-// repeatMode lives in its own leaf module (repeatStore), NOT nowPlaying.ts:
-// nowPlaying.ts statically imports currentZone/currentZoneId from this file, so
-// importing repeatMode from nowPlaying here would recreate the
-// zones ↔ nowPlaying cycle that read currentZone at module-init before it was
-// initialised (TDZ → blank/black SPA, v0.8.297 regression). The leaf module
-// keeps this import static and acyclic.
-import { repeatMode } from './repeatStore';
 // Lazy import to avoid circular dependency (browserAudio imports zones)
 function isBrowserZone(zone: { output_type?: string } | null | undefined): boolean {
   return zone?.output_type === 'browser';
@@ -95,15 +88,18 @@ export async function playAndSync(zoneId: number, body?: Parameters<typeof api.p
   handleBrowserPlayback(zone);
   // "Lire en boucle par défaut" (Elie): start playback in repeat-one so a
   // finished track restarts from the beginning. The player's repeat button
-  // stays the manual override.
+  // stays the manual override. repeatMode is imported dynamically because
+  // nowPlaying.ts statically imports currentZone/currentZoneId from this file;
+  // a static import here would recreate the zones ↔ nowPlaying cycle.
   if (get(loopByDefault)) {
-    if (get(repeatMode) !== 'one') {
-      try {
+    try {
+      const { repeatMode } = await import('./nowPlaying');
+      if (get(repeatMode) !== 'one') {
         const r = await api.setRepeat(zoneId, 'one');
         repeatMode.set(r.repeat);
-      } catch {
-        /* non-fatal */
       }
+    } catch {
+      /* non-fatal */
     }
   }
   return zone;

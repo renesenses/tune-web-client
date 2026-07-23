@@ -26,6 +26,7 @@
   import TransportBar from './components/TransportBar.svelte';
   import QueueView from './components/QueueView.svelte';
   import LibraryView from './components/LibraryView.svelte';
+  import OxygenView from './components/OxygenView.svelte';
   import SearchView from './components/SearchView.svelte';
   import PlaylistsView from './components/PlaylistsView.svelte';
   import SmartPlaylistsView from './components/SmartPlaylistsView.svelte';
@@ -49,15 +50,12 @@ import AlarmsView from './components/AlarmsView.svelte';
   import RadioFavoritesView from './components/RadioFavoritesView.svelte';
   import PlaylistManagerView from './components/PlaylistManagerView.svelte';
   import PlaylistsHub from './components/PlaylistsHub.svelte';
-  import DJView from './components/DJView.svelte';
   import SmartAIView from './components/SmartAIView.svelte';
-  import PartyView from './components/PartyView.svelte';
   import CollectionsView from './components/CollectionsView.svelte';
   import SmartCollectionsView from './components/SmartCollectionsView.svelte';
   import DashboardView from './components/DashboardView.svelte';
   import EqualizerView from './components/EqualizerView.svelte';
   import PluginsView from './components/PluginsView.svelte';
-  import AdminDashboard from './components/AdminDashboard.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
   import BottomTabBar from './components/BottomTabBar.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
@@ -67,15 +65,13 @@ import AlarmsView from './components/AlarmsView.svelte';
   import OfflineView from './components/OfflineView.svelte';
   import WhatsNew from './components/WhatsNew.svelte';
   import LoginView from './components/LoginView.svelte';
-  import BridgeView from './components/BridgeView.svelte';
   import ConverterView from './components/ConverterView.svelte';
   import AiChat from './components/AiChat.svelte';
   import GlobalSearchBar from './components/GlobalSearchBar.svelte';
   import AddShortcutButton from './components/AddShortcutButton.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
   import { loadProfiles } from './lib/stores/profile';
-  import ProfilePicker from './components/ProfilePicker.svelte';
-  import { loadLicense, isPremium } from './lib/stores/license';
+  import { loadLicense } from './lib/stores/license';
   import { notifications } from './lib/stores/notifications';
   import { healthStatus } from './lib/stores/health';
   import { streamingServices as streamingServicesStore } from './lib/stores/streaming';
@@ -88,16 +84,13 @@ import AlarmsView from './components/AlarmsView.svelte';
   // onMount → ReferenceError in onDestroy that blanked the app on teardown/HMR).
   let unsubZoneForPolling: (() => void) | null = null;
   let scanIndicator = $state(false);
-  // Background enrichment tasks (artwork, artist images, bios, metadata) in
-  // progress — shown as an indicator so long startup tasks aren't invisible.
-  let backgroundTasks = $state<{ id: string; label: string; kind: string; progress?: { processed: number; total: number; detail: string } }[]>([]);
   let playlistModalTrack = $state<Track | null>(null);
   let showOnboarding = $state(false);
   let onboardingChecked = $state(false);
   let showWhatsNew = $state(false);
 
   // Status banner state
-  type BannerStatus = 'idle' | 'scan' | 'streaming' | 'ready' | 'enrichment';
+  type BannerStatus = 'idle' | 'scan' | 'streaming' | 'ready';
   let bannerStatus = $state<BannerStatus>('idle');
   let bannerMessage = $state('');
   let bannerFadeout = $state(false);
@@ -123,44 +116,6 @@ import AlarmsView from './components/AlarmsView.svelte';
         bannerFadeTimer = null;
       }, 600);
     }, 1500);
-  }
-
-  // Fetch and surface the result of the artist-image enrichment that just
-  // finished. This manual route runs for everyone, so a 0 result means "no new
-  // images found" — never "premium required" (that only applies to the
-  // auto-after-scan run). Additive: on any error we simply stay silent.
-  async function showArtistEnrichSummary() {
-    try {
-      const s = await api.getArtistEnrichStatus();
-      const enriched = s?.result?.enriched ?? 0;
-      const missing = s?.artists_without_image ?? 0;
-      const msg = get(t)('settings.enrichArtistImagesResult')
-        .replace('{enriched}', String(enriched))
-        .replace('{missing}', String(missing));
-      notifications.info(msg, 6000);
-    } catch (e) {
-      console.error('Artist enrich status error:', e);
-    }
-  }
-
-  // Reflect the current background enrichment tasks in the status banner.
-  // Scan takes priority (its own banner); enrichment only shows when no scan is
-  // running, and clears to "Prêt" when the last task finishes.
-  function applyEnrichmentBanner() {
-    if (scanIndicator) return; // don't clobber the scan banner
-    if (backgroundTasks.length > 0) {
-      const t = backgroundTasks[0];
-      const first = t?.label ?? 'Enrichissement en cours…';
-      // Show granular progress when the task reports it (e.g. artist images:
-      // "MusicBrainz 340/1183"), grafted from the enrichment phases.
-      const prog = t?.progress && t.progress.total > 0
-        ? ` — ${t.progress.detail} ${t.progress.processed}/${t.progress.total}`
-        : '';
-      const extra = backgroundTasks.length > 1 ? ` (+${backgroundTasks.length - 1})` : '';
-      showBanner('enrichment', `${first}${prog}${extra}`);
-    } else if (bannerStatus === 'enrichment') {
-      showReadyBanner();
-    }
   }
 
   // Kiosk mode: ?kiosk=true forces NowPlaying view on small touchscreen
@@ -264,11 +219,6 @@ import AlarmsView from './components/AlarmsView.svelte';
     }
   }
 
-  // Set once syncZoneState() sees the server report queue_position (added for
-  // #1096). Until then, track changes still refetch the whole queue so an older
-  // server that doesn't report it keeps a correct highlight.
-  let serverProvidesQueuePosition = false;
-
   async function fetchQueue() {
     let zoneId: number | null = null;
     currentZone.subscribe((z) => (zoneId = z?.id ?? null))();
@@ -331,13 +281,6 @@ import AlarmsView from './components/AlarmsView.svelte';
         curZone?.id === zoneId ||
         (zone.group_id != null && curZone?.group_id === zone.group_id);
       if (isCurrentOrGroupMember) {
-        // Refresh the queue highlight from the zone's queue index. This lets the
-        // track-change handler skip refetching the whole queue (expensive under
-        // a large shuffle queue, #1096) once we've seen the server report it.
-        if (typeof zone.queue_position === 'number') {
-          serverProvidesQueuePosition = true;
-          queuePosition.set(zone.queue_position);
-        }
         if (zone.state === 'playing') {
           startSeekTimer();
           // Apply drift filter: only correct the interpolated position when
@@ -351,17 +294,7 @@ import AlarmsView from './components/AlarmsView.svelte';
           }
         } else {
           stopSeekTimer();
-          // Don't snap the displayed time backwards on pause when the server
-          // still reports a slightly-stale position — e.g. a browser zone whose
-          // <audio> currentTime is ahead of the server, or a just-issued seek
-          // that hasn't propagated (Elie: seek 30s, play to 40s, pause → showed
-          // 30s). Keep the local position when the server is only slightly
-          // behind; take the server value otherwise.
-          const serverPos = zone.position_ms ?? 0;
-          const localPos = get(seekPositionMs);
-          if (serverPos >= localPos || localPos - serverPos > 4000) {
-            seekPositionMs.set(serverPos);
-          }
+          seekPositionMs.set(zone.position_ms ?? 0);
         }
       }
     } catch (e) {
@@ -485,31 +418,6 @@ import AlarmsView from './components/AlarmsView.svelte';
     let _pushingState = false;
     let _viewInitialized = false;
     let _previousViewForScroll: string | null = null;
-
-    // Restore a view's saved scroll once its content is tall enough to hold it.
-    // A single rAF fires before the newly-shown view has laid out, so scrollTop
-    // clamps to 0 and the view lands at the top instead of where the user left
-    // it. Poll a bounded number of frames until the height is ready. Used on
-    // both sidebar navigation and browser/mouse back so "Back" returns to the
-    // same screen at the same position.
-    const restoreScrollWhenReady = (view: string) => {
-      const target = getScrollPosition(view);
-      const mainEl = () => document.querySelector('.main-content') as HTMLElement | null;
-      if (target <= 0) { const el = mainEl(); if (el) el.scrollTop = 0; return; }
-      let attempts = 0;
-      const tick = () => {
-        const el = mainEl();
-        if (!el) return;
-        if (el.scrollHeight >= target + el.clientHeight || attempts >= 30) {
-          el.scrollTop = target;
-          return;
-        }
-        attempts += 1;
-        requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    };
-
     activeView.subscribe(view => {
       if (!_pushingState && typeof window !== 'undefined') {
         // Save scroll position of the view we're leaving
@@ -532,9 +440,11 @@ import AlarmsView from './components/AlarmsView.svelte';
           window.history.pushState(ctx, '', `#${view}`);
         }
 
-        // Restore scroll position of the view we're entering (bounded poll so
-        // it survives the view's async render — a single rAF clamps to 0).
-        restoreScrollWhenReady(view);
+        // Restore scroll position of the view we're entering
+        requestAnimationFrame(() => {
+          const mainEl = document.querySelector('.main-content');
+          if (mainEl) mainEl.scrollTop = getScrollPosition(view);
+        });
       }
     });
 
@@ -552,10 +462,8 @@ import AlarmsView from './components/AlarmsView.svelte';
             tab: $libraryTab ?? null,
           };
           if (album !== null) {
-            // Entering detail: push so back returns to grid. Give the album
-            // detail its own URL (#album/{id}) so the address bar reflects the
-            // view and browser/mouse back is unambiguous (tester request).
-            window.history.pushState(ctx, '', `#album/${album.id}`);
+            // Entering detail: push so back returns to grid
+            window.history.pushState(ctx, '', `#${view}`);
           } else {
             // Returning to grid (programmatic, not via popstate): update current entry
             window.history.replaceState(ctx, '', `#${view}`);
@@ -576,8 +484,7 @@ import AlarmsView from './components/AlarmsView.svelte';
             tab: $libraryTab ?? null,
           };
           if (artist !== null) {
-            // Own URL for the artist detail view (#artist/{id}); see album case.
-            window.history.pushState(ctx, '', `#artist/${artist.id}`);
+            window.history.pushState(ctx, '', `#${view}`);
           } else {
             window.history.replaceState(ctx, '', `#${view}`);
           }
@@ -588,17 +495,11 @@ import AlarmsView from './components/AlarmsView.svelte';
     window.addEventListener('popstate', (e) => {
       const ctx = e.state;
       _pushingState = true;
-      // Save the scroll of the view we're leaving so a later forward/back keeps it.
-      if (_previousViewForScroll) {
-        const leaving = document.querySelector('.main-content') as HTMLElement | null;
-        if (leaving) saveScrollPosition(_previousViewForScroll, leaving.scrollTop);
-      }
       if (ctx?.view) {
         activeView.set(ctx.view);
         if (ctx.view === 'library') {
           if (ctx.tab) libraryTab.set(ctx.tab);
         }
-        _previousViewForScroll = ctx.view;
       }
       // Always reconcile detail state: if the history entry has no albumId/artistId
       // (or state is null, e.g. Safari initial entry), clear any active detail view.
@@ -607,11 +508,6 @@ import AlarmsView from './components/AlarmsView.svelte';
       if (!ctx?.albumId) selectedAlbum.set(null);
       if (!ctx?.artistId) selectedArtist.set(null);
       _pushingState = false;
-      // The activeView subscriber is skipped while _pushingState is true, so
-      // restore the target view's scroll here too — otherwise browser/mouse
-      // back lands at the top. Library owns its own intra-view (album/artist
-      // detail) scroll restoration, so leave it be to avoid a double-restore.
-      if (ctx?.view && ctx.view !== 'library') restoreScrollWhenReady(ctx.view);
     });
 
     connectionState.set('connecting');
@@ -623,11 +519,6 @@ import AlarmsView from './components/AlarmsView.svelte';
     loadLicense();
     checkOnboarding();
     checkWhatsNew();
-    // Initial background-tasks state (in case enrichment is already running at
-    // load); live updates then arrive over the WebSocket.
-    api.getBackgroundTasks()
-      .then((r) => { backgroundTasks = r?.tasks ?? []; applyEnrichmentBanner(); })
-      .catch(() => {});
 
     // Keep polling aware of the active zone so it can fetch the queue
     unsubZoneForPolling = currentZoneId.subscribe((zoneId) => {
@@ -828,15 +719,11 @@ import AlarmsView from './components/AlarmsView.svelte';
               seekPositionMs.set(0);
               startSeekTimer();
             }
-            // On playback START the queue contents may be new, so refetch the
-            // full list. On a plain track advance the contents are unchanged —
-            // only the position moves — and syncZoneState() below refreshes it
-            // from zone.queue_position, so we skip the expensive full refetch of
-            // a large shuffle queue (#1096). Fall back to a full fetch against an
-            // older server that doesn't report queue_position.
-            if (type === 'playback.started' || !serverProvidesQueuePosition) {
-              fetchQueue();
-            }
+            // Refresh queue on playback start / track change so the queue
+            // view shows the full list and the correct current position.
+            // The server does not emit playback.queue_changed when a
+            // streaming playlist begins or advances to the next track.
+            fetchQueue();
           }
           // Fetch full zone state from API (authoritative update)
           syncZoneState(zoneId).then(() => {
@@ -897,40 +784,11 @@ import AlarmsView from './components/AlarmsView.svelte';
               }
             }
           });
-          // NOTE: do NOT refetch the full queue here. `playback.started` already
-          // triggers a guarded fetchQueue() above (only when contents may be new),
-          // and `playback.track_changed` deliberately skips the full refetch — the
-          // queue highlight is refreshed cheaply from zone.queue_position in
-          // syncZoneState() (#1096). A blanket fetchQueue() on every track change
-          // re-downloaded and re-set the ENTIRE queue on each advance, which froze
-          // the UI under a large (e.g. whole-library shuffle) queue (#1126).
-          // `playback.resumed` never changes the queue, so it needs no refetch.
-          // Bit-perfect / signal-path badge depends on zone.signal_path, which
-          // the server computes from the live zone state. The optimistic update
-          // above preserves the previous track's signal_path, so on the 2nd+
-          // track the badge stays visible — but on the FIRST track of a
-          // cold-started zone there is no prior signal_path, and the
-          // authoritative syncZoneState() fetch can land before the zone has
-          // finished transitioning to Playing, so it comes back null and the
-          // badge is missing until the next track (tester: absent 1st track,
-          // apparaît en 2ème). Re-fetch a bounded number of times until it
-          // resolves. Self-healing and a no-op once signal_path is present.
-          if (type === 'playback.started' || type === 'playback.track_changed') {
-            let spTries = 0;
-            const ensureSignalPath = () => {
-              const z = get(zones).find((zz) => zz.id === zoneId);
-              // Do NOT bail on a transient non-'playing' state: on a slow cold
-              // start (NAS / SQLite / Windows) the zone is still transitioning
-              // when the first event arrives, and bailing there meant we never
-              // retried, leaving the badge absent for the whole first track
-              // (Bilou). Keep going until resolved, gone, or genuinely stopped;
-              // wider budget (6) so it resolves even on slow setups.
-              if (!z || z.signal_path || z.state === 'stopped' || spTries >= 6) return;
-              spTries++;
-              setTimeout(() => { syncZoneState(zoneId).then(ensureSignalPath); }, 400 * spTries);
-            };
-            ensureSignalPath();
-          }
+          // NOTE: no fetchQueue() here — playback.started/track_changed already
+          // refetch the queue above, and playback.resumed never changes it. A
+          // second blanket refetch re-downloaded and re-set the ENTIRE queue on
+          // every track advance, which froze the UI under a large (e.g.
+          // whole-library shuffle) queue until refresh (#1126).
         }
         return;
       }
@@ -1021,20 +879,6 @@ import AlarmsView from './components/AlarmsView.svelte';
         return;
       }
 
-      // Background enrichment tasks (artwork, artist images, bios, metadata)
-      if (type === 'system.background_tasks') {
-        const tasks = Array.isArray(event.data?.tasks) ? event.data.tasks : [];
-        const hadArtistEnrich = backgroundTasks.some((t) => t.id === 'artist_artwork');
-        const hasArtistEnrich = tasks.some((t: { id?: string }) => t?.id === 'artist_artwork');
-        backgroundTasks = tasks;
-        applyEnrichmentBanner();
-        // When the artist-image enrichment finishes, show a completion summary.
-        // The panel otherwise just disappeared with no result, reading as
-        // "counter climbs to the total then nothing happens" (Jean Valjean #1096).
-        if (hadArtistEnrich && !hasArtistEnrich) showArtistEnrichSummary();
-        return;
-      }
-
       // Streaming auth events
       if (type === 'streaming.auth.success' && event.data?.service) {
         const service = (event.data.service as string).toLowerCase();
@@ -1097,8 +941,6 @@ import AlarmsView from './components/AlarmsView.svelte';
   });
 </script>
 
-<ProfilePicker />
-
 <div class="app-layout" class:kiosk-mode={isKiosk}>
   {#if !isKiosk}
   <Sidebar />
@@ -1113,8 +955,8 @@ import AlarmsView from './components/AlarmsView.svelte';
     {/if}
 
     {#if bannerStatus !== 'idle'}
-      <div class="status-banner" class:status-banner--scan={bannerStatus === 'scan'} class:status-banner--streaming={bannerStatus === 'streaming'} class:status-banner--enrichment={bannerStatus === 'enrichment'} class:status-banner--ready={bannerStatus === 'ready'} class:status-banner--fadeout={bannerFadeout}>
-        {#if bannerStatus === 'scan' || bannerStatus === 'streaming' || bannerStatus === 'enrichment'}
+      <div class="status-banner" class:status-banner--scan={bannerStatus === 'scan'} class:status-banner--streaming={bannerStatus === 'streaming'} class:status-banner--ready={bannerStatus === 'ready'} class:status-banner--fadeout={bannerFadeout}>
+        {#if bannerStatus === 'scan' || bannerStatus === 'streaming'}
           <span class="status-banner-spinner"></span>
         {:else if bannerStatus === 'ready'}
           <svg class="status-banner-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1139,6 +981,8 @@ import AlarmsView from './components/AlarmsView.svelte';
       <NowPlaying onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'library'}
       <LibraryView onAddToPlaylist={openPlaylistModal} />
+    {:else if $activeView === 'oxygen'}
+      <OxygenView />
     {:else if $activeView === 'queue'}
       <QueueView onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'playlists'}
@@ -1146,15 +990,7 @@ import AlarmsView from './components/AlarmsView.svelte';
     {:else if $activeView === 'playlistmanager'}
       <PlaylistManagerView onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'playlistshub'}
-      {#if $isPremium}
-        <PlaylistsHub />
-      {:else}
-        <div class="premium-gate-view" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;height:100%;padding:40px;text-align:center;color:var(--tune-text-secondary,#888)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="40" height="40"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <h2 style="margin:0;color:var(--tune-text,#eee);font-size:20px">{$t('playlistsHub.premiumTitle')}</h2>
-          <p style="margin:0;max-width:44ch">{$t('playlistsHub.premiumBody')}</p>
-        </div>
-      {/if}
+      <PlaylistsHub />
     {:else if $activeView === 'smartplaylists'}
       <SmartPlaylistsView />
     {:else if $activeView === 'smart-ai'}
@@ -1191,10 +1027,6 @@ import AlarmsView from './components/AlarmsView.svelte';
       <RadioFavoritesView />
     {:else if $activeView === 'zonemanager'}
       <ZoneManagerView />
-    {:else if $activeView === 'dj'}
-      <DJView />
-    {:else if $activeView === 'party'}
-      <PartyView />
     {:else if $activeView === 'collections' || $activeView === 'smartcollections'}
       <CollectionsView />
     {:else if $activeView === 'dashboard'}
@@ -1207,16 +1039,12 @@ import AlarmsView from './components/AlarmsView.svelte';
       <AlarmsView />
     {:else if $activeView === 'diagnostics'}
       <DiagnosticsView />
-    {:else if $activeView === 'admin'}
-      <AdminDashboard />
     {:else if $activeView === 'onboarding'}
       <OnboardingView />
     {:else if $activeView === 'offline'}
       <OfflineView />
     {:else if $activeView === 'login'}
       <LoginView />
-    {:else if $activeView === 'bridge'}
-      <BridgeView />
     {:else if $activeView === 'converter'}
       <ConverterView />
     {/if}
@@ -1349,12 +1177,6 @@ import AlarmsView from './components/AlarmsView.svelte';
     background: rgba(34, 197, 94, 0.1);
     color: #4ade80;
     border-bottom-color: rgba(34, 197, 94, 0.2);
-  }
-
-  .status-banner--enrichment {
-    background: rgba(168, 85, 247, 0.12);
-    color: #c084fc;
-    border-bottom-color: rgba(168, 85, 247, 0.22);
   }
 
   .status-banner--ready {

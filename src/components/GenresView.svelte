@@ -5,7 +5,6 @@
   import * as api from '../lib/api';
   import { formatTime, formatDuration, formatAudioBadge, formatAlbumYear } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
-  import HeartButton from './HeartButton.svelte';
   import type { Album, Track } from '../lib/types';
   import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
   import { t as tr } from '../lib/i18n';
@@ -487,13 +486,6 @@
                 </div>
                 {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
-                <span class="track-heart" onclick={(e) => e.stopPropagation()}>
-                  {#if t.source && t.source !== 'local' && t.source_id}
-                    <HeartButton streaming={{ itemType: 'track', service: t.source, serviceId: String(t.source_id), title: t.title, artist: t.artist_name ?? undefined, album: (t as any).album_title ?? undefined, coverUrl: (t as any).cover_url ?? undefined }} size={14} />
-                  {:else if t.id}
-                    <HeartButton trackId={t.id} size={14} />
-                  {/if}
-                </span>
                 <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(genreAlbumTracks, genreAlbumTracks.indexOf(t)); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
                 </button>
@@ -522,13 +514,6 @@
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
-              <span class="track-heart" onclick={(e) => e.stopPropagation()}>
-                {#if t.source && t.source !== 'local' && t.source_id}
-                  <HeartButton streaming={{ itemType: 'track', service: t.source, serviceId: String(t.source_id), title: t.title, artist: t.artist_name ?? undefined, album: (t as any).album_title ?? undefined, coverUrl: (t as any).cover_url ?? undefined }} size={14} />
-                {:else if t.id}
-                  <HeartButton trackId={t.id} size={14} />
-                {/if}
-              </span>
               <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(genreAlbumTracks, index); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
               </button>

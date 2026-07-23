@@ -4,12 +4,8 @@
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
-  import HeartButton from './HeartButton.svelte';
   import type { BrowseRootEntry, BrowseDirectory, BrowseResult, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
-  import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
-
-  let browseEl = $state<HTMLDivElement | null>(null);
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -64,10 +60,6 @@
   }
 
   async function navigateTo(path: string) {
-    // Hierarchical browser: remember the folder we're leaving (keyed by its
-    // path) so going back up returns to the same scroll position, then restore
-    // the folder we enter (top for a folder we've never opened).
-    saveDetailScroll('browse:' + (currentPath ?? 'root'), browseEl);
     loading = true;
     currentPath = path;
     try {
@@ -76,14 +68,11 @@
       console.error('Browse directory error:', e);
     }
     loading = false;
-    restoreDetailScroll('browse:' + path, browseEl);
   }
 
   function goToRoots() {
-    saveDetailScroll('browse:' + (currentPath ?? 'root'), browseEl);
     browseResult = null;
     currentPath = null;
-    restoreDetailScroll('browse:root', browseEl);
   }
 
   function goUp() {
@@ -164,7 +153,7 @@
   loadRoots();
 </script>
 
-<div class="browse-view" bind:this={browseEl}>
+<div class="browse-view">
   {#if browseResult}
     <!-- Directory view -->
     <div class="browse-header">
@@ -245,9 +234,6 @@
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
-              <span class="track-heart" onclick={(e) => e.stopPropagation()}>
-                {#if t.id}<HeartButton trackId={t.id} size={14} />{/if}
-              </span>
               <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(browseResult.tracks, index); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
               </button>
@@ -281,20 +267,13 @@
     {:else}
       <div class="roots-list">
         {#each roots as root}
-          {@const missing = root.exists === false}
-          {@const empty = !missing && root.track_count === 0}
-          <button class="root-item" class:root-warn={missing || empty} onclick={() => navigateTo(root.path)}>
+          <button class="root-item" onclick={() => navigateTo(root.path)}>
             <svg class="root-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
               <path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
             </svg>
             <div class="root-info">
               <span class="root-name">{root.name}</span>
               <span class="root-path truncate">{root.path}</span>
-              {#if missing}
-                <span class="root-warning">{$tr('browse.rootMissing')}</span>
-              {:else if empty}
-                <span class="root-warning">{$tr('browse.rootEmpty')}</span>
-              {/if}
             </div>
             <span class="root-count">{root.track_count} {$tr('common.tracks')}</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
@@ -470,17 +449,6 @@
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-muted);
-  }
-
-  .root-warn {
-    border-color: var(--tune-warning, #d9822b);
-  }
-
-  .root-warning {
-    font-family: var(--font-body);
-    font-size: 12px;
-    color: var(--tune-warning, #d9822b);
-    margin-top: 2px;
   }
 
   .root-count {

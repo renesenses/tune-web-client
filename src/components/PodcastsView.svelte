@@ -4,10 +4,8 @@
   import { currentZoneId } from '../lib/stores/zones';
   import { get } from 'svelte/store';
   import { t } from '../lib/i18n';
-  import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
 
   // --- State ---
-  let viewEl = $state<HTMLDivElement | null>(null);
   let activeTab = $state<'subscriptions' | 'discover' | 'search'>('discover');
   let errorMessage = $state<string | null>(null);
 
@@ -257,7 +255,6 @@
         published: ep.published_date,
         cover_url: ep.cover_url || show.cover_url || '',
       }));
-      if (!selectedPodcast) saveDetailScroll('podcasts', viewEl);
       selectedPodcast = { name: show.title, artist: show.station || 'Radio France', feed_url: show.rss_url || '', cover_url: show.cover_url || '', description: show.description, episode_count: episodes.length, source_id: show.id };
       selectedEpisodes = episodes;
     } catch (e) {
@@ -298,23 +295,18 @@
   // --- Podcast detail ---
 
   async function selectPodcast(podcast: any) {
-    if (!selectedPodcast) saveDetailScroll('podcasts', viewEl);
     selectedPodcast = podcast;
     isLoadingEpisodes = true;
     errorMessage = null;
     episodes = [];
     try {
       const feedUrl = podcast.feed_url || podcast.feedUrl;
-      // For a subscribed podcast, prefer the by-id endpoint: the server
-      // resolves feed_url from the subscription DB, so episodes load even when
-      // the client's stored feed_url is empty/stale. Opening the same podcast
-      // via search worked (fresh feed_url) while opening it from Subscriptions
-      // returned "no episode found" (empty feed_url) — #1000. Search/discover
-      // results carry no subscription_id, so they keep the feed_url path.
-      //
       // Apple top-chart (Discover) podcasts have NO feed_url, only a source_id
       // ("apple-…"); passing it lets the server resolve the feed so episodes
-      // preview without subscribing first (Bilou, #1000).
+      // preview without subscribing first — otherwise the content was blank
+      // unless you subscribed or searched (Bilou, #1000 / rc3 regression #1121).
+      // A subscribed podcast also passes its id so the server resolves feed_url
+      // from the subscription DB when the stored feed_url is empty/stale.
       episodes = await api.getPodcastEpisodes(feedUrl, 50, undefined, podcast.subscription_id, podcast.source_id);
     } catch (e) {
       console.error('Load podcast episodes error:', e);
@@ -328,7 +320,6 @@
     selectedPodcast = null;
     episodes = [];
     errorMessage = null;
-    restoreDetailScroll('podcasts', viewEl);
   }
 
   async function playEpisode(episode: any) {
@@ -418,7 +409,7 @@
   }
 </script>
 
-<div class="podcasts-view" bind:this={viewEl}>
+<div class="podcasts-view">
   {#if errorMessage}
     <div class="error-banner">
       <span>{errorMessage}</span>

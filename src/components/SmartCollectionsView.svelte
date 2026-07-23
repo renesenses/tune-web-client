@@ -5,7 +5,7 @@
   import type { SmartCollection } from '../lib/types';
   import SmartCollectionEditor from './SmartCollectionEditor.svelte';
   import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
-  import { activeView, listResetNonce, saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
+  import { activeView, listResetNonce } from '../lib/stores/navigation';
   import { currentZone } from '../lib/stores/zones';
   import { notifications } from '../lib/stores/notifications';
   import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
@@ -76,9 +76,8 @@
   });
 
   // A shortcut created on a specific smart collection must reopen THAT one, not
-  // land on the list (the old per-view getter only saw manual collections). We
-  // publish the open item generically and reopen it on restore, keyed by
-  // `smartcollections:<id>` so this matches only our own targets.
+  // land on the list (the old per-view getter only saw manual collections).
+  // Keyed `smartcollections:<id>` so this matches only our own targets.
   $effect(() => {
     const onRestore = async (e: Event) => {
       const target = (e as CustomEvent).detail?.target;
@@ -106,19 +105,7 @@
     }
   }
 
-  // Rendered inside CollectionsView's scrolling `.tab-content`; resolve that
-  // ancestor to save/restore the list scroll on open/Back.
-  let rootEl = $state<HTMLElement | null>(null);
-  const scrollContainer = () => (rootEl?.closest('.tab-content') as HTMLElement | null) ?? null;
-
-  function backToSmartList() {
-    selected = null;
-    clearShortcutTarget();
-    restoreDetailScroll('smartcollections', scrollContainer());
-  }
-
   async function openCollection(col: SmartCollection) {
-    saveDetailScroll('smartcollections', scrollContainer());
     selected = col;
     setShortcutTarget({
       key: `smartcollections:${col.id}`,
@@ -186,7 +173,7 @@
   onMount(load);
 </script>
 
-<section class="sc-view" bind:this={rootEl}>
+<section class="sc-view">
   <header class="sc-header">
     <h2>Smart Collections</h2>
     <button class="new-btn" onclick={() => openEditor(null)}>{$t('smartCollection.newCollection')}</button>
@@ -228,7 +215,7 @@
   {:else}
     <div class="detail">
       <div class="detail-head">
-        <button class="back" onclick={backToSmartList}>← {$t('common.back')}</button>
+        <button class="back" onclick={() => { selected = null; clearShortcutTarget(); }}>← {$t('common.back')}</button>
         <h2 style:color={selected.color}>{selected.name}</h2>
         <button class="edit-btn" onclick={() => openEditor(selected!)}>{$t('smartCollection.editRules')}</button>
       </div>
@@ -309,15 +296,7 @@
   .card-rules { font-size: 12px; color: var(--tune-text-muted); margin-top: 5px; line-height: 1.4; }
   .card-desc { font-size: 12px; color: var(--tune-text-muted); margin-top: 5px; font-style: italic; }
 
-  /* Keep the back button visible while scrolling a long album grid
-     (otherwise it scrolls off-screen — Bilou: "la zone de défilement
-     masque le retour"). */
-  .detail-head {
-    display: flex; align-items: center; gap: 16px; margin-bottom: 8px;
-    position: sticky; top: 0; z-index: 5;
-    padding: 8px 0;
-    background: var(--tune-bg, #1a1a1a);
-  }
+  .detail-head { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
   .detail-head h2 { flex: 1; margin: 0; font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; }
   .back { background: transparent; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); color: var(--tune-text); padding: 6px 13px; border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; }
   .edit-btn { background: var(--tune-accent, #6366f1); color: white; border: none; padding: 6px 13px; border-radius: var(--radius-sm); cursor: pointer; font-family: var(--font-label); font-size: 14px; }

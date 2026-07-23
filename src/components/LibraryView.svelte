@@ -2,16 +2,22 @@
   import { onMount, untrack } from 'svelte';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
-import { playFromHere } from '../lib/playback';
   import { currentTrack, seekPositionMs } from '../lib/stores/nowPlaying';
   import { isBrowserZone, browserSeek } from '../lib/stores/browserAudio';
+  import { playFromHere } from '../lib/playback';
   import { tuneWS } from '../lib/websocket';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { currentProfileId } from '../lib/stores/profile';
   import * as api from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
-  import { formatTime, formatDuration, formatAudioBadge, formatAlbumYear, fold } from '../lib/utils';
+  import { groupCreditsByRole, uniqueInstruments } from '../lib/library/credits';
+  import { bioDisplayText } from '../lib/library/bio';
+import { observeHeight, observeWidth } from '../lib/actions/observeSize';
+import { formatTime, formatDuration, formatAlbumYear, fold } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
+import TrackContextMenu from './TrackContextMenu.svelte';
+import AlbumRating from './AlbumRating.svelte';
+import CollapsibleSection from './CollapsibleSection.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
   import ArtistEditModal from './ArtistEditModal.svelte';
   import TrackEditModal from './TrackEditModal.svelte';
@@ -24,27 +30,9 @@ import { playFromHere } from '../lib/playback';
   import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
   import ServiceBadge from './ServiceBadge.svelte';
   import QualityBadge from './QualityBadge.svelte';
-  import BrowseView from './BrowseView.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   import type { ArtistMetadata } from '../lib/types';
 
-  function observeHeight(node: HTMLElement, callback: (h: number) => void) {
-    const ro = new ResizeObserver(entries => {
-      for (const e of entries) callback(e.contentRect.height);
-    });
-    ro.observe(node);
-    callback(node.clientHeight);
-    return { destroy() { ro.disconnect(); } };
-  }
-
-  function observeWidth(node: HTMLElement, callback: (w: number) => void) {
-    const ro = new ResizeObserver(entries => {
-      for (const e of entries) callback(e.contentRect.width);
-    });
-    ro.observe(node);
-    callback(node.clientWidth);
-    return { destroy() { ro.disconnect(); } };
-  }
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -53,6 +41,18 @@ import { playFromHere } from '../lib/playback';
 
   let scanProgress = $state<{ scanned: number; added: number } | null>(null);
   let cancellingScan = $state(false);
+
+  async function stopScan() {
+    cancellingScan = true;
+    try {
+      await api.cancelScan();
+    } catch (e) {
+      console.error('Cancel scan error:', e);
+    } finally {
+      scanProgress = null;
+      cancellingScan = false;
+    }
+  }
 
   $effect(() => {
     const unsub = tuneWS.onEvent((event) => {
@@ -65,26 +65,18 @@ import { playFromHere } from '../lib/playback';
     return unsub;
   });
 
-  // On mount, ask the server whether a scan is already running (e.g. one started
-  // before this page loaded, or a slow NAS scan) so the "stop scan" banner shows
-  // even without a fresh scan.started event.
-  $effect(() => {
-    api.getScanStatus()
-      .then((s) => { if (s?.scanning && !scanProgress) scanProgress = { scanned: 0, added: 0 }; })
-      .catch(() => {});
-  });
-
-  async function stopScan() {
-    cancellingScan = true;
+  // Quick Fav state
+  let quickFavTrackIds = $state<Set<number>>(new Set());
+  async function handleQuickFavTrack(trackId: number, e: MouseEvent) {
+    e.stopPropagation();
     try {
-      await api.cancelScan();
-      scanProgress = null;
-    } catch (e) {
-      console.error('Cancel scan error:', e);
+      await api.quickFavTrack(trackId);
+      quickFavTrackIds = new Set([...quickFavTrackIds, trackId]);
+      notifications.success($tr('library.quickFavAdded'));
+    } catch (err) {
+      console.error('Quick fav error:', err);
     }
-    cancellingScan = false;
   }
-
 
   // Collections for album
   let collections: any[] = $state([]);
@@ -143,68 +135,6 @@ import { playFromHere } from '../lib/playback';
   let albumBioLoading = $state(false);
   let albumBioAlbumId = $state<number | null>(null);
   let showAlbumBio = $state(false);
-
-  // Album rating
-  let albumRating = $state(0);
-  let albumRatingNote = $state('');
-  let albumRatingLoaded = $state(false);
-  let albumRatingAlbumId = $state<number | null>(null);
-  let ratingSubmitting = $state(false);
-
-  async function loadAlbumRating(albumId: number) {
-    if (albumId === albumRatingAlbumId && albumRatingLoaded) return;
-    albumRatingAlbumId = albumId;
-    albumRatingLoaded = false;
-    try {
-      const r = await api.getAlbumRating(albumId);
-      albumRating = r.rating ?? 0;
-      albumRatingNote = r.note ?? '';
-      albumRatingLoaded = true;
-    } catch {
-      albumRating = 0;
-      albumRatingNote = '';
-      albumRatingLoaded = true;
-    }
-  }
-
-  // Load the rating when the open album changes. This MUST be an $effect:
-  // calling loadAlbumRating from a template expression (it was) mutates $state
-  // during render, which Svelte 5 forbids (state_unsafe_mutation → the album
-  // view crashed to a blank screen). untrack keeps the rating state it writes
-  // from re-triggering this effect.
-  $effect(() => {
-    const id = $selectedAlbum?.id;
-    if (id != null) {
-      untrack(() => {
-        loadAlbumRating(id);
-      });
-    }
-  });
-
-  async function submitRating(albumId: number, star: number) {
-    ratingSubmitting = true;
-    try {
-      const newRating = star === albumRating ? 0 : star;
-      await api.rateAlbum(albumId, newRating, albumRatingNote);
-      albumRating = newRating;
-      notifications.success(newRating > 0 ? `${$tr('library.rating')}: ${newRating}/5` : $tr('library.ratingRemoved'));
-    } catch (e) {
-      console.error('Rate album error:', e);
-      notifications.error($tr('library.ratingError'));
-    }
-    ratingSubmitting = false;
-  }
-
-  async function submitRatingNote(albumId: number) {
-    ratingSubmitting = true;
-    try {
-      await api.rateAlbum(albumId, albumRating, albumRatingNote);
-      notifications.success($tr('library.ratingSaved'));
-    } catch (e) {
-      console.error('Rate album note error:', e);
-    }
-    ratingSubmitting = false;
-  }
 
   async function loadAlbumBio(albumId: number) {
     if (albumId === albumBioAlbumId && albumBio !== null) return;
@@ -299,30 +229,17 @@ import { playFromHere } from '../lib/playback';
     return translated !== key ? translated : role.charAt(0).toUpperCase() + role.slice(1);
   }
 
-  function groupCreditsByRole(credits: TrackCredit[]): Record<string, TrackCredit[]> {
-    const groups: Record<string, TrackCredit[]> = {};
-    for (const c of credits) {
-      const role = c.role || 'performer';
-      if (!groups[role]) groups[role] = [];
-      groups[role].push(c);
-    }
-    return groups;
-  }
-
-  function uniqueInstruments(credits: TrackCredit[]): string[] {
-    const set = new Set<string>();
-    for (const c of credits) {
-      if (c.instrument) set.add(c.instrument);
-    }
-    return [...set].sort();
-  }
 
   async function handleWriteAlbumTags(albumId: number) {
     writingAlbumTags = true;
     writeTagsMessage = null;
     try {
-      const result = await api.writeAlbumTags(albumId);
-      writeTagsMessage = $tr('library.tagsWritten').replace('{success}', String(result.success)).replace('{total}', String(result.tracks_processed));
+      // writeAlbumTags is accepted asynchronously ({status:"accepted"}) — there
+      // is no success/total count to show, so the toast used to render
+      // "undefined/undefined". Use the placeholder-free "started in background"
+      // message instead.
+      await api.writeAlbumTags(albumId);
+      writeTagsMessage = $tr('library.tagsWritten');
       setTimeout(() => writeTagsMessage = null, 5000);
     } catch (e: any) {
       writeTagsMessage = `${$tr('common.error')} : ${e?.message || e}`;
@@ -648,16 +565,8 @@ import { playFromHere } from '../lib/playback';
     return { startIdx, endIdx, totalHeight: total * TRACK_ROW_HEIGHT };
   });
 
-  // Virtual scroll state (album grid). These MUST mirror the CSS
-  // `.albums-grid` (`repeat(auto-fill, minmax(140px, 1fr))`, gap var(--space-lg)
-  // = 24px on desktop). CSS auto-fill fits `floor((width + gap) / (min + gap))`
-  // columns; the JS column count must use the SAME formula or the virtual-scroll
-  // slice is laid out with a different column count than the grid actually
-  // renders, shifting the whole grid by one thumbnail (#1022, triggered when a
-  // vertical scrollbar appears past ~2300px and nudges the width across a
-  // column boundary).
-  const ALBUM_COL_MIN = 140;       // CSS minmax() min
-  const ALBUM_GAP = 24;            // --space-lg (desktop)
+  // Virtual scroll state (album grid)
+  const ALBUM_MIN_WIDTH = 156;     // 140px min + gap
   const ALBUM_TEXT_HEIGHT = 60;    // text + gap below artwork
   const ALBUM_OVERSCAN_ROWS = 3;
   let albumGridViewport = $state<HTMLDivElement | null>(null);
@@ -677,8 +586,7 @@ import { playFromHere } from '../lib/playback';
   let prevAlbumCols = $state(0);
 
   let albumGridMetrics = $derived.by(() => {
-    // Match CSS `auto-fill minmax(140px, 1fr)` exactly: floor((w + gap)/(min + gap)).
-    const cols = Math.max(1, Math.floor((albumViewportWidth + ALBUM_GAP) / (ALBUM_COL_MIN + ALBUM_GAP)));
+    const cols = Math.max(1, Math.floor(albumViewportWidth / ALBUM_MIN_WIDTH));
     const colWidth = albumViewportWidth / cols;
     const rowHeight = colWidth + ALBUM_TEXT_HEIGHT;
     const total = filteredAlbums.length;
@@ -764,42 +672,26 @@ import { playFromHere } from '../lib/playback';
   });
 
   // Albums filtered by search + quality + format + sample rate + favorites + duplicates (final display)
-  // All album filters EXCEPT the year filter. The album date index derives its
-  // year list from this, so every year stays selectable while one is active.
-  let albumsPreYear = $derived.by(() => {
+  let filteredAlbums = $derived.by(() => {
     let result = searchFilteredAlbums;
     if (albumQualityFilter) result = result.filter(a => a.quality === albumQualityFilter);
     if (albumFormatFilter) result = result.filter(a => a.format === albumFormatFilter);
     if (albumSampleRateFilter) result = result.filter(a => (a.sample_rate ?? 0) >= albumSampleRateFilter);
     if (albumFavoritesFilter) result = result.filter(a => a.id !== null && favAlbumIds.has(a.id!));
+    if (albumYearFilter) result = result.filter(a => a.year === albumYearFilter);
     if (albumDuplicatesFilter) result = result.filter(a => a.id !== null && duplicateAlbumIds.has(a.id!));
     if (albumTagFilter) result = result.filter(a => a.id !== null && tagAlbumIds.has(a.id!));
     return result;
   });
 
-  let filteredAlbums = $derived(
-    albumYearFilter ? albumsPreYear.filter(a => a.year === albumYearFilter) : albumsPreYear
-  );
-
-  // Reset album grid scroll when filters change (but not when restoring after back-nav).
-  // Only `filteredAlbums.length` is a tracked dependency: reading `restoringScroll`
-  // or `albumGridViewport` reactively made this re-fire when a Back-restore
-  // completed (restoringScroll true→false) or the grid re-mounted, zeroing the
-  // scroll a frame after it was restored → jumped to top (#1096, Jean Valjean).
+  // Reset album grid scroll when filters change (but not when restoring after back-nav)
   $effect(() => {
+    // Access filteredAlbums.length to subscribe to changes
     const _len = filteredAlbums.length;
-    untrack(() => {
-      if (restoringScroll) return;
-      albumScrollTop = 0;
-      if (albumGridViewport) albumGridViewport.scrollTop = 0;
-    });
+    if (restoringScroll) return;
+    albumScrollTop = 0;
+    if (albumGridViewport) albumGridViewport.scrollTop = 0;
   });
-
-  // Album-grid scroll restore on Back (in-app AND browser/mouse — #1024) is
-  // handled by the `_prevInDetail` effect below, which already keys off
-  // selectedAlbum/selectedArtist becoming null (added for #870/#70). A separate
-  // album-only effect here duplicated it; removed to keep a single source of
-  // truth and avoid a double restore.
 
   let albumFormats = $derived(
     [...new Set(searchFilteredAlbums.map(a => a.format).filter(Boolean))].sort() as string[]
@@ -853,15 +745,24 @@ import { playFromHere } from '../lib/playback';
     $tr('date.month9'), $tr('date.month10'), $tr('date.month11'), $tr('date.month12'),
   ]);
 
-  // Year-only key for the album date index (months removed). Prefers `a.year`
-  // so clicking a year in the index matches the `a.year === albumYearFilter`
-  // grid filter exactly.
   function albumDateKey(a: any): string {
-    const year = a.year || a.original_year || a.release_year;
-    if (year) return `${year}`;
+    if (albumSort === 'added_date') {
+      // Index by when the album entered the library — the server exposes
+      // added_at (epoch seconds) on the added-date sorted listing. Month
+      // granularity kept: additions cluster in recent months. No
+      // release-year fallback (it would interleave two different axes).
+      if (typeof a.added_at === 'number' && a.added_at > 0) {
+        const d = new Date(a.added_at * 1000);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      }
+      return '?';
+    }
+    // Release-date sorts: index by YEAR only — month entries made the
+    // scrubber unusable (Bertrand: "slider années avec les mois").
     const date = a.original_date || a.release_date;
-    if (date && typeof date === 'string' && /^\d{4}/.test(date)) return date.substring(0, 4);
-    return '?';
+    if (date && typeof date === 'string' && date.length >= 4) return date.substring(0, 4);
+    const year = a.original_year || a.release_year || a.year;
+    return year ? `${year}` : '?';
   }
 
   function formatDateKey(key: string): string {
@@ -874,8 +775,8 @@ import { playFromHere } from '../lib/playback';
 
   // Alpha index for albums (years + months when sorted by date, letters otherwise)
   let albumIndexEntries = $derived.by(() => {
-    if (albumSort === 'release_date' || albumSort === 'original_year') {
-      const keys = [...new Set(albumsPreYear.map(albumDateKey))];
+    if (albumSort === 'release_date' || albumSort === 'original_year' || albumSort === 'added_date') {
+      const keys = [...new Set(filteredAlbums.map(albumDateKey))];
       return albumSortOrder === 'desc' ? keys.sort((a, b) => b.localeCompare(a)) : keys.sort();
     }
     const letters = [...new Set(filteredAlbums.map(a => {
@@ -889,18 +790,12 @@ import { playFromHere } from '../lib/playback';
   let activeAlbumEntry = $state('');
 
   function scrollToAlbumEntry(entry: string) {
-    const isYear = albumSort === 'release_date' || albumSort === 'original_year';
-    if (isYear) {
-      // Clicking a year filters the grid to that year (toggle off if it is the
-      // active one). '?' (unknown year) can't be filtered, so it clears instead.
-      const y = parseInt(entry, 10);
-      albumYearFilter = (!Number.isNaN(y) && albumYearFilter !== y) ? y : null;
-      activeAlbumEntry = albumYearFilter ? entry : '';
-      if (albumGridViewport) albumGridViewport.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
     activeAlbumEntry = entry;
+    const isYear = albumSort === 'release_date' || albumSort === 'original_year' || albumSort === 'added_date';
     const idx = filteredAlbums.findIndex(a => {
+      if (isYear) {
+        return albumDateKey(a) === entry;
+      }
       const field = albumSort === 'artist' ? (a.artist_name || a.title) : a.title;
       const first = field.charAt(0).toUpperCase();
       const normalized = /[A-Z]/.test(first) ? first : '#';
@@ -1031,6 +926,7 @@ import { playFromHere } from '../lib/playback';
   // (a header row per year + one grid row per rank of albums) and only render
   // the slice inside a dedicated viewport.
   const YEAR_HEADER_HEIGHT = 62;   // .year-section header block (margin + text + border)
+  const YEAR_GRID_GAP = 24;        // --space-lg (desktop), grid row gap
   let yearGridViewport = $state<HTMLDivElement | null>(null);
   let yearScrollTop = $state(0);
   let yearViewportHeight = $state(800);
@@ -1042,9 +938,9 @@ import { playFromHere } from '../lib/playback';
 
   // Flat, positioned row list for the Years tab (headers + album grid-rows).
   let yearRowModel = $derived.by(() => {
-    const cols = Math.max(1, Math.floor((yearViewportWidth + ALBUM_GAP) / (ALBUM_COL_MIN + ALBUM_GAP)));
+    const cols = Math.max(1, Math.floor(yearViewportWidth / ALBUM_MIN_WIDTH));
     const colWidth = yearViewportWidth / cols;
-    const rowHeight = colWidth + ALBUM_TEXT_HEIGHT + ALBUM_GAP; // artwork+text + grid gap between rows
+    const rowHeight = colWidth + ALBUM_TEXT_HEIGHT + YEAR_GRID_GAP; // artwork+text + grid gap between rows
     const rows: YearRow[] = [];
     let top = 0;
     for (const group of yearGroups) {
@@ -1140,13 +1036,6 @@ import { playFromHere } from '../lib/playback';
     selectedGenre = null;
     selectedNoGenre = false;
     searchQuery = '';
-    // Switching tabs unmounts the album grid; its viewport remounts fresh at
-    // scrollTop 0. A stale `albumScrollTop` from a previous scroll would make
-    // the virtual-scroll slice render far below the fold, leaving the grid
-    // blank until another remount (Home → back). Reset it so the grid always
-    // returns to the top and stays consistent with the fresh DOM (#1109).
-    albumScrollTop = 0;
-    if (albumGridViewport) albumGridViewport.scrollTop = 0;
     // Update current history entry so browser-back restores the correct tab
     try {
       const cur = window.history.state ?? {};
@@ -1211,10 +1100,8 @@ import { playFromHere } from '../lib/playback';
     albumBio = null;
     albumBioAlbumId = null;
     showAlbumBio = false;
-    albumRating = 0;
-    albumRatingNote = '';
-    albumRatingLoaded = false;
-    albumRatingAlbumId = null;
+    // Album rating state now lives in <AlbumRating/>, which reloads itself when
+    // its albumId prop changes.
     libraryLoading.set(true);
     try {
       // Fetch full album if cover_path is missing (e.g. navigating from tracks view)
@@ -1225,10 +1112,7 @@ import { playFromHere } from '../lib/playback';
       // no longer reveals its MP3/44.1 tracks).
       const result = await api.getAlbumTracks(album.id, albumQualityFilter, albumFormatFilter);
       albumTracks.set(result);
-      // History is pushed by App.svelte's `selectedAlbum` subscriber (single
-      // source of truth). Pushing here too stacked a second identical entry, so
-      // the browser Back button appeared to do nothing on the first press
-      // (it landed on the duplicate albumId entry). See App.svelte.
+      window.history.pushState({ view: 'library', albumId: album.id, tab: $libraryTab }, '', '#library');
     } catch (e) {
       console.error('Load album tracks error:', e);
       selectedAlbum.set(album);
@@ -1250,12 +1134,11 @@ import { playFromHere } from '../lib/playback';
     // The artist list scrolls inside `.library-view` (height:100% + overflow-y:
     // auto), NOT `.main-content` — whose child fills it exactly, so its scrollTop
     // stays 0. Reading `.main-content` here always captured 0, so Back landed at
-    // the top of the artist list instead of the viewed artist (#870, Bilou).
+    // the top of the artist list instead of the viewed artist (#1118, #870).
     const scrollEl = document.querySelector('.library-view');
     if (scrollEl) savedArtistScrollTop = scrollEl.scrollTop;
     selectedArtist.set(artist);
-    // History is pushed by App.svelte's `selectedArtist` subscriber; a second
-    // pushState here made browser Back require two presses.
+    window.history.pushState({ view: 'library', artistId: artist.id, tab: $libraryTab }, '', '#library');
     selectedAlbum.set(null);
     artistMetadata = null;
     artistMetadataError = false;
@@ -1404,24 +1287,16 @@ import { playFromHere } from '../lib/playback';
   // (the grid's total height is only known after albums render + measure over
   // several frames), so scrollTop clamps to 0 and the user lands at the top
   // (#1024). Poll a bounded number of frames until the height is ready.
-  // Shared poll-until-ready core for both tabs. The list re-renders across
-  // several frames after Back, so setting scrollTop immediately clamps to 0 and
-  // lands at the top (#1024/#870). Poll a bounded number of frames until the
-  // container is tall enough to hold `target`, then restore and run `onDone`.
-  // `getEl` is a thunk because the album viewport is a bound ref while the
-  // artist list scrolls inside `.library-view`.
-  function restoreScrollWhenReady(
-    getEl: () => HTMLElement | null,
-    target: number,
-    onDone?: () => void,
-  ) {
+  function restoreAlbumScrollWhenReady(target: number) {
+    if (target <= 0) { restoringScroll = false; return; }
     let attempts = 0;
     const tick = () => {
-      const el = getEl();
+      const el = albumGridViewport;
       const ready = el && el.scrollHeight >= target + el.clientHeight;
       if (ready || attempts >= 30) {
+        albumScrollTop = target;
         if (el) el.scrollTop = target;
-        onDone?.();
+        requestAnimationFrame(() => { restoringScroll = false; });
         return;
       }
       attempts += 1;
@@ -1430,19 +1305,26 @@ import { playFromHere } from '../lib/playback';
     requestAnimationFrame(tick);
   }
 
-  function restoreAlbumScrollWhenReady(target: number) {
-    if (target <= 0) { restoringScroll = false; return; }
-    restoreScrollWhenReady(() => albumGridViewport, target, () => {
-      albumScrollTop = target;
-      requestAnimationFrame(() => { restoringScroll = false; });
-    });
-  }
-
-  // The artist list scrolls inside `.library-view` (not the album grid viewport,
-  // and not `.main-content`, which never scrolls — #870).
+  // Same poll-until-ready pattern as albums, but for the artist list, whose
+  // scroll container is `.library-view` (not the album grid viewport). A fixed
+  // double-rAF clamped to 0 on a large artist list, so Back landed at the top
+  // of the list instead of the viewed artist (#1118, #870).
   function restoreArtistScrollWhenReady(target: number) {
     if (target <= 0) return;
-    restoreScrollWhenReady(() => document.querySelector('.library-view') as HTMLElement | null, target);
+    let attempts = 0;
+    const tick = () => {
+      // Restore on the real scroll container `.library-view` (see the capture
+      // in selectArtistDetail) — not `.main-content`, which never scrolls.
+      const el = document.querySelector('.library-view') as HTMLElement | null;
+      const ready = el && el.scrollHeight >= target + el.clientHeight;
+      if (ready || attempts >= 30) {
+        if (el) el.scrollTop = target;
+        return;
+      }
+      attempts += 1;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   }
 
   function goBack() {
@@ -1457,6 +1339,7 @@ import { playFromHere } from '../lib/playback';
     const restoreAlbumScroll = savedAlbumScrollTop;
     const restoreArtistScroll = savedArtistScrollTop;
     const wasArtistTab = $libraryTab === 'artists';
+    restoringScroll = restoreAlbumScroll > 0;
     selectedAlbum.set(null);
     selectedArtist.set(null);
     albumTracks.set([]);
@@ -1466,16 +1349,12 @@ import { playFromHere } from '../lib/playback';
     artistMetadataError = false;
     artistMetadataLoading = false;
     window.history.back();
-    // Restore the album-grid scroll explicitly for this in-app back button.
-    // #103 dropped this call assuming the `selectedAlbum → null` effect covered
-    // it, but that effect is guarded by `!restoringScroll`, so the in-app button
-    // stopped restoring the position (Bertrand). Running it here sets
-    // restoringScroll first, so the effect no-ops for browser-back — no double
-    // restore. A saved value of 0 is a no-op.
+    // Poll until the re-rendered grid/list is tall enough before restoring
+    // scroll — a fixed 2-frame wait clamped to 0 on large libraries (#1024).
+    // Running the album restore here sets restoringScroll first, so the
+    // `_prevInDetail` effect no-ops for browser-back (no double restore).
     restoreAlbumScrollWhenReady(restoreAlbumScroll);
     if (wasArtistTab && restoreArtistScroll > 0) {
-      // Poll until the re-rendered artist list is tall enough before restoring
-      // scroll — a fixed 2-frame wait clamped to 0 on a large list (#870).
       restoreArtistScrollWhenReady(restoreArtistScroll);
     }
   }
@@ -1494,19 +1373,6 @@ import { playFromHere } from '../lib/playback';
   }
 
   let shuffleAllLoading = $state(false);
-
-  // Max tracks a single shuffle enqueues. Enqueuing an entire large library
-  // (Yves, 50k) froze the UI and gains nothing musically. Mirrors the server cap.
-  const SHUFFLE_MAX = 500;
-
-  // Fisher–Yates in place, then cap.
-  function shuffleAndCap(ids: number[]): number[] {
-    for (let i = ids.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [ids[i], ids[j]] = [ids[j], ids[i]];
-    }
-    return ids.slice(0, SHUFFLE_MAX);
-  }
 
   async function shuffleAllLibrary() {
     if (!zone?.id) {
@@ -1527,73 +1393,21 @@ import { playFromHere } from '../lib/playback';
         const trackLists = await Promise.all(
           albumIds.map((id) => api.getAlbumTracks(id).catch(() => [] as Track[])),
         );
-        const trackIds = shuffleAndCap(
-          trackLists.flat().map((t) => t.id).filter((id): id is number => id != null),
-        );
+        const trackIds = trackLists.flat().map((t) => t.id).filter((id): id is number => id != null);
         if (!trackIds.length) {
           notifications.error($tr('library.noTracks'));
           return;
+        }
+        // Fisher–Yates shuffle.
+        for (let i = trackIds.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [trackIds[i], trackIds[j]] = [trackIds[j], trackIds[i]];
         }
         await api.play(zone.id, { track_ids: trackIds });
         notifications.success($tr('library.shufflePlaying').replace('{count}', String(trackIds.length)));
         return;
       }
-
-      // The server shuffle-all endpoint only understands search / genre /
-      // album / artist. When a Tracks- or Albums-tab filter (quality, format,
-      // sample rate, favorites, decade…) is active, it was silently dropped and
-      // the WHOLE library shuffled (Yves). Gather the already-filtered set
-      // client-side instead so the shuffle honours exactly what's on screen.
-      const trackTabFilterActive =
-        $libraryTab === 'tracks' && !!(formatFilter || qualityFilter || trackFavoritesFilter);
-      const albumTabFilterActive =
-        $libraryTab === 'albums' &&
-        !!(albumQualityFilter || albumFormatFilter || albumSampleRateFilter ||
-           albumFavoritesFilter || albumDuplicatesFilter || albumTagFilter || albumYearFilter);
-
-      if (trackTabFilterActive) {
-        // filteredTracks already reflects every active Tracks-tab filter.
-        const ids = shuffleAndCap(
-          filteredTracks.map((t) => t.id).filter((id): id is number => id != null),
-        );
-        if (!ids.length) {
-          notifications.error($tr('library.noTracks'));
-          return;
-        }
-        await api.play(zone.id, { track_ids: ids });
-        notifications.success($tr('library.shufflePlaying').replace('{count}', String(ids.length)));
-        return;
-      }
-
-      if (albumTabFilterActive) {
-        // Shuffle the filtered albums first, then gather their tracks (respecting
-        // the album quality/format filter per album) only until we reach the cap
-        // — bounds the number of getAlbumTracks calls on a big filtered set.
-        const albumIds = filteredAlbums.map((a) => a.id).filter((id): id is number => id != null);
-        for (let i = albumIds.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [albumIds[i], albumIds[j]] = [albumIds[j], albumIds[i]];
-        }
-        const gathered: number[] = [];
-        for (const aid of albumIds) {
-          if (gathered.length >= SHUFFLE_MAX) break;
-          const tracks = await api
-            .getAlbumTracks(aid, albumQualityFilter ?? undefined, albumFormatFilter ?? undefined)
-            .catch(() => [] as Track[]);
-          for (const t of tracks) if (t.id != null) gathered.push(t.id);
-        }
-        const ids = shuffleAndCap(gathered);
-        if (!ids.length) {
-          notifications.error($tr('library.noTracks'));
-          return;
-        }
-        await api.play(zone.id, { track_ids: ids });
-        notifications.success($tr('library.shufflePlaying').replace('{count}', String(ids.length)));
-        return;
-      }
-
-      // No client-only filter: let the server shuffle (search / genre / whole
-      // library), which now caps the enqueued set itself.
+      // Pass current search/filter context so shuffle applies to visible results
       const opts: { search_query?: string; genre?: string } = {};
       if (searchQuery.trim()) opts.search_query = searchQuery.trim();
       else if (selectedGenre) opts.genre = selectedGenre;
@@ -1754,7 +1568,7 @@ import { playFromHere } from '../lib/playback';
         // scrollTop, otherwise it clamps to 0 on browser-back (Pierre/#1024).
         restoreAlbumScrollWhenReady(savedAlbumScrollTop);
       }
-      // Same for the artist list on browser-back (#870): restore its saved
+      // Same for the artist list on browser-back (#1118, #870): restore its saved
       // position once the re-rendered list is tall enough.
       if (wasInDetail && !inDetail && $libraryTab === 'artists' && savedArtistScrollTop > 0) {
         restoreArtistScrollWhenReady(savedArtistScrollTop);
@@ -1884,11 +1698,7 @@ import { playFromHere } from '../lib/playback';
               {#if albumBioLoading}
                 <div class="spinner-sm"></div>
               {:else if albumBio}
-                {@const simpleCut = albumBio.indexOf('.') > 0 ? albumBio.indexOf('.', 80) + 1 || 200 : 200}
-                {@const simpleText = albumBio.slice(0, Math.min(simpleCut, 300)).trim()}
-                {@const completeCut = 800}
-                {@const completeText = albumBio.length > completeCut ? albumBio.slice(0, completeCut).trim() + '...' : albumBio}
-                {@const displayAlbumBio = albumBioLevel === 'simple' ? simpleText : albumBioLevel === 'complete' ? completeText : albumBio}
+                {@const displayAlbumBio = bioDisplayText(albumBio, albumBioLevel, { simpleSentenceStart: 80, simpleMax: 300, completeCut: 800 })}
                 {#if albumBio.length > 300}
                   <div class="bio-level-pills">
                     <button class="bio-level-pill" class:active={albumBioLevel === 'simple'} onclick={() => albumBioLevel = 'simple'}>{$tr('library.bioLevelSimple')}</button>
@@ -1904,33 +1714,7 @@ import { playFromHere } from '../lib/playback';
           {/if}
           <!-- Album Rating -->
           {#if $selectedAlbum?.id}
-            {@const ratingAlbumId = $selectedAlbum.id}
-            <div class="album-rating-section">
-              <div class="album-stars">
-                {#each [1, 2, 3, 4, 5] as star}
-                  <button
-                    class="star-btn"
-                    class:filled={star <= albumRating}
-                    disabled={ratingSubmitting}
-                    onclick={() => submitRating(ratingAlbumId, star)}
-                  >
-                    <svg viewBox="0 0 24 24" fill={star <= albumRating ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="18" height="18">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                    </svg>
-                  </button>
-                {/each}
-              </div>
-              <div class="album-rating-note">
-                <input
-                  type="text"
-                  class="rating-note-input"
-                  placeholder={$tr('library.ratingNotePlaceholder')}
-                  bind:value={albumRatingNote}
-                  onkeydown={(e) => e.key === 'Enter' && submitRatingNote(ratingAlbumId)}
-                  onblur={() => { if (albumRatingNote !== '' || albumRating > 0) submitRatingNote(ratingAlbumId); }}
-                />
-              </div>
-            </div>
+            <AlbumRating albumId={$selectedAlbum.id} />
           {/if}
         </div>
       </div>
@@ -1953,9 +1737,13 @@ import { playFromHere } from '../lib/playback';
                   {/if}
                   <MetadataChips track={t} fields={$displayFields} />
                 </div>
-                {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
                 <span class="track-heart" onclick={(e) => e.stopPropagation()}><HeartButton trackId={t.id} size={14} /></span>
+                {#if t.id}
+                  <button class="quick-fav-btn" class:faved={quickFavTrackIds.has(t.id)} onclick={(e) => handleQuickFavTrack(t.id!, e)} title={$tr('library.quickFav')}>
+                    <svg viewBox="0 0 24 24" fill={quickFavTrackIds.has(t.id) ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                  </button>
+                {/if}
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere($albumTracks, $albumTracks.indexOf(t)); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
@@ -1978,31 +1766,15 @@ import { playFromHere } from '../lib/playback';
                 <div class="track-more-wrap">
                   <button class="track-more-btn" onclick={(e) => openTrackMenu(e, t.id)} title={$tr('library.moreOptions')}>···</button>
                   {#if trackMenuOpenId === t.id}
-                    <!-- svelte-ignore a11y_click_events_have_key_events -->
-                    <!-- svelte-ignore a11y_no_static_element_interactions -->
-                    <div class="track-menu-backdrop" onclick={closeTrackMenu}></div>
-                    <div class="track-menu">
-                      <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); t.id && playTrack(t.id); }}>
-                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
-                        {$tr('common.play')}
-                      </button>
-                      <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); addTrackToQueue(t); }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                        {$tr('queue.addToQueue')}
-                      </button>
-                      {#if onAddToPlaylist}
-                        <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); onAddToPlaylist!(t); }}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><line x1="16" y1="3" x2="16" y2="11"/><line x1="12" y1="7" x2="20" y2="7"/></svg>
-                          {$tr('nowplaying.addToPlaylist')}
-                        </button>
-                      {/if}
-                      {#if t.artist_name}
-                        <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); const a = $artists.find(ar => ar.name === t.artist_name); if (a) selectArtistDetail(a); }}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                          {$tr('library.goToArtist')}
-                        </button>
-                      {/if}
-                    </div>
+                    <TrackContextMenu
+                      onClose={closeTrackMenu}
+                      onPlay={() => t.id && playTrack(t.id)}
+                      onAddToQueue={() => addTrackToQueue(t)}
+                      onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
+                      onGoToArtist={t.artist_name
+                        ? () => { const a = $artists.find(ar => ar.name === t.artist_name); if (a) selectArtistDetail(a); }
+                        : undefined}
+                    />
                   {/if}
                 </div>
               </div>
@@ -2048,9 +1820,13 @@ import { playFromHere } from '../lib/playback';
                 {/if}
                 <MetadataChips track={t} fields={$displayFields} />
               </div>
-              {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
               <span class="track-heart" onclick={(e) => e.stopPropagation()}><HeartButton trackId={t.id} size={14} /></span>
+              {#if t.id}
+                <button class="quick-fav-btn" class:faved={quickFavTrackIds.has(t.id)} onclick={(e) => handleQuickFavTrack(t.id!, e)} title={$tr('library.quickFav')}>
+                  <svg viewBox="0 0 24 24" fill={quickFavTrackIds.has(t.id) ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                </button>
+              {/if}
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere($albumTracks, index); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
@@ -2073,35 +1849,16 @@ import { playFromHere } from '../lib/playback';
               <div class="track-more-wrap">
                 <button class="track-more-btn" onclick={(e) => openTrackMenu(e, t.id)} title={$tr('library.moreOptions')}>···</button>
                 {#if trackMenuOpenId === t.id}
-                  <!-- svelte-ignore a11y_click_events_have_key_events -->
-                  <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div class="track-menu-backdrop" onclick={closeTrackMenu}></div>
-                  <div class="track-menu">
-                    <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); t.id && playTrack(t.id); }}>
-                      <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
-                      {$tr('common.play')}
-                    </button>
-                    <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); addTrackToQueue(t); }}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                      {$tr('queue.addToQueue')}
-                    </button>
-                    {#if onAddToPlaylist}
-                      <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); onAddToPlaylist!(t); }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><line x1="16" y1="3" x2="16" y2="11"/><line x1="12" y1="7" x2="20" y2="7"/></svg>
-                        {$tr('nowplaying.addToPlaylist')}
-                      </button>
-                    {/if}
-                    {#if t.artist_name}
-                      <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); const a = $artists.find(ar => ar.id === t.artist_id) ?? $artists.find(ar => ar.name === t.artist_name) ?? (t.artist_id != null ? { id: t.artist_id, name: t.artist_name ?? '' } as Artist : undefined); if (a?.id != null) selectArtistDetail(a as Artist); }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        {$tr('library.goToArtist')}
-                      </button>
-                    {/if}
-                    <button class="track-menu-item" onclick={(e) => { e.stopPropagation(); closeTrackMenu(); selectAlbumDetail($selectedAlbum!); }}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h4"/></svg>
-                      {$tr('library.goToAlbum')}
-                    </button>
-                  </div>
+                  <TrackContextMenu
+                    onClose={closeTrackMenu}
+                    onPlay={() => t.id && playTrack(t.id)}
+                    onAddToQueue={() => addTrackToQueue(t)}
+                    onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
+                    onGoToArtist={t.artist_name
+                      ? () => { const a = $artists.find(ar => ar.id === t.artist_id) ?? $artists.find(ar => ar.name === t.artist_name) ?? (t.artist_id != null ? { id: t.artist_id, name: t.artist_name ?? '' } as Artist : undefined); if (a?.id != null) selectArtistDetail(a as Artist); }
+                      : undefined}
+                    onGoToAlbum={() => selectAlbumDetail($selectedAlbum!)}
+                  />
                 {/if}
               </div>
             </div>
@@ -2177,7 +1934,6 @@ import { playFromHere } from '../lib/playback';
           {:else}
             <h2 class="artist-detail-name">
               {$selectedArtist.name}
-              <span class="artist-detail-heart"><HeartButton artistId={$selectedArtist.id} size={20} /></span>
               <button class="artist-edit-btn" onclick={() => showArtistEdit = true} title={$tr('library.editArtist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
               </button>
@@ -2208,11 +1964,7 @@ import { playFromHere } from '../lib/playback';
       <!-- Bio -->
       {#if artistBio}
         {@const isLong = artistBio.length > 500}
-        {@const simpleCut = artistBio.indexOf('.') > 0 ? artistBio.indexOf('.', 100) + 1 || 200 : 200}
-        {@const simpleText = artistBio.slice(0, Math.min(simpleCut, 400)).trim()}
-        {@const completeCut = 1500}
-        {@const completeText = artistBio.length > completeCut ? artistBio.slice(0, completeCut).replace(/\n[^\n]*$/, '').trim() + '...' : artistBio}
-        {@const displayBio = !isLong ? artistBio : bioLevel === 'simple' ? simpleText : bioLevel === 'complete' ? completeText : artistBio}
+        {@const displayBio = !isLong ? artistBio : bioDisplayText(artistBio, bioLevel, { simpleSentenceStart: 100, simpleMax: 400, completeCut: 1500, trimTrailingLine: true })}
         {#if isLong}
           <div class="bio-level-pills">
             <button class="bio-level-pill" class:active={bioLevel === 'simple'} onclick={() => bioLevel = 'simple'}>{$tr('library.bioLevelSimple')}</button>
@@ -2253,100 +2005,70 @@ import { playFromHere } from '../lib/playback';
       <!-- Collapsible sections -->
       {#if artistMetadata && !artistMetadataLoading}
         {#if artistMetadata.anecdotes && artistMetadata.anecdotes.length > 0}
-          <div class="artist-section">
-            <button class="artist-section-header" onclick={() => toggleSection('anecdotes')}>
-              <span class="artist-section-title">{$tr('artist.anecdotes')}</span>
-              <svg class="artist-section-chevron" class:open={openSections['anecdotes']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {#if openSections['anecdotes']}
-              <ul class="artist-anecdotes">
-                {#each artistMetadata.anecdotes as anecdote}
-                  <li>{anecdote}</li>
-                {/each}
-              </ul>
-            {/if}
-          </div>
+          <CollapsibleSection title={$tr('artist.anecdotes')} open={!!openSections['anecdotes']} onToggle={() => toggleSection('anecdotes')}>
+            <ul class="artist-anecdotes">
+              {#each artistMetadata.anecdotes as anecdote}
+                <li>{anecdote}</li>
+              {/each}
+            </ul>
+          </CollapsibleSection>
         {/if}
 
         {#if artistMetadata.similar_artists && artistMetadata.similar_artists.length > 0}
-          <div class="artist-section">
-            <button class="artist-section-header" onclick={() => toggleSection('similar')}>
-              <span class="artist-section-title">{$tr('artist.similarArtists')}</span>
-              <svg class="artist-section-chevron" class:open={openSections['similar']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {#if openSections['similar']}
-              <div class="artist-similar-list">
-                {#each artistMetadata.similar_artists as sa}
-                  <button class="artist-similar-chip clickable" title={sa.reason} onclick={() => navigateToSimilarArtist(sa.name)}>{sa.name}</button>
-                {/each}
-              </div>
-            {/if}
-          </div>
+          <CollapsibleSection title={$tr('artist.similarArtists')} open={!!openSections['similar']} onToggle={() => toggleSection('similar')}>
+            <div class="artist-similar-list">
+              {#each artistMetadata.similar_artists as sa}
+                <button class="artist-similar-chip clickable" title={sa.reason} onclick={() => navigateToSimilarArtist(sa.name)}>{sa.name}</button>
+              {/each}
+            </div>
+          </CollapsibleSection>
         {/if}
 
         {#if artistMetadata.members && artistMetadata.members.length > 0}
-          <div class="artist-section">
-            <button class="artist-section-header" onclick={() => toggleSection('members')}>
-              <span class="artist-section-title">{$tr('artist.members')}</span>
-              <svg class="artist-section-chevron" class:open={openSections['members']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {#if openSections['members']}
-              <div class="artist-members-list">
-                {#each artistMetadata.members as member}
-                  <div class="artist-member">
-                    <span class="artist-member-name">{member.name}</span>
-                    <span class="artist-member-role">{member.role}</span>
-                  </div>
-                {/each}
-              </div>
-            {/if}
-          </div>
+          <CollapsibleSection title={$tr('artist.members')} open={!!openSections['members']} onToggle={() => toggleSection('members')}>
+            <div class="artist-members-list">
+              {#each artistMetadata.members as member}
+                <div class="artist-member">
+                  <span class="artist-member-name">{member.name}</span>
+                  <span class="artist-member-role">{member.role}</span>
+                </div>
+              {/each}
+            </div>
+          </CollapsibleSection>
         {/if}
 
         {#if artistMetadata.discography_highlights && artistMetadata.discography_highlights.length > 0}
-          <div class="artist-section">
-            <button class="artist-section-header" onclick={() => toggleSection('discography')}>
-              <span class="artist-section-title">{$tr('artist.discography')}</span>
-              <svg class="artist-section-chevron" class:open={openSections['discography']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {#if openSections['discography']}
-              <div class="artist-discography-list">
-                {#each artistMetadata.discography_highlights as disc}
-                  <div class="artist-disc-item">
-                    <span class="artist-disc-year">{disc.year}</span>
-                    <div class="artist-disc-info">
-                      <span class="artist-disc-title">{disc.title}</span>
-                      <span class="artist-disc-desc">{disc.description}</span>
-                    </div>
+          <CollapsibleSection title={$tr('artist.discography')} open={!!openSections['discography']} onToggle={() => toggleSection('discography')}>
+            <div class="artist-discography-list">
+              {#each artistMetadata.discography_highlights as disc}
+                <div class="artist-disc-item">
+                  <span class="artist-disc-year">{disc.year}</span>
+                  <div class="artist-disc-info">
+                    <span class="artist-disc-title">{disc.title}</span>
+                    <span class="artist-disc-desc">{disc.description}</span>
                   </div>
-                {/each}
-              </div>
-            {/if}
-          </div>
+                </div>
+              {/each}
+            </div>
+          </CollapsibleSection>
         {/if}
       {/if}
 
       <!-- Credits (instruments played) -->
       {#if artistCredits && artistCredits.length > 0}
-        <div class="artist-section">
-          <button class="artist-section-header" onclick={() => toggleSection('credits')}>
-            <span class="artist-section-title">{$tr('artist.credits')}</span>
-            <svg class="artist-section-chevron" class:open={openSections['credits']} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9" /></svg>
-          </button>
-          {#if openSections['credits']}
-            {@const instruments = uniqueInstruments(artistCredits)}
-            <div class="artist-credits-list">
-              {#if instruments.length > 0}
-                <div class="credits-instruments">
-                  {#each instruments as instr}
-                    <span class="credit-chip-static">{instr}</span>
-                  {/each}
-                </div>
-              {/if}
-              <div class="credits-track-count">{artistCredits.length} {artistCredits.length > 1 ? $tr('common.tracks') : 'track'}</div>
-            </div>
-          {/if}
-        </div>
+        <CollapsibleSection title={$tr('artist.credits')} open={!!openSections['credits']} onToggle={() => toggleSection('credits')}>
+          {@const instruments = uniqueInstruments(artistCredits)}
+          <div class="artist-credits-list">
+            {#if instruments.length > 0}
+              <div class="credits-instruments">
+                {#each instruments as instr}
+                  <span class="credit-chip-static">{instr}</span>
+                {/each}
+              </div>
+            {/if}
+            <div class="credits-track-count">{artistCredits.length} {artistCredits.length > 1 ? $tr('common.tracks') : 'track'}</div>
+          </div>
+        </CollapsibleSection>
       {/if}
 
       <!-- Albums in library -->
@@ -2458,25 +2180,20 @@ import { playFromHere } from '../lib/playback';
           <button class="tab" class:active={$libraryTab === 'tracks'} onclick={() => switchTab('tracks')}>{$tr('home.tracks')}</button>
           <button class="tab" class:active={$libraryTab === 'genres'} onclick={() => switchTab('genres')}>{$tr('common.genres')}</button>
           <button class="tab" class:active={$libraryTab === 'years'} onclick={() => switchTab('years')}>{$tr('common.years')}</button>
-          <button class="tab" class:active={$libraryTab === 'folders'} onclick={() => switchTab('folders')}>{$tr('nav.browse')}</button>
         </div>
       </div>
     </div>
-
-    {#if scanProgress}
-      <div class="scan-banner">
-        <div class="spinner small"></div>
-        <span class="scan-progress">{$tr('library.scanProgress').replace('{scanned}', String(scanProgress.scanned)).replace('{added}', String(scanProgress.added))}</span>
-        <button class="scan-stop-btn" onclick={stopScan} disabled={cancellingScan}>
-          {cancellingScan ? '…' : $tr('library.stopScan')}
-        </button>
-      </div>
-    {/if}
 
     {#if $libraryLoading}
       <div class="loading">
         <div class="spinner"></div>
         {$tr('common.loading')}
+        {#if scanProgress}
+          <span class="scan-progress">{$tr('library.scanProgress').replace('{scanned}', String(scanProgress.scanned)).replace('{added}', String(scanProgress.added))}</span>
+          <button class="scan-stop-btn" onclick={stopScan} disabled={cancellingScan}>
+            {cancellingScan ? '…' : $tr('library.stopScan')}
+          </button>
+        {/if}
       </div>
     {:else if $libraryTab === 'albums'}
       <div class="quality-filters">
@@ -2557,7 +2274,7 @@ import { playFromHere } from '../lib/playback';
         {/if}
         {#if albumYearFilter}
           <span class="filter-sep">|</span>
-          <button class="quality-chip year active" onclick={() => { albumYearFilter = null; activeAlbumEntry = ''; }}>
+          <button class="quality-chip year active" onclick={() => albumYearFilter = null}>
             {albumYearFilter}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
@@ -2582,7 +2299,7 @@ import { playFromHere } from '../lib/playback';
       </div>
       <div class="album-viewport-wrapper">
         {#if albumIndexEntries.length > 5}
-          <AlphaIndex letters={albumIndexEntries} activeLetter={activeAlbumEntry} onSelect={scrollToAlbumEntry} formatLabel={(albumSort === 'release_date' || albumSort === 'original_year') ? formatDateKey : undefined} />
+          <AlphaIndex letters={albumIndexEntries} activeLetter={activeAlbumEntry} onSelect={scrollToAlbumEntry} formatLabel={(albumSort === 'release_date' || albumSort === 'original_year' || albumSort === 'added_date') ? formatDateKey : undefined} />
         {/if}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="album-grid-viewport" bind:this={albumGridViewport} onscroll={handleAlbumGridScroll}
@@ -2599,7 +2316,6 @@ import { playFromHere } from '../lib/playback';
                 <div class="album-card" onclick={() => selectAlbumDetail(album)}>
                   <div class="album-card-art">
                     <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
-                    <div class="art-scrim"></div>
                     <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                       <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                     </button>
@@ -2644,22 +2360,19 @@ import { playFromHere } from '../lib/playback';
     {:else if $libraryTab === 'artists'}
       <div class="artists-section">
         {#if artistLetters.length > 5}
-          <AlphaIndex letters={artistLetters} activeLetter={activeArtistLetter} onSelect={scrollToArtistLetter} sticky />
+          <AlphaIndex letters={artistLetters} activeLetter={activeArtistLetter} onSelect={scrollToArtistLetter} />
         {/if}
         <div class="artists-grid">
           {#each filteredArtists as artist}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="artist-card" onclick={() => selectArtistDetail(artist)}>
-            <div class="artist-card-avatar-wrap">
-              <div class="artist-card-avatar">
-                {#if artist.image_path}
-                  <AlbumArt coverPath={artist.image_path} size={100} alt={artist.name} round />
-                {:else}
-                  {initials(artist.name)}
-                {/if}
-              </div>
-              <span class="artist-heart"><HeartButton artistId={artist.id} size={14} /></span>
+            <div class="artist-card-avatar">
+              {#if artist.image_path}
+                <AlbumArt coverPath={artist.image_path} size={100} alt={artist.name} round />
+              {:else}
+                {initials(artist.name)}
+              {/if}
             </div>
             <span class="artist-card-name truncate">{artist.name}</span>
           </div>
@@ -2714,16 +2427,15 @@ import { playFromHere } from '../lib/playback';
                 <span class="track-meta truncate">{#if t.artist_name}<button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.artist_id) selectArtistDetail({ id: t.artist_id, name: t.artist_name! }); }}>{t.artist_name}</button>{/if}{#if t.album_title}<span class="track-sep"> — </span><button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.album_id) selectAlbumDetail({ id: t.album_id, title: t.album_title!, artist_name: t.artist_name } as Album); }}>{t.album_title}</button>{/if}</span>
                 <MetadataChips track={t} fields={$displayFields} />
               </div>
-              {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
               <HeartButton trackId={t.id} size={14} />
               <button class="edit-track-btn" onclick={(e) => openTrackEdit(e, t)} title={$tr('metadata.editTrack')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
               </button>
-              <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(filteredTracks, visibleTracks.startIdx + i); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
               </button>
+              <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
               <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title={$tr('library.playNext')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
               </button>
@@ -2845,11 +2557,6 @@ import { playFromHere } from '../lib/playback';
                 {@const childrenWithAlbums = (genreTree[parent] ?? []).filter(
                   (child) => ($genres.find(g => g.name.toLowerCase() === child.toLowerCase())?.count ?? 0) > 0,
                 )}
-                <!-- Whole branch box clickable (not just the name strip), and the
-                     children container is dropped entirely when no child has
-                     albums so it doesn't leave an empty gap (#1029). Mirrors
-                     GenresView; child chips stopPropagation so they don't also
-                     trigger the parent branch. -->
                 <div
                   class="branch-row"
                   role="button"
@@ -2955,11 +2662,6 @@ import { playFromHere } from '../lib/playback';
         </div>
       {/if}
 
-    {:else if $libraryTab === 'folders'}
-      <!-- Folder/directory view as a library tab (JP Borderies: "je ne vois
-           pas mes Dossiers tel quels"). Reuses the existing Répertoires
-           browser, now reachable directly from the library tabs. -->
-      <BrowseView {onAddToPlaylist} />
     {/if}
   {/if}
 </div>
@@ -3391,63 +3093,6 @@ import { playFromHere } from '../lib/playback';
   }
 
   /* Album Rating */
-  .album-rating-section {
-    margin-top: var(--space-sm);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-  }
-
-  .album-stars {
-    display: flex;
-    gap: 2px;
-  }
-
-  .star-btn {
-    background: none;
-    border: none;
-    padding: 2px;
-    cursor: pointer;
-    color: var(--tune-text-muted);
-    transition: color 0.1s, transform 0.1s;
-  }
-
-  .star-btn:hover {
-    color: #f59e0b;
-    transform: scale(1.2);
-  }
-
-  .star-btn.filled {
-    color: #f59e0b;
-  }
-
-  .star-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .rating-note-input {
-    background: var(--tune-surface);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-sm);
-    padding: 4px 8px;
-    font-family: var(--font-body);
-    font-size: 12px;
-    color: var(--tune-text);
-    width: 100%;
-    max-width: 250px;
-    outline: none;
-    transition: border-color 0.12s;
-  }
-
-  .rating-note-input:focus {
-    border-color: var(--tune-accent);
-  }
-
-  .rating-note-input::placeholder {
-    color: var(--tune-text-muted);
-  }
-
   .detail-meta {
     display: flex;
     flex-wrap: wrap;
@@ -3779,14 +3424,6 @@ import { playFromHere } from '../lib/playback';
     flex: 1;
     overflow-y: auto;
     min-height: 0;
-    /* Reserve the scrollbar gutter permanently so the content-box width does not
-       shrink when the vertical scrollbar appears (content taller than viewport,
-       e.g. past ~2300px). Otherwise the width feeds back into the virtual-scroll
-       column math (floor((w+gap)/(min+gap))) and the album grid shifts by one
-       thumbnail to the left the moment the scrollbar shows up (#1022). With the
-       gutter always reserved, albumViewportWidth is invariant → JS cols == CSS
-       cols at every scroll position. */
-    scrollbar-gutter: stable;
     /* Firefox: widen the too-thin virtual-list scrollbar so it stays grabbable
        (#1143). Chrome keeps its 14px ::-webkit-scrollbar. */
     scrollbar-width: auto;
@@ -3854,53 +3491,22 @@ import { playFromHere } from '../lib/playback';
     to { opacity: 1; }
   }
 
-  /* Hover dim over the whole cover — purely visual, lets clicks fall through
-     to the card so clicking the cover OPENS the album (a click on the cover
-     used to start playback, which was confusing — esp. for coverless albums). */
-  .art-scrim {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.35);
-    opacity: 0;
-    transition: opacity 0.15s ease-out;
-    pointer-events: none;
-    border-radius: var(--radius-lg);
-    z-index: 2;
-  }
-
-  .album-card-art:hover .art-scrim {
-    opacity: 1;
-  }
-
-  /* Dedicated centered play button — the only spot that triggers playback. */
   .play-overlay {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 52px;
-    height: 52px;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.5);
     opacity: 0;
-    /* Invisible-but-clickable would swallow a click on the (grey) art area of a
-       cover-less album (e.g. DSF), playing it instead of opening the detail view
-       (Thibaud, #989). Only capture clicks while actually shown on hover; a
-       plain click on the artwork then bubbles to the card → open detail. Also
-       prevents accidental plays on touch devices (no hover). */
-    pointer-events: none;
     transition: opacity 0.15s ease-out;
     border: none;
     cursor: pointer;
-    border-radius: 50%;
-    z-index: 3;
+    border-radius: var(--radius-lg);
   }
 
   .album-card-art:hover .play-overlay {
     opacity: 1;
-    pointer-events: auto;
   }
 
   .edit-overlay {
@@ -4129,20 +3735,16 @@ import { playFromHere } from '../lib/playback';
   }
 
   .artists-grid {
-    /* Fill the remaining width next to the vertical AlphaIndex — .artists-section
-       is a flex row, and without flex:1 the grid shrank to its min content, so
-       `auto-fill` collapsed to a SINGLE column (Bilou #1092, Jean Valjean #1096:
-       "un artiste par ligne"). min-width:0 lets it shrink past content instead
-       of overflowing. */
-    flex: 1;
-    min-width: 0;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: var(--space-lg);
-    /* No inner scroll: the whole .library-view scrolls as one region (same
-       Firefox double-scrollbar fix as the Genres tab — #1075). The old
-       padding-right cleared the now-removed inner scrollbar. The Firefox
-       scrollbar-width/color fix (#1143) lives on .library-view here. */
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 20px;
+    /* Firefox: widen the too-thin scrollbar so it stays grabbable (#1143).
+       Chrome keeps its 14px ::-webkit-scrollbar. */
+    scrollbar-width: auto;
+    scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
   }
 
   .artist-card {
@@ -4157,48 +3759,6 @@ import { playFromHere } from '../lib/playback';
 
   .artist-card:hover {
     transform: translateY(-2px);
-  }
-
-  .artist-card-avatar-wrap {
-    position: relative;
-    display: flex;
-  }
-
-  /* Heart sits in a non-clipped wrapper (the avatar itself is overflow:hidden
-     + round, which would clip a corner-anchored heart). */
-  .artist-heart {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    z-index: 2;
-  }
-
-  .artist-heart :global(.heart-btn) {
-    opacity: 0;
-    color: white;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
-  }
-
-  .artist-heart :global(.heart-btn.active) {
-    opacity: 1;
-    color: #ef4444;
-  }
-
-  .artist-card:hover .artist-heart :global(.heart-btn) {
-    opacity: 0.85;
-  }
-
-  .artist-heart :global(.heart-btn:hover) {
-    opacity: 1 !important;
-  }
-
-  .artist-detail-heart {
-    display: inline-flex;
-    vertical-align: middle;
-  }
-
-  .artist-detail-heart :global(.heart-btn.active) {
-    color: #ef4444;
   }
 
   .artist-card-avatar {
@@ -4416,30 +3976,6 @@ import { playFromHere } from '../lib/playback';
     color: var(--tune-accent);
   }
 
-  .play-next-btn {
-    width: 28px;
-    height: 28px;
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-sm);
-    background: none;
-    color: var(--tune-text-secondary);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.12s ease-out;
-    opacity: 0;
-  }
-
-  .track-item:hover .play-next-btn {
-    opacity: 1;
-  }
-
-  .play-next-btn:hover {
-    border-color: var(--tune-accent);
-    color: var(--tune-accent);
-  }
-
   .play-from-here-btn {
     width: 28px;
     height: 28px;
@@ -4460,6 +3996,30 @@ import { playFromHere } from '../lib/playback';
   }
 
   .play-from-here-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .play-next-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease-out;
+    opacity: 0;
+  }
+
+  .track-item:hover .play-next-btn {
+    opacity: 1;
+  }
+
+  .play-next-btn:hover {
     border-color: var(--tune-accent);
     color: var(--tune-accent);
   }
@@ -4530,45 +4090,6 @@ import { playFromHere } from '../lib/playback';
     opacity: 0.7;
   }
 
-  .spinner {
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--tune-border);
-    border-top-color: var(--tune-accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  .spinner.small {
-    width: 14px;
-    height: 14px;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  .scan-banner {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    margin: 0 var(--space-md) var(--space-md);
-    padding: 8px 14px;
-    background: var(--tune-surface, rgba(255, 255, 255, 0.05));
-    border: 1px solid var(--tune-border);
-    border-radius: 8px;
-    color: var(--tune-text-muted);
-    font-family: var(--font-body);
-    font-size: 0.85em;
-  }
-
-  .scan-banner .scan-progress {
-    width: auto;
-    text-align: left;
-    flex: 1;
-    opacity: 0.85;
-  }
-
   .scan-stop-btn {
     border: 1px solid var(--tune-border);
     background: transparent;
@@ -4577,8 +4098,9 @@ import { playFromHere } from '../lib/playback';
     border-radius: 6px;
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 1em;
+    font-size: 0.85em;
     white-space: nowrap;
+    margin-top: 8px;
   }
 
   .scan-stop-btn:hover:not(:disabled) {
@@ -4591,6 +4113,19 @@ import { playFromHere } from '../lib/playback';
     cursor: default;
   }
 
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--tune-border);
+    border-top-color: var(--tune-accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
   /* Genres grid */
   .genres-grid {
     display: grid;
@@ -4598,7 +4133,8 @@ import { playFromHere } from '../lib/playback';
     gap: var(--space-md);
     /* No inner scroll: the whole .library-view scrolls as one region. A second
        overflow-y here made Firefox draw a classic scrollbar overlapping the
-       page's on the Genres tab (#1075); Chrome hid it with overlay scrollbars. */
+       page's on the Genres tab (#1075); Chrome hid it with overlay scrollbars.
+       The stray flex:1 also collapsed the grid to a single column (#1119). */
   }
 
   .genre-card {
@@ -4674,9 +4210,8 @@ import { playFromHere } from '../lib/playback';
   /* Grid on wide screens (desktop) instead of a single vertical column: the
      branch cards tile in 2-3 columns, which reads better on large displays and
      keeps the genre name close to its album count. On narrow screens auto-fill
-     collapses to one column. Both this and the orphan `.genres-grid` below are
-     grids, so the load-order flip (orphans render first, then the tree groups
-     them) no longer swaps a grid for a vertical list. */
+     collapses to one column. Both this and the orphan `.genres-grid` above are
+     grids, so the genre tree no longer regresses to a vertical list (#1119). */
   .branches {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -4684,8 +4219,6 @@ import { playFromHere } from '../lib/playback';
     align-items: start;
     margin-bottom: var(--space-xl);
   }
-  /* Whole box is the click target (#1029), so the row carries the pointer,
-     hover and focus affordances rather than the inner strip. */
   .branch-row {
     background: var(--tune-surface);
     border: 1px solid var(--tune-border);
@@ -4693,14 +4226,16 @@ import { playFromHere } from '../lib/playback';
     padding: var(--space-md) var(--space-lg);
     display: flex; flex-direction: column; gap: var(--space-sm);
     cursor: pointer;
+    transition: border-color 0.12s;
   }
   .branch-row:hover { border-color: var(--tune-accent); }
   .branch-row:focus-visible {
-    outline: 2px solid var(--tune-accent); outline-offset: 2px;
+    outline: 2px solid var(--tune-accent);
+    outline-offset: 2px;
   }
-  /* The name/count strip: count sits right after the name instead of pushed to
-     the far edge — on wide screens `space-between` left the count marooned
-     across the card from the name. */
+  /* Whole top strip clickable via the .branch-row wrapper, with the count sitting
+     right after the name instead of pushed to the far edge — on wide screens
+     `space-between` left the count marooned across the card from the name. */
   .branch-card {
     display: flex; justify-content: flex-start; align-items: baseline;
     gap: var(--space-sm); width: 100%;
@@ -4799,9 +4334,7 @@ import { playFromHere } from '../lib/playback';
     color: var(--tune-text-muted);
     cursor: pointer;
     border-radius: 4px;
-    /* Always visible (subtle), not hover-only: it was invisible without a mouse
-       hover, so touch users and anyone not hovering couldn't find it (#1081). */
-    opacity: 0.55;
+    opacity: 0;
     transition: opacity 0.15s, color 0.15s;
   }
 
@@ -4927,22 +4460,6 @@ import { playFromHere } from '../lib/playback';
     padding-top: var(--space-sm);
   }
 
-  .artist-section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    background: none;
-    border: none;
-    padding: var(--space-sm) 0;
-    cursor: pointer;
-    color: var(--tune-text);
-  }
-
-  .artist-section-header:hover {
-    color: var(--tune-accent);
-  }
-
   .artist-section-header-static {
     display: flex;
     align-items: center;
@@ -4963,15 +4480,6 @@ import { playFromHere } from '../lib/playback';
     color: var(--tune-text-muted);
     font-size: 13px;
     padding: 12px 0;
-  }
-
-  .artist-section-chevron {
-    transition: transform 0.2s ease-out;
-    color: var(--tune-text-muted);
-  }
-
-  .artist-section-chevron.open {
-    transform: rotate(180deg);
   }
 
   .artist-anecdotes {
@@ -5261,6 +4769,33 @@ import { playFromHere } from '../lib/playback';
     color: var(--tune-text-muted);
   }
 
+  /* Quick Fav */
+  .quick-fav-btn {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    transition: all 0.12s;
+  }
+
+  .track-item:hover .quick-fav-btn {
+    opacity: 1;
+  }
+
+  .quick-fav-btn.faved {
+    color: #f59e0b;
+    opacity: 1;
+  }
+
+  .quick-fav-btn:hover {
+    color: #f59e0b;
+    transform: scale(1.15);
+  }
+
   /* Collection dropdown */
   .collection-dropdown-wrap {
     display: inline-flex;
@@ -5444,8 +4979,7 @@ import { playFromHere } from '../lib/playback';
     overflow-y: auto;
     min-height: 0;
     /* Reserve the scrollbar gutter so the content width (and therefore the
-       virtual-scroll column math) doesn't jump when the scrollbar appears —
-       same reasoning as .album-grid-viewport (#1022). */
+       virtual-scroll column math) doesn't jump when the scrollbar appears. */
     scrollbar-gutter: stable;
   }
 
@@ -5528,48 +5062,4 @@ import { playFromHere } from '../lib/playback';
     color: var(--tune-accent);
   }
 
-  .track-menu-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 99;
-  }
-
-  .track-menu {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 4px);
-    background: var(--tune-surface);
-    border: 1px solid var(--tune-border);
-    border-radius: 10px;
-    padding: 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    z-index: 100;
-    box-shadow: var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.4));
-    min-width: 190px;
-    white-space: nowrap;
-  }
-
-  .track-menu-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: none;
-    border: none;
-    padding: 7px 12px;
-    font-family: var(--font-body);
-    font-size: 13px;
-    color: var(--tune-text-secondary);
-    cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.1s;
-    text-align: left;
-    width: 100%;
-  }
-
-  .track-menu-item:hover {
-    background: var(--tune-surface-hover);
-    color: var(--tune-text);
-  }
 </style>

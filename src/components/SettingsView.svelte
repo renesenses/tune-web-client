@@ -4,9 +4,9 @@
   import * as api from '../lib/api';
   import { tuneWS } from '../lib/websocket';
   import { zones, currentZoneId, followMe } from '../lib/stores/zones';
-  import { devices } from '../lib/stores/devices';
   import { loopByDefault } from '../lib/stores/loopByDefault';
-  import { preferences, applyTheme, type ThemeMode, type VolumeDisplay, type StartupView } from '../lib/stores/preferences';
+  import { devices } from '../lib/stores/devices';
+  import { preferences, applyTheme, OXYGEN_FACETS_ALL, type ThemeMode, type VolumeDisplay, type StartupView, type OxygenViewMode } from '../lib/stores/preferences';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry, BackupInfo } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
@@ -16,7 +16,6 @@
   import SmbWizard from './SmbWizard.svelte';
   import FolderWizard from './FolderWizard.svelte';
   import MultiroomSettings from './MultiroomSettings.svelte';
-  import ProfilesSettings from './ProfilesSettings.svelte';
 
   const CLIENT_VERSION = __APP_VERSION__;
   let serverVersion = $state<string | null>(null);
@@ -30,6 +29,7 @@
   let config: SystemConfig | null = $state(null);
   let backups = $state<BackupInfo[]>([]);
   let scanning = $state(false);
+  let cancellingScan = $state(false);
   type ScanProgress = {
     phase?: string;
     scanned?: number; added?: number; updated?: number; skipped?: number;
@@ -1439,6 +1439,21 @@
     }
   }
 
+  async function stopScan() {
+    cancellingScan = true;
+    try {
+      await api.cancelScan();
+    } catch (e) {
+      console.error('Cancel scan error:', e);
+    } finally {
+      // Clear the local banner even on the 204 so the UI reflects the stop
+      // immediately (the scan loop polls the AtomicBool and exits shortly).
+      scanning = false;
+      scanProgress = null;
+      cancellingScan = false;
+    }
+  }
+
   async function handleScanPath(path: string) {
     scanningPath = path;
     try {
@@ -1787,12 +1802,6 @@
       </svg>
       {$t('settings.tabMultiroom')}
     </button>
-    <button class="settings-tab" class:active={settingsTab === 'profiles'} onclick={() => settingsTab = 'profiles'}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-      {$t('settings.tabProfiles')}
-    </button>
   </div>
 
   {#if loading}
@@ -1804,11 +1813,6 @@
     {#if settingsTab === 'multiroom'}
     <!-- Multi-room settings -->
     <MultiroomSettings />
-    {/if}
-
-    {#if settingsTab === 'profiles'}
-    <!-- User profiles management -->
-    <ProfilesSettings />
     {/if}
 
     {#if settingsTab === 'network'}
@@ -1973,8 +1977,8 @@
       {/if}
       <div class="setting-row">
         <div class="setting-label">
-          <span>Lire en boucle par défaut</span>
-          <span class="setting-hint">Relance chaque piste au lieu de s'arrêter à la fin.</span>
+          <span>{$t('settings.loopByDefault')}</span>
+          <span class="setting-hint">{$t('settings.loopByDefaultHint')}</span>
         </div>
         <label class="toggle">
           <input type="checkbox" bind:checked={$loopByDefault} />
@@ -2047,6 +2051,9 @@
             {#if scanPercent !== null}
               <span class="scan-progress-pct">{scanPercent}%</span>
             {/if}
+            <button class="scan-stop-btn" onclick={stopScan} disabled={cancellingScan}>
+              {cancellingScan ? '…' : $t('settings.stopScan')}
+            </button>
           </div>
           <div class="scan-progress-bar" class:indeterminate={scanPercent === null}>
             <div class="scan-progress-fill" style={scanPercent !== null ? `width:${scanPercent}%` : ''}></div>
@@ -2092,7 +2099,7 @@
           <span class="scan-message">{scanMessage}</span>
         {/if}
 
-        <button class="scan-btn" onclick={handleArtworkRescan} disabled={artworkScanning} title={$t('settings.searchMissingCoversTitle')}>
+        <button class="scan-btn" onclick={handleArtworkRescan} disabled={artworkScanning}>
           {#if artworkScanning}
             <div class="spinner small"></div>
             {#if artworkProgress}
@@ -2751,107 +2758,6 @@
         {/if}
       {/if}
     </section>
-
-    <!-- Zone audio settings (DSD mode, max rate, DLNA/ALAC passthrough) -->
-    {#if $zones.length > 0}
-      <section class="settings-section">
-        <h3>{$t('settings.perZoneSettings')}</h3>
-        <p class="section-hint">{$t('settings.perZoneHint')}</p>
-        <div class="zone-settings-list">
-          {#each $zones as z (z.id)}
-            <div class="zone-setting-row">
-              <span class="zone-setting-name">{z.name}</span>
-              <div class="zone-setting-controls">
-                <label class="zone-setting-label">
-                  <span>DSD</span>
-                  <select
-                    class="zone-select"
-                    value={z.dsd_mode ?? 'auto'}
-                    onchange={async (e) => {
-                      const mode = (e.target as HTMLSelectElement).value;
-                      await api.updateZoneDsdMode(z.id, mode);
-                    }}
-                  >
-                    <option value="auto">Auto</option>
-                    <option value="native">{$t('settings.dsdNative')}</option>
-                    <option value="dop">DoP</option>
-                    <option value="pcm">{$t('settings.dsdPcm')}</option>
-                  </select>
-                </label>
-                <label class="zone-setting-label" title={$t('settings.maxSampleRateHint')}>
-                  <span>{$t('settings.maxSampleRate')}</span>
-                  <select
-                    class="zone-select"
-                    value={String(z.max_sample_rate ?? 0)}
-                    onchange={async (e) => {
-                      const v = Number((e.target as HTMLSelectElement).value);
-                      await api.updateZoneMaxSampleRate(z.id, v > 0 ? v : null);
-                    }}
-                  >
-                    <option value="0">{$t('settings.maxSampleRateNone')}</option>
-                    <option value="48000">48 kHz</option>
-                    <option value="88200">88.2 kHz</option>
-                    <option value="96000">96 kHz</option>
-                    <option value="176400">176.4 kHz</option>
-                    <option value="192000">192 kHz</option>
-                    <option value="352800">352.8 kHz</option>
-                    <option value="384000">384 kHz</option>
-                  </select>
-                </label>
-                {#if z.output_type === 'dlna'}
-                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaNativeFlacHint')}>
-                    <input
-                      type="checkbox"
-                      checked={z.dlna_native_flac ?? false}
-                      onchange={async (e) => {
-                        await api.updateZoneDlnaNativeFlac(z.id, (e.target as HTMLInputElement).checked);
-                      }}
-                    />
-                    <span>{$t('settings.dlnaNativeFlac')}</span>
-                  </label>
-                {/if}
-                {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type)}
-                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
-                    <input
-                      type="checkbox"
-                      checked={z.alac_passthrough ?? false}
-                      onchange={async (e) => {
-                        await api.updateZoneAlacPassthrough(z.id, (e.target as HTMLInputElement).checked);
-                      }}
-                    />
-                    <span>{$t('settings.alacPassthrough')}</span>
-                  </label>
-                {/if}
-                {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type)}
-                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaLpcmHint')}>
-                    <input
-                      type="checkbox"
-                      checked={z.dlna_lpcm ?? false}
-                      onchange={async (e) => {
-                        await api.updateZoneDlnaLpcm(z.id, (e.target as HTMLInputElement).checked);
-                      }}
-                    />
-                    <span>{$t('settings.dlnaLpcm')}</span>
-                  </label>
-                {/if}
-                {#if ['dlna', 'openhome'].includes(z.output_type)}
-                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaCap16bitHint')}>
-                    <input
-                      type="checkbox"
-                      checked={z.dlna_cap_16bit ?? false}
-                      onchange={async (e) => {
-                        await api.updateZoneDlnaCap16bit(z.id, (e.target as HTMLInputElement).checked);
-                      }}
-                    />
-                    <span>{$t('settings.dlnaCap16bit')}</span>
-                  </label>
-                {/if}
-              </div>
-            </div>
-          {/each}
-        </div>
-      </section>
-    {/if}
     {/if}
 
     {#if settingsTab === 'library'}
@@ -2869,6 +2775,51 @@
       <p class="settings-note">{$t('settings.metadataReadonlyHelp')}</p>
     </section>
     {/if}
+
+    <!-- Oxygen advanced library view (parameterizable) -->
+    <section class="settings-section">
+      <h3>Vue Oxygen · bibliothèque avancée</h3>
+      <div class="pref-grid">
+        <label class="pref-label" for="oxy-enable">Activer la vue Oxygen</label>
+        <label class="toggle-switch">
+          <input id="oxy-enable" type="checkbox" checked={$preferences.oxygenEnabled}
+            onchange={(e) => preferences.update((p) => ({ ...p, oxygenEnabled: (e.target as HTMLInputElement).checked }))} />
+          <span class="toggle-slider"></span>
+        </label>
+
+        <label class="pref-label" for="oxy-view">Vue par défaut</label>
+        <select id="oxy-view" class="pref-select" value={$preferences.oxygenView}
+          onchange={(e) => preferences.update((p) => ({ ...p, oxygenView: (e.target as HTMLSelectElement).value as OxygenViewMode }))}>
+          <option value="detail">Détails (table)</option>
+          <option value="album">Albums (groupé)</option>
+          <option value="grid">Grille de pochettes</option>
+        </select>
+      </div>
+      <p class="settings-note">Bibliothèque à facettes façon gestionnaire de collection : table dense, badges qualité et inspecteur de métadonnées. Les colonnes de la table suivent vos champs visibles réglés ci-dessus.</p>
+
+      {#if $preferences.oxygenEnabled}
+      <div class="pref-grid" style="margin-top: 6px;">
+        <label class="pref-label">Facettes de navigation</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px 16px;">
+          {#each OXYGEN_FACETS_ALL as f}
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--tune-text-secondary);cursor:pointer;">
+              <input type="checkbox" checked={$preferences.oxygenFacets.includes(f)}
+                onchange={(e) => preferences.update((p) => {
+                  const on = (e.target as HTMLInputElement).checked;
+                  const s = new Set(p.oxygenFacets);
+                  if (on) s.add(f); else s.delete(f);
+                  return { ...p, oxygenFacets: OXYGEN_FACETS_ALL.filter((x) => s.has(x)) };
+                })} />
+              {({ genre: 'Genres', label: 'Labels', mood: 'Moods', year: 'Années', rating: 'Notes', collection: 'Collections', country: 'Pays', folder: 'Dossiers', untagged: 'Non-taggés' } as Record<string, string>)[f]}
+            </label>
+          {/each}
+        </div>
+      </div>
+      <div class="settings-actions">
+        <button class="action-btn" onclick={() => activeView.set('oxygen')}>Ouvrir la vue Oxygen</button>
+      </div>
+      {/if}
+    </section>
 
     <!-- Enrichment -->
     {#if config}
@@ -2903,9 +2854,6 @@
       <div class="settings-actions" style="margin-top: 12px;">
         <button class="action-btn" onclick={async () => { try { await api.enrichArtistImages(); enrichMsg = $t('settings.enrichArtistImagesStarted'); } catch { enrichMsg = $t('settings.enrichArtistImagesStarted'); } setTimeout(() => enrichMsg = '', 5000); }}>
           {$t('settings.enrichArtistImages')}
-        </button>
-        <button class="action-btn" style="margin-left: 8px;" title={$t('settings.forceRefetchArtistImagesHint')} onclick={async () => { try { await api.forceRefetchArtistImages(); enrichMsg = $t('settings.enrichArtistImagesStarted'); } catch { enrichMsg = $t('settings.enrichArtistImagesStarted'); } setTimeout(() => enrichMsg = '', 5000); }}>
-          {$t('settings.forceRefetchArtistImages')}
         </button>
       </div>
       <p class="settings-note">{$t('settings.autoEnrichPremiumNote')}</p>
@@ -3344,6 +3292,82 @@
       <p class="settings-note">{$t('settings.followMeHint' as any)}</p>
     </section>
 
+    <!-- Zone audio settings (DSD mode, gapless, fixed volume) -->
+    {#if $zones.length > 0}
+      <section class="settings-section">
+        <h3>{$t('settings.perZoneSettings')}</h3>
+        <p class="section-hint">{$t('settings.perZoneHint')}</p>
+        <div class="zone-settings-list">
+          {#each $zones as z (z.id)}
+            <div class="zone-setting-row">
+              <span class="zone-setting-name">{z.name}</span>
+              <div class="zone-setting-controls">
+                <label class="zone-setting-label">
+                  <span>DSD</span>
+                  <select
+                    class="zone-select"
+                    value={z.dsd_mode ?? 'auto'}
+                    onchange={async (e) => {
+                      const mode = (e.target as HTMLSelectElement).value;
+                      await api.updateZoneDsdMode(z.id, mode);
+                    }}
+                  >
+                    <option value="auto">Auto</option>
+                    <option value="native">{$t('settings.dsdNative')}</option>
+                    <option value="dop">DoP</option>
+                    <option value="pcm">{$t('settings.dsdPcm')}</option>
+                  </select>
+                </label>
+                <label class="zone-setting-label" title={$t('settings.maxSampleRateHint')}>
+                  <span>{$t('settings.maxSampleRate')}</span>
+                  <select
+                    class="zone-select"
+                    value={String(z.max_sample_rate ?? 0)}
+                    onchange={async (e) => {
+                      const v = Number((e.target as HTMLSelectElement).value);
+                      await api.updateZoneMaxSampleRate(z.id, v > 0 ? v : null);
+                    }}
+                  >
+                    <option value="0">{$t('settings.maxSampleRateNone')}</option>
+                    <option value="48000">48 kHz</option>
+                    <option value="88200">88.2 kHz</option>
+                    <option value="96000">96 kHz</option>
+                    <option value="176400">176.4 kHz</option>
+                    <option value="192000">192 kHz</option>
+                    <option value="352800">352.8 kHz</option>
+                    <option value="384000">384 kHz</option>
+                  </select>
+                </label>
+                {#if z.output_type === 'dlna'}
+                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaNativeFlacHint')}>
+                    <input
+                      type="checkbox"
+                      checked={z.dlna_native_flac ?? false}
+                      onchange={async (e) => {
+                        await api.updateZoneDlnaNativeFlac(z.id, (e.target as HTMLInputElement).checked);
+                      }}
+                    />
+                    <span>{$t('settings.dlnaNativeFlac')}</span>
+                  </label>
+                {/if}
+                {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type)}
+                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
+                    <input
+                      type="checkbox"
+                      checked={z.alac_passthrough ?? false}
+                      onchange={async (e) => {
+                        await api.updateZoneAlacPassthrough(z.id, (e.target as HTMLInputElement).checked);
+                      }}
+                    />
+                    <span>{$t('settings.alacPassthrough')}</span>
+                  </label>
+                {/if}
+              </div>
+            </div>
+          {/each}
+        </div>
+      </section>
+    {/if}
 
     <!-- Squeezebox / Lyrion Music Server -->
     {#if config}
@@ -4975,9 +4999,29 @@
   }
   .scan-progress-head {
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
+    gap: 8px;
     margin-bottom: 8px;
+  }
+  .scan-progress-phase { margin-right: auto; }
+  .scan-stop-btn {
+    border: 1px solid var(--tune-border);
+    background: transparent;
+    color: var(--tune-text, inherit);
+    padding: 3px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .scan-stop-btn:hover:not(:disabled) {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+  .scan-stop-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
   .scan-progress-phase { font-size: 13px; font-weight: 600; color: var(--tune-text); }
   .scan-progress-pct { font-size: 13px; font-weight: 700; color: var(--tune-accent); font-variant-numeric: tabular-nums; }
