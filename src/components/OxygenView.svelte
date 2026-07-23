@@ -36,6 +36,10 @@
   let facetSel = $state<{ field: string; value: string } | null>(null);
   let albumFilter = $state<string | number | null>(null);
   let albumFilterLabel = $state('');
+  // Mobile: rail + inspector become slide-over drawers.
+  let mobileRail = $state(false);
+  let mobileInspector = $state(false);
+  let isNarrow = $state(false);
 
   let mode = $derived<OxygenViewMode>($preferences.oxygenView);
   let columns = $derived(($displayFields ?? []).filter(k => k in COLUMN_DEFS));
@@ -93,6 +97,7 @@
 
   async function select(t: Track) {
     selected = t; ext = {};
+    if (isNarrow) mobileInspector = true;
     if (t.id == null) return;
     extLoading = true;
     try { ext = await getTrackExtendedMetadata(t.id); } catch { ext = {}; } finally { extLoading = false; }
@@ -128,6 +133,10 @@
   }
 
   onMount(() => {
+    const mq = window.matchMedia('(max-width: 1150px)');
+    const upd = () => { isNarrow = mq.matches; if (!isNarrow) { mobileRail = false; mobileInspector = false; } };
+    upd();
+    mq.addEventListener('change', upd);
     getMetadataFieldSettings().then(f => { categories = f.categories ?? []; }).catch(() => {});
     const fields = $preferences.oxygenFacets.filter(f => SERVER_FACET_FIELDS.includes(f));
     if (fields.length) getLibraryFacets(fields).then(f => { serverFacets = f; }).catch(() => {});
@@ -139,8 +148,11 @@
 
 <div class="oxygen">
   <header class="bar">
-    <button class="icnbtn" onclick={() => activeView.set('library')} title="Retour à la bibliothèque">
+    <button class="icnbtn" onclick={() => activeView.set('library')} title="Retour à la bibliothèque" aria-label="Retour">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <button class="icnbtn railtoggle" onclick={() => mobileRail = true} title="Facettes" aria-label="Facettes">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
     </button>
     <div class="titleblock"><div class="eyebrow">Bibliothèque · Oxygen</div><h1>Collection</h1></div>
 
@@ -171,8 +183,8 @@
   {/if}
 
   <div class="body">
-    <aside class="railwrap">
-      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} selected={facetSel} onSelect={(field, value) => facetSel = value == null ? null : { field, value }} />
+    <aside class="railwrap" class:open={mobileRail}>
+      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} selected={facetSel} onSelect={(field, value) => { facetSel = value == null ? null : { field, value }; mobileRail = false; }} />
     </aside>
 
     <section class="main">
@@ -246,7 +258,8 @@
       {/if}
     </section>
 
-    <aside class="inspector" class:empty={!selected}>
+    <aside class="inspector" class:empty={!selected} class:open={mobileInspector}>
+      <button class="drawerclose mobonly" onclick={() => mobileInspector = false} aria-label="Fermer">×</button>
       {#if selected}
         <div class="insp-title">{selected.title}</div>
         <div class="insp-sub">{selected.artist_name ?? ''} · {selected.album_title ?? ''}</div>
@@ -269,6 +282,9 @@
         {/if}
       {:else}<div class="state small">Sélectionnez une piste.</div>{/if}
     </aside>
+    {#if mobileRail || mobileInspector}
+      <button class="backdrop" onclick={() => { mobileRail = false; mobileInspector = false; }} aria-label="Fermer"></button>
+    {/if}
   </div>
 </div>
 
@@ -292,9 +308,26 @@
   .crumb { background: var(--tune-surface-selected); border: 1px solid var(--tune-border); color: var(--tune-accent); border-radius: 20px; padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer; }
   .crumb .x { opacity: .7; margin-left: 3px; }
 
-  .body { flex: 1; min-height: 0; display: grid; grid-template-columns: 220px 1fr 322px; }
-  @media (max-width: 1150px) { .body { grid-template-columns: 200px 1fr; } .inspector { display: none; } }
-  @media (max-width: 780px) { .body { grid-template-columns: 1fr; } .railwrap { display: none; } }
+  .body { flex: 1; min-height: 0; display: grid; grid-template-columns: 220px 1fr 322px; position: relative; }
+  .mobonly { display: none; }
+  .railtoggle { display: none; }
+  @media (max-width: 780px) { .railtoggle { display: inline-grid; } }
+  .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); border: 0; z-index: 35; cursor: pointer; }
+  .drawerclose { position: absolute; top: 10px; right: 12px; background: var(--tune-surface-hover); border: 0; color: var(--tune-text); width: 30px; height: 30px; border-radius: 50%; font-size: 20px; line-height: 1; cursor: pointer; z-index: 2; }
+  /* Tablet: inspector becomes a right slide-over. */
+  @media (max-width: 1150px) {
+    .body { grid-template-columns: 200px 1fr; }
+    .inspector { position: absolute; top: 0; right: 0; bottom: 0; width: 340px; max-width: 88vw; transform: translateX(100%); transition: transform .22s ease; z-index: 40; box-shadow: -8px 0 30px rgba(0,0,0,.4); }
+    .inspector.open { transform: none; }
+    .mobonly { display: inline-grid; }
+  }
+  /* Phone: rail also becomes a left slide-over. */
+  @media (max-width: 780px) {
+    .body { grid-template-columns: 1fr; }
+    .railwrap { position: absolute; top: 0; left: 0; bottom: 0; width: 280px; max-width: 84vw; transform: translateX(-100%); transition: transform .22s ease; z-index: 40; box-shadow: 8px 0 30px rgba(0,0,0,.4); }
+    .railwrap.open { transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .inspector, .railwrap { transition: none; } }
 
   .railwrap { border-right: 1px solid var(--tune-border); background: var(--tune-surface); min-height: 0; display: flex; }
   .railwrap :global(.rail) { flex: 1; }
