@@ -7,6 +7,8 @@
   import { displayFields } from '../lib/stores/displayFields';
   import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
   import { activeView } from '../lib/stores/navigation';
+  import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { notifications } from '../lib/stores/notifications';
   import { fold } from '../lib/utils';
   import { t } from '../lib/i18n';
   import type { Track } from '../lib/types';
@@ -109,6 +111,28 @@
   }
   function clearAlbum() { albumFilter = null; albumFilterLabel = ''; }
 
+  // Play wiring (Bertrand, .15 v0.9.0 pre-release test: rien n'était cliquable
+  // pour lancer la lecture). Double-clic piste = joue la piste puis la suite de
+  // SON album (prévisible, même sur une liste filtrée de 3000 pistes) ; bouton
+  // ▶ sur les cartes album = joue l'album groupé.
+  let zone = $derived($currentZone);
+  async function playTracks(ids: number[]) {
+    if (!zone?.id) { notifications.error($t('library.noZoneSelected')); return; }
+    if (!ids.length) return;
+    try { await playAndSync(zone.id, { track_ids: ids }); }
+    catch (e) { notifications.error($t('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e))); }
+  }
+  function playAlbumGroup(g: AlbumGroup) {
+    return playTracks(g.tracks.map(t => t.id).filter(Boolean) as number[]);
+  }
+  function playFromTrack(t: Track) {
+    const key = t.album_id ?? `t:${t.album_title}`;
+    const g = albums.find(a => a.key === key);
+    const list = g ? g.tracks : [t];
+    const idx = Math.max(0, list.findIndex(x => x.id === t.id));
+    return playTracks(list.slice(idx).map(x => x.id).filter(Boolean) as number[]);
+  }
+
   let inspectorGroups = $derived.by(() => {
     const groups: { name: string; rows: { key: string; label: string; value: string; isNew: boolean }[] }[] = [];
     const used = new Set<string>();
@@ -198,14 +222,17 @@
       {:else if mode === 'grid'}
         <div class="grid">
           {#each albums as g (g.key)}
-            <button class="card" onclick={() => openAlbum(g)}>
+            <div class="card" role="button" tabindex="0" onclick={() => openAlbum(g)} ondblclick={() => playAlbumGroup(g)} onkeydown={(e) => e.key === 'Enter' && openAlbum(g)}>
               <div class="cwrap">
                 {#if g.cover}<img class="cvr" src={artworkUrl(g.cover)} alt="" loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />{:else}<div class="cvr ph">♪</div>{/if}
                 <span class="qov"><QualityBadge format={g.format} sampleRate={g.sr} bitDepth={g.bd} source={g.source} /></span>
+                <button class="pov" title={$t('library.playAlbum')} onclick={(e) => { e.stopPropagation(); playAlbumGroup(g); }}>
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M8 5v14l11-7z"/></svg>
+                </button>
               </div>
               <div class="ct">{g.title}</div>
               <div class="ca">{g.artist}</div>
-            </button>
+            </div>
           {/each}
         </div>
       {:else if mode === 'album'}
@@ -218,11 +245,14 @@
               <div class="abody">
                 <div class="ahead">
                   <div><div class="at">{g.title}</div><div class="aa">{g.artist}{g.year ? ` · ${g.year}` : ''} · {g.tracks.length} {$t('oxygen.tracks')}</div></div>
+                  <button class="aplay" title={$t('library.playAlbum')} onclick={() => playAlbumGroup(g)}>
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z"/></svg>
+                  </button>
                   <QualityBadge format={g.format} sampleRate={g.sr} bitDepth={g.bd} source={g.source} />
                 </div>
                 <div class="atracks">
                   {#each g.tracks as t (t.id)}
-                    <button class="trk" class:sel={selected?.id === t.id} onclick={() => select(t)}>
+                    <button class="trk" class:sel={selected?.id === t.id} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
                       <span class="tn">{t.track_number ?? ''}</span>
                       <span class="tt">{t.title}</span>
                       <span class="td">{fmtDur(t.duration_ms)}</span>
@@ -243,7 +273,7 @@
             </tr></thead>
             <tbody>
               {#each visible as t (t.id)}
-                <tr class:sel={selected?.id === t.id} onclick={() => select(t)}>
+                <tr class:sel={selected?.id === t.id} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
                   <td class="n">{t.track_number ?? ''}</td>
                   <td class="title">{t.title}</td>
                   <td class="dim">{t.artist_name ?? ''}</td>
@@ -336,6 +366,9 @@
 
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px 16px; }
   .card { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; color: inherit; }
+  .pov { position: absolute; right: 8px; bottom: 8px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--tune-accent, #f5a623); color: #000; display: none; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+  .card:hover .pov, .pov:focus { display: inline-flex; }
+  .aplay { width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--tune-accent, #f5a623); color: #000; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; }
   .cwrap { position: relative; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 22px rgba(0,0,0,.35); aspect-ratio: 1; }
   .cvr { width: 100%; height: 100%; object-fit: cover; display: block; background: var(--tune-surface-hover); }
   .cvr.ph { display: grid; place-items: center; font-size: 30px; color: var(--tune-text-muted); }
