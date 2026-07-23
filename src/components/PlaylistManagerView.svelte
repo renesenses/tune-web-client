@@ -49,6 +49,11 @@
   let selectedStreamingPl = $state<StreamingPlaylist | null>(null);
   let selectedService = $state('');
   let detailTracks = $state<Track[]>([]);
+  // Drag-to-reorder (local playlists only). JP Borderies: "on ne peut pas
+  // reclasser les morceaux d'une playlist". The server already supports it via
+  // reorderPlaylistTracks; this wires the drag UI.
+  let dragIndex = $state<number | null>(null);
+  let dragOverIndex = $state<number | null>(null);
   let detailLoading = $state(false);
 
   // Clicking the Playlists nav entry (even while viewing a playlist) returns to
@@ -790,6 +795,29 @@
     }
   }
 
+  // Reorder a local playlist by moving the dragged row to the drop position.
+  // Optimistic: reorder locally, then persist the full new order (track ids).
+  // On failure, reload from the server so the UI never lies.
+  async function reorderTracks(targetIndex: number) {
+    const from = dragIndex;
+    dragIndex = null;
+    dragOverIndex = null;
+    if (from === null || from === targetIndex || !selectedPlaylist?.id) return;
+    const next = [...detailTracks];
+    const [moved] = next.splice(from, 1);
+    next.splice(targetIndex, 0, moved);
+    detailTracks = next;
+    const trackIds = next.map((t) => t.id).filter((id): id is number => typeof id === 'number');
+    try {
+      await api.reorderPlaylistTracks(selectedPlaylist.id, trackIds);
+    } catch (e) {
+      console.error('Reorder playlist error:', e);
+      try {
+        detailTracks = await api.getPlaylistTracks(selectedPlaylist.id);
+      } catch {}
+    }
+  }
+
   // Transfer flow
   function openTransfer() {
     const currentName = selectedPlaylist?.name ?? selectedStreamingPl?.name ?? '';
@@ -1153,7 +1181,17 @@
     {:else}
       <div class="track-list">
         {#each detailTracks as t, index}
-          <div class="track-item">
+          <div
+            class="track-item"
+            class:drag-over={dragOverIndex === index}
+            class:dragging={dragIndex === index}
+            draggable={!!selectedPlaylist}
+            ondragstart={() => (dragIndex = index)}
+            ondragover={(e) => { if (selectedPlaylist) { e.preventDefault(); dragOverIndex = index; } }}
+            ondragleave={() => { if (dragOverIndex === index) dragOverIndex = null; }}
+            ondrop={(e) => { e.preventDefault(); reorderTracks(index); }}
+            ondragend={() => { dragIndex = null; dragOverIndex = null; }}
+          >
             <button class="track-play" onclick={() => playTrack(t)}>
               <span class="track-num">{index + 1}</span>
               <span class="track-thumb">
@@ -2645,6 +2683,14 @@
     display: flex;
     align-items: center;
     gap: 0;
+  }
+
+  /* Drag-to-reorder feedback (local playlists) */
+  .track-item.dragging {
+    opacity: 0.45;
+  }
+  .track-item.drag-over {
+    box-shadow: inset 0 2px 0 0 var(--tune-accent, #7c5cff);
   }
 
   .track-play {

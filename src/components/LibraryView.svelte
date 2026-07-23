@@ -24,6 +24,7 @@ import { playFromHere } from '../lib/playback';
   import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
   import ServiceBadge from './ServiceBadge.svelte';
   import QualityBadge from './QualityBadge.svelte';
+  import BrowseView from './BrowseView.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   import type { ArtistMetadata } from '../lib/types';
 
@@ -2457,6 +2458,7 @@ import { playFromHere } from '../lib/playback';
           <button class="tab" class:active={$libraryTab === 'tracks'} onclick={() => switchTab('tracks')}>{$tr('home.tracks')}</button>
           <button class="tab" class:active={$libraryTab === 'genres'} onclick={() => switchTab('genres')}>{$tr('common.genres')}</button>
           <button class="tab" class:active={$libraryTab === 'years'} onclick={() => switchTab('years')}>{$tr('common.years')}</button>
+          <button class="tab" class:active={$libraryTab === 'folders'} onclick={() => switchTab('folders')}>{$tr('nav.browse')}</button>
         </div>
       </div>
     </div>
@@ -2934,6 +2936,11 @@ import { playFromHere } from '../lib/playback';
         </div>
       {/if}
 
+    {:else if $libraryTab === 'folders'}
+      <!-- Folder/directory view as a library tab (JP Borderies: "je ne vois
+           pas mes Dossiers tel quels"). Reuses the existing Répertoires
+           browser, now reachable directly from the library tabs. -->
+      <BrowseView {onAddToPlaylist} />
     {/if}
   {/if}
 </div>
