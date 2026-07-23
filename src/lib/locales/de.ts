@@ -429,6 +429,8 @@ export default {
   'browse.title': 'Nach Ordner durchsuchen',
   'browse.roots': 'Speicherorte',
   'browse.noRoots': 'Keine Musikverzeichnisse konfiguriert',
+  'browse.rootMissing': 'Ordner nicht gefunden – Einbindung prüfen',
+  'browse.rootEmpty': 'Leerer Ordner',
   'browse.noDirs': 'Keine Unterverzeichnisse',
   'browse.noTracks': 'Keine Titel in diesem Verzeichnis',
   'browse.trackCount': '{count} Titel',

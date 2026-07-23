@@ -458,6 +458,8 @@ export default {
   'browse.title': 'Navigation par répertoire',
   'browse.roots': 'Emplacements',
   'browse.noRoots': 'Aucun répertoire musical configuré',
+  'browse.rootMissing': 'Dossier introuvable — vérifiez le montage',
+  'browse.rootEmpty': 'Dossier vide',
   'browse.noDirs': 'Aucun sous-répertoire',
   'browse.noTracks': 'Aucune piste dans ce répertoire',
   'browse.trackCount': '{count} pistes',

@@ -429,6 +429,8 @@ export default {
   'browse.title': 'Explorar por carpeta',
   'browse.roots': 'Ubicaciones',
   'browse.noRoots': 'No hay directorios de música configurados',
+  'browse.rootMissing': 'Carpeta no encontrada — comprueba el montaje',
+  'browse.rootEmpty': 'Carpeta vacía',
   'browse.noDirs': 'Sin subdirectorios',
   'browse.noTracks': 'No hay pistas en este directorio',
   'browse.trackCount': '{count} pistas',

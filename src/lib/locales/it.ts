@@ -429,6 +429,8 @@ export default {
   'browse.title': 'Sfoglia per cartella',
   'browse.roots': 'Posizioni',
   'browse.noRoots': 'Nessuna directory musicale configurata',
+  'browse.rootMissing': 'Cartella non trovata — controlla il montaggio',
+  'browse.rootEmpty': 'Cartella vuota',
   'browse.noDirs': 'Nessuna sottodirectory',
   'browse.noTracks': 'Nessun brano in questa directory',
   'browse.trackCount': '{count} brani',

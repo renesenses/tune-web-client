@@ -429,6 +429,8 @@ export default {
   'browse.title': '폴더별 탐색',
   'browse.roots': '위치',
   'browse.noRoots': '음악 디렉토리가 설정되지 않았습니다',
+  'browse.rootMissing': '폴더를 찾을 수 없음 — 마운트를 확인하세요',
+  'browse.rootEmpty': '빈 폴더',
   'browse.noDirs': '하위 디렉토리 없음',
   'browse.noTracks': '이 디렉토리에 곡이 없습니다',
   'browse.trackCount': '{count}곡',
