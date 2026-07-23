@@ -2842,21 +2842,40 @@ import { playFromHere } from '../lib/playback';
             {#each filteredGenreTreeKeys.sort((a, b) => genreBranchSort === 'name' ? a.localeCompare(b) : (parentAlbumCounts[b] ?? 0) - (parentAlbumCounts[a] ?? 0)) as parent (parent)}
               {@const total = parentAlbumCounts[parent] ?? 0}
               {#if total > 0}
-                <div class="branch-row">
-                  <button class="branch-card" onclick={() => selectGenreInTab(parent)}>
+                {@const childrenWithAlbums = (genreTree[parent] ?? []).filter(
+                  (child) => ($genres.find(g => g.name.toLowerCase() === child.toLowerCase())?.count ?? 0) > 0,
+                )}
+                <!-- Whole branch box clickable (not just the name strip), and the
+                     children container is dropped entirely when no child has
+                     albums so it doesn't leave an empty gap (#1029). Mirrors
+                     GenresView; child chips stopPropagation so they don't also
+                     trigger the parent branch. -->
+                <div
+                  class="branch-row"
+                  role="button"
+                  tabindex="0"
+                  onclick={() => selectGenreInTab(parent)}
+                  onkeydown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      selectGenreInTab(parent);
+                    }
+                  }}
+                >
+                  <div class="branch-card">
                     <span class="branch-name">{parent}</span>
                     <span class="branch-count">{total} {total > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
-                  </button>
-                  <div class="branch-children">
-                    {#each genreTree[parent] as child}
-                      {@const c = ($genres.find(g => g.name.toLowerCase() === child.toLowerCase())?.count ?? 0)}
-                      {#if c > 0}
-                        <button class="child-chip" onclick={() => selectGenreInTab(child)}>
+                  </div>
+                  {#if childrenWithAlbums.length > 0}
+                    <div class="branch-children">
+                      {#each childrenWithAlbums as child}
+                        {@const c = ($genres.find(g => g.name.toLowerCase() === child.toLowerCase())?.count ?? 0)}
+                        <button class="child-chip" onclick={(e) => { e.stopPropagation(); selectGenreInTab(child); }}>
                           {child} <span class="child-chip-count">{c}</span>
                         </button>
-                      {/if}
-                    {/each}
-                  </div>
+                      {/each}
+                    </div>
+                  {/if}
                 </div>
               {/if}
             {/each}
@@ -4665,24 +4684,30 @@ import { playFromHere } from '../lib/playback';
     align-items: start;
     margin-bottom: var(--space-xl);
   }
+  /* Whole box is the click target (#1029), so the row carries the pointer,
+     hover and focus affordances rather than the inner strip. */
   .branch-row {
     background: var(--tune-surface);
     border: 1px solid var(--tune-border);
     border-radius: var(--radius-lg);
     padding: var(--space-md) var(--space-lg);
     display: flex; flex-direction: column; gap: var(--space-sm);
+    cursor: pointer;
   }
-  /* Full-width button (whole top strip clickable) with the count sitting right
-     after the name instead of pushed to the far edge — on wide screens
-     `space-between` left the count marooned across the card from the name. */
+  .branch-row:hover { border-color: var(--tune-accent); }
+  .branch-row:focus-visible {
+    outline: 2px solid var(--tune-accent); outline-offset: 2px;
+  }
+  /* The name/count strip: count sits right after the name instead of pushed to
+     the far edge — on wide screens `space-between` left the count marooned
+     across the card from the name. */
   .branch-card {
     display: flex; justify-content: flex-start; align-items: baseline;
     gap: var(--space-sm); width: 100%;
-    background: none; border: none; padding: 0;
-    color: var(--tune-text); cursor: pointer; text-align: left;
+    color: var(--tune-text); text-align: left;
   }
   .branch-name { font-family: var(--font-label); font-size: 18px; font-weight: 700; }
-  .branch-card:hover .branch-name { color: var(--tune-accent); }
+  .branch-row:hover .branch-name { color: var(--tune-accent); }
   .branch-count { font-family: var(--font-body); font-size: 13px; color: var(--tune-text-muted); }
   .branch-children { display: flex; flex-wrap: wrap; gap: 6px; }
   .child-chip {
