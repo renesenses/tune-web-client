@@ -746,12 +746,19 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   ]);
 
   function albumDateKey(a: any): string {
-    const date = a.original_date || a.release_date;
+    // Sorted by added date → index by when the album entered the library,
+    // not by its release year (#library-date-ajout, Bertrand 23/07).
+    const date = albumSort === 'added_date'
+      ? a.created_at
+      : (a.original_date || a.release_date);
     if (date && typeof date === 'string' && date.length >= 7) {
       const month = parseInt(date.substring(5, 7), 10);
       const year = date.substring(0, 4);
       if (month >= 1 && month <= 12) return `${year}-${String(month).padStart(2,'0')}`;
     }
+    // No release-year fallback in added-date mode: it would interleave
+    // release years into a chronological "added" index.
+    if (albumSort === 'added_date') return '?';
     const year = a.original_year || a.release_year || a.year;
     return year ? `${year}` : '?';
   }
@@ -766,7 +773,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   // Alpha index for albums (years + months when sorted by date, letters otherwise)
   let albumIndexEntries = $derived.by(() => {
-    if (albumSort === 'release_date' || albumSort === 'original_year') {
+    if (albumSort === 'release_date' || albumSort === 'original_year' || albumSort === 'added_date') {
       const keys = [...new Set(filteredAlbums.map(albumDateKey))];
       return albumSortOrder === 'desc' ? keys.sort((a, b) => b.localeCompare(a)) : keys.sort();
     }
@@ -782,7 +789,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   function scrollToAlbumEntry(entry: string) {
     activeAlbumEntry = entry;
-    const isYear = albumSort === 'release_date' || albumSort === 'original_year';
+    const isYear = albumSort === 'release_date' || albumSort === 'original_year' || albumSort === 'added_date';
     const idx = filteredAlbums.findIndex(a => {
       if (isYear) {
         return albumDateKey(a) === entry;
@@ -2290,7 +2297,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       </div>
       <div class="album-viewport-wrapper">
         {#if albumIndexEntries.length > 5}
-          <AlphaIndex letters={albumIndexEntries} activeLetter={activeAlbumEntry} onSelect={scrollToAlbumEntry} formatLabel={(albumSort === 'release_date' || albumSort === 'original_year') ? formatDateKey : undefined} />
+          <AlphaIndex letters={albumIndexEntries} activeLetter={activeAlbumEntry} onSelect={scrollToAlbumEntry} formatLabel={(albumSort === 'release_date' || albumSort === 'original_year' || albumSort === 'added_date') ? formatDateKey : undefined} />
         {/if}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="album-grid-viewport" bind:this={albumGridViewport} onscroll={handleAlbumGridScroll}
