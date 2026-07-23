@@ -856,6 +856,10 @@ export async function getFilteredTracks(opts: {
   label?: string;
   composer?: string;
   q?: string;
+  artist?: string;
+  country?: string;       // release_country (track_metadata k/v)
+  mood?: string;          // mood (track_metadata k/v)
+  source_media?: string;  // source_media (track_metadata k/v)
   limit?: number;
   offset?: number;
 }): Promise<{ items: Track[]; total: number }> {
@@ -868,6 +872,10 @@ export async function getFilteredTracks(opts: {
   if (opts.source) params.set('source', opts.source);
   if (opts.label) params.set('label', opts.label);
   if (opts.composer) params.set('composer', opts.composer);
+  if (opts.artist) params.set('artist', opts.artist);
+  if (opts.country) params.set('country', opts.country);
+  if (opts.mood) params.set('mood', opts.mood);
+  if (opts.source_media) params.set('source_media', opts.source_media);
   if (opts.q) params.set('q', opts.q);
   params.set('limit', String(opts.limit ?? 200));
   if (opts.offset) params.set('offset', String(opts.offset));
@@ -875,6 +883,16 @@ export async function getFilteredTracks(opts: {
   const items: Track[] = Array.isArray(raw) ? raw : (raw.items ?? []);
   const total: number = Array.isArray(raw) ? raw.length : (raw.total ?? items.length);
   return { items, total };
+}
+
+export interface FacetValue { value: string; count: number; }
+
+/** Full-library facet counts from the server index (Oxygen rail).
+ *  `country`/`mood`/`source` are read from the track_metadata k/v store. */
+export async function getLibraryFacets(fields: string[]): Promise<Record<string, FacetValue[]>> {
+  const params = new URLSearchParams({ fields: fields.join(',') });
+  const raw = await fetchJSON<any>(`${BASE}/library/facets?${params}`);
+  return (raw && typeof raw === 'object') ? raw : {};
 }
 
 export async function getAllTracks(pageSize = 2000): Promise<Track[]> {

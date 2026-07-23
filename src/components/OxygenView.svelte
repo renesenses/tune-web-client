@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import QualityBadge from './QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
-  import { getFilteredTracks, artworkUrl } from '../lib/api';
+  import { getFilteredTracks, getLibraryFacets, artworkUrl, type FacetValue } from '../lib/api';
   import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../lib/api/metadata';
   import { displayFields } from '../lib/stores/displayFields';
   import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
@@ -31,6 +31,8 @@
   let ext = $state<Record<string, string>>({});
   let extLoading = $state(false);
   let categories = $state<MetadataCategory[]>([]);
+  let serverFacets = $state<Record<string, FacetValue[]>>({});
+  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'country', 'mood', 'source'];
   let facetSel = $state<{ field: string; value: string } | null>(null);
   let albumFilter = $state<string | number | null>(null);
   let albumFilterLabel = $state('');
@@ -44,20 +46,25 @@
     return m;
   });
 
-  const facetGet: Record<string, (t: Track) => string | null | undefined> = {
-    genre: t => t.genre, label: t => t.label,
-    year: t => (t.year != null ? String(t.year) : null), artist: t => t.artist_name,
-  };
+  // A selected facet maps to a server track-filter param (server-side filtering,
+  // full library — not just the loaded window).
+  function facetParam(sel: { field: string; value: string } | null): Record<string, string | number> {
+    if (!sel) return {};
+    switch (sel.field) {
+      case 'genre': return { genre: sel.value };
+      case 'label': return { label: sel.value };
+      case 'year': return { year: Number(sel.value) };
+      case 'artist': return { artist: sel.value };
+      case 'country': return { country: sel.value };
+      case 'mood': return { mood: sel.value };
+      case 'source': return { source_media: sel.value };
+      default: return {};
+    }
+  }
 
   let visible = $derived.by(() => {
-    let list = tracks;
-    if (facetSel && facetGet[facetSel.field]) {
-      const g = facetGet[facetSel.field];
-      list = list.filter(t => (g(t) ?? '') === facetSel!.value);
-    }
-    if (albumFilter != null) {
-      list = list.filter(t => (t.album_id ?? `t:${t.album_title}`) === albumFilter);
-    }
+    let list = tracks; // already server-filtered by the active facet
+    if (albumFilter != null) list = list.filter(t => (t.album_id ?? `t:${t.album_title}`) === albumFilter);
     const q = fold(query.trim());
     if (q) list = list.filter(t =>
       fold(t.title).includes(q) || fold(t.artist_name ?? '').includes(q) ||
@@ -108,19 +115,26 @@
     return groups;
   });
 
-  onMount(async () => {
+  async function loadTracks() {
+    loading = true; error = null;
     try {
-      const [res, fields] = await Promise.all([
-        getFilteredTracks({ limit: LOAD_LIMIT }),
-        getMetadataFieldSettings().catch(() => ({ categories: [] as MetadataCategory[] })),
-      ]);
+      const res = await getFilteredTracks({ ...facetParam(facetSel), limit: LOAD_LIMIT });
       tracks = res.items;
-      categories = fields.categories ?? [];
+      selected = null;
       if (tracks.length) select(tracks[0]);
     } catch (e) {
       error = e instanceof Error ? e.message : 'Chargement impossible';
     } finally { loading = false; }
+  }
+
+  onMount(() => {
+    getMetadataFieldSettings().then(f => { categories = f.categories ?? []; }).catch(() => {});
+    const fields = $preferences.oxygenFacets.filter(f => SERVER_FACET_FIELDS.includes(f));
+    if (fields.length) getLibraryFacets(fields).then(f => { serverFacets = f; }).catch(() => {});
   });
+
+  // Server-driven: (re)fetch the filtered track set whenever the facet changes.
+  $effect(() => { void facetSel; loadTracks(); });
 </script>
 
 <div class="oxygen">
@@ -158,7 +172,7 @@
 
   <div class="body">
     <aside class="railwrap">
-      <OxygenFacetRail tracks={tracks} facets={$preferences.oxygenFacets} selected={facetSel} onSelect={(field, value) => facetSel = value == null ? null : { field, value }} />
+      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} selected={facetSel} onSelect={(field, value) => facetSel = value == null ? null : { field, value }} />
     </aside>
 
     <section class="main">
