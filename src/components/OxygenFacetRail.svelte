@@ -30,15 +30,21 @@
     if (!get) return [];
     const m = new Map<string, number>();
     for (const t of tracks) { const v = get(t); if (v == null || v === '') continue; m.set(v, (m.get(v) ?? 0) + 1); }
-    return [...m.entries()].map(([value, count]) => ({ value, count }))
-      .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'fr')).slice(0, 60);
+    return sortFacet(field, [...m.entries()].map(([value, count]) => ({ value, count }))).slice(0, 60);
+  }
+  // Years read chronologically (desc — 2026 on top), everything else by count.
+  // Count-ordered years buried 2026 under whatever decade had the most albums
+  // (Bertrand: "pas facile de trouver 2026 !").
+  function sortFacet(field: string, vals: FacetValue[]): FacetValue[] {
+    if (field === 'year') return vals.sort((a, b) => Number(b.value) - Number(a.value));
+    return vals.sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'fr'));
   }
   // Prefer the server index (full library); fall back to the loaded window.
   const groups = $derived.by<Record<string, FacetValue[]>>(() => {
     const out: Record<string, FacetValue[]> = {};
     for (const f of shown) {
       const sv = serverFacets[f];
-      out[f] = (sv && sv.length) ? sv : clientCounts(f);
+      out[f] = (sv && sv.length) ? sortFacet(f, [...sv]) : clientCounts(f);
     }
     return out;
   });

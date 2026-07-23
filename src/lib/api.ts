@@ -1774,6 +1774,7 @@ export interface PlaylistSnapshot {
   playlist_name: string;
   track_count: number;
   created_at?: string | null;
+  added_at?: number | null;
 }
 
 export interface SnapshotDetail extends PlaylistSnapshot {

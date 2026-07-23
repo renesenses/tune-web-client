@@ -746,19 +746,21 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   ]);
 
   function albumDateKey(a: any): string {
-    // Sorted by added date → index by when the album entered the library,
-    // not by its release year (#library-date-ajout, Bertrand 23/07).
-    const date = albumSort === 'added_date'
-      ? a.created_at
-      : (a.original_date || a.release_date);
-    if (date && typeof date === 'string' && date.length >= 7) {
-      const month = parseInt(date.substring(5, 7), 10);
-      const year = date.substring(0, 4);
-      if (month >= 1 && month <= 12) return `${year}-${String(month).padStart(2,'0')}`;
+    if (albumSort === 'added_date') {
+      // Index by when the album entered the library — the server exposes
+      // added_at (epoch seconds) on the added-date sorted listing. Month
+      // granularity kept: additions cluster in recent months. No
+      // release-year fallback (it would interleave two different axes).
+      if (typeof a.added_at === 'number' && a.added_at > 0) {
+        const d = new Date(a.added_at * 1000);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      }
+      return '?';
     }
-    // No release-year fallback in added-date mode: it would interleave
-    // release years into a chronological "added" index.
-    if (albumSort === 'added_date') return '?';
+    // Release-date sorts: index by YEAR only — month entries made the
+    // scrubber unusable (Bertrand: "slider années avec les mois").
+    const date = a.original_date || a.release_date;
+    if (date && typeof date === 'string' && date.length >= 4) return date.substring(0, 4);
     const year = a.original_year || a.release_year || a.year;
     return year ? `${year}` : '?';
   }

@@ -49,6 +49,7 @@ export interface Artist {
 }
 
 export interface Album {
+  added_at?: number | null;
   id: number | null;
   title: string;
   artist_id?: number | null;
