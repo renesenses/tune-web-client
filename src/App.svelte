@@ -26,6 +26,7 @@
   import TransportBar from './components/TransportBar.svelte';
   import QueueView from './components/QueueView.svelte';
   import LibraryView from './components/LibraryView.svelte';
+  import OxygenView from './components/OxygenView.svelte';
   import SearchView from './components/SearchView.svelte';
   import PlaylistsView from './components/PlaylistsView.svelte';
   import SmartPlaylistsView from './components/SmartPlaylistsView.svelte';
@@ -984,6 +985,8 @@ import AlarmsView from './components/AlarmsView.svelte';
       <NowPlaying onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'library'}
       <LibraryView onAddToPlaylist={openPlaylistModal} />
+    {:else if $activeView === 'oxygen'}
+      <OxygenView />
     {:else if $activeView === 'queue'}
       <QueueView onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'playlists'}

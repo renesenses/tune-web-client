@@ -6,7 +6,7 @@
   import { zones, currentZoneId, followMe } from '../lib/stores/zones';
   import { loopByDefault } from '../lib/stores/loopByDefault';
   import { devices } from '../lib/stores/devices';
-  import { preferences, applyTheme, type ThemeMode, type VolumeDisplay, type StartupView } from '../lib/stores/preferences';
+  import { preferences, applyTheme, OXYGEN_FACETS_ALL, type ThemeMode, type VolumeDisplay, type StartupView, type OxygenViewMode } from '../lib/stores/preferences';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry, BackupInfo } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
@@ -2775,6 +2775,51 @@
       <p class="settings-note">{$t('settings.metadataReadonlyHelp')}</p>
     </section>
     {/if}
+
+    <!-- Oxygen advanced library view (parameterizable) -->
+    <section class="settings-section">
+      <h3>Vue Oxygen · bibliothèque avancée</h3>
+      <div class="pref-grid">
+        <label class="pref-label" for="oxy-enable">Activer la vue Oxygen</label>
+        <label class="toggle-switch">
+          <input id="oxy-enable" type="checkbox" checked={$preferences.oxygenEnabled}
+            onchange={(e) => preferences.update((p) => ({ ...p, oxygenEnabled: (e.target as HTMLInputElement).checked }))} />
+          <span class="toggle-slider"></span>
+        </label>
+
+        <label class="pref-label" for="oxy-view">Vue par défaut</label>
+        <select id="oxy-view" class="pref-select" value={$preferences.oxygenView}
+          onchange={(e) => preferences.update((p) => ({ ...p, oxygenView: (e.target as HTMLSelectElement).value as OxygenViewMode }))}>
+          <option value="detail">Détails (table)</option>
+          <option value="album">Albums (groupé)</option>
+          <option value="grid">Grille de pochettes</option>
+        </select>
+      </div>
+      <p class="settings-note">Bibliothèque à facettes façon gestionnaire de collection : table dense, badges qualité et inspecteur de métadonnées. Les colonnes de la table suivent vos champs visibles réglés ci-dessus.</p>
+
+      {#if $preferences.oxygenEnabled}
+      <div class="pref-grid" style="margin-top: 6px;">
+        <label class="pref-label">Facettes de navigation</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px 16px;">
+          {#each OXYGEN_FACETS_ALL as f}
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--tune-text-secondary);cursor:pointer;">
+              <input type="checkbox" checked={$preferences.oxygenFacets.includes(f)}
+                onchange={(e) => preferences.update((p) => {
+                  const on = (e.target as HTMLInputElement).checked;
+                  const s = new Set(p.oxygenFacets);
+                  if (on) s.add(f); else s.delete(f);
+                  return { ...p, oxygenFacets: OXYGEN_FACETS_ALL.filter((x) => s.has(x)) };
+                })} />
+              {({ genre: 'Genres', label: 'Labels', mood: 'Moods', year: 'Années', rating: 'Notes', collection: 'Collections', country: 'Pays', folder: 'Dossiers', untagged: 'Non-taggés' } as Record<string, string>)[f]}
+            </label>
+          {/each}
+        </div>
+      </div>
+      <div class="settings-actions">
+        <button class="action-btn" onclick={() => activeView.set('oxygen')}>Ouvrir la vue Oxygen</button>
+      </div>
+      {/if}
+    </section>
 
     <!-- Enrichment -->
     {#if config}
