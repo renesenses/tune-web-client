@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import QualityBadge from './QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
-  import { getFilteredTracks, getLibraryFacets, artworkUrl, type FacetValue } from '../lib/api';
+  import { getFilteredTracks, getLibraryFacets, artworkUrl, addToQueue, getQueue, jumpInQueue, type FacetValue } from '../lib/api';
   import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../lib/api/metadata';
   import { displayFields } from '../lib/stores/displayFields';
   import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
@@ -11,6 +11,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { fold } from '../lib/utils';
   import { t } from '../lib/i18n';
+  import { get } from 'svelte/store';
   import type { Track } from '../lib/types';
 
   const NEW_KEYS = new Set(['release_country', 'mb_release_track_id', 'encoder_software', 'source_media']);
@@ -121,6 +122,10 @@
   // SON album (prévisible, même sur une liste filtrée de 3000 pistes) ; bouton
   // ▶ sur les cartes album = joue l'album groupé.
   let zone = $derived($currentZone);
+  // Précalculés : dans {#each g.tracks as t}, la piste `t` masque le store
+  // i18n `t` — $t y est donc inutilisable.
+  let L_PLAY_NEXT = $derived($t('library.playNext'));
+  let L_ADD_QUEUE = $derived($t('library.addToQueue'));
   async function playTracks(ids: number[]) {
     if (!zone?.id) { notifications.error($t('library.noZoneSelected')); return; }
     if (!ids.length) return;
@@ -152,6 +157,41 @@
     const list = g ? g.tracks : [t];
     const idx = Math.max(0, list.findIndex(x => x.id === t.id));
     return playTracks(list.slice(idx).map(x => x.id).filter(Boolean) as number[]);
+  }
+
+  // Actions file — même sémantique que la bibliothèque classique (y compris
+  // le démarrage quand la zone est idle).
+  async function queueNext(t: Track) {
+    if (!zone?.id || t.id == null) { if (!zone?.id) notifications.error(get(t)('library.noZoneSelected')); return; }
+    try {
+      const qs = await getQueue(zone.id);
+      const nextPos = qs.position + 1;
+      const idle = qs.length === 0 || (zone.state !== 'playing' && zone.state !== 'buffering');
+      await addToQueue(zone.id, { track_id: t.id, position: nextPos });
+      if (idle) await jumpInQueue(zone.id, nextPos);
+      notifications.success(`"${t.title}" — ${get(t)('library.playNext').toLowerCase()}`);
+    } catch (e) {
+      notifications.error(e instanceof Error ? e.message : String(e));
+    }
+  }
+  async function queueAppendTrack(t: Track) {
+    if (!zone?.id || t.id == null) { if (!zone?.id) notifications.error(get(t)('library.noZoneSelected')); return; }
+    try {
+      await addToQueue(zone.id, { track_id: t.id });
+      notifications.success(`"${t.title}" — ${get(t)('library.addedToQueue').toLowerCase()}`);
+    } catch (e) {
+      notifications.error(e instanceof Error ? e.message : String(e));
+    }
+  }
+  async function queueAppendAlbum(g: AlbumGroup) {
+    if (!zone?.id) { notifications.error(get(t)('library.noZoneSelected')); return; }
+    try {
+      if (typeof g.key === 'number') await addToQueue(zone.id, { album_id: g.key });
+      else for (const t of g.tracks) if (t.id != null) await addToQueue(zone.id, { track_id: t.id });
+      notifications.success(`"${g.title}" — ${get(t)('library.addedToQueue').toLowerCase()}`);
+    } catch (e) {
+      notifications.error(e instanceof Error ? e.message : String(e));
+    }
   }
 
   let inspectorGroups = $derived.by(() => {
@@ -268,6 +308,7 @@
               <div class="abody">
                 <div class="ahead">
                   <div><div class="at">{g.title}</div><div class="aa">{g.artist}{g.year ? ` · ${g.year}` : ''} · {g.tracks.length} {$t('oxygen.tracks')}</div></div>
+                  <button class="aplay aq" title={$t('library.addToQueue')} onclick={() => queueAppendAlbum(g)}>＋</button>
                   <button class="aplay" title={$t('library.playAlbum')} onclick={() => playAlbumGroup(g)}>
                     <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z"/></svg>
                   </button>
@@ -275,11 +316,17 @@
                 </div>
                 <div class="atracks">
                   {#each g.tracks as t (t.id)}
-                    <button class="trk" class:sel={selected?.id === t.id} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
-                      <span class="tn">{t.track_number ?? ''}</span>
-                      <span class="tt">{t.title}</span>
-                      <span class="td">{fmtDur(t.duration_ms)}</span>
-                    </button>
+                    <div class="trkrow">
+                      <button class="trk" class:sel={selected?.id === t.id} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
+                        <span class="tn">{t.track_number ?? ''}</span>
+                        <span class="tt">{t.title}</span>
+                        <span class="td">{fmtDur(t.duration_ms)}</span>
+                      </button>
+                      <span class="trkacts">
+                        <button class="tact" title={L_PLAY_NEXT} onclick={() => queueNext(t)}>⏭</button>
+                        <button class="tact" title={L_ADD_QUEUE} onclick={() => queueAppendTrack(t)}>＋</button>
+                      </span>
+                    </div>
                   {/each}
                 </div>
               </div>
@@ -392,6 +439,13 @@
   .pov { position: absolute; right: 8px; bottom: 8px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--tune-accent, #f5a623); color: #000; display: none; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
   .card:hover .pov, .pov:focus { display: inline-flex; }
   .aplay { width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--tune-accent, #f5a623); color: #000; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; }
+  .aplay.aq { background: var(--tune-surface); color: var(--tune-text); border: 1px solid var(--tune-border); font-size: 15px; }
+  .trkrow { display: flex; align-items: center; gap: 4px; }
+  .trkrow .trk { flex: 1; min-width: 0; }
+  .trkacts { display: none; flex: none; gap: 2px; }
+  .trkrow:hover .trkacts { display: inline-flex; }
+  .tact { border: 0; background: none; color: var(--tune-text-secondary); cursor: pointer; font-size: 13px; padding: 2px 4px; border-radius: 4px; }
+  .tact:hover { color: var(--tune-accent); background: var(--tune-surface); }
   .cwrap { position: relative; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 22px rgba(0,0,0,.35); aspect-ratio: 1; }
   .cvr { width: 100%; height: 100%; object-fit: cover; display: block; background: var(--tune-surface-hover); }
   .cvr.ph { display: grid; place-items: center; font-size: 30px; color: var(--tune-text-muted); }
