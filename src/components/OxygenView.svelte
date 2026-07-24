@@ -140,11 +140,17 @@
     return playTracks(g.tracks.map(t => t.id).filter(Boolean) as number[]);
   }
   function playFromTrack(t: Track) {
+    // album_id + track_id: the server resolves the album in ITS canonical
+    // order and infers the start index from track_id. Computing start_index
+    // client-side against the VIEW's ordering launched the wrong track
+    // (Bertrand: « Lire à partir de ne lance pas le morceau sélectionné »).
+    if (typeof t.album_id === 'number' && typeof t.id === 'number') {
+      return playBody({ album_id: t.album_id, track_id: t.id });
+    }
     const key = t.album_id ?? `t:${t.album_title}`;
     const g = albums.find(a => a.key === key);
     const list = g ? g.tracks : [t];
     const idx = Math.max(0, list.findIndex(x => x.id === t.id));
-    if (typeof t.album_id === 'number') return playBody({ album_id: t.album_id, start_index: idx });
     return playTracks(list.slice(idx).map(x => x.id).filter(Boolean) as number[]);
   }
 
