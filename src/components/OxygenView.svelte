@@ -125,7 +125,7 @@
   // Précalculés : dans {#each g.tracks as t}, la piste `t` masque le store
   // i18n `t` — $t y est donc inutilisable.
   let L_PLAY_NEXT = $derived($t('library.playNext'));
-  let L_ADD_QUEUE = $derived($t('library.addToQueue'));
+  let L_ADD_QUEUE = $derived($t('queue.addToQueue'));
   async function playTracks(ids: number[]) {
     if (!zone?.id) { notifications.error($t('library.noZoneSelected')); return; }
     if (!ids.length) return;
@@ -178,7 +178,7 @@
     if (!zone?.id || t.id == null) { if (!zone?.id) notifications.error(get(t)('library.noZoneSelected')); return; }
     try {
       await addToQueue(zone.id, { track_id: t.id });
-      notifications.success(`"${t.title}" — ${get(t)('library.addedToQueue').toLowerCase()}`);
+      notifications.success(`"${t.title}" — ${get(t)('queue.addToQueue').toLowerCase()}`);
     } catch (e) {
       notifications.error(e instanceof Error ? e.message : String(e));
     }
@@ -188,7 +188,7 @@
     try {
       if (typeof g.key === 'number') await addToQueue(zone.id, { album_id: g.key });
       else for (const t of g.tracks) if (t.id != null) await addToQueue(zone.id, { track_id: t.id });
-      notifications.success(`"${g.title}" — ${get(t)('library.addedToQueue').toLowerCase()}`);
+      notifications.success(`"${g.title}" — ${get(t)('queue.addToQueue').toLowerCase()}`);
     } catch (e) {
       notifications.error(e instanceof Error ? e.message : String(e));
     }
@@ -308,7 +308,7 @@
               <div class="abody">
                 <div class="ahead">
                   <div><div class="at">{g.title}</div><div class="aa">{g.artist}{g.year ? ` · ${g.year}` : ''} · {g.tracks.length} {$t('oxygen.tracks')}</div></div>
-                  <button class="aplay aq" title={$t('library.addToQueue')} onclick={() => queueAppendAlbum(g)}>＋</button>
+                  <button class="aplay aq" title={$t('queue.addToQueue')} onclick={() => queueAppendAlbum(g)}>＋</button>
                   <button class="aplay" title={$t('library.playAlbum')} onclick={() => playAlbumGroup(g)}>
                     <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z"/></svg>
                   </button>
