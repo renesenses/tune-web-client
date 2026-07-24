@@ -684,13 +684,18 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     return result;
   });
 
-  // Reset album grid scroll when filters change (but not when restoring after back-nav)
+  // Reset album grid scroll when filters change (but not when restoring after back-nav).
+  // Only `filteredAlbums.length` is a tracked dependency: reading `restoringScroll`
+  // or `albumGridViewport` reactively made this re-fire when a Back-restore
+  // completed (restoringScroll true→false) or the grid re-mounted, zeroing the
+  // scroll a frame after it was restored → jumped to top (#1096, #1170).
   $effect(() => {
-    // Access filteredAlbums.length to subscribe to changes
     const _len = filteredAlbums.length;
-    if (restoringScroll) return;
-    albumScrollTop = 0;
-    if (albumGridViewport) albumGridViewport.scrollTop = 0;
+    untrack(() => {
+      if (restoringScroll) return;
+      albumScrollTop = 0;
+      if (albumGridViewport) albumGridViewport.scrollTop = 0;
+    });
   });
 
   let albumFormats = $derived(
@@ -1036,6 +1041,16 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     selectedGenre = null;
     selectedNoGenre = false;
     searchQuery = '';
+    // Switching tabs unmounts the album/year grids; their viewports remount
+    // fresh at scrollTop 0. A stale virtual-scroll offset from a previous
+    // scroll would make the visible slice render far below the fold, leaving
+    // the grid blank (black page) until the user scrolls (#1109, and the
+    // Years-tab "page noire" in #1170). Reset both so the grids always come
+    // back consistent with the fresh DOM.
+    albumScrollTop = 0;
+    if (albumGridViewport) albumGridViewport.scrollTop = 0;
+    yearScrollTop = 0;
+    if (yearGridViewport) yearGridViewport.scrollTop = 0;
     // Update current history entry so browser-back restores the correct tab
     try {
       const cur = window.history.state ?? {};
@@ -1305,6 +1320,28 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     requestAnimationFrame(tick);
   }
 
+  // Same poll-until-ready pattern for the Years tab: its viewport remounts at
+  // scrollTop 0 on Back while `yearScrollTop` (the virtual-scroll offset) still
+  // holds the pre-detail position, so the visible slice renders below the fold
+  // and the tab comes back as a black page until the user scrolls (#1170).
+  // Re-aligning the viewport on the saved offset both restores the position
+  // and repaints the slice.
+  function restoreYearScrollWhenReady(target: number) {
+    if (target <= 0) return;
+    let attempts = 0;
+    const tick = () => {
+      const el = yearGridViewport;
+      const ready = el && el.scrollHeight >= target + el.clientHeight;
+      if (ready || attempts >= 30) {
+        if (el) el.scrollTop = target;
+        return;
+      }
+      attempts += 1;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
   // Same poll-until-ready pattern as albums, but for the artist list, whose
   // scroll container is `.library-view` (not the album grid viewport). A fixed
   // double-rAF clamped to 0 on a large artist list, so Back landed at the top
@@ -1356,6 +1393,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     restoreAlbumScrollWhenReady(restoreAlbumScroll);
     if (wasArtistTab && restoreArtistScroll > 0) {
       restoreArtistScrollWhenReady(restoreArtistScroll);
+    }
+    if ($libraryTab === 'years') {
+      restoreYearScrollWhenReady(yearScrollTop);
     }
   }
 
@@ -1572,6 +1612,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       // position once the re-rendered list is tall enough.
       if (wasInDetail && !inDetail && $libraryTab === 'artists' && savedArtistScrollTop > 0) {
         restoreArtistScrollWhenReady(savedArtistScrollTop);
+      }
+      // Years tab: re-align the remounted viewport on the stale virtual-scroll
+      // offset, otherwise the tab comes back as a black page (#1170).
+      if (wasInDetail && !inDetail && $libraryTab === 'years') {
+        restoreYearScrollWhenReady(yearScrollTop);
       }
     });
   });
@@ -2366,7 +2411,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     {:else if $libraryTab === 'artists'}
       <div class="artists-section">
         {#if artistLetters.length > 5}
-          <AlphaIndex letters={artistLetters} activeLetter={activeArtistLetter} onSelect={scrollToArtistLetter} />
+          <AlphaIndex letters={artistLetters} activeLetter={activeArtistLetter} onSelect={scrollToArtistLetter} sticky />
         {/if}
         <div class="artists-grid">
           {#each filteredArtists as artist}
@@ -3430,6 +3475,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     flex: 1;
     overflow-y: auto;
     min-height: 0;
+    /* Reserve the scrollbar gutter permanently so the content-box width does not
+       shrink when the vertical scrollbar appears. Otherwise the width feeds back
+       into the virtual-scroll column math and shifts the whole grid by one
+       thumbnail the moment the scrollbar shows up (#1022). */
+    scrollbar-gutter: stable;
     /* Firefox: widen the too-thin virtual-list scrollbar so it stays grabbable
        (#1143). Chrome keeps its 14px ::-webkit-scrollbar. */
     scrollbar-width: auto;
@@ -3742,16 +3792,20 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   }
 
   .artists-grid {
+    /* Fill the remaining width next to the vertical AlphaIndex — .artists-section
+       is a flex row, and without flex:1 the grid shrank to its min content, so
+       `auto-fill` collapsed to a SINGLE column (#1092, #1096). min-width:0 lets
+       it shrink past content instead of overflowing. */
+    flex: 1;
+    min-width: 0;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: var(--space-lg);
-    flex: 1;
-    overflow-y: auto;
-    padding-right: 20px;
-    /* Firefox: widen the too-thin scrollbar so it stays grabbable (#1143).
-       Chrome keeps its 14px ::-webkit-scrollbar. */
-    scrollbar-width: auto;
-    scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+    /* No inner scroll: the whole .library-view scrolls as one region (same
+       Firefox double-scrollbar fix as the Genres tab — #1075). An inner
+       overflow-y here also kept `.library-view` at scrollTop 0, so Back could
+       never restore the artist list position (#1118, #1170). The Firefox
+       scrollbar-width/color fix (#1143) lives on .library-view here. */
   }
 
   .artist-card {
@@ -4235,20 +4289,23 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     cursor: pointer;
     transition: border-color 0.12s;
   }
-  .branch-row:hover { border-color: var(--tune-accent); }
+  .branch-row:hover {
+    border-color: var(--tune-accent);
+    background: var(--tune-surface-hover);
+  }
   .branch-row:focus-visible {
     outline: 2px solid var(--tune-accent);
     outline-offset: 2px;
   }
-  /* Whole top strip clickable via the .branch-row wrapper, with the count sitting
-     right after the name instead of pushed to the far edge — on wide screens
-     `space-between` left the count marooned across the card from the name. */
+  /* Same layout as the "outside tree" .genre-card, which is the reference look
+     (#1029, Thibaud): name on the first line, album count as a subtitle right
+     under it — never pushed across the card. */
   .branch-card {
-    display: flex; justify-content: flex-start; align-items: baseline;
-    gap: var(--space-sm); width: 100%;
+    display: flex; flex-direction: column;
+    gap: var(--space-xs); width: 100%;
     color: var(--tune-text); text-align: left;
   }
-  .branch-name { font-family: var(--font-label); font-size: 18px; font-weight: 700; }
+  .branch-name { font-family: var(--font-label); font-size: 16px; font-weight: 600; }
   .branch-row:hover .branch-name { color: var(--tune-accent); }
   .branch-count { font-family: var(--font-body); font-size: 13px; color: var(--tune-text-muted); }
   .branch-children { display: flex; flex-wrap: wrap; gap: 6px; }

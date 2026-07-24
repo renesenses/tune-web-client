@@ -1132,6 +1132,15 @@ import AlarmsView from './components/AlarmsView.svelte';
     position: relative;
     min-width: 0;
     min-height: 0;
+    /* Flex column so the update/status banners stack ABOVE the active view
+       instead of pushing a `height:100%` view past the bottom edge. Without
+       this, opening a banner overflowed .main-content by the banner height and
+       Firefox drew a second (page-level) scrollbar on top of the view's own
+       one — the "double ascenseur" on Bibliothèque (#1075). Views that scroll
+       internally (overflow:auto) shrink by the banner height; plain block
+       views keep their natural height and still scroll .main-content. */
+    display: flex;
+    flex-direction: column;
   }
 
   .global-search-wrapper {
