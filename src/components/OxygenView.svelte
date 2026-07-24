@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import QualityBadge from './QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
+  import HeartButton from './HeartButton.svelte';
   import { getFilteredTracks, getLibraryFacets, artworkUrl, addToQueue, getQueue, jumpInQueue, type FacetValue } from '../lib/api';
   import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../lib/api/metadata';
   import { displayFields } from '../lib/stores/displayFields';
@@ -289,6 +290,7 @@
               <div class="cwrap">
                 {#if g.cover}<img class="cvr" src={artworkUrl(g.cover)} alt="" loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />{:else}<div class="cvr ph">♪</div>{/if}
                 <span class="qov"><QualityBadge format={g.format} sampleRate={g.sr} bitDepth={g.bd} source={g.source} /></span>
+                {#if typeof g.key === 'number'}<span class="hov" onclick={(e) => e.stopPropagation()}><HeartButton albumId={g.key} size={14} /></span>{/if}
                 <button class="pov" title={$t('library.playAlbum')} onclick={(e) => { e.stopPropagation(); playAlbumGroup(g); }}>
                   <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M8 5v14l11-7z"/></svg>
                 </button>
@@ -308,6 +310,7 @@
               <div class="abody">
                 <div class="ahead">
                   <div><div class="at">{g.title}</div><div class="aa">{g.artist}{g.year ? ` · ${g.year}` : ''} · {g.tracks.length} {$t('oxygen.tracks')}</div></div>
+                  {#if typeof g.key === 'number'}<span class="ahheart"><HeartButton albumId={g.key} size={16} /></span>{/if}
                   <button class="aplay aq" title={$t('queue.addToQueue')} onclick={() => queueAppendAlbum(g)}>＋</button>
                   <button class="aplay" title={$t('library.playAlbum')} onclick={() => playAlbumGroup(g)}>
                     <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z"/></svg>
@@ -323,6 +326,7 @@
                         <span class="td">{fmtDur(t.duration_ms)}</span>
                       </button>
                       <span class="trkacts">
+                        {#if t.id != null}<span class="tact-h"><HeartButton trackId={t.id} size={13} /></span>{/if}
                         <button class="tact" title={L_PLAY_NEXT} onclick={() => queueNext(t)}>⏭</button>
                         <button class="tact" title={L_ADD_QUEUE} onclick={() => queueAppendTrack(t)}>＋</button>
                       </span>
@@ -446,6 +450,9 @@
   .trkrow:hover .trkacts { display: inline-flex; }
   .tact { border: 0; background: none; color: var(--tune-text-secondary); cursor: pointer; font-size: 13px; padding: 2px 4px; border-radius: 4px; }
   .tact:hover { color: var(--tune-accent); background: var(--tune-surface); }
+  .hov { position: absolute; right: 8px; top: 8px; z-index: 2; }
+  .ahheart { display: inline-flex; align-items: center; flex: none; }
+  .tact-h { display: inline-flex; align-items: center; }
   .cwrap { position: relative; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 22px rgba(0,0,0,.35); aspect-ratio: 1; }
   .cvr { width: 100%; height: 100%; object-fit: cover; display: block; background: var(--tune-surface-hover); }
   .cvr.ph { display: grid; place-items: center; font-size: 30px; color: var(--tune-text-muted); }
