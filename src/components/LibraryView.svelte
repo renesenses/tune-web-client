@@ -2090,6 +2090,12 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                   <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                 </button>
                 <span class="heart-overlay"><HeartButton albumId={album.id} size={14} /></span>
+                {#if album.format || album.sample_rate}
+                  <!-- Quality variants of the same album stay as separate cards
+                       (Bertrand: « pas de regroupement ») — the badge is what
+                       tells them apart at a glance. -->
+                  <span class="quality-overlay"><QualityBadge format={album.format} sampleRate={album.sample_rate} bitDepth={album.bit_depth} source={album.source} /></span>
+                {/if}
               </div>
               <span class="album-card-title truncate" title={album.title}>{album.title}</span>
               {#if album.year || album.original_year}
@@ -3541,6 +3547,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     left: 6px;
     z-index: 2;
   }
+  .quality-overlay { position: absolute; left: 6px; bottom: 6px; z-index: 2; pointer-events: none; }
 
   .heart-overlay :global(.heart-btn) {
     opacity: 0;
