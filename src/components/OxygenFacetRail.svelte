@@ -7,7 +7,7 @@
     tracks: Track[];                                  // loaded window (client fallback)
     serverFacets: Record<string, FacetValue[]>;       // full-library counts from the server index
     facets: string[];                                 // which facets to show (preferences.oxygenFacets)
-    selected: { field: string; value: string } | null;
+    selected: Record<string, string>;
     onSelect: (field: string, value: string | null) => void;
   }
   let { tracks, serverFacets, facets, selected, onSelect }: Props = $props();
@@ -67,8 +67,8 @@
         {#if isOpen(f)}
           <div class="values">
             {#each groups[f] ?? [] as row (row.value)}
-              <button class="val" class:active={selected?.field === f && selected?.value === row.value}
-                onclick={() => onSelect(f, selected?.field === f && selected?.value === row.value ? null : row.value)}>
+              <button class="val" class:active={selected[f] === row.value}
+                onclick={() => onSelect(f, selected[f] === row.value ? null : row.value)}>
                 <span class="vl" title={row.value}>{row.value}</span>
                 <span class="vc">{row.count.toLocaleString('fr')}</span>
               </button>

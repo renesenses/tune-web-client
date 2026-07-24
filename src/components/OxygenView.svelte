@@ -36,7 +36,10 @@
   let categories = $state<MetadataCategory[]>([]);
   let serverFacets = $state<Record<string, FacetValue[]>>({});
   const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'country', 'mood', 'source'];
-  let facetSel = $state<{ field: string; value: string } | null>(null);
+  // Multi-facet: one active value per field, combinable (Bertrand :
+  // « filtrer simultanément par Genre, year et label »). Chaque champ garde
+  // au plus une valeur ; les champs actifs se cumulent côté serveur.
+  let facetSels = $state<Record<string, string>>({});
   let albumFilter = $state<string | number | null>(null);
   let albumFilterLabel = $state('');
   // Mobile: rail + inspector become slide-over drawers.
@@ -55,18 +58,20 @@
 
   // A selected facet maps to a server track-filter param (server-side filtering,
   // full library — not just the loaded window).
-  function facetParam(sel: { field: string; value: string } | null): Record<string, string | number> {
-    if (!sel) return {};
-    switch (sel.field) {
-      case 'genre': return { genre: sel.value };
-      case 'label': return { label: sel.value };
-      case 'year': return { year: Number(sel.value) };
-      case 'artist': return { artist: sel.value };
-      case 'country': return { country: sel.value };
-      case 'mood': return { mood: sel.value };
-      case 'source': return { source_media: sel.value };
-      default: return {};
+  function facetParam(sels: Record<string, string>): Record<string, string | number> {
+    const out: Record<string, string | number> = {};
+    for (const [field, value] of Object.entries(sels)) {
+      switch (field) {
+        case 'genre': out.genre = value; break;
+        case 'label': out.label = value; break;
+        case 'year': out.year = Number(value); break;
+        case 'artist': out.artist = value; break;
+        case 'country': out.country = value; break;
+        case 'mood': out.mood = value; break;
+        case 'source': out.source_media = value; break;
+      }
     }
+    return out;
   }
 
   let visible = $derived.by(() => {
@@ -158,7 +163,7 @@
   async function loadTracks() {
     loading = true; error = null;
     try {
-      const res = await getFilteredTracks({ ...facetParam(facetSel), limit: LOAD_LIMIT });
+      const res = await getFilteredTracks({ ...facetParam(facetSels), limit: LOAD_LIMIT });
       tracks = res.items;
       selected = null;
       if (tracks.length) select(tracks[0]);
@@ -178,7 +183,7 @@
   });
 
   // Server-driven: (re)fetch the filtered track set whenever the facet changes.
-  $effect(() => { void facetSel; loadTracks(); });
+  $effect(() => { void JSON.stringify(facetSels); loadTracks(); });
 </script>
 
 <div class="oxygen">
@@ -210,16 +215,18 @@
     <div class="count">{visible.length.toLocaleString('fr')}</div>
   </header>
 
-  {#if facetSel || albumFilter != null}
+  {#if Object.keys(facetSels).length || albumFilter != null}
     <div class="crumbs">
-      {#if facetSel}<button class="crumb" onclick={() => facetSel = null}>{facetSel.value} <span class="x">×</span></button>{/if}
+      {#each Object.entries(facetSels) as [field, value] (field)}
+        <button class="crumb" onclick={() => { const next = { ...facetSels }; delete next[field]; facetSels = next; }}>{value} <span class="x">×</span></button>
+      {/each}
       {#if albumFilter != null}<button class="crumb" onclick={clearAlbum}>{albumFilterLabel} <span class="x">×</span></button>{/if}
     </div>
   {/if}
 
   <div class="body">
     <aside class="railwrap" class:open={mobileRail}>
-      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} selected={facetSel} onSelect={(field, value) => { facetSel = value == null ? null : { field, value }; mobileRail = false; }} />
+      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} selected={facetSels} onSelect={(field, value) => { const next = { ...facetSels }; if (value == null) { delete next[field]; } else { next[field] = value; } facetSels = next; mobileRail = false; }} />
     </aside>
 
     <section class="main">
