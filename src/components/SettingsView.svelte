@@ -5613,7 +5613,9 @@
     align-items: center;
     gap: 8px;
     padding: 4px 8px;
-    background: var(--tune-bg-secondary, #f5f5f5);
+    /* Fallback translucide : --tune-bg-secondary n'existe pas dans le thème,
+       un fallback clair (#f5f5f5) rendait le SSID blanc sur blanc (Stéphane) */
+    background: var(--tune-bg-secondary, rgba(255, 255, 255, 0.05));
     border-radius: 8px;
   }
   .wifi-item.selected {
@@ -5661,9 +5663,9 @@
   .wifi-connect-form input {
     flex: 1;
     padding: 6px 10px;
-    border: 1px solid var(--tune-border, #ddd);
+    border: 1px solid var(--tune-border, rgba(128, 128, 128, 0.35));
     border-radius: 6px;
-    background: var(--tune-bg, #fff);
+    background: var(--tune-bg, transparent);
     color: var(--tune-text-primary);
     font-size: 13px;
   }

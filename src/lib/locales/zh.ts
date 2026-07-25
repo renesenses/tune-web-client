@@ -1290,7 +1290,7 @@ export default {
   "settings.wifiPassword": "WiFi 密码",
   "settings.wifiConnect": "连接",
   "settings.wifiScan": "扫描网络",
-  "settings.wifiConnectSuccess": "已连接到 {ssid}！现在可以拔掉网线了。",
+  "settings.wifiConnectSuccess": "已连接到 {ssid}！现在可以拔掉网线——机器屏幕上显示的 .local 地址仍然有效。",
   "settings.searching": "搜索中…",
   "settings.noTunePeers": "在本地网络上未检测到其他 Tune 服务器。",
   "settings.browse": "浏览",

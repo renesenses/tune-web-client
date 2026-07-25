@@ -1308,7 +1308,7 @@ export default {
   "settings.wifiPassword": "Mot de passe WiFi",
   "settings.wifiConnect": "Se connecter",
   "settings.wifiScan": "Rechercher les réseaux",
-  "settings.wifiConnectSuccess": "Connecté à {ssid} ! Vous pouvez maintenant débrancher le câble réseau.",
+  "settings.wifiConnectSuccess": "Connecté à {ssid} ! Vous pouvez débrancher le câble réseau — l'adresse en .local affichée sur l'écran de la machine reste valable.",
   "settings.searching": "Recherche...",
   "settings.noTunePeers": "Aucun autre serveur Tune détecté sur le réseau local.",
   "settings.browse": "Parcourir",
