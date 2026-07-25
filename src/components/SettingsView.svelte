@@ -3075,7 +3075,7 @@
                   if (on) s.add(f); else s.delete(f);
                   return { ...p, oxygenFacets: OXYGEN_FACETS_ALL.filter((x) => s.has(x)) };
                 })} />
-              {({ genre: 'Genres', artist: 'Artistes', label: 'Labels', year: 'Années', country: 'Pays', mood: 'Moods', source: 'Support' } as Record<string, string>)[f]}
+              {({ genre: 'Genres', artist: 'Artistes', label: 'Labels', year: 'Années', format: 'Format', sample_rate: 'Fréquence', bit_depth: 'Résolution', country: 'Pays', mood: 'Moods', source: 'Support' } as Record<string, string>)[f]}
             </label>
           {/each}
         </div>

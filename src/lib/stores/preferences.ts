@@ -14,7 +14,9 @@ export type OxygenViewMode = 'album' | 'grid' | 'detail';
 // (rail FIELD_LABELS ∩ SERVER_FACET_FIELDS). The old list advertised
 // rating/collection/folder/untagged, which the rail silently dropped — a user
 // who selected them saw fewer facets than expected (Bertrand: "seulement 3").
-export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'label', 'year', 'country', 'mood', 'source'] as const;
+// format/sample_rate/bit_depth are the technical dimensions an audiophile
+// browses by (direct tracks columns; server column_facet).
+export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source'] as const;
 /** Facets removed from OXYGEN_FACETS_ALL — used to migrate old stored prefs. */
 const OXYGEN_FACETS_REMOVED = ['rating', 'collection', 'folder', 'untagged'];
 
@@ -44,7 +46,7 @@ const defaults: Preferences = {
   hiddenDeviceIds: [],
   oxygenEnabled: false,
   oxygenView: 'detail',
-  oxygenFacets: ['genre', 'artist', 'label', 'year', 'country', 'mood', 'source'],
+  oxygenFacets: ['genre', 'artist', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'country'],
   oxygenFacetLimit: 200,
 };
 
