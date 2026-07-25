@@ -144,6 +144,18 @@
   }
   function clearAlbum() { albumFilter = null; albumFilterLabel = ''; }
 
+  // Back button: pop the in-Oxygen navigation before leaving the view. A tester
+  // selecting an Artistes/Genres/Labels/Années facet and pressing back expected
+  // to return to Oxygen (unfiltered), not to jump straight out to the plain
+  // Library (forum #1189, Jean Valjean). So: an open album returns to the facet
+  // results, an active facet returns to the Oxygen root, and only from the root
+  // does back exit to the Library.
+  function goBack() {
+    if (albumFilter != null) { clearAlbum(); return; }
+    if (Object.keys(facetSels).length) { facetSels = {}; return; }
+    activeView.set('library');
+  }
+
   // Play wiring (Bertrand, .15 v0.9.0 pre-release test: rien n'était cliquable
   // pour lancer la lecture). Double-clic piste = joue la piste puis la suite de
   // SON album (prévisible, même sur une liste filtrée de 3000 pistes) ; bouton
@@ -271,7 +283,7 @@
 
 <div class="oxygen">
   <header class="bar">
-    <button class="icnbtn" onclick={() => activeView.set('library')} title={$t('oxygen.back')} aria-label={$t('oxygen.back')}>
+    <button class="icnbtn" onclick={goBack} title={$t('oxygen.back')} aria-label={$t('oxygen.back')}>
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
     </button>
     <button class="icnbtn railtoggle" onclick={() => mobileRail = true} title={$t('oxygen.facets')} aria-label={$t('oxygen.facets')}>
