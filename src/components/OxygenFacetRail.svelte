@@ -7,10 +7,11 @@
     tracks: Track[];                                  // loaded window (client fallback)
     serverFacets: Record<string, FacetValue[]>;       // full-library counts from the server index
     facets: string[];                                 // which facets to show (preferences.oxygenFacets)
+    limit?: number;                                   // max values per facet; 0 = no limit
     selected: Record<string, string>;
     onSelect: (field: string, value: string | null) => void;
   }
-  let { tracks, serverFacets, facets, selected, onSelect }: Props = $props();
+  let { tracks, serverFacets, facets, limit = 200, selected, onSelect }: Props = $props();
 
   const FIELD_LABELS: Record<string, string> = {
     genre: 'Genres', label: 'Labels', year: 'Années', artist: 'Artistes',
@@ -30,7 +31,8 @@
     if (!get) return [];
     const m = new Map<string, number>();
     for (const t of tracks) { const v = get(t); if (v == null || v === '') continue; m.set(v, (m.get(v) ?? 0) + 1); }
-    return sortFacet(field, [...m.entries()].map(([value, count]) => ({ value, count }))).slice(0, 60);
+    const all = sortFacet(field, [...m.entries()].map(([value, count]) => ({ value, count })));
+    return limit > 0 ? all.slice(0, limit) : all;
   }
   // Per-facet sort mode. Default 'count' (years = chronological desc, so 2026
   // stays on top — Bertrand: "pas facile de trouver 2026 !"). Dominique wanted

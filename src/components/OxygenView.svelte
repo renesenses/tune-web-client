@@ -251,7 +251,7 @@
   // own field server-side, keeping its alternatives visible.
   async function loadFacets() {
     if (!serverFacetFields.length) return;
-    try { serverFacets = await getLibraryFacets(serverFacetFields, facetParam(facetSels)); }
+    try { serverFacets = await getLibraryFacets(serverFacetFields, facetParam(facetSels), $preferences.oxygenFacetLimit); }
     catch { /* keep the previous facet counts on transient failure */ }
   }
 
@@ -263,9 +263,10 @@
     getMetadataFieldSettings().then(f => { categories = f.categories ?? []; }).catch(() => {});
   });
 
-  // Server-driven: (re)fetch the filtered tracks AND the cumulative facet counts
-  // whenever the active facet selection changes.
-  $effect(() => { void JSON.stringify(facetSels); loadTracks(); loadFacets(); });
+  // Server-driven: (re)fetch the filtered tracks whenever the selection changes.
+  $effect(() => { void JSON.stringify(facetSels); loadTracks(); });
+  // Facet counts also re-fetch when the per-facet value limit changes.
+  $effect(() => { void JSON.stringify(facetSels); void $preferences.oxygenFacetLimit; loadFacets(); });
 </script>
 
 <div class="oxygen">
@@ -308,7 +309,7 @@
 
   <div class="body">
     <aside class="railwrap" class:open={mobileRail}>
-      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} selected={facetSels} onSelect={(field, value) => { const next = { ...facetSels }; if (value == null) { delete next[field]; } else { next[field] = value; } facetSels = next; mobileRail = false; }} />
+      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} limit={$preferences.oxygenFacetLimit} selected={facetSels} onSelect={(field, value) => { const next = { ...facetSels }; if (value == null) { delete next[field]; } else { next[field] = value; } facetSels = next; mobileRail = false; }} />
     </aside>
 
     <section class="main">

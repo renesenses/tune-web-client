@@ -23,6 +23,8 @@ export interface Preferences {
   oxygenEnabled: boolean;
   oxygenView: OxygenViewMode;
   oxygenFacets: string[];
+  /** Max values shown per Oxygen facet. 0 = no limit (show every value). */
+  oxygenFacetLimit: number;
 }
 
 const STORAGE_KEY = 'tune-preferences';
@@ -37,6 +39,7 @@ const defaults: Preferences = {
   oxygenEnabled: false,
   oxygenView: 'detail',
   oxygenFacets: ['genre', 'label', 'year', 'country', 'collection', 'folder'],
+  oxygenFacetLimit: 200,
 };
 
 function loadPrefs(): Preferences {

@@ -895,9 +895,13 @@ export interface FacetValue { value: string; count: number; }
 export async function getLibraryFacets(
   fields: string[],
   filters?: Record<string, string | number>,
+  limit?: number,
 ): Promise<Record<string, FacetValue[]>> {
   const params = new URLSearchParams({ fields: fields.join(',') });
   if (filters) for (const [k, v] of Object.entries(filters)) params.set(k, String(v));
+  // limit=0 means "no limit" (show every value); pass it through so the server
+  // drops the LIMIT clause.
+  if (limit != null) params.set('limit', String(limit));
   const raw = await fetchJSON<any>(`${BASE}/library/facets?${params}`);
   return (raw && typeof raw === 'object') ? raw : {};
 }

@@ -2815,6 +2815,18 @@
           {/each}
         </div>
       </div>
+      <div class="pref-grid" style="margin-top: 6px;">
+        <label class="pref-label" for="oxy-facet-limit">Valeurs par facette</label>
+        <select id="oxy-facet-limit" class="pref-select" value={String($preferences.oxygenFacetLimit)}
+          onchange={(e) => preferences.update((p) => ({ ...p, oxygenFacetLimit: Number((e.target as HTMLSelectElement).value) }))}>
+          <option value="50">50 (les plus fréquentes)</option>
+          <option value="100">100</option>
+          <option value="200">200</option>
+          <option value="500">500</option>
+          <option value="0">Sans limite (toutes)</option>
+        </select>
+      </div>
+      <p class="settings-note">Nombre maximum de valeurs affichées par facette (Genres, Artistes, Labels…). « Sans limite » affiche toutes les valeurs — utile pour de grandes bibliothèques, mais la liste peut être longue.</p>
       <div class="settings-actions">
         <button class="action-btn" onclick={() => activeView.set('oxygen')}>Ouvrir la vue Oxygen</button>
       </div>
