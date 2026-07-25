@@ -77,10 +77,31 @@ export function syncZone(zone: Zone) {
  * "chargement…" instead; a failure that persists past it still surfaces.
  */
 export const playPendingUntil = new Map<number, number>();
-const PLAY_GRACE_MS = 20000;
+// Worst observed HI-RES DASH pre-transcode is ~23 s (#1146); 20 s left the
+// tail end of a slow start outside the window and still toasting an error.
+const PLAY_GRACE_MS = 30000;
+
+function withinPlayGrace(zoneId: number): boolean {
+  const until = playPendingUntil.get(zoneId);
+  return until != null && Date.now() < until;
+}
+
+async function loadingInstead(): Promise<void> {
+  // Dynamic import: i18n pulls stores of its own; keep zones.ts cycle-free
+  // (same pattern as the nowPlaying import in playAndSync below).
+  const { t } = await import('../i18n');
+  notifications.info(get(t)('common.loading'));
+}
 
 function checkPlayError(zone: Zone) {
   if (zone.error) {
+    // Same grace treatment as the WS playback.error branch (#1146): a
+    // zone.error read back right after a slow HI-RES play is usually the
+    // pre-transcode still working, not a real failure.
+    if (zone.id != null && withinPlayGrace(zone.id)) {
+      loadingInstead();
+      return;
+    }
     notifications.error(zone.error, 8000);
   }
 }
@@ -97,7 +118,20 @@ export async function playAndSync(zoneId: number, body?: Parameters<typeof api.p
   // Open a grace window so a transient playback.error during a slow HI-RES
   // pre-transcode reads as "chargement…" rather than a failure (see above).
   playPendingUntil.set(zoneId, Date.now() + PLAY_GRACE_MS);
-  const zone = await api.play(zoneId, body);
+  let zone: Zone;
+  try {
+    zone = await api.play(zoneId, body);
+  } catch (e) {
+    // Overlapping tap while a slow HI-RES pre-transcode is in flight: the
+    // server rejects the duplicate with "DASH file already being decoded"
+    // while the first request keeps working and playback then starts. That
+    // is "loading", not a failure (#1146).
+    if (withinPlayGrace(zoneId) && String(e).includes('already being decoded')) {
+      loadingInstead();
+      return api.getZone(zoneId);
+    }
+    throw e;
+  }
   checkPlayError(zone);
   syncZone(zone);
   handleBrowserPlayback(zone);
