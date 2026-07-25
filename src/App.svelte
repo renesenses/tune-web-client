@@ -532,7 +532,12 @@ import AlarmsView from './components/AlarmsView.svelte';
     if (isPushEnabled()) initPushNotifications();
 
     tuneWS.onEvent((event) => {
-      const type = event.type;
+      // The Rust server emits playback failures as `zone.playback_error`
+      // (orchestrator.rs), while the embedded iPad server emits
+      // `playback.error`. Normalize to the latter so the error branch below —
+      // including the post-play grace window (#1146) — handles both; without
+      // this the Rust event never entered the `playback.*` block at all.
+      const type = event.type === 'zone.playback_error' ? 'playback.error' : event.type;
 
       // Internal connection events
       if (type === '_connected') {
