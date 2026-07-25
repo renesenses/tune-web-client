@@ -245,18 +245,27 @@
     } finally { loading = false; }
   }
 
+  const serverFacetFields = $preferences.oxygenFacets.filter(f => SERVER_FACET_FIELDS.includes(f));
+  // Cumulative: recompute facet counts over the active filter set so selecting a
+  // genre narrows the labels/artists/… lists (Dominique). A facet excludes its
+  // own field server-side, keeping its alternatives visible.
+  async function loadFacets() {
+    if (!serverFacetFields.length) return;
+    try { serverFacets = await getLibraryFacets(serverFacetFields, facetParam(facetSels)); }
+    catch { /* keep the previous facet counts on transient failure */ }
+  }
+
   onMount(() => {
     const mq = window.matchMedia('(max-width: 1150px)');
     const upd = () => { isNarrow = mq.matches; if (!isNarrow) { mobileRail = false; mobileInspector = false; } };
     upd();
     mq.addEventListener('change', upd);
     getMetadataFieldSettings().then(f => { categories = f.categories ?? []; }).catch(() => {});
-    const fields = $preferences.oxygenFacets.filter(f => SERVER_FACET_FIELDS.includes(f));
-    if (fields.length) getLibraryFacets(fields).then(f => { serverFacets = f; }).catch(() => {});
   });
 
-  // Server-driven: (re)fetch the filtered track set whenever the facet changes.
-  $effect(() => { void JSON.stringify(facetSels); loadTracks(); });
+  // Server-driven: (re)fetch the filtered tracks AND the cumulative facet counts
+  // whenever the active facet selection changes.
+  $effect(() => { void JSON.stringify(facetSels); loadTracks(); loadFacets(); });
 </script>
 
 <div class="oxygen">

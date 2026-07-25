@@ -888,9 +888,16 @@ export async function getFilteredTracks(opts: {
 export interface FacetValue { value: string; count: number; }
 
 /** Full-library facet counts from the server index (Oxygen rail).
- *  `country`/`mood`/`source` are read from the track_metadata k/v store. */
-export async function getLibraryFacets(fields: string[]): Promise<Record<string, FacetValue[]>> {
+ *  `country`/`mood`/`source` are read from the track_metadata k/v store.
+ *  When `filters` are passed, each facet is counted over the narrowed track
+ *  set (cumulative faceting) — a facet never filters on its own field, so its
+ *  alternatives stay visible. */
+export async function getLibraryFacets(
+  fields: string[],
+  filters?: Record<string, string | number>,
+): Promise<Record<string, FacetValue[]>> {
   const params = new URLSearchParams({ fields: fields.join(',') });
+  if (filters) for (const [k, v] of Object.entries(filters)) params.set(k, String(v));
   const raw = await fetchJSON<any>(`${BASE}/library/facets?${params}`);
   return (raw && typeof raw === 'object') ? raw : {};
 }
