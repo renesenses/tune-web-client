@@ -3795,9 +3795,14 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   /* Artists section + grid */
   .artists-section {
-    flex: 1;
+    /* Grow to the grid's content height (NOT clamped to the viewport) so the
+       sticky AlphaIndex pins across the whole .library-view scroll. With the
+       previous flex:1;min-height:0 the section was viewport-tall, so once the
+       grid scrolled past it the index scrolled away too (#1170 regression,
+       Benjithom). Kept as a flex ROW for the grid width fix below; the index
+       aligns itself via align-self:flex-start. */
     display: flex;
-    min-height: 0;
+    align-items: flex-start;
     gap: 4px;
   }
 
