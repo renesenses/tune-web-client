@@ -1379,6 +1379,8 @@ export default {
   "settings.exportCsvHint": "Download your library in CSV format.",
   "settings.exportInProgress": "Exporting...",
   "settings.metaFieldsHint": "Choose the metadata fields shown in album and track views.",
+  "settings.metaFieldsSelectAll": "Select all",
+  "settings.metaFieldsDeselectAll": "Deselect all",
   "settings.connectedAs": "Connected as",
   "settings.signIn": "Sign in",
   "settings.cloudComingSoon": "Cloud coming soon on this server",

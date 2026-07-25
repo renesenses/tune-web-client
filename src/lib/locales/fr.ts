@@ -1380,6 +1380,8 @@ export default {
   "settings.exportCsvHint": "Téléchargez votre bibliothèque au format CSV.",
   "settings.exportInProgress": "Export...",
   "settings.metaFieldsHint": "Choisissez les champs de métadonnées affichés dans les vues album et piste.",
+  "settings.metaFieldsSelectAll": "Tout sélectionner",
+  "settings.metaFieldsDeselectAll": "Tout désélectionner",
   "settings.connectedAs": "Connecté en tant que",
   "settings.signIn": "Se connecter",
   "settings.cloudComingSoon": "Cloud bientôt disponible sur ce serveur",
