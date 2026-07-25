@@ -1291,7 +1291,7 @@ export default {
   "settings.wifiPassword": "Password WiFi",
   "settings.wifiConnect": "Connetti",
   "settings.wifiScan": "Cerca reti",
-  "settings.wifiConnectSuccess": "Connesso a {ssid}! Ora puoi scollegare il cavo di rete.",
+  "settings.wifiConnectSuccess": "Connesso a {ssid}! Puoi scollegare il cavo di rete — l'indirizzo .local mostrato sullo schermo della macchina resta valido.",
   "settings.searching": "Ricerca...",
   "settings.noTunePeers": "Nessun altro server Tune rilevato sulla rete locale.",
   "settings.browse": "Sfoglia",

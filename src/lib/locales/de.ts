@@ -1291,7 +1291,7 @@ export default {
   "settings.wifiPassword": "WLAN-Passwort",
   "settings.wifiConnect": "Verbinden",
   "settings.wifiScan": "Netzwerke suchen",
-  "settings.wifiConnectSuccess": "Mit {ssid} verbunden! Du kannst das Netzwerkkabel jetzt abziehen.",
+  "settings.wifiConnectSuccess": "Mit {ssid} verbunden! Du kannst das Netzwerkkabel abziehen — die .local-Adresse auf dem Bildschirm des Geräts bleibt gültig.",
   "settings.searching": "Wird gesucht…",
   "settings.noTunePeers": "Kein weiterer Tune-Server im lokalen Netzwerk erkannt.",
   "settings.browse": "Durchsuchen",

@@ -1291,7 +1291,7 @@ export default {
   "settings.wifiPassword": "Contraseña WiFi",
   "settings.wifiConnect": "Conectar",
   "settings.wifiScan": "Buscar redes",
-  "settings.wifiConnectSuccess": "¡Conectado a {ssid}! Ya puedes desconectar el cable de red.",
+  "settings.wifiConnectSuccess": "¡Conectado a {ssid}! Puedes desconectar el cable de red — la dirección .local mostrada en la pantalla del equipo sigue siendo válida.",
   "settings.searching": "Buscando...",
   "settings.noTunePeers": "No se detectó ningún otro servidor Tune en la red local.",
   "settings.browse": "Explorar",

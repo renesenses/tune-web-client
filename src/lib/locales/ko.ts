@@ -1290,7 +1290,7 @@ export default {
   "settings.wifiPassword": "WiFi 비밀번호",
   "settings.wifiConnect": "연결",
   "settings.wifiScan": "네트워크 검색",
-  "settings.wifiConnectSuccess": "{ssid}에 연결되었습니다! 이제 이더넷 케이블을 분리해도 됩니다.",
+  "settings.wifiConnectSuccess": "{ssid}에 연결되었습니다! 이더넷 케이블을 분리해도 됩니다 — 기기 화면에 표시된 .local 주소는 계속 사용할 수 있습니다.",
   "settings.searching": "검색 중...",
   "settings.noTunePeers": "로컬 네트워크에서 다른 Tune 서버가 감지되지 않았습니다.",
   "settings.browse": "탐색",

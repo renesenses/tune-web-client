@@ -1307,7 +1307,7 @@ export default {
   "settings.wifiPassword": "WiFi password",
   "settings.wifiConnect": "Connect",
   "settings.wifiScan": "Scan networks",
-  "settings.wifiConnectSuccess": "Connected to {ssid}! You can now unplug the ethernet cable.",
+  "settings.wifiConnectSuccess": "Connected to {ssid}! You can unplug the ethernet cable — the .local address shown on the machine's screen keeps working.",
   "settings.searching": "Searching...",
   "settings.noTunePeers": "No other Tune server detected on the local network.",
   "settings.browse": "Browse",

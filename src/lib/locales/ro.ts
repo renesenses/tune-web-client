@@ -1299,7 +1299,7 @@ export default {
   "settings.wifiPassword": "Parolă WiFi",
   "settings.wifiConnect": "Conectare",
   "settings.wifiScan": "Caută rețele",
-  "settings.wifiConnectSuccess": "Conectat la {ssid}! Acum poți deconecta cablul de rețea.",
+  "settings.wifiConnectSuccess": "Conectat la {ssid}! Poți deconecta cablul de rețea — adresa .local afișată pe ecranul mașinii rămâne valabilă.",
   "settings.searching": "Se caută...",
   "settings.noTunePeers": "Niciun alt server Tune detectat în rețeaua locală.",
   "settings.browse": "Răsfoiește",

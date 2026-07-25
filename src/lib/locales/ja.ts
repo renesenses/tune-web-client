@@ -1290,7 +1290,7 @@ export default {
   "settings.wifiPassword": "WiFi パスワード",
   "settings.wifiConnect": "接続",
   "settings.wifiScan": "ネットワークを検索",
-  "settings.wifiConnectSuccess": "{ssid} に接続しました！LAN ケーブルを抜いても大丈夫です。",
+  "settings.wifiConnectSuccess": "{ssid} に接続しました！LAN ケーブルを抜いても大丈夫です。本体画面に表示される .local アドレスは引き続き使えます。",
   "settings.searching": "検索中...",
   "settings.noTunePeers": "ローカルネットワークに他の Tune サーバーは検出されませんでした。",
   "settings.browse": "参照",
