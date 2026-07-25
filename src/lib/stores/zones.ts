@@ -67,6 +67,18 @@ export function syncZone(zone: Zone) {
   zones.update((zs) => zs.map((z) => z.id === zone.id ? zone : z));
 }
 
+/**
+ * Zones with a play just initiated: zoneId → epoch-ms until which a
+ * `playback.error` should read as "still loading" rather than a real failure.
+ * A slow HI-RES DASH pre-transcode (Tidal/Qobuz) holds the stream open for
+ * several seconds before the first byte reaches the renderer; the server can
+ * emit a transient error in that window even though playback then starts, which
+ * showed a scary "Erreur" toast (#1146). During the grace window we show
+ * "chargement…" instead; a failure that persists past it still surfaces.
+ */
+export const playPendingUntil = new Map<number, number>();
+const PLAY_GRACE_MS = 20000;
+
 function checkPlayError(zone: Zone) {
   if (zone.error) {
     notifications.error(zone.error, 8000);
@@ -82,6 +94,9 @@ async function handleBrowserPlayback(zone: Zone) {
 }
 
 export async function playAndSync(zoneId: number, body?: Parameters<typeof api.play>[1]): Promise<Zone> {
+  // Open a grace window so a transient playback.error during a slow HI-RES
+  // pre-transcode reads as "chargement…" rather than a failure (see above).
+  playPendingUntil.set(zoneId, Date.now() + PLAY_GRACE_MS);
   const zone = await api.play(zoneId, body);
   checkPlayError(zone);
   syncZone(zone);
