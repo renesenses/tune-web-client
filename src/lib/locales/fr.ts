@@ -31,6 +31,10 @@ export default {
   'oxygen.facet.source': 'Support',
   'oxygen.facetsServer': 'Comptage complet (index serveur).',
   'oxygen.facetsClient': 'Facettes sur les pistes chargées — l’index serveur affinera les comptes.',
+  'oxygen.sortAlpha': 'Trier de A à Z',
+  'oxygen.sortCount': 'Trier par nombre',
+  'oxygen.variousArtists': 'Artistes multiples',
+  'oxygen.disc': 'Disque',
   // Navigation
   'nav.home': 'Accueil',
   'nav.nowplaying': 'Lecture en cours',

@@ -86,17 +86,43 @@
     return list;
   });
 
-  interface AlbumGroup { key: string | number; title: string; artist: string; cover?: string | null; year?: number | null; format?: any; sr?: number | null; bd?: number | null; source?: any; tracks: Track[]; }
+  interface DiscGroup { disc: number; subtitle: string | null; tracks: Track[]; }
+  interface AlbumGroup { key: string | number; title: string; artist: string; cover?: string | null; year?: number | null; format?: any; sr?: number | null; bd?: number | null; source?: any; tracks: Track[]; albumArtist?: string | null; artistSet: Set<string>; }
   let albums = $derived.by<AlbumGroup[]>(() => {
     const m = new Map<string | number, AlbumGroup>();
     for (const t of visible) {
       const key = t.album_id ?? `t:${t.album_title}`;
       let g = m.get(key);
-      if (!g) { g = { key, title: t.album_title ?? 'Album inconnu', artist: t.artist_name ?? '', cover: t.cover_path, year: t.year, format: t.format, sr: t.sample_rate, bd: t.bit_depth, source: t.source, tracks: [] }; m.set(key, g); }
+      if (!g) { g = { key, title: t.album_title ?? 'Album inconnu', artist: '', albumArtist: t.album_artist, cover: t.cover_path, year: t.year, format: t.format, sr: t.sample_rate, bd: t.bit_depth, source: t.source, tracks: [], artistSet: new Set() }; m.set(key, g); }
+      if (t.artist_name) g.artistSet.add(t.artist_name);
+      if (!g.albumArtist && t.album_artist) g.albumArtist = t.album_artist;
       g.tracks.push(t);
     }
+    // Compilation display artist: prefer the tagged ALBUMARTIST; else, when the
+    // album mixes several track artists, show "Artistes multiples" rather than
+    // whichever track happened to load first (Dominique). Single-artist albums
+    // keep that artist. (See albumArtistOf.)
+    for (const g of m.values()) g.artist = albumArtistOf(g);
     return [...m.values()].sort((a, b) => (a.artist || '').localeCompare(b.artist || '', 'fr') || (a.title || '').localeCompare(b.title || '', 'fr'));
   });
+  function albumArtistOf(g: AlbumGroup): string {
+    if (g.albumArtist) return g.albumArtist;
+    if (g.artistSet.size > 1) return $t('oxygen.variousArtists');
+    return [...g.artistSet][0] ?? '';
+  }
+  // Split an album's tracks into disc groups so per-disc subtitles (DISCSUBTITLE)
+  // can head each disc. A single untitled disc renders flat (no heading).
+  function discGroups(g: AlbumGroup): DiscGroup[] {
+    const m = new Map<number, DiscGroup>();
+    for (const t of g.tracks) {
+      const disc = t.disc_number ?? 1;
+      let d = m.get(disc);
+      if (!d) { d = { disc, subtitle: t.disc_subtitle ?? null, tracks: [] }; m.set(disc, d); }
+      if (!d.subtitle && t.disc_subtitle) d.subtitle = t.disc_subtitle;
+      d.tracks.push(t);
+    }
+    return [...m.values()].sort((a, b) => a.disc - b.disc);
+  }
 
   function fmtDur(ms?: number): string {
     if (!ms) return '';
@@ -318,19 +344,24 @@
                   <QualityBadge format={g.format} sampleRate={g.sr} bitDepth={g.bd} source={g.source} />
                 </div>
                 <div class="atracks">
-                  {#each g.tracks as t (t.id)}
-                    <div class="trkrow">
-                      <button class="trk" class:sel={selected?.id === t.id} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
-                        <span class="tn">{t.track_number ?? ''}</span>
-                        <span class="tt">{t.title}</span>
-                        <span class="td">{fmtDur(t.duration_ms)}</span>
-                      </button>
-                      <span class="trkacts">
-                        {#if t.id != null}<span class="tact-h"><HeartButton trackId={t.id} size={13} /></span>{/if}
-                        <button class="tact" title={L_PLAY_NEXT} onclick={() => queueNext(t)}>⏭</button>
-                        <button class="tact" title={L_ADD_QUEUE} onclick={() => queueAppendTrack(t)}>＋</button>
-                      </span>
-                    </div>
+                  {#each discGroups(g) as d (d.disc)}
+                    {#if d.subtitle || discGroups(g).length > 1}
+                      <div class="dischead"><span class="discno">{$t('oxygen.disc')} {d.disc}</span>{#if d.subtitle}<span class="discsub">{d.subtitle}</span>{/if}</div>
+                    {/if}
+                    {#each d.tracks as t (t.id)}
+                      <div class="trkrow">
+                        <button class="trk" class:sel={selected?.id === t.id} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
+                          <span class="tn">{t.track_number ?? ''}</span>
+                          <span class="tt">{t.title}</span>
+                          <span class="td">{fmtDur(t.duration_ms)}</span>
+                        </button>
+                        <span class="trkacts">
+                          {#if t.id != null}<span class="tact-h"><HeartButton trackId={t.id} size={13} /></span>{/if}
+                          <button class="tact" title={L_PLAY_NEXT} onclick={() => queueNext(t)}>⏭</button>
+                          <button class="tact" title={L_ADD_QUEUE} onclick={() => queueAppendTrack(t)}>＋</button>
+                        </span>
+                      </div>
+                    {/each}
                   {/each}
                 </div>
               </div>
@@ -468,6 +499,9 @@
   .at { font-size: 16px; font-weight: 700; }
   .aa { color: var(--tune-text-secondary); font-size: 13px; margin-top: 1px; }
   .atracks { margin-top: 10px; display: flex; flex-direction: column; }
+  .dischead { display: flex; align-items: baseline; gap: 10px; padding: 8px 8px 4px; margin-top: 2px; }
+  .discno { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--tune-text-muted); }
+  .discsub { font-size: 12.5px; font-weight: 600; color: var(--tune-text-secondary); }
   .trk { display: grid; grid-template-columns: 26px 1fr auto; gap: 12px; align-items: center; background: none; border: 0; color: var(--tune-text); font: inherit; text-align: left; padding: 6px 8px; border-radius: 7px; cursor: pointer; }
   .trk:hover { background: var(--tune-surface-hover); }
   .trk.sel { background: var(--tune-surface-selected); }

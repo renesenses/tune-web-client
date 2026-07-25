@@ -31,6 +31,10 @@ export default {
   'oxygen.facet.source': 'ソース',
   'oxygen.facetsServer': '完全なカウント（サーバーインデックス）。',
   'oxygen.facetsClient': '読み込み済みの曲に基づくファセット — サーバーインデックスがカウントを精緻化します。',
+  'oxygen.sortAlpha': 'A→Zで並べ替え',
+  'oxygen.sortCount': '件数で並べ替え',
+  'oxygen.variousArtists': '様々なアーティスト',
+  'oxygen.disc': 'ディスク',
   // Navigation
   'nav.home': 'ホーム',
   'nav.nowplaying': '再生中',

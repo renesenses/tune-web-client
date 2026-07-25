@@ -31,6 +31,10 @@ export default {
   'oxygen.facet.source': '소스',
   'oxygen.facetsServer': '전체 집계 (서버 인덱스).',
   'oxygen.facetsClient': '불러온 트랙 기준 패싯 — 서버 인덱스가 집계를 정교화합니다.',
+  'oxygen.sortAlpha': 'A→Z 정렬',
+  'oxygen.sortCount': '개수순 정렬',
+  'oxygen.variousArtists': '여러 아티스트',
+  'oxygen.disc': '디스크',
   // Navigation
   'nav.home': '홈',
   'nav.nowplaying': '현재 재생',

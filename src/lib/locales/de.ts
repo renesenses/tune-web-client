@@ -31,6 +31,10 @@ export default {
   'oxygen.facet.source': 'Quelle',
   'oxygen.facetsServer': 'Vollständige Zählung (Server-Index).',
   'oxygen.facetsClient': 'Facetten über die geladenen Titel — der Server-Index verfeinert die Zählung.',
+  'oxygen.sortAlpha': 'Alphabetisch sortieren',
+  'oxygen.sortCount': 'Nach Anzahl sortieren',
+  'oxygen.variousArtists': 'Verschiedene Interpreten',
+  'oxygen.disc': 'Disc',
   // Navigation
   'nav.home': 'Startseite',
   'nav.nowplaying': 'Wird gerade gespielt',

@@ -31,6 +31,10 @@ export default {
   'oxygen.facet.source': 'Source',
   'oxygen.facetsServer': 'Full counts (server index).',
   'oxygen.facetsClient': 'Facets over the loaded tracks — the server index will refine the counts.',
+  'oxygen.sortAlpha': 'Sort A–Z',
+  'oxygen.sortCount': 'Sort by count',
+  'oxygen.variousArtists': 'Various artists',
+  'oxygen.disc': 'Disc',
   // Navigation
   'nav.home': 'Home',
   'nav.nowplaying': 'Now Playing',

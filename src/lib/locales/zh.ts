@@ -31,6 +31,10 @@ export default {
   'oxygen.facet.source': '来源',
   'oxygen.facetsServer': '完整计数（服务器索引）。',
   'oxygen.facetsClient': '基于已加载曲目的分面 — 服务器索引将优化计数。',
+  'oxygen.sortAlpha': '按 A→Z 排序',
+  'oxygen.sortCount': '按数量排序',
+  'oxygen.variousArtists': '群星',
+  'oxygen.disc': '碟片',
   // Navigation
   'nav.home': '首页',
   'nav.nowplaying': '正在播放',
