@@ -143,6 +143,22 @@
     setMode('album'); if (g.tracks[0]) select(g.tracks[0]);
   }
   function clearAlbum() { albumFilter = null; albumFilterLabel = ''; }
+  // In-view back: undo the album drill-down, then the facet selections one by
+  // one, and only leave Oxygen for the classic Library once there's nothing
+  // left to undo. Previously the header back always exited Oxygen, so a user
+  // filtering by genre/artist/… lost the whole view on the first click
+  // (Benjithom, v0.9.10).
+  function oxyBack() {
+    if (albumFilter != null) { clearAlbum(); return; }
+    const keys = Object.keys(facetSels);
+    if (keys.length) {
+      const next = { ...facetSels };
+      delete next[keys[keys.length - 1]];
+      facetSels = next;
+      return;
+    }
+    activeView.set('library');
+  }
 
   // Play wiring (Bertrand, .15 v0.9.0 pre-release test: rien n'était cliquable
   // pour lancer la lecture). Double-clic piste = joue la piste puis la suite de
@@ -271,7 +287,7 @@
 
 <div class="oxygen">
   <header class="bar">
-    <button class="icnbtn" onclick={() => activeView.set('library')} title={$t('oxygen.back')} aria-label={$t('oxygen.back')}>
+    <button class="icnbtn" onclick={oxyBack} title={$t('oxygen.back')} aria-label={$t('oxygen.back')}>
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
     </button>
     <button class="icnbtn railtoggle" onclick={() => mobileRail = true} title={$t('oxygen.facets')} aria-label={$t('oxygen.facets')}>
