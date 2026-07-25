@@ -4253,9 +4253,14 @@
         <!-- API Documentation -->
         <div class="about-row" style="margin-top: 0.75rem">
           <span class="about-label">{$t('settings.apiDocs' as any)}</span>
+          <!-- Points at the live endpoint catalog. The old "/docs" path had no
+               server route, so the SPA fallback served index.html → the link
+               dead-ended back on Home (forum #1186). This endpoint exists,
+               renders as JSON in-browser, and the tune_session cookie carries
+               auth on the new-tab navigation when auth is enabled. -->
           <a
             class="scan-btn"
-            href="/docs"
+            href="/api/v1/system/api-docs"
             target="_blank"
             rel="noopener noreferrer"
             style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;"
