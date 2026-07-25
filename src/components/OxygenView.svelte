@@ -463,6 +463,10 @@
 
   .albums { display: flex; flex-direction: column; }
   .album { display: grid; grid-template-columns: 116px 1fr; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--tune-border); }
+  /* Square cover pinned to the top of the row: without an explicit height the
+     grid cell stretches to the track list's height and object-fit:cover crops
+     the artwork (truncated thumbnails, #1170). */
+  .aart { align-self: start; height: 116px; }
   .aart .cvr { border-radius: 10px; box-shadow: 0 8px 22px rgba(0,0,0,.35); }
   .ahead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
   .at { font-size: 16px; font-weight: 700; }

@@ -706,10 +706,15 @@
     color: var(--tune-text-muted);
   }
 
-  /* Branches (genre tree on the list view) */
+  /* Branches (genre tree on the list view). Grid on wide screens (desktop)
+     instead of a single vertical column: the branch cards tile in 2-3 columns,
+     matching the "outside tree" .genres-grid, which is the reference layout
+     (#1029, Thibaud). On narrow screens auto-fill collapses to one column. */
   .branches {
-    display: flex; flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: var(--space-md);
+    align-items: start;
     margin-bottom: var(--space-xl);
   }
   .branch-row {
@@ -719,20 +724,25 @@
     padding: var(--space-md) var(--space-lg);
     display: flex; flex-direction: column; gap: var(--space-sm);
     cursor: pointer;
-    transition: border-color 0.12s;
+    transition: all 0.12s ease-out;
   }
-  .branch-row:hover { border-color: var(--tune-accent); }
+  .branch-row:hover {
+    border-color: var(--tune-accent);
+    background: var(--tune-surface-hover);
+  }
   .branch-row:focus-visible {
     outline: 2px solid var(--tune-accent);
     outline-offset: 2px;
   }
+  /* Same two-line layout as the "outside tree" .genre-card: name on top, album
+     count as a subtitle right under it — never pushed to the far edge (#1029). */
   .branch-card {
-    display: flex; justify-content: space-between; align-items: baseline;
+    display: flex; flex-direction: column; gap: var(--space-xs);
     color: var(--tune-text); text-align: left;
   }
   .branch-name {
     font-family: var(--font-label);
-    font-size: 18px; font-weight: 700;
+    font-size: 16px; font-weight: 600;
   }
   .branch-row:hover .branch-name { color: var(--tune-accent); }
   .branch-count {
