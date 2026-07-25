@@ -32,12 +32,19 @@
     for (const t of tracks) { const v = get(t); if (v == null || v === '') continue; m.set(v, (m.get(v) ?? 0) + 1); }
     return sortFacet(field, [...m.entries()].map(([value, count]) => ({ value, count }))).slice(0, 60);
   }
-  // Years read chronologically (desc — 2026 on top), everything else by count.
-  // Count-ordered years buried 2026 under whatever decade had the most albums
-  // (Bertrand: "pas facile de trouver 2026 !").
+  // Per-facet sort mode. Default 'count' (years = chronological desc, so 2026
+  // stays on top — Bertrand: "pas facile de trouver 2026 !"). Dominique wanted
+  // an A-Z toggle so a long Genres/Artists list can be scanned alphabetically.
+  let sortMode = $state<Record<string, 'count' | 'alpha'>>({});
+  const modeOf = (f: string) => sortMode[f] ?? 'count';
+  const cycleSort = (f: string) => { sortMode = { ...sortMode, [f]: modeOf(f) === 'count' ? 'alpha' : 'count' }; };
   function sortFacet(field: string, vals: FacetValue[]): FacetValue[] {
-    if (field === 'year') return vals.sort((a, b) => Number(b.value) - Number(a.value));
-    return vals.sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'fr'));
+    const out = [...vals];
+    if (modeOf(field) === 'alpha') {
+      return out.sort((a, b) => a.value.localeCompare(b.value, 'fr', { numeric: true }));
+    }
+    if (field === 'year') return out.sort((a, b) => Number(b.value) - Number(a.value));
+    return out.sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'fr'));
   }
   // Prefer the server index (full library); fall back to the loaded window.
   const groups = $derived.by<Record<string, FacetValue[]>>(() => {
@@ -59,11 +66,14 @@
   {#each shown as f (f)}
     {#if (groups[f] ?? []).length}
       <div class="group">
-        <button class="ghead" onclick={() => toggle(f)}>
-          <svg class="chev" class:closed={!isOpen(f)} viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
-          {$t('oxygen.facet.' + f)}
+        <div class="ghead">
+          <button class="ghtitle" onclick={() => toggle(f)}>
+            <svg class="chev" class:closed={!isOpen(f)} viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
+            {$t('oxygen.facet.' + f)}
+          </button>
+          <button class="sortbtn" title={modeOf(f) === 'count' ? $t('oxygen.sortAlpha') : $t('oxygen.sortCount')} onclick={() => cycleSort(f)}>{modeOf(f) === 'count' ? '#' : 'A→Z'}</button>
           <span class="gn">{(groups[f] ?? []).length}</span>
-        </button>
+        </div>
         {#if isOpen(f)}
           <div class="values">
             {#each groups[f] ?? [] as row (row.value)}
@@ -84,7 +94,10 @@
 <style>
   .rail { display: flex; flex-direction: column; overflow-y: auto; min-height: 0; padding: 8px 8px 16px; }
   .group { margin-bottom: 4px; }
-  .ghead { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; color: var(--tune-text); font: inherit; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; padding: 9px 8px 5px; cursor: pointer; }
+  .ghead { display: flex; align-items: center; gap: 6px; width: 100%; padding: 9px 8px 5px; }
+  .ghtitle { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; background: none; border: 0; color: var(--tune-text); font: inherit; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; padding: 0; cursor: pointer; text-align: left; }
+  .sortbtn { background: none; border: 0; color: var(--tune-text-muted); font: inherit; font-size: 10px; font-weight: 700; letter-spacing: .02em; padding: 1px 5px; border-radius: 5px; cursor: pointer; flex: none; }
+  .sortbtn:hover { color: var(--tune-accent); background: var(--tune-surface-hover); }
   .chev { transition: transform .12s; color: var(--tune-text-muted); }
   .chev.closed { transform: rotate(-90deg); }
   .gn { margin-left: auto; font-size: 10px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }

@@ -1615,6 +1615,59 @@ export function removeStreamingFavorite(service: string, type: 'tracks' | 'album
   return fetchJSON<{ok: boolean}>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}/${encodeURIComponent(itemId)}`, { method: 'DELETE' });
 }
 
+// --- Tune-hearted streaming favorites (per profile) ---
+// Distinct from getStreamingFavorites(service,type) which reads the service's
+// OWN favorites. These are items the user hearted in Tune, stored server-side
+// with metadata so no per-item hydration is needed. Works for every service
+// (incl. YouTube, which has no server-side favorites API).
+export interface StreamingFavorite {
+  id: number;
+  profile_id: number;
+  item_type: 'track' | 'album' | 'artist';
+  service: string;
+  service_id: string;
+  title?: string | null;
+  artist?: string | null;
+  album?: string | null;
+  cover_url?: string | null;
+}
+
+export function getProfileStreamingFavorites(
+  profileId: number,
+  type?: 'track' | 'album' | 'artist',
+): Promise<StreamingFavorite[]> {
+  const q = type ? `?item_type=${type}` : '';
+  return fetchJSON<StreamingFavorite[]>(`${BASE}/profiles/${profileId}/favorites/streaming${q}`);
+}
+
+export function addProfileStreamingFavorite(
+  profileId: number,
+  fav: {
+    item_type: 'track' | 'album' | 'artist';
+    service: string;
+    service_id: string;
+    title?: string;
+    artist?: string;
+    album?: string;
+    cover_url?: string;
+  },
+) {
+  return fetchJSON<any>(`${BASE}/profiles/${profileId}/favorites/streaming/add`, {
+    method: 'POST',
+    body: JSON.stringify(fav),
+  });
+}
+
+export function removeProfileStreamingFavorite(
+  profileId: number,
+  params: { item_type: 'track' | 'album' | 'artist'; service: string; service_id: string },
+) {
+  return fetchVoid(`${BASE}/profiles/${profileId}/favorites/streaming/remove`, {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
 // --- Unified Playlist Manager ---
 
 export function getAllPlaylists() {

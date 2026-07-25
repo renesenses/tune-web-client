@@ -31,6 +31,10 @@ export default {
   'oxygen.facet.source': 'Sursă',
   'oxygen.facetsServer': 'Numărătoare completă (index server).',
   'oxygen.facetsClient': 'Fațete pe piesele încărcate — indexul serverului va rafina numărătoarea.',
+  'oxygen.sortAlpha': 'Sortare A–Z',
+  'oxygen.sortCount': 'Sortare după număr',
+  'oxygen.variousArtists': 'Artiști diverși',
+  'oxygen.disc': 'Disc',
   // Navigation
   'nav.home': 'Acasă',
   'nav.nowplaying': 'Se redă acum',

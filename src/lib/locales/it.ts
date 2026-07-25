@@ -31,6 +31,10 @@ export default {
   'oxygen.facet.source': 'Sorgente',
   'oxygen.facetsServer': 'Conteggio completo (indice server).',
   'oxygen.facetsClient': 'Sfaccettature sui brani caricati — l’indice server affinerà i conteggi.',
+  'oxygen.sortAlpha': 'Ordina A–Z',
+  'oxygen.sortCount': 'Ordina per numero',
+  'oxygen.variousArtists': 'Artisti vari',
+  'oxygen.disc': 'Disco',
   // Navigation
   'nav.home': 'Home',
   'nav.nowplaying': 'In riproduzione',

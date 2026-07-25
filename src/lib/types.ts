@@ -79,6 +79,7 @@ export interface Track {
   album_title?: string | null;
   artist_id?: number | null;
   artist_name?: string | null;
+  album_artist?: string | null;
   disc_number?: number;
   disc_subtitle?: string | null;
   track_number?: number;
