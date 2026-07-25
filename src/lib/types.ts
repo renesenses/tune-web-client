@@ -255,6 +255,8 @@ export interface SystemConfig {
   metadata_readonly: boolean;
   enrich_on_scan: boolean;
   discogs_token_set: boolean;
+  // Appliance mode (Tune OS image): unlocks the host network settings UI
+  appliance?: boolean;
   // Database
   db_engine: string;
   db_path?: string | null;
