@@ -16,6 +16,16 @@
     if (total === 0 || missing === 0) return '100';
     return (((total - missing) / total) * 100).toFixed(2);
   }
+
+  // Artist card is album-scoped like Cover/Genre/Year (same total_albums
+  // denominator + same `no_artist` filter, which lists albums). Older servers
+  // that only send tracks_without_artist fall back to the track scale so the
+  // card still renders — but modern servers keep all four denominators aligned
+  // (previously 1197 vs 15078, which read as broken — Fabien, v0.9.4).
+  let artistMissing = $derived(stats.albums_without_artist ?? stats.tracks_without_artist);
+  let artistTotal = $derived(
+    stats.albums_without_artist != null ? stats.total_albums : stats.total_tracks
+  );
 </script>
 
 <div class="stats-grid">
@@ -55,12 +65,12 @@
   <button class="stat-card" class:stat-active={filter === 'no_artist'} onclick={() => onFilter('no_artist')}>
     <div class="stat-header">
       <span class="stat-label">{$t('metadata.artist')}</span>
-      <span class="stat-value">{pct(stats.tracks_without_artist, stats.total_tracks)}%</span>
+      <span class="stat-value">{pct(artistMissing, artistTotal)}%</span>
     </div>
     <div class="progress-bar">
-      <div class="progress-fill" style="width: {pct(stats.tracks_without_artist, stats.total_tracks)}%"></div>
+      <div class="progress-fill" style="width: {pct(artistMissing, artistTotal)}%"></div>
     </div>
-    <span class="stat-detail">{stats.tracks_without_artist} / {stats.total_tracks} {$t('metadata.missingArtist').toLowerCase()}</span>
+    <span class="stat-detail">{artistMissing} / {artistTotal} {$t('metadata.missingArtist').toLowerCase()}</span>
   </button>
 </div>
 

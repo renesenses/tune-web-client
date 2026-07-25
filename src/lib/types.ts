@@ -305,6 +305,10 @@ export interface CompletenessStats {
   artists_without_image: number;
   total_tracks: number;
   tracks_without_artist: number;
+  /** Album-level "missing artist" so the dashboard's Artist card shares the
+   *  total_albums denominator with Cover/Genre/Year. Optional for older servers
+   *  that only send tracks_without_artist. */
+  albums_without_artist?: number;
   doubtful_count: number;
 }
 
