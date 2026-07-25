@@ -169,13 +169,23 @@
     }
   }
 
-  function isSubscribed(feedUrl: string): boolean {
-    if (!feedUrl) return false;
-    return subscriptions.some(s => s.feed_url === feedUrl);
+  // Match on feed_url OR source_id: les podcasts « Découvrir » (Apple charts)
+  // n'ont pas de feed_url mais un source_id — sans ça, un podcast abonné restait
+  // affiché « S'abonner » (bug Fabien-3).
+  function subMatches(s: any, podcast: any): boolean {
+    const feedUrl = podcastFeed(podcast);
+    const sid = podcast?.source_id ?? podcast?.sourceId ?? null;
+    return (!!feedUrl && s.feed_url === feedUrl)
+      || (sid != null && s.source_id != null && String(s.source_id) === String(sid));
   }
 
-  function getSubscriptionId(feedUrl: string): number | null {
-    const sub = subscriptions.find(s => s.feed_url === feedUrl);
+  function isSubscribed(podcast: any): boolean {
+    if (!podcast) return false;
+    return subscriptions.some(s => subMatches(s, podcast));
+  }
+
+  function getSubscriptionId(podcast: any): number | null {
+    const sub = subscriptions.find(s => subMatches(s, podcast));
     return sub ? sub.id : null;
   }
 
@@ -440,8 +450,8 @@
             <p class="detail-desc">{truncate(selectedPodcast.description, 300)}</p>
           {/if}
           <div class="detail-actions">
-            {#if isSubscribed(podcastFeed(selectedPodcast))}
-              <button class="btn-subscribed" onclick={() => { const id = getSubscriptionId(podcastFeed(selectedPodcast)); if (id) unsubscribe(id); }}>
+            {#if isSubscribed(selectedPodcast)}
+              <button class="btn-subscribed" onclick={() => { const id = getSubscriptionId(selectedPodcast); if (id) unsubscribe(id); }}>
                 <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                 {$t('podcasts.subscribed')}
               </button>
@@ -652,10 +662,8 @@
                   </div>
                   <span class="trending-title">{podcastName(podcast)}</span>
                   <span class="trending-artist">{podcastArtist(podcast)}</span>
-                  {#if isSubscribed(podcastFeed(podcast))}
-                    <span class="card-badge-subscribed">
-                      <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                    </span>
+                  {#if isSubscribed(podcast)}
+                    <button class="btn-sub-sm btn-subscribed" onclick={(e: MouseEvent) => { e.stopPropagation(); const id = getSubscriptionId(podcast); if (id) unsubscribe(id); }} title={$t('podcasts.unsubscribe')}><svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>{$t('podcasts.subscribed')}</button>
                   {:else}
                     <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>{$t('podcasts.subscribe')}</button>
                   {/if}
@@ -699,10 +707,8 @@
                 </div>
                 <span class="card-title">{podcastName(podcast)}</span>
                 <span class="card-artist">{podcastArtist(podcast)}</span>
-                {#if isSubscribed(podcastFeed(podcast))}
-                  <span class="card-badge-subscribed">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                  </span>
+                {#if isSubscribed(podcast)}
+                  <button class="btn-sub-sm btn-subscribed" onclick={(e: MouseEvent) => { e.stopPropagation(); const id = getSubscriptionId(podcast); if (id) unsubscribe(id); }} title={$t('podcasts.unsubscribe')}><svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>{$t('podcasts.subscribed')}</button>
                 {:else}
                   <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>{$t('podcasts.subscribe')}</button>
                 {/if}
@@ -780,10 +786,8 @@
                   </div>
                   <span class="card-title">{podcastName(podcast)}</span>
                   <span class="card-artist">{podcastArtist(podcast)}</span>
-                  {#if isSubscribed(podcastFeed(podcast))}
-                    <span class="card-badge-subscribed">
-                      <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                    </span>
+                  {#if isSubscribed(podcast)}
+                    <button class="btn-sub-sm btn-subscribed" onclick={(e: MouseEvent) => { e.stopPropagation(); const id = getSubscriptionId(podcast); if (id) unsubscribe(id); }} title={$t('podcasts.unsubscribe')}><svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>{$t('podcasts.subscribed')}</button>
                   {:else}
                     <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>{$t('podcasts.subscribe')}</button>
                   {/if}
@@ -838,11 +842,8 @@
               <span class="card-artist">{podcastArtist(podcast)}</span>
               {#if !podcastFeed(podcast)}
                 <span class="no-feed">{$t('podcasts.noRss')}</span>
-              {:else if isSubscribed(podcastFeed(podcast))}
-                <span class="card-badge-subscribed">
-                  <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                  {$t('podcasts.subscribed')}
-                </span>
+              {:else if isSubscribed(podcast)}
+                <button class="btn-sub-sm btn-subscribed" onclick={(e: MouseEvent) => { e.stopPropagation(); const id = getSubscriptionId(podcast); if (id) unsubscribe(id); }} title={$t('podcasts.unsubscribe')}><svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>{$t('podcasts.subscribed')}</button>
               {:else}
                 <button class="btn-sub-sm" onclick={(e: MouseEvent) => { e.stopPropagation(); subscribe(podcast); }}>{$t('podcasts.subscribe')}</button>
               {/if}

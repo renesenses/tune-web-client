@@ -1109,7 +1109,8 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   async function selectAlbumDetail(album: Album) {
     if (!album.id) return;
     savedAlbumScrollTop = albumScrollTop;
-    selectedArtist.set(null);
+    // NE PAS vider selectedArtist ici : le garder permet à goBack() de revenir à
+    // la page de l'artiste quand l'album a été ouvert depuis celle-ci (bug Fabien-1).
     expandedTrackCredits = null;
     trackCreditsMap = {};
     albumBio = null;
@@ -1371,6 +1372,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       const prev = similarArtistStack[similarArtistStack.length - 1];
       similarArtistStack = similarArtistStack.slice(0, -1);
       selectArtistDetail(prev, true);
+      return;
+    }
+    // Album ouvert DEPUIS une page artiste : le retour revient à cet artiste,
+    // pas à la grille complète des artistes (bug Fabien-1). selectedArtist est
+    // conservé par selectAlbumDetail exactement pour ça.
+    if ($selectedAlbum != null && $selectedArtist != null) {
+      selectedAlbum.set(null);
+      albumTracks.set([]);
+      window.history.back();
       return;
     }
     const restoreAlbumScroll = savedAlbumScrollTop;
