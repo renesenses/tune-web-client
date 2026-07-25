@@ -142,6 +142,22 @@
     debounceSaveMetadataFields();
   }
 
+  // True when every field across all categories is enabled — drives the
+  // select-all / deselect-all toggle button label.
+  const allMetadataFieldsEnabled = $derived(
+    metadataCategories.length > 0 &&
+      metadataCategories.every((c) => c.fields.every((f) => f.enabled)),
+  );
+
+  function setAllMetadataFields(enabled: boolean) {
+    for (const cat of metadataCategories) {
+      for (const field of cat.fields) {
+        field.enabled = enabled;
+      }
+    }
+    debounceSaveMetadataFields();
+  }
+
   function toggleMetadataCategory(catName: string) {
     metadataCollapsed[catName] = !metadataCollapsed[catName];
   }
@@ -3802,6 +3818,17 @@
     <section class="settings-section">
       <h3>{$t('metadata.title')}</h3>
       <p class="meta-fields-hint">{$t('settings.metaFieldsHint')}</p>
+      {#if !metadataLoading && metadataCategories.length > 0}
+        <button
+          type="button"
+          class="meta-fields-selectall"
+          onclick={() => setAllMetadataFields(!allMetadataFieldsEnabled)}
+        >
+          {allMetadataFieldsEnabled
+            ? $t('settings.metaFieldsDeselectAll')
+            : $t('settings.metaFieldsSelectAll')}
+        </button>
+      {/if}
       {#if metadataLoading}
         <div class="loading"><div class="spinner small"></div> {$t('common.loading')}</div>
       {:else}
@@ -5922,6 +5949,22 @@
     font-size: 13px;
     color: var(--tune-text-muted);
     margin-bottom: var(--space-md);
+  }
+  .meta-fields-selectall {
+    align-self: flex-start;
+    margin-bottom: var(--space-md);
+    padding: 6px 12px;
+    font-family: var(--font-label);
+    font-size: 13px;
+    color: var(--tune-text);
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+  .meta-fields-selectall:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
   }
 
   .meta-fields-categories {
