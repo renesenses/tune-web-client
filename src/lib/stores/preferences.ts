@@ -10,7 +10,13 @@ export type OxygenViewMode = 'album' | 'grid' | 'detail';
 
 /** Facets available in the Oxygen browse rail (Phase 2+). Stored so users can
  *  pick which ones show. Kept here (ui_preferences) so config syncs per install. */
-export const OXYGEN_FACETS_ALL = ['genre', 'label', 'mood', 'year', 'rating', 'collection', 'country', 'folder', 'untagged'] as const;
+// Only facets the Oxygen rail can actually render AND the server can count
+// (rail FIELD_LABELS ∩ SERVER_FACET_FIELDS). The old list advertised
+// rating/collection/folder/untagged, which the rail silently dropped — a user
+// who selected them saw fewer facets than expected (Bertrand: "seulement 3").
+export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'label', 'year', 'country', 'mood', 'source'] as const;
+/** Facets removed from OXYGEN_FACETS_ALL — used to migrate old stored prefs. */
+const OXYGEN_FACETS_REMOVED = ['rating', 'collection', 'folder', 'untagged'];
 
 export interface Preferences {
   theme: ThemeMode;
@@ -38,14 +44,29 @@ const defaults: Preferences = {
   hiddenDeviceIds: [],
   oxygenEnabled: false,
   oxygenView: 'detail',
-  oxygenFacets: ['genre', 'label', 'year', 'country', 'collection', 'folder'],
+  oxygenFacets: ['genre', 'artist', 'label', 'year', 'country', 'mood', 'source'],
   oxygenFacetLimit: 200,
 };
 
 function loadPrefs(): Preferences {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return { ...defaults, ...JSON.parse(stored) };
+    if (stored) {
+      const p: Preferences = { ...defaults, ...JSON.parse(stored) };
+      // Migrate Oxygen facets: anyone still carrying a removed facet
+      // (collection/folder/…) had a partly-invisible rail — reset them to the
+      // new supported default (which now includes Artistes). Otherwise just
+      // drop any stray unsupported entries.
+      const supported = OXYGEN_FACETS_ALL as readonly string[];
+      const facets = Array.isArray(p.oxygenFacets) ? p.oxygenFacets : [];
+      if (facets.some((f) => OXYGEN_FACETS_REMOVED.includes(f))) {
+        p.oxygenFacets = [...defaults.oxygenFacets];
+      } else {
+        const cleaned = facets.filter((f) => supported.includes(f));
+        p.oxygenFacets = cleaned.length ? cleaned : [...defaults.oxygenFacets];
+      }
+      return p;
+    }
   } catch { /* ignore */ }
   return { ...defaults };
 }
