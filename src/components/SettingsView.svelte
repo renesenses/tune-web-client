@@ -1322,6 +1322,81 @@
     peersLoading = false;
   }
 
+  // --- Appliance (Tune OS): host WiFi configuration ---
+  let wifiStatus = $state<api.ApplianceStatus | null>(null);
+  let wifiNetworks = $state<api.ApplianceWifiNetwork[]>([]);
+  let wifiScanning = $state(false);
+  let wifiConnecting = $state(false);
+  let wifiSelectedSsid = $state<string | null>(null);
+  let wifiPassword = $state('');
+  let wifiError = $state('');
+  let wifiSuccessSsid = $state('');
+  let wifiLoaded = false; // plain var: load once per session, not reactive
+
+  async function loadWifiStatus() {
+    try {
+      wifiStatus = await api.getApplianceStatus();
+    } catch (e) {
+      console.error('Appliance status error:', e);
+    }
+  }
+
+  async function scanWifi() {
+    wifiScanning = true;
+    wifiError = '';
+    try {
+      const r = await api.applianceWifiScan();
+      wifiNetworks = r.networks ?? [];
+    } catch (e: any) {
+      wifiError = e?.message ?? String(e);
+    }
+    wifiScanning = false;
+  }
+
+  function selectWifi(ssid: string) {
+    wifiSelectedSsid = wifiSelectedSsid === ssid ? null : ssid;
+    wifiPassword = '';
+    wifiError = '';
+    wifiSuccessSsid = '';
+  }
+
+  async function connectWifi() {
+    if (!wifiSelectedSsid) return;
+    const ssid = wifiSelectedSsid;
+    wifiConnecting = true;
+    wifiError = '';
+    wifiSuccessSsid = '';
+    try {
+      await api.applianceWifiConnect(ssid, wifiPassword || undefined);
+      wifiSuccessSsid = ssid;
+      wifiSelectedSsid = null;
+      wifiPassword = '';
+      await loadWifiStatus();
+      await scanWifi();
+    } catch (e: any) {
+      wifiError = e?.message ?? String(e);
+    }
+    wifiConnecting = false;
+  }
+
+  async function forgetWifi(ssid: string) {
+    try {
+      await api.applianceWifiForget(ssid);
+      await loadWifiStatus();
+      await scanWifi();
+    } catch (e: any) {
+      wifiError = e?.message ?? String(e);
+    }
+  }
+
+  $effect(() => {
+    if (settingsTab === 'network' && config?.appliance && !wifiLoaded) {
+      wifiLoaded = true;
+      loadWifiStatus();
+      scanWifi();
+    }
+  });
+
   function toggleDevice(prefixedId: string) {
     preferences.update((p) => {
       const ids = p.hiddenDeviceIds;
@@ -1909,6 +1984,72 @@
           {restarting ? $t('settings.restarting') : $t('settings.restartServer')}
         </button>
       </div>
+    </section>
+    {/if}
+
+    {#if settingsTab === 'network' && config?.appliance}
+    <!-- Appliance (Tune OS): host WiFi configuration -->
+    <section class="settings-section">
+      <h3>{$t('settings.applianceWifi')}</h3>
+      <p class="diag-hint">
+        {#if wifiStatus?.wifi_connected}
+          {$t('settings.wifiConnectedTo').replace('{ssid}', wifiStatus?.wifi_ssid ?? '')}
+        {:else}
+          {$t('settings.wifiNotConnected')}
+        {/if}
+        {#if wifiStatus?.ethernet_connected}
+          &nbsp;·&nbsp;{$t('settings.wifiEthernetOn')}
+        {/if}
+      </p>
+      {#if wifiSuccessSsid}
+        <p class="wifi-feedback success">{$t('settings.wifiConnectSuccess').replace('{ssid}', wifiSuccessSsid)}</p>
+      {/if}
+      {#if wifiError}
+        <p class="wifi-feedback error">{wifiError}</p>
+      {/if}
+      {#if wifiScanning && wifiNetworks.length === 0}
+        <div class="loading"><div class="spinner small"></div> {$t('settings.wifiScanning')}</div>
+      {:else if wifiNetworks.length === 0}
+        <p class="diag-hint">{$t('settings.wifiNoNetworks')}</p>
+      {:else}
+        <div class="wifi-list">
+          {#each wifiNetworks as net (net.ssid)}
+            <div class="wifi-item" class:selected={wifiSelectedSsid === net.ssid}>
+              <button class="wifi-row" onclick={() => selectWifi(net.ssid)}>
+                <span class="wifi-ssid">{net.ssid}</span>
+                {#if net.security}<span class="wifi-sec">{net.security}</span>{/if}
+                <span class="wifi-signal">{net.signal}%</span>
+                {#if net.in_use}<span class="wifi-inuse">{$t('settings.wifiInUse')}</span>{/if}
+              </button>
+              {#if net.in_use}
+                <button class="scan-btn small danger" onclick={() => forgetWifi(net.ssid)}>
+                  {$t('settings.wifiForget')}
+                </button>
+              {/if}
+              {#if wifiSelectedSsid === net.ssid && !net.in_use}
+                <div class="wifi-connect-form">
+                  {#if net.security}
+                    <input
+                      type="password"
+                      placeholder={$t('settings.wifiPassword')}
+                      bind:value={wifiPassword}
+                      onkeydown={(e) => { if (e.key === 'Enter') connectWifi(); }}
+                      disabled={wifiConnecting}
+                    />
+                  {/if}
+                  <button class="scan-btn small" onclick={connectWifi} disabled={wifiConnecting || (!!net.security && !wifiPassword)}>
+                    {#if wifiConnecting}<div class="spinner small"></div>{/if}
+                    {$t('settings.wifiConnect')}
+                  </button>
+                </div>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
+      <button class="scan-btn" onclick={scanWifi} disabled={wifiScanning} style="margin-top: 8px;">
+        {$t('settings.wifiScan')}
+      </button>
     </section>
     {/if}
 
@@ -5419,6 +5560,83 @@
   }
   .peer-actions {
     flex-shrink: 0;
+  }
+
+  /* Appliance WiFi section */
+  .wifi-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .wifi-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    background: var(--tune-bg-secondary, #f5f5f5);
+    border-radius: 8px;
+  }
+  .wifi-item.selected {
+    outline: 1px solid var(--tune-accent, #4a90d9);
+  }
+  .wifi-row {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 10px;
+    padding: 6px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--tune-text-primary);
+    text-align: left;
+    min-width: 0;
+  }
+  .wifi-ssid {
+    font-weight: 600;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .wifi-sec,
+  .wifi-signal {
+    font-size: 12px;
+    color: var(--tune-text-secondary, #888);
+    flex-shrink: 0;
+  }
+  .wifi-inuse {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--tune-accent, #4a90d9);
+    flex-shrink: 0;
+  }
+  .wifi-connect-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-basis: 100%;
+    padding: 4px 6px 8px;
+  }
+  .wifi-connect-form input {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid var(--tune-border, #ddd);
+    border-radius: 6px;
+    background: var(--tune-bg, #fff);
+    color: var(--tune-text-primary);
+    font-size: 13px;
+  }
+  .wifi-feedback {
+    font-size: 13px;
+    margin: 4px 0 8px;
+  }
+  .wifi-feedback.success {
+    color: var(--tune-success, #2e9e5b);
+  }
+  .wifi-feedback.error {
+    color: var(--tune-danger, #d9534f);
   }
 
   /* Cloud section */

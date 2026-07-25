@@ -3331,3 +3331,55 @@ export function playUploadedFile(zoneId: number, filePath: string, meta?: { titl
     body: JSON.stringify({ temp_file_path: filePath, ...meta }),
   });
 }
+
+// ---- Appliance (Tune OS): host network configuration ----
+
+export interface ApplianceWifiNetwork {
+  ssid: string;
+  signal: number;
+  security: string;
+  in_use: boolean;
+}
+
+export interface ApplianceStatus {
+  appliance: boolean;
+  devices: { device: string; type: string; state: string; connection: string | null }[];
+  ethernet_connected: boolean;
+  wifi_connected: boolean;
+  wifi_ssid: string | null;
+  wifi_signal: number | null;
+}
+
+/** Like apiFetch/apiPost but surfaces the server's JSON error message. */
+async function applianceFetch(path: string, body?: any): Promise<any> {
+  const token = getToken();
+  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
+  if (body) headers['Content-Type'] = 'application/json';
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const resp = await fetch(`${BASE}${path}`, {
+    method: body ? 'POST' : 'GET',
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  let json: any = null;
+  try { json = await resp.json(); } catch { /* non-JSON body */ }
+  if (!resp.ok) throw new Error(json?.error || `${resp.status}`);
+  return json;
+}
+
+export function getApplianceStatus(): Promise<ApplianceStatus> {
+  return applianceFetch('/appliance/status');
+}
+
+export function applianceWifiScan(): Promise<{ networks: ApplianceWifiNetwork[] }> {
+  return applianceFetch('/appliance/wifi/scan');
+}
+
+export function applianceWifiConnect(ssid: string, password?: string): Promise<{ connected: boolean; message: string }> {
+  return applianceFetch('/appliance/wifi/connect', { ssid, password });
+}
+
+export function applianceWifiForget(ssid: string): Promise<{ forgotten: boolean }> {
+  return applianceFetch('/appliance/wifi/forget', { ssid });
+}
