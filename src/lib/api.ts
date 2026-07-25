@@ -3394,3 +3394,43 @@ export function applianceWifiConnect(ssid: string, password?: string): Promise<{
 export function applianceWifiForget(ssid: string): Promise<{ forgotten: boolean }> {
   return applianceFetch('/appliance/wifi/forget', { ssid });
 }
+
+// ---- Appliance (Tune OS): data relocation ----
+
+export interface ApplianceVolume {
+  device: string;
+  mount_path: string;
+  fs: string;
+  size_bytes: number;
+  free_bytes: number;
+  uuid: string | null;
+  label: string | null;
+  is_data_target: boolean;
+}
+
+export interface ApplianceDataStatus {
+  db_path: string;
+  artwork_dir: string;
+  on_external: boolean;
+  volume_present: boolean;
+  data_size_bytes: number;
+  job: {
+    phase: string;
+    copied_bytes: number;
+    total_bytes: number;
+    error: string | null;
+    target: string;
+  } | null;
+}
+
+export function getApplianceStorage(): Promise<{ volumes: ApplianceVolume[] }> {
+  return apiFetch('/appliance/storage');
+}
+
+export function getApplianceDataStatus(): Promise<ApplianceDataStatus> {
+  return apiFetch('/appliance/data/status');
+}
+
+export function applianceRelocateData(uuid: string): Promise<{ started: boolean }> {
+  return apiPost('/appliance/data/relocate', { uuid });
+}
