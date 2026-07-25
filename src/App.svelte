@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { tuneWS } from './lib/websocket';
-  import { zones, currentZoneId, currentZone } from './lib/stores/zones';
+  import { zones, currentZoneId, currentZone, playPendingUntil } from './lib/stores/zones';
   import { devices } from './lib/stores/devices';
   import { isBrowserZone, browserPlay, browserPause, browserResume, browserStop } from './lib/stores/browserAudio';
   import { seekPositionMs, startSeekTimer, stopSeekTimer, shuffleEnabled, repeatMode } from './lib/stores/nowPlaying';
@@ -611,7 +611,22 @@ import AlarmsView from './components/AlarmsView.svelte';
       // Playback events — refetch zone state since WS events lack full data
       if (type.startsWith('playback.')) {
         const zoneId = event.data?.zone_id;
+        // Playback actually started → close the post-play grace window so any
+        // later error surfaces normally (#1146).
+        if (zoneId != null && (type === 'playback.started' || type === 'playback.track_changed')) {
+          playPendingUntil.delete(zoneId);
+        }
         if (type === 'playback.error') {
+          // Within the post-play grace window a "playback.error" usually means a
+          // slow HI-RES DASH pre-transcode is still working (playback then
+          // starts), so show "chargement…" instead of a scary error (#1146). A
+          // genuine failure that persists past the window still surfaces.
+          const pendingUntil = zoneId != null ? playPendingUntil.get(zoneId) : undefined;
+          if (pendingUntil != null && Date.now() < pendingUntil) {
+            notifications.info(get(t)('common.loading'));
+            if (zoneId) syncZoneState(zoneId);
+            return;
+          }
           // Surface playback errors to the user (output unavailable, pipeline
           // error, stream URL timeout, etc.) so they know WHY play failed.
           const msg = event.data?.message || event.data?.error || 'Playback error';
