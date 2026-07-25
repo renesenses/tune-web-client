@@ -698,8 +698,8 @@
             <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
             <span class="track-heart" onclick={(e) => e.stopPropagation()}>
-              {#if t.source && t.source !== 'local' && t.source_id}
-                <HeartButton streaming={{ itemType: 'track', service: t.source, serviceId: String(t.source_id), title: t.title, artist: t.artist_name ?? undefined, album: (t as any).album_title ?? undefined, coverUrl: t.cover_path ?? undefined }} size={14} />
+              {#if t.source_id && (t.source ?? service) !== 'local'}
+                <HeartButton streaming={{ itemType: 'track', service: t.source ?? service, serviceId: String(t.source_id), title: t.title, artist: t.artist_name ?? undefined, album: (t as any).album_title ?? undefined, coverUrl: t.cover_path ?? undefined }} size={14} />
               {/if}
             </span>
             <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
@@ -758,8 +758,8 @@
             <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
             <span class="track-heart" onclick={(e) => e.stopPropagation()}>
-              {#if t.source && t.source !== 'local' && t.source_id}
-                <HeartButton streaming={{ itemType: 'track', service: t.source, serviceId: String(t.source_id), title: t.title, artist: t.artist_name ?? undefined, album: (t as any).album_title ?? undefined, coverUrl: t.cover_path ?? undefined }} size={14} />
+              {#if t.source_id && (t.source ?? service) !== 'local'}
+                <HeartButton streaming={{ itemType: 'track', service: t.source ?? service, serviceId: String(t.source_id), title: t.title, artist: t.artist_name ?? undefined, album: (t as any).album_title ?? undefined, coverUrl: t.cover_path ?? undefined }} size={14} />
               {/if}
             </span>
             <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
