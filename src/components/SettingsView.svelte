@@ -1413,6 +1413,69 @@
     }
   });
 
+  // --- Appliance (Tune OS): data relocation (docs/DATA-RELOCATION.md) ---
+  let dataStatus = $state<api.ApplianceDataStatus | null>(null);
+  let dataVolumes = $state<api.ApplianceVolume[]>([]);
+  let dataMoving = $state(false);
+  let dataDone = $state(false);
+  let dataError = $state('');
+  let dataLoaded = false; // plain var: load once, not reactive
+
+  async function loadDataStorage() {
+    try {
+      dataStatus = await api.getApplianceDataStatus();
+      dataVolumes = (await api.getApplianceStorage()).volumes;
+    } catch (e) {
+      console.error('Appliance storage error:', e);
+    }
+  }
+
+  function fmtBytes(n: number): string {
+    if (!n) return '0 o';
+    const u = ['o', 'Ko', 'Mo', 'Go', 'To'];
+    let i = 0;
+    let v = n;
+    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+    return `${v.toFixed(v >= 100 || i === 0 ? 0 : 1)} ${u[i]}`;
+  }
+
+  async function relocateData(vol: api.ApplianceVolume) {
+    if (!vol.uuid || dataMoving) return;
+    const name = vol.label || vol.device;
+    if (!confirm($t('settings.dataMoveConfirm').replace('{disk}', name))) return;
+    dataMoving = true;
+    dataError = '';
+    dataDone = false;
+    try {
+      await api.applianceRelocateData(vol.uuid);
+      for (;;) {
+        await new Promise((r) => setTimeout(r, 2000));
+        dataStatus = await api.getApplianceDataStatus();
+        const j = dataStatus?.job;
+        if (!j) continue;
+        if (j.phase === 'done') {
+          dataDone = true;
+          await api.restartServer().catch(() => {});
+          break;
+        }
+        if (j.phase === 'failed') {
+          dataError = j.error || 'failed';
+          break;
+        }
+      }
+    } catch (e: any) {
+      dataError = e?.message ?? String(e);
+    }
+    dataMoving = false;
+  }
+
+  $effect(() => {
+    if (settingsTab === 'system' && config?.appliance && !dataLoaded) {
+      dataLoaded = true;
+      loadDataStorage();
+    }
+  });
+
   function toggleDevice(prefixedId: string) {
     preferences.update((p) => {
       const ids = p.hiddenDeviceIds;
@@ -1935,6 +1998,51 @@
             {$t('settings.noAudioOutputHint')}
           {/if}
         </p>
+      {/if}
+    </section>
+    {/if}
+
+    {#if settingsTab === 'system' && config?.appliance}
+    <!-- Appliance (Tune OS): data location (docs/DATA-RELOCATION.md) -->
+    <section class="settings-section">
+      <h3>{$t('settings.dataLocation')}</h3>
+      {#if dataStatus}
+        <p class="diag-hint">
+          {dataStatus.db_path} · {fmtBytes(dataStatus.data_size_bytes)} ·
+          {dataStatus.on_external ? $t('settings.dataOnDisk') : $t('settings.dataOnKey')}
+        </p>
+      {/if}
+      {#if dataDone}
+        <p class="wifi-feedback success">{$t('settings.dataMoveDone')}</p>
+      {/if}
+      {#if dataError}
+        <p class="wifi-feedback error">{dataError}</p>
+      {/if}
+      {#if dataMoving && dataStatus?.job}
+        <div class="loading">
+          <div class="spinner small"></div>
+          {$t('settings.dataMoving')} — {fmtBytes(dataStatus.job.copied_bytes)} / {fmtBytes(dataStatus.job.total_bytes)}
+        </div>
+      {:else if !dataDone}
+        <div class="wifi-list">
+          {#each dataVolumes as vol (vol.device)}
+            <div class="wifi-item">
+              <div class="wifi-row" style="cursor: default;">
+                <span class="wifi-ssid">{vol.label || vol.device}</span>
+                <span class="wifi-sec">{vol.fs}</span>
+                <span class="wifi-signal">
+                  {$t('settings.dataFree').replace('{free}', fmtBytes(vol.free_bytes)).replace('{size}', fmtBytes(vol.size_bytes))}
+                </span>
+                {#if vol.is_data_target}<span class="wifi-inuse">{$t('settings.dataCurrent')}</span>{/if}
+              </div>
+              {#if !vol.is_data_target && vol.uuid}
+                <button class="scan-btn small" onclick={() => relocateData(vol)} disabled={dataMoving}>
+                  {$t('settings.dataMove')}
+                </button>
+              {/if}
+            </div>
+          {/each}
+        </div>
       {/if}
     </section>
     {/if}
