@@ -12,6 +12,7 @@
   import type { Album, Artist, Track, SearchResult, FeaturedSection, StreamingPlaylist, StreamingGenre } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { playVideo } from '../lib/stores/ytPlayer';
+  import { currentProfileId } from '../lib/stores/profile';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -50,9 +51,22 @@
   let favAlbums = $state<Album[]>([]);
   let favArtists = $state<Artist[]>([]);
   let favTracks = $state<Track[]>([]);
-  let favAlbumIds = $derived(new Set(favAlbums.map(a => String(a.source_id ?? a.id))));
-  let favArtistIds = $derived(new Set(favArtists.map(a => String(a.source_id ?? a.id))));
-  let favTrackIds = $derived(new Set(favTracks.map(t => String(t.source_id ?? t.id))));
+  // Tune-local streaming favorites for the active profile+service. These cover
+  // services with no server-side favorites (YouTube) and act as the source of
+  // truth for the heart state so a favorite always "sticks" (bug Fabien v0.9.4).
+  let localFavs = $state<api.StreamingFavorite[]>([]);
+  let favAlbumIds = $derived(new Set([
+    ...favAlbums.map(a => String(a.source_id ?? a.id)),
+    ...localFavs.filter(f => f.item_type === 'album').map(f => String(f.service_id)),
+  ]));
+  let favArtistIds = $derived(new Set([
+    ...favArtists.map(a => String(a.source_id ?? a.id)),
+    ...localFavs.filter(f => f.item_type === 'artist').map(f => String(f.service_id)),
+  ]));
+  let favTrackIds = $derived(new Set([
+    ...favTracks.map(t => String(t.source_id ?? t.id)),
+    ...localFavs.filter(f => f.item_type === 'track').map(f => String(f.service_id)),
+  ]));
 
   // Genre browsing state
   let genres = $state<StreamingGenre[]>([]);
@@ -131,6 +145,7 @@
       loadFeatured(s);
       loadUserPlaylists(s);
       loadFavorites(s);
+      loadLocalFavorites(s);
       loadNewReleases(s);
       loadFeaturedPlaylists(s);
     } else {
@@ -216,19 +231,49 @@
     }
   }
 
-  async function toggleFavorite(type: 'tracks' | 'albums' | 'artists', itemId: string) {
+  async function toggleFavorite(type: 'tracks' | 'albums' | 'artists', item: Track | Album | Artist) {
     if (!service) return;
+    const itemId = String((item as any).source_id ?? (item as any).id);
+    if (!itemId || itemId === 'undefined') return;
+    const singular = type === 'albums' ? 'album' : type === 'artists' ? 'artist' : 'track';
     const idSet = type === 'albums' ? favAlbumIds : type === 'artists' ? favArtistIds : favTrackIds;
     const isFav = idSet.has(itemId);
+    const pid = $currentProfileId;
     try {
       if (isFav) {
-        await api.removeStreamingFavorite(service, type, itemId);
+        // Remove the Tune-local favorite (works for every service) and, best
+        // effort, un-favorite it service-side too. Neither failure blocks.
+        if (pid) await api.removeProfileStreamingFavorite(pid, { item_type: singular, service, service_id: itemId }).catch(() => {});
+        await api.removeStreamingFavorite(service, type, itemId).catch(() => {});
       } else {
-        await api.addStreamingFavorite(service, type, itemId);
+        // Persist locally first so YouTube / services without server-side
+        // favorites still work, then sync to the service when it supports it.
+        const it = item as any;
+        if (pid) await api.addProfileStreamingFavorite(pid, {
+          item_type: singular,
+          service,
+          service_id: itemId,
+          title: it.title ?? it.name,
+          artist: it.artist_name,
+          album: it.album_title,
+          cover_url: it.cover_url ?? it.cover_path,
+        }).catch(() => {});
+        await api.addStreamingFavorite(service, type, itemId).catch(() => {});
       }
-      await loadFavorites(service);
+      await Promise.all([loadFavorites(service), loadLocalFavorites(service)]);
     } catch (e) {
       console.error('Toggle favorite error:', e);
+    }
+  }
+
+  async function loadLocalFavorites(s: string) {
+    const pid = $currentProfileId;
+    if (!pid) { localFavs = []; return; }
+    try {
+      const all = await api.getProfileStreamingFavorites(pid);
+      if (service === s) localFavs = all.filter(f => f.service === s);
+    } catch {
+      // leave existing local favorites untouched on transient failure
     }
   }
 
@@ -1052,7 +1097,7 @@
                   <span class="album-card-artist truncate">{album.artist_name}</span>
                 {/if}
               </div>
-              <button class="fav-btn" class:is-fav={favAlbumIds.has(String(album.source_id ?? album.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('albums', String(album.source_id ?? album.id)); }} title={$tr('streaming.favorite')}>♥</button>
+              <button class="fav-btn" class:is-fav={favAlbumIds.has(String(album.source_id ?? album.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('albums', album); }} title={$tr('streaming.favorite')}>♥</button>
             </div>
           {/each}
         </div>
@@ -1065,7 +1110,7 @@
             <div class="artist-item" onclick={() => selectArtist(artist)}>
               <div class="artist-avatar">{artist.name.charAt(0).toUpperCase()}</div>
               <span class="artist-name">{artist.name}</span>
-              <button class="fav-btn" class:is-fav={favArtistIds.has(String(artist.source_id ?? artist.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('artists', String(artist.source_id ?? artist.id)); }} title={$tr('streaming.favorite')}>♥</button>
+              <button class="fav-btn" class:is-fav={favArtistIds.has(String(artist.source_id ?? artist.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('artists', artist); }} title={$tr('streaming.favorite')}>♥</button>
               <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
             </div>
           {/each}
@@ -1085,7 +1130,7 @@
               <ServiceBadge source={t.source} compact />
               <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
-              <button class="fav-btn small" class:is-fav={favTrackIds.has(String(t.source_id ?? t.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('tracks', String(t.source_id ?? t.id)); }} title={$tr('streaming.favorite')}>♥</button>
+              <button class="fav-btn small" class:is-fav={favTrackIds.has(String(t.source_id ?? t.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('tracks', t); }} title={$tr('streaming.favorite')}>♥</button>
               <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
