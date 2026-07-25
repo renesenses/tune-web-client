@@ -55,6 +55,7 @@
           duration_ms: e.duration_ms,
           source: e.source,
           source_id: e.source_id,
+          album_id: e.album_id ?? null,
           cover_path: e.cover_url ?? null,
         },
         playedAt: e.listened_at,
