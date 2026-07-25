@@ -245,18 +245,28 @@
     } finally { loading = false; }
   }
 
+  const serverFacetFields = $preferences.oxygenFacets.filter(f => SERVER_FACET_FIELDS.includes(f));
+  // Cumulative: recompute facet counts over the active filter set so selecting a
+  // genre narrows the labels/artists/… lists (Dominique). A facet excludes its
+  // own field server-side, keeping its alternatives visible.
+  async function loadFacets() {
+    if (!serverFacetFields.length) return;
+    try { serverFacets = await getLibraryFacets(serverFacetFields, facetParam(facetSels), $preferences.oxygenFacetLimit); }
+    catch { /* keep the previous facet counts on transient failure */ }
+  }
+
   onMount(() => {
     const mq = window.matchMedia('(max-width: 1150px)');
     const upd = () => { isNarrow = mq.matches; if (!isNarrow) { mobileRail = false; mobileInspector = false; } };
     upd();
     mq.addEventListener('change', upd);
     getMetadataFieldSettings().then(f => { categories = f.categories ?? []; }).catch(() => {});
-    const fields = $preferences.oxygenFacets.filter(f => SERVER_FACET_FIELDS.includes(f));
-    if (fields.length) getLibraryFacets(fields).then(f => { serverFacets = f; }).catch(() => {});
   });
 
-  // Server-driven: (re)fetch the filtered track set whenever the facet changes.
+  // Server-driven: (re)fetch the filtered tracks whenever the selection changes.
   $effect(() => { void JSON.stringify(facetSels); loadTracks(); });
+  // Facet counts also re-fetch when the per-facet value limit changes.
+  $effect(() => { void JSON.stringify(facetSels); void $preferences.oxygenFacetLimit; loadFacets(); });
 </script>
 
 <div class="oxygen">
@@ -299,7 +309,7 @@
 
   <div class="body">
     <aside class="railwrap" class:open={mobileRail}>
-      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} selected={facetSels} onSelect={(field, value) => { const next = { ...facetSels }; if (value == null) { delete next[field]; } else { next[field] = value; } facetSels = next; mobileRail = false; }} />
+      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} limit={$preferences.oxygenFacetLimit} selected={facetSels} onSelect={(field, value) => { const next = { ...facetSels }; if (value == null) { delete next[field]; } else { next[field] = value; } facetSels = next; mobileRail = false; }} />
     </aside>
 
     <section class="main">
