@@ -60,6 +60,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import BottomTabBar from './components/BottomTabBar.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
   import ToastContainer from './components/ToastContainer.svelte';
+  import ImportWizard from './components/ImportWizard.svelte';
   import OnboardingWizard from './components/OnboardingWizard.svelte';
   import OnboardingView from './components/OnboardingView.svelte';
   import OfflineView from './components/OfflineView.svelte';
@@ -959,7 +960,66 @@ import AlarmsView from './components/AlarmsView.svelte';
     stopUpdatePolling();
     if (bannerFadeTimer) clearTimeout(bannerFadeTimer);
   });
+
+  // --- Ajout de contenu par glisser-déposer ---
+  //
+  // Lâcher un dossier d'album n'importe où dans l'app ouvre l'assistant
+  // d'import. Trois garde-fous pour ne pas voler le drop de quelqu'un d'autre :
+  //  - defaultPrevented : une cible plus spécifique (pochette d'album, image
+  //    d'artiste) a déjà traité l'événement ;
+  //  - le drag doit transporter des fichiers, ce qui exclut les drags internes
+  //    (arbre des genres, réordonnancement de file) qui passent du text/plain ;
+  //  - le contenu doit ressembler à de la musique (extension audio, ou dossier
+  //    dont on ne peut pas connaître le contenu avant lecture).
+  let importDropFiles = $state<api.DroppedFile[] | null>(null);
+  let showImportDrop = $state(false);
+  let dragDepth = $state(0);
+
+  function dragHasFiles(e: DragEvent): boolean {
+    return Array.from(e.dataTransfer?.types ?? []).includes('Files');
+  }
+
+  function onWindowDragEnter(e: DragEvent) {
+    if (e.defaultPrevented || !dragHasFiles(e)) return;
+    dragDepth += 1;
+  }
+
+  function onWindowDragOver(e: DragEvent) {
+    if (e.defaultPrevented || !dragHasFiles(e)) return;
+    // Sans preventDefault le navigateur ouvre le fichier au lâcher.
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+  }
+
+  function onWindowDragLeave(e: DragEvent) {
+    if (!dragHasFiles(e)) return;
+    dragDepth = Math.max(0, dragDepth - 1);
+  }
+
+  async function onWindowDrop(e: DragEvent) {
+    dragDepth = 0;
+    if (e.defaultPrevented || !e.dataTransfer || !dragHasFiles(e)) return;
+    if (!api.dropLooksLikeMusic(e.dataTransfer)) return;
+
+    e.preventDefault();
+    const files = await api.collectDroppedFiles(e.dataTransfer);
+    if (files.length === 0) return;
+    importDropFiles = files;
+    showImportDrop = true;
+  }
+
+  function closeImportDrop() {
+    showImportDrop = false;
+    importDropFiles = null;
+  }
 </script>
+
+<svelte:window
+  ondragenter={onWindowDragEnter}
+  ondragover={onWindowDragOver}
+  ondragleave={onWindowDragLeave}
+  ondrop={onWindowDrop}
+/>
 
 <div class="app-layout" class:kiosk-mode={isKiosk}>
   {#if !isKiosk}
@@ -1111,6 +1171,24 @@ import AlarmsView from './components/AlarmsView.svelte';
 
 {#if playlistModalTrack !== null}
   <AddToPlaylistModal track={playlistModalTrack} onClose={closePlaylistModal} />
+{/if}
+
+{#if dragDepth > 0 && !showImportDrop}
+  <div class="drop-hint">
+    <div class="drop-card">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="34" height="34">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
+      </svg>
+      <strong>{$t('ingest.title')}</strong>
+      <span>{$t('ingest.dropHere')}</span>
+    </div>
+  </div>
+{/if}
+
+{#if showImportDrop}
+  <ImportWizard droppedFiles={importDropFiles} onClose={closeImportDrop} />
 {/if}
 
 <style>
@@ -1367,5 +1445,41 @@ import AlarmsView from './components/AlarmsView.svelte';
 
   .update-banner-dismiss:hover {
     opacity: 1;
+  }
+
+  /* Retour visuel pendant qu'un dossier survole la fenêtre. `pointer-events:
+     none` est indispensable : l'overlay ne doit pas intercepter le dragleave
+     ni le drop, sinon le compteur de profondeur se désynchronise et le voile
+     reste affiché. */
+  .drop-hint {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+  }
+
+  .drop-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 30px 44px;
+    border-radius: 16px;
+    border: 2px dashed var(--tune-accent);
+    background: var(--tune-surface);
+    color: var(--tune-text);
+    text-align: center;
+  }
+
+  .drop-card strong {
+    font-size: 1.05rem;
+  }
+
+  .drop-card span {
+    font-size: 0.85rem;
+    opacity: 0.7;
   }
 </style>
