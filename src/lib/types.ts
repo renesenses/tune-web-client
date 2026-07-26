@@ -257,6 +257,8 @@ export interface SystemConfig {
   discogs_token_set: boolean;
   // Appliance mode (Tune OS image): unlocks the host network settings UI
   appliance?: boolean;
+  // Access URLs from another device (IP + .local) — shown in Settings
+  server_urls?: string[];
   // Database
   db_engine: string;
   db_path?: string | null;
