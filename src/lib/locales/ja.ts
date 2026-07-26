@@ -771,7 +771,7 @@ export default {
 
   // Batch Enrichment
   'settings.batchEnrich': 'ライブラリ全体を補完（MusicBrainz）',
-  'settings.batchEnrichRunning': '補完中：{current}/{total}アルバム...',
+  'settings.batchEnrichRunning': '補完中：{current}/{total}トラック...',
   'settings.batchEnrichDone': '補完が完了しました！',
   'settings.batchEnrichStarted': '補完を開始しました',
 

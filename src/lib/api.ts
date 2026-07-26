@@ -2630,7 +2630,11 @@ export function startBatchEnrich() {
 }
 
 export function getBatchEnrichStatus() {
-  return fetchJSON<{ running: boolean; processed: number; total: number }>(`${BASE}/library/enrich-all/status`);
+  // Forme réelle du JSON serveur (routes/library/enrich.rs) : `status` +
+  // `enriched`, PAS `running`/`processed` (Fabien-5).
+  return fetchJSON<{ status: 'running' | 'done' | 'idle'; enriched: number; errors?: number; total: number }>(
+    `${BASE}/library/enrich-all/status`
+  );
 }
 
 // Artist image enrichment (community + Fanart/TheAudioDB/MusicBrainz by MBID,

@@ -787,7 +787,7 @@ export default {
 
   // Batch Enrichment
   'settings.batchEnrich': 'Enrich entire library (MusicBrainz)',
-  'settings.batchEnrichRunning': 'Enrichment: {current}/{total} albums...',
+  'settings.batchEnrichRunning': 'Enrichment: {current}/{total} tracks...',
   'settings.batchEnrichDone': 'Enrichment complete!',
   'settings.batchEnrichStarted': 'Enrichment started',
 
