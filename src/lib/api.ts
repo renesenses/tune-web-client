@@ -3427,7 +3427,11 @@ export interface ApplianceDataStatus {
   } | null;
 }
 
-export function getApplianceStorage(): Promise<{ volumes: ApplianceVolume[] }> {
+export function getApplianceStorage(): Promise<{
+  volumes: ApplianceVolume[];
+  disks?: ApplianceDisk[];
+  unmounted_partitions?: ApplianceUnmountedPartition[];
+}> {
   return apiFetch('/appliance/storage');
 }
 
@@ -3437,4 +3441,37 @@ export function getApplianceDataStatus(): Promise<ApplianceDataStatus> {
 
 export function applianceRelocateData(uuid: string): Promise<{ started: boolean }> {
   return apiPost('/appliance/data/relocate', { uuid });
+}
+
+// ---- Appliance (Tune OS): disks inventory, music volume mount, install ----
+
+export interface ApplianceDisk {
+  name: string;
+  size: string;
+  model: string;
+  tran: string;
+  is_boot: boolean;
+}
+
+export interface ApplianceUnmountedPartition {
+  name: string;
+  uuid: string;
+  fstype: string;
+  size: string;
+  label: string;
+  tran: string;
+  disk: string;
+  disk_model: string;
+}
+
+export function applianceMountVolume(uuid: string): Promise<{ mount_path: string; label: string | null; fstype: string }> {
+  return apiPost('/appliance/storage/mount', { uuid });
+}
+
+export function applianceInstallToDisk(device: string): Promise<{ started: boolean }> {
+  return apiPost('/appliance/install-to-disk', { device, confirm: 'EFFACER' });
+}
+
+export function applianceInstallStatus(): Promise<{ phase: string; written_bytes: number; error: string | null; target: string }> {
+  return apiFetch('/appliance/install-to-disk/status');
 }

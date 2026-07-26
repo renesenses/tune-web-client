@@ -1424,7 +1424,10 @@
   async function loadDataStorage() {
     try {
       dataStatus = await api.getApplianceDataStatus();
-      dataVolumes = (await api.getApplianceStorage()).volumes;
+      const storage = await api.getApplianceStorage();
+      dataVolumes = storage.volumes;
+      dataDisks = storage.disks ?? [];
+      dataUnmounted = storage.unmounted_partitions ?? [];
     } catch (e) {
       console.error('Appliance storage error:', e);
     }
@@ -1467,6 +1470,62 @@
       dataError = e?.message ?? String(e);
     }
     dataMoving = false;
+  }
+
+  // Inventaire disques (cas Gil : SATA interne non monté) + install-to-disk
+  let dataDisks = $state<api.ApplianceDisk[]>([]);
+  let dataUnmounted = $state<api.ApplianceUnmountedPartition[]>([]);
+  let musicMountBusy = $state('');
+  let musicMountMsg = $state('');
+  let installBusy = $state(false);
+  let installDone = $state(false);
+  let installWritten = $state(0);
+  let installError = $state('');
+
+  async function useAsMusicSource(part: api.ApplianceUnmountedPartition) {
+    if (musicMountBusy) return;
+    musicMountBusy = part.uuid;
+    musicMountMsg = '';
+    try {
+      const r = await api.applianceMountVolume(part.uuid);
+      await api.addMusicDir(r.mount_path);
+      musicMountMsg = $t('settings.diskMusicAdded').replace('{name}', part.label || part.name);
+      await loadDataStorage();
+    } catch (e: any) {
+      musicMountMsg = e?.message ?? String(e);
+    }
+    musicMountBusy = '';
+  }
+
+  async function installToDisk(disk: api.ApplianceDisk) {
+    if (installBusy) return;
+    const typed = prompt(
+      $t('settings.installConfirmPrompt')
+        .replace('{disk}', `${disk.name} (${disk.size} ${disk.model})`.trim())
+    );
+    if (typed !== 'EFFACER') return;
+    installBusy = true;
+    installError = '';
+    installDone = false;
+    try {
+      await api.applianceInstallToDisk(disk.name);
+      for (;;) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const st = await api.applianceInstallStatus();
+        installWritten = st.written_bytes;
+        if (st.phase === 'done') {
+          installDone = true;
+          break;
+        }
+        if (st.phase === 'failed') {
+          installError = st.error || 'failed';
+          break;
+        }
+      }
+    } catch (e: any) {
+      installError = e?.message ?? String(e);
+    }
+    installBusy = false;
   }
 
   $effect(() => {
@@ -2048,6 +2107,57 @@
             </div>
           {/each}
         </div>
+      {/if}
+      {#if dataUnmounted.length > 0}
+        <h4 class="wifi-subtitle">{$t('settings.disksDetected')}</h4>
+        {#if musicMountMsg}<p class="wifi-feedback success">{musicMountMsg}</p>{/if}
+        <div class="wifi-list">
+          {#each dataUnmounted as part (part.uuid)}
+            <div class="wifi-item">
+              <div class="wifi-row" style="cursor: default;">
+                <span class="wifi-ssid">{part.label || part.name}</span>
+                <span class="wifi-sec">{part.fstype} · {part.disk_model || part.disk}{part.tran === 'usb' ? ' · USB' : ''}</span>
+                <span class="wifi-signal">{part.size}</span>
+              </div>
+              <button
+                class="scan-btn small"
+                onclick={() => useAsMusicSource(part)}
+                disabled={!!musicMountBusy}
+              >
+                {musicMountBusy === part.uuid ? '…' : $t('settings.diskUseAsMusic')}
+              </button>
+            </div>
+          {/each}
+        </div>
+      {/if}
+
+      {#if dataDisks.some((d) => !d.is_boot && d.tran !== 'usb')}
+        <h4 class="wifi-subtitle">{$t('settings.installTitle')}</h4>
+        <p class="diag-hint">{$t('settings.installHint')}</p>
+        {#if installDone}
+          <p class="wifi-feedback success">{$t('settings.installDone')}</p>
+        {:else if installBusy}
+          <div class="loading">
+            <div class="spinner small"></div>
+            {$t('settings.installWriting')} — {fmtBytes(installWritten)}
+          </div>
+        {:else}
+          {#if installError}<p class="wifi-feedback error">{installError}</p>{/if}
+          <div class="wifi-list">
+            {#each dataDisks.filter((d) => !d.is_boot && d.tran !== 'usb') as disk (disk.name)}
+              <div class="wifi-item">
+                <div class="wifi-row" style="cursor: default;">
+                  <span class="wifi-ssid">{disk.name}</span>
+                  <span class="wifi-sec">{disk.model}</span>
+                  <span class="wifi-signal">{disk.size}</span>
+                </div>
+                <button class="scan-btn small danger" onclick={() => installToDisk(disk)}>
+                  {$t('settings.installButton')}
+                </button>
+              </div>
+            {/each}
+          </div>
+        {/if}
       {/if}
     </section>
     {/if}
@@ -5717,6 +5827,15 @@
   }
   .peer-actions {
     flex-shrink: 0;
+  }
+
+  .wifi-subtitle {
+    margin: 16px 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--tune-text-secondary, #888);
   }
 
   /* Appliance WiFi section */
