@@ -140,7 +140,12 @@
       lines.push('');
       lines.push('## Database');
       lines.push(`Engine: ${dbStatus.engine}`);
-      lines.push(`Connected: ${dbStatus.connected ? 'Yes' : 'No'}`);
+      // Le serveur ne renvoie pas de champ `connected` : la réponse reçue
+      // vaut preuve de connexion. L'ancien test affichait « No » dans tous
+      // les rapports (champ undefined) — alarmant pour rien (Villerio 26/07).
+      lines.push(`Connected: ${(dbStatus.connected ?? true) ? 'Yes' : 'No'}`);
+      if (dbStatus.migration_version !== undefined)
+        lines.push(`Migrations: ${dbStatus.migration_version}/${dbStatus.latest_version}${dbStatus.up_to_date ? ' (à jour)' : ' (EN RETARD)'}`);
       if (dbStatus.size_mb !== undefined) lines.push(`Size: ${dbStatus.size_mb} MB`);
       if (dbStatus.path) lines.push(`Path: ${dbStatus.path}`);
       if (dbStatus.stats) {
