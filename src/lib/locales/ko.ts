@@ -771,7 +771,7 @@ export default {
 
   // Batch Enrichment
   'settings.batchEnrich': '전체 라이브러리 보강 (MusicBrainz)',
-  'settings.batchEnrichRunning': '보강 중: {current}/{total} 앨범...',
+  'settings.batchEnrichRunning': '보강 중: {current}/{total} 트랙...',
   'settings.batchEnrichDone': '보강 완료!',
   'settings.batchEnrichStarted': '보강이 시작되었습니다',
 

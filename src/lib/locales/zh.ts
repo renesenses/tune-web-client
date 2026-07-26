@@ -771,7 +771,7 @@ export default {
 
   // Batch Enrichment
   'settings.batchEnrich': '丰富整个媒体库（MusicBrainz）',
-  'settings.batchEnrichRunning': '丰富中：{current}/{total} 张专辑...',
+  'settings.batchEnrichRunning': '丰富中：{current}/{total} 首曲目...',
   'settings.batchEnrichDone': '丰富完成！',
   'settings.batchEnrichStarted': '丰富已启动',
 

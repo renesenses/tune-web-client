@@ -779,7 +779,7 @@ export default {
 
   // Batch Enrichment
   'settings.batchEnrich': 'Îmbogățește întreaga bibliotecă (MusicBrainz)',
-  'settings.batchEnrichRunning': 'Îmbogățire: {current}/{total} albume...',
+  'settings.batchEnrichRunning': 'Îmbogățire: {current}/{total} piese...',
   'settings.batchEnrichDone': 'Îmbogățire completă!',
   'settings.batchEnrichStarted': 'Îmbogățire pornită',
 

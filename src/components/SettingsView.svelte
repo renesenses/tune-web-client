@@ -1712,9 +1712,14 @@
     batchEnrichTimer = setInterval(async () => {
       try {
         const status = await api.getBatchEnrichStatus();
-        batchEnrichCurrent = status.processed ?? 0;
+        // Le serveur renvoie { status: 'running'|'done'|'idle', enriched, total }
+        // — pas { running, processed }. L'ancien contrat lisait des champs
+        // inexistants : « 0/0 » affiché et poll arrêté au premier tick
+        // (!undefined), d'où « l'enrichissement se termine immédiatement »
+        // (Fabien-5, v0.9.13).
+        batchEnrichCurrent = status.enriched ?? 0;
         batchEnrichTotal = status.total ?? 0;
-        if (!status.running) {
+        if (status.status !== 'running') {
           batchEnrichRunning = false;
           if (batchEnrichTimer) { clearInterval(batchEnrichTimer); batchEnrichTimer = null; }
           notifications.success(get(t)('settings.batchEnrichDone' as any));
