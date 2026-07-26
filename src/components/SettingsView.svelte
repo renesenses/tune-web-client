@@ -1472,6 +1472,9 @@
     dataMoving = false;
   }
 
+  // Accès depuis un autre appareil (copie d'URL)
+  let copiedUrl = $state('');
+
   // Inventaire disques (cas Gil : SATA interne non monté) + install-to-disk
   let dataDisks = $state<api.ApplianceDisk[]>([]);
   let dataUnmounted = $state<api.ApplianceUnmountedPartition[]>([]);
@@ -2063,6 +2066,29 @@
           {/if}
         </p>
       {/if}
+    </section>
+    {/if}
+
+    {#if settingsTab === 'system' && (config?.server_urls?.length ?? 0) > 0}
+    <!-- Accès depuis un autre appareil (Android ne résout pas .local → IP) -->
+    <section class="settings-section">
+      <h3>{$t('settings.accessFromDevice')}</h3>
+      <p class="diag-hint">{$t('settings.accessFromDeviceHint')}</p>
+      <div class="wifi-list">
+        {#each config?.server_urls ?? [] as url (url)}
+          <div class="wifi-item">
+            <div class="wifi-row" style="cursor: default;">
+              <span class="wifi-ssid server-url">{url}</span>
+            </div>
+            <button
+              class="scan-btn small"
+              onclick={() => { navigator.clipboard?.writeText(url); copiedUrl = url; setTimeout(() => (copiedUrl = ''), 2000); }}
+            >
+              {copiedUrl === url ? $t('settings.urlCopied') : $t('settings.copyUrl')}
+            </button>
+          </div>
+        {/each}
+      </div>
     </section>
     {/if}
 
@@ -5827,6 +5853,12 @@
   }
   .peer-actions {
     flex-shrink: 0;
+  }
+
+  .server-url {
+    font-family: monospace;
+    font-size: 14px;
+    user-select: all;
   }
 
   .wifi-subtitle {
