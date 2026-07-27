@@ -566,7 +566,10 @@ export function getQueue(zoneId: number) {
   return fetchJSON<QueueStateResponse>(`${BASE}/zones/${zoneId}/queue`);
 }
 
-export function addToQueue(zoneId: number, body: { track_id?: number; track_ids?: number[]; album_id?: number; source?: Source | 'upload'; source_id?: string; file_path?: string; position?: number; title?: string; artist_name?: string; album_title?: string; cover_path?: string; duration_ms?: number }) {
+// Pas d'`album_id` ici : /queue/add ne l'accepte pas (contrairement au endpoint
+// de lecture) et répond 400. Pour enfiler un album, résoudre ses pistes via
+// getAlbumTracks() et envoyer `track_ids`.
+export function addToQueue(zoneId: number, body: { track_id?: number; track_ids?: number[]; source?: Source | 'upload'; source_id?: string; file_path?: string; position?: number; title?: string; artist_name?: string; album_title?: string; cover_path?: string; duration_ms?: number }) {
   return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/add`, {
     method: 'POST',
     body: JSON.stringify(body),

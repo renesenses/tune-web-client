@@ -780,7 +780,12 @@
             <span class="track-rank">{i + 1}</span>
             <button class="top-track-play-zone" type="button" onclick={() => playTopTrack(track)}>
               <div class="top-track-art">
-                <AlbumArt coverPath={track.cover_path} albumId={track.track_id} size={44} alt={track.title} />
+                <!-- Pas d'albumId ici : TopTrack ne porte qu'un `track_id`, et le
+                     passer en albumId faisait résoudre la pochette via
+                     /library/albums/<track_id> — 404 dans le meilleur des cas,
+                     pochette d'un tout autre album si l'id existe côté albums.
+                     Sans cover_path, on affiche le placeholder. -->
+                <AlbumArt coverPath={track.cover_path} size={44} alt={track.title} />
               </div>
               <span class="top-track-title truncate">{track.title}</span>
             </button>
