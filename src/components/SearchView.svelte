@@ -410,8 +410,13 @@
     if (albums.length === 0) return;
     try {
       await playAndSync(zone.id, { album_id: albums[0].id! });
+      // /queue/add n'accepte que des track_id(s) — album_id n'y existe pas et
+      // renvoie 400, ce qui n'enfilait que le premier album. On résout donc les
+      // pistes de chaque album suivant et on les envoie en un lot.
       for (const a of albums.slice(1)) {
-        await api.addToQueue(zone.id, { album_id: a.id! });
+        const tracks = await api.getAlbumTracks(a.id!).catch(() => [] as Track[]);
+        const ids = tracks.map(t => t.id).filter(id => id != null) as number[];
+        if (ids.length) await api.addToQueue(zone.id, { track_ids: ids });
       }
     } catch (e) {
       console.error('Play all albums error:', e);

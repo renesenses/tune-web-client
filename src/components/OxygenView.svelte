@@ -3,7 +3,7 @@
   import QualityBadge from './QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
   import HeartButton from './HeartButton.svelte';
-  import { getFilteredTracks, getLibraryFacets, artworkUrl, addToQueue, getQueue, jumpInQueue, type FacetValue } from '../lib/api';
+  import { getFilteredTracks, getLibraryFacets, getAlbumTracks, artworkUrl, addToQueue, getQueue, jumpInQueue, type FacetValue } from '../lib/api';
   import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../lib/api/metadata';
   import { displayFields } from '../lib/stores/displayFields';
   import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
@@ -12,7 +12,6 @@
   import { notifications } from '../lib/stores/notifications';
   import { fold } from '../lib/utils';
   import { t } from '../lib/i18n';
-  import { get } from 'svelte/store';
   import type { Track } from '../lib/types';
 
   const NEW_KEYS = new Set(['release_country', 'mb_release_track_id', 'encoder_software', 'source_media']);
@@ -207,34 +206,49 @@
 
   // Actions file — même sémantique que la bibliothèque classique (y compris
   // le démarrage quand la zone est idle).
-  async function queueNext(t: Track) {
-    if (!zone?.id || t.id == null) { if (!zone?.id) notifications.error(get(t)('library.noZoneSelected')); return; }
+  // NB : le paramètre piste s'appelle `track`, pas `t` — `t` est le store i18n
+  // et le masquer cassait la traduction ici : `get(t)` recevait la piste, d'où
+  // « n.subscribe is not a function » au clic sur ⏭ / ＋.
+  async function queueNext(track: Track) {
+    if (!zone?.id || track.id == null) { if (!zone?.id) notifications.error($t('library.noZoneSelected')); return; }
     try {
       const qs = await getQueue(zone.id);
       const nextPos = qs.position + 1;
       const idle = qs.length === 0 || (zone.state !== 'playing' && zone.state !== 'buffering');
-      await addToQueue(zone.id, { track_id: t.id, position: nextPos });
+      await addToQueue(zone.id, { track_id: track.id, position: nextPos });
       if (idle) await jumpInQueue(zone.id, nextPos);
-      notifications.success(`"${t.title}" — ${get(t)('library.playNext').toLowerCase()}`);
+      notifications.success(`"${track.title}" — ${$t('library.playNext').toLowerCase()}`);
     } catch (e) {
       notifications.error(e instanceof Error ? e.message : String(e));
     }
   }
-  async function queueAppendTrack(t: Track) {
-    if (!zone?.id || t.id == null) { if (!zone?.id) notifications.error(get(t)('library.noZoneSelected')); return; }
+  async function queueAppendTrack(track: Track) {
+    if (!zone?.id || track.id == null) { if (!zone?.id) notifications.error($t('library.noZoneSelected')); return; }
     try {
-      await addToQueue(zone.id, { track_id: t.id });
-      notifications.success(`"${t.title}" — ${get(t)('queue.addToQueue').toLowerCase()}`);
+      await addToQueue(zone.id, { track_id: track.id });
+      notifications.success(`"${track.title}" — ${$t('queue.addToQueue').toLowerCase()}`);
     } catch (e) {
       notifications.error(e instanceof Error ? e.message : String(e));
     }
   }
   async function queueAppendAlbum(g: AlbumGroup) {
-    if (!zone?.id) { notifications.error(get(t)('library.noZoneSelected')); return; }
+    if (!zone?.id) { notifications.error($t('library.noZoneSelected')); return; }
     try {
-      if (typeof g.key === 'number') await addToQueue(zone.id, { album_id: g.key });
-      else for (const t of g.tracks) if (t.id != null) await addToQueue(zone.id, { track_id: t.id });
-      notifications.success(`"${g.title}" — ${get(t)('queue.addToQueue').toLowerCase()}`);
+      // /queue/add ne connaît que track_id(s) : contrairement au endpoint de
+      // lecture, il ignore album_id et répond 400 (« track_ids, track_id,
+      // source+source_id, or tracks[] required »). On résout donc les pistes de
+      // l'album — côté serveur pour avoir son ordre canonique et la totalité de
+      // l'album, pas seulement les pistes chargées dans la vue filtrée — et on
+      // les envoie en un seul lot.
+      let ids: number[] = [];
+      if (typeof g.key === 'number') {
+        const full = await getAlbumTracks(g.key).catch(() => [] as Track[]);
+        ids = full.map(t => t.id).filter(id => id != null) as number[];
+      }
+      if (!ids.length) ids = g.tracks.map(t => t.id).filter(id => id != null) as number[];
+      if (!ids.length) return;
+      await addToQueue(zone.id, { track_ids: ids });
+      notifications.success(`"${g.title}" — ${$t('queue.addToQueue').toLowerCase()}`);
     } catch (e) {
       notifications.error(e instanceof Error ? e.message : String(e));
     }
