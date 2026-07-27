@@ -148,8 +148,12 @@ export function resolveDuplicate(duplicateId: number, keepTrackId: number) {
   return fetchJSON(`${BASE}/metadata/duplicates/resolve?duplicate_id=${duplicateId}&keep_track_id=${keepTrackId}`, { method: 'POST' });
 }
 
+/** Ne renvoie qu'un **compteur**, pas la liste : `{ pending: n }` (routes/
+ *  metadata.rs list_suggestions). Les paramètres status/limit sont ignorés côté
+ *  serveur. Il n'existe pas d'endpoint listant toutes les suggestions — seul
+ *  /metadata/tracks/{id}/suggestions existe, par piste. */
 export function getMetadataSuggestions(status = 'pending', limit = 100) {
-  return fetchJSON(`${BASE}/metadata/suggestions?status=${status}&limit=${limit}`);
+  return fetchJSON<{ pending: number }>(`${BASE}/metadata/suggestions?status=${status}&limit=${limit}`);
 }
 
 export function acceptSuggestion(id: number) {

@@ -1,8 +1,6 @@
 <script lang="ts">
   import { t } from '../lib/i18n';
-  import type { CompletenessStats } from '../lib/types';
-
-  type Filter = 'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist' | 'unknown' | 'duplicates' | 'doubtful';
+  import type { CompletenessStats, MetadataFilter as Filter } from '../lib/types';
 
   interface Props {
     stats: CompletenessStats;
