@@ -1437,6 +1437,28 @@ export function getScanStatus() {
   return fetchJSON<{ scanning: boolean }>(`${BASE}/system/scan/status`);
 }
 
+/** Last scan report (persisted server-side, survives restarts). */
+export interface ScanReport {
+  total_files?: number;
+  inserted?: number;
+  updated?: number;
+  skipped?: number;
+  skipped_unchanged?: number;
+  skipped_duplicate?: number;
+  skipped_no_metadata?: number;
+  metadata_timeout?: number;
+  db_insert_failed?: number;
+  db_update_failed?: number;
+  missing_dirs?: string[];
+  missing_dir_reasons?: string[];
+  error_dirs?: string[];
+  failed_paths?: string[];
+}
+
+export function getScanReport() {
+  return fetchJSON<ScanReport>(`${BASE}/system/scan/report`);
+}
+
 export function cancelScan() {
   // Server returns 204 No Content — use fetchVoid so the empty body doesn't
   // fail JSON.parse and throw, which would leave the "scanning" banner up (#1129).
