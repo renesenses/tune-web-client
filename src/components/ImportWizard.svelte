@@ -15,7 +15,10 @@
     IngestFileMode,
     IngestJob,
     IngestPlanResponse,
+    IngestReleaseCandidate,
+    IngestReleaseTracksResponse,
     IngestSettings,
+    IngestTrackOverride,
   } from '../lib/api/ingest';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
@@ -60,12 +63,48 @@
   let uploadPct = $state<number | null>(null);
   let showBrowser = $state(false);
 
+  // -- Édition choisie sur MusicBrainz --
+  let selectedReleaseId = $state<string | null>(null);
+  let releaseTracks = $state<IngestReleaseTracksResponse | null>(null);
+  let loadingRelease = $state(false);
+  /** Appliquer le tracklisting de l'édition (titres, numéros, disques). */
+  let applyTrackTitles = $state(true);
+
+  const candidates = $derived(analysis?.musicbrainz_candidates ?? []);
+  /** Les seules propositions à montrer : celles qui changent quelque chose. */
+  const changedProposals = $derived(
+    (releaseTracks?.proposals ?? []).filter(
+      (p) =>
+        p.matched &&
+        (p.proposed_title !== p.current_title ||
+          p.proposed_track_number !== p.current_track_number ||
+          p.proposed_disc_number !== p.current_disc_number),
+    ),
+  );
+
   const overrides = () => ({
     album_artist: ovArtist.trim() || null,
     album: ovAlbum.trim() || null,
     year: ovYear.trim() ? Number(ovYear.trim()) : null,
     genre: ovGenre.trim() || null,
   });
+
+  /**
+   * Corrections par fichier issues de l'édition choisie. Vide si l'utilisateur
+   * a décoché l'application du tracklisting — auquel cas seuls les champs
+   * album partent.
+   */
+  const trackOverrides = (): IngestTrackOverride[] => {
+    if (!applyTrackTitles || !releaseTracks) return [];
+    return releaseTracks.proposals
+      .filter((p) => p.matched)
+      .map((p) => ({
+        source_path: p.source_path,
+        title: p.proposed_title,
+        track_number: p.proposed_track_number,
+        disc_number: p.proposed_disc_number,
+      }));
+  };
 
   const request = () => ({
     source_path: sourcePath,
@@ -75,6 +114,7 @@
     conflict_policy: conflictPolicy,
     write_tags: writeTags,
     overrides: overrides(),
+    track_overrides: trackOverrides(),
   });
 
   function fail(e: unknown) {
@@ -149,6 +189,7 @@
     }
   }
 
+  /** Demande la liste des éditions possibles. */
   async function identifyRelease() {
     if (!analysis) return;
     identifying = true;
@@ -156,21 +197,67 @@
     try {
       const a = await api.analyzeIngest(sourcePath, true);
       analysis = a;
-      if (a.musicbrainz) {
-        // On ne remplace pas ce que l'utilisateur a déjà saisi.
-        if (!ovAlbum.trim()) ovAlbum = a.musicbrainz.title;
-        if (!ovArtist.trim()) ovArtist = a.musicbrainz.artist;
-        notifications.success(
-          $t('ingest.identifyFound').replace('{n}', String(a.musicbrainz.score)),
-        );
-      } else {
+      const found = a.musicbrainz_candidates.length;
+      if (found === 0) {
         notifications.info($t('ingest.identifyNone'));
+      } else {
+        notifications.success($t('ingest.identifyFound').replace('{n}', String(found)));
       }
     } catch (e) {
       fail(e);
     } finally {
       identifying = false;
     }
+  }
+
+  /**
+   * Choisit une édition : récupère son tracklisting et l'appariement proposé.
+   * Les champs album sont remplis depuis l'édition, sans écraser ce que
+   * l'utilisateur a déjà saisi.
+   */
+  async function chooseRelease(candidate: IngestReleaseCandidate) {
+    if (selectedReleaseId === candidate.release_id) {
+      // Re-cliquer sur l'édition retenue la désélectionne.
+      selectedReleaseId = null;
+      releaseTracks = null;
+      return;
+    }
+
+    selectedReleaseId = candidate.release_id;
+    releaseTracks = null;
+    loadingRelease = true;
+    error = null;
+    try {
+      if (!ovAlbum.trim()) ovAlbum = candidate.title;
+      if (!ovArtist.trim() && candidate.artist) ovArtist = candidate.artist;
+      if (!ovYear.trim() && candidate.year) ovYear = String(candidate.year);
+
+      const res = await api.getIngestReleaseTracks(sourcePath, candidate.release_id);
+      releaseTracks = res;
+      // Ne proposer d'appliquer le tracklisting que s'il change quelque chose.
+      applyTrackTitles = res.changed > 0;
+    } catch (e) {
+      fail(e);
+      selectedReleaseId = null;
+    } finally {
+      loadingRelease = false;
+    }
+  }
+
+  /** Résumé d'une édition en une ligne : ce qui la distingue des autres. */
+  function candidateLine(c: IngestReleaseCandidate): string {
+    const bits = [
+      c.year ? String(c.year) : null,
+      c.country,
+      c.track_count != null ? $t('ingest.nTracks').replace('{n}', String(c.track_count)) : null,
+      c.disc_count && c.disc_count > 1
+        ? $t('ingest.nDiscs').replace('{n}', String(c.disc_count))
+        : null,
+      c.media_format,
+      c.label,
+      c.catalog_number,
+    ].filter(Boolean);
+    return bits.join(' · ');
   }
 
   async function preview() {
@@ -429,13 +516,77 @@
           <button class="ghost" disabled={identifying} onclick={identifyRelease}>
             {identifying ? $t('ingest.identifying') : $t('ingest.identify')}
           </button>
-          {#if analysis.musicbrainz}
-            <span class="mb-hit">
-              {analysis.musicbrainz.artist} — {analysis.musicbrainz.title}
-              <span class="muted">({analysis.musicbrainz.score}%)</span>
+          {#if candidates.length}
+            <span class="muted small">
+              {$t('ingest.pickEdition').replace('{n}', String(candidates.length))}
             </span>
           {/if}
         </div>
+
+        {#if candidates.length}
+          <ul class="editions">
+            {#each candidates as c}
+              <li>
+                <button
+                  class="edition"
+                  class:sel={selectedReleaseId === c.release_id}
+                  onclick={() => chooseRelease(c)}
+                >
+                  <span class="edition-main">
+                    {c.title}
+                    {#if c.disambiguation}
+                      <em class="disamb">({c.disambiguation})</em>
+                    {/if}
+                  </span>
+                  <span class="edition-meta">{candidateLine(c)}</span>
+                </button>
+              </li>
+            {/each}
+          </ul>
+
+          {#if loadingRelease}
+            <p class="muted small">{$t('ingest.loadingRelease')}</p>
+          {:else if releaseTracks}
+            <div class="release-box">
+              {#if releaseTracks.changed === 0}
+                <p class="muted small">{$t('ingest.releaseNoChange')}</p>
+              {:else}
+                <label class="check">
+                  <input type="checkbox" bind:checked={applyTrackTitles} />
+                  <span>
+                    {$t('ingest.applyTrackTitles').replace(
+                      '{n}',
+                      String(releaseTracks.changed),
+                    )}
+                  </span>
+                </label>
+                <ul class="diff">
+                  {#each changedProposals as p}
+                    <li>
+                      <span class="num">{p.proposed_track_number ?? '—'}</span>
+                      <span class="was">
+                        {p.current_title ?? p.source_path.split('/').pop()}
+                      </span>
+                      <span class="arrow">→</span>
+                      <span class="now">{p.proposed_title}</span>
+                      {#if p.method === 'order'}
+                        <span class="badge">{$t('ingest.matchedByOrder')}</span>
+                      {/if}
+                    </li>
+                  {/each}
+                </ul>
+              {/if}
+              {#if releaseTracks.unmatched > 0}
+                <p class="muted small">
+                  {$t('ingest.unmatchedFiles').replace(
+                    '{n}',
+                    String(releaseTracks.unmatched),
+                  )}
+                </p>
+              {/if}
+            </div>
+          {/if}
+        {/if}
 
         <details class="tracklist">
           <summary>{$t('ingest.showTracks').replace('{n}', String(analysis.tracks.length))}</summary>
@@ -925,8 +1076,85 @@
     gap: 12px;
     flex-wrap: wrap;
   }
-  .mb-hit {
-    font-size: 0.85rem;
+
+  /* Liste des éditions candidates */
+  .editions {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    max-height: 210px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  button.edition {
+    width: 100%;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--tune-bg, #111);
+    color: inherit;
+    border: 1px solid var(--tune-border, #333);
+    border-radius: 8px;
+    padding: 8px 11px;
+    cursor: pointer;
+  }
+  button.edition:hover {
+    border-color: var(--tune-accent, #4a9eff);
+  }
+  button.edition.sel {
+    border-color: var(--tune-accent, #4a9eff);
+    background: rgba(74, 158, 255, 0.1);
+  }
+  .edition-main {
+    font-size: 0.88rem;
+  }
+  .disamb {
+    opacity: 0.7;
+    font-style: italic;
+  }
+  .edition-meta {
+    font-size: 0.76rem;
+    opacity: 0.6;
+  }
+
+  /* Différences apportées par le tracklisting choisi */
+  .release-box {
+    margin-top: 10px;
+    border-top: 1px solid var(--tune-border, #333);
+    padding-top: 10px;
+  }
+  .diff {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 0.82rem;
+  }
+  .diff li {
+    display: grid;
+    grid-template-columns: 26px 1fr 14px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 2px 0;
+  }
+  .diff .was {
+    opacity: 0.55;
+    text-decoration: line-through;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .diff .arrow {
+    opacity: 0.4;
+  }
+  .diff .now {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .tracklist {

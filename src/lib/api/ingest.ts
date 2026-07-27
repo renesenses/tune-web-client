@@ -59,12 +59,80 @@ export interface IngestSourceTrack {
   has_cover: boolean;
 }
 
-export interface IngestMusicBrainzMatch {
+/**
+ * Une édition candidate. Les champs d'édition sont ce qui permet de choisir :
+ * MusicBrainz garde souvent une demi-douzaine de sorties pour un même album
+ * (standard, deluxe, pressages régionaux), toutes au même score.
+ */
+export interface IngestReleaseCandidate {
   release_id: string;
   release_group_id: string | null;
   title: string;
   artist: string;
   score: number;
+  date: string | null;
+  year: number | null;
+  country: string | null;
+  label: string | null;
+  catalog_number: string | null;
+  track_count: number | null;
+  disc_count: number | null;
+  media_format: string | null;
+  /** Note d'édition de MusicBrainz : « deluxe edition », « reissue »… */
+  disambiguation: string | null;
+  status: string | null;
+}
+
+/** Une piste du tracklisting de l'édition choisie. */
+export interface IngestReleaseTrack {
+  position: number;
+  disc: number;
+  number: string | null;
+  title: string;
+  length_ms: number | null;
+  recording_id: string | null;
+  artist: string | null;
+}
+
+/** Ce que l'édition choisie changerait pour un fichier. */
+export interface IngestTrackProposal {
+  source_path: string;
+  current_title: string | null;
+  current_track_number: number | null;
+  current_disc_number: number | null;
+  proposed_title: string | null;
+  proposed_track_number: number | null;
+  proposed_disc_number: number | null;
+  matched: boolean;
+  /** `disc_and_number`, `title` ou `order` — un appariement par ordre est une supposition. */
+  method: string | null;
+}
+
+export interface IngestReleaseTracksResponse {
+  release: {
+    release_id: string;
+    title: string;
+    artist: string;
+    date: string | null;
+    year: number | null;
+    country: string | null;
+    label: string | null;
+    catalog_number: string | null;
+    disc_count: number;
+    track_count: number;
+  };
+  tracks: IngestReleaseTrack[];
+  proposals: IngestTrackProposal[];
+  changed: number;
+  unmatched: number;
+}
+
+/** Correction par fichier, envoyée à plan/apply. */
+export interface IngestTrackOverride {
+  source_path: string;
+  title?: string | null;
+  track_number?: number | null;
+  disc_number?: number | null;
 }
 
 export interface IngestAnalysis {
@@ -74,7 +142,8 @@ export interface IngestAnalysis {
   extras: string[];
   /** Nombre de fichiers source déjà connus de la bibliothèque (ré-import). */
   already_in_library: number;
-  musicbrainz: IngestMusicBrainzMatch | null;
+  /** Éditions proposées, classées ; vide si `identify` était faux. */
+  musicbrainz_candidates: IngestReleaseCandidate[];
   defaults: {
     mode: IngestFileMode;
     template: string;
@@ -161,6 +230,8 @@ export interface IngestRequest {
   conflict_policy?: IngestConflictPolicy;
   write_tags?: boolean;
   overrides?: IngestOverrides;
+  /** Corrections par fichier : elles alimentent aussi les chemins de destination. */
+  track_overrides?: IngestTrackOverride[];
 }
 
 export function getIngestSettings() {
@@ -178,6 +249,18 @@ export function analyzeIngest(sourcePath: string, identify = false) {
   return fetchJSON<IngestAnalysis>(`${BASE}/library/ingest/analyze`, {
     method: 'POST',
     body: JSON.stringify({ source_path: sourcePath, identify }),
+  });
+}
+
+/**
+ * Tracklisting de l'édition choisie, avec l'appariement proposé fichier par
+ * fichier. N'écrit rien : l'utilisateur valide, puis les corrections partent
+ * en `track_overrides`.
+ */
+export function getIngestReleaseTracks(sourcePath: string, releaseId: string) {
+  return fetchJSON<IngestReleaseTracksResponse>(`${BASE}/library/ingest/release-tracks`, {
+    method: 'POST',
+    body: JSON.stringify({ source_path: sourcePath, release_id: releaseId }),
   });
 }
 
