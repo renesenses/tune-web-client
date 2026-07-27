@@ -103,6 +103,7 @@ export default {
   'zone.noZone': 'Aucune zone',
   'zone.playDisabledNoZone': 'Créez une zone pour lancer la lecture',
   'zone.switchZone': 'Changer de zone',
+  'zone.airplayPair': 'Appairer en AirPlay 2 (code PIN)',
   'zone.rename': 'Renommer',
   'zone.groupedPlayback': 'Lecture groupée',
   'zone.selectZonesToSync': 'Sélectionner les zones à synchroniser avec {name}',

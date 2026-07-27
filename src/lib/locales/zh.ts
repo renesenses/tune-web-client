@@ -99,6 +99,7 @@ export default {
   'zone.noZone': '无区域',
   'zone.playDisabledNoZone': '请先创建一个区域以开始播放',
   'zone.switchZone': '切换区域',
+  'zone.airplayPair': '通过 AirPlay 2 配对（PIN 码）',
   'zone.rename': '重命名',
   'zone.groupedPlayback': '组合播放',
   'zone.selectZonesToSync': '选择要与 {name} 同步的区域',

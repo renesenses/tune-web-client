@@ -99,6 +99,7 @@ export default {
   'zone.noZone': 'Keine Zonen',
   'zone.playDisabledNoZone': 'Erstellen Sie eine Zone, um die Wiedergabe zu starten',
   'zone.switchZone': 'Zone wechseln',
+  'zone.airplayPair': 'Über AirPlay 2 koppeln (PIN-Code)',
   'zone.rename': 'Umbenennen',
   'zone.groupedPlayback': 'Gruppierte Wiedergabe',
   'zone.selectZonesToSync': 'Zonen zum Synchronisieren mit {name} auswählen',

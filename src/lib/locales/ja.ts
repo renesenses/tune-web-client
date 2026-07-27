@@ -99,6 +99,7 @@ export default {
   'zone.noZone': 'ゾーンがありません',
   'zone.playDisabledNoZone': '再生を開始するにはゾーンを作成してください',
   'zone.switchZone': 'ゾーンを切り替え',
+  'zone.airplayPair': 'AirPlay 2 でペアリング（PIN コード）',
   'zone.rename': '名前を変更',
   'zone.groupedPlayback': 'グループ再生',
   'zone.selectZonesToSync': '{name}と同期するゾーンを選択',
