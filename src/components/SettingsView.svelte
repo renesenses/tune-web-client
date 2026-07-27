@@ -74,6 +74,48 @@
       : `${m}:${String(sec).padStart(2, '0')}`;
   });
   let restarting = $state(false);
+
+  // Restart the server and reload the page only once it is actually back.
+  // A plain restart can drop the port and rebind a few seconds later (bind-retry
+  // race), so the old fixed 6s reload hit a not-yet-ready server → "Network
+  // error: server unreachable" then "Failed to load zones" (#1209, Mika/Windows).
+  // Poll /system/health and reload once it comes back UP (after observing it go
+  // DOWN, or as a fallback if it restarted too fast to catch the drop), with a
+  // hard backstop so we never hang forever.
+  async function restartServerAndReload() {
+    if (!confirm(get(t)('settings.restartConfirm'))) return;
+    restarting = true;
+    try {
+      await api.restartServer();
+    } catch (e) {
+      restarting = false;
+      alert((e as Error).message);
+      return;
+    }
+    const start = Date.now();
+    let sawDown = false;
+    const tryReload = async () => {
+      const elapsed = Date.now() - start;
+      let up = false;
+      try {
+        await api.getHealth();
+        up = true;
+      } catch {
+        sawDown = true; // server is restarting
+      }
+      if (up && (sawDown || elapsed > 8_000)) {
+        window.location.reload();
+        return;
+      }
+      if (elapsed > 45_000) {
+        window.location.reload(); // hard backstop
+        return;
+      }
+      setTimeout(tryReload, 700);
+    };
+    setTimeout(tryReload, 1_000);
+  }
+
   let loading = $state(true);
   let artworkScanning = $state(false);
   let enrichMsg = $state('');
@@ -2286,17 +2328,7 @@
         <button
           class="restart-btn"
           disabled={restarting}
-          onclick={async () => {
-            if (!confirm($t('settings.restartConfirm'))) return;
-            restarting = true;
-            try {
-              await api.restartServer();
-              setTimeout(() => window.location.reload(), 6000);
-            } catch (e) {
-              restarting = false;
-              alert((e as Error).message);
-            }
-          }}
+          onclick={restartServerAndReload}
         >
           {restarting ? $t('settings.restarting') : $t('settings.restartServer')}
         </button>
@@ -4432,17 +4464,7 @@
               <button
                 class="update-btn"
                 disabled={restarting}
-                onclick={async () => {
-                  if (!confirm($t('settings.restartConfirm'))) return;
-                  restarting = true;
-                  try {
-                    await api.restartServer();
-                    setTimeout(() => window.location.reload(), 6000);
-                  } catch (e) {
-                    restarting = false;
-                    alert((e as Error).message);
-                  }
-                }}
+                onclick={restartServerAndReload}
               >
                 {restarting ? $t('settings.restarting') : $t('settings.restartServer')}
               </button>
