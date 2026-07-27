@@ -551,7 +551,7 @@
 
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
-  let state = $derived($playbackState);
+  let playState = $derived($playbackState);
   let isRadio = $derived(track?.source === 'radio' || (track == null && $ytPlayerState.track?.source === 'radio'));
 
   // Fallback to ytPlayer track when zone has no current_track (yt-dlp loading phase)
@@ -573,7 +573,7 @@
   });
   // Zone playing OR IFrame playing while yt-dlp loads
   let isEffectivePlaying = $derived(
-    state === 'playing' || (ytState.active && ytState.playing && state === 'stopped')
+    playState === 'playing' || (ytState.active && ytState.playing && playState === 'stopped')
   );
 
   let containerWidth = $state(0);
@@ -1207,7 +1207,7 @@
           <SeekBar
             positionMs={$seekPositionMs}
             durationMs={displayTrack.duration_ms ?? 0}
-            enabled={state === 'playing' || state === 'paused'}
+            enabled={playState === 'playing' || playState === 'paused'}
           />
         </div>
         {/if}
@@ -1293,10 +1293,10 @@
           {:else if zone.online === false}
             <span class="zone-offline-badge">{$t('zone.offline')}</span>
           {/if}
-          <span class="playback-indicator" class:playing={isEffectivePlaying} class:paused={state === 'paused' && !isEffectivePlaying}>
+          <span class="playback-indicator" class:playing={isEffectivePlaying} class:paused={playState === 'paused' && !isEffectivePlaying}>
             {#if isEffectivePlaying}
               <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M8 5v14l11-7z" /></svg>
-            {:else if state === 'paused'}
+            {:else if playState === 'paused'}
               <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
             {:else}
               <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><rect x="6" y="6" width="12" height="12" rx="1" /></svg>

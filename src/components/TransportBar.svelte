@@ -126,7 +126,7 @@
     // display that only decrements while music actually plays.
     sleepPollInterval = setInterval(pollSleepTimer, 10000);
     sleepCountdownInterval = setInterval(() => {
-      if (sleepActive && sleepRemainingSeconds > 0 && state === 'playing') {
+      if (sleepActive && sleepRemainingSeconds > 0 && playState === 'playing') {
         sleepRemainingSeconds -= 1;
       }
     }, 1000);
@@ -316,7 +316,7 @@
 
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
-  let state = $derived($playbackState);
+  let playState = $derived($playbackState);
   let showZoneDropdown = $state(false);
   let configZone = $state<typeof zone | null>(null);
   let hasNoZone = $derived($zones.length === 0);
@@ -334,13 +334,13 @@
 
   // Show zone track when available; fall back to IFrame track while yt-dlp is loading
   let displayTrack = $derived(track ?? (ytActive ? ytTrack : null));
-  let isPlaying = $derived(state === 'playing' || (ytActive && ytPlaying && state === 'stopped'));
+  let isPlaying = $derived(playState === 'playing' || (ytActive && ytPlaying && playState === 'stopped'));
 
   async function togglePlayPause() {
-    if (zone?.id && state !== 'stopped') {
+    if (zone?.id && playState !== 'stopped') {
       // Zone has an active track — backend controls DLNA, WS events will sync IFrame
       if (ytActive) ytLoading.set(true);
-      if (state === 'playing') {
+      if (playState === 'playing') {
         await api.pause(zone.id);
         // Also pause browser audio if this is a browser zone
         if (isBrowserZone(zone)) browserPause();
@@ -348,7 +348,7 @@
         await resumeAndSync(zone.id);
         // resumeAndSync already handles browserResume via the store
       }
-    } else if (zone?.id && state === 'stopped' && track) {
+    } else if (zone?.id && playState === 'stopped' && track) {
       // Zone stopped but has a current track — restart it. The /play endpoint
       // needs an explicit target (an empty body returns 400), so pass the
       // track's identity: radio uses source='radio'+source_id (the stream URL),
@@ -360,7 +360,7 @@
           ? { source: track.source as any, source_id: track.source_id }
           : (trackId != null ? { track_id: trackId } : undefined);
       await playAndSync(zone.id, body);
-    } else if (zone?.id && state === 'stopped' && ytActive && ytTrack?.source_id) {
+    } else if (zone?.id && playState === 'stopped' && ytActive && ytTrack?.source_id) {
       // Zone stopped but IFrame has a YT track — restart via API
       ytLoading.set(true);
       await playAndSync(zone.id, { source: ytTrack.source as any, source_id: ytTrack.source_id });
@@ -594,7 +594,7 @@
     {#if displayTrack?.source !== 'radio'}
       <button
         class="control-btn"
-        disabled={state === 'stopped' && !ytActive && !track}
+        disabled={playState === 'stopped' && !ytActive && !track}
         onclick={handlePrevious}
         title={$t('transport.previous')}
       >
@@ -627,7 +627,7 @@
       {/if}
     </button>
 
-    {#if state !== 'stopped' && zone?.id && displayTrack?.source !== 'radio'}
+    {#if playState !== 'stopped' && zone?.id && displayTrack?.source !== 'radio'}
       <button
         class="control-btn stop-btn"
         onclick={async () => { if (zone?.id) await api.stop(zone.id); }}
@@ -642,7 +642,7 @@
     {#if displayTrack?.source !== 'radio'}
       <button
         class="control-btn"
-        disabled={state === 'stopped' && !ytActive && !track}
+        disabled={playState === 'stopped' && !ytActive && !track}
         onclick={handleNext}
         title={$t('transport.next')}
       >
