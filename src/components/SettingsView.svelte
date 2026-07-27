@@ -11,6 +11,7 @@
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry, BackupInfo } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
+  import { copyText } from '../lib/utils';
   import { activeView, settingsInitialTab } from '../lib/stores/navigation';
   import { licenseState, isPremium, loadLicense } from '../lib/stores/license';
   import SmbWizard from './SmbWizard.svelte';
@@ -2107,7 +2108,7 @@
             </div>
             <button
               class="scan-btn small"
-              onclick={() => { navigator.clipboard?.writeText(url); copiedUrl = url; setTimeout(() => (copiedUrl = ''), 2000); }}
+              onclick={async () => { if (await copyText(url)) { copiedUrl = url; setTimeout(() => (copiedUrl = ''), 2000); } else { notifications.error($t('settings.copyFailed')); } }}
             >
               {copiedUrl === url ? $t('settings.urlCopied') : $t('settings.copyUrl')}
             </button>
@@ -3586,7 +3587,7 @@
                     {#if youtubeVerificationUrl}
                       <p class="auth-hint">{$t('settings.youtubeLink')}</p>
                       {#if youtubeUserCode}
-                        <p class="yt-user-code" title={$t('settings.youtubeCopyCode')} onclick={() => { navigator.clipboard.writeText(youtubeUserCode ?? ''); notifications.success($t('settings.youtubeCopied')); }}>{youtubeUserCode}</p>
+                        <p class="yt-user-code" title={$t('settings.youtubeCopyCode')} onclick={async () => { if (await copyText(youtubeUserCode ?? '')) notifications.success($t('settings.youtubeCopied')); else notifications.error($t('settings.copyFailed')); }}>{youtubeUserCode}</p>
                       {/if}
                       <a href={youtubeVerificationUrl} target="_blank" rel="noopener noreferrer" class="auth-link">
                         {youtubeVerificationUrl}

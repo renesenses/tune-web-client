@@ -1300,6 +1300,7 @@ export default {
   "settings.accessFromDeviceHint": "Gib eine dieser Adressen im Browser eines Telefons, Tablets oder anderen Computers im Netzwerk ein (auf Android die numerische Adresse verwenden).",
   "settings.copyUrl": "Kopieren",
   "settings.urlCopied": "Kopiert!",
+  "settings.copyFailed": "Kopieren in diesem Browser fehlgeschlagen",
   "settings.dataOnKey": "auf dem USB-Stick (langsam)",
   "settings.dataOnDisk": "auf externer Festplatte",
   "settings.dataMove": "Hierhin verschieben",
