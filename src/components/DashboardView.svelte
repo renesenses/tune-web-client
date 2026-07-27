@@ -92,8 +92,10 @@
         || results.tracks?.find((t: any) =>
           (t.title || '').toLowerCase() === (title || '').toLowerCase());
       if (hit?.album_id) {
+        // Repli quand l'album n'est pas dans les résultats : `title` est requis
+        // sur Album, et la recherche peut le renvoyer vide.
         const album = results.albums?.find((a: any) => a.id === hit.album_id)
-          || { id: hit.album_id, title: hit.album_title, artist_name: hit.artist_name };
+          || { id: hit.album_id, title: hit.album_title ?? '', artist_name: hit.artist_name ?? '' };
         selectedArtist.set(null);
         selectedAlbum.set(album);
         const tracks = await api.getAlbumTracks(hit.album_id);
@@ -170,7 +172,9 @@
   // Dashboard top items may be streaming (Qobuz/Tidal/YouTube) with no local
   // id: local library navigation/search silently fails for those. Play them
   // directly via source+source_id instead so the click always does something.
-  async function playTopTrack(tk: { track_id: number | null; title?: string; artist_name?: string; source?: string | null; source_id?: string | null }) {
+  // `title`/`artist_name` acceptent null : c'est le cas des pistes de créneau
+  // (SlotTrack), dont l'historique peut ne porter aucun titre.
+  async function playTopTrack(tk: { track_id: number | null; title?: string | null; artist_name?: string | null; source?: string | null; source_id?: string | null }) {
     if (tk.track_id) { await playTrack(tk.track_id); return; }
     // Local top-track with no resolved id: find it by title+artist and play.
     if (!tk.source || tk.source === 'local') {
