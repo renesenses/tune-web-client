@@ -2,10 +2,16 @@
 
 // Enums
 export type Source = 'local' | 'tidal' | 'qobuz' | 'youtube' | 'amazon' | 'spotify' | 'deezer' | 'radio';
-export type AudioFormat = 'flac' | 'wav' | 'mp3' | 'aac' | 'alac' | 'ogg' | 'opus' | 'dsd' | 'aiff' | 'wma';
+// `dsf`/`dff` sont les formats réellement portés par les fichiers DSD : les
+// omettre rendait le test de la puce « DSD » impossible selon le type (il ne
+// passait que par le repli sur l'extension du chemin).
+export type AudioFormat = 'flac' | 'wav' | 'mp3' | 'aac' | 'alac' | 'ogg' | 'opus' | 'dsd' | 'dsf' | 'dff' | 'aiff' | 'wma';
 export type PlaybackState = 'stopped' | 'playing' | 'paused' | 'buffering';
 export type RepeatMode = 'off' | 'one' | 'all';
-export type OutputType = 'local' | 'dlna' | 'airplay' | 'chromecast' | 'bluos' | 'snapcast' | 'sonos' | 'squeezebox' | 'browser';
+// `openhome` est bien émis par le serveur (routes/zones.rs) : l'omettre faisait
+// passer les gardes `output_type !== 'openhome'` pour impossibles, alors que
+// les supprimer casserait les zones OpenHome.
+export type OutputType = 'local' | 'dlna' | 'openhome' | 'airplay' | 'chromecast' | 'bluos' | 'snapcast' | 'sonos' | 'squeezebox' | 'browser';
 
 // v0.8.0 multi-room — Snapcast endpoint discovered by snapserver.
 export interface SnapcastClient {
@@ -146,6 +152,39 @@ export interface SignalPath {
   checksum_verified?: boolean | null;
 }
 
+/** Piste en lecture telle que le serveur la renvoie — ce n'est PAS un `Track`.
+ *
+ *  Le serveur sérialise sa structure `NowPlaying` (tune-core playback/mod.rs) :
+ *  l'id de la piste s'y nomme `track_id`, et il n'y a **aucun id d'album ni
+ *  d'artiste**. `GET /zones` sérialise la structure telle quelle, tandis que
+ *  `/zones/{id}/state` construit son JSON à la main et renomme le champ en `id`
+ *  (playback.rs) — d'où les deux noms ci-dessous.
+ *
+ *  Typer ce champ comme un `Track` laissait passer `current_track.id` et
+ *  `current_track.album_id`, qui n'existent pas : les comparaisons étaient
+ *  toujours fausses, en silence. Lire l'id via `track_id ?? id` — de
+ *  préférence une seule fois, dans un dérivé du store, plutôt que dans chaque
+ *  composant. */
+export interface NowPlaying {
+  /** Forme /zones (sérialisation directe de la structure serveur). */
+  track_id?: number | null;
+  /** Forme /zones/{id}/state (JSON construit à la main). */
+  id?: number | null;
+  title: string;
+  artist_name?: string | null;
+  album_title?: string | null;
+  cover_path?: string | null;
+  duration_ms?: number;
+  source?: Source;
+  source_id?: string | null;
+  stream_id?: string | null;
+  format?: AudioFormat | null;
+  sample_rate?: number | null;
+  bit_depth?: number | null;
+  genre?: string | null;
+  year?: number | null;
+}
+
 export interface Zone {
   id: number | null;
   name: string;
@@ -155,7 +194,7 @@ export interface Zone {
   group_id?: string | null;
   sync_delay_ms?: number;
   state?: PlaybackState;
-  current_track?: Track | null;
+  current_track?: NowPlaying | null;
   position_ms?: number;
   queue_length?: number;
   signal_path?: SignalPath | null;
