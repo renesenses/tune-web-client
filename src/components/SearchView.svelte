@@ -96,6 +96,39 @@
     return true;
   }
 
+  // Ces deux regroupements étaient déclarés 430 lignes plus bas, alors que
+  // les `filtered*` juste en dessous les référencent : `$derived` étant
+  // paresseux ça tenait à l'exécution, mais toute lecture synchrone pendant
+  // l'initialisation aurait levé une erreur de zone morte temporelle.
+
+  let groupedAlbums = $derived.by(() => {
+    if (!results) return [];
+    const all: (Album & { _source?: string })[] = [];
+    if (results.local?.albums) {
+      for (const a of results.local.albums) all.push({ ...a, _source: 'local' });
+    }
+    if (results.services) {
+      for (const [svc, data] of Object.entries(results.services)) {
+        for (const a of data.albums) all.push({ ...a, _source: svc });
+      }
+    }
+    return all;
+  });
+
+  let groupedTracks = $derived.by(() => {
+    if (!results) return [];
+    const all: (Track & { _source?: string })[] = [];
+    if (results.local?.tracks) {
+      for (const t of results.local.tracks) all.push({ ...t, _source: 'local' });
+    }
+    if (results.services) {
+      for (const [svc, data] of Object.entries(results.services)) {
+        for (const t of data.tracks) all.push({ ...t, _source: svc });
+      }
+    }
+    return all;
+  });
+
   // Filtered versions
   let filteredAlbums = $derived(qualityFilter === 'all' ? groupedAlbums : groupedAlbums.filter(a => matchesQuality(a)));
   let filteredTracks = $derived(qualityFilter === 'all' ? groupedTracks : groupedTracks.filter(t => matchesQuality(t)));
@@ -384,11 +417,13 @@
       if (shuffle) {
         await api.shuffleAll(zone.id, { search_query: searchQuery.trim() });
       } else {
-        const localTracks = trackList.filter(t => t.id);
-        if (localTracks.length === 0) return;
-        await playAndSync(zone.id, { track_id: localTracks[0].id });
-        if (localTracks.length > 1) {
-          await api.addToQueue(zone.id, { track_ids: localTracks.slice(1).map(t => t.id!) });
+        // On extrait les ids une fois, avec un garde de type : filtrer sur
+        // `t.id` ne dit rien au compilateur, d'où le `!` qu'il fallait sinon.
+        const localIds = trackList.map(t => t.id).filter((id): id is number => id != null);
+        if (localIds.length === 0) return;
+        await playAndSync(zone.id, { track_id: localIds[0] });
+        if (localIds.length > 1) {
+          await api.addToQueue(zone.id, { track_ids: localIds.slice(1) });
         }
       }
     } catch (e) {
@@ -531,33 +566,7 @@
     });
   });
 
-  let groupedAlbums = $derived.by(() => {
-    if (!results) return [];
-    const all: (Album & { _source?: string })[] = [];
-    if (results.local?.albums) {
-      for (const a of results.local.albums) all.push({ ...a, _source: 'local' });
-    }
-    if (results.services) {
-      for (const [svc, data] of Object.entries(results.services)) {
-        for (const a of data.albums) all.push({ ...a, _source: svc });
-      }
-    }
-    return all;
-  });
 
-  let groupedTracks = $derived.by(() => {
-    if (!results) return [];
-    const all: (Track & { _source?: string })[] = [];
-    if (results.local?.tracks) {
-      for (const t of results.local.tracks) all.push({ ...t, _source: 'local' });
-    }
-    if (results.services) {
-      for (const [svc, data] of Object.entries(results.services)) {
-        for (const t of data.tracks) all.push({ ...t, _source: svc });
-      }
-    }
-    return all;
-  });
 
   // Group tracks by album for cleaner display
   let tracksGroupedByAlbum = $derived.by(() => {
