@@ -584,7 +584,6 @@ export default {
   // Metadata
   'settings.metadataReadonly': 'Mode lecture seule (ne jamais modifier les fichiers audio)',
   'settings.metadataReadonlyHelp': 'Quand activé, Tune ne modifie jamais les tags des fichiers audio sur le disque.',
-  "settings.enrichOnScan": "Enrichir automatiquement après un scan",
   "settings.enrichOnScanHelp": "Télécharge images d'artistes et pochettes manquantes via MusicBrainz/Discogs après chaque scan (Premium). Désactive-le si tes fichiers sont déjà bien taggés : le scan sera plus rapide et ta machine moins sollicitée.",
 
   // Enrichment
@@ -607,7 +606,6 @@ export default {
   'diagnostics.version': 'Version',
   'diagnostics.clientVersion': 'Client',
   'diagnostics.serverVersion': 'Serveur',
-  'diagnostics.uptime': 'Uptime',
   'diagnostics.database': 'Base de données',
   'diagnostics.dbEngine': 'Moteur',
   'diagnostics.dbSize': 'Taille',
