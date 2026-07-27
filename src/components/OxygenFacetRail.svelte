@@ -16,13 +16,30 @@
   const FIELD_LABELS: Record<string, string> = {
     genre: 'Genres', label: 'Labels', year: 'Années', artist: 'Artistes',
     country: 'Pays', mood: 'Moods', source: 'Support',
+    format: 'Format', sample_rate: 'Fréquence', bit_depth: 'Résolution',
   };
   // Fields computable client-side from Track columns (fallback when the server
   // index is unavailable). k/v fields (country/mood/source) need the server.
+  // Technical dimensions (format/sample_rate/bit_depth) are plain Track columns,
+  // so they aggregate client-side too — the raw value is kept for filtering; the
+  // human label (44.1 kHz / 16 bit) is applied at render time via fmtValue.
   const CLIENT_GET: Record<string, (t: Track) => string | null | undefined> = {
     genre: t => t.genre, label: t => t.label,
     year: t => (t.year != null ? String(t.year) : null), artist: t => t.artist_name,
+    format: t => (t.format ? String(t.format) : null),
+    sample_rate: t => (t.sample_rate != null ? String(t.sample_rate) : null),
+    bit_depth: t => (t.bit_depth != null ? String(t.bit_depth) : null),
   };
+  // Display a raw facet value. sample_rate is stored in Hz, bit_depth in bits;
+  // show the audiophile-readable form while keeping row.value raw for selection.
+  function fmtValue(field: string, value: string): string {
+    if (field === 'sample_rate') {
+      const n = Number(value);
+      return Number.isFinite(n) && n > 0 ? `${(n / 1000).toLocaleString('fr')} kHz` : value;
+    }
+    if (field === 'bit_depth') return `${value} bit`;
+    return value;
+  }
 
   const shown = $derived(facets.filter(f => f in FIELD_LABELS));
 
@@ -45,7 +62,8 @@
     if (modeOf(field) === 'alpha') {
       return out.sort((a, b) => a.value.localeCompare(b.value, 'fr', { numeric: true }));
     }
-    if (field === 'year') return out.sort((a, b) => Number(b.value) - Number(a.value));
+    if (field === 'year' || field === 'sample_rate' || field === 'bit_depth')
+      return out.sort((a, b) => Number(b.value) - Number(a.value));
     return out.sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'fr'));
   }
   // Prefer the server index (full library); fall back to the loaded window.
@@ -81,7 +99,7 @@
             {#each groups[f] ?? [] as row (row.value)}
               <button class="val" class:active={selected[f] === row.value}
                 onclick={() => onSelect(f, selected[f] === row.value ? null : row.value)}>
-                <span class="vl" title={row.value}>{row.value}</span>
+                <span class="vl" title={row.value}>{fmtValue(f, row.value)}</span>
                 <span class="vc">{row.count.toLocaleString('fr')}</span>
               </button>
             {/each}
