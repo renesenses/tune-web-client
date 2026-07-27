@@ -2,7 +2,7 @@
   import { onMount, untrack } from 'svelte';
   import * as api from '../lib/api';
   import { artworkUrl } from '../lib/api';
-  import type { Album, Artist, Track, CompletenessStats, BackupInfo } from '../lib/types';
+  import type { Album, Artist, Track, Source, CompletenessStats, BackupInfo, MetadataFilter } from '../lib/types';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { tuneWS } from '../lib/websocket';
@@ -42,7 +42,7 @@
   let albumArtistSearch = $state('');
   let albumArtistDropdownOpen = $state(false);
   let loading = $state(true);
-  let filter = $state<'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist' | 'no_artist_cover' | 'unknown' | 'doubtful' | 'duplicates'>('no_cover');
+  let filter = $state<MetadataFilter>('no_cover');
   let doubtfulAlbums = $state<import('../lib/api').DoubtfulAlbum[]>([]);
   let doubtfulLoaded = $state(false);
 
@@ -389,7 +389,12 @@
       let total = 0;
       for (const aid of albumIds) {
         const r = await api.writeAlbumTags(aid);
-        total += r.success ?? r.tracks_processed ?? 0;
+        // `success` est un booléen et `tracks_processed` n'existe pas dans la
+        // réponse : la somme retombait donc systématiquement sur 0. Le serveur
+        // renvoie `written` — mais l'écriture est une tâche de fond, donc ce
+        // compte vaut 0 à cet instant. Afficher le vrai total demanderait de
+        // suivre la tâche via son task_id ; hors périmètre ici.
+        total += r.written ?? 0;
       }
       writeResult = { type: 'tags', message: $t('metadata.tagsBurned').replace('{total}', String(total)) };
       unknownGraved = false;
@@ -494,7 +499,10 @@
     });
   }
 
-  async function resolveDuplicate(duplicateId: number, keepTrackId: number) {
+  // `keepTrackId` est optionnel côté panneau (`c?.track_id`) : sans lui, l'appel
+  // partait avec keep_track_id=undefined dans l'URL. On s'abstient plutôt.
+  async function resolveDuplicate(duplicateId: number, keepTrackId: number | undefined) {
+    if (keepTrackId == null) return;
     try {
       await api.resolveDuplicate(duplicateId, keepTrackId);
       duplicates = duplicates.filter(d => d.id !== duplicateId);
@@ -506,8 +514,13 @@
 
   async function loadSuggestions() {
     try {
-      suggestions = await api.getMetadataSuggestions();
-      suggestionCount = suggestions.length;
+      // L'endpoint ne renvoie qu'un compteur, pas la liste — `suggestions` était
+      // donc affecté avec un objet et `suggestions.length` valait undefined, si
+      // bien que le badge du bouton restait vide et que le panneau (qui teste
+      // `suggestions.length > 0`) ne s'ouvrait jamais. On récupère le compteur ;
+      // remplir le panneau demanderait un endpoint de liste côté serveur.
+      const res = await api.getMetadataSuggestions();
+      suggestionCount = res.pending ?? 0;
     } catch {}
   }
 
@@ -926,6 +939,7 @@
       map.get(aid)!.push(t);
     }
     for (const a of unknownAlbums) {
+      if (a.id == null) continue;
       const tracks = map.get(a.id) ?? [];
       if (tracks.length > 0) groups.push({ album: a, tracks });
     }
@@ -1273,10 +1287,10 @@
     try {
       const updated = await api.uploadAlbumArtwork(albumId, file);
       doubtfulAlbums = doubtfulAlbums.map(a =>
-        a.id === albumId ? { ...a, cover_path: updated.cover_path } : a
+        a.id === albumId ? { ...a, cover_path: updated.cover_path ?? null } : a
       );
       allAlbums = allAlbums.map(a =>
-        a.id === albumId ? { ...a, cover_path: updated.cover_path } : a
+        a.id === albumId ? { ...a, cover_path: updated.cover_path ?? null } : a
       );
       api.getCompletenessStats().then(s => stats = s);
     } catch (e) {
@@ -1648,7 +1662,7 @@
                       {/if}
                     </div>
                     <div class="dup-group-item-actions">
-                      <button class="btn-doubtful-edit" title={$t('metadata.edit')} onclick={() => editAlbum = album}>
+                      <button class="btn-doubtful-edit" title={$t('metadata.edit')} onclick={() => editAlbum = { ...album, source: (album.source ?? undefined) as Source | undefined }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                       </button>
                       {#if group.length > 1}
@@ -1708,7 +1722,7 @@
                 </div>
               </div>
               <div class="dcard-actions">
-                <button class="btn-doubtful-edit" title={$t('metadata.edit')} onclick={() => editAlbum = album}>
+                <button class="btn-doubtful-edit" title={$t('metadata.edit')} onclick={() => editAlbum = { ...album, source: (album.source ?? undefined) as Source | undefined }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                 </button>
               </div>
@@ -1743,7 +1757,9 @@
       </div>
     {:else}
       <!-- Batch toolbar — visible on all album views when selection active or always on filtered views -->
-      {#if filter !== 'no_artist' && filter !== 'unknown' && filter !== 'doubtful'}
+      <!-- `filter !== 'doubtful'` était redondant : cette branche est le {:else}
+           d'une chaîne qui traite déjà 'doubtful' plus haut. -->
+      {#if filter !== 'no_artist' && filter !== 'unknown'}
         <div class="batch-toolbar">
           <label class="batch-select-all">
             <input type="checkbox" checked={batchAllSelected} onchange={toggleBatchSelectAll} />
@@ -1860,7 +1876,7 @@
             </div>
             <div class="dcard-actions">
               <input type="checkbox" checked={batchSelectedIds.has(album.id!)} onchange={() => toggleBatchSelect(album.id!)} onclick={(e) => e.stopPropagation()} />
-              <button class="btn-doubtful-edit" title={$t('metadata.edit')} onclick={() => editAlbum = album}>
+              <button class="btn-doubtful-edit" title={$t('metadata.edit')} onclick={() => editAlbum = { ...album, source: (album.source ?? undefined) as Source | undefined }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
               </button>
             </div>

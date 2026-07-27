@@ -144,7 +144,19 @@
   let scanningPath = $state<string | null>(null);
 
   // Update checker
-  let updateInfo = $state<{ latest_version: string; current_version: string; release_notes?: string } | null>(null);
+  // Forme réelle de /system/update/check, plus les deux champs que checkForUpdate
+  // normalise. Le serveur renvoie `latest`/`current` ; `latest_version`/
+  // `current_version` sont les noms retenus ici, d'où la double lecture plus bas.
+  // `installable`/`install_hint` : aucune version du serveur ne les émet
+  // aujourd'hui, la branche d'UI qui les lit est donc inerte — typés optionnels
+  // pour la garder compilable sans prétendre qu'ils arrivent.
+  let updateInfo = $state<{
+    latest_version: string;
+    current_version: string;
+    release_notes?: string;
+    installable?: boolean;
+    install_hint?: string;
+  } | null>(null);
   let updateInstalling = $state(false);
   let updateDone = $state(false);
   let updateDmgReady = $state(false);
@@ -799,21 +811,23 @@
   let crossfadeLoading = $state(false);
 
   async function loadCrossfade() {
-    const zoneList = get(zones);
-    if (!zoneList.length) return;
+    // `zones[0].id` est nullable dans le type : on l'extrait une fois plutôt que
+    // de supposer sa présence à chaque appel.
+    const zoneId = get(zones)[0]?.id;
+    if (zoneId == null) return;
     try {
-      const res = await api.getCrossfade(zoneList[0].id);
+      const res = await api.getCrossfade(zoneId);
       crossfadeEnabled = res.enabled ?? false;
       crossfadeDuration = res.duration ?? 3;
     } catch {}
   }
 
   async function applyCrossfade() {
-    const zoneList = get(zones);
-    if (!zoneList.length) return;
+    const zoneId = get(zones)[0]?.id;
+    if (zoneId == null) return;
     crossfadeLoading = true;
     try {
-      await api.setCrossfade(zoneList[0].id, crossfadeEnabled, crossfadeDuration);
+      await api.setCrossfade(zoneId, crossfadeEnabled, crossfadeDuration);
     } catch {}
     crossfadeLoading = false;
   }
@@ -1796,20 +1810,20 @@
   let qualityLoading = $state(false);
 
   async function loadStreamingQuality() {
-    const zoneList = get(zones);
-    if (!zoneList.length) return;
+    const zoneId = get(zones)[0]?.id;
+    if (zoneId == null) return;
     try {
-      const res = await api.getStreamingQuality(zoneList[0].id);
+      const res = await api.getStreamingQuality(zoneId);
       streamingQuality = res.quality ?? 'max';
     } catch {}
   }
 
   async function applyStreamingQuality() {
-    const zoneList = get(zones);
-    if (!zoneList.length) return;
+    const zoneId = get(zones)[0]?.id;
+    if (zoneId == null) return;
     qualityLoading = true;
     try {
-      await api.setStreamingQuality(zoneList[0].id, streamingQuality);
+      await api.setStreamingQuality(zoneId, streamingQuality);
     } catch {}
     qualityLoading = false;
   }
@@ -3396,13 +3410,13 @@
       <div class="pref-grid">
         <label class="pref-label">{$t('settings.metadataReadonly')}</label>
         <label class="toggle-switch">
-          <input type="checkbox" checked={config.metadata_readonly} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; config.metadata_readonly = val; await api.updateConfig({ metadata_readonly: val }); }} />
+          <input type="checkbox" checked={config.metadata_readonly} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.metadata_readonly = val; await api.updateConfig({ metadata_readonly: val }); }} />
           <span class="toggle-slider"></span>
         </label>
 
         <label class="pref-label">{$t('settings.enrichOnScan')}</label>
         <label class="toggle-switch">
-          <input type="checkbox" checked={config.enrich_on_scan !== false && config.enrich_on_scan !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; config.enrich_on_scan = val; await api.updateConfig({ enrich_on_scan: val }); }} />
+          <input type="checkbox" checked={config.enrich_on_scan !== false && config.enrich_on_scan !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.enrich_on_scan = val; await api.updateConfig({ enrich_on_scan: val }); }} />
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -3918,7 +3932,7 @@
         <div class="pref-grid">
           <label class="pref-label">{$t('settings.zoneAutoCreateLabel' as any)}</label>
           <label class="toggle-switch">
-            <input type="checkbox" checked={config.zone_auto_create ?? true} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; config.zone_auto_create = val; await api.updateConfig({ zone_auto_create: val }); }} />
+            <input type="checkbox" checked={config.zone_auto_create ?? true} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.zone_auto_create = val; await api.updateConfig({ zone_auto_create: val }); }} />
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -3956,6 +3970,7 @@
                     value={z.dsd_mode ?? 'auto'}
                     onchange={async (e) => {
                       const mode = (e.target as HTMLSelectElement).value;
+                      if (z.id == null) return;
                       await api.updateZoneDsdMode(z.id, mode);
                     }}
                   >
@@ -3972,6 +3987,7 @@
                     value={String(z.max_sample_rate ?? 0)}
                     onchange={async (e) => {
                       const v = Number((e.target as HTMLSelectElement).value);
+                      if (z.id == null) return;
                       await api.updateZoneMaxSampleRate(z.id, v > 0 ? v : null);
                     }}
                   >
@@ -3991,18 +4007,20 @@
                       type="checkbox"
                       checked={z.dlna_native_flac ?? false}
                       onchange={async (e) => {
+                        if (z.id == null) return;
                         await api.updateZoneDlnaNativeFlac(z.id, (e.target as HTMLInputElement).checked);
                       }}
                     />
                     <span>{$t('settings.dlnaNativeFlac')}</span>
                   </label>
                 {/if}
-                {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type)}
+                {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type ?? '')}
                   <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
                     <input
                       type="checkbox"
                       checked={z.alac_passthrough ?? false}
                       onchange={async (e) => {
+                        if (z.id == null) return;
                         await api.updateZoneAlacPassthrough(z.id, (e.target as HTMLInputElement).checked);
                       }}
                     />
