@@ -103,6 +103,7 @@ export default {
   'zone.noZone': 'Nicio zonă',
   'zone.playDisabledNoZone': 'Creează mai întâi o zonă pentru a începe redarea',
   'zone.switchZone': 'Schimbă zona',
+  'zone.airplayPair': 'Asociere prin AirPlay 2 (cod PIN)',
   'zone.rename': 'Redenumește',
   'zone.groupedPlayback': 'Redare grupată',
   'zone.selectZonesToSync': 'Selectează zonele de sincronizat cu {name}',

@@ -333,6 +333,43 @@ export function submitPairingPin(deviceId: string, pin: string) {
   });
 }
 
+// --- Appariement AirPlay 2 par code PIN ---
+//
+// Flux en trois temps côté serveur (routes/airplay_pairing.rs, monté sous
+// /outputs) pour les récepteurs qui exigent un appariement HomeKit — TV Samsung
+// et LG en AirPlay 2 seul, Apple TV : on démarre l'appariement, le récepteur
+// affiche un code à l'écran, on interroge le statut jusqu'à ce qu'il le
+// réclame, puis on renvoie le code saisi.
+//
+// Ces trois fonctions manquaient purement et simplement, alors que
+// AirplayPairingModal les appelait : chaque tentative d'appariement échouait sur
+// un TypeError « api.startAirplayPairing is not a function », affiché tel quel
+// dans la modale. Rien ne pouvait le détecter sans vérification de types.
+
+/** Démarre l'appariement : le récepteur affiche son code à l'écran. */
+export function startAirplayPairing(deviceId: string) {
+  return fetchJSON<{ ok: boolean; status: string }>(
+    `${BASE}/outputs/${encodeURIComponent(deviceId)}/airplay/pair-start`,
+    { method: 'POST' },
+  );
+}
+
+/** Statut d'appariement. Valeurs attendues par la modale : `pin_requested`,
+ *  `connected`, `failed:<message>`, sinon un état transitoire. */
+export function getAirplayPairStatus(deviceId: string) {
+  return fetchJSON<{ status: string }>(
+    `${BASE}/outputs/${encodeURIComponent(deviceId)}/airplay/pair-status`,
+  );
+}
+
+/** Envoie le code affiché par le récepteur. */
+export function submitAirplayPairPin(deviceId: string, pin: string) {
+  return fetchJSON<{ ok: boolean }>(
+    `${BASE}/outputs/${encodeURIComponent(deviceId)}/airplay/pair-pin`,
+    { method: 'POST', body: JSON.stringify({ pin }) },
+  );
+}
+
 export function deleteZone(id: number) {
   return fetchVoid(`${BASE}/zones/${id}`, { method: 'DELETE' });
 }
@@ -488,7 +525,10 @@ export function dissolveStereoPair(pairId: string) {
 }
 
 export function listStereoPairs() {
-  return fetchJSON<import('./types').StereoPairInfo[]>(`${BASE}/zones/stereo-pairs/list`);
+  // Le serveur expose `/zones/stereo-pairs` (routes/zones.rs) ; le `/list` en
+  // trop était pris pour un `{pair_id}`, d'où un 405 et une liste de paires qui
+  // ne se chargeait jamais dans le gestionnaire de zones.
+  return fetchJSON<import('./types').StereoPairInfo[]>(`${BASE}/zones/stereo-pairs`);
 }
 
 // --- Playback ---
