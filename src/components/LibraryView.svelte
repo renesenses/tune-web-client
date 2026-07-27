@@ -2,7 +2,7 @@
   import { onMount, untrack } from 'svelte';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
-  import { currentTrack, seekPositionMs } from '../lib/stores/nowPlaying';
+  import { currentTrackId, seekPositionMs } from '../lib/stores/nowPlaying';
   import { isBrowserZone, browserSeek } from '../lib/stores/browserAudio';
   import { playFromHere } from '../lib/playback';
   import { tuneWS } from '../lib/websocket';
@@ -1533,7 +1533,10 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     }
     // If this track is already the one playing, restart it from the beginning
     // instead of rebuilding the queue (Elie: "retour au début de la piste").
-    if (trackId === $currentTrack?.id) {
+    // Via currentTrackId : `$currentTrack.id` est absent de la charge utile de
+    // /zones (le champ y est `track_id`), donc ce raccourci ne se déclenchait
+    // jamais et chaque clic reconstruisait la file.
+    if (trackId === $currentTrackId) {
       try {
         await api.seek(zone.id, 0);
         if (isBrowserZone(zone)) browserSeek(0);

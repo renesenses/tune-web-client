@@ -4,6 +4,7 @@
   import { libraryTab, selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryLoading } from '../lib/stores/library';
   import { playbackHistory } from '../lib/stores/history';
   import { currentZone, currentZoneId, zones, playAndSync } from '../lib/stores/zones';
+  import { currentTrackId } from '../lib/stores/nowPlaying';
   import { playFromHere } from '../lib/playback';
   import { activeStreamingService, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { get } from 'svelte/store';
@@ -290,8 +291,15 @@
 
   function isPlaying(album: RecentAlbumEntry): boolean {
     if (!currentTrack || !zone || zone.state !== 'playing') return false;
-    if (album.id && currentTrack.album_id === album.id) return true;
-    if (album.firstTrack.id && currentTrack.id === album.firstTrack.id) return true;
+    // La piste en lecture s'identifie par `track_id` dans la charge utile de
+    // /zones ; l'ancien `currentTrack.id` n'existe pas et ne matchait jamais.
+    if (album.firstTrack.id && $currentTrackId === album.firstTrack.id) return true;
+    // Album : NowPlaying ne transporte aucun id d'album (playback/mod.rs), donc
+    // l'ancienne comparaison sur `album_id` était morte par construction. On
+    // retombe sur titre + artiste — le même repli que playRecentEntry utilise
+    // déjà pour retrouver un album dépourvu d'id.
+    if (album.title && currentTrack.album_title === album.title
+        && (currentTrack.artist_name ?? '') === (album.artist_name ?? '')) return true;
     if (album.firstTrack.source_id && currentTrack.source_id === album.firstTrack.source_id && currentTrack.source === album.source) return true;
     return false;
   }
