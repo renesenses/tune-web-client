@@ -4,7 +4,7 @@
   import { zones, currentZoneId, currentZone, playPendingUntil } from './lib/stores/zones';
   import { devices } from './lib/stores/devices';
   import { isBrowserZone, browserPlay, browserPause, browserResume, browserStop } from './lib/stores/browserAudio';
-  import { seekPositionMs, startSeekTimer, stopSeekTimer, shuffleEnabled, repeatMode } from './lib/stores/nowPlaying';
+  import { seekPositionMs, startSeekTimer, stopSeekTimer, shuffleEnabled, repeatMode, nowPlayingToTrack } from './lib/stores/nowPlaying';
   import { queueTracks, queuePosition, queueLength } from './lib/stores/queue';
   import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
   import { connectionState, reconnectAttempts } from './lib/stores/connection';
@@ -196,7 +196,7 @@ import AlarmsView from './components/AlarmsView.svelte';
             const yt = get(ytPlayerState);
             const track = selectedZone.current_track;
             if (track?.source === 'youtube' && track.source_id && !yt.active) {
-              playVideo(track.source_id, track);
+              playVideo(track.source_id, nowPlayingToTrack(track));
               clearYTLoading();
             }
           } else {
@@ -774,7 +774,7 @@ import AlarmsView from './components/AlarmsView.svelte';
                   clearYTLoading();
                 } else {
                   // New video (next/previous/playlist) — load it in IFrame; DLNA already started
-                  playVideo(sourceId, z.current_track);
+                  playVideo(sourceId, nowPlayingToTrack(z.current_track));
                   clearYTLoading();
                 }
               }
@@ -801,7 +801,7 @@ import AlarmsView from './components/AlarmsView.svelte';
             // Record to playback history on track start/change
             if (type === 'playback.started' || type === 'playback.track_changed') {
               if (z?.current_track) {
-                playbackHistory.add(z.current_track, z.name);
+                playbackHistory.add(nowPlayingToTrack(z.current_track), z.name);
               }
             }
           });
