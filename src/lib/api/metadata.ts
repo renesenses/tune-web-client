@@ -148,8 +148,12 @@ export function resolveDuplicate(duplicateId: number, keepTrackId: number) {
   return fetchJSON(`${BASE}/metadata/duplicates/resolve?duplicate_id=${duplicateId}&keep_track_id=${keepTrackId}`, { method: 'POST' });
 }
 
+/** Ne renvoie qu'un **compteur**, pas la liste : `{ pending: n }` (routes/
+ *  metadata.rs list_suggestions). Les paramètres status/limit sont ignorés côté
+ *  serveur. Il n'existe pas d'endpoint listant toutes les suggestions — seul
+ *  /metadata/tracks/{id}/suggestions existe, par piste. */
 export function getMetadataSuggestions(status = 'pending', limit = 100) {
-  return fetchJSON(`${BASE}/metadata/suggestions?status=${status}&limit=${limit}`);
+  return fetchJSON<{ pending: number }>(`${BASE}/metadata/suggestions?status=${status}&limit=${limit}`);
 }
 
 export function acceptSuggestion(id: number) {
@@ -290,8 +294,9 @@ export function listServiceTokens(): Promise<ServiceTokenInfo[]> {
   return fetchJSON(`${BASE}/services/tokens`);
 }
 
+// `service` est encodé : c'était le seul apport du doublon supprimé d'api.ts.
 export function saveServiceToken(service: string, fields: Record<string, string>) {
-  return fetchJSON<ServiceTokenSaveResult>(`${BASE}/services/tokens/${service}`, {
+  return fetchJSON<ServiceTokenSaveResult>(`${BASE}/services/tokens/${encodeURIComponent(service)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(fields),
@@ -299,11 +304,11 @@ export function saveServiceToken(service: string, fields: Record<string, string>
 }
 
 export function testServiceToken(service: string) {
-  return fetchJSON<ServiceTokenSaveResult>(`${BASE}/services/tokens/${service}/test`, { method: 'POST' });
+  return fetchJSON<ServiceTokenSaveResult>(`${BASE}/services/tokens/${encodeURIComponent(service)}/test`, { method: 'POST' });
 }
 
 export function deleteServiceToken(service: string) {
-  return fetchJSON<{ ok?: boolean }>(`${BASE}/services/tokens/${service}`, { method: 'DELETE' });
+  return fetchJSON<{ ok?: boolean }>(`${BASE}/services/tokens/${encodeURIComponent(service)}`, { method: 'DELETE' });
 }
 
 // --- Last.fm scrobbling ---

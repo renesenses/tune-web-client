@@ -568,7 +568,6 @@ export default {
   // Metadata
   'settings.metadataReadonly': '只读模式（不修改音频文件）',
   'settings.metadataReadonlyHelp': '启用后，Tune 不会修改磁盘上音频文件的标签。',
-  "settings.enrichOnScan": "扫描后自动丰富元数据",
   "settings.enrichOnScanHelp": "每次扫描后通过 MusicBrainz/Discogs 下载缺失的艺术家图片和封面（高级版）。如果你的文件标签已完整，可关闭它——扫描更快，机器更省力。",
 
   // Enrichment
@@ -1266,6 +1265,15 @@ export default {
   "settings.scanAlreadyRunning": "扫描已在运行",
   "settings.scanError": "扫描错误",
   "settings.scanCompleted": "扫描完成：{scanned} 个文件，{added} 个已添加，{updated} 个已更新，{removed} 个已移除",
+  "settings.scanReportTitle": "上次扫描报告",
+  "settings.scanReportUnchanged": "未变更",
+  "settings.scanReportDuplicates": "已跳过重复项",
+  "settings.scanReportTimeouts": "已无标签索引（存储较慢）",
+  "settings.scanReportReadFailures": "无法读取的文件",
+  "settings.scanReportDbFailures": "数据库写入失败",
+  "settings.scanReportMissingDirs": "无法访问的文件夹 â 其曲目已保留",
+  "settings.scanReportErrorDirs": "遍历这些文件夹时出错 â 其曲目已保留",
+  "settings.scanReportFailedPaths": "个出错文件",
   "settings.tabGeneral": "通用",
   "settings.tabServices": "服务",
   "settings.tabNetworkAudio": "网络与音频",
@@ -1381,9 +1389,6 @@ export default {
   "settings.perZoneSettings": "每区域设置",
   "settings.perZoneHint": "为每个播放区域设置 DSD 模式、固定音量和无缝播放。",
   "settings.dsdNative": "原生（passthrough）",
-  "settings.maxSampleRate": "最大采样率",
-  "settings.maxSampleRateNone": "无",
-  "settings.maxSampleRateHint": "仅当源超过此上限时重采样（保留 DSD）",
   "settings.dsdPcm": "PCM（转换）",
   "settings.maxSampleRate": "最大采样率",
   "settings.maxSampleRateNone": "无",

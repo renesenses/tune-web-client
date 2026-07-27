@@ -1,6 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import { currentZone, currentZoneId } from './zones';
-import type { Track, PlaybackState } from '../types';
+import type { NowPlaying, PlaybackState, Track } from '../types';
 
 // Seek position in milliseconds
 export const seekPositionMs = writable<number>(0);
@@ -18,6 +18,36 @@ export const mutedVolume = writable<number | null>(null);
 
 // Derived from current zone
 export const currentTrack = derived(currentZone, ($zone) => $zone?.current_track ?? null);
+
+/** Id de bibliothèque de la piste en lecture, ou null (radio / piste streaming).
+ *
+ *  `current_track` n'a pas la même forme selon la route qui a rempli le store :
+ *  `GET /zones` sérialise la structure interne du serveur, dont le champ est
+ *  `track_id` (zones.rs), tandis que `/zones/{id}/state` construit son JSON à la
+ *  main et le nomme `id` (playback.rs). Comparer `$currentTrack.id` échoue donc
+ *  silencieusement sur la forme la plus courante — passer par ce store plutôt
+ *  que de relire le champ à la main. */
+export const currentTrackId = derived(
+  currentTrack,
+  ($track) => $track?.track_id ?? $track?.id ?? null,
+);
+
+/** Convertit le now-playing d'une zone en `Track` de bibliothèque.
+ *
+ *  À passer à tout code qui attend un `Track` : le serveur nomme l'id
+ *  `track_id`, si bien qu'un `NowPlaying` transmis tel quel arrive avec un `id`
+ *  absent. C'est ce qui cassait l'ajout d'une piste locale à une playlist depuis
+ *  le plein écran (AddToPlaylistModal teste `track.id`, retombait sur la branche
+ *  streaming et envoyait un `source_id` nul) et la déduplication de
+ *  l'historique, qui compare `id` puis `file_path`.
+ *
+ *  Les champs que le serveur n'envoie pas — `album_id`, `artist_id`, `channels`,
+ *  `file_path` — restent absents : cette fonction rétablit l'id, elle n'invente
+ *  rien. */
+export function nowPlayingToTrack(np: NowPlaying | Track): Track {
+  const t = np as NowPlaying & Track;
+  return { ...t, id: t.track_id ?? t.id ?? null };
+}
 export const playbackState = derived(currentZone, ($zone): PlaybackState => ($zone?.state as PlaybackState) ?? 'stopped');
 const _zoneVol = writable<number>(0.5);
 let _volLocalUntil = 0;

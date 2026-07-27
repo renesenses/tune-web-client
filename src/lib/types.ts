@@ -2,10 +2,17 @@
 
 // Enums
 export type Source = 'local' | 'tidal' | 'qobuz' | 'youtube' | 'amazon' | 'spotify' | 'deezer' | 'radio';
-export type AudioFormat = 'flac' | 'wav' | 'mp3' | 'aac' | 'alac' | 'ogg' | 'opus' | 'dsd' | 'aiff' | 'wma';
+// `dsf`/`dff` sont les formats réellement portés par les fichiers DSD : les
+// omettre rendait le test de la puce « DSD » impossible selon le type (il ne
+// passait que par le repli sur l'extension du chemin).
+export type AudioFormat = 'flac' | 'wav' | 'mp3' | 'aac' | 'alac' | 'ogg' | 'opus' | 'dsd' | 'dsf' | 'dff' | 'aiff' | 'wma';
 export type PlaybackState = 'stopped' | 'playing' | 'paused' | 'buffering';
 export type RepeatMode = 'off' | 'one' | 'all';
-export type OutputType = 'local' | 'dlna' | 'airplay' | 'chromecast' | 'bluos' | 'snapcast' | 'sonos' | 'squeezebox' | 'browser';
+// `openhome` et `airplay2` sont bien émis par le serveur (routes/zones.rs,
+// discovery_setup.rs, outputs/airplay2) : les omettre faisait passer les gardes
+// `output_type !== 'openhome'` / `!== 'airplay2'` pour impossibles, alors que
+// les supprimer casserait ces sorties.
+export type OutputType = 'local' | 'dlna' | 'openhome' | 'airplay' | 'airplay2' | 'chromecast' | 'bluos' | 'snapcast' | 'sonos' | 'squeezebox' | 'browser';
 
 // v0.8.0 multi-room — Snapcast endpoint discovered by snapserver.
 export interface SnapcastClient {
@@ -146,6 +153,39 @@ export interface SignalPath {
   checksum_verified?: boolean | null;
 }
 
+/** Piste en lecture telle que le serveur la renvoie — ce n'est PAS un `Track`.
+ *
+ *  Le serveur sérialise sa structure `NowPlaying` (tune-core playback/mod.rs) :
+ *  l'id de la piste s'y nomme `track_id`, et il n'y a **aucun id d'album ni
+ *  d'artiste**. `GET /zones` sérialise la structure telle quelle, tandis que
+ *  `/zones/{id}/state` construit son JSON à la main et renomme le champ en `id`
+ *  (playback.rs) — d'où les deux noms ci-dessous.
+ *
+ *  Typer ce champ comme un `Track` laissait passer `current_track.id` et
+ *  `current_track.album_id`, qui n'existent pas : les comparaisons étaient
+ *  toujours fausses, en silence. Lire l'id via `track_id ?? id` — de
+ *  préférence une seule fois, dans un dérivé du store, plutôt que dans chaque
+ *  composant. */
+export interface NowPlaying {
+  /** Forme /zones (sérialisation directe de la structure serveur). */
+  track_id?: number | null;
+  /** Forme /zones/{id}/state (JSON construit à la main). */
+  id?: number | null;
+  title: string;
+  artist_name?: string | null;
+  album_title?: string | null;
+  cover_path?: string | null;
+  duration_ms?: number;
+  source?: Source;
+  source_id?: string | null;
+  stream_id?: string | null;
+  format?: AudioFormat | null;
+  sample_rate?: number | null;
+  bit_depth?: number | null;
+  genre?: string | null;
+  year?: number | null;
+}
+
 export interface Zone {
   id: number | null;
   name: string;
@@ -155,7 +195,7 @@ export interface Zone {
   group_id?: string | null;
   sync_delay_ms?: number;
   state?: PlaybackState;
-  current_track?: Track | null;
+  current_track?: NowPlaying | null;
   position_ms?: number;
   queue_length?: number;
   signal_path?: SignalPath | null;
@@ -174,6 +214,12 @@ export interface Zone {
   /** DSD playback mode: auto, native, dop, pcm */
   dsd_mode?: string;
   dlna_native_flac?: boolean;
+  /** Plafond de fréquence d'échantillonnage de la zone (null = pas de limite). */
+  max_sample_rate?: number | null;
+  /** Envoi de l'ALAC tel quel au renderer, sans transcodage. */
+  alac_passthrough?: boolean;
+  dlna_lpcm?: boolean;
+  dlna_cap_16bit?: boolean;
 }
 
 export interface DiscoveredDevice {
@@ -242,6 +288,16 @@ export interface SystemHealth {
   components?: Record<string, boolean>;
 }
 
+/** Réglage booléen tel que /system/config peut réellement le renvoyer.
+ *
+ *  Ce n'est pas un excès de prudence : le serveur lit les réglages stockés en
+ *  base sous forme de **texte** et leur applique un JSON.parse, avec repli sur
+ *  la chaîne brute si l'analyse échoue (routes/system/config.rs). Selon ce qui a
+ *  été écrit, un même drapeau ressort donc en `false`, en `"false"`, en `0` ou
+ *  en `"0"` — ce contre quoi les vues se protègent déjà, à juste titre. Le typer
+ *  `boolean` faisait passer ces gardes pour du code mort. */
+export type ConfigFlag = boolean | string | number;
+
 export interface SystemConfig {
   music_dirs: string[];
   api_port: number;
@@ -253,8 +309,10 @@ export interface SystemConfig {
   discovery_enabled: boolean;
   zone_auto_create?: boolean;
   metadata_readonly: boolean;
-  enrich_on_scan: boolean;
+  enrich_on_scan: ConfigFlag;
   discogs_token_set: boolean;
+  /** Sépare les dossiers de destination par qualité audio (réglage de scan). */
+  quality_split?: ConfigFlag;
   // Appliance mode (Tune OS image): unlocks the host network settings UI
   appliance?: boolean;
   // Access URLs from another device (IP + .local) — shown in Settings
@@ -300,6 +358,16 @@ export interface ZoneGroupResponse {
   auto_synced: boolean;
   group_manufacturer: string;
 }
+
+/** Filtre de la vue Métadonnées.
+ *
+ *  Déclaré ici parce qu'il était écrit deux fois — en ligne dans MetadataView et
+ *  comme type local dans MetadataStatsDashboard — et que les deux copies avaient
+ *  divergé : `no_artist_cover` existe côté vue (bouton et branche de rendu) mais
+ *  manquait au type du composant enfant, qui reçoit pourtant cette valeur. */
+export type MetadataFilter =
+  | 'all' | 'no_cover' | 'no_genre' | 'no_year' | 'no_artist'
+  | 'no_artist_cover' | 'unknown' | 'duplicates' | 'doubtful';
 
 export interface CompletenessStats {
   total_albums: number;

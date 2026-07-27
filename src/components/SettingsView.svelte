@@ -74,6 +74,48 @@
       : `${m}:${String(sec).padStart(2, '0')}`;
   });
   let restarting = $state(false);
+
+  // Restart the server and reload the page only once it is actually back.
+  // A plain restart can drop the port and rebind a few seconds later (bind-retry
+  // race), so the old fixed 6s reload hit a not-yet-ready server → "Network
+  // error: server unreachable" then "Failed to load zones" (#1209, Mika/Windows).
+  // Poll /system/health and reload once it comes back UP (after observing it go
+  // DOWN, or as a fallback if it restarted too fast to catch the drop), with a
+  // hard backstop so we never hang forever.
+  async function restartServerAndReload() {
+    if (!confirm(get(t)('settings.restartConfirm'))) return;
+    restarting = true;
+    try {
+      await api.restartServer();
+    } catch (e) {
+      restarting = false;
+      alert((e as Error).message);
+      return;
+    }
+    const start = Date.now();
+    let sawDown = false;
+    const tryReload = async () => {
+      const elapsed = Date.now() - start;
+      let up = false;
+      try {
+        await api.getHealth();
+        up = true;
+      } catch {
+        sawDown = true; // server is restarting
+      }
+      if (up && (sawDown || elapsed > 8_000)) {
+        window.location.reload();
+        return;
+      }
+      if (elapsed > 45_000) {
+        window.location.reload(); // hard backstop
+        return;
+      }
+      setTimeout(tryReload, 700);
+    };
+    setTimeout(tryReload, 1_000);
+  }
+
   let loading = $state(true);
   let artworkScanning = $state(false);
   let enrichMsg = $state('');
@@ -102,7 +144,19 @@
   let scanningPath = $state<string | null>(null);
 
   // Update checker
-  let updateInfo = $state<{ latest_version: string; current_version: string; release_notes?: string } | null>(null);
+  // Forme réelle de /system/update/check, plus les deux champs que checkForUpdate
+  // normalise. Le serveur renvoie `latest`/`current` ; `latest_version`/
+  // `current_version` sont les noms retenus ici, d'où la double lecture plus bas.
+  // `installable`/`install_hint` : aucune version du serveur ne les émet
+  // aujourd'hui, la branche d'UI qui les lit est donc inerte — typés optionnels
+  // pour la garder compilable sans prétendre qu'ils arrivent.
+  let updateInfo = $state<{
+    latest_version: string;
+    current_version: string;
+    release_notes?: string;
+    installable?: boolean;
+    install_hint?: string;
+  } | null>(null);
   let updateInstalling = $state(false);
   let updateDone = $state(false);
   let updateDmgReady = $state(false);
@@ -757,21 +811,23 @@
   let crossfadeLoading = $state(false);
 
   async function loadCrossfade() {
-    const zoneList = get(zones);
-    if (!zoneList.length) return;
+    // `zones[0].id` est nullable dans le type : on l'extrait une fois plutôt que
+    // de supposer sa présence à chaque appel.
+    const zoneId = get(zones)[0]?.id;
+    if (zoneId == null) return;
     try {
-      const res = await api.getCrossfade(zoneList[0].id);
+      const res = await api.getCrossfade(zoneId);
       crossfadeEnabled = res.enabled ?? false;
       crossfadeDuration = res.duration ?? 3;
     } catch {}
   }
 
   async function applyCrossfade() {
-    const zoneList = get(zones);
-    if (!zoneList.length) return;
+    const zoneId = get(zones)[0]?.id;
+    if (zoneId == null) return;
     crossfadeLoading = true;
     try {
-      await api.setCrossfade(zoneList[0].id, crossfadeEnabled, crossfadeDuration);
+      await api.setCrossfade(zoneId, crossfadeEnabled, crossfadeDuration);
     } catch {}
     crossfadeLoading = false;
   }
@@ -1668,6 +1724,10 @@
   }
 
   let scanMessage = $state('');
+  let scanReport = $state<api.ScanReport | null>(null);
+  let scanReportDbFailed = $derived(
+    (scanReport?.db_insert_failed ?? 0) + (scanReport?.db_update_failed ?? 0)
+  );
   let clearingLibrary = $state(false);
 
   async function handleClearLibrary() {
@@ -1750,20 +1810,20 @@
   let qualityLoading = $state(false);
 
   async function loadStreamingQuality() {
-    const zoneList = get(zones);
-    if (!zoneList.length) return;
+    const zoneId = get(zones)[0]?.id;
+    if (zoneId == null) return;
     try {
-      const res = await api.getStreamingQuality(zoneList[0].id);
+      const res = await api.getStreamingQuality(zoneId);
       streamingQuality = res.quality ?? 'max';
     } catch {}
   }
 
   async function applyStreamingQuality() {
-    const zoneList = get(zones);
-    if (!zoneList.length) return;
+    const zoneId = get(zones)[0]?.id;
+    if (zoneId == null) return;
     qualityLoading = true;
     try {
-      await api.setStreamingQuality(zoneList[0].id, streamingQuality);
+      await api.setStreamingQuality(zoneId, streamingQuality);
     } catch {}
     qualityLoading = false;
   }
@@ -1954,6 +2014,10 @@
   // sidebar clicks are never processed.
   onMount(() => {
     loadAll();
+    // Last scan report is persisted server-side — show it across reloads.
+    api.getScanReport()
+      .then((r) => { if (r && r.total_files != null) scanReport = r; })
+      .catch(() => {});
     fetchAudioDevices();
     fetchTunePeers();
     fetchServerVersion();
@@ -2001,12 +2065,17 @@
         scanProgress = null;
         scanningPath = null;
         const d = event.data ?? {};
+        // The server event uses total_files/inserted; older builds sent
+        // scanned/added — accept both so the toast never shows "?".
         scanMessage = get(t)('settings.scanCompleted')
-          .replace('{scanned}', String(d.scanned ?? '?'))
-          .replace('{added}', String(d.added ?? 0))
+          .replace('{scanned}', String(d.total_files ?? d.scanned ?? '?'))
+          .replace('{added}', String(d.inserted ?? d.added ?? 0))
           .replace('{updated}', String(d.updated ?? 0))
           .replace('{removed}', String(d.removed ?? 0));
         notifications.success(scanMessage);
+        if (!d.cancelled && !d.no_dirs && d.total_files != null) {
+          scanReport = d;
+        }
         loadAll();
       } else if (event.type === 'library.artwork.progress') {
         artworkProgress = event.data;
@@ -2286,17 +2355,7 @@
         <button
           class="restart-btn"
           disabled={restarting}
-          onclick={async () => {
-            if (!confirm($t('settings.restartConfirm'))) return;
-            restarting = true;
-            try {
-              await api.restartServer();
-              setTimeout(() => window.location.reload(), 6000);
-            } catch (e) {
-              restarting = false;
-              alert((e as Error).message);
-            }
-          }}
+          onclick={restartServerAndReload}
         >
           {restarting ? $t('settings.restarting') : $t('settings.restartServer')}
         </button>
@@ -2528,6 +2587,55 @@
             {#if scanProgress.tracks_per_second}<span>{scanProgress.tracks_per_second} {$t('settings.scanPerSecond')}</span>{/if}
             {#if scanEta}<span>{$t('settings.scanEta')} {scanEta}</span>{/if}
           </div>
+        </div>
+      {/if}
+
+      {#if scanReport && !scanning}
+        <div class="scan-report">
+          <div class="scan-report-head">{$t('settings.scanReportTitle' as any)}</div>
+          <div class="scan-report-counts">
+            <span>{scanReport.total_files ?? 0} {$t('settings.filesWord')}</span>
+            <span>+{scanReport.inserted ?? 0} {$t('settings.addedWord')}</span>
+            {#if scanReport.updated}<span>~{scanReport.updated} {$t('settings.scanUpdatedWord')}</span>{/if}
+            {#if scanReport.skipped_unchanged}<span>{scanReport.skipped_unchanged} {$t('settings.scanReportUnchanged' as any)}</span>{/if}
+            {#if scanReport.skipped_duplicate}<span>{scanReport.skipped_duplicate} {$t('settings.scanReportDuplicates' as any)}</span>{/if}
+            {#if scanReport.metadata_timeout}<span class="warn">{scanReport.metadata_timeout} {$t('settings.scanReportTimeouts' as any)}</span>{/if}
+            {#if scanReport.skipped_no_metadata}<span class="warn">{scanReport.skipped_no_metadata} {$t('settings.scanReportReadFailures' as any)}</span>{/if}
+            {#if scanReportDbFailed}<span class="warn">{scanReportDbFailed} {$t('settings.scanReportDbFailures' as any)}</span>{/if}
+          </div>
+          {#if scanReport.missing_dirs?.length}
+            <div class="scan-report-warning">
+              <div class="scan-report-warning-title">{$t('settings.scanReportMissingDirs' as any)}</div>
+              <ul>
+                {#each (scanReport.missing_dir_reasons?.length ? scanReport.missing_dir_reasons : scanReport.missing_dirs) as d}
+                  <li>{d}</li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
+          {#if scanReport.error_dirs?.length}
+            <div class="scan-report-warning">
+              <div class="scan-report-warning-title">{$t('settings.scanReportErrorDirs' as any)}</div>
+              <ul>
+                {#each scanReport.error_dirs as d}
+                  <li>{d}</li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
+          {#if scanReport.failed_paths?.length}
+            <details class="scan-report-failed">
+              <summary>{scanReport.failed_paths.length} {$t('settings.scanReportFailedPaths' as any)}</summary>
+              <ul>
+                {#each scanReport.failed_paths.slice(0, 50) as p}
+                  <li>{p}</li>
+                {/each}
+                {#if scanReport.failed_paths.length > 50}
+                  <li>… (+{scanReport.failed_paths.length - 50})</li>
+                {/if}
+              </ul>
+            </details>
+          {/if}
         </div>
       {/if}
 
@@ -3302,13 +3410,13 @@
       <div class="pref-grid">
         <label class="pref-label">{$t('settings.metadataReadonly')}</label>
         <label class="toggle-switch">
-          <input type="checkbox" checked={config.metadata_readonly} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; config.metadata_readonly = val; await api.updateConfig({ metadata_readonly: val }); }} />
+          <input type="checkbox" checked={config.metadata_readonly} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.metadata_readonly = val; await api.updateConfig({ metadata_readonly: val }); }} />
           <span class="toggle-slider"></span>
         </label>
 
         <label class="pref-label">{$t('settings.enrichOnScan')}</label>
         <label class="toggle-switch">
-          <input type="checkbox" checked={config.enrich_on_scan !== false && config.enrich_on_scan !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; config.enrich_on_scan = val; await api.updateConfig({ enrich_on_scan: val }); }} />
+          <input type="checkbox" checked={config.enrich_on_scan !== false && config.enrich_on_scan !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.enrich_on_scan = val; await api.updateConfig({ enrich_on_scan: val }); }} />
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -3824,7 +3932,7 @@
         <div class="pref-grid">
           <label class="pref-label">{$t('settings.zoneAutoCreateLabel' as any)}</label>
           <label class="toggle-switch">
-            <input type="checkbox" checked={config.zone_auto_create ?? true} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; config.zone_auto_create = val; await api.updateConfig({ zone_auto_create: val }); }} />
+            <input type="checkbox" checked={config.zone_auto_create ?? true} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.zone_auto_create = val; await api.updateConfig({ zone_auto_create: val }); }} />
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -3862,6 +3970,7 @@
                     value={z.dsd_mode ?? 'auto'}
                     onchange={async (e) => {
                       const mode = (e.target as HTMLSelectElement).value;
+                      if (z.id == null) return;
                       await api.updateZoneDsdMode(z.id, mode);
                     }}
                   >
@@ -3878,6 +3987,7 @@
                     value={String(z.max_sample_rate ?? 0)}
                     onchange={async (e) => {
                       const v = Number((e.target as HTMLSelectElement).value);
+                      if (z.id == null) return;
                       await api.updateZoneMaxSampleRate(z.id, v > 0 ? v : null);
                     }}
                   >
@@ -3897,18 +4007,20 @@
                       type="checkbox"
                       checked={z.dlna_native_flac ?? false}
                       onchange={async (e) => {
+                        if (z.id == null) return;
                         await api.updateZoneDlnaNativeFlac(z.id, (e.target as HTMLInputElement).checked);
                       }}
                     />
                     <span>{$t('settings.dlnaNativeFlac')}</span>
                   </label>
                 {/if}
-                {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type)}
+                {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type ?? '')}
                   <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
                     <input
                       type="checkbox"
                       checked={z.alac_passthrough ?? false}
                       onchange={async (e) => {
+                        if (z.id == null) return;
                         await api.updateZoneAlacPassthrough(z.id, (e.target as HTMLInputElement).checked);
                       }}
                     />
@@ -4432,17 +4544,7 @@
               <button
                 class="update-btn"
                 disabled={restarting}
-                onclick={async () => {
-                  if (!confirm($t('settings.restartConfirm'))) return;
-                  restarting = true;
-                  try {
-                    await api.restartServer();
-                    setTimeout(() => window.location.reload(), 6000);
-                  } catch (e) {
-                    restarting = false;
-                    alert((e as Error).message);
-                  }
-                }}
+                onclick={restartServerAndReload}
               >
                 {restarting ? $t('settings.restarting') : $t('settings.restartServer')}
               </button>
@@ -5558,6 +5660,43 @@
     to { transform: rotate(360deg); }
   }
   .scan-message { font-size: 12px; color: var(--tune-accent); margin-left: 8px; font-weight: 600; }
+
+  .scan-report {
+    margin: 8px 0 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md, 8px);
+    background: var(--tune-surface, rgba(127, 127, 127, 0.06));
+    font-size: 13px;
+  }
+  .scan-report-head {
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .scan-report-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    opacity: 0.85;
+  }
+  .scan-report-counts .warn { color: var(--tune-warning, #e0a030); }
+  .scan-report-warning {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-left: 3px solid var(--tune-warning, #e0a030);
+    background: rgba(224, 160, 48, 0.08);
+    border-radius: 4px;
+  }
+  .scan-report-warning-title { font-weight: 600; margin-bottom: 4px; }
+  .scan-report-warning ul,
+  .scan-report-failed ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
+    word-break: break-all;
+    opacity: 0.85;
+  }
+  .scan-report-failed { margin-top: 10px; }
+  .scan-report-failed summary { cursor: pointer; color: var(--tune-warning, #e0a030); }
 
   .scan-progress-panel {
     margin: 8px 0 12px;

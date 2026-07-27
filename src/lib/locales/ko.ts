@@ -568,7 +568,6 @@ export default {
   // Metadata
   'settings.metadataReadonly': '읽기 전용 모드 (오디오 파일 수정 안 함)',
   'settings.metadataReadonlyHelp': '활성화하면 Tune이 디스크의 오디오 파일 태그를 수정하지 않습니다.',
-  "settings.enrichOnScan": "스캔 후 자동 보강",
   "settings.enrichOnScanHelp": "스캔할 때마다 MusicBrainz/Discogs로 누락된 아티스트 이미지와 커버를 내려받습니다(프리미엄). 파일 태그가 이미 완전하면 끄세요 — 스캔이 빨라지고 컴퓨터도 여유로워집니다.",
 
   // Enrichment
@@ -1266,6 +1265,15 @@ export default {
   "settings.scanAlreadyRunning": "스캔이 이미 실행 중",
   "settings.scanError": "스캔 오류",
   "settings.scanCompleted": "스캔 완료: {scanned}개 파일, {added}개 추가됨, {updated}개 업데이트됨, {removed}개 제거됨",
+  "settings.scanReportTitle": "마지막 스캔 보고서",
+  "settings.scanReportUnchanged": "변경 없음",
+  "settings.scanReportDuplicates": "중복 건너뜀",
+  "settings.scanReportTimeouts": "태그 없이 색인됨 (느린 저장소)",
+  "settings.scanReportReadFailures": "읽을 수 없는 파일",
+  "settings.scanReportDbFailures": "데이터베이스 쓰기 실패",
+  "settings.scanReportMissingDirs": "접근할 수 없는 폴더 â 해당 트랙은 유지됨",
+  "settings.scanReportErrorDirs": "폴더 탐색 오류 â 해당 트랙은 유지됨",
+  "settings.scanReportFailedPaths": "개 오류 파일",
   "settings.tabGeneral": "일반",
   "settings.tabServices": "서비스",
   "settings.tabNetworkAudio": "네트워크 및 오디오",
@@ -1381,9 +1389,6 @@ export default {
   "settings.perZoneSettings": "존별 설정",
   "settings.perZoneHint": "각 재생 존의 DSD 모드, 고정 볼륨 및 갭리스.",
   "settings.dsdNative": "네이티브 (패스스루)",
-  "settings.maxSampleRate": "최대 샘플레이트",
-  "settings.maxSampleRateNone": "없음",
-  "settings.maxSampleRateHint": "소스가 이 상한을 초과할 때만 리샘플링 (DSD 유지)",
   "settings.dsdPcm": "PCM (변환)",
   "settings.maxSampleRate": "최대 샘플레이트",
   "settings.maxSampleRateNone": "없음",

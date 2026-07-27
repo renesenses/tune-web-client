@@ -126,7 +126,7 @@
     // display that only decrements while music actually plays.
     sleepPollInterval = setInterval(pollSleepTimer, 10000);
     sleepCountdownInterval = setInterval(() => {
-      if (sleepActive && sleepRemainingSeconds > 0 && state === 'playing') {
+      if (sleepActive && sleepRemainingSeconds > 0 && playState === 'playing') {
         sleepRemainingSeconds -= 1;
       }
     }, 1000);
@@ -205,7 +205,8 @@
   function getFavKind(track: typeof displayTrack): FavKind {
     if (!track) return 'none';
     if (track.source === 'radio') return 'radio';
-    if (track.source && track.source !== 'local' && track.source !== 'radio' && track.source_id) return 'streaming';
+    // `!== 'radio'` retiré : la ligne au-dessus a déjà renvoyé pour la radio.
+    if (track.source && track.source !== 'local' && track.source_id) return 'streaming';
     if (libId(track) != null) return 'library';
     return 'none';
   }
@@ -316,7 +317,7 @@
 
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
-  let state = $derived($playbackState);
+  let playState = $derived($playbackState);
   let showZoneDropdown = $state(false);
   let configZone = $state<typeof zone | null>(null);
   let hasNoZone = $derived($zones.length === 0);
@@ -334,13 +335,13 @@
 
   // Show zone track when available; fall back to IFrame track while yt-dlp is loading
   let displayTrack = $derived(track ?? (ytActive ? ytTrack : null));
-  let isPlaying = $derived(state === 'playing' || (ytActive && ytPlaying && state === 'stopped'));
+  let isPlaying = $derived(playState === 'playing' || (ytActive && ytPlaying && playState === 'stopped'));
 
   async function togglePlayPause() {
-    if (zone?.id && state !== 'stopped') {
+    if (zone?.id && playState !== 'stopped') {
       // Zone has an active track — backend controls DLNA, WS events will sync IFrame
       if (ytActive) ytLoading.set(true);
-      if (state === 'playing') {
+      if (playState === 'playing') {
         await api.pause(zone.id);
         // Also pause browser audio if this is a browser zone
         if (isBrowserZone(zone)) browserPause();
@@ -348,7 +349,7 @@
         await resumeAndSync(zone.id);
         // resumeAndSync already handles browserResume via the store
       }
-    } else if (zone?.id && state === 'stopped' && track) {
+    } else if (zone?.id && playState === 'stopped' && track) {
       // Zone stopped but has a current track — restart it. The /play endpoint
       // needs an explicit target (an empty body returns 400), so pass the
       // track's identity: radio uses source='radio'+source_id (the stream URL),
@@ -360,7 +361,7 @@
           ? { source: track.source as any, source_id: track.source_id }
           : (trackId != null ? { track_id: trackId } : undefined);
       await playAndSync(zone.id, body);
-    } else if (zone?.id && state === 'stopped' && ytActive && ytTrack?.source_id) {
+    } else if (zone?.id && playState === 'stopped' && ytActive && ytTrack?.source_id) {
       // Zone stopped but IFrame has a YT track — restart via API
       ytLoading.set(true);
       await playAndSync(zone.id, { source: ytTrack.source as any, source_id: ytTrack.source_id });
@@ -519,7 +520,9 @@
   <div class="transport-left">
     {#if displayTrack}
       <div class="track-mini-clickable" onclick={() => activeView.set('nowplaying')} role="button" tabindex={0} aria-label="Open now playing">
-        <AlbumArt coverPath={displayTrack.cover_path} albumId={displayTrack.album_id} size={56} alt={displayTrack.title} />
+        <!-- `album_id` n'existe pas sur le now-playing de la zone (le serveur ne
+             l'envoie pas) : on ne le passe que quand la piste vient de la file. -->
+        <AlbumArt coverPath={displayTrack.cover_path} albumId={'album_id' in displayTrack ? displayTrack.album_id : null} size={56} alt={displayTrack.title} />
         <div class="track-mini">
           <span class="mini-title truncate">
             {displayTrack.title}
@@ -594,7 +597,7 @@
     {#if displayTrack?.source !== 'radio'}
       <button
         class="control-btn"
-        disabled={state === 'stopped' && !ytActive && !track}
+        disabled={playState === 'stopped' && !ytActive && !track}
         onclick={handlePrevious}
         title={$t('transport.previous')}
       >
@@ -627,7 +630,7 @@
       {/if}
     </button>
 
-    {#if state !== 'stopped' && zone?.id && displayTrack?.source !== 'radio'}
+    {#if playState !== 'stopped' && zone?.id && displayTrack?.source !== 'radio'}
       <button
         class="control-btn stop-btn"
         onclick={async () => { if (zone?.id) await api.stop(zone.id); }}
@@ -642,7 +645,7 @@
     {#if displayTrack?.source !== 'radio'}
       <button
         class="control-btn"
-        disabled={state === 'stopped' && !ytActive && !track}
+        disabled={playState === 'stopped' && !ytActive && !track}
         onclick={handleNext}
         title={$t('transport.next')}
       >
@@ -720,7 +723,7 @@
           step="0.01"
           value={mobileVol}
           oninput={handleMobileVolume}
-          orient="vertical"
+          {...{ orient: 'vertical' }}
           aria-label="Volume"
           onclick={(e) => e.stopPropagation()}
         />
@@ -949,7 +952,7 @@
     allZones={$zones}
     groups={[]}
     onClose={() => configZone = null}
-    onDelete={() => configZone = null}
+    onDelete={() => { configZone = null; }}
     onGroupChanged={() => {}}
     onRenamed={() => {}}
   />

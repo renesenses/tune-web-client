@@ -568,7 +568,6 @@ export default {
   // Metadata
   'settings.metadataReadonly': '読み取り専用モード（オーディオファイルを変更しない）',
   'settings.metadataReadonlyHelp': '有効にすると、Tuneはディスク上のオーディオファイルのタグを変更しません。',
-  "settings.enrichOnScan": "スキャン後に自動でエンリッチ",
   "settings.enrichOnScanHelp": "スキャンのたびに MusicBrainz/Discogs から不足しているアーティスト画像やカバーを取得します（Premium）。ファイルのタグが揃っているならオフに——スキャンが速くなり、マシンの負荷も減ります。",
 
   // Enrichment
@@ -1266,6 +1265,15 @@ export default {
   "settings.scanAlreadyRunning": "スキャンはすでに実行中です",
   "settings.scanError": "スキャンエラー",
   "settings.scanCompleted": "スキャン完了: {scanned} 件のファイル、{added} 件を追加、{updated} 件を更新、{removed} 件を削除",
+  "settings.scanReportTitle": "前回のスキャンレポート",
+  "settings.scanReportUnchanged": "変更なし",
+  "settings.scanReportDuplicates": "重複をスキップ",
+  "settings.scanReportTimeouts": "タグなしで登録（低速ストレージ）",
+  "settings.scanReportReadFailures": "読み取れないファイル",
+  "settings.scanReportDbFailures": "データベース書き込み失敗",
+  "settings.scanReportMissingDirs": "アクセスできないフォルダ â トラックは保持されました",
+  "settings.scanReportErrorDirs": "フォルダの走査エラー â トラックは保持されました",
+  "settings.scanReportFailedPaths": "件のエラーファイル",
   "settings.tabGeneral": "一般",
   "settings.tabServices": "サービス",
   "settings.tabNetworkAudio": "ネットワークとオーディオ",
