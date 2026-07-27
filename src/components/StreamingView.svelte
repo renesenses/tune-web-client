@@ -369,13 +369,27 @@
     genreBreadcrumb = newBreadcrumb;
     genreLoading = true;
     if (service) {
-      api.getStreamingGenres(service, targetEntry.id ?? undefined).then(g => {
-        genres = g;
-        genreAlbums = [];
-        genreLoading = false;
-      }).catch(() => {
-        genreLoading = false;
-      });
+      const svc = service;
+      // Re-fetch BOTH the sub-genre chips AND the target genre's albums —
+      // like selectGenre does on the way in. Previously the back path only
+      // reloaded sub-genres and blanked genreAlbums, so returning to e.g.
+      // Genres/Jazz from a sub-genre showed an empty catalogue (Bertrand,
+      // Qobuz .18). targetEntry.id is null only at the root "Genres" level,
+      // which has no albums of its own.
+      Promise.all([
+        api.getStreamingGenres(svc, targetEntry.id ?? undefined),
+        targetEntry.id
+          ? api.getStreamingGenreAlbums(svc, targetEntry.id)
+          : Promise.resolve([] as Album[]),
+      ])
+        .then(([g, albums]) => {
+          genres = g;
+          genreAlbums = albums;
+          genreLoading = false;
+        })
+        .catch(() => {
+          genreLoading = false;
+        });
     }
   }
 
