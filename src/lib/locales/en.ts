@@ -584,7 +584,6 @@ export default {
   // Metadata
   'settings.metadataReadonly': 'Read-only mode (never modify audio files)',
   'settings.metadataReadonlyHelp': 'When enabled, Tune never writes tags to audio files on disk.',
-  "settings.enrichOnScan": "Auto-enrich after a scan",
   "settings.enrichOnScanHelp": "Downloads missing artist images and covers via MusicBrainz/Discogs after each scan (Premium). Turn it off if your files are already well tagged — scans finish faster and your machine stays free.",
 
   // Enrichment
@@ -607,7 +606,6 @@ export default {
   'diagnostics.version': 'Version',
   'diagnostics.clientVersion': 'Client',
   'diagnostics.serverVersion': 'Server',
-  'diagnostics.uptime': 'Uptime',
   'diagnostics.database': 'Database',
   'diagnostics.dbEngine': 'Engine',
   'diagnostics.dbSize': 'Size',

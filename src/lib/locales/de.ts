@@ -568,7 +568,6 @@ export default {
   // Metadata
   'settings.metadataReadonly': 'Nur-Lesen-Modus (Audiodateien nie verändern)',
   'settings.metadataReadonlyHelp': 'Wenn aktiviert, ändert Tune niemals die Tags der Audiodateien auf der Festplatte.',
-  "settings.enrichOnScan": "Nach dem Scan automatisch anreichern",
   "settings.enrichOnScanHelp": "Lädt fehlende Künstlerbilder und Cover nach jedem Scan über MusicBrainz/Discogs (Premium). Ausschalten, wenn deine Dateien bereits gut getaggt sind — Scans laufen schneller und die Maschine bleibt frei.",
 
   // Enrichment
@@ -591,7 +590,6 @@ export default {
   'diagnostics.version': 'Version',
   'diagnostics.clientVersion': 'Client',
   'diagnostics.serverVersion': 'Server',
-  'diagnostics.uptime': 'Betriebszeit',
   'diagnostics.database': 'Datenbank',
   'diagnostics.dbEngine': 'Engine',
   'diagnostics.dbSize': 'Größe',
@@ -1391,9 +1389,6 @@ export default {
   "settings.perZoneSettings": "Einstellungen pro Zone",
   "settings.perZoneHint": "DSD-Modus, feste Lautstärke und lückenlose Wiedergabe für jede Wiedergabezone.",
   "settings.dsdNative": "Nativ (Passthrough)",
-  "settings.maxSampleRate": "Max. Rate",
-  "settings.maxSampleRateNone": "Keine",
-  "settings.maxSampleRateHint": "Nur neu abtasten, wenn die Quelle dieses Limit überschreitet (DSD bleibt erhalten)",
   "settings.dsdPcm": "PCM (Konvertierung)",
   "settings.maxSampleRate": "Max. Rate",
   "settings.maxSampleRateNone": "Keine",

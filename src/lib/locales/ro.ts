@@ -576,7 +576,6 @@ export default {
   // Metadata
   'settings.metadataReadonly': 'Mod doar-citire (nu modifica niciodată fișierele audio)',
   'settings.metadataReadonlyHelp': 'Când este activat, Tune nu scrie niciodată etichete în fișierele audio de pe disc.',
-  "settings.enrichOnScan": "Îmbogățește automat după o scanare",
   "settings.enrichOnScanHelp": "Descarcă imagini de artiști și coperți lipsă prin MusicBrainz/Discogs după fiecare scanare (Premium). Dezactivează dacă fișierele tale sunt deja bine etichetate: scanările se termină mai repede și mașina rămâne liberă.",
 
   // Enrichment
@@ -599,7 +598,6 @@ export default {
   'diagnostics.version': 'Versiune',
   'diagnostics.clientVersion': 'Client',
   'diagnostics.serverVersion': 'Server',
-  'diagnostics.uptime': 'Timp de funcționare',
   'diagnostics.database': 'Bază de date',
   'diagnostics.dbEngine': 'Motor',
   'diagnostics.dbSize': 'Dimensiune',
@@ -1399,9 +1397,6 @@ export default {
   "settings.perZoneSettings": "Setări pe zonă",
   "settings.perZoneHint": "Mod DSD, volum fix și fără pauze pentru fiecare zonă de redare.",
   "settings.dsdNative": "Nativ (passthrough)",
-  "settings.maxSampleRate": "Frecvență max.",
-  "settings.maxSampleRateNone": "Niciuna",
-  "settings.maxSampleRateHint": "Reeșantionează doar când sursa depășește acest plafon (DSD păstrat)",
   "settings.dsdPcm": "PCM (conversie)",
   "settings.maxSampleRate": "Frecvență max.",
   "settings.maxSampleRateNone": "Niciuna",

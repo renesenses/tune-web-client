@@ -568,7 +568,6 @@ export default {
   // Metadata
   'settings.metadataReadonly': '只读模式（不修改音频文件）',
   'settings.metadataReadonlyHelp': '启用后，Tune 不会修改磁盘上音频文件的标签。',
-  "settings.enrichOnScan": "扫描后自动丰富元数据",
   "settings.enrichOnScanHelp": "每次扫描后通过 MusicBrainz/Discogs 下载缺失的艺术家图片和封面（高级版）。如果你的文件标签已完整，可关闭它——扫描更快，机器更省力。",
 
   // Enrichment
@@ -1390,9 +1389,6 @@ export default {
   "settings.perZoneSettings": "每区域设置",
   "settings.perZoneHint": "为每个播放区域设置 DSD 模式、固定音量和无缝播放。",
   "settings.dsdNative": "原生（passthrough）",
-  "settings.maxSampleRate": "最大采样率",
-  "settings.maxSampleRateNone": "无",
-  "settings.maxSampleRateHint": "仅当源超过此上限时重采样（保留 DSD）",
   "settings.dsdPcm": "PCM（转换）",
   "settings.maxSampleRate": "最大采样率",
   "settings.maxSampleRateNone": "无",

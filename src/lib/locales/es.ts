@@ -568,7 +568,6 @@ export default {
   // Metadata
   'settings.metadataReadonly': 'Modo solo lectura (nunca modificar los archivos de audio)',
   'settings.metadataReadonlyHelp': 'Cuando está activado, Tune nunca modifica las etiquetas de los archivos de audio en el disco.',
-  "settings.enrichOnScan": "Enriquecer automáticamente tras un escaneo",
   "settings.enrichOnScanHelp": "Descarga imágenes de artistas y carátulas que falten vía MusicBrainz/Discogs tras cada escaneo (Premium). Desactívalo si tus archivos ya están bien etiquetados: los escaneos terminan antes y tu equipo queda libre.",
 
   // Enrichment
@@ -591,7 +590,6 @@ export default {
   'diagnostics.version': 'Versión',
   'diagnostics.clientVersion': 'Cliente',
   'diagnostics.serverVersion': 'Servidor',
-  'diagnostics.uptime': 'Tiempo activo',
   'diagnostics.database': 'Base de datos',
   'diagnostics.dbEngine': 'Motor',
   'diagnostics.dbSize': 'Tamaño',
@@ -1391,9 +1389,6 @@ export default {
   "settings.perZoneSettings": "Ajustes por zona",
   "settings.perZoneHint": "Modo DSD, volumen fijo y sin pausas para cada zona de reproducción.",
   "settings.dsdNative": "Nativo (passthrough)",
-  "settings.maxSampleRate": "Frecuencia máx.",
-  "settings.maxSampleRateNone": "Ninguna",
-  "settings.maxSampleRateHint": "Remuestrea solo cuando la fuente supera este límite (DSD preservado)",
   "settings.dsdPcm": "PCM (conversión)",
   "settings.maxSampleRate": "Frecuencia máx.",
   "settings.maxSampleRateNone": "Ninguna",
