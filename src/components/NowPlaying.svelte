@@ -1,6 +1,6 @@
 <script lang="ts">
   import { currentZone, playAndSync } from '../lib/stores/zones';
-  import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, stopSeekTimer } from '../lib/stores/nowPlaying';
+  import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, stopSeekTimer, nowPlayingToTrack } from '../lib/stores/nowPlaying';
   import { upNextTracks, queueTracks, queuePosition, queueLength } from '../lib/stores/queue';
   import { currentZoneId, zones } from '../lib/stores/zones';
   import { formatTime, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
@@ -18,7 +18,7 @@
   import VolumeControl from './VolumeControl.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
-  import type { RepeatMode, Track, TrackCredit } from '../lib/types';
+  import type { RepeatMode, Track, TrackCredit, NowPlaying } from '../lib/types';
 
   let isFavorite = $state(false);
   let favChecking = $state(false);
@@ -69,6 +69,7 @@
   ] as const;
 
   async function handleNpMoodSelect(mood: typeof npMoods[number]) {
+    if (zone?.id == null) return;
     if (!zone?.id) { notifications.error($t('nowplaying.noZoneSelected')); return; }
     moodLoading = mood.id;
     try {
@@ -112,6 +113,7 @@
   let alarmSetting = $state(false);
 
   async function handleSetAlarm() {
+    if (zone?.id == null) return;
     if (!zone?.id || !alarmTime) return;
     alarmSetting = true;
     try {
@@ -127,6 +129,7 @@
   }
 
   async function handleCancelAlarm() {
+    if (zone?.id == null) return;
     try {
       await api.cancelAlarm(zone.id);
       alarmActive = false;
@@ -138,6 +141,7 @@
   }
 
   async function loadAlarmState() {
+    if (zone?.id == null) return;
     try {
       const r = await api.getAlarm(zone.id);
       alarmActive = !!r.time;
@@ -160,6 +164,7 @@
   ];
 
   async function handleSleepTimer(minutes: number) {
+    if (zone?.id == null) return;
     try {
       await api.setSleepTimer(zone.id, minutes);
       sleepActive = minutes > 0;
@@ -173,6 +178,7 @@
   }
 
   async function loadSleepTimer() {
+    if (zone?.id == null) return;
     try {
       const r = await api.getSleepTimer(zone.id);
       sleepActive = r.active;
@@ -180,6 +186,7 @@
   }
 
   async function toggleCrossfade() {
+    if (zone?.id == null) return;
     try {
       const next = !crossfadeEnabled;
       await api.setCrossfade(zone.id, next, crossfadeDuration);
@@ -191,6 +198,7 @@
   }
 
   async function toggleNormalization() {
+    if (zone?.id == null) return;
     try {
       const next = !normEnabled;
       await api.setNormalization(zone.id, next, normTargetLufs);
@@ -202,6 +210,7 @@
   }
 
   async function handleDsp(crossfeed: string | null) {
+    if (zone?.id == null) return;
     try {
       await api.setDSP(zone.id, crossfeed);
       currentCrossfeed = crossfeed;
@@ -242,6 +251,7 @@
   ];
 
   async function setEqPreset(preset: string) {
+    if (zone?.id == null) return;
     try {
       await api.setEqualizer(zone.id, preset);
       currentEqPreset = preset;
@@ -249,6 +259,7 @@
   }
 
   async function handleShare() {
+    if (zone?.id == null) return;
     try {
       const card = await api.shareNowPlaying(zone.id);
       await navigator.clipboard.writeText(card.text);
@@ -394,7 +405,10 @@
       npCreditsTrackId = null;
       await loadNpCredits(tr.id);
     } catch {
-      notifications.add({ message: $t('credits.enrich.failed'), type: 'error' });
+      // `notifications.add` n'existe pas : le store expose error/success/info.
+      // Ce gestionnaire d'erreur levait donc lui-même un TypeError, dans le
+      // chemin le moins testé qui soit — celui d'un échec.
+      notifications.error($t('credits.enrich.failed'));
     } finally {
       creditsEnriching = false;
     }
@@ -557,6 +571,24 @@
   // Fallback to ytPlayer track when zone has no current_track (yt-dlp loading phase)
   let ytState = $derived($ytPlayerState);
   let displayTrack = $derived(track ?? (ytState.active ? ytState.track : null));
+  // `displayTrack` est soit une piste de la file (`Track`, complète), soit le
+  // now-playing de la zone (`NowPlaying`), qui ne porte ni album_id, ni
+  // artist_id, ni channels, ni file_path — le serveur ne les envoie pas
+  // (tune-core playback/mod.rs). Ces accesseurs rendent l'absence explicite au
+  // lieu de produire un `undefined` silencieux.
+  // Piste normalisée (id rétabli depuis track_id) : à utiliser dès qu'on a
+  // besoin d'un vrai `Track`, garde d'affichage comprise.
+  let normalizedTrack = $derived(displayTrack ? nowPlayingToTrack(displayTrack) : null);
+
+  const albumIdOf = (t: Track | NowPlaying | null | undefined) =>
+    t && 'album_id' in t ? (t.album_id ?? null) : null;
+  const artistIdOf = (t: Track | NowPlaying | null | undefined) =>
+    t && 'artist_id' in t ? (t.artist_id ?? undefined) : undefined;
+  const channelsOf = (t: Track | NowPlaying | null | undefined) =>
+    t && 'channels' in t ? t.channels : undefined;
+  const filePathOf = (t: Track | NowPlaying | null | undefined) =>
+    t && 'file_path' in t ? (t.file_path ?? null) : null;
+
 
   // Play count for the current local track (Progman, #1056). Fetched on demand;
   // guarded to the exact track id so a race doesn't show a stale count.
@@ -613,8 +645,8 @@
   $effect(() => {
     if (displayTrack?.cover_path) {
       resolvedCoverUrl = api.artworkUrl(displayTrack.cover_path);
-    } else if (displayTrack?.album_id) {
-      api.getAlbumCoverPath(displayTrack.album_id).then((path) => {
+    } else if (albumIdOf(displayTrack)) {
+      api.getAlbumCoverPath(albumIdOf(displayTrack)!).then((path) => {
         resolvedCoverUrl = path ? api.artworkUrl(path) : '';
       });
     } else {
@@ -623,11 +655,13 @@
   });
 
   async function toggleShuffle() {
+    if (zone?.id == null) return;
     const result = await api.setShuffle(zone.id, !$shuffleEnabled);
     shuffleEnabled.set(result.shuffle);
   }
 
   async function cycleRepeat() {
+    if (zone?.id == null) return;
     const modes: RepeatMode[] = ['off', 'one', 'all'];
     const idx = modes.indexOf($repeatMode);
     const next = modes[(idx + 1) % modes.length];
@@ -636,6 +670,7 @@
   }
 
   async function jumpToUpNext(trackItem: Track, index: number) {
+    if (zone?.id == null) return;
     try {
       // upNext starts at queuePosition + 1, so real index is queuePosition + 1 + index
       const { queuePosition } = await import('../lib/stores/queue');
@@ -742,6 +777,7 @@
   }
 
   async function qsPlayFromPosition(index: number) {
+    if (zone?.id == null) return;
     try {
       await api.jumpInQueue(zone.id, index);
     } catch (e) {
@@ -750,6 +786,7 @@
   }
 
   async function qsRemoveFromQueue(index: number) {
+    if (zone?.id == null) return;
     try {
       await api.removeFromQueue(zone.id, index);
       // Refresh the queue so the removed track disappears from the list
@@ -784,6 +821,7 @@
   }
 
   async function qsHandleDrop(e: DragEvent, toIndex: number) {
+    if (zone?.id == null) return;
     e.preventDefault();
     const fromIndex = qsDragIndex;
     qsDragIndex = null;
@@ -824,6 +862,7 @@
   let qsClearingQueue = $state(false);
 
   async function qsHandleClearQueue() {
+    if (zone?.id == null) return;
     if (!zone?.id || $queueTracks.length === 0) return;
     qsClearingQueue = true;
     try {
@@ -850,6 +889,7 @@
   let qsSavingQueue = $state(false);
 
   async function qsHandleSaveAsPlaylist() {
+    if (zone?.id == null) return;
     const name = prompt($t('nowplaying.playlistNamePrompt'));
     if (!name?.trim()) return;
     qsSavingQueue = true;
@@ -889,7 +929,7 @@
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="artwork-clickable" onclick={() => { if (!ytActive) showLightbox = true; }}>
-            <AlbumArt coverPath={displayTrack.cover_path} albumId={displayTrack.album_id} size={isWide ? 420 : 440} alt={displayTrack.title} />
+            <AlbumArt coverPath={displayTrack.cover_path} albumId={albumIdOf(displayTrack)} size={isWide ? 420 : 440} alt={displayTrack.title} />
             {#if !ytActive}
               <div class="artwork-zoom-hint">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
@@ -952,17 +992,17 @@
                       <span class="td-label">Bit Depth</span>
                       <span class="td-value">{displayTrack.bit_depth}-bit</span>
                     {/if}
-                    {#if displayTrack.channels}
+                    {#if channelsOf(displayTrack)}
                       <span class="td-label">Channels</span>
-                      <span class="td-value">{displayTrack.channels === 2 ? $t('nowplaying.stereo') : displayTrack.channels === 1 ? 'Mono' : displayTrack.channels + ' ch'}</span>
+                      <span class="td-value">{channelsOf(displayTrack) === 2 ? $t('nowplaying.stereo') : channelsOf(displayTrack) === 1 ? 'Mono' : channelsOf(displayTrack) + ' ch'}</span>
                     {/if}
                     {#if displayTrack.source}
                       <span class="td-label">Source</span>
                       <span class="td-value td-source">{displayTrack.source}</span>
                     {/if}
-                    {#if displayTrack.file_path && displayTrack.source === 'local'}
+                    {#if filePathOf(displayTrack) && displayTrack.source === 'local'}
                       <span class="td-label">File</span>
-                      <span class="td-value td-file">{displayTrack.file_path.split('/').slice(-2).join('/')}</span>
+                      <span class="td-value td-file">{filePathOf(displayTrack)!.split('/').slice(-2).join('/')}</span>
                     {/if}
                   </div>
                 </div>
@@ -997,7 +1037,7 @@
           {#if displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <p class="track-artist truncate clickable" onclick={() => navigateToArtist(displayTrack.artist_id, displayTrack.artist_name!)}>{displayTrack.artist_name}</p>
+            <p class="track-artist truncate clickable" onclick={() => navigateToArtist(artistIdOf(displayTrack), displayTrack.artist_name!)}>{displayTrack.artist_name}</p>
           {/if}
           {#if !isRadio && inlineCredits}
             <p class="inline-credits">{inlineCredits}</p>
@@ -1005,14 +1045,14 @@
           {#if !isRadio && displayTrack.album_title}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <p class="track-album truncate clickable" onclick={() => navigateToAlbum(displayTrack.album_id, displayTrack.album_title)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
+            <p class="track-album truncate clickable" onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
           {/if}
           {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth)}
             <p class="track-tech-info">
               {#if displayTrack.format}<span class="tech-chip">{displayTrack.format.toUpperCase()}</span>{/if}
               {#if displayTrack.sample_rate}<span class="tech-chip">{displayTrack.sample_rate >= 1000000 ? (displayTrack.sample_rate / 1000000).toFixed(1) + ' MHz' : (displayTrack.sample_rate / 1000).toFixed(1) + ' kHz'}</span>{/if}
               {#if displayTrack.bit_depth}<span class="tech-chip">{displayTrack.bit_depth}-bit</span>{/if}
-              {#if displayTrack.channels}<span class="tech-chip">{displayTrack.channels}ch</span>{/if}
+              {#if channelsOf(displayTrack)}<span class="tech-chip">{channelsOf(displayTrack)}ch</span>{/if}
             </p>
           {/if}
           {#if !isRadio && displayTrack.source === 'local' && trackPlays !== null && trackPlays > 0}
@@ -1036,7 +1076,7 @@
                             class="np-credit-chip"
                             class:linkable={!!c.artist_id}
                             disabled={!c.artist_id}
-                            onclick={() => navigateToArtist(c.artist_id, c.artist_name)}
+                            onclick={() => navigateToArtist(c.artist_id ?? undefined, c.artist_name)}
                           >
                             {c.artist_name}{#if c.instrument}<span class="np-credit-instr">{c.instrument}</span>{/if}
                           </button>
@@ -1233,8 +1273,11 @@
           </button>
 
 
-          {#if onAddToPlaylist && (displayTrack?.id || displayTrack?.source_id)}
-            <button class="setting-btn" onclick={() => onAddToPlaylist!(displayTrack!)} title={$t('nowplaying.addToPlaylist')}>
+          <!-- Le garde testait `displayTrack?.id`, absent du now-playing de la zone
+               (le champ y est `track_id`) : le bouton n'apparaissait donc jamais
+               pour une piste locale en plein écran. -->
+          {#if onAddToPlaylist && (normalizedTrack?.id || normalizedTrack?.source_id)}
+            <button class="setting-btn" onclick={() => onAddToPlaylist!(normalizedTrack!)} title={$t('nowplaying.addToPlaylist')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                 <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" />
               </svg>
