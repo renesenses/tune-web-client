@@ -776,6 +776,9 @@
                 <HeartButton streaming={{ itemType: 'track', service: t.source ?? service, serviceId: String(t.source_id), title: t.title, artist: t.artist_name ?? undefined, album: (t as any).album_title ?? undefined, coverUrl: t.cover_path ?? undefined }} size={14} />
               {/if}
             </span>
+            <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); if (selectedStreamingPlaylist) playStreamingPlaylist(selectedStreamingPlaylist, index); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
+            </button>
             <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
@@ -1913,16 +1916,19 @@
   }
 
   .track-item:hover .add-queue-btn,
+  .track-item:hover .play-from-here-btn,
   .track-item:hover .play-next-btn {
     opacity: 1;
   }
 
   .add-queue-btn:hover,
+  .play-from-here-btn:hover,
   .play-next-btn:hover {
     border-color: var(--tune-accent);
     color: var(--tune-accent);
   }
 
+  .play-from-here-btn,
   .play-next-btn {
     width: 28px;
     height: 28px;
