@@ -401,12 +401,20 @@
   // queuing is reliable only for local library albums (album_id), so streaming
   // search albums (source_id) are excluded here — they stay playable one by one
   // from their cover.
+  // Un album local porte `_source: 'local'` (voir groupedAlbums) : tester
+  // l'absence de source excluait donc *tous* les albums, y compris locaux, ce
+  // qui masquait le bouton en permanence. Même idiome qu'openAlbum.
+  function isLocalAlbum(a: Album): boolean {
+    const src = (a as any)._source ?? a.source;
+    return !!a.id && (!src || src === 'local');
+  }
+  let localAlbums = $derived(filteredAlbums.filter(isLocalAlbum));
   async function playAllAlbums() {
     if (!zone?.id) {
       notifications.error('Aucune zone selectionnee');
       return;
     }
-    const albums = filteredAlbums.filter(a => a.id && !(a.source ?? (a as any)._source));
+    const albums = localAlbums;
     if (albums.length === 0) return;
     try {
       await playAndSync(zone.id, { album_id: albums[0].id! });
@@ -996,7 +1004,7 @@
               <section class="section">
                 <div class="section-head">
                   <h3 class="section-title">Albums <span class="count">{filteredAlbums.length}</span></h3>
-                  {#if filteredAlbums.filter(a => a.id && !(a.source ?? (a as any)._source)).length > 1}
+                  {#if localAlbums.length > 1}
                     <div class="track-actions-bar">
                       <button class="action-pill" onclick={() => playAllAlbums()}>
                         <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><polygon points="5,3 19,12 5,21" /></svg>
