@@ -205,7 +205,8 @@
   function getFavKind(track: typeof displayTrack): FavKind {
     if (!track) return 'none';
     if (track.source === 'radio') return 'radio';
-    if (track.source && track.source !== 'local' && track.source !== 'radio' && track.source_id) return 'streaming';
+    // `!== 'radio'` retiré : la ligne au-dessus a déjà renvoyé pour la radio.
+    if (track.source && track.source !== 'local' && track.source_id) return 'streaming';
     if (libId(track) != null) return 'library';
     return 'none';
   }
@@ -519,7 +520,9 @@
   <div class="transport-left">
     {#if displayTrack}
       <div class="track-mini-clickable" onclick={() => activeView.set('nowplaying')} role="button" tabindex={0} aria-label="Open now playing">
-        <AlbumArt coverPath={displayTrack.cover_path} albumId={displayTrack.album_id} size={56} alt={displayTrack.title} />
+        <!-- `album_id` n'existe pas sur le now-playing de la zone (le serveur ne
+             l'envoie pas) : on ne le passe que quand la piste vient de la file. -->
+        <AlbumArt coverPath={displayTrack.cover_path} albumId={'album_id' in displayTrack ? displayTrack.album_id : null} size={56} alt={displayTrack.title} />
         <div class="track-mini">
           <span class="mini-title truncate">
             {displayTrack.title}
@@ -720,7 +723,7 @@
           step="0.01"
           value={mobileVol}
           oninput={handleMobileVolume}
-          orient="vertical"
+          {...{ orient: 'vertical' }}
           aria-label="Volume"
           onclick={(e) => e.stopPropagation()}
         />
@@ -949,7 +952,7 @@
     allZones={$zones}
     groups={[]}
     onClose={() => configZone = null}
-    onDelete={() => configZone = null}
+    onDelete={() => { configZone = null; }}
     onGroupChanged={() => {}}
     onRenamed={() => {}}
   />
