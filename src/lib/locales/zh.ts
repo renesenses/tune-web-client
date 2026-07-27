@@ -1296,6 +1296,7 @@ export default {
   "settings.accessFromDeviceHint": "在同一网络的手机、平板或其他电脑的浏览器中输入以下任一地址（Android 请使用数字地址）。",
   "settings.copyUrl": "复制",
   "settings.urlCopied": "已复制！",
+  "settings.copyFailed": "无法在此浏览器中复制",
   "settings.dataOnKey": "在 USB 启动盘上（慢）",
   "settings.dataOnDisk": "在外置硬盘上",
   "settings.dataMove": "移动到此处",

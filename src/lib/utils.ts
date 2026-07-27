@@ -224,3 +224,36 @@ export function formatQualityTooltip(
 export function fold(s: string | null | undefined): string {
   return (s ?? '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
 }
+
+/** Copy text to the clipboard, returning whether it actually succeeded.
+ *
+ * `navigator.clipboard` only exists in a secure context (HTTPS or localhost).
+ * Tune's LAN access URLs are served over plain HTTP on an IP, exactly where
+ * the async Clipboard API is undefined — so the copy buttons in Settings need
+ * the legacy `execCommand('copy')` fallback via an off-screen textarea, and
+ * callers must show "Copied" only when this resolves true (Bertrand: the
+ * button faked success while leaving the clipboard empty). */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // fall through to the legacy path
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}

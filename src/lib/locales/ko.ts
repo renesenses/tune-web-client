@@ -1296,6 +1296,7 @@ export default {
   "settings.accessFromDeviceHint": "같은 네트워크의 휴대폰·태블릿·다른 컴퓨터 브라우저에 아래 주소 중 하나를 입력하세요(Android에서는 숫자 주소 사용).",
   "settings.copyUrl": "복사",
   "settings.urlCopied": "복사됨!",
+  "settings.copyFailed": "이 브라우저에서 복사할 수 없습니다",
   "settings.dataOnKey": "USB 메모리에 있음(느림)",
   "settings.dataOnDisk": "외장 디스크에 있음",
   "settings.dataMove": "여기로 이동",

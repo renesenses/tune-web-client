@@ -1296,6 +1296,7 @@ export default {
   "settings.accessFromDeviceHint": "同じネットワーク上のスマートフォン・タブレット・別のPCのブラウザに、以下のいずれかのアドレスを入力してください（Android では数字のアドレスを使用）。",
   "settings.copyUrl": "コピー",
   "settings.urlCopied": "コピーしました！",
+  "settings.copyFailed": "このブラウザーではコピーできません",
   "settings.dataOnKey": "USB メモリ上（低速）",
   "settings.dataOnDisk": "外付けディスク上",
   "settings.dataMove": "ここへ移動",

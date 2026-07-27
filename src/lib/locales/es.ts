@@ -1297,6 +1297,7 @@ export default {
   "settings.accessFromDeviceHint": "Escribe una de estas direcciones en el navegador de un teléfono, tableta u otro ordenador de la red (en Android, usa la dirección numérica).",
   "settings.copyUrl": "Copiar",
   "settings.urlCopied": "¡Copiado!",
+  "settings.copyFailed": "No se pudo copiar en este navegador",
   "settings.dataOnKey": "en la memoria USB (lento)",
   "settings.dataOnDisk": "en disco externo",
   "settings.dataMove": "Mover aquí",

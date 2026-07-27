@@ -1313,6 +1313,7 @@ export default {
   "settings.accessFromDeviceHint": "Type one of these addresses in the browser of a phone, tablet or another computer on the network (on Android, use the numeric address).",
   "settings.copyUrl": "Copy",
   "settings.urlCopied": "Copied!",
+  "settings.copyFailed": "Copy failed in this browser",
   "settings.dataOnKey": "on the USB stick (slow)",
   "settings.dataOnDisk": "on external disk",
   "settings.dataMove": "Move here",

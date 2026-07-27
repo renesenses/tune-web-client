@@ -1314,6 +1314,7 @@ export default {
   "settings.accessFromDeviceHint": "Tapez l'une de ces adresses dans le navigateur d'un téléphone, d'une tablette ou d'un autre ordinateur du réseau (sur Android, utilisez l'adresse en chiffres).",
   "settings.copyUrl": "Copier",
   "settings.urlCopied": "Copié !",
+  "settings.copyFailed": "Copie impossible dans ce navigateur",
   "settings.dataOnKey": "sur la clé USB (lent)",
   "settings.dataOnDisk": "sur disque externe",
   "settings.dataMove": "Déplacer ici",

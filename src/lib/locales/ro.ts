@@ -1305,6 +1305,7 @@ export default {
   "settings.accessFromDeviceHint": "Tastează una dintre aceste adrese în browserul unui telefon, tabletă sau alt calculator din rețea (pe Android folosește adresa numerică).",
   "settings.copyUrl": "Copiază",
   "settings.urlCopied": "Copiat!",
+  "settings.copyFailed": "Copierea a eșuat în acest browser",
   "settings.dataOnKey": "pe stick-ul USB (lent)",
   "settings.dataOnDisk": "pe disc extern",
   "settings.dataMove": "Mută aici",
