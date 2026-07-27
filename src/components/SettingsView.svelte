@@ -3177,8 +3177,15 @@
           <input type="checkbox" checked={config.metadata_readonly} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; config.metadata_readonly = val; await api.updateConfig({ metadata_readonly: val }); }} />
           <span class="toggle-slider"></span>
         </label>
+
+        <label class="pref-label">{$t('settings.enrichOnScan')}</label>
+        <label class="toggle-switch">
+          <input type="checkbox" checked={config.enrich_on_scan !== false && config.enrich_on_scan !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; config.enrich_on_scan = val; await api.updateConfig({ enrich_on_scan: val }); }} />
+          <span class="toggle-slider"></span>
+        </label>
       </div>
       <p class="settings-note">{$t('settings.metadataReadonlyHelp')}</p>
+      <p class="settings-note">{$t('settings.enrichOnScanHelp')}</p>
     </section>
     {/if}
 

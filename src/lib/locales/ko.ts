@@ -565,6 +565,8 @@ export default {
   // Metadata
   'settings.metadataReadonly': '읽기 전용 모드 (오디오 파일 수정 안 함)',
   'settings.metadataReadonlyHelp': '활성화하면 Tune이 디스크의 오디오 파일 태그를 수정하지 않습니다.',
+  "settings.enrichOnScan": "스캔 후 자동 보강",
+  "settings.enrichOnScanHelp": "스캔할 때마다 MusicBrainz/Discogs로 누락된 아티스트 이미지와 커버를 내려받습니다(프리미엄). 파일 태그가 이미 완전하면 끄세요 — 스캔이 빨라지고 컴퓨터도 여유로워집니다.",
 
   // Enrichment
   'settings.enrichment': '보강',

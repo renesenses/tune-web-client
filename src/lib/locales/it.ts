@@ -565,6 +565,8 @@ export default {
   // Metadata
   'settings.metadataReadonly': 'Modalità sola lettura (non modificare mai i file audio)',
   'settings.metadataReadonlyHelp': 'Quando attivo, Tune non modifica mai i tag dei file audio su disco.',
+  "settings.enrichOnScan": "Arricchisci automaticamente dopo una scansione",
+  "settings.enrichOnScanHelp": "Scarica immagini artista e copertine mancanti via MusicBrainz/Discogs dopo ogni scansione (Premium). Disattivalo se i tuoi file sono già ben taggati: le scansioni finiscono prima e la macchina resta libera.",
 
   // Enrichment
   'settings.enrichment': 'Arricchimento',
