@@ -573,6 +573,8 @@ export default {
   // Metadata
   'settings.metadataReadonly': 'Mod doar-citire (nu modifica niciodată fișierele audio)',
   'settings.metadataReadonlyHelp': 'Când este activat, Tune nu scrie niciodată etichete în fișierele audio de pe disc.',
+  "settings.enrichOnScan": "Îmbogățește automat după o scanare",
+  "settings.enrichOnScanHelp": "Descarcă imagini de artiști și coperți lipsă prin MusicBrainz/Discogs după fiecare scanare (Premium). Dezactivează dacă fișierele tale sunt deja bine etichetate: scanările se termină mai repede și mașina rămâne liberă.",
 
   // Enrichment
   'settings.enrichment': 'Îmbogățire',

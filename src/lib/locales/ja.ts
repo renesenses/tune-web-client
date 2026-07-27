@@ -565,6 +565,8 @@ export default {
   // Metadata
   'settings.metadataReadonly': '読み取り専用モード（オーディオファイルを変更しない）',
   'settings.metadataReadonlyHelp': '有効にすると、Tuneはディスク上のオーディオファイルのタグを変更しません。',
+  "settings.enrichOnScan": "スキャン後に自動でエンリッチ",
+  "settings.enrichOnScanHelp": "スキャンのたびに MusicBrainz/Discogs から不足しているアーティスト画像やカバーを取得します（Premium）。ファイルのタグが揃っているならオフに——スキャンが速くなり、マシンの負荷も減ります。",
 
   // Enrichment
   'settings.enrichment': '補完',

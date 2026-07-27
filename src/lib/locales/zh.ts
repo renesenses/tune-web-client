@@ -565,6 +565,8 @@ export default {
   // Metadata
   'settings.metadataReadonly': '只读模式（不修改音频文件）',
   'settings.metadataReadonlyHelp': '启用后，Tune 不会修改磁盘上音频文件的标签。',
+  "settings.enrichOnScan": "扫描后自动丰富元数据",
+  "settings.enrichOnScanHelp": "每次扫描后通过 MusicBrainz/Discogs 下载缺失的艺术家图片和封面（高级版）。如果你的文件标签已完整，可关闭它——扫描更快，机器更省力。",
 
   // Enrichment
   'settings.enrichment': '丰富',
