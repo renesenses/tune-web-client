@@ -1238,41 +1238,66 @@
       console.warn('install fetch failed, server may be downloading:', e);
     }
 
-    // Poll /update/status first to detect macOS dmg_ready phase.
+    // Poll /update/status until the server restarts on the new version.
     const oldVersion = updateInfo?.current_version;
     const start = Date.now();
+    // Whether we've observed the server go DOWN (a poll that threw =
+    // connection refused while it restarts). Combined with a later successful
+    // poll, this is a platform-independent "it restarted" signal — used as a
+    // backstop when the version string can't be compared.
+    let sawServerDown = false;
     while (Date.now() - start < 180_000) {
       await new Promise((r) => setTimeout(r, 3_000));
+      let status: any = null;
       try {
-        const status = await api.getUpdateStatus();
-        if (status?.phase === 'dmg_ready') {
-          // macOS: DMG downloaded and opened in Finder. No restart needed.
-          updateDmgReady = true;
-          updateDmgPath = status.dmg_path || '~/Downloads';
-          updateInstalling = false;
-          return;
-        }
-        if (status?.phase === 'failed') {
-          updateInstalling = false;
-          return;
-        }
+        status = await api.getUpdateStatus();
       } catch {
-        // Server may be restarting (connection refused). Fall through to
-        // version check below.
+        // Connection refused → the server is restarting. Remember it and keep
+        // polling; the next successful poll means it's back up.
+        sawServerDown = true;
+        continue;
       }
-      try {
-        const info = await api.checkForUpdate();
-        if (info?.current_version && info.current_version !== oldVersion) {
-          // Server is back on the new version — success.
-          updateDone = true;
-          updateInstalling = false;
-          setTimeout(() => window.location.reload(), 1500);
-          return;
-        }
-      } catch {
-        // Server still down (restarting). Keep polling.
+
+      if (status?.phase === 'dmg_ready') {
+        // macOS: DMG downloaded and opened in Finder. No restart needed.
+        updateDmgReady = true;
+        updateDmgPath = status.dmg_path || '~/Downloads';
+        updateInstalling = false;
+        return;
+      }
+      if (status?.phase === 'failed') {
+        updateInstalling = false;
+        return;
+      }
+
+      // Detect completion two ways, either sufficient:
+      //  1. the version bumped — read the AUTHORITATIVE `current_version` from
+      //     /update/status (NOT checkForUpdate(), whose field is `current`, so
+      //     `info.current_version` was always undefined and the reload never
+      //     fired — the whole bug: button stuck on "Installation…" on Linux/
+      //     macOS browsers; #JP Robbe);
+      //  2. we saw the server drop and it's now back up with no update running
+      //     (covers a missing/unknown oldVersion and any platform).
+      const cur: string | undefined = status?.current_version;
+      const versionBumped = !!cur && !!oldVersion && cur !== oldVersion;
+      const restarted = sawServerDown && !status?.update_in_progress;
+      if (versionBumped || restarted) {
+        updateDone = true;
+        updateInstalling = false;
+        setTimeout(() => window.location.reload(), 1500);
+        return;
       }
     }
+    // Timeout backstop: do a final status check; reload if the version moved.
+    try {
+      const status: any = await api.getUpdateStatus();
+      if (status?.current_version && status.current_version !== oldVersion) {
+        updateDone = true;
+        updateInstalling = false;
+        setTimeout(() => window.location.reload(), 1500);
+        return;
+      }
+    } catch { /* ignore */ }
     updateInstalling = false;
   }
 
