@@ -290,8 +290,9 @@ export function listServiceTokens(): Promise<ServiceTokenInfo[]> {
   return fetchJSON(`${BASE}/services/tokens`);
 }
 
+// `service` est encodé : c'était le seul apport du doublon supprimé d'api.ts.
 export function saveServiceToken(service: string, fields: Record<string, string>) {
-  return fetchJSON<ServiceTokenSaveResult>(`${BASE}/services/tokens/${service}`, {
+  return fetchJSON<ServiceTokenSaveResult>(`${BASE}/services/tokens/${encodeURIComponent(service)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(fields),
@@ -299,11 +300,11 @@ export function saveServiceToken(service: string, fields: Record<string, string>
 }
 
 export function testServiceToken(service: string) {
-  return fetchJSON<ServiceTokenSaveResult>(`${BASE}/services/tokens/${service}/test`, { method: 'POST' });
+  return fetchJSON<ServiceTokenSaveResult>(`${BASE}/services/tokens/${encodeURIComponent(service)}/test`, { method: 'POST' });
 }
 
 export function deleteServiceToken(service: string) {
-  return fetchJSON<{ ok?: boolean }>(`${BASE}/services/tokens/${service}`, { method: 'DELETE' });
+  return fetchJSON<{ ok?: boolean }>(`${BASE}/services/tokens/${encodeURIComponent(service)}`, { method: 'DELETE' });
 }
 
 // --- Last.fm scrobbling ---

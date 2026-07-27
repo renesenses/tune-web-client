@@ -780,9 +780,15 @@ export interface DashboardData {
   period: DashboardPeriod;
   range: { from: string | null; to: string };
   totals: { plays: number; listening_ms: number; unique_tracks: number; unique_artists: number };
-  top_artists: { artist_name: string; plays: number; listening_ms: number }[];
+  // `cover_path` et `top_radios` manquaient à l'appel : le serveur les envoie
+  // (tune-core db/history_repo.rs — TopArtistEntry, TopTrackEntry,
+  // DashboardData.top_radios) et la vue les lit. Les champs marqués
+  // `skip_serializing_if` côté serveur sont optionnels ici.
+  top_artists: { artist_name: string; plays: number; listening_ms: number; cover_path?: string | null }[];
   top_albums: { album_title: string; artist_name: string; cover_path: string | null; plays: number; album_id?: number | null; source?: string | null; source_id?: string | null }[];
-  top_tracks: { track_id: number | null; title: string; artist_name: string; plays: number; listening_ms: number; source?: string | null; source_id?: string | null }[];
+  top_tracks: { track_id: number | null; title: string; artist_name: string; plays: number; listening_ms: number; cover_path?: string | null; source?: string | null; source_id?: string | null }[];
+  /** Absent de la réponse quand la liste est vide (skip_serializing_if). */
+  top_radios?: { station_name: string; radio_id: number | null; plays: number; listening_ms: number; cover_url?: string | null; cover_path?: string | null }[];
   trend: { day: string; plays: number; listening_ms: number }[];
   hourly: { hour: number; plays: number }[];
   by_zone: { zone_id: number | null; zone_name: string | null; plays: number; listening_ms: number }[];
@@ -800,6 +806,41 @@ export function getDashboard(period: DashboardPeriod = '30d', opts?: { zoneId?: 
   if (opts?.profileId !== undefined) params.set('profile_id', String(opts.profileId));
   if (opts?.topN !== undefined) params.set('top_n', String(opts.topN));
   return fetchJSON<DashboardData>(`${BASE}/library/history/dashboard?${params}`);
+}
+
+/** Une piste écoutée pendant une case jour×heure de la carte de chaleur.
+ *  Miroir de `SlotTrack` côté serveur (tune-core db/history_repo.rs). */
+export interface SlotTrack {
+  track_id: number | null;
+  title: string | null;
+  artist_name: string | null;
+  album_title: string | null;
+  album_id: number | null;
+  source: string | null;
+  source_id: string | null;
+  plays: number;
+  last_listened_at: string | null;
+}
+
+/** Détail d'une case de la carte de chaleur du tableau de bord.
+ *
+ *  Cette fonction manquait purement et simplement, alors que DashboardView
+ *  l'appelait : `api.getHistoryAtSlot is not a function` était levé puis avalé
+ *  par le `try/catch` de `openSlot()`, si bien que le panneau restait vide en
+ *  permanence. Le endpoint existe pourtant depuis le début (routes/history.rs
+ *  « /at »). Rien ne pouvait le détecter sans vérification de types.
+ *
+ *  `weekday` est 1-indexé, comme l'attend le serveur. */
+export function getHistoryAtSlot(period: DashboardPeriod, weekday: number, hour: number, limit = 50) {
+  const params = new URLSearchParams({
+    period,
+    weekday: String(weekday),
+    hour: String(hour),
+    limit: String(limit),
+  });
+  return fetchJSON<{ weekday: number; hour: number; period: string; tracks: SlotTrack[] }>(
+    `${BASE}/library/history/at?${params}`,
+  );
 }
 
 export function getArtistCredits(artistId: number) {
@@ -3017,48 +3058,14 @@ export function getAdminDiscovery() {
   return fetchJSON<AdminDiscovery>(`${BASE}/system/admin/discovery`);
 }
 
-// Service tokens (API keys for third-party services like Last.fm, Discogs, etc.)
-export interface ServiceTokenField {
-  key: string;
-  label: string;
-  type: 'text' | 'password' | 'url';
-  required: boolean;
-}
-export interface ServiceTokenInfo {
-  id: string;
-  name: string;
-  description: string;
-  configured: boolean;
-  fields: ServiceTokenField[];
-}
-export interface ServiceTokenSaveResult {
-  valid: boolean | null;
-  validation_message?: string;
-}
-
-export function listServiceTokens(): Promise<ServiceTokenInfo[]> {
-  return fetchJSON<ServiceTokenInfo[]>(`${BASE}/services/tokens`);
-}
-
-export function saveServiceToken(serviceId: string, data: Record<string, string>): Promise<ServiceTokenSaveResult> {
-  return fetchJSON<ServiceTokenSaveResult>(`${BASE}/services/tokens/${encodeURIComponent(serviceId)}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-}
-
-export function testServiceToken(serviceId: string): Promise<ServiceTokenSaveResult> {
-  return fetchJSON<ServiceTokenSaveResult>(`${BASE}/services/tokens/${encodeURIComponent(serviceId)}/test`, {
-    method: 'POST',
-  });
-}
-
-export function deleteServiceToken(serviceId: string): Promise<void> {
-  return fetchJSON<void>(`${BASE}/services/tokens/${encodeURIComponent(serviceId)}`, {
-    method: 'DELETE',
-  });
-}
+// Service tokens : voir lib/api/metadata.ts, déjà ré-exporté en bloc plus haut.
+//
+// Ce module en hébergeait un doublon appauvri — un `ServiceTokenInfo` à cinq
+// champs, là où le serveur en renvoie une vingtaine. Or une déclaration locale
+// masque une ré-export étoile : `import { ServiceTokenInfo } from '../lib/api'`
+// résolvait donc vers la version incomplète, et tout ce que ServiceTokensView
+// affiche (kind, pricing, help_steps, valid, scrobble_*…) était lu sur un type
+// qui l'ignorait. Doublon supprimé pour laisser une seule source de vérité.
 
 // --- Smart AI Playlists ---
 
