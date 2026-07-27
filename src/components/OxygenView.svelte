@@ -9,6 +9,7 @@
   import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
   import { activeView } from '../lib/stores/navigation';
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { currentTrackId } from '../lib/stores/nowPlaying';
   import { notifications } from '../lib/stores/notifications';
   import { fold } from '../lib/utils';
   import { t } from '../lib/i18n';
@@ -167,10 +168,17 @@
   // SON album (prévisible, même sur une liste filtrée de 3000 pistes) ; bouton
   // ▶ sur les cartes album = joue l'album groupé.
   let zone = $derived($currentZone);
+  // Piste en lecture : `sel` marque la piste ouverte dans l'inspecteur (et
+  // openAlbum sélectionne la 1re piste), ce qui se lisait à tort comme « en
+  // lecture » — d'où un indicateur distinct. L'id passe par `currentTrackId`,
+  // qui absorbe les deux formes de `current_track` renvoyées par le serveur.
+  let playingId = $derived($currentTrackId);
+  let playingPaused = $derived(zone?.state !== 'playing' && zone?.state !== 'buffering');
   // Précalculés : dans {#each g.tracks as t}, la piste `t` masque le store
   // i18n `t` — $t y est donc inutilisable.
   let L_PLAY_NEXT = $derived($t('library.playNext'));
   let L_ADD_QUEUE = $derived($t('queue.addToQueue'));
+  let L_NOW_PLAYING = $derived($t('nav.nowplaying'));
   async function playTracks(ids: number[]) {
     if (!zone?.id) { notifications.error($t('library.noZoneSelected')); return; }
     if (!ids.length) return;
@@ -302,6 +310,15 @@
   $effect(() => { void JSON.stringify(facetSels); void $preferences.oxygenFacetLimit; loadFacets(); });
 </script>
 
+<!-- Indicateur « en lecture », partagé par la vue album et la vue tableau : il
+     prend la place du numéro de piste, seul créneau de largeur fixe des deux
+     listes. Barres figées quand la zone est en pause, comme l'accueil. -->
+{#snippet nowPlayingBars()}
+  <span class="eqbars" class:paused={playingPaused} title={L_NOW_PLAYING} aria-label={L_NOW_PLAYING}>
+    <span></span><span></span><span></span>
+  </span>
+{/snippet}
+
 <div class="oxygen">
   <header class="bar">
     <button class="icnbtn" onclick={oxyBack} title={$t('oxygen.back')} aria-label={$t('oxygen.back')}>
@@ -393,8 +410,8 @@
                     {/if}
                     {#each d.tracks as t (t.id)}
                       <div class="trkrow">
-                        <button class="trk" class:sel={selected?.id === t.id} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
-                          <span class="tn">{t.track_number ?? ''}</span>
+                        <button class="trk" class:sel={selected?.id === t.id} class:playing={t.id != null && t.id === playingId} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
+                          <span class="tn">{#if t.id != null && t.id === playingId}{@render nowPlayingBars()}{:else}{t.track_number ?? ''}{/if}</span>
                           <span class="tt">{t.title}</span>
                           <span class="td">{fmtDur(t.duration_ms)}</span>
                         </button>
@@ -421,8 +438,8 @@
             </tr></thead>
             <tbody>
               {#each visible as t (t.id)}
-                <tr class:sel={selected?.id === t.id} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
-                  <td class="n">{t.track_number ?? ''}</td>
+                <tr class:sel={selected?.id === t.id} class:playing={t.id != null && t.id === playingId} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
+                  <td class="n">{#if t.id != null && t.id === playingId}{@render nowPlayingBars()}{:else}{t.track_number ?? ''}{/if}</td>
                   <td class="title">{t.title}</td>
                   <td class="dim">{t.artist_name ?? ''}</td>
                   <td class="dim">{t.album_title ?? ''}</td>
@@ -552,6 +569,11 @@
   .trk { display: grid; grid-template-columns: 26px 1fr auto; gap: 12px; align-items: center; background: none; border: 0; color: var(--tune-text); font: inherit; text-align: left; padding: 6px 8px; border-radius: 7px; cursor: pointer; }
   .trk:hover { background: var(--tune-surface-hover); }
   .trk.sel { background: var(--tune-surface-selected); }
+  /* « En lecture » doit rester lisible quand la piste est AUSSI sélectionnée :
+     la sélection garde son fond neutre, la lecture ajoute le liseré et la
+     couleur d'accent — deux signaux qui se superposent sans se masquer. */
+  .trk.playing { box-shadow: inset 3px 0 0 0 var(--tune-accent); }
+  .trk.playing .tt { color: var(--tune-accent); font-weight: 600; }
   .trk .tn { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--tune-text-muted); text-align: right; }
   .trk .tt { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .trk .td { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--tune-text-secondary); }
@@ -565,6 +587,21 @@
   tbody tr { cursor: pointer; }
   tbody tr:hover td { background: var(--tune-surface-hover); }
   tbody tr.sel td { background: var(--tune-surface-selected); }
+  tbody tr.playing td.title { color: var(--tune-accent); font-weight: 600; }
+  tbody tr.playing td:first-child { box-shadow: inset 3px 0 0 0 var(--tune-accent); }
+
+  /* Barres d'égaliseur logées dans le créneau du numéro de piste (26px en vue
+     album, 34px en vue tableau) — d'où une hauteur plus discrète que celle de
+     l'accueil. */
+  .eqbars { display: inline-flex; align-items: flex-end; justify-content: flex-end; gap: 2px; height: 11px; }
+  .eqbars span { display: block; width: 2.5px; background: var(--tune-accent); border-radius: 1px; animation: oxy-eq 0.8s ease-in-out infinite alternate; }
+  .eqbars span:nth-child(1) { height: 60%; animation-delay: 0s; }
+  .eqbars span:nth-child(2) { height: 100%; animation-delay: 0.2s; }
+  .eqbars span:nth-child(3) { height: 40%; animation-delay: 0.4s; }
+  /* Zone en pause : barres figées, comme l'indicateur de l'accueil. */
+  .eqbars.paused span { animation: none; height: 30%; transform: none; opacity: .6; }
+  @keyframes oxy-eq { 0% { transform: scaleY(0.3); } 100% { transform: scaleY(1); } }
+  @media (prefers-reduced-motion: reduce) { .eqbars span { animation: none; } }
   td.title { font-weight: 500; max-width: 230px; overflow: hidden; text-overflow: ellipsis; }
   td.dim { color: var(--tune-text-secondary); max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
   td.mono { font-family: ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: var(--tune-text-secondary); }

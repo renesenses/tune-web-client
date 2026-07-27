@@ -18,6 +18,19 @@ export const mutedVolume = writable<number | null>(null);
 
 // Derived from current zone
 export const currentTrack = derived(currentZone, ($zone) => $zone?.current_track ?? null);
+
+/** Id de bibliothèque de la piste en lecture, ou null (radio / piste streaming).
+ *
+ *  `current_track` n'a pas la même forme selon la route qui a rempli le store :
+ *  `GET /zones` sérialise la structure interne du serveur, dont le champ est
+ *  `track_id` (zones.rs), tandis que `/zones/{id}/state` construit son JSON à la
+ *  main et le nomme `id` (playback.rs). Comparer `$currentTrack.id` échoue donc
+ *  silencieusement sur la forme la plus courante — passer par ce store plutôt
+ *  que de relire le champ à la main. */
+export const currentTrackId = derived(currentTrack, ($track) => {
+  const t = $track as (Track & { track_id?: number | null }) | null;
+  return t?.track_id ?? t?.id ?? null;
+});
 export const playbackState = derived(currentZone, ($zone): PlaybackState => ($zone?.state as PlaybackState) ?? 'stopped');
 const _zoneVol = writable<number>(0.5);
 let _volLocalUntil = 0;
