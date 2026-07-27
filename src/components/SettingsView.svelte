@@ -1710,6 +1710,10 @@
   }
 
   let scanMessage = $state('');
+  let scanReport = $state<api.ScanReport | null>(null);
+  let scanReportDbFailed = $derived(
+    (scanReport?.db_insert_failed ?? 0) + (scanReport?.db_update_failed ?? 0)
+  );
   let clearingLibrary = $state(false);
 
   async function handleClearLibrary() {
@@ -1996,6 +2000,10 @@
   // sidebar clicks are never processed.
   onMount(() => {
     loadAll();
+    // Last scan report is persisted server-side — show it across reloads.
+    api.getScanReport()
+      .then((r) => { if (r && r.total_files != null) scanReport = r; })
+      .catch(() => {});
     fetchAudioDevices();
     fetchTunePeers();
     fetchServerVersion();
@@ -2043,12 +2051,17 @@
         scanProgress = null;
         scanningPath = null;
         const d = event.data ?? {};
+        // The server event uses total_files/inserted; older builds sent
+        // scanned/added — accept both so the toast never shows "?".
         scanMessage = get(t)('settings.scanCompleted')
-          .replace('{scanned}', String(d.scanned ?? '?'))
-          .replace('{added}', String(d.added ?? 0))
+          .replace('{scanned}', String(d.total_files ?? d.scanned ?? '?'))
+          .replace('{added}', String(d.inserted ?? d.added ?? 0))
           .replace('{updated}', String(d.updated ?? 0))
           .replace('{removed}', String(d.removed ?? 0));
         notifications.success(scanMessage);
+        if (!d.cancelled && !d.no_dirs && d.total_files != null) {
+          scanReport = d;
+        }
         loadAll();
       } else if (event.type === 'library.artwork.progress') {
         artworkProgress = event.data;
@@ -2560,6 +2573,55 @@
             {#if scanProgress.tracks_per_second}<span>{scanProgress.tracks_per_second} {$t('settings.scanPerSecond')}</span>{/if}
             {#if scanEta}<span>{$t('settings.scanEta')} {scanEta}</span>{/if}
           </div>
+        </div>
+      {/if}
+
+      {#if scanReport && !scanning}
+        <div class="scan-report">
+          <div class="scan-report-head">{$t('settings.scanReportTitle' as any)}</div>
+          <div class="scan-report-counts">
+            <span>{scanReport.total_files ?? 0} {$t('settings.filesWord')}</span>
+            <span>+{scanReport.inserted ?? 0} {$t('settings.addedWord')}</span>
+            {#if scanReport.updated}<span>~{scanReport.updated} {$t('settings.scanUpdatedWord')}</span>{/if}
+            {#if scanReport.skipped_unchanged}<span>{scanReport.skipped_unchanged} {$t('settings.scanReportUnchanged' as any)}</span>{/if}
+            {#if scanReport.skipped_duplicate}<span>{scanReport.skipped_duplicate} {$t('settings.scanReportDuplicates' as any)}</span>{/if}
+            {#if scanReport.metadata_timeout}<span class="warn">{scanReport.metadata_timeout} {$t('settings.scanReportTimeouts' as any)}</span>{/if}
+            {#if scanReport.skipped_no_metadata}<span class="warn">{scanReport.skipped_no_metadata} {$t('settings.scanReportReadFailures' as any)}</span>{/if}
+            {#if scanReportDbFailed}<span class="warn">{scanReportDbFailed} {$t('settings.scanReportDbFailures' as any)}</span>{/if}
+          </div>
+          {#if scanReport.missing_dirs?.length}
+            <div class="scan-report-warning">
+              <div class="scan-report-warning-title">{$t('settings.scanReportMissingDirs' as any)}</div>
+              <ul>
+                {#each (scanReport.missing_dir_reasons?.length ? scanReport.missing_dir_reasons : scanReport.missing_dirs) as d}
+                  <li>{d}</li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
+          {#if scanReport.error_dirs?.length}
+            <div class="scan-report-warning">
+              <div class="scan-report-warning-title">{$t('settings.scanReportErrorDirs' as any)}</div>
+              <ul>
+                {#each scanReport.error_dirs as d}
+                  <li>{d}</li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
+          {#if scanReport.failed_paths?.length}
+            <details class="scan-report-failed">
+              <summary>{scanReport.failed_paths.length} {$t('settings.scanReportFailedPaths' as any)}</summary>
+              <ul>
+                {#each scanReport.failed_paths.slice(0, 50) as p}
+                  <li>{p}</li>
+                {/each}
+                {#if scanReport.failed_paths.length > 50}
+                  <li>… (+{scanReport.failed_paths.length - 50})</li>
+                {/if}
+              </ul>
+            </details>
+          {/if}
         </div>
       {/if}
 
@@ -5580,6 +5642,43 @@
     to { transform: rotate(360deg); }
   }
   .scan-message { font-size: 12px; color: var(--tune-accent); margin-left: 8px; font-weight: 600; }
+
+  .scan-report {
+    margin: 8px 0 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md, 8px);
+    background: var(--tune-surface, rgba(127, 127, 127, 0.06));
+    font-size: 13px;
+  }
+  .scan-report-head {
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .scan-report-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    opacity: 0.85;
+  }
+  .scan-report-counts .warn { color: var(--tune-warning, #e0a030); }
+  .scan-report-warning {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-left: 3px solid var(--tune-warning, #e0a030);
+    background: rgba(224, 160, 48, 0.08);
+    border-radius: 4px;
+  }
+  .scan-report-warning-title { font-weight: 600; margin-bottom: 4px; }
+  .scan-report-warning ul,
+  .scan-report-failed ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
+    word-break: break-all;
+    opacity: 0.85;
+  }
+  .scan-report-failed { margin-top: 10px; }
+  .scan-report-failed summary { cursor: pointer; color: var(--tune-warning, #e0a030); }
 
   .scan-progress-panel {
     margin: 8px 0 12px;
