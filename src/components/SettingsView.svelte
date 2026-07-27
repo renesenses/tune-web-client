@@ -118,6 +118,31 @@
   let showSmbWizard = $state(false);
   let showFolderWizard = $state(false);
 
+  // "Add content" defaults. Each change is saved immediately; the wizard can
+  // still override any of them for a single import.
+  let ingestSettings = $state<import('../lib/api/ingest').IngestSettings | null>(null);
+  let ingestError = $state<string | null>(null);
+
+  async function loadIngestSettings() {
+    try {
+      ingestSettings = await api.getIngestSettings();
+    } catch (e) {
+      ingestError = e instanceof Error ? e.message : String(e);
+    }
+  }
+
+  async function saveIngest(patch: Record<string, unknown>) {
+    ingestError = null;
+    try {
+      ingestSettings = await api.updateIngestSettings(patch as any);
+      notifications.success($t('settings.ingestSaved'));
+    } catch (e) {
+      ingestError = e instanceof Error ? e.message : String(e);
+      // Reprend l'état serveur : le contrôle affiche encore la valeur refusée.
+      await loadIngestSettings();
+    }
+  }
+
   // Metadata fields configuration
   interface MetadataField { key: string; label: string; enabled: boolean; }
   interface MetadataCategory { name: string; fields: MetadataField[]; }
@@ -1939,6 +1964,7 @@
     loadMetadataFields();
     loadLogLevel();
     loadAudioBackend();
+    loadIngestSettings();
     fetchYoutubeAuthStatus();
     if (pushEnabled) initPushNotifications();
   });
@@ -3013,6 +3039,82 @@
             </div>
           {/each}
         </div>
+      {/if}
+    </section>
+
+    <!-- Defaults for "Add content" (library ingest) -->
+    <section class="settings-section">
+      <h3>{$t('settings.ingest')}</h3>
+      <p class="muted">{$t('settings.ingestDesc')}</p>
+
+      {#if ingestSettings}
+        <div class="ingest-grid">
+          <label class="ingest-field">
+            <span>{$t('settings.ingestMode')}</span>
+            <select
+              class="auth-input"
+              value={ingestSettings.mode}
+              onchange={(e) => saveIngest({ mode: e.currentTarget.value as 'move' | 'copy' })}
+            >
+              <option value="move">{$t('ingest.move')}</option>
+              <option value="copy">{$t('ingest.copy')}</option>
+            </select>
+          </label>
+
+          <label class="ingest-field">
+            <span>{$t('settings.ingestConflict')}</span>
+            <select
+              class="auth-input"
+              value={ingestSettings.conflict_policy}
+              onchange={(e) => saveIngest({ conflict_policy: e.currentTarget.value as any })}
+            >
+              <option value="skip">{$t('ingest.policy.skip')}</option>
+              <option value="rename">{$t('ingest.policy.rename')}</option>
+              <option value="overwrite">{$t('ingest.policy.overwrite')}</option>
+            </select>
+          </label>
+
+          <label class="ingest-field">
+            <span>{$t('settings.ingestDestRoot')}</span>
+            <select
+              class="auth-input"
+              value={ingestSettings.dest_root ?? ''}
+              onchange={(e) => saveIngest({ dest_root: e.currentTarget.value })}
+            >
+              <option value="">{$t('settings.ingestDestRootAuto')}</option>
+              {#each ingestSettings.music_dirs as dir}
+                <option value={dir}>{dir}</option>
+              {/each}
+            </select>
+          </label>
+
+          <label class="ingest-field wide">
+            <span>{$t('settings.ingestTemplate')}</span>
+            <input
+              type="text"
+              class="auth-input"
+              value={ingestSettings.template}
+              placeholder={ingestSettings.default_template}
+              onchange={(e) => saveIngest({ template: e.currentTarget.value })}
+            />
+            <small class="muted">{$t('ingest.templateHint')}</small>
+          </label>
+        </div>
+
+        <label class="ingest-check">
+          <input
+            type="checkbox"
+            checked={ingestSettings.write_tags}
+            onchange={(e) => saveIngest({ write_tags: e.currentTarget.checked })}
+          />
+          <span>{$t('settings.ingestWriteTags')}</span>
+        </label>
+
+        {#if ingestError}
+          <div class="music-dir-error">{ingestError}</div>
+        {/if}
+      {:else}
+        <div class="spinner small"></div>
       {/if}
     </section>
     {/if}
@@ -6390,5 +6492,36 @@
     padding: 4px 8px; font-size: 12px; border-radius: var(--radius-sm, 4px);
     border: 1px solid var(--tune-border, #333); background: var(--tune-surface, #1a1a1a);
     color: var(--tune-text); cursor: pointer;
+  }
+
+  /* "Add content" defaults */
+  .ingest-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+    margin-top: 12px;
+  }
+  .ingest-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    min-width: 0;
+  }
+  .ingest-field.wide {
+    grid-column: 1 / -1;
+  }
+  .ingest-field small {
+    font-size: 11px;
+    line-height: 1.45;
+  }
+  .ingest-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--tune-text);
   }
 </style>

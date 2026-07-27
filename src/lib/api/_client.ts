@@ -18,7 +18,12 @@ async function apiError(response: Response): Promise<Error> {
   let detail = `${response.status} ${response.statusText}`;
   try {
     const body = await response.json();
+    // `detail` : anciens handlers. `error` : le format d'AppError côté serveur,
+    // dont le message est souvent la seule explication actionnable ("destination
+    // hors des dossiers musicaux configurés") — le perdre laissait l'UI avec un
+    // « 400 Bad Request » nu.
     if (body.detail) detail = body.detail;
+    else if (typeof body.error === 'string') detail = body.error;
   } catch {
     /* ignore */
   }

@@ -1915,6 +1915,10 @@ export function getTransferDetail(transferId: number) {
 // Voir lib/api/metadata.ts. Re-exporté ici pour rétro-compat.
 export * from './api/metadata';
 
+// --- Ingest (ajout de contenu à la bibliothèque) ---
+// Voir lib/api/ingest.ts.
+export * from './api/ingest';
+
 // --- Radios ---
 
 export function getRadios(params?: { genre?: string; favorite?: boolean; limit?: number; offset?: number }) {

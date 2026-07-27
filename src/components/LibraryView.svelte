@@ -30,6 +30,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
   import ServiceBadge from './ServiceBadge.svelte';
   import QualityBadge from './QualityBadge.svelte';
+  import ImportWizard from './ImportWizard.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   import type { ArtistMetadata } from '../lib/types';
 
@@ -1059,6 +1060,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   }
 
   let albumsLoaded = $state(false);
+
+  /** Assistant d'ajout de contenu (dossier → bibliothèque). */
+  let showImportWizard = $state(false);
   let artistsLoaded = $state(false);
   let tracksLoaded = $state(false);
 
@@ -2225,6 +2229,10 @@ import CollapsibleSection from './CollapsibleSection.svelte';
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
         {shuffleAllLoading ? $tr('common.loading') : (searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffle') : $tr('library.shuffleAll'))}
       </button>
+      <button class="add-content-btn" onclick={() => (showImportWizard = true)} title={$tr('library.addContent')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        {$tr('library.addContent')}
+      </button>
       <div class="library-header-right">
         <div class="search-box">
           <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
@@ -2754,6 +2762,18 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   />
 {/if}
 
+{#if showImportWizard}
+  <ImportWizard
+    onClose={() => (showImportWizard = false)}
+    onImported={() => {
+      // Le scan ciblé côté serveur est asynchrone : on laisse une seconde à
+      // l'insertion avant de recharger, sinon la grille se rafraîchit sur un
+      // état où l'album n'est pas encore en base.
+      setTimeout(() => loadAlbums(), 1200);
+    }}
+  />
+{/if}
+
 <style>
   .library-view {
     height: 100%;
@@ -2788,6 +2808,30 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     font-size: 28px;
     font-weight: 600;
     letter-spacing: -0.8px;
+  }
+
+  /* Secondary to the shuffle button: same shape, outlined rather than filled,
+     so "add content" reads as a library action and not a playback one. */
+  .add-content-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: transparent;
+    color: var(--tune-text);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .add-content-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
   }
 
   .shuffle-all-btn {
@@ -4972,6 +5016,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       text-align: center;
       padding: var(--space-xs) var(--space-sm);
       font-size: 12px;
+    }
+
+    .add-content-btn {
+      width: 100%;
+      justify-content: center;
     }
 
     .shuffle-all-btn {
