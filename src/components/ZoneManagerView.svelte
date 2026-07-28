@@ -341,8 +341,9 @@
   async function handleMeasureLatency(zoneId: number) {
     measuringLatency = zoneId;
     try {
-      const result = await api.measureLatency(zoneId);
-      latencyResults = { ...latencyResults, [zoneId]: result.latency_ms };
+      const result = await api.measureLatency();
+      const entry = (result.latencies ?? []).find((l: any) => l.zone_id === zoneId);
+      latencyResults = { ...latencyResults, [zoneId]: entry?.estimated_latency_ms ?? entry?.rtt_ms ?? null };
     } catch (e: any) {
       notifications.error('Latency: ' + e.message);
     } finally {

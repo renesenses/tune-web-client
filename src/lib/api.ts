@@ -487,8 +487,14 @@ export function deleteZoneProfile(profileId: number) {
   return fetchVoid(`${BASE}/zone-manager/profiles/${profileId}`, { method: 'DELETE' });
 }
 
-export function measureLatency(zoneId: number) {
-  return fetchJSON<any>(`${BASE}/zone-manager/zones/${zoneId}/measure-latency`, { method: 'POST' });
+// Server-side `POST /zone-manager/measure-latency` measures RTT to EVERY zone's
+// output in one call and returns `{ latencies: [{ zone_id, rtt_ms,
+// estimated_latency_ms, ... }] }`. The old client hit a non-existent
+// `/zone-manager/zones/{id}/measure-latency` (404) and read a non-existent
+// `latency_ms` field (Pascal: latency button → 404). Call the real route; the
+// caller picks its zone's entry out of the array.
+export function measureLatency() {
+  return fetchJSON<any>(`${BASE}/zone-manager/measure-latency`, { method: 'POST' });
 }
 
 export function calibrateGroup(groupId: string) {
