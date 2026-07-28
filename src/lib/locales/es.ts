@@ -1266,6 +1266,8 @@ export default {
   "settings.scanAlreadyRunning": "Análisis ya en curso",
   "settings.scanError": "Error de análisis",
   "settings.scanCompleted": "Análisis completado: {scanned} archivos, {added} añadidos, {updated} actualizados, {removed} eliminados",
+  "settings.folderPlaylists": "Carpetas → listas",
+  "settings.folderPlaylistsHelp": "Durante el escaneo, una carpeta cuyas pistas provienen de varios álbumes (recopilación propia) se convierte en una lista local con el mismo nombre, resincronizada en cada escaneo.",
   "settings.scanReportTitle": "Ãltimo informe de escaneo",
   "settings.scanReportUnchanged": "sin cambios",
   "settings.scanReportDuplicates": "duplicados omitidos",

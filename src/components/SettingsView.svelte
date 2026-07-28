@@ -2648,6 +2648,17 @@
         </div>
       {/if}
 
+      {#if config}
+        <div class="pref-grid">
+          <label class="pref-label">{$t('settings.folderPlaylists' as any)}</label>
+          <label class="toggle-switch">
+            <input type="checkbox" checked={config.scan_folder_playlists === true || config.scan_folder_playlists === 'true'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.scan_folder_playlists = val; await api.updateConfig({ scan_folder_playlists: val }); }} />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <p class="settings-note">{$t('settings.folderPlaylistsHelp' as any)}</p>
+      {/if}
+
       <div class="action-buttons">
         <button class="scan-btn" onclick={() => handleScan(false)} disabled={scanning}>
           {#if scanning}

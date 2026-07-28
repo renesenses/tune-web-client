@@ -1284,6 +1284,8 @@ export default {
   "settings.scanAlreadyRunning": "Scan déjà en cours",
   "settings.scanError": "Erreur scan",
   "settings.scanCompleted": "Scan terminé : {scanned} fichiers, {added} ajoutés, {updated} mis à jour, {removed} supprimés",
+  "settings.folderPlaylists": "Dossiers → playlists",
+  "settings.folderPlaylistsHelp": "Au scan, un dossier dont les pistes proviennent de plusieurs albums (compilation maison) devient une playlist locale du même nom, resynchronisée à chaque scan.",
   "settings.scanReportTitle": "Dernier rapport de scan",
   "settings.scanReportUnchanged": "inchangÃ©s",
   "settings.scanReportDuplicates": "doublons ignorÃ©s",

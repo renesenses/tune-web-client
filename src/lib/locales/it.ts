@@ -1266,6 +1266,8 @@ export default {
   "settings.scanAlreadyRunning": "Scansione già in corso",
   "settings.scanError": "Errore di scansione",
   "settings.scanCompleted": "Scansione completata: {scanned} file, {added} aggiunti, {updated} aggiornati, {removed} rimossi",
+  "settings.folderPlaylists": "Cartelle → playlist",
+  "settings.folderPlaylistsHelp": "Durante la scansione, una cartella con brani provenienti da più album (compilation fatta a mano) diventa una playlist locale con lo stesso nome, risincronizzata a ogni scansione.",
   "settings.scanReportTitle": "Ultimo rapporto di scansione",
   "settings.scanReportUnchanged": "invariati",
   "settings.scanReportDuplicates": "duplicati ignorati",
