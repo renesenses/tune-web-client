@@ -1427,6 +1427,7 @@ export default {
   "settings.install": "インストール",
   "settings.updates": "アップデート",
   "settings.upToDate": "最新です",
+  "settings.clientServerMismatch": "クライアントとサーバーのバージョンが不一致です — サーバーを更新してください",
   "settings.downloadDiagTitle": "ログ＋診断＋設定（認証情報はマスク）を含む ZIP をダウンロードしてサポートに送信します",
   "settings.preparing": "準備中…",
   "settings.downloadDiag": "診断情報をダウンロード",

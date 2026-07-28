@@ -1429,6 +1429,7 @@ export default {
   "settings.install": "Installa",
   "settings.updates": "Aggiornamenti",
   "settings.upToDate": "Aggiornato",
+  "settings.clientServerMismatch": "Client e server non sincronizzati — aggiorna il server",
   "settings.downloadDiagTitle": "Scarica uno ZIP con log + diagnostica + configurazione (credenziali mascherate) da inviare al supporto",
   "settings.preparing": "Preparazione…",
   "settings.downloadDiag": "Scarica la diagnostica",

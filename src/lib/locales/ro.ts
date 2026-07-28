@@ -1437,6 +1437,7 @@ export default {
   "settings.install": "Instalează",
   "settings.updates": "Actualizări",
   "settings.upToDate": "La zi",
+  "settings.clientServerMismatch": "Client și server nesincronizate — actualizează serverul",
   "settings.downloadDiagTitle": "Descarcă un ZIP cu jurnale + diagnostice + config (date sensibile mascate) pentru a-l trimite la suport",
   "settings.preparing": "Se pregătește…",
   "settings.downloadDiag": "Descarcă diagnosticele",
