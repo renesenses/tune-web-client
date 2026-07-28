@@ -1,10 +1,11 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
-  import { activeView, listResetNonce, saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
+  import { activeView, listResetNonce, saveDetailScroll, restoreDetailScroll, stashViewState, takeViewState } from '../lib/stores/navigation';
   import AlbumArt from './AlbumArt.svelte';
   import type { Album } from '../lib/types';
   import SmartCollectionsView from './SmartCollectionsView.svelte';
@@ -125,6 +126,12 @@
   }
 
   function navigateToAlbum(album: any) {
+    // Leaving for the album detail in the library: remember the open manual
+    // collection and its scroll, so browser-back re-enters it (#1215).
+    if (selectedCollection?.id != null) {
+      saveDetailScroll('collections-back', manualTabEl);
+      stashViewState('collections-manual', { id: selectedCollection.id });
+    }
     selectedAlbum.set(album);
     api.getAlbumTracks(album.id).then(tracks => {
       albumTracks.set(tracks);
@@ -135,6 +142,20 @@
 
   $effect(() => {
     if (activeTab === 'manual') loadCollections();
+  });
+
+  onMount(async () => {
+    // Browser-back from an album opened inside a manual collection: reopen the
+    // manual tab on that collection at the saved scroll (#1215). One-shot stash,
+    // cleared by requestListReset() so a sidebar click still shows the list.
+    const st = takeViewState<{ id: number }>('collections-manual');
+    if (st == null) return;
+    activeTab = 'manual';
+    await loadCollections();
+    const col = collections.find((c) => c.id === st.id);
+    if (!col) return;
+    await selectCollection(col);
+    restoreDetailScroll('collections-back', manualTabEl);
   });
 </script>
 
