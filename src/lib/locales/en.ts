@@ -1459,6 +1459,7 @@ export default {
   "settings.install": "Install",
   "settings.updates": "Updates",
   "settings.upToDate": "Up to date",
+  "settings.clientServerMismatch": "Client and server out of sync — update the server",
   "settings.downloadDiagTitle": "Downloads a ZIP with logs + diagnostics + config (credentials masked) to send to support",
   "settings.preparing": "Preparing…",
   "settings.downloadDiag": "Download diagnostics",

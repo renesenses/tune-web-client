@@ -1433,6 +1433,7 @@ export default {
   "settings.install": "설치",
   "settings.updates": "업데이트",
   "settings.upToDate": "최신 상태",
+  "settings.clientServerMismatch": "클라이언트와 서버 버전이 일치하지 않습니다 — 서버를 업데이트하세요",
   "settings.downloadDiagTitle": "로그 + 진단 + 구성(자격 증명 마스킹)이 포함된 ZIP을 다운로드하여 지원팀에 보냅니다",
   "settings.preparing": "준비 중…",
   "settings.downloadDiag": "진단 다운로드",

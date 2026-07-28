@@ -1433,6 +1433,7 @@ export default {
   "settings.install": "安装",
   "settings.updates": "更新",
   "settings.upToDate": "已是最新",
+  "settings.clientServerMismatch": "客户端与服务器版本不一致 — 请更新服务器",
   "settings.downloadDiagTitle": "下载包含日志 + 诊断 + 配置（凭据已屏蔽）的 ZIP，以发送给支持团队",
   "settings.preparing": "准备中…",
   "settings.downloadDiag": "下载诊断信息",

@@ -20,6 +20,17 @@
 
   const CLIENT_VERSION = __APP_VERSION__;
   let serverVersion = $state<string | null>(null);
+
+  // Client/server version drift. The embedded web client (CLIENT_VERSION) and
+  // the backend (serverVersion) ship together, so a mismatch means a stale
+  // bundle is being served against a different server — the UI then calls
+  // routes the pairing doesn't line up on (Yacine on the deprecated Python
+  // server: 404s, a wrong "FREE" licence, empty log downloads). Surface it
+  // instead of the misleading "✓ up to date", which only compares the SERVER
+  // version against GitHub and is blind to this drift.
+  const clientStale = $derived(
+    !!serverVersion && !!CLIENT_VERSION && serverVersion !== CLIENT_VERSION,
+  );
   // Consume settingsInitialTab once: allows sidebar shortcuts to open a specific tab
   const _initialTab = get(settingsInitialTab);
   settingsInitialTab.set(null);
@@ -4581,6 +4592,11 @@
           {#if updateInfo.installable === false && updateInfo.install_hint}
             <div class="install-hint">{updateInfo.install_hint}</div>
           {/if}
+        {:else if clientStale}
+          <div class="about-row">
+            <span class="about-label">{$t('settings.updates')}</span>
+            <span class="about-value" style="color: var(--tune-warning, #e0a800)">⚠️ {$t('settings.clientServerMismatch')}</span>
+          </div>
         {:else}
           <div class="about-row">
             <span class="about-label">{$t('settings.updates')}</span>
