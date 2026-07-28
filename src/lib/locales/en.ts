@@ -1283,6 +1283,8 @@ export default {
   "settings.scanAlreadyRunning": "Scan already running",
   "settings.scanError": "Scan error",
   "settings.scanCompleted": "Scan complete: {scanned} files, {added} added, {updated} updated, {removed} removed",
+  "settings.folderPlaylists": "Folders → playlists",
+  "settings.folderPlaylistsHelp": "During a scan, a folder whose tracks span several albums (hand-made compilation) becomes a local playlist with the same name, re-synced on every scan.",
   "settings.scanReportTitle": "Last scan report",
   "settings.scanReportUnchanged": "unchanged",
   "settings.scanReportDuplicates": "duplicates skipped",
