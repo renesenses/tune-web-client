@@ -5,6 +5,7 @@
   import * as api from '../lib/api';
   import type { EqBand, EqSettings } from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
+  import { isPremium } from '../lib/stores/license';
 
   const BANDS: number[] = [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 
@@ -266,6 +267,7 @@
 <section class="equalizer-view">
   <header class="eq-header">
     <h1>{$t('eq.title')}</h1>
+    {#if $isPremium}
     <div class="eq-mode-tabs">
       <button class="eq-mode-tab" class:active={eqMode === 'assistant'} onclick={() => eqMode = 'assistant'}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" /></svg>
@@ -276,9 +278,16 @@
         Expert
       </button>
     </div>
+    {/if}
   </header>
 
-  {#if eqMode === 'assistant'}
+  {#if !$isPremium}
+    <div class="premium-gate">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span>{$t('eq.premiumGate')} <strong>Tune Premium</strong>.</span>
+    </div>
+
+  {:else if eqMode === 'assistant'}
     <!-- =================== TUNE MASTER PROFILER =================== -->
     <div class="profiler">
       {#if profilerStep === 1}
@@ -489,6 +498,19 @@
     max-width: 900px;
     margin: 0 auto;
   }
+
+  .premium-gate {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 10px;
+    color: var(--tune-text-secondary, #aaa);
+    font-size: 14px;
+  }
+  .premium-gate strong { color: var(--tune-accent, #6366f1); }
 
   .eq-mode-tabs {
     display: flex;

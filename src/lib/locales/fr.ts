@@ -730,6 +730,7 @@ export default {
   'eq.enabled': 'Activé',
   'eq.disabled': 'Désactivé',
   'eq.reset': 'Réinitialiser',
+  'eq.premiumGate': "L'égaliseur et le profil acoustique sont une fonctionnalité",
 
   // Onboarding
   'onboarding.welcomeTitle': 'Bienvenue sur Tune Server',
