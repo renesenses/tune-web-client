@@ -729,6 +729,7 @@ export default {
   'eq.enabled': 'Enabled',
   'eq.disabled': 'Disabled',
   'eq.reset': 'Reset',
+  'eq.premiumGate': 'The equalizer and acoustic profile are a feature of',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Welcome to Tune Server',
