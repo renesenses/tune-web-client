@@ -729,28 +729,6 @@
     }
   }
 
-  async function playTrack(t: Track) {
-    if (!zone?.id) return;
-    try {
-      const source = t.source || selectedService;
-      if (source && source !== 'local' && t.source_id) {
-        await playAndSync(zone.id, {
-          source: source as any,
-          source_id: t.source_id,
-          title: t.title || undefined,
-          artist_name: t.artist_name || undefined,
-          album_title: t.album_title || undefined,
-          cover_path: t.cover_path || undefined,
-          duration_ms: t.duration_ms || undefined,
-        });
-      } else if (t.id) {
-        await playAndSync(zone.id, { track_id: t.id });
-      }
-    } catch (e) {
-      console.error('Play track error:', e);
-    }
-  }
-
   async function addTrackToQueue(t: Track) {
     if (!zone?.id) return;
     try {
@@ -1208,7 +1186,10 @@
             ondrop={(e) => { e.preventDefault(); reorderTracks(index); }}
             ondragend={() => { dragIndex = null; dragOverIndex = null; }}
           >
-            <button class="track-play" onclick={() => playTrack(t)}>
+            <!-- Clic de ligne = toute la playlist en file à partir de cette piste,
+                 sinon la file ne contient qu'une piste et rien ne s'enchaîne
+                 (« l'enchaînement ne marche pas », Bertrand, Qobuz sur .18). -->
+            <button class="track-play" onclick={() => playFromIndex(index)}>
               <span class="track-num">{index + 1}</span>
               <span class="track-thumb">
                 <AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.album_title ?? t.title ?? ''} />
