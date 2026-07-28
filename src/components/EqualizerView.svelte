@@ -52,7 +52,21 @@
     } catch {}
   }
 
-  async function applyProfiler() {
+  // Debounced apply for slider drags: oninput fires on EVERY step of the
+  // range input, which used to send one PUT /zones/{id}/dsp per tick and —
+  // when the request failed (e.g. free tier: the endpoint is Premium-gated
+  // and returns 402) — one error popup per tick, plus the premium popup
+  // fetchJSON already shows. One drag = a storm of popups (bug #1216).
+  let profilerSendTimer: ReturnType<typeof setTimeout> | null = null;
+  function queueProfilerApply() {
+    if (profilerSendTimer) clearTimeout(profilerSendTimer);
+    profilerSendTimer = setTimeout(() => {
+      profilerSendTimer = null;
+      void applyProfiler(true);
+    }, 300);
+  }
+
+  async function applyProfiler(quiet = false) {
     const zoneId = $currentZoneId;
     if (zoneId === null) return;
     try {
@@ -68,10 +82,14 @@
         }
       });
       saveProfiler();
-      notifications.success('Profil acoustique applique');
+      if (!quiet) notifications.success('Profil acoustique applique');
     } catch (e) {
       console.error('Apply profiler error:', e);
-      notifications.error('Erreur lors de l\'application du profil');
+      // fetchJSON already showed the dedicated Premium popup for a 402 —
+      // don't stack a generic one on top of it.
+      if ((e as Error)?.message !== 'premium_required') {
+        notifications.error('Erreur lors de l\'application du profil');
+      }
     }
   }
 
@@ -149,6 +167,15 @@
     return BANDS.map((freq, i) => ({ freq, gain: gains[i], q: DEFAULT_Q }));
   }
 
+  let eqSendTimer: ReturnType<typeof setTimeout> | null = null;
+  function queueSendToServer() {
+    if (eqSendTimer) clearTimeout(eqSendTimer);
+    eqSendTimer = setTimeout(() => {
+      eqSendTimer = null;
+      void sendToServer();
+    }, 300);
+  }
+
   async function sendToServer() {
     const zoneId = $currentZoneId;
     if (zoneId === null) return;
@@ -164,7 +191,7 @@
     gains[index] = value;
     activePreset = detectPreset();
     saveLocal();
-    sendToServer();
+    queueSendToServer();
   }
 
   function applyPreset(key: string) {
@@ -336,7 +363,7 @@
                 <span>Sourdes</span>
                 <span>Ouvrir le son</span>
               </div>
-              <input type="range" min="-12" max="12" step="0.5" bind:value={bassSlider} oninput={applyProfiler} />
+              <input type="range" min="-12" max="12" step="0.5" bind:value={bassSlider} oninput={queueProfilerApply} />
             </div>
 
             <div class="profiler-slider">
@@ -348,7 +375,7 @@
                 <span>Reculees</span>
                 <span>Claires</span>
               </div>
-              <input type="range" min="-12" max="12" step="0.5" bind:value={midSlider} oninput={applyProfiler} />
+              <input type="range" min="-12" max="12" step="0.5" bind:value={midSlider} oninput={queueProfilerApply} />
             </div>
 
             <div class="profiler-slider">
@@ -360,12 +387,12 @@
                 <span>Sombres</span>
                 <span>Aeres</span>
               </div>
-              <input type="range" min="-12" max="12" step="0.5" bind:value={trebleSlider} oninput={applyProfiler} />
+              <input type="range" min="-12" max="12" step="0.5" bind:value={trebleSlider} oninput={queueProfilerApply} />
             </div>
           </div>
 
           <div class="profiler-actions">
-            <button class="profiler-apply-btn" onclick={applyProfiler}>
+            <button class="profiler-apply-btn" onclick={() => applyProfiler()}>
               Appliquer le profil
             </button>
             <button class="profiler-reset-btn" onclick={resetProfiler}>
