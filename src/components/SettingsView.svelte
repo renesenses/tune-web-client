@@ -2561,7 +2561,14 @@
         </div>
       {/if}
 
-      {#if scanning && scanProgress}
+      {#if scanning}
+        <!-- Show the panel (and its Stop button) whenever a scan is running,
+             from the polled `scanning` state — NOT gated on `scanProgress`,
+             which only arrives via the scan_progress websocket event. On a
+             polling-mode client (websocket unavailable) scanProgress stays
+             null, so the old `scanning && scanProgress` hid the whole panel
+             including the Stop button mid-scan (#1223, Benjithom). The
+             progress details below stay guarded on scanProgress. -->
         <div class="scan-progress-panel">
           <div class="scan-progress-head">
             <span class="scan-progress-phase">{scanPhase}</span>
@@ -2575,18 +2582,20 @@
           <div class="scan-progress-bar" class:indeterminate={scanPercent === null}>
             <div class="scan-progress-fill" style={scanPercent !== null ? `width:${scanPercent}%` : ''}></div>
           </div>
-          <div class="scan-progress-meta">
-            {#if scanProgress.total}
-              <span>{scanProgress.scanned ?? 0} / {scanProgress.total} {$t('settings.filesWord')}</span>
-            {:else if scanProgress.scanned}
-              <span>{scanProgress.scanned} {$t('settings.filesWord')}</span>
-            {/if}
-            {#if scanProgress.added != null}<span>+{scanProgress.added} {$t('settings.addedWord')}</span>{/if}
-            {#if scanProgress.updated}<span>~{scanProgress.updated} {$t('settings.scanUpdatedWord')}</span>{/if}
-            {#if scanProgress.skipped}<span>{scanProgress.skipped} {$t('settings.scanSkippedWord')}</span>{/if}
-            {#if scanProgress.tracks_per_second}<span>{scanProgress.tracks_per_second} {$t('settings.scanPerSecond')}</span>{/if}
-            {#if scanEta}<span>{$t('settings.scanEta')} {scanEta}</span>{/if}
-          </div>
+          {#if scanProgress}
+            <div class="scan-progress-meta">
+              {#if scanProgress.total}
+                <span>{scanProgress.scanned ?? 0} / {scanProgress.total} {$t('settings.filesWord')}</span>
+              {:else if scanProgress.scanned}
+                <span>{scanProgress.scanned} {$t('settings.filesWord')}</span>
+              {/if}
+              {#if scanProgress.added != null}<span>+{scanProgress.added} {$t('settings.addedWord')}</span>{/if}
+              {#if scanProgress.updated}<span>~{scanProgress.updated} {$t('settings.scanUpdatedWord')}</span>{/if}
+              {#if scanProgress.skipped}<span>{scanProgress.skipped} {$t('settings.scanSkippedWord')}</span>{/if}
+              {#if scanProgress.tracks_per_second}<span>{scanProgress.tracks_per_second} {$t('settings.scanPerSecond')}</span>{/if}
+              {#if scanEta}<span>{$t('settings.scanEta')} {scanEta}</span>{/if}
+            </div>
+          {/if}
         </div>
       {/if}
 
