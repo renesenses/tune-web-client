@@ -68,7 +68,7 @@
   let importTarget = $state<{ service: string; playlist: StreamingPlaylist } | null>(null);
   let importName = $state('');
   let importing = $state(false);
-  let importResult = $state<{ name: string; count: number } | null>(null);
+  let importResult = $state<{ name: string; count: number; total: number } | null>(null);
 
   // Transfer dialog
   let showTransfer = $state(false);
@@ -678,8 +678,22 @@
     if (!importTarget) return;
     importing = true;
     try {
-      const result = await api.importPlaylist(importTarget.service, importTarget.playlist.source_id, importName || undefined);
-      importResult = { name: result.name, count: result.tracks_imported };
+      // L'import passe par le transfert vers « local » : POST /playlists/import
+      // n'existe pas côté serveur (405 — collision avec /playlists/:id), le
+      // bouton échouait toujours. La voie transfert matche contre la
+      // bibliothèque et ne crée PAS de playlist si aucune piste n'est trouvée
+      // (fini les copies vides « (transferred) » à 0 piste).
+      const result = await api.transferPlaylistV2({
+        source_service: importTarget.service,
+        source_playlist_id: importTarget.playlist.source_id,
+        target_service: 'local',
+        target_name: importName || undefined,
+      });
+      importResult = {
+        name: result.target_playlist_name ?? importName,
+        count: result.matched ?? 0,
+        total: result.total_tracks ?? importTarget.playlist.track_count,
+      };
       // Refresh playlists
       await loadAll();
       // Also refresh the global playlist store
@@ -687,7 +701,7 @@
       playlistsStore.set(list);
     } catch (e) {
       console.error('Import playlist error:', e);
-      importResult = { name: importName, count: -1 };
+      importResult = { name: importName, count: -1, total: 0 };
     }
     importing = false;
   }
@@ -1779,11 +1793,17 @@
   <div class="modal-overlay" onclick={closeImport}>
     <div class="modal-content" onclick={(e) => e.stopPropagation()}>
       {#if importResult}
-        {#if importResult.count >= 0}
+        {#if importResult.count > 0}
           <div class="import-done">
             <svg viewBox="0 0 24 24" fill="none" stroke="var(--tune-accent)" stroke-width="2" width="32" height="32"><path d="M20 6L9 17l-5-5" /></svg>
             <h3>{$tr('playlist.importSuccess')}</h3>
-            <p>{$tr('playlist.imported').replace('{count}', String(importResult.count))}</p>
+            <p>{$tr('playlist.importedMatched' as any).replace('{count}', String(importResult.count)).replace('{total}', String(importResult.total))}</p>
+            <button class="confirm-btn" onclick={closeImport}>{$tr('common.ok')}</button>
+          </div>
+        {:else if importResult.count === 0}
+          <div class="import-done">
+            <h3>{$tr('playlist.importSuccess')}</h3>
+            <p>{$tr('playlist.importNoneMatched' as any)}</p>
             <button class="confirm-btn" onclick={closeImport}>{$tr('common.ok')}</button>
           </div>
         {:else}

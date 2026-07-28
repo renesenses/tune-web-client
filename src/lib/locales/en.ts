@@ -272,6 +272,8 @@ export default {
   'playlist.manager': 'Playlist Manager',
   'playlist.source': 'Source',
   'playlist.importConfirm': 'Import this playlist locally?',
+  "playlist.importedMatched": "{count} of {total} tracks found in the library and imported.",
+  "playlist.importNoneMatched": "None of this playlist's tracks exist in the local library — the playlist was not created. Streaming tracks cannot yet be copied as-is into a local playlist.",
   'playlist.importSuccess': 'Playlist imported successfully',
   'playlist.importError': 'Import failed',
   'playlist.filterAll': 'All',

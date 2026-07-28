@@ -264,6 +264,8 @@ export default {
   'playlist.manager': 'プレイリストマネージャー',
   'playlist.source': 'ソース',
   'playlist.importConfirm': 'このプレイリストをローカルにインポートしますか？',
+  "playlist.importedMatched": "{total} 曲中 {count} 曲がライブラリで見つかり、インポートされました。",
+  "playlist.importNoneMatched": "このプレイリストの曲はローカルライブラリに存在しないため、プレイリストは作成されませんでした。ストリーミング曲はまだローカルプレイリストにコピーできません。",
   'playlist.importSuccess': 'プレイリストをインポートしました',
   'playlist.importError': 'インポートに失敗しました',
   'playlist.filterAll': 'すべて',

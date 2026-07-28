@@ -264,6 +264,8 @@ export default {
   'playlist.manager': 'Gestor de listas de reproducción',
   'playlist.source': 'Fuente',
   'playlist.importConfirm': '¿Importar esta lista de reproducción en local?',
+  "playlist.importedMatched": "{count} de {total} pistas encontradas en la biblioteca e importadas.",
+  "playlist.importNoneMatched": "Ninguna pista de esta lista existe en la biblioteca local — la lista no se creó. Las pistas de streaming aún no se pueden copiar tal cual a una lista local.",
   'playlist.importSuccess': 'Lista importada con éxito',
   'playlist.importError': 'Error al importar',
   'playlist.filterAll': 'Todas',

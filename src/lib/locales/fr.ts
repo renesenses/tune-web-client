@@ -272,6 +272,8 @@ export default {
   'playlist.manager': 'Gestionnaire de playlists',
   'playlist.source': 'Source',
   'playlist.importConfirm': 'Importer cette playlist en local ?',
+  "playlist.importedMatched": "{count} pistes sur {total} trouvées dans la bibliothèque et importées.",
+  "playlist.importNoneMatched": "Aucune piste de cette playlist n'existe dans la bibliothèque locale — la playlist n'a pas été créée. Les pistes streaming ne peuvent pas encore être copiées telles quelles dans une playlist locale.",
   'playlist.importSuccess': 'Playlist importée avec succès',
   'playlist.importError': "Erreur lors de l'importation",
   'playlist.filterAll': 'Toutes',

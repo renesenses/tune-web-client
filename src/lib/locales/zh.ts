@@ -264,6 +264,8 @@ export default {
   'playlist.manager': '播放列表管理器',
   'playlist.source': '来源',
   'playlist.importConfirm': '将此播放列表导入到本地？',
+  "playlist.importedMatched": "在音乐库中找到并导入了 {total} 首中的 {count} 首。",
+  "playlist.importNoneMatched": "此播放列表中的曲目在本地音乐库中不存在——未创建播放列表。流媒体曲目暂时无法直接复制到本地播放列表。",
   'playlist.importSuccess': '播放列表导入成功',
   'playlist.importError': '导入失败',
   'playlist.filterAll': '全部',
