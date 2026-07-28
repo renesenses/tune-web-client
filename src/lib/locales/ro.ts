@@ -272,6 +272,8 @@ export default {
   'playlist.manager': 'Manager playlisturi',
   'playlist.source': 'Sursă',
   'playlist.importConfirm': 'Imporți acest playlist local?',
+  "playlist.importedMatched": "{count} din {total} piese găsite în bibliotecă și importate.",
+  "playlist.importNoneMatched": "Nicio piesă din acest playlist nu există în biblioteca locală — playlistul nu a fost creat. Piesele de streaming nu pot fi încă copiate într-un playlist local.",
   'playlist.importSuccess': 'Playlist importat cu succes',
   'playlist.importError': 'Importul a eșuat',
   'playlist.filterAll': 'Toate',

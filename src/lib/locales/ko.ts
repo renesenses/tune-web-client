@@ -264,6 +264,8 @@ export default {
   'playlist.manager': '재생목록 관리자',
   'playlist.source': '소스',
   'playlist.importConfirm': '이 재생목록을 로컬로 가져오시겠습니까?',
+  "playlist.importedMatched": "{total}곡 중 {count}곡을 라이브러리에서 찾아 가져왔습니다.",
+  "playlist.importNoneMatched": "이 재생목록의 곡이 로컬 라이브러리에 없어 재생목록이 생성되지 않았습니다. 스트리밍 곡은 아직 로컬 재생목록으로 복사할 수 없습니다.",
   'playlist.importSuccess': '재생목록을 성공적으로 가져왔습니다',
   'playlist.importError': '가져오기 실패',
   'playlist.filterAll': '전체',

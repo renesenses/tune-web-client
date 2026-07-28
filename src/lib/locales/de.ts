@@ -264,6 +264,8 @@ export default {
   'playlist.manager': 'Playlist-Verwaltung',
   'playlist.source': 'Quelle',
   'playlist.importConfirm': 'Diese Playlist lokal importieren?',
+  "playlist.importedMatched": "{count} von {total} Titeln in der Bibliothek gefunden und importiert.",
+  "playlist.importNoneMatched": "Keiner der Titel dieser Playlist existiert in der lokalen Bibliothek — die Playlist wurde nicht erstellt. Streaming-Titel können noch nicht direkt in eine lokale Playlist kopiert werden.",
   'playlist.importSuccess': 'Playlist erfolgreich importiert',
   'playlist.importError': 'Fehler beim Importieren',
   'playlist.filterAll': 'Alle',
