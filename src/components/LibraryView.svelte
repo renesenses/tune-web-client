@@ -574,6 +574,10 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   let albumScrollTop = $state(0);
   let savedAlbumScrollTop = $state(0);
   let savedArtistScrollTop = $state(0);
+  // Genres tab: its drill (genre → album cards) renders directly inside
+  // `.library-view` (no virtual grid), so the virtual-grid offset is useless
+  // there. Captured on detail entry, restored on Back (#1215).
+  let savedGenreScrollTop = $state(0);
   // Back-stack of artists visited by drilling into "similar artists" within the
   // detail view (#1144, Bilou). Entering the detail fresh (from grid/search/album)
   // leaves this empty, so Back returns to the grid as before; each similar-artist
@@ -1113,6 +1117,10 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   async function selectAlbumDetail(album: Album) {
     if (!album.id) return;
     savedAlbumScrollTop = albumScrollTop;
+    if ($libraryTab === 'genres') {
+      const scrollEl = document.querySelector('.library-view');
+      savedGenreScrollTop = scrollEl ? scrollEl.scrollTop : 0;
+    }
     // NE PAS vider selectedArtist ici : le garder permet à goBack() de revenir à
     // la page de l'artiste quand l'album a été ouvert depuis celle-ci (bug Fabien-1).
     expandedTrackCredits = null;
@@ -1157,6 +1165,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // the top of the artist list instead of the viewed artist (#1118, #870).
     const scrollEl = document.querySelector('.library-view');
     if (scrollEl) savedArtistScrollTop = scrollEl.scrollTop;
+    if ($libraryTab === 'genres' && scrollEl) savedGenreScrollTop = scrollEl.scrollTop;
     selectedArtist.set(artist);
     window.history.pushState({ view: 'library', artistId: artist.id, tab: $libraryTab }, '', '#library');
     selectedAlbum.set(null);
@@ -1408,6 +1417,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     if (wasArtistTab && restoreArtistScroll > 0) {
       restoreArtistScrollWhenReady(restoreArtistScroll);
     }
+    if ($libraryTab === 'genres' && savedGenreScrollTop > 0) {
+      restoreArtistScrollWhenReady(savedGenreScrollTop);
+    }
     if ($libraryTab === 'years') {
       restoreYearScrollWhenReady(yearScrollTop);
     }
@@ -1629,6 +1641,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       // position once the re-rendered list is tall enough.
       if (wasInDetail && !inDetail && $libraryTab === 'artists' && savedArtistScrollTop > 0) {
         restoreArtistScrollWhenReady(savedArtistScrollTop);
+      }
+      // Genres tab: same container as the artist list (`.library-view`) —
+      // restore the drill's position on browser-back too (#1215).
+      if (wasInDetail && !inDetail && $libraryTab === 'genres' && savedGenreScrollTop > 0) {
+        restoreArtistScrollWhenReady(savedGenreScrollTop);
       }
       // Years tab: re-align the remounted viewport on the stale virtual-scroll
       // offset, otherwise the tab comes back as a black page (#1170).

@@ -19,6 +19,21 @@ activeView.subscribe(v => {
 export const listResetNonce = writable(0);
 export function requestListReset() {
   listResetNonce.update(n => n + 1);
+  viewStateStash.clear();
+}
+
+// One-shot stash of a view's intra-drill state (open collection, …) so that
+// browser-back from another view lands back inside the drill instead of on the
+// root list (#1215). Cleared by requestListReset(): a deliberate sidebar click
+// must still open the root list.
+const viewStateStash = new Map<string, unknown>();
+export function stashViewState(key: string, state: unknown) {
+  viewStateStash.set(key, state);
+}
+export function takeViewState<T>(key: string): T | undefined {
+  const v = viewStateStash.get(key) as T | undefined;
+  viewStateStash.delete(key);
+  return v;
 }
 
 // Optional tab to open when navigating to settings (consumed once by SettingsView)

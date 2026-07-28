@@ -5,13 +5,20 @@
   import type { SmartCollection } from '../lib/types';
   import SmartCollectionEditor from './SmartCollectionEditor.svelte';
   import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
-  import { activeView, listResetNonce } from '../lib/stores/navigation';
+  import { activeView, listResetNonce, saveDetailScroll, restoreDetailScroll, stashViewState, takeViewState } from '../lib/stores/navigation';
   import { currentZone } from '../lib/stores/zones';
   import { notifications } from '../lib/stores/notifications';
   import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
   import { t } from '../lib/i18n';
 
   function navigateToAlbum(album: any) {
+    // Leaving for the album detail in the library: remember which collection is
+    // open and where its album grid is scrolled, so browser-back re-enters the
+    // collection at the same spot instead of the root list (#1215).
+    if (selected?.id != null) {
+      saveDetailScroll('smartcollections-back', scrollContainer());
+      stashViewState('smartcollections', { id: selected.id });
+    }
     selectedAlbum.set(album);
     api.getAlbumTracks(album.id).then(tracks => {
       albumTracks.set(tracks);
@@ -66,6 +73,13 @@
   let selected = $state<SmartCollection | null>(null);
   let selectedAlbums = $state<any[]>([]);
   let albumsLoading = $state(false);
+  let sectionEl = $state<HTMLElement | null>(null);
+
+  // The view scrolls in CollectionsView's `.tab-content` wrapper, not in
+  // `.sc-view` itself.
+  function scrollContainer(): HTMLElement | null {
+    return (sectionEl?.closest('.tab-content') as HTMLElement | null) ?? null;
+  }
 
   // Clicking the Collections nav entry returns to the list (Elie).
   $effect(() => {
@@ -170,10 +184,21 @@
     }
   }
 
-  onMount(load);
+  onMount(async () => {
+    await load();
+    // Browser-back from an album opened inside a collection: re-enter that
+    // collection and restore the grid scroll (#1215). The stash is one-shot and
+    // cleared by requestListReset(), so a sidebar click still lands on the list.
+    const st = takeViewState<{ id: number }>('smartcollections');
+    if (st == null) return;
+    const col = collections.find((c) => c.id === st.id);
+    if (!col) return;
+    await openCollection(col);
+    restoreDetailScroll('smartcollections-back', scrollContainer());
+  });
 </script>
 
-<section class="sc-view">
+<section class="sc-view" bind:this={sectionEl}>
   <header class="sc-header">
     <h2>Smart Collections</h2>
     <button class="new-btn" onclick={() => openEditor(null)}>{$t('smartCollection.newCollection')}</button>
