@@ -43,7 +43,6 @@ import AlarmsView from './components/AlarmsView.svelte';
   import BrowseView from './components/BrowseView.svelte';
   import RadiosView from './components/RadiosView.svelte';
   import PodcastsView from './components/PodcastsView.svelte';
-  import GenresView from './components/GenresView.svelte';
   import MediaServersView from './components/MediaServersView.svelte';
   import ShortcutsView from './components/ShortcutsView.svelte';
   import FavoritesView from './components/FavoritesView.svelte';
@@ -420,6 +419,11 @@ import AlarmsView from './components/AlarmsView.svelte';
     let _viewInitialized = false;
     let _previousViewForScroll: string | null = null;
     activeView.subscribe(view => {
+      // The "Genres" nav destination reuses the Library view — force its tab to
+      // Genres on entry so it lands on the genre browser (and the pushed history
+      // entry below captures tab='genres'). Runs on every entry path: bottom-tab
+      // nav, deep link, and history restore.
+      if (view === 'genres') libraryTab.set('genres');
       if (!_pushingState && typeof window !== 'undefined') {
         // Save scroll position of the view we're leaving
         if (_previousViewForScroll && _previousViewForScroll !== view) {
@@ -1096,7 +1100,11 @@ import AlarmsView from './components/AlarmsView.svelte';
     {:else if $activeView === 'podcasts'}
       <PodcastsView />
     {:else if $activeView === 'genres'}
-      <GenresView onAddToPlaylist={openPlaylistModal} />
+      <!-- The "Genres" nav destination renders the Library on its Genres tab
+           (forced via the activeView subscriber below). GenresView.svelte was a
+           second, diverging copy of the same genre browser with a poorer album
+           detail — retired so genre fixes only ever touch one place. -->
+      <LibraryView onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'metadata'}
       <MetadataView />
     {:else if $activeView === 'services'}
