@@ -162,7 +162,6 @@
 
   let writingTags = $state(false);
   let writeTagsResult = $state<string | null>(null);
-  let hasSaved = $state(false);
 
   async function saveAlbum() {
     if (!album.id) return;
@@ -207,7 +206,6 @@
       }
 
       success = true;
-      hasSaved = true;
     } catch (e) {
       console.error('Save album error:', e);
       error = $t('metadata.saveError');
@@ -228,6 +226,16 @@
       writeTagsResult = get(t)('albumEdit.writeTagsError').replace('{error}', String(e?.message || e));
     }
     writingTags = false;
+  }
+
+  // Graver = enregistrer d'abord (idempotent) puis écrire les tags dans les
+  // fichiers. Le bouton était gaté sur un enregistrement fait dans LA MÊME
+  // ouverture de la modale (hasSaved) : en rouvrant un album déjà édité,
+  // « Graver tags » restait inactif sans explication (#1225, Reivax66).
+  async function saveThenWriteTags() {
+    await saveAlbum();
+    if (error) return;
+    await writeAlbumTags();
   }
 
   async function handleUpload(file: File) {
@@ -508,7 +516,7 @@
       <div class="modal-footer">
         <button type="button" class="btn-cancel" onclick={onClose}>{$t('common.cancel')}</button>
         {#if !album.source || album.source === 'local'}
-          <button class="btn-write-tags" onclick={writeAlbumTags} disabled={writingTags || !hasSaved}>
+          <button class="btn-write-tags" onclick={saveThenWriteTags} disabled={writingTags || saving}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
             {writingTags ? $t('albumEdit.writing') : $t('albumEdit.writeTags')}
           </button>
