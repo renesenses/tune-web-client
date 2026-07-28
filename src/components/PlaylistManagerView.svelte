@@ -713,6 +713,22 @@
     }
   }
 
+  // « Lire à partir d'ici » : the server resolves the whole playlist (local or
+  // streaming) and starts at the given index, so mixed/streaming entries keep
+  // working — no client-side track_ids filtering.
+  async function playFromIndex(index: number) {
+    if (!zone?.id) return;
+    try {
+      if (selectedStreamingPl) {
+        await playStreamingPlaylist(selectedStreamingPl, index);
+      } else if (selectedPlaylist?.id != null) {
+        await playAndSync(zone.id, { playlist_id: selectedPlaylist.id, start_index: index });
+      }
+    } catch (e) {
+      console.error('Play from here error:', e);
+    }
+  }
+
   async function playTrack(t: Track) {
     if (!zone?.id) return;
     try {
@@ -1205,6 +1221,9 @@
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
+            </button>
+            <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromIndex(index); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6"/><line x1="3" y1="12" x2="14" y2="12"/><line x1="3" y1="18" x2="10" y2="18"/><path d="M16 8v8l6-4z" fill="currentColor" stroke="none"/></svg>
             </button>
             <button class="add-queue-btn" onclick={() => addTrackToQueue(t)} title={$tr('queue.addToQueue')}>+</button>
             <span class="track-heart" onclick={(e) => e.stopPropagation()}>
@@ -2799,6 +2818,23 @@
   .remove-btn:hover {
     color: var(--tune-warning);
   }
+
+  .play-from-here-btn {
+    background: none;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease-out;
+    opacity: 0;
+  }
+  .track-item:hover .play-from-here-btn { opacity: 1; }
+  .play-from-here-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
 
   .add-queue-btn {
     background: none;
