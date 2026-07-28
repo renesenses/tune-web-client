@@ -22,6 +22,10 @@
   let genreAlbumTracks = $state<Track[]>([]);
   let loading = $state(false);
   let tree = $state<Record<string, string[]>>({});
+  // Until the tree has loaded once, don't treat every genre as "orphan" — that
+  // renders the whole library as a grid that then collapses into the branch list
+  // when the tree arrives (the grid↔list flash of forum #1029).
+  let treeLoaded = $state(false);
 
   let zone = $derived($currentZone);
 
@@ -61,6 +65,7 @@
   });
 
   let orphanGenres = $derived.by(() => {
+    if (!treeLoaded) return [];
     return $genres.filter(g => !knownTreeGenres.has(g.name.toLowerCase()));
   });
 
@@ -249,7 +254,10 @@
 
   // Load the genre tree once.
   $effect(() => {
-    api.getGenreTree().then(r => tree = r.tree ?? {}).catch(e => console.error('Load genre tree error:', e));
+    api.getGenreTree()
+      .then(r => tree = r.tree ?? {})
+      .catch(e => console.error('Load genre tree error:', e))
+      .finally(() => treeLoaded = true);
   });
 
   // Genre search filter (client-side)

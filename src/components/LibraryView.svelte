@@ -273,6 +273,12 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   let selectedGenre = $state<string | null>(null);
   let selectedParent = $state<string | null>(null);
   let genreTree = $state<Record<string, string[]>>({});
+  // Whether the genre tree has been fetched at least once. Until it has, we must
+  // NOT treat every library genre as "orphan" (see orphanGenres): doing so dumps
+  // the whole library into the responsive grid, which then collapses into the
+  // branch list the instant the tree arrives — the grid↔list flash reported in
+  // forum #1029 (also visible when the server is unreachable and the fetch fails).
+  let genreTreeLoaded = $state(false);
 
   // Auto-resolve parent from selectedGenre via tree, even if the user
   // navigated via a chip before the tree finished loading.
@@ -309,7 +315,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     }
     return set;
   });
-  let orphanGenres = $derived($genres.filter(g => !knownTreeGenres.has(g.name.toLowerCase())));
+  // While the tree is still loading, return [] so the "Hors arbre" grid stays
+  // empty instead of briefly showing every genre as a card (forum #1029). Once
+  // the fetch settles — success OR failure — orphans resolve normally, so a
+  // genuinely empty tree still falls back to the grid without a mid-load flash.
+  let orphanGenres = $derived(
+    genreTreeLoaded ? $genres.filter(g => !knownTreeGenres.has(g.name.toLowerCase())) : [],
+  );
 
   // Genres filtered by search query (for the Genres tab)
   let genreSearchQuery = $derived(fold(searchQuery));
@@ -328,7 +340,10 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   // Use onMount (not $effect) — the $effect(() => { untrack(...) }) pattern
   // can re-trigger on batch flushes in certain Svelte 5 runtime versions.
   onMount(() => {
-    api.getGenreTree().then(r => genreTree = r.tree ?? {}).catch(() => {});
+    api.getGenreTree()
+      .then(r => genreTree = r.tree ?? {})
+      .catch(() => {})
+      .finally(() => genreTreeLoaded = true);
     loadUserTags();
   });
   let formatFilter = $state<string | null>(null);
