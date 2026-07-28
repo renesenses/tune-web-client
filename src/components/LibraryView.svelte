@@ -574,6 +574,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   let albumScrollTop = $state(0);
   let savedAlbumScrollTop = $state(0);
   let savedArtistScrollTop = $state(0);
+  // Genres tab: its genre list + genre album grid both scroll inside
+  // `.library-view` (like the artist list), NOT the album-grid viewport. Opening
+  // a genre album/artist detail must save that container's scrollTop so Back
+  // returns to the viewed row instead of the top of the Library page (#1215).
+  let savedGenreScrollTop = $state(0);
   // Back-stack of artists visited by drilling into "similar artists" within the
   // detail view (#1144, Bilou). Entering the detail fresh (from grid/search/album)
   // leaves this empty, so Back returns to the grid as before; each similar-artist
@@ -1112,7 +1117,16 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   async function selectAlbumDetail(album: Album) {
     if (!album.id) return;
-    savedAlbumScrollTop = albumScrollTop;
+    // In the genres tab the album cards live in `.library-view` (not the album
+    // grid viewport), so capture that container's scrollTop for Back and skip
+    // the album-grid restore, which would target an unmounted viewport (#1215).
+    if ($libraryTab === 'genres') {
+      const genreEl = document.querySelector('.library-view') as HTMLElement | null;
+      savedGenreScrollTop = genreEl ? genreEl.scrollTop : 0;
+      savedAlbumScrollTop = 0;
+    } else {
+      savedAlbumScrollTop = albumScrollTop;
+    }
     // NE PAS vider selectedArtist ici : le garder permet à goBack() de revenir à
     // la page de l'artiste quand l'album a été ouvert depuis celle-ci (bug Fabien-1).
     expandedTrackCredits = null;
@@ -1157,6 +1171,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // the top of the artist list instead of the viewed artist (#1118, #870).
     const scrollEl = document.querySelector('.library-view');
     if (scrollEl) savedArtistScrollTop = scrollEl.scrollTop;
+    // Genres tab: the same `.library-view` scroll must be restored on Back
+    // (#1215). Only capture when entering fresh from the genre list (not when
+    // drilling in from an already-open album, whose scrollTop is the detail's,
+    // so the genre-list offset saved by selectAlbumDetail is kept intact).
+    if ($libraryTab === 'genres' && !$selectedAlbum && scrollEl) {
+      savedGenreScrollTop = (scrollEl as HTMLElement).scrollTop;
+    }
     selectedArtist.set(artist);
     window.history.pushState({ view: 'library', artistId: artist.id, tab: $libraryTab }, '', '#library');
     selectedAlbum.set(null);
@@ -1634,6 +1655,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       // offset, otherwise the tab comes back as a black page (#1170).
       if (wasInDetail && !inDetail && $libraryTab === 'years') {
         restoreYearScrollWhenReady(yearScrollTop);
+      }
+      // Genres tab: restore the `.library-view` scroll saved when the genre
+      // album/artist was opened, so Back returns to the viewed row instead of
+      // the top of the Library page (#1215). Same container as the artist list,
+      // so the artist-list poll-until-ready helper applies unchanged.
+      if (wasInDetail && !inDetail && $libraryTab === 'genres' && savedGenreScrollTop > 0) {
+        restoreArtistScrollWhenReady(savedGenreScrollTop);
       }
     });
   });
