@@ -4494,6 +4494,23 @@
         {/if}
       </div>
 
+      {#if $licenseState.sessionConflict}
+        <!-- Licence flottante : active sur un autre serveur du même compte -->
+        <div class="license-conflict-banner" role="status">
+          <svg class="license-conflict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+          <div class="license-conflict-text">
+            <strong>{$t('settings.licenseSessionConflictTitle')}</strong>
+            <span>
+              {#if $licenseState.sessionConflict.active_server}
+                {$t('settings.licenseSessionConflictBodyNamed').replace('{server}', $licenseState.sessionConflict.active_server)}
+              {:else}
+                {$t('settings.licenseSessionConflictBody')}
+              {/if}
+            </span>
+          </div>
+        </div>
+      {/if}
+
       {#if $licenseState.licenseKey}
         <!-- Active license display -->
         <div class="license-active-row">
@@ -6472,6 +6489,37 @@
     font-size: 13px;
     color: var(--tune-danger, #ef4444);
     margin-bottom: var(--space-md);
+  }
+
+  .license-conflict-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-md);
+    border: 1px solid var(--tune-warning, #f59e0b);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--tune-warning, #f59e0b) 12%, transparent);
+  }
+
+  .license-conflict-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--tune-warning, #f59e0b);
+  }
+
+  .license-conflict-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--tune-text);
+  }
+
+  .license-conflict-text strong {
+    font-weight: 600;
   }
 
   .license-features {
