@@ -469,11 +469,19 @@
     max-width: 900px;
   }
 
+  /* En-tête figé au défilement (#1237, Jean). */
   .radios-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: var(--space-lg);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--tune-bg);
+    margin-top: calc(-1 * var(--space-lg));
+    padding-top: var(--space-lg);
+    padding-bottom: 8px;
   }
 
   .radios-header h2 {

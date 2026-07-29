@@ -2836,6 +2836,18 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     /* Keep the right-side controls (year switches etc.) clear of the floating
        global search button pinned to the top-right. */
     padding-right: 52px;
+    /* En-tête figé (titre + recherche + onglets) pendant le défilement des
+       listes Artistes/Genres, qui scrollent DANS .library-view — les grilles
+       Albums/Années ont leur propre viewport et ne défilent pas ici (#1237,
+       Jean). Le margin/padding absorbe le padding-top du conteneur pour que
+       le contenu ne dépasse pas au-dessus du bandeau. */
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--tune-bg);
+    margin-top: calc(-1 * var(--space-lg));
+    padding-top: var(--space-lg);
+    padding-bottom: var(--space-sm);
   }
 
   .library-header h2 {
