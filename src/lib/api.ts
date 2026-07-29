@@ -3310,6 +3310,14 @@ export interface LicenseFeature {
   display_name: string;
 }
 
+/** Set when this server's floating licence is currently held by ANOTHER of the
+ * user's servers (single-session model). While present, `tier` is `free` here
+ * until that server stops pinging — this only explains *why*. */
+export interface LicenseSessionConflict {
+  active_server: string | null;
+  active_since: string | null;
+}
+
 export interface LicenseStatus {
   tier: string;
   license_key: string | null;
@@ -3317,6 +3325,8 @@ export interface LicenseStatus {
   features: Record<string, LicenseFeature>;
   zone_limit: number;
   hardware_fingerprint: string | null;
+  /** Null unless the licence is active on another server right now. */
+  session_conflict?: LicenseSessionConflict | null;
 }
 
 export interface LicenseActivateResponse {
