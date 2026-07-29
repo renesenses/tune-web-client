@@ -95,10 +95,86 @@
       send();
     }
   }
+
+  // --- Draggable floating button (Pascal: the bubble could sit over a button) ---
+  const FAB_POS_KEY = 'tune_ai_fab_pos';
+  const FAB_SIZE = 48;
+  let fabPos = $state<{ x: number; y: number } | null>(
+    (() => {
+      try {
+        const s = localStorage.getItem(FAB_POS_KEY);
+        return s ? (JSON.parse(s) as { x: number; y: number }) : null;
+      } catch {
+        return null;
+      }
+    })(),
+  );
+  let fabDragging = false;
+  let fabMoved = false;
+  let fabStartX = 0;
+  let fabStartY = 0;
+  let fabOffX = 0;
+  let fabOffY = 0;
+
+  function clampFab(x: number, y: number) {
+    const maxX = window.innerWidth - FAB_SIZE - 4;
+    const maxY = window.innerHeight - FAB_SIZE - 4;
+    return { x: Math.max(4, Math.min(maxX, x)), y: Math.max(4, Math.min(maxY, y)) };
+  }
+
+  function onFabPointerDown(e: PointerEvent) {
+    const el = e.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    fabOffX = e.clientX - rect.left;
+    fabOffY = e.clientY - rect.top;
+    fabStartX = e.clientX;
+    fabStartY = e.clientY;
+    fabDragging = true;
+    fabMoved = false;
+    el.setPointerCapture(e.pointerId);
+  }
+
+  function onFabPointerMove(e: PointerEvent) {
+    if (!fabDragging) return;
+    if (!fabMoved && Math.hypot(e.clientX - fabStartX, e.clientY - fabStartY) < 4) return;
+    fabMoved = true;
+    fabPos = clampFab(e.clientX - fabOffX, e.clientY - fabOffY);
+  }
+
+  function onFabPointerUp(e: PointerEvent) {
+    if (!fabDragging) return;
+    fabDragging = false;
+    (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+    if (fabMoved && fabPos) {
+      try {
+        localStorage.setItem(FAB_POS_KEY, JSON.stringify(fabPos));
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  function onFabClick() {
+    // A drag ends with a click event too — swallow it so moving never toggles.
+    if (fabMoved) {
+      fabMoved = false;
+      return;
+    }
+    toggle();
+  }
 </script>
 
 <!-- Floating button -->
-<button class="ai-fab" onclick={toggle} title="Demandez a Tune..." class:ai-fab-open={open}>
+<button
+  class="ai-fab"
+  onclick={onFabClick}
+  onpointerdown={onFabPointerDown}
+  onpointermove={onFabPointerMove}
+  onpointerup={onFabPointerUp}
+  style={fabPos ? `left:${fabPos.x}px; top:${fabPos.y}px; right:auto; bottom:auto;` : ''}
+  title="Glissez pour déplacer · cliquez pour demander à Tune…"
+  class:ai-fab-open={open}
+>
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
     <path d="M9 18V5l12-2v13" />
     <circle cx="6" cy="18" r="3" />
@@ -203,6 +279,7 @@
     justify-content: center;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     transition: transform 0.15s, box-shadow 0.15s;
+    touch-action: none;
   }
 
   .ai-fab:hover {
