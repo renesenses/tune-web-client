@@ -614,6 +614,17 @@
   .banner-dismiss:hover { opacity: 1; }
 
   /* ── Header ── */
+  /* En-tête figé au défilement (#1237, Jean). */
+  .plugins-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--tune-bg);
+    margin-top: calc(-1 * var(--space-xl));
+    padding-top: var(--space-xl);
+    padding-bottom: 8px;
+  }
+
   .plugins-header h1 {
     font-family: var(--font-heading, var(--font-body));
     font-size: 1.5rem;
