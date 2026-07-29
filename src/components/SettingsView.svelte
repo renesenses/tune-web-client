@@ -4787,11 +4787,19 @@
   }
 
   /* Tab pills */
+  /* Barre d'onglets figée au défilement (#1237, Jean). */
   .settings-tabs {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
     margin-bottom: 4px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--tune-bg);
+    margin-top: calc(-1 * var(--space-lg));
+    padding-top: var(--space-lg);
+    padding-bottom: 8px;
   }
 
   .settings-tab {

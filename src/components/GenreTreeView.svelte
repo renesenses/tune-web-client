@@ -254,7 +254,8 @@
   header h1 { margin: 0 0 4px; font-size: 1.5rem; color: var(--tune-text); }
   .lede { color: var(--tune-text-muted); font-size: 13px; margin: 0 0 14px; max-width: 760px; line-height: 1.45; }
   .lede code { background: var(--tune-bg); padding: 1px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; }
-  .actions { display: flex; gap: 8px; margin-bottom: 16px; }
+  /* Boutons figés au défilement — le vrai « haut utile » de cette vue (#1237). */
+  .actions { display: flex; gap: 8px; margin-bottom: 16px; position: sticky; top: 0; z-index: 20; background: var(--tune-bg); padding: 10px 0; margin-top: -10px; }
   .btn-save, .btn-secondary, .btn-add {
     padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
     cursor: pointer; border: none;
