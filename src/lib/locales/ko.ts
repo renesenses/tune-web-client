@@ -1195,6 +1195,7 @@ export default {
   "library.bioLevelFull": "상세",
   "library.noAlbumNote": "이 앨범에 사용할 수 있는 메모 없음",
   "library.ratingNotePlaceholder": "개인 메모...",
+  "library.ratingNoteNeedsStars": "메모를 추가하려면 앨범을 평가하세요",
   "library.quickFav": "빠른 즐겨찾기",
   "library.playNext": "다음에 재생",
   "library.moreOptions": "더 보기",

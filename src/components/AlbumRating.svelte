@@ -48,12 +48,18 @@
   }
 
   async function submitNote() {
+    // A note lives on the rating row, which cannot exist without a star value.
+    // Posting a note with rating 0 used to delete/reject the row and lose the
+    // text without telling anyone — the field is disabled until the album is
+    // rated, so this is only a guard against a stray call.
+    if (rating === 0) return;
     submitting = true;
     try {
       await api.rateAlbum(albumId, rating, note);
       notifications.success($tr('library.ratingSaved'));
     } catch (e) {
       console.error('Rate album note error:', e);
+      notifications.error($tr('library.ratingError'));
     }
     submitting = false;
   }
@@ -78,10 +84,12 @@
     <input
       type="text"
       class="rating-note-input"
-      placeholder={$tr('library.ratingNotePlaceholder')}
+      placeholder={rating === 0 ? $tr('library.ratingNoteNeedsStars') : $tr('library.ratingNotePlaceholder')}
+      title={rating === 0 ? $tr('library.ratingNoteNeedsStars') : ''}
+      disabled={rating === 0 || submitting}
       bind:value={note}
       onkeydown={(e) => e.key === 'Enter' && submitNote()}
-      onblur={() => { if (note !== '' || rating > 0) submitNote(); }}
+      onblur={() => submitNote()}
     />
   </div>
 </div>

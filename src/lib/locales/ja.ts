@@ -1195,6 +1195,7 @@ export default {
   "library.bioLevelFull": "詳細",
   "library.noAlbumNote": "このアルバムのメモはありません",
   "library.ratingNotePlaceholder": "個人メモ...",
+  "library.ratingNoteNeedsStars": "メモを追加するにはアルバムを評価してください",
   "library.quickFav": "クイックお気に入り",
   "library.playNext": "次に再生",
   "library.moreOptions": "その他のオプション",

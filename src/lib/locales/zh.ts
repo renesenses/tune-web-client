@@ -1195,6 +1195,7 @@ export default {
   "library.bioLevelFull": "详细",
   "library.noAlbumNote": "此专辑没有可用的笔记",
   "library.ratingNotePlaceholder": "个人笔记…",
+  "library.ratingNoteNeedsStars": "为专辑评分后即可添加笔记",
   "library.quickFav": "快速收藏",
   "library.playNext": "下一首播放",
   "library.moreOptions": "更多选项",
