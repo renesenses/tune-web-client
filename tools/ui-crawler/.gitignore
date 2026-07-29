@@ -1,0 +1,3 @@
+node_modules/
+# Sortie d'un passage : regeneree a chaque exploration, jamais versionnee.
+issues/
