@@ -728,6 +728,7 @@ export default {
   'dashboard.empty': 'Pas encore d\'historique d\'écoute. Lance quelque chose 🎶',
 
   // Equalizer
+  "eq.pureBypassWarning": "Le mode PURE est actif sur cette zone : le signal est envoyé bit-perfect au DAC et l'égaliseur est contourné. Désactivez PURE pour entendre vos réglages.",
   'eq.title': 'Égaliseur',
   'eq.enabled': 'Activé',
   'eq.disabled': 'Désactivé',

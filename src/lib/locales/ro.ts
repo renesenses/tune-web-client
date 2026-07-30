@@ -719,6 +719,7 @@ export default {
   'dashboard.empty': 'Încă niciun istoric de ascultare. Pornește ceva 🎶',
 
   // Equalizer
+  "eq.pureBypassWarning": "Modul PURE este activ pe această zonă: semnalul merge bit-perfect la DAC, iar egalizatorul este ocolit. Dezactivați PURE pentru a auzi reglajele.",
   'eq.title': 'Egalizator',
   'eq.enabled': 'Activat',
   'eq.disabled': 'Dezactivat',

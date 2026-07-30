@@ -245,11 +245,23 @@
   })));
 
   // Fetch current EQ from server on mount (if the endpoint exists)
+  // Mode PURE (audiophile) : le serveur contourne TOUT le DSP, égaliseur
+  // compris — prévenir au lieu de laisser des curseurs sans effet (BARATOUX).
+  let pureActive = $state(false);
+  async function loadPure(zoneId: number) {
+    try {
+      pureActive = (await api.getAudiophileMode(zoneId)).enabled;
+    } catch {
+      pureActive = false;
+    }
+  }
+
   onMount(async () => {
     loadLocal();
     loadProfiler();
     const zoneId = $currentZoneId;
     if (zoneId === null) return;
+    loadPure(zoneId);
     try {
       const eq = await api.getEq(zoneId);
       if (eq?.bands?.length === 10) {
@@ -265,6 +277,12 @@
 </script>
 
 <section class="equalizer-view">
+  {#if pureActive && $isPremium}
+    <div class="eq-pure-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      {$t('eq.pureBypassWarning' as any)}
+    </div>
+  {/if}
   <header class="eq-header">
     <h1>{$t('eq.title')}</h1>
     {#if $isPremium}
@@ -1000,5 +1018,17 @@
     .slider-freq {
       font-size: 0.6rem;
     }
+  }
+  .eq-pure-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    margin-bottom: var(--space-md);
+    border: 1px solid rgba(240, 180, 41, 0.5);
+    border-radius: var(--radius-md);
+    background: rgba(240, 180, 41, 0.12);
+    color: #f0b429;
+    font-size: 13px;
   }
 </style>
