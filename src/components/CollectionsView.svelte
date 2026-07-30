@@ -5,6 +5,7 @@
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
+  import { currentZone, playAndSync } from '../lib/stores/zones';
   import { activeView, listResetNonce, saveDetailScroll, restoreDetailScroll, stashViewState, takeViewState } from '../lib/stores/navigation';
   import AlbumArt from './AlbumArt.svelte';
   import type { Album } from '../lib/types';
@@ -114,6 +115,39 @@
     detailLoading = false;
   }
 
+  // « Play entire collection » (Dimitri, forum #1241) : toute la collection en
+  // file, dans l'ordre des albums — le serveur enchaîne ensuite tout seul.
+  let playAllLoading = $state(false);
+  async function playCollection(shuffle = false) {
+    const zone = $currentZone;
+    if (!zone?.id || collectionAlbums.length === 0 || playAllLoading) return;
+    playAllLoading = true;
+    try {
+      const trackLists = await Promise.all(
+        collectionAlbums.map((a: any) => api.getAlbumTracks(a.id).catch(() => [])),
+      );
+      const trackIds = trackLists.flat().map((t: any) => t.id).filter(Boolean);
+      if (!trackIds.length) {
+        notifications.error(get(t)('collections.noTracks'));
+        playAllLoading = false;
+        return;
+      }
+      if (shuffle) {
+        for (let i = trackIds.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [trackIds[i], trackIds[j]] = [trackIds[j], trackIds[i]];
+        }
+      }
+      await playAndSync(zone.id, { track_ids: trackIds });
+      notifications.success(
+        get(t)('collections.playingAll').replace('{count}', String(trackIds.length)),
+      );
+    } catch (e: any) {
+      notifications.error(e?.message || get(t)('collections.playError'));
+    }
+    playAllLoading = false;
+  }
+
   async function removeAlbum(albumId: number) {
     if (!selectedCollection) return;
     try {
@@ -194,6 +228,16 @@
               <p class="col-desc">{selectedCollection.description}</p>
             {/if}
             <span class="col-count">{collectionAlbums.length} albums</span>
+            <div class="col-play-actions">
+              <button class="play-all-btn" onclick={() => playCollection(false)} disabled={playAllLoading || collectionAlbums.length === 0}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z" /></svg>
+                {playAllLoading ? '…' : $t('collections.playAll')}
+              </button>
+              <button class="shuffle-all-btn" onclick={() => playCollection(true)} disabled={playAllLoading || collectionAlbums.length === 0}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+                {$t('collections.shuffleAll')}
+              </button>
+            </div>
           </div>
           {#if detailLoading}
             <div class="loading"><div class="spinner"></div></div>
@@ -595,4 +639,16 @@
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+  .col-play-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .play-all-btn, .shuffle-all-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: var(--radius-md);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.12s ease-out;
+  }
+  .play-all-btn { border: none; background: var(--tune-accent, #6366f1); color: #fff; }
+  .play-all-btn:hover:not(:disabled) { filter: brightness(1.1); }
+  .shuffle-all-btn { border: 1px solid var(--tune-border); background: none; color: var(--tune-text); }
+  .shuffle-all-btn:hover:not(:disabled) { border-color: var(--tune-accent); color: var(--tune-accent); }
+  .play-all-btn:disabled, .shuffle-all-btn:disabled { opacity: 0.5; cursor: default; }
 </style>
