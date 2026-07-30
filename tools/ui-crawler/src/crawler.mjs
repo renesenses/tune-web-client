@@ -10,7 +10,7 @@
  * C'est ce qui permet d'atteindre les etoiles de notation sans qu'aucune ligne
  * ne parle de notation.
  */
-import { inventory, snapshotState, passiveScan, describeView, dismissOverlays } from './dom.mjs';
+import { inventory, snapshotState, passiveScan, describeView, dismissOverlays, safeClickPoint } from './dom.mjs';
 import { analyse } from './detect.mjs';
 import { hardSkipPattern, RISKY, I18N_NAMESPACES, inputValue } from './config.mjs';
 
@@ -318,7 +318,12 @@ export class Crawler {
       return;
     }
 
-    await target.click(opts);
+    // Un conteneur cliquable peut abriter ses propres boutons ; viser son
+    // centre reviendrait a cliquer l'un d'eux.
+    const point = el.tag === 'button' || el.tag === 'a'
+      ? null
+      : await this.page.evaluate(safeClickPoint, el.crawlId);
+    await target.click(point ? { ...opts, position: point } : opts);
   }
 
   // ------------------------------------------------------------- navigation

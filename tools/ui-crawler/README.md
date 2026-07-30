@@ -61,8 +61,12 @@ L'automate travaille toujours a cote de l'installation reelle :
 - `--serve` copie `~/Library/Application Support/Tune/tune.db` dans un dossier
   temporaire et lance le serveur dessus. La bibliotheque de l'utilisateur n'est
   jamais modifiee.
-- Toutes les zones sont mises a volume 0 avant de commencer : l'automate va
-  cliquer sur des boutons de lecture.
+- Toutes les zones sont mises a volume 0 avant de commencer **et toutes les 15
+  secondes ensuite** : l'automate clique des boutons de lecture, et la
+  decouverte reseau ajoute des zones en cours de passage (une enceinte qui
+  s'annonce, un televiseur qui se reveille) — celles-la arrivent avec leur
+  volume par defaut. Couper le son une seule fois au demarrage ne suffit pas ;
+  on l'a appris en mettant de la musique chez quelqu'un qui travaillait.
 - Les actions dont l'effet sort du bac a sable ne sont jamais declenchees :
   arret/redemarrage du serveur, scan de dossiers, connexion a un service de
   streaming, installation de greffon, import/export de fichiers, deconnexion,
@@ -139,6 +143,20 @@ Les cartes d'album ne sont ni des `button` ni des `a` : Svelte pose ses
 gestionnaires par `addEventListener` sur des `div`. Le recensement les trouve
 par leur curseur (`cursor: pointer`), en ne gardant que le conteneur le plus
 externe de chaque zone cliquable.
+
+## Verification ciblee
+
+`check-rating.mjs` rejoue le parcours de notation dans le navigateur et dit ce
+que l'UI affiche a chaque etape :
+
+```bash
+node check-rating.mjs --base-url http://127.0.0.1:8888
+```
+
+Il sert a ce que l'exploration ne sait pas faire : prouver qu'un defaut a
+disparu. Une exploration qui ne signale plus rien ne prouve rien tant qu'on n'a
+pas montre qu'elle est bien passee par l'ecran concerne. Le script coupe le son
+lui-meme avant d'ouvrir la page, comme `run.mjs`.
 
 ## Tests
 

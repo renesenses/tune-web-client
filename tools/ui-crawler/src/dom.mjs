@@ -276,6 +276,43 @@ export function passiveScan(options) {
   }
 }
 
+/**
+ * Point ou cliquer un conteneur cliquable, en coordonnees de page.
+ *
+ * Playwright vise le centre de l'element. Sur une carte d'album, le centre est
+ * la pochette — que recouvre au survol une pastille « lecture » qui arrete la
+ * propagation : le clic lance l'album au lieu d'ouvrir sa fiche, et
+ * l'exploration n'atteint jamais l'ecran de detail. On cherche donc un point
+ * qui appartienne au conteneur et a aucun bouton interne.
+ *
+ * Renvoie `null` quand le centre convient — le cas courant.
+ */
+export function safeClickPoint(crawlId) {
+  const el = document.querySelector(`[data-crawl-id="${crawlId}"]`);
+  if (!el) return null;
+  const rect = el.getBoundingClientRect();
+
+  const blockers = [...el.querySelectorAll('button, a[href], [role="button"], input, select')]
+    .map((child) => child.getBoundingClientRect())
+    .filter((r) => r.width > 0 && r.height > 0);
+  if (!blockers.length) return null;
+
+  const covered = (x, y) => blockers.some((r) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
+  const centre = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  if (!covered(centre.x, centre.y)) return null;
+
+  // Balayer l'element de bas en haut : le texte (titre, artiste) se trouve
+  // presque toujours sous la vignette, la ou aucun bouton ne s'interpose.
+  for (let dy = rect.height - 4; dy > 0; dy -= Math.max(4, rect.height / 20)) {
+    for (const fx of [0.5, 0.15, 0.85]) {
+      const x = rect.left + rect.width * fx;
+      const y = rect.top + dy;
+      if (!covered(x, y)) return { x: Math.round(x - rect.left), y: Math.round(y - rect.top) };
+    }
+  }
+  return null;
+}
+
 /** Etat courant de la vue : sert d'entete de contexte dans les issues. */
 export function describeView() {
   const active = document.querySelector('.nav-item.active');

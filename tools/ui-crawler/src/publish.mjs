@@ -156,12 +156,20 @@ function body(issue, meta, targets = {}) {
   return parts.join('\n');
 }
 
-/** Empreintes deja publiees, lues dans le pied de corps des issues du depot. */
-async function fetchExisting(repo, log) {
+/**
+ * Empreintes deja publiees, lues dans le pied de corps des issues du depot.
+ *
+ * Recherche ciblee plutot que liste paginee : `gh issue list --limit N` finit
+ * par laisser tomber les plus anciennes des qu'un depot depasse N issues, et
+ * une issue tombee hors de la fenetre serait rouverte en doublon. La recherche
+ * ne rapporte que les issues de l'automate, quel que soit leur age.
+ */
+async function fetchExisting(repo) {
   const map = new Map();
   try {
-    const { stdout } = await run('gh', ['issue', 'list', '--repo', repo, '--state', 'all',
-      '--limit', '500', '--json', 'number,body']);
+    const { stdout } = await run('gh', ['search', 'issues',
+      '--repo', repo, '--match', 'body', 'tune-ui-crawler:',
+      '--limit', '1000', '--json', 'number,body']);
     for (const issue of JSON.parse(stdout)) {
       const match = /tune-ui-crawler:([0-9a-f]{8})/.exec(issue.body || '');
       if (match) map.set(match[1], issue.number);
@@ -169,8 +177,8 @@ async function fetchExisting(repo, log) {
   } catch (e) {
     // Publier sans cette liste creerait des doublons a chaque passage : mieux
     // vaut s'arreter et laisser corriger l'acces.
-    throw new Error(`impossible de lister les issues de ${repo} (${e.message.split('\n')[0]}) — ` +
-      'publication interrompue pour ne pas creer de doublons');
+    throw new Error(`impossible de retrouver les issues deja ouvertes sur ${repo} ` +
+      `(${e.message.split('\n')[0]}) — publication interrompue pour ne pas creer de doublons`);
   }
   return map;
 }

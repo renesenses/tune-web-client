@@ -46,6 +46,7 @@ let crawler = null;
 let issues = null;
 let started = Date.now();
 let reported = false;
+let stopKeepingQuiet = () => {};
 
 /**
  * Ecrit le rapport de ce qui a ete trouve jusqu'ici.
@@ -74,6 +75,7 @@ function writeReport(interrupted = false) {
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
     opt.log(`\n! ${signal} recu — ecriture du rapport partiel`);
+    stopKeepingQuiet();
     writeReport(true);
     if (serverProcess) serverProcess.kill('SIGTERM');
     process.exit(130);
@@ -83,7 +85,8 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 try {
   if (argv.serve) opt.baseUrl = await startDisposableServer(argv);
   await waitForServer(opt.baseUrl);
-  await silenceZones(opt.baseUrl);
+  await silenceZones(opt.baseUrl, { announce: true });
+  stopKeepingQuiet = keepQuiet(opt.baseUrl);
 
   started = Date.now();
   issues = new IssueLog({ outDir: opt.outDir, sourceRoot: WEB_CLIENT });
@@ -133,6 +136,7 @@ try {
   process.exitCode = result.count > 0 ? 1 : 0;
 } finally {
   // Meme en cas d'erreur inattendue, ce qui a ete trouve est conserve.
+  stopKeepingQuiet();
   writeReport(true);
   if (serverProcess) serverProcess.kill('SIGTERM');
 }
@@ -148,8 +152,12 @@ async function startDisposableServer(args) {
   const binary = join(serverRoot, 'target/release/tune-server');
   if (!existsSync(binary)) throw new Error(`binaire serveur introuvable : ${binary} (cargo build --release)`);
 
-  const dist = join(WEB_CLIENT, 'dist');
+  // Par defaut le `dist/` voisin de l'automate ; `--web-dir` permet de faire
+  // explorer une autre construction du client — celle d'une branche de
+  // correctif, par exemple, pour verifier qu'un defaut a bien disparu.
+  const dist = args['web-dir'] ? resolve(args['web-dir']) : join(WEB_CLIENT, 'dist');
   if (!existsSync(dist)) throw new Error(`${dist} absent — lancer \`npm run build\` dans le client web`);
+  if (args['web-dir']) opt.log(`· client explore : ${dist}`);
 
   const sandbox = mkdtempSync(join(tmpdir(), 'tune-crawl-'));
   const db = join(sandbox, 'crawl.db');
@@ -160,9 +168,27 @@ async function startDisposableServer(args) {
   const port = Number(args.port || (await freePort()));
   opt.log(`· serveur jetable : port ${port}, base ${db}`);
 
+  // `TUNE_DB_PATH` ne deplace que la base. Le cache de pochettes, lui, reste
+  // par defaut dans `~/Library/Application Support/Tune/artwork_cache`, partage
+  // avec l'installation reelle : une pochette recuperee ou televersee pendant
+  // l'exploration y atterrirait. `TUNE_ARTWORK_DIR` le ramene dans le bac a
+  // sable, qui disparait avec le passage.
   serverProcess = spawn(binary, [], {
+    // Le repertoire de travail reste celui du serveur : c'est lui qui resout
+    // `plugins/` et consorts, et un serveur lance ailleurs se comporterait
+    // differemment de l'installation qu'on veut tester.
     cwd: serverRoot,
-    env: { ...process.env, TUNE_PORT: String(port), TUNE_DB_PATH: db, TUNE_WEB_DIR: dist },
+    env: {
+      ...process.env,
+      TUNE_PORT: String(port),
+      TUNE_DB_PATH: db,
+      TUNE_WEB_DIR: dist,
+      TUNE_ARTWORK_DIR: join(sandbox, 'artwork_cache'),
+      // La route de stockage reecrit `tune.toml` en place (db_path,
+      // artwork_dir). Pointer la vers le bac a sable evite qu'un « Enregistrer »
+      // declenche par l'exploration modifie la configuration reelle.
+      TUNE_CONFIG_PATH: join(sandbox, 'tune.toml'),
+    },
     stdio: ['ignore', 'ignore', 'ignore'],
   });
   serverProcess.on('exit', (code) => {
@@ -197,14 +223,16 @@ async function waitForServer(baseUrl, timeoutMs = 30000) {
 }
 
 /**
- * Met toutes les zones a zero avant de commencer : l'automate va cliquer sur
- * des boutons « lecture », et personne ne veut que la machine se mette a jouer
- * de la musique pendant un passage de dix minutes.
+ * Met toutes les zones a zero : l'automate va cliquer sur des boutons
+ * « lecture », et personne ne veut que la machine se mette a jouer de la
+ * musique pendant un passage de dix minutes.
+ *
+ * @returns {number} nombre de zones traitees
  */
-async function silenceZones(baseUrl) {
+async function silenceZones(baseUrl, { announce = false } = {}) {
   try {
     const r = await fetch(`${baseUrl}/api/v1/zones`, { signal: AbortSignal.timeout(3000) });
-    if (!r.ok) return;
+    if (!r.ok) return 0;
     const data = await r.json();
     const zones = Array.isArray(data) ? data : data.items || data.zones || [];
     for (const zone of zones) {
@@ -214,8 +242,25 @@ async function silenceZones(baseUrl) {
         body: JSON.stringify({ volume: 0 }),
       }).catch(() => {});
     }
-    if (zones.length) opt.log(`· ${zones.length} zone(s) mises a volume 0`);
-  } catch { /* pas de zones : rien a faire */ }
+    if (announce && zones.length) opt.log(`· ${zones.length} zone(s) mises a volume 0`);
+    return zones.length;
+  } catch {
+    return 0; // pas de zones : rien a couper
+  }
+}
+
+/**
+ * Reprend le silence a intervalle regulier pendant l'exploration.
+ *
+ * Couper le son au demarrage ne suffit pas : la decouverte reseau ajoute des
+ * zones en cours de route (une enceinte AirPlay qui s'annonce, un televiseur
+ * qui se reveille), et celles-la arrivent avec leur volume par defaut. Un clic
+ * sur « lecture » les trouve a plein volume.
+ */
+function keepQuiet(baseUrl, everyMs = 15000) {
+  const timer = setInterval(() => { silenceZones(baseUrl).catch(() => {}); }, everyMs);
+  timer.unref(); // ne pas maintenir le processus en vie pour ce timer
+  return () => clearInterval(timer);
 }
 
 function parseArgs(args) {
