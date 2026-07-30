@@ -1213,6 +1213,7 @@ export default {
   "library.bioLevelFull": "Détaillée",
   "library.noAlbumNote": "Aucune note disponible pour cet album",
   "library.ratingNotePlaceholder": "Note personnelle...",
+  "library.ratingNoteNeedsStars": "Notez l’album pour ajouter un commentaire",
   "library.quickFav": "Favori rapide",
   "library.playNext": "Lire ensuite",
   "library.moreOptions": "Plus d'options",

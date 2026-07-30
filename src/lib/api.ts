@@ -172,6 +172,13 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
     throw new Error('Expected JSON but received HTML — check the endpoint URL');
   }
+  // A 204, or any 2xx with an empty body, is a success with nothing to parse.
+  // Many mutating endpoints answer that way; treating it as a parse failure
+  // made successful writes surface as errors in the UI (the rating that saved
+  // fine but showed "Erreur notation").
+  if (response.status === 204 || text.trim() === '') {
+    return undefined as T;
+  }
   try {
     return JSON.parse(text) as T;
   } catch {

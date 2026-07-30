@@ -1203,6 +1203,7 @@ export default {
   "library.bioLevelFull": "Detaliat",
   "library.noAlbumNote": "Nicio notă disponibilă pentru acest album",
   "library.ratingNotePlaceholder": "Notă personală...",
+  "library.ratingNoteNeedsStars": "Evaluează albumul pentru a adăuga o notă",
   "library.quickFav": "Favorit rapid",
   "library.playNext": "Redă următoarea",
   "library.moreOptions": "Mai multe opțiuni",

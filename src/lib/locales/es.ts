@@ -1195,6 +1195,7 @@ export default {
   "library.bioLevelFull": "Detallada",
   "library.noAlbumNote": "No hay ninguna nota disponible para este álbum",
   "library.ratingNotePlaceholder": "Nota personal...",
+  "library.ratingNoteNeedsStars": "Puntúa el álbum para añadir una nota",
   "library.quickFav": "Favorito rápido",
   "library.playNext": "Reproducir a continuación",
   "library.moreOptions": "Más opciones",

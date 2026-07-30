@@ -10,6 +10,8 @@
 
   let rating = $state(0);
   let note = $state('');
+  /** Dernier commentaire enregistre, pour ne pas le renvoyer inchange. */
+  let savedNote = $state('');
   let loadedAlbumId = $state<number | null>(null);
   let submitting = $state(false);
 
@@ -20,9 +22,11 @@
       const r = await api.getAlbumRating(id);
       rating = r.rating ?? 0;
       note = r.note ?? '';
+      savedNote = note;
     } catch {
       rating = 0;
       note = '';
+      savedNote = '';
     }
   }
 
@@ -37,6 +41,7 @@
       const newRating = star === rating ? 0 : star;
       await api.rateAlbum(albumId, newRating, note);
       rating = newRating;
+      savedNote = note;
       notifications.success(
         newRating > 0 ? `${$tr('library.rating')}: ${newRating}/5` : $tr('library.ratingRemoved')
       );
@@ -48,12 +53,22 @@
   }
 
   async function submitNote() {
+    // A note lives on the rating row, which cannot exist without a star value.
+    // Posting a note with rating 0 used to delete/reject the row and lose the
+    // text without telling anyone — the field is disabled until the album is
+    // rated, so this is only a guard against a stray call.
+    if (rating === 0) return;
+    // Entree enregistre, puis le blur qui suit enregistrerait une seconde fois :
+    // deux ecritures et deux toasts pour une seule saisie.
+    if (note === savedNote) return;
     submitting = true;
     try {
       await api.rateAlbum(albumId, rating, note);
+      savedNote = note;
       notifications.success($tr('library.ratingSaved'));
     } catch (e) {
       console.error('Rate album note error:', e);
+      notifications.error($tr('library.ratingError'));
     }
     submitting = false;
   }
@@ -78,10 +93,12 @@
     <input
       type="text"
       class="rating-note-input"
-      placeholder={$tr('library.ratingNotePlaceholder')}
+      placeholder={rating === 0 ? $tr('library.ratingNoteNeedsStars') : $tr('library.ratingNotePlaceholder')}
+      title={rating === 0 ? $tr('library.ratingNoteNeedsStars') : ''}
+      disabled={rating === 0 || submitting}
       bind:value={note}
       onkeydown={(e) => e.key === 'Enter' && submitNote()}
-      onblur={() => { if (note !== '' || rating > 0) submitNote(); }}
+      onblur={() => submitNote()}
     />
   </div>
 </div>
