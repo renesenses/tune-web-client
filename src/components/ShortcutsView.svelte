@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { shortcuts, removeShortcut, renameShortcut, togglePin, navigateToShortcut, type Shortcut } from '../lib/stores/shortcuts';
+  import { shortcuts, removeShortcut, updateShortcut, togglePin, navigateToShortcut, type Shortcut } from '../lib/stores/shortcuts';
   import { notifications } from '../lib/stores/notifications';
   import { t } from '../lib/i18n';
 
@@ -48,7 +48,7 @@
 
   async function saveEdit() {
     if (!editingId || !editName.trim()) return;
-    await renameShortcut(editingId, editName.trim());
+    await updateShortcut(editingId, { name: editName.trim(), icon: editIcon });
     editingId = null;
   }
 

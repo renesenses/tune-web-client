@@ -176,9 +176,19 @@ export async function removeShortcut(id: string) {
   await persist();
 }
 
-export async function renameShortcut(id: string, name: string) {
-  shortcuts.update(s => s.map(sc => sc.id === id ? { ...sc, name } : sc));
+/**
+ * Update the editable fields of a shortcut (name and/or icon). The edit form
+ * in ShortcutsView lets the user change BOTH, so a name-only setter silently
+ * dropped icon changes (Sevy, forum editer-un-raccourcis-ne-fonctionne-pas:
+ * "les nouvelles données n'apparaissent pas"). Spread whatever changed.
+ */
+export async function updateShortcut(id: string, changes: Partial<Pick<Shortcut, 'name' | 'icon'>>) {
+  shortcuts.update(s => s.map(sc => sc.id === id ? { ...sc, ...changes } : sc));
   await persist();
+}
+
+export async function renameShortcut(id: string, name: string) {
+  await updateShortcut(id, { name });
 }
 
 export async function reorderShortcuts(newOrder: Shortcut[]) {
