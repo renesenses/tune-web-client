@@ -110,12 +110,21 @@
     selectedHost = share;
     selectedShare = null;
     if (share.shares.length > 0) {
-      hostShares = share.shares;
+      // May hold share objects (manual-host path stores scan_host results) or
+      // bare strings — normalise to names so the list doesn't show [object Object].
+      hostShares = (share.shares as any[])
+        .map((s: any) => (typeof s === 'string' ? s : s?.name))
+        .filter((n: any): n is string => typeof n === 'string' && n.length > 0);
     } else {
       loadingShares = true;
       try {
         const result = await api.listHostShares(share.id);
-        hostShares = result.shares || [];
+        // scan_host returns share OBJECTS ({name,type,host,protocol,path}), not
+        // bare strings — rendering them directly showed "[object Object]"
+        // (Dominique). Normalise to the share name (tolerate either shape).
+        hostShares = (result.shares || [])
+          .map((s: any) => (typeof s === 'string' ? s : s?.name))
+          .filter((n: any): n is string => typeof n === 'string' && n.length > 0);
       } catch {
         hostShares = [];
       }
