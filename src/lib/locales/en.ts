@@ -490,6 +490,8 @@ export default {
   'browse.title': 'Browse by Folder',
   'browse.roots': 'Locations',
   'browse.noRoots': 'No music directories configured',
+  'browse.rootMissing': 'Folder not found — check the mount',
+  'browse.rootEmpty': 'Empty folder',
   'browse.noDirs': 'No subdirectories',
   'browse.noTracks': 'No tracks in this directory',
   'browse.trackCount': '{count} tracks',
@@ -645,8 +647,12 @@ export default {
   'diagnostics.bugReportBtn': 'Report a Bug',
   'diagnostics.bugReportLoading': 'Generating report...',
   'diagnostics.bugReportTitle': 'Bug Report',
-  'diagnostics.bugReportHint': 'Copy this report and paste it into a forum post or email.',
+  'diagnostics.bugReportHint': 'Submit this report in one click, or copy it to paste elsewhere.',
   'diagnostics.bugReportCopy': 'Copy to Clipboard',
+  'diagnostics.bugReportSubmit': 'Submit to forum',
+  'diagnostics.bugReportSubmitting': 'Sending…',
+  'diagnostics.bugReportSubmitted': 'Bug sent, thanks!',
+  'diagnostics.bugReportSubmitError': 'Send failed. Retry or copy the report into the forum.',
 
   // Signal Path
   'signal.title': 'Signal Path',
