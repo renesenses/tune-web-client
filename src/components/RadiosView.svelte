@@ -208,10 +208,20 @@
     }
   }
 
+  const MAX_IMPORT_MB = 25;
   async function handleImport(e: Event) {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
+    // Reject an oversized file up front: a huge .m3u would exceed the server
+    // body limit (413) or take a long time, leaving the UI stuck on "loading"
+    // until a browser refresh (Dominique: 78 MB / 909k-entry radio dump).
+    if (file.size > MAX_IMPORT_MB * 1024 * 1024) {
+      importMessage = `Fichier trop volumineux (${Math.round(file.size / 1048576)} Mo, max ${MAX_IMPORT_MB} Mo)`;
+      input.value = '';
+      setTimeout(() => (importMessage = ''), 6000);
+      return;
+    }
     try {
       const result = await api.importRadios(file);
       importMessage = `${result.imported} importées, ${result.skipped} ignorées`;

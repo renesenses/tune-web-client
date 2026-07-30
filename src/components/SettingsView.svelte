@@ -1935,6 +1935,18 @@
       const file = input.files?.[0];
       if (!file) return;
 
+      // Reject an oversized file up front: a huge .m3u would exceed the server
+      // body limit (413) or take a long time, leaving the UI stuck on "loading"
+      // until a browser refresh (Dominique: 78 MB / 909k-entry dump).
+      const MAX_IMPORT_MB = 25;
+      if (file.size > MAX_IMPORT_MB * 1024 * 1024) {
+        input.value = '';
+        notifications.error(
+          `Fichier trop volumineux (${Math.round(file.size / 1048576)} Mo, max ${MAX_IMPORT_MB} Mo)`,
+        );
+        return;
+      }
+
       // Linn .dpl playlists import directly (no preview step) via their own
       // endpoint, which matches tracks to the library and creates the playlist.
       if (source === 'playlists' && file.name.toLowerCase().endsWith('.dpl')) {
