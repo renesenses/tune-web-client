@@ -1271,6 +1271,7 @@ export default {
   "settings.scanCompleted": "Análisis completado: {scanned} archivos, {added} añadidos, {updated} actualizados, {removed} eliminados",
   "settings.folderPlaylists": "Carpetas → listas",
   "settings.folderPlaylistsHelp": "Durante el escaneo, una carpeta cuyas pistas provienen de varios álbumes (recopilación propia) se convierte en una lista local con el mismo nombre, resincronizada en cada escaneo.",
+  "settings.serviceTokensBridgeHelp": "Tokens de API para el enriquecimiento de metadatos (Discogs, Genius, MusicBrainz) y scrobbling (Last.fm, ListenBrainz): entrada, validación y ayuda paso a paso.",
   "settings.scanReportTitle": "Ãltimo informe de escaneo",
   "settings.scanReportUnchanged": "sin cambios",
   "settings.scanReportDuplicates": "duplicados omitidos",

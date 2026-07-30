@@ -1271,6 +1271,7 @@ export default {
   "settings.scanCompleted": "扫描完成：{scanned} 个文件，{added} 个已添加，{updated} 个已更新，{removed} 个已移除",
   "settings.folderPlaylists": "文件夹 → 播放列表",
   "settings.folderPlaylistsHelp": "扫描时，包含多张专辑曲目的文件夹（自制合辑）会成为同名的本地播放列表，并在每次扫描时重新同步。",
+  "settings.serviceTokensBridgeHelp": "用于元数据增强（Discogs、Genius、MusicBrainz）和 scrobbling（Last.fm、ListenBrainz）的 API 令牌：输入、验证和分步帮助。",
   "settings.scanReportTitle": "上次扫描报告",
   "settings.scanReportUnchanged": "未变更",
   "settings.scanReportDuplicates": "已跳过重复项",

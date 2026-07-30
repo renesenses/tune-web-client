@@ -3668,15 +3668,17 @@
     {/if}
 
     {#if settingsTab === 'services'}
-    <!-- Last.fm & scrobbling — the Services & Tokens page (Last.fm OAuth) was
-         orphaned from navigation, so users couldn't authorize scrobbling
-         anymore (forum #1113). Surface it from the Connected Services tab. -->
+    <!-- Services & Tokens bridge — the page was orphaned from navigation
+         (forum #1113) and its entry here only said « Last.fm », so nobody
+         looking for the Discogs/Genius/ListenBrainz tokens ever clicked it
+         (Bertrand). Name every token service it actually hosts. -->
     <section class="settings-section">
-      <h3>{$t('settings.lastfmScrobbling')}</h3>
+      <h3>Services &amp; Tokens</h3>
+      <p class="settings-note">{$t('settings.serviceTokensBridgeHelp' as any)}</p>
       <div class="service-list">
         <div class="service-card">
           <div class="service-header">
-            <span class="service-name">Last.fm</span>
+            <span class="service-name">MusicBrainz · Discogs · Last.fm · Genius · ListenBrainz</span>
             <div class="service-header-actions">
               <button class="scan-btn" onclick={() => activeView.set('services')}>Services &amp; Tokens →</button>
             </div>
