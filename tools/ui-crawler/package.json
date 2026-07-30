@@ -1,0 +1,16 @@
+{
+  "name": "tune-ui-crawler",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Automate d'exploration autonome de l'UI Tune — pilote chaque fonction et ouvre une issue par bug detecte",
+  "scripts": {
+    "crawl": "node run.mjs --serve",
+    "crawl:quick": "node run.mjs --serve --max-actions 60",
+    "test": "node --test tests/*.test.mjs",
+    "issues": "node export-github.mjs --dry-run"
+  },
+  "dependencies": {
+    "playwright": "1.56.0"
+  }
+}
