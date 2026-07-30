@@ -712,6 +712,7 @@ export default {
   'dashboard.empty': '아직 청취 기록이 없습니다. 음악을 재생해 보세요 🎶',
 
   // Equalizer
+  "eq.pureBypassWarning": "이 존에서 PURE 모드가 활성화되어 있습니다. 신호가 비트퍼펙트로 DAC에 전달되며 이퀄라이저는 우회됩니다. 설정을 들으려면 PURE를 끄세요.",
   'eq.title': '이퀄라이저',
   'eq.enabled': '활성화',
   'eq.disabled': '비활성화',

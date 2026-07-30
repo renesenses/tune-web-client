@@ -712,6 +712,7 @@ export default {
   'dashboard.empty': '暂无收听历史。播放一些音乐吧 🎶',
 
   // Equalizer
+  "eq.pureBypassWarning": "此区域已启用 PURE 模式：信号以比特完美方式送至 DAC，均衡器被旁路。关闭 PURE 才能听到您的调节效果。",
   'eq.title': '均衡器',
   'eq.enabled': '已启用',
   'eq.disabled': '已禁用',

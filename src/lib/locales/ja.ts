@@ -712,6 +712,7 @@ export default {
   'dashboard.empty': 'まだ再生履歴がありません。何か聴いてみましょう 🎶',
 
   // Equalizer
+  "eq.pureBypassWarning": "このゾーンでは PURE モードが有効です。信号はビットパーフェクトで DAC に送られ、イコライザーはバイパスされます。設定を反映するには PURE をオフにしてください。",
   'eq.title': 'イコライザー',
   'eq.enabled': '有効',
   'eq.disabled': '無効',

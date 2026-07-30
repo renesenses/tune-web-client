@@ -711,6 +711,7 @@ export default {
   'dashboard.empty': 'Noch kein Hörverlauf vorhanden. Starte etwas 🎶',
 
   // Equalizer
+  "eq.pureBypassWarning": "PURE-Modus ist auf dieser Zone aktiv: das Signal geht bit-perfekt zum DAC, der Equalizer wird umgangen. PURE deaktivieren, um die Einstellungen zu hören.",
   'eq.title': 'Equalizer',
   'eq.enabled': 'Aktiviert',
   'eq.disabled': 'Deaktiviert',
