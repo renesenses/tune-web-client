@@ -1288,6 +1288,7 @@ export default {
   "settings.scanCompleted": "Scan complete: {scanned} files, {added} added, {updated} updated, {removed} removed",
   "settings.folderPlaylists": "Folders → playlists",
   "settings.folderPlaylistsHelp": "During a scan, a folder whose tracks span several albums (hand-made compilation) becomes a local playlist with the same name, re-synced on every scan.",
+  "settings.serviceTokensBridgeHelp": "API tokens for metadata enrichment (Discogs, Genius, MusicBrainz) and scrobbling (Last.fm, ListenBrainz): entry, validation and step-by-step help.",
   "settings.scanReportTitle": "Last scan report",
   "settings.scanReportUnchanged": "unchanged",
   "settings.scanReportDuplicates": "duplicates skipped",

@@ -1271,6 +1271,7 @@ export default {
   "settings.scanCompleted": "スキャン完了: {scanned} 件のファイル、{added} 件を追加、{updated} 件を更新、{removed} 件を削除",
   "settings.folderPlaylists": "フォルダ → プレイリスト",
   "settings.folderPlaylistsHelp": "スキャン時、複数のアルバムの曲を含むフォルダ（自作コンピレーション）は同名のローカルプレイリストになり、スキャンごとに同期されます。",
+  "settings.serviceTokensBridgeHelp": "メタデータ強化（Discogs、Genius、MusicBrainz）と scrobbling（Last.fm、ListenBrainz）用の API トークン：入力・検証・手順ガイド。",
   "settings.scanReportTitle": "前回のスキャンレポート",
   "settings.scanReportUnchanged": "変更なし",
   "settings.scanReportDuplicates": "重複をスキップ",
