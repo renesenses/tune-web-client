@@ -212,6 +212,9 @@
   let bugReportText = $state('');
   let showBugReport = $state(false);
   let bugReportCopied = $state(false);
+  let bugReportSubmitting = $state(false);
+  let bugReportSubmitted = $state(false);
+  let bugReportSubmitError = $state('');
 
   async function fetchBugReport() {
     bugReportLoading = true;
@@ -240,10 +243,31 @@
     }
   }
 
+  // Submit the report straight to the community forum (the server forwards it to
+  // mozaiklabs.fr and creates a moderated bug thread — no copy/paste needed).
+  async function submitBugReport() {
+    bugReportSubmitting = true;
+    bugReportSubmitError = '';
+    try {
+      const resp = await fetch(`/api/v1/system/bug-report/submit`, { method: 'POST' });
+      if (destroyed) return;
+      if (!resp.ok) throw new Error(`${resp.status}`);
+      bugReportSubmitted = true;
+    } catch (e) {
+      if (destroyed) return;
+      bugReportSubmitError = $t('diagnostics.bugReportSubmitError' as any);
+      console.error('Bug report submit error:', e);
+    }
+    bugReportSubmitting = false;
+  }
+
   function closeBugReport() {
     showBugReport = false;
     bugReportText = '';
     bugReportCopied = false;
+    bugReportSubmitting = false;
+    bugReportSubmitted = false;
+    bugReportSubmitError = '';
   }
 
   // Server actions
@@ -884,7 +908,26 @@
             {$t('diagnostics.bugReportCopy' as any)}
           {/if}
         </button>
+        <button
+          class="action-btn submit-btn"
+          onclick={submitBugReport}
+          disabled={bugReportLoading || !bugReportText || bugReportSubmitting || bugReportSubmitted}
+        >
+          {#if bugReportSubmitted}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
+            {$t('diagnostics.bugReportSubmitted' as any)}
+          {:else if bugReportSubmitting}
+            <div class="spinner spinner-sm"></div>
+            {$t('diagnostics.bugReportSubmitting' as any)}
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+            {$t('diagnostics.bugReportSubmit' as any)}
+          {/if}
+        </button>
       </div>
+      {#if bugReportSubmitError}
+        <p class="bug-report-submit-error">{bugReportSubmitError}</p>
+      {/if}
     </div>
   </div>
 {/if}

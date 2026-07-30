@@ -615,8 +615,12 @@ export default {
   'diagnostics.bugReportBtn': 'Report a Bug',
   'diagnostics.bugReportLoading': 'Generating report...',
   'diagnostics.bugReportTitle': 'Bug Report',
-  'diagnostics.bugReportHint': 'Copy this report and paste it into a forum post or email.',
+  'diagnostics.bugReportHint': 'Submit this report in one click, or copy it to paste elsewhere.',
   'diagnostics.bugReportCopy': 'Copy to Clipboard',
+  'diagnostics.bugReportSubmit': 'Submit to forum',
+  'diagnostics.bugReportSubmitting': 'Sending…',
+  'diagnostics.bugReportSubmitted': 'Bug sent, thanks!',
+  'diagnostics.bugReportSubmitError': 'Send failed. Retry or copy the report into the forum.',
 
   // Signal Path
   'signal.title': 'Signal Path',

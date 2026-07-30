@@ -615,8 +615,12 @@ export default {
   'diagnostics.bugReportBtn': 'Signaler un bug',
   'diagnostics.bugReportLoading': 'Generation du rapport...',
   'diagnostics.bugReportTitle': 'Rapport de bug',
-  'diagnostics.bugReportHint': 'Copiez ce rapport et collez-le dans un post sur le forum ou un email.',
+  'diagnostics.bugReportHint': 'Soumettez ce rapport en un clic, ou copiez-le pour le coller ailleurs.',
   'diagnostics.bugReportCopy': 'Copier dans le presse-papiers',
+  'diagnostics.bugReportSubmit': 'Soumettre au forum',
+  'diagnostics.bugReportSubmitting': 'Envoi…',
+  'diagnostics.bugReportSubmitted': 'Bug envoyé, merci !',
+  'diagnostics.bugReportSubmitError': "Échec de l'envoi. Réessaie ou copie le rapport dans le forum.",
 
   // Signal Path
   'signal.title': 'Chemin du signal',
