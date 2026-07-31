@@ -473,6 +473,7 @@ export default {
   'browse.roots': '場所',
   'browse.noRoots': '音楽ディレクトリが設定されていません',
   'browse.rootMissing': 'フォルダが見つかりません — マウントを確認してください',
+  'browse.openError': 'このフォルダを開けませんでした — ドライブまたはネットワーク共有にアクセスできるか確認してください',
   'browse.rootEmpty': '空のフォルダ',
   'browse.noDirs': 'サブディレクトリなし',
   'browse.noTracks': 'このディレクトリにトラックはありません',

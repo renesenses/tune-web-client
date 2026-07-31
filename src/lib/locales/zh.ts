@@ -473,6 +473,7 @@ export default {
   'browse.roots': '位置',
   'browse.noRoots': '未配置音乐目录',
   'browse.rootMissing': '找不到文件夹 — 请检查挂载',
+  'browse.openError': '无法打开此文件夹 — 请检查磁盘或网络共享是否可访问',
   'browse.rootEmpty': '空文件夹',
   'browse.noDirs': '没有子目录',
   'browse.noTracks': '此目录中没有曲目',

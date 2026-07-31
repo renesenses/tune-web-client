@@ -6,6 +6,7 @@
   import AlbumArt from './AlbumArt.svelte';
   import type { BrowseRootEntry, BrowseDirectory, BrowseResult, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
+  import { notifications } from '../lib/stores/notifications';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -59,13 +60,23 @@
     loading = false;
   }
 
-  async function navigateTo(path: string) {
+  async function navigateTo(path: string, missing = false) {
+    // A root flagged `exists === false` (NAS offline, external SSD unmounted)
+    // used to stay clickable and silently no-op on failure — the browse call
+    // threw and the empty catch left the view on the roots list with no
+    // feedback (Sevy: "les bibliothèques ne s'ouvrent pas"). Tell the user why.
+    if (missing) {
+      notifications.error($tr('browse.rootMissing'));
+      return;
+    }
     loading = true;
     currentPath = path;
     try {
       browseResult = await api.browseDirectory(path);
     } catch (e) {
       console.error('Browse directory error:', e);
+      currentPath = null;
+      notifications.error($tr('browse.openError'));
     }
     loading = false;
   }
@@ -269,7 +280,7 @@
         {#each roots as root}
           {@const missing = root.exists === false}
           {@const empty = !missing && root.track_count === 0}
-          <button class="root-item" class:root-warn={missing || empty} onclick={() => navigateTo(root.path)}>
+          <button class="root-item" class:root-warn={missing || empty} onclick={() => navigateTo(root.path, missing)}>
             <svg class="root-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
               <path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
             </svg>

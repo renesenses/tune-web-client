@@ -491,6 +491,7 @@ export default {
   'browse.roots': 'Emplacements',
   'browse.noRoots': 'Aucun répertoire musical configuré',
   'browse.rootMissing': 'Dossier introuvable — vérifiez le montage',
+  'browse.openError': 'Impossible d’ouvrir ce dossier — vérifiez que le disque ou le partage réseau est bien accessible',
   'browse.rootEmpty': 'Dossier vide',
   'browse.noDirs': 'Aucun sous-répertoire',
   'browse.noTracks': 'Aucune piste dans ce répertoire',
