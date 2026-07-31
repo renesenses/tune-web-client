@@ -388,6 +388,11 @@ export function deleteZone(id: number) {
   return fetchVoid(`${BASE}/zones/${id}`, { method: 'DELETE' });
 }
 
+/** Supprime toutes les zones et remet à zéro le quota free (3 zones). */
+export function deleteAllZones() {
+  return fetchVoid(`${BASE}/zones`, { method: 'DELETE' });
+}
+
 // --- Zone Groups ---
 
 export function groupZones(leaderZoneId: number, zoneIds: number[]) {
