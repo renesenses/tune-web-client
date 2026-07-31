@@ -473,6 +473,7 @@ export default {
   'browse.roots': '위치',
   'browse.noRoots': '음악 디렉토리가 설정되지 않았습니다',
   'browse.rootMissing': '폴더를 찾을 수 없음 — 마운트를 확인하세요',
+  'browse.openError': '이 폴더를 열 수 없습니다 — 드라이브 또는 네트워크 공유에 접근할 수 있는지 확인하세요',
   'browse.rootEmpty': '빈 폴더',
   'browse.noDirs': '하위 디렉토리 없음',
   'browse.noTracks': '이 디렉토리에 곡이 없습니다',

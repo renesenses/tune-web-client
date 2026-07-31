@@ -481,6 +481,7 @@ export default {
   'browse.roots': 'Locații',
   'browse.noRoots': 'Niciun director de muzică configurat',
   'browse.rootMissing': 'Dosar negăsit — verificați montarea',
+  'browse.openError': 'Nu s-a putut deschide acest dosar — verificați dacă discul sau partajarea de rețea este accesibilă',
   'browse.rootEmpty': 'Dosar gol',
   'browse.noDirs': 'Niciun subdirector',
   'browse.noTracks': 'Nicio piesă în acest director',

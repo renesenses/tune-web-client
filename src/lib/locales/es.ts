@@ -473,6 +473,7 @@ export default {
   'browse.roots': 'Ubicaciones',
   'browse.noRoots': 'No hay directorios de música configurados',
   'browse.rootMissing': 'Carpeta no encontrada — comprueba el montaje',
+  'browse.openError': 'No se pudo abrir esta carpeta — comprueba que la unidad o el recurso de red esté accesible',
   'browse.rootEmpty': 'Carpeta vacía',
   'browse.noDirs': 'Sin subdirectorios',
   'browse.noTracks': 'No hay pistas en este directorio',

@@ -491,6 +491,7 @@ export default {
   'browse.roots': 'Locations',
   'browse.noRoots': 'No music directories configured',
   'browse.rootMissing': 'Folder not found — check the mount',
+  'browse.openError': 'Could not open this folder — check that the drive or network share is reachable',
   'browse.rootEmpty': 'Empty folder',
   'browse.noDirs': 'No subdirectories',
   'browse.noTracks': 'No tracks in this directory',

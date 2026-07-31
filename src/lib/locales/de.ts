@@ -473,6 +473,7 @@ export default {
   'browse.roots': 'Speicherorte',
   'browse.noRoots': 'Keine Musikverzeichnisse konfiguriert',
   'browse.rootMissing': 'Ordner nicht gefunden – Einbindung prüfen',
+  'browse.openError': 'Ordner konnte nicht geöffnet werden – prüfen Sie, ob das Laufwerk oder die Netzwerkfreigabe erreichbar ist',
   'browse.rootEmpty': 'Leerer Ordner',
   'browse.noDirs': 'Keine Unterverzeichnisse',
   'browse.noTracks': 'Keine Titel in diesem Verzeichnis',
