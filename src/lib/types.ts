@@ -230,6 +230,10 @@ export interface DiscoveredDevice {
   port: number;
   available?: boolean;
   capabilities?: Record<string, any>;
+  /** Marque : description UPnP/mDNS, sinon dérivée de l'OUI de la MAC. */
+  manufacturer?: string | null;
+  model?: string | null;
+  mac_address?: string | null;
 }
 
 export interface LocalAudioDevice {
