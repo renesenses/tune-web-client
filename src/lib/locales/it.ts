@@ -1472,6 +1472,8 @@ export default {
   "genreTree.title": "Albero dei generi",
   "genreTree.loadError": "Caricamento",
   "genreTree.saved": "Albero dei generi salvato.",
+  "genreTree.confirmRenameLibrary": "Rinominare «{from}» in «{to}» in tutta la libreria? Gli album e i brani corrispondenti verranno rietichettati (uniti se «{to}» esiste già).",
+  "genreTree.renameDone": "Genere rinominato: {albums} album e {tracks} brani aggiornati.",
   "genreTree.saveError": "Non riuscito",
   "genreTree.alreadyExists": "\"{name}\" esiste già.",
   "genreTree.confirmRemoveBranch": "Eliminare il ramo \"{name}\" e i suoi {count} sottogeneri?",

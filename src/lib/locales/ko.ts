@@ -1472,6 +1472,8 @@ export default {
   "genreTree.title": "장르 트리",
   "genreTree.loadError": "로딩",
   "genreTree.saved": "장르 트리 저장됨.",
+  "genreTree.confirmRenameLibrary": "라이브러리 전체에서 '{from}'을(를) '{to}'(으)로 이름 변경하시겠습니까? 일치하는 앨범과 트랙이 다시 태그됩니다('{to}'이(가) 이미 있으면 병합).",
+  "genreTree.renameDone": "장르 이름 변경됨: 앨범 {albums}개, 트랙 {tracks}개 업데이트됨.",
   "genreTree.saveError": "실패",
   "genreTree.alreadyExists": "\"{name}\"이(가) 이미 존재합니다.",
   "genreTree.confirmRemoveBranch": "\"{name}\" 브랜치와 하위 장르 {count}개를 삭제할까요?",
