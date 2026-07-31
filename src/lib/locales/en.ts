@@ -1508,6 +1508,8 @@ export default {
   "genreTree.title": "Genre tree",
   "genreTree.loadError": "Loading",
   "genreTree.saved": "Genre tree saved.",
+  "genreTree.confirmRenameLibrary": "Rename “{from}” to “{to}” across the whole library? Matching albums and tracks will be re-tagged (merged if “{to}” already exists).",
+  "genreTree.renameDone": "Genre renamed: {albums} albums and {tracks} tracks updated.",
   "genreTree.saveError": "Failed",
   "genreTree.alreadyExists": "\"{name}\" already exists.",
   "genreTree.confirmRemoveBranch": "Delete the \"{name}\" branch and its {count} sub-genres?",

@@ -1480,6 +1480,8 @@ export default {
   "genreTree.title": "Arbore de genuri",
   "genreTree.loadError": "Se încarcă",
   "genreTree.saved": "Arbore de genuri salvat.",
+  "genreTree.confirmRenameLibrary": "Redenumiți „{from}“ în „{to}“ în toată biblioteca? Albumele și piesele corespunzătoare vor fi reetichetate (îmbinate dacă „{to}“ există deja).",
+  "genreTree.renameDone": "Gen redenumit: {albums} albume și {tracks} piese actualizate.",
   "genreTree.saveError": "Eșuat",
   "genreTree.alreadyExists": "„{name}” există deja.",
   "genreTree.confirmRemoveBranch": "Ștergi ramura „{name}” și cele {count} subgenuri ale ei?",

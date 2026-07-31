@@ -1472,6 +1472,8 @@ export default {
   "genreTree.title": "Genre-Baum",
   "genreTree.loadError": "Wird geladen",
   "genreTree.saved": "Genre-Baum gespeichert.",
+  "genreTree.confirmRenameLibrary": "„{from}“ in der gesamten Bibliothek in „{to}“ umbenennen? Betroffene Alben und Titel werden neu getaggt (zusammengeführt, falls „{to}“ bereits existiert).",
+  "genreTree.renameDone": "Genre umbenannt: {albums} Alben und {tracks} Titel aktualisiert.",
   "genreTree.saveError": "Fehlgeschlagen",
   "genreTree.alreadyExists": "„{name}“ existiert bereits.",
   "genreTree.confirmRemoveBranch": "Den Zweig „{name}“ und seine {count} Subgenres löschen?",

@@ -1472,6 +1472,8 @@ export default {
   "genreTree.title": "流派树",
   "genreTree.loadError": "加载",
   "genreTree.saved": "流派树已保存。",
+  "genreTree.confirmRenameLibrary": "在整个音乐库中将“{from}”重命名为“{to}”？匹配的专辑和曲目将被重新标记（如果“{to}”已存在则合并）。",
+  "genreTree.renameDone": "流派已重命名：已更新 {albums} 张专辑和 {tracks} 首曲目。",
   "genreTree.saveError": "失败",
   "genreTree.alreadyExists": "“{name}”已存在。",
   "genreTree.confirmRemoveBranch": "删除“{name}”分支及其 {count} 个子流派？",

@@ -1472,6 +1472,8 @@ export default {
   "genreTree.title": "Árbol de géneros",
   "genreTree.loadError": "Cargando",
   "genreTree.saved": "Árbol de géneros guardado.",
+  "genreTree.confirmRenameLibrary": "¿Renombrar «{from}» a «{to}» en toda la biblioteca? Los álbumes y pistas coincidentes se reetiquetarán (se fusionarán si «{to}» ya existe).",
+  "genreTree.renameDone": "Género renombrado: {albums} álbumes y {tracks} pistas actualizados.",
   "genreTree.saveError": "Falló",
   "genreTree.alreadyExists": "\"{name}\" ya existe.",
   "genreTree.confirmRemoveBranch": "¿Eliminar la rama \"{name}\" y sus {count} subgéneros?",

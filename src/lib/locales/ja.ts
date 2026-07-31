@@ -1470,6 +1470,8 @@ export default {
   "genreTree.title": "ジャンルツリー",
   "genreTree.loadError": "読み込み",
   "genreTree.saved": "ジャンルツリーを保存しました。",
+  "genreTree.confirmRenameLibrary": "「{from}」をライブラリ全体で「{to}」に名前変更しますか？該当するアルバムとトラックが再タグ付けされます（「{to}」が既に存在する場合は統合されます）。",
+  "genreTree.renameDone": "ジャンルを名前変更しました：{albums} アルバム、{tracks} トラックを更新しました。",
   "genreTree.saveError": "失敗",
   "genreTree.alreadyExists": "「{name}」はすでに存在します。",
   "genreTree.confirmRemoveBranch": "「{name}」ブランチとその {count} 件のサブジャンルを削除しますか？",
