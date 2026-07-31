@@ -47,6 +47,10 @@
   // Mobile: rail + inspector become slide-over drawers.
   let mobileRail = $state(false);
   let mobileInspector = $state(false);
+  // Desktop: the inspector is a fixed grid column, so the mobile drawer close
+  // never applied — there was no way to dismiss the metadata panel (31/07).
+  // Closing collapses the column; selecting a track brings it back.
+  let inspectorCollapsed = $state(false);
   let isNarrow = $state(false);
 
   let mode = $derived<OxygenViewMode>($preferences.oxygenView);
@@ -136,6 +140,7 @@
 
   async function select(t: Track) {
     selected = t; ext = {};
+    inspectorCollapsed = false;
     if (isNarrow) mobileInspector = true;
     if (t.id == null) return;
     extLoading = true;
@@ -357,7 +362,7 @@
     </div>
   {/if}
 
-  <div class="body">
+  <div class="body" class:noinsp={inspectorCollapsed}>
     <aside class="railwrap" class:open={mobileRail}>
       <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} limit={$preferences.oxygenFacetLimit} selected={facetSels} onSelect={(field, value) => { const next = { ...facetSels }; if (value == null) { delete next[field]; } else { next[field] = value; } facetSels = next; mobileRail = false; }} />
     </aside>
@@ -455,7 +460,7 @@
     </section>
 
     <aside class="inspector" class:empty={!selected} class:open={mobileInspector}>
-      <button class="drawerclose mobonly" onclick={() => mobileInspector = false} aria-label={$t('oxygen.close')}>×</button>
+      <button class="drawerclose" onclick={() => { mobileInspector = false; inspectorCollapsed = true; }} aria-label={$t('oxygen.close')}>×</button>
       {#if selected}
         <div class="insp-title">{selected.title}</div>
         <div class="insp-sub">{selected.artist_name ?? ''} · {selected.album_title ?? ''}</div>
@@ -505,7 +510,11 @@
   .crumb .x { opacity: .7; margin-left: 3px; }
 
   .body { flex: 1; min-height: 0; display: grid; grid-template-columns: 220px 1fr 322px; position: relative; }
-  .mobonly { display: none; }
+  /* Desktop only: the mobile slide-over (≤1150px) keeps its own open/close. */
+  @media (min-width: 1151px) {
+    .body.noinsp { grid-template-columns: 220px 1fr; }
+    .body.noinsp .inspector { display: none; }
+  }
   .railtoggle { display: none; }
   @media (max-width: 780px) { .railtoggle { display: inline-grid; } }
   .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); border: 0; z-index: 35; cursor: pointer; }
@@ -515,7 +524,6 @@
     .body { grid-template-columns: 200px 1fr; }
     .inspector { position: absolute; top: 0; right: 0; bottom: 0; width: 340px; max-width: 88vw; transform: translateX(100%); transition: transform .22s ease; z-index: 40; box-shadow: -8px 0 30px rgba(0,0,0,.4); }
     .inspector.open { transform: none; }
-    .mobonly { display: inline-grid; }
   }
   /* Phone: rail also becomes a left slide-over. */
   @media (max-width: 780px) {
