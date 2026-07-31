@@ -2986,6 +2986,9 @@ export interface MergedPlugin {
   min_tune_version?: string;
   max_tune_version?: string;
   is_featured?: boolean;
+  /** Entrée issue du catalogue marketplace (install via /marketplace). */
+  marketplace?: boolean;
+  slug?: string;
 }
 
 export function getInstalledPlugins(): Promise<InstalledPlugin[]> {
@@ -3014,6 +3017,37 @@ export async function getStorePlugins(search?: string, category?: string): Promi
 /** Fetch merged plugin list (catalog + local) from the Tune server. */
 export function getMergedPlugins(): Promise<MergedPlugin[]> {
   return fetchJSON<MergedPlugin[]>(`${BASE}/plugins`);
+}
+
+export interface MarketplaceCatalogPlugin {
+  slug: string;
+  name: string;
+  display_name?: string | null;
+  description: string;
+  version: string;
+  author: string;
+  price?: number | null;
+  category: string;
+  downloads?: number;
+  rating?: number;
+  installed: boolean;
+  installed_version?: string | null;
+  platforms?: string | null;
+  install_type?: string | null;
+}
+
+/** Catalogue marketplace via le proxy serveur (pas de cross-origin). */
+export function getMarketplaceCatalog(): Promise<{ plugins: MarketplaceCatalogPlugin[]; count: number }> {
+  return fetchJSON(`${BASE}/marketplace/plugins`);
+}
+
+/** Installe un plugin du marketplace : télécharge et persiste le wasm côté serveur. */
+export function installMarketplacePlugin(slug: string): Promise<{ status: string; restart_required?: boolean }> {
+  return fetchJSON(`${BASE}/marketplace/plugins/${encodeURIComponent(slug)}/install`, { method: 'POST' });
+}
+
+export function uninstallMarketplacePlugin(slug: string): Promise<{ status: string; restart_required?: boolean }> {
+  return fetchJSON(`${BASE}/marketplace/plugins/${encodeURIComponent(slug)}/uninstall`, { method: 'POST' });
 }
 
 /** Get details for a single plugin by slug. */

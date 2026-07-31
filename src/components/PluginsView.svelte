@@ -24,15 +24,46 @@
   async function fetchPlugins() {
     loading = true;
     try {
-      const raw = await api.getMergedPlugins();
+      // Local list (built-in + natifs SDK + wasm sur disque) + catalogue
+      // marketplace. Le catalogue est optionnel : hors-ligne, le Store
+      // montre simplement ce qui est déjà installé.
+      const [raw, market] = await Promise.all([
+        api.getMergedPlugins(),
+        api.getMarketplaceCatalog().catch(() => ({ plugins: [], count: 0 })),
+      ]);
       // Normalize missing fields so the template never crashes on undefined access
-      allPlugins = raw.map(p => ({
+      const local = raw.map(p => ({
         compatible: true,
         update_available: false,
         status: p.installed ? (p.enabled !== false ? 'active' : 'disabled') : 'available',
         category: 'system',
         ...p,
       } as api.MergedPlugin));
+
+      // Catalog rows not present locally become installable store tiles.
+      // Only `wasm` rows are installable by the Rust server — python-era
+      // rows show as incompatible (badge existant) avec Install désactivé.
+      const localNames = new Set(local.map(p => p.name));
+      const storeExtras = market.plugins
+        .filter(m => !localNames.has(m.slug) && !localNames.has(m.name) && !m.installed)
+        .map(m => ({
+          name: m.slug,
+          slug: m.slug,
+          display_name: m.display_name || m.name,
+          description: m.description || '',
+          version: m.version || '',
+          author: m.author,
+          category: m.category || 'system',
+          install_count: m.downloads,
+          platforms: m.platforms ?? undefined,
+          compatible: (m.platforms || '').toLowerCase().includes('wasm'),
+          installed: false,
+          update_available: false,
+          status: 'available',
+          marketplace: true,
+        } as api.MergedPlugin));
+
+      allPlugins = [...local, ...storeExtras];
     } catch (e) {
       console.error('Failed to load plugins:', e);
       allPlugins = [];
@@ -138,7 +169,11 @@
     s.add(plugin.name);
     installing = s;
     try {
-      const result = await api.installPlugin(plugin.name);
+      // Marketplace tile → real install (download + persistance du wasm) ;
+      // entrée locale → route /plugins historique.
+      const result = plugin.marketplace
+        ? await api.installMarketplacePlugin(plugin.slug || plugin.name)
+        : await api.installPlugin(plugin.name);
       notifications.success(`${plugin.display_name || plugin.name} installed`);
       if (result.restart_required) showRestartBanner = true;
       await fetchPlugins();
@@ -155,7 +190,9 @@
     s.add(plugin.name);
     uninstalling = s;
     try {
-      const result = await api.uninstallPlugin(plugin.name);
+      const result = plugin.marketplace
+        ? await api.uninstallMarketplacePlugin(plugin.slug || plugin.name)
+        : await api.uninstallPlugin(plugin.name);
       notifications.success(`${plugin.display_name || plugin.name} uninstalled`);
       if (result.restart_required) showRestartBanner = true;
       await fetchPlugins();
