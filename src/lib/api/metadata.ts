@@ -242,6 +242,23 @@ export function putGenreTree(tree: Record<string, string[]>): Promise<GenreTreeR
   });
 }
 
+export interface RenameGenreResponse {
+  from: string;
+  to: string;
+  albums: number;
+  tracks: number;
+}
+
+/** Rename a genre across the whole library (albums + tracks). If `to` already
+ *  exists the rename becomes a merge. Fixes a mis-spelled genre at the source
+ *  instead of only in the tree. */
+export function renameGenre(from: string, to: string): Promise<RenameGenreResponse> {
+  return fetchJSON(`${BASE}/library/genres/rename`, {
+    method: 'POST',
+    body: JSON.stringify({ from, to }),
+  });
+}
+
 // --- Track all-tags drawer ---
 
 export interface TrackAllTags {
