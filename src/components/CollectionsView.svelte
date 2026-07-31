@@ -7,8 +7,16 @@
   import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
   import { activeView, listResetNonce, saveDetailScroll, restoreDetailScroll, stashViewState, takeViewState } from '../lib/stores/navigation';
   import AlbumArt from './AlbumArt.svelte';
+  import AlphaIndex from './AlphaIndex.svelte';
   import type { Album } from '../lib/types';
   import SmartCollectionsView from './SmartCollectionsView.svelte';
+
+  // First letter of a collection name, bucketed into A-Z or '#' for anything
+  // non-alphabetic (digits, symbols, accents that don't fold to A-Z).
+  function collectionLetter(name: string): string {
+    const first = (name || '').trim().charAt(0).toUpperCase();
+    return /[A-Z]/.test(first) ? first : '#';
+  }
 
   type CollectionTab = 'smart' | 'manual';
   let activeTab = $state<CollectionTab>('smart');
@@ -51,6 +59,27 @@
       console.error('Load collections error:', e);
     }
     loading = false;
+  }
+
+  // Sort alphabetically so the A-Z rail can jump to a contiguous block (the API
+  // order is not guaranteed) and render the grid in a predictable order.
+  let sortedCollections = $derived(
+    [...collections].sort((a, b) =>
+      (a?.name || '').localeCompare(b?.name || '', undefined, { sensitivity: 'base' }))
+  );
+  let collectionLetters = $derived(
+    [...new Set(sortedCollections.map((c) => collectionLetter(c?.name)))]
+      .sort((a, b) => (a === '#' ? 1 : b === '#' ? -1 : a.localeCompare(b)))
+  );
+  let activeCollectionLetter = $state('');
+
+  function scrollToCollectionLetter(letter: string) {
+    activeCollectionLetter = letter;
+    const idx = sortedCollections.findIndex((c) => collectionLetter(c?.name) === letter);
+    if (idx < 0) return;
+    const cards = manualTabEl?.querySelectorAll('.collection-card');
+    const card = cards?.[idx] as HTMLElement | undefined;
+    card?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
 
   async function handleCreate() {
@@ -237,8 +266,17 @@
         {:else if collections.length === 0}
           <p class="empty-msg">{$t('collections.noCollections')}</p>
         {:else}
-          <div class="collections-list">
-            {#each collections as col}
+          <div class="collections-section">
+            {#if collectionLetters.length > 5}
+              <AlphaIndex
+                letters={collectionLetters}
+                activeLetter={activeCollectionLetter}
+                onSelect={scrollToCollectionLetter}
+                sticky
+              />
+            {/if}
+            <div class="collections-list">
+            {#each sortedCollections as col}
               <div class="collection-card">
                 <button class="collection-btn" onclick={() => selectCollection(col)}>
                   {#if col.color}
@@ -255,6 +293,7 @@
                 </button>
               </div>
             {/each}
+            </div>
           </div>
         {/if}
       {/if}
@@ -381,10 +420,22 @@
     cursor: pointer;
   }
 
-  .collections-list {
+  /* Rail (A-Z) on the left, the folder grid filling the rest — mirrors the
+     library's Artists tab layout (Jean-Luc). */
+  .collections-section {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  /* Folders as a responsive grid (2-3 per row on typical widths) instead of one
+     full-width bar per row, matching the Smart Collections tab (Jean-Luc). */
+  .collections-list {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 8px;
   }
 
   .collection-card {
