@@ -624,7 +624,7 @@
           <select class="form-select" bind:value={newZoneDeviceId}>
             <option value={undefined}>{$t('zone.selectDevice')}</option>
             {#each $devices.filter(d => d.type === newZoneOutputType && d.available) as dev}
-              <option value={dev.id}>{dev.name}</option>
+              <option value={dev.id}>{dev.name}{dev.manufacturer ? ` · ${dev.manufacturer}` : ''}</option>
             {/each}
           </select>
         {/if}
@@ -683,9 +683,13 @@
       <!-- Device assignment row -->
       <div class="card-device-row" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
         {#if zone.output_device_id && deviceById[zone.output_device_id]}
-          <span class="assigned-device-name" title={deviceById[zone.output_device_id].name}>
+          {@const assignedDev = deviceById[zone.output_device_id]}
+          <span
+            class="assigned-device-name"
+            title={[assignedDev.name, assignedDev.manufacturer, assignedDev.model, assignedDev.mac_address].filter(Boolean).join(' — ')}
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><polyline points="17 2 12 7 7 2" /></svg>
-            {deviceById[zone.output_device_id].name}
+            {assignedDev.name}{#if assignedDev.manufacturer}<span class="device-brand"> · {assignedDev.manufacturer}</span>{/if}
           </span>
         {:else if zone.output_type === 'local'}
           <span class="assigned-device-name muted">
@@ -728,7 +732,9 @@
                 disabled={devicePickerLoading || zone.output_device_id === dev.id}
               >
                 <span class="device-status-dot" class:online={dev.available} class:offline={!dev.available}></span>
-                <span class="picker-device-name">{dev.name}</span>
+                <span class="picker-device-name" title={[dev.model, dev.mac_address].filter(Boolean).join(' — ')}>
+                  {dev.name}{#if dev.manufacturer}<span class="device-brand"> · {dev.manufacturer}</span>{/if}
+                </span>
                 <span class="output-badge {dev.type}" style="font-size: 8px; padding: 1px 4px;">{outputTypeIcon(dev.type)}</span>
                 {#if zone.output_device_id === dev.id}
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12" style="color: var(--tune-accent);"><polyline points="20 6 9 17 4 12" /></svg>
@@ -1800,6 +1806,7 @@
     cursor: default;
   }
 
+  .device-brand { color: var(--tune-text-muted); font-weight: 400; }
   .assigned-device-name {
     display: flex;
     align-items: center;
