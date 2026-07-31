@@ -29,6 +29,7 @@
 
   // Delete confirmation
   let confirmDeleteId = $state<number | null>(null);
+  let confirmDeleteAll = $state(false);
 
   // Latency measurement
   let measuringLatency = $state<number | null>(null);
@@ -222,6 +223,22 @@
       await loadData();
     } catch (e: any) {
       notifications.error(e.message || 'Failed to delete zone');
+    }
+  }
+
+  // Free tier: the 3-zone quota is consumed permanently by zones that have
+  // played once. Wiping everything (server also clears the activation
+  // markers) lets the user re-create the 3 zones he actually wants.
+  async function handleDeleteAllZones() {
+    try {
+      await api.deleteAllZones();
+      confirmDeleteAll = false;
+      selectedZoneIds = new Set();
+      currentZoneId.set(null);
+      notifications.success($t('zone.allZonesDeleted'));
+      await loadData();
+    } catch (e: any) {
+      notifications.error(e.message || 'Failed to delete zones');
     }
   }
 
@@ -518,6 +535,24 @@
           <button class="btn btn-secondary" onclick={openStereoPairForm}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" /></svg>
             {$t('zone.createStereoPair')}
+          </button>
+        {/if}
+      {/if}
+      {#if $zones.length > 0}
+        {#if confirmDeleteAll}
+          <div class="delete-confirm">
+            <span class="delete-confirm-text">{$t('zone.deleteAllConfirm')}</span>
+            <button class="btn btn-danger-sm" onclick={handleDeleteAllZones}>
+              {$t('common.delete')}
+            </button>
+            <button class="btn btn-ghost-sm" onclick={() => (confirmDeleteAll = false)}>
+              {$t('common.cancel')}
+            </button>
+          </div>
+        {:else}
+          <button class="btn btn-ghost btn-danger-text" onclick={() => (confirmDeleteAll = true)} title={$t('zone.deleteAllHint')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+            {$t('zone.deleteAll')}
           </button>
         {/if}
       {/if}
