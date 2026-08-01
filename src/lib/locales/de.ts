@@ -1460,7 +1460,7 @@ export default {
   "renderer.wavOff": "Aus",
   "renderer.wav16": "16-Bit",
   "renderer.wav24": "24-Bit",
-  "renderer.wav24Hint": "24-Bit-WAV über DLNA kommt bald; dafür muss der Renderer audio/L24 ankündigen.",
+  "renderer.wav24Hint": "Echtes 24-Bit-WAV ausgeben. Nur verfügbar, wenn die Erkennungsprüfung bestätigt, dass der Renderer audio/L24 (24-Bit-LPCM) ankündigt.",
   "renderer.probeFailed": "Die Fähigkeiten des Renderers konnten nicht gelesen werden. Stelle sicher, dass er eingeschaltet und im selben Netzwerk ist.",
   "renderer.saveError": "Die Einstellung konnte nicht gespeichert werden.",
   "shortcuts.title": "Verknüpfungen",

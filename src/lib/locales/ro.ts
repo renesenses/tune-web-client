@@ -1468,7 +1468,7 @@ export default {
   "renderer.wavOff": "Dezactivat",
   "renderer.wav16": "16 biți",
   "renderer.wav24": "24 biți",
-  "renderer.wav24Hint": "WAV pe 24 de biți prin DLNA va fi disponibil în curând; va necesita ca renderer-ul să anunțe audio/L24.",
+  "renderer.wav24Hint": "Redă WAV real pe 24 de biți. Disponibil doar când verificarea de descoperire confirmă că renderer-ul anunță audio/L24 (LPCM pe 24 de biți).",
   "renderer.probeFailed": "Nu s-au putut citi capacitățile renderer-ului. Asigură-te că este pornit și în aceeași rețea.",
   "renderer.saveError": "Setarea nu a putut fi salvată.",
   "shortcuts.title": "Scurtături",

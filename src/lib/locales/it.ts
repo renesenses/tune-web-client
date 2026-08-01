@@ -1460,7 +1460,7 @@ export default {
   "renderer.wavOff": "Disattivato",
   "renderer.wav16": "16 bit",
   "renderer.wav24": "24 bit",
-  "renderer.wav24Hint": "Il WAV a 24 bit su DLNA arriverà presto; richiederà che il renderer annunci audio/L24.",
+  "renderer.wav24Hint": "Trasmetti WAV a 24 bit autentico. Disponibile solo quando il controllo di rilevamento conferma che il renderer annuncia audio/L24 (LPCM a 24 bit).",
   "renderer.probeFailed": "Impossibile leggere le capacità del renderer. Assicurati che sia acceso e sulla stessa rete.",
   "renderer.saveError": "Impossibile salvare l'impostazione.",
   "shortcuts.title": "Scorciatoie",

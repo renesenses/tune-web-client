@@ -1442,7 +1442,7 @@ export default {
   "renderer.wavOff": "Av",
   "renderer.wav16": "16-bitars",
   "renderer.wav24": "24-bitars",
-  "renderer.wav24Hint": "24-bitars WAV över DLNA kommer snart; det kräver att renderaren annonserar audio/L24.",
+  "renderer.wav24Hint": "Spela upp äkta 24-bitars WAV. Endast tillgängligt när identifieringskontrollen bekräftar att renderaren annonserar audio/L24 (24-bitars LPCM).",
   "renderer.probeFailed": "Kunde inte läsa renderarens kapaciteter. Kontrollera att den är påslagen och på samma nätverk.",
   "renderer.saveError": "Kunde inte spara inställningen.",
   "settings.dlnaCap16bitHint": "Aktivera om hi-res (24-bit) är tyst på den här renderaren medan 16-bit fungerar (Ruark R3). Kodar om till 16-bit FLAC istället för att skicka 24-bit direkt som renderaren inte kan avkoda.",

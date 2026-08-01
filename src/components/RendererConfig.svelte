@@ -13,8 +13,12 @@
   let nativeFlac = $state(zone.dlna_native_flac ?? false);
   let alacNative = $state(zone.alac_passthrough ?? false);
   let cap16 = $state(zone.dlna_cap_16bit ?? false);
-  // 'off' | '16' | '24' — Phase 1 covers off/16 (24-bit WAV is a follow-up).
-  let forceWav = $state<'off' | '16' | '24'>(zone.dlna_lpcm ? '16' : 'off');
+  // 'off' | '16' | '24'. 24-bit WAV is only offered once a discovery check
+  // confirms the renderer advertises audio/L24 (caps.lpcm24) — sending genuine
+  // 24-bit to a 16-bit-only LPCM renderer plays silence (#1137).
+  let forceWav = $state<'off' | '16' | '24'>(
+    zone.dlna_wav24 ? '24' : zone.dlna_lpcm ? '16' : 'off'
+  );
 
   let caps = $state<RendererCapabilities | null>(null);
   let probing = $state(false);
@@ -70,10 +74,17 @@
     cap16 = v;
     if (zone.id != null) save(() => api.updateZoneDlnaCap16bit(zone.id!, v));
   }
+  // 24-bit WAV is unlocked only once a probe confirms the renderer advertises
+  // audio/L24. If the zone already had it saved (dlna_wav24), keep it selectable
+  // even before a fresh probe so the current state isn't silently downgraded.
+  let wav24Available = $derived(!!caps?.lpcm24 || forceWav === '24');
+
   function setForceWav(mode: 'off' | '16' | '24') {
+    if (mode === '24' && !wav24Available) return;
     forceWav = mode;
-    // dlna_lpcm forces 16-bit WAV/LPCM; 24-bit is a separate follow-up path.
-    if (zone.id != null) save(() => api.updateZoneDlnaLpcm(zone.id!, mode !== 'off'));
+    // dlna_lpcm (16-bit LPCM) and dlna_wav24 (24-bit) are mutually exclusive —
+    // one PATCH sets both so the zone never holds a contradictory pair.
+    if (zone.id != null) save(() => api.updateZoneWavMode(zone.id!, mode));
   }
 </script>
 
@@ -108,7 +119,7 @@
       <div class="rc-seg" role="group">
         <button class:active={forceWav === 'off'} onclick={() => setForceWav('off')}>{$t('renderer.wavOff')}</button>
         <button class:active={forceWav === '16'} onclick={() => setForceWav('16')}>{$t('renderer.wav16')}</button>
-        <button class:active={forceWav === '24'} disabled title={$t('renderer.wav24Hint')} onclick={() => setForceWav('24')}>{$t('renderer.wav24')}</button>
+        <button class:active={forceWav === '24'} disabled={!wav24Available} title={$t('renderer.wav24Hint')} onclick={() => setForceWav('24')}>{$t('renderer.wav24')}</button>
       </div>
     </div>
 

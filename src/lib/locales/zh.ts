@@ -1460,7 +1460,7 @@ export default {
   "renderer.wavOff": "关闭",
   "renderer.wav16": "16 位",
   "renderer.wav24": "24 位",
-  "renderer.wav24Hint": "通过 DLNA 的 24 位 WAV 即将推出；这需要渲染器声明支持 audio/L24。",
+  "renderer.wav24Hint": "输出真正的 24 位 WAV。仅当发现检测确认渲染器声明支持 audio/L24（24 位 LPCM）时可用。",
   "renderer.probeFailed": "无法读取渲染器的功能。请确保它已开机并连接到同一网络。",
   "renderer.saveError": "无法保存该设置。",
   "shortcuts.title": "快捷方式",

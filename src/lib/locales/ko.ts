@@ -1460,7 +1460,7 @@ export default {
   "renderer.wavOff": "끔",
   "renderer.wav16": "16비트",
   "renderer.wav24": "24비트",
-  "renderer.wav24Hint": "DLNA를 통한 24비트 WAV는 곧 지원될 예정입니다. 렌더러가 audio/L24를 알려야 합니다.",
+  "renderer.wav24Hint": "실제 24비트 WAV를 재생합니다. 검색 확인을 통해 렌더러가 audio/L24(24비트 LPCM)를 알리는 경우에만 사용할 수 있습니다.",
   "renderer.probeFailed": "렌더러의 기능을 읽을 수 없습니다. 전원이 켜져 있고 같은 네트워크에 연결되어 있는지 확인하세요.",
   "renderer.saveError": "설정을 저장할 수 없습니다.",
   "shortcuts.title": "바로가기",

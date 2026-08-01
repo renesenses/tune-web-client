@@ -220,6 +220,7 @@ export interface Zone {
   alac_passthrough?: boolean;
   dlna_lpcm?: boolean;
   dlna_cap_16bit?: boolean;
+  dlna_wav24?: boolean;
 }
 
 /** Result of the DLNA renderer discovery check (GetProtocolInfo Sink). */

@@ -340,6 +340,16 @@ export function updateZoneDlnaCap16bit(id: number, enabled: boolean) {
   });
 }
 
+/** Set the "force WAV" mode for a DLNA renderer. The 16-bit LPCM (`dlna_lpcm`)
+ *  and 24-bit (`dlna_wav24`) paths are mutually exclusive, so patch both flags
+ *  in one request to keep the zone state coherent. */
+export function updateZoneWavMode(id: number, mode: 'off' | '16' | '24') {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ dlna_lpcm: mode === '16', dlna_wav24: mode === '24' }),
+  });
+}
+
 /** Discovery check: probe a DLNA/OpenHome renderer's GetProtocolInfo and return
  *  which audio formats it advertises. POST (not the apiFetch GET-only helper). */
 export function probeRendererCapabilities(id: number) {
