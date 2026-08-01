@@ -4,6 +4,8 @@
   import { currentZone, zones, currentZoneId, switchZone } from '../lib/stores/zones';
   import { t } from '../lib/i18n';
   import { updateAvailable } from '../lib/stores/updates';
+  import { preferences } from '../lib/stores/preferences';
+  import { isPremium } from '../lib/stores/license';
   import type { OutputType } from '../lib/types';
 
   function deviceTypeLabel(type?: OutputType): string {
@@ -42,6 +44,20 @@
     { view: 'metadata', label: 'nav.maintenance', path: 'M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7zm8 1v4m0 4h.01' },
     { view: 'diagnostics', label: 'nav.diagnostics', path: 'M12 20V10M18 20V4M6 20v-4' },
   ];
+
+  // Oxygen is a premium, opt-in advanced library view. On mobile the sidebar
+  // (its only entry point) is hidden, so it was unreachable on a phone. Surface
+  // it in the "Plus" sheet under the exact same gate as the sidebar. Its icon is
+  // multi-element (atom), so the render special-cases it; the label is the brand
+  // name, literal like the sidebar (no i18n key).
+  const oxygenItem: { view: View; label: string; path: string } = {
+    view: 'oxygen',
+    label: 'Oxygen',
+    path: '',
+  };
+  const shownMore = $derived(
+    $preferences.oxygenEnabled && $isPremium ? [oxygenItem, ...moreItems] : moreItems,
+  );
 
   let drawerOpen = $state(false);
   let zonePickerOpen = $state(false);
@@ -85,12 +101,17 @@
   <div class="overlay" role="dialog" onclick={() => drawerOpen = false}>
     <div class="sheet" role="presentation" onclick={(e) => e.stopPropagation()}>
       <div class="sheet-handle"></div>
-      {#each moreItems as item}
+      {#each shownMore as item}
         <button class="sheet-item" class:active={$activeView === item.view} onclick={() => navigate(item.view)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d={item.path} /></svg>
-          <span class="sheet-item-label">{$t(item.label)}</span>
-          {#if item.view === 'settings' && $updateAvailable}
-            <span class="sheet-badge-update">MAJ</span>
+          {#if item.view === 'oxygen'}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><circle cx="12" cy="12" r="2.4" /><ellipse cx="12" cy="12" rx="10" ry="4.4" /><ellipse cx="12" cy="12" rx="10" ry="4.4" transform="rotate(60 12 12)" /><ellipse cx="12" cy="12" rx="10" ry="4.4" transform="rotate(120 12 12)" /></svg>
+            <span class="sheet-item-label">Oxygen</span>
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d={item.path} /></svg>
+            <span class="sheet-item-label">{$t(item.label)}</span>
+            {#if item.view === 'settings' && $updateAvailable}
+              <span class="sheet-badge-update">MAJ</span>
+            {/if}
           {/if}
         </button>
       {/each}
