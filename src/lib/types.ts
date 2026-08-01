@@ -220,6 +220,27 @@ export interface Zone {
   alac_passthrough?: boolean;
   dlna_lpcm?: boolean;
   dlna_cap_16bit?: boolean;
+  dlna_wav24?: boolean;
+}
+
+/** Result of the DLNA renderer discovery check (GetProtocolInfo Sink). */
+export interface RendererCapabilities {
+  /** false when the Sink couldn't be read (offline/timeout) — the rest is then meaningless. */
+  probed: boolean;
+  flac?: boolean;
+  wav?: boolean;
+  /** 16-bit LPCM (audio/L16) — the standard DLNA WAV profile. */
+  lpcm16?: boolean;
+  /** 24-bit LPCM (audio/L24) — gates the "WAV 24-bit" override. */
+  lpcm24?: boolean;
+  alac?: boolean;
+  aac?: boolean;
+  mp3?: boolean;
+  dsd?: boolean;
+  sink?: string[];
+  /** Present when probed === false. */
+  reason?: string;
+  message?: string;
 }
 
 export interface DiscoveredDevice {
