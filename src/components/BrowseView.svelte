@@ -7,6 +7,8 @@
   import type { BrowseRootEntry, BrowseDirectory, BrowseResult, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
+  import { activeView, pendingOxygenFolder } from '../lib/stores/navigation';
+  import { preferences } from '../lib/stores/preferences';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -160,6 +162,17 @@
     rescanning = false;
   }
 
+  // Open the current folder as a library view (Oxygen) scoped to this folder and
+  // all its subfolders — hand the path to Oxygen via pendingOxygenFolder, which
+  // pre-selects it as the folder facet. Oxygen must be enabled to be reachable,
+  // so turn it on if needed (the user explicitly asked for the library view).
+  function openInLibrary() {
+    if (!browseResult?.path) return;
+    pendingOxygenFolder.set(browseResult.path);
+    if (!$preferences.oxygenEnabled) preferences.update(p => ({ ...p, oxygenEnabled: true }));
+    activeView.set('oxygen');
+  }
+
   // Load roots on mount
   loadRoots();
 </script>
@@ -194,6 +207,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
           {$tr('browse.rescan')}
         {/if}
+      </button>
+      <button class="rescan-btn" onclick={openInLibrary} title={$tr('browse.openInLibrary')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="4" width="7" height="7" rx="1.5" /><path d="M13 6h8M13 10h8M3 15h18M3 19h18" /></svg>
+        {$tr('browse.openInLibrary')}
       </button>
     </div>
 

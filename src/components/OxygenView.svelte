@@ -7,7 +7,8 @@
   import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../lib/api/metadata';
   import { displayFields } from '../lib/stores/displayFields';
   import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
-  import { activeView } from '../lib/stores/navigation';
+  import { get } from 'svelte/store';
+  import { activeView, pendingOxygenFolder } from '../lib/stores/navigation';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { currentTrackId } from '../lib/stores/nowPlaying';
   import { notifications } from '../lib/stores/notifications';
@@ -41,7 +42,16 @@
   // Multi-facet: one active value per field, combinable (Bertrand :
   // « filtrer simultanément par Genre, year et label »). Chaque champ garde
   // au plus une valeur ; les champs actifs se cumulent côté serveur.
-  let facetSels = $state<Record<string, string>>({});
+  // A folder path handed over from the Répertoires view ("open in library"
+  // button, pendingOxygenFolder) pre-filters Oxygen on that folder + its
+  // subfolders. Consumed once at init so the first data fetch is already scoped
+  // (no empty-then-filtered double load). Shows as a removable folder crumb.
+  function takePendingOxygenFolder(): Record<string, string> {
+    const pf = get(pendingOxygenFolder);
+    if (pf) { pendingOxygenFolder.set(null); return { folder: pf }; }
+    return {};
+  }
+  let facetSels = $state<Record<string, string>>(takePendingOxygenFolder());
   // Folder facet (drill-down): the current path lives in facetSels.folder (so it
   // flows to /tracks and /facets like any other filter); folderData holds the
   // breadcrumb + child folders fetched from /library/folder-facet for that path.
