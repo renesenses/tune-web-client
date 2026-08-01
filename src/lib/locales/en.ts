@@ -1,5 +1,7 @@
 export default {
   // Oxygen (advanced library view)
+  'playback.errorFileNotFound': 'File not found — it may have been moved or deleted (drive or network share not mounted?). Rescan your library.',
+  'playback.errorNoOutputDevice': 'This zone has no audio output. Pick another zone or reconfigure its output.',
   'oxygen.eyebrow': 'Library · Oxygen',
   'oxygen.title': 'Collection',
   'oxygen.view.album': 'Albums',
