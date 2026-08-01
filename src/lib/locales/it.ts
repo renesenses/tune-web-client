@@ -587,7 +587,7 @@ export default {
   'settings.discogsTokenSet': 'Token configurato',
   'settings.discogsTokenNotSet': 'Non configurato',
   'settings.enrichOnScan': 'Arricchisci automaticamente dopo la scansione',
-  'settings.enrichNow': 'Arricchisci i metadati',
+  'settings.enrichNow': 'Arricchisci copertine e immagini',
   'settings.enrichStarted': 'Arricchimento avviato',
 
   // Diagnostics
@@ -784,7 +784,7 @@ export default {
   'settings.importing': 'Importazione...',
 
   // Batch Enrichment
-  'settings.batchEnrich': 'Arricchisci l\'intera libreria (MusicBrainz)',
+  'settings.batchEnrich': 'Arricchisci i metadati (genere, anno, etichetta, ISRC…)',
   'settings.batchEnrichRunning': 'Arricchimento: {current}/{total} tracce...',
   'settings.batchEnrichDone': 'Arricchimento completato!',
   'settings.batchEnrichStarted': 'Arricchimento avviato',
@@ -1387,8 +1387,16 @@ export default {
   "settings.sharedDefault": "Condiviso (predefinito)",
   "settings.exclusiveBitPerfect": "Esclusivo (bit-perfect)",
   "settings.discogsEnvHint": "TUNE_DISCOGS_TOKEN=... in .env",
-  "settings.enrichMbStarted": "Arricchimento MusicBrainz avviato (genere, etichetta, anno, compositore, ISRC)...",
-  "settings.enrichViaMb": "Arricchisci tramite MusicBrainz",
+  "settings.enrichMetadataTitle": "Metadati (MusicBrainz)",
+  "settings.enrichMetadataNote": "Recupera genere, anno, etichetta, compositore e ISRC da MusicBrainz per tutta la libreria. L'avanzamento è mostrato sopra.",
+  "settings.enrichArtworkTitle": "Copertine e immagini",
+  "settings.enrichArtworkNote": "Scarica le copertine degli album e le foto degli artisti mancanti. Non scrive nulla nei tuoi file.",
+  "settings.discogsFallbackNote": "Fonte di riserva per le foto degli artisti senza identificativo MusicBrainz.",
+  "settings.enrichFilesTitle": "File",
+  "settings.writeTagsWarning": "Attenzione: scrive i metadati arricchiti direttamente nei tag dei tuoi file audio. Questa azione modifica i file sul disco.",
+  "settings.enrichArtistImages": "Arricchisci immagini degli artisti",
+  "settings.enrichArtistImagesStarted": "Arricchimento delle immagini degli artisti avviato…",
+  "settings.autoEnrichPremiumNote": "L'arricchimento automatico dopo una scansione è una funzione Premium. I pulsanti qui sopra lo avviano manualmente per tutti. Le immagini degli artisti usano Discogs/Last.fm per nome quando un artista non ha un identificativo MusicBrainz.",
   "settings.writeTagsStarted": "Scrittura dei tag nei file avviata (solo campi mancanti)...",
   "settings.writeTags": "Scrivi i tag nei file",
   "settings.displayedMetadataFields": "Campi di metadati visualizzati",

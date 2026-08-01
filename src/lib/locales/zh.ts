@@ -587,7 +587,7 @@ export default {
   'settings.discogsTokenSet': '令牌已配置',
   'settings.discogsTokenNotSet': '未配置',
   'settings.enrichOnScan': '扫描后自动丰富',
-  'settings.enrichNow': '立即丰富元数据',
+  'settings.enrichNow': '补全封面和图片',
   'settings.enrichStarted': '丰富已启动',
 
   // Diagnostics
@@ -785,7 +785,7 @@ export default {
   'settings.importing': '导入中...',
 
   // Batch Enrichment
-  'settings.batchEnrich': '丰富整个媒体库（MusicBrainz）',
+  'settings.batchEnrich': '补全元数据（流派、年份、厂牌、ISRC…）',
   'settings.batchEnrichRunning': '丰富中：{current}/{total} 首曲目...',
   'settings.batchEnrichDone': '丰富完成！',
   'settings.batchEnrichStarted': '丰富已启动',
@@ -1387,8 +1387,16 @@ export default {
   "settings.sharedDefault": "共享（默认）",
   "settings.exclusiveBitPerfect": "独占（bit-perfect）",
   "settings.discogsEnvHint": ".env 中的 TUNE_DISCOGS_TOKEN=…",
-  "settings.enrichMbStarted": "MusicBrainz 补全已开始（流派、厂牌、年份、作曲家、ISRC）…",
-  "settings.enrichViaMb": "通过 MusicBrainz 补全",
+  "settings.enrichMetadataTitle": "元数据（MusicBrainz）",
+  "settings.enrichMetadataNote": "从 MusicBrainz 为整个音乐库获取流派、年份、厂牌、作曲者和 ISRC。进度显示在上方。",
+  "settings.enrichArtworkTitle": "封面和图片",
+  "settings.enrichArtworkNote": "下载缺失的专辑封面和艺人照片。不会写入您的文件。",
+  "settings.discogsFallbackNote": "用于没有 MusicBrainz 标识符的艺人照片的备用来源。",
+  "settings.enrichFilesTitle": "文件",
+  "settings.writeTagsWarning": "警告：将补全的元数据直接写入音频文件的标签。此操作会修改磁盘上的文件。",
+  "settings.enrichArtistImages": "补全艺人图片",
+  "settings.enrichArtistImagesStarted": "已开始补全艺人图片…",
+  "settings.autoEnrichPremiumNote": "扫描后自动补全是 Premium 功能。上面的按钮可供所有人手动启动。当艺人没有 MusicBrainz 标识符时，艺人图片将按名称使用 Discogs/Last.fm。",
   "settings.writeTagsStarted": "将标签写入文件已开始（仅缺失字段）…",
   "settings.writeTags": "将标签写入文件",
   "settings.displayedMetadataFields": "显示的元数据字段",

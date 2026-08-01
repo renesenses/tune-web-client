@@ -3529,7 +3529,41 @@
     {#if config}
     <section class="settings-section">
       <h3>{$t('settings.enrichment')}</h3>
-      <div class="pref-grid">
+
+      <!-- 1) Métadonnées (MusicBrainz) — bouton unique avec barre de progression -->
+      <h4 class="enrich-group-title">{$t('settings.enrichMetadataTitle')}</h4>
+      <div class="settings-actions">
+        <button class="action-btn" onclick={startBatchEnrich} disabled={batchEnrichRunning}>
+          {#if batchEnrichRunning}
+            {$t('settings.batchEnrichRunning').replace('{current}', String(batchEnrichCurrent)).replace('{total}', String(batchEnrichTotal))}
+          {:else}
+            {$t('settings.batchEnrich')}
+          {/if}
+        </button>
+      </div>
+      {#if batchEnrichRunning && batchEnrichTotal > 0}
+        <div class="enrich-progress">
+          <div class="enrich-progress-bar">
+            <div class="enrich-progress-fill" style="width: {Math.round((batchEnrichCurrent / batchEnrichTotal) * 100)}%"></div>
+          </div>
+          <span class="enrich-progress-text">{batchEnrichCurrent} / {batchEnrichTotal}</span>
+        </div>
+      {/if}
+      <p class="settings-note">{$t('settings.enrichMetadataNote')}</p>
+
+      <!-- 2) Pochettes & images -->
+      <h4 class="enrich-group-title">{$t('settings.enrichArtworkTitle')}</h4>
+      <div class="settings-actions">
+        <button class="action-btn" onclick={async () => { await api.apiPost('/system/enrich'); enrichMsg = $t('settings.enrichStarted'); setTimeout(() => enrichMsg = '', 3000); }}>
+          {$t('settings.enrichNow')}
+        </button>
+        <button class="action-btn" style="margin-left: 8px;" onclick={async () => { try { await api.enrichArtistImages(); enrichMsg = $t('settings.enrichArtistImagesStarted'); } catch { enrichMsg = $t('settings.enrichArtistImagesStarted'); } setTimeout(() => enrichMsg = '', 5000); }}>
+          {$t('settings.enrichArtistImages')}
+        </button>
+        {#if enrichMsg}<span class="action-feedback">{enrichMsg}</span>{/if}
+      </div>
+      <p class="settings-note">{$t('settings.enrichArtworkNote')}</p>
+      <div class="pref-grid" style="margin-top: 8px;">
         <label class="pref-label">{$t('settings.discogsToken')}</label>
         <span class="pref-value">
           {#if config.discogs_token_set}
@@ -3539,27 +3573,19 @@
           {/if}
         </span>
       </div>
+      <p class="settings-note">{$t('settings.discogsFallbackNote')}</p>
       <p class="settings-note">{$t('settings.discogsTokenHelp')}</p>
       <p class="settings-note">{$t('settings.discogsEnvHint')}</p>
+
+      <!-- 3) Fichiers — action qui modifie les fichiers sur disque -->
+      <h4 class="enrich-group-title">{$t('settings.enrichFilesTitle')}</h4>
       <div class="settings-actions">
-        <button class="action-btn" onclick={async () => { await api.apiPost('/system/enrich'); enrichMsg = $t('settings.enrichStarted'); setTimeout(() => enrichMsg = '', 3000); }}>
-          {$t('settings.enrichNow')}
-        </button>
-        {#if enrichMsg}<span class="action-feedback">{enrichMsg}</span>{/if}
-      </div>
-      <div class="settings-actions" style="margin-top: 12px;">
-        <button class="action-btn" onclick={async () => { await api.apiPost('/library/enrich-all'); enrichMsg = $t('settings.enrichMbStarted'); setTimeout(() => enrichMsg = '', 5000); }}>
-          {$t('settings.enrichViaMb')}
-        </button>
-        <button class="action-btn" style="margin-left: 8px;" onclick={async () => { await api.apiPost('/library/write-tags', { only_missing: true }); enrichMsg = $t('settings.writeTagsStarted'); setTimeout(() => enrichMsg = '', 5000); }}>
+        <button class="action-btn" onclick={async () => { await api.apiPost('/library/write-tags', { only_missing: true }); enrichMsg = $t('settings.writeTagsStarted'); setTimeout(() => enrichMsg = '', 5000); }}>
           {$t('settings.writeTags')}
         </button>
       </div>
-      <div class="settings-actions" style="margin-top: 12px;">
-        <button class="action-btn" onclick={async () => { try { await api.enrichArtistImages(); enrichMsg = $t('settings.enrichArtistImagesStarted'); } catch { enrichMsg = $t('settings.enrichArtistImagesStarted'); } setTimeout(() => enrichMsg = '', 5000); }}>
-          {$t('settings.enrichArtistImages')}
-        </button>
-      </div>
+      <p class="settings-note settings-note-warn">{$t('settings.writeTagsWarning')}</p>
+
       <p class="settings-note">{$t('settings.autoEnrichPremiumNote')}</p>
     </section>
     {/if}
@@ -4313,34 +4339,6 @@
           onchange={onConfigImportSelected}
         />
       </div>
-    </section>
-    {/if}
-
-    {#if settingsTab === 'library'}
-    <!-- MusicBrainz Batch Enrichment -->
-    <section class="settings-section">
-      <h3>MusicBrainz</h3>
-      <div class="action-buttons">
-        <button class="scan-btn" onclick={startBatchEnrich} disabled={batchEnrichRunning}>
-          {#if batchEnrichRunning}
-            <div class="spinner small"></div>
-            {$t('settings.batchEnrichRunning' as any).replace('{current}', String(batchEnrichCurrent)).replace('{total}', String(batchEnrichTotal))}
-          {:else}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            {$t('settings.batchEnrich' as any)}
-          {/if}
-        </button>
-      </div>
-      {#if batchEnrichRunning && batchEnrichTotal > 0}
-        <div class="enrich-progress">
-          <div class="enrich-progress-bar">
-            <div class="enrich-progress-fill" style="width: {Math.round((batchEnrichCurrent / batchEnrichTotal) * 100)}%"></div>
-          </div>
-          <span class="enrich-progress-text">{batchEnrichCurrent} / {batchEnrichTotal}</span>
-        </div>
-      {/if}
     </section>
     {/if}
 
@@ -5963,6 +5961,17 @@
   .quality-select:disabled { opacity: 0.5; }
 
   /* Batch Enrich Progress */
+  .enrich-group-title {
+    margin: var(--space-lg) 0 var(--space-sm);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary, var(--text-muted));
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .settings-note-warn {
+    color: var(--warning, var(--text-warning, #d08b2c));
+  }
   .enrich-progress {
     display: flex;
     align-items: center;

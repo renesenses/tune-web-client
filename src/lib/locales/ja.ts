@@ -587,7 +587,7 @@ export default {
   'settings.discogsTokenSet': 'トークン設定済み',
   'settings.discogsTokenNotSet': '未設定',
   'settings.enrichOnScan': 'スキャン後に自動補完',
-  'settings.enrichNow': 'メタデータを補完',
+  'settings.enrichNow': 'カバーと画像を補完',
   'settings.enrichStarted': '補完を開始しました',
 
   // Diagnostics
@@ -785,7 +785,7 @@ export default {
   'settings.importing': 'インポート中...',
 
   // Batch Enrichment
-  'settings.batchEnrich': 'ライブラリ全体を補完（MusicBrainz）',
+  'settings.batchEnrich': 'メタデータを補完（ジャンル、年、レーベル、ISRC…）',
   'settings.batchEnrichRunning': '補完中：{current}/{total}トラック...',
   'settings.batchEnrichDone': '補完が完了しました！',
   'settings.batchEnrichStarted': '補完を開始しました',
@@ -1385,8 +1385,16 @@ export default {
   "settings.sharedDefault": "共有（デフォルト）",
   "settings.exclusiveBitPerfect": "排他（ビットパーフェクト）",
   "settings.discogsEnvHint": ".env に TUNE_DISCOGS_TOKEN=...",
-  "settings.enrichMbStarted": "MusicBrainz による情報補完を開始しました（ジャンル、レーベル、年、作曲者、ISRC）...",
-  "settings.enrichViaMb": "MusicBrainz で情報を補完",
+  "settings.enrichMetadataTitle": "メタデータ（MusicBrainz）",
+  "settings.enrichMetadataNote": "MusicBrainz からライブラリ全体のジャンル、年、レーベル、作曲者、ISRC を取得します。進捗は上に表示されます。",
+  "settings.enrichArtworkTitle": "カバーと画像",
+  "settings.enrichArtworkNote": "不足しているアルバムカバーとアーティスト写真をダウンロードします。ファイルには何も書き込みません。",
+  "settings.discogsFallbackNote": "MusicBrainz 識別子のないアーティスト写真の予備ソースです。",
+  "settings.enrichFilesTitle": "ファイル",
+  "settings.writeTagsWarning": "警告：補完したメタデータをオーディオファイルのタグに直接書き込みます。この操作はディスク上のファイルを変更します。",
+  "settings.enrichArtistImages": "アーティスト画像を補完",
+  "settings.enrichArtistImagesStarted": "アーティスト画像の補完を開始しました…",
+  "settings.autoEnrichPremiumNote": "スキャン後の自動補完は Premium 機能です。上のボタンで誰でも手動で実行できます。アーティストに MusicBrainz 識別子がない場合、アーティスト画像は名前で Discogs/Last.fm を使用します。",
   "settings.writeTagsStarted": "ファイルへのタグ書き込みを開始しました（欠落フィールドのみ）...",
   "settings.writeTags": "タグをファイルに書き込む",
   "settings.displayedMetadataFields": "表示するメタデータフィールド",
