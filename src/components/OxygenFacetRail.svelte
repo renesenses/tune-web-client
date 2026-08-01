@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { Track } from '../lib/types';
-  import type { FacetValue } from '../lib/api';
+  import type { FacetValue, FolderChild, FolderCrumb } from '../lib/api';
   import { t } from '../lib/i18n';
+  import OxygenFolderFacet from './OxygenFolderFacet.svelte';
 
   interface Props {
     tracks: Track[];                                  // loaded window (client fallback)
@@ -10,13 +11,22 @@
     limit?: number;                                   // max values per facet; 0 = no limit
     selected: Record<string, string>;
     onSelect: (field: string, value: string | null) => void;
+    // Folder facet (drill-down) — supplied by OxygenView from /library/folder-facet.
+    folderCrumbs?: FolderCrumb[];
+    folderChildren?: FolderChild[];
+    folderLoading?: boolean;
+    onFolderDrill?: (path: string | null) => void;
   }
-  let { tracks, serverFacets, facets, limit = 200, selected, onSelect }: Props = $props();
+  let {
+    tracks, serverFacets, facets, limit = 200, selected, onSelect,
+    folderCrumbs = [], folderChildren = [], folderLoading = false, onFolderDrill = () => {},
+  }: Props = $props();
 
   const FIELD_LABELS: Record<string, string> = {
     genre: 'Genres', label: 'Labels', year: 'Années', artist: 'Artistes',
     country: 'Pays', mood: 'Moods', source: 'Support',
     format: 'Format', sample_rate: 'Fréquence', bit_depth: 'Résolution',
+    folder: 'Répertoire',
   };
   // Fields computable client-side from Track columns (fallback when the server
   // index is unavailable). k/v fields (country/mood/source) need the server.
@@ -84,7 +94,21 @@
 
 <nav class="rail">
   {#each shown as f (f)}
-    {#if (groups[f] ?? []).length}
+    {#if f === 'folder'}
+      <!-- Hierarchical drill-down: breadcrumb + child folders (server-backed). -->
+      <div class="group">
+        <div class="ghead">
+          <button class="ghtitle" onclick={() => toggle(f)}>
+            <svg class="chev" class:closed={!isOpen(f)} viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
+            {$t('oxygen.facet.' + f)}
+          </button>
+          <span class="gn">{folderChildren.length}</span>
+        </div>
+        {#if isOpen(f)}
+          <OxygenFolderFacet crumbs={folderCrumbs} folders={folderChildren} selected={selected.folder ?? null} loading={folderLoading} onDrill={onFolderDrill} />
+        {/if}
+      </div>
+    {:else if (groups[f] ?? []).length}
       <div class="group">
         <div class="ghead">
           <button class="ghtitle" onclick={() => toggle(f)}>
