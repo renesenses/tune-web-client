@@ -1925,6 +1925,7 @@ export default {
   "radioFav.confirmClearAll": "Supprimer tous les favoris radio ?",
   "radioFav.playlistCreated": "Playlist créée : {count} titres trouvés",
   "radioFav.createError": "Erreur création playlist",
+  "radioFav.clearError": "Échec de la suppression des favoris. Réessaie.",
   "radioFav.title": "Favoris Radio",
   "radioFav.trackSingular": "titre",
   "radioFav.trackPlural": "titres",
