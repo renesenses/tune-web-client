@@ -3,7 +3,16 @@
 import { notifications } from './stores/notifications';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
-import { locale } from './i18n';
+import { locale, t } from './i18n';
+
+/** Server error codes worth turning into a user toast. Play/next/resume callers
+ *  don't await the promise, so without this these failures are silent — the
+ *  track just doesn't play with no explanation (Yacine: NAS share offline;
+ *  JP: moved file; orphaned zone with no output device). */
+const PLAY_ERROR_KEYS: Record<string, string> = {
+  file_not_found: 'playback.errorFileNotFound',
+  zone_no_output_device: 'playback.errorNoOutputDevice',
+};
 
 /** Current UI locale, sent as Accept-Language so server-provided strings
  *  (metadata labels, errors, …) match the app's chosen language. */
@@ -121,13 +130,26 @@ export async function apiDelete(path: string): Promise<any> {
   try { return JSON.parse(text); } catch { throw new Error('Invalid JSON response'); }
 }
 
-async function apiError(response: Response): Promise<Error> {
+/** Error thrown by the fetch helpers, carrying the server's structured `error`
+ *  code and HTTP status so callers (and fetchJSON's toast layer) can react. */
+export interface ApiError extends Error {
+  code?: string;
+  status?: number;
+}
+
+async function apiError(response: Response): Promise<ApiError> {
   let detail = `${response.status} ${response.statusText}`;
+  let code: string | undefined;
   try {
     const body = await response.json();
     if (body.detail) detail = body.detail;
+    else if (body.message) detail = body.message;
+    code = body.error;
   } catch { /* ignore */ }
-  return new Error(detail);
+  const err = new Error(detail) as ApiError;
+  err.code = code;
+  err.status = response.status;
+  return err;
 }
 
 export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
@@ -165,6 +187,12 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
     const err = await apiError(response);
     if (response.status >= 500) {
       notifications.error(`Server error: ${err.message}`);
+    } else {
+      // Surface actionable playback failures that callers would otherwise
+      // swallow (they fire play/next/resume without awaiting): a missing local
+      // file or a zone with no output device. Localised so it matches the UI.
+      const key = err.code ? PLAY_ERROR_KEYS[err.code] : undefined;
+      if (key) notifications.error(get(t)(key as any));
     }
     throw err;
   }
