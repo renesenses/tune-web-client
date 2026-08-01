@@ -762,8 +762,15 @@
 
   // Desktop wheel event to reveal sheet
   function handleNpWheel(e: WheelEvent) {
-    // Only trigger when scrolling down at bottom of NP content
-    if (e.deltaY > 20 && queueSheetState === 'collapsed' && $queueTracks.length > 0) {
+    // Reveal the queue sheet only on a deliberate downward scroll. deltaY units
+    // differ across browsers: Chrome reports pixels (deltaMode 0, ~100/notch),
+    // Firefox reports lines (deltaMode 1, small magnitudes). A raw pixel
+    // threshold of 20 therefore fired on the lightest Firefox wheel nudge and
+    // popped the queue open unintentionally (Bilou, #1261). Normalise to pixels
+    // first, then require a clear scroll.
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1;
+    const dyPx = e.deltaY * unit;
+    if (dyPx > 60 && queueSheetState === 'collapsed' && $queueTracks.length > 0) {
       queueSheetState = 'peek';
     }
   }
