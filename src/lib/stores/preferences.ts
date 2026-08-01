@@ -12,13 +12,15 @@ export type OxygenViewMode = 'album' | 'grid' | 'detail';
  *  pick which ones show. Kept here (ui_preferences) so config syncs per install. */
 // Only facets the Oxygen rail can actually render AND the server can count
 // (rail FIELD_LABELS ∩ SERVER_FACET_FIELDS). The old list advertised
-// rating/collection/folder/untagged, which the rail silently dropped — a user
+// rating/collection/untagged, which the rail silently dropped — a user
 // who selected them saw fewer facets than expected (Bertrand: "seulement 3").
 // format/sample_rate/bit_depth are the technical dimensions an audiophile
-// browses by (direct tracks columns; server column_facet).
-export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source'] as const;
+// browses by (direct tracks columns; server column_facet). `folder` is special:
+// a hierarchical drill-down (breadcrumb + child folders) backed by
+// /library/folder-facet, rendered by OxygenFolderFacet — not a flat value list.
+export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source', 'folder'] as const;
 /** Facets removed from OXYGEN_FACETS_ALL — used to migrate old stored prefs. */
-const OXYGEN_FACETS_REMOVED = ['rating', 'collection', 'folder', 'untagged'];
+const OXYGEN_FACETS_REMOVED = ['rating', 'collection', 'untagged'];
 
 export interface Preferences {
   theme: ThemeMode;
