@@ -508,6 +508,7 @@ export default {
   'browse.playAll': 'Tout lire',
   'browse.addAll': 'Tout ajouter',
   'browse.rescan': 'Rescanner',
+  'browse.openInLibrary': 'Voir en bibliothèque',
   'browse.rescanning': 'Scan en cours...',
 
   // Media Servers (UPnP/DLNA)

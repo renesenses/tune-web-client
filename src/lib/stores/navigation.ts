@@ -41,6 +41,11 @@ export const settingsInitialTab = writable<string | null>(null);
 export const mobileNowPlayingOpen = writable(false);
 export const pendingSearchQuery = writable<string>('');
 
+// One-shot: an absolute folder path handed from the Répertoires (browse) view's
+// "open in library" button to OxygenView, which pre-filters on that folder +
+// its subfolders (facetSels.folder). Consumed once on Oxygen mount.
+export const pendingOxygenFolder = writable<string | null>(null);
+
 export interface NavContext {
   view: View;
   albumId?: number | null;
