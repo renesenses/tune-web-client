@@ -27,7 +27,8 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   import type { Album, Artist, Track, TrackCredit, UserTag } from '../lib/types';
   import { t as tr, locale } from '../lib/i18n';
   import { streamingServices, activeStreamingService, pendingStreamingAlbum } from '../lib/stores/streaming';
-  import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
+  import { get } from 'svelte/store';
+  import { activeView, pendingSearchQuery, pendingLibraryFolder } from '../lib/stores/navigation';
   import ServiceBadge from './ServiceBadge.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import ImportWizard from './ImportWizard.svelte';
@@ -1085,7 +1086,85 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   let artistsLoaded = $state(false);
   let tracksLoaded = $state(false);
 
+  // --- Folder-scoped mode (from the Répertoires view's "View in library"
+  // button, pendingLibraryFolder). Scope Albums/Artists/Tracks/Genres to a
+  // folder + subfolders by deriving them client-side from that folder's tracks
+  // (/library/tracks?folder=), so no server change is needed. Genres follow for
+  // free (the genres store is derived from `albums`). Consumed once at init so
+  // the first tab load is already scoped.
+  function takePendingLibraryFolder(): string | null {
+    const pf = get(pendingLibraryFolder);
+    if (pf) { pendingLibraryFolder.set(null); return pf; }
+    return null;
+  }
+  let scopedFolder = $state<string | null>(takePendingLibraryFolder());
+  let scopedFolderName = $derived(scopedFolder ? (scopedFolder.split(/[/\\]/).filter(Boolean).pop() ?? scopedFolder) : '');
+  let scopedTracksCache: Track[] | null = null;
+
+  async function ensureScopedTracks(): Promise<Track[]> {
+    if (scopedTracksCache) return scopedTracksCache;
+    const res = await api.getFilteredTracks({ folder: scopedFolder!, limit: 5000 });
+    scopedTracksCache = res.items;
+    return scopedTracksCache;
+  }
+
+  async function loadScopedAlbums() {
+    libraryLoading.set(true);
+    try {
+      const ts = await ensureScopedTracks();
+      const map = new Map<number, Album>();
+      for (const t of ts) {
+        if (t.album_id == null) continue;
+        const ex = map.get(t.album_id);
+        if (ex) { ex.track_count = (ex.track_count ?? 0) + 1; }
+        else map.set(t.album_id, {
+          id: t.album_id, title: t.album_title ?? '',
+          artist_id: t.artist_id ?? null, artist_name: t.album_artist ?? t.artist_name ?? '',
+          year: t.year ?? null, genre: t.genre ?? null, cover_path: t.cover_path ?? null,
+          track_count: 1, format: t.format ?? null, sample_rate: t.sample_rate ?? null, bit_depth: t.bit_depth ?? null,
+        } as Album);
+      }
+      albums.set([...map.values()].sort((a, b) => (a.title ?? '').localeCompare(b.title ?? '')));
+      albumsLoaded = true;
+    } catch (e) { console.error('Load scoped albums error:', e); albumsLoaded = true; }
+    libraryLoading.set(false);
+  }
+
+  async function loadScopedArtists() {
+    libraryLoading.set(true);
+    try {
+      const ts = await ensureScopedTracks();
+      const map = new Map<number, Artist>();
+      for (const t of ts) {
+        if (t.artist_id == null) continue;
+        if (!map.has(t.artist_id)) map.set(t.artist_id, { id: t.artist_id, name: t.artist_name ?? t.album_artist ?? '', image_path: null } as Artist);
+      }
+      artists.set([...map.values()].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')));
+      artistsLoaded = true;
+    } catch (e) { console.error('Load scoped artists error:', e); artistsLoaded = true; }
+    libraryLoading.set(false);
+  }
+
+  async function loadScopedTracks() {
+    libraryLoading.set(true);
+    try {
+      tracks.set(await ensureScopedTracks());
+      tracksLoaded = true;
+    } catch (e) { console.error('Load scoped tracks error:', e); tracksLoaded = true; }
+    libraryLoading.set(false);
+  }
+
+  function clearFolderScope() {
+    scopedFolder = null;
+    scopedTracksCache = null;
+    albumsLoaded = false; artistsLoaded = false; tracksLoaded = false;
+    if ($libraryTab === 'artists') loadArtists();
+    else if ($libraryTab === 'tracks') loadTracks();
+    else loadAlbums();
+  }
+
   async function loadAlbums() {
+    if (scopedFolder) { await loadScopedAlbums(); return; }
     libraryLoading.set(true);
     try {
       const first = await api.getAllAlbums(100, albumSort, albumSortOrder, 1, 100);
@@ -1104,6 +1183,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   }
 
   async function loadArtists() {
+    if (scopedFolder) { await loadScopedArtists(); return; }
     libraryLoading.set(true);
     try {
       const result = await api.getAllArtists();
@@ -1117,6 +1197,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   }
 
   async function loadTracks() {
+    if (scopedFolder) { await loadScopedTracks(); return; }
     libraryLoading.set(true);
     try {
       const result = await api.getAllTracks();
@@ -2260,6 +2341,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     <!-- Main library view -->
     <div class="library-header">
       <h2>{$tr('library.title')}</h2>
+      {#if scopedFolder}
+        <button class="folder-scope-chip" onclick={clearFolderScope} title={scopedFolder}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span class="folder-scope-name">{scopedFolderName}</span>
+          <span class="folder-scope-x">×</span>
+        </button>
+      {/if}
       <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title={searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffleResults') : $tr('library.shuffleAll')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
         {shuffleAllLoading ? $tr('common.loading') : (searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffle') : $tr('library.shuffleAll'))}
@@ -2856,6 +2944,17 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     font-weight: 600;
     letter-spacing: -0.8px;
   }
+  /* Folder-scope chip: shown when the library is scoped to a Répertoires folder.
+     Click to clear the scope and return to the whole library. */
+  .folder-scope-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--tune-accent); color: #1a1206;
+    border: 0; border-radius: 999px; padding: 5px 10px 5px 9px;
+    font-size: 12.5px; font-weight: 600; cursor: pointer; max-width: 300px;
+  }
+  .folder-scope-chip:hover { filter: brightness(1.06); }
+  .folder-scope-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .folder-scope-x { font-size: 15px; line-height: 1; opacity: .8; }
 
   /* Secondary to the shuffle button: same shape, outlined rather than filled,
      so "add content" reads as a library action and not a playback one. */

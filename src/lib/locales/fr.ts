@@ -511,6 +511,7 @@ export default {
   'browse.addAll': 'Tout ajouter',
   'browse.rescan': 'Rescanner',
   'browse.openInLibrary': 'Voir en bibliothèque',
+  'browse.openInOxygen': 'Voir dans Oxygen',
   'browse.rescanning': 'Scan en cours...',
 
   // Media Servers (UPnP/DLNA)

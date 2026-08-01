@@ -7,7 +7,7 @@
   import type { BrowseRootEntry, BrowseDirectory, BrowseResult, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
-  import { activeView, pendingOxygenFolder } from '../lib/stores/navigation';
+  import { activeView, pendingOxygenFolder, pendingLibraryFolder } from '../lib/stores/navigation';
   import { preferences } from '../lib/stores/preferences';
 
   interface Props {
@@ -162,15 +162,22 @@
     rescanning = false;
   }
 
-  // Open the current folder as a library view (Oxygen) scoped to this folder and
-  // all its subfolders — hand the path to Oxygen via pendingOxygenFolder, which
-  // pre-selects it as the folder facet. Oxygen must be enabled to be reachable,
-  // so turn it on if needed (the user explicitly asked for the library view).
-  function openInLibrary() {
+  // Open the current folder in Oxygen scoped to this folder + subfolders — hand
+  // the path to Oxygen via pendingOxygenFolder (pre-selected folder facet).
+  // Oxygen must be enabled to be reachable, so turn it on if needed.
+  function openInOxygen() {
     if (!browseResult?.path) return;
     pendingOxygenFolder.set(browseResult.path);
     if (!$preferences.oxygenEnabled) preferences.update(p => ({ ...p, oxygenEnabled: true }));
     activeView.set('oxygen');
+  }
+
+  // Open the current folder in the classic Library view (Albums/Artists/Tracks/
+  // Genres tabs) scoped to this folder + subfolders, via pendingLibraryFolder.
+  function openInLibrary() {
+    if (!browseResult?.path) return;
+    pendingLibraryFolder.set(browseResult.path);
+    activeView.set('library');
   }
 
   // Load roots on mount
@@ -211,6 +218,10 @@
       <button class="rescan-btn" onclick={openInLibrary} title={$tr('browse.openInLibrary')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="4" width="7" height="7" rx="1.5" /><path d="M13 6h8M13 10h8M3 15h18M3 19h18" /></svg>
         {$tr('browse.openInLibrary')}
+      </button>
+      <button class="rescan-btn" onclick={openInOxygen} title={$tr('browse.openInOxygen')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="2.5"/><ellipse cx="12" cy="12" rx="10" ry="4.2"/><ellipse cx="12" cy="12" rx="10" ry="4.2" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4.2" transform="rotate(120 12 12)"/></svg>
+        {$tr('browse.openInOxygen')}
       </button>
     </div>
 
