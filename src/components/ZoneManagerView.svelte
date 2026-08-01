@@ -29,6 +29,7 @@
 
   // Delete confirmation
   let confirmDeleteId = $state<number | null>(null);
+  let confirmDeleteAll = $state(false);
 
   // Latency measurement
   let measuringLatency = $state<number | null>(null);
@@ -222,6 +223,22 @@
       await loadData();
     } catch (e: any) {
       notifications.error(e.message || 'Failed to delete zone');
+    }
+  }
+
+  // Free tier: the 3-zone quota is consumed permanently by zones that have
+  // played once. Wiping everything (server also clears the activation
+  // markers) lets the user re-create the 3 zones he actually wants.
+  async function handleDeleteAllZones() {
+    try {
+      await api.deleteAllZones();
+      confirmDeleteAll = false;
+      selectedZoneIds = new Set();
+      currentZoneId.set(null);
+      notifications.success($t('zone.allZonesDeleted'));
+      await loadData();
+    } catch (e: any) {
+      notifications.error(e.message || 'Failed to delete zones');
     }
   }
 
@@ -521,6 +538,24 @@
           </button>
         {/if}
       {/if}
+      {#if $zones.length > 0}
+        {#if confirmDeleteAll}
+          <div class="delete-confirm">
+            <span class="delete-confirm-text">{$t('zone.deleteAllConfirm')}</span>
+            <button class="btn btn-danger-sm" onclick={handleDeleteAllZones}>
+              {$t('common.delete')}
+            </button>
+            <button class="btn btn-ghost-sm" onclick={() => (confirmDeleteAll = false)}>
+              {$t('common.cancel')}
+            </button>
+          </div>
+        {:else}
+          <button class="btn btn-ghost btn-danger-text" onclick={() => (confirmDeleteAll = true)} title={$t('zone.deleteAllHint')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+            {$t('zone.deleteAll')}
+          </button>
+        {/if}
+      {/if}
       <button class="btn btn-ghost" onclick={loadData} disabled={loading} title={$t('zone.refresh')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" class:spinning={loading}><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
       </button>
@@ -589,7 +624,7 @@
           <select class="form-select" bind:value={newZoneDeviceId}>
             <option value={undefined}>{$t('zone.selectDevice')}</option>
             {#each $devices.filter(d => d.type === newZoneOutputType && d.available) as dev}
-              <option value={dev.id}>{dev.name}</option>
+              <option value={dev.id}>{dev.name}{dev.manufacturer ? ` · ${dev.manufacturer}` : ''}</option>
             {/each}
           </select>
         {/if}
@@ -648,9 +683,13 @@
       <!-- Device assignment row -->
       <div class="card-device-row" onclick={(e) => e.stopPropagation()} onkeydown={() => {}}>
         {#if zone.output_device_id && deviceById[zone.output_device_id]}
-          <span class="assigned-device-name" title={deviceById[zone.output_device_id].name}>
+          {@const assignedDev = deviceById[zone.output_device_id]}
+          <span
+            class="assigned-device-name"
+            title={[assignedDev.name, assignedDev.manufacturer, assignedDev.model, assignedDev.mac_address].filter(Boolean).join(' — ')}
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><polyline points="17 2 12 7 7 2" /></svg>
-            {deviceById[zone.output_device_id].name}
+            {assignedDev.name}{#if assignedDev.manufacturer}<span class="device-brand"> · {assignedDev.manufacturer}</span>{/if}
           </span>
         {:else if zone.output_type === 'local'}
           <span class="assigned-device-name muted">
@@ -693,7 +732,9 @@
                 disabled={devicePickerLoading || zone.output_device_id === dev.id}
               >
                 <span class="device-status-dot" class:online={dev.available} class:offline={!dev.available}></span>
-                <span class="picker-device-name">{dev.name}</span>
+                <span class="picker-device-name" title={[dev.model, dev.mac_address].filter(Boolean).join(' — ')}>
+                  {dev.name}{#if dev.manufacturer}<span class="device-brand"> · {dev.manufacturer}</span>{/if}
+                </span>
                 <span class="output-badge {dev.type}" style="font-size: 8px; padding: 1px 4px;">{outputTypeIcon(dev.type)}</span>
                 {#if zone.output_device_id === dev.id}
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12" style="color: var(--tune-accent);"><polyline points="20 6 9 17 4 12" /></svg>
@@ -1765,6 +1806,7 @@
     cursor: default;
   }
 
+  .device-brand { color: var(--tune-text-muted); font-weight: 400; }
   .assigned-device-name {
     display: flex;
     align-items: center;

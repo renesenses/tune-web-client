@@ -682,7 +682,8 @@
   .slot-plays { position: absolute; right: 12px; top: 10px; font-size: 0.75rem; opacity: 0.6; }
 
   .dashboard { padding: var(--space-lg) 28px; max-width: 1100px; margin: 0 auto; }
-  .dashboard-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+  /* En-tête figé au défilement (#1237, Jean). */
+  .dashboard-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; position: sticky; top: 0; z-index: 20; background: var(--tune-bg); margin-top: calc(-1 * var(--space-lg)); padding-top: var(--space-lg); padding-bottom: 8px; }
   .dashboard-header h2 { margin: 0; font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; color: var(--tune-text); }
   .period-chips { display: flex; gap: 0.4rem; }
   .chip {

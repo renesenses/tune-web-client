@@ -870,12 +870,19 @@
   }
 
   /* ===== TABS ===== */
+  /* Barre d'onglets figée au défilement (#1237, Jean). */
   .view-tabs {
     display: flex;
     align-items: center;
     gap: 4px;
     margin-bottom: 20px;
     border-bottom: 1px solid var(--tune-border, #333);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--tune-bg);
+    margin-top: -20px;
+    padding-top: 20px;
     padding-bottom: 0;
   }
 
