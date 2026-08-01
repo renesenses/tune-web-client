@@ -105,6 +105,10 @@ export interface Track {
   year?: number | null;
   label?: string | null;
   composer?: string | null;
+  isrc?: string | null;
+  bpm?: number | null;
+  comments?: string | null;
+  musicbrainz_recording_id?: string | null;
 }
 
 export interface Playlist {
