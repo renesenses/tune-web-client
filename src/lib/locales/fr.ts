@@ -35,6 +35,8 @@ export default {
   'oxygen.facet.sample_rate': 'Fréquence',
   'oxygen.facet.bit_depth': 'Résolution',
   'oxygen.facet.folder': 'Répertoire',
+  'oxygen.facet.rating': 'Note',
+  'oxygen.facet.collection': 'Collections',
   'oxygen.folder.home': 'Bibliothèque',
   'oxygen.folder.empty': 'Aucun sous-dossier ici.',
   'oxygen.facetsServer': 'Comptage complet (index serveur).',

@@ -33,6 +33,8 @@ export default {
   'oxygen.facet.sample_rate': '采样率',
   'oxygen.facet.bit_depth': '位深度',
   'oxygen.facet.folder': '文件夹',
+  'oxygen.facet.rating': '评分',
+  'oxygen.facet.collection': '收藏集',
   'oxygen.folder.home': '音乐库',
   'oxygen.folder.empty': '此处没有子文件夹。',
   'oxygen.facetsServer': '完整计数（服务器索引）。',

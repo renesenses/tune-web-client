@@ -33,6 +33,8 @@ export default {
   'oxygen.facet.sample_rate': 'Frecvență',
   'oxygen.facet.bit_depth': 'Rezoluție',
   'oxygen.facet.folder': 'Dosar',
+  'oxygen.facet.rating': 'Notă',
+  'oxygen.facet.collection': 'Colecții',
   'oxygen.folder.home': 'Bibliotecă',
   'oxygen.folder.empty': 'Niciun subdosar aici.',
   'oxygen.facetsServer': 'Numărătoare completă (index server).',

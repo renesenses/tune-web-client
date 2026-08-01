@@ -33,6 +33,8 @@ export default {
   'oxygen.facet.sample_rate': 'サンプルレート',
   'oxygen.facet.bit_depth': 'ビット深度',
   'oxygen.facet.folder': 'フォルダー',
+  'oxygen.facet.rating': '評価',
+  'oxygen.facet.collection': 'コレクション',
   'oxygen.folder.home': 'ライブラリ',
   'oxygen.folder.empty': 'サブフォルダーはありません。',
   'oxygen.facetsServer': '完全なカウント（サーバーインデックス）。',

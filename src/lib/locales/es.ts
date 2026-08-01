@@ -33,6 +33,8 @@ export default {
   'oxygen.facet.sample_rate': 'Frecuencia',
   'oxygen.facet.bit_depth': 'Resolución',
   'oxygen.facet.folder': 'Carpeta',
+  'oxygen.facet.rating': 'Valoración',
+  'oxygen.facet.collection': 'Colecciones',
   'oxygen.folder.home': 'Biblioteca',
   'oxygen.folder.empty': 'No hay subcarpetas aquí.',
   'oxygen.facetsServer': 'Recuento completo (índice del servidor).',

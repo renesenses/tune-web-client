@@ -33,6 +33,8 @@ export default {
   'oxygen.facet.sample_rate': '샘플레이트',
   'oxygen.facet.bit_depth': '비트 심도',
   'oxygen.facet.folder': '폴더',
+  'oxygen.facet.rating': '평점',
+  'oxygen.facet.collection': '컬렉션',
   'oxygen.folder.home': '라이브러리',
   'oxygen.folder.empty': '하위 폴더가 없습니다.',
   'oxygen.facetsServer': '전체 집계 (서버 인덱스).',

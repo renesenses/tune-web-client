@@ -1005,11 +1005,15 @@ export async function getFilteredTracks(opts: {
   mood?: string;          // mood (track_metadata k/v)
   source_media?: string;  // source_media (track_metadata k/v)
   folder?: string;        // Oxygen folder facet: absolute dir prefix (subtree)
+  rating?: number;        // Oxygen rating facet: album rating 1-5 (profile 1)
+  collection?: string;    // Oxygen collection facet: manual collection name
   limit?: number;
   offset?: number;
 }): Promise<{ items: Track[]; total: number }> {
   const params = new URLSearchParams();
   if (opts.folder) params.set('folder', opts.folder);
+  if (opts.rating != null) params.set('rating', String(opts.rating));
+  if (opts.collection) params.set('collection', opts.collection);
   if (opts.genre) params.set('genre', opts.genre);
   if (opts.format) params.set('format', opts.format);
   if (opts.sample_rate != null) params.set('sample_rate', String(opts.sample_rate));

@@ -18,7 +18,7 @@ export type OxygenViewMode = 'album' | 'grid' | 'detail';
 // browses by (direct tracks columns; server column_facet). `folder` is special:
 // a hierarchical drill-down (breadcrumb + child folders) backed by
 // /library/folder-facet, rendered by OxygenFolderFacet — not a flat value list.
-export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source', 'folder'] as const;
+export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source', 'rating', 'collection', 'folder'] as const;
 /** Facets removed from OXYGEN_FACETS_ALL — used to migrate old stored prefs. */
 const OXYGEN_FACETS_REMOVED = ['rating', 'collection', 'untagged'];
 
