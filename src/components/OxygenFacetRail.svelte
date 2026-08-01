@@ -26,6 +26,7 @@
     genre: 'Genres', label: 'Labels', year: 'Années', artist: 'Artistes',
     country: 'Pays', mood: 'Moods', source: 'Support',
     format: 'Format', sample_rate: 'Fréquence', bit_depth: 'Résolution',
+    rating: 'Note', collection: 'Collections',
     folder: 'Répertoire',
   };
   // Fields computable client-side from Track columns (fallback when the server
@@ -48,6 +49,10 @@
       return Number.isFinite(n) && n > 0 ? `${(n / 1000).toLocaleString('fr')} kHz` : value;
     }
     if (field === 'bit_depth') return `${value} bit`;
+    if (field === 'rating') {
+      const n = Math.max(0, Math.min(5, Number(value) || 0));
+      return '★'.repeat(n) + '☆'.repeat(5 - n);
+    }
     return value;
   }
 
@@ -72,7 +77,7 @@
     if (modeOf(field) === 'alpha') {
       return out.sort((a, b) => a.value.localeCompare(b.value, 'fr', { numeric: true }));
     }
-    if (field === 'year' || field === 'sample_rate' || field === 'bit_depth')
+    if (field === 'year' || field === 'sample_rate' || field === 'bit_depth' || field === 'rating')
       return out.sort((a, b) => Number(b.value) - Number(a.value));
     return out.sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'fr'));
   }

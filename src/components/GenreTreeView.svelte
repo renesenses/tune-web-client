@@ -63,19 +63,41 @@
     tree = rest;
   }
 
-  function renameParent(oldName: string, ev: Event) {
-    const newName = (ev.target as HTMLInputElement).value.trim();
-    if (!newName || newName === oldName) return;
-    if (tree[newName]) {
-      notifications.error($t('genreTree.alreadyExists').replace('{name}', newName));
-      (ev.target as HTMLInputElement).value = oldName;
+  async function renameParent(oldName: string, ev: Event) {
+    const input = ev.target as HTMLInputElement;
+    const newName = input.value.trim();
+    if (!newName || newName === oldName) {
+      input.value = oldName;
       return;
     }
-    const next: Tree = {};
-    for (const [k, v] of Object.entries(tree)) {
-      next[k === oldName ? newName : k] = v;
+    // Renaming a branch renames the GENRE across the WHOLE library (the album +
+    // track tags), not just this overlay — otherwise a mis-spelled genre stayed
+    // on the tracks and kept reappearing / cluttering Oxygen (Jean Marie). If
+    // the target already exists this is a MERGE (Rok → Rock). Confirm because it
+    // rewrites tags, then reload the server truth (tags + tree both updated
+    // server-side).
+    if (
+      !confirm(
+        $t('genreTree.confirmRenameLibrary').replace('{from}', oldName).replace('{to}', newName)
+      )
+    ) {
+      input.value = oldName;
+      return;
     }
-    tree = next;
+    saving = true;
+    try {
+      const r = await api.renameGenre(oldName, newName);
+      notifications.success(
+        $t('genreTree.renameDone')
+          .replace('{albums}', String(r.albums ?? 0))
+          .replace('{tracks}', String(r.tracks ?? 0))
+      );
+      await load();
+    } catch (e: any) {
+      notifications.error(`${$t('genreTree.saveError')} : ${e?.message || e}`);
+      input.value = oldName;
+    }
+    saving = false;
   }
 
   function addChild(parent: string, child: string) {

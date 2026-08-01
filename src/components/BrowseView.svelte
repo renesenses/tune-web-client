@@ -6,6 +6,9 @@
   import AlbumArt from './AlbumArt.svelte';
   import type { BrowseRootEntry, BrowseDirectory, BrowseResult, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
+  import { notifications } from '../lib/stores/notifications';
+  import { activeView, pendingOxygenFolder, pendingLibraryFolder } from '../lib/stores/navigation';
+  import { preferences } from '../lib/stores/preferences';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -59,13 +62,23 @@
     loading = false;
   }
 
-  async function navigateTo(path: string) {
+  async function navigateTo(path: string, missing = false) {
+    // A root flagged `exists === false` (NAS offline, external SSD unmounted)
+    // used to stay clickable and silently no-op on failure — the browse call
+    // threw and the empty catch left the view on the roots list with no
+    // feedback (Sevy: "les bibliothèques ne s'ouvrent pas"). Tell the user why.
+    if (missing) {
+      notifications.error($tr('browse.rootMissing'));
+      return;
+    }
     loading = true;
     currentPath = path;
     try {
       browseResult = await api.browseDirectory(path);
     } catch (e) {
       console.error('Browse directory error:', e);
+      currentPath = null;
+      notifications.error($tr('browse.openError'));
     }
     loading = false;
   }
@@ -149,6 +162,24 @@
     rescanning = false;
   }
 
+  // Open the current folder in Oxygen scoped to this folder + subfolders — hand
+  // the path to Oxygen via pendingOxygenFolder (pre-selected folder facet).
+  // Oxygen must be enabled to be reachable, so turn it on if needed.
+  function openInOxygen() {
+    if (!browseResult?.path) return;
+    pendingOxygenFolder.set(browseResult.path);
+    if (!$preferences.oxygenEnabled) preferences.update(p => ({ ...p, oxygenEnabled: true }));
+    activeView.set('oxygen');
+  }
+
+  // Open the current folder in the classic Library view (Albums/Artists/Tracks/
+  // Genres tabs) scoped to this folder + subfolders, via pendingLibraryFolder.
+  function openInLibrary() {
+    if (!browseResult?.path) return;
+    pendingLibraryFolder.set(browseResult.path);
+    activeView.set('library');
+  }
+
   // Load roots on mount
   loadRoots();
 </script>
@@ -183,6 +214,14 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
           {$tr('browse.rescan')}
         {/if}
+      </button>
+      <button class="rescan-btn" onclick={openInLibrary} title={$tr('browse.openInLibrary')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="4" width="7" height="7" rx="1.5" /><path d="M13 6h8M13 10h8M3 15h18M3 19h18" /></svg>
+        {$tr('browse.openInLibrary')}
+      </button>
+      <button class="rescan-btn" onclick={openInOxygen} title={$tr('browse.openInOxygen')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="2.5"/><ellipse cx="12" cy="12" rx="10" ry="4.2"/><ellipse cx="12" cy="12" rx="10" ry="4.2" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4.2" transform="rotate(120 12 12)"/></svg>
+        {$tr('browse.openInOxygen')}
       </button>
     </div>
 
@@ -267,13 +306,20 @@
     {:else}
       <div class="roots-list">
         {#each roots as root}
-          <button class="root-item" onclick={() => navigateTo(root.path)}>
+          {@const missing = root.exists === false}
+          {@const empty = !missing && root.track_count === 0}
+          <button class="root-item" class:root-warn={missing || empty} onclick={() => navigateTo(root.path, missing)}>
             <svg class="root-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
               <path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
             </svg>
             <div class="root-info">
               <span class="root-name">{root.name}</span>
               <span class="root-path truncate">{root.path}</span>
+              {#if missing}
+                <span class="root-warning">{$tr('browse.rootMissing')}</span>
+              {:else if empty}
+                <span class="root-warning">{$tr('browse.rootEmpty')}</span>
+              {/if}
             </div>
             <span class="root-count">{root.track_count} {$tr('common.tracks')}</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
@@ -449,6 +495,17 @@
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-muted);
+  }
+
+  .root-warn {
+    border-color: var(--tune-warning, #d9822b);
+  }
+
+  .root-warning {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-warning, #d9822b);
+    margin-top: 2px;
   }
 
   .root-count {

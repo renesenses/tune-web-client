@@ -242,17 +242,21 @@ export function putGenreTree(tree: Record<string, string[]>): Promise<GenreTreeR
   });
 }
 
-export interface RenameGenreResponse {
-  from: string;
-  to: string;
+export interface GenreRenameResult {
   albums: number;
   tracks: number;
+  unchanged?: boolean;
 }
 
-/** Rename a genre across the whole library (albums + tracks). If `to` already
- *  exists the rename becomes a merge. Fixes a mis-spelled genre at the source
- *  instead of only in the tree. */
-export function renameGenre(from: string, to: string): Promise<RenameGenreResponse> {
+/**
+ * Rename a genre across the WHOLE library: rewrites the `genre`/`genres` columns
+ * on every matching album AND track (canonical, case/separator-insensitive), and
+ * renames the branch in the saved genre-tree. If `to` already exists it becomes a
+ * MERGE (e.g. "Rok" → "Rock"). This actually fixes a mis-spelled genre on the
+ * tags, unlike editing the tree overlay alone, which left the bad genre on the
+ * tracks so it kept reappearing (forum "Arbre des genres", Jean Marie).
+ */
+export function renameGenre(from: string, to: string): Promise<GenreRenameResult> {
   return fetchJSON(`${BASE}/library/genres/rename`, {
     method: 'POST',
     body: JSON.stringify({ from, to }),

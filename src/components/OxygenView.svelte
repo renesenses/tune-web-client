@@ -7,7 +7,8 @@
   import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../lib/api/metadata';
   import { displayFields } from '../lib/stores/displayFields';
   import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
-  import { activeView } from '../lib/stores/navigation';
+  import { get } from 'svelte/store';
+  import { activeView, pendingOxygenFolder } from '../lib/stores/navigation';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { currentTrackId } from '../lib/stores/nowPlaying';
   import { notifications } from '../lib/stores/notifications';
@@ -37,11 +38,20 @@
   let extLoading = $state(false);
   let categories = $state<MetadataCategory[]>([]);
   let serverFacets = $state<Record<string, FacetValue[]>>({});
-  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source'];
+  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source', 'rating', 'collection'];
   // Multi-facet: one active value per field, combinable (Bertrand :
   // « filtrer simultanément par Genre, year et label »). Chaque champ garde
   // au plus une valeur ; les champs actifs se cumulent côté serveur.
-  let facetSels = $state<Record<string, string>>({});
+  // A folder path handed over from the Répertoires view ("open in library"
+  // button, pendingOxygenFolder) pre-filters Oxygen on that folder + its
+  // subfolders. Consumed once at init so the first data fetch is already scoped
+  // (no empty-then-filtered double load). Shows as a removable folder crumb.
+  function takePendingOxygenFolder(): Record<string, string> {
+    const pf = get(pendingOxygenFolder);
+    if (pf) { pendingOxygenFolder.set(null); return { folder: pf }; }
+    return {};
+  }
+  let facetSels = $state<Record<string, string>>(takePendingOxygenFolder());
   // Folder facet (drill-down): the current path lives in facetSels.folder (so it
   // flows to /tracks and /facets like any other filter); folderData holds the
   // breadcrumb + child folders fetched from /library/folder-facet for that path.
@@ -83,6 +93,8 @@
         case 'country': out.country = value; break;
         case 'mood': out.mood = value; break;
         case 'source': out.source_media = value; break;
+        case 'rating': out.rating = Number(value); break;
+        case 'collection': out.collection = value; break;
         case 'folder': out.folder = value; break;
       }
     }
@@ -660,8 +672,14 @@
   .mgroup { margin-top: 16px; }
   .mgroup h4 { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--tune-text-muted); border-bottom: 1px solid var(--tune-border); padding-bottom: 6px; margin: 0 0 4px; }
   .field { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; align-items: baseline; }
-  .field .k { color: var(--tune-text-secondary); font-size: 12px; }
-  .field .v { color: var(--tune-text); font-size: 12.5px; text-align: right; font-family: ui-monospace, Menlo, monospace; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .field .k { color: var(--tune-text-secondary); font-size: 12px; flex-shrink: 0; }
+  /* Long extra-metadata values (MusicBrainz ids, ReplayGain peaks, raw tags)
+     were capped at 60% width and truncated with an ellipsis — only visible via
+     the hover tooltip, impossible on touch, so extra metadata couldn't be fully
+     read (Bertrand). Let the value take the remaining width and wrap instead of
+     truncating, so every character is visible without a horizontal scrollbar in
+     the narrow (340px) inspector. */
+  .field .v { color: var(--tune-text); font-size: 12.5px; text-align: right; font-family: ui-monospace, Menlo, monospace; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
   .field.isnew .k, .field.isnew .v { color: var(--tune-accent); }
   .tag { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--tune-accent); background: rgba(var(--tune-accent-rgb), .14); padding: 1px 5px; border-radius: 4px; margin-left: 6px; }
   .state { padding: 40px 20px; text-align: center; color: var(--tune-text-muted); }

@@ -39,6 +39,7 @@
   import GenreTreeView from './components/GenreTreeView.svelte';
   import ZoneManagerView from './components/ZoneManagerView.svelte';
   import DiagnosticsView from './components/DiagnosticsView.svelte';
+  import SupportView from './components/SupportView.svelte';
 import AlarmsView from './components/AlarmsView.svelte';
   import BrowseView from './components/BrowseView.svelte';
   import RadiosView from './components/RadiosView.svelte';
@@ -64,6 +65,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import OnboardingView from './components/OnboardingView.svelte';
   import OfflineView from './components/OfflineView.svelte';
   import WhatsNew from './components/WhatsNew.svelte';
+  import StreamingSessionPrompt from './components/StreamingSessionPrompt.svelte';
   import LoginView from './components/LoginView.svelte';
   import ConverterView from './components/ConverterView.svelte';
   import AiChat from './components/AiChat.svelte';
@@ -1133,6 +1135,8 @@ import AlarmsView from './components/AlarmsView.svelte';
       <AlarmsView />
     {:else if $activeView === 'diagnostics'}
       <DiagnosticsView />
+    {:else if $activeView === 'support'}
+      <SupportView />
     {:else if $activeView === 'onboarding'}
       <OnboardingView />
     {:else if $activeView === 'offline'}
@@ -1173,6 +1177,9 @@ import AlarmsView from './components/AlarmsView.svelte';
 {#if showWhatsNew}
   <WhatsNew onClose={handleWhatsNewClose} />
 {/if}
+
+<!-- Shows itself when a streaming session drops; silent otherwise. -->
+<StreamingSessionPrompt />
 
 <!-- Single persistent YouTube IFrame Player instance (off-screen) -->
 <YTPlayer />

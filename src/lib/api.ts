@@ -3,7 +3,16 @@
 import { notifications } from './stores/notifications';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
-import { locale } from './i18n';
+import { locale, t } from './i18n';
+
+/** Server error codes worth turning into a user toast. Play/next/resume callers
+ *  don't await the promise, so without this these failures are silent — the
+ *  track just doesn't play with no explanation (Yacine: NAS share offline;
+ *  JP: moved file; orphaned zone with no output device). */
+const PLAY_ERROR_KEYS: Record<string, string> = {
+  file_not_found: 'playback.errorFileNotFound',
+  zone_no_output_device: 'playback.errorNoOutputDevice',
+};
 
 /** Current UI locale, sent as Accept-Language so server-provided strings
  *  (metadata labels, errors, …) match the app's chosen language. */
@@ -121,13 +130,26 @@ export async function apiDelete(path: string): Promise<any> {
   try { return JSON.parse(text); } catch { throw new Error('Invalid JSON response'); }
 }
 
-async function apiError(response: Response): Promise<Error> {
+/** Error thrown by the fetch helpers, carrying the server's structured `error`
+ *  code and HTTP status so callers (and fetchJSON's toast layer) can react. */
+export interface ApiError extends Error {
+  code?: string;
+  status?: number;
+}
+
+async function apiError(response: Response): Promise<ApiError> {
   let detail = `${response.status} ${response.statusText}`;
+  let code: string | undefined;
   try {
     const body = await response.json();
     if (body.detail) detail = body.detail;
+    else if (body.message) detail = body.message;
+    code = body.error;
   } catch { /* ignore */ }
-  return new Error(detail);
+  const err = new Error(detail) as ApiError;
+  err.code = code;
+  err.status = response.status;
+  return err;
 }
 
 export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
@@ -165,12 +187,25 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
     const err = await apiError(response);
     if (response.status >= 500) {
       notifications.error(`Server error: ${err.message}`);
+    } else {
+      // Surface actionable playback failures that callers would otherwise
+      // swallow (they fire play/next/resume without awaiting): a missing local
+      // file or a zone with no output device. Localised so it matches the UI.
+      const key = err.code ? PLAY_ERROR_KEYS[err.code] : undefined;
+      if (key) notifications.error(get(t)(key as any));
     }
     throw err;
   }
   const text = await response.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
     throw new Error('Expected JSON but received HTML — check the endpoint URL');
+  }
+  // A 204, or any 2xx with an empty body, is a success with nothing to parse.
+  // Many mutating endpoints answer that way; treating it as a parse failure
+  // made successful writes surface as errors in the UI (the rating that saved
+  // fine but showed "Erreur notation").
+  if (response.status === 204 || text.trim() === '') {
+    return undefined as T;
   }
   try {
     return JSON.parse(text) as T;
@@ -302,6 +337,24 @@ export function updateZoneDlnaCap16bit(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ dlna_cap_16bit: enabled }),
+  });
+}
+
+/** Set the "force WAV" mode for a DLNA renderer. The 16-bit LPCM (`dlna_lpcm`)
+ *  and 24-bit (`dlna_wav24`) paths are mutually exclusive, so patch both flags
+ *  in one request to keep the zone state coherent. */
+export function updateZoneWavMode(id: number, mode: 'off' | '16' | '24') {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ dlna_lpcm: mode === '16', dlna_wav24: mode === '24' }),
+  });
+}
+
+/** Discovery check: probe a DLNA/OpenHome renderer's GetProtocolInfo and return
+ *  which audio formats it advertises. POST (not the apiFetch GET-only helper). */
+export function probeRendererCapabilities(id: number) {
+  return fetchJSON<import('./types').RendererCapabilities>(`${BASE}/zones/${id}/renderer-capabilities`, {
+    method: 'POST',
   });
 }
 
@@ -970,11 +1023,15 @@ export async function getFilteredTracks(opts: {
   mood?: string;          // mood (track_metadata k/v)
   source_media?: string;  // source_media (track_metadata k/v)
   folder?: string;        // Oxygen folder facet: absolute dir prefix (subtree)
+  rating?: number;        // Oxygen rating facet: album rating 1-5 (profile 1)
+  collection?: string;    // Oxygen collection facet: manual collection name
   limit?: number;
   offset?: number;
 }): Promise<{ items: Track[]; total: number }> {
   const params = new URLSearchParams();
   if (opts.folder) params.set('folder', opts.folder);
+  if (opts.rating != null) params.set('rating', String(opts.rating));
+  if (opts.collection) params.set('collection', opts.collection);
   if (opts.genre) params.set('genre', opts.genre);
   if (opts.format) params.set('format', opts.format);
   if (opts.sample_rate != null) params.set('sample_rate', String(opts.sample_rate));
@@ -3393,6 +3450,14 @@ export interface LicenseFeature {
   display_name: string;
 }
 
+/** Set when this server's floating licence is currently held by ANOTHER of the
+ * user's servers (single-session model). While present, `tier` is `free` here
+ * until that server stops pinging — this only explains *why*. */
+export interface LicenseSessionConflict {
+  active_server: string | null;
+  active_since: string | null;
+}
+
 export interface LicenseStatus {
   tier: string;
   license_key: string | null;
@@ -3400,6 +3465,8 @@ export interface LicenseStatus {
   features: Record<string, LicenseFeature>;
   zone_limit: number;
   hardware_fingerprint: string | null;
+  /** Null unless the licence is active on another server right now. */
+  session_conflict?: LicenseSessionConflict | null;
 }
 
 export interface LicenseActivateResponse {

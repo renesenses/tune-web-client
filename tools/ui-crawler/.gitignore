@@ -1,0 +1,4 @@
+node_modules/
+# Sortie d'un passage : regeneree a chaque exploration, jamais versionnee.
+# Le motif couvre les dossiers de comparaison (`--out issues-avant`, etc.).
+issues*/

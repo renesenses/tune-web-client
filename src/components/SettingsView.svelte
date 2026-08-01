@@ -10,6 +10,7 @@
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry, BackupInfo } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
+  import RendererConfig from './RendererConfig.svelte';
   import { notifications } from '../lib/stores/notifications';
   import { copyText } from '../lib/utils';
   import { activeView, settingsInitialTab } from '../lib/stores/navigation';
@@ -3502,7 +3503,7 @@
                   if (on) s.add(f); else s.delete(f);
                   return { ...p, oxygenFacets: OXYGEN_FACETS_ALL.filter((x) => s.has(x)) };
                 })} />
-              {({ genre: 'Genres', artist: 'Artistes', label: 'Labels', year: 'Années', format: 'Format', sample_rate: 'Fréquence', bit_depth: 'Résolution', country: 'Pays', mood: 'Moods', source: 'Support', folder: 'Répertoire' } as Record<string, string>)[f]}
+              {({ genre: 'Genres', artist: 'Artistes', label: 'Labels', year: 'Années', format: 'Format', sample_rate: 'Fréquence', bit_depth: 'Résolution', country: 'Pays', mood: 'Moods', source: 'Support', rating: 'Note', collection: 'Collections', folder: 'Répertoire' } as Record<string, string>)[f]}
             </label>
           {/each}
         </div>
@@ -4072,20 +4073,11 @@
                     <option value="384000">384 kHz</option>
                   </select>
                 </label>
-                {#if z.output_type === 'dlna'}
-                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaNativeFlacHint')}>
-                    <input
-                      type="checkbox"
-                      checked={z.dlna_native_flac ?? false}
-                      onchange={async (e) => {
-                        if (z.id == null) return;
-                        await api.updateZoneDlnaNativeFlac(z.id, (e.target as HTMLInputElement).checked);
-                      }}
-                    />
-                    <span>{$t('settings.dlnaNativeFlac')}</span>
-                  </label>
-                {/if}
-                {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type ?? '')}
+                {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
+                  <!-- Coherent per-renderer panel: discovery check + format
+                       overrides that respect the server's precedence. -->
+                  <RendererConfig zone={z} />
+                {:else if ['chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type ?? '')}
                   <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
                     <input
                       type="checkbox"
@@ -4096,6 +4088,17 @@
                       }}
                     />
                     <span>{$t('settings.alacPassthrough')}</span>
+                  </label>
+                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaLpcmHint')}>
+                    <input
+                      type="checkbox"
+                      checked={z.dlna_lpcm ?? false}
+                      onchange={async (e) => {
+                        if (z.id == null) return;
+                        await api.updateZoneDlnaLpcm(z.id, (e.target as HTMLInputElement).checked);
+                      }}
+                    />
+                    <span>{$t('settings.dlnaLpcm')}</span>
                   </label>
                 {/if}
                 {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type ?? '')}
@@ -4531,6 +4534,23 @@
           <span class="license-expires">{$t('settings.expiresOn')} {new Date($licenseState.expiresAt).toLocaleDateString('fr-FR')}</span>
         {/if}
       </div>
+
+      {#if $licenseState.sessionConflict}
+        <!-- Licence flottante : active sur un autre serveur du même compte -->
+        <div class="license-conflict-banner" role="status">
+          <svg class="license-conflict-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+          <div class="license-conflict-text">
+            <strong>{$t('settings.licenseSessionConflictTitle')}</strong>
+            <span>
+              {#if $licenseState.sessionConflict.active_server}
+                {$t('settings.licenseSessionConflictBodyNamed').replace('{server}', $licenseState.sessionConflict.active_server)}
+              {:else}
+                {$t('settings.licenseSessionConflictBody')}
+              {/if}
+            </span>
+          </div>
+        </div>
+      {/if}
 
       {#if $licenseState.licenseKey}
         <!-- Active license display -->
@@ -6529,6 +6549,37 @@
     font-size: 13px;
     color: var(--tune-danger, #ef4444);
     margin-bottom: var(--space-md);
+  }
+
+  .license-conflict-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-md);
+    border: 1px solid var(--tune-warning, #f59e0b);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--tune-warning, #f59e0b) 12%, transparent);
+  }
+
+  .license-conflict-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--tune-warning, #f59e0b);
+  }
+
+  .license-conflict-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--tune-text);
+  }
+
+  .license-conflict-text strong {
+    font-weight: 600;
   }
 
   .license-features {

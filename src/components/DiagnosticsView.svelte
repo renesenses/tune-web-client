@@ -215,15 +215,21 @@
   // Bug report
   let bugReportLoading = $state(false);
   let bugReportText = $state('');
+  let bugReportDescription = $state('');
   let showBugReport = $state(false);
   let bugReportCopied = $state(false);
+  let bugReportSubmitting = $state(false);
+  let bugReportSubmitted = $state(false);
+  let bugReportSubmitError = $state('');
+  let bugReportThreadUrl = $state('');
 
   async function fetchBugReport() {
     bugReportLoading = true;
     bugReportText = '';
     showBugReport = true;
     try {
-      const resp = await fetch(`/api/v1/system/bug-report?format=markdown`);
+      // Server-rendered markdown (includes diagnostics + recent logs).
+      const resp = await fetch(`/api/v1/system/bug-report/markdown`);
       if (destroyed) return;
       if (!resp.ok) throw new Error(`${resp.status}`);
       bugReportText = await resp.text();
@@ -237,7 +243,11 @@
 
   async function copyBugReport() {
     try {
-      await navigator.clipboard.writeText(bugReportText);
+      // Copy the user's description together with the diagnostics, so a manual
+      // paste carries the same context as an automatic submit.
+      const desc = bugReportDescription.trim();
+      const full = desc ? `${desc}\n\n---\n\n${bugReportText}` : bugReportText;
+      await navigator.clipboard.writeText(full);
       bugReportCopied = true;
       setTimeout(() => { if (!destroyed) bugReportCopied = false; }, 2000);
     } catch (e) {
@@ -245,10 +255,41 @@
     }
   }
 
+  // Submit the report straight to the community forum (the server forwards the
+  // user's description + diagnostics + logs to mozaiklabs.fr and creates a
+  // moderated bug thread — no copy/paste needed).
+  async function submitBugReport() {
+    bugReportSubmitting = true;
+    bugReportSubmitError = '';
+    try {
+      const resp = await fetch(`/api/v1/system/bug-report/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: bugReportDescription.trim() }),
+      });
+      if (destroyed) return;
+      if (!resp.ok) throw new Error(`${resp.status}`);
+      const data = await resp.json().catch(() => ({}));
+      if (destroyed) return;
+      if (typeof data?.url === 'string') bugReportThreadUrl = data.url;
+      bugReportSubmitted = true;
+    } catch (e) {
+      if (destroyed) return;
+      bugReportSubmitError = $t('diagnostics.bugReportSubmitError' as any);
+      console.error('Bug report submit error:', e);
+    }
+    bugReportSubmitting = false;
+  }
+
   function closeBugReport() {
     showBugReport = false;
     bugReportText = '';
+    bugReportDescription = '';
     bugReportCopied = false;
+    bugReportSubmitting = false;
+    bugReportSubmitted = false;
+    bugReportSubmitError = '';
+    bugReportThreadUrl = '';
   }
 
   // Server actions
@@ -866,6 +907,16 @@
         </button>
       </div>
       <p class="bug-report-hint">{$t('diagnostics.bugReportHint' as any)}</p>
+      <label class="bug-report-desc-label" for="bug-report-desc">{$t('diagnostics.bugReportDescLabel' as any)}</label>
+      <textarea
+        id="bug-report-desc"
+        class="bug-report-desc"
+        rows="4"
+        bind:value={bugReportDescription}
+        placeholder={$t('diagnostics.bugReportDescPlaceholder' as any)}
+        disabled={bugReportSubmitting || bugReportSubmitted}
+      ></textarea>
+      <p class="bug-report-attach-note">{$t('diagnostics.bugReportAttachNote' as any)}</p>
       {#if bugReportLoading}
         <div class="bug-report-loading">
           <div class="spinner"></div>
@@ -889,7 +940,34 @@
             {$t('diagnostics.bugReportCopy' as any)}
           {/if}
         </button>
+        <button
+          class="action-btn submit-btn"
+          onclick={submitBugReport}
+          disabled={bugReportLoading || !bugReportText || bugReportSubmitting || bugReportSubmitted}
+        >
+          {#if bugReportSubmitted}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
+            {$t('diagnostics.bugReportSubmitted' as any)}
+          {:else if bugReportSubmitting}
+            <div class="spinner spinner-sm"></div>
+            {$t('diagnostics.bugReportSubmitting' as any)}
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+            {$t('diagnostics.bugReportSubmit' as any)}
+          {/if}
+        </button>
       </div>
+      {#if bugReportSubmitError}
+        <p class="bug-report-submit-error">{bugReportSubmitError}</p>
+      {/if}
+      {#if bugReportSubmitted}
+        <p class="bug-report-submit-ok">
+          {$t('diagnostics.bugReportSubmittedHint' as any)}
+          {#if bugReportThreadUrl}
+            <a href={bugReportThreadUrl} target="_blank" rel="noopener noreferrer">{$t('diagnostics.bugReportViewThread' as any)}</a>
+          {/if}
+        </p>
+      {/if}
     </div>
   </div>
 {/if}
@@ -1704,5 +1782,65 @@
     gap: var(--space-sm);
     justify-content: flex-end;
     margin-top: var(--space-md);
+  }
+
+  .bug-report-desc-label {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tune-text);
+    margin: 0 0 var(--space-sm) 0;
+  }
+
+  .bug-report-desc {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    min-height: 72px;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--tune-text);
+    margin: 0 0 var(--space-sm) 0;
+  }
+
+  .bug-report-desc:focus {
+    outline: none;
+    border-color: var(--tune-accent);
+  }
+
+  .bug-report-desc:disabled {
+    opacity: 0.6;
+  }
+
+  .bug-report-attach-note {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    margin: 0 0 var(--space-md) 0;
+  }
+
+  .bug-report-submit-error {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-danger, #e5484d);
+    margin: var(--space-md) 0 0 0;
+  }
+
+  .bug-report-submit-ok {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-secondary);
+    margin: var(--space-md) 0 0 0;
+  }
+
+  .bug-report-submit-ok a {
+    color: var(--tune-accent);
+    font-weight: 600;
   }
 </style>

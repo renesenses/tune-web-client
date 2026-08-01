@@ -71,29 +71,95 @@
     } as unknown as Artist;
   }
 
+  // Native streaming-service favorites (items starred on the Qobuz/Tidal/… side,
+  // not hearted inside Tune). They arrive in the StreamTrack/StreamAlbum/
+  // StreamArtist shape from getStreamingFavorites(service,type): tracks/albums
+  // already carry source_id/title/artist_name/album_title/cover_path but NO
+  // `source` (it's implied by the request URL), and artists use id/name/
+  // image_path. Normalise into the Track/Album/Artist shape the tab renders and
+  // the streaming play path expects.
+  function nativeToTrack(service: string, it: any): Track {
+    return { ...it, source: service, source_id: it.source_id } as unknown as Track;
+  }
+  function nativeToAlbum(service: string, it: any): Album {
+    return { ...it, source: service, source_id: it.source_id } as unknown as Album;
+  }
+  function nativeToArtist(service: string, it: any): Artist {
+    return {
+      name: it.name ?? '', image_path: it.image_path ?? null,
+      source: service, source_id: it.id,
+    } as unknown as Artist;
+  }
+
+  // Fetch native favorites for every authenticated streaming service, merged per
+  // tab. The unified Favorites tab is meant to be the single place for everything
+  // a user has favorited — including what they starred service-side, not only
+  // Tune hearts (Bertrand, .18: Qobuz favorites weren't showing up here).
+  // Resilient: a failing service/type yields nothing rather than blanking the tab.
+  async function loadNativeServiceFavorites(): Promise<{ tracks: Track[]; albums: Album[]; artists: Artist[] }> {
+    const out = { tracks: [] as Track[], albums: [] as Album[], artists: [] as Artist[] };
+    let services: Record<string, { authenticated?: boolean }> = {};
+    try {
+      services = await api.getStreamingServices();
+    } catch {
+      return out;
+    }
+    const connected = Object.entries(services)
+      .filter(([, s]) => s?.authenticated)
+      .map(([name]) => name);
+    await Promise.all(
+      connected.map(async (svc) => {
+        const [albums, artists, tracks] = await Promise.all([
+          api.getStreamingFavorites(svc, 'albums').catch(() => null),
+          api.getStreamingFavorites(svc, 'artists').catch(() => null),
+          api.getStreamingFavorites(svc, 'tracks').catch(() => null),
+        ]);
+        for (const it of tracks?.tracks ?? []) out.tracks.push(nativeToTrack(svc, it));
+        for (const it of albums?.albums ?? []) out.albums.push(nativeToAlbum(svc, it));
+        for (const it of artists?.artists ?? []) out.artists.push(nativeToArtist(svc, it));
+      }),
+    );
+    return out;
+  }
+
   async function loadFavorites() {
     const pid = $currentProfileId;
     if (!pid) return;
     loading = true;
     try {
       // Local favorites (hydrated) + Tune-hearted streaming favorites (YouTube,
-      // Qobuz, …), merged per tab. A streaming lookup failing must not blank the
-      // local list.
-      const [local, streaming] = await Promise.all([
+      // Qobuz, …) + native service-side favorites, merged per tab. Any streaming
+      // lookup failing must not blank the local list.
+      const [local, streaming, native] = await Promise.all([
         api.getFavorites(pid),
         api.getProfileStreamingFavorites(pid).catch(() => [] as api.StreamingFavorite[]),
+        loadNativeServiceFavorites(),
       ]);
+
+      const heartedTracks = streaming.filter((f) => f.item_type === 'track').map(streamToTrack);
+      const heartedAlbums = streaming.filter((f) => f.item_type === 'album').map(streamToAlbum);
+      const heartedArtists = streaming.filter((f) => f.item_type === 'artist').map(streamToArtist);
+
+      // An item both hearted in Tune AND starred service-side must appear once.
+      const key = (x: any) => `${x.source ?? ''}:${x.source_id ?? ''}`;
+      const seenTracks = new Set(heartedTracks.map(key));
+      const seenAlbums = new Set(heartedAlbums.map(key));
+      const seenArtists = new Set(heartedArtists.map(key));
+
       favTracks = [
         ...(local.tracks ?? []),
-        ...streaming.filter((f) => f.item_type === 'track').map(streamToTrack),
+        ...heartedTracks,
+        ...native.tracks.filter((t) => !seenTracks.has(key(t))),
       ];
       favAlbums = [
         ...(local.albums ?? []),
-        ...streaming.filter((f) => f.item_type === 'album').map(streamToAlbum),
+        ...heartedAlbums,
+        ...native.albums.filter((a) => !seenAlbums.has(key(a))),
       ];
       favArtists = [
         ...(local.artists ?? []),
-        ...streaming.filter((f) => f.item_type === 'artist').map(streamToArtist),
+        ...heartedArtists,
+        ...native.artists.filter((a) => !seenArtists.has(key(a))),
       ];
     } catch (e) {
       console.error('Load favorites error:', e);

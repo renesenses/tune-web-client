@@ -1,6 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import * as api from '../api';
-import type { LicenseStatus } from '../api';
+import type { LicenseStatus, LicenseSessionConflict } from '../api';
 
 export interface LicenseState {
   loaded: boolean;
@@ -10,6 +10,8 @@ export interface LicenseState {
   features: Record<string, { enabled: boolean; display_name: string }>;
   zoneLimit: number;
   hardwareFingerprint: string | null;
+  /** Non-null while the licence is active on another of the user's servers. */
+  sessionConflict: LicenseSessionConflict | null;
 }
 
 const defaultState: LicenseState = {
@@ -20,6 +22,7 @@ const defaultState: LicenseState = {
   features: {},
   zoneLimit: 3,
   hardwareFingerprint: null,
+  sessionConflict: null,
 };
 
 export const licenseState = writable<LicenseState>(defaultState);
@@ -27,6 +30,9 @@ export const licenseState = writable<LicenseState>(defaultState);
 export const isPremium = derived(licenseState, ($s) => $s.tier === 'premium' || $s.tier === 'pro');
 
 export const tier = derived(licenseState, ($s) => $s.tier);
+
+/** True when premium is suppressed here because the licence is live elsewhere. */
+export const sessionConflict = derived(licenseState, ($s) => $s.sessionConflict);
 
 export async function loadLicense(): Promise<void> {
   try {
@@ -39,6 +45,7 @@ export async function loadLicense(): Promise<void> {
       features: status.features ?? {},
       zoneLimit: status.zone_limit ?? 3,
       hardwareFingerprint: status.hardware_fingerprint ?? null,
+      sessionConflict: status.session_conflict ?? null,
     });
   } catch {
     // Endpoint may not exist yet — treat as free tier
