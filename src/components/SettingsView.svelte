@@ -10,6 +10,7 @@
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry, BackupInfo } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
+  import RendererConfig from './RendererConfig.svelte';
   import { notifications } from '../lib/stores/notifications';
   import { copyText } from '../lib/utils';
   import { activeView, settingsInitialTab } from '../lib/stores/navigation';
@@ -4044,20 +4045,11 @@
                     <option value="384000">384 kHz</option>
                   </select>
                 </label>
-                {#if z.output_type === 'dlna'}
-                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaNativeFlacHint')}>
-                    <input
-                      type="checkbox"
-                      checked={z.dlna_native_flac ?? false}
-                      onchange={async (e) => {
-                        if (z.id == null) return;
-                        await api.updateZoneDlnaNativeFlac(z.id, (e.target as HTMLInputElement).checked);
-                      }}
-                    />
-                    <span>{$t('settings.dlnaNativeFlac')}</span>
-                  </label>
-                {/if}
-                {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type ?? '')}
+                {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
+                  <!-- Coherent per-renderer panel: discovery check + format
+                       overrides that respect the server's precedence. -->
+                  <RendererConfig zone={z} />
+                {:else if ['chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type ?? '')}
                   <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
                     <input
                       type="checkbox"
@@ -4069,8 +4061,6 @@
                     />
                     <span>{$t('settings.alacPassthrough')}</span>
                   </label>
-                {/if}
-                {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type ?? '')}
                   <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaLpcmHint')}>
                     <input
                       type="checkbox"
@@ -4081,19 +4071,6 @@
                       }}
                     />
                     <span>{$t('settings.dlnaLpcm')}</span>
-                  </label>
-                {/if}
-                {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
-                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaCap16bitHint')}>
-                    <input
-                      type="checkbox"
-                      checked={z.dlna_cap_16bit ?? false}
-                      onchange={async (e) => {
-                        if (z.id == null) return;
-                        await api.updateZoneDlnaCap16bit(z.id, (e.target as HTMLInputElement).checked);
-                      }}
-                    />
-                    <span>{$t('settings.dlnaCap16bit')}</span>
                   </label>
                 {/if}
               </div>

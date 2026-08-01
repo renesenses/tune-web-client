@@ -340,6 +340,14 @@ export function updateZoneDlnaCap16bit(id: number, enabled: boolean) {
   });
 }
 
+/** Discovery check: probe a DLNA/OpenHome renderer's GetProtocolInfo and return
+ *  which audio formats it advertises. POST (not the apiFetch GET-only helper). */
+export function probeRendererCapabilities(id: number) {
+  return fetchJSON<import('./types').RendererCapabilities>(`${BASE}/zones/${id}/renderer-capabilities`, {
+    method: 'POST',
+  });
+}
+
 export function changeZoneOutput(id: number, outputType: string, outputDeviceId?: string | null) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
