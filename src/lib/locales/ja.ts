@@ -191,6 +191,8 @@ export default {
   'home.searchPlaceholder': 'ライブラリを検索...',
   'home.recentlyPlayed': '最近再生した曲',
   'home.recentlyAdded': '最近追加した曲',
+  'home.newInLibrary': 'ライブラリの新着',
+  'home.yourFavorites': 'お気に入り',
   'home.topArtists': 'よく聴くアーティスト',
   'home.topTracks': 'よく聴く曲',
   'home.plays': '再生回数',

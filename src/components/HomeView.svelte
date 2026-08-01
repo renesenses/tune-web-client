@@ -7,6 +7,7 @@
   import { currentTrackId } from '../lib/stores/nowPlaying';
   import { playFromHere } from '../lib/playback';
   import { activeStreamingService, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
+  import { currentProfileId } from '../lib/stores/profile';
   import { get } from 'svelte/store';
   import { formatNumber } from '../lib/utils';
   import { t } from '../lib/i18n';
@@ -47,6 +48,10 @@
   );
   let recentAlbums: Album[] = $state([]);
   let recentTab = $state<'played' | 'added'>('played');
+  let newInLibrary: Album[] = $state([]);
+  let newInLibraryLoaded = $state(false);
+  let favoriteAlbums: Album[] = $state([]);
+  let favoritesLoaded = $state(false);
   let topArtists: TopArtist[] = $state([]);
   let topTracks: TopTrack[] = $state([]);
   let topArtistsLoaded = $state(false);
@@ -346,6 +351,8 @@
   let playedCarousel: HTMLElement;
   let addedCarousel: HTMLElement;
   let continueCarousel: HTMLElement;
+  let newInLibraryCarousel: HTMLElement;
+  let favoritesCarousel: HTMLElement;
 
   function scrollCarousel(el: HTMLElement, dir: number) {
     el.scrollBy({ left: dir * 600, behavior: 'smooth' });
@@ -430,6 +437,32 @@
     } catch (e) {
       console.error('Load continue listening error:', e);
       continueListeningLoaded = true;
+    }
+  }
+
+  async function loadNewInLibrary() {
+    try {
+      newInLibrary = await api.getNewInLibrary();
+      newInLibraryLoaded = true;
+    } catch (e) {
+      console.error('Load new in library error:', e);
+      newInLibraryLoaded = true;
+    }
+  }
+
+  async function loadFavorites() {
+    try {
+      const pid = get(currentProfileId);
+      if (!pid) {
+        favoritesLoaded = true;
+        return;
+      }
+      const favs = await api.getFavorites(pid);
+      favoriteAlbums = favs.albums ?? [];
+      favoritesLoaded = true;
+    } catch (e) {
+      console.error('Load favorites error:', e);
+      favoritesLoaded = true;
     }
   }
 
@@ -522,6 +555,8 @@
     loadRecommendations();
     loadDashboard();
     loadContinueListening();
+    loadNewInLibrary();
+    loadFavorites();
     loadTopMixes();
     loadRadioPicks();
     loadHomeProfile();
@@ -761,6 +796,82 @@
       {/if}
     {/if}
   </div>
+
+  <!-- New in your library -->
+  {#if newInLibraryLoaded && newInLibrary.length > 0}
+    <div class="recent-section">
+      <h2 class="section-title">{$t('home.newInLibrary')}</h2>
+      <div class="carousel-wrapper">
+        <button class="carousel-arrow left" onclick={() => scrollCarousel(newInLibraryCarousel, -1)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
+        </button>
+        <div class="carousel" bind:this={newInLibraryCarousel}>
+          {#each newInLibrary as album}
+            <div class="carousel-card">
+              <button class="carousel-cover" onclick={() => album.id && playAlbum(album.id)}>
+                <AlbumArt coverPath={album.cover_path} albumId={album.id} size={160} alt={album.title} />
+                <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
+              </button>
+              {#if album.id}
+                <button class="carousel-title truncate" onclick={() => navigateToAlbum(album.id!)}>{album.title}</button>
+              {:else}
+                <span class="carousel-title truncate">{album.title}</span>
+              {/if}
+              <span class="carousel-artist-row">
+                {#if album.artist_id}
+                  <button class="carousel-artist truncate" onclick={() => navigateToArtist(album.artist_id!)}>{album.artist_name ?? ''}</button>
+                {:else}
+                  <span class="carousel-artist truncate">{album.artist_name ?? ''}</span>
+                {/if}
+                <ServiceBadge source={album.source} compact />
+              </span>
+            </div>
+          {/each}
+        </div>
+        <button class="carousel-arrow right" onclick={() => scrollCarousel(newInLibraryCarousel, 1)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
+        </button>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Your favorites -->
+  {#if favoritesLoaded && favoriteAlbums.length > 0}
+    <div class="recent-section">
+      <h2 class="section-title">{$t('home.yourFavorites')}</h2>
+      <div class="carousel-wrapper">
+        <button class="carousel-arrow left" onclick={() => scrollCarousel(favoritesCarousel, -1)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
+        </button>
+        <div class="carousel" bind:this={favoritesCarousel}>
+          {#each favoriteAlbums as album}
+            <div class="carousel-card">
+              <button class="carousel-cover" onclick={() => album.id && playAlbum(album.id)}>
+                <AlbumArt coverPath={album.cover_path} albumId={album.id} size={160} alt={album.title} />
+                <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
+              </button>
+              {#if album.id}
+                <button class="carousel-title truncate" onclick={() => navigateToAlbum(album.id!)}>{album.title}</button>
+              {:else}
+                <span class="carousel-title truncate">{album.title}</span>
+              {/if}
+              <span class="carousel-artist-row">
+                {#if album.artist_id}
+                  <button class="carousel-artist truncate" onclick={() => navigateToArtist(album.artist_id!)}>{album.artist_name ?? ''}</button>
+                {:else}
+                  <span class="carousel-artist truncate">{album.artist_name ?? ''}</span>
+                {/if}
+                <ServiceBadge source={album.source} compact />
+              </span>
+            </div>
+          {/each}
+        </div>
+        <button class="carousel-arrow right" onclick={() => scrollCarousel(favoritesCarousel, 1)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
+        </button>
+      </div>
+    </div>
+  {/if}
 
   <!-- Top Artists -->
   {#if topArtistsLoaded && topArtists.length > 0}

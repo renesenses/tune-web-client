@@ -195,6 +195,8 @@ export default {
   'home.searchPlaceholder': 'Caută în bibliotecă...',
   'home.recentlyPlayed': 'Redate recent',
   'home.recentlyAdded': 'Adăugate recent',
+  'home.newInLibrary': 'Noutăți în biblioteca ta',
+  'home.yourFavorites': 'Favoritele tale',
   'home.topArtists': 'Top artiști',
   'home.topTracks': 'Top piese',
   'home.plays': 'redări',

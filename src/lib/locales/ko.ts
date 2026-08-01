@@ -191,6 +191,8 @@ export default {
   'home.searchPlaceholder': '라이브러리에서 검색...',
   'home.recentlyPlayed': '최근 재생',
   'home.recentlyAdded': '최근 추가',
+  'home.newInLibrary': '라이브러리의 새 항목',
+  'home.yourFavorites': '즐겨찾기',
   'home.topArtists': '인기 아티스트',
   'home.topTracks': '인기 곡',
   'home.plays': '재생',
