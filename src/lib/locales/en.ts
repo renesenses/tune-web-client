@@ -195,6 +195,8 @@ export default {
   'home.searchPlaceholder': 'Search library...',
   'home.recentlyPlayed': 'Recently Played',
   'home.recentlyAdded': 'Recently Added',
+  'home.newInLibrary': 'New in your library',
+  'home.yourFavorites': 'Your favorites',
   'home.topArtists': 'Top Artists',
   'home.topTracks': 'Top Tracks',
   'home.plays': 'plays',

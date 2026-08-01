@@ -191,6 +191,8 @@ export default {
   'home.searchPlaceholder': 'Buscar en la biblioteca...',
   'home.recentlyPlayed': 'Reproducido recientemente',
   'home.recentlyAdded': 'Añadido recientemente',
+  'home.newInLibrary': 'Novedades en tu biblioteca',
+  'home.yourFavorites': 'Tus favoritos',
   'home.topArtists': 'Artistas más escuchados',
   'home.topTracks': 'Pistas más escuchadas',
   'home.plays': 'reproducciones',

@@ -191,6 +191,8 @@ export default {
   'home.searchPlaceholder': '搜索媒体库...',
   'home.recentlyPlayed': '最近播放',
   'home.recentlyAdded': '最近添加',
+  'home.newInLibrary': '资料库新增',
+  'home.yourFavorites': '我的收藏',
   'home.topArtists': '最常听的艺术家',
   'home.topTracks': '最常听的歌曲',
   'home.plays': '次播放',

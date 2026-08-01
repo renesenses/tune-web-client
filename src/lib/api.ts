@@ -3264,6 +3264,10 @@ export function getRecentlyAdded() {
   return fetchJSON<any[]>(`${BASE}/home/recently-added`);
 }
 
+export function getNewInLibrary() {
+  return fetchJSON<any[]>(`${BASE}/home/new-in-library`);
+}
+
 export function getHomeRecommendations() {
   return fetchJSON<any[]>(`${BASE}/home/recommendations`);
 }
