@@ -640,8 +640,14 @@
   .mgroup { margin-top: 16px; }
   .mgroup h4 { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--tune-text-muted); border-bottom: 1px solid var(--tune-border); padding-bottom: 6px; margin: 0 0 4px; }
   .field { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; align-items: baseline; }
-  .field .k { color: var(--tune-text-secondary); font-size: 12px; }
-  .field .v { color: var(--tune-text); font-size: 12.5px; text-align: right; font-family: ui-monospace, Menlo, monospace; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .field .k { color: var(--tune-text-secondary); font-size: 12px; flex-shrink: 0; }
+  /* Long extra-metadata values (MusicBrainz ids, ReplayGain peaks, raw tags)
+     were capped at 60% width and truncated with an ellipsis — only visible via
+     the hover tooltip, impossible on touch, so extra metadata couldn't be fully
+     read (Bertrand). Let the value take the remaining width and wrap instead of
+     truncating, so every character is visible without a horizontal scrollbar in
+     the narrow (340px) inspector. */
+  .field .v { color: var(--tune-text); font-size: 12.5px; text-align: right; font-family: ui-monospace, Menlo, monospace; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
   .field.isnew .k, .field.isnew .v { color: var(--tune-accent); }
   .tag { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--tune-accent); background: rgba(var(--tune-accent-rgb), .14); padding: 1px 5px; border-radius: 4px; margin-left: 6px; }
   .state { padding: 40px 20px; text-align: center; color: var(--tune-text-muted); }
