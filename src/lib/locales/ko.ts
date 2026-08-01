@@ -589,7 +589,7 @@ export default {
   'settings.discogsTokenSet': '토큰 구성됨',
   'settings.discogsTokenNotSet': '구성되지 않음',
   'settings.enrichOnScan': '스캔 후 자동 보강',
-  'settings.enrichNow': '메타데이터 보강',
+  'settings.enrichNow': '커버 및 이미지 보강',
   'settings.enrichStarted': '보강이 시작되었습니다',
 
   // Diagnostics
@@ -787,7 +787,7 @@ export default {
   'settings.importing': '가져오는 중...',
 
   // Batch Enrichment
-  'settings.batchEnrich': '전체 라이브러리 보강 (MusicBrainz)',
+  'settings.batchEnrich': '메타데이터 보강 (장르, 연도, 레이블, ISRC…)',
   'settings.batchEnrichRunning': '보강 중: {current}/{total} 트랙...',
   'settings.batchEnrichDone': '보강 완료!',
   'settings.batchEnrichStarted': '보강이 시작되었습니다',
@@ -1389,8 +1389,16 @@ export default {
   "settings.sharedDefault": "공유 (기본값)",
   "settings.exclusiveBitPerfect": "독점 (비트 퍼펙트)",
   "settings.discogsEnvHint": ".env에 TUNE_DISCOGS_TOKEN=...",
-  "settings.enrichMbStarted": "MusicBrainz 보강 시작됨 (장르, 레이블, 연도, 작곡가, ISRC)...",
-  "settings.enrichViaMb": "MusicBrainz로 보강",
+  "settings.enrichMetadataTitle": "메타데이터 (MusicBrainz)",
+  "settings.enrichMetadataNote": "MusicBrainz에서 전체 라이브러리의 장르, 연도, 레이블, 작곡가, ISRC를 가져옵니다. 진행 상황은 위에 표시됩니다.",
+  "settings.enrichArtworkTitle": "커버 및 이미지",
+  "settings.enrichArtworkNote": "누락된 앨범 커버와 아티스트 사진을 다운로드합니다. 파일에는 아무것도 기록하지 않습니다.",
+  "settings.discogsFallbackNote": "MusicBrainz 식별자가 없는 아티스트 사진의 대체 소스입니다.",
+  "settings.enrichFilesTitle": "파일",
+  "settings.writeTagsWarning": "경고: 보강된 메타데이터를 오디오 파일의 태그에 직접 기록합니다. 이 작업은 디스크의 파일을 수정합니다.",
+  "settings.enrichArtistImages": "아티스트 이미지 보강",
+  "settings.enrichArtistImagesStarted": "아티스트 이미지 보강을 시작했습니다…",
+  "settings.autoEnrichPremiumNote": "스캔 후 자동 보강은 Premium 기능입니다. 위 버튼으로 누구나 수동으로 시작할 수 있습니다. 아티스트에 MusicBrainz 식별자가 없으면 아티스트 이미지는 이름으로 Discogs/Last.fm을 사용합니다.",
   "settings.writeTagsStarted": "파일에 태그 쓰기 시작됨 (누락된 필드만)...",
   "settings.writeTags": "파일에 태그 쓰기",
   "settings.displayedMetadataFields": "표시되는 메타데이터 필드",

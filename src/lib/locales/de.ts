@@ -589,7 +589,7 @@ export default {
   'settings.discogsTokenSet': 'Token konfiguriert',
   'settings.discogsTokenNotSet': 'Nicht konfiguriert',
   'settings.enrichOnScan': 'Nach Scan automatisch anreichern',
-  'settings.enrichNow': 'Metadaten jetzt anreichern',
+  'settings.enrichNow': 'Cover und Bilder anreichern',
   'settings.enrichStarted': 'Anreicherung gestartet',
 
   // Diagnostics
@@ -786,7 +786,7 @@ export default {
   'settings.importing': 'Import...',
 
   // Batch Enrichment
-  'settings.batchEnrich': 'Gesamte Bibliothek anreichern (MusicBrainz)',
+  'settings.batchEnrich': 'Metadaten anreichern (Genre, Jahr, Label, ISRC…)',
   'settings.batchEnrichRunning': 'Anreicherung: {current}/{total} Titel...',
   'settings.batchEnrichDone': 'Anreicherung abgeschlossen!',
   'settings.batchEnrichStarted': 'Anreicherung gestartet',
@@ -1389,8 +1389,16 @@ export default {
   "settings.sharedDefault": "Gemeinsam (Standard)",
   "settings.exclusiveBitPerfect": "Exklusiv (bit-perfect)",
   "settings.discogsEnvHint": "TUNE_DISCOGS_TOKEN=… in .env",
-  "settings.enrichMbStarted": "MusicBrainz-Anreicherung gestartet (Genre, Label, Jahr, Komponist, ISRC)…",
-  "settings.enrichViaMb": "Über MusicBrainz anreichern",
+  "settings.enrichMetadataTitle": "Metadaten (MusicBrainz)",
+  "settings.enrichMetadataNote": "Ruft Genre, Jahr, Label, Komponist und ISRC von MusicBrainz für die gesamte Bibliothek ab. Der Fortschritt wird oben angezeigt.",
+  "settings.enrichArtworkTitle": "Cover & Bilder",
+  "settings.enrichArtworkNote": "Lädt fehlende Album-Cover und Künstlerfotos herunter. Schreibt nichts in Ihre Dateien.",
+  "settings.discogsFallbackNote": "Ausweichquelle für Künstlerfotos ohne MusicBrainz-Kennung.",
+  "settings.enrichFilesTitle": "Dateien",
+  "settings.writeTagsWarning": "Achtung: Schreibt die angereicherten Metadaten direkt in die Tags Ihrer Audiodateien. Dieser Vorgang verändert die Dateien auf der Festplatte.",
+  "settings.enrichArtistImages": "Künstlerbilder anreichern",
+  "settings.enrichArtistImagesStarted": "Anreicherung der Künstlerbilder gestartet…",
+  "settings.autoEnrichPremiumNote": "Die automatische Anreicherung nach einem Scan ist eine Premium-Funktion. Die Schaltflächen oben starten sie manuell für alle. Künstlerbilder verwenden Discogs/Last.fm nach Name, wenn ein Künstler keine MusicBrainz-Kennung hat.",
   "settings.writeTagsStarted": "Schreiben der Tags in Dateien gestartet (nur fehlende Felder)…",
   "settings.writeTags": "Tags in Dateien schreiben",
   "settings.displayedMetadataFields": "Angezeigte Metadatenfelder",

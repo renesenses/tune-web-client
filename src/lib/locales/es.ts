@@ -589,7 +589,7 @@ export default {
   'settings.discogsTokenSet': 'Token configurado',
   'settings.discogsTokenNotSet': 'No configurado',
   'settings.enrichOnScan': 'Enriquecer automáticamente tras el escaneo',
-  'settings.enrichNow': 'Enriquecer metadatos',
+  'settings.enrichNow': 'Enriquecer carátulas e imágenes',
   'settings.enrichStarted': 'Enriquecimiento iniciado',
 
   // Diagnostics
@@ -786,7 +786,7 @@ export default {
   'settings.importing': 'Importando...',
 
   // Batch Enrichment
-  'settings.batchEnrich': 'Enriquecer toda la biblioteca (MusicBrainz)',
+  'settings.batchEnrich': 'Enriquecer metadatos (género, año, sello, ISRC…)',
   'settings.batchEnrichRunning': 'Enriquecimiento: {current}/{total} pistas...',
   'settings.batchEnrichDone': '¡Enriquecimiento completado!',
   'settings.batchEnrichStarted': 'Enriquecimiento iniciado',
@@ -1389,8 +1389,16 @@ export default {
   "settings.sharedDefault": "Compartido (predeterminado)",
   "settings.exclusiveBitPerfect": "Exclusivo (bit-perfect)",
   "settings.discogsEnvHint": "TUNE_DISCOGS_TOKEN=... en .env",
-  "settings.enrichMbStarted": "Enriquecimiento de MusicBrainz iniciado (género, sello, año, compositor, ISRC)...",
-  "settings.enrichViaMb": "Enriquecer con MusicBrainz",
+  "settings.enrichMetadataTitle": "Metadatos (MusicBrainz)",
+  "settings.enrichMetadataNote": "Obtiene género, año, sello, compositor e ISRC desde MusicBrainz para toda la biblioteca. El progreso se muestra arriba.",
+  "settings.enrichArtworkTitle": "Carátulas e imágenes",
+  "settings.enrichArtworkNote": "Descarga carátulas de álbumes y fotos de artistas que faltan. No escribe nada en tus archivos.",
+  "settings.discogsFallbackNote": "Fuente de respaldo para fotos de artistas sin identificador de MusicBrainz.",
+  "settings.enrichFilesTitle": "Archivos",
+  "settings.writeTagsWarning": "Atención: escribe los metadatos enriquecidos directamente en las etiquetas de tus archivos de audio. Esta acción modifica los archivos en el disco.",
+  "settings.enrichArtistImages": "Enriquecer imágenes de artistas",
+  "settings.enrichArtistImagesStarted": "Enriquecimiento de imágenes de artistas iniciado…",
+  "settings.autoEnrichPremiumNote": "El enriquecimiento automático tras un escaneo es una función Premium. Los botones de arriba lo inician manualmente para todos. Las imágenes de artistas usan Discogs/Last.fm por nombre cuando un artista no tiene identificador de MusicBrainz.",
   "settings.writeTagsStarted": "Escritura de etiquetas en los archivos iniciada (solo campos faltantes)...",
   "settings.writeTags": "Escribir etiquetas en los archivos",
   "settings.displayedMetadataFields": "Campos de metadatos mostrados",

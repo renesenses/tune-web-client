@@ -605,7 +605,7 @@ export default {
   'settings.discogsTokenSet': 'Token configured',
   'settings.discogsTokenNotSet': 'Not configured',
   'settings.enrichOnScan': 'Auto-enrich after library scan',
-  'settings.enrichNow': 'Enrich metadata now',
+  'settings.enrichNow': 'Enrich covers and images',
   'settings.enrichStarted': 'Enrichment started',
 
   // Diagnostics
@@ -803,7 +803,7 @@ export default {
   'settings.importing': 'Importing...',
 
   // Batch Enrichment
-  'settings.batchEnrich': 'Enrich entire library (MusicBrainz)',
+  'settings.batchEnrich': 'Enrich metadata (genre, year, label, ISRC…)',
   'settings.batchEnrichRunning': 'Enrichment: {current}/{total} tracks...',
   'settings.batchEnrichDone': 'Enrichment complete!',
   'settings.batchEnrichStarted': 'Enrichment started',
@@ -1406,8 +1406,13 @@ export default {
   "settings.sharedDefault": "Shared (default)",
   "settings.exclusiveBitPerfect": "Exclusive (bit-perfect)",
   "settings.discogsEnvHint": "TUNE_DISCOGS_TOKEN=... in .env",
-  "settings.enrichMbStarted": "MusicBrainz enrichment started (genre, label, year, composer, ISRC)...",
-  "settings.enrichViaMb": "Enrich via MusicBrainz",
+  "settings.enrichMetadataTitle": "Metadata (MusicBrainz)",
+  "settings.enrichMetadataNote": "Fetches genre, year, label, composer and ISRC from MusicBrainz for the whole library. Progress is shown above.",
+  "settings.enrichArtworkTitle": "Covers & images",
+  "settings.enrichArtworkNote": "Downloads missing album covers and artist photos. Does not write anything to your files.",
+  "settings.discogsFallbackNote": "Fallback source for artist photos without a MusicBrainz identifier.",
+  "settings.enrichFilesTitle": "Files",
+  "settings.writeTagsWarning": "Warning: writes the enriched metadata directly into the tags of your audio files. This action modifies the files on disk.",
   "settings.writeTagsStarted": "Writing tags to files started (missing fields only)...",
   "settings.writeTags": "Write tags to files",
   "settings.enrichArtistImages": "Enrich artist images",

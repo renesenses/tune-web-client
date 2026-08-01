@@ -605,7 +605,7 @@ export default {
   'settings.discogsTokenSet': 'Token configuré',
   'settings.discogsTokenNotSet': 'Non configuré',
   'settings.enrichOnScan': 'Enrichir automatiquement après scan',
-  'settings.enrichNow': 'Enrichir les métadonnées',
+  'settings.enrichNow': 'Enrichir les pochettes et images',
   'settings.enrichStarted': 'Enrichissement lancé',
 
   // Diagnostics
@@ -804,7 +804,7 @@ export default {
   'settings.importing': 'Import...',
 
   // Batch Enrichment
-  'settings.batchEnrich': 'Enrichir toute la bibliotheque (MusicBrainz)',
+  'settings.batchEnrich': 'Enrichir les métadonnées (genre, année, label, ISRC…)',
   'settings.batchEnrichRunning': 'Enrichissement : {current}/{total} pistes...',
   'settings.batchEnrichDone': 'Enrichissement termine !',
   'settings.batchEnrichStarted': 'Enrichissement lance',
@@ -1407,8 +1407,13 @@ export default {
   "settings.sharedDefault": "Partagé (défaut)",
   "settings.exclusiveBitPerfect": "Exclusif (bit-perfect)",
   "settings.discogsEnvHint": "TUNE_DISCOGS_TOKEN=... dans .env",
-  "settings.enrichMbStarted": "Enrichissement MusicBrainz lancé (genre, label, année, compositeur, ISRC)...",
-  "settings.enrichViaMb": "Enrichir via MusicBrainz",
+  "settings.enrichMetadataTitle": "Métadonnées (MusicBrainz)",
+  "settings.enrichMetadataNote": "Récupère genre, année, label, compositeur et ISRC depuis MusicBrainz pour toute la bibliothèque. La progression s'affiche ci-dessus.",
+  "settings.enrichArtworkTitle": "Pochettes & images",
+  "settings.enrichArtworkNote": "Télécharge les pochettes d'albums manquantes et les photos d'artistes. N'écrit rien dans vos fichiers.",
+  "settings.discogsFallbackNote": "Source de secours pour les photos d'artistes sans identifiant MusicBrainz.",
+  "settings.enrichFilesTitle": "Fichiers",
+  "settings.writeTagsWarning": "Attention : écrit les métadonnées enrichies directement dans les tags de vos fichiers audio. Cette action modifie les fichiers sur le disque.",
   "settings.writeTagsStarted": "Écriture des tags dans les fichiers lancée (champs manquants uniquement)...",
   "settings.writeTags": "Écrire les tags dans les fichiers",
   "settings.enrichArtistImages": "Enrichir les images d'artistes",

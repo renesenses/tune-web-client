@@ -597,7 +597,7 @@ export default {
   'settings.discogsTokenSet': 'Token configurat',
   'settings.discogsTokenNotSet': 'Neconfigurat',
   'settings.enrichOnScan': 'Îmbogățire automată după scanarea bibliotecii',
-  'settings.enrichNow': 'Îmbogățește metadatele acum',
+  'settings.enrichNow': 'Îmbogățește coperți și imagini',
   'settings.enrichStarted': 'Îmbogățire pornită',
 
   // Diagnostics
@@ -794,7 +794,7 @@ export default {
   'settings.importing': 'Se importă...',
 
   // Batch Enrichment
-  'settings.batchEnrich': 'Îmbogățește întreaga bibliotecă (MusicBrainz)',
+  'settings.batchEnrich': 'Îmbogățește metadatele (gen, an, casă de discuri, ISRC…)',
   'settings.batchEnrichRunning': 'Îmbogățire: {current}/{total} piese...',
   'settings.batchEnrichDone': 'Îmbogățire completă!',
   'settings.batchEnrichStarted': 'Îmbogățire pornită',
@@ -1397,8 +1397,16 @@ export default {
   "settings.sharedDefault": "Partajat (implicit)",
   "settings.exclusiveBitPerfect": "Exclusiv (bit-perfect)",
   "settings.discogsEnvHint": "TUNE_DISCOGS_TOKEN=... în .env",
-  "settings.enrichMbStarted": "Îmbogățire MusicBrainz pornită (gen, casă de discuri, an, compozitor, ISRC)...",
-  "settings.enrichViaMb": "Îmbogățește prin MusicBrainz",
+  "settings.enrichMetadataTitle": "Metadate (MusicBrainz)",
+  "settings.enrichMetadataNote": "Preia genul, anul, casa de discuri, compozitorul și ISRC din MusicBrainz pentru toată biblioteca. Progresul este afișat mai sus.",
+  "settings.enrichArtworkTitle": "Coperți și imagini",
+  "settings.enrichArtworkNote": "Descarcă coperțile de albume și fotografiile artiștilor lipsă. Nu scrie nimic în fișierele tale.",
+  "settings.discogsFallbackNote": "Sursă de rezervă pentru fotografiile artiștilor fără identificator MusicBrainz.",
+  "settings.enrichFilesTitle": "Fișiere",
+  "settings.writeTagsWarning": "Atenție: scrie metadatele îmbogățite direct în etichetele fișierelor audio. Această acțiune modifică fișierele de pe disc.",
+  "settings.enrichArtistImages": "Îmbogățește imaginile artiștilor",
+  "settings.enrichArtistImagesStarted": "Îmbogățirea imaginilor artiștilor a început…",
+  "settings.autoEnrichPremiumNote": "Îmbogățirea automată după o scanare este o funcție Premium. Butoanele de mai sus o pornesc manual pentru toată lumea. Imaginile artiștilor folosesc Discogs/Last.fm după nume când un artist nu are un identificator MusicBrainz.",
   "settings.writeTagsStarted": "Scriere etichete în fișiere pornită (doar câmpurile lipsă)...",
   "settings.writeTags": "Scrie etichetele în fișiere",
   "settings.displayedMetadataFields": "Câmpuri de metadate afișate",
