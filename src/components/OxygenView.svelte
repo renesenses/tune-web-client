@@ -300,6 +300,26 @@
   let inspectorGroups = $derived.by(() => {
     const groups: { name: string; rows: { key: string; label: string; value: string; isNew: boolean }[] }[] = [];
     const used = new Set<string>();
+    // Track-column extra fields (composer, label, ISRC, BPM, comments,
+    // MusicBrainz recording id, disc subtitle) live on the `tracks` table, not
+    // the k/v `track_metadata` store that feeds `ext` — so they were absent from
+    // the inspector entirely (Bertrand: "toutes les extra-metadonnées ne sont
+    // pas affichées"). Surface them from the selected track object, which
+    // already carries them. Only non-empty values are shown.
+    if (selected) {
+      const detail: { key: string; label: string; value: string; isNew: boolean }[] = [];
+      const add = (key: string, label: string, val: unknown) => {
+        if (val != null && String(val).trim() !== '') detail.push({ key, label, value: String(val), isNew: false });
+      };
+      add('composer', $t('oxygen.detail.composer'), selected.composer);
+      add('label', $t('oxygen.detail.label'), selected.label);
+      add('isrc', 'ISRC', selected.isrc);
+      add('bpm', 'BPM', selected.bpm);
+      add('disc_subtitle', $t('oxygen.detail.discSubtitle'), selected.disc_subtitle);
+      add('comments', $t('oxygen.detail.comments'), selected.comments);
+      add('musicbrainz_recording_id', 'MusicBrainz Recording ID', selected.musicbrainz_recording_id);
+      if (detail.length) groups.push({ name: $t('oxygen.details'), rows: detail });
+    }
     for (const cat of categories) {
       const rows = cat.fields.filter(f => ext[f.key]).map(f => { used.add(f.key); return { key: f.key, label: f.label, value: ext[f.key], isNew: NEW_KEYS.has(f.key) }; });
       if (rows.length) groups.push({ name: cat.name, rows });
