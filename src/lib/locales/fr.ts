@@ -654,6 +654,11 @@ export default {
   'diagnostics.bugReportSubmitting': 'Envoi…',
   'diagnostics.bugReportSubmitted': 'Bug envoyé, merci !',
   'diagnostics.bugReportSubmitError': "Échec de l'envoi. Réessaie ou copie le rapport dans le forum.",
+  'diagnostics.bugReportDescLabel': 'Décrivez le problème',
+  'diagnostics.bugReportDescPlaceholder': "Ex : la lecture s'arrête après 2 titres sur ma zone DLNA…",
+  'diagnostics.bugReportAttachNote': 'Les diagnostics et les logs récents ci-dessous seront joints automatiquement.',
+  'diagnostics.bugReportSubmittedHint': "Ton rapport a été transmis à l'équipe (fil modéré).",
+  'diagnostics.bugReportViewThread': 'Voir le fil',
 
   // Signal Path
   'signal.title': 'Chemin du signal',

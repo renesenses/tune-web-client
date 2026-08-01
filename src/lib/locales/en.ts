@@ -654,6 +654,11 @@ export default {
   'diagnostics.bugReportSubmitting': 'Sending…',
   'diagnostics.bugReportSubmitted': 'Bug sent, thanks!',
   'diagnostics.bugReportSubmitError': 'Send failed. Retry or copy the report into the forum.',
+  'diagnostics.bugReportDescLabel': 'Describe the problem',
+  'diagnostics.bugReportDescPlaceholder': 'E.g. playback stops after 2 tracks on my DLNA zone…',
+  'diagnostics.bugReportAttachNote': 'The diagnostics and recent logs below are attached automatically.',
+  'diagnostics.bugReportSubmittedHint': 'Your report was sent to the team (moderated thread).',
+  'diagnostics.bugReportViewThread': 'View thread',
 
   // Signal Path
   'signal.title': 'Signal Path',
