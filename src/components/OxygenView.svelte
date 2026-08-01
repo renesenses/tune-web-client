@@ -100,15 +100,15 @@
   });
 
   interface DiscGroup { disc: number; subtitle: string | null; tracks: Track[]; }
-  interface AlbumGroup { key: string | number; title: string; artist: string; cover?: string | null; year?: number | null; format?: any; sr?: number | null; bd?: number | null; source?: any; tracks: Track[]; albumArtist?: string | null; artistSet: Set<string>; }
+  interface AlbumGroup { key: string | number; title: string; artist: string; cover?: string | null; year?: number | null; format?: any; sr?: number | null; bd?: number | null; source?: any; tracks: Track[]; albumArtistSet: Set<string>; artistSet: Set<string>; }
   let albums = $derived.by<AlbumGroup[]>(() => {
     const m = new Map<string | number, AlbumGroup>();
     for (const t of visible) {
       const key = t.album_id ?? `t:${t.album_title}`;
       let g = m.get(key);
-      if (!g) { g = { key, title: t.album_title ?? 'Album inconnu', artist: '', albumArtist: t.album_artist, cover: t.cover_path, year: t.year, format: t.format, sr: t.sample_rate, bd: t.bit_depth, source: t.source, tracks: [], artistSet: new Set() }; m.set(key, g); }
+      if (!g) { g = { key, title: t.album_title ?? 'Album inconnu', artist: '', albumArtistSet: new Set(), cover: t.cover_path, year: t.year, format: t.format, sr: t.sample_rate, bd: t.bit_depth, source: t.source, tracks: [], artistSet: new Set() }; m.set(key, g); }
       if (t.artist_name) g.artistSet.add(t.artist_name);
-      if (!g.albumArtist && t.album_artist) g.albumArtist = t.album_artist;
+      if (t.album_artist) g.albumArtistSet.add(t.album_artist);
       g.tracks.push(t);
     }
     // Compilation display artist: prefer the tagged ALBUMARTIST; else, when the
@@ -118,9 +118,21 @@
     for (const g of m.values()) g.artist = albumArtistOf(g);
     return [...m.values()].sort((a, b) => (a.artist || '').localeCompare(b.artist || '', 'fr') || (a.title || '').localeCompare(b.title || '', 'fr'));
   });
+  // Mirrors the server's compilation detection (case-insensitive ALBUMARTIST
+  // sentinels) so a "Various Artists"-tagged album is recognised even when the
+  // exact casing/wording varies between files.
+  function isVariousArtists(s: string): boolean {
+    return /^\s*(various artists|various|va|compilations)\s*$/i.test(s);
+  }
   function albumArtistOf(g: AlbumGroup): string {
-    if (g.albumArtist) return g.albumArtist;
-    if (g.artistSet.size > 1) return $t('oxygen.variousArtists');
+    const aa = [...g.albumArtistSet].filter(s => s.trim().length > 0);
+    const hasVA = aa.some(isVariousArtists);
+    // A single, coherent ALBUMARTIST that isn't a VA sentinel wins.
+    if (aa.length === 1 && !hasVA) return aa[0];
+    // A VA tag, divergent ALBUMARTISTs, or several distinct track artists all
+    // mean a compilation → show "Various Artists" instead of track 1's tag.
+    if (hasVA || aa.length > 1 || g.artistSet.size > 1) return $t('oxygen.variousArtists');
+    // Single-artist album with no usable ALBUMARTIST: fall back to the artist.
     return [...g.artistSet][0] ?? '';
   }
   // Split an album's tracks into disc groups so per-disc subtitles (DISCSUBTITLE)
