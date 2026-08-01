@@ -3,6 +3,7 @@
   import { isBrowserZone, browserPlay } from '../lib/stores/browserAudio';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
+  import { notifications } from '../lib/stores/notifications';
   import { tuneWS } from '../lib/websocket';
   import { onMount } from 'svelte';
   import type { RadioStation } from '../lib/types';
@@ -45,7 +46,10 @@
       await api.apiDelete('/radio-favorites');
       savedTracks = [];
       savedCount = 0;
-    } catch (e) { console.error('Clear radio favs:', e); }
+    } catch (e) {
+      console.error('Clear radio favs:', e);
+      notifications.error((e as any)?.message || $t('radioFav.clearError'));
+    }
   }
 
   function formatDate(iso: string): string {

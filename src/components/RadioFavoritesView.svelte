@@ -34,7 +34,10 @@
     try {
       await api.apiDelete('/radio-favorites');
       savedTracks = [];
-    } catch (e) { console.error('Clear radio favs:', e); }
+    } catch (e) {
+      console.error('Clear radio favs:', e);
+      notifications.error((e as any)?.message || $t('radioFav.clearError'));
+    }
   }
 
   async function createPlaylist() {
