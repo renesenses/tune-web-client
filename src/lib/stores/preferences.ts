@@ -20,7 +20,7 @@ export type OxygenViewMode = 'album' | 'grid' | 'detail';
 // /library/folder-facet, rendered by OxygenFolderFacet — not a flat value list.
 export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source', 'rating', 'collection', 'folder'] as const;
 /** Facets removed from OXYGEN_FACETS_ALL — used to migrate old stored prefs. */
-const OXYGEN_FACETS_REMOVED = ['rating', 'collection', 'untagged'];
+const OXYGEN_FACETS_REMOVED = ['untagged'];
 
 export interface Preferences {
   theme: ThemeMode;

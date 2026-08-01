@@ -760,18 +760,42 @@
     }
   }
 
-  // Desktop wheel event to reveal sheet
+  // Desktop wheel event to reveal sheet.
+  // Bug #1261: a single wheel notch used to flip the queue sheet to 'peek'
+  // instantly, and under Firefox (deltaMode=1, delta in lines) the pixel-tuned
+  // threshold was meaningless. We normalize deltaMode to pixels, accumulate the
+  // scroll distance over a gesture, and only reveal the sheet past a realistic
+  // deadzone — firing at most one state change per gesture.
+  const NP_WHEEL_THRESHOLD = 130; // px of cumulative downward scroll to reveal
+  const NP_WHEEL_RESET_MS = 200; // idle gap that ends a gesture
+  let npWheelAccum = 0;
+  let npWheelLastTs = 0;
+  let npWheelTriggered = false; // debounce: one state change per gesture
+
   function handleNpWheel(e: WheelEvent) {
-    // Reveal the queue sheet only on a deliberate downward scroll. deltaY units
-    // differ across browsers: Chrome reports pixels (deltaMode 0, ~100/notch),
-    // Firefox reports lines (deltaMode 1, small magnitudes). A raw pixel
-    // threshold of 20 therefore fired on the lightest Firefox wheel nudge and
-    // popped the queue open unintentionally (Bilou, #1261). Normalise to pixels
-    // first, then require a clear scroll.
+    // Normalize deltaMode (0=pixels, 1=lines, 2=pages) to pixels.
     const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1;
-    const dyPx = e.deltaY * unit;
-    if (dyPx > 60 && queueSheetState === 'collapsed' && $queueTracks.length > 0) {
+    const dy = e.deltaY * unit;
+
+    const now = performance.now();
+    // Reset the accumulator (and gesture guard) after an idle gap.
+    if (now - npWheelLastTs > NP_WHEEL_RESET_MS) {
+      npWheelAccum = 0;
+      npWheelTriggered = false;
+    }
+    npWheelLastTs = now;
+
+    // Only react to downward scrolls while collapsed with a non-empty queue.
+    if (dy <= 0 || queueSheetState !== 'collapsed' || $queueTracks.length === 0) {
+      if (dy <= 0) npWheelAccum = 0; // upward scroll cancels the pending peek
+      return;
+    }
+
+    npWheelAccum += dy;
+    if (!npWheelTriggered && npWheelAccum >= NP_WHEEL_THRESHOLD) {
       queueSheetState = 'peek';
+      npWheelTriggered = true;
+      npWheelAccum = 0;
     }
   }
 

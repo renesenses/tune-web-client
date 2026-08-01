@@ -114,6 +114,31 @@
     tree = { ...tree, [parent]: tree[parent].filter(c => c !== child) };
   }
 
+  // Rename/merge a genre AT THE SOURCE (rewrites album + track tags library-wide),
+  // unlike renaming a tree branch which only relabels the grouping. Fixes a
+  // mis-spelled genre so it stops reappearing (forum "Arbre des genres").
+  let renaming = $state<string | null>(null);
+  async function mergeGenre(genre: string) {
+    const to = (prompt($t('genreTree.renameGenrePrompt').replace('{genre}', genre), genre) || '').trim();
+    if (!to || to === genre) return;
+    renaming = genre;
+    try {
+      const r = await api.renameGenre(genre, to);
+      notifications.success(
+        $t('genreTree.renameGenreDone')
+          .replace('{from}', genre)
+          .replace('{to}', to)
+          .replace('{albums}', String(r.albums))
+          .replace('{tracks}', String(r.tracks)),
+      );
+      // Tags + server-side tree changed — reload from scratch.
+      await load();
+    } catch (e: any) {
+      notifications.error(`${$t('genreTree.renameGenreError')} : ${e?.message || e}`);
+    }
+    renaming = null;
+  }
+
   // Drag & drop state — track what's being dragged + which target is hovered
   let dragSource = $state<{ parent: string; child: string } | null>(null);
   let dragHoverTarget = $state<string | null>(null);
@@ -222,6 +247,7 @@
               >
                 <span class="child-grip">⋮⋮</span>
                 {child}
+                <button class="child-rename" onclick={() => mergeGenre(child)} disabled={renaming === child} title={$t('genreTree.renameGenreTitle')}>✎</button>
                 <button class="child-del" onclick={() => removeChild(parent, child)} title={$t('genreTree.removeChildTitle')}>×</button>
               </span>
             {/each}
@@ -325,6 +351,13 @@
     cursor: pointer; padding: 0 4px; font-size: 14px; line-height: 1;
   }
   .child-del:hover { color: #ef4444; }
+
+  .child-rename {
+    background: none; border: none; color: var(--tune-text-muted);
+    cursor: pointer; padding: 0 2px; font-size: 11px; line-height: 1;
+  }
+  .child-rename:hover { color: var(--tune-accent); }
+  .child-rename:disabled { opacity: 0.4; cursor: default; }
 
   .add-child-input {
     background: var(--tune-bg); border: 1px dashed var(--tune-border);

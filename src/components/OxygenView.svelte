@@ -62,6 +62,10 @@
   // Mobile: rail + inspector become slide-over drawers.
   let mobileRail = $state(false);
   let mobileInspector = $state(false);
+  // Desktop: the inspector is a fixed grid column, so the mobile drawer close
+  // never applied — there was no way to dismiss the metadata panel (31/07).
+  // Closing collapses the column; selecting a track brings it back.
+  let inspectorCollapsed = $state(false);
   let isNarrow = $state(false);
 
   let mode = $derived<OxygenViewMode>($preferences.oxygenView);
@@ -108,15 +112,15 @@
   });
 
   interface DiscGroup { disc: number; subtitle: string | null; tracks: Track[]; }
-  interface AlbumGroup { key: string | number; title: string; artist: string; cover?: string | null; year?: number | null; format?: any; sr?: number | null; bd?: number | null; source?: any; tracks: Track[]; albumArtist?: string | null; artistSet: Set<string>; }
+  interface AlbumGroup { key: string | number; title: string; artist: string; cover?: string | null; year?: number | null; format?: any; sr?: number | null; bd?: number | null; source?: any; tracks: Track[]; albumArtistSet: Set<string>; artistSet: Set<string>; }
   let albums = $derived.by<AlbumGroup[]>(() => {
     const m = new Map<string | number, AlbumGroup>();
     for (const t of visible) {
       const key = t.album_id ?? `t:${t.album_title}`;
       let g = m.get(key);
-      if (!g) { g = { key, title: t.album_title ?? 'Album inconnu', artist: '', albumArtist: t.album_artist, cover: t.cover_path, year: t.year, format: t.format, sr: t.sample_rate, bd: t.bit_depth, source: t.source, tracks: [], artistSet: new Set() }; m.set(key, g); }
+      if (!g) { g = { key, title: t.album_title ?? 'Album inconnu', artist: '', albumArtistSet: new Set(), cover: t.cover_path, year: t.year, format: t.format, sr: t.sample_rate, bd: t.bit_depth, source: t.source, tracks: [], artistSet: new Set() }; m.set(key, g); }
       if (t.artist_name) g.artistSet.add(t.artist_name);
-      if (!g.albumArtist && t.album_artist) g.albumArtist = t.album_artist;
+      if (t.album_artist) g.albumArtistSet.add(t.album_artist);
       g.tracks.push(t);
     }
     // Compilation display artist: prefer the tagged ALBUMARTIST; else, when the
@@ -126,9 +130,21 @@
     for (const g of m.values()) g.artist = albumArtistOf(g);
     return [...m.values()].sort((a, b) => (a.artist || '').localeCompare(b.artist || '', 'fr') || (a.title || '').localeCompare(b.title || '', 'fr'));
   });
+  // Mirrors the server's compilation detection (case-insensitive ALBUMARTIST
+  // sentinels) so a "Various Artists"-tagged album is recognised even when the
+  // exact casing/wording varies between files.
+  function isVariousArtists(s: string): boolean {
+    return /^\s*(various artists|various|va|compilations)\s*$/i.test(s);
+  }
   function albumArtistOf(g: AlbumGroup): string {
-    if (g.albumArtist) return g.albumArtist;
-    if (g.artistSet.size > 1) return $t('oxygen.variousArtists');
+    const aa = [...g.albumArtistSet].filter(s => s.trim().length > 0);
+    const hasVA = aa.some(isVariousArtists);
+    // A single, coherent ALBUMARTIST that isn't a VA sentinel wins.
+    if (aa.length === 1 && !hasVA) return aa[0];
+    // A VA tag, divergent ALBUMARTISTs, or several distinct track artists all
+    // mean a compilation → show "Various Artists" instead of track 1's tag.
+    if (hasVA || aa.length > 1 || g.artistSet.size > 1) return $t('oxygen.variousArtists');
+    // Single-artist album with no usable ALBUMARTIST: fall back to the artist.
     return [...g.artistSet][0] ?? '';
   }
   // Split an album's tracks into disc groups so per-disc subtitles (DISCSUBTITLE)
@@ -154,6 +170,7 @@
 
   async function select(t: Track) {
     selected = t; ext = {};
+    inspectorCollapsed = false;
     if (isNarrow) mobileInspector = true;
     if (t.id == null) return;
     extLoading = true;
@@ -395,7 +412,7 @@
     </div>
   {/if}
 
-  <div class="body">
+  <div class="body" class:noinsp={inspectorCollapsed}>
     <aside class="railwrap" class:open={mobileRail}>
       <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} limit={$preferences.oxygenFacetLimit} selected={facetSels} folderCrumbs={folderData.crumbs} folderChildren={folderData.children} folderLoading={folderLoading} onFolderDrill={drillFolder} onSelect={(field, value) => { const next = { ...facetSels }; if (value == null) { delete next[field]; } else { next[field] = value; } facetSels = next; mobileRail = false; }} />
     </aside>
@@ -493,7 +510,7 @@
     </section>
 
     <aside class="inspector" class:empty={!selected} class:open={mobileInspector}>
-      <button class="drawerclose mobonly" onclick={() => mobileInspector = false} aria-label={$t('oxygen.close')}>×</button>
+      <button class="drawerclose" onclick={() => { mobileInspector = false; inspectorCollapsed = true; }} aria-label={$t('oxygen.close')}>×</button>
       {#if selected}
         <div class="insp-title">{selected.title}</div>
         <div class="insp-sub">{selected.artist_name ?? ''} · {selected.album_title ?? ''}</div>
@@ -543,7 +560,11 @@
   .crumb .x { opacity: .7; margin-left: 3px; }
 
   .body { flex: 1; min-height: 0; display: grid; grid-template-columns: 220px 1fr 322px; position: relative; }
-  .mobonly { display: none; }
+  /* Desktop only: the mobile slide-over (≤1150px) keeps its own open/close. */
+  @media (min-width: 1151px) {
+    .body.noinsp { grid-template-columns: 220px 1fr; }
+    .body.noinsp .inspector { display: none; }
+  }
   .railtoggle { display: none; }
   @media (max-width: 780px) { .railtoggle { display: inline-grid; } }
   .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); border: 0; z-index: 35; cursor: pointer; }
@@ -553,7 +574,6 @@
     .body { grid-template-columns: 200px 1fr; }
     .inspector { position: absolute; top: 0; right: 0; bottom: 0; width: 340px; max-width: 88vw; transform: translateX(100%); transition: transform .22s ease; z-index: 40; box-shadow: -8px 0 30px rgba(0,0,0,.4); }
     .inspector.open { transform: none; }
-    .mobonly { display: inline-grid; }
   }
   /* Phone: rail also becomes a left slide-over. */
   @media (max-width: 780px) {

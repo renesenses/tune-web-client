@@ -124,6 +124,9 @@ export async function apiDelete(path: string): Promise<any> {
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
   if (!resp.ok) throw new Error(`${resp.status}`);
   const text = await resp.text();
+  // Tolerate empty bodies (e.g. HTTP 204 No Content from delete_radio_favorite):
+  // a successful delete may return no content, which must not be treated as an error (#1266).
+  if (!text.trim()) return null;
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
     throw new Error('Expected JSON but received HTML — check the endpoint URL');
   }
@@ -3069,6 +3072,9 @@ export interface MergedPlugin {
   min_tune_version?: string;
   max_tune_version?: string;
   is_featured?: boolean;
+  /** Entrée issue du catalogue marketplace (install via /marketplace). */
+  marketplace?: boolean;
+  slug?: string;
 }
 
 export function getInstalledPlugins(): Promise<InstalledPlugin[]> {
@@ -3097,6 +3103,37 @@ export async function getStorePlugins(search?: string, category?: string): Promi
 /** Fetch merged plugin list (catalog + local) from the Tune server. */
 export function getMergedPlugins(): Promise<MergedPlugin[]> {
   return fetchJSON<MergedPlugin[]>(`${BASE}/plugins`);
+}
+
+export interface MarketplaceCatalogPlugin {
+  slug: string;
+  name: string;
+  display_name?: string | null;
+  description: string;
+  version: string;
+  author: string;
+  price?: number | null;
+  category: string;
+  downloads?: number;
+  rating?: number;
+  installed: boolean;
+  installed_version?: string | null;
+  platforms?: string | null;
+  install_type?: string | null;
+}
+
+/** Catalogue marketplace via le proxy serveur (pas de cross-origin). */
+export function getMarketplaceCatalog(): Promise<{ plugins: MarketplaceCatalogPlugin[]; count: number }> {
+  return fetchJSON(`${BASE}/marketplace/plugins`);
+}
+
+/** Installe un plugin du marketplace : télécharge et persiste le wasm côté serveur. */
+export function installMarketplacePlugin(slug: string): Promise<{ status: string; restart_required?: boolean }> {
+  return fetchJSON(`${BASE}/marketplace/plugins/${encodeURIComponent(slug)}/install`, { method: 'POST' });
+}
+
+export function uninstallMarketplacePlugin(slug: string): Promise<{ status: string; restart_required?: boolean }> {
+  return fetchJSON(`${BASE}/marketplace/plugins/${encodeURIComponent(slug)}/uninstall`, { method: 'POST' });
 }
 
 /** Get details for a single plugin by slug. */
@@ -3285,6 +3322,10 @@ export function getContinueListening(limit = 20) {
 
 export function getRecentlyAdded() {
   return fetchJSON<any[]>(`${BASE}/home/recently-added`);
+}
+
+export function getNewInLibrary() {
+  return fetchJSON<any[]>(`${BASE}/home/new-in-library`);
 }
 
 export function getHomeRecommendations() {

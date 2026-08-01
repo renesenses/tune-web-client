@@ -10,6 +10,7 @@
   import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import MetadataChips from './MetadataChips.svelte';
+  import ServiceBadge from './ServiceBadge.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
   import type { Track, Album, Artist } from '../lib/types';
@@ -343,7 +344,10 @@
           <div class="track-item" onclick={() => playTrack(t)}>
             <span class="track-thumb"><AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.album_title ?? ''} /></span>
             <div class="track-info">
-              <span class="track-title truncate">{t.title}</span>
+              <span class="track-title-row">
+                <span class="track-title truncate">{t.title}</span>
+                <ServiceBadge source={(t as any).source ?? 'local'} compact />
+              </span>
               <span class="track-meta truncate">{t.artist_name ?? ''}{#if t.album_title} — {t.album_title}{/if}</span>
               <MetadataChips track={t} fields={$displayFields} />
             </div>
@@ -385,6 +389,7 @@
               <button class="remove-overlay" onclick={(e) => { e.stopPropagation(); removeFavAlbum(album); }}>
                 <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
               </button>
+              <div class="cover-badge"><ServiceBadge source={(album as any).source ?? 'local'} compact /></div>
             </div>
             <span class="album-card-title truncate">{album.title}</span>
             {#if album.artist_name}
@@ -415,6 +420,7 @@
               {/if}
             </div>
             <span class="artist-card-name truncate">{artist.name}</span>
+            <ServiceBadge source={(artist as any).source ?? 'local'} compact />
             <button class="artist-remove-btn" onclick={(e) => { e.stopPropagation(); removeFavArtist(artist); }}>
               <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="14" height="14"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
             </button>
@@ -560,10 +566,18 @@
     gap: 2px;
   }
 
+  .track-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
   .track-title {
     font-family: var(--font-body);
     font-size: 14px;
     color: var(--tune-text);
+    min-width: 0;
   }
 
   .track-meta {
@@ -702,6 +716,14 @@
 
   .album-card:hover .remove-overlay {
     opacity: 1;
+  }
+
+  /* Provenance badge overlaid on album cover (matches SearchView pattern) */
+  .cover-badge {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    z-index: 1;
   }
 
   .album-card-title {

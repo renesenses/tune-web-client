@@ -12,6 +12,7 @@
     spotify: { name: 'SPOTIFY', bg: '#1DB954', color: '#ffffff' },
     youtube: { name: 'YT',      bg: '#FF0000', color: '#ffffff' },
     amazon:  { name: 'AMAZON',  bg: '#00A8E1', color: '#ffffff' },
+    local:   { name: 'LOCAL',   bg: '#4B5563', color: '#ffffff' },
   };
 
   let info = $derived(source ? services[source] ?? null : null);
@@ -90,5 +91,12 @@
     color: #00C8FF;
     background: rgba(0, 168, 225, 0.12);
     border: 1px solid rgba(0, 168, 225, 0.30);
+  }
+
+  /* Local library: neutral grey tones */
+  .service-badge.local {
+    color: #B4BCC8;
+    background: rgba(75, 85, 99, 0.18);
+    border: 1px solid rgba(75, 85, 99, 0.40);
   }
 </style>
