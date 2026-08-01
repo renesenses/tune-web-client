@@ -3,7 +3,7 @@
   import QualityBadge from './QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
   import HeartButton from './HeartButton.svelte';
-  import { getFilteredTracks, getLibraryFacets, getAlbumTracks, artworkUrl, addToQueue, getQueue, jumpInQueue, type FacetValue } from '../lib/api';
+  import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, artworkUrl, addToQueue, getQueue, jumpInQueue, type FacetValue, type FolderFacet } from '../lib/api';
   import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../lib/api/metadata';
   import { displayFields } from '../lib/stores/displayFields';
   import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
@@ -42,6 +42,11 @@
   // « filtrer simultanément par Genre, year et label »). Chaque champ garde
   // au plus une valeur ; les champs actifs se cumulent côté serveur.
   let facetSels = $state<Record<string, string>>({});
+  // Folder facet (drill-down): the current path lives in facetSels.folder (so it
+  // flows to /tracks and /facets like any other filter); folderData holds the
+  // breadcrumb + child folders fetched from /library/folder-facet for that path.
+  let folderData = $state<FolderFacet>({ path: null, crumbs: [], children: [] });
+  let folderLoading = $state(false);
   let albumFilter = $state<string | number | null>(null);
   let albumFilterLabel = $state('');
   // Mobile: rail + inspector become slide-over drawers.
@@ -74,6 +79,7 @@
         case 'country': out.country = value; break;
         case 'mood': out.mood = value; break;
         case 'source': out.source_media = value; break;
+        case 'folder': out.folder = value; break;
       }
     }
     return out;
@@ -287,6 +293,7 @@
   }
 
   const serverFacetFields = $preferences.oxygenFacets.filter(f => SERVER_FACET_FIELDS.includes(f));
+  const folderEnabled = $preferences.oxygenFacets.includes('folder');
   // Cumulative: recompute facet counts over the active filter set so selecting a
   // genre narrows the labels/artists/… lists (Dominique). A facet excludes its
   // own field server-side, keeping its alternatives visible.
@@ -294,6 +301,23 @@
     if (!serverFacetFields.length) return;
     try { serverFacets = await getLibraryFacets(serverFacetFields, facetParam(facetSels), $preferences.oxygenFacetLimit); }
     catch { /* keep the previous facet counts on transient failure */ }
+  }
+
+  // Fetch the child folders of the current path (facetSels.folder), narrowed by
+  // the other active facets. The current breadcrumb path IS the folder filter.
+  async function loadFolder() {
+    if (!folderEnabled) return;
+    folderLoading = true;
+    try { folderData = await getFolderFacet(facetSels.folder ?? null, facetParam(facetSels), $preferences.oxygenFacetLimit); }
+    catch { /* keep the previous folder listing on transient failure */ }
+    finally { folderLoading = false; }
+  }
+
+  // Drill into (and filter by) a folder; null returns to the library roots.
+  function drillFolder(path: string | null) {
+    const next = { ...facetSels };
+    if (path == null) delete next.folder; else next.folder = path;
+    facetSels = next; // triggers loadTracks + loadFacets + loadFolder via effects
   }
 
   onMount(() => {
@@ -308,6 +332,8 @@
   $effect(() => { void JSON.stringify(facetSels); loadTracks(); });
   // Facet counts also re-fetch when the per-facet value limit changes.
   $effect(() => { void JSON.stringify(facetSels); void $preferences.oxygenFacetLimit; loadFacets(); });
+  // Folder drill-down re-fetches its children when the path or any filter changes.
+  $effect(() => { void JSON.stringify(facetSels); void $preferences.oxygenFacetLimit; loadFolder(); });
 </script>
 
 <!-- Indicateur « en lecture », partagé par la vue album et la vue tableau : il
@@ -351,7 +377,7 @@
   {#if Object.keys(facetSels).length || albumFilter != null}
     <div class="crumbs">
       {#each Object.entries(facetSels) as [field, value] (field)}
-        <button class="crumb" onclick={() => { const next = { ...facetSels }; delete next[field]; facetSels = next; }}>{value} <span class="x">×</span></button>
+        <button class="crumb" title={value} onclick={() => { const next = { ...facetSels }; delete next[field]; facetSels = next; }}>{field === 'folder' ? (value.split(/[/\\]/).filter(Boolean).pop() ?? value) : value} <span class="x">×</span></button>
       {/each}
       {#if albumFilter != null}<button class="crumb" onclick={clearAlbum}>{albumFilterLabel} <span class="x">×</span></button>{/if}
     </div>
@@ -359,7 +385,7 @@
 
   <div class="body">
     <aside class="railwrap" class:open={mobileRail}>
-      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} limit={$preferences.oxygenFacetLimit} selected={facetSels} onSelect={(field, value) => { const next = { ...facetSels }; if (value == null) { delete next[field]; } else { next[field] = value; } facetSels = next; mobileRail = false; }} />
+      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} limit={$preferences.oxygenFacetLimit} selected={facetSels} folderCrumbs={folderData.crumbs} folderChildren={folderData.children} folderLoading={folderLoading} onFolderDrill={drillFolder} onSelect={(field, value) => { const next = { ...facetSels }; if (value == null) { delete next[field]; } else { next[field] = value; } facetSels = next; mobileRail = false; }} />
     </aside>
 
     <section class="main">
