@@ -33,6 +33,8 @@ export default {
   'oxygen.facet.sample_rate': 'Abtastrate',
   'oxygen.facet.bit_depth': 'Bittiefe',
   'oxygen.facet.folder': 'Ordner',
+  'oxygen.facet.rating': 'Bewertung',
+  'oxygen.facet.collection': 'Sammlungen',
   'oxygen.folder.home': 'Bibliothek',
   'oxygen.folder.empty': 'Keine Unterordner hier.',
   'oxygen.facetsServer': 'Vollständige Zählung (Server-Index).',
