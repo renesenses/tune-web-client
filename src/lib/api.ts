@@ -115,6 +115,9 @@ export async function apiDelete(path: string): Promise<any> {
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
   if (!resp.ok) throw new Error(`${resp.status}`);
   const text = await resp.text();
+  // Tolerate empty bodies (e.g. HTTP 204 No Content from delete_radio_favorite):
+  // a successful delete may return no content, which must not be treated as an error (#1266).
+  if (!text.trim()) return null;
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
     throw new Error('Expected JSON but received HTML — check the endpoint URL');
   }
