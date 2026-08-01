@@ -273,6 +273,9 @@ export interface StreamingGenre {
 export interface StreamingServiceStatus {
   enabled: boolean;
   authenticated: boolean;
+  /** Account name. The server sends it even once a session has expired. */
+  username?: string | null;
+  subscription?: string | null;
 }
 
 export interface StreamingAuthResponse {

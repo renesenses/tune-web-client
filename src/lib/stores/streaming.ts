@@ -3,7 +3,56 @@ import type { Album, Artist, StreamingServiceStatus } from '../types';
 
 export const activeStreamingService = writable<string | null>(null);
 
-export const streamingServices = writable<Record<string, StreamingServiceStatus>>({});
+/** A service whose session the server has just reported as gone. */
+export interface ExpiredSession {
+  service: string;
+  /** Account the session belonged to, when the server still knows it. */
+  username: string | null;
+}
+
+export const expiredStreamingSession = writable<ExpiredSession | null>(null);
+
+/**
+ * Streaming service status, watched for sessions that drop out underneath us.
+ *
+ * The server clears a token once the provider rejects it, so `authenticated`
+ * flips to false on its own — no user action involved. Every screen reads this
+ * store through the same `set`, so the transition is detected here once rather
+ * than in each of the eight call sites that refresh the status.
+ */
+function createStreamingServices() {
+  const inner = writable<Record<string, StreamingServiceStatus>>({});
+  let previous: Record<string, StreamingServiceStatus> = {};
+
+  function apply(next: Record<string, StreamingServiceStatus>) {
+    for (const [service, now] of Object.entries(next)) {
+      const before = previous[service];
+      if (!before) continue;
+      if (before.authenticated && !now.authenticated && now.enabled) {
+        expiredStreamingSession.set({
+          service,
+          // The server keeps the account name through an expiry precisely so
+          // the prompt can address it; fall back to what we last saw.
+          username: now.username ?? before.username ?? null,
+        });
+      } else if (!before.authenticated && now.authenticated) {
+        // Reconnected — from this prompt or from Settings, either way it's over.
+        expiredStreamingSession.update((e) => (e?.service === service ? null : e));
+      }
+    }
+    previous = next;
+    inner.set(next);
+  }
+
+  return {
+    subscribe: inner.subscribe,
+    set: apply,
+    update: (fn: (v: Record<string, StreamingServiceStatus>) => Record<string, StreamingServiceStatus>) =>
+      apply(fn(previous)),
+  };
+}
+
+export const streamingServices = createStreamingServices();
 
 export const pendingStreamingAlbum = writable<Album | null>(null);
 export const pendingStreamingArtist = writable<Artist | null>(null);

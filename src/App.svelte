@@ -65,6 +65,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import OnboardingView from './components/OnboardingView.svelte';
   import OfflineView from './components/OfflineView.svelte';
   import WhatsNew from './components/WhatsNew.svelte';
+  import StreamingSessionPrompt from './components/StreamingSessionPrompt.svelte';
   import LoginView from './components/LoginView.svelte';
   import ConverterView from './components/ConverterView.svelte';
   import AiChat from './components/AiChat.svelte';
@@ -1176,6 +1177,9 @@ import AlarmsView from './components/AlarmsView.svelte';
 {#if showWhatsNew}
   <WhatsNew onClose={handleWhatsNewClose} />
 {/if}
+
+<!-- Shows itself when a streaming session drops; silent otherwise. -->
+<StreamingSessionPrompt />
 
 <!-- Single persistent YouTube IFrame Player instance (off-screen) -->
 <YTPlayer />
