@@ -950,6 +950,13 @@
     <div class="bg-blur" style="background-image: url({resolvedCoverUrl})"></div>
   {/if}
 
+  <!-- Scrollable content wrapper: keeps the now-playing content scrollable on
+       short viewports WITHOUT the root itself being scrollable. The root stays
+       overflow:hidden so the collapsed queue sheet (absolute, translateY(100%))
+       can't create a native scroll region that Firefox's middle-click autoscroll
+       would nudge open (#1261 follow-up: the JS wheel guard couldn't stop the
+       native path). The queue sheet lives OUTSIDE this wrapper. -->
+  <div class="np-scroll">
   {#if zone && displayTrack}
     <div class="content-layout" class:wide={isWide}>
       <div class="artwork-container" bind:this={artworkEl}>
@@ -1455,6 +1462,7 @@
       {/if}
     </div>
   {/if}
+  </div>
 
   <!-- Queue Bottom Sheet -->
   {#if $queueTracks.length > 0 && zone && displayTrack}
@@ -1633,8 +1641,27 @@
     height: 100%;
     padding: var(--space-xl);
     position: relative;
+    /* Root is NOT scrollable: the collapsed queue sheet is an absolutely
+       positioned child parked below the box (translateY(100%)); if the root
+       scrolled, Firefox's middle-click autoscroll would reveal it (bug:
+       accidental wheel-press shows the queue). Content scrolling on short
+       viewports is handled by the inner .np-scroll wrapper instead. */
     overflow: hidden;
+  }
+
+  /* Owns the vertical scroll for the now-playing CONTENT (artwork + controls)
+     on short viewports, so the root can stay overflow:hidden. The queue sheet
+     is a sibling of this wrapper, so scrolling here never reveals it. */
+  .np-scroll {
+    flex: 1 1 auto;
+    align-self: stretch;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     overflow-y: auto;
+    position: relative;
+    z-index: 1;
   }
 
   .np-back-btn {
