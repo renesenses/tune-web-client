@@ -969,10 +969,12 @@ export async function getFilteredTracks(opts: {
   country?: string;       // release_country (track_metadata k/v)
   mood?: string;          // mood (track_metadata k/v)
   source_media?: string;  // source_media (track_metadata k/v)
+  folder?: string;        // Oxygen folder facet: absolute dir prefix (subtree)
   limit?: number;
   offset?: number;
 }): Promise<{ items: Track[]; total: number }> {
   const params = new URLSearchParams();
+  if (opts.folder) params.set('folder', opts.folder);
   if (opts.genre) params.set('genre', opts.genre);
   if (opts.format) params.set('format', opts.format);
   if (opts.sample_rate != null) params.set('sample_rate', String(opts.sample_rate));
@@ -1013,6 +1015,30 @@ export async function getLibraryFacets(
   if (limit != null) params.set('limit', String(limit));
   const raw = await fetchJSON<any>(`${BASE}/library/facets?${params}`);
   return (raw && typeof raw === 'object') ? raw : {};
+}
+
+export interface FolderChild { name: string; path: string; count: number; has_children: boolean; }
+export interface FolderCrumb { name: string; path: string; }
+export interface FolderFacet { path: string | null; crumbs: FolderCrumb[]; children: FolderChild[]; }
+
+/** Hierarchical folder facet for Oxygen (drill-down). `path` empty/undefined →
+ *  the library roots. `filters` are the other active facets (cumulative counts).
+ *  Selecting a child folder means filtering /library/tracks?folder=<child.path>. */
+export async function getFolderFacet(
+  path?: string | null,
+  filters?: Record<string, string | number>,
+  folderLimit?: number,
+): Promise<FolderFacet> {
+  const params = new URLSearchParams();
+  if (path) params.set('path', path);
+  if (filters) for (const [k, v] of Object.entries(filters)) params.set(k, String(v));
+  if (folderLimit != null) params.set('folder_limit', String(folderLimit));
+  const raw = await fetchJSON<any>(`${BASE}/library/folder-facet?${params}`);
+  return {
+    path: raw?.path ?? null,
+    crumbs: Array.isArray(raw?.crumbs) ? raw.crumbs : [],
+    children: Array.isArray(raw?.children) ? raw.children : [],
+  };
 }
 
 export async function getAllTracks(pageSize = 2000): Promise<Track[]> {
