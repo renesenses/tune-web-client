@@ -483,6 +483,9 @@
   // Audio backend
   let audioBackend = $state('wasapi');
   let exclusiveMode = $state(false);
+  // DSD → network renderer: stream the transcode instead of a blocking temp
+  // file (fixes DSD 256/512 timeouts/silence on some DLNA renderers).
+  let dsdLpcmStream = $state(false);
 
   async function loadAudioBackend() {
     try {
@@ -490,7 +493,26 @@
       const data = await resp.json();
       audioBackend = data.audio_backend ?? data.local_audio_backend ?? 'wasapi';
       exclusiveMode = data.local_exclusive_mode ?? false;
+      dsdLpcmStream = data.dsd_lpcm_stream ?? false;
     } catch {}
+  }
+
+  async function toggleDsdLpcmStream() {
+    const newVal = !dsdLpcmStream;
+    dsdLpcmStream = newVal;
+    try {
+      await fetch('/api/v1/system/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dsd_lpcm_stream: newVal }),
+      });
+      notifications.success(
+        newVal ? 'Streaming DSD activé' : 'Transcodage DSD par fichier temporaire',
+      );
+    } catch {
+      dsdLpcmStream = !newVal; // revert on failure
+      notifications.error('Échec de la mise à jour du réglage DSD');
+    }
   }
 
   async function changeAudioBackend(backend: string) {
@@ -3387,6 +3409,30 @@
           {#if creatingBrowserZone}<div class="spinner small"></div>{/if}
           {$t('settings.createBrowserZone')}
         </button>
+      </div>
+    </section>
+
+    <!-- DSD streaming to network (DLNA) renderers -->
+    <section class="settings-section">
+      <h3>Lecture DSD (renderers réseau)</h3>
+      <p class="muted" style="margin-bottom: 1rem">
+        Diffuse le DSD transcodé en flux continu au lieu d'un fichier temporaire.
+        Corrige les coupures / silences en DSD 256/512 sur certains renderers
+        DLNA. Effet immédiat, sans redémarrage.
+      </p>
+      <div class="about-row">
+        <span class="about-label">Transcodage DSD → réseau</span>
+        <select
+          class="log-level-select"
+          value={dsdLpcmStream ? 'stream' : 'file'}
+          onchange={(e) => {
+            const v = (e.target as HTMLSelectElement).value;
+            if ((v === 'stream') !== dsdLpcmStream) toggleDsdLpcmStream();
+          }}
+        >
+          <option value="file">Fichier temporaire (défaut)</option>
+          <option value="stream">Streaming continu</option>
+        </select>
       </div>
     </section>
 
