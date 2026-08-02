@@ -1457,6 +1457,33 @@
     peersLoading = false;
   }
 
+  // Manual add by IP:port — robust when multicast auto-discovery is blocked
+  // (Docker macvlan, Windows firewall — the reported case).
+  let peerAddHost = $state('');
+  let peerAddPort = $state(8888);
+  let peerAdding = $state(false);
+  async function addPeer() {
+    const host = peerAddHost.trim();
+    if (!host) return;
+    peerAdding = true;
+    try {
+      await api.addTunePeer(host, Number(peerAddPort) || 8888);
+      peerAddHost = '';
+      await fetchTunePeers();
+    } catch (e: any) {
+      notifications.error(e?.message || $t('settings.peerAddError'));
+    }
+    peerAdding = false;
+  }
+  async function removePeer(peer: api.TunePeer) {
+    try {
+      await api.removeTunePeer(peer.host, peer.port);
+      await fetchTunePeers();
+    } catch (e: any) {
+      notifications.error(e?.message || $t('common.error'));
+    }
+  }
+
   // --- Appliance (Tune OS): host WiFi configuration ---
   let wifiStatus = $state<api.ApplianceStatus | null>(null);
   let wifiNetworks = $state<api.ApplianceWifiNetwork[]>([]);
@@ -2474,11 +2501,26 @@
                 <button class="btn-secondary" onclick={() => window.open(`http://${peer.host}:${peer.port}`, '_blank')}>
                   {$t('settings.browse')}
                 </button>
+                <button class="btn-secondary" title={$t('settings.peerRemove')} onclick={() => removePeer(peer)}>✕</button>
               </div>
             </div>
           {/each}
         </div>
       {/if}
+
+      <!-- Manual add by IP:port — the robust path when multicast auto-discovery
+           is blocked (Docker macvlan, Windows firewall). -->
+      <div class="peer-add">
+        <input type="text" class="auth-input" placeholder={$t('settings.peerAddHostPlaceholder')} bind:value={peerAddHost}
+               onkeydown={(e) => { if (e.key === 'Enter') addPeer(); }} disabled={peerAdding} />
+        <input type="number" class="auth-input peer-add-port" placeholder="8888" bind:value={peerAddPort} disabled={peerAdding} />
+        <button class="scan-btn small" onclick={addPeer} disabled={peerAdding || !peerAddHost.trim()}>
+          {#if peerAdding}<div class="spinner small"></div>{/if}
+          {$t('settings.peerAdd')}
+        </button>
+      </div>
+      <p class="diag-hint">{$t('settings.peerAddHint')}</p>
+
       <button class="scan-btn" onclick={fetchTunePeers} disabled={peersLoading} style="margin-top: 8px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
           <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
@@ -6240,6 +6282,22 @@
   }
   .peer-actions {
     flex-shrink: 0;
+    display: flex;
+    gap: 6px;
+  }
+  .peer-add {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .peer-add .auth-input {
+    flex: 1;
+    min-width: 160px;
+  }
+  .peer-add .peer-add-port {
+    flex: 0 0 90px;
+    min-width: 0;
   }
 
   .server-url {
