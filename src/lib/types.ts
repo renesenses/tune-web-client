@@ -225,6 +225,8 @@ export interface Zone {
   dlna_lpcm?: boolean;
   dlna_cap_16bit?: boolean;
   dlna_wav24?: boolean;
+  /** Per-zone SetAVTransportURI→Play delay in ms (0 = config default). */
+  dlna_play_delay_ms?: number;
 }
 
 /** Result of the DLNA renderer discovery check (GetProtocolInfo Sink). */

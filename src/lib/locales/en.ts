@@ -1485,6 +1485,8 @@ export default {
   "renderer.wav16": "16-bit",
   "renderer.wav24": "24-bit",
   "renderer.wav24Hint": "Serve genuine 24-bit WAV. Only available when the discovery check confirms the renderer advertises audio/L24 (24-bit LPCM).",
+  "renderer.startDelay": "Start delay",
+  "renderer.startDelayHint": "Pause before playback starts, to let a DLNA amp buffer (helps when the first seconds stutter). 0 = default.",
   "renderer.probeFailed": "Couldn't read the renderer's capabilities. Make sure it's powered on and on the same network.",
   "renderer.saveError": "Couldn't save the setting.",
   "settings.dlnaCap16bitHint": "Enable if hi-res (24-bit) is silent on this renderer while 16-bit works (Ruark R3). Re-encodes to 16-bit FLAC instead of sending 24-bit direct that the renderer can't decode.",

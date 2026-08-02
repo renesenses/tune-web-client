@@ -1478,6 +1478,8 @@ export default {
   "renderer.wav16": "16 ビット",
   "renderer.wav24": "24 ビット",
   "renderer.wav24Hint": "本物の 24 ビット WAV を配信します。ディスカバリー確認でレンダラーが audio/L24（24 ビット LPCM）を表明している場合にのみ利用できます。",
+  "renderer.startDelay": "開始遅延",
+  "renderer.startDelayHint": "再生開始前の一時停止で、DLNA アンプがバッファリングできるようにします（最初の数秒が途切れる場合に役立ちます）。0 = デフォルト値。",
   "renderer.probeFailed": "レンダラーの機能を読み取れませんでした。電源が入っていて同じネットワークに接続されているか確認してください。",
   "renderer.saveError": "設定を保存できませんでした。",
   "shortcuts.title": "ショートカット",
