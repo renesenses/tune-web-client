@@ -56,11 +56,26 @@
     newParent = '';
   }
 
-  function removeParent(parent: string) {
+  // Persist the current tree to the server immediately. Used by the delete
+  // actions so a removed branch/child can't be silently lost when the user
+  // navigates away without pressing "Enregistrer" (forum "Arbre des genres" :
+  // « la suppression ne fonctionne pas »). Add/rename edits still batch under
+  // the Save button; only the destructive × persists on the spot.
+  async function persistTree() {
+    try {
+      await api.putGenreTree(tree);
+      originalJson = JSON.stringify(tree);
+    } catch (e: any) {
+      notifications.error(`${$t('genreTree.saveError')} : ${e?.message || e}`);
+    }
+  }
+
+  async function removeParent(parent: string) {
     if (!tree[parent]) return;
     if (!confirm($t('genreTree.confirmRemoveBranch').replace('{name}', parent).replace('{count}', String(tree[parent].length)))) return;
     const { [parent]: _, ...rest } = tree;
     tree = rest;
+    await persistTree();
   }
 
   async function renameParent(oldName: string, ev: Event) {
@@ -110,8 +125,9 @@
     tree = { ...tree, [parent]: [...tree[parent], c] };
   }
 
-  function removeChild(parent: string, child: string) {
+  async function removeChild(parent: string, child: string) {
     tree = { ...tree, [parent]: tree[parent].filter(c => c !== child) };
+    await persistTree();
   }
 
   // Rename/merge a genre AT THE SOURCE (rewrites album + track tags library-wide),
