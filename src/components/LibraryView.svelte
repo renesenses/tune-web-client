@@ -5336,4 +5336,29 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     color: var(--tune-accent);
   }
 
+  /* On touch/narrow viewports there is no hover, so the row's hover-only
+     action buttons are unusable AND — being opacity:0, not display:none —
+     they still consume width, squeezing the flex-basis:0 .track-info to zero
+     so only the track number showed, never the title (Levente, Android web).
+     Drop them from the layout and expose the ⋮ menu instead: the title gets
+     its width back and every action stays reachable through openTrackMenu. */
+  @media (max-width: 640px) {
+    .track-item .quick-fav-btn,
+    .track-item .add-queue-btn,
+    .track-item .play-from-here-btn,
+    .track-item .play-next-btn,
+    .track-item .add-playlist-btn,
+    .track-item .credits-btn,
+    .track-item .edit-track-btn {
+      display: none;
+    }
+    .track-item .track-more-btn {
+      opacity: 1;
+    }
+    .track-info {
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+  }
+
 </style>
