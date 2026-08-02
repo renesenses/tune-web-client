@@ -68,7 +68,6 @@ import AlarmsView from './components/AlarmsView.svelte';
   import StreamingSessionPrompt from './components/StreamingSessionPrompt.svelte';
   import LoginView from './components/LoginView.svelte';
   import ConverterView from './components/ConverterView.svelte';
-  import DeplocView from './components/DeplocView.svelte';
   import AiChat from './components/AiChat.svelte';
   import GlobalSearchBar from './components/GlobalSearchBar.svelte';
   import AddShortcutButton from './components/AddShortcutButton.svelte';
@@ -1146,8 +1145,6 @@ import AlarmsView from './components/AlarmsView.svelte';
       <LoginView />
     {:else if $activeView === 'converter'}
       <ConverterView />
-    {:else if $activeView === 'declick'}
-      <DeplocView />
     {/if}
 
   </main>
