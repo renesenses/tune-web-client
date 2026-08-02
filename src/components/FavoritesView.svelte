@@ -49,6 +49,102 @@
 
   let zone = $derived($currentZone);
 
+  // --- Source filter + play controls (Fabien) ------------------------------
+  // Every favorite carries `source` ('local', 'qobuz', 'tidal', …). Let the user
+  // narrow a tab to a single service, and play/shuffle the (filtered) track list.
+  let sourceFilter = $state<string>('all');
+  const srcOf = (x: any): string => x?.source ?? 'local';
+
+  let displayTracks = $derived(
+    sourceFilter === 'all' ? favTracks : favTracks.filter((t) => srcOf(t) === sourceFilter),
+  );
+  let displayAlbums = $derived(
+    sourceFilter === 'all' ? favAlbums : favAlbums.filter((a) => srcOf(a) === sourceFilter),
+  );
+  let displayArtists = $derived(
+    sourceFilter === 'all' ? favArtists : favArtists.filter((a) => srcOf(a) === sourceFilter),
+  );
+
+  // Sources present in the active tab, for the filter chips.
+  let currentList = $derived(
+    activeTab === 'tracks' ? favTracks : activeTab === 'albums' ? favAlbums : favArtists,
+  );
+  let availableSources = $derived([...new Set(currentList.map(srcOf))].sort());
+
+  function sourcesFor(tab: FavTab): Set<string> {
+    const list = tab === 'tracks' ? favTracks : tab === 'albums' ? favAlbums : favArtists;
+    return new Set(list.map(srcOf));
+  }
+
+  // A source present in one tab may be absent in another, so switching tabs with
+  // a filter on would show an empty list — reset to "all" when that happens.
+  function setTab(tab: FavTab) {
+    activeTab = tab;
+    if (sourceFilter !== 'all' && !sourcesFor(tab).has(sourceFilter)) sourceFilter = 'all';
+  }
+
+  function sourceLabel(s: string): string {
+    return s === 'local' ? $tr('favorites.localSource') : s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  function shuffled<T>(arr: T[]): T[] {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // Play just one item (local via track_id, streaming via source/source_id).
+  async function playSingle(t: Track) {
+    if (!zone?.id) return;
+    const st = t as unknown as { source?: string; source_id?: string };
+    if (st.source_id && st.source) {
+      await playAndSync(zone.id, {
+        source: st.source, source_id: st.source_id,
+        title: t.title, artist_name: t.artist_name,
+        album_title: t.album_title, cover_path: t.cover_path,
+      } as any);
+    } else if (t.id) {
+      await playAndSync(zone.id, { track_id: t.id });
+    }
+  }
+
+  // Play the (filtered) favorites track list, optionally shuffled. An all-local
+  // list plays in one call; a mixed/streaming list starts the first item then
+  // enqueues the rest in order (the play API takes only one streaming item, but
+  // addToQueue takes them one by one).
+  async function playAllTracks(shuffle: boolean) {
+    if (!zone?.id) return;
+    const list = shuffle ? shuffled(displayTracks) : displayTracks;
+    if (list.length === 0) return;
+    try {
+      if (list.every((t) => typeof t.id === 'number')) {
+        await playAndSync(zone.id, { track_ids: list.map((t) => t.id as number), start_index: 0 });
+        return;
+      }
+      await playSingle(list[0]);
+      for (const t of list.slice(1)) {
+        const st = t as unknown as { source?: string; source_id?: string };
+        if (st.source_id && st.source) {
+          await api.addToQueue(zone.id, {
+            source: st.source as any, source_id: st.source_id,
+            title: t.title, artist_name: t.artist_name,
+            album_title: t.album_title, cover_path: t.cover_path, duration_ms: t.duration_ms,
+          });
+        } else if (t.id) {
+          await api.addToQueue(zone.id, { track_id: t.id });
+        }
+      }
+      const qs = await api.getQueue(zone.id);
+      queueTracks.set(qs.tracks);
+      queuePosition.set(qs.position);
+    } catch (e) {
+      console.error('Play favorites error:', e);
+    }
+  }
+
   // Map a Tune-hearted streaming favorite into a Track/Album/Artist-shaped
   // object carrying `source`/`source_id`, so the existing rendering and the
   // streaming play path work without a separate UI.
@@ -191,12 +287,12 @@
     }
     if (!track.id) return;
     try {
-      // Play the whole favorites list starting at the clicked track so playback
-      // auto-advances through the remaining favorites (Elie). Sending a lone
-      // track_id built a 1-entry queue that stopped after this track.
-      const idx = favTracks.findIndex(t => t.id === track.id);
+      // Play the whole (filtered) favorites list starting at the clicked track so
+      // playback auto-advances through the remaining favorites (Elie). Sending a
+      // lone track_id built a 1-entry queue that stopped after this track.
+      const idx = displayTracks.findIndex(t => t.id === track.id);
       if (idx >= 0) {
-        const ids = favTracks.slice(idx).map(t => t.id).filter(Boolean) as number[];
+        const ids = displayTracks.slice(idx).map(t => t.id).filter(Boolean) as number[];
         await playAndSync(zone.id, { track_ids: ids });
       } else {
         await playAndSync(zone.id, { track_id: track.id });
@@ -319,11 +415,23 @@
   <div class="favorites-header">
     <h2>{$tr('nav.favorites')}</h2>
     <div class="tab-bar">
-      <button class="tab" class:active={activeTab === 'tracks'} onclick={() => activeTab = 'tracks'}>{$tr('favorites.tracks')} ({favTracks.length})</button>
-      <button class="tab" class:active={activeTab === 'albums'} onclick={() => activeTab = 'albums'}>{$tr('favorites.albums')} ({favAlbums.length})</button>
-      <button class="tab" class:active={activeTab === 'artists'} onclick={() => activeTab = 'artists'}>{$tr('favorites.artists')} ({favArtists.length})</button>
+      <button class="tab" class:active={activeTab === 'tracks'} onclick={() => setTab('tracks')}>{$tr('favorites.tracks')} ({favTracks.length})</button>
+      <button class="tab" class:active={activeTab === 'albums'} onclick={() => setTab('albums')}>{$tr('favorites.albums')} ({favAlbums.length})</button>
+      <button class="tab" class:active={activeTab === 'artists'} onclick={() => setTab('artists')}>{$tr('favorites.artists')} ({favArtists.length})</button>
     </div>
   </div>
+
+  {#if !loading && availableSources.length > 1}
+    <div class="filter-bar">
+      <button class="chip" class:active={sourceFilter === 'all'} onclick={() => sourceFilter = 'all'}>{$tr('common.all')}</button>
+      {#each availableSources as s}
+        <button class="chip" class:active={sourceFilter === s} onclick={() => sourceFilter = s}>
+          <ServiceBadge source={s} compact />
+          <span>{sourceLabel(s)}</span>
+        </button>
+      {/each}
+    </div>
+  {/if}
 
   {#if loading}
     <div class="loading">
@@ -331,14 +439,24 @@
       {$tr('common.loading')}
     </div>
   {:else if activeTab === 'tracks'}
-    {#if favTracks.length === 0}
+    {#if displayTracks.length === 0}
       <div class="empty-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
         <p>{$tr('favorites.empty')}</p>
       </div>
     {:else}
+      <div class="play-bar">
+        <button class="play-action" onclick={() => playAllTracks(false)}>
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="14" height="14"><path d="M8 5v14l11-7z" /></svg>
+          {$tr('common.play')}
+        </button>
+        <button class="play-action" onclick={() => playAllTracks(true)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M16 3h5v5" /><path d="M4 20L21 3" /><path d="M21 16v5h-5" /><path d="M15 15l6 6" /><path d="M4 4l5 5" /></svg>
+          {$tr('favorites.shuffle')}
+        </button>
+      </div>
       <div class="track-list">
-        {#each favTracks as t}
+        {#each displayTracks as t}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="track-item" onclick={() => playTrack(t)}>
@@ -352,7 +470,7 @@
               <MetadataChips track={t} fields={$displayFields} />
             </div>
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
-            <button class="action-btn play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(favTracks, favTracks.indexOf(t)); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
+            <button class="action-btn play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(displayTracks, displayTracks.indexOf(t)); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
             </button>
             <button class="action-btn" onclick={(e) => { e.stopPropagation(); addToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
@@ -370,14 +488,14 @@
     {/if}
 
   {:else if activeTab === 'albums'}
-    {#if favAlbums.length === 0}
+    {#if displayAlbums.length === 0}
       <div class="empty-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
         <p>{$tr('favorites.empty')}</p>
       </div>
     {:else}
       <div class="albums-grid">
-        {#each favAlbums as album}
+        {#each displayAlbums as album}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="album-card" onclick={() => navigateToAlbum(album)}>
@@ -401,14 +519,14 @@
     {/if}
 
   {:else if activeTab === 'artists'}
-    {#if favArtists.length === 0}
+    {#if displayArtists.length === 0}
       <div class="empty-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
         <p>{$tr('favorites.empty')}</p>
       </div>
     {:else}
       <div class="artists-grid">
-        {#each favArtists as artist}
+        {#each displayArtists as artist}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="artist-card" onclick={() => navigateToArtist(artist)}>
@@ -483,6 +601,66 @@
   .tab.active {
     background: var(--tune-surface-selected);
     color: var(--tune-text);
+  }
+
+  /* Source filter chips (Fabien: filter favorites by service) */
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: var(--tune-grey2);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    color: var(--tune-text-secondary);
+    font-family: var(--font-body);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.12s ease-out;
+  }
+
+  .chip:hover {
+    color: var(--tune-text);
+  }
+
+  .chip.active {
+    background: var(--tune-surface-selected);
+    border-color: var(--tune-accent);
+    color: var(--tune-text);
+  }
+
+  /* Play / Shuffle bar on the tracks tab (Fabien) */
+  .play-bar {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+  }
+
+  .play-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--tune-accent);
+    border: none;
+    border-radius: 999px;
+    color: var(--tune-bg, #000);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.12s ease-out;
+  }
+
+  .play-action:hover {
+    filter: brightness(1.08);
   }
 
   .loading {
