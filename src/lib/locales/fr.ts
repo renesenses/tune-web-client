@@ -1,4 +1,16 @@
 export default {
+  // AI chat (assistant Tune AI)
+  'ai.fabTitle': 'Glissez pour déplacer · cliquez pour demander à Tune…',
+  'ai.emptyPrompt': 'Posez une question ou donnez une instruction musicale.',
+  'ai.examplesLabel': 'Exemples :',
+  'ai.example1': '"Joue du jazz relaxant"',
+  'ai.example2': '"Quels albums de Miles Davis ai-je ?"',
+  'ai.example3': '"Monte le volume à 80%"',
+  'ai.voiceTitle': 'Commande vocale',
+  'ai.placeholder': 'Demandez à Tune…',
+  'ai.placeholderListening': 'Parlez…',
+  'ai.error': 'Erreur : {msg}',
+  'ai.errorGeneric': "Impossible de contacter l'IA.",
   // Oxygen (vue bibliothèque avancée)
   'playback.errorFileNotFound': "Fichier introuvable — il a peut-être été déplacé ou supprimé (disque ou partage réseau non monté ?). Relancez un scan de la bibliothèque.",
   'playback.errorNoOutputDevice': "Cette zone n'a aucune sortie audio associée. Choisissez une autre zone ou reconfigurez sa sortie.",
