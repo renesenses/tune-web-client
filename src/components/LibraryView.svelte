@@ -1634,6 +1634,26 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     if ($selectedAlbum?.id) await playAlbum($selectedAlbum.id);
   }
 
+  // "Plus comme ça" — play a queue of tracks acoustically similar to this one
+  // (Phase 2). Empty when the seed has no embedding yet (audio-embedding not run
+  // / not covered), so we tell the user instead of silently doing nothing.
+  async function playSimilar(track: { id?: number | null }) {
+    const zone = $currentZone;
+    if (!zone?.id || !track.id) return;
+    try {
+      const res = await api.getSimilarTracks(track.id, 50);
+      const ids = res.items.map((t) => t.id).filter((x): x is number => typeof x === 'number');
+      if (ids.length === 0) {
+        notifications.info($tr('library.noSimilar'));
+        return;
+      }
+      await playAndSync(zone.id, { track_ids: ids });
+    } catch (e) {
+      console.error('Play similar error:', e);
+      notifications.error($tr('library.similarError'));
+    }
+  }
+
   async function playTrack(trackId: number) {
     if (!zone?.id) {
       notifications.error($tr('library.noZoneSelected'));
@@ -1945,6 +1965,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                       onClose={closeTrackMenu}
                       onPlay={() => t.id && playTrack(t.id)}
                       onAddToQueue={() => addTrackToQueue(t)}
+                      onPlaySimilar={() => playSimilar(t)}
                       onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
                       onGoToArtist={t.artist_name
                         ? () => { const a = $artists.find(ar => ar.name === t.artist_name); if (a) selectArtistDetail(a); }
@@ -2028,6 +2049,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                     onClose={closeTrackMenu}
                     onPlay={() => t.id && playTrack(t.id)}
                     onAddToQueue={() => addTrackToQueue(t)}
+                      onPlaySimilar={() => playSimilar(t)}
                     onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
                     onGoToArtist={t.artist_name
                       ? () => { const a = $artists.find(ar => ar.id === t.artist_id) ?? $artists.find(ar => ar.name === t.artist_name) ?? (t.artist_id != null ? { id: t.artist_id, name: t.artist_name ?? '' } as Artist : undefined); if (a?.id != null) selectArtistDetail(a as Artist); }

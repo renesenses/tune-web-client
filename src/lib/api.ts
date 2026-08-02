@@ -1323,6 +1323,14 @@ export function getSimilarAlbums(albumId: number, limit = 10) {
   return fetchJSON<import('./types').Album[]>(`${BASE}/library/albums/${albumId}/similar?limit=${limit}`);
 }
 
+/** Acoustically similar tracks ("Plus comme ça") — ranked by CLAP-embedding
+ *  cosine distance to the seed. Empty `items` when the seed has no embedding. */
+export function getSimilarTracks(trackId: number, limit = 50) {
+  return fetchJSON<{ seed_track_id: number; count: number; items: import('./types').Track[] }>(
+    `${BASE}/library/tracks/${trackId}/similar?limit=${limit}`,
+  );
+}
+
 export function setEqualizer(zoneId: number, preset: string) {
   return fetchJSON<any>(`${BASE}/zones/${zoneId}/eq`, {
     method: 'POST',
