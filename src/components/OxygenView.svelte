@@ -341,8 +341,12 @@
     } finally { loading = false; }
   }
 
-  const serverFacetFields = $preferences.oxygenFacets.filter(f => SERVER_FACET_FIELDS.includes(f));
-  const folderEnabled = $preferences.oxygenFacets.includes('folder');
+  // $derived (not const): enabling/disabling a facet in Settings must take
+  // effect while Oxygen stays mounted — as a const these were captured once at
+  // mount, so ticking "Collections" (or any server facet) never re-requested it
+  // until a remount, and the facet appeared to do nothing (Bertrand).
+  let serverFacetFields = $derived($preferences.oxygenFacets.filter(f => SERVER_FACET_FIELDS.includes(f)));
+  let folderEnabled = $derived($preferences.oxygenFacets.includes('folder'));
   // Cumulative: recompute facet counts over the active filter set so selecting a
   // genre narrows the labels/artists/… lists (Dominique). A facet excludes its
   // own field server-side, keeping its alternatives visible.
@@ -380,9 +384,9 @@
   // Server-driven: (re)fetch the filtered tracks whenever the selection changes.
   $effect(() => { void JSON.stringify(facetSels); loadTracks(); });
   // Facet counts also re-fetch when the per-facet value limit changes.
-  $effect(() => { void JSON.stringify(facetSels); void $preferences.oxygenFacetLimit; loadFacets(); });
+  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(serverFacetFields); void $preferences.oxygenFacetLimit; loadFacets(); });
   // Folder drill-down re-fetches its children when the path or any filter changes.
-  $effect(() => { void JSON.stringify(facetSels); void $preferences.oxygenFacetLimit; loadFolder(); });
+  $effect(() => { void JSON.stringify(facetSels); void folderEnabled; void $preferences.oxygenFacetLimit; loadFolder(); });
 </script>
 
 <!-- Indicateur « en lecture », partagé par la vue album et la vue tableau : il
