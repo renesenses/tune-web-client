@@ -52,6 +52,7 @@ export default {
   'nav.playlists': '播放列表',
   'nav.history': '历史记录',
   'nav.search': '搜索',
+  'nav.ambiance': '氛围',
   'nav.settings': '设置',
   'nav.navigation': '导航',
   'nav.services': '服务',

@@ -46,6 +46,7 @@ export default {
   'nav.playlists': 'Spellistor',
   'nav.history': 'Historik',
   'nav.search': 'Sök',
+  'nav.ambiance': 'Stämning',
   'nav.settings': 'Inställningar',
   'nav.navigation': 'NAVIGERING',
   'nav.services': 'TJÄNSTER',
