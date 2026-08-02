@@ -3082,11 +3082,14 @@ export function getInstalledPlugins(): Promise<InstalledPlugin[]> {
 }
 
 export function enablePlugin(name: string): Promise<{ status: string }> {
-  return fetchJSON<{ status: string }>(`${BASE}/system/plugins/${encodeURIComponent(name)}/enable`, { method: 'POST' });
+  // The server mounts enable/disable under /plugins (routes/plugins.rs), same
+  // as install/uninstall/update — not under /system, which only aliases the
+  // list. The old /system/plugins/… path 404'd, so the toggle never took.
+  return fetchJSON<{ status: string }>(`${BASE}/plugins/${encodeURIComponent(name)}/enable`, { method: 'POST' });
 }
 
 export function disablePlugin(name: string): Promise<{ status: string }> {
-  return fetchJSON<{ status: string }>(`${BASE}/system/plugins/${encodeURIComponent(name)}/disable`, { method: 'POST' });
+  return fetchJSON<{ status: string }>(`${BASE}/plugins/${encodeURIComponent(name)}/disable`, { method: 'POST' });
 }
 
 export async function getStorePlugins(search?: string, category?: string): Promise<StorePlugin[]> {
