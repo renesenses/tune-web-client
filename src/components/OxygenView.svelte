@@ -656,9 +656,15 @@
   .trk .tt { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .trk .td { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--tune-text-secondary); }
 
-  .tablescroll { border: 1px solid var(--tune-border); border-radius: 12px; background: var(--tune-surface); overflow: auto; }
+  /* Bounded height so THIS element is the scroll viewport (not .main): a
+     sticky header only sticks within its own scroll container, and the
+     horizontal scrollbar stays pinned to the bottom of the visible area
+     instead of being buried under a full-height table (Oxygen table view). */
+  .tablescroll { border: 1px solid var(--tune-border); border-radius: 12px; background: var(--tune-surface); overflow: auto; max-height: 100%; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  thead th { position: sticky; top: 0; background: var(--tune-bg-secondary); text-align: left; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--tune-text-secondary); font-weight: 600; padding: 9px 12px; border-bottom: 1px solid var(--tune-border); white-space: nowrap; }
+  /* box-shadow, not border-bottom: with border-collapse the collapsed bottom
+     border detaches from a sticky th and scrolls away; the inset shadow rides along. */
+  thead th { position: sticky; top: 0; z-index: 2; background: var(--tune-bg-secondary); text-align: left; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--tune-text-secondary); font-weight: 600; padding: 9px 12px; box-shadow: inset 0 -1px 0 var(--tune-border); white-space: nowrap; }
   th.n, td.n { width: 34px; text-align: right; color: var(--tune-text-muted); }
   th.r, td.r { text-align: right; }
   tbody td { padding: 7px 12px; border-bottom: 1px solid var(--tune-border); white-space: nowrap; }
