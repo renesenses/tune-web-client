@@ -71,6 +71,7 @@ export default {
   'nav.playlists': 'Playlists',
   'nav.history': 'History',
   'nav.search': 'Search',
+  'nav.ambiance': 'Ambience',
   'nav.settings': 'Settings',
   'nav.navigation': 'NAVIGATION',
   'nav.services': 'SERVICES',

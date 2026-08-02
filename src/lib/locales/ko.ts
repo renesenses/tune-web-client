@@ -52,6 +52,7 @@ export default {
   'nav.playlists': '재생목록',
   'nav.history': '재생 기록',
   'nav.search': '검색',
+  'nav.ambiance': '분위기',
   'nav.settings': '설정',
   'nav.navigation': '네비게이션',
   'nav.services': '서비스',

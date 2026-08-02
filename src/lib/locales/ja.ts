@@ -52,6 +52,7 @@ export default {
   'nav.playlists': 'プレイリスト',
   'nav.history': '履歴',
   'nav.search': '検索',
+  'nav.ambiance': '雰囲気',
   'nav.settings': '設定',
   'nav.navigation': 'ナビゲーション',
   'nav.services': 'サービス',
