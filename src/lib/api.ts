@@ -343,6 +343,14 @@ export function updateZoneDlnaCap16bit(id: number, enabled: boolean) {
   });
 }
 
+/** Per-zone SetAVTransportURI→Play start delay in ms (0 = config default). */
+export function updateZoneDlnaPlayDelay(id: number, ms: number) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ dlna_play_delay_ms: ms }),
+  });
+}
+
 /** Set the "force WAV" mode for a DLNA renderer. The 16-bit LPCM (`dlna_lpcm`)
  *  and 24-bit (`dlna_wav24`) paths are mutually exclusive, so patch both flags
  *  in one request to keep the zone state coherent. */

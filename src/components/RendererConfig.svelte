@@ -86,6 +86,21 @@
     // one PATCH sets both so the zone never holds a contradictory pair.
     if (zone.id != null) save(() => api.updateZoneWavMode(zone.id!, mode));
   }
+
+  // Start delay (ms) between SetAVTransportURI and Play — gives a renderer with
+  // a cold-start under-run (first seconds hachées) time to buffer. 0 = config
+  // default. Common presets; server accepts any value.
+  let playDelay = $state(zone.dlna_play_delay_ms ?? 0);
+  const DELAY_PRESETS: { ms: number; label: string }[] = [
+    { ms: 0, label: 'Off' },
+    { ms: 1000, label: '1 s' },
+    { ms: 2000, label: '2 s' },
+    { ms: 3000, label: '3 s' },
+  ];
+  function setPlayDelay(ms: number) {
+    playDelay = ms;
+    if (zone.id != null) save(() => api.updateZoneDlnaPlayDelay(zone.id!, ms));
+  }
 </script>
 
 <div class="rc">
@@ -127,6 +142,15 @@
       <input type="checkbox" checked={cap16} onchange={(e) => setCap16((e.target as HTMLInputElement).checked)} />
       <span>{$t('settings.dlnaCap16bit')}</span>
     </label>
+
+    <div class="rc-wav" title={$t('renderer.startDelayHint')}>
+      <span class="rc-wav-label">{$t('renderer.startDelay')}</span>
+      <div class="rc-seg" role="group">
+        {#each DELAY_PRESETS as d (d.ms)}
+          <button class:active={playDelay === d.ms} onclick={() => setPlayDelay(d.ms)}>{d.ms === 0 ? $t('renderer.wavOff') : d.label}</button>
+        {/each}
+      </div>
+    </div>
   </div>
 </div>
 

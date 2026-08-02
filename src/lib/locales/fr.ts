@@ -1492,6 +1492,8 @@ export default {
   "renderer.wav16": "16 bits",
   "renderer.wav24": "24 bits",
   "renderer.wav24Hint": "Diffuser du vrai WAV 24 bits. Disponible uniquement quand le test de découverte confirme que le renderer annonce audio/L24 (LPCM 24 bits).",
+  "renderer.startDelay": "Délai de démarrage",
+  "renderer.startDelayHint": "Pause avant le démarrage de la lecture, pour laisser un ampli DLNA bufferiser (utile si les premières secondes sont hachées). 0 = valeur par défaut.",
   "renderer.probeFailed": "Impossible de lire les capacités du renderer. Vérifie qu'il est allumé et sur le même réseau.",
   "renderer.saveError": "Impossible d'enregistrer le réglage.",
   "settings.dlnaCap16bitHint": "À activer si le hi-res (24 bits) reste muet sur ce lecteur alors que le 16 bits fonctionne (Ruark R3). Reconvertit en FLAC 16 bits au lieu d’envoyer du 24 bits direct que le lecteur ne décode pas.",
