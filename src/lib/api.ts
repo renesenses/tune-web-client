@@ -3555,55 +3555,6 @@ export function cancelConversion(jobId: string): Promise<{ status: string }> {
   });
 }
 
-// --- Dé-ploc (declick) — premium tool ---
-// Cleans transcode/encoder artefacts (encoder delay, padding, clicks) and
-// re-exports to a lossless container. Mirrors the converter API block.
-
-export interface DeclickOptions {
-  threshold_db: number;
-  trim_lead: boolean;
-  trim_tail: boolean;
-  zero_cross: boolean;
-  output_format: 'flac' | 'wav';
-}
-
-export function startDeclick(
-  sources: Array<{ album_id?: number; track_id?: number; path?: string }>,
-  options: DeclickOptions,
-): Promise<{ job_id: string; total_tracks: number }> {
-  return fetchJSON(`${BASE}/declick/start`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sources, options }),
-  });
-}
-
-export function getDeclickStatus(jobId: string): Promise<{
-  status: 'running' | 'completed' | 'failed' | 'cancelled';
-  completed: number;
-  total: number;
-  current_file: string;
-  errors?: string[];
-}> {
-  return fetchJSON(`${BASE}/declick/status/${encodeURIComponent(jobId)}`);
-}
-
-export async function downloadDeclick(jobId: string): Promise<string> {
-  const token = getToken();
-  const headers: Record<string, string> = {};
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}/declick/download/${encodeURIComponent(jobId)}`, { headers });
-  if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
-  const blob = await resp.blob();
-  return URL.createObjectURL(blob);
-}
-
-export function cancelDeclick(jobId: string): Promise<{ status: string }> {
-  return fetchJSON(`${BASE}/declick/jobs/${encodeURIComponent(jobId)}`, {
-    method: 'DELETE',
-  });
-}
-
 // --- Audio File Upload (drag & drop) ---
 
 export async function uploadAudioFile(file: File): Promise<{
