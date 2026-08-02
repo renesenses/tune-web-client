@@ -1,4 +1,21 @@
 export default {
+  // App shell (banners)
+  'app.ready': 'Ready',
+  'app.syncing': 'Syncing library…',
+  'app.syncingProgress': 'Syncing library… {count} files{added}',
+  'app.syncingAdded': ' · {count} added',
+  'app.connecting': 'Connecting to {label}…',
+  'app.updateAvailable': 'Tune v{version} available — click to update',
+  'app.dismiss': 'Dismiss',
+  // Settings — DSD network streaming
+  'settings.dsdNetworkTitle': 'DSD playback (network renderers)',
+  'settings.dsdNetworkHint': 'Stream the transcoded DSD continuously instead of a temporary file. Fixes dropouts / silence on DSD 256/512 with some DLNA renderers. Takes effect immediately, no restart.',
+  'settings.dsdNetworkLabel': 'DSD → network transcoding',
+  'settings.dsdOptionFile': 'Temporary file (default)',
+  'settings.dsdOptionStream': 'Continuous streaming',
+  'settings.dsdStreamOn': 'DSD streaming enabled',
+  'settings.dsdStreamOff': 'DSD transcoded to a temporary file',
+  'settings.dsdStreamError': 'Failed to update the DSD setting',
   // AI chat (Tune AI assistant)
   'ai.fabTitle': 'Drag to move · click to ask Tune…',
   'ai.emptyPrompt': 'Ask a question or give a music instruction.',

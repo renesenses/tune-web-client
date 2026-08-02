@@ -1,4 +1,21 @@
 export default {
+  // App shell (bannières)
+  'app.ready': 'Prêt',
+  'app.syncing': 'Synchronisation de la bibliothèque…',
+  'app.syncingProgress': 'Synchronisation de la bibliothèque… {count} fichiers{added}',
+  'app.syncingAdded': ' · {count} ajoutés',
+  'app.connecting': 'Connexion à {label}…',
+  'app.updateAvailable': 'Tune v{version} disponible — cliquez pour mettre à jour',
+  'app.dismiss': 'Masquer',
+  // Réglages — streaming DSD réseau
+  'settings.dsdNetworkTitle': 'Lecture DSD (renderers réseau)',
+  'settings.dsdNetworkHint': 'Diffuse le DSD transcodé en flux continu au lieu d\'un fichier temporaire. Corrige les coupures / silences en DSD 256/512 sur certains renderers DLNA. Effet immédiat, sans redémarrage.',
+  'settings.dsdNetworkLabel': 'Transcodage DSD → réseau',
+  'settings.dsdOptionFile': 'Fichier temporaire (défaut)',
+  'settings.dsdOptionStream': 'Streaming continu',
+  'settings.dsdStreamOn': 'Streaming DSD activé',
+  'settings.dsdStreamOff': 'Transcodage DSD par fichier temporaire',
+  'settings.dsdStreamError': 'Échec de la mise à jour du réglage DSD',
   // AI chat (assistant Tune AI)
   'ai.fabTitle': 'Glissez pour déplacer · cliquez pour demander à Tune…',
   'ai.emptyPrompt': 'Posez une question ou donnez une instruction musicale.',
