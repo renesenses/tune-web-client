@@ -1,6 +1,15 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import { currentZoneId } from '../lib/stores/zones';
   import { apiPost } from '../lib/api';
+  import { t, locale } from '../lib/i18n';
+
+  // Speech-recognition BCP-47 tag per UI language, so the mic follows the
+  // user's locale instead of being pinned to French.
+  const VOICE_LANGS: Record<string, string> = {
+    fr: 'fr-FR', en: 'en-US', de: 'de-DE', es: 'es-ES', it: 'it-IT',
+    zh: 'zh-CN', ja: 'ja-JP', ko: 'ko-KR', ro: 'ro-RO', sv: 'sv-SE',
+  };
 
   interface ChatMessage {
     role: 'user' | 'assistant';
@@ -27,7 +36,7 @@
       return;
     }
     recognition = new SpeechRecognition();
-    recognition.lang = 'fr-FR';
+    recognition.lang = VOICE_LANGS[get(locale)] ?? 'en-US';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
     recognition.onresult = (e: any) => {
@@ -81,7 +90,7 @@
     } catch (e: any) {
       messages = [...messages, {
         role: 'assistant',
-        text: `Erreur : ${e?.message || 'Impossible de contacter l\'IA.'}`,
+        text: get(t)('ai.error').replace('{msg}', e?.message || get(t)('ai.errorGeneric')),
       }];
     }
 
@@ -172,7 +181,7 @@
   onpointermove={onFabPointerMove}
   onpointerup={onFabPointerUp}
   style={fabPos ? `left:${fabPos.x}px; top:${fabPos.y}px; right:auto; bottom:auto;` : ''}
-  title="Glissez pour déplacer · cliquez pour demander à Tune…"
+  title={$t('ai.fabTitle')}
   class:ai-fab-open={open}
 >
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
@@ -201,12 +210,12 @@
     <div class="ai-messages" bind:this={messagesEl}>
       {#if messages.length === 0}
         <div class="ai-empty">
-          <p>Posez une question ou donnez une instruction musicale.</p>
-          <p class="ai-examples">Exemples :</p>
+          <p>{$t('ai.emptyPrompt')}</p>
+          <p class="ai-examples">{$t('ai.examplesLabel')}</p>
           <ul class="ai-examples-list">
-            <li>"Joue du jazz relaxant"</li>
-            <li>"Quels albums de Miles Davis ai-je ?"</li>
-            <li>"Monte le volume a 80%"</li>
+            <li>{$t('ai.example1')}</li>
+            <li>{$t('ai.example2')}</li>
+            <li>{$t('ai.example3')}</li>
           </ul>
         </div>
       {/if}
@@ -237,7 +246,7 @@
 
     <div class="ai-input-row">
       {#if voiceEnabled && SpeechRecognition}
-        <button class="ai-mic" class:listening={voiceListening} onclick={toggleVoice} title="Commande vocale">
+        <button class="ai-mic" class:listening={voiceListening} onclick={toggleVoice} title={$t('ai.voiceTitle')}>
           <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
             <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
           </svg>
@@ -246,7 +255,7 @@
       <input
         type="text"
         class="ai-input"
-        placeholder={voiceListening ? "Parlez..." : "Demandez a Tune..."}
+        placeholder={voiceListening ? $t('ai.placeholderListening') : $t('ai.placeholder')}
         bind:value={input}
         onkeydown={handleKeydown}
         disabled={loading || voiceListening}
