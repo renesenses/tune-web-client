@@ -91,6 +91,17 @@
         favoriteStreamingKeys.update((s) => { wasFav ? s.add(key) : s.delete(key); return s; }); // revert
         console.error('Toggle streaming favorite error:', e);
       }
+      // Mirror to the streaming service's OWN favorites (Qobuz/Tidal/…) so the
+      // item also shows up in that service's app, not only in Tune (Fabien).
+      // Best-effort and fire-and-forget: services without a favorites API
+      // (YouTube) or a transient failure must not undo the local heart above.
+      // itemType is singular here; the service endpoint expects the plural.
+      const svcType = `${streaming.itemType}s` as 'tracks' | 'albums' | 'artists';
+      if (wasFav) {
+        api.removeStreamingFavorite(streaming.service, svcType, streaming.serviceId).catch(() => {});
+      } else {
+        api.addStreamingFavorite(streaming.service, svcType, streaming.serviceId).catch(() => {});
+      }
       toggling = false;
       return;
     }
