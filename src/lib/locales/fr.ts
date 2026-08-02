@@ -240,6 +240,9 @@ export default {
 
   // Library
   'library.title': 'Bibliothèque',
+  'library.playSimilar': 'Plus comme ça',
+  'library.noSimilar': 'Aucun titre acoustiquement similaire pour l’instant (la Smart Radio acoustique doit être activée et la bibliothèque analysée).',
+  'library.similarError': 'Impossible de récupérer les titres similaires.',
   'library.searchPlaceholder': 'Rechercher...',
   'library.noAlbums': 'Aucun album dans la bibliothèque',
   'library.noArtists': 'Aucun artiste dans la bibliothèque',

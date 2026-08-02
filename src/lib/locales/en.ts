@@ -240,6 +240,9 @@ export default {
 
   // Library
   'library.title': 'Library',
+  'library.playSimilar': 'More like this',
+  'library.noSimilar': 'No acoustically similar tracks yet (acoustic Smart Radio must be enabled and the library analyzed).',
+  'library.similarError': 'Could not fetch similar tracks.',
   'library.searchPlaceholder': 'Search...',
   'library.noAlbums': 'No albums in library',
   'library.noArtists': 'No artists in library',
