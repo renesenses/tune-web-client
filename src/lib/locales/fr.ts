@@ -598,6 +598,8 @@ export default {
   'favorites.albums': 'Albums',
   'favorites.artists': 'Artistes',
   'favorites.empty': 'Aucun favori',
+  'favorites.shuffle': 'Aléatoire',
+  'favorites.localSource': 'Local',
   'favorites.addedToFavorites': 'Ajouté aux favoris',
   'favorites.removedFromFavorites': 'Retiré des favoris',
   'favorites.filter': 'Favoris',
