@@ -1,4 +1,16 @@
 export default {
+  // AI chat (Tune AI assistant)
+  'ai.fabTitle': 'Drag to move · click to ask Tune…',
+  'ai.emptyPrompt': 'Ask a question or give a music instruction.',
+  'ai.examplesLabel': 'Examples:',
+  'ai.example1': '"Play some relaxing jazz"',
+  'ai.example2': '"Which Miles Davis albums do I have?"',
+  'ai.example3': '"Turn the volume up to 80%"',
+  'ai.voiceTitle': 'Voice command',
+  'ai.placeholder': 'Ask Tune…',
+  'ai.placeholderListening': 'Speak…',
+  'ai.error': 'Error: {msg}',
+  'ai.errorGeneric': "Couldn't reach the AI.",
   // Oxygen (advanced library view)
   'playback.errorFileNotFound': 'File not found — it may have been moved or deleted (drive or network share not mounted?). Rescan your library.',
   'playback.errorNoOutputDevice': 'This zone has no audio output. Pick another zone or reconfigure its output.',
