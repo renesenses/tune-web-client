@@ -4,6 +4,7 @@ import { notifications } from './stores/notifications';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
 import { locale, t } from './i18n';
+import { profileHeader } from './profileHeader';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -66,7 +67,7 @@ function stripDoubleBase(path: string): string {
 // Generic helpers for radio favorites and custom endpoints
 export async function apiFetch(path: string): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
+  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { headers });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
@@ -80,7 +81,7 @@ export async function apiFetch(path: string): Promise<any> {
 
 export async function apiPost(path: string, body?: any): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
+  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
@@ -99,7 +100,7 @@ export async function apiPost(path: string, body?: any): Promise<any> {
 
 export async function apiPatch(path: string, body?: any): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
+  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
@@ -118,7 +119,7 @@ export async function apiPatch(path: string, body?: any): Promise<any> {
 
 export async function apiDelete(path: string): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
+  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { method: 'DELETE', headers });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
@@ -163,6 +164,7 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       'Accept': 'application/json',
       'Accept-Language': acceptLang(),
       'Content-Type': 'application/json',
+      ...profileHeader(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     response = await fetch(url, {
@@ -236,6 +238,7 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
       'Accept': 'application/json',
       'Accept-Language': acceptLang(),
       'Content-Type': 'application/json',
+      ...profileHeader(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     response = await fetch(url, {
@@ -3655,7 +3658,7 @@ export interface ApplianceStatus {
 /** Like apiFetch/apiPost but surfaces the server's JSON error message. */
 async function applianceFetch(path: string, body?: any): Promise<any> {
   const token = getToken();
-  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang() };
+  const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${path}`, {

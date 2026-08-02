@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { profileHeader } from '../profileHeader';
 
 const STORAGE_KEY = 'tune_metadata_fields';
 export const DISPLAY_FIELDS_DEFAULTS = ['format', 'sample_rate', 'bit_depth', 'genre', 'year', 'label', 'composer'];
@@ -10,12 +11,10 @@ export const DISPLAY_FIELDS_DEFAULTS = ['format', 'sample_rate', 'bit_depth', 'g
  *  profile — the editor then reloaded another profile's fields and the technical
  *  columns looked "lost" on every menu change (Bilou, #1078). Sending the header
  *  keeps every read/write on the same profile. */
+// Delegates to the canonical helper so the profile header has a single source
+// of truth (this used to duplicate the localStorage read — see profileHeader.ts).
 function profileHeaders(): Record<string, string> {
-  try {
-    const id = localStorage.getItem('tune-profile-id');
-    if (id) return { 'X-Profile-Id': id };
-  } catch { /* ignore */ }
-  return {};
+  return profileHeader();
 }
 
 function load(): string[] {
