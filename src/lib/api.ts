@@ -1610,11 +1610,28 @@ export interface TunePeer {
   version: string;
   tracks: number;
   zones: number;
-  server_id: string;
+  server_id?: string;
+  /** false = the peer was added but is not currently reachable. */
+  online?: boolean;
 }
 
 export function getTunePeers() {
   return fetchJSON<TunePeer[]>(`${BASE}/system/peers`);
+}
+
+/** Add another Tune server by IP:port (validated server-side; persisted). */
+export function addTunePeer(host: string, port: number = 8888) {
+  return fetchJSON<TunePeer>(`${BASE}/system/peers`, {
+    method: 'POST',
+    body: JSON.stringify({ host, port }),
+  });
+}
+
+export function removeTunePeer(host: string, port: number = 8888) {
+  return fetchJSON<{ ok: boolean }>(`${BASE}/system/peers`, {
+    method: 'DELETE',
+    body: JSON.stringify({ host, port }),
+  });
 }
 
 export function browsePeer(ip: string, port: number = 8888) {
