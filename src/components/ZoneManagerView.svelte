@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import { zones, currentZoneId } from '../lib/stores/zones';
   import { devices } from '../lib/stores/devices';
   import { notifications } from '../lib/stores/notifications';
@@ -386,9 +387,9 @@
     try {
       const result = await api.clearDevices();
       devices.set([]);
-      notifications.success(`${result.cleared} appareils supprimés`);
+      notifications.success(get(t)('zone.devicesCleared').replace('{count}', String(result.cleared)));
     } catch (e: any) {
-      notifications.error(e?.message || 'Erreur');
+      notifications.error(e?.message || get(t)('common.error'));
     }
   }
 

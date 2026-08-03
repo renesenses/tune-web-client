@@ -19,14 +19,15 @@
   const NEW_KEYS = new Set(['release_country', 'mb_release_track_id', 'encoder_software', 'source_media']);
   const LOAD_LIMIT = 3000; // client window; full-library facets = server index (Phase 2b)
 
+  // `label` holds an i18n key (rendered via {$t(...)} in the header), not literal text.
   const COLUMN_DEFS: Record<string, { label: string; get: (t: Track) => string }> = {
-    genre: { label: 'Genre', get: t => t.genre ?? '' },
-    year: { label: 'Année', get: t => t.year != null ? String(t.year) : '' },
-    label: { label: 'Label', get: t => t.label ?? '' },
-    composer: { label: 'Compositeur', get: t => t.composer ?? '' },
-    sample_rate: { label: 'Fréq.', get: t => t.sample_rate ? (t.sample_rate / 1000).toFixed(1) : '' },
-    bit_depth: { label: 'Bits', get: t => t.bit_depth ? String(t.bit_depth) : '' },
-    disc_subtitle: { label: 'Sous-titre', get: t => t.disc_subtitle ?? '' },
+    genre: { label: 'oxygen.col.genre', get: t => t.genre ?? '' },
+    year: { label: 'oxygen.col.year', get: t => t.year != null ? String(t.year) : '' },
+    label: { label: 'oxygen.col.label', get: t => t.label ?? '' },
+    composer: { label: 'oxygen.col.composer', get: t => t.composer ?? '' },
+    sample_rate: { label: 'oxygen.col.sampleRate', get: t => t.sample_rate ? (t.sample_rate / 1000).toFixed(1) : '' },
+    bit_depth: { label: 'oxygen.col.bits', get: t => t.bit_depth ? String(t.bit_depth) : '' },
+    disc_subtitle: { label: 'oxygen.col.discSubtitle', get: t => t.disc_subtitle ?? '' },
   };
 
   let tracks = $state<Track[]>([]);
@@ -70,6 +71,9 @@
 
   let mode = $derived<OxygenViewMode>($preferences.oxygenView);
   let columns = $derived(($displayFields ?? []).filter(k => k in COLUMN_DEFS));
+  // Precomputed: inside {#each ... as t} the track `t` shadows the i18n store `t`,
+  // so $t is unusable in the albums grouping below.
+  let L_ALBUM_UNKNOWN = $derived($t('oxygen.albumUnknown'));
 
   let labelOf = $derived.by(() => {
     const m: Record<string, string> = {};
@@ -118,7 +122,7 @@
     for (const t of visible) {
       const key = t.album_id ?? `t:${t.album_title}`;
       let g = m.get(key);
-      if (!g) { g = { key, title: t.album_title ?? 'Album inconnu', artist: '', albumArtistSet: new Set(), cover: t.cover_path, year: t.year, format: t.format, sr: t.sample_rate, bd: t.bit_depth, source: t.source, tracks: [], artistSet: new Set() }; m.set(key, g); }
+      if (!g) { g = { key, title: t.album_title ?? L_ALBUM_UNKNOWN, artist: '', albumArtistSet: new Set(), cover: t.cover_path, year: t.year, format: t.format, sr: t.sample_rate, bd: t.bit_depth, source: t.source, tracks: [], artistSet: new Set() }; m.set(key, g); }
       if (t.artist_name) g.artistSet.add(t.artist_name);
       if (t.album_artist) g.albumArtistSet.add(t.album_artist);
       g.tracks.push(t);
@@ -325,7 +329,7 @@
       if (rows.length) groups.push({ name: cat.name, rows });
     }
     const others = Object.keys(ext).filter(k => !used.has(k)).map(k => ({ key: k, label: labelOf[k] ?? k, value: ext[k], isNew: NEW_KEYS.has(k) }));
-    if (others.length) groups.push({ name: 'Autres', rows: others });
+    if (others.length) groups.push({ name: $t('oxygen.other'), rows: others });
     return groups;
   });
 
@@ -337,7 +341,7 @@
       selected = null;
       if (tracks.length) select(tracks[0]);
     } catch (e) {
-      error = e instanceof Error ? e.message : 'Chargement impossible';
+      error = e instanceof Error ? e.message : $t('oxygen.loadError');
     } finally { loading = false; }
   }
 
@@ -508,7 +512,7 @@
           <table>
             <thead><tr>
               <th class="n">#</th><th>{$t('oxygen.col.title')}</th><th>{$t('oxygen.col.artist')}</th><th>{$t('oxygen.col.album')}</th><th>{$t('oxygen.col.quality')}</th>
-              {#each columns as c}<th>{COLUMN_DEFS[c].label}</th>{/each}
+              {#each columns as c}<th>{$t(COLUMN_DEFS[c].label)}</th>{/each}
               <th class="r">{$t('oxygen.col.duration')}</th>
             </tr></thead>
             <tbody>

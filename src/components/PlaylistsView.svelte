@@ -78,7 +78,7 @@
 
   async function loadAllStreamingPlaylists(services: string[]) {
     streamingLoading = true;
-    streamingLoadingStatus = 'Chargement...';
+    streamingLoadingStatus = get(tr)('common.loading');
     for (const svc of services) {
       streamingLoadingStatus = `${serviceName(svc)}...`;
       try {
@@ -326,10 +326,10 @@
             class:drag-over={dragOverIdx === index && dragIdx !== index}
           >
             <div class="reorder-btns">
-              <button class="move-btn" onclick={() => moveTrack(index, index - 1)} disabled={index === 0} title="Monter">
+              <button class="move-btn" onclick={() => moveTrack(index, index - 1)} disabled={index === 0} title={$tr('playlist.moveUp')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="18 15 12 9 6 15"/></svg>
               </button>
-              <button class="move-btn" onclick={() => moveTrack(index, index + 1)} disabled={index === playlistTracks.length - 1} title="Descendre">
+              <button class="move-btn" onclick={() => moveTrack(index, index + 1)} disabled={index === playlistTracks.length - 1} title={$tr('playlist.moveDown')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="6 9 12 15 18 9"/></svg>
               </button>
             </div>
@@ -507,7 +507,7 @@
       {/if}
     {:else}
       {#if filteredStreamingForSource.length === 0}
-        <div class="empty">Aucune playlist {serviceName(selectedSource)}</div>
+        <div class="empty">{$tr('playlist.noStreamingPlaylists').replace('{service}', serviceName(selectedSource))}</div>
       {:else}
         <div class="playlist-list">
           {#each filteredStreamingForSource as pl}

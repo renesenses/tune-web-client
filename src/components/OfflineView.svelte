@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import * as api from '../lib/api';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
@@ -86,24 +87,24 @@
     syncing = true;
     try {
       await api.syncOffline();
-      notifications.success('Synchronisation lancee');
+      notifications.success(get(t)('offline.syncStarted'));
       // Refresh after a short delay
       setTimeout(loadAll, 2000);
     } catch (e: any) {
-      notifications.error(e?.message || 'Erreur de synchronisation');
+      notifications.error(e?.message || get(t)('offline.syncError'));
     }
     syncing = false;
   }
 
   async function handleClear() {
-    if (!confirm('Supprimer tous les telechargements hors-ligne ?')) return;
+    if (!confirm(get(t)('offline.clearConfirm'))) return;
     clearing = true;
     try {
       await api.clearOffline();
-      notifications.success('Tous les telechargements supprimes');
+      notifications.success(get(t)('offline.allCleared'));
       await loadAll();
     } catch (e: any) {
-      notifications.error(e?.message || 'Erreur');
+      notifications.error(e?.message || get(t)('common.error'));
     }
     clearing = false;
   }
@@ -118,7 +119,7 @@
         status = await api.getOfflineStatus() as OfflineStatus;
       } catch { /* ignore */ }
     } catch (e: any) {
-      notifications.error(e?.message || 'Erreur');
+      notifications.error(e?.message || get(t)('common.error'));
     }
     removingId = null;
   }
@@ -130,14 +131,14 @@
 
 <div class="offline-view">
   <div class="offline-header">
-    <h1 class="offline-title">Ecoute hors-ligne</h1>
+    <h1 class="offline-title">{$t('offline.title')}</h1>
 
     {#if status}
       <div class="offline-stats">
-        <span class="stat-pill">{status.total} piste{status.total !== 1 ? 's' : ''}</span>
+        <span class="stat-pill">{status.total} {status.total !== 1 ? $t('common.tracks') : $t('offline.trackSingular')}</span>
         <span class="stat-pill">{formatSize(status.size_bytes)}</span>
         {#if status.pending > 0}
-          <span class="stat-pill pending">{status.pending} en attente</span>
+          <span class="stat-pill pending">{status.pending} {$t('offline.pending')}</span>
         {/if}
       </div>
     {/if}
@@ -151,7 +152,7 @@
             <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
           </svg>
         {/if}
-        Synchroniser
+        {$t('offline.sync')}
       </button>
       <button class="btn-action danger" onclick={handleClear} disabled={clearing || downloads.length === 0}>
         {#if clearing}
@@ -161,7 +162,7 @@
             <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
           </svg>
         {/if}
-        Tout supprimer
+        {$t('offline.clearAll')}
       </button>
     </div>
   </div>
@@ -169,7 +170,7 @@
   {#if loading}
     <div class="loading-state">
       <div class="spinner spinner-lg"></div>
-      <p>Chargement...</p>
+      <p>{$t('common.loading')}</p>
     </div>
 
   {:else if downloads.length === 0}
@@ -179,15 +180,15 @@
         <polyline points="7 10 12 15 17 10" />
         <line x1="12" y1="15" x2="12" y2="3" />
       </svg>
-      <h2>Aucun telechargement</h2>
-      <p>Telechargez des pistes depuis les services de streaming pour les ecouter hors-ligne.</p>
+      <h2>{$t('offline.empty')}</h2>
+      <p>{$t('offline.emptyHint')}</p>
     </div>
 
   {:else}
     <!-- Albums grouped -->
     {#if albumGroups.length > 0}
       <div class="section">
-        <h2 class="section-title">Albums telecharges</h2>
+        <h2 class="section-title">{$t('offline.downloadedAlbums')}</h2>
         <div class="album-grid">
           {#each albumGroups as group}
             <div class="album-card">
@@ -198,7 +199,7 @@
                 <span class="album-card-title truncate">{group.album_title}</span>
                 <span class="album-card-artist truncate">{group.artist_name}</span>
                 <span class="album-card-count">
-                  {group.tracks.filter(t => t.status === 'complete').length}/{group.tracks.length} pistes
+                  {group.tracks.filter(t => t.status === 'complete').length}/{group.tracks.length} {$t('common.tracks')}
                   {#if group.tracks.some(t => t.status === 'downloading' || t.status === 'pending')}
                     <span class="downloading-badge">...</span>
                   {:else}
@@ -214,7 +215,7 @@
 
     <!-- Track list -->
     <div class="section">
-      <h2 class="section-title">Pistes ({downloads.length})</h2>
+      <h2 class="section-title">{$t('offline.tracksSection')} ({downloads.length})</h2>
       <div class="tracks-list">
         {#each downloads as dl}
           <div class="track-row" class:downloading={dl.status === 'downloading'} class:error={dl.status === 'error'}>
@@ -255,7 +256,7 @@
                 <span class="track-size">{formatSize(dl.size_bytes)}</span>
               {/if}
             </div>
-            <button class="btn-remove" onclick={() => handleRemove(dl.id)} disabled={removingId === dl.id} title="Supprimer">
+            <button class="btn-remove" onclick={() => handleRemove(dl.id)} disabled={removingId === dl.id} title={$t('common.delete')}>
               {#if removingId === dl.id}
                 <div class="spinner spinner-sm"></div>
               {:else}
