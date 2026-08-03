@@ -1357,6 +1357,8 @@ export interface EqBand {
   freq: number;
   gain: number;
   q: number;
+  /// Type de filtre (routes/eq_pro.rs) — absent = peak.
+  type?: 'peak' | 'low_shelf' | 'high_shelf' | 'low_pass' | 'high_pass' | 'notch';
 }
 
 export interface EqSettings {

@@ -6,6 +6,7 @@
   import type { EqBand, EqSettings, CrossfeedSettings } from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
   import { isPremium } from '../lib/stores/license';
+  import ParametricEq from './ParametricEq.svelte';
 
   // Grilles ISO : octave (10), 2/3 d'octave (15), 1/3 d'octave (31) — les
   // repères de REW. La résolution vient des Paramètres (clé serveur
@@ -150,6 +151,10 @@
   };
 
   let gains = $state<number[]>(Array(10).fill(0)); // redimensionné par la résolution au mount
+  // Sous-mode Expert : graphique (grille fixe) ou paramétrique (bandes libres,
+  // fréquence/gain/Q/type — le serveur les accepte déjà, routes/eq_pro.rs).
+  let expertSubMode = $state<'graphic' | 'parametric'>('graphic');
+  let pBands = $state<EqBand[]>([]);
   let enabled = $state(true);
   let activePreset = $state<string | null>('flat');
   let loading = $state(false);
@@ -159,7 +164,7 @@
 
   function saveLocal() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ gains, enabled, activePreset }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ gains, enabled, activePreset, pBands: $state.snapshot(pBands), expertSubMode }));
     } catch { /* ignore */ }
   }
 
@@ -172,6 +177,8 @@
           enabled = parsed.enabled ?? true;
           activePreset = parsed.activePreset ?? null;
         }
+        if (Array.isArray(parsed.pBands)) pBands = parsed.pBands;
+        if (parsed.expertSubMode === 'parametric') expertSubMode = 'parametric';
       }
     } catch { /* ignore */ }
   }
@@ -220,12 +227,30 @@
   async function sendToServer() {
     const zoneId = $currentZoneId;
     if (zoneId === null) return;
-    const settings: EqSettings = { bands: buildBands(), enabled };
+    const bands = expertSubMode === 'parametric' ? $state.snapshot(pBands) : buildBands();
+    const settings: EqSettings = { bands, enabled };
     try {
       await api.setEq(zoneId, settings);
     } catch {
       // Backend may not support parametric EQ yet -- silently ignore
     }
+  }
+
+  function switchExpertSubMode(mode: 'graphic' | 'parametric') {
+    if (mode === expertSubMode) return;
+    if (mode === 'parametric' && pBands.length === 0) {
+      // Première ouverture : partir de la courbe graphique actuelle.
+      pBands = buildBands().filter(b => b.gain !== 0);
+      if (pBands.length === 0) pBands = [{ freq: 1000, gain: 0, q: 1.41, type: 'peak' }];
+    }
+    expertSubMode = mode;
+    saveLocal();
+    queueSendToServer();
+  }
+
+  function onParametricChange() {
+    saveLocal();
+    queueSendToServer();
   }
 
   function setGain(index: number, value: number) {
@@ -394,10 +419,21 @@
     }
     try {
       const eq = await api.getEq(zoneId);
-      if (eq?.bands?.length && adoptGains(eq.bands.map(b => b.gain))) {
-        enabled = eq.enabled;
-        activePreset = detectPreset();
-        saveLocal();
+      if (eq?.bands?.length) {
+        const isGrid = !!GRIDS[eq.bands.length]
+          && eq.bands.every((b, i) => b.freq === GRIDS[eq.bands.length][i] && (b.type ?? 'peak') === 'peak');
+        if (isGrid && adoptGains(eq.bands.map(b => b.gain))) {
+          enabled = eq.enabled;
+          activePreset = detectPreset();
+          saveLocal();
+        } else if (!isGrid) {
+          // Courbe paramétrique déjà en place côté serveur : on l'édite telle
+          // quelle au lieu de l'écraser sur une grille.
+          pBands = eq.bands;
+          expertSubMode = 'parametric';
+          enabled = eq.enabled;
+          saveLocal();
+        }
       }
     } catch {
       // Endpoint may not exist — use local values
@@ -579,7 +615,17 @@
         {enabled ? $t('eq.enabled') : $t('eq.disabled')}
       </button>
       <button class="eq-reset" onclick={resetFlat}>{$t('eq.reset')}</button>
+      <div class="eq-submode">
+        <button class="eq-submode-btn" class:active={expertSubMode === 'graphic'}
+          onclick={() => switchExpertSubMode('graphic')}>{$t('eq.subGraphic' as any)}</button>
+        <button class="eq-submode-btn" class:active={expertSubMode === 'parametric'}
+          onclick={() => switchExpertSubMode('parametric')}>{$t('eq.subParametric' as any)}</button>
+      </div>
     </div>
+
+  {#if expertSubMode === 'parametric'}
+    <ParametricEq bind:bands={pBands} {enabled} onchange={onParametricChange} />
+  {:else}
 
   <!-- Presets -->
   <div class="presets">
@@ -653,6 +699,7 @@
       {/each}
     </svg>
   </div>
+  {/if}
   {/if}
 
   <!-- =================== CROSSFEED (CASQUE) =================== -->
@@ -1182,6 +1229,22 @@
     border: 2px solid rgba(255, 255, 255, 0.3);
     cursor: pointer;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .eq-submode { display: flex; gap: 0.25rem; margin-left: auto; }
+  .eq-submode-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--tune-text-dim, #9ca3af);
+    border-radius: 6px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+  .eq-submode-btn.active {
+    color: var(--tune-text, #fff);
+    border-color: var(--tune-accent, #6366f1);
+    background: rgba(99, 102, 241, 0.15);
   }
 
   .headroom-hint {
