@@ -174,8 +174,9 @@
     updateNarrow();
     window.addEventListener('resize', updateNarrow);
 
-    // Observe main-content scroll to switch to compact mode
-    const mainContent = document.querySelector('.main-content');
+    // Observe the active-view scroll container to switch to compact mode.
+    // Scroll now lives on `.view-scroller` (App.svelte), not `.main-content`.
+    const mainContent = document.querySelector('.view-scroller');
     if (mainContent) {
       mainContent.addEventListener('scroll', () => {
         scrolledDown = (mainContent as HTMLElement).scrollTop > 100;
