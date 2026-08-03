@@ -3,6 +3,7 @@
 
 import { notifications } from '../stores/notifications';
 import { getToken, clearToken } from '../auth';
+import { profileHeader } from '../profileHeader';
 
 export const BASE = '/api/v1';
 
@@ -37,6 +38,7 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
     const headers: Record<string, string> = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
+      ...profileHeader(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     response = await fetch(url, {
