@@ -3,7 +3,7 @@
   import { t } from '../lib/i18n';
   import { currentZoneId } from '../lib/stores/zones';
   import * as api from '../lib/api';
-  import type { EqBand, EqSettings } from '../lib/api';
+  import type { EqBand, EqSettings, CrossfeedSettings } from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
   import { isPremium } from '../lib/stores/license';
 
@@ -256,6 +256,80 @@
     }
   }
 
+  // --- Crossfeed (casque) -------------------------------------------------
+  // Lives in the same DSP panel and reads/writes the SAME active zone via the
+  // shared /zones/{id}/dsp route (crossfeed sub-object). Local output only.
+  const CF_MIN_AMOUNT = 0;
+  const CF_MAX_AMOUNT = 0.5;
+  const CF_MIN_DELAY = 0;
+  const CF_MAX_DELAY = 5;
+
+  let cfEnabled = $state(false);
+  let cfAmount = $state(0.30);
+  let cfDelay = $state(0.30);
+
+  // amount/delay per preset. Same save path as the EQ (debounced PUT), never
+  // one request per slider tick.
+  const CF_PRESETS: { key: string; labelKey: string; amount: number; delay: number }[] = [
+    { key: 'light',    labelKey: 'dsp.crossfeedPresetLight',    amount: 0.25, delay: 0.3 },
+    { key: 'standard', labelKey: 'dsp.crossfeedPresetStandard', amount: 0.30, delay: 0.5 },
+    { key: 'strong',   labelKey: 'dsp.crossfeedPresetStrong',   amount: 0.40, delay: 0.7 },
+  ];
+
+  let cfSendTimer: ReturnType<typeof setTimeout> | null = null;
+  function queueCrossfeedSave() {
+    if (cfSendTimer) clearTimeout(cfSendTimer);
+    cfSendTimer = setTimeout(() => {
+      cfSendTimer = null;
+      void saveCrossfeed();
+    }, 300);
+  }
+
+  async function saveCrossfeed() {
+    const zoneId = $currentZoneId;
+    if (zoneId === null) return;
+    const crossfeed: CrossfeedSettings = {
+      enabled: cfEnabled,
+      // Clamp to the server's accepted ranges before sending.
+      amount: Math.min(CF_MAX_AMOUNT, Math.max(CF_MIN_AMOUNT, cfAmount)),
+      delay_ms: Math.min(CF_MAX_DELAY, Math.max(CF_MIN_DELAY, cfDelay)),
+    };
+    try {
+      await api.setDsp(zoneId, { crossfeed });
+    } catch (e) {
+      // fetchJSON already surfaced the Premium popup on a 402 — don't stack.
+      if ((e as Error)?.message !== 'premium_required') {
+        console.error('Crossfeed save error:', e);
+      }
+    }
+  }
+
+  function toggleCrossfeed() {
+    cfEnabled = !cfEnabled;
+    saveCrossfeed();
+  }
+
+  function onCrossfeedAmount(e: Event) {
+    cfAmount = parseFloat((e.target as HTMLInputElement).value);
+    queueCrossfeedSave();
+  }
+
+  function onCrossfeedDelay(e: Event) {
+    cfDelay = parseFloat((e.target as HTMLInputElement).value);
+    queueCrossfeedSave();
+  }
+
+  function applyCrossfeedPreset(amount: number, delay: number) {
+    cfAmount = amount;
+    cfDelay = delay;
+    cfEnabled = true;
+    saveCrossfeed();
+  }
+
+  let cfActivePreset = $derived(
+    CF_PRESETS.find(p => p.amount === cfAmount && p.delay === cfDelay)?.key ?? null
+  );
+
   onMount(async () => {
     loadLocal();
     loadProfiler();
@@ -272,6 +346,19 @@
       }
     } catch {
       // Endpoint may not exist — use local values
+    }
+    // Crossfeed state comes from the shared DSP route (defaults returned even
+    // when absent server-side).
+    try {
+      const dsp = await api.getDsp(zoneId);
+      const cf = dsp?.crossfeed;
+      if (cf) {
+        cfEnabled = !!cf.enabled;
+        if (typeof cf.amount === 'number') cfAmount = cf.amount;
+        if (typeof cf.delay_ms === 'number') cfDelay = cf.delay_ms;
+      }
+    } catch {
+      // Endpoint gated / unavailable — keep defaults.
     }
   });
 </script>
@@ -507,6 +594,74 @@
       {/each}
     </svg>
   </div>
+  {/if}
+
+  <!-- =================== CROSSFEED (CASQUE) =================== -->
+  <!-- Same DSP panel, same active zone. Shown for premium in both modes.
+       When not premium the top-level premium-gate already covers the whole
+       view, so this section is simply part of the gated DSP surface. -->
+  {#if $isPremium}
+    <section class="crossfeed">
+      <div class="crossfeed-header">
+        <h2 class="crossfeed-title">{$t('dsp.crossfeedTitle')}</h2>
+        <button
+          class="crossfeed-toggle"
+          class:active={cfEnabled}
+          onclick={toggleCrossfeed}
+          aria-pressed={cfEnabled}
+        >
+          {cfEnabled ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}
+        </button>
+      </div>
+
+      <p class="crossfeed-desc">{$t('dsp.crossfeedDesc')}</p>
+
+      <div class="crossfeed-presets">
+        {#each CF_PRESETS as preset}
+          <button
+            class="crossfeed-preset-btn"
+            class:active={cfActivePreset === preset.key}
+            onclick={() => applyCrossfeedPreset(preset.amount, preset.delay)}
+          >
+            {$t(preset.labelKey)}
+          </button>
+        {/each}
+      </div>
+
+      <div class="crossfeed-sliders" class:disabled={!cfEnabled}>
+        <div class="crossfeed-slider">
+          <div class="crossfeed-slider-header">
+            <span class="crossfeed-slider-label">{$t('dsp.crossfeedAmount')}</span>
+            <span class="crossfeed-slider-value">{Math.round(cfAmount * 100)}%</span>
+          </div>
+          <input
+            type="range"
+            min={CF_MIN_AMOUNT}
+            max={CF_MAX_AMOUNT}
+            step="0.01"
+            value={cfAmount}
+            oninput={onCrossfeedAmount}
+            disabled={!cfEnabled}
+          />
+        </div>
+
+        <div class="crossfeed-slider">
+          <div class="crossfeed-slider-header">
+            <span class="crossfeed-slider-label">{$t('dsp.crossfeedDelay')}</span>
+            <span class="crossfeed-slider-value">{cfDelay.toFixed(2)} ms</span>
+          </div>
+          <input
+            type="range"
+            min={CF_MIN_DELAY}
+            max={CF_MAX_DELAY}
+            step="0.05"
+            value={cfDelay}
+            oninput={onCrossfeedDelay}
+            disabled={!cfEnabled}
+          />
+        </div>
+      </div>
+    </section>
   {/if}
 </section>
 
@@ -1030,5 +1185,138 @@
     background: rgba(240, 180, 41, 0.12);
     color: #f0b429;
     font-size: 13px;
+  }
+
+  /* --- Crossfeed (casque) --- */
+  .crossfeed {
+    margin-top: 1.5rem;
+    padding: 1.2rem 1.2rem 1.4rem;
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.04);
+    border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12);
+    border-radius: 12px;
+  }
+  .crossfeed-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    margin-bottom: 0.5rem;
+  }
+  .crossfeed-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-family: var(--font-label);
+    font-weight: 700;
+    color: var(--tune-text);
+  }
+  .crossfeed-toggle {
+    padding: 0.4rem 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--tune-border);
+    background: transparent;
+    color: var(--tune-text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .crossfeed-toggle.active {
+    background: var(--tune-accent, #6366f1);
+    color: white;
+    border-color: var(--tune-accent, #6366f1);
+  }
+  .crossfeed-desc {
+    margin: 0 0 1rem;
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--tune-text-secondary);
+  }
+  .crossfeed-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1.2rem;
+  }
+  .crossfeed-preset-btn {
+    padding: 0.35rem 0.9rem;
+    font-size: 0.85rem;
+    border-radius: 999px;
+    border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.3);
+    background: transparent;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .crossfeed-preset-btn:hover {
+    border-color: var(--tune-accent, #6366f1);
+    color: var(--tune-text);
+  }
+  .crossfeed-preset-btn.active {
+    background: var(--tune-accent, #6366f1);
+    color: white;
+    border-color: var(--tune-accent, #6366f1);
+  }
+  .crossfeed-sliders {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    transition: opacity 0.2s;
+  }
+  .crossfeed-sliders.disabled {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .crossfeed-slider {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .crossfeed-slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .crossfeed-slider-label {
+    font-family: var(--font-label);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tune-text);
+  }
+  .crossfeed-slider-value {
+    font-family: var(--font-label);
+    font-size: 13px;
+    color: var(--tune-accent);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .crossfeed-slider input[type="range"] {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+  .crossfeed-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--tune-accent);
+    border: 2px solid white;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+  .crossfeed-slider input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--tune-accent);
+    border: 2px solid white;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   }
 </style>

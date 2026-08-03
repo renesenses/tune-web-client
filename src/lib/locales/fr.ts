@@ -963,6 +963,16 @@ export default {
   'eq.disabled': 'Désactivé',
   'eq.reset': 'Réinitialiser',
   'eq.premiumGate': "L'égaliseur et le profil acoustique sont une fonctionnalité",
+  // Crossfeed (casque)
+  'dsp.crossfeedTitle': 'Crossfeed (casque)',
+  'dsp.crossfeedOn': 'Activé',
+  'dsp.crossfeedOff': 'Désactivé',
+  'dsp.crossfeedDesc': "Réduit la fatigue au casque en recollant l'image devant vous (sans toucher le centre). Sortie locale uniquement.",
+  'dsp.crossfeedAmount': 'Force',
+  'dsp.crossfeedDelay': 'Retard',
+  'dsp.crossfeedPresetLight': 'Léger',
+  'dsp.crossfeedPresetStandard': 'Standard',
+  'dsp.crossfeedPresetStrong': 'Fort',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Bienvenue sur Tune Server',
