@@ -467,7 +467,7 @@
         autoFixProgress = `${s.current}/${s.total}`;
         if (s.status === 'completed') {
           autoFixStatus = 'idle';
-          autoFixProgress = `${s.fixed} corrigés, ${s.suggestions} suggestions`;
+          autoFixProgress = $t('metadata.autoFixProgress').replace('{fixed}', String(s.fixed)).replace('{suggestions}', String(s.suggestions));
           clearInterval(poll);
           await loadSuggestions();
         }

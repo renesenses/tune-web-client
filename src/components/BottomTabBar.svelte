@@ -79,7 +79,7 @@
   <div class="overlay" role="dialog" onclick={() => zonePickerOpen = false}>
     <div class="sheet" role="presentation" onclick={(e) => e.stopPropagation()}>
       <div class="sheet-handle"></div>
-      <h3 class="sheet-title">Zones</h3>
+      <h3 class="sheet-title">{$t('nav.zonemanager')}</h3>
       {#each $zones as z}
         <button class="sheet-item" class:active={z.id === $currentZoneId} onclick={() => selectZone(z.id)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><path d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M9 12a1 1 0 11-2 0 1 1 0 012 0z" /></svg>
@@ -139,7 +139,7 @@
   <!-- More -->
   <button class="tab" class:active={drawerOpen} onclick={() => drawerOpen = !drawerOpen}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="5" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="12" cy="19" r="1" /></svg>
-    <span>Plus</span>
+    <span>{$t('bottomTabBar.more')}</span>
   </button>
 </nav>
 

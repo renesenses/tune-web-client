@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import { addShortcut } from '../lib/stores/shortcuts';
   import { notifications } from '../lib/stores/notifications';
+  import { t } from '../lib/i18n';
 
   let showInput = $state(false);
   let name = $state('');
@@ -12,13 +14,13 @@
     if (!name.trim()) return;
     try {
       await addShortcut(name.trim(), icon);
-      notifications.success(`Raccourci "${name.trim()}" ajouté`);
+      notifications.success(get(t)('addShortcut.added').replace('{name}', name.trim()));
       name = '';
       icon = '⭐';
       showInput = false;
     } catch (e: any) {
       console.error('shortcut_save_error', e);
-      notifications.error(`Erreur : ${e?.message || String(e)}`);
+      notifications.error(get(t)('addShortcut.error').replace('{error}', e?.message || String(e)));
     }
   }
 </script>
@@ -34,7 +36,7 @@
       <input
         type="text"
         class="sc-name-input"
-        placeholder="Nom du raccourci"
+        placeholder={$t('addShortcut.namePlaceholder')}
         bind:value={name}
         onkeydown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') showInput = false; }}
       />
@@ -44,7 +46,7 @@
       </button>
     </div>
   {:else}
-    <button class="shortcut-add-btn" onclick={() => showInput = true} title="Ajouter aux raccourcis">
+    <button class="shortcut-add-btn" onclick={() => showInput = true} title={$t('addShortcut.add')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
     </button>
   {/if}

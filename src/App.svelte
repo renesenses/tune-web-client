@@ -108,7 +108,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   function showReadyBanner() {
     if (bannerFadeTimer) { clearTimeout(bannerFadeTimer); bannerFadeTimer = null; }
     bannerStatus = 'ready';
-    bannerMessage = 'Prêt';
+    bannerMessage = get(t)('app.ready');
     bannerFadeout = false;
     bannerFadeTimer = setTimeout(() => {
       bannerFadeout = true;
@@ -890,14 +890,14 @@ import AlarmsView from './components/AlarmsView.svelte';
       if (type.startsWith('library.scan.')) {
         if (type === 'library.scan.started') {
           scanIndicator = true;
-          showBanner('scan', 'Synchronisation de la bibliothèque...');
+          showBanner('scan', get(t)('app.syncing'));
         } else if (type === 'library.scan.progress') {
           scanIndicator = true;
           const scanned = event.data?.scanned ?? event.data?.files_scanned;
           const added = event.data?.added ?? event.data?.tracks_added;
           if (scanned !== undefined) {
-            const addedPart = added !== undefined ? ` · ${added} ajouté${added !== 1 ? 's' : ''}` : '';
-            showBanner('scan', `Synchronisation de la bibliothèque... ${scanned} fichier${scanned !== 1 ? 's' : ''}${addedPart}`);
+            const addedPart = added !== undefined ? get(t)('app.syncingAdded').replace('{count}', String(added)) : '';
+            showBanner('scan', get(t)('app.syncingProgress').replace('{count}', String(scanned)).replace('{added}', addedPart));
           }
         } else if (type === 'library.scan.completed') {
           scanIndicator = false;
@@ -914,7 +914,7 @@ import AlarmsView from './components/AlarmsView.svelte';
           deezer: 'Deezer', amazon: 'Amazon Music',
         };
         const label = serviceLabels[service] ?? service;
-        showBanner('streaming', `Connexion à ${label}...`);
+        showBanner('streaming', get(t)('app.connecting').replace('{label}', label));
         // Auto-clear after 3s if no scan is running
         if (bannerFadeTimer) clearTimeout(bannerFadeTimer);
         bannerFadeTimer = setTimeout(() => {
@@ -1035,8 +1035,8 @@ import AlarmsView from './components/AlarmsView.svelte';
   <main class="main-content">
     {#if $updateAvailable && !$updateBannerDismissed}
       <div class="update-banner" onclick={() => { activeView.set('settings'); settingsInitialTab.set('system'); }} style="cursor: pointer;" role="button" tabindex={0}>
-        <span class="update-banner-text">Tune v{$latestVersion} disponible — cliquez pour mettre à jour</span>
-        <button class="update-banner-dismiss" onclick={(e) => { e.stopPropagation(); dismissUpdateBanner(); }} title="Masquer">&times;</button>
+        <span class="update-banner-text">{$t('app.updateAvailable').replace('{version}', String($latestVersion))}</span>
+        <button class="update-banner-dismiss" onclick={(e) => { e.stopPropagation(); dismissUpdateBanner(); }} title={$t('app.dismiss')}>&times;</button>
       </div>
     {/if}
 
