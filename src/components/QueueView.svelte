@@ -3,7 +3,7 @@
   import { currentZone, currentZoneId, zones, playAndSync } from '../lib/stores/zones';
   import { currentTrack, seekPositionMs, stopSeekTimer } from '../lib/stores/nowPlaying';
   import * as api from '../lib/api';
-  import { formatTime, formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
+  import { formatTime, formatDuration, formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './AlbumArt.svelte';
@@ -94,6 +94,15 @@
   function isCurrent(index: number): boolean {
     return index === $queuePosition;
   }
+
+  // "Up next" summary: tracks after the current one and their total time
+  // (Dominique Comet's suggestion). Guarded ≥ 0 for an unset/last position.
+  let upNextCount = $derived(Math.max(0, $queueTracks.length - ($queuePosition + 1)));
+  let upNextMs = $derived(
+    $queueTracks
+      .slice($queuePosition + 1)
+      .reduce((sum, t) => sum + (t.duration_ms ?? 0), 0),
+  );
 
   async function playFromPosition(index: number) {
     if (!zone?.id) return;
@@ -302,6 +311,9 @@
       <span class="queue-zone">{zone.name}</span>
     {/if}
     <span class="queue-count">{$queueTracks.length} {$t('common.tracks')}</span>
+    {#if upNextCount > 0}
+      <span class="queue-remaining">{$t('queue.upNextSummary').replace('{count}', String(upNextCount)).replace('{time}', formatDuration(upNextMs))}</span>
+    {/if}
     <!-- AutoPlay toggle -->
     <button
       class="autoplay-toggle"
@@ -514,6 +526,13 @@
     font-size: 13px;
     color: var(--tune-text-muted);
     margin-left: auto;
+  }
+
+  .queue-remaining {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-secondary);
+    margin-left: 10px;
   }
 
   .save-queue-btn {
