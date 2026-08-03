@@ -6,7 +6,7 @@
   import { currentZone, currentZoneId, zones, playAndSync } from '../lib/stores/zones';
   import { currentTrackId } from '../lib/stores/nowPlaying';
   import { playFromHere } from '../lib/playback';
-  import { activeStreamingService, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
+  import { activeStreamingService, pendingStreamingAlbum, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { currentProfileId } from '../lib/stores/profile';
   import { get } from 'svelte/store';
   import { formatNumber } from '../lib/utils';
@@ -248,6 +248,22 @@
       activeView.set('radios');
     } else if (album.source && album.source !== 'local') {
       activeStreamingService.set(album.source);
+      // L'historique ne porte que le source_id de la PISTE ; la vue album
+      // streaming attend l'id d'ALBUM du service. On le retrouve par recherche
+      // (même repli que playRecentEntry) et on arme pendingStreamingAlbum pour
+      // que StreamingView ouvre la fiche — sinon on retombe sur le catalogue.
+      try {
+        const q = `${album.title} ${album.artist_name ?? ''}`.trim();
+        const results = await api.searchStreaming(album.source as Source, q, 10);
+        const wanted = album.title.toLowerCase();
+        const match = results.albums?.find((a: Album) => a.title?.toLowerCase() === wanted)
+          ?? results.albums?.find((a: Album) => a.title?.toLowerCase().startsWith(wanted));
+        if (match?.source_id) {
+          pendingStreamingAlbum.set({ ...match, source: match.source ?? album.source });
+        }
+      } catch (e) {
+        console.error('Resolve streaming album error:', e);
+      }
       activeView.set('streaming');
     } else {
       // Search local library to find the album — try album_title first, then album.title

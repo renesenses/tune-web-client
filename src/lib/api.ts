@@ -1129,6 +1129,21 @@ export function searchLibrary(q: string, limit = 50) {
   return fetchJSON<SearchResult>(`${BASE}/library/search?q=${encodeURIComponent(q)}&limit=${limit}`);
 }
 
+/** Result of a natural-language acoustic (CLAP text-tower) search: tracks ranked
+ *  by acoustic similarity to the query, each annotated with its cosine score. */
+export interface AcousticSearchResult {
+  query: string;
+  count: number;
+  tracks: (Track & { similarity?: number })[];
+}
+
+/** Natural-language acoustic search — "warm analog jazz", "driving techno".
+ *  Premium; returns an empty list when nothing has been acoustically analysed
+ *  yet, and throws (503) when the model can't be provisioned. */
+export function searchAcoustic(query: string, limit = 50) {
+  return apiPost('/library/search/acoustic', { query, limit }) as Promise<AcousticSearchResult>;
+}
+
 export function getPlaybackHistory(limit = 50) {
   return fetchJSON<{ items: any[]; total: number }>(`${BASE}/library/history?limit=${limit}`);
 }
@@ -1332,6 +1347,14 @@ export function getArtistTimeline(artistId: number) {
 
 export function getSimilarAlbums(albumId: number, limit = 10) {
   return fetchJSON<import('./types').Album[]>(`${BASE}/library/albums/${albumId}/similar?limit=${limit}`);
+}
+
+/** Acoustically similar tracks ("Plus comme ça") — ranked by CLAP-embedding
+ *  cosine distance to the seed. Empty `items` when the seed has no embedding. */
+export function getSimilarTracks(trackId: number, limit = 50) {
+  return fetchJSON<{ seed_track_id: number; count: number; items: import('./types').Track[] }>(
+    `${BASE}/library/tracks/${trackId}/similar?limit=${limit}`,
+  );
 }
 
 export function setEqualizer(zoneId: number, preset: string) {

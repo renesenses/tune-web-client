@@ -173,6 +173,9 @@ export default {
   'diagnostics.upToDate': 'à jour',
   'diagnostics.behind': 'EN RETARD',
   'zone.devicesCleared': '{count} appareils supprimés',
+  'lyrics.plainText': 'Texte simple',
+  'lyrics.karaoke': 'Karaoké',
+  'plugins.docFallback': '# Documentation du plugin\n\nConsultez la documentation complète sur [mozaiklabs.fr]({url}).',
   // AI chat (assistant Tune AI)
   'ai.fabTitle': 'Glissez pour déplacer · cliquez pour demander à Tune…',
   'ai.emptyPrompt': 'Posez une question ou donnez une instruction musicale.',
@@ -245,6 +248,7 @@ export default {
   'nav.playlists': 'Playlists',
   'nav.history': 'Historique',
   'nav.search': 'Recherche',
+  'nav.ambiance': 'Ambiance',
   'nav.settings': 'Paramètres',
   'nav.navigation': 'NAVIGATION',
   'nav.services': 'SERVICES',
@@ -413,6 +417,9 @@ export default {
 
   // Library
   'library.title': 'Bibliothèque',
+  'library.playSimilar': 'Plus comme ça',
+  'library.noSimilar': 'Aucun titre acoustiquement similaire pour l’instant (la Smart Radio acoustique doit être activée et la bibliothèque analysée).',
+  'library.similarError': 'Impossible de récupérer les titres similaires.',
   'library.searchPlaceholder': 'Rechercher...',
   'library.noAlbums': 'Aucun album dans la bibliothèque',
   'library.noArtists': 'Aucun artiste dans la bibliothèque',

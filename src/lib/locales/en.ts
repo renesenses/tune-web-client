@@ -173,6 +173,9 @@ export default {
   'diagnostics.upToDate': 'up to date',
   'diagnostics.behind': 'BEHIND',
   'zone.devicesCleared': '{count} devices removed',
+  'lyrics.plainText': 'Plain text',
+  'lyrics.karaoke': 'Karaoke',
+  'plugins.docFallback': '# Plugin documentation\n\nSee the full documentation at [mozaiklabs.fr]({url}).',
   // AI chat (Tune AI assistant)
   'ai.fabTitle': 'Drag to move · click to ask Tune…',
   'ai.emptyPrompt': 'Ask a question or give a music instruction.',
@@ -245,6 +248,7 @@ export default {
   'nav.playlists': 'Playlists',
   'nav.history': 'History',
   'nav.search': 'Search',
+  'nav.ambiance': 'Ambience',
   'nav.settings': 'Settings',
   'nav.navigation': 'NAVIGATION',
   'nav.services': 'SERVICES',
@@ -413,6 +417,9 @@ export default {
 
   // Library
   'library.title': 'Library',
+  'library.playSimilar': 'More like this',
+  'library.noSimilar': 'No acoustically similar tracks yet (acoustic Smart Radio must be enabled and the library analyzed).',
+  'library.similarError': 'Could not fetch similar tracks.',
   'library.searchPlaceholder': 'Search...',
   'library.noAlbums': 'No albums in library',
   'library.noArtists': 'No artists in library',
