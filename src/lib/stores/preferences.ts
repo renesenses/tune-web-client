@@ -35,6 +35,11 @@ export interface Preferences {
   oxygenFacets: string[];
   /** Max values shown per Oxygen facet. 0 = no limit (show every value). */
   oxygenFacetLimit: number;
+  /** Album-view sort key + order, kept here (server-synced ui_preferences) so the
+   *  library opens on the user's chosen order across sessions and devices — was
+   *  a per-browser localStorage value that never followed the profile (#1134). */
+  albumSort: string;
+  albumSortOrder: 'asc' | 'desc';
 }
 
 const STORAGE_KEY = 'tune-preferences';
@@ -50,6 +55,8 @@ const defaults: Preferences = {
   oxygenView: 'detail',
   oxygenFacets: ['genre', 'artist', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'country'],
   oxygenFacetLimit: 200,
+  albumSort: 'title',
+  albumSortOrder: 'asc',
 };
 
 function loadPrefs(): Preferences {

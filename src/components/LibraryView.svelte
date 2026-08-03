@@ -2,6 +2,7 @@
   import { onMount, untrack } from 'svelte';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { preferences } from '../lib/stores/preferences';
   import { currentTrackId, seekPositionMs } from '../lib/stores/nowPlaying';
   import { isBrowserZone, browserSeek } from '../lib/stores/browserAudio';
   import { playFromHere } from '../lib/playback';
@@ -441,8 +442,10 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     { key: 'original_year', label: 'library.sortOriginalYear', defaultOrder: 'desc' },
     { key: 'added_date', label: 'library.sortAddedDate', defaultOrder: 'desc' },
   ];
-  let albumSort = $state<AlbumSortKey>((localStorage.getItem('tune_album_sort') as AlbumSortKey) || 'title');
-  let albumSortOrder = $state<'asc' | 'desc'>((localStorage.getItem('tune_album_sort_order') as 'asc' | 'desc') || 'asc');
+  // Album sort lives in the server-synced preferences store (#1134) so the
+  // chosen order follows the user across sessions/devices, not just this browser.
+  let albumSort = $derived(($preferences.albumSort as AlbumSortKey) || 'title');
+  let albumSortOrder = $derived(($preferences.albumSortOrder as 'asc' | 'desc') || 'asc');
 
   type GenreSortKey = 'title' | 'artist' | 'year';
   const GENRE_SORT_OPTIONS: { key: GenreSortKey; label: string; defaultOrder: 'asc' | 'desc' }[] = [
@@ -465,15 +468,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   }
 
   function setAlbumSort(key: AlbumSortKey) {
-    if (albumSort === key) {
-      // Toggle order on re-click
-      albumSortOrder = albumSortOrder === 'asc' ? 'desc' : 'asc';
-    } else {
-      albumSort = key;
-      albumSortOrder = ALBUM_SORT_OPTIONS.find(o => o.key === key)?.defaultOrder ?? 'asc';
-    }
-    localStorage.setItem('tune_album_sort', albumSort);
-    localStorage.setItem('tune_album_sort_order', albumSortOrder);
+    // Re-click toggles order; a new key resets to that column's default order.
+    const order: 'asc' | 'desc' = albumSort === key
+      ? (albumSortOrder === 'asc' ? 'desc' : 'asc')
+      : (ALBUM_SORT_OPTIONS.find(o => o.key === key)?.defaultOrder ?? 'asc');
+    // Persist through the preferences store (localStorage + server ui_preferences),
+    // so the order is remembered per profile across devices (#1134).
+    preferences.update(p => ({ ...p, albumSort: key, albumSortOrder: order }));
     albumsLoaded = false;
     loadAlbums();
   }
