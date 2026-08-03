@@ -173,6 +173,7 @@ export default {
   'diagnostics.upToDate': 'up to date',
   'diagnostics.behind': 'BEHIND',
   'zone.devicesCleared': '{count} devices removed',
+  'queue.upNextSummary': '{count} up next · {time}',
   'lyrics.plainText': 'Plain text',
   'lyrics.karaoke': 'Karaoke',
   'plugins.docFallback': '# Plugin documentation\n\nSee the full documentation at [mozaiklabs.fr]({url}).',
