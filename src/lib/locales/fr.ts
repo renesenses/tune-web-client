@@ -173,6 +173,9 @@ export default {
   'diagnostics.upToDate': 'à jour',
   'diagnostics.behind': 'EN RETARD',
   'zone.devicesCleared': '{count} appareils supprimés',
+  'lyrics.plainText': 'Texte simple',
+  'lyrics.karaoke': 'Karaoké',
+  'plugins.docFallback': '# Documentation du plugin\n\nConsultez la documentation complète sur [mozaiklabs.fr]({url}).',
   // AI chat (assistant Tune AI)
   'ai.fabTitle': 'Glissez pour déplacer · cliquez pour demander à Tune…',
   'ai.emptyPrompt': 'Posez une question ou donnez une instruction musicale.',

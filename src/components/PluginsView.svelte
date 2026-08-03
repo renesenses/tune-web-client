@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import { t } from '../lib/i18n';
   import { marked } from 'marked';
   import * as api from '../lib/api';
@@ -83,7 +84,7 @@
         try {
           const parsed = JSON.parse(text);
           if (parsed?.url) {
-            md = `# Plugin Documentation\n\nConsultez la documentation complète sur [mozaiklabs.fr](${parsed.url}).`;
+            md = get(t)('plugins.docFallback').replace('{url}', parsed.url);
           }
         } catch { /* not JSON — treat as raw markdown */ }
         docsHtml = marked(md) as string;
