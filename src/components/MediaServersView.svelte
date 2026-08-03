@@ -355,13 +355,13 @@
           <div class="items-actions">
             <button class="play-all-btn" onclick={() => playAllItems()}>
               <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
-              Lire l'album
+              {$tr('mediaservers.playAlbum')}
             </button>
             <button class="play-all-btn" onclick={() => shuffleAllItems()}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
-              Aléatoire
+              {$tr('mediaservers.shuffle')}
             </button>
-            <button class="add-all-btn" onclick={() => addAllItemsToQueue()}>+ Tout ajouter</button>
+            <button class="add-all-btn" onclick={() => addAllItemsToQueue()}>{$tr('mediaservers.addAll')}</button>
           </div>
         </div>
         <div class="item-list">

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
+
   interface Suggestion {
     id: number;
     field: string;
@@ -21,9 +23,9 @@
 
 <div class="suggestions-panel">
   <div class="suggestions-header">
-    <h3>Suggestions ({suggestions.length})</h3>
-    <button class="action-btn" onclick={onAcceptAll}>Accepter tout (≥90%)</button>
-    <button class="action-btn ghost" onclick={onClose}>Fermer</button>
+    <h3>{$t('metadataSuggestions.title')} ({suggestions.length})</h3>
+    <button class="action-btn" onclick={onAcceptAll}>{$t('metadataSuggestions.acceptAll')}</button>
+    <button class="action-btn ghost" onclick={onClose}>{$t('common.close')}</button>
   </div>
   {#each suggestions as s}
     <div class="suggestion-row">

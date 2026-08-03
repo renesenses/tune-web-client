@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
   import * as api from '../lib/api';
+  import { t } from '../lib/i18n';
 
   // Vue : liste des tickets, création, ou détail d'un ticket.
   let mode = $state<'list' | 'new' | 'detail'>('list');
@@ -38,28 +40,29 @@
   let replyBody = $state('');
 
   const CATEGORIES = [
-    { value: 'playback', label: 'Lecture' },
-    { value: 'scan', label: 'Scan / Bibliothèque' },
-    { value: 'streaming', label: 'Streaming (Qobuz, Tidal…)' },
-    { value: 'license', label: 'Licence / Compte' },
-    { value: 'audio', label: 'Sortie audio / DAC' },
-    { value: 'other', label: 'Autre' },
+    { value: 'playback', label: 'support.category.playback' },
+    { value: 'scan', label: 'support.category.scan' },
+    { value: 'streaming', label: 'support.category.streaming' },
+    { value: 'license', label: 'support.category.license' },
+    { value: 'audio', label: 'support.category.audio' },
+    { value: 'other', label: 'support.category.other' },
   ];
 
   const STATUS_LABEL: Record<string, string> = {
-    open: 'Ouvert',
-    waiting_user: 'En attente de vous',
-    resolved: 'Résolu',
-    closed: 'Fermé',
+    open: 'support.status.open',
+    waiting_user: 'support.status.waitingUser',
+    resolved: 'support.status.resolved',
+    closed: 'support.status.closed',
   };
 
   // apiPost/apiFetch throw un Error(status) ; on traduit les cas utiles.
   function friendlyError(e: unknown): string {
     const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes('412')) return 'Connecte-toi à ton compte Tune pour utiliser le support.';
-    if (msg.includes('403')) return 'Le support prioritaire est réservé à Tune Premium.';
-    if (msg.includes('401')) return 'Session expirée, reconnecte-toi.';
-    return 'Une erreur est survenue. Réessaie dans un instant.';
+    const tr = get(t);
+    if (msg.includes('412')) return tr('support.errorNotConnected');
+    if (msg.includes('403')) return tr('support.errorPremiumOnly');
+    if (msg.includes('401')) return tr('support.errorSessionExpired');
+    return tr('support.errorGeneric');
   }
 
   function fmtDate(iso: string | null): string {
@@ -137,11 +140,11 @@
 
 <div class="support-view">
   <header class="support-header">
-    <h1>Support premium</h1>
+    <h1>{$t('support.title')}</h1>
     {#if mode === 'list'}
-      <button class="btn-primary" onclick={() => { mode = 'new'; error = null; }}>Nouveau ticket</button>
+      <button class="btn-primary" onclick={() => { mode = 'new'; error = null; }}>{$t('support.newTicket')}</button>
     {:else}
-      <button class="btn-ghost" onclick={() => { mode = 'list'; current = null; error = null; }}>← Retour</button>
+      <button class="btn-ghost" onclick={() => { mode = 'list'; current = null; error = null; }}>← {$t('support.back')}</button>
     {/if}
   </header>
 
@@ -152,36 +155,36 @@
   {#if mode === 'new'}
     <form class="support-form" onsubmit={(e) => { e.preventDefault(); submitTicket(); }}>
       <label>
-        <span>Sujet</span>
-        <input type="text" bind:value={subject} maxlength="150" placeholder="Résumé du problème" required />
+        <span>{$t('support.subject')}</span>
+        <input type="text" bind:value={subject} maxlength="150" placeholder={$t('support.subjectPlaceholder')} required />
       </label>
       <label>
-        <span>Catégorie</span>
+        <span>{$t('support.category')}</span>
         <select bind:value={category}>
           {#each CATEGORIES as c}
-            <option value={c.value}>{c.label}</option>
+            <option value={c.value}>{$t(c.label)}</option>
           {/each}
         </select>
       </label>
       <label>
-        <span>Description</span>
-        <textarea bind:value={body} rows="8" placeholder="Décris ce qui se passe : ce que tu fais, ce qui est attendu, ce qui arrive." required></textarea>
+        <span>{$t('support.description')}</span>
+        <textarea bind:value={body} rows="8" placeholder={$t('support.descriptionPlaceholder')} required></textarea>
       </label>
-      <p class="support-hint">La version de Tune et ta plateforme sont jointes automatiquement.</p>
+      <p class="support-hint">{$t('support.autoAttach')}</p>
       <button class="btn-primary" type="submit" disabled={submitting || !subject.trim() || !body.trim()}>
-        {submitting ? 'Envoi…' : 'Envoyer le ticket'}
+        {submitting ? $t('support.sending') : $t('support.sendTicket')}
       </button>
     </form>
   {:else if mode === 'detail' && current}
     <div class="ticket-detail">
       <div class="ticket-meta">
         <h2>{current.subject}</h2>
-        <span class="badge status-{current.status}">{STATUS_LABEL[current.status] ?? current.status}</span>
+        <span class="badge status-{current.status}">{STATUS_LABEL[current.status] ? $t(STATUS_LABEL[current.status]) : current.status}</span>
       </div>
       <div class="messages">
         {#each current.messages as m (m.id)}
           <div class="message {m.author_type === 'staff' ? 'from-staff' : 'from-user'}">
-            <div class="message-author">{m.author_type === 'staff' ? 'Support Tune' : 'Vous'}</div>
+            <div class="message-author">{m.author_type === 'staff' ? $t('support.staffAuthor') : $t('support.you')}</div>
             <div class="message-body">{m.body}</div>
             <div class="message-date">{new Date(m.created_at).toLocaleString('fr-FR')}</div>
           </div>
@@ -189,19 +192,19 @@
       </div>
       {#if current.status !== 'closed'}
         <form class="reply-form" onsubmit={(e) => { e.preventDefault(); sendReply(); }}>
-          <textarea bind:value={replyBody} rows="4" placeholder="Votre réponse…"></textarea>
+          <textarea bind:value={replyBody} rows="4" placeholder={$t('support.replyPlaceholder')}></textarea>
           <button class="btn-primary" type="submit" disabled={submitting || !replyBody.trim()}>
-            {submitting ? 'Envoi…' : 'Répondre'}
+            {submitting ? $t('support.sending') : $t('support.reply')}
           </button>
         </form>
       {/if}
     </div>
   {:else if loading}
-    <p class="support-loading">Chargement…</p>
+    <p class="support-loading">{$t('support.loading')}</p>
   {:else if tickets.length === 0}
     <div class="support-empty">
-      <p class="empty-title">Aucun ticket pour le moment.</p>
-      <p>Un souci ? Ouvre un ticket : l'équipe Tune te répond en priorité.</p>
+      <p class="empty-title">{$t('support.empty')}</p>
+      <p>{$t('support.emptyHint')}</p>
     </div>
   {:else}
     <ul class="ticket-list">
@@ -209,7 +212,7 @@
         <li>
           <button class="ticket-row" onclick={() => openTicket(ticket.id)}>
             <span class="ticket-subject">{ticket.subject}</span>
-            <span class="badge status-{ticket.status}">{STATUS_LABEL[ticket.status] ?? ticket.status}</span>
+            <span class="badge status-{ticket.status}">{STATUS_LABEL[ticket.status] ? $t(STATUS_LABEL[ticket.status]) : ticket.status}</span>
             <span class="ticket-date">{fmtDate(ticket.last_reply_at ?? ticket.created_at)}</span>
           </button>
         </li>

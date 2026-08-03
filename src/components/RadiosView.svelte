@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import { currentZoneId, currentZone } from '../lib/stores/zones';
   import { isBrowserZone, browserPlay } from '../lib/stores/browserAudio';
   import { t } from '../lib/i18n';
@@ -221,14 +222,14 @@
     // body limit (413) or take a long time, leaving the UI stuck on "loading"
     // until a browser refresh (Dominique: 78 MB / 909k-entry radio dump).
     if (file.size > MAX_IMPORT_MB * 1024 * 1024) {
-      importMessage = `Fichier trop volumineux (${Math.round(file.size / 1048576)} Mo, max ${MAX_IMPORT_MB} Mo)`;
+      importMessage = get(t)('radio.fileTooLarge').replace('{size}', String(Math.round(file.size / 1048576))).replace('{max}', String(MAX_IMPORT_MB));
       input.value = '';
       setTimeout(() => (importMessage = ''), 6000);
       return;
     }
     try {
       const result = await api.importRadios(file);
-      importMessage = `${result.imported} importées, ${result.skipped} ignorées`;
+      importMessage = get(t)('radio.importResult').replace('{imported}', String(result.imported)).replace('{skipped}', String(result.skipped));
       await loadRadios();
       setTimeout(() => importMessage = '', 4000);
     } catch (err) {

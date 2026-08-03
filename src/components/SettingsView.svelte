@@ -506,12 +506,10 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dsd_lpcm_stream: newVal }),
       });
-      notifications.success(
-        newVal ? 'Streaming DSD activé' : 'Transcodage DSD par fichier temporaire',
-      );
+      notifications.success(get(t)(newVal ? 'settings.dsdStreamOn' : 'settings.dsdStreamOff'));
     } catch {
       dsdLpcmStream = !newVal; // revert on failure
-      notifications.error('Échec de la mise à jour du réglage DSD');
+      notifications.error(get(t)('settings.dsdStreamError'));
     }
   }
 
@@ -3414,14 +3412,10 @@
 
     <!-- DSD streaming to network (DLNA) renderers -->
     <section class="settings-section">
-      <h3>Lecture DSD (renderers réseau)</h3>
-      <p class="muted" style="margin-bottom: 1rem">
-        Diffuse le DSD transcodé en flux continu au lieu d'un fichier temporaire.
-        Corrige les coupures / silences en DSD 256/512 sur certains renderers
-        DLNA. Effet immédiat, sans redémarrage.
-      </p>
+      <h3>{$t('settings.dsdNetworkTitle')}</h3>
+      <p class="muted" style="margin-bottom: 1rem">{$t('settings.dsdNetworkHint')}</p>
       <div class="about-row">
-        <span class="about-label">Transcodage DSD → réseau</span>
+        <span class="about-label">{$t('settings.dsdNetworkLabel')}</span>
         <select
           class="log-level-select"
           value={dsdLpcmStream ? 'stream' : 'file'}
@@ -3430,8 +3424,8 @@
             if ((v === 'stream') !== dsdLpcmStream) toggleDsdLpcmStream();
           }}
         >
-          <option value="file">Fichier temporaire (défaut)</option>
-          <option value="stream">Streaming continu</option>
+          <option value="file">{$t('settings.dsdOptionFile')}</option>
+          <option value="stream">{$t('settings.dsdOptionStream')}</option>
         </select>
       </div>
     </section>
