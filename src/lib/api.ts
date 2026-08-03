@@ -1341,6 +1341,10 @@ export function getAlbumBio(albumId: number) {
   return fetchJSON<{ bio: string | null; source: string | null; release_id?: string | null }>(`${BASE}/library/albums/${albumId}/bio`);
 }
 
+export function getArtistBio(artistId: number) {
+  return fetchJSON<{ bio: string | null; source?: string | null }>(`${BASE}/library/artists/${artistId}/bio`);
+}
+
 export function getArtistTimeline(artistId: number) {
   return fetchJSON<any[]>(`${BASE}/library/artists/${artistId}/timeline`);
 }
