@@ -734,6 +734,15 @@ export default {
 
   // Equalizer
   "eq.pureBypassWarning": "Modul PURE este activ pe această zonă: semnalul merge bit-perfect la DAC, iar egalizatorul este ocolit. Dezactivați PURE pentru a auzi reglajele.",
+  'settings.eqBandsTitle': "Egalizator Expert",
+  'settings.eqBandsHint': "Numărul de benzi în modul Expert. Curba actuală este păstrată (reeșantionată) la schimbare. Grile ISO — aceleași repere ca REW.",
+  'settings.eqBandsLabel': "Rezoluție",
+  'settings.eqBands10': "10 benzi (octavă)",
+  'settings.eqBands15': "15 benzi (2/3 de octavă)",
+  'settings.eqBands31': "31 de benzi (1/3 de octavă)",
+  'settings.eqBandsSaved': "Rezoluția egalizatorului a fost salvată",
+  'settings.eqBandsError': "Rezoluția nu a putut fi salvată",
+  'eq.headroomHint': "Amplificare mare: păstrați o rezervă de volum",
   'eq.title': 'Egalizator',
   'eq.enabled': 'Activat',
   'eq.disabled': 'Dezactivat',

@@ -727,6 +727,15 @@ export default {
 
   // Equalizer
   "eq.pureBypassWarning": "このゾーンでは PURE モードが有効です。信号はビットパーフェクトで DAC に送られ、イコライザーはバイパスされます。設定を反映するには PURE をオフにしてください。",
+  'settings.eqBandsTitle': "エキスパートEQ",
+  'settings.eqBandsHint': "エキスパートモードのバンド数。切り替え時は現在のカーブを保持（リサンプリング）します。ISOグリッド — REWと同じ基準です。",
+  'settings.eqBandsLabel': "分解能",
+  'settings.eqBands10': "10バンド（オクターブ）",
+  'settings.eqBands15': "15バンド（2/3オクターブ）",
+  'settings.eqBands31': "31バンド（1/3オクターブ）",
+  'settings.eqBandsSaved': "EQの分解能を保存しました",
+  'settings.eqBandsError': "分解能を保存できませんでした",
+  'eq.headroomHint': "ブーストが大きいときは音量に余裕を",
   'eq.title': 'イコライザー',
   'eq.enabled': '有効',
   'eq.disabled': '無効',

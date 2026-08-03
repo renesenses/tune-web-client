@@ -1375,6 +1375,19 @@ export function setEq(zoneId: number, settings: EqSettings) {
   });
 }
 
+// Résolution du mode Expert (10/15/31 bandes) — stockée serveur pour que tous
+// les clients partagent la même grille.
+export function getEqExpertSettings() {
+  return fetchJSON<{ expert_bands: number }>(`${BASE}/eq/expert-settings`);
+}
+
+export function setEqExpertSettings(expertBands: number) {
+  return fetchJSON<{ expert_bands: number }>(`${BASE}/eq/expert-settings`, {
+    method: 'POST',
+    body: JSON.stringify({ expert_bands: expertBands }),
+  });
+}
+
 // Headphone crossfeed — bleeds a delayed, attenuated copy of each channel
 // into the opposite ear so the stereo image sits in front of you instead of
 // inside your head. Local output only. Server clamps amount 0..0.5, delay 0..5.

@@ -957,6 +957,15 @@ export default {
 
   // Equalizer
   "eq.pureBypassWarning": "PURE mode is active on this zone: the signal goes bit-perfect to the DAC and the equalizer is bypassed. Turn PURE off to hear your settings.",
+  'settings.eqBandsTitle': "Expert equalizer",
+  'settings.eqBandsHint': "Number of bands in Expert mode. Your current curve is kept (resampled) when switching. ISO grids — the same landmarks as REW.",
+  'settings.eqBandsLabel': "Resolution",
+  'settings.eqBands10': "10 bands (octave)",
+  'settings.eqBands15': "15 bands (2/3 octave)",
+  'settings.eqBands31': "31 bands (1/3 octave)",
+  'settings.eqBandsSaved': "Equalizer resolution saved",
+  'settings.eqBandsError': "Could not save the resolution",
+  'eq.headroomHint': "High boost: keep some volume headroom",
   'eq.title': 'Equalizer',
   'eq.enabled': 'Enabled',
   'eq.disabled': 'Disabled',

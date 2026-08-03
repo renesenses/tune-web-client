@@ -958,6 +958,15 @@ export default {
 
   // Equalizer
   "eq.pureBypassWarning": "Le mode PURE est actif sur cette zone : le signal est envoyé bit-perfect au DAC et l'égaliseur est contourné. Désactivez PURE pour entendre vos réglages.",
+  'settings.eqBandsTitle': "Égaliseur Expert",
+  'settings.eqBandsHint': "Nombre de bandes du mode Expert. La courbe actuelle est conservée (rééchantillonnée) au changement. Grilles ISO — les mêmes repères que REW.",
+  'settings.eqBandsLabel': "Résolution",
+  'settings.eqBands10': "10 bandes (octave)",
+  'settings.eqBands15': "15 bandes (2/3 d'octave)",
+  'settings.eqBands31': "31 bandes (1/3 d'octave)",
+  'settings.eqBandsSaved': "Résolution de l'égaliseur enregistrée",
+  'settings.eqBandsError': "Impossible d'enregistrer la résolution",
+  'eq.headroomHint': "Boost élevé : pensez à garder de la marge de volume",
   'eq.title': 'Égaliseur',
   'eq.enabled': 'Activé',
   'eq.disabled': 'Désactivé',

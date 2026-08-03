@@ -7,7 +7,20 @@
   import { notifications } from '../lib/stores/notifications';
   import { isPremium } from '../lib/stores/license';
 
-  const BANDS: number[] = [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+  // Grilles ISO : octave (10), 2/3 d'octave (15), 1/3 d'octave (31) — les
+  // repères de REW. La résolution vient des Paramètres (clé serveur
+  // eq_expert_bands) pour que web/iPad/mobile partagent la même grille.
+  const GRIDS: Record<number, number[]> = {
+    10: [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
+    15: [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000],
+    31: [20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800,
+         1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000],
+  };
+  // Q adapté à la largeur de bande ; 10 bandes garde le 1.0 historique pour ne
+  // pas changer le rendu des réglages existants.
+  const GRID_Q: Record<number, number> = { 10: 1.0, 15: 2.15, 31: 4.32 };
+  let bandCount = $state(10);
+  let BANDS = $derived(GRIDS[bandCount] ?? GRIDS[10]);
 
   // --- Tune Master Profiler (Assistant mode) ---
   type EqMode = 'assistant' | 'expert';
@@ -136,7 +149,7 @@
     classical:    { label: 'Classical',     gains: [0, 0, 0, 0, 0, 0, -2, -3, -2, -1] },
   };
 
-  let gains = $state<number[]>(Array(10).fill(0));
+  let gains = $state<number[]>(Array(10).fill(0)); // redimensionné par la résolution au mount
   let enabled = $state(true);
   let activePreset = $state<string | null>('flat');
   let loading = $state(false);
@@ -155,8 +168,7 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed.gains) && parsed.gains.length === 10) {
-          gains = parsed.gains;
+        if (Array.isArray(parsed.gains) && adoptGains(parsed.gains)) {
           enabled = parsed.enabled ?? true;
           activePreset = parsed.activePreset ?? null;
         }
@@ -165,7 +177,35 @@
   }
 
   function buildBands(): EqBand[] {
-    return BANDS.map((freq, i) => ({ freq, gain: gains[i], q: DEFAULT_Q }));
+    const q = GRID_Q[bandCount] ?? DEFAULT_Q;
+    return BANDS.map((freq, i) => ({ freq, gain: gains[i] ?? 0, q }));
+  }
+
+  // Rééchantillonne une courbe de gains d'une grille vers une autre
+  // (interpolation linéaire en fréquence logarithmique) : changer de
+  // résolution ou charger un preset 10 bandes ne remet jamais à zéro.
+  function resampleGains(srcGains: number[], srcGrid: number[], dstGrid: number[]): number[] {
+    if (srcGains.length !== srcGrid.length || srcGrid.length === 0) return Array(dstGrid.length).fill(0);
+    return dstGrid.map((f) => {
+      const x = Math.log10(f);
+      if (x <= Math.log10(srcGrid[0])) return srcGains[0];
+      if (x >= Math.log10(srcGrid[srcGrid.length - 1])) return srcGains[srcGains.length - 1];
+      let i = 1;
+      while (i < srcGrid.length && Math.log10(srcGrid[i]) < x) i++;
+      const x0 = Math.log10(srcGrid[i - 1]);
+      const x1 = Math.log10(srcGrid[i]);
+      const t = (x - x0) / (x1 - x0);
+      return srcGains[i - 1] + t * (srcGains[i] - srcGains[i - 1]);
+    });
+  }
+
+  /// Adopte une liste de gains provenant d'une grille connue (10/15/31),
+  /// rééchantillonnée si elle ne correspond pas à la résolution active.
+  function adoptGains(src: number[]): boolean {
+    const srcGrid = GRIDS[src.length];
+    if (!srcGrid) return false;
+    gains = src.length === bandCount ? [...src] : resampleGains(src, srcGrid, BANDS);
+    return true;
   }
 
   let eqSendTimer: ReturnType<typeof setTimeout> | null = null;
@@ -198,7 +238,7 @@
   function applyPreset(key: string) {
     const p = PRESETS[key];
     if (!p) return;
-    gains = [...p.gains];
+    gains = bandCount === 10 ? [...p.gains] : resampleGains(p.gains, GRIDS[10], BANDS);
     activePreset = key;
     saveLocal();
     sendToServer();
@@ -215,11 +255,16 @@
   }
 
   function detectPreset(): string | null {
+    if (bandCount !== 10) return null; // presets écrits sur la grille 10 bandes
     for (const [key, p] of Object.entries(PRESETS)) {
       if (p.gains.every((g, i) => g === gains[i])) return key;
     }
     return null;
   }
+
+  // Marge : au-delà de +6 dB de boost cumulable, on rappelle que le soft-clip
+  // serveur protège mais qu'une marge de volume évite de l'atteindre.
+  let maxBoost = $derived(Math.max(0, ...gains));
 
   // Curve path for response visualization
   let curvePath = $derived.by(() => {
@@ -337,9 +382,19 @@
     if (zoneId === null) return;
     loadPure(zoneId);
     try {
+      const res = await api.getEqExpertSettings();
+      if (GRIDS[res.expert_bands] && res.expert_bands !== bandCount) {
+        const prevGrid = BANDS;
+        const prev = gains;
+        bandCount = res.expert_bands;
+        gains = resampleGains(prev, prevGrid, GRIDS[bandCount]);
+      }
+    } catch {
+      // Vieux serveur sans la route — on reste en 10 bandes
+    }
+    try {
       const eq = await api.getEq(zoneId);
-      if (eq?.bands?.length === 10) {
-        gains = eq.bands.map(b => b.gain);
+      if (eq?.bands?.length && adoptGains(eq.bands.map(b => b.gain))) {
         enabled = eq.enabled;
         activePreset = detectPreset();
         saveLocal();
@@ -551,7 +606,7 @@
     </div>
 
     <!-- Band sliders -->
-    <div class="sliders">
+    <div class="sliders" class:dense={bandCount > 10}>
       {#each BANDS as freq, i}
         <div class="slider-band">
           <div class="slider-value" class:positive={gains[i] > 0} class:negative={gains[i] < 0}>
@@ -576,6 +631,10 @@
       {/each}
     </div>
   </div>
+
+  {#if enabled && maxBoost >= 6}
+    <div class="headroom-hint">{$t('eq.headroomHint' as any)} (+{maxBoost.toFixed(1)} dB)</div>
+  {/if}
 
   <!-- Frequency response visualization -->
   <div class="response-curve" class:disabled={!enabled}>
@@ -1028,6 +1087,13 @@
     gap: 0;
   }
 
+  /* 15/31 bandes : chaque bande garde une largeur lisible, le conteneur
+     défile horizontalement (surtout iPad/mobile) au lieu d'écraser tout. */
+  .sliders.dense { overflow-x: auto; justify-content: flex-start; }
+  .sliders.dense .slider-band { min-width: 2.2rem; flex: 0 0 auto; }
+  .sliders.dense .slider-value { font-size: 0.55rem; }
+  .sliders.dense .slider-freq { font-size: 0.55rem; }
+
   .slider-band {
     display: flex;
     flex-direction: column;
@@ -1116,6 +1182,12 @@
     border: 2px solid rgba(255, 255, 255, 0.3);
     cursor: pointer;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .headroom-hint {
+    font-size: 0.7rem;
+    color: #f59e0b;
+    padding: 0.2rem 0.75rem;
   }
 
   .slider-freq {
