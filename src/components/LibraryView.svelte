@@ -5383,4 +5383,27 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     }
   }
 
+  /* Touch devices (e.g. an Android web view) have no hover, so the hover-reveal
+     per-track action buttons are unusable AND — being opacity:0, not
+     display:none — they still consume row width, squeezing .track-info's
+     flex-basis to zero so ONLY the track number showed, never the title
+     (forum #1142). The ≤640px rule above already drops them on phones; key it
+     on the pointer type too so it also covers wider touch surfaces (tablets,
+     Android web views reporting >640px). The ··· overflow menu carries these
+     actions on touch. */
+  @media (hover: none) {
+    .track-item .quick-fav-btn,
+    .track-item .add-queue-btn,
+    .track-item .play-from-here-btn,
+    .track-item .play-next-btn,
+    .track-item .add-playlist-btn,
+    .track-item .credits-btn,
+    .track-item .edit-track-btn {
+      display: none;
+    }
+    .track-item .track-more-btn {
+      opacity: 1;
+    }
+  }
+
 </style>
