@@ -89,7 +89,11 @@
      long date/letter lists scroll internally on short screens. */
   .alpha-index.sticky {
     position: sticky;
-    top: 0;
+    /* Offset below the sticky .library-header (~66px tall, measured live) so the
+       first letters (A, B…) aren't hidden behind it — #1282 refinement (Jean
+       Valjean). The sticky variant is only applied on the Artists tab, so this
+       never affects the non-sticky Albums date index. */
+    top: 72px;
     align-self: flex-start;
     max-height: calc(100vh - 120px);
   }

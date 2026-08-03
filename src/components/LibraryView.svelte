@@ -2769,7 +2769,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       {:else}
         <!-- Genre tree: branches first, then orphans. -->
         {#if !genreSearchQuery}
-          <div class="year-summary">
+          <div class="year-summary genres-summary">
             <span class="year-summary-total">{$albums.length} {$albums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
             {#if noGenreAlbums.length > 0}
               <span class="year-summary-groups">{$tr('library.ofWhichNoGenre').replace('{count}', String(noGenreAlbums.length))}</span>
@@ -4479,6 +4479,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     gap: var(--space-sm);
     margin-bottom: var(--space-lg);
     flex-wrap: wrap;
+    /* Pin under the sticky .library-header so the breadcrumb, per-genre album
+       count and the sort control stay visible while scrolling — #1282
+       refinement (Jean Valjean). Genres-only class → no cross-tab impact. */
+    position: sticky;
+    top: 72px;
+    z-index: 10;
+    background: var(--tune-bg);
   }
   .bc-sep { color: var(--tune-text-muted); user-select: none; }
   .bc-link {
@@ -5251,6 +5258,18 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     font-family: var(--font-body);
     font-size: 13px;
     color: var(--tune-text-muted);
+  }
+
+  /* Genres tab only: pin the summary bar (total album count + "sans genre" +
+     the right-side sort control) under the sticky header so it doesn't scroll
+     away — #1282 refinement (Jean Valjean). Scoped to `.genres-summary` so the
+     Years tab (which reuses `.year-summary` but scrolls via its own inner
+     viewport) is provably untouched. */
+  .genres-summary {
+    position: sticky;
+    top: 72px;
+    z-index: 10;
+    background: var(--tune-bg);
   }
 
   .genre-sort-btns {
