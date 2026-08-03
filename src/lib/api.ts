@@ -1372,6 +1372,8 @@ export interface EqBand {
   freq: number;
   gain: number;
   q: number;
+  /// Type de filtre (routes/eq_pro.rs) — absent = peak.
+  type?: 'peak' | 'low_shelf' | 'high_shelf' | 'low_pass' | 'high_pass' | 'notch';
 }
 
 export interface EqSettings {
@@ -1390,12 +1392,44 @@ export function setEq(zoneId: number, settings: EqSettings) {
   });
 }
 
-export function getDsp(zoneId: number) {
-  return fetchJSON<any>(`${BASE}/zones/${zoneId}/dsp`);
+// Résolution du mode Expert (10/15/31 bandes) — stockée serveur pour que tous
+// les clients partagent la même grille.
+export function getEqExpertSettings() {
+  return fetchJSON<{ expert_bands: number }>(`${BASE}/eq/expert-settings`);
 }
 
-export function setDsp(zoneId: number, body: any) {
-  return fetchJSON<any>(`${BASE}/zones/${zoneId}/dsp`, {
+export function setEqExpertSettings(expertBands: number) {
+  return fetchJSON<{ expert_bands: number }>(`${BASE}/eq/expert-settings`, {
+    method: 'POST',
+    body: JSON.stringify({ expert_bands: expertBands }),
+  });
+}
+
+// Headphone crossfeed — bleeds a delayed, attenuated copy of each channel
+// into the opposite ear so the stereo image sits in front of you instead of
+// inside your head. Local output only. Server clamps amount 0..0.5, delay 0..5.
+export interface CrossfeedSettings {
+  enabled: boolean;
+  amount: number;   // 0.0 .. 0.5
+  delay_ms: number; // 0.0 .. 5.0
+}
+
+// GET /zones/{id}/dsp returns the whole DSP chain for the zone. Fields are
+// optional because the server fills in defaults and callers PUT partial
+// updates (e.g. only eq_profile, or only crossfeed). Kept open-ended so
+// existing callers that pass other DSP sub-objects still type-check.
+export interface DspSettings {
+  eq_profile?: any;
+  crossfeed?: CrossfeedSettings;
+  [key: string]: any;
+}
+
+export function getDsp(zoneId: number) {
+  return fetchJSON<DspSettings>(`${BASE}/zones/${zoneId}/dsp`);
+}
+
+export function setDsp(zoneId: number, body: DspSettings) {
+  return fetchJSON<DspSettings>(`${BASE}/zones/${zoneId}/dsp`, {
     method: 'PUT',
     body: JSON.stringify(body),
   });

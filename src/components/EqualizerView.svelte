@@ -3,11 +3,25 @@
   import { t } from '../lib/i18n';
   import { currentZoneId } from '../lib/stores/zones';
   import * as api from '../lib/api';
-  import type { EqBand, EqSettings } from '../lib/api';
+  import type { EqBand, EqSettings, CrossfeedSettings } from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
   import { isPremium } from '../lib/stores/license';
+  import ParametricEq from './ParametricEq.svelte';
 
-  const BANDS: number[] = [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+  // Grilles ISO : octave (10), 2/3 d'octave (15), 1/3 d'octave (31) — les
+  // repères de REW. La résolution vient des Paramètres (clé serveur
+  // eq_expert_bands) pour que web/iPad/mobile partagent la même grille.
+  const GRIDS: Record<number, number[]> = {
+    10: [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
+    15: [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000],
+    31: [20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800,
+         1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000],
+  };
+  // Q adapté à la largeur de bande ; 10 bandes garde le 1.0 historique pour ne
+  // pas changer le rendu des réglages existants.
+  const GRID_Q: Record<number, number> = { 10: 1.0, 15: 2.15, 31: 4.32 };
+  let bandCount = $state(10);
+  let BANDS = $derived(GRIDS[bandCount] ?? GRIDS[10]);
 
   // --- Tune Master Profiler (Assistant mode) ---
   type EqMode = 'assistant' | 'expert';
@@ -136,7 +150,11 @@
     classical:    { label: 'Classical',     gains: [0, 0, 0, 0, 0, 0, -2, -3, -2, -1] },
   };
 
-  let gains = $state<number[]>(Array(10).fill(0));
+  let gains = $state<number[]>(Array(10).fill(0)); // redimensionné par la résolution au mount
+  // Sous-mode Expert : graphique (grille fixe) ou paramétrique (bandes libres,
+  // fréquence/gain/Q/type — le serveur les accepte déjà, routes/eq_pro.rs).
+  let expertSubMode = $state<'graphic' | 'parametric'>('graphic');
+  let pBands = $state<EqBand[]>([]);
   let enabled = $state(true);
   let activePreset = $state<string | null>('flat');
   let loading = $state(false);
@@ -146,7 +164,7 @@
 
   function saveLocal() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ gains, enabled, activePreset }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ gains, enabled, activePreset, pBands: $state.snapshot(pBands), expertSubMode }));
     } catch { /* ignore */ }
   }
 
@@ -155,17 +173,46 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed.gains) && parsed.gains.length === 10) {
-          gains = parsed.gains;
+        if (Array.isArray(parsed.gains) && adoptGains(parsed.gains)) {
           enabled = parsed.enabled ?? true;
           activePreset = parsed.activePreset ?? null;
         }
+        if (Array.isArray(parsed.pBands)) pBands = parsed.pBands;
+        if (parsed.expertSubMode === 'parametric') expertSubMode = 'parametric';
       }
     } catch { /* ignore */ }
   }
 
   function buildBands(): EqBand[] {
-    return BANDS.map((freq, i) => ({ freq, gain: gains[i], q: DEFAULT_Q }));
+    const q = GRID_Q[bandCount] ?? DEFAULT_Q;
+    return BANDS.map((freq, i) => ({ freq, gain: gains[i] ?? 0, q }));
+  }
+
+  // Rééchantillonne une courbe de gains d'une grille vers une autre
+  // (interpolation linéaire en fréquence logarithmique) : changer de
+  // résolution ou charger un preset 10 bandes ne remet jamais à zéro.
+  function resampleGains(srcGains: number[], srcGrid: number[], dstGrid: number[]): number[] {
+    if (srcGains.length !== srcGrid.length || srcGrid.length === 0) return Array(dstGrid.length).fill(0);
+    return dstGrid.map((f) => {
+      const x = Math.log10(f);
+      if (x <= Math.log10(srcGrid[0])) return srcGains[0];
+      if (x >= Math.log10(srcGrid[srcGrid.length - 1])) return srcGains[srcGains.length - 1];
+      let i = 1;
+      while (i < srcGrid.length && Math.log10(srcGrid[i]) < x) i++;
+      const x0 = Math.log10(srcGrid[i - 1]);
+      const x1 = Math.log10(srcGrid[i]);
+      const t = (x - x0) / (x1 - x0);
+      return srcGains[i - 1] + t * (srcGains[i] - srcGains[i - 1]);
+    });
+  }
+
+  /// Adopte une liste de gains provenant d'une grille connue (10/15/31),
+  /// rééchantillonnée si elle ne correspond pas à la résolution active.
+  function adoptGains(src: number[]): boolean {
+    const srcGrid = GRIDS[src.length];
+    if (!srcGrid) return false;
+    gains = src.length === bandCount ? [...src] : resampleGains(src, srcGrid, BANDS);
+    return true;
   }
 
   let eqSendTimer: ReturnType<typeof setTimeout> | null = null;
@@ -180,12 +227,30 @@
   async function sendToServer() {
     const zoneId = $currentZoneId;
     if (zoneId === null) return;
-    const settings: EqSettings = { bands: buildBands(), enabled };
+    const bands = expertSubMode === 'parametric' ? $state.snapshot(pBands) : buildBands();
+    const settings: EqSettings = { bands, enabled };
     try {
       await api.setEq(zoneId, settings);
     } catch {
       // Backend may not support parametric EQ yet -- silently ignore
     }
+  }
+
+  function switchExpertSubMode(mode: 'graphic' | 'parametric') {
+    if (mode === expertSubMode) return;
+    if (mode === 'parametric' && pBands.length === 0) {
+      // Première ouverture : partir de la courbe graphique actuelle.
+      pBands = buildBands().filter(b => b.gain !== 0);
+      if (pBands.length === 0) pBands = [{ freq: 1000, gain: 0, q: 1.41, type: 'peak' }];
+    }
+    expertSubMode = mode;
+    saveLocal();
+    queueSendToServer();
+  }
+
+  function onParametricChange() {
+    saveLocal();
+    queueSendToServer();
   }
 
   function setGain(index: number, value: number) {
@@ -198,7 +263,7 @@
   function applyPreset(key: string) {
     const p = PRESETS[key];
     if (!p) return;
-    gains = [...p.gains];
+    gains = bandCount === 10 ? [...p.gains] : resampleGains(p.gains, GRIDS[10], BANDS);
     activePreset = key;
     saveLocal();
     sendToServer();
@@ -215,11 +280,16 @@
   }
 
   function detectPreset(): string | null {
+    if (bandCount !== 10) return null; // presets écrits sur la grille 10 bandes
     for (const [key, p] of Object.entries(PRESETS)) {
       if (p.gains.every((g, i) => g === gains[i])) return key;
     }
     return null;
   }
+
+  // Marge : au-delà de +6 dB de boost cumulable, on rappelle que le soft-clip
+  // serveur protège mais qu'une marge de volume évite de l'atteindre.
+  let maxBoost = $derived(Math.max(0, ...gains));
 
   // Curve path for response visualization
   let curvePath = $derived.by(() => {
@@ -256,6 +326,80 @@
     }
   }
 
+  // --- Crossfeed (casque) -------------------------------------------------
+  // Lives in the same DSP panel and reads/writes the SAME active zone via the
+  // shared /zones/{id}/dsp route (crossfeed sub-object). Local output only.
+  const CF_MIN_AMOUNT = 0;
+  const CF_MAX_AMOUNT = 0.5;
+  const CF_MIN_DELAY = 0;
+  const CF_MAX_DELAY = 5;
+
+  let cfEnabled = $state(false);
+  let cfAmount = $state(0.30);
+  let cfDelay = $state(0.30);
+
+  // amount/delay per preset. Same save path as the EQ (debounced PUT), never
+  // one request per slider tick.
+  const CF_PRESETS: { key: string; labelKey: string; amount: number; delay: number }[] = [
+    { key: 'light',    labelKey: 'dsp.crossfeedPresetLight',    amount: 0.25, delay: 0.3 },
+    { key: 'standard', labelKey: 'dsp.crossfeedPresetStandard', amount: 0.30, delay: 0.5 },
+    { key: 'strong',   labelKey: 'dsp.crossfeedPresetStrong',   amount: 0.40, delay: 0.7 },
+  ];
+
+  let cfSendTimer: ReturnType<typeof setTimeout> | null = null;
+  function queueCrossfeedSave() {
+    if (cfSendTimer) clearTimeout(cfSendTimer);
+    cfSendTimer = setTimeout(() => {
+      cfSendTimer = null;
+      void saveCrossfeed();
+    }, 300);
+  }
+
+  async function saveCrossfeed() {
+    const zoneId = $currentZoneId;
+    if (zoneId === null) return;
+    const crossfeed: CrossfeedSettings = {
+      enabled: cfEnabled,
+      // Clamp to the server's accepted ranges before sending.
+      amount: Math.min(CF_MAX_AMOUNT, Math.max(CF_MIN_AMOUNT, cfAmount)),
+      delay_ms: Math.min(CF_MAX_DELAY, Math.max(CF_MIN_DELAY, cfDelay)),
+    };
+    try {
+      await api.setDsp(zoneId, { crossfeed });
+    } catch (e) {
+      // fetchJSON already surfaced the Premium popup on a 402 — don't stack.
+      if ((e as Error)?.message !== 'premium_required') {
+        console.error('Crossfeed save error:', e);
+      }
+    }
+  }
+
+  function toggleCrossfeed() {
+    cfEnabled = !cfEnabled;
+    saveCrossfeed();
+  }
+
+  function onCrossfeedAmount(e: Event) {
+    cfAmount = parseFloat((e.target as HTMLInputElement).value);
+    queueCrossfeedSave();
+  }
+
+  function onCrossfeedDelay(e: Event) {
+    cfDelay = parseFloat((e.target as HTMLInputElement).value);
+    queueCrossfeedSave();
+  }
+
+  function applyCrossfeedPreset(amount: number, delay: number) {
+    cfAmount = amount;
+    cfDelay = delay;
+    cfEnabled = true;
+    saveCrossfeed();
+  }
+
+  let cfActivePreset = $derived(
+    CF_PRESETS.find(p => p.amount === cfAmount && p.delay === cfDelay)?.key ?? null
+  );
+
   onMount(async () => {
     loadLocal();
     loadProfiler();
@@ -263,15 +407,49 @@
     if (zoneId === null) return;
     loadPure(zoneId);
     try {
+      const res = await api.getEqExpertSettings();
+      if (GRIDS[res.expert_bands] && res.expert_bands !== bandCount) {
+        const prevGrid = BANDS;
+        const prev = gains;
+        bandCount = res.expert_bands;
+        gains = resampleGains(prev, prevGrid, GRIDS[bandCount]);
+      }
+    } catch {
+      // Vieux serveur sans la route — on reste en 10 bandes
+    }
+    try {
       const eq = await api.getEq(zoneId);
-      if (eq?.bands?.length === 10) {
-        gains = eq.bands.map(b => b.gain);
-        enabled = eq.enabled;
-        activePreset = detectPreset();
-        saveLocal();
+      if (eq?.bands?.length) {
+        const isGrid = !!GRIDS[eq.bands.length]
+          && eq.bands.every((b, i) => b.freq === GRIDS[eq.bands.length][i] && (b.type ?? 'peak') === 'peak');
+        if (isGrid && adoptGains(eq.bands.map(b => b.gain))) {
+          enabled = eq.enabled;
+          activePreset = detectPreset();
+          saveLocal();
+        } else if (!isGrid) {
+          // Courbe paramétrique déjà en place côté serveur : on l'édite telle
+          // quelle au lieu de l'écraser sur une grille.
+          pBands = eq.bands;
+          expertSubMode = 'parametric';
+          enabled = eq.enabled;
+          saveLocal();
+        }
       }
     } catch {
       // Endpoint may not exist — use local values
+    }
+    // Crossfeed state comes from the shared DSP route (defaults returned even
+    // when absent server-side).
+    try {
+      const dsp = await api.getDsp(zoneId);
+      const cf = dsp?.crossfeed;
+      if (cf) {
+        cfEnabled = !!cf.enabled;
+        if (typeof cf.amount === 'number') cfAmount = cf.amount;
+        if (typeof cf.delay_ms === 'number') cfDelay = cf.delay_ms;
+      }
+    } catch {
+      // Endpoint gated / unavailable — keep defaults.
     }
   });
 </script>
@@ -437,7 +615,17 @@
         {enabled ? $t('eq.enabled') : $t('eq.disabled')}
       </button>
       <button class="eq-reset" onclick={resetFlat}>{$t('eq.reset')}</button>
+      <div class="eq-submode">
+        <button class="eq-submode-btn" class:active={expertSubMode === 'graphic'}
+          onclick={() => switchExpertSubMode('graphic')}>{$t('eq.subGraphic' as any)}</button>
+        <button class="eq-submode-btn" class:active={expertSubMode === 'parametric'}
+          onclick={() => switchExpertSubMode('parametric')}>{$t('eq.subParametric' as any)}</button>
+      </div>
     </div>
+
+  {#if expertSubMode === 'parametric'}
+    <ParametricEq bind:bands={pBands} {enabled} onchange={onParametricChange} />
+  {:else}
 
   <!-- Presets -->
   <div class="presets">
@@ -464,7 +652,7 @@
     </div>
 
     <!-- Band sliders -->
-    <div class="sliders">
+    <div class="sliders" class:dense={bandCount > 10}>
       {#each BANDS as freq, i}
         <div class="slider-band">
           <div class="slider-value" class:positive={gains[i] > 0} class:negative={gains[i] < 0}>
@@ -490,6 +678,10 @@
     </div>
   </div>
 
+  {#if enabled && maxBoost >= 6}
+    <div class="headroom-hint">{$t('eq.headroomHint' as any)} (+{maxBoost.toFixed(1)} dB)</div>
+  {/if}
+
   <!-- Frequency response visualization -->
   <div class="response-curve" class:disabled={!enabled}>
     <svg viewBox="0 0 500 120" preserveAspectRatio="none" class="curve-svg">
@@ -507,6 +699,75 @@
       {/each}
     </svg>
   </div>
+  {/if}
+  {/if}
+
+  <!-- =================== CROSSFEED (CASQUE) =================== -->
+  <!-- Same DSP panel, same active zone. Shown for premium in both modes.
+       When not premium the top-level premium-gate already covers the whole
+       view, so this section is simply part of the gated DSP surface. -->
+  {#if $isPremium}
+    <section class="crossfeed">
+      <div class="crossfeed-header">
+        <h2 class="crossfeed-title">{$t('dsp.crossfeedTitle')}</h2>
+        <button
+          class="crossfeed-toggle"
+          class:active={cfEnabled}
+          onclick={toggleCrossfeed}
+          aria-pressed={cfEnabled}
+        >
+          {cfEnabled ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}
+        </button>
+      </div>
+
+      <p class="crossfeed-desc">{$t('dsp.crossfeedDesc')}</p>
+
+      <div class="crossfeed-presets">
+        {#each CF_PRESETS as preset}
+          <button
+            class="crossfeed-preset-btn"
+            class:active={cfActivePreset === preset.key}
+            onclick={() => applyCrossfeedPreset(preset.amount, preset.delay)}
+          >
+            {$t(preset.labelKey)}
+          </button>
+        {/each}
+      </div>
+
+      <div class="crossfeed-sliders" class:disabled={!cfEnabled}>
+        <div class="crossfeed-slider">
+          <div class="crossfeed-slider-header">
+            <span class="crossfeed-slider-label">{$t('dsp.crossfeedAmount')}</span>
+            <span class="crossfeed-slider-value">{Math.round(cfAmount * 100)}%</span>
+          </div>
+          <input
+            type="range"
+            min={CF_MIN_AMOUNT}
+            max={CF_MAX_AMOUNT}
+            step="0.01"
+            value={cfAmount}
+            oninput={onCrossfeedAmount}
+            disabled={!cfEnabled}
+          />
+        </div>
+
+        <div class="crossfeed-slider">
+          <div class="crossfeed-slider-header">
+            <span class="crossfeed-slider-label">{$t('dsp.crossfeedDelay')}</span>
+            <span class="crossfeed-slider-value">{cfDelay.toFixed(2)} ms</span>
+          </div>
+          <input
+            type="range"
+            min={CF_MIN_DELAY}
+            max={CF_MAX_DELAY}
+            step="0.05"
+            value={cfDelay}
+            oninput={onCrossfeedDelay}
+            disabled={!cfEnabled}
+          />
+        </div>
+      </div>
+    </section>
   {/if}
 </section>
 
@@ -873,6 +1134,13 @@
     gap: 0;
   }
 
+  /* 15/31 bandes : chaque bande garde une largeur lisible, le conteneur
+     défile horizontalement (surtout iPad/mobile) au lieu d'écraser tout. */
+  .sliders.dense { overflow-x: auto; justify-content: flex-start; }
+  .sliders.dense .slider-band { min-width: 2.2rem; flex: 0 0 auto; }
+  .sliders.dense .slider-value { font-size: 0.55rem; }
+  .sliders.dense .slider-freq { font-size: 0.55rem; }
+
   .slider-band {
     display: flex;
     flex-direction: column;
@@ -963,6 +1231,28 @@
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   }
 
+  .eq-submode { display: flex; gap: 0.25rem; margin-left: auto; }
+  .eq-submode-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--tune-text-dim, #9ca3af);
+    border-radius: 6px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+  .eq-submode-btn.active {
+    color: var(--tune-text, #fff);
+    border-color: var(--tune-accent, #6366f1);
+    background: rgba(99, 102, 241, 0.15);
+  }
+
+  .headroom-hint {
+    font-size: 0.7rem;
+    color: #f59e0b;
+    padding: 0.2rem 0.75rem;
+  }
+
   .slider-freq {
     font-size: 0.7rem;
     color: var(--tune-text-muted);
@@ -1030,5 +1320,138 @@
     background: rgba(240, 180, 41, 0.12);
     color: #f0b429;
     font-size: 13px;
+  }
+
+  /* --- Crossfeed (casque) --- */
+  .crossfeed {
+    margin-top: 1.5rem;
+    padding: 1.2rem 1.2rem 1.4rem;
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.04);
+    border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12);
+    border-radius: 12px;
+  }
+  .crossfeed-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    margin-bottom: 0.5rem;
+  }
+  .crossfeed-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-family: var(--font-label);
+    font-weight: 700;
+    color: var(--tune-text);
+  }
+  .crossfeed-toggle {
+    padding: 0.4rem 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--tune-border);
+    background: transparent;
+    color: var(--tune-text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .crossfeed-toggle.active {
+    background: var(--tune-accent, #6366f1);
+    color: white;
+    border-color: var(--tune-accent, #6366f1);
+  }
+  .crossfeed-desc {
+    margin: 0 0 1rem;
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--tune-text-secondary);
+  }
+  .crossfeed-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1.2rem;
+  }
+  .crossfeed-preset-btn {
+    padding: 0.35rem 0.9rem;
+    font-size: 0.85rem;
+    border-radius: 999px;
+    border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.3);
+    background: transparent;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .crossfeed-preset-btn:hover {
+    border-color: var(--tune-accent, #6366f1);
+    color: var(--tune-text);
+  }
+  .crossfeed-preset-btn.active {
+    background: var(--tune-accent, #6366f1);
+    color: white;
+    border-color: var(--tune-accent, #6366f1);
+  }
+  .crossfeed-sliders {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    transition: opacity 0.2s;
+  }
+  .crossfeed-sliders.disabled {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .crossfeed-slider {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .crossfeed-slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .crossfeed-slider-label {
+    font-family: var(--font-label);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tune-text);
+  }
+  .crossfeed-slider-value {
+    font-family: var(--font-label);
+    font-size: 13px;
+    color: var(--tune-accent);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .crossfeed-slider input[type="range"] {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+  .crossfeed-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--tune-accent);
+    border: 2px solid white;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+  .crossfeed-slider input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--tune-accent);
+    border: 2px solid white;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   }
 </style>

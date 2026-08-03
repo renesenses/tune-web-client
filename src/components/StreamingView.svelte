@@ -79,6 +79,17 @@
     streamingGenreBreadcrumb.set(browsingGenres ? genreBreadcrumb : []);
   });
 
+  // Another view (e.g. the Favorites menu) changed the streaming favorites:
+  // reload both the service-side and Tune-local sets so the heart state here
+  // stays in sync — otherwise un-hearting a track from the Favorites menu left
+  // it red in the album view (bug Fabien v0.9.41).
+  function handleFavoritesChanged() {
+    if (service) {
+      loadFavorites(service);
+      loadLocalFavorites(service);
+    }
+  }
+
   function handleShortcutRestore(e: Event) {
     const detail = (e as CustomEvent).detail;
     if (detail?.genreBreadcrumb?.length > 0 && detail?.streamingService) {
@@ -116,9 +127,11 @@
   import { onMount, onDestroy } from 'svelte';
   onMount(() => {
     window.addEventListener('tune:shortcut-restore-genre', handleShortcutRestore);
+    window.addEventListener('tune:streaming-favorites-changed', handleFavoritesChanged);
   });
   onDestroy(() => {
     window.removeEventListener('tune:shortcut-restore-genre', handleShortcutRestore);
+    window.removeEventListener('tune:streaming-favorites-changed', handleFavoritesChanged);
   });
 
   // YouTube Music browse state

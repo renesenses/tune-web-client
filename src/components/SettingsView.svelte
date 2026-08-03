@@ -487,6 +487,21 @@
   // file (fixes DSD 256/512 timeouts/silence on some DLNA renderers).
   let dsdLpcmStream = $state(false);
 
+  // Résolution de l'égaliseur Expert (10/15/31 bandes) — clé serveur partagée
+  // par tous les clients ; la vue Égaliseur la lit à l'ouverture.
+  let eqExpertBands = $state(10);
+  async function loadEqExpertBands() {
+    try { eqExpertBands = (await api.getEqExpertSettings()).expert_bands; } catch { /* vieux serveur */ }
+  }
+  async function changeEqExpertBands(n: number) {
+    try {
+      eqExpertBands = (await api.setEqExpertSettings(n)).expert_bands;
+      notifications.success(get(t)('settings.eqBandsSaved'));
+    } catch {
+      notifications.error(get(t)('settings.eqBandsError'));
+    }
+  }
+
   async function loadAudioBackend() {
     try {
       const resp = await fetch('/api/v1/system/config');
@@ -2099,6 +2114,7 @@
     loadMetadataFields();
     loadLogLevel();
     loadAudioBackend();
+    loadEqExpertBands();
     loadIngestSettings();
     fetchYoutubeAuthStatus();
     if (pushEnabled) initPushNotifications();
@@ -3468,6 +3484,24 @@
         >
           <option value="file">{$t('settings.dsdOptionFile')}</option>
           <option value="stream">{$t('settings.dsdOptionStream')}</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Résolution de l'égaliseur Expert (10/15/31 bandes) -->
+    <section class="settings-section">
+      <h3>{$t('settings.eqBandsTitle')}</h3>
+      <p class="muted" style="margin-bottom: 1rem">{$t('settings.eqBandsHint')}</p>
+      <div class="about-row">
+        <span class="about-label">{$t('settings.eqBandsLabel')}</span>
+        <select
+          class="log-level-select"
+          value={String(eqExpertBands)}
+          onchange={(e) => changeEqExpertBands(parseInt((e.target as HTMLSelectElement).value))}
+        >
+          <option value="10">{$t('settings.eqBands10')}</option>
+          <option value="15">{$t('settings.eqBands15')}</option>
+          <option value="31">{$t('settings.eqBands31')}</option>
         </select>
       </div>
     </section>

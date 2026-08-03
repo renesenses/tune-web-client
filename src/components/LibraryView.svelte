@@ -2,6 +2,7 @@
   import { onMount, untrack } from 'svelte';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { preferences } from '../lib/stores/preferences';
   import { currentTrackId, seekPositionMs } from '../lib/stores/nowPlaying';
   import { isBrowserZone, browserSeek } from '../lib/stores/browserAudio';
   import { playFromHere } from '../lib/playback';
@@ -444,8 +445,10 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     { key: 'original_year', label: 'library.sortOriginalYear', defaultOrder: 'desc' },
     { key: 'added_date', label: 'library.sortAddedDate', defaultOrder: 'desc' },
   ];
-  let albumSort = $state<AlbumSortKey>((localStorage.getItem('tune_album_sort') as AlbumSortKey) || 'title');
-  let albumSortOrder = $state<'asc' | 'desc'>((localStorage.getItem('tune_album_sort_order') as 'asc' | 'desc') || 'asc');
+  // Album sort lives in the server-synced preferences store (#1134) so the
+  // chosen order follows the user across sessions/devices, not just this browser.
+  let albumSort = $derived(($preferences.albumSort as AlbumSortKey) || 'title');
+  let albumSortOrder = $derived(($preferences.albumSortOrder as 'asc' | 'desc') || 'asc');
 
   type GenreSortKey = 'title' | 'artist' | 'year';
   const GENRE_SORT_OPTIONS: { key: GenreSortKey; label: string; defaultOrder: 'asc' | 'desc' }[] = [
@@ -468,15 +471,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   }
 
   function setAlbumSort(key: AlbumSortKey) {
-    if (albumSort === key) {
-      // Toggle order on re-click
-      albumSortOrder = albumSortOrder === 'asc' ? 'desc' : 'asc';
-    } else {
-      albumSort = key;
-      albumSortOrder = ALBUM_SORT_OPTIONS.find(o => o.key === key)?.defaultOrder ?? 'asc';
-    }
-    localStorage.setItem('tune_album_sort', albumSort);
-    localStorage.setItem('tune_album_sort_order', albumSortOrder);
+    // Re-click toggles order; a new key resets to that column's default order.
+    const order: 'asc' | 'desc' = albumSort === key
+      ? (albumSortOrder === 'asc' ? 'desc' : 'asc')
+      : (ALBUM_SORT_OPTIONS.find(o => o.key === key)?.defaultOrder ?? 'asc');
+    // Persist through the preferences store (localStorage + server ui_preferences),
+    // so the order is remembered per profile across devices (#1134).
+    preferences.update(p => ({ ...p, albumSort: key, albumSortOrder: order }));
     albumsLoaded = false;
     loadAlbums();
   }
@@ -5396,6 +5397,29 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     .track-info {
       min-width: 0;
       flex: 1 1 auto;
+    }
+  }
+
+  /* Touch devices (e.g. an Android web view) have no hover, so the hover-reveal
+     per-track action buttons are unusable AND — being opacity:0, not
+     display:none — they still consume row width, squeezing .track-info's
+     flex-basis to zero so ONLY the track number showed, never the title
+     (forum #1142). The ≤640px rule above already drops them on phones; key it
+     on the pointer type too so it also covers wider touch surfaces (tablets,
+     Android web views reporting >640px). The ··· overflow menu carries these
+     actions on touch. */
+  @media (hover: none) {
+    .track-item .quick-fav-btn,
+    .track-item .add-queue-btn,
+    .track-item .play-from-here-btn,
+    .track-item .play-next-btn,
+    .track-item .add-playlist-btn,
+    .track-item .credits-btn,
+    .track-item .edit-track-btn {
+      display: none;
+    }
+    .track-item .track-more-btn {
+      opacity: 1;
     }
   }
 

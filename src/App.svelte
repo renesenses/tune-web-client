@@ -431,7 +431,7 @@ import AlarmsView from './components/AlarmsView.svelte';
       if (!_pushingState && typeof window !== 'undefined') {
         // Save scroll position of the view we're leaving
         if (_previousViewForScroll && _previousViewForScroll !== view) {
-          const mainEl = document.querySelector('.main-content');
+          const mainEl = document.querySelector('.view-scroller');
           if (mainEl) saveScrollPosition(_previousViewForScroll, mainEl.scrollTop);
         }
         _previousViewForScroll = view;
@@ -451,7 +451,7 @@ import AlarmsView from './components/AlarmsView.svelte';
 
         // Restore scroll position of the view we're entering
         requestAnimationFrame(() => {
-          const mainEl = document.querySelector('.main-content');
+          const mainEl = document.querySelector('.view-scroller');
           if (mainEl) mainEl.scrollTop = getScrollPosition(view);
         });
       }
@@ -1063,6 +1063,16 @@ import AlarmsView from './components/AlarmsView.svelte';
       </div>
     {/if}
 
+    <!-- Single dedicated scroll container for the active view. Banners live
+         ABOVE it (outside the scroller) so they can never overflow it and
+         re-trigger the "double ascenseur" (#1075). Block views (Radios,
+         Métadonnées, Plugins, GenreTree) that used to scroll `.main-content`
+         now scroll THIS plain block — which fixes sticky headers scrolling
+         away under Firefox (#1282): a sticky element nested in a flex-column
+         scroller is honored by Chrome but not by Firefox. Auto-scrolling views
+         (Library/Podcasts, height:100%+overflow:auto) fill it exactly and keep
+         scrolling internally, unchanged. -->
+    <div class="view-scroller">
     {#if $activeView === 'home'}
       <HomeView />
     {:else if $activeView === 'nowplaying'}
@@ -1152,6 +1162,7 @@ import AlarmsView from './components/AlarmsView.svelte';
     {:else if $activeView === 'declick'}
       <DeplocView />
     {/if}
+    </div>
 
   </main>
 
@@ -1245,21 +1256,31 @@ import AlarmsView from './components/AlarmsView.svelte';
   .main-content {
     grid-column: 2;
     grid-row: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
+    /* Scroll is owned by `.view-scroller` (below), NOT by .main-content. This
+       lets the banners stack ABOVE the scroller as fixed-height flex items
+       (never scrolled, never overflowing it) which fixes both the "double
+       ascenseur" #1075 AND the Firefox sticky-header bug #1282 (sticky nested
+       in a flex-column scroller is honored by Chrome but not Firefox). */
+    overflow: hidden;
     padding: 0;
     position: relative;
     min-width: 0;
     min-height: 0;
-    /* Flex column so the update/status banners stack ABOVE the active view
-       instead of pushing a `height:100%` view past the bottom edge. Without
-       this, opening a banner overflowed .main-content by the banner height and
-       Firefox drew a second (page-level) scrollbar on top of the view's own
-       one — the "double ascenseur" on Bibliothèque (#1075). Views that scroll
-       internally (overflow:auto) shrink by the banner height; plain block
-       views keep their natural height and still scroll .main-content. */
     display: flex;
     flex-direction: column;
+  }
+
+  /* THE single scroll container for the active view (see markup comment). A
+     plain block scroller → sticky headers behave identically Chrome/Firefox.
+     flex:1 + min-height:0 makes it take the space left after the banners, so a
+     `height:100%` view inside fills it exactly and scrolls internally without
+     overflowing (no second scrollbar). */
+  .view-scroller {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
   }
 
   .global-search-wrapper {
