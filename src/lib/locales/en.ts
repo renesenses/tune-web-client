@@ -962,6 +962,16 @@ export default {
   'eq.disabled': 'Disabled',
   'eq.reset': 'Reset',
   'eq.premiumGate': 'The equalizer and acoustic profile are a feature of',
+  // Crossfeed (headphones)
+  'dsp.crossfeedTitle': 'Crossfeed (headphones)',
+  'dsp.crossfeedOn': 'Enabled',
+  'dsp.crossfeedOff': 'Disabled',
+  'dsp.crossfeedDesc': 'Eases headphone fatigue by pulling the stereo image in front of you (without touching the center). Local output only.',
+  'dsp.crossfeedAmount': 'Amount',
+  'dsp.crossfeedDelay': 'Delay',
+  'dsp.crossfeedPresetLight': 'Light',
+  'dsp.crossfeedPresetStandard': 'Standard',
+  'dsp.crossfeedPresetStrong': 'Strong',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Welcome to Tune Server',
