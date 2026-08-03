@@ -316,6 +316,14 @@
     }
   }
 
+  // Un-hearting a streaming item here must (a) drop it service-side too
+  // (Qobuz/Tidal star), not just the Tune-local favorite, and (b) tell the other
+  // views (streaming album/browse) to refresh their heart state — otherwise the
+  // track stayed marked favorite in the Qobuz album view (bug Fabien v0.9.41).
+  function notifyStreamingFavoritesChanged() {
+    window.dispatchEvent(new CustomEvent('tune:streaming-favorites-changed'));
+  }
+
   async function removeFavTrack(track: Track) {
     const pid = $currentProfileId;
     if (!pid) return;
@@ -325,6 +333,8 @@
       try {
         await api.removeProfileStreamingFavorite(pid, { item_type: 'track', service: st.source, service_id: st.source_id });
       } catch (e) { console.error('Remove streaming favorite error:', e); loadFavorites(); }
+      await api.removeStreamingFavorite(st.source, 'tracks', st.source_id).catch(() => {});
+      notifyStreamingFavoritesChanged();
       return;
     }
     if (!track.id) return;
@@ -346,6 +356,8 @@
       try {
         await api.removeProfileStreamingFavorite(pid, { item_type: 'album', service: st.source, service_id: st.source_id });
       } catch (e) { console.error('Remove streaming favorite error:', e); loadFavorites(); }
+      await api.removeStreamingFavorite(st.source, 'albums', st.source_id).catch(() => {});
+      notifyStreamingFavoritesChanged();
       return;
     }
     if (!album.id) return;
@@ -367,6 +379,8 @@
       try {
         await api.removeProfileStreamingFavorite(pid, { item_type: 'artist', service: st.source, service_id: st.source_id });
       } catch (e) { console.error('Remove streaming favorite error:', e); loadFavorites(); }
+      await api.removeStreamingFavorite(st.source, 'artists', st.source_id).catch(() => {});
+      notifyStreamingFavoritesChanged();
       return;
     }
     if (!artist.id) return;
