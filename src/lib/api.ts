@@ -1357,6 +1357,8 @@ export interface EqBand {
   freq: number;
   gain: number;
   q: number;
+  /// Type de filtre (routes/eq_pro.rs) — absent = peak.
+  type?: 'peak' | 'low_shelf' | 'high_shelf' | 'low_pass' | 'high_pass' | 'notch';
 }
 
 export interface EqSettings {
@@ -1372,6 +1374,19 @@ export function setEq(zoneId: number, settings: EqSettings) {
   return fetchJSON<EqSettings>(`${BASE}/zones/${zoneId}/eq`, {
     method: 'POST',
     body: JSON.stringify(settings),
+  });
+}
+
+// Résolution du mode Expert (10/15/31 bandes) — stockée serveur pour que tous
+// les clients partagent la même grille.
+export function getEqExpertSettings() {
+  return fetchJSON<{ expert_bands: number }>(`${BASE}/eq/expert-settings`);
+}
+
+export function setEqExpertSettings(expertBands: number) {
+  return fetchJSON<{ expert_bands: number }>(`${BASE}/eq/expert-settings`, {
+    method: 'POST',
+    body: JSON.stringify({ expert_bands: expertBands }),
   });
 }
 
