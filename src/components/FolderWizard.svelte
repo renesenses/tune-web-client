@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import * as api from '../lib/api';
+  import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import type { BrowseRootEntry } from '../lib/types';
   import FolderBrowser from './FolderBrowser.svelte';
@@ -58,7 +60,7 @@
       added = true;
       onMusicDirsChanged();
     } catch (e: any) {
-      addError = e?.message || 'Erreur lors de l\'ajout du dossier';
+      addError = e?.message || get(t)('folderWizard.addError');
     }
     adding = false;
   }
@@ -72,7 +74,7 @@
       if (e?.message?.includes('409') || e?.message?.includes('already')) {
         scanStarted = true;
       } else {
-        notifications.error(e?.message || 'Erreur lors du scan');
+        notifications.error(e?.message || get(t)('folderWizard.scanError'));
       }
     }
     scanningLibrary = false;
@@ -108,7 +110,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
         </svg>
-        <h3>Ajouter un dossier local</h3>
+        <h3>{$t('folderWizard.title')}</h3>
       </div>
       <button class="close-btn" onclick={onClose}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
@@ -132,27 +134,27 @@
     <!-- Step 1: Select Folder -->
     {#if step === 1}
       <div class="wizard-body">
-        <p class="wizard-desc">Entrez le chemin absolu du dossier contenant votre musique.</p>
+        <p class="wizard-desc">{$t('folderWizard.desc')}</p>
 
         <div class="form-group">
-          <label class="form-label">Chemin du dossier</label>
+          <label class="form-label">{$t('folderWizard.pathLabel')}</label>
           <div style="display:flex;gap:8px;align-items:center">
             <input
               type="text"
               class="auth-input"
               style="flex:1"
-              placeholder="/chemin/vers/votre/musique"
+              placeholder={$t('folderWizard.pathPlaceholder')}
               bind:value={folderPath}
               onkeydown={(e) => { if (e.key === 'Enter' && canGoToStep2()) goToStep(2); }}
             />
             <button class="hint-chip" style="white-space:nowrap;padding:8px 14px" onclick={() => showBrowser = true}>
-              📁 Browse
+              📁 {$t('folderWizard.browse')}
             </button>
           </div>
         </div>
 
         <div class="hint-chips">
-          <span class="hint-label">Chemins courants :</span>
+          <span class="hint-label">{$t('folderWizard.commonPaths')}</span>
           <div class="chips-row">
             <button class="hint-chip" onclick={() => selectHint('~/Music')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
@@ -180,14 +182,14 @@
 
         {#if currentDirs.length > 0}
           <div class="current-dirs">
-            <span class="list-label">Dossiers actuels :</span>
+            <span class="list-label">{$t('folderWizard.currentDirs')}</span>
             {#each currentDirs as dir}
               <div class="current-dir-item">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                 </svg>
                 <span class="dir-path">{dir.path}</span>
-                <span class="dir-tracks">{dir.track_count} pistes</span>
+                <span class="dir-tracks">{dir.track_count} {$t('folderWizard.tracks')}</span>
               </div>
             {/each}
           </div>
@@ -195,13 +197,13 @@
       </div>
 
       <div class="wizard-footer">
-        <button class="btn-secondary" onclick={onClose}>Annuler</button>
+        <button class="btn-secondary" onclick={onClose}>{$t('folderWizard.cancel')}</button>
         <button class="btn-primary" onclick={() => goToStep(2)} disabled={!canGoToStep2() || adding}>
           {#if adding}
             <div class="spinner small"></div>
-            Ajout...
+            {$t('folderWizard.adding')}
           {:else}
-            Ajouter
+            {$t('folderWizard.add')}
           {/if}
         </button>
       </div>
@@ -215,37 +217,37 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
               <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
             </svg>
-            Modifier le chemin
+            {$t('folderWizard.editPath')}
           </button>
         {:else}
           <div class="wizard-success">
-            Dossier ajoute !
+            {$t('folderWizard.folderAdded')}
             <span class="mount-path">{folderPath}</span>
           </div>
 
           {#if !scanStarted}
-            <p class="wizard-desc">Lancez un scan pour indexer les fichiers audio de ce dossier.</p>
+            <p class="wizard-desc">{$t('folderWizard.scanDesc')}</p>
             <button class="scan-btn" onclick={startScan} disabled={scanningLibrary}>
               {#if scanningLibrary}
                 <div class="spinner small"></div>
-                Lancement du scan...
+                {$t('folderWizard.scanStarting')}
               {:else}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                   <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                 </svg>
-                Lancer le scan
+                {$t('folderWizard.startScan')}
               {/if}
             </button>
           {:else}
-            <div class="wizard-success">Scan de la bibliotheque lance</div>
+            <div class="wizard-success">{$t('folderWizard.scanLaunched')}</div>
           {/if}
         {/if}
       </div>
 
       <div class="wizard-footer">
-        <button class="btn-secondary" onclick={() => { step = 1; added = false; addError = null; }}>Retour</button>
+        <button class="btn-secondary" onclick={() => { step = 1; added = false; addError = null; }}>{$t('folderWizard.back')}</button>
         <button class="btn-primary" onclick={() => goToStep(3)}>
-          Suivant
+          {$t('folderWizard.next')}
         </button>
       </div>
 
@@ -257,27 +259,27 @@
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
           </svg>
         </div>
-        <h4 class="done-title">Configuration terminee</h4>
+        <h4 class="done-title">{$t('folderWizard.configDone')}</h4>
         <div class="summary">
           <div class="summary-row">
-            <span class="summary-label">Dossier</span>
+            <span class="summary-label">{$t('folderWizard.folder')}</span>
             <span class="summary-value mono">{folderPath}</span>
           </div>
           <div class="summary-row">
-            <span class="summary-label">Bibliotheque</span>
-            <span class="summary-value">{added ? 'Ajoute' : 'Non ajoute'}</span>
+            <span class="summary-label">{$t('folderWizard.library')}</span>
+            <span class="summary-value">{added ? $t('folderWizard.added') : $t('folderWizard.notAdded')}</span>
           </div>
           {#if scanStarted}
             <div class="summary-row">
-              <span class="summary-label">Scan</span>
-              <span class="summary-value">En cours</span>
+              <span class="summary-label">{$t('folderWizard.scan')}</span>
+              <span class="summary-value">{$t('folderWizard.inProgress')}</span>
             </div>
           {/if}
         </div>
       </div>
 
       <div class="wizard-footer">
-        <button class="btn-primary" onclick={onClose}>Fermer</button>
+        <button class="btn-primary" onclick={onClose}>{$t('folderWizard.close')}</button>
       </div>
     {/if}
   </div>

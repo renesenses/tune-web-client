@@ -3,6 +3,7 @@
   import * as api from '../lib/api';
   import { zones } from '../lib/stores/zones';
   import { devices } from '../lib/stores/devices';
+  import { get } from 'svelte/store';
   import { connectionState } from '../lib/stores/connection';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { t } from '../lib/i18n';
@@ -145,7 +146,7 @@
       // les rapports (champ undefined) — alarmant pour rien (Villerio 26/07).
       lines.push(`Connected: ${(dbStatus.connected ?? true) ? 'Yes' : 'No'}`);
       if (dbStatus.migration_version !== undefined)
-        lines.push(`Migrations: ${dbStatus.migration_version}/${dbStatus.latest_version}${dbStatus.up_to_date ? ' (à jour)' : ' (EN RETARD)'}`);
+        lines.push(`Migrations: ${dbStatus.migration_version}/${dbStatus.latest_version}${dbStatus.up_to_date ? ` (${get(t)('diagnostics.upToDate')})` : ` (${get(t)('diagnostics.behind')})`}`);
       if (dbStatus.size_mb !== undefined) lines.push(`Size: ${dbStatus.size_mb} MB`);
       if (dbStatus.path) lines.push(`Path: ${dbStatus.path}`);
       if (dbStatus.stats) {

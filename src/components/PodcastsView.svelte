@@ -730,12 +730,12 @@
             {/each}
           </div>
           <div class="rf-search-row">
-            <input type="text" class="rf-search-input" placeholder="Rechercher une emission..." bind:value={rfSearchQuery} onkeydown={(e) => e.key === 'Enter' && searchRfShows()} />
-            <button class="rf-search-btn" onclick={searchRfShows} disabled={rfSearching}>{rfSearching ? '...' : 'Rechercher'}</button>
+            <input type="text" class="rf-search-input" placeholder={$t('podcasts.searchPlaceholder')} bind:value={rfSearchQuery} onkeydown={(e) => e.key === 'Enter' && searchRfShows()} />
+            <button class="rf-search-btn" onclick={searchRfShows} disabled={rfSearching}>{rfSearching ? '...' : $t('podcasts.search')}</button>
           </div>
 
           {#if rfSearchResults.length > 0}
-            <div class="rf-results-label">{rfSearchResults.length} resultat{rfSearchResults.length > 1 ? 's' : ''}</div>
+            <div class="rf-results-label">{rfSearchResults.length} {rfSearchResults.length > 1 ? $t('podcasts.resultsPlural') : $t('podcasts.result')}</div>
             <div class="podcast-grid">
               {#each rfSearchResults as show}
                 <div class="podcast-card" role="button" tabindex="0" onclick={() => openRfShow(show)} onkeydown={(e) => e.key === 'Enter' && openRfShow(show)}>
@@ -762,7 +762,7 @@
               {/each}
             </div>
           {:else}
-            <p class="empty-hint">Aucune emission trouvee</p>
+            <p class="empty-hint">{$t('podcasts.noEpisodesFound')}</p>
           {/if}
 
         {:else}

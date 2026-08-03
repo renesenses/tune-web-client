@@ -212,7 +212,7 @@
     try {
       const zone = await api.createZone(device.name, device.type, device.id);
       if (zone.id !== null) currentZoneId.set(zone.id);
-      notifications.success(`Zone "${device.name}" creee`);
+      notifications.success(get(t)('onboarding.zoneCreated').replace('{name}', device.name));
     } catch (e: any) {
       notifications.error(e?.message || String(e));
     }
@@ -271,15 +271,15 @@
             <path d="M34 24v32l22-16z" fill="var(--tune-accent)" />
           </svg>
         </div>
-        <h1>Bienvenue dans Tune !</h1>
-        <p class="welcome-desc">Votre serveur musical personnel. Configurez-le en quelques etapes.</p>
+        <h1>{$t('onboarding.welcomeTitle')}</h1>
+        <p class="welcome-desc">{$t('onboarding.welcomeDesc')}</p>
 
         <div class="welcome-features">
           <div class="feature-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="var(--tune-accent)" stroke-width="2" width="20" height="20">
               <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
             </svg>
-            <span>Musique locale, FLAC, DSD, Hi-Res</span>
+            <span>{$t('onboarding.featureLocal')}</span>
           </div>
           <div class="feature-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="var(--tune-accent)" stroke-width="2" width="20" height="20">
@@ -296,15 +296,15 @@
           </div>
         </div>
 
-        <button class="btn-primary" onclick={() => step = 2}>Commencer</button>
-        <button class="btn-skip" onclick={skipAll}>Passer la configuration</button>
+        <button class="btn-primary" onclick={() => step = 2}>{$t('onboarding.start')}</button>
+        <button class="btn-skip" onclick={skipAll}>{$t('onboarding.skipConfig')}</button>
       </div>
 
     <!-- Step 2: Music Directories -->
     {:else if step === 2}
       <div class="wizard-step">
-        <h2>Bibliotheque musicale</h2>
-        <p class="step-desc">Ajoutez les dossiers contenant votre musique.</p>
+        <h2>{$t('onboarding.libraryTitle')}</h2>
+        <p class="step-desc">{$t('onboarding.libraryDesc')}</p>
 
         {#if musicRoots.length > 0}
           <div class="music-dirs-list">
@@ -318,7 +318,7 @@
                   <span class="music-dir-path">{root.path}</span>
                 </div>
                 {#if root.track_count > 0}
-                  <span class="music-dir-count">{root.track_count} pistes</span>
+                  <span class="music-dir-count">{root.track_count} {$t('onboarding.tracks')}</span>
                 {/if}
                 <button class="btn-remove" onclick={() => handleRemoveMusicDir(root.path)} disabled={removingDir === root.path}>
                   {#if removingDir === root.path}
@@ -335,13 +335,13 @@
         {/if}
 
         <div class="add-dir-form">
-          <input type="text" class="input-field" placeholder="/chemin/vers/musique" bind:value={newMusicDirPath} disabled={addingMusicDir}
+          <input type="text" class="input-field" placeholder={$t('onboarding.pathPlaceholder')} bind:value={newMusicDirPath} disabled={addingMusicDir}
             onkeydown={(e) => { if (e.key === 'Enter') handleAddMusicDir(); }} />
           <button class="btn-secondary" onclick={handleAddMusicDir} disabled={addingMusicDir || !newMusicDirPath.trim()}>
             {#if addingMusicDir}
               <div class="spinner"></div>
             {:else}
-              Scanner
+              {$t('onboarding.scan')}
             {/if}
           </button>
         </div>
@@ -352,17 +352,17 @@
         {#if scanStatus === 'scanning'}
           <div class="scan-progress">
             <div class="spinner"></div>
-            <p>Scan en cours...</p>
+            <p>{$t('onboarding.scanning')}</p>
           </div>
         {:else if scanProgress.total}
-          <p class="scan-done">✓ Scan terminé : {scanProgress.total} fichiers analysés, {scanProgress.metadata_ok || scanProgress.total} pistes en bibliothèque{scanProgress.inserted ? ` (${scanProgress.inserted} nouvelles)` : ''}</p>
+          <p class="scan-done">{$t('onboarding.scanDone').replace('{total}', String(scanProgress.total)).replace('{tracks}', String(scanProgress.metadata_ok || scanProgress.total))}{scanProgress.inserted ? $t('onboarding.scanNew').replace('{n}', String(scanProgress.inserted)) : ''}</p>
         {/if}
 
         <div class="step-actions">
-          <button class="btn-back" onclick={() => step = 1}>Retour</button>
+          <button class="btn-back" onclick={() => step = 1}>{$t('onboarding.back')}</button>
           <div class="step-actions-right">
-            <button class="btn-skip" onclick={() => step = 3}>Passer</button>
-            <button class="btn-primary" onclick={() => step = 3} disabled={scanStatus === 'scanning'}>Suivant</button>
+            <button class="btn-skip" onclick={() => step = 3}>{$t('onboarding.skip')}</button>
+            <button class="btn-primary" onclick={() => step = 3} disabled={scanStatus === 'scanning'}>{$t('onboarding.next')}</button>
           </div>
         </div>
       </div>
@@ -370,8 +370,8 @@
     <!-- Step 3: Streaming Services -->
     {:else if step === 3}
       <div class="wizard-step">
-        <h2>Services de streaming</h2>
-        <p class="step-desc">Connectez vos comptes pour acceder a votre musique en ligne.</p>
+        <h2>{$t('onboarding.streamingTitle')}</h2>
+        <p class="step-desc">{$t('onboarding.streamingDesc')}</p>
 
         <div class="service-list">
           <!-- Tidal -->
@@ -379,15 +379,15 @@
             <div class="service-header">
               <span class="service-name">TIDAL</span>
               {#if $streamingServicesStore['tidal']?.authenticated}
-                <span class="badge auth">Connecte</span>
+                <span class="badge auth">{$t('onboarding.connected')}</span>
               {:else}
                 {#if tidalVerificationUrl}
-                  <a href={tidalVerificationUrl} target="_blank" rel="noopener noreferrer" class="auth-link">Ouvrir TIDAL</a>
-                  <div class="auth-waiting"><div class="spinner"></div>En attente...</div>
+                  <a href={tidalVerificationUrl} target="_blank" rel="noopener noreferrer" class="auth-link">{$t('onboarding.openTidal')}</a>
+                  <div class="auth-waiting"><div class="spinner"></div>{$t('onboarding.waiting')}</div>
                 {:else}
                   {#if tidalAuthError}<p class="error-msg">{tidalAuthError}</p>{/if}
                   <button class="btn-secondary" onclick={handleTidalAuth} disabled={tidalAuthLoading}>
-                    {#if tidalAuthLoading}<div class="spinner"></div>Connexion...{:else}Connecter{/if}
+                    {#if tidalAuthLoading}<div class="spinner"></div>{$t('onboarding.connecting')}{:else}{$t('onboarding.connect')}{/if}
                   </button>
                 {/if}
               {/if}
@@ -399,15 +399,15 @@
             <div class="service-header">
               <span class="service-name">Qobuz</span>
               {#if $streamingServicesStore['qobuz']?.authenticated}
-                <span class="badge auth">Connecte</span>
+                <span class="badge auth">{$t('onboarding.connected')}</span>
               {:else}
                 <div class="service-auth-inline">
                   <input type="email" class="input-field input-sm" placeholder="Email" bind:value={qobuzUsername} disabled={qobuzAuthLoading} />
-                  <input type="password" class="input-field input-sm" placeholder="Mot de passe" bind:value={qobuzPassword} disabled={qobuzAuthLoading}
+                  <input type="password" class="input-field input-sm" placeholder={$t('onboarding.password')} bind:value={qobuzPassword} disabled={qobuzAuthLoading}
                     onkeydown={(e) => { if (e.key === 'Enter') handleQobuzAuth(); }} />
                   {#if qobuzAuthError}<p class="error-msg">{qobuzAuthError}</p>{/if}
                   <button class="btn-secondary" onclick={handleQobuzAuth} disabled={qobuzAuthLoading || !qobuzUsername || !qobuzPassword}>
-                    {#if qobuzAuthLoading}<div class="spinner"></div>{:else}Connecter{/if}
+                    {#if qobuzAuthLoading}<div class="spinner"></div>{:else}{$t('onboarding.connect')}{/if}
                   </button>
                 </div>
               {/if}
@@ -416,10 +416,10 @@
         </div>
 
         <div class="step-actions">
-          <button class="btn-back" onclick={() => step = 2}>Retour</button>
+          <button class="btn-back" onclick={() => step = 2}>{$t('onboarding.back')}</button>
           <div class="step-actions-right">
-            <button class="btn-skip" onclick={() => step = 4}>Passer</button>
-            <button class="btn-primary" onclick={() => step = 4}>Suivant</button>
+            <button class="btn-skip" onclick={() => step = 4}>{$t('onboarding.skip')}</button>
+            <button class="btn-primary" onclick={() => step = 4}>{$t('onboarding.next')}</button>
           </div>
         </div>
       </div>
@@ -427,15 +427,15 @@
     <!-- Step 4: Zones / Devices -->
     {:else if step === 4}
       <div class="wizard-step">
-        <h2>Decouvrir les appareils</h2>
-        <p class="step-desc">Tune detecte les enceintes et appareils sur votre reseau.</p>
+        <h2>{$t('onboarding.discoverDevices')}</h2>
+        <p class="step-desc">{$t('onboarding.devicesDesc')}</p>
 
         <button class="btn-primary" onclick={discoverDevices} disabled={discoveringDevices}>
           {#if discoveringDevices}
             <div class="spinner"></div>
-            Recherche en cours...
+            {$t('onboarding.searching')}
           {:else}
-            Decouvrir les appareils
+            {$t('onboarding.discoverDevices')}
           {/if}
         </button>
 
@@ -449,23 +449,23 @@
                 </div>
                 {#if !$zones.some(z => z.output_device_id === device.id)}
                   <button class="btn-secondary btn-sm" onclick={() => createZoneFromDevice(device)}>
-                    Creer zone
+                    {$t('onboarding.createZone')}
                   </button>
                 {:else}
-                  <span class="badge auth">Zone creee</span>
+                  <span class="badge auth">{$t('onboarding.zoneCreatedBadge')}</span>
                 {/if}
               </div>
             {/each}
           </div>
         {:else if !discoveringDevices}
-          <p class="hint-text">Aucun appareil detecte pour l'instant. Vous pourrez en ajouter plus tard dans les reglages.</p>
+          <p class="hint-text">{$t('onboarding.noDevices')}</p>
         {/if}
 
         <div class="step-actions">
-          <button class="btn-back" onclick={() => step = 3}>Retour</button>
+          <button class="btn-back" onclick={() => step = 3}>{$t('onboarding.back')}</button>
           <div class="step-actions-right">
-            <button class="btn-skip" onclick={() => step = 5}>Passer</button>
-            <button class="btn-primary" onclick={() => step = 5}>Suivant</button>
+            <button class="btn-skip" onclick={() => step = 5}>{$t('onboarding.skip')}</button>
+            <button class="btn-primary" onclick={() => step = 5}>{$t('onboarding.next')}</button>
           </div>
         </div>
       </div>
@@ -473,14 +473,14 @@
     <!-- Step 5: Profile -->
     {:else if step === 5}
       <div class="wizard-step">
-        <h2>Votre profil</h2>
-        <p class="step-desc">Personnalisez votre experience.</p>
+        <h2>{$t('onboarding.profileTitle')}</h2>
+        <p class="step-desc">{$t('onboarding.profileDesc')}</p>
 
         <div class="profile-form">
-          <label class="profile-label">Nom</label>
-          <input type="text" class="input-field" placeholder="Votre prenom" bind:value={profileName} />
+          <label class="profile-label">{$t('onboarding.name')}</label>
+          <input type="text" class="input-field" placeholder={$t('onboarding.namePlaceholder')} bind:value={profileName} />
 
-          <label class="profile-label">Couleur</label>
+          <label class="profile-label">{$t('onboarding.color')}</label>
           <div class="color-picker">
             {#each colorPalette as color}
               <button
@@ -501,10 +501,10 @@
         </div>
 
         <div class="step-actions">
-          <button class="btn-back" onclick={() => step = 4}>Retour</button>
+          <button class="btn-back" onclick={() => step = 4}>{$t('onboarding.back')}</button>
           <div class="step-actions-right">
-            <button class="btn-skip" onclick={() => step = 6}>Passer</button>
-            <button class="btn-primary" onclick={saveProfile}>Suivant</button>
+            <button class="btn-skip" onclick={() => step = 6}>{$t('onboarding.skip')}</button>
+            <button class="btn-primary" onclick={saveProfile}>{$t('onboarding.next')}</button>
           </div>
         </div>
       </div>
@@ -518,37 +518,37 @@
             <path d="M20 32l8 8 16-16" stroke="var(--tune-success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" />
           </svg>
         </div>
-        <h1>C'est parti !</h1>
-        <p class="welcome-desc">Votre configuration est terminee.</p>
+        <h1>{$t('onboarding.doneTitle')}</h1>
+        <p class="welcome-desc">{$t('onboarding.doneDesc')}</p>
 
         <div class="summary-list">
           {#if musicRoots.length > 0}
             <div class="summary-item">
-              <span class="summary-label">Dossiers</span>
+              <span class="summary-label">{$t('onboarding.folders')}</span>
               <span class="summary-value">{musicRoots.length}</span>
             </div>
           {/if}
           {#if enabledServices.length > 0}
             <div class="summary-item">
-              <span class="summary-label">Streaming</span>
+              <span class="summary-label">{$t('onboarding.streaming')}</span>
               <span class="summary-value">{enabledServices.map(capitalize).join(', ')}</span>
             </div>
           {/if}
           {#if $zones.length > 0}
             <div class="summary-item">
-              <span class="summary-label">Zones</span>
+              <span class="summary-label">{$t('onboarding.zones')}</span>
               <span class="summary-value">{$zones.length}</span>
             </div>
           {/if}
           {#if profileName.trim()}
             <div class="summary-item">
-              <span class="summary-label">Profil</span>
+              <span class="summary-label">{$t('onboarding.profile')}</span>
               <span class="summary-value">{profileName.trim()}</span>
             </div>
           {/if}
         </div>
 
-        <button class="btn-primary btn-go" onclick={finishOnboarding}>Decouvrir Tune</button>
+        <button class="btn-primary btn-go" onclick={finishOnboarding}>{$t('onboarding.discoverTune')}</button>
       </div>
     {/if}
   </div>
