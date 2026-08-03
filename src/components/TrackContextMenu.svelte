@@ -6,6 +6,8 @@
     onClose: () => void;
     onPlay: () => void;
     onAddToQueue: () => void;
+    /** Omit to hide the "more like this" (acoustic radio) item. */
+    onPlaySimilar?: () => void;
     /** Omit to hide the "add to playlist" item. */
     onAddToPlaylist?: () => void;
     /** Omit to hide the "go to artist" item. Caller resolves the artist. */
@@ -14,7 +16,7 @@
     onGoToAlbum?: () => void;
   }
 
-  let { onClose, onPlay, onAddToQueue, onAddToPlaylist, onGoToArtist, onGoToAlbum }: Props =
+  let { onClose, onPlay, onAddToQueue, onPlaySimilar, onAddToPlaylist, onGoToArtist, onGoToAlbum }: Props =
     $props();
 
   // Every item stops propagation, closes the menu, then runs its action.
@@ -37,6 +39,12 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
     {$tr('queue.addToQueue')}
   </button>
+  {#if onPlaySimilar}
+    <button class="track-menu-item" onclick={(e) => run(onPlaySimilar, e)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 12a8 8 0 0 1 8-8"/><path d="M20 12a8 8 0 0 1-8 8"/><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/></svg>
+      {$tr('library.playSimilar')}
+    </button>
+  {/if}
   {#if onAddToPlaylist}
     <button class="track-menu-item" onclick={(e) => run(onAddToPlaylist, e)}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><line x1="16" y1="3" x2="16" y2="11"/><line x1="12" y1="7" x2="20" y2="7"/></svg>

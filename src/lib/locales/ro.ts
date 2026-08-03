@@ -52,6 +52,7 @@ export default {
   'nav.playlists': 'Playlisturi',
   'nav.history': 'Istoric',
   'nav.search': 'Căutare',
+  'nav.ambiance': 'Ambianță',
   'nav.settings': 'Setări',
   'nav.navigation': 'NAVIGARE',
   'nav.services': 'SERVICII',
