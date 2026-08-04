@@ -1569,13 +1569,19 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       // (same pattern as SmartCollectionsView) so only the chosen genre plays.
       if (!searchQuery.trim() && (selectedParent || selectedNoGenre) && !selectedGenre) {
         const albumIds = genreAlbums.map((a) => a.id).filter((id): id is number => id != null);
-        const trackLists = await Promise.all(
-          albumIds.map((id) => api.getAlbumTracks(id).catch(() => [] as Track[])),
-        );
-        const trackIds = trackLists.flat().map((t) => t.id).filter((id): id is number => id != null);
+        // Bounded-concurrency fetch with one retry per album (getAlbumTracksBatch)
+        // instead of a single Promise.all burst that silently dropped albums whose
+        // request failed while the server was busy (ReplayGain/analysis) — the queue
+        // came back truncated with no warning (same class fixed in SmartCollectionsView;
+        // this is the Genres parent / "no genre" shuffle path).
+        const { tracks, failedAlbums } = await api.getAlbumTracksBatch(albumIds);
+        const trackIds = tracks.map((t) => t.id).filter((id): id is number => id != null);
         if (!trackIds.length) {
           notifications.error($tr('library.noTracks'));
           return;
+        }
+        if (failedAlbums > 0) {
+          notifications.error($tr('smartCollection.partialQueue').replace('{failed}', String(failedAlbums)));
         }
         // Fisher–Yates shuffle.
         for (let i = trackIds.length - 1; i > 0; i--) {
