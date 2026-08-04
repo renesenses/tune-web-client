@@ -2441,17 +2441,31 @@ export async function getAlbumCoverPath(albumId: number): Promise<string | null>
 // --- Update ---
 
 export async function checkForUpdate(): Promise<any> {
-  const res = await fetch(`${BASE}/system/update/check`);
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${BASE}/system/update/check`, { headers });
   return res.json();
 }
 
 export async function installUpdate(): Promise<any> {
-  const res = await fetch(`${BASE}/system/update/install`, { method: 'POST' });
+  // Must carry the admin token: since v0.9.43, POST /system/update/install is
+  // RBAC-gated (admin) when auth is enabled. A bare fetch worked same-origin
+  // (tune_session cookie) but 401'd cross-origin/relay — the "MAJ ne marche
+  // plus" report. Bearer works regardless of origin (no cookie/CORS-credential
+  // dependency).
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${BASE}/system/update/install`, { method: 'POST', headers });
   return res.json();
 }
 
 export async function getUpdateStatus(): Promise<any> {
-  const res = await fetch(`${BASE}/system/update/status`);
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${BASE}/system/update/status`, { headers });
   return res.json();
 }
 
