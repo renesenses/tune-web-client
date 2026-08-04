@@ -152,14 +152,19 @@
     if (!zone?.id || collectionAlbums.length === 0 || playAllLoading) return;
     playAllLoading = true;
     try {
-      const trackLists = await Promise.all(
-        collectionAlbums.map((a: any) => api.getAlbumTracks(a.id).catch(() => [])),
+      const { tracks, failedAlbums } = await api.getAlbumTracksBatch(
+        collectionAlbums.map((a: any) => a.id).filter(Boolean),
       );
-      const trackIds = trackLists.flat().map((t: any) => t.id).filter(Boolean);
+      const trackIds = tracks.map((tk: any) => tk.id).filter(Boolean);
       if (!trackIds.length) {
         notifications.error(get(t)('collections.noTracks'));
         playAllLoading = false;
         return;
+      }
+      if (failedAlbums > 0) {
+        notifications.error(
+          get(t)('smartCollection.partialQueue').replace('{failed}', String(failedAlbums)),
+        );
       }
       if (shuffle) {
         for (let i = trackIds.length - 1; i > 0; i--) {

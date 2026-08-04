@@ -1590,6 +1590,7 @@ export default {
   "trackTags.writeTags": "Tags schreiben",
   "trackTags.savingProgress": "Wird gespeichert…",
   "smartCollection.noTracksFound": "Keine Titel gefunden",
+  "smartCollection.partialQueue": "{failed} Alben konnten nicht geladen werden — Warteschlange unvollständig, bitte erneut versuchen",
   "smartCollection.shufflePlaying": "{count} Titel werden abgespielt (Zufall)",
   "smartCollection.shuffleError": "Fehler bei der Zufallswiedergabe",
   "smartCollection.confirmDelete": "Die Smart Collection „{name}“ löschen?",

@@ -1854,6 +1854,7 @@ export default {
   "trackTags.writeTags": "Write tags",
   "trackTags.savingProgress": "Saving…",
   "smartCollection.noTracksFound": "No tracks found",
+  "smartCollection.partialQueue": "{failed} albums failed to load — queue is incomplete, try again",
   "smartCollection.shufflePlaying": "{count} tracks playing (shuffle)",
   "smartCollection.shuffleError": "Shuffle playback error",
   "smartCollection.confirmDelete": "Delete the \"{name}\" Smart Collection?",

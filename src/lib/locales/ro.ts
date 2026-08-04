@@ -1598,6 +1598,7 @@ export default {
   "trackTags.writeTags": "Scrie etichete",
   "trackTags.savingProgress": "Se salvează…",
   "smartCollection.noTracksFound": "Nicio piesă găsită",
+  "smartCollection.partialQueue": "{failed} albume nu au putut fi încărcate — coada este incompletă, încercați din nou",
   "smartCollection.shufflePlaying": "{count} piese în redare (amestecat)",
   "smartCollection.shuffleError": "Eroare la redarea amestecată",
   "smartCollection.confirmDelete": "Ștergi colecția inteligentă „{name}”?",

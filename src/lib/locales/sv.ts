@@ -1581,6 +1581,7 @@ export default {
   "trackTags.writeTags": "Skriv taggar",
   "trackTags.savingProgress": "Sparar…",
   "smartCollection.noTracksFound": "Inga spår hittades",
+  "smartCollection.partialQueue": "{failed} album kunde inte läsas in — kön är ofullständig, försök igen",
   "smartCollection.shufflePlaying": "{count} spår spelas (blandat)",
   "smartCollection.shuffleError": "Fel vid blandad uppspelning",
   "smartCollection.confirmDelete": "Ta bort Smart-samlingen \"{name}\"?",

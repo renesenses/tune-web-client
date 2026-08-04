@@ -1855,6 +1855,7 @@ export default {
   "trackTags.writeTags": "Graver tags",
   "trackTags.savingProgress": "Enregistre…",
   "smartCollection.noTracksFound": "Aucune piste trouvée",
+  "smartCollection.partialQueue": "{failed} albums n’ont pas pu être chargés — file incomplète, relancez la lecture",
   "smartCollection.shufflePlaying": "{count} pistes en lecture aléatoire",
   "smartCollection.shuffleError": "Erreur lecture aléatoire",
   "smartCollection.confirmDelete": "Supprimer la Smart Collection « {name} » ?",

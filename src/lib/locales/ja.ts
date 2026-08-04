@@ -1588,6 +1588,7 @@ export default {
   "trackTags.writeTags": "タグを書き込む",
   "trackTags.savingProgress": "保存中…",
   "smartCollection.noTracksFound": "曲が見つかりません",
+  "smartCollection.partialQueue": "{failed} 枚のアルバムを読み込めませんでした — キューが不完全です。もう一度お試しください",
   "smartCollection.shufflePlaying": "{count} 曲を再生中（シャッフル）",
   "smartCollection.shuffleError": "シャッフル再生エラー",
   "smartCollection.confirmDelete": "Smart Collection「{name}」を削除しますか？",
