@@ -755,6 +755,7 @@ export default {
   'eq.deletePreset': '削除',
   'eq.noPresets': '保存済みプリセットなし',
   'eq.presetSaved': 'プリセット「{name}」を保存しました',
+  'eq.presetSaveFailed': 'プリセットを保存できませんでした',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Tune Serverへようこそ',

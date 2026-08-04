@@ -1436,6 +1436,35 @@ export function setEqExpertSettings(expertBands: number) {
   });
 }
 
+// « Mes presets » EQ — CRUD serveur (routes/eq_pro.rs, stockage KV partagé par
+// tous les contrôleurs du serveur → les presets suivent l'utilisateur d'un
+// appareil à l'autre). Le preset porte des `bands` {freq,gain,q,type} et un
+// `eq_type` ('graphic' | 'parametric'). Mutations gatées Premium (comme l'EQ).
+export interface EqProPreset {
+  id: string;
+  name: string;
+  eq_type: string;
+  zone_id?: string | null;
+  bands: EqBand[];
+  created_at?: number;
+}
+
+export async function listEqPresets(): Promise<EqProPreset[]> {
+  const r = await fetchJSON<{ presets: EqProPreset[] }>(`${BASE}/eq/presets`);
+  return Array.isArray(r?.presets) ? r.presets : [];
+}
+
+export function createEqPreset(body: { name: string; eq_type: string; bands: EqBand[] }): Promise<EqProPreset> {
+  return fetchJSON<EqProPreset>(`${BASE}/eq/presets`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteEqPreset(id: string): Promise<void> {
+  return fetchVoid(`${BASE}/eq/presets/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
 // Headphone crossfeed — bleeds a delayed, attenuated copy of each channel
 // into the opposite ear so the stereo image sits in front of you instead of
 // inside your head. Local output only. Server clamps amount 0..0.5, delay 0..5.
