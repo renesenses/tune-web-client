@@ -130,6 +130,8 @@
     font-weight: 600;
     color: var(--tune-text-secondary);
     line-height: 1;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
+    background: var(--tune-grey2);
   }
 </style>

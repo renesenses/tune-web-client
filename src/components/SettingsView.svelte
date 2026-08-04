@@ -13,11 +13,50 @@
   import RendererConfig from './RendererConfig.svelte';
   import { notifications } from '../lib/stores/notifications';
   import { copyText } from '../lib/utils';
-  import { activeView, settingsInitialTab } from '../lib/stores/navigation';
+  import { activeView, settingsInitialTab, type View } from '../lib/stores/navigation';
   import { licenseState, isPremium, loadLicense } from '../lib/stores/license';
   import SmbWizard from './SmbWizard.svelte';
   import FolderWizard from './FolderWizard.svelte';
   import MultiroomSettings from './MultiroomSettings.svelte';
+
+  // ─── Per-zone settings: transport badge + Local/Network grouping ───────────
+  // The flat list showed every zone the same way, so the 4 identical
+  // "Cet ordinateur" (native output vs browser output) were indistinguishable
+  // and the DLNA renderer panel broke the row rhythm. We group Local vs Network,
+  // give each zone a transport badge + a short device hint, and fold the renderer
+  // controls under an "Avancé" disclosure.
+  function zoneBadge(ot: string | undefined): { label: string; cls: string } {
+    switch (ot) {
+      case 'local': return { label: $t('settings.zoneBadgeLocal'), cls: 'local' };
+      case 'browser': return { label: $t('settings.zoneBadgeBrowser'), cls: 'browser' };
+      case 'airplay':
+      case 'airplay2': return { label: 'AirPlay', cls: 'airplay' };
+      case 'dlna': return { label: 'DLNA', cls: 'dlna' };
+      case 'openhome': return { label: 'OpenHome', cls: 'dlna' };
+      case 'chromecast': return { label: 'Chromecast', cls: 'cast' };
+      case 'sonos': return { label: 'Sonos', cls: 'cast' };
+      case 'bluos': return { label: 'BluOS', cls: 'cast' };
+      case 'squeezebox': return { label: 'Squeezebox', cls: 'cast' };
+      case 'snapcast': return { label: 'Snapcast', cls: 'cast' };
+      default: return { label: ot ?? '—', cls: 'other' };
+    }
+  }
+  function isLocalZone(z: { output_type?: string }): boolean {
+    return ['local', 'browser'].includes(z.output_type ?? '');
+  }
+  // Readable device hint from output_device_id ("local:Haut-parleurs…" →
+  // "Haut-parleurs…") so two same-named zones can be told apart.
+  function zoneDeviceHint(z: { output_device_id?: string | null; output_type?: string }): string {
+    const id = z.output_device_id ?? '';
+    if (!id) return z.output_type === 'browser' ? 'Web Audio' : '';
+    const rest = id.includes(':') ? id.slice(id.indexOf(':') + 1) : id;
+    return rest.length > 44 ? rest.slice(0, 44) + '…' : rest;
+  }
+  function zoneHasAdvanced(z: { output_type?: string }): boolean {
+    return ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(
+      z.output_type ?? '',
+    );
+  }
 
   const CLIENT_VERSION = __APP_VERSION__;
   let serverVersion = $state<string | null>(null);
@@ -36,6 +75,45 @@
   const _initialTab = get(settingsInitialTab);
   settingsInitialTab.set(null);
   let settingsTab = $state<string>(_initialTab ?? 'general');
+
+  // Premium feature widgets: clicking an available feature opens its page.
+  // Features without a dedicated destination (declick, social_sharing,
+  // weekly_digest) are shown as available but are not clickable.
+  const FEATURE_TARGET: Record<string, { view?: View; tab?: string }> = {
+    advanced_alarms: { view: 'alarms' },
+    ai_recommendations: { view: 'ambiance' },
+    auto_enrichment: { view: 'metadata' },
+    batch_converter: { view: 'converter' },
+    dsp_eq: { view: 'equalizer' },
+    room_correction: { view: 'equalizer' },
+    dac_calibration: { view: 'equalizer' },
+    listening_stats: { view: 'history' },
+    multi_server: { view: 'mediaservers' },
+    multiroom_sync: { view: 'zonemanager' },
+    unlimited_zones: { view: 'zonemanager' },
+    playlist_transfer: { view: 'playlistmanager' },
+    playlists_hub: { view: 'playlistshub' },
+    plugin_marketplace: { view: 'plugins' },
+    synced_lyrics: { view: 'nowplaying' },
+    cloud_backup: { tab: 'system' },
+    cloud_config_backup: { tab: 'system' },
+    cloud_relay: { tab: 'system' },
+    developer_api: { tab: 'services' },
+    multi_scrobbling: { tab: 'services' },
+    oaat_protocol: { tab: 'network' },
+    multi_profiles: { tab: 'general' },
+  };
+
+  function openFeature(key: string) {
+    const t = FEATURE_TARGET[key];
+    if (!t) return;
+    if (t.tab) {
+      settingsTab = t.tab;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (t.view) {
+      activeView.set(t.view);
+    }
+  }
 
   let health: SystemHealth | null = $state(null);
   let stats: SystemStats | null = $state(null);
@@ -4147,104 +4225,104 @@
         <h3>{$t('settings.perZoneSettings')}</h3>
         <p class="section-hint">{$t('settings.perZoneHint')}</p>
         <div class="zone-settings-list">
-          {#each $zones as z (z.id)}
-            <div class="zone-setting-row">
-              <span class="zone-setting-name">{z.name}</span>
-              <div class="zone-setting-controls">
-                <label class="zone-setting-label">
-                  <span>DSD</span>
-                  <select
-                    class="zone-select"
-                    value={z.dsd_mode ?? 'auto'}
-                    onchange={async (e) => {
-                      const mode = (e.target as HTMLSelectElement).value;
-                      if (z.id == null) return;
-                      await api.updateZoneDsdMode(z.id, mode);
-                    }}
-                  >
-                    <option value="auto">Auto</option>
-                    <option value="native">{$t('settings.dsdNative')}</option>
-                    <option value="dop">DoP</option>
-                    <option value="pcm">{$t('settings.dsdPcm')}</option>
-                  </select>
-                </label>
-                <label class="zone-setting-label" title={$t('settings.maxSampleRateHint')}>
-                  <span>{$t('settings.maxSampleRate')}</span>
-                  <select
-                    class="zone-select"
-                    value={String(z.max_sample_rate ?? 0)}
-                    onchange={async (e) => {
-                      const v = Number((e.target as HTMLSelectElement).value);
-                      if (z.id == null) return;
-                      await api.updateZoneMaxSampleRate(z.id, v > 0 ? v : null);
-                    }}
-                  >
-                    <option value="0">{$t('settings.maxSampleRateNone')}</option>
-                    <option value="48000">48 kHz</option>
-                    <option value="88200">88.2 kHz</option>
-                    <option value="96000">96 kHz</option>
-                    <option value="176400">176.4 kHz</option>
-                    <option value="192000">192 kHz</option>
-                    <option value="352800">352.8 kHz</option>
-                    <option value="384000">384 kHz</option>
-                  </select>
-                </label>
-                {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
-                  <!-- Coherent per-renderer panel: discovery check + format
-                       overrides that respect the server's precedence. -->
-                  <RendererConfig zone={z} />
-                {:else if ['chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type ?? '')}
-                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
-                    <input
-                      type="checkbox"
-                      checked={z.alac_passthrough ?? false}
-                      onchange={async (e) => {
-                        if (z.id == null) return;
-                        await api.updateZoneAlacPassthrough(z.id, (e.target as HTMLInputElement).checked);
-                      }}
-                    />
-                    <span>{$t('settings.alacPassthrough')}</span>
-                  </label>
-                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaLpcmHint')}>
-                    <input
-                      type="checkbox"
-                      checked={z.dlna_lpcm ?? false}
-                      onchange={async (e) => {
-                        if (z.id == null) return;
-                        await api.updateZoneDlnaLpcm(z.id, (e.target as HTMLInputElement).checked);
-                      }}
-                    />
-                    <span>{$t('settings.dlnaLpcm')}</span>
-                  </label>
-                {/if}
-                {#if ['dlna', 'openhome', 'chromecast', 'bluos', 'squeezebox', 'slimproto'].includes(z.output_type ?? '')}
-                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaLpcmHint')}>
-                    <input
-                      type="checkbox"
-                      checked={z.dlna_lpcm ?? false}
-                      onchange={async (e) => {
-                        if (z.id == null) return;
-                        await api.updateZoneDlnaLpcm(z.id, (e.target as HTMLInputElement).checked);
-                      }}
-                    />
-                    <span>{$t('settings.dlnaLpcm')}</span>
-                  </label>
-                {/if}
-                {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
-                  <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaCap16bitHint')}>
-                    <input
-                      type="checkbox"
-                      checked={z.dlna_cap_16bit ?? false}
-                      onchange={async (e) => {
-                        if (z.id == null) return;
-                        await api.updateZoneDlnaCap16bit(z.id, (e.target as HTMLInputElement).checked);
-                      }}
-                    />
-                    <span>{$t('settings.dlnaCap16bit')}</span>
-                  </label>
-                {/if}
-              </div>
-            </div>
+          {#each [{ key: 'local', label: $t('settings.zoneGroupLocal') }, { key: 'network', label: $t('settings.zoneGroupNetwork') }] as grp (grp.key)}
+            {@const groupZones = $zones.filter((z) => (grp.key === 'local' ? isLocalZone(z) : !isLocalZone(z)))}
+            {#if groupZones.length}
+              <div class="zone-group-header">{grp.label}</div>
+              {#each groupZones as z (z.id)}
+                {@const badge = zoneBadge(z.output_type)}
+                {@const hint = zoneDeviceHint(z)}
+                <div class="zone-card">
+                  <div class="zone-card-head">
+                    <span class="zone-card-name">{z.name}</span>
+                    <span class="zone-badge zone-badge-{badge.cls}">{badge.label}</span>
+                    {#if hint}<span class="zone-card-dev">{hint}</span>{/if}
+                    {#if !isLocalZone(z)}
+                      <span class="zone-online" class:offline={z.online === false}>
+                        <span class="zone-online-dot"></span>{z.online === false ? $t('settings.zoneOffline') : $t('settings.zoneOnline')}
+                      </span>
+                    {/if}
+                  </div>
+                  <div class="zone-card-row">
+                    <label class="zone-setting-label">
+                      <span>DSD</span>
+                      <select
+                        class="zone-select"
+                        value={z.dsd_mode ?? 'auto'}
+                        onchange={async (e) => {
+                          const mode = (e.target as HTMLSelectElement).value;
+                          if (z.id == null) return;
+                          await api.updateZoneDsdMode(z.id, mode);
+                        }}
+                      >
+                        <option value="auto">Auto</option>
+                        <option value="native">{$t('settings.dsdNative')}</option>
+                        <option value="dop">DoP</option>
+                        <option value="pcm">{$t('settings.dsdPcm')}</option>
+                      </select>
+                    </label>
+                    <label class="zone-setting-label" title={$t('settings.maxSampleRateHint')}>
+                      <span>{$t('settings.maxSampleRate')}</span>
+                      <select
+                        class="zone-select"
+                        value={String(z.max_sample_rate ?? 0)}
+                        onchange={async (e) => {
+                          const v = Number((e.target as HTMLSelectElement).value);
+                          if (z.id == null) return;
+                          await api.updateZoneMaxSampleRate(z.id, v > 0 ? v : null);
+                        }}
+                      >
+                        <option value="0">{$t('settings.maxSampleRateNone')}</option>
+                        <option value="48000">48 kHz</option>
+                        <option value="88200">88.2 kHz</option>
+                        <option value="96000">96 kHz</option>
+                        <option value="176400">176.4 kHz</option>
+                        <option value="192000">192 kHz</option>
+                        <option value="352800">352.8 kHz</option>
+                        <option value="384000">384 kHz</option>
+                      </select>
+                    </label>
+                  </div>
+                  {#if zoneHasAdvanced(z)}
+                    <details class="zone-adv">
+                      <summary class="zone-adv-summary">{$t('settings.zoneAdvanced')}</summary>
+                      <div class="zone-adv-body">
+                        {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
+                          <!-- Coherent per-renderer panel: discovery check + format
+                               overrides (FLAC/WAV/LPCM/16-bit) with the server's
+                               precedence. Owns LPCM + 16-bit, so no standalone
+                               duplicate checkboxes here. -->
+                          <RendererConfig zone={z} />
+                        {:else}
+                          <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
+                            <input
+                              type="checkbox"
+                              checked={z.alac_passthrough ?? false}
+                              onchange={async (e) => {
+                                if (z.id == null) return;
+                                await api.updateZoneAlacPassthrough(z.id, (e.target as HTMLInputElement).checked);
+                              }}
+                            />
+                            <span>{$t('settings.alacPassthrough')}</span>
+                          </label>
+                          <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaLpcmHint')}>
+                            <input
+                              type="checkbox"
+                              checked={z.dlna_lpcm ?? false}
+                              onchange={async (e) => {
+                                if (z.id == null) return;
+                                await api.updateZoneDlnaLpcm(z.id, (e.target as HTMLInputElement).checked);
+                              }}
+                            />
+                            <span>{$t('settings.dlnaLpcm')}</span>
+                          </label>
+                        {/if}
+                      </div>
+                    </details>
+                  {/if}
+                </div>
+              {/each}
+            {/if}
           {/each}
         </div>
       </section>
@@ -4706,8 +4784,18 @@
           <h4 class="cloud-label">{$t('settings.features')}</h4>
           <div class="license-features-grid">
             {#each Object.entries($licenseState.features) as [key, feat]}
-              <div class="license-feature-item" class:enabled={feat.enabled} class:locked={!feat.enabled}>
-                <span class="license-feature-icon">{feat.enabled ? '✓' : '🔒'}</span>
+              {@const clickable = feat.enabled && !!FEATURE_TARGET[key]}
+              <div
+                class="license-feature-item"
+                class:enabled={feat.enabled}
+                class:locked={!feat.enabled}
+                class:clickable
+                role={clickable ? 'button' : undefined}
+                tabindex={clickable ? 0 : undefined}
+                onclick={() => clickable && openFeature(key)}
+                onkeydown={(e) => { if (clickable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openFeature(key); } }}
+              >
+                <span class="license-feature-icon">{feat.enabled ? '✓' : '✕'}</span>
                 <span class="license-feature-name">{feat.display_name}</span>
               </div>
             {/each}
@@ -6751,6 +6839,30 @@
     flex-shrink: 0;
     width: 18px;
     text-align: center;
+    font-weight: 700;
+  }
+
+  /* Available → green check; unavailable → red cross. */
+  .license-feature-item.enabled .license-feature-icon {
+    color: #4ade80;
+  }
+
+  .license-feature-item.locked .license-feature-icon {
+    color: #ef4444;
+  }
+
+  /* Available features with a destination are clickable and open their page. */
+  .license-feature-item.clickable {
+    cursor: pointer;
+  }
+
+  .license-feature-item.clickable:hover {
+    background: rgba(74, 222, 128, 0.16);
+  }
+
+  .license-feature-item.clickable:focus-visible {
+    outline: 2px solid #4ade80;
+    outline-offset: 1px;
   }
 
   .license-feature-name {
@@ -6894,23 +7006,48 @@
     flex-shrink: 0;
   }
 
-  .zone-settings-list { display: flex; flex-direction: column; gap: 8px; }
-  .zone-setting-row {
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-    padding: 8px 12px; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.04);
-    border-radius: var(--radius-md, 8px); gap: 8px 12px;
+  .zone-settings-list { display: flex; flex-direction: column; gap: 12px; }
+  .zone-group-header {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--tune-text-muted); display: flex; align-items: center; gap: 10px; margin: 6px 0 -2px;
   }
-  /* The name always gets its own full-width line: per-zone controls now include
-     the wide RendererConfig panel, and an inline (flex:1) name was crushed to a
-     single letter ("D"/"L") on DLNA zones (Yves). */
-  .zone-setting-name { font-size: 14px; font-weight: 500; color: var(--tune-text); flex: 1 1 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .zone-setting-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; flex-shrink: 1; min-width: 0; }
+  .zone-group-header::after { content: ''; flex: 1; height: 1px; background: var(--tune-border, #333); opacity: 0.5; }
+  .zone-card {
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.04);
+    border: 1px solid var(--tune-border, #333); border-radius: var(--radius-md, 8px);
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .zone-card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .zone-card-name { font-size: 14px; font-weight: 600; color: var(--tune-text); }
+  .zone-card-dev { font-size: 11px; color: var(--tune-text-muted); opacity: 0.8; font-family: var(--font-mono, ui-monospace, monospace); }
+  .zone-badge { font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; padding: 2px 8px; border-radius: 5px; white-space: nowrap; }
+  .zone-badge-local   { color: #a98bff; background: rgba(169, 139, 255, 0.14); }
+  .zone-badge-browser { color: #7fb0ff; background: rgba(127, 176, 255, 0.14); }
+  .zone-badge-airplay { color: #5aa0f2; background: rgba(90, 160, 242, 0.14); }
+  .zone-badge-dlna    { color: #f27ac0; background: rgba(242, 122, 192, 0.14); }
+  .zone-badge-cast    { color: #42c07a; background: rgba(66, 192, 122, 0.14); }
+  .zone-badge-other   { color: var(--tune-text-muted); background: rgba(150, 150, 150, 0.14); }
+  .zone-online { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #42c07a; }
+  .zone-online.offline { color: var(--tune-text-muted); }
+  .zone-online-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px rgba(66, 192, 122, 0.15); }
+  .zone-online.offline .zone-online-dot { box-shadow: none; }
+  .zone-card-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
   .zone-setting-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tune-text-muted); }
+  .zone-setting-checkbox { cursor: pointer; }
   .zone-select {
     padding: 4px 8px; font-size: 12px; border-radius: var(--radius-sm, 4px);
     border: 1px solid var(--tune-border, #333); background: var(--tune-surface, #1a1a1a);
     color: var(--tune-text); cursor: pointer;
   }
+  .zone-adv { border-top: 1px dashed var(--tune-border, #333); }
+  .zone-adv-summary {
+    cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--tune-accent, #6366f1);
+    list-style: none; padding: 8px 0 2px; display: inline-flex; align-items: center; gap: 6px; user-select: none;
+  }
+  .zone-adv-summary::-webkit-details-marker { display: none; }
+  .zone-adv-summary::before { content: '▸'; font-size: 10px; transition: transform 0.15s; display: inline-block; }
+  .zone-adv[open] .zone-adv-summary::before { transform: rotate(90deg); }
+  .zone-adv-body { display: flex; flex-wrap: wrap; gap: 14px 20px; padding-top: 8px; }
 
   /* "Add content" defaults */
   .ingest-grid {

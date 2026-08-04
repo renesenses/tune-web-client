@@ -1374,7 +1374,7 @@
         <div class="featured-section">
           <h3 class="featured-section-title">♥ {$tr('streaming.favTracks')}</h3>
           <div class="track-list">
-            {#each favTracks.slice(0, 50) as track, i}
+            {#each favTracks as track, i}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div class="track-item" ondblclick={() => playStreamingTrack(track)}>
