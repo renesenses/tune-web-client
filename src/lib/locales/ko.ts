@@ -1573,6 +1573,7 @@ export default {
   "trackTags.writeTags": "태그 쓰기",
   "trackTags.savingProgress": "저장 중…",
   "smartCollection.noTracksFound": "트랙을 찾을 수 없음",
+  "smartCollection.partialQueue": "앨범 {failed}개를 불러오지 못했습니다 — 대기열이 불완전합니다. 다시 시도하세요",
   "smartCollection.shufflePlaying": "{count}개 트랙 재생 중 (셔플)",
   "smartCollection.shuffleError": "셔플 재생 오류",
   "smartCollection.confirmDelete": "\"{name}\" Smart Collection을 삭제할까요?",

@@ -1590,6 +1590,7 @@ export default {
   "trackTags.writeTags": "Scrivi i tag",
   "trackTags.savingProgress": "Salvataggio…",
   "smartCollection.noTracksFound": "Nessuna traccia trovata",
+  "smartCollection.partialQueue": "Impossibile caricare {failed} album — coda incompleta, riprova",
   "smartCollection.shufflePlaying": "{count} tracce in riproduzione (casuale)",
   "smartCollection.shuffleError": "Errore di riproduzione casuale",
   "smartCollection.confirmDelete": "Eliminare la Smart Collection \"{name}\"?",

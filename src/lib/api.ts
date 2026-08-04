@@ -780,6 +780,37 @@ export function getAlbumTracks(id: number, quality?: string | null, format?: str
   return fetchJSON<Track[]>(`${BASE}/library/albums/${id}/tracks${qs ? `?${qs}` : ''}`);
 }
 
+/** Fetch the tracks of many albums with bounded concurrency and one retry per
+ * album. The collection/smart-collection play buttons used a parallel burst
+ * with `.catch(() => [])`: on a busy server a few album fetches failed
+ * SILENTLY and the queue was quietly truncated (Sevy: 19 tracks queued out of
+ * a 325-track smart collection, playback "stopped" at the end and Next did
+ * nothing). Track order follows the albumIds order; `failedAlbums` counts
+ * albums that still failed after retry so callers can tell the user. */
+export async function getAlbumTracksBatch(
+  albumIds: number[],
+): Promise<{ tracks: Track[]; failedAlbums: number }> {
+  const results: Track[][] = new Array(albumIds.length).fill([]);
+  let failedAlbums = 0;
+  let next = 0;
+  const worker = async () => {
+    while (next < albumIds.length) {
+      const idx = next++;
+      try {
+        results[idx] = await getAlbumTracks(albumIds[idx]);
+      } catch {
+        try {
+          results[idx] = await getAlbumTracks(albumIds[idx]);
+        } catch {
+          failedAlbums++;
+        }
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(5, albumIds.length) }, worker));
+  return { tracks: results.flat(), failedAlbums };
+}
+
 export async function getArtists(limit = 100, offset = 0) {
   const raw = await fetchJSON<any>(`${BASE}/library/artists?limit=${limit}&offset=${offset}`);
   return Array.isArray(raw) ? raw : (raw.items ?? []) as Artist[];

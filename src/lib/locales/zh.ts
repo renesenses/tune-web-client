@@ -1590,6 +1590,7 @@ export default {
   "trackTags.writeTags": "写入标签",
   "trackTags.savingProgress": "保存中…",
   "smartCollection.noTracksFound": "未找到曲目",
+  "smartCollection.partialQueue": "{failed} 张专辑加载失败 — 队列不完整，请重试",
   "smartCollection.shufflePlaying": "{count} 首曲目正在播放（随机）",
   "smartCollection.shuffleError": "随机播放错误",
   "smartCollection.confirmDelete": "删除“{name}”Smart Collection？",

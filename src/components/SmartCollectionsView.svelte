@@ -44,14 +44,17 @@
         shuffleLoading = false;
         return;
       }
-      const trackLists = await Promise.all(
-        albumIds.map((id: number) => api.getAlbumTracks(id).catch(() => [])),
-      );
-      const trackIds = trackLists.flat().map((tk: any) => tk.id).filter(Boolean);
+      const { tracks, failedAlbums } = await api.getAlbumTracksBatch(albumIds);
+      const trackIds = tracks.map((tk: any) => tk.id).filter(Boolean);
       if (!trackIds.length) {
         notifications.error($t('smartCollection.noTracksFound'));
         shuffleLoading = false;
         return;
+      }
+      if (failedAlbums > 0) {
+        notifications.error(
+          $t('smartCollection.partialQueue').replace('{failed}', String(failedAlbums)),
+        );
       }
       // Fisher–Yates shuffle.
       for (let i = trackIds.length - 1; i > 0; i--) {
