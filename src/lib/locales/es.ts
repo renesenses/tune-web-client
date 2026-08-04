@@ -1503,7 +1503,7 @@ export default {
   "renderer.wavOff": "Desactivado",
   "renderer.wav16": "16 bits",
   "renderer.wav24": "24 bits",
-  "renderer.wav24Hint": "Reproduce WAV de 24 bits auténtico. Solo disponible cuando la comprobación de detección confirma que el renderer anuncia audio/L24 (LPCM de 24 bits).",
+  "renderer.wav24Hint": "Reproduce WAV de 24 bits auténtico. Disponible cuando la comprobación de detección confirma que el renderer anuncia audio/L24 o audio/wav genérico.",
   "renderer.startDelay": "Retardo de inicio",
   "renderer.startDelayHint": "Pausa antes de que comience la reproducción, para permitir que un amplificador DLNA almacene en búfer (útil si los primeros segundos se entrecortan). 0 = valor predeterminado.",
   "renderer.probeFailed": "No se pudieron leer las capacidades del renderer. Asegúrate de que esté encendido y en la misma red.",

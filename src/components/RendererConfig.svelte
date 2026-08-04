@@ -13,9 +13,9 @@
   let nativeFlac = $state(zone.dlna_native_flac ?? false);
   let alacNative = $state(zone.alac_passthrough ?? false);
   let cap16 = $state(zone.dlna_cap_16bit ?? false);
-  // 'off' | '16' | '24'. 24-bit WAV is only offered once a discovery check
-  // confirms the renderer advertises audio/L24 (caps.lpcm24) — sending genuine
-  // 24-bit to a 16-bit-only LPCM renderer plays silence (#1137).
+  // 'off' | '16' | '24'. 24-bit WAV is offered once a discovery check confirms the
+  // renderer advertises audio/L24 or generic audio/wav — capping to 16-bit LPCM on
+  // a renderer that only groks L16 plays silence (#1137), so it stays gated + opt-in.
   let forceWav = $state<'off' | '16' | '24'>(
     zone.dlna_wav24 ? '24' : zone.dlna_lpcm ? '16' : 'off'
   );
@@ -74,10 +74,15 @@
     cap16 = v;
     if (zone.id != null) save(() => api.updateZoneDlnaCap16bit(zone.id!, v));
   }
-  // 24-bit WAV is unlocked only once a probe confirms the renderer advertises
-  // audio/L24. If the zone already had it saved (dlna_wav24), keep it selectable
-  // even before a fresh probe so the current state isn't silently downgraded.
-  let wav24Available = $derived(!!caps?.lpcm24 || forceWav === '24');
+  // 24-bit WAV is unlocked once a probe confirms the renderer advertises audio/L24
+  // OR generic audio/wav: the dlna_wav24 server path sends a real WAV file WITHOUT
+  // the LPCM PN, so any WAV-capable renderer parses the 24-bit header (a genuine
+  // 24-bit DAC like the darTZeel LHC-208 accepts WAV but never announces L24). It
+  // stays an explicit per-zone opt-in, so a renderer that claims WAV yet can't do
+  // 24-bit is the user's call — and it would choke on any 24-bit WAV regardless.
+  // If the zone already had it saved (dlna_wav24), keep it selectable even before a
+  // fresh probe so the current state isn't silently downgraded.
+  let wav24Available = $derived(!!caps?.lpcm24 || !!caps?.wav || forceWav === '24');
 
   function setForceWav(mode: 'off' | '16' | '24') {
     if (mode === '24' && !wav24Available) return;
