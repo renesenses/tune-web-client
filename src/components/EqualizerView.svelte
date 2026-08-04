@@ -249,12 +249,18 @@
   }
 
   function onParametricChange() {
+    // Toucher une bande allume l'égaliseur : sinon la courbe partirait au
+    // serveur avec enabled:false et resterait muette (curseurs « morts »).
+    if (!enabled) enabled = true;
     saveLocal();
     queueSendToServer();
   }
 
   function setGain(index: number, value: number) {
     gains[index] = value;
+    // Bouger un curseur allume l'égaliseur (comportement attendu d'un EQ) :
+    // on ne verrouille plus les bandes tant que l'EQ est en bypass.
+    if (!enabled) enabled = true;
     activePreset = detectPreset();
     saveLocal();
     queueSendToServer();
@@ -264,6 +270,8 @@
     const p = PRESETS[key];
     if (!p) return;
     gains = bandCount === 10 ? [...p.gains] : resampleGains(p.gains, GRIDS[10], BANDS);
+    // Choisir un preset active l'EQ pour qu'il soit audible immédiatement.
+    if (!enabled) enabled = true;
     activePreset = key;
     saveLocal();
     sendToServer();
@@ -668,7 +676,6 @@
               value={gains[i]}
               oninput={(e) => setGain(i, parseFloat((e.target as HTMLInputElement).value))}
               orient="vertical"
-              disabled={!enabled}
             />
             <div class="slider-zero-line"></div>
           </div>
@@ -1099,9 +1106,10 @@
     transition: opacity 0.2s;
   }
 
+  /* EQ en bypass : on grise pour signaler l'état « off » mais on laisse les
+     bandes saisissables — les toucher rallume l'EQ (cf. setGain). */
   .sliders-container.disabled {
-    opacity: 0.35;
-    pointer-events: none;
+    opacity: 0.55;
   }
 
   .db-scale {
