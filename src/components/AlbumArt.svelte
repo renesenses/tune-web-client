@@ -9,9 +9,12 @@
     alt?: string;
     round?: boolean;
     source?: string | null;
+    /** Texte de repli (ex. initiales d'artiste) affiché quand l'image est
+        absente ou en échec — sinon on retombe sur le glyphe disque. */
+    fallbackText?: string | null;
   }
 
-  let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false, source = null }: Props = $props();
+  let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false, source = null, fallbackText = null }: Props = $props();
 
   let hasError = $state(false);
   let resolvedCoverPath = $state<string | null>(null);
@@ -60,6 +63,8 @@
       loading="lazy"
       onerror={handleError}
     />
+  {:else if fallbackText}
+    <div class="placeholder initials">{fallbackText}</div>
   {:else}
     <div class="placeholder">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -116,5 +121,14 @@
   .placeholder svg {
     width: 40%;
     height: 40%;
+  }
+
+  .placeholder.initials {
+    font-weight: 600;
+    font-size: 42%;
+    letter-spacing: 0.02em;
+    color: var(--tune-text-secondary, #cbd5e1);
+    text-transform: uppercase;
+    background: var(--tune-grey2);
   }
 </style>
