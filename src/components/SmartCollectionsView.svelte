@@ -298,7 +298,12 @@
 
 <style>
   .sc-view { padding: var(--space-lg) 28px; }
-  .sc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 19px; }
+  /* Figer l'en-tête (titre + « Nouvelle ») pendant le défilement de la liste,
+     qui scrolle dans le .tab-content de CollectionsView. Même recette que
+     .library-header : sticky top:0 + fond opaque pour couvrir les cartes qui
+     passent dessous. Firefox exige que le scroll ait lieu dans un conteneur
+     overflow (.tab-content), ce qui est le cas ici. */
+  .sc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 19px; position: sticky; top: 0; z-index: 10; background: var(--tune-bg); padding: 8px 0; }
   .sc-header h2 { margin: 0; font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; color: var(--tune-text); }
   .new-btn { padding: 8px 16px; background: var(--tune-accent, #6366f1); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: 14px; }
   .new-btn:hover { filter: brightness(1.1); }
