@@ -545,11 +545,7 @@
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="artist-card" onclick={() => navigateToArtist(artist)}>
             <div class="artist-card-avatar">
-              {#if artist.image_path}
-                <AlbumArt coverPath={artist.image_path} size={100} alt={artist.name} round />
-              {:else}
-                {initials(artist.name)}
-              {/if}
+              <AlbumArt coverPath={artist.image_path} size={100} alt={artist.name} round fallbackInitials={initials(artist.name)} />
             </div>
             <span class="artist-card-name truncate">{artist.name}</span>
             <ServiceBadge source={(artist as any).source ?? 'local'} compact />
