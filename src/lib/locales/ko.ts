@@ -731,6 +731,13 @@ export default {
   'eq.enabled': '활성화',
   'eq.disabled': '비활성화',
   'eq.reset': '초기화',
+  'eq.myPresets': '내 프리셋',
+  'eq.savePreset': '이 설정 저장',
+  'eq.presetNamePlaceholder': '프리셋 이름',
+  'eq.save': '저장',
+  'eq.deletePreset': '삭제',
+  'eq.noPresets': '저장된 프리셋 없음',
+  'eq.presetSaved': '프리셋 "{name}" 저장됨',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Tune Server에 오신 것을 환영합니다',

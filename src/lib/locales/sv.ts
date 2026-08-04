@@ -739,6 +739,13 @@ export default {
   'eq.enabled': 'Aktiverad',
   'eq.disabled': 'Inaktiverad',
   'eq.reset': 'Återställ',
+  'eq.myPresets': 'Mina förinställningar',
+  'eq.savePreset': 'Spara inställning',
+  'eq.presetNamePlaceholder': 'Namn på förinställning',
+  'eq.save': 'Spara',
+  'eq.deletePreset': 'Ta bort',
+  'eq.noPresets': 'Inga sparade förinställningar',
+  'eq.presetSaved': 'Förinställning "{name}" sparad',
   'eq.premiumGate': 'Equalizern och den akustiska profilen är en funktion i',
 
   // Onboarding

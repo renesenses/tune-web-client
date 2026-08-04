@@ -748,6 +748,13 @@ export default {
   'eq.enabled': '有効',
   'eq.disabled': '無効',
   'eq.reset': 'リセット',
+  'eq.myPresets': 'マイプリセット',
+  'eq.savePreset': 'この設定を保存',
+  'eq.presetNamePlaceholder': 'プリセット名',
+  'eq.save': '保存',
+  'eq.deletePreset': '削除',
+  'eq.noPresets': '保存済みプリセットなし',
+  'eq.presetSaved': 'プリセット「{name}」を保存しました',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Tune Serverへようこそ',
