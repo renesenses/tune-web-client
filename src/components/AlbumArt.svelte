@@ -9,9 +9,14 @@
     alt?: string;
     round?: boolean;
     source?: string | null;
+    /* When set, show these initials (e.g. an artist's) instead of the generic
+       music-note icon whenever there is no image OR the image fails to load
+       (a broken/phantom URL). Lets artist avatars fall back to a proper
+       initials placeholder in every case, not just when image_path is null. */
+    fallbackInitials?: string | null;
   }
 
-  let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false, source = null }: Props = $props();
+  let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false, source = null, fallbackInitials = null }: Props = $props();
 
   let hasError = $state(false);
   let resolvedCoverPath = $state<string | null>(null);
@@ -60,6 +65,8 @@
       loading="lazy"
       onerror={handleError}
     />
+  {:else if fallbackInitials}
+    <div class="placeholder placeholder-initials" style={size ? `font-size: ${Math.round(size * 0.32)}px;` : ''}>{fallbackInitials}</div>
   {:else}
     <div class="placeholder">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -116,5 +123,13 @@
   .placeholder svg {
     width: 40%;
     height: 40%;
+  }
+
+  .placeholder-initials {
+    font-family: var(--font-label);
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+    line-height: 1;
+    text-transform: uppercase;
   }
 </style>
