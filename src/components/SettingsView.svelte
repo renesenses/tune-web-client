@@ -6896,12 +6896,15 @@
 
   .zone-settings-list { display: flex; flex-direction: column; gap: 8px; }
   .zone-setting-row {
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
     padding: 8px 12px; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.04);
-    border-radius: var(--radius-md, 8px); gap: 12px;
+    border-radius: var(--radius-md, 8px); gap: 8px 12px;
   }
-  .zone-setting-name { font-size: 14px; font-weight: 500; color: var(--tune-text); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .zone-setting-controls { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  /* The name always gets its own full-width line: per-zone controls now include
+     the wide RendererConfig panel, and an inline (flex:1) name was crushed to a
+     single letter ("D"/"L") on DLNA zones (Yves). */
+  .zone-setting-name { font-size: 14px; font-weight: 500; color: var(--tune-text); flex: 1 1 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .zone-setting-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; flex-shrink: 1; min-width: 0; }
   .zone-setting-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tune-text-muted); }
   .zone-select {
     padding: 4px 8px; font-size: 12px; border-radius: var(--radius-sm, 4px);
