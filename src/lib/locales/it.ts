@@ -754,6 +754,7 @@ export default {
   'eq.deletePreset': 'Elimina',
   'eq.noPresets': 'Nessun preset salvato',
   'eq.presetSaved': 'Preset «{name}» salvato',
+  'eq.presetSaveFailed': 'Impossibile salvare il preset',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Benvenuto su Tune Server',

@@ -755,6 +755,7 @@ export default {
   'eq.deletePreset': '删除',
   'eq.noPresets': '无已保存预设',
   'eq.presetSaved': '预设"{name}"已保存',
+  'eq.presetSaveFailed': '无法保存预设',
 
   // Onboarding
   'onboarding.welcomeTitle': '欢迎使用 Tune Server',

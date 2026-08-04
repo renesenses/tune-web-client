@@ -746,6 +746,7 @@ export default {
   'eq.deletePreset': 'Ta bort',
   'eq.noPresets': 'Inga sparade förinställningar',
   'eq.presetSaved': 'Förinställning "{name}" sparad',
+  'eq.presetSaveFailed': 'Kunde inte spara förinställningen',
   'eq.premiumGate': 'Equalizern och den akustiska profilen är en funktion i',
 
   // Onboarding

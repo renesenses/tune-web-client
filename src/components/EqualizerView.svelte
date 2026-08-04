@@ -161,8 +161,9 @@
 
   // « Mes presets » : réglages EQ enregistrés par l'utilisateur (nommés,
   // rappelables). Capturent le sous-mode courant (courbe graphique OU bandes
-  // paramétriques). Stockés en localStorage pour ce premier jet — une synchro
-  // serveur/profil pourra suivre. [[project_tune_master_profiler]]
+  // paramétriques). SYNCHRONISÉS CÔTÉ SERVEUR (routes/eq_pro.rs, KV partagé par
+  // tous les contrôleurs du serveur → suivent l'utilisateur d'un appareil à
+  // l'autre). Cache localStorage pour un paint instantané + résilience offline.
   interface CustomEqPreset {
     id: string;
     name: string;
@@ -170,7 +171,8 @@
     gains?: number[];      // grille = gains.length (mode graphique)
     pBands?: EqBand[];     // mode paramétrique
   }
-  const CUSTOM_PRESETS_KEY = 'tune-eq-custom-presets';
+  const PRESETS_CACHE_KEY = 'tune-eq-presets-cache';   // miroir de la liste serveur
+  const LEGACY_PRESETS_KEY = 'tune-eq-custom-presets'; // ancien stockage local (migration)
   let customPresets = $state<CustomEqPreset[]>([]);
   let newPresetName = $state('');
   let showSaveInput = $state(false);
@@ -294,33 +296,78 @@
   }
 
   // --- Mes presets (réglages EQ enregistrés par l'utilisateur) ---
-  function loadCustomPresets() {
+  // Conversions preset serveur (bands {freq,gain,q,type} + eq_type) <-> UI.
+  function fromServerPreset(sp: import('../lib/api').EqProPreset): CustomEqPreset {
+    if (sp.eq_type === 'graphic') {
+      return { id: sp.id, name: sp.name, mode: 'graphic', gains: (sp.bands ?? []).map((b) => b.gain) };
+    }
+    return { id: sp.id, name: sp.name, mode: 'parametric', pBands: (sp.bands ?? []).map((b) => ({ ...b })) };
+  }
+  function gainsToBands(g: number[]): EqBand[] {
+    const grid = GRIDS[g.length] ?? GRIDS[10];
+    const q = GRID_Q[g.length] ?? DEFAULT_Q;
+    return grid.map((freq, i) => ({ freq, gain: g[i] ?? 0, q }));
+  }
+
+  function cacheCustomPresets() {
     try {
-      const raw = localStorage.getItem(CUSTOM_PRESETS_KEY);
+      localStorage.setItem(PRESETS_CACHE_KEY, JSON.stringify($state.snapshot(customPresets)));
+    } catch { /* ignore */ }
+  }
+
+  async function loadCustomPresets() {
+    // 1) Paint instantané depuis le cache local.
+    try {
+      const raw = localStorage.getItem(PRESETS_CACHE_KEY);
       const parsed = raw ? JSON.parse(raw) : null;
       if (Array.isArray(parsed)) customPresets = parsed.filter((p) => p && p.id && p.name);
     } catch { /* ignore */ }
-  }
-
-  function persistCustomPresets() {
+    // 2) Source de vérité = serveur (partagé entre appareils).
     try {
-      localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify($state.snapshot(customPresets)));
-    } catch { /* ignore */ }
+      const server = await api.listEqPresets();
+      await migrateLegacyPresets(server);
+      customPresets = (await api.listEqPresets()).map(fromServerPreset);
+      cacheCustomPresets();
+    } catch { /* serveur indispo / ancien binaire : on garde le cache local */ }
   }
 
-  function saveCurrentAsPreset() {
+  // Migration one-shot : pousse les presets de l'ancien stockage local (feature
+  // v1, avant la synchro serveur) vers le serveur, puis vide la clé héritée.
+  async function migrateLegacyPresets(server: import('../lib/api').EqProPreset[]) {
+    let legacy: CustomEqPreset[] = [];
+    try {
+      const raw = localStorage.getItem(LEGACY_PRESETS_KEY);
+      const p = raw ? JSON.parse(raw) : null;
+      if (Array.isArray(p)) legacy = p.filter((x) => x && x.name);
+    } catch { /* ignore */ }
+    if (!legacy.length) return;
+    const serverNames = new Set(server.map((s) => s.name));
+    for (const p of legacy) {
+      if (serverNames.has(p.name)) continue;
+      const bands = p.mode === 'parametric' ? (p.pBands ?? []) : gainsToBands(p.gains ?? []);
+      try { await api.createEqPreset({ name: p.name, eq_type: p.mode, bands }); } catch { /* skip */ }
+    }
+    try { localStorage.removeItem(LEGACY_PRESETS_KEY); } catch { /* ignore */ }
+  }
+
+  async function saveCurrentAsPreset() {
     const name = newPresetName.trim();
     if (!name) return;
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const preset: CustomEqPreset = expertSubMode === 'parametric'
-      ? { id, name, mode: 'parametric', pBands: $state.snapshot(pBands) }
-      : { id, name, mode: 'graphic', gains: [...gains] };
-    // Écrase un preset perso du même nom (renommer = ré-enregistrer).
-    customPresets = [...customPresets.filter((p) => p.name !== name), preset];
-    persistCustomPresets();
-    newPresetName = '';
-    showSaveInput = false;
-    notifications.success($t('eq.presetSaved' as any).replace('{name}', name));
+    const eq_type = expertSubMode === 'parametric' ? 'parametric' : 'graphic';
+    const bands = expertSubMode === 'parametric' ? $state.snapshot(pBands) : buildBands();
+    try {
+      // Écraser un preset du même nom = supprimer l'ancien puis recréer.
+      const dup = customPresets.find((p) => p.name === name);
+      if (dup) { try { await api.deleteEqPreset(dup.id); } catch { /* ignore */ } }
+      const created = await api.createEqPreset({ name, eq_type, bands });
+      customPresets = [...customPresets.filter((p) => p.name !== name), fromServerPreset(created)];
+      cacheCustomPresets();
+      newPresetName = '';
+      showSaveInput = false;
+      notifications.success($t('eq.presetSaved' as any).replace('{name}', name));
+    } catch (e) {
+      if ((e as Error)?.message !== 'premium_required') notifications.error($t('eq.presetSaveFailed' as any));
+    }
   }
 
   function applyCustomPreset(p: CustomEqPreset) {
@@ -342,9 +389,18 @@
     sendToServer();
   }
 
-  function deleteCustomPreset(id: string) {
+  async function deleteCustomPreset(id: string) {
+    const prev = customPresets;
     customPresets = customPresets.filter((p) => p.id !== id);
-    persistCustomPresets();
+    cacheCustomPresets();
+    try {
+      await api.deleteEqPreset(id);
+    } catch (e) {
+      if ((e as Error)?.message !== 'premium_required') {
+        customPresets = prev; // revert si le serveur a refusé
+        cacheCustomPresets();
+      }
+    }
   }
 
   function toggleEnabled() {
