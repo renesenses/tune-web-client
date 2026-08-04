@@ -3502,6 +3502,15 @@
   .meta-filters {
     display: flex; flex-direction: column; gap: 8px;
     margin: 14px 0 12px;
+    /* Pin the tools row (missing-count filters + search + Smart toggle) so it
+       stays visible while scrolling long missing-genre/cover lists — #1282
+       extension (Jean Valjean). Scroller = `.view-scroller`; class is
+       Svelte-scoped. Opaque bg so the list scrolls under it. */
+    position: sticky;
+    top: 0;
+    z-index: 15;
+    background: var(--tune-bg);
+    padding-top: 8px;
   }
   .meta-filters-tabs {
     display: flex; flex-wrap: wrap; gap: 6px;

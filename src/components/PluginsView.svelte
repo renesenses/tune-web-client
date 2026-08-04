@@ -727,7 +727,11 @@
   /* ── Categories Sidebar ── */
   .categories-sidebar {
     position: sticky;
-    top: var(--space-lg);
+    /* Offset below the tall sticky `.plugins-header` (title + subtitle + tabs)
+       so the category rail doesn't slide up behind it — #1282 extension (Jean
+       Valjean: "à bloquer comme les années dans Albums"). Tuned live. */
+    top: 150px;
+    z-index: 10;
     background: var(--tune-surface);
     border: 1px solid var(--tune-border);
     border-radius: var(--radius-md);

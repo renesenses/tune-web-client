@@ -544,6 +544,13 @@
 
   .stations-actions {
     margin-bottom: var(--space-md);
+    /* Pin the Add/Import/Export bar under the already-sticky `.radios-header`
+       so it stays reachable with many stations — #1282 extension (Jean Valjean).
+       Scroller = `.view-scroller`; top ≈ .radios-header height (tuned live). */
+    position: sticky;
+    top: 66px;
+    z-index: 15;
+    background: var(--tune-bg);
   }
 
   .header-actions {
