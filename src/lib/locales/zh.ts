@@ -748,6 +748,13 @@ export default {
   'eq.enabled': '已启用',
   'eq.disabled': '已禁用',
   'eq.reset': '重置',
+  'eq.myPresets': '我的预设',
+  'eq.savePreset': '保存此设置',
+  'eq.presetNamePlaceholder': '预设名称',
+  'eq.save': '保存',
+  'eq.deletePreset': '删除',
+  'eq.noPresets': '无已保存预设',
+  'eq.presetSaved': '预设"{name}"已保存',
 
   // Onboarding
   'onboarding.welcomeTitle': '欢迎使用 Tune Server',

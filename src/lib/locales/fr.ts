@@ -979,6 +979,13 @@ export default {
   'eq.enabled': 'Activé',
   'eq.disabled': 'Désactivé',
   'eq.reset': 'Réinitialiser',
+  'eq.myPresets': 'Mes presets',
+  'eq.savePreset': 'Enregistrer ce réglage',
+  'eq.presetNamePlaceholder': 'Nom du preset',
+  'eq.save': 'Enregistrer',
+  'eq.deletePreset': 'Supprimer',
+  'eq.noPresets': 'Aucun preset enregistré',
+  'eq.presetSaved': 'Preset « {name} » enregistré',
   'eq.premiumGate': "L'égaliseur et le profil acoustique sont une fonctionnalité",
   // Crossfeed (casque)
   'dsp.crossfeedTitle': 'Crossfeed (casque)',

@@ -755,6 +755,13 @@ export default {
   'eq.enabled': 'Activat',
   'eq.disabled': 'Dezactivat',
   'eq.reset': 'Resetează',
+  'eq.myPresets': 'Presetările mele',
+  'eq.savePreset': 'Salvează setarea',
+  'eq.presetNamePlaceholder': 'Nume preset',
+  'eq.save': 'Salvează',
+  'eq.deletePreset': 'Șterge',
+  'eq.noPresets': 'Niciun preset salvat',
+  'eq.presetSaved': 'Preset „{name}" salvat',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Bine ai venit la Tune Server',

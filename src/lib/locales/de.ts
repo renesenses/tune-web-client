@@ -747,6 +747,13 @@ export default {
   'eq.enabled': 'Aktiviert',
   'eq.disabled': 'Deaktiviert',
   'eq.reset': 'Zurücksetzen',
+  'eq.myPresets': 'Meine Presets',
+  'eq.savePreset': 'Einstellung speichern',
+  'eq.presetNamePlaceholder': 'Preset-Name',
+  'eq.save': 'Speichern',
+  'eq.deletePreset': 'Löschen',
+  'eq.noPresets': 'Keine gespeicherten Presets',
+  'eq.presetSaved': 'Preset „{name}" gespeichert',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Willkommen bei Tune Server',

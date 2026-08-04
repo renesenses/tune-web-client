@@ -978,6 +978,13 @@ export default {
   'eq.enabled': 'Enabled',
   'eq.disabled': 'Disabled',
   'eq.reset': 'Reset',
+  'eq.myPresets': 'My presets',
+  'eq.savePreset': 'Save this setting',
+  'eq.presetNamePlaceholder': 'Preset name',
+  'eq.save': 'Save',
+  'eq.deletePreset': 'Delete',
+  'eq.noPresets': 'No saved presets',
+  'eq.presetSaved': 'Preset "{name}" saved',
   'eq.premiumGate': 'The equalizer and acoustic profile are a feature of',
   // Crossfeed (headphones)
   'dsp.crossfeedTitle': 'Crossfeed (headphones)',
