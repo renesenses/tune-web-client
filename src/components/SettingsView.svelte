@@ -13,7 +13,7 @@
   import RendererConfig from './RendererConfig.svelte';
   import { notifications } from '../lib/stores/notifications';
   import { copyText } from '../lib/utils';
-  import { activeView, settingsInitialTab } from '../lib/stores/navigation';
+  import { activeView, settingsInitialTab, type View } from '../lib/stores/navigation';
   import { licenseState, isPremium, loadLicense } from '../lib/stores/license';
   import SmbWizard from './SmbWizard.svelte';
   import FolderWizard from './FolderWizard.svelte';
@@ -36,6 +36,45 @@
   const _initialTab = get(settingsInitialTab);
   settingsInitialTab.set(null);
   let settingsTab = $state<string>(_initialTab ?? 'general');
+
+  // Premium feature widgets: clicking an available feature opens its page.
+  // Features without a dedicated destination (declick, social_sharing,
+  // weekly_digest) are shown as available but are not clickable.
+  const FEATURE_TARGET: Record<string, { view?: View; tab?: string }> = {
+    advanced_alarms: { view: 'alarms' },
+    ai_recommendations: { view: 'ambiance' },
+    auto_enrichment: { view: 'metadata' },
+    batch_converter: { view: 'converter' },
+    dsp_eq: { view: 'equalizer' },
+    room_correction: { view: 'equalizer' },
+    dac_calibration: { view: 'equalizer' },
+    listening_stats: { view: 'history' },
+    multi_server: { view: 'mediaservers' },
+    multiroom_sync: { view: 'zonemanager' },
+    unlimited_zones: { view: 'zonemanager' },
+    playlist_transfer: { view: 'playlistmanager' },
+    playlists_hub: { view: 'playlistshub' },
+    plugin_marketplace: { view: 'plugins' },
+    synced_lyrics: { view: 'nowplaying' },
+    cloud_backup: { tab: 'system' },
+    cloud_config_backup: { tab: 'system' },
+    cloud_relay: { tab: 'system' },
+    developer_api: { tab: 'services' },
+    multi_scrobbling: { tab: 'services' },
+    oaat_protocol: { tab: 'network' },
+    multi_profiles: { tab: 'general' },
+  };
+
+  function openFeature(key: string) {
+    const t = FEATURE_TARGET[key];
+    if (!t) return;
+    if (t.tab) {
+      settingsTab = t.tab;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (t.view) {
+      activeView.set(t.view);
+    }
+  }
 
   let health: SystemHealth | null = $state(null);
   let stats: SystemStats | null = $state(null);
@@ -4706,8 +4745,18 @@
           <h4 class="cloud-label">{$t('settings.features')}</h4>
           <div class="license-features-grid">
             {#each Object.entries($licenseState.features) as [key, feat]}
-              <div class="license-feature-item" class:enabled={feat.enabled} class:locked={!feat.enabled}>
-                <span class="license-feature-icon">{feat.enabled ? '✓' : '🔒'}</span>
+              {@const clickable = feat.enabled && !!FEATURE_TARGET[key]}
+              <div
+                class="license-feature-item"
+                class:enabled={feat.enabled}
+                class:locked={!feat.enabled}
+                class:clickable
+                role={clickable ? 'button' : undefined}
+                tabindex={clickable ? 0 : undefined}
+                onclick={() => clickable && openFeature(key)}
+                onkeydown={(e) => { if (clickable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openFeature(key); } }}
+              >
+                <span class="license-feature-icon">{feat.enabled ? '✓' : '✕'}</span>
                 <span class="license-feature-name">{feat.display_name}</span>
               </div>
             {/each}
@@ -6751,6 +6800,30 @@
     flex-shrink: 0;
     width: 18px;
     text-align: center;
+    font-weight: 700;
+  }
+
+  /* Available → green check; unavailable → red cross. */
+  .license-feature-item.enabled .license-feature-icon {
+    color: #4ade80;
+  }
+
+  .license-feature-item.locked .license-feature-icon {
+    color: #ef4444;
+  }
+
+  /* Available features with a destination are clickable and open their page. */
+  .license-feature-item.clickable {
+    cursor: pointer;
+  }
+
+  .license-feature-item.clickable:hover {
+    background: rgba(74, 222, 128, 0.16);
+  }
+
+  .license-feature-item.clickable:focus-visible {
+    outline: 2px solid #4ade80;
+    outline-offset: 1px;
   }
 
   .license-feature-name {
