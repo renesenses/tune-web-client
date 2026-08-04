@@ -59,11 +59,24 @@ const defaults: Preferences = {
   albumSortOrder: 'asc',
 };
 
+// One-time migration of the album sort, which #1134 moved from the per-browser
+// `tune_album_sort`/`tune_album_sort_order` localStorage keys into the synced
+// preferences. Applied only when the stored prefs carry NO album sort yet (they
+// predate #1134), so a user's prior choice — e.g. sort by Artist — is adopted
+// instead of being silently reset to the 'title' default (Jean-Luc Cassé).
+function adoptLegacyAlbumSort(p: Preferences) {
+  const legacy = localStorage.getItem('tune_album_sort');
+  if (legacy) p.albumSort = legacy;
+  const legacyOrder = localStorage.getItem('tune_album_sort_order');
+  if (legacyOrder === 'asc' || legacyOrder === 'desc') p.albumSortOrder = legacyOrder;
+}
+
 function loadPrefs(): Preferences {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const p: Preferences = { ...defaults, ...JSON.parse(stored) };
+      const raw = JSON.parse(stored);
+      const p: Preferences = { ...defaults, ...raw };
       // Migrate Oxygen facets: anyone still carrying a removed facet
       // (collection/folder/…) had a partly-invisible rail — reset them to the
       // new supported default (which now includes Artistes). Otherwise just
@@ -76,10 +89,17 @@ function loadPrefs(): Preferences {
         const cleaned = facets.filter((f) => supported.includes(f));
         p.oxygenFacets = cleaned.length ? cleaned : [...defaults.oxygenFacets];
       }
+      // Check the RAW blob (not merged `p`, which always has the default): if it
+      // predates #1134 it has no albumSort → pull the legacy localStorage choice.
+      if (!(raw && typeof raw === 'object' && 'albumSort' in raw)) {
+        adoptLegacyAlbumSort(p);
+      }
       return p;
     }
   } catch { /* ignore */ }
-  return { ...defaults };
+  const p = { ...defaults };
+  adoptLegacyAlbumSort(p);
+  return p;
 }
 
 const hadLocalPrefs = !!localStorage.getItem(STORAGE_KEY);
