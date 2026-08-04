@@ -152,14 +152,13 @@
   }
 
   function onPointDown(i: number, e: PointerEvent) {
-    if (!enabled) return;
     selected = i;
     dragging = true;
     (e.target as Element).setPointerCapture(e.pointerId);
   }
 
   function onPointMove(e: PointerEvent) {
-    if (!dragging || selected === null || !enabled) return;
+    if (!dragging || selected === null) return;
     const { x, y } = svgPoint(e);
     const b = bands[selected];
     b.freq = Math.round(Math.max(F_MIN, Math.min(F_MAX, fOf(x))));
@@ -172,7 +171,6 @@
   }
 
   function onWheel(i: number, e: WheelEvent) {
-    if (!enabled) return;
     e.preventDefault();
     const b = bands[i];
     const q = b.q && b.q > 0 ? b.q : 1.41;
@@ -183,7 +181,6 @@
   }
 
   function onPlotDblClick(e: MouseEvent) {
-    if (!enabled) return;
     const r = svgEl.getBoundingClientRect();
     addBandAt(((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H);
   }
@@ -245,7 +242,7 @@
     <span class="peq-hint">{$t('eq.peqHint' as any)}</span>
     <button
       class="peq-add"
-      disabled={!enabled || bands.length >= maxBands}
+      disabled={bands.length >= maxBands}
       onclick={() => addBandAt(W / 2, yOf(0))}
     >+ {$t('eq.peqAddBand' as any)}</button>
   </div>
@@ -284,7 +281,9 @@
 
 <style>
   .peq { display: flex; flex-direction: column; gap: 0.5rem; }
-  .peq.disabled { opacity: 0.5; pointer-events: none; }
+  /* Bypass : grisé pour signaler l'état « off », mais les points restent
+     déplaçables — les éditer rallume l'EQ (onchange → parent). */
+  .peq.disabled { opacity: 0.6; }
   .peq-plot {
     width: 100%;
     background: rgba(255, 255, 255, 0.03);
