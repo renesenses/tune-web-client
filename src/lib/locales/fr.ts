@@ -1719,7 +1719,7 @@ export default {
   "renderer.wavOff": "Aucun",
   "renderer.wav16": "16 bits",
   "renderer.wav24": "24 bits",
-  "renderer.wav24Hint": "Diffuser du vrai WAV 24 bits. Disponible uniquement quand le test de découverte confirme que le renderer annonce audio/L24 (LPCM 24 bits).",
+  "renderer.wav24Hint": "Diffuser du vrai WAV 24 bits. Disponible dès que le test de découverte confirme que le renderer annonce audio/L24 ou audio/wav générique.",
   "renderer.startDelay": "Délai de démarrage",
   "renderer.startDelayHint": "Pause avant le démarrage de la lecture, pour laisser un ampli DLNA bufferiser (utile si les premières secondes sont hachées). 0 = valeur par défaut.",
   "renderer.probeFailed": "Impossible de lire les capacités du renderer. Vérifie qu'il est allumé et sur le même réseau.",
