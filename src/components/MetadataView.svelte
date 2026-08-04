@@ -1204,8 +1204,10 @@
       await api.createBackup();
       await loadBackups();
       backupMessage = { text: $t('maintenance.backupCreated'), type: 'success' };
+      notifications.success($t('maintenance.backupCreated'));
     } catch (e) {
       backupMessage = { text: $t('maintenance.backupError'), type: 'error' };
+      notifications.error($t('maintenance.backupError'));
     }
     backupCreating = false;
   }
@@ -1408,6 +1410,10 @@
             <button class="tools-item" onclick={() => runFromMenu(rescanAll, 'rescan')} disabled={rescanningAll}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
               {rescanningAll ? '…' : $t('metadata.rescanAll')}
+            </button>
+            <button class="tools-item" onclick={() => runFromMenu(createBackup, 'backup')} disabled={backupCreating} title={$t('maintenance.backupRestore')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              {backupCreating ? '…' : $t('maintenance.createBackup')}
             </button>
 
             <div class="tools-group-label">{$t('metadata.groupEnrich')}</div>
