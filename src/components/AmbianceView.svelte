@@ -49,8 +49,17 @@
         tracks = res.tracks ?? [];
       }
     } catch (e: any) {
-      // 503 when the acoustic model can't be provisioned (offline / not built).
-      error = e?.message || 'Recherche par ambiance indisponible';
+      // The server self-provisions the acoustic model (CLAP text tower) on first
+      // use. A failure here means it couldn't be downloaded (server offline) or
+      // this build lacks the audio-embedding feature — show a clear message
+      // instead of a raw "503" (#1288/Fabien: "Menu Ambiance : erreur 503").
+      const msg = String(e?.message ?? '');
+      if (/\b503\b|model|acoustic|unavailable|provision/i.test(msg)) {
+        error =
+          "La recherche par ambiance prépare son modèle acoustique (téléchargement au premier usage). Réessaie dans un instant — si le problème persiste, vérifie la connexion Internet du serveur.";
+      } else {
+        error = e?.message || 'Recherche par ambiance indisponible';
+      }
       tracks = [];
     }
     loading = false;
