@@ -242,20 +242,22 @@
     </div>
   {:else}
     <div class="detail">
-      <div class="detail-head">
-        <button class="back" onclick={() => { selected = null; clearShortcutTarget(); }}>← {$t('common.back')}</button>
-        <h2 style:color={selected.color}>{selected.name}</h2>
-        <button class="edit-btn" onclick={() => openEditor(selected!)}>{$t('smartCollection.editRules')}</button>
-      </div>
-      <div class="detail-rules">
-        {ruleSummary(selected)}
-        {#if !albumsLoading && selectedAlbums.length > 0}
-          <span class="album-count">{selectedAlbums.length} {selectedAlbums.length > 1 ? $t('smartCollection.albumsPlural') : $t('smartCollection.album')}</span>
-        {/if}
-        <button class="shuffle-btn" onclick={shuffleCollection} disabled={shuffleLoading || albumsLoading}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
-          {shuffleLoading ? '...' : $t('smartCollection.shuffle')}
-        </button>
+      <div class="detail-sticky">
+        <div class="detail-head">
+          <button class="back" onclick={() => { selected = null; clearShortcutTarget(); }}>← {$t('common.back')}</button>
+          <h2 style:color={selected.color}>{selected.name}</h2>
+          <button class="edit-btn" onclick={() => openEditor(selected!)}>{$t('smartCollection.editRules')}</button>
+        </div>
+        <div class="detail-rules">
+          {ruleSummary(selected)}
+          {#if !albumsLoading && selectedAlbums.length > 0}
+            <span class="album-count">{selectedAlbums.length} {selectedAlbums.length > 1 ? $t('smartCollection.albumsPlural') : $t('smartCollection.album')}</span>
+          {/if}
+          <button class="shuffle-btn" onclick={shuffleCollection} disabled={shuffleLoading || albumsLoading}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+            {shuffleLoading ? '...' : $t('smartCollection.shuffle')}
+          </button>
+        </div>
       </div>
       {#if albumsLoading}
         <div class="state">…</div>
@@ -328,11 +330,16 @@
   .card-rules { font-size: 12px; color: var(--tune-text-muted); margin-top: 5px; line-height: 1.4; }
   .card-desc { font-size: 12px; color: var(--tune-text-muted); margin-top: 5px; font-style: italic; }
 
-  .detail-head { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; position: sticky; top: 0; z-index: 20; background: var(--tune-bg); }
+  /* En mode détail, Retour/nom/Modifier ET compteur+« Lecture aléatoire »
+     restent visibles sous `.sc-header` (lui-même sticky top:0 z20) : un seul
+     bloc sticky pour les deux lignes, offset = hauteur réelle de `.sc-header`
+     (~50px, tuck 2px sous son fond opaque) — #1282, Jean Valjean. */
+  .detail-sticky { position: sticky; top: 48px; z-index: 18; background: var(--tune-bg); padding-bottom: 4px; }
+  .detail-head { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
   .detail-head h2 { flex: 1; margin: 0; font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; }
   .back { background: transparent; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); color: var(--tune-text); padding: 6px 13px; border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; }
   .edit-btn { background: var(--tune-accent, #6366f1); color: white; border: none; padding: 6px 13px; border-radius: var(--radius-sm); cursor: pointer; font-family: var(--font-label); font-size: 14px; }
-  .detail-rules { color: var(--tune-text-muted); font-size: 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .detail-rules { color: var(--tune-text-muted); font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   .album-count { background: var(--tune-bg-hover, rgba(255,255,255,0.1)); padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 600; white-space: nowrap; }
   .shuffle-btn { background: var(--tune-accent); color: white; border: none; border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
   .shuffle-btn:disabled { opacity: 0.5; cursor: not-allowed; }

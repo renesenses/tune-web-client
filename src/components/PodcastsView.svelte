@@ -941,6 +941,14 @@
     margin-bottom: 24px;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    /* Rangée de catégories figée sous `.view-tabs` (sticky top:0, boîte ~60px
+       avec son padding-top 20px ; tuck 2px sous son fond opaque) — #1282
+       (Jean Valjean). Scroller = `.podcasts-view` (overflow-y auto). */
+    position: sticky;
+    top: 58px;
+    z-index: 15;
+    background: var(--tune-bg);
+    padding-bottom: 6px;
   }
   .genre-chips-wrapper::-webkit-scrollbar { display: none; }
 
