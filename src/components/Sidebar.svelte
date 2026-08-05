@@ -15,6 +15,7 @@
   import ProfileSelector from './ProfileSelector.svelte';
   import { notifications } from '../lib/stores/notifications';
   import { updateAvailable, latestVersion } from '../lib/stores/updates';
+  import { supportUnread } from '../lib/stores/support';
   import { shortcuts, loadShortcuts, addShortcut, removeShortcut, renameShortcut, navigateToShortcut, togglePin } from '../lib/stores/shortcuts';
 
   function handleSelectZone(zoneId: number) {
@@ -817,6 +818,9 @@
       <button class="nav-item" class:active={$activeView === 'support'} onclick={() => navigate('support')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
         Support
+        {#if $supportUnread > 0}
+          <span class="support-unread-badge" title={$t('sidebar.supportUnread')}>{$supportUnread}</span>
+        {/if}
       </button>
     </div>
   </nav>
@@ -1456,6 +1460,23 @@
     animation: badge-pulse 2s ease-in-out infinite;
   }
 
+  /* Pastille « réponse support non lue » sur l'entrée Support. */
+  .support-unread-badge {
+    margin-left: auto;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    animation: badge-pulse 2s ease-in-out infinite;
+  }
+
   .connected-dot {
     width: 6px;
     height: 6px;
@@ -1933,6 +1954,8 @@
     .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
     /* Hide text badges in icon-only mode to prevent overflow */
     .badge-new, .badge-update { display: none; }
+    /* Icon-only : la pastille support devient un point discret superposable */
+    .support-unread-badge { min-width: 8px; width: 8px; height: 8px; padding: 0; font-size: 0; margin-left: -4px; }
     .connected-dot { display: none; }
     /* Show settings section icons — hide toggle, force items visible */
     .services-section { display: none; }

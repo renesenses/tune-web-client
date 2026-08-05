@@ -3680,6 +3680,98 @@ export function validateLicense(): Promise<{ status: string }> {
   });
 }
 
+// --- Support Premium v2 (fil de tickets hébergé sur mozaiklabs.fr) ---
+//
+// Le suivi de conversation parle directement à mozaiklabs.fr (contrat en cours
+// de déploiement côté serveur) ; la CRÉATION de ticket, elle, passe toujours
+// par le serveur Tune local (POST /support/tickets), qui joint la licence.
+// Tant que le serveur mozaiklabs n'est pas déployé, ces appels échouent
+// (404/CORS) : les appelants doivent dégrader en douceur, jamais casser l'écran.
+
+export const MOZAIKLABS_API = 'https://mozaiklabs.fr/api/v1';
+
+export type SupportTicketStatus = 'open' | 'answered' | 'resolved';
+
+export interface SupportTicketSummary {
+  id: number;
+  subject: string;
+  category: string | null;
+  status: SupportTicketStatus;
+  created_at: string;
+  updated_at: string;
+  last_reply_at: string | null;
+  unread_count: number;
+}
+
+export interface SupportTicketReply {
+  id: number;
+  author: 'user' | 'team';
+  body: string;
+  created_at: string;
+}
+
+async function mozaikFetch(path: string, options?: RequestInit): Promise<any> {
+  const resp = await fetch(`${MOZAIKLABS_API}${path}`, {
+    headers: {
+      Accept: 'application/json',
+      ...(options?.body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    ...options,
+  });
+  if (!resp.ok) {
+    const err = new Error(`${resp.status}`) as ApiError;
+    err.status = resp.status;
+    throw err;
+  }
+  const text = await resp.text();
+  if (!text.trim()) return null;
+  return JSON.parse(text);
+}
+
+export function getSupportTickets(licenseKey: string): Promise<{ tickets: SupportTicketSummary[] }> {
+  return mozaikFetch(`/support/tickets?license_key=${encodeURIComponent(licenseKey)}`);
+}
+
+export function getSupportTicket(
+  id: number,
+  licenseKey: string,
+): Promise<{ ticket: SupportTicketSummary; replies: SupportTicketReply[] }> {
+  return mozaikFetch(`/support/tickets/${id}?license_key=${encodeURIComponent(licenseKey)}`);
+}
+
+export function postSupportTicketReply(id: number, licenseKey: string, body: string): Promise<any> {
+  return mozaikFetch(`/support/tickets/${id}/replies`, {
+    method: 'POST',
+    body: JSON.stringify({ license_key: licenseKey, body }),
+  });
+}
+
+export function markSupportTicketRead(id: number, licenseKey: string): Promise<any> {
+  return mozaikFetch(`/support/tickets/${id}/read`, {
+    method: 'POST',
+    body: JSON.stringify({ license_key: licenseKey }),
+  });
+}
+
+/** Fiche système consolidée. Endpoint serveur en cours de déploiement :
+ *  404 sur les serveurs antérieurs — les appelants composent alors la fiche
+ *  localement (health + stats + zones + licence). */
+export function getSystemProfile(): Promise<Record<string, unknown>> {
+  return fetchJSON<Record<string, unknown>>(`${BASE}/system/profile`);
+}
+
+/** Diagnostics + logs récents rendus en markdown par le serveur — même source
+ *  que le signalement de bug forum (#1073), réutilisée pour joindre les logs
+ *  à un ticket support. */
+export async function getBugReportMarkdown(): Promise<string> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const resp = await fetch(`${BASE}/system/bug-report/markdown`, { headers });
+  if (!resp.ok) throw new Error(`${resp.status}`);
+  return resp.text();
+}
+
 // --- Audio Converter ---
 
 export function getConverterPresets(): Promise<{ id: string; label: string; format: string; quality: string; sample_rate: string; bit_depth: string; estimated_size_per_min: string }[]> {

@@ -17,6 +17,7 @@
   import { playbackHistory } from './lib/stores/history';
   import { handleAudioLevelsEvent } from './lib/stores/audioLevels';
   import { startUpdatePolling, stopUpdatePolling, updateAvailable, latestVersion, currentVersion, updateBannerDismissed, dismissUpdateBanner } from './lib/stores/updates';
+  import { startSupportPolling, stopSupportPolling } from './lib/stores/support';
   import { ytPlayerState, ytLoading, playVideo, pauseVideo, resumeVideo, stopVideo, clearYTLoading } from './lib/stores/ytPlayer';
   import { get } from 'svelte/store';
   import { t } from './lib/i18n';
@@ -374,6 +375,8 @@ import AlarmsView from './components/AlarmsView.svelte';
     syncPreferencesFromServer();
     syncDisplayFieldsFromServer();
     startUpdatePolling();
+    // Pastille « réponse support non lue » (sidebar) — poll léger 5 min.
+    startSupportPolling();
 
     // Apply startup view (skip in kiosk mode — always nowplaying)
     if (!isKiosk) {
@@ -966,6 +969,7 @@ import AlarmsView from './components/AlarmsView.svelte';
     tuneWS.disconnect();
     stopSeekTimer();
     stopUpdatePolling();
+    stopSupportPolling();
     if (bannerFadeTimer) clearTimeout(bannerFadeTimer);
   });
 
