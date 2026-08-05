@@ -62,7 +62,14 @@
     if (msg.includes('412')) return tr('support.errorNotConnected');
     if (msg.includes('403')) return tr('support.errorPremiumOnly');
     if (msg.includes('401')) return tr('support.errorSessionExpired');
-    return tr('support.errorGeneric');
+    // Cas non mappé : exposer le status HTTP (apiPost lève Error(status)) au
+    // lieu d'un générique aveugle, pour que la vraie cause soit diagnosticable.
+    // Le ticket de Xavier n'affichait que le générique, masquant un statut
+    // non géré (ni 401/403/412) → impossible à cibler (#1267).
+    const status = msg.match(/\b(\d{3})\b/)?.[1];
+    return status
+      ? `${tr('support.errorGeneric')} (${status})`
+      : tr('support.errorGeneric');
   }
 
   function fmtDate(iso: string | null): string {
