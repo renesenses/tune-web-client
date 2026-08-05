@@ -12,7 +12,7 @@
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
-  import AudioVisualizer from './AudioVisualizer.svelte';
+  import TvVuMeters from './TvVuMeters.svelte';
   import { t } from '../lib/i18n';
 
   let track = $derived($currentTrack);
@@ -235,17 +235,10 @@
               <span class="tv-time">{formatTime(durationMs)}</span>
             </div>
           {/if}
-          <!-- VU/spectre : le visualiseur de Lecture en cours, nourri par les
-               événements audio_levels du serveur (demande Bertrand, .18). -->
+          <!-- Deux VU-mètres analogiques à aiguille (façon appli tvOS),
+               nourris par les événements audio_levels du serveur. -->
           <div class="tv-visualizer">
-            <AudioVisualizer
-              playing={isPlaying}
-              mode="spectrum"
-              height={64}
-              sampleRate={track.sample_rate}
-              bitDepth={track.bit_depth}
-              format={track.format}
-            />
+            <TvVuMeters playing={isPlaying} width={560} />
           </div>
         </div>
       </div>
