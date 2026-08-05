@@ -7,7 +7,7 @@ export interface LicenseState {
   tier: string;
   licenseKey: string | null;
   expiresAt: string | null;
-  features: Record<string, { enabled: boolean; display_name: string }>;
+  features: Record<string, { enabled: boolean; display_name: string; available?: boolean }>;
   zoneLimit: number;
   hardwareFingerprint: string | null;
   /** Non-null while the licence is active on another of the user's servers. */

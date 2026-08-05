@@ -3617,6 +3617,9 @@ export function setOaatEndpointVolumeOffset(groupId: string, endpointId: string,
 export interface LicenseFeature {
   enabled: boolean;
   display_name: string;
+  /** Real availability (functional), independent of licence entitlement.
+   *  Absent on older servers → treated as available. */
+  available?: boolean;
 }
 
 /** Set when this server's floating licence is currently held by ANOTHER of the

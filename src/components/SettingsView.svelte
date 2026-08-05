@@ -4784,18 +4784,20 @@
           <h4 class="cloud-label">{$t('settings.features')}</h4>
           <div class="license-features-grid">
             {#each Object.entries($licenseState.features) as [key, feat]}
-              {@const clickable = feat.enabled && !!FEATURE_TARGET[key]}
+              {@const state = !feat.enabled ? 'locked' : (feat.available === false ? 'unavail' : 'avail')}
+              {@const clickable = state === 'avail' && !!FEATURE_TARGET[key]}
               <div
                 class="license-feature-item"
-                class:enabled={feat.enabled}
-                class:locked={!feat.enabled}
+                class:avail={state === 'avail'}
+                class:unavail={state === 'unavail'}
+                class:locked={state === 'locked'}
                 class:clickable
                 role={clickable ? 'button' : undefined}
                 tabindex={clickable ? 0 : undefined}
                 onclick={() => clickable && openFeature(key)}
                 onkeydown={(e) => { if (clickable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openFeature(key); } }}
               >
-                <span class="license-feature-icon">{feat.enabled ? '✓' : '✕'}</span>
+                <span class="license-feature-icon">{state === 'avail' ? '✓' : state === 'unavail' ? '✕' : '🔒'}</span>
                 <span class="license-feature-name">{feat.display_name}</span>
               </div>
             {/each}
@@ -6824,9 +6826,16 @@
     transition: background 0.12s;
   }
 
-  .license-feature-item.enabled {
+  /* Three states: green = licensed & available, red = licensed but not yet
+     available, grey = not licensed (locked). */
+  .license-feature-item.avail {
     color: var(--tune-text);
     background: rgba(74, 222, 128, 0.06);
+  }
+
+  .license-feature-item.unavail {
+    color: var(--tune-text);
+    background: rgba(239, 68, 68, 0.06);
   }
 
   .license-feature-item.locked {
@@ -6842,13 +6851,17 @@
     font-weight: 700;
   }
 
-  /* Available → green check; unavailable → red cross. */
-  .license-feature-item.enabled .license-feature-icon {
+  .license-feature-item.avail .license-feature-icon {
     color: #4ade80;
   }
 
-  .license-feature-item.locked .license-feature-icon {
+  .license-feature-item.unavail .license-feature-icon {
     color: #ef4444;
+  }
+
+  .license-feature-item.locked .license-feature-icon {
+    color: var(--tune-text-muted);
+    opacity: 0.7;
   }
 
   /* Available features with a destination are clickable and open their page. */
