@@ -421,7 +421,9 @@
   }
   .tv-visualizer {
     margin-top: 1.2vh;
-    width: min(38vw, 560px);
+    /* Le terme vh borne la hauteur des cadrans (h = 0.34 × largeur) pour que
+       la colonne tienne dans l'écran, y compris en 1080p. */
+    width: min(38vw, 42vh, 560px);
     opacity: 0.9;
   }
 
