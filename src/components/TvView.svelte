@@ -12,6 +12,7 @@
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
+  import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
 
   let track = $derived($currentTrack);
@@ -234,6 +235,18 @@
               <span class="tv-time">{formatTime(durationMs)}</span>
             </div>
           {/if}
+          <!-- VU/spectre : le visualiseur de Lecture en cours, nourri par les
+               événements audio_levels du serveur (demande Bertrand, .18). -->
+          <div class="tv-visualizer">
+            <AudioVisualizer
+              playing={isPlaying}
+              mode="spectrum"
+              height={64}
+              sampleRate={track.sample_rate}
+              bitDepth={track.bit_depth}
+              format={track.format}
+            />
+          </div>
         </div>
       </div>
 
@@ -413,6 +426,12 @@
     text-overflow: ellipsis;
     max-width: 100%;
   }
+  .tv-visualizer {
+    margin-top: 1.2vh;
+    width: min(38vw, 560px);
+    opacity: 0.9;
+  }
+
   .tv-quality {
     transform: scale(calc(1.35 * var(--tv-scale)));
     transform-origin: center;

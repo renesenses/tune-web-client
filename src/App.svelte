@@ -381,14 +381,23 @@ import AlarmsView from './components/AlarmsView.svelte';
 
     // Démarrage direct en mode Grand écran : #tv ou #tv&zone=<id>.
     // Lu AVANT la vue de démarrage des préférences, qui ne doit pas l'écraser.
-    const bootHash = window.location.hash;
-    const tvBoot = !isKiosk && (bootHash === '#tv' || bootHash.startsWith('#tv&') || bootHash.startsWith('#tv?'));
-    if (tvBoot) {
-      const zoneMatch = bootHash.match(/[&?]zone=(\d+)/);
+    const isTvHash = (h: string) => h === '#tv' || h.startsWith('#tv&') || h.startsWith('#tv?');
+    const enterTvFromHash = (h: string) => {
+      const zoneMatch = h.match(/[&?]zone=(\d+)/);
       // Force la zone demandée ; fetchZones() la conserve si elle existe.
       if (zoneMatch) currentZoneId.set(Number(zoneMatch[1]));
       activeView.set('tv');
-    }
+    };
+    const bootHash = window.location.hash;
+    const tvBoot = !isKiosk && isTvHash(bootHash);
+    if (tvBoot) enterTvFromHash(bootHash);
+    // Taper #tv dans un onglet où l'app TOURNE DÉJÀ ne recharge pas la page :
+    // sans écoute du hashchange, « rien » ne se passe (Bertrand, .18). On
+    // bascule à chaud — et #tv reste sans effet en kiosque.
+    window.addEventListener('hashchange', () => {
+      const h = window.location.hash;
+      if (!isKiosk && isTvHash(h)) enterTvFromHash(h);
+    });
 
     // Apply startup view (skip in kiosk mode — always nowplaying)
     if (!isKiosk && !tvBoot) {
