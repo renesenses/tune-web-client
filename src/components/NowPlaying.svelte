@@ -799,6 +799,16 @@
     }
   }
 
+  // Firefox arms its middle-press autoscroll on ANY scrollable region under
+  // the cursor. The overflow:hidden root (#249) removed one path, but the
+  // inner .np-scroll wrapper is legitimately scrollable on short viewports,
+  // so an accidental wheel-press still nudged the view and revealed the queue
+  // ("Persiste en 0.9.49", Jean). Autoscroll is cancelable at mousedown —
+  // block it inside the view; middle click has no role here except on links.
+  function handleNpMiddlePress(e: MouseEvent) {
+    if (e.button === 1 && !(e.target as HTMLElement).closest('a')) e.preventDefault();
+  }
+
   // Queue track actions (reused from QueueView logic)
   let qsDragIndex = $state<number | null>(null);
   let qsDropIndex = $state<number | null>(null);
@@ -942,7 +952,7 @@
   }
 </script>
 
-<div class="now-playing" class:wide={isWide} class:queue-open={queueSheetState !== 'collapsed'} bind:clientWidth={containerWidth} onwheel={handleNpWheel}>
+<div class="now-playing" class:wide={isWide} class:queue-open={queueSheetState !== 'collapsed'} bind:clientWidth={containerWidth} onwheel={handleNpWheel} onmousedown={handleNpMiddlePress}>
   <button class="np-back-btn" onclick={() => activeView.set($previousView && $previousView !== 'nowplaying' ? $previousView : 'library')} title={$t('nowplaying.back')}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
