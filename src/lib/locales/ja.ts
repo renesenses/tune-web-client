@@ -748,6 +748,14 @@ export default {
   'eq.enabled': '有効',
   'eq.disabled': '無効',
   'eq.reset': 'リセット',
+  'eq.myPresets': 'マイプリセット',
+  'eq.savePreset': 'この設定を保存',
+  'eq.presetNamePlaceholder': 'プリセット名',
+  'eq.save': '保存',
+  'eq.deletePreset': '削除',
+  'eq.noPresets': '保存済みプリセットなし',
+  'eq.presetSaved': 'プリセット「{name}」を保存しました',
+  'eq.presetSaveFailed': 'プリセットを保存できませんでした',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Tune Serverへようこそ',
@@ -1501,7 +1509,7 @@ export default {
   "renderer.wavOff": "オフ",
   "renderer.wav16": "16 ビット",
   "renderer.wav24": "24 ビット",
-  "renderer.wav24Hint": "本物の 24 ビット WAV を配信します。ディスカバリー確認でレンダラーが audio/L24（24 ビット LPCM）を表明している場合にのみ利用できます。",
+  "renderer.wav24Hint": "本物の 24 ビット WAV を配信します。ディスカバリー確認でレンダラーが audio/L24 または汎用 audio/wav を表明している場合に利用できます。",
   "renderer.startDelay": "開始遅延",
   "renderer.startDelayHint": "再生開始前の一時停止で、DLNA アンプがバッファリングできるようにします（最初の数秒が途切れる場合に役立ちます）。0 = デフォルト値。",
   "renderer.probeFailed": "レンダラーの機能を読み取れませんでした。電源が入っていて同じネットワークに接続されているか確認してください。",

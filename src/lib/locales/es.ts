@@ -747,6 +747,14 @@ export default {
   'eq.enabled': 'Activado',
   'eq.disabled': 'Desactivado',
   'eq.reset': 'Restablecer',
+  'eq.myPresets': 'Mis ajustes',
+  'eq.savePreset': 'Guardar ajuste',
+  'eq.presetNamePlaceholder': 'Nombre del ajuste',
+  'eq.save': 'Guardar',
+  'eq.deletePreset': 'Eliminar',
+  'eq.noPresets': 'Sin ajustes guardados',
+  'eq.presetSaved': 'Ajuste «{name}» guardado',
+  'eq.presetSaveFailed': 'No se pudo guardar el ajuste',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Bienvenido a Tune Server',
@@ -1503,7 +1511,7 @@ export default {
   "renderer.wavOff": "Desactivado",
   "renderer.wav16": "16 bits",
   "renderer.wav24": "24 bits",
-  "renderer.wav24Hint": "Reproduce WAV de 24 bits auténtico. Solo disponible cuando la comprobación de detección confirma que el renderer anuncia audio/L24 (LPCM de 24 bits).",
+  "renderer.wav24Hint": "Reproduce WAV de 24 bits auténtico. Disponible cuando la comprobación de detección confirma que el renderer anuncia audio/L24 o audio/wav genérico.",
   "renderer.startDelay": "Retardo de inicio",
   "renderer.startDelayHint": "Pausa antes de que comience la reproducción, para permitir que un amplificador DLNA almacene en búfer (útil si los primeros segundos se entrecortan). 0 = valor predeterminado.",
   "renderer.probeFailed": "No se pudieron leer las capacidades del renderer. Asegúrate de que esté encendido y en la misma red.",

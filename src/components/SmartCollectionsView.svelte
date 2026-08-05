@@ -300,8 +300,9 @@
   .sc-view { padding: var(--space-lg) 28px; }
   /* Pin the list toolbar (title + "new Smart Collection") so it stays reachable
      while scrolling long type lists — #1282 extension (Jean Valjean). Scroller =
-     CollectionsView `.tab-content`; classes are Svelte-scoped (no leak). */
-  .sc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 19px; position: sticky; top: 0; z-index: 20; background: var(--tune-bg); }
+     CollectionsView `.tab-content`; classes are Svelte-scoped (no leak).
+     padding 8px : couvre les cartes qui passent dessous (recette .library-header). */
+  .sc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 19px; position: sticky; top: 0; z-index: 20; background: var(--tune-bg); padding: 8px 0; }
   .sc-header h2 { margin: 0; font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; color: var(--tune-text); }
   .new-btn { padding: 8px 16px; background: var(--tune-accent, #6366f1); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: 14px; }
   .new-btn:hover { filter: brightness(1.1); }

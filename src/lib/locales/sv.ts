@@ -739,6 +739,14 @@ export default {
   'eq.enabled': 'Aktiverad',
   'eq.disabled': 'Inaktiverad',
   'eq.reset': 'Återställ',
+  'eq.myPresets': 'Mina förinställningar',
+  'eq.savePreset': 'Spara inställning',
+  'eq.presetNamePlaceholder': 'Namn på förinställning',
+  'eq.save': 'Spara',
+  'eq.deletePreset': 'Ta bort',
+  'eq.noPresets': 'Inga sparade förinställningar',
+  'eq.presetSaved': 'Förinställning "{name}" sparad',
+  'eq.presetSaveFailed': 'Kunde inte spara förinställningen',
   'eq.premiumGate': 'Equalizern och den akustiska profilen är en funktion i',
 
   // Onboarding
@@ -1449,7 +1457,7 @@ export default {
   "renderer.wavOff": "Av",
   "renderer.wav16": "16-bitars",
   "renderer.wav24": "24-bitars",
-  "renderer.wav24Hint": "Spela upp äkta 24-bitars WAV. Endast tillgängligt när identifieringskontrollen bekräftar att renderaren annonserar audio/L24 (24-bitars LPCM).",
+  "renderer.wav24Hint": "Spela upp äkta 24-bitars WAV. Tillgängligt när identifieringskontrollen bekräftar att renderaren annonserar audio/L24 eller generiskt audio/wav.",
   "renderer.startDelay": "Startfördröjning",
   "renderer.startDelayHint": "Paus innan uppspelningen börjar, så att en DLNA-förstärkare hinner buffra (hjälper när de första sekunderna hackar). 0 = standardvärde.",
   "renderer.probeFailed": "Kunde inte läsa renderarens kapaciteter. Kontrollera att den är påslagen och på samma nätverk.",

@@ -159,6 +159,24 @@
   let activePreset = $state<string | null>('flat');
   let loading = $state(false);
 
+  // « Mes presets » : réglages EQ enregistrés par l'utilisateur (nommés,
+  // rappelables). Capturent le sous-mode courant (courbe graphique OU bandes
+  // paramétriques). SYNCHRONISÉS CÔTÉ SERVEUR (routes/eq_pro.rs, KV partagé par
+  // tous les contrôleurs du serveur → suivent l'utilisateur d'un appareil à
+  // l'autre). Cache localStorage pour un paint instantané + résilience offline.
+  interface CustomEqPreset {
+    id: string;
+    name: string;
+    mode: 'graphic' | 'parametric';
+    gains?: number[];      // grille = gains.length (mode graphique)
+    pBands?: EqBand[];     // mode paramétrique
+  }
+  const PRESETS_CACHE_KEY = 'tune-eq-presets-cache';   // miroir de la liste serveur
+  const LEGACY_PRESETS_KEY = 'tune-eq-custom-presets'; // ancien stockage local (migration)
+  let customPresets = $state<CustomEqPreset[]>([]);
+  let newPresetName = $state('');
+  let showSaveInput = $state(false);
+
   // Persist to localStorage
   const STORAGE_KEY = 'tune-eq-settings';
 
@@ -275,6 +293,114 @@
     activePreset = key;
     saveLocal();
     sendToServer();
+  }
+
+  // --- Mes presets (réglages EQ enregistrés par l'utilisateur) ---
+  // Conversions preset serveur (bands {freq,gain,q,type} + eq_type) <-> UI.
+  function fromServerPreset(sp: import('../lib/api').EqProPreset): CustomEqPreset {
+    if (sp.eq_type === 'graphic') {
+      return { id: sp.id, name: sp.name, mode: 'graphic', gains: (sp.bands ?? []).map((b) => b.gain) };
+    }
+    return { id: sp.id, name: sp.name, mode: 'parametric', pBands: (sp.bands ?? []).map((b) => ({ ...b })) };
+  }
+  function gainsToBands(g: number[]): EqBand[] {
+    const grid = GRIDS[g.length] ?? GRIDS[10];
+    const q = GRID_Q[g.length] ?? DEFAULT_Q;
+    return grid.map((freq, i) => ({ freq, gain: g[i] ?? 0, q }));
+  }
+
+  function cacheCustomPresets() {
+    try {
+      localStorage.setItem(PRESETS_CACHE_KEY, JSON.stringify($state.snapshot(customPresets)));
+    } catch { /* ignore */ }
+  }
+
+  async function loadCustomPresets() {
+    // 1) Paint instantané depuis le cache local.
+    try {
+      const raw = localStorage.getItem(PRESETS_CACHE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (Array.isArray(parsed)) customPresets = parsed.filter((p) => p && p.id && p.name);
+    } catch { /* ignore */ }
+    // 2) Source de vérité = serveur (partagé entre appareils).
+    try {
+      const server = await api.listEqPresets();
+      await migrateLegacyPresets(server);
+      customPresets = (await api.listEqPresets()).map(fromServerPreset);
+      cacheCustomPresets();
+    } catch { /* serveur indispo / ancien binaire : on garde le cache local */ }
+  }
+
+  // Migration one-shot : pousse les presets de l'ancien stockage local (feature
+  // v1, avant la synchro serveur) vers le serveur, puis vide la clé héritée.
+  async function migrateLegacyPresets(server: import('../lib/api').EqProPreset[]) {
+    let legacy: CustomEqPreset[] = [];
+    try {
+      const raw = localStorage.getItem(LEGACY_PRESETS_KEY);
+      const p = raw ? JSON.parse(raw) : null;
+      if (Array.isArray(p)) legacy = p.filter((x) => x && x.name);
+    } catch { /* ignore */ }
+    if (!legacy.length) return;
+    const serverNames = new Set(server.map((s) => s.name));
+    for (const p of legacy) {
+      if (serverNames.has(p.name)) continue;
+      const bands = p.mode === 'parametric' ? (p.pBands ?? []) : gainsToBands(p.gains ?? []);
+      try { await api.createEqPreset({ name: p.name, eq_type: p.mode, bands }); } catch { /* skip */ }
+    }
+    try { localStorage.removeItem(LEGACY_PRESETS_KEY); } catch { /* ignore */ }
+  }
+
+  async function saveCurrentAsPreset() {
+    const name = newPresetName.trim();
+    if (!name) return;
+    const eq_type = expertSubMode === 'parametric' ? 'parametric' : 'graphic';
+    const bands = expertSubMode === 'parametric' ? $state.snapshot(pBands) : buildBands();
+    try {
+      // Écraser un preset du même nom = supprimer l'ancien puis recréer.
+      const dup = customPresets.find((p) => p.name === name);
+      if (dup) { try { await api.deleteEqPreset(dup.id); } catch { /* ignore */ } }
+      const created = await api.createEqPreset({ name, eq_type, bands });
+      customPresets = [...customPresets.filter((p) => p.name !== name), fromServerPreset(created)];
+      cacheCustomPresets();
+      newPresetName = '';
+      showSaveInput = false;
+      notifications.success($t('eq.presetSaved' as any).replace('{name}', name));
+    } catch (e) {
+      if ((e as Error)?.message !== 'premium_required') notifications.error($t('eq.presetSaveFailed' as any));
+    }
+  }
+
+  function applyCustomPreset(p: CustomEqPreset) {
+    if (p.mode === 'parametric' && Array.isArray(p.pBands)) {
+      pBands = p.pBands.map((b) => ({ ...b }));
+      expertSubMode = 'parametric';
+    } else if (Array.isArray(p.gains) && GRIDS[p.gains.length]) {
+      // Rééchantillonne si le preset a été enregistré sur une autre résolution.
+      gains = p.gains.length === bandCount
+        ? [...p.gains]
+        : resampleGains(p.gains, GRIDS[p.gains.length], BANDS);
+      expertSubMode = 'graphic';
+    } else {
+      return;
+    }
+    if (!enabled) enabled = true;
+    activePreset = expertSubMode === 'graphic' ? detectPreset() : null;
+    saveLocal();
+    sendToServer();
+  }
+
+  async function deleteCustomPreset(id: string) {
+    const prev = customPresets;
+    customPresets = customPresets.filter((p) => p.id !== id);
+    cacheCustomPresets();
+    try {
+      await api.deleteEqPreset(id);
+    } catch (e) {
+      if ((e as Error)?.message !== 'premium_required') {
+        customPresets = prev; // revert si le serveur a refusé
+        cacheCustomPresets();
+      }
+    }
   }
 
   function toggleEnabled() {
@@ -411,6 +537,7 @@
   onMount(async () => {
     loadLocal();
     loadProfiler();
+    loadCustomPresets();
     const zoneId = $currentZoneId;
     if (zoneId === null) return;
     loadPure(zoneId);
@@ -629,6 +756,48 @@
         <button class="eq-submode-btn" class:active={expertSubMode === 'parametric'}
           onclick={() => switchExpertSubMode('parametric')}>{$t('eq.subParametric' as any)}</button>
       </div>
+    </div>
+
+    <!-- Mes presets : réglages EQ enregistrés par l'utilisateur (graphique ou paramétrique) -->
+    <div class="my-presets">
+      <div class="my-presets-head">
+        <span class="my-presets-title">{$t('eq.myPresets' as any)}</span>
+        {#if !showSaveInput}
+          <button class="my-preset-save-toggle" onclick={() => { showSaveInput = true; newPresetName = ''; }}>
+            + {$t('eq.savePreset' as any)}
+          </button>
+        {/if}
+      </div>
+
+      {#if showSaveInput}
+        <div class="my-preset-save-row">
+          <!-- svelte-ignore a11y_autofocus -->
+          <input
+            class="my-preset-input"
+            type="text"
+            maxlength="40"
+            autofocus
+            placeholder={$t('eq.presetNamePlaceholder' as any)}
+            bind:value={newPresetName}
+            onkeydown={(e) => { if (e.key === 'Enter') saveCurrentAsPreset(); if (e.key === 'Escape') showSaveInput = false; }}
+          />
+          <button class="my-preset-confirm" disabled={!newPresetName.trim()} onclick={saveCurrentAsPreset}>{$t('eq.save' as any)}</button>
+          <button class="my-preset-cancel" onclick={() => { showSaveInput = false; newPresetName = ''; }}>{$t('common.cancel' as any)}</button>
+        </div>
+      {/if}
+
+      {#if customPresets.length}
+        <div class="my-presets-list">
+          {#each customPresets as p (p.id)}
+            <div class="my-preset-chip">
+              <button class="my-preset-apply" title={p.mode === 'parametric' ? $t('eq.subParametric' as any) : $t('eq.subGraphic' as any)} onclick={() => applyCustomPreset(p)}>{p.name}</button>
+              <button class="my-preset-del" title={$t('eq.deletePreset' as any)} aria-label={$t('eq.deletePreset' as any)} onclick={() => deleteCustomPreset(p.id)}>×</button>
+            </div>
+          {/each}
+        </div>
+      {:else if !showSaveInput}
+        <p class="my-presets-empty">{$t('eq.noPresets' as any)}</p>
+      {/if}
     </div>
 
   {#if expertSubMode === 'parametric'}
@@ -1093,6 +1262,102 @@
     background: var(--tune-accent, #6366f1);
     color: white;
     border-color: var(--tune-accent, #6366f1);
+  }
+
+  /* Mes presets (réglages EQ enregistrés) */
+  .my-presets {
+    margin-bottom: 1.25rem;
+    padding: 0.6rem 0.75rem;
+    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.05);
+    border-radius: 10px;
+  }
+  .my-presets-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .my-presets-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+  }
+  .my-preset-save-toggle {
+    background: transparent;
+    border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4);
+    color: var(--tune-accent, #6366f1);
+    border-radius: 999px;
+    padding: 0.25rem 0.7rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+  .my-preset-save-row {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+  }
+  .my-preset-input {
+    flex: 1;
+    min-width: 0;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--tune-text, #e5e7eb);
+    border-radius: 8px;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
+  }
+  .my-preset-confirm,
+  .my-preset-cancel {
+    border-radius: 8px;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .my-preset-confirm {
+    background: var(--tune-accent, #6366f1);
+    color: white;
+    border-color: var(--tune-accent, #6366f1);
+  }
+  .my-preset-confirm:disabled { opacity: 0.4; cursor: default; }
+  .my-preset-cancel { background: transparent; color: var(--tune-text-dim, #9ca3af); }
+  .my-presets-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+  }
+  .my-preset-chip {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.35);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .my-preset-apply {
+    background: transparent;
+    border: none;
+    color: var(--tune-text-secondary);
+    padding: 0.35rem 0.5rem 0.35rem 0.9rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .my-preset-apply:hover { color: var(--tune-text); }
+  .my-preset-del {
+    background: transparent;
+    border: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--tune-text-muted);
+    padding: 0 0.55rem;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .my-preset-del:hover { color: #f87171; }
+  .my-presets-empty {
+    margin: 0.5rem 0 0;
+    font-size: 0.75rem;
+    color: var(--tune-text-muted);
   }
 
   /* Sliders */

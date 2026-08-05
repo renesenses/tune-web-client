@@ -748,6 +748,14 @@ export default {
   'eq.enabled': '已启用',
   'eq.disabled': '已禁用',
   'eq.reset': '重置',
+  'eq.myPresets': '我的预设',
+  'eq.savePreset': '保存此设置',
+  'eq.presetNamePlaceholder': '预设名称',
+  'eq.save': '保存',
+  'eq.deletePreset': '删除',
+  'eq.noPresets': '无已保存预设',
+  'eq.presetSaved': '预设"{name}"已保存',
+  'eq.presetSaveFailed': '无法保存预设',
 
   // Onboarding
   'onboarding.welcomeTitle': '欢迎使用 Tune Server',
@@ -1503,7 +1511,7 @@ export default {
   "renderer.wavOff": "关闭",
   "renderer.wav16": "16 位",
   "renderer.wav24": "24 位",
-  "renderer.wav24Hint": "输出真正的 24 位 WAV。仅当发现检测确认渲染器声明支持 audio/L24（24 位 LPCM）时可用。",
+  "renderer.wav24Hint": "输出真正的 24 位 WAV。当发现检测确认渲染器声明支持 audio/L24 或通用 audio/wav 时可用。",
   "renderer.startDelay": "启动延迟",
   "renderer.startDelayHint": "播放开始前的暂停，以便 DLNA 功放缓冲（当最初几秒卡顿时有帮助）。0 = 默认值。",
   "renderer.probeFailed": "无法读取渲染器的功能。请确保它已开机并连接到同一网络。",

@@ -406,8 +406,15 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    padding: 0 28px;
+    padding: 8px 28px;
     margin-bottom: var(--space-md);
+    /* Figer la barre d'action (« Nouvelle collection ») pendant le défilement
+       de la liste, qui scrolle dans .tab-content. Même recette que
+       .library-header : sticky top:0 + fond opaque. */
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--tune-bg);
   }
 
   .create-btn {

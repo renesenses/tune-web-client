@@ -731,6 +731,14 @@ export default {
   'eq.enabled': '활성화',
   'eq.disabled': '비활성화',
   'eq.reset': '초기화',
+  'eq.myPresets': '내 프리셋',
+  'eq.savePreset': '이 설정 저장',
+  'eq.presetNamePlaceholder': '프리셋 이름',
+  'eq.save': '저장',
+  'eq.deletePreset': '삭제',
+  'eq.noPresets': '저장된 프리셋 없음',
+  'eq.presetSaved': '프리셋 "{name}" 저장됨',
+  'eq.presetSaveFailed': '프리셋을 저장할 수 없습니다',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Tune Server에 오신 것을 환영합니다',
@@ -1486,7 +1494,7 @@ export default {
   "renderer.wavOff": "끔",
   "renderer.wav16": "16비트",
   "renderer.wav24": "24비트",
-  "renderer.wav24Hint": "실제 24비트 WAV를 재생합니다. 검색 확인을 통해 렌더러가 audio/L24(24비트 LPCM)를 알리는 경우에만 사용할 수 있습니다.",
+  "renderer.wav24Hint": "실제 24비트 WAV를 재생합니다. 검색 확인을 통해 렌더러가 audio/L24 또는 일반 audio/wav를 알리는 경우 사용할 수 있습니다.",
   "renderer.startDelay": "시작 지연",
   "renderer.startDelayHint": "재생이 시작되기 전 일시 정지로, DLNA 앰프가 버퍼링할 수 있도록 합니다(처음 몇 초가 끊길 때 유용합니다). 0 = 기본값.",
   "renderer.probeFailed": "렌더러의 기능을 읽을 수 없습니다. 전원이 켜져 있고 같은 네트워크에 연결되어 있는지 확인하세요.",
