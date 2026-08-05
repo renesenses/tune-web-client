@@ -2056,6 +2056,85 @@
     }, 10000);
   }
 
+  // --- Artist image enrichment (async: POST returns 202, work runs minutes) ---
+  // Without progress the button looked like it "did nothing" (Bruno #1286): the
+  // ~2s were just the 202 ack. Poll the status endpoint and show progress.
+  let artistImgRunning = $state(false);
+  let artistImgProcessed = $state(0);
+  let artistImgTotal = $state(0);
+  let artistImgRemaining = $state(0);
+  let artistImgTimer: ReturnType<typeof setInterval> | null = $state(null);
+  // Guards: the result setting persists the LAST run, so a fresh poll can read a
+  // stale phase:"done" before the job writes. Only accept "done" once we've seen
+  // real activity, and cap total polls so a stuck job can't spin forever.
+  let artistImgSawActivity = false;
+  let artistImgPolls = 0;
+
+  async function startEnrichArtistImages() {
+    if (artistImgTimer) { clearInterval(artistImgTimer); artistImgTimer = null; }
+    artistImgRunning = true;
+    artistImgProcessed = 0;
+    artistImgTotal = 0;
+    artistImgSawActivity = false;
+    artistImgPolls = 0;
+    try {
+      const res = await api.enrichArtistImages();
+      artistImgRemaining = res.artists_without_image ?? 0;
+      if (artistImgRemaining === 0) {
+        // Nothing missing → the job finishes instantly; don't imply work.
+        artistImgRunning = false;
+        notifications.info(get(t)('settings.enrichArtistImagesNoneMissing' as any));
+        return;
+      }
+      enrichMsg = get(t)('settings.enrichArtistImagesStarted');
+      setTimeout(() => (enrichMsg = ''), 5000);
+      pollEnrichArtistImages();
+    } catch {
+      // The POST returns 202; a thrown error here is a transport hiccup — still
+      // poll, the job most likely started.
+      enrichMsg = get(t)('settings.enrichArtistImagesStarted');
+      setTimeout(() => (enrichMsg = ''), 5000);
+      pollEnrichArtistImages();
+    }
+  }
+
+  function pollEnrichArtistImages() {
+    if (artistImgTimer) clearInterval(artistImgTimer);
+    artistImgTimer = setInterval(async () => {
+      artistImgPolls += 1;
+      try {
+        const status = await api.enrichArtistImagesStatus();
+        const r = status.result;
+        artistImgRemaining = status.artists_without_image ?? artistImgRemaining;
+        const phase = r?.phase;
+        const processed = r?.processed ?? 0;
+        // "Activity" = the current run is actually working (a non-done phase, or
+        // it has processed at least one artist) — distinguishes it from the
+        // stale done-result left by a previous run.
+        if ((phase && phase !== 'done') || processed > 0) {
+          artistImgSawActivity = true;
+          artistImgProcessed = processed;
+          artistImgTotal = r?.total ?? 0;
+        }
+        const done =
+          (artistImgSawActivity && phase === 'done') ||
+          artistImgRemaining === 0 ||
+          artistImgPolls > 300; // ~30 min safety cap at 6s
+        if (done) {
+          artistImgRunning = false;
+          if (artistImgTimer) { clearInterval(artistImgTimer); artistImgTimer = null; }
+          notifications.success(get(t)('settings.enrichArtistImagesDone' as any));
+        }
+      } catch {
+        // Transient error: keep the loop unless we've clearly exceeded the cap.
+        if (artistImgPolls > 300) {
+          artistImgRunning = false;
+          if (artistImgTimer) { clearInterval(artistImgTimer); artistImgTimer = null; }
+        }
+      }
+    }, 6000);
+  }
+
   // --- Library Import (Roon / Plex / Playlists) ---
   type ImportSource = 'roon' | 'plex' | 'playlists';
   type ImportStep = 'select' | 'preview' | 'done';
@@ -3752,11 +3831,25 @@
         <button class="action-btn" onclick={async () => { await api.apiPost('/system/enrich'); enrichMsg = $t('settings.enrichStarted'); setTimeout(() => enrichMsg = '', 3000); }}>
           {$t('settings.enrichNow')}
         </button>
-        <button class="action-btn" style="margin-left: 8px;" onclick={async () => { try { await api.enrichArtistImages(); enrichMsg = $t('settings.enrichArtistImagesStarted'); } catch { enrichMsg = $t('settings.enrichArtistImagesStarted'); } setTimeout(() => enrichMsg = '', 5000); }}>
+        <button class="action-btn" style="margin-left: 8px;" onclick={startEnrichArtistImages} disabled={artistImgRunning}>
           {$t('settings.enrichArtistImages')}
         </button>
         {#if enrichMsg}<span class="action-feedback">{enrichMsg}</span>{/if}
       </div>
+      {#if artistImgRunning}
+        <div class="enrich-progress" style="margin-top: 8px;">
+          <div class="enrich-progress-bar">
+            <div class="enrich-progress-fill" style="width: {artistImgTotal > 0 ? Math.min(100, Math.round((artistImgProcessed / artistImgTotal) * 100)) : 8}%"></div>
+          </div>
+          <span class="enrich-progress-text">
+            {#if artistImgTotal > 0}
+              {artistImgProcessed} / {artistImgTotal} · {$t('settings.enrichArtistImagesRemaining').replace('{n}', String(artistImgRemaining))}
+            {:else}
+              {$t('settings.enrichArtistImagesWorking')} · {$t('settings.enrichArtistImagesRemaining').replace('{n}', String(artistImgRemaining))}
+            {/if}
+          </span>
+        </div>
+      {/if}
       <p class="settings-note">{$t('settings.enrichArtworkNote')}</p>
       <div class="pref-grid" style="margin-top: 8px;">
         <label class="pref-label">{$t('settings.discogsToken')}</label>
