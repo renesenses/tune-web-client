@@ -84,7 +84,7 @@
     ai_recommendations: { view: 'ambiance' },
     auto_enrichment: { view: 'metadata' },
     batch_converter: { view: 'converter' },
-    declick: { view: 'converter' },
+    declick: { view: 'declick' },
     dsp_eq: { view: 'equalizer' },
     room_correction: { view: 'equalizer' },
     dac_calibration: { view: 'equalizer' },
