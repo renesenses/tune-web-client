@@ -2267,6 +2267,15 @@ export default {
   "settings.ingestConflict": "En caso de conflicto",
   "settings.ingestWriteTags": "Escribir las correcciones en las etiquetas",
   "settings.ingestSaved": "Ajustes de importación guardados",
+  // Modo pantalla grande (TV) + letras
+  "nowplaying.tvMode": "Modo pantalla grande",
+  "tv.lyrics": "Letras",
+  "tv.size": "Tamaño del texto",
+  "tv.themeDark": "Tema oscuro",
+  "tv.themeLight": "Tema claro",
+  "tv.exitHint": "Esc o clic para salir",
+  "settings.lyricsLrclib": "Letras en línea (LRCLIB)",
+  "settings.lyricsLrclibHelp": "Recupera las letras que faltan desde LRCLIB, una base de datos comunitaria en línea. Desactivado por defecto.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

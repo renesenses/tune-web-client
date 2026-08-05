@@ -2253,4 +2253,13 @@ export default {
   "settings.ingestConflict": "Vid konflikt",
   "settings.ingestWriteTags": "Skriv korrigeringar i taggar",
   "settings.ingestSaved": "Importinställningar sparade",
+  // Storbildsläge (TV) + sångtexter
+  "nowplaying.tvMode": "Storbildsläge",
+  "tv.lyrics": "Sångtexter",
+  "tv.size": "Textstorlek",
+  "tv.themeDark": "Mörkt tema",
+  "tv.themeLight": "Ljust tema",
+  "tv.exitHint": "Esc eller klick för att avsluta",
+  "settings.lyricsLrclib": "Sångtexter online (LRCLIB)",
+  "settings.lyricsLrclibHelp": "Hämtar saknade sångtexter från LRCLIB, en online-gemenskapsdatabas. Inaktiverat som standard.",
 } as const;

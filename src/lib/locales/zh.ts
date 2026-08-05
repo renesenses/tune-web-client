@@ -2267,6 +2267,15 @@ export default {
   "settings.ingestConflict": "冲突时",
   "settings.ingestWriteTags": "把修正写入标签",
   "settings.ingestSaved": "导入设置已保存",
+  // 大屏模式（TV）+ 歌词
+  "nowplaying.tvMode": "大屏模式",
+  "tv.lyrics": "歌词",
+  "tv.size": "文字大小",
+  "tv.themeDark": "深色主题",
+  "tv.themeLight": "浅色主题",
+  "tv.exitHint": "按 Esc 或点击退出",
+  "settings.lyricsLrclib": "在线歌词（LRCLIB）",
+  "settings.lyricsLrclibHelp": "从在线社区数据库 LRCLIB 获取缺失的歌词。默认关闭。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

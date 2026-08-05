@@ -944,6 +944,15 @@
     qsSavingQueue = false;
   }
 
+  // Mode Grand écran (tvOS) : plein écran natif + bascule sur la vue TV.
+  // Le plein écran peut être refusé (iOS Safari) — la vue TV s'affiche quand même.
+  function enterTvMode() {
+    try {
+      document.documentElement.requestFullscreen?.()?.catch(() => {});
+    } catch {}
+    activeView.set('tv');
+  }
+
   // Close queue sheet on Escape
   function handleQsKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape' && queueSheetState !== 'collapsed') {
@@ -955,6 +964,9 @@
 <div class="now-playing" class:wide={isWide} class:queue-open={queueSheetState !== 'collapsed'} bind:clientWidth={containerWidth} onwheel={handleNpWheel} onmousedown={handleNpMiddlePress}>
   <button class="np-back-btn" onclick={() => activeView.set($previousView && $previousView !== 'nowplaying' ? $previousView : 'library')} title={$t('nowplaying.back')}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <button class="np-tv-btn" onclick={enterTvMode} title={$t('nowplaying.tvMode')}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
   </button>
   {#if resolvedCoverUrl}
     <div class="bg-blur" style="background-image: url({resolvedCoverUrl})"></div>
@@ -1693,6 +1705,27 @@
     transition: background 0.2s;
   }
   .np-back-btn:hover { background: rgba(0, 0, 0, 0.5); }
+
+  /* Bouton mode Grand écran — même style que le retour, ancré à droite */
+  .np-tv-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.3);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background 0.2s;
+  }
+  .np-tv-btn:hover { background: rgba(0, 0, 0, 0.5); }
 
   .bg-blur {
     position: absolute;

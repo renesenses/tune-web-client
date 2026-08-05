@@ -2265,6 +2265,15 @@ export default {
   "settings.ingestConflict": "衝突したとき",
   "settings.ingestWriteTags": "修正内容をタグに書き込む",
   "settings.ingestSaved": "取り込み設定を保存しました",
+  // 大画面モード（TV）+ 歌詞
+  "nowplaying.tvMode": "大画面モード",
+  "tv.lyrics": "歌詞",
+  "tv.size": "文字サイズ",
+  "tv.themeDark": "ダークテーマ",
+  "tv.themeLight": "ライトテーマ",
+  "tv.exitHint": "Esc またはクリックで終了",
+  "settings.lyricsLrclib": "オンライン歌詞（LRCLIB）",
+  "settings.lyricsLrclibHelp": "不足している歌詞をオンラインのコミュニティデータベース LRCLIB から取得します。既定では無効です。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

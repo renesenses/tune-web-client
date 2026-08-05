@@ -2536,6 +2536,15 @@ export default {
   "settings.ingestConflict": "On conflict",
   "settings.ingestWriteTags": "Write corrections into tags",
   "settings.ingestSaved": "Import settings saved",
+  // Big screen (TV) mode + lyrics
+  "nowplaying.tvMode": "Big screen mode",
+  "tv.lyrics": "Lyrics",
+  "tv.size": "Text size",
+  "tv.themeDark": "Dark theme",
+  "tv.themeLight": "Light theme",
+  "tv.exitHint": "Esc or click to exit",
+  "settings.lyricsLrclib": "Online lyrics (LRCLIB)",
+  "settings.lyricsLrclibHelp": "Fetches missing lyrics from LRCLIB, an online community database. Disabled by default.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

@@ -344,6 +344,8 @@ export interface SystemConfig {
   zone_auto_create?: boolean;
   metadata_readonly: boolean;
   enrich_on_scan: ConfigFlag;
+  /** Paroles en ligne (LRCLIB, base communautaire) — désactivé par défaut. */
+  lyrics_lrclib_enabled?: ConfigFlag;
   discogs_token_set: boolean;
   /** Sépare les dossiers de destination par qualité audio (réglage de scan). */
   quality_split?: ConfigFlag;

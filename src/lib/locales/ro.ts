@@ -2275,6 +2275,15 @@ export default {
   "settings.ingestConflict": "În caz de conflict",
   "settings.ingestWriteTags": "Scrie corecturile în etichete",
   "settings.ingestSaved": "Setările de import au fost salvate",
+  // Mod ecran mare (TV) + versuri
+  "nowplaying.tvMode": "Mod ecran mare",
+  "tv.lyrics": "Versuri",
+  "tv.size": "Dimensiunea textului",
+  "tv.themeDark": "Temă întunecată",
+  "tv.themeLight": "Temă deschisă",
+  "tv.exitHint": "Esc sau clic pentru a ieși",
+  "settings.lyricsLrclib": "Versuri online (LRCLIB)",
+  "settings.lyricsLrclibHelp": "Preia versurile lipsă din LRCLIB, o bază de date comunitară online. Dezactivat implicit.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
