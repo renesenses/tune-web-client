@@ -736,6 +736,8 @@ export interface SmartCollection {
 }
 
 export interface SmartCollectionPreview {
-  count: number;
+  // Server returns {"albums": [...], "total": albums.len()} — total is the
+  // length of the returned list, i.e. capped by max_limit when one is sent.
+  total: number;
   albums: any[];  // shape == albums table row
 }

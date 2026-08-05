@@ -1704,6 +1704,8 @@ export default {
   "smartCollection.sortRandom": "Slumpmässigt",
   "smartCollection.albumMatching": "matchande album",
   "smartCollection.albumsMatching": "matchande album",
+  "smartCollection.previewNone": "Inget matchande album",
+  "smartCollection.previewComputing": "Beräknar…",
   "smartCollection.savingProgress": "Sparar…",
   "smartCollection.update": "Uppdatera",
   "smartCollection.create": "Skapa",

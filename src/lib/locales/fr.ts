@@ -1954,6 +1954,8 @@ export default {
   "smartCollection.sortRandom": "Aléatoire",
   "smartCollection.albumMatching": "album correspondant",
   "smartCollection.albumsMatching": "albums correspondants",
+  "smartCollection.previewNone": "Aucun album correspondant",
+  "smartCollection.previewComputing": "Calcul…",
   "smartCollection.savingProgress": "Enregistrement…",
   "smartCollection.update": "Mettre à jour",
   "smartCollection.create": "Créer",

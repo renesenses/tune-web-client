@@ -1696,6 +1696,8 @@ export default {
   "smartCollection.sortRandom": "무작위",
   "smartCollection.albumMatching": "일치하는 앨범",
   "smartCollection.albumsMatching": "일치하는 앨범",
+  "smartCollection.previewNone": "일치하는 앨범 없음",
+  "smartCollection.previewComputing": "계산 중…",
   "smartCollection.savingProgress": "저장 중…",
   "smartCollection.update": "업데이트",
   "smartCollection.create": "만들기",
