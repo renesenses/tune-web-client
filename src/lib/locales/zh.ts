@@ -1713,6 +1713,8 @@ export default {
   "smartCollection.sortRandom": "随机",
   "smartCollection.albumMatching": "匹配的专辑",
   "smartCollection.albumsMatching": "匹配的专辑",
+  "smartCollection.previewNone": "没有匹配的专辑",
+  "smartCollection.previewComputing": "计算中…",
   "smartCollection.savingProgress": "保存中…",
   "smartCollection.update": "更新",
   "smartCollection.create": "创建",

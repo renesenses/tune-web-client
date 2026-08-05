@@ -1711,6 +1711,8 @@ export default {
   "smartCollection.sortRandom": "ランダム",
   "smartCollection.albumMatching": "件の一致アルバム",
   "smartCollection.albumsMatching": "件の一致アルバム",
+  "smartCollection.previewNone": "一致するアルバムはありません",
+  "smartCollection.previewComputing": "計算中…",
   "smartCollection.savingProgress": "保存中…",
   "smartCollection.update": "更新",
   "smartCollection.create": "作成",

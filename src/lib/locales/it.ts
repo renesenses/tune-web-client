@@ -1713,6 +1713,8 @@ export default {
   "smartCollection.sortRandom": "Casuale",
   "smartCollection.albumMatching": "album corrispondente",
   "smartCollection.albumsMatching": "album corrispondenti",
+  "smartCollection.previewNone": "Nessun album corrispondente",
+  "smartCollection.previewComputing": "Calcolo…",
   "smartCollection.savingProgress": "Salvataggio…",
   "smartCollection.update": "Aggiorna",
   "smartCollection.create": "Crea",

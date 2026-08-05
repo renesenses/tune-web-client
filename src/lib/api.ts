@@ -2930,7 +2930,9 @@ export function getSmartCollectionAlbums(id: number) {
     Array.isArray(d) ? d : (d.albums ?? [])
   );
 }
-export function previewSmartCollection(payload: { rules: any[]; match_mode?: string; sort_by?: string; sort_order?: string; max_albums?: number }) {
+// NB: the server's PreviewRequest expects `max_limit` (same field name as
+// create/update), not `max_albums`.
+export function previewSmartCollection(payload: { rules: any[]; match_mode?: string; sort_by?: string; sort_order?: string; max_limit?: number }) {
   return fetchJSON<import('./types').SmartCollectionPreview>(`${BASE}/library/smart-collections/preview`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

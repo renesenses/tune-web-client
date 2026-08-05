@@ -1721,6 +1721,8 @@ export default {
   "smartCollection.sortRandom": "Aleatoriu",
   "smartCollection.albumMatching": "album potrivit",
   "smartCollection.albumsMatching": "albume potrivite",
+  "smartCollection.previewNone": "Niciun album potrivit",
+  "smartCollection.previewComputing": "Se calculează…",
   "smartCollection.savingProgress": "Se salvează…",
   "smartCollection.update": "Actualizează",
   "smartCollection.create": "Creează",

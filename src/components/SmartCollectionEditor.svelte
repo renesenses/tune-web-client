@@ -5,7 +5,7 @@
 
   // Editor for one Smart Collection: name + rules + match_mode + sort.
   // Live preview count via POST /library/smart-collections/preview as
-  // the user edits (debounced 300 ms).
+  // the user edits (debounced 350 ms).
   let { collection = null, onSave, onCancel } = $props<{
     collection?: SmartCollection | null;
     onSave: (created: SmartCollection) => void;
@@ -31,8 +31,11 @@
       : [{ field: 'sample_rate', op: '>=', value: 96000 }]
   );
 
-  let preview = $state<{ count: number; loading: boolean; error: string | null }>({
-    count: 0, loading: false, error: null,
+  // Live match count. `count` stays null until the first response; on
+  // network errors we keep the last known value (no aggressive error UI).
+  // `capped` means the server list was bounded by max_limit → display "N+".
+  let preview = $state<{ count: number | null; capped: boolean; loading: boolean }>({
+    count: null, capped: false, loading: false,
   });
   let saving = $state(false);
 
@@ -113,23 +116,58 @@
     rules = rules.map((r, i) => i === idx ? { ...r, ...patch } : r);
   }
 
-  // Debounced live preview.
-  let previewTimer: any = null;
+  // A rule with no usable value (still being typed) must not trigger a
+  // preview call — but emptying a value must recompute with the rules left.
+  function isCompleteRule(r: SmartRule): boolean {
+    if (r.op === 'is_null' || r.op === 'is_not_null') return true;
+    if (r.field === 'credit') {
+      const v = r.value ?? {};
+      return Boolean(v.role || v.artist_name || v.instrument);
+    }
+    if (r.op === 'between') {
+      return Array.isArray(r.value)
+        && r.value[0] !== '' && r.value[0] != null
+        && r.value[1] !== '' && r.value[1] != null;
+    }
+    if (r.op === 'in') return Array.isArray(r.value) && r.value.length > 0;
+    return r.value !== '' && r.value != null;
+  }
+
+  // Debounced live preview. The payload is derived from the *complete*
+  // rules only, serialized so the effect re-runs only when the effective
+  // request actually changes (typing an incomplete rule fires nothing).
+  let previewPayload = $derived(JSON.stringify({
+    rules: rules.filter(isCompleteRule),
+    match_mode: matchMode,
+    max_limit: maxAlbums > 0 ? maxAlbums : undefined,
+  }));
+
+  let previewTimer: ReturnType<typeof setTimeout> | null = null;
+  let previewSeq = 0;
   $effect(() => {
-    void rules; void matchMode;
+    const payload = previewPayload;
     if (previewTimer) clearTimeout(previewTimer);
-    previewTimer = setTimeout(refreshPreview, 300);
+    previewTimer = setTimeout(() => refreshPreview(payload), 350);
+    return () => { if (previewTimer) clearTimeout(previewTimer); };
   });
 
-  async function refreshPreview() {
-    preview = { ...preview, loading: true, error: null };
+  async function refreshPreview(payloadJson: string) {
+    const seq = ++previewSeq;
+    const payload = JSON.parse(payloadJson);
+    preview = { ...preview, loading: true };
     try {
-      const res = await api.previewSmartCollection({
-        rules, match_mode: matchMode, max_albums: 1,
-      });
-      preview = { count: res.count, loading: false, error: null };
-    } catch (e: any) {
-      preview = { count: 0, loading: false, error: e?.message ?? 'preview failed' };
+      const res: any = await api.previewSmartCollection(payload);
+      if (seq !== previewSeq) return; // stale response, a newer request is in flight
+      const albums = Array.isArray(res?.albums) ? res.albums : (Array.isArray(res) ? res : []);
+      const total = typeof res?.total === 'number' ? res.total
+        : typeof res?.count === 'number' ? res.count
+        : albums.length;
+      const capped = payload.max_limit != null && total >= payload.max_limit;
+      preview = { count: total, capped, loading: false };
+    } catch {
+      // Network hiccup: keep the last known count, no error banner.
+      if (seq !== previewSeq) return;
+      preview = { ...preview, loading: false };
     }
   }
 
@@ -273,18 +311,24 @@
     </div>
 
     <footer>
-      <div class="preview">
-        {#if preview.error}
-          <span class="err">⚠ {preview.error}</span>
-        {:else if preview.loading}
-          <span class="muted">…</span>
-        {:else}
-          <span class="count">{preview.count}</span> {preview.count > 1 ? $t('smartCollection.albumsMatching') : $t('smartCollection.albumMatching')}
+      <div class="preview" aria-live="polite">
+        {#if preview.count !== null}
+          <span class="result" class:stale={preview.loading}>
+            {#if preview.count === 0}
+              <span class="muted">{$t('smartCollection.previewNone')}</span>
+            {:else}
+              <span class="count">{preview.capped ? `${preview.count}+` : preview.count}</span>
+              {preview.count > 1 || preview.capped ? $t('smartCollection.albumsMatching') : $t('smartCollection.albumMatching')}
+            {/if}
+          </span>
+        {/if}
+        {#if preview.loading}
+          <span class="computing">{$t('smartCollection.previewComputing')}</span>
         {/if}
       </div>
       <div class="actions">
         <button class="cancel" onclick={onCancel}>{$t('common.cancel')}</button>
-        <button class="save" onclick={save} disabled={saving || !!preview.error}>
+        <button class="save" onclick={save} disabled={saving}>
           {saving ? $t('smartCollection.savingProgress') : (collection ? $t('smartCollection.update') : $t('smartCollection.create'))}
         </button>
       </div>
@@ -344,8 +388,9 @@
   footer { display: flex; align-items: center; justify-content: space-between; }
   .preview { font-size: 0.95rem; }
   .preview .count { font-weight: 700; color: var(--tune-accent, #6366f1); font-size: 1.2rem; }
-  .preview .err { color: #dc2626; font-size: 0.85rem; }
   .preview .muted { color: var(--tune-text-muted); }
+  .preview .result.stale { opacity: 0.6; }
+  .preview .computing { color: var(--tune-text-muted); font-size: 0.8rem; margin-left: 0.4rem; font-style: italic; }
   .actions { display: flex; gap: 0.5rem; }
   .actions button { padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
   .cancel { background: transparent; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); color: var(--tune-text); }
