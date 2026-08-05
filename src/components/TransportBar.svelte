@@ -36,11 +36,20 @@
   let mobileVol = $derived($zoneVolume);
   let mobileIsMuted = $derived(mobileVol === 0 && $mutedVolume !== null);
 
+  // Miroir local obligatoire pour les zones navigateur : le serveur ignore
+  // leur volume (set_volume_no_device_id), l'<audio> de cet onglet doit être
+  // piloté directement (même règle que VolumeControl).
+  function applyMobileVolume(z: { id: number } & Record<string, unknown>, val: number) {
+    zoneVolume.set(val);
+    if (isBrowserZone(z as never)) browserSetVolume(val);
+  }
+
   async function handleMobileVolume(e: Event) {
     const z = $currentZone;
     if (!z?.id) return;
     const val = Number((e.target as HTMLInputElement).value);
     if (val > 0) mutedVolume.set(null);
+    applyMobileVolume(z, val);
     await api.setVolume(z.id, val);
   }
 
@@ -49,6 +58,7 @@
     if (!z?.id) return;
     const newVal = Math.max(0, Math.min(1, mobileVol + delta));
     if (newVal > 0) mutedVolume.set(null);
+    applyMobileVolume(z, newVal);
     await api.setVolume(z.id, newVal);
   }
 
@@ -57,12 +67,15 @@
     if (!z?.id) return;
     if (mobileVol > 0) {
       mutedVolume.set(mobileVol);
+      applyMobileVolume(z, 0);
       await api.setVolume(z.id, 0);
     } else if ($mutedVolume !== null) {
       const restore = $mutedVolume;
       mutedVolume.set(null);
+      applyMobileVolume(z, restore);
       await api.setVolume(z.id, restore);
     } else {
+      applyMobileVolume(z, 0.5);
       await api.setVolume(z.id, 0.5);
     }
   }
