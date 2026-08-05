@@ -39,16 +39,29 @@
     }
   }
 
+  // Une zone navigateur joue dans CET onglet (<audio>) : le serveur ignore
+  // son volume (set_volume_no_device_id) — chaque écriture doit donc aussi
+  // passer par browserSetVolume, comme le fait déjà le glissement du slider.
+  // Sans ça, le bouton haut-parleur (mute) et les ± étaient inertes sur
+  // « Cet ordinateur » (Bertrand, .18).
+  function applyVolume(val: number) {
+    zoneVolume.set(val);
+    if (isBrowserZone(zone)) browserSetVolume(val);
+  }
+
   async function toggleMute() {
     if (!zone?.id) return;
     if (vol > 0) {
       mutedVolume.set(vol);
+      applyVolume(0);
       await api.setVolume(zone.id, 0);
     } else if ($mutedVolume !== null) {
       const restore = $mutedVolume;
       mutedVolume.set(null);
+      applyVolume(restore);
       await api.setVolume(zone.id, restore);
     } else {
+      applyVolume(0.5);
       await api.setVolume(zone.id, 0.5);
     }
   }
@@ -59,7 +72,7 @@
     if (!zone?.id) return;
     const next = Math.max(0, vol - STEP);
     if (next > 0) mutedVolume.set(null);
-    zoneVolume.set(next);
+    applyVolume(next);
     await api.setVolume(zone.id, next);
   }
 
@@ -67,7 +80,7 @@
     if (!zone?.id) return;
     const next = Math.min(1, vol + STEP);
     mutedVolume.set(null);
-    zoneVolume.set(next);
+    applyVolume(next);
     await api.setVolume(zone.id, next);
   }
 </script>
