@@ -3,6 +3,7 @@
   import * as api from '../lib/api';
   import { t } from '../lib/i18n';
   import { get } from 'svelte/store';
+  import FirResponseCurve from './FirResponseCurve.svelte';
 
   interface Props {
     zone: Zone;
@@ -60,6 +61,8 @@
   let irLoading = $state(true);
   let irMessage = $state<string | null>(null);
   let irError = $state(false);
+  /** Incrémenté après chaque upload réussi → la courbe de réponse se recharge. */
+  let irRefresh = $state(0);
 
   async function loadIrStatus() {
     if (!zone.id) { irLoading = false; return; }
@@ -91,6 +94,7 @@
         irPath = data.ir_path;
         irMessage = $t('zoneConfig.irLoaded').replace('{size}', (file.size / 1024).toFixed(0));
         irError = false;
+        irRefresh++;
       } else {
         irMessage = $t('common.error') + ' : ' + data.error;
         irError = true;
@@ -472,6 +476,13 @@
           </label>
           <button class="btn btn-danger-outline" onclick={clearIr}>{$t('zoneConfig.disable')}</button>
         </div>
+        {#if zone.id !== null}
+          <FirResponseCurve
+            zoneId={zone.id}
+            refreshKey={irRefresh}
+            currentSampleRate={zone.current_track?.sample_rate ?? null}
+          />
+        {/if}
       {:else}
         <label class="btn btn-primary ir-upload-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
