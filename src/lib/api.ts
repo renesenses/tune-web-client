@@ -3002,6 +3002,17 @@ export function enrichArtistImages() {
   );
 }
 
+// Progress of the (async, background) artist-image enrichment. The POST above
+// returns 202 immediately; the real work — MBID matching then image fetch —
+// runs for minutes. `result` mirrors the `artist_artwork_enrich_result` setting
+// ({phase,total,processed,enriched}) or is null before the first run.
+export function enrichArtistImagesStatus() {
+  return fetchJSON<{
+    result: { phase?: string; total?: number; processed?: number; enriched?: number } | null;
+    artists_without_image: number;
+  }>(`${BASE}/library/artwork/enrich-artists/status`);
+}
+
 // YouTube playback: managed yt-dlp helper (opt-in). YouTube blocked Tune's
 // native extraction server-side, so playback goes through yt-dlp.
 export function getYoutubeStatus() {
