@@ -2342,6 +2342,15 @@ export default {
   "settings.ingestConflict": "In caso di conflitto",
   "settings.ingestWriteTags": "Scrivi le correzioni nei tag",
   "settings.ingestSaved": "Impostazioni di importazione salvate",
+  // Modalità grande schermo (TV) + testi
+  "nowplaying.tvMode": "Modalità grande schermo",
+  "tv.lyrics": "Testi",
+  "tv.size": "Dimensione del testo",
+  "tv.themeDark": "Tema scuro",
+  "tv.themeLight": "Tema chiaro",
+  "tv.exitHint": "Esc o clic per uscire",
+  "settings.lyricsLrclib": "Testi online (LRCLIB)",
+  "settings.lyricsLrclibHelp": "Recupera i testi mancanti da LRCLIB, un database comunitario online. Disattivato per impostazione predefinita.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

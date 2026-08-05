@@ -24,6 +24,7 @@
   import * as api from './lib/api';
   import Sidebar from './components/Sidebar.svelte';
   import NowPlaying from './components/NowPlaying.svelte';
+  import TvView from './components/TvView.svelte';
   import TransportBar from './components/TransportBar.svelte';
   import QueueView from './components/QueueView.svelte';
   import LibraryView from './components/LibraryView.svelte';
@@ -378,8 +379,19 @@ import AlarmsView from './components/AlarmsView.svelte';
     // Pastille « réponse support non lue » (sidebar) — poll léger 5 min.
     startSupportPolling();
 
+    // Démarrage direct en mode Grand écran : #tv ou #tv&zone=<id>.
+    // Lu AVANT la vue de démarrage des préférences, qui ne doit pas l'écraser.
+    const bootHash = window.location.hash;
+    const tvBoot = !isKiosk && (bootHash === '#tv' || bootHash.startsWith('#tv&') || bootHash.startsWith('#tv?'));
+    if (tvBoot) {
+      const zoneMatch = bootHash.match(/[&?]zone=(\d+)/);
+      // Force la zone demandée ; fetchZones() la conserve si elle existe.
+      if (zoneMatch) currentZoneId.set(Number(zoneMatch[1]));
+      activeView.set('tv');
+    }
+
     // Apply startup view (skip in kiosk mode — always nowplaying)
-    if (!isKiosk) {
+    if (!isKiosk && !tvBoot) {
       // After SSO OAuth redirect, the server sends the browser back to "/".
       // Detect the pending flag and navigate straight to Settings so the
       // SettingsView component re-runs loadCloudStatus() and shows the
@@ -1190,6 +1202,12 @@ import AlarmsView from './components/AlarmsView.svelte';
   <AiChat />
   <ToastContainer />
 </div>
+
+<!-- Mode Grand écran : overlay plein viewport au-dessus de tout (afficheur
+     type tvOS, sans contrôles — Échap ou clic pour revenir à l'app). -->
+{#if $activeView === 'tv'}
+  <TvView />
+{/if}
 
 {#if showOnboarding}
   <OnboardingWizard onComplete={handleOnboardingComplete} />

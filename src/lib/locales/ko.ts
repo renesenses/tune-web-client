@@ -2325,6 +2325,15 @@ export default {
   "settings.ingestConflict": "충돌 시",
   "settings.ingestWriteTags": "수정 내용을 태그에 기록",
   "settings.ingestSaved": "가져오기 설정을 저장했습니다",
+  // 큰 화면 모드(TV) + 가사
+  "nowplaying.tvMode": "큰 화면 모드",
+  "tv.lyrics": "가사",
+  "tv.size": "글자 크기",
+  "tv.themeDark": "다크 테마",
+  "tv.themeLight": "라이트 테마",
+  "tv.exitHint": "Esc 또는 클릭으로 종료",
+  "settings.lyricsLrclib": "온라인 가사 (LRCLIB)",
+  "settings.lyricsLrclibHelp": "누락된 가사를 온라인 커뮤니티 데이터베이스 LRCLIB에서 가져옵니다. 기본적으로 비활성화되어 있습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

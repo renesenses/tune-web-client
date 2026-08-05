@@ -2342,6 +2342,15 @@ export default {
   "settings.ingestConflict": "Bei Konflikt",
   "settings.ingestWriteTags": "Korrekturen in Tags schreiben",
   "settings.ingestSaved": "Import-Einstellungen gespeichert",
+  // Großbildmodus (TV) + Songtexte
+  "nowplaying.tvMode": "Großbildmodus",
+  "tv.lyrics": "Songtexte",
+  "tv.size": "Textgröße",
+  "tv.themeDark": "Dunkles Design",
+  "tv.themeLight": "Helles Design",
+  "tv.exitHint": "Esc oder Klick zum Beenden",
+  "settings.lyricsLrclib": "Online-Songtexte (LRCLIB)",
+  "settings.lyricsLrclibHelp": "Lädt fehlende Songtexte von LRCLIB, einer Online-Community-Datenbank. Standardmäßig deaktiviert.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];
