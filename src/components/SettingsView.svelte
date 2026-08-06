@@ -716,13 +716,16 @@
   let hqplayerSaving = $state(false);
   let hqplayerChecking = $state(false);
   let hqplayerReachable = $state<boolean | null>(null);
+  let hqplayerStatusHost = $state('');
+  let hqplayerStatusPort = $state(0);
+  let hqplayerStatusMessage = $state('');
 
   async function loadHqplayerConfig() {
     try {
       const cfg = await api.apiFetch('/hqplayer/config');
-      hqplayerEnabled = cfg?.enabled ?? false;
-      hqplayerHostInput = cfg?.host ?? '';
-      hqplayerPortInput = cfg?.port ?? 4321;
+      hqplayerEnabled = cfg?.hqplayer_enabled ?? false;
+      hqplayerHostInput = cfg?.hqplayer_host ?? '';
+      hqplayerPortInput = cfg?.hqplayer_port ?? 4321;
     } catch { /* not configured */ }
   }
 
@@ -730,7 +733,7 @@
     hqplayerSaving = true;
     try {
       hqplayerEnabled = !hqplayerEnabled;
-      await api.apiPost('/hqplayer/config', { host: hqplayerHostInput, port: hqplayerPortInput, enabled: hqplayerEnabled });
+      await api.apiPost('/hqplayer/config', { hqplayer_host: hqplayerHostInput, hqplayer_port: hqplayerPortInput, hqplayer_enabled: hqplayerEnabled });
     } catch (e: any) { notifications.error(e?.message ?? 'Error'); }
     hqplayerSaving = false;
   }
@@ -738,7 +741,7 @@
   async function saveHqplayer() {
     hqplayerSaving = true;
     try {
-      await api.apiPost('/hqplayer/config', { host: hqplayerHostInput.trim(), port: hqplayerPortInput, enabled: hqplayerEnabled });
+      await api.apiPost('/hqplayer/config', { hqplayer_host: hqplayerHostInput.trim(), hqplayer_port: hqplayerPortInput, hqplayer_enabled: hqplayerEnabled });
       notifications.success(get(t)('settings.hqplayerConfigured'));
       await checkHqplayer();
     } catch (e: any) { notifications.error(e?.message ?? 'Error'); }
@@ -748,9 +751,19 @@
   async function checkHqplayer() {
     hqplayerChecking = true;
     try {
+      // GET /hqplayer/status may take a few seconds (server probes ports 4321 then 8019).
+      // We await the full response and read `connected` (the real backend field).
       const status = await api.apiFetch('/hqplayer/status');
-      hqplayerReachable = status?.reachable ?? false;
-    } catch { hqplayerReachable = false; }
+      hqplayerReachable = status?.connected ?? false;
+      hqplayerStatusHost = status?.host ?? hqplayerHostInput;
+      hqplayerStatusPort = status?.port ?? hqplayerPortInput;
+      hqplayerStatusMessage = status?.message ?? '';
+    } catch {
+      hqplayerReachable = false;
+      hqplayerStatusHost = hqplayerHostInput;
+      hqplayerStatusPort = hqplayerPortInput;
+      hqplayerStatusMessage = '';
+    }
     hqplayerChecking = false;
   }
 
@@ -4535,8 +4548,12 @@
                 <div class="spinner small"></div>
               {:else if hqplayerReachable === true}
                 <span class="squeezebox-status-badge connected">{$t('settings.connected')}</span>
+                <span class="muted" style="margin-left: 8px;">HQPlayer @ {hqplayerStatusHost}:{hqplayerStatusPort}</span>
               {:else if hqplayerReachable === false}
                 <span class="squeezebox-status-badge disconnected">{$t('settings.unreachable')}</span>
+                {#if hqplayerStatusMessage}
+                  <span class="muted" style="margin-left: 8px;">{hqplayerStatusMessage}</span>
+                {/if}
               {:else}
                 <span class="muted">{$t('settings.notTested')}</span>
               {/if}
