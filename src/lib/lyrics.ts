@@ -6,6 +6,10 @@
 // Ce module accepte les deux et rend une forme unique. Toute erreur (404 piste
 // sans paroles, 405 endpoint absent, réseau) est avalée et rend `null` : côté
 // affichage, « pas de paroles » n'est jamais une erreur.
+//
+// Pour les pistes RADIO (titre+artiste fournis par le flux, pas de track id),
+// `fetchLyricsByMeta` interroge `GET /lyrics/by-meta` — même contrat de
+// réponse, mêmes règles de silence.
 
 import { BASE, fetchJSON } from './api';
 
@@ -36,16 +40,8 @@ export function parseLrc(raw: string): LyricLine[] {
   return lines;
 }
 
-/** Charge et normalise les paroles d'une piste ; `null` = pas de paroles. */
-export async function fetchTrackLyrics(trackId: number): Promise<LyricsData | null> {
-  let r: any;
-  try {
-    r = await fetchJSON<any>(`${BASE}/library/tracks/${trackId}/lyrics`);
-  } catch {
-    // 404 (pas de paroles), 405 (endpoint pas encore déployé), réseau… :
-    // comportement silencieux, l'affichage retombe sur « pochette seule ».
-    return null;
-  }
+/** Normalise une réponse paroles serveur (nouvelle ou historique) ; `null` = rien. */
+export function normalizeLyricsResponse(r: any): LyricsData | null {
   if (!r || typeof r !== 'object') return null;
 
   // Nouvelle forme serveur : lignes déjà structurées.
@@ -73,4 +69,108 @@ export async function fetchTrackLyrics(trackId: number): Promise<LyricsData | nu
     };
   }
   return null;
+}
+
+/** Charge et normalise les paroles d'une piste ; `null` = pas de paroles. */
+export async function fetchTrackLyrics(trackId: number): Promise<LyricsData | null> {
+  try {
+    return normalizeLyricsResponse(await fetchJSON<any>(`${BASE}/library/tracks/${trackId}/lyrics`));
+  } catch {
+    // 404 (pas de paroles), 405 (endpoint pas encore déployé), réseau… :
+    // comportement silencieux, l'affichage retombe sur « pochette seule ».
+    return null;
+  }
+}
+
+export interface MetaLyricsQuery {
+  title: string;
+  artist: string;
+  /** Album — affine le match LRCLIB (pistes streaming). */
+  album?: string | null;
+  /** Durée en secondes — départage les versions côté LRCLIB (streaming). */
+  durationSecs?: number | null;
+  /** Vrai pour une radio (position imprécise → pas de karaoké côté panneau). */
+  radio: boolean;
+}
+
+/** Paroles par métadonnées seules (pas d'id de bibliothèque) : radio (titre +
+ *  artiste du flux) ou streaming Qobuz/Tidal (titre + artiste + album + durée).
+ *  Serveur : cascade LRCLIB opt-in + cache — `null` = pas de paroles. */
+export async function fetchLyricsByMeta(q: MetaLyricsQuery): Promise<LyricsData | null> {
+  const t = q.title.trim();
+  const a = q.artist.trim();
+  if (!t || !a) return null;
+  let url = `${BASE}/lyrics/by-meta?title=${encodeURIComponent(t)}&artist=${encodeURIComponent(a)}`;
+  const album = q.album?.trim();
+  if (album) url += `&album=${encodeURIComponent(album)}`;
+  if (typeof q.durationSecs === 'number' && q.durationSecs > 0) {
+    url += `&duration=${Math.round(q.durationSecs)}`;
+  }
+  try {
+    return normalizeLyricsResponse(await fetchJSON<any>(url));
+  } catch {
+    return null;
+  }
+}
+
+interface MetaTrack {
+  id?: number | null;
+  track_id?: number | null;
+  source?: string | null;
+  title?: string | null;
+  artist_name?: string | null;
+  album_title?: string | null;
+  duration_ms?: number | null;
+}
+
+/** Requête paroles-par-métadonnées adaptée à une piste SANS id de
+ *  bibliothèque, ou `null` si elle n'est pas éligible.
+ *
+ *  - Radio : titre + artiste, l'artiste ne devant pas être le simple nom de
+ *    station (repli serveur quand le flux ne donne qu'un titre — `album_title`
+ *    porte toujours le nom de station). Album/durée non fiables → omis ;
+ *    l'ancrage temporel des paroles reste large (`radio: true`).
+ *  - Streaming (Qobuz/Tidal…) : `current_track.id` est nul mais titre, artiste,
+ *    album et durée sont présents → on les transmet pour un meilleur match, et
+ *    la position de lecture réelle permet une synchro exacte (`radio: false`).
+ *
+ *  Une piste avec un id de bibliothèque exploitable relève de
+ *  `fetchTrackLyrics` et rend `null` ici. */
+export function metaLyricsQuery(track: MetaTrack | null | undefined): MetaLyricsQuery | null {
+  if (!track) return null;
+  // Un id de bibliothèque réel → endpoint par id, pas celui-ci.
+  const libId = track.id ?? track.track_id ?? null;
+  if (libId != null) return null;
+  const title = track.title?.trim();
+  const artist = track.artist_name?.trim();
+  if (!title || !artist) return null;
+
+  if (track.source === 'radio') {
+    // Artiste == nom de station ⇒ pas de vraie métadonnée morceau.
+    if (artist === track.album_title?.trim()) return null;
+    return { title, artist, radio: true };
+  }
+  // Streaming : local/podcast ont un id, donc on ne tombe ici que pour une
+  // source distante sans id (Qobuz, Tidal, Deezer, …).
+  return {
+    title,
+    artist,
+    album: track.album_title ?? null,
+    durationSecs: track.duration_ms ? track.duration_ms / 1000 : null,
+    radio: false,
+  };
+}
+
+/** Compat : garde de l'ancien point d'entrée radio (délègue à metaLyricsQuery). */
+export function radioTrackHasMeta(track: MetaTrack): boolean {
+  return metaLyricsQuery(track)?.radio === true;
+}
+
+/** Ancrage local (repère `performance.now()`) du début du morceau radio.
+ *  `ageMs` vient du serveur (`metadata_age_ms`, calculé sur SON horloge) :
+ *  on soustrait l'âge du « maintenant » local, aucune comparaison
+ *  d'horloges client/serveur n'entre en jeu. Sans âge serveur (événement WS
+ *  optimiste), le changement vient d'arriver : l'ancrage est « maintenant ». */
+export function radioAnchorFrom(ageMs: number | null | undefined, nowMs: number): number {
+  return typeof ageMs === 'number' && ageMs >= 0 ? nowMs - ageMs : nowMs;
 }
