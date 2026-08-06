@@ -1538,6 +1538,8 @@ export default {
   "settings.learnMore": "자세히 보기",
   "settings.telemetry": "텔레메트리",
   "settings.telemetryHint": "Tune 개선을 위해 익명 통계를 전송합니다.",
+  "settings.communitySync": "커뮤니티 메타데이터 공유",
+  "settings.communitySyncHint": "커뮤니티 보강에 참여: MusicBrainz 확인, 장르, 크레딧을 Tune 서버 간에 익명으로 공유합니다. 파일은 전송되지 않습니다.",
   "settings.instance": "인스턴스",
   "settings.browsePlugins": "플러그인 찾아보기",
   "settings.tunePremiumLicense": "Tune Premium 라이선스",

@@ -1563,6 +1563,8 @@ export default {
   "settings.learnMore": "Află mai multe",
   "settings.telemetry": "Telemetrie",
   "settings.telemetryHint": "Trimite statistici anonime pentru a îmbunătăți Tune.",
+  "settings.communitySync": "Partajare metadate cu comunitatea",
+  "settings.communitySyncHint": "Participă la îmbogățirea comunitară: rezoluție MusicBrainz, genuri și credite partajate între serverele Tune. Anonim — niciodată fișierele tale.",
   "settings.instance": "Instanță",
   "settings.browsePlugins": "Răsfoiește pluginurile",
   "settings.tunePremiumLicense": "Licență Tune Premium",

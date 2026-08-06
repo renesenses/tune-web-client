@@ -15,7 +15,10 @@ export function updateTrackMetadata(trackId: number, updates: Record<string, any
 }
 
 export function updateAlbumMetadata(albumId: number, updates: Record<string, any>) {
-  return fetchJSON(`${BASE}/metadata/albums/${albumId}`, { method: 'PATCH', body: JSON.stringify(updates) });
+  // PATCH /metadata/albums/{id} n'a jamais existé sur le serveur Rust → le
+  // « Valider » des albums douteux échouait en silence. PUT /library/albums
+  // accepte les mêmes champs (title, artist_name, genre, year, label…).
+  return fetchJSON(`${BASE}/library/albums/${albumId}`, { method: 'PUT', body: JSON.stringify(updates) });
 }
 
 // --- Write tags to disk ---
@@ -69,39 +72,10 @@ export function batchEditTracks(trackIds: number[], updates: Record<string, any>
   return fetchJSON(`${BASE}/metadata/batch/tracks`, { method: 'POST', body: JSON.stringify({ track_ids: trackIds, updates }) });
 }
 
-export function renameArtist(oldName: string, newName: string, updateFiles = false) {
-  return fetchJSON(`${BASE}/metadata/batch/rename-artist`, { method: 'POST', body: JSON.stringify({ old_name: oldName, new_name: newName, update_files: updateFiles }) });
-}
-
 // --- Lookup & enrichment ---
-
-export function lookupTrack(title: string, artist = '', album = '') {
-  return fetchJSON(`${BASE}/metadata/lookup?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}`, { method: 'POST' });
-}
-
-export function lookupAlbum(title: string, artist = '') {
-  return fetchJSON(`${BASE}/metadata/lookup-album?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`, { method: 'POST' });
-}
-
-export function enrichTrack(trackId: number) {
-  return fetchJSON(`${BASE}/metadata/enrich/${trackId}`, { method: 'POST' });
-}
-
-export function enrichAlbum(albumId: number) {
-  return fetchJSON(`${BASE}/metadata/enrich-album/${albumId}`, { method: 'POST' });
-}
-
-export function fetchAlbumCover(albumId: number) {
-  return fetchJSON(`${BASE}/metadata/covers/album/${albumId}`, { method: 'POST' });
-}
-
-export function fingerprintTrack(trackId: number) {
-  return fetchJSON(`${BASE}/metadata/fingerprint/${trackId}`, { method: 'POST' });
-}
-
-export function fingerprintBatch(trackIds?: number[], limit = 50) {
-  return fetchJSON(`${BASE}/metadata/fingerprint-batch`, { method: 'POST', body: JSON.stringify(trackIds ? { track_ids: trackIds } : { limit }) });
-}
+// lookupTrack/lookupAlbum, enrichTrack/enrichAlbum, fetchAlbumCover et
+// fingerprint* : jamais appelés depuis un composant (retirés — la refonte
+// passe par /library/enrich-all et les endpoints /library/…).
 
 // --- Auto-fix workflow ---
 
@@ -126,10 +100,6 @@ export function startAutoFix() {
 
 export function getAutoFixStatus() {
   return fetchJSON<AutoFixStatus>(`${BASE}/metadata/auto-fix/status`);
-}
-
-export function getAutoFixReport(limit = 10) {
-  return fetchJSON<unknown[]>(`${BASE}/metadata/auto-fix/report?limit=${limit}`);
 }
 
 export function scanDuplicates() {
@@ -422,11 +392,13 @@ export interface WriteAllResult {
 }
 
 export function writeAllTags() {
-  return fetchJSON<WriteAllResult>(`${BASE}/metadata/write-all-tags`, { method: 'POST' });
-}
-
-export function writeAllCovers() {
-  return fetchJSON<WriteAllResult>(`${BASE}/metadata/write-all-covers`, { method: 'POST' });
+  // Canonical bulk endpoint (async job + /library/write-tags/status). The old
+  // /metadata/write-all-tags survived the Python server only as a 404 until
+  // the server aliased it back — call the real thing directly.
+  return fetchJSON<WriteAllResult>(`${BASE}/library/write-tags`, {
+    method: 'POST',
+    body: JSON.stringify({ only_missing: true }),
+  });
 }
 
 // --- Rescan metadata from file tags ---
@@ -455,6 +427,8 @@ export interface MetadataFieldDef {
   key: string;
   label: string;
   enabled: boolean;
+  /** Which entity the field belongs to. Absent on servers < v0.9.52. */
+  scope?: 'track' | 'album' | 'both';
 }
 
 export interface MetadataCategory {
@@ -479,6 +453,21 @@ export function getTrackExtendedMetadata(trackId: number): Promise<Record<string
 /** Batch-set extended metadata fields on a track. */
 export function updateTrackExtendedMetadata(trackId: number, fields: Record<string, string>): Promise<any> {
   return fetchJSON(`${BASE}/library/tracks/${trackId}/metadata`, {
+    method: 'PUT',
+    body: JSON.stringify(fields),
+  });
+}
+
+// --- Extended metadata (per-album key-value store) ---
+
+/** Get all extended metadata key-value pairs for an album. */
+export function getAlbumExtendedMetadata(albumId: number): Promise<Record<string, string>> {
+  return fetchJSON(`${BASE}/library/albums/${albumId}/metadata`);
+}
+
+/** Batch-set album-level extended metadata (DB only; file tags go through write-tags). */
+export function updateAlbumExtendedMetadata(albumId: number, fields: Record<string, string>): Promise<any> {
+  return fetchJSON(`${BASE}/library/albums/${albumId}/metadata`, {
     method: 'PUT',
     body: JSON.stringify(fields),
   });

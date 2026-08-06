@@ -1558,6 +1558,8 @@ export default {
   "settings.learnMore": "Läs mer",
   "settings.telemetry": "Telemetri",
   "settings.telemetryHint": "Skicka anonym statistik för att förbättra Tune.",
+  "settings.communitySync": "Community-delning av metadata",
+  "settings.communitySyncHint": "Delta i community-berikning: MusicBrainz-upplösning, genrer och krediter delas anonymt mellan Tune-servrar — aldrig dina filer.",
   "settings.instance": "Instans",
   "settings.browsePlugins": "Bläddra bland tillägg",
   "settings.tunePremiumLicense": "Tune Premium-licens",

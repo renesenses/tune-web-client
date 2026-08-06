@@ -1804,6 +1804,8 @@ export default {
   "settings.learnMore": "En savoir plus",
   "settings.telemetry": "Télémétrie",
   "settings.telemetryHint": "Envoyer des statistiques anonymes pour améliorer Tune.",
+  "settings.communitySync": "Partage communautaire des métadonnées",
+  "settings.communitySyncHint": "Participer à l'enrichissement communautaire : résolution MusicBrainz, genres et crédits (compositeur, chef, interprètes) partagés entre serveurs Tune. Anonyme — jamais vos fichiers.",
   "settings.instance": "Instance",
   "settings.browsePlugins": "Parcourir les plugins",
   "settings.tunePremiumLicense": "Licence Tune Premium",

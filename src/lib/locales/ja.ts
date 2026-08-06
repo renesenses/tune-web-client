@@ -1553,6 +1553,8 @@ export default {
   "settings.learnMore": "詳細を見る",
   "settings.telemetry": "テレメトリー",
   "settings.telemetryHint": "Tune 改善のため匿名の統計を送信します。",
+  "settings.communitySync": "コミュニティメタデータ共有",
+  "settings.communitySyncHint": "コミュニティエンリッチメントに参加：MusicBrainz 解決、ジャンル、クレジットを Tune サーバー間で匿名共有します。ファイル自体は送信されません。",
   "settings.instance": "インスタンス",
   "settings.browsePlugins": "プラグインを参照",
   "settings.tunePremiumLicense": "Tune Premium ライセンス",

@@ -291,7 +291,6 @@
   }
 
   let writingTags = $state(false);
-  let writingCovers = $state(false);
   let writeResult = $state<{ type: string; message: string } | null>(null);
 
   async function handleWriteTags() {
@@ -302,25 +301,11 @@
       errorPrefix: $t('metadata.writeTagsError'),
       setRunning: (on) => writingTags = on,
       run: () => api.writeAllTags(),
-      success: (r) => {
-        const msg = $t('metadata.writeTagsResult').replace('{updated}', String(r.updated)).replace('{skipped}', String(r.skipped)).replace('{errors}', String(r.errors));
+      // The job runs async server-side ({status:"accepted"}) — counts arrive
+      // via /library/write-tags/status, not in this response.
+      success: () => {
+        const msg = $t('settings.writeTagsStarted');
         writeResult = { type: 'tags', message: msg };
-        return msg;
-      },
-    });
-  }
-
-  async function handleWriteCovers() {
-    if (!confirm($t('metadata.writeCoversConfirm'))) return;
-    writeResult = null;
-    await runAsyncOp({
-      pending: $t('metadata.writeCoversRunning'),
-      errorPrefix: $t('metadata.writeCoversError'),
-      setRunning: (on) => writingCovers = on,
-      run: () => api.writeAllCovers(),
-      success: (r) => {
-        const msg = $t('metadata.writeCoversResult').replace('{written}', String(r.written)).replace('{skipped}', String(r.skipped)).replace('{errors}', String(r.errors));
-        writeResult = { type: 'covers', message: msg };
         return msg;
       },
     });
@@ -554,8 +539,6 @@
   let mergeMessage = $state<string | null>(null);
 
   // Enrich
-  let enriching = $state(false);
-  let enrichMessage = $state<string | null>(null);
 
   // Batch genre/year
   let batchGenre = $state('');
@@ -894,7 +877,7 @@
     merging = true;
     mergeMessage = null;
     try {
-      const result = await api.mergeAlbumDuplicates();
+      const result = await api.mergeDuplicateAlbums();
       mergeMessage = $t('metadata.merged').replace('{count}', String(result.merged));
       // Reload data
       await loadData();
@@ -903,20 +886,6 @@
       mergeMessage = $t('metadata.saveError');
     }
     merging = false;
-  }
-
-  async function triggerEnrich() {
-    enriching = true;
-    enrichMessage = null;
-    try {
-      await api.triggerEnrich();
-      enrichMessage = $t('metadata.enrichStarted');
-      // Enrichment runs async on server — stats will be refreshed by WS event
-    } catch (e) {
-      console.error('Enrich error:', e);
-      enrichMessage = $t('metadata.saveError');
-    }
-    enriching = false;
   }
 
   async function loadTracksWithoutArtist() {
@@ -1457,19 +1426,17 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
               {$t('metadata.genresLastfm')}
             </button>
-            <button class="tools-item" onclick={() => runFromMenu(triggerEnrich, 'enrich')} disabled={enriching}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>
-              {$t('metadata.enrichMusicBrainz')}
-            </button>
-
+            <!-- L'entrée « Enrichir via MusicBrainz » appelait en réalité
+                 /system/enrich (pochettes & images) — le même bouton que
+                 Réglages → Bibliothèque → Enrichissement, sous un libellé
+                 trompeur. L'enrichissement vit dans les Réglages ; ici on
+                 garde les outils de curation. « Copier les pochettes »
+                 appelait /metadata/write-all-covers, qui n'existe pas côté
+                 serveur Rust (404 systématique). -->
             <div class="tools-group-label">{$t('metadata.groupTagsCovers')}</div>
             <button class="tools-item" onclick={() => runFromMenu(handleWriteTags, 'tags')} disabled={writingTags}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 3v13M5 10l7 7 7-7"/><line x1="4" y1="21" x2="20" y2="21"/></svg>
               {$t('metadata.burnTags')}
-            </button>
-            <button class="tools-item" onclick={() => runFromMenu(handleWriteCovers, 'covers')} disabled={writingCovers}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              {$t('metadata.copyCovers')}
             </button>
 
             <div class="tools-group-label">{$t('metadata.groupDuplicatesSuggestions')}</div>
