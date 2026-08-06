@@ -188,6 +188,12 @@ export interface NowPlaying {
   bit_depth?: number | null;
   genre?: string | null;
   year?: number | null;
+  /** Epoch ms (horloge serveur) du dernier changement titre/artiste — ancrage
+   *  temporel des paroles radio. */
+  metadata_changed_at?: number;
+  /** Âge de cette métadonnée au moment de la réponse, calculé côté serveur
+   *  (indépendant de l'horloge du client). */
+  metadata_age_ms?: number;
 }
 
 export interface Zone {

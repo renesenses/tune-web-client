@@ -7,7 +7,13 @@
   import { currentZone } from '../lib/stores/zones';
   import { currentTrack, currentTrackId, seekPositionMs, playbackState } from '../lib/stores/nowPlaying';
   import { activeView, previousView } from '../lib/stores/navigation';
-  import { fetchTrackLyrics, type LyricsData } from '../lib/lyrics';
+  import {
+    fetchTrackLyrics,
+    fetchLyricsByMeta,
+    radioTrackHasMeta,
+    radioAnchorFrom,
+    type LyricsData,
+  } from '../lib/lyrics';
   import { formatTime } from '../lib/utils';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
@@ -106,37 +112,73 @@
     baseTs = performance.now();
     if (!isPlaying) smoothPos = basePos;
   });
+  // ─── Ancrage temporel radio ─────────────────────────────────────────────
+  // Une radio n'a ni durée ni position : la « position » des paroles est le
+  // temps écoulé depuis l'instant où le SERVEUR a détecté le changement de
+  // métadonnée du flux (début du morceau). Le serveur fournit
+  // `metadata_age_ms` (âge calculé sur son horloge) dans current_track : on
+  // pose l'ancrage local `performance.now() − âge` et on se recale à chaque
+  // rafraîchissement de zone. Précision attendue : ±5-15 s (latence de la
+  // détection ICY/livemeta) — l'affichage doit rester lisible malgré cela.
+  let radioHasMeta = $derived(!!track && radioTrackHasMeta(track));
+  let radioAnchor = 0;
+  let radioKeySeen = '';
+  $effect(() => {
+    if (!isRadio || !track) {
+      radioKeySeen = '';
+      return;
+    }
+    const key = `${track.artist_name ?? ''}|${track.title ?? ''}`;
+    if (key !== radioKeySeen) radioKeySeen = key;
+    // Recalage à chaque mise à jour de zone (l'âge serveur est autoritaire) ;
+    // sans âge (événement WS optimiste), le changement vient de se produire.
+    radioAnchor = radioAnchorFrom(track.metadata_age_ms, performance.now());
+  });
+  let radioPos = $state(0);
+
   let rafId = 0;
   function rafTick() {
     if (isPlaying) {
       const extrapolated = basePos + (performance.now() - baseTs);
       smoothPos = durationMs > 0 ? Math.min(extrapolated, durationMs) : extrapolated;
     }
+    if (isRadio) radioPos = Math.max(0, performance.now() - radioAnchor);
     rafId = requestAnimationFrame(rafTick);
   }
 
   let progress = $derived(durationMs > 0 ? Math.min(smoothPos / durationMs, 1) : 0);
 
   // ─── Paroles ────────────────────────────────────────────────────────────
+  // Piste de bibliothèque → par track id ; piste radio avec titre+artiste →
+  // par métadonnées (endpoint /lyrics/by-meta). Radio sans métadonnée
+  // exploitable ou 404 → rien (comportement antérieur).
   let lyrics = $state<LyricsData | null>(null);
-  let lyricsTrackId: number | null = null;
+  let lyricsKey: string | null = null;
   $effect(() => {
     const id = $currentTrackId;
-    if (id === lyricsTrackId) return;
-    lyricsTrackId = id;
+    const byMeta = id == null && radioHasMeta && track
+      ? { title: track.title, artist: track.artist_name! }
+      : null;
+    const key = id != null ? `id:${id}` : byMeta ? `meta:${byMeta.artist}|${byMeta.title}` : null;
+    if (key === lyricsKey) return;
+    lyricsKey = key;
     lyrics = null;
-    if (id == null) return;
-    fetchTrackLyrics(id).then((data) => {
+    if (key == null) return;
+    const pending = id != null
+      ? fetchTrackLyrics(id)
+      : fetchLyricsByMeta(byMeta!.title, byMeta!.artist);
+    pending.then((data) => {
       // Garde anti-course : n'applique que si la piste n'a pas changé entre-temps.
-      if (lyricsTrackId === id) lyrics = data;
+      if (lyricsKey === key) lyrics = data;
     });
   });
   let showLyrics = $derived(settings.lyrics && lyrics !== null && lyrics.lines.length > 0);
 
   // Ligne active (paroles synchronisées) : dernière ligne dont t_ms <= position.
+  // Radio : position ≈ maintenant − ancrage de métadonnée.
   let activeLine = $derived.by(() => {
     if (!lyrics?.synced) return -1;
-    const pos = smoothPos;
+    const pos = isRadio ? radioPos : smoothPos;
     let idx = -1;
     for (let i = 0; i < lyrics.lines.length; i++) {
       const t_ms = lyrics.lines[i].t_ms;
@@ -165,14 +207,20 @@
   });
 
   // (b) Non synchronisé : défilement lent calé sur la durée de la piste.
+  // Radio (durée inconnue) : défilement doux calé sur le temps écoulé depuis
+  // l'ancrage de métadonnée, avec une fenêtre forfaitaire de 4 min.
+  const RADIO_SCROLL_WINDOW_MS = 240_000;
   $effect(() => {
-    const p = progress;
     const el = lyricsEl;
-    if (!el || !lyrics || lyrics.synced || durationMs <= 0) return;
+    if (!el || !lyrics || lyrics.synced) return;
     if (performance.now() < userScrollUntil) return;
     const max = el.scrollHeight - el.clientHeight;
     if (max <= 0) return;
-    el.scrollTop = p * max;
+    if (isRadio) {
+      el.scrollTop = Math.min(radioPos / RADIO_SCROLL_WINDOW_MS, 1) * max;
+    } else if (durationMs > 0) {
+      el.scrollTop = progress * max;
+    }
   });
 
   onMount(() => {

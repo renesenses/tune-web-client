@@ -18,6 +18,7 @@
   import VolumeControl from './VolumeControl.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
+  import { fetchTrackLyrics, fetchLyricsByMeta, radioTrackHasMeta } from '../lib/lyrics';
   import type { RepeatMode, Track, TrackCredit, NowPlaying } from '../lib/types';
 
   let isFavorite = $state(false);
@@ -30,8 +31,9 @@
   let creditsEnriching = $state(false);
   let showLyrics = $state(false);
   let npLyrics: string | null = $state(null);
-  let npSyncedRaw: string | null = $state(null);
   let npLyricsTrackId: number | null = $state(null);
+  /** Clé `artist|title` des paroles radio chargées (piste sans track id). */
+  let npLyricsRadioKey: string | null = $state(null);
   let lyricsLoading = $state(false);
   let showEq = $state(false);
 
@@ -226,20 +228,6 @@
     if (zone?.id) loadSleepTimer();
   });
 
-  function parseSyncedLyrics(raw: string): { time: number; text: string }[] {
-    const lines: { time: number; text: string }[] = [];
-    for (const line of raw.split('\n')) {
-      const m = line.match(/^\[(\d{2}):(\d{2})\.(\d{2,3})\]\s*(.*)/);
-      if (m) {
-        const mins = parseInt(m[1]);
-        const secs = parseInt(m[2]);
-        const ms = parseInt(m[3].padEnd(3, '0'));
-        lines.push({ time: mins * 60000 + secs * 1000 + ms, text: m[4] });
-      }
-    }
-    return lines;
-  }
-
   const EQ_PRESETS = [
     { value: 'flat', label: 'Flat' },
     { value: 'bass_boost', label: 'Bass Boost' },
@@ -417,27 +405,56 @@
   async function loadNpLyrics(trackId: number) {
     if (trackId === npLyricsTrackId) return;
     npLyricsTrackId = trackId;
+    npLyricsRadioKey = null;
     lyricsLoading = true;
-    try {
-      const result = await api.getTrackLyrics(trackId);
-      npLyrics = result.lyrics;
-      npSyncedRaw = result.synced ?? null;
-      if (npSyncedRaw) {
-        syncedLines = parseSyncedLyrics(npSyncedRaw);
-      } else {
-        syncedLines = [];
-      }
-    } catch {
-      npLyrics = null;
-      npSyncedRaw = null;
+    // `fetchTrackLyrics` (lib/lyrics) normalise les deux formes de réponse
+    // serveur (historique et `{synced, lines}`) et avale toute erreur en null.
+    const data = await fetchTrackLyrics(trackId);
+    if (npLyricsTrackId === trackId) {
+      npLyrics = data ? data.lines.map((l) => l.text).join('\n') : null;
+      syncedLines = data?.synced
+        ? data.lines.filter((l) => l.t_ms != null).map((l) => ({ time: l.t_ms!, text: l.text }))
+        : [];
+    }
+    lyricsLoading = false;
+  }
+
+  // Paroles d'une piste RADIO : le flux fournit titre + artiste mais aucune
+  // piste en bibliothèque — on interroge /lyrics/by-meta. Affichage en texte
+  // simple uniquement : la position d'une radio est trop imprécise ici pour
+  // le karaoké (le mode Grand écran, lui, gère l'ancrage synchronisé).
+  async function loadRadioLyrics(title: string, artist: string) {
+    const key = `${artist}|${title}`;
+    if (key === npLyricsRadioKey) return;
+    npLyricsRadioKey = key;
+    npLyricsTrackId = null;
+    lyricsLoading = true;
+    const data = await fetchLyricsByMeta(title, artist);
+    if (npLyricsRadioKey === key) {
+      npLyrics = data ? data.lines.map((l) => l.text).join('\n') : null;
       syncedLines = [];
     }
     lyricsLoading = false;
   }
 
+  /** Charge les paroles adaptées à la piste affichée (bibliothèque ou radio). */
+  function loadLyricsFor(tr: Track | NowPlaying | null) {
+    if (!tr) return;
+    const id = nowPlayingToTrack(tr).id;
+    if (id != null) loadNpLyrics(id);
+    else if (radioTrackHasMeta(tr)) loadRadioLyrics(tr.title, tr.artist_name!);
+  }
+
   // Auto-load credits and lyrics when track changes (progressive enhancement)
   $effect(() => {
     const tr = displayTrack;
+    if (tr && !tr.id && radioTrackHasMeta(tr)) {
+      // Piste radio avec métadonnées : paroles par titre+artiste.
+      const key = `${tr.artist_name}|${tr.title}`;
+      if (showLyrics) loadRadioLyrics(tr.title, tr.artist_name!);
+      if (key !== npLyricsRadioKey) { npLyrics = null; syncedLines = []; karaokeMode = false; }
+      return;
+    }
     if (!tr?.id) return;
     // Always pre-load credits for the inline summary
     loadNpCredits(tr.id);
@@ -445,7 +462,7 @@
     if (showLyrics) loadNpLyrics(tr.id);
     // Reset when track changes
     if (tr?.id !== npCreditsTrackId) { npCredits = []; npCreditsTrackId = null; }
-    if (tr?.id !== npLyricsTrackId) { npLyrics = null; npSyncedRaw = null; syncedLines = []; npLyricsTrackId = null; karaokeMode = false; }
+    if (tr?.id !== npLyricsTrackId) { npLyrics = null; syncedLines = []; npLyricsTrackId = null; karaokeMode = false; }
   });
 
   // Compact inline credits summary: "Piano: K. Jarrett / Bass: G. Peacock / Drums: J. DeJohnette"
@@ -571,6 +588,9 @@
   // Fallback to ytPlayer track when zone has no current_track (yt-dlp loading phase)
   let ytState = $derived($ytPlayerState);
   let displayTrack = $derived(track ?? (ytState.active ? ytState.track : null));
+  // Radio dont le flux fournit une métadonnée exploitable (titre + artiste
+  // distincts du nom de station) → le bouton Paroles est proposé.
+  let radioHasNpMeta = $derived(!!displayTrack && radioTrackHasMeta(displayTrack));
   // `displayTrack` est soit une piste de la file (`Track`, complète), soit le
   // now-playing de la zone (`NowPlaying`), qui ne porte ni album_id, ni
   // artist_id, ni channels, ni file_path — le serveur ne les envoie pas
@@ -1158,7 +1178,7 @@
                 </div>
               {/if}
             {/if}
-            <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; showCredits = false; showEq = false; if (!showLyrics) karaokeMode = false; if (showLyrics && displayTrack.id) loadNpLyrics(displayTrack.id); }}>
+            <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; showCredits = false; showEq = false; if (!showLyrics) karaokeMode = false; if (showLyrics) loadLyricsFor(displayTrack); }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
               {$t('nowplaying.lyrics')}
             </button>
@@ -1229,6 +1249,25 @@
             {/if}
             {#if showEq}
               <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} />
+            {/if}
+          {/if}
+          {#if isRadio && radioHasNpMeta}
+            <!-- Piste radio avec titre+artiste fournis par le flux : paroles
+                 via /lyrics/by-meta, en texte simple (pas de karaoké ici). -->
+            <div class="np-extra-btns">
+              <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; if (showLyrics) loadLyricsFor(displayTrack); }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+                {$t('nowplaying.lyrics')}
+              </button>
+            </div>
+            {#if showLyrics}
+              <NowPlayingLyrics
+                loading={lyricsLoading}
+                lyrics={npLyrics}
+                syncedLines={[]}
+                karaokeMode={false}
+                onToggleKaraoke={() => {}}
+              />
             {/if}
           {/if}
           {#if zone?.signal_path}
