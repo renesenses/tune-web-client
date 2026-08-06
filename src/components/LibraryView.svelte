@@ -1605,6 +1605,44 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     }
   }
 
+  // "Toutes les pistes" / "Lecture aléatoire" on an artist page, scoped to the
+  // LIBRARY albums only ($artistAlbums, never the streaming discography —
+  // Sevy #1302). Gathers every track of the artist's owned albums and plays
+  // them in order, or shuffled (Fisher–Yates), reusing the shuffleAllLibrary
+  // client-side pattern.
+  let artistPlayLoading = $state(false);
+  async function playArtistLibrary(shuffle: boolean) {
+    if (!zone?.id) {
+      notifications.error($tr('library.noZoneSelected'));
+      return;
+    }
+    artistPlayLoading = true;
+    try {
+      const albumIds = $artistAlbums.map((a) => a.id).filter((id): id is number => id != null);
+      const trackLists = await Promise.all(
+        albumIds.map((id) => api.getAlbumTracks(id).catch(() => [] as Track[])),
+      );
+      const trackIds = trackLists.flat().map((t) => t.id).filter((id): id is number => id != null);
+      if (!trackIds.length) {
+        notifications.error($tr('library.noTracks'));
+        return;
+      }
+      if (shuffle) {
+        for (let i = trackIds.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [trackIds[i], trackIds[j]] = [trackIds[j], trackIds[i]];
+        }
+      }
+      await api.play(zone.id, { track_ids: trackIds });
+      notifications.success($tr('library.shufflePlaying').replace('{count}', String(trackIds.length)));
+    } catch (e) {
+      console.error('Play artist library error:', e);
+      notifications.error($tr('common.error') + ' : ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      artistPlayLoading = false;
+    }
+  }
+
   async function playAlbum(albumId: number) {
     if (!zone?.id) {
       notifications.error($tr('library.noZoneSelected'));
@@ -2167,6 +2205,16 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           {/if}
           {#if $artistAlbums.length > 0}
             <span class="artist-detail-count">{$artistAlbums.length} {$artistAlbums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
+            <div class="artist-play-actions">
+              <button class="artist-play-btn" onclick={() => playArtistLibrary(false)} disabled={artistPlayLoading} title={$tr('library.playAllArtist')}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
+                {$tr('library.playAllArtist')}
+              </button>
+              <button class="artist-play-btn" onclick={() => playArtistLibrary(true)} disabled={artistPlayLoading} title={$tr('library.shuffleArtist')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M16 3h5v5" /><path d="M4 20 21 3" /><path d="M21 16v5h-5" /><path d="M15 15l6 6" /><path d="M4 4l5 5" /></svg>
+                {$tr('library.shuffleArtist')}
+              </button>
+            </div>
           {/if}
           {#if artistMetadataLoading}
             <div class="artist-meta-loading">
@@ -4735,6 +4783,35 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     font-size: 14px;
     color: var(--tune-text-muted);
   }
+
+  .artist-play-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .artist-play-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--tune-accent);
+    background: var(--tune-accent);
+    color: #1a1206;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+  .artist-play-btn:nth-child(2) {
+    background: transparent;
+    color: var(--tune-accent);
+  }
+  .artist-play-btn:hover:not(:disabled) { opacity: 0.85; }
+  .artist-play-btn:disabled { opacity: 0.5; cursor: default; }
+  .artist-play-btn:focus-visible { outline: 2px solid var(--tune-accent); outline-offset: 2px; }
 
   .artist-meta-loading,
   .artist-enriching {

@@ -479,6 +479,8 @@ export default {
   'library.yearGroup': 'period',
   'library.yearGroupPlural': 'periods',
   'library.playAlbum': 'Play Album',
+  'library.playAllArtist': 'All tracks',
+  'library.shuffleArtist': 'Shuffle',
   'library.openAlbum': 'Open Album',
   'library.disc': 'Disc {num}',
   'library.album': 'album',

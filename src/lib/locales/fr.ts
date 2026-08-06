@@ -479,6 +479,8 @@ export default {
   'library.yearGroup': 'période',
   'library.yearGroupPlural': 'périodes',
   'library.playAlbum': "Lire l'album",
+  'library.playAllArtist': 'Toutes les pistes',
+  'library.shuffleArtist': 'Lecture aléatoire',
   'library.openAlbum': "Ouvrir l'album",
   'library.disc': 'Disque {num}',
   'library.album': 'album',
