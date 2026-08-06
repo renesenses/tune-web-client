@@ -457,17 +457,40 @@
   let licenseValidating = $state(false);
   let licenseError = $state<string | null>(null);
 
+  // Re-fetch the authoritative licence status and update the reactive store
+  // in-place. The badge (`$isPremium`) and the feature tiles both read from
+  // `$licenseState`, so a single `loadLicense()` refreshes them together —
+  // no manual page reload needed.
+  //
+  // The server can briefly report the premium tier *before* the per-feature
+  // entitlements have finished propagating (which is why a second manual
+  // refresh used to be needed to clear the locks). To cover that lag we
+  // schedule one delayed re-fetch so the tiles unlock on their own.
+  async function refreshLicense(): Promise<void> {
+    await loadLicense();
+    setTimeout(() => { void loadLicense(); }, 1500);
+  }
+
   async function handleActivateLicense() {
     const key = licenseKeyInput.trim();
     if (!key) return;
     licenseActivating = true;
     licenseError = null;
     try {
-      const result = await api.activateLicense(key);
-      if (result.status === 'ok' || result.tier === 'premium' || result.tier === 'pro') {
+      // `fetchJSON` throws on every non-2xx response, so reaching this line
+      // means the server ACCEPTED and stored the key. Trust HTTP success and
+      // re-fetch the authoritative status instead of guessing from a narrow
+      // literal check on the POST body — a Lifetime tier, or a `status`/`tier`
+      // string other than the hard-coded 'ok'/'premium'/'pro', previously
+      // produced a false "invalid or expired" even though activation succeeded.
+      await api.activateLicense(key);
+      await refreshLicense();
+      // The key is considered accepted once the refreshed status reports it as
+      // the active licence key (covers Lifetime, and a floating session held on
+      // another server where the tier stays `free` here but the key is valid).
+      if (get(licenseState).licenseKey) {
         notifications.success(get(t)('settings.licenseActivated'));
         licenseKeyInput = '';
-        await loadLicense();
       } else {
         licenseError = get(t)('settings.licenseInvalidOrExpired');
       }
@@ -483,7 +506,7 @@
     try {
       await api.deactivateLicense();
       notifications.success(get(t)('settings.licenseDeactivated'));
-      await loadLicense();
+      await refreshLicense();
     } catch (e: any) {
       notifications.error(e?.message ?? get(t)('common.error'));
     }
@@ -494,7 +517,7 @@
     licenseValidating = true;
     try {
       await api.validateLicense();
-      await loadLicense();
+      await refreshLicense();
       notifications.success(get(t)('settings.licenseValidated'));
     } catch (e: any) {
       notifications.error(e?.message ?? get(t)('settings.licenseValidationError'));
