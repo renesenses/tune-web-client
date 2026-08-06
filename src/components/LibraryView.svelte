@@ -34,6 +34,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import ImportWizard from './ImportWizard.svelte';
   import { displayFields } from '../lib/stores/displayFields';
+  import ReportButton from './ReportButton.svelte';
   import type { ArtistMetadata } from '../lib/types';
 
 
@@ -1538,16 +1539,14 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     }
   }
 
-  async function reportArtistImage(artistId: number) {
+  // Le signalement lui-même (et la suppression de l'image fautive) est fait
+  // par ReportButton → POST /library/reports ; il ne reste qu'à relire
+  // l'artiste pour que le placeholder apparaisse tout de suite.
+  async function refreshReportedArtist(artistId: number) {
     try {
-      await api.reportArtistImage(artistId);
-      // Refresh artist in store
-      const updated = await api.getArtist(artistId);
-      selectedArtist.set(updated);
-      notifications.success($tr('artist.imageReported'));
+      selectedArtist.set(await api.getArtist(artistId));
     } catch (e) {
-      console.error('Report artist image error:', e);
-      notifications.error($tr('artist.imageReportFailed'));
+      console.error('Refresh reported artist error:', e);
     }
   }
 
@@ -1854,6 +1853,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
                 {writingAlbumTags ? $tr('library.writingTags') : $tr('library.writeTags')}
               </button>
+            {/if}
+            {#if $selectedAlbum.cover_path && $selectedAlbum.id}
+              <ReportButton
+                entity="cover"
+                entityId={$selectedAlbum.id}
+                reasons={['wrong_entity', 'incorrect', 'poor_quality', 'offensive']}
+              />
             {/if}
             <div class="collection-dropdown-wrap" style="position:relative;display:inline-flex">
               <button class="edit-btn" onclick={() => { showCollectionMenu = !showCollectionMenu; if (!collectionsLoaded) loadCollections(); }}>
@@ -2174,9 +2180,14 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             </div>
           {/if}
           {#if $selectedArtist.image_path || artistMetadata?.image_url}
-            <button class="report-image-btn" title={$tr('artist.reportImage')} onclick={() => reportArtistImage($selectedArtist.id!)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-            </button>
+            <ReportButton
+              entity="artist_image"
+              entityId={$selectedArtist.id!}
+              mbid={$selectedArtist.musicbrainz_id ?? undefined}
+              reasons={['wrong_entity', 'incorrect', 'poor_quality', 'offensive']}
+              compact
+              onReported={() => refreshReportedArtist($selectedArtist!.id!)}
+            />
           {/if}
         </div>
       </div>
@@ -2207,6 +2218,14 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               {isLong ? $tr('library.reEnrich') : $tr('library.enrichBio')}
             {/if}
           </button>
+          {#if $selectedArtist?.id}
+            <ReportButton
+              entity="bio"
+              entityId={$selectedArtist.id}
+              mbid={$selectedArtist.musicbrainz_id ?? undefined}
+              reasons={['incorrect', 'wrong_entity', 'offensive']}
+            />
+          {/if}
         </div>
       {:else if !artistMetadataLoading}
         <div class="bio-actions">
@@ -4715,25 +4734,6 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     font-family: var(--font-body);
     font-size: 14px;
     color: var(--tune-text-muted);
-  }
-
-  .report-image-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border: 1px solid var(--tune-border);
-    border-radius: 4px;
-    background: transparent;
-    color: var(--tune-text-muted);
-    cursor: pointer;
-    font-size: 11px;
-    opacity: 0.6;
-    transition: opacity 0.15s, color 0.15s;
-  }
-  .report-image-btn:hover {
-    opacity: 1;
-    color: var(--tune-accent);
   }
 
   .artist-meta-loading,
