@@ -1555,6 +1555,8 @@ export default {
   "settings.learnMore": "Scopri di più",
   "settings.telemetry": "Telemetria",
   "settings.telemetryHint": "Invia statistiche anonime per migliorare Tune.",
+  "settings.communitySync": "Condivisione metadati con la comunità",
+  "settings.communitySyncHint": "Partecipa all'arricchimento comunitario: risoluzione MusicBrainz, generi e crediti condivisi tra i server Tune. Anonimo — mai i tuoi file.",
   "settings.instance": "Istanza",
   "settings.browsePlugins": "Sfoglia i plugin",
   "settings.tunePremiumLicense": "Licenza Tune Premium",

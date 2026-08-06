@@ -2244,12 +2244,9 @@
     if (pushEnabled) initPushNotifications();
   }
 
-  // Display metadata fields (chips shown under track titles)
-  import { displayFields, DISPLAY_FIELDS_DEFAULTS } from '../lib/stores/displayFields';
-
-  function toggleDisplayField(key: string) {
-    displayFields.toggle(key);
-  }
+  // Display metadata fields (chips shown under track titles) — persisted via
+  // the single field-catalog editor in the Library tab (saveMetadataFields).
+  import { displayFields } from '../lib/stores/displayFields';
 
   // Use onMount (not $effect) to load data exactly once on component
   // creation.  The $effect(() => { untrack(() => { ... }) }) pattern
@@ -3836,7 +3833,7 @@
       <!-- 2) Pochettes & images -->
       <h4 class="enrich-group-title">{$t('settings.enrichArtworkTitle')}</h4>
       <div class="settings-actions">
-        <button class="action-btn" onclick={async () => { await api.apiPost('/system/enrich'); enrichMsg = $t('settings.enrichStarted'); setTimeout(() => enrichMsg = '', 3000); }}>
+        <button class="action-btn" onclick={async () => { await api.triggerEnrich(); enrichMsg = $t('settings.enrichStarted'); setTimeout(() => enrichMsg = '', 3000); }}>
           {$t('settings.enrichNow')}
         </button>
         <button class="action-btn" style="margin-left: 8px;" onclick={startEnrichArtistImages} disabled={artistImgRunning}>
@@ -3876,7 +3873,7 @@
       <!-- 3) Fichiers — action qui modifie les fichiers sur disque -->
       <h4 class="enrich-group-title">{$t('settings.enrichFilesTitle')}</h4>
       <div class="settings-actions">
-        <button class="action-btn" onclick={async () => { await api.apiPost('/library/write-tags', { only_missing: true }); enrichMsg = $t('settings.writeTagsStarted'); setTimeout(() => enrichMsg = '', 5000); }}>
+        <button class="action-btn" onclick={async () => { await api.writeAllTags(); enrichMsg = $t('settings.writeTagsStarted'); setTimeout(() => enrichMsg = '', 5000); }}>
           {$t('settings.writeTags')}
         </button>
       </div>
@@ -3958,47 +3955,10 @@
       </div>
     </section>
 
-    <!-- Display metadata fields -->
-    <section class="settings-section">
-      <h3>{$t('settings.displayedMetadataFields')}</h3>
-      <p class="section-hint">{$t('settings.displayedMetadataHint')}</p>
-      {#if metadataLoading}
-        <p style="opacity:0.5">{$t('common.loading')}</p>
-      {:else if metadataCategories.length > 0}
-        {#each metadataCategories as cat, catIndex}
-          <div class="metadata-category">
-            <button class="category-toggle" onclick={() => toggleMetadataCategory(cat.name)}>
-              <span class="toggle-icon">{metadataCollapsed[cat.name] ? '▸' : '▾'}</span>
-              <span class="category-name">{cat.name}</span>
-              <span class="category-count">{cat.fields.filter((f: any) => $displayFields.includes(f.key)).length}/{cat.fields.length}</span>
-            </button>
-            {#if !metadataCollapsed[cat.name]}
-              <div class="display-fields-grid">
-                {#each cat.fields as field, fieldIndex}
-                  <label class="display-field-check">
-                    <input
-                      type="checkbox"
-                      checked={$displayFields.includes(field.key)}
-                      onchange={() => toggleDisplayField(field.key)}
-                    />
-                    <span>{field.label}</span>
-                  </label>
-                {/each}
-              </div>
-            {/if}
-          </div>
-        {/each}
-      {:else}
-        <div class="display-fields-grid">
-          {#each DISPLAY_FIELDS_DEFAULTS as key}
-            <label class="display-field-check">
-              <input type="checkbox" checked={$displayFields.includes(key)} onchange={() => toggleDisplayField(key)} />
-              <span>{key}</span>
-            </label>
-          {/each}
-        </div>
-      {/if}
-    </section>
+    <!-- Champs de métadonnées : un SEUL éditeur, dans l'onglet Bibliothèque
+         (« Metadata Fields Configuration »). Il y en avait un second ici,
+         branché sur $displayFields pendant que l'autre lisait field.enabled —
+         deux cases pour le même champ qui pouvaient diverger jusqu'au reload. -->
     {/if}
 
     {#if settingsTab === 'services'}
@@ -4801,6 +4761,26 @@
         {#if cloudTelemetryInstanceId}
           <div class="cloud-instance-id">{$t('settings.instance')} : <code>{cloudTelemetryInstanceId}</code></div>
         {/if}
+      </div>
+
+      <!-- Community metadata sync (opt-in). The server-side loop (resolve
+           MBIDs, pull/push enrichments and Vademecum extra) shipped in
+           v0.9.24 but had NO web UI — the flag was only settable via SQL. -->
+      <div class="cloud-subsection">
+        <div class="cloud-toggle-row">
+          <div class="cloud-toggle-label">
+            <span>{$t('settings.communitySync')}</span>
+            <span class="cloud-toggle-hint">{$t('settings.communitySyncHint')}</span>
+          </div>
+          <label class="cloud-toggle">
+            <input
+              type="checkbox"
+              checked={config?.community_sync_enabled === true || config?.community_sync_enabled === 'true'}
+              onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.community_sync_enabled = val; await api.updateConfig({ community_sync_enabled: val }); }}
+            />
+            <span class="cloud-toggle-slider"></span>
+          </label>
+        </div>
       </div>
 
       <!-- Plugins marketplace link -->

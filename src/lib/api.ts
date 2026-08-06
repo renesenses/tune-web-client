@@ -1904,17 +1904,9 @@ export function rescanArtwork() {
   return fetchJSON<{ status: string }>(`${BASE}/library/artwork/rescan`, { method: 'POST' });
 }
 
-export function rescanMetadata() {
-  return fetchJSON<{ status: string }>(`${BASE}/library/rescan-metadata`, { method: 'POST' });
-}
-
-export function rescanMetadataStatus() {
-  return fetchJSON<{ status: string; result?: { total?: number; updated?: number; skipped?: number; errors?: number } }>(`${BASE}/library/rescan-metadata/status`);
-}
-
-export function mergeAlbumDuplicates() {
-  return fetchJSON<{ merged: number }>(`${BASE}/library/albums/merge-duplicates`, { method: 'POST' });
-}
+// rescanMetadata / rescanMetadataStatus / mergeAlbumDuplicates vivaient AUSSI
+// ici, en doublon de lib/api/metadata.ts (mêmes endpoints, autres noms) — la
+// version du module, ré-exportée par la barrel, est la seule restante.
 
 export function triggerEnrich() {
   return fetchJSON<{ status: string }>(`${BASE}/system/enrich`, { method: 'POST' });

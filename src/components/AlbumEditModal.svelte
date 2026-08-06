@@ -31,15 +31,16 @@
   let success = $state(false);
   let error = $state<string | null>(null);
 
-  // Extended metadata (album-relevant fields from first track)
+  // Extended metadata (album-level k/v store, /library/albums/{id}/metadata)
   let extCategories = $state<MetadataCategory[]>([]);
   let extValues = $state<Record<string, string>>({});
   let extOriginal = $state<Record<string, string>>({});
   let extLoading = $state(true);
-  let firstTrackId = $state<number | null>(null);
 
-  // Album-relevant extended fields (exclude per-track fields like lyrics, isrc, rg_track_gain)
-  const ALBUM_RELEVANT_KEYS = new Set([
+  // Fallback whitelist for servers whose field catalog predates `scope`
+  // (< v0.9.52). The server catalog is the source of truth whenever it
+  // provides scope.
+  const LEGACY_ALBUM_KEYS = new Set([
     'album_artist', 'sort_artist', 'sort_album',
     'composer', 'conductor', 'lyricist', 'performer', 'remixer', 'label', 'producer',
     'bpm', 'mood', 'grouping', 'compilation',
@@ -50,12 +51,16 @@
     'rg_album_gain',
   ]);
 
-  /** Only categories that have at least one enabled album-relevant field */
+  function isAlbumField(f: { key: string; scope?: string }): boolean {
+    return f.scope ? f.scope !== 'track' : LEGACY_ALBUM_KEYS.has(f.key);
+  }
+
+  /** Only categories that have at least one enabled album-scoped field */
   let enabledCategories = $derived(
     extCategories
       .map(cat => ({
         ...cat,
-        fields: cat.fields.filter(f => f.enabled && ALBUM_RELEVANT_KEYS.has(f.key)),
+        fields: cat.fields.filter(f => f.enabled && isAlbumField(f)),
       }))
       .filter(cat => cat.fields.length > 0)
   );
@@ -102,12 +107,19 @@
 
   async function loadExtendedMetadata() {
     try {
-      // Fetch field settings + first track of album for extended metadata
+      // Fetch field settings + the album-level k/v store. Legacy installs
+      // parked album fields on the album's FIRST track (there was no album
+      // endpoint), so also read that as a read-only fallback: values still
+      // show up, and the next save migrates them into the album store.
       // Bound each request so a slow/hung metadata read can't leave the editor
       // stuck in its blocking loading state (same freeze family as #1079).
-      const [fieldsResult, albumTracks] = await Promise.all([
+      const [fieldsResult, albumMeta, albumTracks] = await Promise.all([
         api.withTimeout(api.getMetadataFieldSettings(), 8000, 'metadata-fields')
           .catch(() => ({ categories: [] })),
+        album.id
+          ? api.withTimeout(api.getAlbumExtendedMetadata(album.id), 8000, 'album-metadata')
+              .catch(() => ({} as Record<string, string>))
+          : Promise.resolve({} as Record<string, string>),
         album.id
           ? api.withTimeout(api.getAlbumTracks(album.id), 8000, 'album-tracks').catch(() => [])
           : Promise.resolve([]),
@@ -121,30 +133,30 @@
         fields: c.fields ?? [],
       }));
 
-      // Use first track to source album-level extended metadata
       // Pre-fill all enabled keys so bind:value works on fresh fields
       const enabledKeys = new Set<string>();
       for (const cat of extCategories) {
         for (const f of cat.fields) {
-          if (f.enabled && ALBUM_RELEVANT_KEYS.has(f.key)) enabledKeys.add(f.key);
+          if (f.enabled && isAlbumField(f)) enabledKeys.add(f.key);
         }
       }
 
-      if (albumTracks.length > 0 && albumTracks[0].id) {
-        firstTrackId = albumTracks[0].id;
-        const meta = await api
+      let meta: Record<string, string> = { ...albumMeta };
+      const missingKeys = [...enabledKeys].some(k => !(k in meta));
+      if (missingKeys && albumTracks.length > 0 && albumTracks[0].id) {
+        const trackMeta = await api
           .withTimeout(api.getTrackExtendedMetadata(albumTracks[0].id), 8000, 'track-metadata')
-          .catch(() => ({}));
-        extOriginal = { ...meta };
-        const vals: Record<string, string> = {};
-        for (const k of enabledKeys) vals[k] = meta[k] ?? '';
-        extValues = vals;
-        if (meta['album_artist']) albumArtistInput = meta['album_artist'];
-      } else {
-        const vals: Record<string, string> = {};
-        for (const k of enabledKeys) vals[k] = '';
-        extValues = vals;
+          .catch(() => ({} as Record<string, string>));
+        for (const [k, v] of Object.entries(trackMeta)) {
+          if (!(k in meta)) meta[k] = v;
+        }
       }
+
+      extOriginal = { ...albumMeta };
+      const vals: Record<string, string> = {};
+      for (const k of enabledKeys) vals[k] = meta[k] ?? '';
+      extValues = vals;
+      if (meta['album_artist']) albumArtistInput = meta['album_artist'];
     } catch (e) {
       console.error('Load extended metadata error:', e);
     }
@@ -185,24 +197,24 @@
         onSaved?.(updated);
       }
 
-      // Save extended metadata on first track (album-level proxy)
-      if (firstTrackId) {
-        const extChanged: Record<string, string> = {};
-        for (const cat of enabledCategories) {
-          for (const f of cat.fields) {
-            const newVal = (extValues[f.key] ?? '').trim();
-            const oldVal = (extOriginal[f.key] ?? '').trim();
-            if (newVal !== oldVal) {
-              extChanged[f.key] = newVal;
-            }
+      // Save extended metadata to the album-level store. extOriginal only
+      // holds what the album store already had, so values inherited from the
+      // legacy first-track fallback count as changes and migrate over here.
+      const extChanged: Record<string, string> = {};
+      for (const cat of enabledCategories) {
+        for (const f of cat.fields) {
+          const newVal = (extValues[f.key] ?? '').trim();
+          const oldVal = (extOriginal[f.key] ?? '').trim();
+          if (newVal !== oldVal) {
+            extChanged[f.key] = newVal;
           }
         }
-        if (albumArtistInput.trim() && albumArtistInput.trim() !== (extOriginal['album_artist'] ?? '').trim()) {
-          extChanged['album_artist'] = albumArtistInput.trim();
-        }
-        if (Object.keys(extChanged).length > 0) {
-          await api.updateTrackExtendedMetadata(firstTrackId, extChanged);
-        }
+      }
+      if (albumArtistInput.trim() && albumArtistInput.trim() !== (extOriginal['album_artist'] ?? '').trim()) {
+        extChanged['album_artist'] = albumArtistInput.trim();
+      }
+      if (Object.keys(extChanged).length > 0) {
+        await api.updateAlbumExtendedMetadata(album.id, extChanged);
       }
 
       success = true;

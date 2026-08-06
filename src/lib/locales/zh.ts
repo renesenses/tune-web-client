@@ -1555,6 +1555,8 @@ export default {
   "settings.learnMore": "了解更多",
   "settings.telemetry": "遥测",
   "settings.telemetryHint": "发送匿名统计以改进 Tune。",
+  "settings.communitySync": "社区元数据共享",
+  "settings.communitySyncHint": "参与社区丰富：MusicBrainz 解析、流派和制作人员信息在 Tune 服务器间匿名共享，绝不上传您的文件。",
   "settings.instance": "实例",
   "settings.browsePlugins": "浏览插件",
   "settings.tunePremiumLicense": "Tune Premium 许可证",
