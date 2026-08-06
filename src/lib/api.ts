@@ -1024,14 +1024,40 @@ export function getArtistTracks(id: number) {
   return fetchJSON<Track[]>(`${BASE}/library/artists/${id}/tracks`);
 }
 
-export function reportArtistImage(artistId: number) {
-  // fetchJSON always sends Content-Type: application/json, but this call had no
-  // body — axum's Json<ImageReportBody> extractor then fails to parse the empty
-  // payload and the report errors out ("erreur lors du signalement", Jean
-  // Valjean #1096). Send a JSON body (reason is optional server-side).
-  return fetchJSON<{ status: string; artist_id: number }>(`${BASE}/library/artists/${artistId}/image/report`, {
+// reportArtistImage (POST /library/artists/{id}/image/report) est remplacé par
+// reportMetadata({entity:'artist_image'}) : même effet local (image effacée),
+// mais consigné dans metadata_reports et transmis au cloud communautaire.
+// L'ancienne route reste servie pour les clients plus anciens.
+
+/** Entities a metadata report can target (server whitelist). */
+export type ReportEntity = 'track' | 'album' | 'artist' | 'cover' | 'artist_image' | 'bio' | 'extra';
+
+export interface MetadataReportInput {
+  entity: ReportEntity;
+  entity_id?: number;
+  mbid?: string;
+  /** Metadata key being contested (extra reports). */
+  field?: string;
+  /** Contested value — what the community should unpublish. */
+  value?: string;
+  reason: string;
+  comment?: string;
+}
+
+export interface MetadataReportResult {
+  reported: boolean;
+  entity: string;
+  image_cleared: boolean;
+  /** False when community sync is off or the backend was unreachable. */
+  pushed: boolean;
+}
+
+/** Report wrong metadata. Recorded locally, forwarded to the community
+ *  backend when community sync is enabled. */
+export function reportMetadata(input: MetadataReportInput) {
+  return fetchJSON<MetadataReportResult>(`${BASE}/library/reports`, {
     method: 'POST',
-    body: JSON.stringify({ reason: 'incorrect_image' }),
+    body: JSON.stringify(input),
   });
 }
 
