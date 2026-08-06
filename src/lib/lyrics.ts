@@ -82,41 +82,88 @@ export async function fetchTrackLyrics(trackId: number): Promise<LyricsData | nu
   }
 }
 
-/** Paroles par métadonnées seules (piste radio : titre + artiste du flux).
+export interface MetaLyricsQuery {
+  title: string;
+  artist: string;
+  /** Album — affine le match LRCLIB (pistes streaming). */
+  album?: string | null;
+  /** Durée en secondes — départage les versions côté LRCLIB (streaming). */
+  durationSecs?: number | null;
+  /** Vrai pour une radio (position imprécise → pas de karaoké côté panneau). */
+  radio: boolean;
+}
+
+/** Paroles par métadonnées seules (pas d'id de bibliothèque) : radio (titre +
+ *  artiste du flux) ou streaming Qobuz/Tidal (titre + artiste + album + durée).
  *  Serveur : cascade LRCLIB opt-in + cache — `null` = pas de paroles. */
-export async function fetchLyricsByMeta(
-  title: string,
-  artist: string,
-): Promise<LyricsData | null> {
-  const t = title.trim();
-  const a = artist.trim();
+export async function fetchLyricsByMeta(q: MetaLyricsQuery): Promise<LyricsData | null> {
+  const t = q.title.trim();
+  const a = q.artist.trim();
   if (!t || !a) return null;
+  let url = `${BASE}/lyrics/by-meta?title=${encodeURIComponent(t)}&artist=${encodeURIComponent(a)}`;
+  const album = q.album?.trim();
+  if (album) url += `&album=${encodeURIComponent(album)}`;
+  if (typeof q.durationSecs === 'number' && q.durationSecs > 0) {
+    url += `&duration=${Math.round(q.durationSecs)}`;
+  }
   try {
-    return normalizeLyricsResponse(
-      await fetchJSON<any>(
-        `${BASE}/lyrics/by-meta?title=${encodeURIComponent(t)}&artist=${encodeURIComponent(a)}`,
-      ),
-    );
+    return normalizeLyricsResponse(await fetchJSON<any>(url));
   } catch {
     return null;
   }
 }
 
-/** Vrai si une piste radio porte une métadonnée exploitable pour les paroles :
- *  titre + artiste présents, et l'artiste n'est pas juste le nom de la station
- *  (repli du serveur quand le flux ne donne qu'un titre — `album_title` porte
- *  toujours le nom de la station pour une radio). */
-export function radioTrackHasMeta(track: {
+interface MetaTrack {
+  id?: number | null;
+  track_id?: number | null;
   source?: string | null;
   title?: string | null;
   artist_name?: string | null;
   album_title?: string | null;
-}): boolean {
-  if (track?.source !== 'radio') return false;
+  duration_ms?: number | null;
+}
+
+/** Requête paroles-par-métadonnées adaptée à une piste SANS id de
+ *  bibliothèque, ou `null` si elle n'est pas éligible.
+ *
+ *  - Radio : titre + artiste, l'artiste ne devant pas être le simple nom de
+ *    station (repli serveur quand le flux ne donne qu'un titre — `album_title`
+ *    porte toujours le nom de station). Album/durée non fiables → omis ;
+ *    l'ancrage temporel des paroles reste large (`radio: true`).
+ *  - Streaming (Qobuz/Tidal…) : `current_track.id` est nul mais titre, artiste,
+ *    album et durée sont présents → on les transmet pour un meilleur match, et
+ *    la position de lecture réelle permet une synchro exacte (`radio: false`).
+ *
+ *  Une piste avec un id de bibliothèque exploitable relève de
+ *  `fetchTrackLyrics` et rend `null` ici. */
+export function metaLyricsQuery(track: MetaTrack | null | undefined): MetaLyricsQuery | null {
+  if (!track) return null;
+  // Un id de bibliothèque réel → endpoint par id, pas celui-ci.
+  const libId = track.id ?? track.track_id ?? null;
+  if (libId != null) return null;
   const title = track.title?.trim();
   const artist = track.artist_name?.trim();
-  if (!title || !artist) return false;
-  return artist !== track.album_title?.trim();
+  if (!title || !artist) return null;
+
+  if (track.source === 'radio') {
+    // Artiste == nom de station ⇒ pas de vraie métadonnée morceau.
+    if (artist === track.album_title?.trim()) return null;
+    return { title, artist, radio: true };
+  }
+  // Streaming : local/podcast ont un id, donc on ne tombe ici que pour une
+  // source distante sans id (Qobuz, Tidal, Deezer, …).
+  return {
+    title,
+    artist,
+    album: track.album_title ?? null,
+    durationSecs: track.duration_ms ? track.duration_ms / 1000 : null,
+    radio: false,
+  };
+}
+
+/** Compat : garde de l'ancien point d'entrée radio (délègue à metaLyricsQuery). */
+export function radioTrackHasMeta(track: MetaTrack): boolean {
+  return metaLyricsQuery(track)?.radio === true;
 }
 
 /** Ancrage local (repère `performance.now()`) du début du morceau radio.

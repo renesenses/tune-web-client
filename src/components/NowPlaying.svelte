@@ -18,7 +18,7 @@
   import VolumeControl from './VolumeControl.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
-  import { fetchTrackLyrics, fetchLyricsByMeta, radioTrackHasMeta } from '../lib/lyrics';
+  import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery } from '../lib/lyrics';
   import type { RepeatMode, Track, TrackCredit, NowPlaying } from '../lib/types';
 
   let isFavorite = $state(false);
@@ -419,39 +419,44 @@
     lyricsLoading = false;
   }
 
-  // Paroles d'une piste RADIO : le flux fournit titre + artiste mais aucune
-  // piste en bibliothèque — on interroge /lyrics/by-meta. Affichage en texte
-  // simple uniquement : la position d'une radio est trop imprécise ici pour
-  // le karaoké (le mode Grand écran, lui, gère l'ancrage synchronisé).
-  async function loadRadioLyrics(title: string, artist: string) {
-    const key = `${artist}|${title}`;
+  // Paroles par métadonnées (piste sans id de bibliothèque). Radio : position
+  // trop imprécise ici → texte simple, pas de karaoké (le mode Grand écran
+  // gère, lui, l'ancrage synchronisé). Streaming : la zone a une position de
+  // lecture réelle → on garde les lignes synchronisées et le karaoké marche.
+  async function loadMetaLyrics(q: NonNullable<ReturnType<typeof metaLyricsQuery>>) {
+    const key = `${q.artist}|${q.title}|${q.album ?? ''}`;
     if (key === npLyricsRadioKey) return;
     npLyricsRadioKey = key;
     npLyricsTrackId = null;
     lyricsLoading = true;
-    const data = await fetchLyricsByMeta(title, artist);
+    const data = await fetchLyricsByMeta(q);
     if (npLyricsRadioKey === key) {
       npLyrics = data ? data.lines.map((l) => l.text).join('\n') : null;
-      syncedLines = [];
+      syncedLines =
+        !q.radio && data?.synced
+          ? data.lines.filter((l) => l.t_ms != null).map((l) => ({ time: l.t_ms!, text: l.text }))
+          : [];
     }
     lyricsLoading = false;
   }
 
-  /** Charge les paroles adaptées à la piste affichée (bibliothèque ou radio). */
+  /** Charge les paroles adaptées à la piste affichée (bibliothèque ou méta). */
   function loadLyricsFor(tr: Track | NowPlaying | null) {
     if (!tr) return;
     const id = nowPlayingToTrack(tr).id;
-    if (id != null) loadNpLyrics(id);
-    else if (radioTrackHasMeta(tr)) loadRadioLyrics(tr.title, tr.artist_name!);
+    if (id != null) { loadNpLyrics(id); return; }
+    const q = metaLyricsQuery(tr);
+    if (q) loadMetaLyrics(q);
   }
 
   // Auto-load credits and lyrics when track changes (progressive enhancement)
   $effect(() => {
     const tr = displayTrack;
-    if (tr && !tr.id && radioTrackHasMeta(tr)) {
-      // Piste radio avec métadonnées : paroles par titre+artiste.
-      const key = `${tr.artist_name}|${tr.title}`;
-      if (showLyrics) loadRadioLyrics(tr.title, tr.artist_name!);
+    const q = tr && !nowPlayingToTrack(tr).id ? metaLyricsQuery(tr) : null;
+    if (q) {
+      // Piste sans id (radio/streaming) : paroles par métadonnées.
+      const key = `${q.artist}|${q.title}|${q.album ?? ''}`;
+      if (showLyrics) loadMetaLyrics(q);
       if (key !== npLyricsRadioKey) { npLyrics = null; syncedLines = []; karaokeMode = false; }
       return;
     }
@@ -588,9 +593,10 @@
   // Fallback to ytPlayer track when zone has no current_track (yt-dlp loading phase)
   let ytState = $derived($ytPlayerState);
   let displayTrack = $derived(track ?? (ytState.active ? ytState.track : null));
-  // Radio dont le flux fournit une métadonnée exploitable (titre + artiste
-  // distincts du nom de station) → le bouton Paroles est proposé.
-  let radioHasNpMeta = $derived(!!displayTrack && radioTrackHasMeta(displayTrack));
+  // Piste sans id de bibliothèque mais avec titre + artiste : radio (flux) ou
+  // streaming Qobuz/Tidal. Le bouton Paroles est alors proposé et les paroles
+  // sont récupérées par métadonnées. `null` sinon (piste locale : id présent).
+  let npMetaQuery = $derived(metaLyricsQuery(displayTrack));
   // `displayTrack` est soit une piste de la file (`Track`, complète), soit le
   // now-playing de la zone (`NowPlaying`), qui ne porte ni album_id, ni
   // artist_id, ni channels, ni file_path — le serveur ne les envoie pas
@@ -1251,11 +1257,13 @@
               <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} />
             {/if}
           {/if}
-          {#if isRadio && radioHasNpMeta}
-            <!-- Piste radio avec titre+artiste fournis par le flux : paroles
-                 via /lyrics/by-meta, en texte simple (pas de karaoké ici). -->
+          {#if !displayTrack.id && npMetaQuery}
+            <!-- Piste sans id de bibliothèque (radio ou streaming Qobuz/Tidal)
+                 avec titre+artiste : paroles via /lyrics/by-meta. Karaoké
+                 possible pour le streaming (position réelle), pas pour la
+                 radio (position trop imprécise → texte simple). -->
             <div class="np-extra-btns">
-              <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; if (showLyrics) loadLyricsFor(displayTrack); }}>
+              <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; if (!showLyrics) karaokeMode = false; if (showLyrics) loadLyricsFor(displayTrack); }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
                 {$t('nowplaying.lyrics')}
               </button>
@@ -1264,9 +1272,9 @@
               <NowPlayingLyrics
                 loading={lyricsLoading}
                 lyrics={npLyrics}
-                syncedLines={[]}
-                karaokeMode={false}
-                onToggleKaraoke={() => {}}
+                {syncedLines}
+                {karaokeMode}
+                onToggleKaraoke={() => { karaokeMode = !karaokeMode; }}
               />
             {/if}
           {/if}

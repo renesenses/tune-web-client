@@ -7,6 +7,7 @@ import {
   parseLrc,
   normalizeLyricsResponse,
   radioTrackHasMeta,
+  metaLyricsQuery,
   radioAnchorFrom,
 } from '../lyrics';
 
@@ -99,6 +100,59 @@ describe('radioTrackHasMeta', () => {
     expect(
       radioTrackHasMeta({ source: 'local', title: 'X', artist_name: 'Y', album_title: 'Z' }),
     ).toBe(false);
+  });
+});
+
+describe('metaLyricsQuery', () => {
+  it('radio : titre+artiste, marqué radio, sans album/durée', () => {
+    const q = metaLyricsQuery({
+      source: 'radio',
+      title: 'So What',
+      artist_name: 'Miles Davis',
+      album_title: 'FIP',
+    });
+    expect(q).not.toBeNull();
+    expect(q!.radio).toBe(true);
+    expect(q!.title).toBe('So What');
+    expect(q!.album).toBeUndefined();
+  });
+
+  it('streaming Qobuz (id nul) : album + durée transmis, non radio', () => {
+    const q = metaLyricsQuery({
+      id: null,
+      track_id: null,
+      source: 'qobuz',
+      title: 'Repenti',
+      artist_name: 'Renan Luce',
+      album_title: 'Repenti',
+      duration_ms: 245000,
+    });
+    expect(q).not.toBeNull();
+    expect(q!.radio).toBe(false);
+    expect(q!.album).toBe('Repenti');
+    expect(q!.durationSecs).toBe(245);
+  });
+
+  it('piste de bibliothèque (id présent) : pas de requête par métadonnées', () => {
+    expect(
+      metaLyricsQuery({ id: 42, source: 'local', title: 'X', artist_name: 'Y' }),
+    ).toBeNull();
+    // Forme /zones : id sous track_id.
+    expect(
+      metaLyricsQuery({ track_id: 42, source: 'local', title: 'X', artist_name: 'Y' }),
+    ).toBeNull();
+  });
+
+  it('radio dont l’artiste = station → non éligible', () => {
+    expect(
+      metaLyricsQuery({ source: 'radio', title: 'Live', artist_name: 'FIP', album_title: 'FIP' }),
+    ).toBeNull();
+  });
+
+  it('titre ou artiste manquant → null', () => {
+    expect(metaLyricsQuery({ source: 'qobuz', title: '', artist_name: 'Y' })).toBeNull();
+    expect(metaLyricsQuery({ source: 'qobuz', title: 'X', artist_name: '' })).toBeNull();
+    expect(metaLyricsQuery(null)).toBeNull();
   });
 });
 
