@@ -2565,7 +2565,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           <div class="empty">{searchQuery ? $tr('common.noResult') : $tr('library.noAlbums')}</div>
         {:else}
           <div style="height:{albumGridMetrics.totalHeight}px;position:relative;">
-            <div class="albums-grid" style="transform:translateY({albumGridMetrics.offsetY}px);">
+            <div class="albums-grid" style="grid-template-columns:repeat({albumGridMetrics.cols}, minmax(0, 1fr));transform:translateY({albumGridMetrics.offsetY}px);">
               {#each visibleAlbums as album (album.id ?? album.title)}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -2890,7 +2890,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                   <span class="year-count">{row.count} {row.count > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
                 </div>
               {:else}
-                <div class="albums-grid year-albums-row" style="position:absolute;top:{row.top}px;left:0;right:0;height:{row.height}px;">
+                <div class="albums-grid year-albums-row" style="grid-template-columns:repeat({yearRowModel.cols}, minmax(0, 1fr));position:absolute;top:{row.top}px;left:0;right:0;height:{row.height}px;">
                   {#each row.albums as album (album.id ?? album.title)}
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
