@@ -354,6 +354,20 @@ export function updateZoneDlnaPlayDelay(id: number, ms: number) {
   });
 }
 
+/** Catalogue statique marque→modèles (+ quirks) pour la config d'une zone. */
+export function getDeviceCatalog() {
+  return fetchJSON<import('./types').DeviceCatalog>(`${BASE}/devices/catalog`);
+}
+
+/** Affecte la marque + le modèle choisis par l'utilisateur à une zone.
+ *  Chaîne vide = efface l'override (retour à la détection UPnP). */
+export function updateZoneDevice(id: number, brand: string, model: string) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ brand, model }),
+  });
+}
+
 /** Set the "force WAV" mode for a DLNA renderer. The 16-bit LPCM (`dlna_lpcm`)
  *  and 24-bit (`dlna_wav24`) paths are mutually exclusive, so patch both flags
  *  in one request to keep the zone state coherent. */
