@@ -3755,6 +3755,40 @@ export function markSupportTicketRead(id: number, licenseKey: string): Promise<a
   });
 }
 
+/** Crée un ticket support en `multipart/form-data` (avec pièces jointes). Poste
+ *  vers le serveur Tune local (POST /support/tickets), qui valide les fichiers
+ *  puis relaie le multipart à mozaiklabs avec la clé de licence / le token
+ *  premium. On NE fixe PAS `Content-Type` : le navigateur pose lui-même le
+ *  boundary. Le `FormData` porte les champs du ticket (subject/body/category/…)
+ *  et chaque fichier sous `attachments[]`.
+ *
+ *  En cas d'échec, on privilégie le message FR renvoyé par le serveur (trop
+ *  gros / type interdit / trop de fichiers) ; l'`ApiError.status` reste exposé. */
+export async function createSupportTicketMultipart(form: FormData): Promise<any> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Accept-Language': acceptLang(),
+    ...profileHeader(),
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const resp = await fetch(`${BASE}/support/tickets`, { method: 'POST', headers, body: form });
+  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (!resp.ok) {
+    let message = `${resp.status}`;
+    try {
+      const data = await resp.json();
+      if (data?.message) message = data.message;
+    } catch { /* pas de corps JSON exploitable */ }
+    const err = new Error(message) as ApiError;
+    err.status = resp.status;
+    throw err;
+  }
+  const text = await resp.text();
+  if (!text.trim()) return null;
+  try { return JSON.parse(text); } catch { throw new Error('Invalid JSON response'); }
+}
+
 /** Fiche système consolidée. Endpoint serveur en cours de déploiement :
  *  404 sur les serveurs antérieurs — les appelants composent alors la fiche
  *  localement (health + stats + zones + licence). */
