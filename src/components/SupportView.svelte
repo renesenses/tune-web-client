@@ -11,7 +11,11 @@
 
   // Garde anti-écriture après démontage (même motif que DiagnosticsView).
   let destroyed = false;
-  onDestroy(() => { destroyed = true; });
+  onDestroy(() => {
+    destroyed = true;
+    // Libère les URL d'aperçu (createObjectURL) des pièces jointes en attente.
+    for (const p of attachments) if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+  });
 
   // --- Sous-onglets (même pattern que le mode Expert de EqualizerView) ---
   type Tab = 'diagnostic' | 'tickets' | 'new' | 'system';
@@ -32,6 +36,10 @@
   function friendlyError(e: unknown): string {
     const msg = e instanceof Error ? e.message : String(e);
     const tr = get(t);
+    const httpStatus = (e as { status?: number })?.status;
+    // Erreurs de pièces jointes (400 type/nombre, 413 trop gros) : le serveur
+    // renvoie déjà un message FR explicite — on l'affiche tel quel.
+    if ((httpStatus === 400 || httpStatus === 413) && msg && !/^\d{3}$/.test(msg)) return msg;
     if (msg.includes('412')) return tr('support.errorNotConnected');
     if (msg.includes('403')) return tr('support.errorPremiumOnly');
     if (msg.includes('401')) return tr('support.errorSessionExpired');
@@ -308,6 +316,80 @@
   let sentOk = $state(false);
   let zonePrefilled = false;
 
+  // --- Pièces jointes (parité avec la validation Laravel/serveur Tune) ---
+  const ATTACH_ALLOWED_EXT = ['png', 'jpg', 'jpeg', 'log', 'txt', 'zip', 'json', 'csv', 'xml', 'md'];
+  const ATTACH_ACCEPT = '.png,.jpg,.jpeg,.log,.txt,.zip,.json,.csv,.xml,.md';
+  const ATTACH_MAX_FILES = 5;
+  const ATTACH_MAX_BYTES = 50 * 1024 * 1024; // 50 Mo
+
+  interface PickedFile { file: File; previewUrl?: string }
+  let attachments = $state<PickedFile[]>([]);
+  let attachError = $state<string | null>(null);
+  let dragOver = $state(false);
+  let fileInput: HTMLInputElement | undefined = $state();
+
+  function extOf(name: string): string {
+    const i = name.lastIndexOf('.');
+    return i >= 0 ? name.slice(i + 1).toLowerCase() : '';
+  }
+  function isImageFile(f: File): boolean {
+    return f.type.startsWith('image/') || ['png', 'jpg', 'jpeg'].includes(extOf(f.name));
+  }
+  function fmtSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} o`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+  }
+
+  function addFiles(list: FileList | File[]) {
+    attachError = null;
+    for (const f of Array.from(list)) {
+      if (attachments.length >= ATTACH_MAX_FILES) {
+        attachError = tr1('support.attach.tooMany', { max: ATTACH_MAX_FILES });
+        break;
+      }
+      if (!ATTACH_ALLOWED_EXT.includes(extOf(f.name))) {
+        attachError = tr1('support.attach.badType', { name: f.name });
+        continue;
+      }
+      if (f.size > ATTACH_MAX_BYTES) {
+        attachError = tr1('support.attach.tooBig', { name: f.name });
+        continue;
+      }
+      // Anti-doublon (même nom + même taille).
+      if (attachments.some((p) => p.file.name === f.name && p.file.size === f.size)) continue;
+      const previewUrl = isImageFile(f) ? URL.createObjectURL(f) : undefined;
+      attachments = [...attachments, { file: f, previewUrl }];
+    }
+  }
+
+  function onFileInput(e: Event) {
+    const input = e.target as HTMLInputElement;
+    if (input.files) addFiles(input.files);
+    input.value = ''; // autorise re-sélectionner le même fichier
+  }
+
+  function removeAttachment(idx: number) {
+    const p = attachments[idx];
+    if (p?.previewUrl) URL.revokeObjectURL(p.previewUrl);
+    attachments = attachments.filter((_, i) => i !== idx);
+    attachError = null;
+  }
+
+  function clearAttachments() {
+    for (const p of attachments) if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+    attachments = [];
+    attachError = null;
+  }
+
+  function onDrop(e: DragEvent) {
+    e.preventDefault();
+    dragOver = false;
+    if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
+  }
+  function onDragOver(e: DragEvent) { e.preventDefault(); dragOver = true; }
+  function onDragLeave() { dragOver = false; }
+
   const CATEGORIES = [
     { value: 'playback', label: 'support.category.playback' },
     { value: 'library', label: 'support.category.library' },
@@ -331,25 +413,43 @@
     error = null;
     sentOk = false;
     try {
-      // Champs optionnels rétro-compatibles : un serveur plus ancien ignore
-      // simplement zone / logs / system.
-      const payload: Record<string, unknown> = {
-        subject: subject.trim(),
-        body: body.trim(),
-        category,
-      };
-      if (zoneName) payload.zone = zoneName;
+      // Logs + fiche système, optionnels et rétro-compatibles (#1073) : un
+      // serveur plus ancien ignore simplement ces champs.
+      let logs: string | undefined;
+      let system: Record<string, unknown> | undefined;
       if (attachLogs) {
-        // Logs : même source que le signalement de bug forum (#1073).
-        try { payload.logs = await api.getBugReportMarkdown(); } catch { /* sans les logs */ }
-        // Fiche système : endpoint en déploiement — si 404, on envoie sans.
-        try { payload.system = await api.getSystemProfile(); } catch { /* sans la fiche */ }
+        try { logs = await api.getBugReportMarkdown(); } catch { /* sans les logs */ }
+        try { system = await api.getSystemProfile(); } catch { /* sans la fiche */ }
       }
-      await api.apiPost('/support/tickets', payload);
+
+      if (attachments.length > 0) {
+        // Avec pièces jointes → multipart. Le navigateur pose le boundary.
+        const form = new FormData();
+        form.append('subject', subject.trim());
+        form.append('body', body.trim());
+        form.append('category', category);
+        if (zoneName) form.append('zone', zoneName);
+        if (logs) form.append('logs', logs);
+        if (system) form.append('system', JSON.stringify(system));
+        for (const p of attachments) form.append('attachments[]', p.file, p.file.name);
+        await api.createSupportTicketMultipart(form);
+      } else {
+        // Sans pièce jointe → chemin JSON historique inchangé.
+        const payload: Record<string, unknown> = {
+          subject: subject.trim(),
+          body: body.trim(),
+          category,
+        };
+        if (zoneName) payload.zone = zoneName;
+        if (logs) payload.logs = logs;
+        if (system) payload.system = system;
+        await api.apiPost('/support/tickets', payload);
+      }
       if (destroyed) return;
       subject = '';
       body = '';
       category = 'other';
+      clearAttachments();
       sentOk = true;
       tab = 'tickets';
       await loadTickets();
@@ -658,6 +758,64 @@
         <span>{$t('support.attachLogs')}</span>
       </label>
       <p class="support-hint">{$t('support.autoAttach')}</p>
+
+      <!-- Pièces jointes : sélecteur de fichiers + glisser-déposer -->
+      <div class="attach-files">
+        <span class="attach-files-label">{$t('support.attach.label')}</span>
+        <div
+          class="dropzone"
+          class:dragover={dragOver}
+          role="button"
+          tabindex="0"
+          onclick={() => fileInput?.click()}
+          onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput?.click(); } }}
+          ondragover={onDragOver}
+          ondragleave={onDragLeave}
+          ondrop={onDrop}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span class="dropzone-text">{$t('support.attach.dropHint')}</span>
+          <span class="dropzone-sub">{$t('support.attach.constraints')}</span>
+        </div>
+        <input
+          class="attach-input"
+          type="file"
+          bind:this={fileInput}
+          accept={ATTACH_ACCEPT}
+          multiple
+          onchange={onFileInput}
+        />
+        {#if attachError}
+          <p class="attach-error">{attachError}</p>
+        {/if}
+        {#if attachments.length > 0}
+          <ul class="attach-list">
+            {#each attachments as p, i (p.file.name + p.file.size)}
+              <li class="attach-item">
+                {#if p.previewUrl}
+                  <img class="attach-thumb" src={p.previewUrl} alt={p.file.name} />
+                {:else}
+                  <span class="attach-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                  </span>
+                {/if}
+                <span class="attach-name" title={p.file.name}>{p.file.name}</span>
+                <span class="attach-size">{fmtSize(p.file.size)}</span>
+                <button
+                  type="button"
+                  class="attach-remove"
+                  title={$t('support.attach.remove')}
+                  aria-label={$t('support.attach.remove')}
+                  onclick={() => removeAttachment(i)}
+                >×</button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+
       <button class="btn-primary" type="submit" disabled={submitting || !subject.trim() || !body.trim()}>
         {submitting ? $t('support.sending') : $t('support.sendTicket')}
       </button>
@@ -887,6 +1045,121 @@
     font-size: 0.82rem;
     color: var(--text-muted, #a0a0a8);
     margin: -0.25rem 0 0;
+  }
+
+  /* --- Pièces jointes --- */
+  .attach-files {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .attach-files-label {
+    font-size: 0.9rem;
+    color: var(--text-muted, #a0a0a8);
+  }
+  .attach-input {
+    display: none;
+  }
+  .dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 1.25rem 1rem;
+    border: 1.5px dashed var(--border, #33333a);
+    border-radius: 10px;
+    background: var(--surface, #1c1c22);
+    color: var(--text-muted, #a0a0a8);
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+  .dropzone:hover,
+  .dropzone:focus-visible {
+    border-color: var(--accent, #6c5ce7);
+    color: var(--text, #e8e8ea);
+    outline: none;
+  }
+  .dropzone.dragover {
+    border-color: var(--accent, #6c5ce7);
+    background: rgba(108, 92, 231, 0.1);
+    color: var(--text, #e8e8ea);
+  }
+  .dropzone-text {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  .dropzone-sub {
+    font-size: 0.78rem;
+    opacity: 0.8;
+  }
+  .attach-error {
+    margin: 0;
+    font-size: 0.82rem;
+    color: #ff8a95;
+  }
+  .attach-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .attach-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--surface, #1c1c22);
+    border: 1px solid var(--border, #33333a);
+    border-radius: 8px;
+    padding: 0.45rem 0.6rem;
+  }
+  .attach-thumb {
+    width: 34px;
+    height: 34px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .attach-icon {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted, #a0a0a8);
+    flex-shrink: 0;
+  }
+  .attach-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.88rem;
+    color: var(--text, #e8e8ea);
+  }
+  .attach-size {
+    font-size: 0.78rem;
+    color: var(--text-muted, #a0a0a8);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .attach-remove {
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #a0a0a8);
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.35rem;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .attach-remove:hover {
+    color: #ff8a95;
   }
 
   /* --- Tickets --- */
