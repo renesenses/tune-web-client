@@ -233,6 +233,39 @@ export interface Zone {
   dlna_wav24?: boolean;
   /** Per-zone SetAVTransportURI→Play delay in ms (0 = config default). */
   dlna_play_delay_ms?: number;
+  /** Marque choisie par l'utilisateur au catalogue (override). null si non défini. */
+  brand?: string | null;
+  /** Modèle choisi par l'utilisateur (override). null si non défini. */
+  model?: string | null;
+  /** Marque détectée en UPnP pour le device assigné (pré-remplissage). */
+  detected_manufacturer?: string | null;
+  /** Modèle détecté en UPnP pour le device assigné (pré-remplissage). */
+  detected_model?: string | null;
+}
+
+// Catalogue d'appareils (GET /devices/catalog)
+export interface DeviceQuirks {
+  dlna_no_extra_headers?: boolean;
+  max_sample_rate?: number | null;
+  force_mime?: string | null;
+  force_16bit?: boolean;
+  no_gapless?: boolean;
+  pcm_only?: boolean;
+  dlna_wav24?: boolean;
+  dlna_native_flac?: boolean;
+  dlna_play_delay_ms?: number | null;
+}
+export interface DeviceModel {
+  name: string;
+  quirks?: DeviceQuirks;
+}
+export interface DeviceBrand {
+  name: string;
+  models: DeviceModel[];
+}
+export interface DeviceCatalog {
+  version: number;
+  brands: DeviceBrand[];
 }
 
 /** Result of the DLNA renderer discovery check (GetProtocolInfo Sink). */

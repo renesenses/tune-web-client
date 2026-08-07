@@ -459,6 +459,10 @@
       profile.zones = zoneList.map((z) => ({
         name: z.name,
         output: z.output_type ?? 'local',
+        // Appareil : override utilisateur > détection UPnP.
+        device: [z.brand ?? z.detected_manufacturer, z.model ?? z.detected_model]
+          .filter(Boolean)
+          .join(' · ') || null,
         state: z.state ?? 'idle',
         online: z.online !== false,
       }));
