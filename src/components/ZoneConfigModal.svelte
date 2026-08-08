@@ -4,6 +4,7 @@
   import { t } from '../lib/i18n';
   import { get } from 'svelte/store';
   import FirResponseCurve from './FirResponseCurve.svelte';
+  import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
 
   interface Props {
     zone: Zone;
@@ -293,6 +294,9 @@
       loadPins();
     }
   });
+
+  // L'édition « appareil » (marque + modèle) vit dans ZoneDeviceEditor, partagé
+  // avec la fiche système du volet Support.
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
@@ -325,6 +329,10 @@
     {#if error}
       <div class="error-msg">{error}</div>
     {/if}
+
+    <div class="modal-section">
+      <ZoneDeviceEditor {zone} />
+    </div>
 
     <div class="modal-section">
       <h3 class="section-title">{$t('zone.groupedPlayback')}</h3>
@@ -747,6 +755,8 @@
     align-items: center;
     gap: 8px;
   }
+
+  /* Les styles « appareil » vivent désormais dans ZoneDeviceEditor. */
 
   .sync-input {
     font-family: var(--font-body);

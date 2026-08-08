@@ -640,6 +640,13 @@
     gap: 6px;
     flex-wrap: wrap;
     margin-bottom: var(--space-lg);
+    /* Pastilles de genres figées sous `.stations-actions` (sticky top:66px,
+       boîte ~31px ; tuck 2px sous son fond opaque) — #1282 (Jean Valjean). */
+    position: sticky;
+    top: 95px;
+    z-index: 14;
+    background: var(--tune-bg);
+    padding-bottom: 6px;
   }
 
   .filter-chip {

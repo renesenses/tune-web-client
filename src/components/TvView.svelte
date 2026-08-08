@@ -7,11 +7,18 @@
   import { currentZone } from '../lib/stores/zones';
   import { currentTrack, currentTrackId, seekPositionMs, playbackState } from '../lib/stores/nowPlaying';
   import { activeView, previousView } from '../lib/stores/navigation';
-  import { fetchTrackLyrics, type LyricsData } from '../lib/lyrics';
+  import {
+    fetchTrackLyrics,
+    fetchLyricsByMeta,
+    metaLyricsQuery,
+    radioAnchorFrom,
+    type LyricsData,
+  } from '../lib/lyrics';
   import { formatTime } from '../lib/utils';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
+  import TvVuMeters from './TvVuMeters.svelte';
   import { t } from '../lib/i18n';
 
   let track = $derived($currentTrack);
@@ -105,37 +112,71 @@
     baseTs = performance.now();
     if (!isPlaying) smoothPos = basePos;
   });
+  // Requête paroles-par-métadonnées si la piste n'a pas d'id de bibliothèque
+  // (radio OU streaming Qobuz/Tidal). `null` sinon.
+  let metaQuery = $derived($currentTrackId == null ? metaLyricsQuery(track) : null);
+
+  // ─── Ancrage temporel radio ─────────────────────────────────────────────
+  // Une radio n'a ni durée ni position : la « position » des paroles est le
+  // temps écoulé depuis l'instant où le SERVEUR a détecté le changement de
+  // métadonnée du flux (début du morceau). Le serveur fournit
+  // `metadata_age_ms` (âge calculé sur son horloge) dans current_track : on
+  // pose l'ancrage local `performance.now() − âge`, recalé à chaque
+  // rafraîchissement de zone. Précision attendue : ±5-15 s (latence de la
+  // détection ICY/livemeta) — l'affichage doit rester lisible malgré cela.
+  // (Le streaming, lui, s'appuie sur la position de lecture réelle.)
+  let radioAnchor = 0;
+  $effect(() => {
+    if (!isRadio || !track) return;
+    radioAnchor = radioAnchorFrom(track.metadata_age_ms, performance.now());
+  });
+  let radioPos = $state(0);
+
   let rafId = 0;
   function rafTick() {
     if (isPlaying) {
       const extrapolated = basePos + (performance.now() - baseTs);
       smoothPos = durationMs > 0 ? Math.min(extrapolated, durationMs) : extrapolated;
     }
+    if (isRadio) radioPos = Math.max(0, performance.now() - radioAnchor);
     rafId = requestAnimationFrame(rafTick);
   }
 
   let progress = $derived(durationMs > 0 ? Math.min(smoothPos / durationMs, 1) : 0);
 
   // ─── Paroles ────────────────────────────────────────────────────────────
+  // Piste de bibliothèque → par track id ; sinon (radio ou streaming) → par
+  // métadonnées (endpoint /lyrics/by-meta). Pas de métadonnée exploitable ou
+  // 404 → rien (comportement antérieur).
   let lyrics = $state<LyricsData | null>(null);
-  let lyricsTrackId: number | null = null;
+  let lyricsKey: string | null = null;
   $effect(() => {
     const id = $currentTrackId;
-    if (id === lyricsTrackId) return;
-    lyricsTrackId = id;
+    const q = metaQuery;
+    const key = id != null ? `id:${id}` : q ? `meta:${q.artist}|${q.title}|${q.album ?? ''}` : null;
+    if (key === lyricsKey) return;
+    lyricsKey = key;
     lyrics = null;
-    if (id == null) return;
-    fetchTrackLyrics(id).then((data) => {
+    if (key == null) return;
+    const pending = id != null ? fetchTrackLyrics(id) : fetchLyricsByMeta(q!);
+    pending.then((data) => {
       // Garde anti-course : n'applique que si la piste n'a pas changé entre-temps.
-      if (lyricsTrackId === id) lyrics = data;
+      if (lyricsKey === key) lyrics = data;
     });
   });
   let showLyrics = $derived(settings.lyrics && lyrics !== null && lyrics.lines.length > 0);
 
+  // Position servant à la synchro des paroles :
+  //  - radio (durée inconnue) : ancrage large = maintenant − metadata_age ;
+  //  - tout le reste (local, streaming Qobuz/Tidal) : position de lecture
+  //    réelle et interpolée → synchro exacte, pas de tolérance élargie.
+  let useRadioAnchor = $derived(isRadio && durationMs <= 0);
+  let syncPos = $derived(useRadioAnchor ? radioPos : smoothPos);
+
   // Ligne active (paroles synchronisées) : dernière ligne dont t_ms <= position.
   let activeLine = $derived.by(() => {
     if (!lyrics?.synced) return -1;
-    const pos = smoothPos;
+    const pos = syncPos;
     let idx = -1;
     for (let i = 0; i < lyrics.lines.length; i++) {
       const t_ms = lyrics.lines[i].t_ms;
@@ -164,14 +205,20 @@
   });
 
   // (b) Non synchronisé : défilement lent calé sur la durée de la piste.
+  // Radio (durée inconnue) : défilement doux calé sur le temps écoulé depuis
+  // l'ancrage de métadonnée, avec une fenêtre forfaitaire de 4 min.
+  const RADIO_SCROLL_WINDOW_MS = 240_000;
   $effect(() => {
-    const p = progress;
     const el = lyricsEl;
-    if (!el || !lyrics || lyrics.synced || durationMs <= 0) return;
+    if (!el || !lyrics || lyrics.synced) return;
     if (performance.now() < userScrollUntil) return;
     const max = el.scrollHeight - el.clientHeight;
     if (max <= 0) return;
-    el.scrollTop = p * max;
+    if (isRadio) {
+      el.scrollTop = Math.min(radioPos / RADIO_SCROLL_WINDOW_MS, 1) * max;
+    } else if (durationMs > 0) {
+      el.scrollTop = progress * max;
+    }
   });
 
   onMount(() => {
@@ -234,6 +281,11 @@
               <span class="tv-time">{formatTime(durationMs)}</span>
             </div>
           {/if}
+          <!-- Deux VU-mètres analogiques à aiguille (façon appli tvOS),
+               nourris par les événements audio_levels du serveur. -->
+          <div class="tv-visualizer">
+            <TvVuMeters playing={isPlaying} width={560} />
+          </div>
         </div>
       </div>
 
@@ -413,6 +465,14 @@
     text-overflow: ellipsis;
     max-width: 100%;
   }
+  .tv-visualizer {
+    margin-top: 1.2vh;
+    /* Le terme vh borne la hauteur des cadrans (h = 0.34 × largeur) pour que
+       la colonne tienne dans l'écran, y compris en 1080p. */
+    width: min(38vw, 38vh, 560px);
+    opacity: 0.9;
+  }
+
   .tv-quality {
     transform: scale(calc(1.35 * var(--tv-scale)));
     transform-origin: center;
