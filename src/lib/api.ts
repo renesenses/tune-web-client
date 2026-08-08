@@ -895,7 +895,7 @@ export function assignSnapcastClient(clientId: string, zoneId: number) {
 export function unassignSnapcastClient(clientId: string, zoneId: number) {
   return fetch(`${BASE}/snapcast/clients/${encodeURIComponent(clientId)}/assign`, {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ zone_id: zoneId }),
   }).then(r => r.json());
 }
@@ -1065,6 +1065,7 @@ export async function uploadArtistImage(artistId: number, file: File): Promise<A
   formData.append('file', file);
   const response = await fetch(`${BASE}/library/artists/${artistId}/image/upload`, {
     method: 'POST',
+    headers: authHeaders(),
     body: formData,
   });
   if (!response.ok) {
@@ -1258,6 +1259,7 @@ export async function uploadAlbumArtwork(albumId: number, file: File): Promise<A
   formData.append('file', file);
   const response = await fetch(`${BASE}/library/albums/${albumId}/artwork`, {
     method: 'POST',
+    headers: authHeaders(),
     body: formData,
   });
   if (!response.ok) {
@@ -1850,7 +1852,7 @@ export function exportDatabaseUrl(): string {
 export async function importDatabase(file: File) {
   const form = new FormData();
   form.append('file', file);
-  const res = await fetch(`${BASE}/system/database/import`, { method: 'POST', body: form });
+  const res = await fetch(`${BASE}/system/database/import`, { method: 'POST', headers: authHeaders(), body: form });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`Import failed (${res.status}): ${text || res.statusText}`);
@@ -2267,7 +2269,7 @@ export function restorePlaylistSnapshot(id: number, body?: { target_name?: strin
 
 export function exportPlaylistFile(service: string, playlistId: string, format: string) {
   return fetch(`${BASE}/playlist-manager/export`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ service, playlist_id: playlistId, format }),
   });
 }
@@ -2275,7 +2277,7 @@ export function exportPlaylistFile(service: string, playlistId: string, format: 
 export async function importPlaylistFile(file: File, format: string) {
   const form = new FormData();
   form.append('file', file);
-  const resp = await fetch(`${BASE}/playlist-manager/import?format=${format}`, { method: 'POST', body: form });
+  const resp = await fetch(`${BASE}/playlist-manager/import?format=${format}`, { method: 'POST', headers: authHeaders(), body: form });
   return resp.json();
 }
 
@@ -2357,6 +2359,7 @@ export async function uploadRadioCover(radioId: number, file: File): Promise<imp
   formData.append('file', file);
   const response = await fetch(`${BASE}/radios/${radioId}/artwork`, {
     method: 'POST',
+    headers: authHeaders(),
     body: formData,
   });
   if (!response.ok) throw await apiError(response);
@@ -2367,7 +2370,7 @@ export async function importRadios(file: File): Promise<import('./types').RadioI
   const bytes = new Uint8Array(await file.arrayBuffer());
   const response = await fetch(`${BASE}/radios/import/m3u`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/octet-stream' },
+    headers: authHeaders({ 'Content-Type': 'application/octet-stream' }),
     body: bytes,
   });
   if (!response.ok) throw await apiError(response);
@@ -2846,25 +2849,25 @@ export async function searchPodcasts(query: string, limit = 20, country?: string
 }
 
 export async function getRadioFrancePodcasts(): Promise<any[]> {
-  const res = await fetch(`${BASE}/podcasts/radiofrance`);
+  const res = await fetch(`${BASE}/podcasts/radiofrance`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`Radio France podcasts failed: ${res.status} ${res.statusText}`);
   return res.json();
 }
 
 export async function getRadioFranceShows(station = 'FRANCEINTER'): Promise<any> {
-  const res = await fetch(`${BASE}/podcasts/radiofrance/shows?station=${encodeURIComponent(station)}`);
+  const res = await fetch(`${BASE}/podcasts/radiofrance/shows?station=${encodeURIComponent(station)}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`RF shows failed: ${res.status}`);
   return res.json();
 }
 
 export async function searchRadioFranceShows(query: string): Promise<any> {
-  const res = await fetch(`${BASE}/podcasts/radiofrance/shows/search?q=${encodeURIComponent(query)}`);
+  const res = await fetch(`${BASE}/podcasts/radiofrance/shows/search?q=${encodeURIComponent(query)}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`RF search failed: ${res.status}`);
   return res.json();
 }
 
 export async function getRadioFranceEpisodes(showUrl: string, limit = 20): Promise<any> {
-  const res = await fetch(`${BASE}/podcasts/radiofrance/episodes?show_url=${encodeURIComponent(showUrl)}&limit=${limit}`);
+  const res = await fetch(`${BASE}/podcasts/radiofrance/episodes?show_url=${encodeURIComponent(showUrl)}&limit=${limit}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`RF episodes failed: ${res.status}`);
   return res.json();
 }
@@ -2922,13 +2925,13 @@ export async function getTopPodcasts(genreId?: number | null, limit = 50, countr
 }
 
 export async function getDiscoverPodcasts(): Promise<{ curated: any[]; top: any[]; genres: any[] }> {
-  const res = await fetch(`${BASE}/podcasts/discover`);
+  const res = await fetch(`${BASE}/podcasts/discover`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`Discover podcasts failed: ${res.status} ${res.statusText}`);
   return res.json();
 }
 
 export async function getPodcastGenres(): Promise<any[]> {
-  const res = await fetch(`${BASE}/podcasts/genres`);
+  const res = await fetch(`${BASE}/podcasts/genres`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`Podcast genres failed: ${res.status} ${res.statusText}`);
   return res.json();
 }
@@ -2955,7 +2958,7 @@ export function updateSmartCollection(id: number, payload: any) {
   });
 }
 export function deleteSmartCollection(id: number) {
-  return fetch(`${BASE}/library/smart-collections/${id}`, { method: 'DELETE' }).then(r => r.json());
+  return fetch(`${BASE}/library/smart-collections/${id}`, { method: 'DELETE', headers: authHeaders() }).then(r => r.json());
 }
 export function getSmartCollectionAlbums(id: number) {
   return fetchJSON<any>(`${BASE}/library/smart-collections/${id}/albums`).then(d =>
@@ -2975,7 +2978,7 @@ export function previewSmartCollection(payload: { rules: any[]; match_mode?: str
 // --- CSV Export ---
 
 async function downloadCsv(path: string, filename: string) {
-  const res = await fetch(`${BASE}${path}`);
+  const res = await fetch(`${BASE}${path}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`Export failed (${res.status})`);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
@@ -3021,7 +3024,7 @@ export function setStreamingQuality(zoneId: number, quality: string) {
 // --- Config Export/Import ---
 
 export async function exportConfig(): Promise<void> {
-  const res = await fetch(`${BASE}/system/config/export`);
+  const res = await fetch(`${BASE}/system/config/export`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`Export failed (${res.status})`);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
@@ -3228,7 +3231,7 @@ export interface LinnImportResult {
 export async function importLinnPlaylist(file: File): Promise<LinnImportResult> {
   const form = new FormData();
   form.append('file', file);
-  const res = await fetch(`${BASE}/playlists/import/linn`, { method: 'POST', body: form });
+  const res = await fetch(`${BASE}/playlists/import/linn`, { method: 'POST', headers: authHeaders(), body: form });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`Import Linn playlist failed (${res.status}): ${text || res.statusText}`);
