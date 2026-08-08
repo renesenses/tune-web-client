@@ -2,6 +2,7 @@
   import * as api from '../lib/api';
   import type { SmartRule, SmartCollection } from '../lib/types';
   import { t } from '../lib/i18n';
+  import { notifications } from '../lib/stores/notifications';
 
   // Editor for one Smart Collection: name + rules + match_mode + sort.
   // Live preview count via POST /library/smart-collections/preview as
@@ -63,7 +64,37 @@
     { value: 'credit',      labelKey: 'smartCollection.fieldCredit',      type: 'credit' },
     { value: 'play_count',  labelKey: 'smartCollection.fieldPlayCount',   type: 'count' },
     { value: 'last_played_at', labelKey: 'smartCollection.fieldLastPlayed', type: 'timestamp' },
+    // Références : « dans la collection / playlist X » (classique OU smart)
+    // et statut favori. Valeurs `classic:<id>` / `smart:<id>` (voir le module
+    // serveur smart_refs).
+    { value: 'in_collection', labelKey: 'smartCollection.fieldInCollection', type: 'collection_ref' },
+    { value: 'in_playlist',   labelKey: 'smartCollection.fieldInPlaylist',   type: 'playlist_ref' },
+    { value: 'favorite',      labelKey: 'smartCollection.fieldFavorite',     type: 'favorite' },
   ];
+
+  // Listes pour les sélecteurs de référence (collections/playlists,
+  // classiques et smart). La smart collection en cours d'édition est exclue
+  // (l'auto-référence est refusée côté serveur de toute façon).
+  let refOptions = $state<{
+    collections: any[]; smartCollections: any[]; playlists: any[]; smartPlaylists: any[];
+  }>({ collections: [], smartCollections: [], playlists: [], smartPlaylists: [] });
+
+  $effect(() => {
+    (async () => {
+      const [collections, smartCollections, playlists, smartPlaylists] = await Promise.all([
+        api.getCollections().catch(() => []),
+        api.listSmartCollections().catch(() => []),
+        api.getPlaylists(500).catch(() => []),
+        api.getSmartPlaylists().catch(() => []),
+      ]);
+      refOptions = {
+        collections: collections ?? [],
+        smartCollections: (smartCollections ?? []).filter((c: any) => c.id !== collection?.id),
+        playlists: playlists ?? [],
+        smartPlaylists: smartPlaylists ?? [],
+      };
+    })();
+  });
 
   // Rule-type dropdown sorted alphabetically by translated label (Elie).
   let sortedFields = $derived(
@@ -95,6 +126,18 @@
       { value: 'is_null', labelKey: 'smartCollection.opNever' },
     ],
     credit: [{ value: 'has', labelKey: 'smartCollection.opContains' }],
+    collection_ref: [
+      { value: 'in', labelKey: 'smartCollection.opRefIn' },
+      { value: 'not_in', labelKey: 'smartCollection.opRefNotIn' },
+    ],
+    playlist_ref: [
+      { value: 'in', labelKey: 'smartCollection.opRefIn' },
+      { value: 'not_in', labelKey: 'smartCollection.opRefNotIn' },
+    ],
+    favorite: [
+      { value: 'is', labelKey: 'smartCollection.opRefIn' },
+      { value: 'is_not', labelKey: 'smartCollection.opRefNotIn' },
+    ],
     count: [
       { value: '>=', label: '≥' }, { value: '>', label: '>' },
       { value: '<', label: '<' }, { value: '=', label: '=' },
@@ -188,8 +231,12 @@
         saved = await api.createSmartCollection(payload);
       }
       onSave(saved);
-    } catch (e) {
+    } catch (e: any) {
       console.error('save smart collection error', e);
+      // Le serveur renvoie 400 avec un message clair (ex. référence
+      // circulaire « A » ⊂ « B » ⊂ « A ») : le montrer au lieu d'échouer
+      // en silence. apiError range le corps `error` dans e.code.
+      notifications.error(e?.code || e?.message || $t('common.error'));
     } finally {
       saving = false;
     }
@@ -236,6 +283,53 @@
 
           {#if rule.op === 'is_null' || rule.op === 'is_not_null'}
             <span class="value-na">—</span>
+          {:else if fieldType(rule.field) === 'collection_ref'}
+            <select
+              class="value"
+              value={rule.value ?? ''}
+              onchange={(e) => updateRule(i, { value: (e.target as HTMLSelectElement).value })}
+            >
+              <option value="" disabled>{$t('smartCollection.refPick')}</option>
+              <optgroup label={$t('smartCollection.groupCollections')}>
+                {#each refOptions.collections as c}
+                  <option value={`classic:${c.id}`}>{c.name}</option>
+                {/each}
+              </optgroup>
+              <optgroup label={$t('smartCollection.groupSmartCollections')}>
+                {#each refOptions.smartCollections as c}
+                  <option value={`smart:${c.id}`}>{c.name}</option>
+                {/each}
+              </optgroup>
+            </select>
+          {:else if fieldType(rule.field) === 'playlist_ref'}
+            <select
+              class="value"
+              value={rule.value ?? ''}
+              onchange={(e) => updateRule(i, { value: (e.target as HTMLSelectElement).value })}
+            >
+              <option value="" disabled>{$t('smartCollection.refPick')}</option>
+              <optgroup label={$t('smartCollection.groupPlaylists')}>
+                {#each refOptions.playlists as p}
+                  <option value={`classic:${p.id}`}>{p.name}</option>
+                {/each}
+              </optgroup>
+              <optgroup label={$t('smartCollection.groupSmartPlaylists')}>
+                {#each refOptions.smartPlaylists as p}
+                  <option value={`smart:${p.id}`}>{p.name}</option>
+                {/each}
+              </optgroup>
+            </select>
+          {:else if fieldType(rule.field) === 'favorite'}
+            <select
+              class="value"
+              value={rule.value ?? ''}
+              onchange={(e) => updateRule(i, { value: (e.target as HTMLSelectElement).value })}
+            >
+              <option value="" disabled>{$t('smartCollection.refPick')}</option>
+              <option value="track">{$t('smartCollection.favTrack')}</option>
+              <option value="album">{$t('smartCollection.favAlbum')}</option>
+              <option value="artist">{$t('smartCollection.favArtist')}</option>
+            </select>
           {:else if rule.field === 'credit'}
             <span class="credit-grid">
               <input

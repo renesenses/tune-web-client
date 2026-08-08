@@ -15,6 +15,9 @@
   import MetadataDuplicatesPanel from './MetadataDuplicatesPanel.svelte';
 
   let toolsMenuOpen = $state(false);
+  /* Hauteur réelle de `.meta-filters` (elle varie : les onglets peuvent passer
+     sur 2 lignes) pour empiler `.batch-toolbar` juste dessous — #1282. */
+  let metaFiltersH = $state(0);
   function closeToolsMenu() { toolsMenuOpen = false; }
   async function runFromMenu(fn: () => Promise<any>, _label: string) {
     closeToolsMenu();
@@ -1471,7 +1474,7 @@
     <MetadataStatsDashboard {stats} {filter} onFilter={(f) => filter = f} />
 
     <!-- Filtres + recherche (ligne unique) -->
-    <div class="meta-filters">
+    <div class="meta-filters" bind:clientHeight={metaFiltersH}>
       <div class="meta-filters-tabs">
         <button class="filter-btn" class:active={filter === 'all'} onclick={() => filter = 'all'}>{$t('metadata.all')}</button>
         <button class="filter-btn" class:active={filter === 'no_cover'} onclick={() => filter = 'no_cover'}>{$t('metadata.missingCovers')} <span class="pill">{stats.albums_without_cover}</span></button>
@@ -1733,7 +1736,7 @@
       <!-- `filter !== 'doubtful'` était redondant : cette branche est le {:else}
            d'une chaîne qui traite déjà 'doubtful' plus haut. -->
       {#if filter !== 'no_artist' && filter !== 'unknown'}
-        <div class="batch-toolbar">
+        <div class="batch-toolbar" style:top="{62 + metaFiltersH}px">
           <label class="batch-select-all">
             <input type="checkbox" checked={batchAllSelected} onchange={toggleBatchSelectAll} />
             {$t('metadata.selectAll')} ({filteredAlbums.length})
@@ -1888,6 +1891,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    /* Figer le titre + Rafraîchir/Outils au défilement — #1282 (Jean Valjean).
+       Scroller = `.view-scroller` ; marge négative + padding pour couvrir le
+       padding-top 24px de `.metadata-view` (recette .radios-header). */
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--tune-bg);
+    margin-top: -24px;
+    padding-top: 24px;
+    padding-bottom: 8px;
   }
 
   .view-header h1 {
@@ -2599,6 +2612,12 @@
     border: 1px solid var(--tune-border);
     border-radius: var(--radius-md);
     flex-wrap: wrap;
+    /* Figée sous `.meta-filters` (hauteur variable → `top` inline calculé via
+       bind:clientHeight) — #1282. L'anneau box-shadow couleur fond masque les
+       coins arrondis quand la liste défile dessous. */
+    position: sticky;
+    z-index: 10;
+    box-shadow: 0 0 0 6px var(--tune-bg);
   }
 
   .batch-select-all {
@@ -3474,7 +3493,9 @@
        extension (Jean Valjean). Scroller = `.view-scroller`; class is
        Svelte-scoped. Opaque bg so the list scrolls under it. */
     position: sticky;
-    top: 0;
+    /* Empilée sous `.view-header` désormais sticky (~66px de haut, tuck 2px
+       sous son fond opaque) — #1282. */
+    top: 64px;
     z-index: 15;
     background: var(--tune-bg);
     padding-top: 8px;

@@ -56,6 +56,12 @@
     { value: 'source', key: 'smartPlaylists.fieldSource' },
     { value: 'composer', key: 'smartPlaylists.fieldComposer' },
     { value: 'comments', key: 'smartPlaylists.fieldComments' },
+    // Références : appartenance à une collection / playlist (classique ou
+    // smart) et statut favori — mêmes libellés que l'éditeur de smart
+    // collections (clés smartCollection.*).
+    { value: 'in_collection', key: 'smartCollection.fieldInCollection' },
+    { value: 'in_playlist', key: 'smartCollection.fieldInPlaylist' },
+    { value: 'favorite', key: 'smartCollection.fieldFavorite' },
   ];
 
   const OPERATORS: { value: string; key?: string; label?: string }[] = [
@@ -69,6 +75,74 @@
     { value: 'is_empty', key: 'smartPlaylists.opIsEmpty' },
     { value: 'is_not_empty', key: 'smartPlaylists.opIsNotEmpty' },
   ];
+
+  // Les champs « référence » n'acceptent que est / n'est pas
+  // (in|not_in côté serveur, is|is_not pour les favoris).
+  const REF_OPERATORS: { value: string; key: string }[] = [
+    { value: 'in', key: 'smartCollection.opRefIn' },
+    { value: 'not_in', key: 'smartCollection.opRefNotIn' },
+  ];
+  const FAV_OPERATORS: { value: string; key: string }[] = [
+    { value: 'is', key: 'smartCollection.opRefIn' },
+    { value: 'is_not', key: 'smartCollection.opRefNotIn' },
+  ];
+
+  function isRefField(field: string): boolean {
+    return field === 'in_collection' || field === 'in_playlist' || field === 'favorite';
+  }
+  function opsFor(field: string): { value: string; key?: string; label?: string }[] {
+    if (field === 'favorite') return FAV_OPERATORS;
+    if (isRefField(field)) return REF_OPERATORS;
+    return OPERATORS;
+  }
+
+  // Listes pour les sélecteurs de référence (chargées avec la vue).
+  let refOptions = $state<{
+    collections: any[]; smartCollections: any[]; playlists: any[]; smartPlaylists: any[];
+  }>({ collections: [], smartCollections: [], playlists: [], smartPlaylists: [] });
+
+  async function loadRefOptions() {
+    const [collections, smartCollections, playlists, spls] = await Promise.all([
+      api.getCollections().catch(() => []),
+      api.listSmartCollections().catch(() => []),
+      api.getPlaylists(500).catch(() => []),
+      api.getSmartPlaylists().catch(() => []),
+    ]);
+    refOptions = {
+      collections: collections ?? [],
+      smartCollections: smartCollections ?? [],
+      playlists: playlists ?? [],
+      smartPlaylists: spls ?? [],
+    };
+  }
+
+  function refName(value: string): string {
+    const [kind, idStr] = value.includes(':') ? value.split(':') : ['classic', value];
+    const id = parseInt(idStr, 10);
+    const lists = kind === 'smart'
+      ? [...refOptions.smartCollections, ...refOptions.smartPlaylists]
+      : [...refOptions.collections, ...refOptions.playlists];
+    return lists.find((x: any) => x.id === id)?.name ?? value;
+  }
+
+  // Libellé lisible d'une règle (chips + résumé de carte) : les règles
+  // « référence » affichent le nom de la collection/playlist, pas
+  // `in_playlist in smart:4`.
+  function displayRule(r: Rule): string {
+    if (isRefField(r.field)) {
+      const fieldLabel = $tr(FIELDS.find(f => f.value === r.field)?.key ?? r.field);
+      const opLabel = $tr(
+        (r.operator === 'not_in' || r.operator === 'is_not')
+          ? 'smartCollection.opRefNotIn'
+          : 'smartCollection.opRefIn'
+      );
+      const valueLabel = r.field === 'favorite'
+        ? $tr(r.value === 'album' ? 'smartCollection.favAlbum' : r.value === 'artist' ? 'smartCollection.favArtist' : 'smartCollection.favTrack')
+        : refName(r.value);
+      return `${fieldLabel} ${opLabel} « ${valueLabel} »`;
+    }
+    return `${r.field} ${r.operator} "${r.value}"`;
+  }
 
   const SORT_OPTIONS: { value: string; key: string }[] = [
     { value: 'title', key: 'common.title' },
@@ -144,7 +218,9 @@
       const created = smartPlaylists.find(sp => sp.id === result.id);
       if (created) selectSp(created);
     } catch (e: any) {
-      notifications.error(e?.message || $tr('common.error'));
+      // apiError range le corps `error` du serveur dans e.code (ex. le
+      // message de référence circulaire) : le préférer au statut HTTP brut.
+      notifications.error(e?.code || e?.message || $tr('common.error'));
     }
   }
 
@@ -158,7 +234,9 @@
       }
       notifications.success($tr('smartPlaylists.deleted').replace('{name}', sp.name));
     } catch (e: any) {
-      notifications.error(e?.message || $tr('common.error'));
+      // apiError range le corps `error` du serveur dans e.code (ex. le
+      // message de référence circulaire) : le préférer au statut HTTP brut.
+      notifications.error(e?.code || e?.message || $tr('common.error'));
     }
   }
 
@@ -194,7 +272,9 @@
       newRules = [{ field: 'genre', operator: 'contains', value: '' }];
       await loadSmartPlaylists();
     } catch (e: any) {
-      notifications.error(e?.message || $tr('common.error'));
+      // apiError range le corps `error` du serveur dans e.code (ex. le
+      // message de référence circulaire) : le préférer au statut HTTP brut.
+      notifications.error(e?.code || e?.message || $tr('common.error'));
     }
   }
 
@@ -235,13 +315,13 @@
   function ruleSummary(sp: SmartPlaylist): string {
     const rules = parseRules(sp);
     if (!rules.length) return $tr('smartPlaylists.noRules');
-    const parts = rules.slice(0, 2).map(r => `${r.field} ${r.operator} ${r.value}`);
+    const parts = rules.slice(0, 2).map(displayRule);
     const mode = (sp.match_mode || '').replace(/"/g, '');
     const summary = parts.join(mode === 'all' ? ' ET ' : ' OU ');
     return rules.length > 2 ? `${summary} … (+${rules.length - 2})` : summary;
   }
 
-  $effect(() => { loadSmartPlaylists(); });
+  $effect(() => { loadSmartPlaylists(); loadRefOptions(); });
 </script>
 
 <div class="sp-view">
@@ -265,7 +345,7 @@
           <p class="sp-meta">{spTracks.length} {$tr('common.tracks')}</p>
           <div class="sp-rules-display">
             {#each parseRules(selectedSp) as rule}
-              <span class="sp-rule-chip">{rule.field} {rule.operator} "{rule.value}"</span>
+              <span class="sp-rule-chip">{displayRule(rule)}</span>
             {/each}
           </div>
         </div>
@@ -326,13 +406,61 @@
           <h4>{$tr('smartPlaylists.rules')}</h4>
           {#each newRules as rule, i}
             <div class="sp-rule-row">
-              <select bind:value={rule.field} class="sp-select">
+              <select
+                class="sp-select"
+                value={rule.field}
+                onchange={(e) => {
+                  const f = (e.target as HTMLSelectElement).value;
+                  const ops = opsFor(f);
+                  // Changer de famille de champ invalide l'opérateur et la
+                  // valeur : on repart sur le premier opérateur valide.
+                  newRules = newRules.map((r, idx) =>
+                    idx === i ? { field: f, operator: ops[0].value, value: '' } : r);
+                }}
+              >
                 {#each FIELDS as f}<option value={f.value}>{$tr(f.key)}</option>{/each}
               </select>
               <select bind:value={rule.operator} class="sp-select">
-                {#each OPERATORS as op}<option value={op.value}>{op.key ? $tr(op.key) : op.label}</option>{/each}
+                {#each opsFor(rule.field) as op}<option value={op.value}>{op.key ? $tr(op.key) : op.label}</option>{/each}
               </select>
-              <input type="text" placeholder={$tr('smartPlaylists.valuePlaceholder')} bind:value={rule.value} class="sp-input sp-input-sm" />
+              {#if rule.field === 'in_collection'}
+                <select bind:value={rule.value} class="sp-select sp-input-sm">
+                  <option value="" disabled>{$tr('smartCollection.refPick')}</option>
+                  <optgroup label={$tr('smartCollection.groupCollections')}>
+                    {#each refOptions.collections as c}
+                      <option value={`classic:${c.id}`}>{c.name}</option>
+                    {/each}
+                  </optgroup>
+                  <optgroup label={$tr('smartCollection.groupSmartCollections')}>
+                    {#each refOptions.smartCollections as c}
+                      <option value={`smart:${c.id}`}>{c.name}</option>
+                    {/each}
+                  </optgroup>
+                </select>
+              {:else if rule.field === 'in_playlist'}
+                <select bind:value={rule.value} class="sp-select sp-input-sm">
+                  <option value="" disabled>{$tr('smartCollection.refPick')}</option>
+                  <optgroup label={$tr('smartCollection.groupPlaylists')}>
+                    {#each refOptions.playlists as p}
+                      <option value={`classic:${p.id}`}>{p.name}</option>
+                    {/each}
+                  </optgroup>
+                  <optgroup label={$tr('smartCollection.groupSmartPlaylists')}>
+                    {#each refOptions.smartPlaylists.filter((p) => p.id !== editingSp?.id) as p}
+                      <option value={`smart:${p.id}`}>{p.name}</option>
+                    {/each}
+                  </optgroup>
+                </select>
+              {:else if rule.field === 'favorite'}
+                <select bind:value={rule.value} class="sp-select sp-input-sm">
+                  <option value="" disabled>{$tr('smartCollection.refPick')}</option>
+                  <option value="track">{$tr('smartCollection.favTrack')}</option>
+                  <option value="album">{$tr('smartCollection.favAlbum')}</option>
+                  <option value="artist">{$tr('smartCollection.favArtist')}</option>
+                </select>
+              {:else}
+                <input type="text" placeholder={$tr('smartPlaylists.valuePlaceholder')} bind:value={rule.value} class="sp-input sp-input-sm" />
+              {/if}
               <button class="sp-remove-rule" onclick={() => removeRule(i)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
