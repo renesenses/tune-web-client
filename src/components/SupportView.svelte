@@ -424,8 +424,8 @@
         try {
           system = await api.getSystemProfile();
         } catch {
-          // Serveur sans /system/profile : même repli que le volet « Mon système »,
-          // sinon la case « joindre la fiche système » n'attachait jamais rien.
+          // Serveur trop ancien pour /system/profile (ou appel en échec) : même
+          // repli que le volet « Mon système », plutôt qu'un ticket sans fiche.
           try { system = await buildLocalProfile(); } catch { /* sans la fiche */ }
         }
       }
@@ -524,10 +524,19 @@
   }
 
   /** Retrouve la zone correspondant à une ligne de la section « zones » — la
-   *  fiche ne transporte que le nom, l'édition a besoin de l'id. */
-  function zoneForRow(sectionKey: string, label: string): Zone | undefined {
+   *  fiche ne transporte pas l'id, que l'édition exige.
+   *
+   *  Les doublons de nom sont courants (un « Salon » Chromecast et un « Salon »
+   *  DLNA) : on départage sur le type de sortie quand la fiche le donne, et on
+   *  renonce au crayon si le nom reste ambigu — éditer la mauvaise zone est pire
+   *  que ne pas proposer le bouton. */
+  function zoneForRow(sectionKey: string, label: string, item: Record<string, unknown>): Zone | undefined {
     if (sectionKey !== 'zones') return undefined;
-    return get(zones).find((z) => z.id !== null && z.name === label);
+    let candidates = get(zones).filter((z) => z.id !== null && z.name === label);
+    if (candidates.length > 1 && typeof item.output_type === 'string') {
+      candidates = candidates.filter((z) => z.output_type === item.output_type);
+    }
+    return candidates.length === 1 ? candidates[0] : undefined;
   }
 
   /** Rend n'importe quelle forme de fiche (objet de sections) en lignes lisibles. */
@@ -544,7 +553,7 @@
             rows.push({
               label,
               value: rest.map(([k, v]) => `${prettify(k)}: ${fmtValue(v)}`).join(' · '),
-              zone: zoneForRow(key, label),
+              zone: zoneForRow(key, label, o),
             });
           } else {
             rows.push({ label: `#${rows.length + 1}`, value: fmtValue(item) });
