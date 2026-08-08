@@ -86,6 +86,26 @@ function withinPlayGrace(zoneId: number): boolean {
   return until != null && Date.now() < until;
 }
 
+/**
+ * Should this playback error be shown as "chargement…" instead of an error?
+ *
+ * True only for a *transient* failure inside the post-play grace window — the
+ * slow HI-RES pre-transcode case the window was built for (#1146).
+ *
+ * A `fatal` error is never suppressed. An audio device that refuses to open
+ * will not recover, and the server reports it within a second of the play
+ * request, i.e. squarely inside the window: suppressing it would show a
+ * spinner and then nothing at all, because the server emits that error once
+ * and stops the zone right after.
+ */
+export function suppressedByPlayGrace(
+  zoneId: number | null | undefined,
+  fatal: boolean = false,
+): boolean {
+  if (fatal || zoneId == null) return false;
+  return withinPlayGrace(zoneId);
+}
+
 async function loadingInstead(): Promise<void> {
   // Dynamic import: i18n pulls stores of its own; keep zones.ts cycle-free
   // (same pattern as the nowPlaying import in playAndSync below).
