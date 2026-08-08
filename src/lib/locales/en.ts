@@ -2631,6 +2631,8 @@ export default {
   "tv.exitHint": "Esc or click to exit",
   "settings.lyricsLrclib": "Online lyrics (LRCLIB)",
   "settings.lyricsLrclibHelp": "Fetches missing lyrics from LRCLIB, an online community database. Disabled by default.",
+  "settings.acousticAnalysis": "Acoustic analysis (mood search)",
+  "settings.acousticAnalysisHelp": "Acoustic analysis sweeps the library in the background and computes a sound fingerprint per track — that is what makes mood search possible. The model is downloaded on first use, and the sweep is slow and CPU-heavy on a large library.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

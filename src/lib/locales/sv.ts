@@ -2358,4 +2358,6 @@ export default {
   "tv.exitHint": "Esc eller klick för att avsluta",
   "settings.lyricsLrclib": "Sångtexter online (LRCLIB)",
   "settings.lyricsLrclibHelp": "Hämtar saknade sångtexter från LRCLIB, en online-gemenskapsdatabas. Inaktiverat som standard.",
+  "settings.acousticAnalysis": "Akustisk analys (stämningssökning)",
+  "settings.acousticAnalysisHelp": "Den akustiska analysen går igenom biblioteket i bakgrunden och beräknar ett ljudfingeravtryck per spår — det är vad som gör stämningssökning möjlig. Modellen laddas ned vid första användningen, och analysen är långsam och processorkrävande i stora bibliotek.",
 } as const;
