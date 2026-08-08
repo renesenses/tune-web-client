@@ -7,6 +7,7 @@
   import { resetLibraryNavigation } from '../lib/stores/library';
   import { activeStreamingService, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { isPremium } from '../lib/stores/license';
+  import { ambianceUsable, refreshAcousticStatus } from '../lib/stores/acoustic';
   import { preferences } from '../lib/stores/preferences';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
@@ -33,6 +34,8 @@
   let serverVersion = $state<string | null>(null);
   let sidebarDestroyed = false;
   onMount(() => {
+    // L'état acoustique décide de l'affichage de l'entrée Ambiance.
+    refreshAcousticStatus();
     // Primary: get version from /system/health (always available)
     api.getHealth()
       .then((r) => { if (!sidebarDestroyed && r?.version) serverVersion = r.version; })
@@ -657,10 +660,16 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
       {$t('nav.search')}
     </button>
-    <button class="nav-item" class:active={$activeView === 'ambiance'} onclick={() => navigate('ambiance')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="9" x2="4" y2="15"></line><line x1="9" y1="5" x2="9" y2="19"></line><line x1="14" y1="8" x2="14" y2="16"></line><line x1="19" y1="11" x2="19" y2="13"></line></svg>
-      {$t('nav.ambiance')}
-    </button>
+    <!-- Masquée quand l'analyse acoustique ne tournera jamais (brique absente
+         du binaire, ou analyse désactivée) : proposer une porte fermée est pire
+         que ne rien proposer. Reste visible dès l'activation, même à zéro piste
+         analysée, sinon le menu disparaîtrait juste après qu'on l'a activée. -->
+    {#if $ambianceUsable}
+      <button class="nav-item" class:active={$activeView === 'ambiance'} onclick={() => navigate('ambiance')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="9" x2="4" y2="15"></line><line x1="9" y1="5" x2="9" y2="19"></line><line x1="14" y1="8" x2="14" y2="16"></line><line x1="19" y1="11" x2="19" y2="13"></line></svg>
+        {$t('nav.ambiance')}
+      </button>
+    {/if}
     <button class="nav-item" class:active={$activeView === 'history'} onclick={() => navigate('history')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
       {$t('nav.history')}

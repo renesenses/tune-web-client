@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
+  import { refreshAcousticStatus } from '../lib/stores/acoustic';
   import { tuneWS } from '../lib/websocket';
   import { zones, currentZoneId, followMe } from '../lib/stores/zones';
   import { loopByDefault } from '../lib/stores/loopByDefault';
@@ -3750,7 +3751,7 @@
              (retour Fabien). -->
         <label class="pref-label">{$t('settings.acousticAnalysis')}</label>
         <label class="toggle-switch">
-          <input type="checkbox" checked={config.audio_embedding_enabled === true || config.audio_embedding_enabled === 'true'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.audio_embedding_enabled = val; await api.updateConfig({ audio_embedding_enabled: val }); }} />
+          <input type="checkbox" checked={config.audio_embedding_enabled === true || config.audio_embedding_enabled === 'true'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.audio_embedding_enabled = val; await api.updateConfig({ audio_embedding_enabled: val }); await refreshAcousticStatus(); }} />
           <span class="toggle-slider"></span>
         </label>
       </div>

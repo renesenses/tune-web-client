@@ -1197,6 +1197,16 @@ export interface AcousticSearchResult {
 /** Natural-language acoustic search — "warm analog jazz", "driving techno".
  *  Premium; returns an empty list when nothing has been acoustically analysed
  *  yet, and throws (503) when the model can't be provisioned. */
+/** État de la brique acoustique : `available` = le binaire l'embarque,
+ *  `enabled` = elle est activée sur ce serveur, `analysed_tracks` = ce qui a
+ *  déjà été analysé. Sert à ne pas proposer l'écran Ambiance quand il ne peut
+ *  rien donner. */
+export function getAcousticStatus() {
+  return fetchJSON<{ available: boolean; enabled: boolean; analysed_tracks: number }>(
+    `${BASE}/library/search/acoustic/status`,
+  );
+}
+
 export function searchAcoustic(query: string, limit = 50) {
   return apiPost('/library/search/acoustic', { query, limit }) as Promise<AcousticSearchResult>;
 }

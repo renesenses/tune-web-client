@@ -1007,9 +1007,14 @@
   <button class="np-back-btn" onclick={() => activeView.set($previousView && $previousView !== 'nowplaying' ? $previousView : 'library')} title={$t('nowplaying.back')}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
-  <button class="np-tv-btn" onclick={enterTvMode} title={$t('nowplaying.tvMode')}>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-  </button>
+  <!-- Seul bouton de l'écran rendu hors de la garde `displayTrack` : il passait
+       en plein écran sur une vue TV qui n'avait rien à afficher quand rien ne
+       jouait. Les autres modes (paroles, crédits, EQ) sont déjà à l'intérieur. -->
+  {#if displayTrack}
+    <button class="np-tv-btn" onclick={enterTvMode} title={$t('nowplaying.tvMode')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+    </button>
+  {/if}
   {#if resolvedCoverUrl}
     <div class="bg-blur" style="background-image: url({resolvedCoverUrl})"></div>
   {/if}
