@@ -73,6 +73,7 @@ export default {
   "support.sys.settings": "Setări",
   "support.sys.localFallback": "Fișă compusă local — serverul nu oferă încă fișa completă.",
   "support.sys.empty": "Fișa de sistem nu este disponibilă.",
+  "support.sys.editDevice": "Corectează marca și modelul",
   "sidebar.supportUnread": "Răspunsuri de la suport necitite",
   // Oxygen (advanced library view)
   'oxygen.eyebrow': 'Bibliotecă · Oxygen',

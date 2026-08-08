@@ -73,6 +73,7 @@ export default {
   "support.sys.settings": "설정",
   "support.sys.localFallback": "이 정보는 로컬에서 구성되었습니다. 서버가 아직 전체 정보를 제공하지 않습니다.",
   "support.sys.empty": "시스템 정보를 사용할 수 없습니다.",
+  "support.sys.editDevice": "제조사 및 모델 수정",
   "sidebar.supportUnread": "읽지 않은 지원 답변",
   // Oxygen (advanced library view)
   'oxygen.eyebrow': '라이브러리 · Oxygen',

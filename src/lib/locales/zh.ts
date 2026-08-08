@@ -73,6 +73,7 @@ export default {
   "support.sys.settings": "设置",
   "support.sys.localFallback": "此信息为本地生成——服务器尚未提供完整信息。",
   "support.sys.empty": "系统信息不可用。",
+  "support.sys.editDevice": "修正品牌和型号",
   "sidebar.supportUnread": "未读的支持回复",
   // Oxygen (advanced library view)
   'oxygen.eyebrow': '音乐库 · Oxygen',

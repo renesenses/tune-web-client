@@ -73,6 +73,7 @@ export default {
   "support.sys.settings": "Inställningar",
   "support.sys.localFallback": "Rapporten är sammanställd lokalt — servern tillhandahåller ännu inte den fullständiga rapporten.",
   "support.sys.empty": "Systemrapport ej tillgänglig.",
+  "support.sys.editDevice": "Rätta märke och modell",
   "sidebar.supportUnread": "Olästa supportsvar",
   // Oxygen (advanced library view)
   'oxygen.eyebrow': 'Bibliotek · Oxygen',

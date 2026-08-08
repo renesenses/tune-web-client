@@ -73,6 +73,7 @@ export default {
   "support.sys.settings": "Einstellungen",
   "support.sys.localFallback": "Bericht lokal erstellt — der Server liefert den vollständigen Bericht noch nicht.",
   "support.sys.empty": "Systembericht nicht verfügbar.",
+  "support.sys.editDevice": "Marke und Modell korrigieren",
   "sidebar.supportUnread": "Ungelesene Support-Antworten",
   // Oxygen (advanced library view)
   'oxygen.eyebrow': 'Bibliothek · Oxygen',
