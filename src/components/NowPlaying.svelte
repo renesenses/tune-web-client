@@ -4,6 +4,7 @@
   import { upNextTracks, queueTracks, queuePosition, queueLength } from '../lib/stores/queue';
   import { currentZoneId, zones } from '../lib/stores/zones';
   import { formatTime, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
+  import { isMiddlePressWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -797,8 +798,19 @@
   let npWheelAccum = 0;
   let npWheelLastTs = 0;
   let npWheelTriggered = false; // debounce: one state change per gesture
+  let npMiddlePressTs = -Infinity; // when the wheel was last pressed (see #1261)
 
   function handleNpWheel(e: WheelEvent) {
+    // #1261: a wheel PRESS is not a scroll. Pressing the wheel almost always
+    // rotates it a little, and that rotation is a real wheel event — which is
+    // why blocking Firefox's autoscroll stopped the view from jumping but left
+    // the queue popping open ("l'utilisation de la molette ne fait plus
+    // remonter l'écran mais ouvre quand même la file d'attente", 0.9.49).
+    if (isMiddlePressWheel(e.buttons, performance.now() - npMiddlePressTs)) {
+      npWheelAccum = 0; // a press must not leave a half-armed gesture behind
+      return;
+    }
+
     // Normalize deltaMode (0=pixels, 1=lines, 2=pages) to pixels.
     const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1;
     const dy = e.deltaY * unit;
@@ -832,7 +844,11 @@
   // ("Persiste en 0.9.49", Jean). Autoscroll is cancelable at mousedown —
   // block it inside the view; middle click has no role here except on links.
   function handleNpMiddlePress(e: MouseEvent) {
-    if (e.button === 1 && !(e.target as HTMLElement).closest('a')) e.preventDefault();
+    if (e.button !== 1) return;
+    // Stamped even on a link: a middle click there opens a tab, it still has no
+    // business revealing the queue on the way out.
+    npMiddlePressTs = performance.now();
+    if (!(e.target as HTMLElement).closest('a')) e.preventDefault();
   }
 
   // Queue track actions (reused from QueueView logic)
