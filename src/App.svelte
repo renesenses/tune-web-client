@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { tuneWS } from './lib/websocket';
-  import { zones, currentZoneId, currentZone, playPendingUntil } from './lib/stores/zones';
+  import { zones, currentZoneId, currentZone, playPendingUntil, suppressedByPlayGrace } from './lib/stores/zones';
   import { devices } from './lib/stores/devices';
   import { isBrowserZone, browserPlay, browserPause, browserResume, browserStop } from './lib/stores/browserAudio';
   import { seekPositionMs, startSeekTimer, stopSeekTimer, shuffleEnabled, repeatMode, nowPlayingToTrack } from './lib/stores/nowPlaying';
@@ -659,8 +659,13 @@ import AlarmsView from './components/AlarmsView.svelte';
           // slow HI-RES DASH pre-transcode is still working (playback then
           // starts), so show "chargement…" instead of a scary error (#1146). A
           // genuine failure that persists past the window still surfaces.
-          const pendingUntil = zoneId != null ? playPendingUntil.get(zoneId) : undefined;
-          if (pendingUntil != null && Date.now() < pendingUntil) {
+          //
+          // Unless the server marked it `fatal`: an audio device that refuses to
+          // open never recovers, and the server now reports it within a second —
+          // i.e. squarely inside this window. Waiting it out would show a
+          // spinner and then nothing at all, since that error is emitted once
+          // and the zone stops right after.
+          if (suppressedByPlayGrace(zoneId, event.data?.fatal === true)) {
             notifications.info(get(t)('common.loading'));
             if (zoneId) syncZoneState(zoneId);
             return;
