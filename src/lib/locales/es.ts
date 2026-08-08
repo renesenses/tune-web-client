@@ -2383,6 +2383,8 @@ export default {
   "tv.exitHint": "Esc o clic para salir",
   "settings.lyricsLrclib": "Letras en línea (LRCLIB)",
   "settings.lyricsLrclibHelp": "Recupera las letras que faltan desde LRCLIB, una base de datos comunitaria en línea. Desactivado por defecto.",
+  "settings.acousticAnalysis": "Análisis acústico (búsqueda por ambiente)",
+  "settings.acousticAnalysisHelp": "El análisis acústico recorre la biblioteca en segundo plano y calcula una huella sonora por pista: es lo que hace posible la búsqueda por ambiente. El modelo se descarga en el primer uso, y el análisis es lento y exigente con la CPU en bibliotecas grandes.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

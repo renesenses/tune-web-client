@@ -2383,6 +2383,8 @@ export default {
   "tv.exitHint": "Esc oder Klick zum Beenden",
   "settings.lyricsLrclib": "Online-Songtexte (LRCLIB)",
   "settings.lyricsLrclibHelp": "Lädt fehlende Songtexte von LRCLIB, einer Online-Community-Datenbank. Standardmäßig deaktiviert.",
+  "settings.acousticAnalysis": "Akustische Analyse (Stimmungssuche)",
+  "settings.acousticAnalysisHelp": "Die akustische Analyse durchläuft die Bibliothek im Hintergrund und berechnet pro Titel einen Klang-Fingerabdruck — nur so ist die Stimmungssuche möglich. Das Modell wird beim ersten Mal heruntergeladen; der Durchlauf ist langsam und CPU-intensiv bei großen Bibliotheken.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

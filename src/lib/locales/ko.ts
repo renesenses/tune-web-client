@@ -2366,6 +2366,8 @@ export default {
   "tv.exitHint": "Esc 또는 클릭으로 종료",
   "settings.lyricsLrclib": "온라인 가사 (LRCLIB)",
   "settings.lyricsLrclibHelp": "누락된 가사를 온라인 커뮤니티 데이터베이스 LRCLIB에서 가져옵니다. 기본적으로 비활성화되어 있습니다.",
+  "settings.acousticAnalysis": "음향 분석 (분위기 검색)",
+  "settings.acousticAnalysisHelp": "음향 분석은 백그라운드에서 라이브러리를 훑으며 트랙마다 음향 지문을 계산합니다. 분위기 검색은 여기에 의존합니다. 모델은 첫 사용 시 내려받으며, 라이브러리가 크면 분석이 느리고 CPU를 많이 씁니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

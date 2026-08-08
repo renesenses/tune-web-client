@@ -2381,6 +2381,8 @@ export default {
   "tv.exitHint": "Esc またはクリックで終了",
   "settings.lyricsLrclib": "オンライン歌詞（LRCLIB）",
   "settings.lyricsLrclibHelp": "不足している歌詞をオンラインのコミュニティデータベース LRCLIB から取得します。既定では無効です。",
+  "settings.acousticAnalysis": "音響解析（ムード検索）",
+  "settings.acousticAnalysisHelp": "音響解析はバックグラウンドでライブラリを走査し、曲ごとに音の指紋を計算します。ムード検索はこれに依存します。モデルは初回利用時にダウンロードされ、大きなライブラリでは解析に時間がかかり CPU 負荷も高くなります。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

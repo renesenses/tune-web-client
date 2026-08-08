@@ -45,6 +45,14 @@
       if ((res as any)?.error === 'premium_required') {
         premiumBlocked = true;
         tracks = [];
+      } else if ((res as any)?.reason === 'library_not_analysed') {
+        // Une liste vide couvrait deux situations opposées : bibliothèque pas
+        // encore analysée, ou requête sans correspondance. Le serveur les
+        // distingue désormais — on ne laisse plus l'utilisateur reformuler une
+        // requête qui ne pouvait pas aboutir (retour Fabien).
+        error =
+          "Aucun titre de ta bibliothèque n'a encore été analysé acoustiquement — la recherche par ambiance ne peut donc rien trouver, quelle que soit la requête. L'analyse tourne en tâche de fond une fois activée sur le serveur (réglage « audio_embedding_enabled »), et n'est pas encore réglable depuis cette interface : contacte le support.";
+        tracks = [];
       } else {
         tracks = res.tracks ?? [];
       }
