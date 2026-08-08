@@ -64,6 +64,17 @@ function stripDoubleBase(path: string): string {
   return path;
 }
 
+/** En-tête d'authentification pour les appels qui n'utilisent pas `fetchJSON`
+ *  (téléchargements, uploads) : sans lui, un serveur avec l'auth activée
+ *  répond 401 alors que le reste de l'interface fonctionne, puisque le jeton
+ *  vit en localStorage et non dans un cookie. */
+export function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const token = getToken();
+  const headers: Record<string, string> = { ...extra };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
+
 // Generic helpers for radio favorites and custom endpoints
 export async function apiFetch(path: string): Promise<any> {
   const token = getToken();
@@ -1916,7 +1927,14 @@ export interface SpotifyConnectStatus {
 }
 
 export async function downloadDiagnosticsBundle(): Promise<{ blob: Blob; filename: string }> {
-  const res = await fetch(`${BASE}/system/diagnostics/bundle`);
+  // L'archive de diagnostic n'est pas dans l'allowlist anonyme du serveur : sans
+  // en-tête d'authentification, un serveur avec l'auth activée répondait 401 et
+  // l'export de logs devenait impossible — précisément quand on en a besoin.
+  const res = await fetch(`${BASE}/system/diagnostics/bundle`, { headers: authHeaders() });
+  if (res.status === 401) {
+    clearToken();
+    throw new Error('Session expirée — reconnecte-toi puis relance l’export');
+  }
   if (!res.ok) throw new Error(`Diagnostics bundle failed (${res.status})`);
   const cd = res.headers.get('Content-Disposition') ?? '';
   const m = /filename="([^"]+)"/.exec(cd);
