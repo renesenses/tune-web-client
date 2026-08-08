@@ -120,7 +120,12 @@
             <svg class="chev" class:closed={!isOpen(f)} viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
             {$t('oxygen.facet.' + f)}
           </button>
-          <button class="sortbtn" title={modeOf(f) === 'count' ? $t('oxygen.sortAlpha') : $t('oxygen.sortCount')} onclick={() => cycleSort(f)}>{modeOf(f) === 'count' ? '#' : 'A→Z'}</button>
+          <!-- Le bouton annonce l'ACTION, pas l'état courant : « # » au-dessus
+               d'une colonne de nombres se lisait comme un en-tête de colonne, et
+               contredisait son infobulle qui, elle, annonçait déjà l'action.
+               D'où « classement alphabétique absent » alors que le tri existait
+               (retour Stéphane Villerio, 08/08/2026). -->
+          <button class="sortbtn" title={modeOf(f) === 'count' ? $t('oxygen.sortAlpha') : $t('oxygen.sortCount')} onclick={() => cycleSort(f)}>{modeOf(f) === 'count' ? 'A→Z' : '#'}</button>
           <span class="gn">{(groups[f] ?? []).length}</span>
         </div>
         {#if isOpen(f)}
