@@ -73,6 +73,7 @@ export default {
   "support.sys.settings": "Ajustes",
   "support.sys.localFallback": "Ficha compuesta localmente — el servidor aún no proporciona la ficha completa.",
   "support.sys.empty": "Ficha del sistema no disponible.",
+  "support.sys.editDevice": "Corregir marca y modelo",
   "sidebar.supportUnread": "Respuestas de soporte sin leer",
   // Oxygen (advanced library view)
   'oxygen.eyebrow': 'Biblioteca · Oxygen',

@@ -115,6 +115,7 @@ export default {
   "support.sys.settings": "Settings",
   "support.sys.localFallback": "Report composed locally — the server does not provide the full report yet.",
   "support.sys.empty": "System report unavailable.",
+  "support.sys.editDevice": "Fix brand and model",
   "sidebar.supportUnread": "Unread support replies",
   // Folder wizard
   'folderWizard.title': 'Add a local folder',

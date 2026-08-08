@@ -73,6 +73,7 @@ export default {
   "support.sys.settings": "Impostazioni",
   "support.sys.localFallback": "Scheda composta localmente — il server non fornisce ancora la scheda completa.",
   "support.sys.empty": "Scheda di sistema non disponibile.",
+  "support.sys.editDevice": "Correggi marca e modello",
   "sidebar.supportUnread": "Risposte del supporto non lette",
   // Oxygen (advanced library view)
   'oxygen.eyebrow': 'Libreria · Oxygen',

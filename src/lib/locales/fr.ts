@@ -115,6 +115,7 @@ export default {
   "support.sys.settings": "Réglages",
   "support.sys.localFallback": "Fiche composée localement — le serveur ne fournit pas encore la fiche complète.",
   "support.sys.empty": "Fiche système indisponible.",
+  "support.sys.editDevice": "Corriger la marque et le modèle",
   "sidebar.supportUnread": "Réponses non lues du support",
   // Assistant dossier
   'folderWizard.title': 'Ajouter un dossier local',

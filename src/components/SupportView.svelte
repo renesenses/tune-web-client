@@ -8,6 +8,8 @@
   import { updateAvailable, latestVersion, currentVersion } from '../lib/stores/updates';
   import { activeView, settingsInitialTab } from '../lib/stores/navigation';
   import { refreshSupportUnread } from '../lib/stores/support';
+  import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
+  import type { Zone } from '../lib/types';
 
   // Garde anti-écriture après démontage (même motif que DiagnosticsView).
   let destroyed = false;
@@ -419,7 +421,13 @@
       let system: Record<string, unknown> | undefined;
       if (attachLogs) {
         try { logs = await api.getBugReportMarkdown(); } catch { /* sans les logs */ }
-        try { system = await api.getSystemProfile(); } catch { /* sans la fiche */ }
+        try {
+          system = await api.getSystemProfile();
+        } catch {
+          // Serveur sans /system/profile : même repli que le volet « Mon système »,
+          // sinon la case « joindre la fiche système » n'attachait jamais rien.
+          try { system = await buildLocalProfile(); } catch { /* sans la fiche */ }
+        }
       }
 
       if (attachments.length > 0) {
@@ -463,7 +471,8 @@
   // ============================================================
   // Volet 4 — Mon système
   // ============================================================
-  interface SysRow { label: string; value: string }
+  /** `zone` non nul = ligne d'une zone connue → bouton « corriger l'appareil ». */
+  interface SysRow { label: string; value: string; zone?: Zone }
   interface SysSection { key: string; title: string; rows: SysRow[] }
 
   let profileLoaded = $state(false);
@@ -472,6 +481,18 @@
   let profileFallback = $state(false);
   let sysSections = $state<SysSection[]>([]);
   let sysCopied = $state(false);
+  /** Zone dont on corrige la marque/le modèle depuis la fiche système. */
+  let deviceEditZone = $state<Zone | null>(null);
+  let deviceEdited = false;
+
+  function closeDeviceEditor() {
+    deviceEditZone = null;
+    // La fiche affiche marque + modèle : la recomposer si l'appareil a changé.
+    if (deviceEdited) {
+      deviceEdited = false;
+      loadProfile();
+    }
+  }
 
   const SECTION_TITLES: Record<string, string> = {
     server: 'support.sys.server',
@@ -502,6 +523,13 @@
     return mapped ? get(t)(mapped) : prettify(key);
   }
 
+  /** Retrouve la zone correspondant à une ligne de la section « zones » — la
+   *  fiche ne transporte que le nom, l'édition a besoin de l'id. */
+  function zoneForRow(sectionKey: string, label: string): Zone | undefined {
+    if (sectionKey !== 'zones') return undefined;
+    return get(zones).find((z) => z.id !== null && z.name === label);
+  }
+
   /** Rend n'importe quelle forme de fiche (objet de sections) en lignes lisibles. */
   function profileToSections(profile: Record<string, unknown>): SysSection[] {
     const sections: SysSection[] = [];
@@ -513,7 +541,11 @@
             const o = item as Record<string, unknown>;
             const label = typeof o.name === 'string' ? o.name : `#${rows.length + 1}`;
             const rest = Object.entries(o).filter(([k]) => k !== 'name');
-            rows.push({ label, value: rest.map(([k, v]) => `${prettify(k)}: ${fmtValue(v)}`).join(' · ') });
+            rows.push({
+              label,
+              value: rest.map(([k, v]) => `${prettify(k)}: ${fmtValue(v)}`).join(' · '),
+              zone: zoneForRow(key, label),
+            });
           } else {
             rows.push({ label: `#${rows.length + 1}`, value: fmtValue(item) });
           }
@@ -848,7 +880,19 @@
               {#each section.rows as row}
                 <div class="sys-row">
                   <dt>{row.label}</dt>
-                  <dd>{row.value}</dd>
+                  <dd>
+                    {row.value}
+                    {#if row.zone}
+                      <button
+                        class="sys-edit-btn"
+                        onclick={() => (deviceEditZone = row.zone ?? null)}
+                        title={$t('support.sys.editDevice')}
+                        aria-label={$t('support.sys.editDevice')}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                      </button>
+                    {/if}
+                  </dd>
                 </div>
               {/each}
             </dl>
@@ -858,6 +902,23 @@
     {/if}
   {/if}
 </div>
+
+{#if deviceEditZone}
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+  <div class="dev-overlay" onclick={(e) => { if (e.target === e.currentTarget) closeDeviceEditor(); }}>
+    <div class="dev-panel">
+      <div class="dev-header">
+        <span class="dev-title">{deviceEditZone.name}</span>
+        <button class="dev-close" onclick={closeDeviceEditor} title={$t('common.close')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
+      </div>
+      <div class="dev-body">
+        <ZoneDeviceEditor zone={deviceEditZone} onSaved={() => (deviceEdited = true)} />
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .support-view {
@@ -1341,4 +1402,53 @@
     font-size: 0.88rem;
     word-break: break-word;
   }
+  .sys-edit-btn {
+    background: none;
+    border: none;
+    padding: 0 0 0 0.4rem;
+    color: var(--text-muted, #a0a0a8);
+    cursor: pointer;
+    vertical-align: -2px;
+  }
+  .sys-edit-btn:hover { color: var(--tune-accent, #6c5ce7); }
+
+  /* --- Modale « corriger l'appareil » (fiche système) --- */
+  .dev-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 200;
+  }
+  .dev-panel {
+    background: var(--surface, #1c1c22);
+    border: 1px solid var(--border, #33333a);
+    border-radius: 10px;
+    width: 100%;
+    max-width: 460px;
+  }
+  .dev-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border, #33333a);
+  }
+  .dev-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .dev-close {
+    background: none;
+    border: none;
+    color: var(--text-muted, #a0a0a8);
+    cursor: pointer;
+    display: flex;
+  }
+  .dev-close:hover { color: var(--text, #e8e8ea); }
+  .dev-body { padding: 1rem; }
 </style>
