@@ -488,6 +488,8 @@ export default {
   'library.yearGroup': 'période',
   'library.yearGroupPlural': 'périodes',
   'library.playAlbum': "Lire l'album",
+  "library.wallOn": "Mur de pochettes",
+  "library.wallOff": "Revenir à l'affichage détaillé",
   'library.openAlbum': "Ouvrir l'album",
   'library.disc': 'Disque {num}',
   'library.album': 'album',

@@ -300,6 +300,8 @@ export default {
   'library.yearGroup': 'Zeitraum',
   'library.yearGroupPlural': 'Zeiträume',
   'library.playAlbum': 'Album abspielen',
+  "library.wallOn": "Cover-Wand",
+  "library.wallOff": "Zurück zur Detailansicht",
   'library.openAlbum': 'Album öffnen',
   'library.disc': 'Disc {num}',
   'library.album': 'Album',

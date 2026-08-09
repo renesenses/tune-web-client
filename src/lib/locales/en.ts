@@ -488,6 +488,8 @@ export default {
   'library.yearGroup': 'period',
   'library.yearGroupPlural': 'periods',
   'library.playAlbum': 'Play Album',
+  "library.wallOn": "Cover wall",
+  "library.wallOff": "Back to detailed view",
   'library.openAlbum': 'Open Album',
   'library.disc': 'Disc {num}',
   'library.album': 'album',

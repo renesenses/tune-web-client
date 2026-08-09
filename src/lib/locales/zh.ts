@@ -300,6 +300,8 @@ export default {
   'library.yearGroup': '时期',
   'library.yearGroupPlural': '时期',
   'library.playAlbum': '播放专辑',
+  "library.wallOn": "封面墙",
+  "library.wallOff": "返回详细视图",
   'library.openAlbum': '打开专辑',
   'library.disc': '碟片 {num}',
   'library.album': '专辑',

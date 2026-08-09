@@ -308,6 +308,8 @@ export default {
   'library.yearGroup': 'perioadă',
   'library.yearGroupPlural': 'perioade',
   'library.playAlbum': 'Redă albumul',
+  "library.wallOn": "Perete de coperți",
+  "library.wallOff": "Înapoi la vizualizarea detaliată",
   'library.openAlbum': 'Deschide albumul',
   'library.disc': 'Disc {num}',
   'library.album': 'album',
