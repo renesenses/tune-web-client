@@ -666,6 +666,9 @@
       audioBackend = data.audio_backend ?? data.local_audio_backend ?? 'wasapi';
       exclusiveMode = data.local_exclusive_mode ?? false;
       dsdLpcmStream = data.dsd_lpcm_stream ?? false;
+      replayGainMode = data.replaygain_mode ?? 'off';
+      replayGainPreamp = Number(data.replaygain_preamp_db ?? 0);
+      replayGainPreventClipping = data.replaygain_prevent_clipping ?? true;
     } catch {}
   }
 
@@ -682,6 +685,23 @@
     } catch {
       dsdLpcmStream = !newVal; // revert on failure
       notifications.error(get(t)('settings.dsdStreamError'));
+    }
+  }
+
+  let replayGainMode = $state('off');
+  let replayGainPreamp = $state(0);
+  let replayGainPreventClipping = $state(true);
+
+  async function saveReplayGain(patch: Record<string, unknown>) {
+    try {
+      await fetch('/api/v1/system/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      notifications.success(`${get(t)('settings.replayGain')}: ${get(t)('common.saved')}`);
+    } catch {
+      notifications.error(get(t)('settings.replayGainError'));
     }
   }
 
@@ -3682,6 +3702,32 @@
           <option value="exclusive">{$t('settings.exclusiveBitPerfect')}</option>
         </select>
       </div>
+      {/if}
+      <div class="about-row" style="margin-bottom: 0.35rem">
+        <span class="about-label">{$t('settings.replayGain')}</span>
+        <select class="log-level-select" value={replayGainMode} onchange={(e) => { replayGainMode = (e.target as HTMLSelectElement).value; saveReplayGain({ replaygain_mode: replayGainMode }); }}>
+          <option value="off">{$t('settings.replayGainOff')}</option>
+          <option value="track">{$t('settings.replayGainTrack')}</option>
+          <option value="album">{$t('settings.replayGainAlbum')}</option>
+        </select>
+      </div>
+      <p class="muted" style="margin-top: 0; margin-bottom: 0.75rem">{$t('settings.replayGainHint')}</p>
+      {#if replayGainMode !== 'off'}
+        <div class="about-row" style="margin-bottom: 0.75rem">
+          <span class="about-label">{$t('settings.replayGainPreamp')}</span>
+          <select class="log-level-select" value={String(replayGainPreamp)} onchange={(e) => { replayGainPreamp = Number((e.target as HTMLSelectElement).value); saveReplayGain({ replaygain_preamp_db: replayGainPreamp }); }}>
+            {#each [-6, -3, 0, 3, 6] as db}
+              <option value={String(db)}>{db > 0 ? `+${db}` : db} dB</option>
+            {/each}
+          </select>
+        </div>
+        <div class="about-row" style="margin-bottom: 0.75rem">
+          <span class="about-label">{$t('settings.replayGainPreventClipping')}</span>
+          <select class="log-level-select" value={replayGainPreventClipping ? 'on' : 'off'} onchange={(e) => { replayGainPreventClipping = (e.target as HTMLSelectElement).value === 'on'; saveReplayGain({ replaygain_prevent_clipping: replayGainPreventClipping }); }}>
+            <option value="on">{$t('eq.enabled')}</option>
+            <option value="off">{$t('eq.disabled')}</option>
+          </select>
+        </div>
       {/if}
       <div class="device-toggle-list">
         {#each audioDevices as device}
