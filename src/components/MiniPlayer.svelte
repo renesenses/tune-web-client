@@ -71,8 +71,8 @@
     searchTimer = setTimeout(async () => {
       searching = true;
       try {
-        const r = await api.search(q, 8);
-        results = (r as any).tracks ?? [];
+        const r = await api.searchLibrary(q, 8);
+        results = r.tracks ?? [];
       } catch {
         results = [];
       } finally {
@@ -112,7 +112,14 @@
   </div>
 
   <div class="mini-cover">
-    <AlbumArt coverPath={track?.cover_path} albumId={track?.album_id} size={200} alt={track?.title ?? ''} />
+    <!-- `album_id` n'existe pas sur le now-playing de la zone (le serveur ne
+         l'envoie pas) : meme garde que la barre de transport. -->
+    <AlbumArt
+      coverPath={track?.cover_path}
+      albumId={track && 'album_id' in track ? (track as any).album_id : null}
+      size={200}
+      alt={track?.title ?? ''}
+    />
   </div>
 
   <div class="mini-meta">

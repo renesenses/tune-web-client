@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { zones, currentZone, currentZoneId, playAndSync, nextAndSync, previousAndSync, resumeAndSync } from '../lib/stores/zones';
+  import { zones, currentZone, currentZoneId } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
-  import { ytPlayerState, ytLoading, pauseVideo, resumeVideo } from '../lib/stores/ytPlayer';
-  import { isBrowserZone, browserPause, browserResume, browserSetVolume, browserSeek, browserStop } from '../lib/stores/browserAudio';
+  import { ytPlayerState, ytLoading } from '../lib/stores/ytPlayer';
+  import { isBrowserZone, browserSetVolume, browserSeek } from '../lib/stores/browserAudio';
   import { currentProfileId, favoriteTrackIds } from '../lib/stores/profile';
   import * as api from '../lib/api';
   import * as controls from '../lib/playback-controls';

@@ -14,7 +14,7 @@
  */
 import { get } from 'svelte/store';
 import * as api from './api';
-import type { Zone, Track } from './types';
+import type { Zone, NowPlaying } from './types';
 import { playAndSync, nextAndSync, previousAndSync, resumeAndSync } from './stores/zones';
 import { ytPlayerState, ytLoading, pauseVideo, resumeVideo } from './stores/ytPlayer';
 import { isBrowserZone, browserPause } from './stores/browserAudio';
@@ -23,7 +23,9 @@ export type PlayState = 'playing' | 'paused' | 'stopped' | string;
 
 export async function togglePlayPause(
   zone: Zone | null | undefined,
-  track: Track | null | undefined,
+  // La piste vient de `currentTrack`, qui derive du now-playing de la zone :
+  // c'est un NowPlaying, pas un Track (l'identifiant y est optionnel).
+  track: NowPlaying | null | undefined,
   playState: PlayState,
 ): Promise<void> {
   const yt = get(ytPlayerState);
