@@ -2652,6 +2652,7 @@ export default {
   "eq.slidersByEar": "Deplacez les curseurs selon vos sensations. Pas besoin de micro !",
   "eq.openUpSound": "Ouvrir le son",
   "oxygen.enable": "Activer la vue Oxygen",
+  "oxygen.premiumOnly": "Réservé à la version Premium",
   "oxygen.defaultView": "Vue par défaut",
   "oxygen.detailsTable": "Détails (table)",
   "oxygen.facetValues": "Valeurs par facette",

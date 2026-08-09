@@ -2651,6 +2651,7 @@ export default {
   "eq.slidersByEar": "Move the sliders by ear. No microphone needed.",
   "eq.openUpSound": "Open up the sound",
   "oxygen.enable": "Enable the Oxygen view",
+  "oxygen.premiumOnly": "Premium version only",
   "oxygen.defaultView": "Default view",
   "oxygen.detailsTable": "Details (table)",
   "oxygen.facetValues": "Values per facet",
