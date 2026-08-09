@@ -575,6 +575,13 @@ export default {
   'browse.playAll': '全部播放',
   'browse.addAll': '全部添加',
   'browse.rescan': '重新扫描',
+  'browse.addHere': '+ 添加',
+  'browse.addHereHint': '将文件直接导入此文件夹',
+  'ingest.placementTitle': '专辑放在哪里',
+  'ingest.placementHere': '放在此文件夹',
+  'ingest.placementHereHint': '文件直接放在这里，不再多一层艺人目录。',
+  'ingest.placementArtist': '放入艺人子文件夹',
+  'ingest.placementArtistHint': '保持惯常结构：在此之下为每位艺人建一个文件夹。',
   'browse.rescanning': '扫描中...',
 
   // Media Servers (UPnP/DLNA)

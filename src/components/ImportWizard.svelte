@@ -27,13 +27,17 @@
   interface Props {
     /** Chemin de départ (dossier déjà connu côté serveur). */
     initialSource?: string | null;
+    /** Dossier de DESTINATION impose (« + Ajouter » depuis la vue Répertoires).
+     *  Quand il est fourni, on n'offre pas le choix parmi les racines de
+     *  musique : l'utilisateur a déjà désigné où il veut poser l'album. */
+    initialDestRoot?: string | null;
     /** Fichiers lâchés dans la fenêtre : envoyés au staging avant analyse. */
     droppedFiles?: DroppedFile[] | null;
     onClose: () => void;
     /** Appelé après un import réussi, pour rafraîchir la bibliothèque. */
     onImported?: () => void;
   }
-  let { initialSource = null, droppedFiles = null, onClose, onImported }: Props = $props();
+  let { initialSource = null, initialDestRoot = null, droppedFiles = null, onClose, onImported }: Props = $props();
 
   type Step = 'source' | 'album' | 'dest' | 'done';
   let step = $state<Step>('source');
@@ -54,6 +58,39 @@
   let mode = $state<IngestFileMode>('move');
   let conflictPolicy = $state<IngestConflictPolicy>('skip');
   let template = $state('');
+
+  // Disposition demandée quand la destination est un dossier choisi à la main.
+  //
+  // Le gabarit par défaut commence par un niveau artiste. Poser un album dans
+  // le dossier « Miles Davis » sans y toucher donnerait donc
+  // « …/Miles Davis/Miles Davis/1959 - Kind of Blue » — l'artiste en double,
+  // exactement ce que l'utilisateur cherchait à éviter en désignant ce dossier.
+  //
+  // 'here'   : on retire le niveau artiste du gabarit ;
+  // 'artist' : on garde le gabarit tel quel (utile si le dossier choisi est un
+  //            dossier de collection, pas un dossier d'artiste).
+  let placement = $state<'here' | 'artist'>('here');
+
+  /** Gabarit réellement envoyé au serveur.
+   *
+   *  Sans destination imposée, rien ne change : le gabarit saisi, ou celui des
+   *  réglages si le champ est vide. Avec une destination imposée et la
+   *  disposition « ici », on lui retire son niveau artiste. */
+  function effectiveTemplate(): string {
+    const base = template.trim() || settings?.template || '';
+    if (!initialDestRoot || placement === 'artist') return template.trim();
+    const stripped = templateWithoutArtistLevel(base);
+    // Si le gabarit n'avait pas de niveau artiste, il n'y a rien à retirer :
+    // on renvoie la saisie telle quelle pour ne pas la figer inutilement.
+    return stripped === base ? template.trim() : stripped;
+  }
+
+  /** Gabarit amputé de son premier niveau quand celui-ci est l'artiste.
+   *  Dérivé du gabarit effectif plutôt que codé en dur : si le défaut change,
+   *  cette fonction suit. */
+  function templateWithoutArtistLevel(tpl: string): string {
+    return tpl.replace(/^\s*\{(albumartist|artist)\}\/+/, '');
+  }
   let writeTags = $state(true);
   let showAdvanced = $state(false);
 
@@ -109,7 +146,7 @@
   const request = () => ({
     source_path: sourcePath,
     dest_root: destRoot || undefined,
-    template: template.trim() || undefined,
+    template: effectiveTemplate() || undefined,
     mode,
     conflict_policy: conflictPolicy,
     write_tags: writeTags,
@@ -138,7 +175,9 @@
       conflictPolicy = s.conflict_policy;
       writeTags = s.write_tags;
       template = s.template === s.default_template ? '' : s.template;
-      destRoot = s.dest_root ?? s.effective_dest_root ?? '';
+      // Une destination imposée gagne sur le réglage : l'utilisateur vient de
+      // désigner un dossier, c'est plus explicite que sa préférence globale.
+      destRoot = initialDestRoot ?? s.dest_root ?? s.effective_dest_root ?? '';
     } catch (e) {
       fail(e);
     }
@@ -646,7 +685,29 @@
           {/if}
         </div>
 
-        {#if settings && settings.music_dirs.length > 1}
+        {#if initialDestRoot}
+          <div class="mode-block">
+            <span class="mode-title">{$t('ingest.placementTitle' as any)}</span>
+            <div class="mode-choice">
+              <button
+                class="mode"
+                class:sel={placement === 'here'}
+                onclick={() => { placement = 'here'; void refreshPreview(); }}
+              >
+                <strong>{$t('ingest.placementHere' as any)}</strong>
+                <small>{$t('ingest.placementHereHint' as any)}</small>
+              </button>
+              <button
+                class="mode"
+                class:sel={placement === 'artist'}
+                onclick={() => { placement = 'artist'; void refreshPreview(); }}
+              >
+                <strong>{$t('ingest.placementArtist' as any)}</strong>
+                <small>{$t('ingest.placementArtistHint' as any)}</small>
+              </button>
+            </div>
+          </div>
+        {:else if settings && settings.music_dirs.length > 1}
           <label class="full">
             <span>{$t('ingest.destRoot')}</span>
             <select
