@@ -3845,7 +3845,12 @@
       <h3>{$t('oxygen.settingsTitle')} <span class="license-badge premium">Premium</span></h3>
       <div class="pref-grid">
         <label class="pref-label" for="oxy-enable">{$t('oxygen.enable')}</label>
-        <label class="toggle-switch">
+        <!-- Le titre porte sur le label, pas sur l'input : un input desactive
+             ne recoit pas les evenements souris dans plusieurs navigateurs, et
+             l'infobulle ne s'afficherait jamais. Sans elle, la case grisee se
+             lit comme un bug et non comme une fonction payante (JP Borderies,
+             9 aout 2026 : « je n'arrive pas a cocher la ligne »). -->
+        <label class="toggle-switch" title={$isPremium ? null : $t('oxygen.premiumOnly')}>
           <input id="oxy-enable" type="checkbox" checked={$preferences.oxygenEnabled && $isPremium} disabled={!$isPremium}
             onchange={(e) => preferences.update((p) => ({ ...p, oxygenEnabled: (e.target as HTMLInputElement).checked }))} />
           <span class="toggle-slider"></span>
