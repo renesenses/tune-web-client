@@ -366,6 +366,21 @@
   let cloudTelemetryLoading = $state(false);
   let cloudTelemetryInstanceId = $state<string | null>(null);
 
+  /// Relit l'etat cloud jusqu'a ce que la connexion apparaisse, ou abandon.
+  ///
+  /// Le retour d'OAuth recharge la SPA : le premier appel peut precéder
+  /// l'enregistrement du jeton cote serveur. Delais croissants, arret des que
+  /// c'est connecte. Total ~16 s au pire, ce qui couvre largement un aller-
+  /// retour lent sans laisser l'ecran mentir.
+  async function pollCloudStatusUntilConnected() {
+    const delays = [800, 1500, 3000, 5000, 6000];
+    for (const d of delays) {
+      await new Promise((r) => setTimeout(r, d));
+      await loadCloudStatus();
+      if (cloudSsoEmail) return;
+    }
+  }
+
   async function loadCloudStatus() {
     cloudSsoLoading = true;
     try {
@@ -580,7 +595,12 @@
       // Only honour the flag if it was set less than 2 minutes ago
       if (elapsed >= 0 && elapsed < 120_000) {
         localStorage.removeItem('tune_sso_pending');
-        setTimeout(() => loadCloudStatus(), 1500);
+        // Une seule relecture a 1,5 s ne suffisait pas : si le serveur n'avait
+        // pas fini d'enregistrer le jeton dans ce laps de temps, l'ecran
+        // restait sur « non connecte » jusqu'a un rafraichissement manuel.
+        // On relit plusieurs fois, en espacant, et on s'arrete des que l'etat
+        // bascule — donc aucun appel superflu dans le cas nominal.
+        pollCloudStatusUntilConnected();
       } else {
         // Stale flag — clean up
         localStorage.removeItem('tune_sso_pending');
