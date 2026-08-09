@@ -11,18 +11,29 @@ export interface AcousticStatus {
 
 export const acousticStatus = writable<AcousticStatus | null>(null);
 
-/** L'écran Ambiance a-t-il une chance de servir ?
+/** L'entrée Ambiance doit-elle figurer dans la navigation ?
  *
- *  On garde l'entrée visible dès que l'analyse est activée, même à zéro piste :
- *  quelqu'un qui vient de l'activer verrait sinon le menu disparaître sans
- *  comprendre. On ne la masque que quand rien ne pourra jamais aboutir — binaire
- *  sans la brique acoustique, ou analyse désactivée.
+ *  On ne masque QUE le cas où l'utilisateur ne peut rien y faire : un binaire
+ *  sans la brique acoustique. Partout ailleurs l'entrée reste visible, et
+ *  l'écran explique ce qu'il faut activer — avec le geste sur place.
+ *
+ *  La première version masquait aussi quand l'analyse était désactivée. C'était
+ *  éviter une porte fermée, mais l'effet fut pire : un menu connu disparaissait
+ *  sans prévenir, et deux testeurs ont cru la fonction supprimée en moins d'un
+ *  jour (Fabien, Philippe). Un silence en avait remplacé un autre.
  *
  *  Tant que le serveur n'a pas répondu (`null`), on n'affiche pas : mieux vaut
  *  une entrée qui apparaît qu'une entrée qui disparaît sous le curseur. */
 export const ambianceUsable = derived(
   acousticStatus,
-  ($s) => $s !== null && $s.available && $s.enabled,
+  ($s) => $s !== null && $s.available,
+);
+
+/** L'analyse est-elle activée ? L'écran Ambiance s'en sert pour choisir entre
+ *  « à activer » et « en cours ». */
+export const acousticEnabled = derived(
+  acousticStatus,
+  ($s) => $s?.enabled === true,
 );
 
 /** Recharge l'état. Appelé au démarrage et après bascule de l'interrupteur
