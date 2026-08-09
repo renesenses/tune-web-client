@@ -31,6 +31,22 @@
   const WAVE_POINTS = 64;
   let barValues: number[] = Array(32).fill(0);
   let barTargets: number[] = Array(32).fill(0);
+  // Maintien de crête : la valeur haute atteinte par chaque bande, figée un
+  // instant puis redescendue. Sans elle, un pic passe entre deux images et
+  // l'œil ne le voit jamais — c'est ce qui rend un analyseur lisible.
+  let peakValues: number[] = Array(32).fill(0);
+  let peakHoldUntil: number[] = Array(32).fill(0);
+  const PEAK_HOLD_MS = 700;
+  const PEAK_FALL = 0.92;
+  // Balistique : montée quasi immédiate, retombée lente. Une seule constante
+  // de lissage (l'ancien comportement) écrête les transitoires à la montée ET
+  // fait retomber trop vite à la descente.
+  const ATTACK = 0.55;
+  const DECAY = 0.12;
+  // Plancher d'affichage. L'échelle est en dB, pas en amplitude : une amplitude
+  // linéaire écrase tout (−20 dBFS ne ferait que 10 % de hauteur) alors qu'un
+  // vu-mètre se lit en dB.
+  const FLOOR_DB = -60;
   let waveValues: number[] = Array(WAVE_POINTS).fill(0);
   let waveTargets: number[] = Array(WAVE_POINTS).fill(0);
   let lastFrame = 0;
@@ -76,6 +92,12 @@
     return Math.max(0, Math.min(1, Math.pow(10, db / 20)));
   }
 
+  /** dBFS → hauteur 0..1 sur une échelle en décibels (FLOOR_DB → 0 dBFS). */
+  function dbToDisplay(db: number): number {
+    if (!Number.isFinite(db) || db <= FLOOR_DB) return 0;
+    return Math.min(1, (db - FLOOR_DB) / -FLOOR_DB);
+  }
+
   function generateTargets() {
     if (!playing) {
       for (let i = 0; i < barCount; i++) barTargets[i] = 0;
@@ -89,10 +111,23 @@
     if (mode === 'spectrum') {
       if (hasSpectrum) {
         const spec = realLevels!.spectrum;
+        // Le serveur renvoie une FORME normalisée trame par trame (chaque
+        // trame est divisée par sa bande la plus forte, `compute_spectrum`) :
+        // telle quelle, la bande dominante vaut toujours 1,0 et un pianissimo
+        // dessine la même hauteur qu'un tutti. On rend l'échelle absolue en
+        // pesant la forme par le niveau réel de la trame.
+        const level = dbToDisplay(Math.max(realLevels!.rms_left_db, realLevels!.rms_right_db));
         for (let i = 0; i < barCount; i++) {
-          const idx = Math.floor(i * spec.length / barCount);
-          const val = spec[Math.min(idx, spec.length - 1)] ?? 0;
-          barTargets[i] = Math.min(1, Math.max(0.02, val));
+          // AGRÉGER, pas échantillonner : avec 16 barres pour 32 bandes,
+          // `spec[i * 32 / 16]` jetait une bande sur deux, et un pic tombé
+          // dans une bande écartée disparaissait purement et simplement.
+          const from = Math.floor((i * spec.length) / barCount);
+          const to = Math.max(from + 1, Math.floor(((i + 1) * spec.length) / barCount));
+          let band = 0;
+          for (let k = from; k < to && k < spec.length; k++) {
+            band = Math.max(band, spec[k] ?? 0);
+          }
+          barTargets[i] = Math.min(1, band * level);
         }
       } else if (useReal) {
         const left = dbToLinear(realLevels!.rms_left_db);
@@ -180,8 +215,17 @@
     const smoothing = playing ? 0.12 * profile.speed : 0.06;
     const decayRate = playing ? 0.92 : 0.85;
 
-    // Update targets at controlled interval
-    if (playing && timestamp - lastTargetUpdate > TARGET_INTERVAL) {
+    // Cadence des cibles. Quand le serveur fournit un vrai spectre (tap PCM,
+    // événements cadencés sur l'horloge de lecture), on le suit à chaque
+    // image : l'intervalle de 120 ms n'existe que pour espacer les tirages
+    // ALÉATOIRES du mode simulé, et l'appliquer au signal réel revenait à
+    // ignorer des trames déjà mesurées.
+    const followingRealSpectrum =
+      playing &&
+      realLevels != null &&
+      timestamp - lastRealUpdate < 500 &&
+      realLevels.spectrum.length > 0;
+    if (playing && (followingRealSpectrum || timestamp - lastTargetUpdate > TARGET_INTERVAL)) {
       lastTargetUpdate = timestamp;
       generateTargets();
     }
@@ -194,7 +238,13 @@
 
     // Check if all bars are effectively zero — stop animating
     if (!playing) {
-      const maxVal = Math.max(...barValues.slice(0, barCount), ...waveValues);
+      // Les crêtes comptent aussi : s'arrêter en les laissant affichées
+      // figerait des traits au-dessus de barres déjà retombées à zéro.
+      const maxVal = Math.max(
+        ...barValues.slice(0, barCount),
+        ...peakValues.slice(0, barCount),
+        ...waveValues,
+      );
       if (maxVal < 0.005) {
         return;
       }
@@ -203,7 +253,7 @@
     const accent = getAccent(timestamp);
 
     if (mode === 'spectrum') {
-      drawSpectrum(ctx, w, h, dpr, accent, smoothing, decayRate);
+      drawSpectrum(ctx, w, h, dpr, accent, decayRate, timestamp);
     } else {
       drawWaveform(ctx, w, h, dpr, accent, smoothing, decayRate);
     }
@@ -217,7 +267,7 @@
     ctx: CanvasRenderingContext2D,
     w: number, h: number, dpr: number,
     accent: string,
-    smoothing: number, decayRate: number
+    decayRate: number, timestamp: number
   ) {
     const count = barCount;
     const gap = mini ? 1 * dpr : 2 * dpr;
@@ -231,9 +281,20 @@
 
     for (let i = 0; i < count; i++) {
       if (playing) {
-        barValues[i] += (barTargets[i] - barValues[i]) * smoothing;
+        // Attaque rapide, retombée lente : un transitoire monte franchement
+        // et redescend en laissant le temps de le voir.
+        const target = barTargets[i];
+        barValues[i] += (target - barValues[i]) * (target > barValues[i] ? ATTACK : DECAY);
       } else {
         barValues[i] *= decayRate;
+      }
+
+      // Crête maintenue puis relâchée.
+      if (barValues[i] >= peakValues[i]) {
+        peakValues[i] = barValues[i];
+        peakHoldUntil[i] = timestamp + PEAK_HOLD_MS;
+      } else if (timestamp > peakHoldUntil[i]) {
+        peakValues[i] *= PEAK_FALL;
       }
 
       const barH = Math.max(radius * 2, barValues[i] * h * 0.9);
@@ -250,6 +311,15 @@
       ctx.lineTo(x + barWidth, h);
       ctx.closePath();
       ctx.fill();
+
+      // Trait de crête, au-dessus de la barre. Discret en mode mini (barre de
+      // transport), plus lisible en grand (Lecture en cours).
+      if (peakValues[i] > 0.03) {
+        const capH = Math.max(1, (mini ? 1 : 2) * dpr);
+        const capY = Math.min(h - capH, h - peakValues[i] * h * 0.9);
+        ctx.fillStyle = adjustAlpha(accent, mini ? 0.55 : 0.8);
+        ctx.fillRect(x, capY, barWidth, capH);
+      }
     }
   }
 
