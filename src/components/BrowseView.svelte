@@ -299,6 +299,16 @@
             </div>
           {/each}
         </div>
+      {:else if browseResult.accessible === false}
+        <!-- Injoignable n'est pas vide : dire la vraie raison plutot que de
+             laisser croire que la musique a disparu (#1190). -->
+        <div class="unreachable">
+          <strong>{$tr('browse.dirUnreachable')}</strong>
+          {#if browseResult.access_error}
+            <span class="reason">{browseResult.access_error}</span>
+          {/if}
+          <span class="hint">{$tr('browse.dirUnreachableHint')}</span>
+        </div>
       {:else if browseResult.directories.length === 0}
         <div class="empty">{$tr('browse.noTracks')}</div>
       {/if}
@@ -802,6 +812,17 @@
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+
+  .unreachable {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 16px; margin: 12px 0;
+    border: 1px solid rgba(255, 138, 128, 0.35);
+    border-radius: 10px;
+    background: rgba(255, 138, 128, 0.08);
+    color: #ffb4ab;
+  }
+  .unreachable .reason { font-family: monospace; font-size: 0.85em; opacity: 0.9; }
+  .unreachable .hint { font-size: 0.85em; opacity: 0.75; }
 
   .empty {
     color: var(--tune-text-muted);
