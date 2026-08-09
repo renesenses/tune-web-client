@@ -3745,6 +3745,13 @@ export function validateLicense(): Promise<{ status: string }> {
   });
 }
 
+// Log out of the mozaiklabs.fr cloud account (server drops the stored SSO token).
+export function ssoDisconnect(): Promise<{ status?: string }> {
+  return fetchJSON<{ status?: string }>(`${BASE}/cloud/sso/disconnect`, {
+    method: 'POST',
+  });
+}
+
 // --- Support Premium v2 (fil de tickets hébergé sur mozaiklabs.fr) ---
 //
 // Le suivi de conversation parle directement à mozaiklabs.fr (contrat en cours

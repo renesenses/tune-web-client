@@ -439,6 +439,21 @@
     window.location.href = '/api/v1/cloud/sso/authorize';
   }
 
+  let cloudSsoDisconnecting = $state(false);
+  async function cloudSsoDisconnect() {
+    cloudSsoDisconnecting = true;
+    try {
+      await api.ssoDisconnect();
+      cloudSsoEmail = '';
+      cloudSsoName = '';
+      cloudSsoAvatar = '';
+      notifications.success(get(t)('settings.cloudDisconnected'));
+    } catch (e: any) {
+      notifications.error(e?.message ?? get(t)('common.error'));
+    }
+    cloudSsoDisconnecting = false;
+  }
+
   async function toggleCloudTelemetry() {
     cloudTelemetryLoading = true;
     const endpoint = cloudTelemetryEnabled ? '/cloud/telemetry/disable' : '/cloud/telemetry/enable';
@@ -457,6 +472,15 @@
   let licenseDeactivating = $state(false);
   let licenseValidating = $state(false);
   let licenseError = $state<string | null>(null);
+  // Backoff after a 429 from the license endpoints (throttle:10/min server-side):
+  // a rejected key made testers re-click "Valider" in a loop → rate-limited →
+  // shown as "invalid" (Matteo). On 429 we surface a clear message and disable
+  // the buttons for a minute so the storm can't build.
+  let licenseCooldown = $state(false);
+  function startLicenseCooldown() {
+    licenseCooldown = true;
+    setTimeout(() => { licenseCooldown = false; }, 60_000);
+  }
 
   // Re-fetch the authoritative licence status and update the reactive store
   // in-place. The badge (`$isPremium`) and the feature tiles both read from
@@ -496,7 +520,12 @@
         licenseError = get(t)('settings.licenseInvalidOrExpired');
       }
     } catch (e: any) {
-      licenseError = e?.message === 'premium_required' ? get(t)('settings.licenseInvalid') : (e?.message ?? get(t)('common.error'));
+      if (e?.status === 429) {
+        licenseError = get(t)('settings.licenseRateLimited');
+        startLicenseCooldown();
+      } else {
+        licenseError = e?.message === 'premium_required' ? get(t)('settings.licenseInvalid') : (e?.message ?? get(t)('common.error'));
+      }
     }
     licenseActivating = false;
   }
@@ -521,7 +550,12 @@
       await refreshLicense();
       notifications.success(get(t)('settings.licenseValidated'));
     } catch (e: any) {
-      notifications.error(e?.message ?? get(t)('settings.licenseValidationError'));
+      if (e?.status === 429) {
+        notifications.error(get(t)('settings.licenseRateLimited'));
+        startLicenseCooldown();
+      } else {
+        notifications.error(e?.message ?? get(t)('settings.licenseValidationError'));
+      }
     }
     licenseValidating = false;
   }
@@ -4782,6 +4816,9 @@
               <span class="cloud-status-dot connected"></span>
             {/if}
             <span class="cloud-status-text">{$t('settings.connectedAs')} <strong>{cloudSsoName || cloudSsoEmail}</strong></span>
+            <button class="scan-btn small danger-btn" onclick={cloudSsoDisconnect} disabled={cloudSsoDisconnecting}>
+              {cloudSsoDisconnecting ? $t('common.loading') : $t('settings.signOut')}
+            </button>
           </div>
         {:else if cloudSsoConfigured}
           <div class="cloud-row">
@@ -4884,7 +4921,7 @@
         <div class="license-active-row">
           <span class="license-key-display">{maskLicenseKey($licenseState.licenseKey)}</span>
           <div class="license-actions">
-            <button class="scan-btn small" onclick={handleValidateLicense} disabled={licenseValidating}>
+            <button class="scan-btn small" onclick={handleValidateLicense} disabled={licenseValidating || licenseCooldown}>
               {licenseValidating ? $t('settings.validating') : $t('settings.validate')}
             </button>
             <button class="scan-btn small danger-btn" onclick={handleDeactivateLicense} disabled={licenseDeactivating}>
@@ -4902,7 +4939,7 @@
             bind:value={licenseKeyInput}
             onkeydown={(e) => { if (e.key === 'Enter') handleActivateLicense(); }}
           />
-          <button class="scan-btn" onclick={handleActivateLicense} disabled={licenseActivating || !licenseKeyInput.trim()}>
+          <button class="scan-btn" onclick={handleActivateLicense} disabled={licenseActivating || !licenseKeyInput.trim() || licenseCooldown}>
             {licenseActivating ? $t('settings.activating') : $t('settings.activate')}
           </button>
         </div>
