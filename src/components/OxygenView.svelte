@@ -28,6 +28,19 @@
     sample_rate: { label: 'oxygen.col.sampleRate', get: t => t.sample_rate ? (t.sample_rate / 1000).toFixed(1) : '' },
     bit_depth: { label: 'oxygen.col.bits', get: t => t.bit_depth ? String(t.bit_depth) : '' },
     disc_subtitle: { label: 'oxygen.col.discSubtitle', get: t => t.disc_subtitle ?? '' },
+    // Champs deja portes par `Track`, donc deja dans la charge utile de la
+    // liste : les exposer en colonne ne coute rien de plus au serveur.
+    // L'inspecteur les affichait deja ; seule la table les ignorait, et un
+    // champ coche dans les reglages mais absent d'ici etait ecarte en silence
+    // par le filtre de `columns` (Bertrand, 9 aout 2026).
+    album_artist: { label: 'oxygen.col.albumArtist', get: t => t.album_artist ?? '' },
+    track_number: { label: 'oxygen.col.trackNumber', get: t => t.track_number != null ? String(t.track_number) : '' },
+    format: { label: 'oxygen.col.format', get: t => t.format ?? '' },
+    channels: { label: 'oxygen.col.channels', get: t => t.channels != null ? String(t.channels) : '' },
+    isrc: { label: 'oxygen.col.isrc', get: t => t.isrc ?? '' },
+    bpm: { label: 'oxygen.col.bpm', get: t => t.bpm != null ? String(t.bpm) : '' },
+    comments: { label: 'oxygen.col.comments', get: t => t.comments ?? '' },
+    musicbrainz_recording_id: { label: 'oxygen.col.mbid', get: t => t.musicbrainz_recording_id ?? '' },
   };
 
   let tracks = $state<Track[]>([]);
