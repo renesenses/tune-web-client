@@ -3,7 +3,7 @@
   import { isBrowserZone, browserSeek } from '../lib/stores/browserAudio';
   import * as api from '../lib/api';
   import { formatTime } from '../lib/utils';
-  import { seekPositionMs, startSeekTimer } from '../lib/stores/nowPlaying';
+  import { seekPositionMs, startSeekTimer, stopSeekTimer } from '../lib/stores/nowPlaying';
 
   interface Props {
     positionMs: number;
@@ -25,6 +25,16 @@
     }
   });
 
+  /** Relance l'interpolation locale UNIQUEMENT si la zone joue vraiment.
+   *  Se positionner sur la barre en PAUSE démarrait le ticker : le compteur
+   *  grimpait tout seul alors que rien ne sortait (retour Alex Campbell, 09/08).
+   *  En pause/arrêt on l'arrête au contraire, la position affichée reste celle
+   *  du point choisi jusqu'à la reprise. */
+  function syncTicker() {
+    if (zone?.state === 'playing') startSeekTimer();
+    else stopSeekTimer();
+  }
+
   function pctFromX(x: number): number {
     if (!trackEl || !durationMs) return 0;
     const rect = trackEl.getBoundingClientRect();
@@ -38,7 +48,7 @@
     // immediately reflects the clicked position without waiting for
     // the server round-trip or the next poller tick.
     seekPositionMs.set(newPos);
-    startSeekTimer();
+    syncTicker();
     if (isBrowserZone(zone)) browserSeek(newPos);
     api.seek(zone.id, newPos);
   }
@@ -57,7 +67,7 @@
         // Optimistic update: lock the seek position so the progress bar
         // doesn't snap back to the pre-seek value from the poller.
         seekPositionMs.set(dragPositionMs);
-        startSeekTimer();
+        syncTicker();
         if (isBrowserZone(zone)) browserSeek(dragPositionMs);
         api.seek(zone.id, dragPositionMs);
       }
@@ -83,7 +93,7 @@
         // Optimistic update: lock the seek position so the progress bar
         // doesn't snap back to the pre-seek value from the poller.
         seekPositionMs.set(dragPositionMs);
-        startSeekTimer();
+        syncTicker();
         if (isBrowserZone(zone)) browserSeek(dragPositionMs);
         api.seek(zone.id, dragPositionMs);
       }
