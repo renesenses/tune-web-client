@@ -336,6 +336,13 @@ export function updateZoneDlnaNativeFlac(id: number, enabled: boolean) {
   });
 }
 
+export function updateZoneAutoplay(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ autoplay_enabled: enabled }),
+  });
+}
+
 export function updateZoneAlacPassthrough(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',

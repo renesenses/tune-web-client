@@ -2678,6 +2678,7 @@ export default {
   "oxygen.facetHelp": "Nombre maximum de valeurs affichées par facette (Genres, Artistes, Labels…). « Sans limite » affiche toutes les valeurs — utile pour de grandes bibliothèques, mais la liste peut être longue.",
   "oxygen.settingsTitle": "Vue Oxygen · bibliothèque avancée",
   "queue.resizePanel": "Glisser pour redimensionner · double-clic pour rétablir",
+  "queue.autoplayFailed": "Impossible de modifier AutoPlay",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

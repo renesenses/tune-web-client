@@ -228,6 +228,12 @@ export interface Zone {
   max_sample_rate?: number | null;
   /** Envoi de l'ALAC tel quel au renderer, sans transcodage. */
   alac_passthrough?: boolean;
+  /**
+   * AutoPlay : le serveur ajoute des morceaux similaires a la fin de la file.
+   * Porte par la ZONE, en base — c'est ce que lit le poller. Desactive par
+   * defaut (migration 46), donc explicitement optionnel.
+   */
+  autoplay_enabled?: boolean;
   dlna_lpcm?: boolean;
   dlna_cap_16bit?: boolean;
   dlna_wav24?: boolean;
