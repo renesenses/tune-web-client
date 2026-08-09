@@ -657,6 +657,7 @@
   }
 
   onMount(() => {
+    restoreSheetSize();
     window.addEventListener('keydown', handleKeydown);
     window.addEventListener('keydown', handleQsKeydown);
   });
@@ -716,6 +717,100 @@
   let sheetDragCurrentY = $state(0);
   let sheetDragging = $state(false);
   let sheetEl = $state<HTMLElement | null>(null);
+
+  // Freely resizable queue panel.
+  //
+  // The panel had two fixed sizes, cycled by the same button. On a wide screen
+  // it is a right-hand column and those sizes are 380px and 420px — a 40px
+  // difference, which is exactly what Alex Campbell reported on 8 Aug 2026:
+  // "double pressing the queue button slightly alters the visibility of the
+  // track information, still does not quite show all the track information".
+  // Track titles stayed truncated with no way to widen the column, while the
+  // navigation pane next to it has been resizable for a while.
+  //
+  // Dragging an edge now sets any size, remembered across sessions: the WIDTH
+  // of the column on a wide screen, the HEIGHT of the bottom sheet otherwise.
+  // The click cycle is untouched, so no habit breaks, and a double-click on
+  // the grabbed edge returns to the automatic sizes.
+  const SHEET_MIN_PX = 240;
+  const SHEET_WIDTH_KEY = 'tune.queueSheetWidth';
+  const SHEET_HEIGHT_KEY = 'tune.queueSheetHeight';
+  let sheetCustomWidth = $state<number | null>(null);
+  let sheetCustomHeight = $state<number | null>(null);
+  let sheetResizing = $state(false);
+  // Tells a drag from a click on the same grip: a press that moved is a resize
+  // and must NOT also toggle the panel.
+  let sheetResizeMoved = false;
+
+  function startSheetResize(e: MouseEvent) {
+    if (e.button !== 0) return;
+    const horizontal = isWide;
+    const start = horizontal ? e.clientX : e.clientY;
+    const rect = sheetEl?.getBoundingClientRect();
+    const startSize = horizontal ? (rect?.width ?? 380) : (rect?.height ?? SHEET_MIN_PX);
+    const max = horizontal
+      ? Math.round(window.innerWidth * 0.8)
+      : Math.round(window.innerHeight * 0.92);
+    sheetResizeMoved = false;
+
+    const onMove = (ev: MouseEvent) => {
+      // Both edges grow the panel by dragging AWAY from its anchor: the column
+      // is pinned right, the sheet is pinned bottom.
+      const delta = start - (horizontal ? ev.clientX : ev.clientY);
+      if (!sheetResizeMoved && Math.abs(delta) < 4) return; // still a click
+      if (!sheetResizeMoved) {
+        sheetResizeMoved = true;
+        sheetResizing = true;
+        if (queueSheetState === 'collapsed') queueSheetState = 'expanded';
+      }
+      const size = Math.max(SHEET_MIN_PX, Math.min(max, startSize + delta));
+      if (horizontal) sheetCustomWidth = size;
+      else sheetCustomHeight = size;
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      sheetResizing = false;
+      if (!sheetResizeMoved) return;
+      try {
+        const key = horizontal ? SHEET_WIDTH_KEY : SHEET_HEIGHT_KEY;
+        const value = horizontal ? sheetCustomWidth : sheetCustomHeight;
+        if (value != null) localStorage.setItem(key, String(value));
+      } catch { /* storage unavailable (private mode) */ }
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
+  function handleSheetGripClick() {
+    if (sheetResizeMoved) { sheetResizeMoved = false; return; } // that was a resize
+    toggleQueueSheet();
+  }
+
+  function resetSheetSize() {
+    sheetCustomWidth = null;
+    sheetCustomHeight = null;
+    try {
+      localStorage.removeItem(SHEET_WIDTH_KEY);
+      localStorage.removeItem(SHEET_HEIGHT_KEY);
+    } catch { /* storage unavailable */ }
+  }
+
+  function restoreSheetSize() {
+    try {
+      const w = Number(localStorage.getItem(SHEET_WIDTH_KEY));
+      if (Number.isFinite(w) && w >= SHEET_MIN_PX) sheetCustomWidth = w;
+      const h = Number(localStorage.getItem(SHEET_HEIGHT_KEY));
+      if (Number.isFinite(h) && h >= SHEET_MIN_PX) sheetCustomHeight = h;
+    } catch { /* storage unavailable */ }
+  }
+
+  // The size the panel should actually take, or '' to keep the CSS defaults.
+  function sheetSizeStyle(): string {
+    if (queueSheetState === 'collapsed') return '';
+    if (isWide) return sheetCustomWidth != null ? `width: ${sheetCustomWidth}px` : '';
+    return sheetCustomHeight != null ? `height: ${sheetCustomHeight}px` : '';
+  }
 
 
   // Refresh queue when sheet is opened
@@ -1565,15 +1660,34 @@
       class="queue-sheet"
       class:peek={queueSheetState === 'peek'}
       class:expanded={queueSheetState === 'expanded'}
-      class:dragging={sheetDragging}
+      class:dragging={sheetDragging || sheetResizing}
       class:wide-layout={isWide}
+      style={sheetSizeStyle()}
       bind:this={sheetEl}
       ontouchstart={handleSheetTouchStart}
       ontouchmove={handleSheetTouchMove}
       ontouchend={handleSheetTouchEnd}
     >
-      <!-- Drag handle -->
-      <div class="qs-handle-bar" onclick={toggleQueueSheet}>
+      <!-- Left edge: the only resize affordance on a wide screen, where the
+           column is pinned right and the grip below is hidden. -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="qs-resize-edge"
+        onmousedown={startSheetResize}
+        ondblclick={resetSheetSize}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={$t('queue.resizePanel')}
+      ></div>
+
+      <!-- Drag handle: toggles on click, resizes on drag -->
+      <div
+        class="qs-handle-bar"
+        onclick={handleSheetGripClick}
+        onmousedown={startSheetResize}
+        ondblclick={resetSheetSize}
+        title={$t('queue.resizePanel')}
+      >
         <div class="qs-handle-pill"></div>
       </div>
 
@@ -3552,6 +3666,27 @@
   }
 
   /* ─── Sheet Handle ──────────────────────────────────────────────────── */
+  /* Hidden until the column layout, where it is the resize affordance. */
+  .qs-resize-edge {
+    display: none;
+  }
+
+  .queue-sheet.wide-layout .qs-resize-edge {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    z-index: 2;
+  }
+
+  .queue-sheet.wide-layout .qs-resize-edge:hover {
+    background: var(--tune-accent, #1db954);
+    opacity: 0.35;
+  }
+
   .qs-handle-bar {
     display: flex;
     justify-content: center;

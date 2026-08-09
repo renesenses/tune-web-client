@@ -2671,6 +2671,7 @@ export default {
   "oxygen.description": "A faceted library in the style of a collection manager: dense table, quality badges and a metadata inspector. The table columns follow the visible fields you set above.",
   "oxygen.facetHelp": "Maximum number of values shown per facet (Genres, Artists, Labels…). “No limit” shows every value — useful for large libraries, but the list can get long.",
   "oxygen.settingsTitle": "Oxygen view · advanced library",
+  "queue.resizePanel": "Drag to resize · double-click to reset",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
