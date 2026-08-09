@@ -207,23 +207,19 @@
   {#if !$acousticEnabled}
     <!-- Analyse éteinte : on dit pourquoi, et on propose le geste sur place. -->
     <div class="acoustic-notice">
-      <p class="acoustic-notice-title">La recherche par ambiance a besoin de l'analyse acoustique</p>
+      <p class="acoustic-notice-title">{$t('ambiance.needsAnalysisTitle')}</p>
       <p class="acoustic-notice-body">
-        Elle compare le <em>son</em> de vos morceaux, pas leurs étiquettes : chaque titre doit d'abord
-        être analysé. L'analyse tourne en tâche de fond, sans bloquer la lecture. Le modèle est
-        téléchargé au premier usage, et le calcul est long et gourmand en processeur sur une grande
-        bibliothèque.
+        {$t('ambiance.needsAnalysisBody')}
       </p>
       <button class="acoustic-notice-btn" onclick={enableAcoustic} disabled={enabling}>
-        {enabling ? 'Activation…' : "Activer l'analyse acoustique"}
+        {enabling ? $t('ambiance.enabling') : $t('ambiance.enable')}
       </button>
     </div>
   {:else if analysed === 0}
     <div class="acoustic-notice">
-      <p class="acoustic-notice-title">Analyse acoustique en cours</p>
+      <p class="acoustic-notice-title">{$t('ambiance.analysisRunning')}</p>
       <p class="acoustic-notice-body">
-        Aucun titre n'a encore été analysé. La recherche donnera des résultats à mesure que
-        l'analyse progresse — inutile de rester sur cet écran, elle continue en tâche de fond.
+        {$t('ambiance.analysisNoneYet')}
       </p>
     </div>
   {/if}

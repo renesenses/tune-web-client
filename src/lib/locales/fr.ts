@@ -2679,6 +2679,12 @@ export default {
   "oxygen.settingsTitle": "Vue Oxygen · bibliothèque avancée",
   "queue.resizePanel": "Glisser pour redimensionner · double-clic pour rétablir",
   "queue.autoplayFailed": "Impossible de modifier AutoPlay",
+  "ambiance.needsAnalysisTitle": "La recherche par ambiance a besoin de l'analyse acoustique",
+  "ambiance.needsAnalysisBody": "Elle compare le son de vos morceaux, pas leurs étiquettes : chaque titre doit d'abord être analysé. L'analyse tourne en tâche de fond, sans bloquer la lecture. Le modèle est téléchargé au premier usage, et le calcul est long et gourmand en processeur sur une grande bibliothèque.",
+  "ambiance.analysisRunning": "Analyse acoustique en cours",
+  "ambiance.enabling": "Activation…",
+  "ambiance.enable": "Activer l'analyse acoustique",
+  "ambiance.analysisNoneYet": "Aucun titre n'a encore été analysé. La recherche donnera des résultats à mesure que l'analyse progresse — inutile de rester sur cet écran, elle continue en tâche de fond.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

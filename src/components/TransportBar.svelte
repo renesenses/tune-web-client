@@ -1,11 +1,12 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { zones, currentZone, currentZoneId, playAndSync, nextAndSync, previousAndSync, resumeAndSync } from '../lib/stores/zones';
+  import { zones, currentZone, currentZoneId } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
-  import { ytPlayerState, ytLoading, pauseVideo, resumeVideo } from '../lib/stores/ytPlayer';
-  import { isBrowserZone, browserPause, browserResume, browserSetVolume, browserSeek, browserStop } from '../lib/stores/browserAudio';
+  import { ytPlayerState, ytLoading } from '../lib/stores/ytPlayer';
+  import { isBrowserZone, browserSetVolume, browserSeek } from '../lib/stores/browserAudio';
   import { currentProfileId, favoriteTrackIds } from '../lib/stores/profile';
   import * as api from '../lib/api';
+  import * as controls from '../lib/playback-controls';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import VolumeControl from './VolumeControl.svelte';
@@ -351,50 +352,19 @@
   let displayTrack = $derived(track ?? (ytActive ? ytTrack : null));
   let isPlaying = $derived(playState === 'playing' || (ytActive && ytPlaying && playState === 'stopped'));
 
+  // Les trois actions vivent dans lib/playback-controls : le mini-lecteur les
+  // appelle aussi, et deux copies auraient derive sur les cas qui comptent
+  // (radio arretee, zone navigateur, iframe YouTube).
   async function togglePlayPause() {
-    if (zone?.id && playState !== 'stopped') {
-      // Zone has an active track — backend controls DLNA, WS events will sync IFrame
-      if (ytActive) ytLoading.set(true);
-      if (playState === 'playing') {
-        await api.pause(zone.id);
-        // Also pause browser audio if this is a browser zone
-        if (isBrowserZone(zone)) browserPause();
-      } else {
-        await resumeAndSync(zone.id);
-        // resumeAndSync already handles browserResume via the store
-      }
-    } else if (zone?.id && playState === 'stopped' && track) {
-      // Zone stopped but has a current track — restart it. The /play endpoint
-      // needs an explicit target (an empty body returns 400), so pass the
-      // track's identity: radio uses source='radio'+source_id (the stream URL),
-      // other streaming source+source_id, local track_id.
-      const trackId = (track as any).track_id ?? track.id;
-      const body = (track.source === 'radio' && track.source_id)
-        ? { source: 'radio' as any, source_id: track.source_id }
-        : (track.source && track.source !== 'local' && track.source_id)
-          ? { source: track.source as any, source_id: track.source_id }
-          : (trackId != null ? { track_id: trackId } : undefined);
-      await playAndSync(zone.id, body);
-    } else if (zone?.id && playState === 'stopped' && ytActive && ytTrack?.source_id) {
-      // Zone stopped but IFrame has a YT track — restart via API
-      ytLoading.set(true);
-      await playAndSync(zone.id, { source: ytTrack.source as any, source_id: ytTrack.source_id });
-    } else if (ytActive) {
-      // No zone at all — control IFrame directly as fallback
-      if (ytPlaying) pauseVideo(); else resumeVideo();
-    }
+    await controls.togglePlayPause(zone, track, playState);
   }
 
   async function handlePrevious() {
-    if (!zone?.id) return;
-    if (ytActive) ytLoading.set(true);
-    await previousAndSync(zone.id);
+    await controls.skipPrevious(zone);
   }
 
   async function handleNext() {
-    if (!zone?.id) return;
-    if (ytActive) ytLoading.set(true);
-    await nextAndSync(zone.id);
+    await controls.skipNext(zone);
   }
 
   async function toggleShuffle() {

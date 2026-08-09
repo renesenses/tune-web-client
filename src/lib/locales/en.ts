@@ -2678,6 +2678,12 @@ export default {
   "oxygen.settingsTitle": "Oxygen view · advanced library",
   "queue.resizePanel": "Drag to resize · double-click to reset",
   "queue.autoplayFailed": "Could not change AutoPlay",
+  "ambiance.needsAnalysisTitle": "Mood search needs the acoustic analysis",
+  "ambiance.needsAnalysisBody": "It compares how your tracks sound, not how they are tagged, so each one has to be analysed first. The analysis runs in the background without interrupting playback. The model is downloaded on first use, and the computation is long and CPU-heavy on a large library.",
+  "ambiance.analysisRunning": "Acoustic analysis in progress",
+  "ambiance.enabling": "Enabling…",
+  "ambiance.enable": "Enable the acoustic analysis",
+  "ambiance.analysisNoneYet": "No track has been analysed yet. Search results will appear as the analysis progresses.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
