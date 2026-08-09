@@ -2380,6 +2380,7 @@ export default {
   // Modalità grande schermo (TV) + testi
   "nowplaying.tvMode": "Modalità grande schermo",
   "tv.lyrics": "Testi",
+  "tv.vuMeters": "VU-metri",
   "tv.size": "Dimensione del testo",
   "tv.themeDark": "Tema scuro",
   "tv.themeLight": "Tema chiaro",

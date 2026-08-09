@@ -2388,6 +2388,7 @@ export default {
   // Mod ecran mare (TV) + versuri
   "nowplaying.tvMode": "Mod ecran mare",
   "tv.lyrics": "Versuri",
+  "tv.vuMeters": "VU-metre",
   "tv.size": "Dimensiunea textului",
   "tv.themeDark": "Temă întunecată",
   "tv.themeLight": "Temă deschisă",

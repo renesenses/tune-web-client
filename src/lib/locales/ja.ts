@@ -2378,6 +2378,7 @@ export default {
   // 大画面モード（TV）+ 歌詞
   "nowplaying.tvMode": "大画面モード",
   "tv.lyrics": "歌詞",
+  "tv.vuMeters": "VUメーター",
   "tv.size": "文字サイズ",
   "tv.themeDark": "ダークテーマ",
   "tv.themeLight": "ライトテーマ",

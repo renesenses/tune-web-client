@@ -2366,6 +2366,7 @@ export default {
   // Storbildsläge (TV) + sångtexter
   "nowplaying.tvMode": "Storbildsläge",
   "tv.lyrics": "Sångtexter",
+  "tv.vuMeters": "VU-mätare",
   "tv.size": "Textstorlek",
   "tv.themeDark": "Mörkt tema",
   "tv.themeLight": "Ljust tema",

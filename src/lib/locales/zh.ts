@@ -2380,6 +2380,7 @@ export default {
   // 大屏模式（TV）+ 歌词
   "nowplaying.tvMode": "大屏模式",
   "tv.lyrics": "歌词",
+  "tv.vuMeters": "VU 表",
   "tv.size": "文字大小",
   "tv.themeDark": "深色主题",
   "tv.themeLight": "浅色主题",

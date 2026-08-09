@@ -2641,6 +2641,7 @@ export default {
   // Big screen (TV) mode + lyrics
   "nowplaying.tvMode": "Big screen mode",
   "tv.lyrics": "Lyrics",
+  "tv.vuMeters": "VU meters",
   "tv.size": "Text size",
   "tv.themeDark": "Dark theme",
   "tv.themeLight": "Light theme",

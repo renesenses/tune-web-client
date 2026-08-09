@@ -2380,6 +2380,7 @@ export default {
   // Modo pantalla grande (TV) + letras
   "nowplaying.tvMode": "Modo pantalla grande",
   "tv.lyrics": "Letras",
+  "tv.vuMeters": "Vúmetros",
   "tv.size": "Tamaño del texto",
   "tv.themeDark": "Tema oscuro",
   "tv.themeLight": "Tema claro",

@@ -17,9 +17,19 @@
   let canvas: HTMLCanvasElement | undefined = $state();
   let animId: number | null = null;
 
-  // 0 VU est calé sur -14 dBFS (calage usuel des VU numériques) : la zone
-  // rouge s'allume sur les passages réellement forts, pas en permanence.
-  const ZERO_VU_DBFS = -14;
+  // 0 VU calé sur -18 dBFS, la référence usuelle en numérique.
+  //
+  // Le calage précédent, -14 dBFS, plaçait la butée haute du cadran (+3 VU) à
+  // -11 dBFS de RMS — un niveau où vit en permanence la quasi-totalité des
+  // masters modernes. Les aiguilles restaient donc collées en butée sur
+  // presque tout, ce qui laissait croire à une saturation inexistante (retour
+  // Alex Campbell, sur un enregistrement ambient très calme). À -18, l'aiguille
+  // vit autour de 0 sur un disque courant et la zone rouge redevient
+  // significative — ce que le commentaire d'origine visait déjà.
+  const ZERO_VU_DBFS = -18;
+  /// Témoin de crête : proche de la pleine échelle, pas « au-dessus de 0 VU ».
+  /// Adossé à ZERO_VU_DBFS, il s'allumait dès -13 dBFS, donc en continu.
+  const PEAK_LAMP_DBFS = -3;
   const MIN_VU = -20; // graduation basse du cadran
   const MAX_VU = 3;   // graduation haute
   const TICKS = [-20, -10, -7, -5, -3, -2, -1, 0, 1, 2, 3];
@@ -169,7 +179,7 @@
       // Balistique : montée rapide, retombée douce (~300 ms).
       const k = reducedMotion ? 1 : targets[ch] > needle[ch] ? 0.25 : 0.08;
       needle[ch] += (targets[ch] - needle[ch]) * k;
-      if (playing && peaks[ch] > ZERO_VU_DBFS + 1) peakHold[ch] = 45;
+      if (playing && peaks[ch] > PEAK_LAMP_DBFS) peakHold[ch] = 45;
       else if (peakHold[ch] > 0) peakHold[ch]--;
       const dialR = (w / 2) * 0.42;
       drawDial(
