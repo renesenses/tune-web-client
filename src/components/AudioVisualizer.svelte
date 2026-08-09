@@ -107,9 +107,24 @@
     const profile = getEnergyProfile();
     const useReal = realLevels && (performance.now() - lastRealUpdate < 500);
     const hasSpectrum = useReal && realLevels!.spectrum && realLevels!.spectrum.length > 0;
+    // Préféré quand le serveur le fournit : niveau absolu par bande.
+    const hasSpectrumDb = useReal && realLevels!.spectrum_db && realLevels!.spectrum_db.length > 0;
 
     if (mode === 'spectrum') {
-      if (hasSpectrum) {
+      if (hasSpectrumDb) {
+        // Serveur ≥ 0.9.63 : chaque bande porte son niveau ABSOLU en dBFS. Plus
+        // rien à reconstituer — on mappe directement sur l'échelle d'affichage.
+        const spec = realLevels!.spectrum_db;
+        for (let i = 0; i < barCount; i++) {
+          const from = Math.floor((i * spec.length) / barCount);
+          const to = Math.max(from + 1, Math.floor(((i + 1) * spec.length) / barCount));
+          let db = -Infinity;
+          for (let k = from; k < to && k < spec.length; k++) {
+            db = Math.max(db, spec[k] ?? -Infinity);
+          }
+          barTargets[i] = dbToDisplay(db);
+        }
+      } else if (hasSpectrum) {
         const spec = realLevels!.spectrum;
         // Le serveur renvoie une FORME normalisée trame par trame (chaque
         // trame est divisée par sa bande la plus forte, `compute_spectrum`) :
@@ -224,7 +239,7 @@
       playing &&
       realLevels != null &&
       timestamp - lastRealUpdate < 500 &&
-      realLevels.spectrum.length > 0;
+      (realLevels.spectrum.length > 0 || realLevels.spectrum_db.length > 0);
     if (playing && (followingRealSpectrum || timestamp - lastTargetUpdate > TARGET_INTERVAL)) {
       lastTargetUpdate = timestamp;
       generateTargets();
