@@ -23,7 +23,6 @@
   "src/components/PluginsView.svelte :: 'compatible' is specified more than once, so this usage will be overwritten.",
   "src/components/PluginsView.svelte :: 'status' is specified more than once, so this usage will be overwritten.",
   "src/components/PluginsView.svelte :: 'update_available' is specified more than once, so this usage will be overwritten.",
-  "src/components/PodcastsView.svelte :: Cannot find name 'selectedEpisodes'.",
   "src/components/RadiosView.svelte :: Type 'string | null | undefined' is not assignable to type 'string | null'.\\n Type 'undefined' is not assignable to type 'string | null'.",
   "src/components/SettingsView.svelte :: Property 'audio_embedding_enabled' does not exist on type 'SystemConfig'.",
   "src/components/SettingsView.svelte :: Property 'community_sync_enabled' does not exist on type 'SystemConfig'.",

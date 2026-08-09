@@ -257,7 +257,12 @@
   async function openRfShow(show: any) {
     try {
       const data = await api.getRadioFranceEpisodes(show.url, 30);
-      const episodes = (data.episodes ?? []).map((ep: any) => ({
+      // Nommee `rfEpisodes` et non `episodes` : une locale de ce nom masquait
+      // l'etat du composant, si bien que la ligne suivante ecrivait dans un
+      // `selectedEpisodes` qui n'existe nulle part. En module ES (mode strict)
+      // c'est une ReferenceError — avalee par le `catch` ci-dessous, donc
+      // ouvrir une emission Radio France n'affichait rien, sans un mot.
+      const rfEpisodes = (data.episodes ?? []).map((ep: any) => ({
         title: ep.title,
         description: ep.description,
         audio_url: ep.audio_url,
@@ -265,8 +270,8 @@
         published: ep.published_date,
         cover_url: ep.cover_url || show.cover_url || '',
       }));
-      selectedPodcast = { name: show.title, artist: show.station || 'Radio France', feed_url: show.rss_url || '', cover_url: show.cover_url || '', description: show.description, episode_count: episodes.length, source_id: show.id };
-      selectedEpisodes = episodes;
+      selectedPodcast = { name: show.title, artist: show.station || 'Radio France', feed_url: show.rss_url || '', cover_url: show.cover_url || '', description: show.description, episode_count: rfEpisodes.length, source_id: show.id };
+      episodes = rfEpisodes;
     } catch (e) {
       console.error('Load RF episodes error:', e);
     }
