@@ -7,6 +7,12 @@ export type StartupView = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlis
 
 /** Layout mode for the Oxygen library view. */
 export type OxygenViewMode = 'album' | 'grid' | 'detail';
+/** Densité de la grille d'albums.
+ *  `detail` = pochette + titre + artiste (historique).
+ *  `wall`   = mur de pochettes seules, plus dense : on choisit un album de
+ *  mémoire visuelle, et le texte court-circuite ce mécanisme (demande Alex
+ *  Campbell, qui parcourt sa bibliothèque « purely based on nostalgia »). */
+export type AlbumGridDensity = 'detail' | 'wall';
 
 /** Facets available in the Oxygen browse rail (Phase 2+). Stored so users can
  *  pick which ones show. Kept here (ui_preferences) so config syncs per install. */
@@ -40,6 +46,8 @@ export interface Preferences {
    *  a per-browser localStorage value that never followed the profile (#1134). */
   albumSort: string;
   albumSortOrder: 'asc' | 'desc';
+  /** Densité de la grille d'albums — voir AlbumGridDensity. */
+  albumGridDensity: AlbumGridDensity;
 }
 
 const STORAGE_KEY = 'tune-preferences';
@@ -57,6 +65,7 @@ const defaults: Preferences = {
   oxygenFacetLimit: 200,
   albumSort: 'title',
   albumSortOrder: 'asc',
+  albumGridDensity: 'detail',
 };
 
 // One-time migration of the album sort, which #1134 moved from the per-browser

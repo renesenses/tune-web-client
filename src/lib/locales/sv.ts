@@ -296,6 +296,8 @@ export default {
   'library.yearGroup': 'period',
   'library.yearGroupPlural': 'perioder',
   'library.playAlbum': 'Spela album',
+  "library.wallOn": "Omslagsvägg",
+  "library.wallOff": "Tillbaka till detaljerad vy",
   'library.openAlbum': 'Öppna album',
   'library.disc': 'Skiva {num}',
   'library.album': 'album',

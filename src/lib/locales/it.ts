@@ -300,6 +300,8 @@ export default {
   'library.yearGroup': 'periodo',
   'library.yearGroupPlural': 'periodi',
   'library.playAlbum': 'Riproduci album',
+  "library.wallOn": "Muro di copertine",
+  "library.wallOff": "Torna alla vista dettagliata",
   'library.openAlbum': 'Apri album',
   'library.disc': 'Disco {num}',
   'library.album': 'album',

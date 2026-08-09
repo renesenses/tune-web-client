@@ -300,6 +300,8 @@ export default {
   'library.yearGroup': '期間',
   'library.yearGroupPlural': '期間',
   'library.playAlbum': 'アルバムを再生',
+  "library.wallOn": "ジャケットウォール",
+  "library.wallOff": "詳細表示に戻る",
   'library.openAlbum': 'アルバムを開く',
   'library.disc': 'ディスク {num}',
   'library.album': 'アルバム',

@@ -300,6 +300,8 @@ export default {
   'library.yearGroup': '기간',
   'library.yearGroupPlural': '기간',
   'library.playAlbum': '앨범 재생',
+  "library.wallOn": "커버 월",
+  "library.wallOff": "상세 보기로 돌아가기",
   'library.openAlbum': '앨범 열기',
   'library.disc': '디스크 {num}',
   'library.album': '앨범',
