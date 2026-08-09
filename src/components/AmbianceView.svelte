@@ -1,5 +1,6 @@
 <script lang="ts">
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
@@ -141,7 +142,7 @@
 <div class="ambiance-view">
   <div class="view-header">
     <h2>Ambiance</h2>
-    <span class="subtitle">Recherche acoustique — décris une ambiance, retrouve les titres qui sonnent pareil</span>
+    <span class="subtitle">{$t('ambiance.subtitle')}</span>
   </div>
 
   <!-- Free-text query -->
@@ -200,7 +201,7 @@
   {#if !loading && searched && !error && !premiumBlocked && tracks.length === 0}
     <div class="empty-state">
       <p>Aucun titre trouvé pour « {lastQuery} ».</p>
-      <span>La bibliothèque n'a peut-être pas encore été analysée acoustiquement.</span>
+      <span>{$t('ambiance.notAnalysed')}</span>
     </div>
   {/if}
 

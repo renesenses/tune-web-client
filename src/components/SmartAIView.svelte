@@ -1,5 +1,6 @@
 <script lang="ts">
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
@@ -177,7 +178,7 @@
   <!-- Header -->
   <div class="view-header">
     <h2>Smart AI</h2>
-    <span class="subtitle">Playlists intelligentes generees par IA</span>
+    <span class="subtitle">{$t('smartai.subtitle')}</span>
   </div>
 
   <!-- Section 1: Mood Selector -->
@@ -224,7 +225,7 @@
         </div>
         <div class="action-text">
           <span class="action-title">My Mix</span>
-          <span class="action-desc">Basee sur votre historique</span>
+          <span class="action-desc">{$t('smartai.basedOnHistory')}</span>
         </div>
       </button>
 
