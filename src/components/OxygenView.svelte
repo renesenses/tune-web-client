@@ -8,7 +8,7 @@
   import { displayFields } from '../lib/stores/displayFields';
   import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
   import { get } from 'svelte/store';
-  import { activeView, pendingOxygenFolder } from '../lib/stores/navigation';
+  import { activeView, focusMode, pendingOxygenFolder } from '../lib/stores/navigation';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { currentTrackId } from '../lib/stores/nowPlaying';
   import { notifications } from '../lib/stores/notifications';
@@ -80,7 +80,16 @@
   // never applied — there was no way to dismiss the metadata panel (31/07).
   // Closing collapses the column; selecting a track brings it back.
   let inspectorCollapsed = $state(false);
+  // Idem pour le rail de facettes (Genre, Artiste, …) : sur écran large c'est
+  // une colonne fixe, sans aucun moyen de la replier — le bouton ☰ n'existait
+  // qu'en dessous de 780px pour ouvrir le tiroir (Alex Campbell : « the option
+  // to open and close the Genre window pane »). Replié, la liste d'albums
+  // récupère les 220px.
+  let railCollapsed = $state(false);
   let isNarrow = $state(false);
+  // ≤780px : le rail est un tiroir, pas une colonne — le bouton bascule alors
+  // le tiroir et non le repli.
+  let isPhone = $state(false);
 
   let mode = $derived<OxygenViewMode>($preferences.oxygenView);
   let columns = $derived(($displayFields ?? []).filter(k => k in COLUMN_DEFS));
@@ -390,12 +399,35 @@
     facetSels = next; // triggers loadTracks + loadFacets + loadFolder via effects
   }
 
+  // Le rail est-il visible ? Sert au libellé/état du bouton ☰.
+  let railShown = $derived(isPhone ? mobileRail : !railCollapsed);
+  function toggleRail() {
+    if (isPhone) mobileRail = !mobileRail;
+    else railCollapsed = !railCollapsed;
+  }
+
   onMount(() => {
     const mq = window.matchMedia('(max-width: 1150px)');
     const upd = () => { isNarrow = mq.matches; if (!isNarrow) { mobileRail = false; mobileInspector = false; } };
     upd();
     mq.addEventListener('change', upd);
+    const mqPhone = window.matchMedia('(max-width: 780px)');
+    const updPhone = () => { isPhone = mqPhone.matches; };
+    updPhone();
+    mqPhone.addEventListener('change', updPhone);
+    // Échap quitte le mode sans distraction : sans barre latérale ni onglets,
+    // c'est la sortie de secours attendue d'un plein écran.
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && get(focusMode)) focusMode.set(false); };
+    window.addEventListener('keydown', onKey);
     getMetadataFieldSettings().then(f => { categories = f.categories ?? []; }).catch(() => {});
+    return () => {
+      mq.removeEventListener('change', upd);
+      mqPhone.removeEventListener('change', updPhone);
+      window.removeEventListener('keydown', onKey);
+      // Quitter Oxygen par un autre chemin que la navigation (démontage du
+      // composant) ne doit pas laisser l'interface amputée.
+      focusMode.set(false);
+    };
   });
 
   // Server-driven: (re)fetch the filtered tracks whenever the selection changes.
@@ -420,7 +452,10 @@
     <button class="icnbtn" onclick={oxyBack} title={$t('oxygen.back')} aria-label={$t('oxygen.back')}>
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
     </button>
-    <button class="icnbtn railtoggle" onclick={() => mobileRail = true} title={$t('oxygen.facets')} aria-label={$t('oxygen.facets')}>
+    <button class="icnbtn railtoggle" class:on={railShown} onclick={toggleRail}
+            title={railShown ? $t('oxygen.hideFacets') : $t('oxygen.showFacets')}
+            aria-label={railShown ? $t('oxygen.hideFacets') : $t('oxygen.showFacets')}
+            aria-pressed={railShown}>
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
     </button>
     <div class="titleblock"><div class="eyebrow">{$t('oxygen.eyebrow')}</div><h1>{$t('oxygen.title')}</h1></div>
@@ -442,6 +477,16 @@
       <input placeholder={$t('oxygen.filter')} bind:value={query} />
     </div>
     <div class="count">{visible.length.toLocaleString('fr')}</div>
+    <button class="icnbtn" onclick={() => focusMode.set(!$focusMode)}
+            title={$focusMode ? $t('oxygen.exitFocus') : $t('oxygen.enterFocus')}
+            aria-label={$focusMode ? $t('oxygen.exitFocus') : $t('oxygen.enterFocus')}
+            aria-pressed={$focusMode}>
+      {#if $focusMode}
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6"/></svg>
+      {:else}
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg>
+      {/if}
+    </button>
   </header>
 
   {#if Object.keys(facetSels).length || albumFilter != null}
@@ -453,7 +498,7 @@
     </div>
   {/if}
 
-  <div class="body" class:noinsp={inspectorCollapsed}>
+  <div class="body" class:noinsp={inspectorCollapsed} class:norail={railCollapsed}>
     <aside class="railwrap" class:open={mobileRail}>
       <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} limit={$preferences.oxygenFacetLimit} selected={facetSels} folderCrumbs={folderData.crumbs} folderChildren={folderData.children} folderLoading={folderLoading} onFolderDrill={drillFolder} onSelect={(field, value) => { const next = { ...facetSels }; if (value == null) { delete next[field]; } else { next[field] = value; } facetSels = next; mobileRail = false; }} />
     </aside>
@@ -606,8 +651,23 @@
     .body.noinsp { grid-template-columns: 220px 1fr; }
     .body.noinsp .inspector { display: none; }
   }
-  .railtoggle { display: none; }
-  @media (max-width: 780px) { .railtoggle { display: inline-grid; } }
+  /* Le bouton existe à toutes les largeurs : tiroir sous 780px, repli de la
+     colonne au-dessus. */
+  .railtoggle.on { color: var(--tune-accent); border-color: var(--tune-accent); }
+  /* Rail replié : au-dessus de 780px c'est une colonne de la grille, donc le
+     repli change AUSSI le gabarit — sinon la colonne masquée laisse un trou. */
+  @media (min-width: 781px) {
+    .body.norail { grid-template-columns: 1fr 322px; }
+    .body.norail .railwrap { display: none; }
+  }
+  @media (min-width: 1151px) {
+    .body.norail.noinsp { grid-template-columns: 1fr; }
+  }
+  /* 781–1150px : l'inspecteur est déjà un volet flottant, la grille n'a que
+     deux colonnes — repliée, il n'en reste qu'une. */
+  @media (min-width: 781px) and (max-width: 1150px) {
+    .body.norail { grid-template-columns: 1fr; }
+  }
   .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); border: 0; z-index: 35; cursor: pointer; }
   .drawerclose { position: absolute; top: 10px; right: 12px; background: var(--tune-surface-hover); border: 0; color: var(--tune-text); width: 30px; height: 30px; border-radius: 50%; font-size: 20px; line-height: 1; cursor: pointer; z-index: 2; }
   /* Tablet: inspector becomes a right slide-over. */
