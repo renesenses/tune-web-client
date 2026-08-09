@@ -12,11 +12,23 @@
   interface Props {
     current: string;
     onSelect: (preset: string) => void;
+    /** Mode PURE actif sur la zone : l'égaliseur n'est jamais appliqué. */
+    pureMode?: boolean;
   }
-  let { current, onSelect }: Props = $props();
+  let { current, onSelect, pureMode = false }: Props = $props();
 </script>
 
 <div class="np-eq">
+  {#if pureMode}
+    <!-- En mode PURE, load_eq_processor n'est jamais construit : le PCM atteint
+         la sortie intact. Laisser cliquer un préréglage qui ne fera rien, sans
+         rien dire, c'était le signalement de Bilou. -->
+    <p class="eq-pure-notice">
+      Mode PURE actif sur cette zone : le signal est transmis intact, sans aucun
+      traitement. Les préréglages ci-dessous resteront donc sans effet tant que
+      le mode PURE est activé.
+    </p>
+  {/if}
   {#each PRESETS as preset}
     <button
       class="eq-preset"
@@ -37,6 +49,13 @@
     padding: 10px;
     border-radius: 8px;
     margin-top: 8px;
+  }
+  .eq-pure-notice {
+    margin: 0 0 0.6rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: var(--tune-text-muted, #a0a0a8);
+    max-width: 48ch;
   }
   .eq-preset {
     background: rgba(255,255,255,0.05);

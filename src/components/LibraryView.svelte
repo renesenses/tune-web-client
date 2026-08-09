@@ -2598,6 +2598,18 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9" /></svg>
             {/if}
           </button>
+          <!-- Mur de pochettes : pochettes seules, grille plus dense. On choisit
+               un album de mémoire visuelle, et le texte court-circuite ce
+               mécanisme (demande Alex Campbell). -->
+          <button
+            class="wall-toggle"
+            class:active={albumWall}
+            onclick={() => preferences.update((p) => ({ ...p, albumGridDensity: albumWall ? 'detail' : 'wall' }))}
+            title={albumWall ? $tr('library.wallOff') : $tr('library.wallOn')}
+            aria-label={albumWall ? $tr('library.wallOff') : $tr('library.wallOn')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          </button>
         </span>
         <span class="quality-count">{filteredAlbums.length} album{filteredAlbums.length > 1 ? 's' : ''}</span>
       </div>
@@ -2617,7 +2629,8 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               {#each visibleAlbums as album (album.id ?? album.title)}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div class="album-card" onclick={() => selectAlbumDetail(album)}>
+                <div class="album-card" class:album-card-wall={albumWall} onclick={() => selectAlbumDetail(album)}
+                     title={albumWall ? album.title + (album.artist_name ? " — " + album.artist_name : "") : undefined}>
                   <div class="album-card-art">
                     <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
                     <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
@@ -2649,9 +2662,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                       {/if}
                     {/if}
                   </div>
-                  <span class="album-card-title truncate" title={album.title}>{album.title}</span>
-                  {#if album.artist_name}
-                    <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
+                  {#if !albumWall}
+                    <span class="album-card-title truncate" title={album.title}>{album.title}</span>
+                    {#if album.artist_name}
+                      <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
+                    {/if}
                   {/if}
                 </div>
               {/each}
@@ -3736,6 +3751,26 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     color: var(--tune-text-muted);
     flex-shrink: 0;
   }
+
+  .wall-toggle {
+    display: inline-flex;
+    align-items: center;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--text-muted, #a0a0a8);
+    padding: 3px 5px;
+    cursor: pointer;
+  }
+  .wall-toggle:hover { color: var(--tune-text, #e8e8ea); }
+  .wall-toggle.active {
+    color: var(--tune-accent, #6c5ce7);
+    border-color: var(--tune-accent, #6c5ce7);
+  }
+  /* En mode mur, la carte n'a plus de texte : la pochette occupe toute la
+     cellule et le survol suffit à révéler le titre. */
+  .album-card-wall { gap: 0; }
+  .album-card-wall .album-card-art { margin-bottom: 0; }
 
   .sort-select {
     background: var(--tune-surface);
