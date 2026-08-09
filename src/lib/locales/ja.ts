@@ -2381,6 +2381,8 @@ export default {
   "tv.exitHint": "Esc またはクリックで終了",
   "settings.lyricsLrclib": "オンライン歌詞（LRCLIB）",
   "settings.lyricsLrclibHelp": "不足している歌詞をオンラインのコミュニティデータベース LRCLIB から取得します。既定では無効です。",
+  "settings.replaygainAnalysis": "ReplayGain 解析",
+  "settings.replaygainAnalysisHelp": "各トラックの音量を測定し、アルバム間の音量差をなくします。再生を優先し、無音のあいだだけ動作します。ライブラリが混雑したネットワーク共有にある場合はオフにしてください。",
   "settings.acousticAnalysis": "音響解析（ムード検索）",
   "settings.acousticAnalysisHelp": "音響解析はバックグラウンドでライブラリを走査し、曲ごとに音の指紋を計算します。ムード検索はこれに依存します。モデルは初回利用時にダウンロードされ、大きなライブラリでは解析に時間がかかり CPU 負荷も高くなります。",
 } as const;

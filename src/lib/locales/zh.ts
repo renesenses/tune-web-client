@@ -2383,6 +2383,8 @@ export default {
   "tv.exitHint": "按 Esc 或点击退出",
   "settings.lyricsLrclib": "在线歌词（LRCLIB）",
   "settings.lyricsLrclibHelp": "从在线社区数据库 LRCLIB 获取缺失的歌词。默认关闭。",
+  "settings.replaygainAnalysis": "ReplayGain 分析",
+  "settings.replaygainAnalysisHelp": "测量每首曲目的响度，使各专辑之间不再忽大忽小。它让位于播放，仅在静默时工作。若音乐库位于繁忙的网络共享上，建议关闭。",
   "settings.acousticAnalysis": "声学分析（氛围搜索）",
   "settings.acousticAnalysisHelp": "声学分析在后台遍历音乐库，为每首曲目计算声音指纹——氛围搜索依赖于此。模型在首次使用时下载；音乐库较大时，分析耗时且占用大量 CPU。",
 } as const;

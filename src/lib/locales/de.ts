@@ -2383,6 +2383,8 @@ export default {
   "tv.exitHint": "Esc oder Klick zum Beenden",
   "settings.lyricsLrclib": "Online-Songtexte (LRCLIB)",
   "settings.lyricsLrclibHelp": "Lädt fehlende Songtexte von LRCLIB, einer Online-Community-Datenbank. Standardmäßig deaktiviert.",
+  "settings.replaygainAnalysis": "ReplayGain-Analyse",
+  "settings.replaygainAnalysisHelp": "Misst die Lautheit jedes Titels, damit Alben nicht mehr unterschiedlich laut sind. Sie tritt hinter die Wiedergabe zurück und arbeitet nur in Pausen. Bei einer Bibliothek auf einer stark genutzten Netzfreigabe besser ausschalten.",
   "settings.acousticAnalysis": "Akustische Analyse (Stimmungssuche)",
   "settings.acousticAnalysisHelp": "Die akustische Analyse durchläuft die Bibliothek im Hintergrund und berechnet pro Titel einen Klang-Fingerabdruck — nur so ist die Stimmungssuche möglich. Das Modell wird beim ersten Mal heruntergeladen; der Durchlauf ist langsam und CPU-intensiv bei großen Bibliotheken.",
 } as const;

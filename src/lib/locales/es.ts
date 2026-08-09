@@ -2383,6 +2383,8 @@ export default {
   "tv.exitHint": "Esc o clic para salir",
   "settings.lyricsLrclib": "Letras en línea (LRCLIB)",
   "settings.lyricsLrclibHelp": "Recupera las letras que faltan desde LRCLIB, una base de datos comunitaria en línea. Desactivado por defecto.",
+  "settings.replaygainAnalysis": "Análisis ReplayGain",
+  "settings.replaygainAnalysisHelp": "Mide el volumen de cada pista para que los álbumes dejen de sonar a distinto nivel. Cede el paso a la reproducción y solo trabaja en los silencios. Desactívalo si tu biblioteca está en un recurso de red saturado.",
   "settings.acousticAnalysis": "Análisis acústico (búsqueda por ambiente)",
   "settings.acousticAnalysisHelp": "El análisis acústico recorre la biblioteca en segundo plano y calcula una huella sonora por pista: es lo que hace posible la búsqueda por ambiente. El modelo se descarga en el primer uso, y el análisis es lento y exigente con la CPU en bibliotecas grandes.",
 } as const;
