@@ -2349,6 +2349,7 @@ export default {
   // 큰 화면 모드(TV) + 가사
   "nowplaying.tvMode": "큰 화면 모드",
   "tv.lyrics": "가사",
+  "tv.vuMeters": "VU 미터",
   "tv.size": "글자 크기",
   "tv.themeDark": "다크 테마",
   "tv.themeLight": "라이트 테마",
