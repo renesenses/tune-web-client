@@ -126,6 +126,23 @@
     })
   );
 
+  /** Libellé lisible d'une catégorie de plugin.
+   *
+   *  `t()` renvoie la CLÉ elle-même quand la traduction manque (i18n.ts:25),
+   *  si bien que le repli `$t(…) || cat` ne se déclenchait jamais : l'interface
+   *  affichait « plugins.categories.integrations » en toutes lettres. Ces clés
+   *  brutes sont bien plus longues qu'un libellé, d'où le débordement de la
+   *  colonne des catégories (capture de Bilou).
+   *
+   *  On détecte le cas et on retombe sur le nom de la catégorie, capitalisé —
+   *  ce qui vaut pour toute catégorie inconnue, présente comme future. */
+  function categoryLabel(category: string): string {
+    const key = `plugins.categories.${category.toLowerCase()}`;
+    const label = $t(key as any);
+    if (label && label !== key) return label;
+    return category.charAt(0).toUpperCase() + category.slice(1);
+  }
+
   function categoryIcon(category: string): string {
     const icons: Record<string, string> = {
       'streaming': 'M12 3v10.55A4 4 0 1014 17V7h4V3h-6z',
@@ -324,7 +341,7 @@
           <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" style="color: {categoryColor(cat)}">
             <path d={categoryIcon(cat)} />
           </svg>
-          <span>{$t(`plugins.categories.${cat.toLowerCase()}` as any) || cat}</span>
+          <span>{categoryLabel(cat)}</span>
           <span class="category-count">{count}</span>
         </button>
       {/each}
