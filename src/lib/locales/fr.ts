@@ -2648,6 +2648,8 @@ export default {
   "tv.exitHint": "Échap ou clic pour quitter",
   "settings.lyricsLrclib": "Paroles en ligne (LRCLIB)",
   "settings.lyricsLrclibHelp": "Récupère les paroles manquantes depuis LRCLIB, une base communautaire en ligne. Désactivé par défaut.",
+  "settings.replaygainAnalysis": "Analyse ReplayGain",
+  "settings.replaygainAnalysisHelp": "Calcule le volume de vos morceaux pour égaliser les écarts entre albums. Elle cède le pas à la lecture et ne travaille que pendant les silences. Coupez-la si votre bibliothèque est sur un partage réseau chargé.",
   "settings.acousticAnalysis": "Analyse acoustique (recherche par ambiance)",
   "settings.acousticAnalysisHelp": "L'analyse acoustique parcourt la bibliothèque en tâche de fond et calcule une empreinte sonore par titre : c'est ce qui rend la recherche par ambiance possible. Le modèle est téléchargé au premier usage, et l'analyse est longue et gourmande en processeur sur une grande bibliothèque.",
   "eq.wizardIntro": "Repondez a ces 3 questions pour creer votre profil acoustique personnalise.",

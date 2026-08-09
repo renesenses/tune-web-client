@@ -2369,6 +2369,8 @@ export default {
   "tv.exitHint": "Esc eller klick för att avsluta",
   "settings.lyricsLrclib": "Sångtexter online (LRCLIB)",
   "settings.lyricsLrclibHelp": "Hämtar saknade sångtexter från LRCLIB, en online-gemenskapsdatabas. Inaktiverat som standard.",
+  "settings.replaygainAnalysis": "ReplayGain-analys",
+  "settings.replaygainAnalysisHelp": "Mäter varje spårs ljudnivå så att album inte längre låter olika starkt. Den viker för uppspelningen och arbetar bara under tystnad. Stäng av den om biblioteket ligger på en hårt belastad nätverksutdelning.",
   "settings.acousticAnalysis": "Akustisk analys (stämningssökning)",
   "settings.acousticAnalysisHelp": "Den akustiska analysen går igenom biblioteket i bakgrunden och beräknar ett ljudfingeravtryck per spår — det är vad som gör stämningssökning möjlig. Modellen laddas ned vid första användningen, och analysen är långsam och processorkrävande i stora bibliotek.",
 } as const;

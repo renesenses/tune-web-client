@@ -2391,6 +2391,8 @@ export default {
   "tv.exitHint": "Esc sau clic pentru a ieși",
   "settings.lyricsLrclib": "Versuri online (LRCLIB)",
   "settings.lyricsLrclibHelp": "Preia versurile lipsă din LRCLIB, o bază de date comunitară online. Dezactivat implicit.",
+  "settings.replaygainAnalysis": "Analiză ReplayGain",
+  "settings.replaygainAnalysisHelp": "Măsoară volumul fiecărei piese, ca albumele să nu mai sune la niveluri diferite. Cedează pasul redării și lucrează doar în tăceri. Dezactiveaz-o dacă biblioteca stă pe o partajare de rețea încărcată.",
   "settings.acousticAnalysis": "Analiză acustică (căutare după atmosferă)",
   "settings.acousticAnalysisHelp": "Analiza acustică parcurge biblioteca în fundal și calculează o amprentă sonoră pentru fiecare piesă: pe ea se bazează căutarea după atmosferă. Modelul se descarcă la prima utilizare, iar analiza este lentă și solicită procesorul pe biblioteci mari.",
 } as const;

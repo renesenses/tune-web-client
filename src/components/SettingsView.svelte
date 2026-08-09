@@ -3812,6 +3812,16 @@
           <span class="toggle-slider"></span>
         </label>
 
+        <!-- ReplayGain : le balayage est ALLUMÉ par défaut (un réglage absent
+             vaut vrai côté serveur), d'où le test sur !== false. Philippe a
+             demandé où le couper quand la bibliothèque est sur un partage
+             réseau chargé — il n'y avait nulle part (forum #1310). -->
+        <label class="pref-label">{$t('settings.replaygainAnalysis')}</label>
+        <label class="toggle-switch">
+          <input type="checkbox" checked={config.replaygain_analysis_enabled !== false && config.replaygain_analysis_enabled !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.replaygain_analysis_enabled = val; await api.updateConfig({ replaygain_analysis_enabled: val }); }} />
+          <span class="toggle-slider"></span>
+        </label>
+
         <!-- Prérequis de la recherche par ambiance. Le serveur sait lire et
              écrire ce réglage depuis toujours, mais rien ne l'exposait : l'écran
              Ambiance restait donc vide sans qu'aucun geste ne puisse y remédier
@@ -3825,6 +3835,7 @@
       <p class="settings-note">{$t('settings.metadataReadonlyHelp')}</p>
       <p class="settings-note">{$t('settings.enrichOnScanHelp')}</p>
       <p class="settings-note">{$t('settings.lyricsLrclibHelp')}</p>
+      <p class="settings-note">{$t('settings.replaygainAnalysisHelp')}</p>
       <p class="settings-note">{$t('settings.acousticAnalysisHelp')}</p>
     </section>
     {/if}

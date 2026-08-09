@@ -2647,6 +2647,8 @@ export default {
   "tv.exitHint": "Esc or click to exit",
   "settings.lyricsLrclib": "Online lyrics (LRCLIB)",
   "settings.lyricsLrclibHelp": "Fetches missing lyrics from LRCLIB, an online community database. Disabled by default.",
+  "settings.replaygainAnalysis": "ReplayGain analysis",
+  "settings.replaygainAnalysisHelp": "Measures each track's loudness so albums no longer jump in volume. It yields to playback and only works during silences. Turn it off if your library sits on a busy network share.",
   "settings.acousticAnalysis": "Acoustic analysis (mood search)",
   "settings.acousticAnalysisHelp": "Acoustic analysis sweeps the library in the background and computes a sound fingerprint per track — that is what makes mood search possible. The model is downloaded on first use, and the sweep is slow and CPU-heavy on a large library.",
   "eq.wizardIntro": "Answer these 3 questions to create your personal acoustic profile.",
