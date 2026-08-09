@@ -239,6 +239,18 @@
     { value: 'classical', label: 'Classical' },
   ];
 
+  // Le mode PURE court-circuite tout traitement côté serveur : l'égaliseur
+  // n'est jamais construit. On le lit pour le dire dans le panneau plutôt que
+  // de laisser cliquer des préréglages sans effet (signalement Bilou).
+  let zonePureMode = $state(false);
+  $effect(() => {
+    const id = zone?.id;
+    if (id == null) { zonePureMode = false; return; }
+    api.getAudiophileMode(id)
+      .then((r) => { zonePureMode = r.enabled === true; })
+      .catch(() => { zonePureMode = false; });
+  });
+
   async function setEqPreset(preset: string) {
     if (zone?.id == null) return;
     try {
@@ -1275,7 +1287,7 @@
               />
             {/if}
             {#if showEq}
-              <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} />
+              <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} />
             {/if}
           {/if}
           {#if !displayTrack.id && npMetaQuery}
