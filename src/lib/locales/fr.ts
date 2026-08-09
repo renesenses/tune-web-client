@@ -2626,6 +2626,7 @@ export default {
   // Mode Grand écran (TV) + paroles
   "nowplaying.tvMode": "Mode Grand écran",
   "tv.lyrics": "Paroles",
+  "tv.vuMeters": "VU-mètres",
   "tv.size": "Taille du texte",
   "tv.themeDark": "Thème sombre",
   "tv.themeLight": "Thème clair",

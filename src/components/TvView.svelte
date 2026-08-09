@@ -33,7 +33,7 @@
 
   // ─── Réglages persistés (P2) ────────────────────────────────────────────
   type TvSize = 'S' | 'M' | 'L';
-  interface TvSettings { lyrics: boolean; size: TvSize; theme: 'dark' | 'light' }
+  interface TvSettings { lyrics: boolean; size: TvSize; theme: 'dark' | 'light'; vuMeters: boolean }
   const TV_SETTINGS_KEY = 'tune_tv_settings';
   function loadTvSettings(): TvSettings {
     try {
@@ -44,10 +44,13 @@
           lyrics: p.lyrics !== false,
           size: p.size === 'S' || p.size === 'L' ? p.size : 'M',
           theme: p.theme === 'light' ? 'light' : 'dark',
+          // Affichés par défaut, comme avant : on ajoute le choix, on ne
+          // change pas le comportement de ceux qui les apprécient.
+          vuMeters: p.vuMeters !== false,
         };
       }
     } catch {}
-    return { lyrics: true, size: 'M', theme: 'dark' };
+    return { lyrics: true, size: 'M', theme: 'dark', vuMeters: true };
   }
   let settings = $state<TvSettings>(loadTvSettings());
   $effect(() => {
@@ -283,9 +286,11 @@
           {/if}
           <!-- Deux VU-mètres analogiques à aiguille (façon appli tvOS),
                nourris par les événements audio_levels du serveur. -->
-          <div class="tv-visualizer">
-            <TvVuMeters playing={isPlaying} width={560} />
-          </div>
+          {#if settings.vuMeters}
+            <div class="tv-visualizer">
+              <TvVuMeters playing={isPlaying} width={560} />
+            </div>
+          {/if}
         </div>
       </div>
 
@@ -326,6 +331,10 @@
       <label class="tv-panel-item">
         <input type="checkbox" checked={settings.lyrics} onchange={(e) => { settings = { ...settings, lyrics: (e.target as HTMLInputElement).checked }; }} />
         {$t('tv.lyrics')}
+      </label>
+      <label class="tv-panel-item">
+        <input type="checkbox" checked={settings.vuMeters} onchange={(e) => { settings = { ...settings, vuMeters: (e.target as HTMLInputElement).checked }; }} />
+        {$t('tv.vuMeters')}
       </label>
       <div class="tv-panel-item tv-panel-sizes" role="group" aria-label={$t('tv.size')}>
         {#each TV_SIZES as s}

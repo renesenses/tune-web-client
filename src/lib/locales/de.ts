@@ -2366,6 +2366,7 @@ export default {
   // Großbildmodus (TV) + Songtexte
   "nowplaying.tvMode": "Großbildmodus",
   "tv.lyrics": "Songtexte",
+  "tv.vuMeters": "VU-Meter",
   "tv.size": "Textgröße",
   "tv.themeDark": "Dunkles Design",
   "tv.themeLight": "Helles Design",
