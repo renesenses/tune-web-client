@@ -620,10 +620,20 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   let prevAlbumCols = $state(0);
 
+  // Mur de pochettes : pochettes seules, grille plus dense (demande Alex
+  // Campbell, PR #369). La grille des albums est VIRTUALISÉE — ses métriques
+  // sont calculées ici en JavaScript, pas déduites du CSS — donc le mode mur
+  // doit changer les DEUX : la largeur minimale de colonne, et la hauteur de
+  // texte sous la pochette (nulle, puisqu'il n'y a plus de texte).
+  const WALL_MIN_WIDTH = 104;      // 88px min + gap
+  let albumWall = $derived($preferences.albumGridDensity === 'wall');
+  let albumMinWidth = $derived(albumWall ? WALL_MIN_WIDTH : ALBUM_MIN_WIDTH);
+  let albumTextHeight = $derived(albumWall ? 0 : ALBUM_TEXT_HEIGHT);
+
   let albumGridMetrics = $derived.by(() => {
-    const cols = Math.max(1, Math.floor(albumViewportWidth / ALBUM_MIN_WIDTH));
+    const cols = Math.max(1, Math.floor(albumViewportWidth / albumMinWidth));
     const colWidth = albumViewportWidth / cols;
-    const rowHeight = colWidth + ALBUM_TEXT_HEIGHT;
+    const rowHeight = colWidth + albumTextHeight;
     const total = filteredAlbums.length;
     const rows = Math.ceil(total / cols);
     const totalHeight = rows * rowHeight;
@@ -2634,6 +2644,10 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           <div class="empty">{searchQuery ? $tr('common.noResult') : $tr('library.noAlbums')}</div>
         {:else}
           <div style="height:{albumGridMetrics.totalHeight}px;position:relative;">
+            <!-- Colonnes figées sur le nombre calculé (#1307, recouvrement
+                 Firefox) : comme ce nombre découle désormais d'`albumMinWidth`,
+                 le mode mur resserre la grille sans qu'il y ait besoin de
+                 toucher au gabarit CSS. -->
             <div class="albums-grid" style="grid-template-columns:repeat({albumGridMetrics.cols}, minmax(0, 1fr));transform:translateY({albumGridMetrics.offsetY}px);">
               {#each visibleAlbums as album (album.id ?? album.title)}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
