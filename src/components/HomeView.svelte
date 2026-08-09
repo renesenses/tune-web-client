@@ -11,6 +11,12 @@
   import { get } from 'svelte/store';
   import { formatNumber } from '../lib/utils';
   import { t } from '../lib/i18n';
+  // Utilisé plus bas (relance de station, piste introuvable) sans jamais avoir
+  // été importé : les deux appels levaient un ReferenceError au moment précis
+  // où l'utilisateur avait besoin du message. Repéré par le garde-fou
+  // svelte-check ajouté dans cette même PR — troisième occurrence du jour
+  // après streamingRef (#1335) et albumWall (onglet Albums en 0.9.62).
+  import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
   import { tuneWS } from '../lib/websocket';
   import AlbumArt from './AlbumArt.svelte';
