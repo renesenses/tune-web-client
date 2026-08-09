@@ -5,6 +5,7 @@
   // zone rouge au-dessus de 0 VU, témoin de crête.
   import { onMount, onDestroy } from 'svelte';
   import { audioLevels } from '../lib/stores/audioLevels';
+  import { t } from '../lib/i18n';
 
   interface Props {
     playing: boolean;
@@ -189,7 +190,7 @@
   onDestroy(() => { if (animId !== null) cancelAnimationFrame(animId); });
 </script>
 
-<canvas bind:this={canvas} class="tv-vu" style="max-width: {width}px;" aria-label="VU-mètres stéréo"></canvas>
+<canvas bind:this={canvas} class="tv-vu" style="max-width: {width}px;" aria-label={$t('tv.stereoVuMeters')}></canvas>
 
 <style>
   .tv-vu {
