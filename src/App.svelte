@@ -8,7 +8,7 @@
   import { queueTracks, queuePosition, queueLength } from './lib/stores/queue';
   import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
   import { connectionState, reconnectAttempts } from './lib/stores/connection';
-  import { activeView, settingsInitialTab, saveScrollPosition, getScrollPosition } from './lib/stores/navigation';
+  import { activeView, focusMode, settingsInitialTab, saveScrollPosition, getScrollPosition } from './lib/stores/navigation';
   import { selectedAlbum, selectedArtist, libraryTab } from './lib/stores/library';
   import { preferences, applyTheme, syncPreferencesFromServer } from './lib/stores/preferences';
   import { syncDisplayFieldsFromServer } from './lib/stores/displayFields';
@@ -1054,8 +1054,8 @@ import AlarmsView from './components/AlarmsView.svelte';
   ondrop={onWindowDrop}
 />
 
-<div class="app-layout" class:kiosk-mode={isKiosk}>
-  {#if !isKiosk}
+<div class="app-layout" class:kiosk-mode={isKiosk} class:focus-mode={$focusMode}>
+  {#if !isKiosk && !$focusMode}
   <Sidebar />
   {/if}
 
@@ -1081,7 +1081,7 @@ import AlarmsView from './components/AlarmsView.svelte';
     <!-- Global search bar + "add to shortcuts": sticky top-right overlay
          accessible from ANY view, so the shortcut button lives in one standard
          place instead of being scattered/absent across views (Elie). -->
-    {#if !isKiosk && $activeView !== 'nowplaying' && $activeView !== 'login' && $activeView !== 'onboarding' && $activeView !== 'offline'}
+    {#if !isKiosk && !$focusMode && $activeView !== 'nowplaying' && $activeView !== 'login' && $activeView !== 'onboarding' && $activeView !== 'offline'}
       <div class="global-search-wrapper" class:has-banner={$updateAvailable && !$updateBannerDismissed}>
         <AddShortcutButton />
         <GlobalSearchBar />
@@ -1193,7 +1193,7 @@ import AlarmsView from './components/AlarmsView.svelte';
 
   <TransportBar />
 
-  {#if !isKiosk}
+  {#if !isKiosk && !$focusMode}
   <BottomTabBar />
   {/if}
 
@@ -1442,6 +1442,21 @@ import AlarmsView from './components/AlarmsView.svelte';
   }
 
   .app-layout.kiosk-mode > :global(.transport-bar) {
+    grid-column: 1;
+  }
+
+  /* Mode « sans distraction » : la vue prend toute la largeur, comme le
+     kiosque, mais la rangée du lecteur garde sa hauteur élastique (le kiosque
+     la fige à 80px, ce qui rognerait la barre sur certains zooms). */
+  .app-layout.focus-mode {
+    grid-template-columns: 1fr;
+  }
+
+  .app-layout.focus-mode .main-content {
+    grid-column: 1;
+  }
+
+  .app-layout.focus-mode > :global(.transport-bar) {
     grid-column: 1;
   }
 

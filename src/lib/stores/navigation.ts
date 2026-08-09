@@ -4,12 +4,23 @@ export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | '
 export const activeView = writable<View>('home');
 export const previousView = writable<View | null>(null);
 
+// Mode « sans distraction » : masque la barre latérale, la recherche globale et
+// la barre d'onglets mobile pour ne laisser que la vue et le lecteur (demandé
+// par Alex Campbell sur Oxygen : « a very clean window in to only your music »).
+// Volontairement NON persisté : sans barre latérale la sortie ne tient qu'au
+// bouton de la vue et à Échap, donc un rechargement doit toujours revenir à
+// l'interface complète.
+export const focusMode = writable(false);
+
 // Track previous view on every navigation
 let _lastView: View = 'home';
 activeView.subscribe(v => {
   if (v !== _lastView) {
     previousView.set(_lastView);
     _lastView = v;
+    // Changer de vue rend la navigation indispensable : une vue qui n'expose
+    // pas le bouton laisserait l'utilisateur enfermé sans barre latérale.
+    focusMode.set(false);
   }
 });
 
