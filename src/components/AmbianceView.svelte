@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
@@ -6,6 +7,7 @@
   import HeartButton from './HeartButton.svelte';
   import { formatTime } from '../lib/utils';
   import type { Track } from '../lib/types';
+  import { acousticStatus, acousticEnabled, refreshAcousticStatus } from '../lib/stores/acoustic';
 
   let loading = $state(false);
   let tracks = $state<(Track & { similarity?: number })[]>([]);
@@ -15,6 +17,31 @@
   let premiumBlocked = $state(false);
   let searched = $state(false);
   let playingIndex = $state<number | null>(null);
+  let enabling = $state(false);
+
+  // L'état est chargé au démarrage par la navigation, mais l'analyse progresse
+  // pendant la session : on le rafraîchit à l'ouverture pour que l'encart dise
+  // vrai plutôt que de figer un « 0 titre analysé » périmé.
+  onMount(() => { refreshAcousticStatus(); });
+
+  // L'écran explique son propre prérequis au lieu de disparaître de la
+  // navigation : l'entrée reste visible, et l'action est offerte ici même
+  // plutôt que renvoyée vers les Paramètres (retours Fabien, Philippe).
+  let analysed = $derived($acousticStatus?.analysed_tracks ?? 0);
+
+  async function enableAcoustic() {
+    enabling = true;
+    try {
+      await api.updateConfig({ audio_embedding_enabled: true });
+      await refreshAcousticStatus();
+      notifications.success(
+        "Analyse acoustique activée. Elle démarre en tâche de fond ; la recherche par ambiance donnera des résultats à mesure que les titres seront analysés.",
+      );
+    } catch (e: any) {
+      notifications.error(e?.message || "Impossible d'activer l'analyse acoustique");
+    }
+    enabling = false;
+  }
 
   let zone = $derived($currentZone);
 
@@ -175,6 +202,30 @@
       </div>
     </div>
   </section>
+
+  {#if !$acousticEnabled}
+    <!-- Analyse éteinte : on dit pourquoi, et on propose le geste sur place. -->
+    <div class="acoustic-notice">
+      <p class="acoustic-notice-title">La recherche par ambiance a besoin de l'analyse acoustique</p>
+      <p class="acoustic-notice-body">
+        Elle compare le <em>son</em> de vos morceaux, pas leurs étiquettes : chaque titre doit d'abord
+        être analysé. L'analyse tourne en tâche de fond, sans bloquer la lecture. Le modèle est
+        téléchargé au premier usage, et le calcul est long et gourmand en processeur sur une grande
+        bibliothèque.
+      </p>
+      <button class="acoustic-notice-btn" onclick={enableAcoustic} disabled={enabling}>
+        {enabling ? 'Activation…' : "Activer l'analyse acoustique"}
+      </button>
+    </div>
+  {:else if analysed === 0}
+    <div class="acoustic-notice">
+      <p class="acoustic-notice-title">Analyse acoustique en cours</p>
+      <p class="acoustic-notice-body">
+        Aucun titre n'a encore été analysé. La recherche donnera des résultats à mesure que
+        l'analyse progresse — inutile de rester sur cet écran, elle continue en tâche de fond.
+      </p>
+    </div>
+  {/if}
 
   {#if error}
     <div class="error-banner">
@@ -412,6 +463,36 @@
     font-family: var(--font-body);
     font-size: 13px;
   }
+
+  .acoustic-notice {
+    background: var(--surface, #1c1c22);
+    border: 1px solid var(--border, #33333a);
+    border-left: 3px solid var(--tune-accent, #6c5ce7);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .acoustic-notice-title {
+    margin: 0 0 0.4rem;
+    font-weight: 600;
+  }
+  .acoustic-notice-body {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted, #a0a0a8);
+    max-width: 70ch;
+  }
+  .acoustic-notice-btn {
+    margin-top: 0.9rem;
+    background: var(--tune-accent, #6c5ce7);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .acoustic-notice-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
   .error-banner {
     background: color-mix(in srgb, var(--tune-warning) 15%, var(--tune-surface));
