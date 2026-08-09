@@ -2671,6 +2671,7 @@ export default {
   "tv.stereoVuMeters": "VU-mètres stéréo",
   "oxygen.description": "Bibliothèque à facettes façon gestionnaire de collection : table dense, badges qualité et inspecteur de métadonnées. Les colonnes de la table suivent vos champs visibles réglés ci-dessus.",
   "oxygen.facetHelp": "Nombre maximum de valeurs affichées par facette (Genres, Artistes, Labels…). « Sans limite » affiche toutes les valeurs — utile pour de grandes bibliothèques, mais la liste peut être longue.",
+  "oxygen.settingsTitle": "Vue Oxygen · bibliothèque avancée",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

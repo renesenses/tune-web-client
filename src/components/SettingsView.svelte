@@ -3797,7 +3797,7 @@
 
     <!-- Oxygen advanced library view (parameterizable) -->
     <section class="settings-section">
-      <h3>{$t('oxygen.title')} <span class="license-badge premium">Premium</span></h3>
+      <h3>{$t('oxygen.settingsTitle')} <span class="license-badge premium">Premium</span></h3>
       <div class="pref-grid">
         <label class="pref-label" for="oxy-enable">{$t('oxygen.enable')}</label>
         <label class="toggle-switch">
