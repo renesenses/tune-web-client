@@ -394,7 +394,32 @@
     }
   }
 
+  /** Reference d'un favori venant d'un service de streaming.
+   *
+   * `streamToAlbum` / `streamToArtist` ne posent que `source` et `source_id`
+   * sur ces objets : ils n'ont pas d'id local. Les deux champs sont absents du
+   * type Album/Artist, d'ou le cast — c'est exactement ce que fait deja
+   * playSingle cote onglet Titres.
+   *
+   * Cette fonction etait APPELEE sans jamais avoir ete ecrite (#353) : le
+   * bundle partait sans erreur de compilation, mais tout clic dans Favoris >
+   * Albums ou Artistes levait un ReferenceError et mourait en silence — y
+   * compris sur un favori LOCAL, l'appel precedant la garde sur l'id
+   * (Benjithom, forum #1335 en 0.9.60).
+   */
+  function streamingRef(o: unknown): { source?: string; source_id?: string } {
+    const s = o as { source?: string; source_id?: string } | null | undefined;
+    return { source: s?.source, source_id: s?.source_id };
+  }
+
   function navigateToAlbum(album: Album) {
+    const st = streamingRef(album);
+    if (st.source && st.source_id) {
+      activeStreamingService.set(st.source as any);
+      pendingStreamingAlbum.set(album);
+      activeView.set('streaming');
+      return;
+    }
     if (!album.id) return;
     selectedArtist.set(null);
     selectedAlbum.set(album);
