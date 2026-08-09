@@ -62,6 +62,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
   import BottomTabBar from './components/BottomTabBar.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
+  import MiniPlayer from './components/MiniPlayer.svelte';
   import ToastContainer from './components/ToastContainer.svelte';
   import ImportWizard from './components/ImportWizard.svelte';
   import OnboardingWizard from './components/OnboardingWizard.svelte';
@@ -126,6 +127,11 @@ import AlarmsView from './components/AlarmsView.svelte';
 
   // Kiosk mode: ?kiosk=true forces NowPlaying view on small touchscreen
   const isKiosk = new URLSearchParams(window.location.search).has('kiosk');
+  // Mode mini-lecteur : la fenetre Windows de ~320px charge cette meme
+  // interface avec ?mini=1 plutot qu'un second front a maintenir. Tout le
+  // reste de l'application est court-circuite — pas de barre laterale, pas de
+  // vues, pas de barre de transport : rien de tout cela ne tient dans 320px.
+  const isMini = new URLSearchParams(window.location.search).has('mini');
 
   // Reset seek state + refresh queue when zone changes.
   // IMPORTANT: use get(zones) instead of $zones inside the callback to avoid
@@ -1059,6 +1065,9 @@ import AlarmsView from './components/AlarmsView.svelte';
   ondrop={onWindowDrop}
 />
 
+{#if isMini}
+  <MiniPlayer />
+{:else}
 <div class="app-layout" class:kiosk-mode={isKiosk}>
   {#if !isKiosk}
   <Sidebar />
@@ -1219,6 +1228,8 @@ import AlarmsView from './components/AlarmsView.svelte';
 
 <!-- Mode Grand écran : overlay plein viewport au-dessus de tout (afficheur
      type tvOS, sans contrôles — Échap ou clic pour revenir à l'app). -->
+{/if}
+
 {#if $activeView === 'tv'}
   <TvView />
 {/if}
