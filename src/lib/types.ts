@@ -500,6 +500,13 @@ export interface BrowseResult {
   music_root: string;
   directories: BrowseDirectory[];
   tracks: Track[];
+  /** `false` quand le dossier n'a pas pu être ouvert (lecteur réseau non
+   *  monté, permissions). Sans ce champ le client affichait « aucune piste »
+   *  pour un dossier injoignable — le faux diagnostic « ma musique a disparu »
+   *  (#1190). Optionnel : les serveurs antérieurs ne l'envoient pas. */
+  accessible?: boolean;
+  /** Raison système de l'échec, quand `accessible` vaut `false`. */
+  access_error?: string | null;
 }
 
 // Media Server (UPnP/DLNA) models

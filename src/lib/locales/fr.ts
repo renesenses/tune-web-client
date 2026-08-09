@@ -766,6 +766,8 @@ export default {
   'browse.rootMissing': 'Dossier introuvable — vérifiez le montage',
   'browse.openError': 'Impossible d’ouvrir ce dossier — vérifiez que le disque ou le partage réseau est bien accessible',
   'browse.rootEmpty': 'Dossier vide',
+  "browse.dirUnreachable": "Dossier injoignable",
+  "browse.dirUnreachableHint": "Le serveur n'a pas pu ouvrir ce dossier. Sous Windows, une lettre de lecteur réseau (Z:) n'est visible que par la session qui l'a créée : utilisez le chemin UNC (\\\\serveur\\partage).",
   'browse.noDirs': 'Aucun sous-répertoire',
   'browse.noTracks': 'Aucune piste dans ce répertoire',
   'browse.trackCount': '{count} pistes',
