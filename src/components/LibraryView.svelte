@@ -610,10 +610,20 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   let prevAlbumCols = $state(0);
 
+  // Mur de pochettes : pochettes seules, grille plus dense (demande Alex
+  // Campbell, PR #369). La grille des albums est VIRTUALISÉE — ses métriques
+  // sont calculées ici en JavaScript, pas déduites du CSS — donc le mode mur
+  // doit changer les DEUX : la largeur minimale de colonne, et la hauteur de
+  // texte sous la pochette (nulle, puisqu'il n'y a plus de texte).
+  const WALL_MIN_WIDTH = 104;      // 88px min + gap
+  let albumWall = $derived($preferences.albumGridDensity === 'wall');
+  let albumMinWidth = $derived(albumWall ? WALL_MIN_WIDTH : ALBUM_MIN_WIDTH);
+  let albumTextHeight = $derived(albumWall ? 0 : ALBUM_TEXT_HEIGHT);
+
   let albumGridMetrics = $derived.by(() => {
-    const cols = Math.max(1, Math.floor(albumViewportWidth / ALBUM_MIN_WIDTH));
+    const cols = Math.max(1, Math.floor(albumViewportWidth / albumMinWidth));
     const colWidth = albumViewportWidth / cols;
-    const rowHeight = colWidth + ALBUM_TEXT_HEIGHT;
+    const rowHeight = colWidth + albumTextHeight;
     const total = filteredAlbums.length;
     const rows = Math.ceil(total / cols);
     const totalHeight = rows * rowHeight;
@@ -2558,7 +2568,10 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           <div class="empty">{searchQuery ? $tr('common.noResult') : $tr('library.noAlbums')}</div>
         {:else}
           <div style="height:{albumGridMetrics.totalHeight}px;position:relative;">
-            <div class="albums-grid" style="transform:translateY({albumGridMetrics.offsetY}px);">
+            <!-- La largeur de colonne CSS doit suivre celle qu'utilise le
+                 calcul de virtualisation ci-dessus, sinon les lignes rendues
+                 ne tombent pas là où le défilement les attend. -->
+            <div class="albums-grid" style="transform:translateY({albumGridMetrics.offsetY}px);--album-col-min:{albumWall ? 88 : 140}px;">
               {#each visibleAlbums as album (album.id ?? album.title)}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -3764,7 +3777,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   .albums-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(var(--album-col-min, 140px), 1fr));
     grid-auto-rows: min-content;
     gap: var(--space-lg);
     align-items: start;
