@@ -9,6 +9,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { activeView, pendingOxygenFolder, pendingLibraryFolder } from '../lib/stores/navigation';
   import { preferences } from '../lib/stores/preferences';
+  import ImportWizard from './ImportWizard.svelte';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -23,6 +24,10 @@
   let roots = $state<BrowseRootEntry[]>([]);
   let browseResult = $state<BrowseResult | null>(null);
   let currentPath = $state<string | null>(null);
+  // « + Ajouter » : ouvre l'assistant d'import avec CE dossier comme
+  // destination, pour poser un album dans le dossier d'un artiste qu'on
+  // possède déjà au lieu de laisser le gabarit décider (demande de Yacine).
+  let showAddHere = $state(false);
 
   // Breadcrumb segments
   let breadcrumbs = $derived.by(() => {
@@ -206,6 +211,15 @@
           {/if}
         {/each}
       </nav>
+      <button
+        class="rescan-btn"
+        onclick={() => (showAddHere = true)}
+        disabled={!currentPath}
+        title={$tr('browse.addHereHint' as any)}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14M5 12h14" /></svg>
+        {$tr('browse.addHere' as any)}
+      </button>
       <button class="rescan-btn" onclick={rescanFolder} disabled={rescanning}>
         {#if rescanning}
           <div class="spinner small"></div>
@@ -796,3 +810,12 @@
     padding: var(--space-2xl);
   }
 </style>
+
+{#if showAddHere && currentPath}
+  <ImportWizard
+    initialDestRoot={currentPath}
+    onClose={() => (showAddHere = false)}
+    onImported={() => { showAddHere = false; void rescanFolder(); }}
+  />
+{/if}
+

@@ -572,6 +572,13 @@ export default {
   'browse.playAll': 'Riproduci tutto',
   'browse.addAll': 'Aggiungi tutto',
   'browse.rescan': 'Riscansiona',
+  'browse.addHere': '+ Aggiungi',
+  'browse.addHereHint': 'Importare i file direttamente in questa cartella',
+  'ingest.placementTitle': 'Dove mettere l’album',
+  'ingest.placementHere': 'In questa cartella',
+  'ingest.placementHereHint': 'I file finiscono qui direttamente, senza livello artista aggiuntivo.',
+  'ingest.placementArtist': 'In una sottocartella artista',
+  'ingest.placementArtistHint': 'Mantiene la disposizione abituale: una cartella per artista sotto questa.',
   'browse.rescanning': 'Scansione...',
 
   // Media Servers (UPnP/DLNA)

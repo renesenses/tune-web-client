@@ -572,6 +572,13 @@ export default {
   'browse.playAll': '모두 재생',
   'browse.addAll': '모두 추가',
   'browse.rescan': '다시 스캔',
+  'browse.addHere': '+ 추가',
+  'browse.addHereHint': '이 폴더에 파일을 바로 가져옵니다',
+  'ingest.placementTitle': '앨범을 넣을 위치',
+  'ingest.placementHere': '이 폴더에',
+  'ingest.placementHereHint': '아티스트 단계 없이 여기에 바로 넣습니다.',
+  'ingest.placementArtist': '아티스트 하위 폴더에',
+  'ingest.placementArtistHint': '평소 구조를 유지합니다. 이 아래에 아티스트별 폴더를 만듭니다.',
   'browse.rescanning': '스캔 중...',
 
   // Media Servers (UPnP/DLNA)

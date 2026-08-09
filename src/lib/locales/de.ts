@@ -572,6 +572,13 @@ export default {
   'browse.playAll': 'Alle abspielen',
   'browse.addAll': 'Alle hinzufügen',
   'browse.rescan': 'Neu scannen',
+  'browse.addHere': '+ Hinzufügen',
+  'browse.addHereHint': 'Dateien direkt in diesen Ordner importieren',
+  'ingest.placementTitle': 'Wohin mit dem Album',
+  'ingest.placementHere': 'In diesen Ordner',
+  'ingest.placementHereHint': 'Die Dateien landen direkt hier, ohne zusätzliche Interpretenebene.',
+  'ingest.placementArtist': 'In einen Interpreten-Unterordner',
+  'ingest.placementArtistHint': 'Behält die übliche Anordnung: ein Ordner je Interpret darunter.',
   'browse.rescanning': 'Wird gescannt...',
 
   // Media Servers (UPnP/DLNA)

@@ -580,6 +580,13 @@ export default {
   'browse.playAll': 'Redă tot',
   'browse.addAll': 'Adaugă tot',
   'browse.rescan': 'Rescanează',
+  'browse.addHere': '+ Adaugă',
+  'browse.addHereHint': 'Importă fișiere direct în acest dosar',
+  'ingest.placementTitle': 'Unde punem albumul',
+  'ingest.placementHere': 'În acest dosar',
+  'ingest.placementHereHint': 'Fișierele ajung direct aici, fără un nivel suplimentar de artist.',
+  'ingest.placementArtist': 'Într-un subdosar de artist',
+  'ingest.placementArtistHint': 'Păstrează dispunerea obișnuită: un dosar per artist dedesubt.',
   'browse.rescanning': 'Se scanează...',
 
   // Media Servers (UPnP/DLNA)

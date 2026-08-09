@@ -578,6 +578,13 @@ export default {
   'browse.playAll': 'Spela alla',
   'browse.addAll': 'Lägg till alla',
   'browse.rescan': 'Skanna om',
+  'browse.addHere': '+ Lägg till',
+  'browse.addHereHint': 'Importera filer direkt till den här mappen',
+  'ingest.placementTitle': 'Var albumet ska hamna',
+  'ingest.placementHere': 'I den här mappen',
+  'ingest.placementHereHint': 'Filerna hamnar direkt här, utan extra artistnivå.',
+  'ingest.placementArtist': 'I en artistundermapp',
+  'ingest.placementArtistHint': 'Behåller den vanliga strukturen: en mapp per artist här under.',
   'browse.rescanning': 'Skannar...',
 
   // Media Servers (UPnP/DLNA)

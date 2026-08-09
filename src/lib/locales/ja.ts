@@ -572,6 +572,13 @@ export default {
   'browse.playAll': 'すべて再生',
   'browse.addAll': 'すべて追加',
   'browse.rescan': '再スキャン',
+  'browse.addHere': '+ 追加',
+  'browse.addHereHint': 'このフォルダーに直接ファイルを取り込みます',
+  'ingest.placementTitle': 'アルバムの配置先',
+  'ingest.placementHere': 'このフォルダーへ',
+  'ingest.placementHereHint': 'アーティスト階層を挟まず、ここに直接置きます。',
+  'ingest.placementArtist': 'アーティストのサブフォルダーへ',
+  'ingest.placementArtistHint': '通常の構成を保ちます。この下にアーティストごとのフォルダーを作ります。',
   'browse.rescanning': 'スキャン中...',
 
   // Media Servers (UPnP/DLNA)
