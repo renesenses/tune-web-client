@@ -64,6 +64,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
         scanProgress = { scanned: event.data?.scanned ?? 0, added: event.data?.added ?? 0 };
       } else if (event.type === 'library.scan.completed' || event.type === 'library.scan.started') {
         scanProgress = event.type === 'library.scan.started' ? { scanned: 0, added: 0 } : null;
+        if (event.type === 'library.scan.completed') {
+          // The scan just added albums, and nothing else invalidates the
+          // lists held in memory: they stayed as they were until the user
+          // reloaded the page by hand (Eric, #1393). Reload only what was
+          // already loaded — an untouched tab still loads on first opening.
+          if (albumsLoaded) loadAlbums();
+          if (artistsLoaded) loadArtists();
+          if (tracksLoaded) loadTracks();
+        }
       }
     });
     return unsub;

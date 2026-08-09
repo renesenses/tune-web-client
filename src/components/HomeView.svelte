@@ -12,6 +12,7 @@
   import { formatNumber } from '../lib/utils';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
+  import { tuneWS } from '../lib/websocket';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import type { Album, Track, Source, TopTrack, TopArtist } from '../lib/types';
@@ -576,6 +577,17 @@
     loadTopMixes();
     loadRadioPicks();
     loadHomeProfile();
+
+    // "Nouveautes" is the one place a user watches after a scan, and it was
+    // the one place that never heard about it: the sections stayed as they
+    // were until the page was reloaded by hand (Eric, #1393).
+    return tuneWS.onEvent((event) => {
+      if (event.type === 'library.scan.completed') {
+        loadNewInLibrary();
+        loadRecentAlbums();
+        loadStats();
+      }
+    });
   });
 </script>
 
