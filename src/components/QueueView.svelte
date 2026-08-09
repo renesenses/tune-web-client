@@ -377,19 +377,29 @@
           class:dragging={dragIndex === index}
           class:drop-above={dropIndex === index && dragIndex !== null && dragIndex > index}
           class:drop-below={dropIndex === index && dragIndex !== null && dragIndex < index}
-          draggable="true"
-          ondragstart={(e) => handleDragStart(e, index)}
           ondragover={(e) => handleDragOver(e, index)}
           ondragleave={handleDragLeave}
           ondrop={(e) => handleDrop(e, index)}
-          ondragend={handleDragEnd}
           role="listitem"
         >
           {#if isCurrent(index)}
             <span class="current-bar"></span>
           {/if}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <span class="drag-handle" onclick={(e) => e.stopPropagation()}>
+          <!-- The row is the DROP target, but only this handle is the drag
+               SOURCE. With draggable on the whole row, a press followed by the
+               slightest pointer movement started a drag and the browser fired
+               no click at all — so playing a track from the queue worked or
+               did nothing depending on whether your finger twitched (Alex
+               Campbell, 8 Aug 2026: "anyone's guess where to click"). The
+               handle already existed, with `cursor: grab`, purely decorative. -->
+          <span
+            class="drag-handle"
+            draggable="true"
+            ondragstart={(e) => handleDragStart(e, index)}
+            ondragend={handleDragEnd}
+            onclick={(e) => e.stopPropagation()}
+          >
             <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
               <circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" />
               <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
