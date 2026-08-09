@@ -1115,7 +1115,7 @@
     Smart Playlists
   </button>
   <button class="view-tab" class:active={viewTab === 'smart-ai'} onclick={() => viewTab = 'smart-ai'}>
-    Smart AI
+    {$tr('smartai.title')}
   </button>
   <button class="view-tab" class:active={viewTab === 'hub'} onclick={() => viewTab = 'hub'}>
     Playlists Hub
@@ -1261,7 +1261,7 @@
       <div class="pm-tabs">
         <button class="pm-tab" class:active={managerTab === 'playlists'} onclick={() => managerTab = 'playlists'}>Playlists</button>
         <button class="pm-tab" class:active={managerTab === 'transfers'} onclick={() => { managerTab = 'transfers'; loadManagerData(); }}>{$tr('playlistManager.tabTransfers')}</button>
-        <button class="pm-tab" class:active={managerTab === 'smart-ai'} onclick={() => managerTab = 'smart-ai'}>Smart AI</button>
+        <button class="pm-tab" class:active={managerTab === 'smart-ai'} onclick={() => managerTab = 'smart-ai'}>{$tr('smartai.title')}</button>
         <button class="pm-tab" class:active={managerTab === 'sync'} onclick={() => { managerTab = 'sync'; loadManagerData(); }}>Sync</button>
         <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>Backup</button>
         <button class="pm-tab" class:active={managerTab === 'collab'} onclick={() => { managerTab = 'collab'; loadManagerData(); }}>{$tr('playlistManager.tabCollab')}</button>
@@ -1467,7 +1467,7 @@
       </div>
 
     {:else if managerTab === 'smart-ai'}
-      <!-- Smart AI Tab -->
+      <!-- Onglet Generateur de playlists -->
       <div class="pm-tab-content">
         <SmartAIView />
       </div>

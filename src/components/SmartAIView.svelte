@@ -177,7 +177,7 @@
 <div class="smart-ai-view">
   <!-- Header -->
   <div class="view-header">
-    <h2>Smart AI</h2>
+    <h2>{$t('smartai.title')}</h2>
     <span class="subtitle">{$t('smartai.subtitle')}</span>
   </div>
 
