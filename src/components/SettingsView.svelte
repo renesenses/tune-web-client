@@ -4415,6 +4415,23 @@
                         <option value="pcm">{$t('settings.dsdPcm')}</option>
                       </select>
                     </label>
+                    <label class="zone-setting-label" title={$t('settings.lyricsOffsetHint' as any)}>
+                      <span>{$t('settings.lyricsOffset' as any)}</span>
+                      <select
+                        class="zone-select"
+                        value={String(z.lyrics_offset_ms ?? 0)}
+                        onchange={async (e) => {
+                          const ms = Number((e.target as HTMLSelectElement).value);
+                          if (z.id == null) return;
+                          z.lyrics_offset_ms = ms;
+                          await api.updateZoneLyricsOffset(z.id, ms);
+                        }}
+                      >
+                        {#each [0, 1000, 2000, 3000, 4000, 5000, 7000, 10000, 15000, 20000] as ms}
+                          <option value={String(ms)}>{ms === 0 ? $t('settings.lyricsOffsetNone' as any) : `+${ms / 1000} s`}</option>
+                        {/each}
+                      </select>
+                    </label>
                     <label class="zone-setting-label" title={$t('settings.maxSampleRateHint')}>
                       <span>{$t('settings.maxSampleRate')}</span>
                       <select

@@ -171,7 +171,14 @@
   //  - tout le reste (local, streaming Qobuz/Tidal) : position de lecture
   //    réelle et interpolée → synchro exacte, pas de tolérance élargie.
   let useRadioAnchor = $derived(isRadio && durationMs <= 0);
-  let syncPos = $derived(useRadioAnchor ? radioPos : smoothPos);
+  // Décalage réglé sur la zone (#1328). Le serveur sait quand le morceau a
+  // changé AVANT que l'auditeur ne l'entende — le son traverse encore le
+  // tampon de Tune puis celui du renderer. Retrancher le décalage recule les
+  // paroles d'autant. Positif = paroles retardées ; 0 = comportement d'avant.
+  let lyricsOffsetMs = $derived(zone?.lyrics_offset_ms ?? 0);
+  let syncPos = $derived(
+    Math.max(0, (useRadioAnchor ? radioPos : smoothPos) - lyricsOffsetMs)
+  );
 
   // Ligne active (paroles synchronisées) : dernière ligne dont t_ms <= position.
   let activeLine = $derived.by(() => {

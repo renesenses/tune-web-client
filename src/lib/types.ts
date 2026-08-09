@@ -223,6 +223,9 @@ export interface Zone {
   is_default?: boolean;
   /** DSD playback mode: auto, native, dop, pcm */
   dsd_mode?: string;
+  /** Décalage des paroles synchronisées, en ms. Positif = paroles retardées,
+   *  pour compenser la latence serveur → oreille propre à l'appareil (#1328). */
+  lyrics_offset_ms?: number;
   dlna_native_flac?: boolean;
   /** Plafond de fréquence d'échantillonnage de la zone (null = pas de limite). */
   max_sample_rate?: number | null;
