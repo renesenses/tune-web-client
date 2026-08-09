@@ -56,9 +56,36 @@ function collect() {
   return errors;
 }
 
+/** Erreurs qu'on refuse de laisser entrer dans le socle, quoi qu'il arrive.
+ *
+ *  Un identifiant utilisé et jamais déclaré n'est pas une imprécision de type :
+ *  c'est un plantage garanti chez l'utilisateur. Dans un composant, il fait
+ *  échouer la construction et la vue ne s'affiche plus du tout — c'est
+ *  exactement ce qu'a vécu la 0.9.62 avec `albumWall`, et ce que faisait déjà
+ *  `selectedEpisodes` dans PodcastsView, tapi dans le socle.
+ *
+ *  Le socle est un compromis assumé sur la dette de typage existante. Il ne
+ *  doit pas servir d'oubliette à des bugs qui cassent une vue entière : ceux-là
+ *  échouent, même s'ils y figurent, même après un `--update`.
+ */
+const FATAL = [/Cannot find name '/];
+
+function isFatal(signature) {
+  return signature.includes('.svelte ::') && FATAL.some((re) => re.test(signature));
+}
+
 const found = collect();
 
 if (process.argv.includes('--update')) {
+  const fatal = [...new Set(found)].filter(isFatal);
+  if (fatal.length > 0) {
+    console.error(
+      `\n${fatal.length} erreur(s) refusée(s) au socle — un identifiant inconnu casse la vue :\n`,
+    );
+    for (const s of fatal) console.error('  ' + s);
+    console.error('\nCorrigez-les : le socle ne les absorbera pas.\n');
+    process.exit(1);
+  }
   const sorted = [...new Set(found)].sort();
   writeFileSync(BASELINE, JSON.stringify(sorted, null, 2) + '\n');
   console.log(`socle svelte-check régénéré : ${sorted.length} erreur(s) connue(s).`);
@@ -71,6 +98,21 @@ if (!existsSync(BASELINE)) {
 }
 
 const baseline = new Set(JSON.parse(readFileSync(BASELINE, 'utf8')));
+
+// D'abord les fatales, socle ou pas : un `Cannot find name` dans un composant
+// n'est jamais une dette acceptable, c'est une vue morte.
+const fatal = [...new Set(found)].filter(isFatal);
+if (fatal.length > 0) {
+  console.error(`\n${fatal.length} identifiant(s) inconnu(s) dans un composant :\n`);
+  for (const s of fatal) console.error('  ' + s);
+  console.error(
+    '\nCe n’est pas une erreur de typage : à l’exécution, le composant lève et\n' +
+      'la vue ne s’affiche plus. La 0.9.62 est partie ainsi (`albumWall`).\n' +
+      'Le socle ne couvre pas ce cas — il faut corriger.\n',
+  );
+  process.exit(1);
+}
+
 const fresh = [...new Set(found)].filter((s) => !baseline.has(s));
 
 if (fresh.length > 0) {
