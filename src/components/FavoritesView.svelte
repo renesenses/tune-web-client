@@ -13,6 +13,7 @@
   import ServiceBadge from './ServiceBadge.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
+  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist } from '../lib/stores/streaming';
   import type { Track, Album, Artist } from '../lib/types';
 
   interface Props {
@@ -402,6 +403,13 @@
   }
 
   function navigateToArtist(artist: Artist) {
+    const st = streamingRef(artist);
+    if (st.source && st.source_id) {
+      activeStreamingService.set(st.source as any);
+      pendingStreamingArtist.set(artist);
+      activeView.set('streaming');
+      return;
+    }
     if (!artist.id) return;
     selectedAlbum.set(null);
     selectedArtist.set(artist);
@@ -410,8 +418,15 @@
   }
 
   async function playAlbum(album: Album) {
-    if (!zone?.id || !album.id) return;
+    if (!zone?.id) return;
+    const st = streamingRef(album);
     try {
+      if (st.source && st.source_id) {
+        // Le serveur sait enfiler un album distant entier via streaming_album_id.
+        await playAndSync(zone.id, { source: st.source as any, streaming_album_id: st.source_id } as any);
+        return;
+      }
+      if (!album.id) return;
       await playAndSync(zone.id, { album_id: album.id });
     } catch (e) {
       console.error('Play album error:', e);
