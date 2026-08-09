@@ -315,6 +315,15 @@ export function updateZoneSyncDelay(id: number, syncDelayMs: number) {
   });
 }
 
+/** Décalage des paroles, en millisecondes (positif = paroles retardées).
+ *  Le serveur borne à ±60 s. */
+export function updateZoneLyricsOffset(id: number, offsetMs: number) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ lyrics_offset_ms: Math.round(offsetMs) }),
+  });
+}
+
 export function updateZoneDsdMode(id: number, dsdMode: string) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
