@@ -9,6 +9,8 @@ export interface AudioLevels {
   rms_left: number;
   rms_right: number;
   spectrum: number[];
+  /** Niveau absolu par bande, en dBFS (serveur ≥ 0.9.63). Vide sinon. */
+  spectrum_db: number[];
 }
 
 const defaultLevels: AudioLevels = {
@@ -20,6 +22,7 @@ const defaultLevels: AudioLevels = {
   rms_left: 0,
   rms_right: 0,
   spectrum: [],
+  spectrum_db: [],
 };
 
 export const audioLevels = writable<AudioLevels>(defaultLevels);
@@ -34,5 +37,6 @@ export function handleAudioLevelsEvent(data: any) {
     rms_left: data.rms_left ?? 0,
     rms_right: data.rms_right ?? 0,
     spectrum: Array.isArray(data.spectrum) ? data.spectrum : [],
+    spectrum_db: Array.isArray(data.spectrum_db) ? data.spectrum_db : [],
   });
 }
