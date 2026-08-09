@@ -1,6 +1,6 @@
 <script lang="ts">
   import { queueTracks, queuePosition, queueLength } from '../lib/stores/queue';
-  import { currentZone, currentZoneId, zones, playAndSync } from '../lib/stores/zones';
+  import { currentZone, currentZoneId, zones, playAndSync, syncZone } from '../lib/stores/zones';
   import { currentTrack, seekPositionMs, stopSeekTimer } from '../lib/stores/nowPlaying';
   import * as api from '../lib/api';
   import { formatTime, formatDuration, formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
@@ -232,15 +232,32 @@
   }
 
   // --- Smart AutoPlay / Mood ---
-  const AUTOPLAY_KEY = 'tune_autoplay_enabled';
-  let autoPlayEnabled = $state(localStorage.getItem(AUTOPLAY_KEY) === 'true');
+  //
+  // AutoPlay lives on the ZONE, in the database: the poller reads
+  // `autoplay_enabled` per zone to append similar tracks at the end of the
+  // queue. This toggle used to write to localStorage only, so the server never
+  // heard about it and the feature could not be switched on from the web
+  // interface at all — which is why Progman asked twice, on the forum, where
+  // to find it and got no answer (8 Aug 2026). Migration 46 turned it off for
+  // everyone by design; it is meant to be opt-in, and this is the opt-in.
   let moodLoading = $state<string | null>(null);
+  let autoPlayEnabled = $derived(zone?.autoplay_enabled === true);
+  let autoPlaySaving = $state(false);
 
-  function toggleAutoPlay() {
-    autoPlayEnabled = !autoPlayEnabled;
-    localStorage.setItem(AUTOPLAY_KEY, String(autoPlayEnabled));
-    if (autoPlayEnabled) {
-      notifications.success($t('queue.autoplayOn'));
+  async function toggleAutoPlay() {
+    if (!zone?.id || autoPlaySaving) return;
+    const next = !autoPlayEnabled;
+    autoPlaySaving = true;
+    try {
+      // The PATCH returns the updated zone; feeding it back to the store keeps
+      // every view consistent without a refetch.
+      syncZone(await api.updateZoneAutoplay(zone.id, next));
+      notifications.success(next ? $t('queue.autoplayOn') : $t('queue.autoplayOff'));
+    } catch (e) {
+      notifications.error($t('queue.autoplayFailed'));
+      console.error('AutoPlay toggle error:', e);
+    } finally {
+      autoPlaySaving = false;
     }
   }
 
