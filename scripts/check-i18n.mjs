@@ -53,3 +53,64 @@ Missing keys fall back to French, so other locales lose nothing.
   process.exit(1);
 }
 console.log('i18n check: no hardcoded French in visible text.');
+
+/* -------------------------------------------------------------------------
+ * Deuxième contrôle : une clé appelée doit exister.
+ *
+ * `t()` resout `dict[key] ?? fr[key] ?? key` : une clé absente de fr.ts n'est
+ * pas rattrapée, elle s'affiche TELLE QUELLE. La fenêtre d'appairage AirPlay
+ * a longtemps eu « airplay.pairTitle » pour titre, et l'écran des profils
+ * affichait ses onze libellés en clair — 21 clés au total, invisibles parce
+ * que le premier contrôle ne cherche que du français en dur, jamais l'inverse.
+ *
+ * fr.ts est la source : elle sert de repli à toutes les langues, donc une clé
+ * qui y manque est cassée partout. en.ts est exigée aussi, sans quoi une
+ * interface anglaise retombe en français sans prévenir.
+ * ---------------------------------------------------------------------- */
+
+const KEY_CALL = /\$?t\(\s*'([a-z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9_]+)+)'/g;
+
+function localeKeys(locale) {
+  const src = readFileSync(join('src', 'lib', 'locales', `${locale}.ts`), 'utf8');
+  return new Set([...src.matchAll(/^\s*['"]([^'"]+)['"]\s*:/gm)].map((m) => m[1]));
+}
+
+function* sourceFiles(dir) {
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) {
+      if (name === 'locales' || name === '__tests__') continue;
+      yield* sourceFiles(full);
+    } else if (name.endsWith('.svelte') || name.endsWith('.ts')) yield full;
+  }
+}
+
+const fr = localeKeys('fr');
+const en = localeKeys('en');
+const unknown = new Map();
+
+for (const file of sourceFiles('src')) {
+  const lines = readFileSync(file, 'utf8').split('\n');
+  lines.forEach((line, idx) => {
+    for (const m of line.matchAll(KEY_CALL)) {
+      const key = m[1];
+      const missing = [];
+      if (!fr.has(key)) missing.push('fr');
+      if (!en.has(key)) missing.push('en');
+      if (missing.length > 0 && !unknown.has(key)) {
+        unknown.set(key, `${file}:${idx + 1}  (absente de ${missing.join(', ')})`);
+      }
+    }
+  });
+}
+
+if (unknown.size > 0) {
+  console.error(`\n${unknown.size} clé(s) appelée(s) mais absente(s) des traductions :\n`);
+  for (const [key, where] of [...unknown].sort()) console.error(`  ${key}\n      ${where}`);
+  console.error(`
+Une clé absente de fr.ts n'a AUCUN repli : elle s'affiche telle quelle à
+l'écran. Ajoutez-la à src/lib/locales/fr.ts et en.ts.
+`);
+  process.exit(1);
+}
+console.log(`i18n check: ${fr.size} clés, aucune référence orpheline.`);
