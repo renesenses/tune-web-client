@@ -1,4 +1,6 @@
 [
+  "src/components/AlbumEditModal.svelte :: Element implicitly has an 'any' type because expression of type '\\\"album_artist\\\"' can't be used to index type 'Record<string, string> | {}'.\\n Property 'album_artist' does not exist on type 'Record<string, string> | {}'.",
+  "src/components/AlbumEditModal.svelte :: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'Record<string, string> | {}'.\\n No index signature with a parameter of type 'string' was found on type 'Record<string, string> | {}'.",
   "src/components/AlphaIndex.svelte :: Property 'dataset' does not exist on type 'Element'.",
   "src/components/BottomTabBar.svelte :: Argument of type 'number | null' is not assignable to parameter of type 'number'.\\n Type 'null' is not assignable to type 'number'.",
   "src/components/BrowseView.svelte :: 'browseResult' is possibly 'null'.",
@@ -25,8 +27,6 @@
   "src/components/PluginsView.svelte :: 'update_available' is specified more than once, so this usage will be overwritten.",
   "src/components/RadiosView.svelte :: Type 'string | null | undefined' is not assignable to type 'string | null'.\\n Type 'undefined' is not assignable to type 'string | null'.",
   "src/components/SettingsView.svelte :: Property 'audio_embedding_enabled' does not exist on type 'SystemConfig'.",
-  "src/components/SettingsView.svelte :: Property 'community_sync_enabled' does not exist on type 'SystemConfig'.",
-  "src/components/SettingsView.svelte :: Property 'replaygain_analysis_enabled' does not exist on type 'SystemConfig'.",
   "src/components/SettingsView.svelte :: Property 'scan_folder_playlists' does not exist on type 'SystemConfig'.",
   "src/components/Sidebar.svelte :: Property 'version' does not exist on type 'SystemHealth'.",
   "src/components/StreamingView.svelte :: Property 'album' does not exist on type 'Track'.",
@@ -37,5 +37,7 @@
   "src/lib/__tests__/api.test.ts :: Cannot find module 'path' or its corresponding type declarations.",
   "src/lib/__tests__/api.test.ts :: Cannot find name '__dirname'.",
   "src/lib/api.ts :: Type 'string' is not assignable to type 'Source | undefined'.",
+  "src/lib/locales/en.ts :: An object literal cannot have multiple properties with the same name.",
+  "src/lib/locales/fr.ts :: An object literal cannot have multiple properties with the same name.",
   "src/lib/playback.ts :: Argument of type 'number | null' is not assignable to parameter of type 'number'.\\n Type 'null' is not assignable to type 'number'."
 ]
