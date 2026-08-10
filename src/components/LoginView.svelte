@@ -1,6 +1,7 @@
 <script lang="ts">
   import { setToken } from '../lib/auth';
   import { activeView } from '../lib/stores/navigation';
+  import { t } from '../lib/i18n';
 
   const BASE = '/api/v1';
 
@@ -148,7 +149,7 @@
       </p>
 
     {:else}
-      <h2>Creer un compte</h2>
+      <h2>{$t('login.createAccount')}</h2>
       <form class="login-form" onsubmit={(e) => { e.preventDefault(); handleRegister(); }}>
         <input
           type="text"

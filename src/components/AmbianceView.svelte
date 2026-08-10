@@ -8,6 +8,7 @@
   import { formatTime } from '../lib/utils';
   import type { Track } from '../lib/types';
   import { acousticStatus, acousticEnabled, refreshAcousticStatus } from '../lib/stores/acoustic';
+  import { t } from '../lib/i18n';
 
   let loading = $state(false);
   let tracks = $state<(Track & { similarity?: number })[]>([]);
@@ -168,7 +169,7 @@
 <div class="ambiance-view">
   <div class="view-header">
     <h2>Ambiance</h2>
-    <span class="subtitle">Recherche acoustique — décris une ambiance, retrouve les titres qui sonnent pareil</span>
+    <span class="subtitle">{$t('ambiance.subtitle')}</span>
   </div>
 
   <!-- Free-text query -->
@@ -206,7 +207,7 @@
   {#if !$acousticEnabled}
     <!-- Analyse éteinte : on dit pourquoi, et on propose le geste sur place. -->
     <div class="acoustic-notice">
-      <p class="acoustic-notice-title">La recherche par ambiance a besoin de l'analyse acoustique</p>
+      <p class="acoustic-notice-title">{$t('ambiance.needsAnalysisTitle')}</p>
       <p class="acoustic-notice-body">
         Elle compare le <em>son</em> de vos morceaux, pas leurs étiquettes : chaque titre doit d'abord
         être analysé. L'analyse tourne en tâche de fond, sans bloquer la lecture. Le modèle est
@@ -251,7 +252,7 @@
   {#if !loading && searched && !error && !premiumBlocked && tracks.length === 0}
     <div class="empty-state">
       <p>Aucun titre trouvé pour « {lastQuery} ».</p>
-      <span>La bibliothèque n'a peut-être pas encore été analysée acoustiquement.</span>
+      <span>{$t('ambiance.notAnalysed')}</span>
     </div>
   {/if}
 

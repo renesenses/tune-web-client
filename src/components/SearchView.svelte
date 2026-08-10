@@ -773,7 +773,7 @@
         <!-- Top artists -->
         {#if topArtists.length > 0}
           <section class="section">
-            <h3>Artistes les plus ecoutes</h3>
+            <h3>{$t('search.topArtists')}</h3>
             <div class="artist-row">
               {#each topArtists as artist}
                 <button class="artist-pill" onclick={() => { searchQuery = artist.artist_name || artist.name; }}>
@@ -1138,7 +1138,7 @@
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
                                 </button>
                               {/if}
-                              <button class="icon-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(track); }} title="Ajouter a la file">
+                              <button class="icon-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(track); }} title={$t('search.addToQueue')}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                               </button>
                               {#if onAddToPlaylist && (track.id || track.source_id)}

@@ -3764,24 +3764,24 @@
 
     <!-- Oxygen advanced library view (parameterizable) -->
     <section class="settings-section">
-      <h3>Vue Oxygen · bibliothèque avancée <span class="license-badge premium">Premium</span></h3>
+      <h3>{$t('oxygen.settingsTitle')}<span class="license-badge premium">Premium</span></h3>
       <div class="pref-grid">
-        <label class="pref-label" for="oxy-enable">Activer la vue Oxygen</label>
+        <label class="pref-label" for="oxy-enable">{$t('oxygen.enable')}</label>
         <label class="toggle-switch">
           <input id="oxy-enable" type="checkbox" checked={$preferences.oxygenEnabled && $isPremium} disabled={!$isPremium}
             onchange={(e) => preferences.update((p) => ({ ...p, oxygenEnabled: (e.target as HTMLInputElement).checked }))} />
           <span class="toggle-slider"></span>
         </label>
 
-        <label class="pref-label" for="oxy-view">Vue par défaut</label>
+        <label class="pref-label" for="oxy-view">{$t('oxygen.defaultView')}</label>
         <select id="oxy-view" class="pref-select" value={$preferences.oxygenView}
           onchange={(e) => preferences.update((p) => ({ ...p, oxygenView: (e.target as HTMLSelectElement).value as OxygenViewMode }))}>
-          <option value="detail">Détails (table)</option>
+          <option value="detail">{$t('oxygen.detailsTable')}</option>
           <option value="album">Albums (groupé)</option>
           <option value="grid">Grille de pochettes</option>
         </select>
       </div>
-      <p class="settings-note">Bibliothèque à facettes façon gestionnaire de collection : table dense, badges qualité et inspecteur de métadonnées. Les colonnes de la table suivent vos champs visibles réglés ci-dessus.</p>
+      <p class="settings-note">{$t('oxygen.description')}</p>
 
       {#if $preferences.oxygenEnabled}
       <div class="pref-grid" style="margin-top: 6px;">
@@ -3802,19 +3802,19 @@
         </div>
       </div>
       <div class="pref-grid" style="margin-top: 6px;">
-        <label class="pref-label" for="oxy-facet-limit">Valeurs par facette</label>
+        <label class="pref-label" for="oxy-facet-limit">{$t('oxygen.facetValues')}</label>
         <select id="oxy-facet-limit" class="pref-select" value={String($preferences.oxygenFacetLimit)}
           onchange={(e) => preferences.update((p) => ({ ...p, oxygenFacetLimit: Number((e.target as HTMLSelectElement).value) }))}>
-          <option value="50">50 (les plus fréquentes)</option>
+          <option value="50">{$t('oxygen.facet50')}</option>
           <option value="100">100</option>
           <option value="200">200</option>
           <option value="500">500</option>
-          <option value="0">Sans limite (toutes)</option>
+          <option value="0">{$t('oxygen.facetAll')}</option>
         </select>
       </div>
-      <p class="settings-note">Nombre maximum de valeurs affichées par facette (Genres, Artistes, Labels…). « Sans limite » affiche toutes les valeurs — utile pour de grandes bibliothèques, mais la liste peut être longue.</p>
+      <p class="settings-note">{$t('oxygen.facetHelp')}</p>
       <div class="settings-actions">
-        <button class="action-btn" onclick={() => activeView.set('oxygen')}>Ouvrir la vue Oxygen</button>
+        <button class="action-btn" onclick={() => activeView.set('oxygen')}>{$t('oxygen.open')}</button>
       </div>
       {/if}
     </section>
