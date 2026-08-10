@@ -4,6 +4,7 @@
   import { currentZoneId } from '../lib/stores/zones';
   import { get } from 'svelte/store';
   import { t } from '../lib/i18n';
+  import { PODCAST_GENRES } from '../lib/podcast-genres';
 
   // --- State ---
   let activeTab = $state<'subscriptions' | 'discover' | 'search'>('discover');
@@ -81,24 +82,18 @@
   let isLoadingEpisodes = $state(false);
   let playingEpisodeUrl = $state<string | null>(null);
 
-  const genres = [
-    { id: null, label: 'Tous' },
-    { id: 1311, label: 'Actualites' },
-    { id: 1324, label: 'Societe' },
-    { id: 1301, label: 'Arts & Culture' },
-    { id: 1310, label: 'Musique' },
-    { id: 1303, label: 'Comedie' },
-    { id: 1315, label: 'Science' },
-    { id: 1326, label: 'Histoire' },
-    { id: 1325, label: 'True Crime' },
-    { id: 1304, label: 'Education' },
-    { id: 1321, label: 'Business' },
-    { id: 1318, label: 'Tech' },
-    { id: 1316, label: 'Sport' },
-    { id: 1401, label: 'Fiction' },
-  ];
+  const genres = PODCAST_GENRES;
 
-  let selectedGenreLabel = $derived(genres.find(g => g.id === selectedGenre)?.label || 'Tous');
+  let selectedGenreLabel = $derived(
+    $t(genres.find((g) => g.id === selectedGenre)?.key ?? 'podcasts.genre.all'),
+  );
+
+  // Le pays reellement selectionne, et non « France » en dur : les palmares
+  // viennent de l'iTunes Store du pays choisi, si bien qu'un selecteur sur USA
+  // affichait « Tendances France » au-dessus de podcasts americains.
+  let selectedCountryLabel = $derived(
+    countries.find((c) => c.code === podcastCountry)?.label ?? podcastCountry.toUpperCase(),
+  );
   let topTen = $derived(topPodcasts.slice(0, 10));
   let topGrid = $derived(topPodcasts.slice(0, 50));
 
@@ -624,7 +619,7 @@
               class:active={selectedGenre === genre.id}
               onclick={() => selectGenre(genre.id)}
             >
-              {genre.label}
+              {$t(genre.key)}
             </button>
           {/each}
         </div>
@@ -634,9 +629,9 @@
       <section class="section">
         <h3 class="section-title">
           {#if selectedGenre === null}
-            {$t('podcasts.trendingFrance')}
+            {$t('podcasts.trendingIn').replace('{country}', selectedCountryLabel)}
           {:else}
-            Top {selectedGenreLabel}
+            {$t('podcasts.topGenre').replace('{genre}', selectedGenreLabel)}
           {/if}
         </h3>
         {#if isLoadingTop}
@@ -686,7 +681,7 @@
         <section class="section">
           <h3 class="section-title">
             {#if selectedGenre === null}
-              Top France
+              {$t('podcasts.topIn').replace('{country}', selectedCountryLabel)}
             {:else}
               {selectedGenreLabel}
             {/if}

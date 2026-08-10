@@ -2713,6 +2713,23 @@ export default {
   "ambiance.enabling": "Activation…",
   "ambiance.enable": "Activer l'analyse acoustique",
   "ambiance.analysisNoneYet": "Aucun titre n'a encore été analysé. La recherche donnera des résultats à mesure que l'analyse progresse — inutile de rester sur cet écran, elle continue en tâche de fond.",
+  "podcasts.genre.all": "Tous",
+  "podcasts.genre.news": "Actualités",
+  "podcasts.genre.society": "Société",
+  "podcasts.genre.artsCulture": "Arts & Culture",
+  "podcasts.genre.music": "Musique",
+  "podcasts.genre.comedy": "Comédie",
+  "podcasts.genre.science": "Science",
+  "podcasts.genre.history": "Histoire",
+  "podcasts.genre.trueCrime": "True Crime",
+  "podcasts.genre.education": "Éducation",
+  "podcasts.genre.business": "Affaires",
+  "podcasts.genre.tech": "Technologies",
+  "podcasts.genre.sport": "Sport",
+  "podcasts.genre.fiction": "Fiction",
+  "podcasts.trendingIn": "Tendances {country}",
+  "podcasts.topIn": "Top {country}",
+  "podcasts.topGenre": "Top {genre}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

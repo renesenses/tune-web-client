@@ -2422,6 +2422,23 @@ export default {
   "settings.replaygainAnalysisHelp": "Măsoară volumul fiecărei piese, ca albumele să nu mai sune la niveluri diferite. Cedează pasul redării și lucrează doar în tăceri. Dezactiveaz-o dacă biblioteca stă pe o partajare de rețea încărcată.",
   "settings.acousticAnalysis": "Analiză acustică (căutare după atmosferă)",
   "settings.acousticAnalysisHelp": "Analiza acustică parcurge biblioteca în fundal și calculează o amprentă sonoră pentru fiecare piesă: pe ea se bazează căutarea după atmosferă. Modelul se descarcă la prima utilizare, iar analiza este lentă și solicită procesorul pe biblioteci mari.",
+  "podcasts.genre.all": "Toate",
+  "podcasts.genre.news": "Știri",
+  "podcasts.genre.society": "Societate",
+  "podcasts.genre.artsCulture": "Artă și cultură",
+  "podcasts.genre.music": "Muzică",
+  "podcasts.genre.comedy": "Comedie",
+  "podcasts.genre.science": "Știință",
+  "podcasts.genre.history": "Istorie",
+  "podcasts.genre.trueCrime": "True Crime",
+  "podcasts.genre.education": "Educație",
+  "podcasts.genre.business": "Afaceri",
+  "podcasts.genre.tech": "Tehnologie",
+  "podcasts.genre.sport": "Sport",
+  "podcasts.genre.fiction": "Ficțiune",
+  "podcasts.trendingIn": "Tendințe în {country}",
+  "podcasts.topIn": "Top în {country}",
+  "podcasts.topGenre": "Top {genre}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
