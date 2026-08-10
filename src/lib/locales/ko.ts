@@ -2397,6 +2397,23 @@ export default {
   "settings.replaygainAnalysisHelp": "각 트랙의 음량을 측정해 앨범 간 음량 차이를 없앱니다. 재생을 우선하며 무음 구간에서만 동작합니다. 라이브러리가 혼잡한 네트워크 공유에 있다면 끄십시오.",
   "settings.acousticAnalysis": "음향 분석 (분위기 검색)",
   "settings.acousticAnalysisHelp": "음향 분석은 백그라운드에서 라이브러리를 훑으며 트랙마다 음향 지문을 계산합니다. 분위기 검색은 여기에 의존합니다. 모델은 첫 사용 시 내려받으며, 라이브러리가 크면 분석이 느리고 CPU를 많이 씁니다.",
+  "podcasts.genre.all": "전체",
+  "podcasts.genre.news": "뉴스",
+  "podcasts.genre.society": "사회",
+  "podcasts.genre.artsCulture": "예술 및 문화",
+  "podcasts.genre.music": "음악",
+  "podcasts.genre.comedy": "코미디",
+  "podcasts.genre.science": "과학",
+  "podcasts.genre.history": "역사",
+  "podcasts.genre.trueCrime": "실화 범죄",
+  "podcasts.genre.education": "교육",
+  "podcasts.genre.business": "비즈니스",
+  "podcasts.genre.tech": "기술",
+  "podcasts.genre.sport": "스포츠",
+  "podcasts.genre.fiction": "픽션",
+  "podcasts.trendingIn": "{country} 인기",
+  "podcasts.topIn": "{country} 상위",
+  "podcasts.topGenre": "{genre} 상위",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

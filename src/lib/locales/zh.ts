@@ -2414,6 +2414,23 @@ export default {
   "settings.replaygainAnalysisHelp": "测量每首曲目的响度，使各专辑之间不再忽大忽小。它让位于播放，仅在静默时工作。若音乐库位于繁忙的网络共享上，建议关闭。",
   "settings.acousticAnalysis": "声学分析（氛围搜索）",
   "settings.acousticAnalysisHelp": "声学分析在后台遍历音乐库，为每首曲目计算声音指纹——氛围搜索依赖于此。模型在首次使用时下载；音乐库较大时，分析耗时且占用大量 CPU。",
+  "podcasts.genre.all": "全部",
+  "podcasts.genre.news": "新闻",
+  "podcasts.genre.society": "社会",
+  "podcasts.genre.artsCulture": "艺术与文化",
+  "podcasts.genre.music": "音乐",
+  "podcasts.genre.comedy": "喜剧",
+  "podcasts.genre.science": "科学",
+  "podcasts.genre.history": "历史",
+  "podcasts.genre.trueCrime": "真实犯罪",
+  "podcasts.genre.education": "教育",
+  "podcasts.genre.business": "商业",
+  "podcasts.genre.tech": "科技",
+  "podcasts.genre.sport": "体育",
+  "podcasts.genre.fiction": "虚构",
+  "podcasts.trendingIn": "{country}热门",
+  "podcasts.topIn": "{country}排行",
+  "podcasts.topGenre": "{genre}排行",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];
