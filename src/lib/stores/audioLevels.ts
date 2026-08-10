@@ -1,4 +1,5 @@
-import { writable } from 'svelte/store';
+import { derived, writable } from 'svelte/store';
+import { currentZoneId } from './zones';
 
 export interface AudioLevels {
   zone_id: number;
@@ -25,11 +26,27 @@ const defaultLevels: AudioLevels = {
   spectrum_db: [],
 };
 
-export const audioLevels = writable<AudioLevels>(defaultLevels);
+/// Niveaux les plus récents de CHAQUE zone.
+///
+/// Tune est multi-room : plusieurs zones peuvent jouer en même temps, et
+/// chacune publie ses propres `playback.audio_levels`. Un état global unique
+/// gardait la dernière trame reçue, d'où qu'elle vienne — l'analyseur affichait
+/// donc alternativement une zone puis l'autre, et restait figé sur les niveaux
+/// d'une zone que l'utilisateur ne regardait même pas.
+const levelsByZone = writable<Record<number, AudioLevels>>({});
+
+/// Niveaux de la zone actuellement sélectionnée — ce que l'interface doit
+/// afficher. Retombe au silence tant que la zone choisie n'a rien émis, plutôt
+/// que d'hériter des aiguilles de la précédente.
+export const audioLevels = derived(
+  [levelsByZone, currentZoneId],
+  ([$byZone, $zoneId]) => ($zoneId != null ? ($byZone[$zoneId] ?? defaultLevels) : defaultLevels)
+);
 
 export function handleAudioLevelsEvent(data: any) {
-  audioLevels.set({
-    zone_id: data.zone_id ?? 0,
+  const zoneId = data.zone_id ?? 0;
+  const levels: AudioLevels = {
+    zone_id: zoneId,
     rms_left_db: data.rms_left_db ?? -96,
     rms_right_db: data.rms_right_db ?? -96,
     peak_left_db: data.peak_left_db ?? -96,
@@ -38,5 +55,6 @@ export function handleAudioLevelsEvent(data: any) {
     rms_right: data.rms_right ?? 0,
     spectrum: Array.isArray(data.spectrum) ? data.spectrum : [],
     spectrum_db: Array.isArray(data.spectrum_db) ? data.spectrum_db : [],
-  });
+  };
+  levelsByZone.update((m) => ({ ...m, [zoneId]: levels }));
 }
