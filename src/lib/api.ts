@@ -2038,6 +2038,22 @@ export function getStreamingFeaturedPlaylists(service: string) {
   return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured`);
 }
 
+/** Une catégorie de playlists éditoriales et sa rangée, telle que le service
+ *  les range lui-même (Qobuz : « Artistes Qobuz », « Humeurs », « Focus »…). */
+export interface PlaylistTagGroup {
+  id: string;
+  name: string;
+  playlists: import('./types').StreamingPlaylist[];
+}
+
+/** Les playlists éditoriales rangées par catégorie, en un seul appel : le
+ *  serveur interroge les tags puis chaque rangée en parallèle. Renvoie un
+ *  tableau vide pour les services qui n'ont pas de catégories. */
+export function getStreamingFeaturedPlaylistsByTag(service: string, genre?: string) {
+  const params = genre ? `?genre=${encodeURIComponent(genre)}` : '';
+  return fetchJSON<PlaylistTagGroup[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured-playlists/by-tag${params}`);
+}
+
 export function getStreamingGenres(service: string, parentId?: string) {
   const params = parentId ? `?parent_id=${encodeURIComponent(parentId)}` : '';
   return fetchJSON<import('./types').StreamingGenre[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres${params}`);
