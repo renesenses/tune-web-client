@@ -110,6 +110,84 @@
     runQuery(p.query);
   }
 
+  // ── Ambiances enregistrées ────────────────────────────────────────────────
+  // Trouver LA formulation qui marche demande quelques essais ; rien ne la
+  // gardait. Seules les huit ambiances ci-dessus survivaient, et elles sont
+  // écrites dans ce fichier.
+  let saved = $state<api.SavedAmbiance[]>([]);
+  let savingAmbiance = $state(false);
+  let renamingId = $state<string | null>(null);
+  let renameInput = $state('');
+  // Saisie intégrée plutôt que window.prompt : les boîtes natives sont
+  // inopérantes dans les webviews — le clic ne fait rien du tout (#166).
+  let namingOpen = $state(false);
+  let nameInput = $state('');
+
+  async function loadSaved() {
+    try { saved = (await api.getAmbiances()).ambiances ?? []; }
+    catch { /* une liste indisponible ne doit pas casser la recherche */ }
+  }
+  onMount(loadSaved);
+
+  // On enregistre la requête RÉELLEMENT exécutée (`lastQuery`), pas le contenu
+  // du champ : après un clic sur une ambiance fournie, les deux diffèrent — le
+  // champ affiche « Jazz feutré » quand le moteur a reçu la formulation
+  // anglaise. C'est cette dernière qu'il faut rejouer.
+  let canSave = $derived(!!lastQuery && !saved.some((a) => a.query === lastQuery));
+
+  function openNaming() {
+    nameInput = prompt.trim() || lastQuery;
+    namingOpen = true;
+  }
+
+  async function saveAmbiance() {
+    const name = nameInput.trim();
+    if (!lastQuery || !name) return;
+    savingAmbiance = true;
+    try {
+      saved = [...saved, await api.createAmbiance(name, lastQuery)];
+      namingOpen = false;
+      notifications.success($t('ambiance.saved'));
+    } catch (e: any) {
+      notifications.error(e?.message || $t('ambiance.saveError'));
+    }
+    savingAmbiance = false;
+  }
+
+  function useSaved(a: api.SavedAmbiance) {
+    prompt = a.name;
+    runQuery(a.query);
+  }
+
+  function startRename(a: api.SavedAmbiance) {
+    renamingId = a.id;
+    renameInput = a.name;
+  }
+
+  async function commitRename() {
+    const id = renamingId;
+    const name = renameInput.trim();
+    renamingId = null;
+    if (!id || !name) return;
+    const before = saved.find((a) => a.id === id);
+    if (!before || before.name === name) return;
+    try {
+      const updated = await api.updateAmbiance(id, { name });
+      saved = saved.map((a) => (a.id === id ? updated : a));
+    } catch (e: any) {
+      notifications.error(e?.message || $t('ambiance.renameError'));
+    }
+  }
+
+  async function removeSaved(a: api.SavedAmbiance) {
+    try {
+      await api.deleteAmbiance(a.id);
+      saved = saved.filter((x) => x.id !== a.id);
+    } catch (e: any) {
+      notifications.error(e?.message || $t('ambiance.deleteError'));
+    }
+  }
+
   async function playTrack(track: Track, index: number) {
     if (!zone?.id) {
       notifications.error('Aucune zone sélectionnée');
@@ -201,6 +279,53 @@
           <button class="chip" onclick={() => usePreset(p)} disabled={loading}>{p.label}</button>
         {/each}
       </div>
+
+      <!-- Mes ambiances : la requête qui a marché, gardée sous un nom choisi. -->
+      {#if saved.length}
+        <div class="saved-row">
+          <span class="saved-label">{$t('ambiance.mine')}</span>
+          <div class="example-chips">
+            {#each saved as a (a.id)}
+              {#if renamingId === a.id}
+                <input
+                  class="rename-input"
+                  bind:value={renameInput}
+                  onblur={commitRename}
+                  onkeydown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') renamingId = null; }}
+                />
+              {:else}
+                <span class="chip saved-chip">
+                  <button class="saved-play" onclick={() => useSaved(a)} disabled={loading} title={a.query}>{a.name}</button>
+                  <button class="saved-act" onclick={() => startRename(a)} title={$t('ambiance.rename')} aria-label={$t('ambiance.rename')}>✎</button>
+                  <button class="saved-act" onclick={() => removeSaved(a)} title={$t('ambiance.delete')} aria-label={$t('ambiance.delete')}>×</button>
+                </span>
+              {/if}
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      {#if namingOpen}
+        <div class="naming-row">
+          <input
+            class="naming-input"
+            bind:value={nameInput}
+            placeholder={$t('ambiance.saveName')}
+            onkeydown={(e) => { if (e.key === 'Enter') saveAmbiance(); if (e.key === 'Escape') namingOpen = false; }}
+          />
+          <button class="naming-btn" onclick={saveAmbiance} disabled={savingAmbiance || !nameInput.trim()}>
+            {$t('ambiance.save')}
+          </button>
+          <button class="naming-cancel" onclick={() => (namingOpen = false)}>{$t('common.cancel')}</button>
+          <!-- La requête réellement exécutée, pas le contenu du champ : après un
+               clic sur une ambiance fournie, les deux diffèrent. -->
+          <span class="naming-hint" title={lastQuery}>{lastQuery}</span>
+        </div>
+      {:else if canSave}
+        <div class="naming-row">
+          <button class="naming-btn" onclick={openNaming}>{$t('ambiance.saveThis')}</button>
+        </div>
+      {/if}
     </div>
   </section>
 
@@ -447,6 +572,82 @@
   .chip:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  /* Ambiances enregistrées : même pastille que les ambiances fournies, plus
+     deux actions discrètes qui n'apparaissent qu'au survol. */
+  .saved-row { display: flex; align-items: baseline; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .saved-label {
+    font-family: var(--font-body);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--tune-text-muted);
+  }
+  .saved-chip { display: inline-flex; align-items: center; gap: 2px; padding: 0 6px 0 0; }
+  .saved-play {
+    background: none;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    padding: 6px 6px 6px 14px;
+    cursor: pointer;
+  }
+  .saved-act {
+    background: none;
+    border: 0;
+    color: var(--tune-text-muted);
+    font: inherit;
+    font-size: 13px;
+    line-height: 1;
+    padding: 3px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  .saved-chip:hover .saved-act, .saved-act:focus-visible { opacity: 1; }
+  .saved-act:hover { color: var(--tune-accent); background: var(--tune-surface-hover); }
+
+  .rename-input, .naming-input {
+    padding: 6px 12px;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-accent);
+    border-radius: 20px;
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 12px;
+    outline: none;
+  }
+  .naming-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .naming-input { flex: 1; min-width: 180px; }
+  .naming-btn {
+    padding: 6px 14px;
+    background: var(--tune-accent);
+    border: 0;
+    border-radius: 20px;
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .naming-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .naming-cancel {
+    background: none;
+    border: 0;
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .naming-hint {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* Banners */
