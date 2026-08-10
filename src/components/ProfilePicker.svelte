@@ -19,7 +19,7 @@
 {#if show}
   <div class="profile-picker-overlay">
     <div class="profile-picker">
-      <h1>{$t('profiles.whoIsListening' as any)}</h1>
+      <h1>{$t('profiles.whoIsListening')}</h1>
       <div class="picker-grid">
         {#each $profiles as p (p.id)}
           <button class="picker-item" class:current={p.id === $currentProfileId} onclick={() => pick(p.id)}>

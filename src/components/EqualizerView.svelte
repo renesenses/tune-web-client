@@ -624,7 +624,7 @@
       {#if profilerStep === 1}
         <div class="profiler-step">
           <h2 class="profiler-title">Votre environnement d'ecoute</h2>
-          <p class="profiler-desc">Repondez a ces 3 questions pour creer votre profil acoustique personnalise.</p>
+          <p class="profiler-desc">{$t('eq.wizardIntro')}</p>
 
           <div class="profiler-question">
             <h3>Qu'ecoutez-vous ?</h3>
@@ -642,7 +642,7 @@
 
           {#if listening === 'speakers'}
             <div class="profiler-question">
-              <h3>Taille de la piece ?</h3>
+              <h3>{$t('eq.roomSize')}</h3>
               <div class="profiler-options profiler-options--3">
                 <button class="profiler-option" class:active={roomSize === 'small'} onclick={() => roomSize = 'small'}>
                   <span class="profiler-icon-text">S</span>
@@ -663,15 +663,15 @@
             </div>
 
             <div class="profiler-question">
-              <h3>Placement des enceintes ?</h3>
+              <h3>{$t('eq.speakerPlacement')}</h3>
               <div class="profiler-options">
                 <button class="profiler-option" class:active={placement === 'near_wall'} onclick={() => placement = 'near_wall'}>
                   <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><rect x="2" y="4" width="6" height="40" rx="1" /><rect x="14" y="12" width="10" height="24" rx="2" /><circle cx="19" cy="28" r="4" /></svg>
-                  <span>Contre le mur</span>
+                  <span>{$t('eq.againstWall')}</span>
                 </button>
                 <button class="profiler-option" class:active={placement === 'free_standing'} onclick={() => placement = 'free_standing'}>
                   <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><rect x="2" y="4" width="6" height="40" rx="1" /><rect x="22" y="12" width="10" height="24" rx="2" /><circle cx="27" cy="28" r="4" /></svg>
-                  <span>Degagees du mur</span>
+                  <span>{$t('eq.awayFromWall')}</span>
                 </button>
               </div>
             </div>
@@ -691,7 +691,7 @@
           </button>
 
           <h2 class="profiler-title">Ajustez a l'oreille</h2>
-          <p class="profiler-desc">Deplacez les curseurs selon vos sensations. Pas besoin de micro !</p>
+          <p class="profiler-desc">{$t('eq.slidersByEar')}</p>
 
           <div class="profiler-slider-group">
             <div class="profiler-slider">
@@ -701,7 +701,7 @@
               </div>
               <div class="profiler-slider-hints">
                 <span>Sourdes</span>
-                <span>Ouvrir le son</span>
+                <span>{$t('eq.openUpSound')}</span>
               </div>
               <input type="range" min="-12" max="12" step="0.5" bind:value={bassSlider} oninput={queueProfilerApply} />
             </div>
