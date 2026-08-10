@@ -47,6 +47,48 @@
 
   let newReleases = $state<Album[]>([]);
   let featuredPlaylists = $state<StreamingPlaylist[]>([]);
+  // Playlists éditoriales rangées par catégorie, comme le service les range
+  // lui-même. Une seule rangée fourre-tout plafonnée à 50 laissait la majorité
+  // du catalogue dehors et n'annonçait aucun classement (Fabien, comparaison
+  // avec Roon : « Artistes Qobuz », « Humeurs », « Focus », « Leurs écoutes »…).
+  let featuredPlaylistGroups = $state<api.PlaylistTagGroup[]>([]);
+
+  // Sections d'albums dont Tune connaît le sens : le serveur renvoie un
+  // libellé anglais brut, on lui préfère la traduction. Un id inconnu — un
+  // autre service, une section ajoutée côté serveur — garde son libellé.
+  const SECTION_KEYS: Record<string, string> = {
+    'new-releases': 'streaming.section.newReleases',
+    'best-sellers': 'streaming.section.bestSellers',
+    'press-awards': 'streaming.section.pressAwards',
+    'editor-picks': 'streaming.section.editorPicks',
+    'most-streamed': 'streaming.section.mostStreamed',
+    'ideal-discography': 'streaming.section.idealDiscography',
+    qobuzissims: 'streaming.section.qobuzissimes',
+  };
+  const sectionTitle = (sec: FeaturedSection) =>
+    SECTION_KEYS[sec.id] ? $tr(SECTION_KEYS[sec.id]) : sec.name;
+
+  // Catégories de playlists Qobuz. L'API sert des slugs (`artist`, `mood`,
+  // `label`…) et un libellé que les entrées ne portent pas toutes : sans cette
+  // table, les rangées s'intitulaient « artist » et « mood » dans une
+  // interface en français. Un slug inconnu garde le libellé du serveur.
+  const TAG_KEYS: Record<string, string> = {
+    artist: 'streaming.tag.artist',
+    mood: 'streaming.tag.mood',
+    focus: 'streaming.tag.focus',
+    label: 'streaming.tag.label',
+    event: 'streaming.tag.event',
+    new: 'streaming.tag.new',
+    'hi-res': 'streaming.tag.hires',
+    summer: 'streaming.tag.summer',
+    popular: 'streaming.tag.popular',
+    speakers: 'streaming.tag.speakers',
+    danslecasque: 'streaming.tag.headphones',
+    qobuzdigs: 'streaming.tag.qobuzdigs',
+    auditoriums: 'streaming.tag.auditoriums',
+  };
+  const tagTitle = (group: api.PlaylistTagGroup) =>
+    TAG_KEYS[group.id] ? $tr(TAG_KEYS[group.id]) : group.name;
 
   let favAlbums = $state<Album[]>([]);
   let favArtists = $state<Artist[]>([]);
@@ -161,12 +203,14 @@
       loadLocalFavorites(s);
       loadNewReleases(s);
       loadFeaturedPlaylists(s);
+      loadFeaturedPlaylistGroups(s);
     } else {
       featuredSections = [];
       featuredData = {};
       userPlaylists = [];
       newReleases = [];
       featuredPlaylists = [];
+      featuredPlaylistGroups = [];
       favAlbums = [];
       favArtists = [];
       favTracks = [];
@@ -319,6 +363,16 @@
       const playlists = await api.getStreamingFeaturedPlaylists(s);
       if (service === s) featuredPlaylists = playlists;
     } catch { featuredPlaylists = []; }
+  }
+
+  // Les rangées par catégorie arrivent séparément de la liste plate : elles
+  // demandent une requête par tag côté serveur, donc plus de temps. La liste
+  // plate s'affiche en attendant, puis s'efface dès que les rangées sont là.
+  async function loadFeaturedPlaylistGroups(s: string) {
+    try {
+      const groups = await api.getStreamingFeaturedPlaylistsByTag(s);
+      if (service === s) featuredPlaylistGroups = groups ?? [];
+    } catch { featuredPlaylistGroups = []; }
   }
 
   async function openGenreBrowser() {
@@ -666,6 +720,25 @@
     activeView.set('settings');
   }
 </script>
+
+<!-- Vignette d'une playlist éditoriale, partagée par les rangées par catégorie
+     et par la liste plate : deux rendus identiques divergent tôt ou tard. -->
+{#snippet playlistCard(playlist: StreamingPlaylist)}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="carousel-card" onclick={() => selectStreamingPlaylist(playlist)}>
+    <div class="album-card-art">
+      <AlbumArt coverPath={playlist.cover_path} size={160} alt={playlist.name} />
+      <div class="art-hover-overlay">
+        <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); selectStreamingPlaylist(playlist); }} title={$tr('library.openAlbum')}>
+          <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M8 5v14l11-7z" /></svg>
+        </button>
+      </div>
+    </div>
+    <span class="album-card-title truncate">{playlist.name}</span>
+    <span class="album-card-artist truncate">{playlist.track_count} {$tr('home.tracks').toLowerCase()}</span>
+  </div>
+{/snippet}
 
 <div class="streaming-view">
   {#if !service}
@@ -1217,7 +1290,7 @@
         {#each featuredSections as section}
           {#if featuredData[section.id]?.length}
             <div class="featured-section">
-              <h3 class="featured-section-title">{section.name}</h3>
+              <h3 class="featured-section-title">{sectionTitle(section)}</h3>
               <div class="carousel">
                 {#each featuredData[section.id] as album}
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -1270,27 +1343,22 @@
         </div>
       {/if}
 
-      <!-- Featured playlists carousel -->
-      {#if featuredPlaylists.length > 0}
+      <!-- Playlists éditoriales : une rangée par catégorie du service quand il
+           en publie (Qobuz), sinon la liste plate. -->
+      {#if featuredPlaylistGroups.length > 0}
+        {#each featuredPlaylistGroups as group (group.id)}
+          <div class="featured-section">
+            <h3 class="featured-section-title">{tagTitle(group)}</h3>
+            <div class="carousel">
+              {#each group.playlists as playlist}{@render playlistCard(playlist)}{/each}
+            </div>
+          </div>
+        {/each}
+      {:else if featuredPlaylists.length > 0}
         <div class="featured-section">
           <h3 class="featured-section-title">{$tr('streaming.featuredPlaylists')}</h3>
           <div class="carousel">
-            {#each featuredPlaylists as playlist}
-              <!-- svelte-ignore a11y_click_events_have_key_events -->
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div class="carousel-card" onclick={() => selectStreamingPlaylist(playlist)}>
-                <div class="album-card-art">
-                  <AlbumArt coverPath={playlist.cover_path} size={160} alt={playlist.name} />
-                  <div class="art-hover-overlay">
-                    <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); selectStreamingPlaylist(playlist); }} title={$tr('library.openAlbum')}>
-                      <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M8 5v14l11-7z" /></svg>
-                    </button>
-                  </div>
-                </div>
-                <span class="album-card-title truncate">{playlist.name}</span>
-                <span class="album-card-artist truncate">{playlist.track_count} {$tr('home.tracks').toLowerCase()}</span>
-              </div>
-            {/each}
+            {#each featuredPlaylists as playlist}{@render playlistCard(playlist)}{/each}
           </div>
         </div>
       {/if}
