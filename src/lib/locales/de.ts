@@ -2383,6 +2383,23 @@ export default {
   "settings.lyricsLrclibHelp": "Lädt fehlende Songtexte von LRCLIB, einer Online-Community-Datenbank. Standardmäßig deaktiviert.",
   "settings.acousticAnalysis": "Akustische Analyse (Stimmungssuche)",
   "settings.acousticAnalysisHelp": "Die akustische Analyse durchläuft die Bibliothek im Hintergrund und berechnet pro Titel einen Klang-Fingerabdruck — nur so ist die Stimmungssuche möglich. Das Modell wird beim ersten Mal heruntergeladen; der Durchlauf ist langsam und CPU-intensiv bei großen Bibliotheken.",
+  "podcasts.genre.all": "Alle",
+  "podcasts.genre.news": "Nachrichten",
+  "podcasts.genre.society": "Gesellschaft",
+  "podcasts.genre.artsCulture": "Kunst & Kultur",
+  "podcasts.genre.music": "Musik",
+  "podcasts.genre.comedy": "Comedy",
+  "podcasts.genre.science": "Wissenschaft",
+  "podcasts.genre.history": "Geschichte",
+  "podcasts.genre.trueCrime": "True Crime",
+  "podcasts.genre.education": "Bildung",
+  "podcasts.genre.business": "Wirtschaft",
+  "podcasts.genre.tech": "Technik",
+  "podcasts.genre.sport": "Sport",
+  "podcasts.genre.fiction": "Fiktion",
+  "podcasts.trendingIn": "Trends in {country}",
+  "podcasts.topIn": "Top in {country}",
+  "podcasts.topGenre": "Top {genre}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];
