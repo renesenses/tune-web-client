@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { tip } from '../lib/tooltip';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
   import { refreshAcousticStatus } from '../lib/stores/acoustic';
@@ -3098,7 +3099,7 @@ function toggleAdvancedSystem() {
           <span class="scan-message">{scanMessage}</span>
         {/if}
 
-        <button class="scan-btn" onclick={handleArtworkRescan} disabled={artworkScanning}>
+        <button class="scan-btn" onclick={handleArtworkRescan} disabled={artworkScanning} use:tip={'tip.rescanArtwork'}>
           {#if artworkScanning}
             <div class="spinner small"></div>
             {#if artworkProgress}
@@ -3114,7 +3115,7 @@ function toggleAdvancedSystem() {
           {/if}
         </button>
 
-        <button class="scan-btn danger-btn" onclick={handleClearLibrary} disabled={clearingLibrary}>
+        <button class="scan-btn danger-btn" onclick={handleClearLibrary} disabled={clearingLibrary} use:tip={'tip.clearLibrary'}>
           {#if clearingLibrary}
             <div class="spinner small"></div>
             {$t('settings.deleting')}
@@ -3267,7 +3268,7 @@ function toggleAdvancedSystem() {
           <h4>{$t('settings.searchIndex')}</h4>
           <p class="db-hint" style="margin-top:0">{$t('settings.rebuildIndexHint')}</p>
           <div class="db-ie-actions">
-            <button class="btn-secondary" onclick={rebuildFtsIndex} disabled={ftsRebuilding}>
+            <button class="btn-secondary" onclick={rebuildFtsIndex} disabled={ftsRebuilding} use:tip={'tip.rebuildFts'}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                 <polyline points="23 4 23 10 17 10" />
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
@@ -3667,7 +3668,7 @@ function toggleAdvancedSystem() {
       <div class="devices-actions">
         <button class="scan-btn small" onclick={showAllDevices}>{$t('settings.showAll')}</button>
         <button class="scan-btn small" onclick={hideAllDevices}>{$t('settings.hideAll')}</button>
-        <button class="scan-btn small danger" onclick={handleClearAllDevices}>{$t('settings.clearDevices')}</button>
+        <button class="scan-btn small danger" onclick={handleClearAllDevices} use:tip={'tip.clearDevices'}>{$t('settings.clearDevices')}</button>
       </div>
       <div class="device-toggle-list">
         {#each $devices as device}
@@ -4213,7 +4214,7 @@ function toggleAdvancedSystem() {
                     {#if status.authenticated}
                       {#if name === 'youtube' && youtubeEmail}
                         <span class="badge auth">{youtubeEmail}</span>
-                        <button class="disconnect-btn" onclick={handleYoutubeDisconnect}>{$t('settings.disconnect')}</button>
+                        <button class="disconnect-btn" onclick={handleYoutubeDisconnect} use:tip={'tip.disconnectAccount'}>{$t('settings.disconnect')}</button>
                       {:else}
                         <span class="badge auth">{$t('settings.connected')}</span>
                         <button class="disconnect-btn" onclick={() => handleDisconnect(name)}>{$t('settings.disconnect')}</button>

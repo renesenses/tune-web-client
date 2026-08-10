@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { tip } from '../lib/tooltip';
   import * as api from '../lib/api';
   import type { ServiceTokenInfo } from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
@@ -264,7 +265,7 @@
                     <span class="toggle-text">Scrobbling {s.scrobble_enabled ? $t('serviceTokens.active') : $t('serviceTokens.inactive')}</span>
                   </label>
                 </div>
-                <button class="btn-danger btn-sm" disabled={busy === 'lastfm'} onclick={lastfmDisconnect}>
+                <button class="btn-danger btn-sm" disabled={busy === 'lastfm'} onclick={lastfmDisconnect} use:tip={'tip.disconnectAccount'}>
                   {$t('serviceTokens.disconnectLastfm')}
                 </button>
               {:else if lastfmAuthPending}

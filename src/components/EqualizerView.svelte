@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { tip } from '../lib/tooltip';
   import { t } from '../lib/i18n';
   import { currentZoneId } from '../lib/stores/zones';
   import * as api from '../lib/api';
@@ -735,7 +736,7 @@
             <button class="profiler-apply-btn" onclick={() => applyProfiler()}>
               Appliquer le profil
             </button>
-            <button class="profiler-reset-btn" onclick={resetProfiler}>
+            <button class="profiler-reset-btn" onclick={resetProfiler} use:tip={'tip.eqResetProfiler'}>
               Reinitialiser
             </button>
           </div>
@@ -749,7 +750,7 @@
       <button class="eq-toggle" class:active={enabled} onclick={toggleEnabled}>
         {enabled ? $t('eq.enabled') : $t('eq.disabled')}
       </button>
-      <button class="eq-reset" onclick={resetFlat}>{$t('eq.reset')}</button>
+      <button class="eq-reset" onclick={resetFlat} use:tip={'tip.eqResetFlat'}>{$t('eq.reset')}</button>
       <div class="eq-submode">
         <button class="eq-submode-btn" class:active={expertSubMode === 'graphic'}
           onclick={() => switchExpertSubMode('graphic')}>{$t('eq.subGraphic' as any)}</button>

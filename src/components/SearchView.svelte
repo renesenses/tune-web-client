@@ -1,5 +1,6 @@
 <script lang="ts">
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { tip } from '../lib/tooltip';
   import { playFromHere } from '../lib/playback';
   import { notifications } from '../lib/stores/notifications';
   import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
@@ -756,7 +757,7 @@
           <section class="section">
             <div class="section-head">
               <h3>Recherches recentes</h3>
-              <button class="link-btn" onclick={clearSearchHistory}>Effacer</button>
+              <button class="link-btn" onclick={clearSearchHistory} use:tip={'tip.clearSearchHistory'}>Effacer</button>
             </div>
             <div class="history-chips">
               {#each searchHistory.slice(0, 8) as entry}

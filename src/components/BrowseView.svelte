@@ -1,5 +1,6 @@
 <script lang="ts">
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { tip } from '../lib/tooltip';
   import { playFromHere } from '../lib/playback';
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
@@ -220,7 +221,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14M5 12h14" /></svg>
         {$tr('browse.addHere' as any)}
       </button>
-      <button class="rescan-btn" onclick={rescanFolder} disabled={rescanning}>
+      <button class="rescan-btn" onclick={rescanFolder} disabled={rescanning} use:tip={'tip.rescanFolder'}>
         {#if rescanning}
           <div class="spinner small"></div>
           {$tr('browse.rescanning')}
