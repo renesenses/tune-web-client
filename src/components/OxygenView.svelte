@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { tip } from '../lib/tooltip';
   import QualityBadge from './QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
   import HeartButton from './HeartButton.svelte';
@@ -584,7 +585,7 @@
                     {/if}
                     {#each d.tracks as t (t.id)}
                       <div class="trkrow">
-                        <button class="trk" class:sel={selected?.id === t.id} class:playing={t.id != null && t.id === playingId} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
+                        <button class="trk" class:sel={selected?.id === t.id} class:playing={t.id != null && t.id === playingId} use:tip={'tip.oxygenTrackRow'} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
                           <span class="tn">{#if t.id != null && t.id === playingId}{@render nowPlayingBars()}{:else}{t.track_number ?? ''}{/if}</span>
                           <span class="tt">{t.title}</span>
                           <span class="td">{fmtDur(t.duration_ms)}</span>
@@ -612,7 +613,7 @@
             </tr></thead>
             <tbody>
               {#each visible as t (t.id)}
-                <tr class:sel={selected?.id === t.id} class:playing={t.id != null && t.id === playingId} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
+                <tr class:sel={selected?.id === t.id} class:playing={t.id != null && t.id === playingId} use:tip={'tip.oxygenTrackRow'} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
                   <td class="n">{#if t.id != null && t.id === playingId}{@render nowPlayingBars()}{:else}{t.track_number ?? ''}{/if}</td>
                   <td class="title">{t.title}</td>
                   <td class="dim">{t.artist_name ?? ''}</td>

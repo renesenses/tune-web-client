@@ -1609,6 +1609,7 @@ export default {
   "settings.restartServerNeeded": "Restart the server.",
   "settings.audioBackend": "Audio backend",
   "settings.audioBackendError": "Failed to change audio backend",
+  "tip.oxygenTrackRow": "Click to see the details, double-click to start playback.",
   "tip.writeTags": "Saves, then writes this information into the audio files themselves, on disk.",
   "tip.clearLibrary": "Empties the database: tracks, albums, artists. Zones, playlists and radios are kept.",
   "tip.clearDevices": "Removes every device from the list. They come back on the next network discovery.",

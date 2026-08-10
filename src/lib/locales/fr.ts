@@ -1610,6 +1610,7 @@ export default {
   "settings.restartServerNeeded": "Redémarrez le serveur.",
   "settings.audioBackend": "Backend audio",
   "settings.audioBackendError": "Erreur changement backend audio",
+  "tip.oxygenTrackRow": "Cliquez pour voir les détails, double-cliquez pour lancer la lecture.",
   "tip.writeTags": "Enregistre, puis écrit ces informations dans les fichiers audio eux-mêmes, sur le disque.",
   "tip.clearLibrary": "Vide la base : pistes, albums, artistes. Zones, playlists et radios sont conservées.",
   "tip.clearDevices": "Retire tous les appareils de la liste. Ils reviendront à la prochaine découverte du réseau.",

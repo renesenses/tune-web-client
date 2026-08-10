@@ -1386,6 +1386,7 @@ export default {
   "settings.restartServerNeeded": "请重启服务器。",
   "settings.audioBackend": "音频后端",
   "settings.audioBackendError": "更改音频后端失败",
+  "tip.oxygenTrackRow": "单击查看详情，双击开始播放。",
   "tip.writeTags": "先保存，然后把这些信息写入磁盘上的音频文件本身。",
   "tip.clearLibrary": "清空数据库：曲目、专辑、艺人。区域、播放列表和电台会保留。",
   "tip.clearDevices": "从列表中移除所有设备。下次网络发现时会重新出现。",

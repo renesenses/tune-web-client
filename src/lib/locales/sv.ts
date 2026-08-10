@@ -1373,6 +1373,7 @@ export default {
   "settings.restartServerNeeded": "Starta om servern.",
   "settings.audioBackend": "Ljud-backend",
   "settings.audioBackendError": "Kunde inte byta ljud-backend",
+  "tip.oxygenTrackRow": "Klicka för detaljer, dubbelklicka för att spela upp.",
   "tip.writeTags": "Sparar och skriver sedan in uppgifterna i själva ljudfilerna, på disken.",
   "tip.clearLibrary": "Tömmer databasen: spår, album, artister. Zoner, spellistor och radiokanaler behålls.",
   "tip.clearDevices": "Tar bort alla enheter ur listan. De kommer tillbaka vid nästa nätverkssökning.",

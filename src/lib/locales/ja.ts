@@ -1386,6 +1386,7 @@ export default {
   "settings.restartServerNeeded": "サーバーを再起動してください。",
   "settings.audioBackend": "オーディオバックエンド",
   "settings.audioBackendError": "オーディオバックエンドの変更に失敗しました",
+  "tip.oxygenTrackRow": "クリックで詳細、ダブルクリックで再生を開始します。",
   "tip.writeTags": "保存したうえで、この情報を音声ファイル自体（ディスク上）に書き込みます。",
   "tip.clearLibrary": "データベースを空にします（曲・アルバム・アーティスト）。ゾーン、プレイリスト、ラジオは残ります。",
   "tip.clearDevices": "一覧からすべての機器を削除します。次回のネットワーク検出で再び現れます。",
