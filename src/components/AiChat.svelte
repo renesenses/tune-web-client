@@ -1,5 +1,6 @@
 <script lang="ts">
   import { get } from 'svelte/store';
+  import { tip } from '../lib/tooltip';
   import { currentZoneId } from '../lib/stores/zones';
   import { apiPost } from '../lib/api';
   import { t, locale } from '../lib/i18n';
@@ -260,7 +261,7 @@
         onkeydown={handleKeydown}
         disabled={loading || voiceListening}
       />
-      <button class="ai-send" onclick={send} disabled={loading || !input.trim()}>
+      <button class="ai-send" onclick={send} disabled={loading || !input.trim()} use:tip={'tip.send'}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
           <line x1="22" y1="2" x2="11" y2="13" />
           <polygon points="22 2 15 22 11 13 2 9 22 2" />

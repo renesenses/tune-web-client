@@ -1,5 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
+  import { tip } from '../lib/tooltip';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
   import { artworkUrl } from '../lib/api';
@@ -337,7 +338,7 @@
     {:else}
       <div class="modal-header">
         <h3>{$t('metadata.editAlbum')}</h3>
-        <button class="close-btn" onclick={onClose}>
+        <button class="close-btn" onclick={onClose} use:tip={'common.close'}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>

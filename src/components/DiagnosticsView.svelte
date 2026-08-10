@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy, untrack } from 'svelte';
+  import { tip } from '../lib/tooltip';
   import * as api from '../lib/api';
   import { zones } from '../lib/stores/zones';
   import { devices } from '../lib/stores/devices';
@@ -903,7 +904,7 @@
     <div class="bug-report-modal" onclick={(e) => e.stopPropagation()}>
       <div class="bug-report-header">
         <h3>{$t('diagnostics.bugReportTitle' as any)}</h3>
-        <button class="bug-report-close" onclick={closeBugReport}>
+        <button class="bug-report-close" onclick={closeBugReport} use:tip={'common.close'}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>

@@ -61,6 +61,13 @@ export interface Preferences {
   albumSortOrder: 'asc' | 'desc';
   /** Densité de la grille d'albums — voir AlbumGridDensity. */
   albumGridDensity: AlbumGridDensity;
+  /** Afficher les bulles d'aide au survol des boutons.
+   *
+   *  Activé par défaut : trois testeurs de suite n'ont pas trouvé un bouton
+   *  faute d'explication. Désactivable, parce qu'une aide utile au premier
+   *  jour devient du bruit au centième — celui qui connaît l'interface ne
+   *  doit pas subir une infobulle à chaque survol. */
+  tooltipsEnabled: boolean;
 }
 
 const STORAGE_KEY = 'tune-preferences';
@@ -80,6 +87,7 @@ const defaults: Preferences = {
   albumSort: 'title',
   albumSortOrder: 'asc',
   albumGridDensity: 'detail',
+  tooltipsEnabled: true,
 };
 
 // One-time migration of the album sort, which #1134 moved from the per-browser

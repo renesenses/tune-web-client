@@ -4161,6 +4161,17 @@ function toggleAdvancedSystem() {
           <option value="percent">{$t('settings.percent')}</option>
           <option value="dB">{$t('settings.decibels')}</option>
         </select>
+
+        <label class="pref-label" for="pref-tooltips">{$t('settings.tooltips')}</label>
+        <select id="pref-tooltips" class="pref-select" value={$preferences.tooltipsEnabled ? 'on' : 'off'}
+          onchange={(e) => {
+            const tooltipsEnabled = (e.target as HTMLSelectElement).value === 'on';
+            preferences.update((p) => ({ ...p, tooltipsEnabled }));
+          }}>
+          <option value="on">{$t('settings.tooltipsOn')}</option>
+          <option value="off">{$t('settings.tooltipsOff')}</option>
+        </select>
+        <p class="pref-hint">{$t('settings.tooltipsHint')}</p>
       </div>
     </section>
 
@@ -5768,6 +5779,17 @@ function toggleAdvancedSystem() {
     font-family: var(--font-body);
     font-size: 14px;
     color: var(--tune-text-secondary);
+  }
+
+  /* Sous le sélecteur, sur toute la largeur de la grille : une phrase qui dit
+     à quoi sert le réglage, là où le libellé seul ne suffit pas. */
+  .pref-hint {
+    grid-column: 1 / -1;
+    margin: calc(-1 * var(--space-sm)) 0 0;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+    opacity: 0.85;
   }
 
   .pref-select {
