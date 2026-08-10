@@ -1627,6 +1627,8 @@ export default {
   "renderer.wav24": "24 ビット",
   "renderer.wav24Hint": "本物の 24 ビット WAV を配信します。ディスカバリー確認でレンダラーが audio/L24 または汎用 audio/wav を表明している場合に利用できます。",
   "renderer.depthCapNotRate": "注意：ビット深度の制限はサンプリング周波数を制限しません。96 kHz/24 ビットのファイルは 96 kHz/16 ビットになりますが、96 kHz のままです。再生機器が 48 kHz までの場合は「最大サンプリング周波数」も設定してください。",
+  "renderer.flacOverriddenByWav": "「WAV を強制」が有効で、こちらが優先されます。このゾーンではネイティブ FLAC は無視されます。FLAC をそのまま送るには「WAV を強制」をオフにしてください。",
+  "renderer.wav24NeedsProbe": "24 ビットは検出テストを実行するまで選択できません。上の「確認」を押して、この機器が再生できる形式を調べてください。",
   "renderer.startDelay": "開始遅延",
   "renderer.startDelayHint": "再生開始前の一時停止で、DLNA アンプがバッファリングできるようにします（最初の数秒が途切れる場合に役立ちます）。0 = デフォルト値。",
   "renderer.probeFailed": "レンダラーの機能を読み取れませんでした。電源が入っていて同じネットワークに接続されているか確認してください。",
