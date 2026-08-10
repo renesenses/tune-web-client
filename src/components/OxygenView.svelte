@@ -59,7 +59,7 @@
   let extLoading = $state(false);
   let categories = $state<MetadataCategory[]>([]);
   let serverFacets = $state<Record<string, FacetValue[]>>({});
-  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source', 'rating', 'collection'];
+  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'composer', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source', 'rating', 'collection'];
   // Multi-facet: one active value per field, combinable (Bertrand :
   // « filtrer simultanément par Genre, year et label »). Chaque champ garde
   // au plus une valeur ; les champs actifs se cumulent côté serveur.
@@ -120,6 +120,7 @@
         case 'label': out.label = value; break;
         case 'year': out.year = Number(value); break;
         case 'artist': out.artist = value; break;
+        case 'composer': out.composer = value; break;
         case 'format': out.format = value; break;
         case 'sample_rate': out.sample_rate = Number(value); break;
         case 'bit_depth': out.bit_depth = Number(value); break;
