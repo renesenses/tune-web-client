@@ -94,6 +94,8 @@ export default {
   'oxygen.noMeta': 'Nessun metadato esteso.',
   'oxygen.selectTrack': 'Seleziona un brano.',
   'oxygen.tracks': 'brani',
+  'oxygen.truncated': 'Vista parziale:',
+  'oxygen.loadMore': 'Carica altri',
   'oxygen.others': 'Altri',
   'oxygen.new': 'nuovo',
   'oxygen.col.title': 'Titolo',

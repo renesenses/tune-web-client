@@ -94,6 +94,8 @@ export default {
   'oxygen.noMeta': '拡張メタデータがありません。',
   'oxygen.selectTrack': '曲を選択してください。',
   'oxygen.tracks': '曲',
+  'oxygen.truncated': '一部のみ表示:',
+  'oxygen.loadMore': 'さらに読み込む',
   'oxygen.others': 'その他',
   'oxygen.new': '新規',
   'oxygen.col.title': 'タイトル',
