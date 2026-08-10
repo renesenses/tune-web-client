@@ -1,5 +1,6 @@
 <script lang="ts">
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices as streamingServicesStore, streamingGenreBreadcrumb } from '../lib/stores/streaming';
+  import { tip } from '../lib/tooltip';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { activeView, settingsInitialTab } from '../lib/stores/navigation';
@@ -1160,7 +1161,7 @@
           <div class="spinner small search-spinner"></div>
         {/if}
         {#if searchQuery}
-          <button class="search-clear" onclick={clearSearch}>
+          <button class="search-clear" onclick={clearSearch} use:tip={'tip.clearSearch'}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         {/if}

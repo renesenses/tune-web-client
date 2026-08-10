@@ -1,5 +1,6 @@
 <script lang="ts">
   import { get } from 'svelte/store';
+  import { tip } from '../lib/tooltip';
   import * as api from '../lib/api';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
@@ -112,7 +113,7 @@
         </svg>
         <h3>{$t('folderWizard.title')}</h3>
       </div>
-      <button class="close-btn" onclick={onClose}>
+      <button class="close-btn" onclick={onClose} use:tip={'common.close'}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
           <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
         </svg>

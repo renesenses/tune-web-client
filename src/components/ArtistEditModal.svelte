@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as api from '../lib/api';
+  import { tip } from '../lib/tooltip';
   import { artworkUrl } from '../lib/api';
   import type { Artist } from '../lib/types';
   import { t } from '../lib/i18n';
@@ -121,7 +122,7 @@
     {:else}
       <div class="modal-header">
         <h3>{$t('artistEdit.title')}</h3>
-        <button class="close-btn" onclick={onClose}>
+        <button class="close-btn" onclick={onClose} use:tip={'common.close'}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>

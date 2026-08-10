@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
+  import { tip } from '../lib/tooltip';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { preferences } from '../lib/stores/preferences';
@@ -2210,7 +2211,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
                 {/if}
               </button>
-              <button class="artist-name-cancel" onclick={cancelEditArtistName}>
+              <button class="artist-name-cancel" onclick={cancelEditArtistName} use:tip={'common.cancel'}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>

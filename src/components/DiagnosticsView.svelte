@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy, untrack } from 'svelte';
+  import { tip } from '../lib/tooltip';
   import * as api from '../lib/api';
   import { zones } from '../lib/stores/zones';
   import { devices } from '../lib/stores/devices';
@@ -576,11 +577,11 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
           <span>{restarting ? $t('diagnostics.restarting' as any) : $t('diagnostics.restartServer' as any)}</span>
         </button>
-        <button class="server-action-btn" onclick={rescanLibrary} disabled={scanning}>
+        <button class="server-action-btn" onclick={rescanLibrary} disabled={scanning} use:tip={'tip.rescanLibrary'}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
           <span>{scanning ? $t('diagnostics.scanning' as any) : $t('diagnostics.rescanLibrary' as any)}</span>
         </button>
-        <button class="server-action-btn" onclick={clearCache} disabled={clearing}>
+        <button class="server-action-btn" onclick={clearCache} disabled={clearing} use:tip={'tip.clearCache'}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
           <span>{clearing ? $t('diagnostics.cleaning' as any) : $t('diagnostics.clearCache' as any)}</span>
         </button>
@@ -903,7 +904,7 @@
     <div class="bug-report-modal" onclick={(e) => e.stopPropagation()}>
       <div class="bug-report-header">
         <h3>{$t('diagnostics.bugReportTitle' as any)}</h3>
-        <button class="bug-report-close" onclick={closeBugReport}>
+        <button class="bug-report-close" onclick={closeBugReport} use:tip={'common.close'}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>

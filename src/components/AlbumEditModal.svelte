@@ -1,5 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
+  import { tip } from '../lib/tooltip';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
   import { artworkUrl } from '../lib/api';
@@ -337,7 +338,7 @@
     {:else}
       <div class="modal-header">
         <h3>{$t('metadata.editAlbum')}</h3>
-        <button class="close-btn" onclick={onClose}>
+        <button class="close-btn" onclick={onClose} use:tip={'common.close'}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>
@@ -528,7 +529,7 @@
       <div class="modal-footer">
         <button type="button" class="btn-cancel" onclick={onClose}>{$t('common.cancel')}</button>
         {#if !album.source || album.source === 'local'}
-          <button class="btn-write-tags" onclick={saveThenWriteTags} disabled={writingTags || saving}>
+          <button class="btn-write-tags" onclick={saveThenWriteTags} disabled={writingTags || saving} use:tip={'tip.writeTags'}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
             {writingTags ? $t('albumEdit.writing') : $t('albumEdit.writeTags')}
           </button>
