@@ -1817,6 +1817,7 @@ export default {
   "renderer.wav16": "16-bit",
   "renderer.wav24": "24-bit",
   "renderer.wav24Hint": "Serve genuine 24-bit WAV. Available once the discovery check confirms the renderer advertises audio/L24 or generic audio/wav.",
+  "renderer.depthCapNotRate": "Note: capping bit depth does not cap sample rate. A 96 kHz/24-bit file becomes 96 kHz/16-bit — still 96 kHz. If your renderer tops out at 48 kHz, set “Max sample rate” as well.",
   "renderer.startDelay": "Start delay",
   "renderer.startDelayHint": "Pause before playback starts, to let a DLNA amp buffer (helps when the first seconds stutter). 0 = default.",
   "renderer.probeFailed": "Couldn't read the renderer's capabilities. Make sure it's powered on and on the same network.",

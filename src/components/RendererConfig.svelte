@@ -20,6 +20,13 @@
     zone.dlna_wav24 ? '24' : zone.dlna_lpcm ? '16' : 'off'
   );
 
+  // Réduire la profondeur ne réduit PAS la fréquence : un 96 kHz/24 bits devient
+  // 96 kHz/16 bits, et reste donc refusé par un renderer qui plafonne à 48 kHz.
+  // Les deux réglages vivent dans deux blocs différents de l'écran, sans que rien
+  // n'indique que l'un ne suffit pas — Yves y a perdu du temps, il ne sera pas le
+  // dernier. On le dit là où la case est cochée, pas dans une infobulle.
+  let rateStillUncapped = $derived((cap16 || forceWav !== 'off') && !zone.max_sample_rate);
+
   let caps = $state<RendererCapabilities | null>(null);
   let probing = $state(false);
   let probeError = $state<string | null>(null);
@@ -148,6 +155,10 @@
       <span>{$t('settings.dlnaCap16bit')}</span>
     </label>
 
+    {#if rateStillUncapped}
+      <p class="rc-warn">{$t('renderer.depthCapNotRate')}</p>
+    {/if}
+
     <div class="rc-wav" title={$t('renderer.startDelayHint')}>
       <span class="rc-wav-label">{$t('renderer.startDelay')}</span>
       <div class="rc-seg" role="group">
@@ -232,6 +243,12 @@
     font-size: 13px;
     color: var(--tune-text);
     cursor: pointer;
+  }
+  .rc-warn {
+    margin: -2px 0 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--tune-warning, #d29922);
   }
   .rc-wav {
     display: flex;

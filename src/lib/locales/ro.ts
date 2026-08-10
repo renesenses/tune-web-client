@@ -1636,6 +1636,7 @@ export default {
   "renderer.wav16": "16 biți",
   "renderer.wav24": "24 biți",
   "renderer.wav24Hint": "Redă WAV real pe 24 de biți. Disponibil când verificarea de descoperire confirmă că renderer-ul anunță audio/L24 sau audio/wav generic.",
+  "renderer.depthCapNotRate": "Atenție: limitarea adâncimii de biți nu limitează frecvența de eșantionare. Un fișier de 96 kHz/24 biți devine 96 kHz/16 biți — tot 96 kHz. Dacă aparatul se oprește la 48 kHz, setați și „Frecvență maximă”.",
   "renderer.startDelay": "Întârziere la pornire",
   "renderer.startDelayHint": "Pauză înainte de începerea redării, pentru a permite unui amplificator DLNA să memoreze în buffer (util când primele secunde se întrerup). 0 = valoare implicită.",
   "renderer.probeFailed": "Nu s-au putut citi capacitățile renderer-ului. Asigură-te că este pornit și în aceeași rețea.",
