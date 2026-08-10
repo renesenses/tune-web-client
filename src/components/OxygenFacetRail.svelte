@@ -24,6 +24,7 @@
 
   const FIELD_LABELS: Record<string, string> = {
     genre: 'Genres', label: 'Labels', year: 'Années', artist: 'Artistes',
+    composer: 'Compositeurs',
     country: 'Pays', mood: 'Moods', source: 'Support',
     format: 'Format', sample_rate: 'Fréquence', bit_depth: 'Résolution',
     rating: 'Note', collection: 'Collections',
@@ -37,6 +38,7 @@
   const CLIENT_GET: Record<string, (t: Track) => string | null | undefined> = {
     genre: t => t.genre, label: t => t.label,
     year: t => (t.year != null ? String(t.year) : null), artist: t => t.artist_name,
+    composer: t => t.composer,
     format: t => (t.format ? String(t.format) : null),
     sample_rate: t => (t.sample_rate != null ? String(t.sample_rate) : null),
     bit_depth: t => (t.bit_depth != null ? String(t.bit_depth) : null),
@@ -91,13 +93,46 @@
     return out;
   });
 
-  let open = $state<Record<string, boolean>>({});
-  const isOpen = (f: string) => open[f] ?? true;
-  const toggle = (f: string) => { open = { ...open, [f]: !isOpen(f) }; };
+  // Facettes repliées. Mémorisées par navigateur : un rail replié à la main
+  // qui se rouvre entier au retour dans Oxygen se replie une deuxième fois,
+  // puis une troisième. On stocke les REPLIÉES (et non les ouvertes) pour
+  // qu'une facette nouvellement livrée arrive dépliée.
+  const CLOSED_KEY = 'tune-oxygen-facets-closed';
+  function loadClosed(): Set<string> {
+    try {
+      const raw = localStorage.getItem(CLOSED_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : []);
+    } catch { return new Set(); }
+  }
+  let closed = $state<Set<string>>(loadClosed());
+  function setClosed(next: Set<string>) {
+    closed = next;
+    try { localStorage.setItem(CLOSED_KEY, JSON.stringify([...next])); } catch { /* quota / mode privé */ }
+  }
+  const isOpen = (f: string) => !closed.has(f);
+  const toggle = (f: string) => {
+    const next = new Set(closed);
+    if (next.has(f)) next.delete(f); else next.add(f);
+    setClosed(next);
+  };
+  // Un seul geste pour retrouver la liste des facettes quand elles sont
+  // toutes ouvertes — ou tout rouvrir d'un coup (Bertrand).
+  const allCollapsed = $derived(shown.length > 0 && shown.every(f => closed.has(f)));
+  const toggleAll = () => setClosed(allCollapsed ? new Set() : new Set(shown));
   const usingServer = $derived(Object.keys(serverFacets).length > 0);
 </script>
 
 <nav class="rail">
+  <div class="railhead">
+    <span class="rht">{$t('oxygen.facetsTitle')}</span>
+    <button class="allbtn" onclick={toggleAll}
+            title={allCollapsed ? $t('oxygen.expandAll') : $t('oxygen.collapseAll')}
+            aria-label={allCollapsed ? $t('oxygen.expandAll') : $t('oxygen.collapseAll')}>
+      <svg class="chev" class:closed={allCollapsed} viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
+      {allCollapsed ? $t('oxygen.expandAll') : $t('oxygen.collapseAll')}
+    </button>
+  </div>
   {#each shown as f (f)}
     {#if f === 'folder'}
       <!-- Hierarchical drill-down: breadcrumb + child folders (server-backed). -->
@@ -147,6 +182,10 @@
 
 <style>
   .rail { display: flex; flex-direction: column; overflow-y: auto; min-height: 0; padding: 8px 8px 16px; }
+  .railhead { display: flex; align-items: center; gap: 8px; padding: 2px 8px 6px; border-bottom: 1px solid var(--tune-border); margin-bottom: 4px; }
+  .rht { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; color: var(--tune-text-muted); }
+  .allbtn { display: flex; align-items: center; gap: 5px; margin-left: auto; background: none; border: 0; color: var(--tune-text-muted); font: inherit; font-size: 11px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
+  .allbtn:hover { color: var(--tune-accent); background: var(--tune-surface-hover); }
   .group { margin-bottom: 4px; }
   .ghead { display: flex; align-items: center; gap: 6px; width: 100%; padding: 9px 8px 5px; }
   .ghtitle { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; background: none; border: 0; color: var(--tune-text); font: inherit; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; padding: 0; cursor: pointer; text-align: left; }
