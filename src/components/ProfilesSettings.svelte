@@ -27,7 +27,7 @@
     } else {
       // createProfile returns null on failure; the common case is the premium
       // gate (server replies 403 premium_required).
-      createError = $t('profiles.createFailed' as any);
+      createError = $t('profiles.createFailed');
     }
   }
 
@@ -45,14 +45,14 @@
   }
 
   async function handleDelete(p: Profile) {
-    if (!confirm($t('profiles.confirmDelete' as any).replace('{name}', p.name))) return;
+    if (!confirm($t('profiles.confirmDelete').replace('{name}', p.name))) return;
     await deleteProfile(p.id);
   }
 </script>
 
 <section class="settings-section">
   <h3>{$t('settings.tabProfiles')}</h3>
-  <p class="section-hint">{$t('profiles.hint' as any)}</p>
+  <p class="section-hint">{$t('profiles.hint')}</p>
 
   <div class="profiles-list">
     {#each $profiles as p (p.id)}
@@ -71,7 +71,7 @@
           <button class="profile-main" onclick={() => selectProfile(p.id)}>
             <span class="avatar-circle" style="background: {p.avatar_color}">{p.name.charAt(0).toUpperCase()}</span>
             <span class="profile-name">{p.name}</span>
-            {#if p.id === $currentProfileId}<span class="badge-active">{$t('profiles.active' as any)}</span>{/if}
+            {#if p.id === $currentProfileId}<span class="badge-active">{$t('profiles.active')}</span>{/if}
           </button>
           <button class="btn-small ghost" onclick={() => startEdit(p)}>{$t('common.edit')}</button>
           {#if $profiles.length > 1}
@@ -83,13 +83,13 @@
   </div>
 
   <div class="create-profile">
-    <h4>{$t('profiles.createTitle' as any)}</h4>
+    <h4>{$t('profiles.createTitle')}</h4>
     {#if $isPremium}
       <div class="create-row">
         <span class="avatar-circle" style="background: {newColor}">{(newName.trim().charAt(0) || '?').toUpperCase()}</span>
         <input
           class="profile-edit-name"
-          placeholder={$t('profiles.namePlaceholder' as any)}
+          placeholder={$t('profiles.namePlaceholder')}
           bind:value={newName}
           onkeydown={(e) => e.key === 'Enter' && handleCreate()}
         />
@@ -99,13 +99,13 @@
           {/each}
         </div>
         <button class="btn-small primary" disabled={!newName.trim() || creating} onclick={handleCreate}>
-          {creating ? $t('common.loading') : $t('profiles.createButton' as any)}
+          {creating ? $t('common.loading') : $t('profiles.createButton')}
         </button>
       </div>
       {#if createError}<p class="create-error">{createError}</p>{/if}
     {:else}
       <div class="premium-upsell">
-        <p>{$t('profiles.premiumRequired' as any)}</p>
+        <p>{$t('profiles.premiumRequired')}</p>
       </div>
     {/if}
   </div>
