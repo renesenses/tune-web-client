@@ -262,6 +262,8 @@ export default {
   'oxygen.noMeta': 'Aucune métadonnée étendue.',
   'oxygen.selectTrack': 'Sélectionnez une piste.',
   'oxygen.tracks': 'titres',
+  'oxygen.truncated': 'Affichage partiel :',
+  'oxygen.loadMore': 'Charger la suite',
   'oxygen.others': 'Autres',
   'oxygen.details': 'Détails',
   'oxygen.detail.composer': 'Compositeur',

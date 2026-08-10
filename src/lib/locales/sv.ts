@@ -94,6 +94,8 @@ export default {
   'oxygen.noMeta': 'Ingen utökad metadata.',
   'oxygen.selectTrack': 'Välj ett spår.',
   'oxygen.tracks': 'spår',
+  'oxygen.truncated': 'Delvis visning:',
+  'oxygen.loadMore': 'Ladda fler',
   'oxygen.others': 'Övrigt',
   'oxygen.new': 'nytt',
   'oxygen.col.title': 'Titel',

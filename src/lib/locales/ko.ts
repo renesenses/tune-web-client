@@ -94,6 +94,8 @@ export default {
   'oxygen.noMeta': '확장 메타데이터가 없습니다.',
   'oxygen.selectTrack': '트랙을 선택하세요.',
   'oxygen.tracks': '곡',
+  'oxygen.truncated': '일부만 표시:',
+  'oxygen.loadMore': '더 불러오기',
   'oxygen.others': '기타',
   'oxygen.new': '신규',
   'oxygen.col.title': '제목',

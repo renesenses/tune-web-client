@@ -44,7 +44,14 @@
   };
 
   let tracks = $state<Track[]>([]);
+  // Nombre TOTAL de pistes correspondant aux facettes actives, tel que le
+  // serveur le compte — `tracks` n'en tient qu'une fenêtre de LOAD_LIMIT.
+  // Sans lui, une facette large (un genre à plus de 3 000 pistes) n'affichait
+  // que les premiers albums de l'ordre alphabétique et taisait le reste
+  // (Alex Campbell, 10/08/2026 : « only displays maybe 100 albums »).
+  let total = $state(0);
   let loading = $state(true);
+  let loadingMore = $state(false);
   let error = $state<string | null>(null);
   let query = $state('');
   let selected = $state<Track | null>(null);
@@ -360,12 +367,35 @@
     try {
       const res = await getFilteredTracks({ ...facetParam(facetSels), limit: LOAD_LIMIT });
       tracks = res.items;
+      total = res.total;
       selected = null;
       if (tracks.length) select(tracks[0]);
     } catch (e) {
       error = e instanceof Error ? e.message : $t('oxygen.loadError');
     } finally { loading = false; }
   }
+
+  // Fenêtre suivante : la sélection courante dépasse LOAD_LIMIT pistes. On
+  // ajoute à la suite (l'ordre serveur est stable : artiste, album, disque,
+  // piste) au lieu de remplacer, pour que les albums déjà à l'écran ne bougent
+  // pas sous le doigt.
+  async function loadMore() {
+    if (loadingMore || tracks.length >= total) return;
+    loadingMore = true;
+    try {
+      const res = await getFilteredTracks({ ...facetParam(facetSels), limit: LOAD_LIMIT, offset: tracks.length });
+      const known = new Set(tracks.map(t => t.id));
+      tracks = [...tracks, ...res.items.filter(t => !known.has(t.id))];
+      total = res.total;
+    } catch (e) {
+      error = e instanceof Error ? e.message : $t('oxygen.loadError');
+    } finally { loadingMore = false; }
+  }
+
+  // Pistes chargées / pistes correspondant réellement au filtre. `visible`
+  // applique en plus la recherche locale, qui ne peut porter que sur la
+  // fenêtre chargée : le bandeau le dit explicitement.
+  let truncated = $derived(!loading && !error && tracks.length < total);
 
   // $derived (not const): enabling/disabling a facet in Settings must take
   // effect while Oxygen stays mounted — as a const these were captured once at
@@ -476,7 +506,9 @@
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input placeholder={$t('oxygen.filter')} bind:value={query} />
     </div>
-    <div class="count">{visible.length.toLocaleString('fr')}</div>
+    <div class="count" class:partial={truncated} title={truncated ? $t('oxygen.truncated') : ''}>
+      {visible.length.toLocaleString('fr')}{#if truncated}<span class="cslash">/</span>{total.toLocaleString('fr')}{/if}
+    </div>
     <button class="icnbtn" onclick={() => focusMode.set(!$focusMode)}
             title={$focusMode ? $t('oxygen.exitFocus') : $t('oxygen.enterFocus')}
             aria-label={$focusMode ? $t('oxygen.exitFocus') : $t('oxygen.enterFocus')}
@@ -593,6 +625,17 @@
           </table>
         </div>
       {/if}
+
+      <!-- Le reste existe : le dire, et le proposer. Une fenêtre silencieuse
+           se lit comme une bibliothèque amputée. -->
+      {#if truncated}
+        <div class="more">
+          <span class="moretxt">{$t('oxygen.truncated')} {tracks.length.toLocaleString('fr')} / {total.toLocaleString('fr')} {$t('oxygen.tracks')}</span>
+          <button class="morebtn" disabled={loadingMore} onclick={loadMore}>
+            {loadingMore ? $t('oxygen.loading') : $t('oxygen.loadMore')}
+          </button>
+        </div>
+      {/if}
     </section>
 
     <aside class="inspector" class:empty={!selected} class:open={mobileInspector}>
@@ -640,6 +683,13 @@
   .search input { width: 100%; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 20px; color: var(--tune-text); font: inherit; padding: 8px 12px 8px 32px; outline: none; }
   .search input:focus { border-color: var(--tune-accent); }
   .count { font-size: 12px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; min-width: 40px; text-align: right; }
+  .count.partial { color: var(--tune-text-secondary); }
+  .cslash { opacity: .5; margin: 0 2px; }
+  .more { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 16px 8px 4px; }
+  .moretxt { font-size: 12px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
+  .morebtn { background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 8px; color: var(--tune-text); font: inherit; font-size: 13px; padding: 7px 16px; cursor: pointer; }
+  .morebtn:hover:not(:disabled) { border-color: var(--tune-accent); color: var(--tune-accent); }
+  .morebtn:disabled { opacity: .6; cursor: default; }
 
   .crumbs { display: flex; gap: 8px; padding: 8px 18px 0; flex-wrap: wrap; }
   .crumb { background: var(--tune-surface-selected); border: 1px solid var(--tune-border); color: var(--tune-accent); border-radius: 20px; padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer; }
