@@ -1635,7 +1635,7 @@ export default {
   "renderer.wav24": "24 bit",
   "renderer.wav24Hint": "Trasmetti WAV a 24 bit autentico. Disponibile quando il controllo di rilevamento conferma che il renderer annuncia audio/L24 o audio/wav generico.",
   "renderer.depthCapNotRate": "Attenzione: limitare la profondità di bit non limita la frequenza di campionamento. Un file 96 kHz/24 bit diventa 96 kHz/16 bit, resta a 96 kHz. Se il dispositivo arriva al massimo a 48 kHz, imposta anche «Frequenza massima».",
-  "renderer.flacOverriddenByWav": "«Forza WAV» è attivo e ha la precedenza: il FLAC nativo viene ignorato per questa zona. Disattiva «Forza WAV» per inviare il FLAC così com'è.",
+  "renderer.flacAndWavSplitBySource": "«Forza WAV» si applica solo alle sorgenti non FLAC (ALAC, AAC…): aggira il decoder ALAC del renderer. I file FLAC continuano a essere serviti come FLAC nativo.",
   "renderer.wav24NeedsProbe": "Il 24 bit resta disattivato finché non viene eseguita la verifica: premi «Verifica» qui sopra per sapere cosa sa leggere questo dispositivo.",
   "renderer.startDelay": "Ritardo di avvio",
   "renderer.startDelayHint": "Pausa prima dell'avvio della riproduzione, per consentire a un amplificatore DLNA di riempire il buffer (utile se i primi secondi sono a scatti). 0 = valore predefinito.",

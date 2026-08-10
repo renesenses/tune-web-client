@@ -1618,7 +1618,7 @@ export default {
   "renderer.wav24": "24비트",
   "renderer.wav24Hint": "실제 24비트 WAV를 재생합니다. 검색 확인을 통해 렌더러가 audio/L24 또는 일반 audio/wav를 알리는 경우 사용할 수 있습니다.",
   "renderer.depthCapNotRate": "참고: 비트 심도를 제한해도 샘플링 주파수는 제한되지 않습니다. 96 kHz/24비트 파일은 96 kHz/16비트가 되며 여전히 96 kHz입니다. 재생 기기가 48 kHz까지만 지원한다면 ‘최대 샘플레이트’도 설정하세요.",
-  "renderer.flacOverriddenByWav": "‘WAV 강제’가 켜져 있어 이 설정이 우선합니다. 이 존에서는 네이티브 FLAC이 무시됩니다. FLAC을 그대로 보내려면 ‘WAV 강제’를 끄세요.",
+  "renderer.flacAndWavSplitBySource": "'WAV 강제'는 FLAC이 아닌 소스(ALAC, AAC 등)에만 적용되며 렌더러의 ALAC 디코더를 우회합니다. FLAC 파일은 네이티브 FLAC으로 계속 전송됩니다.",
   "renderer.wav24NeedsProbe": "24비트는 검색 테스트를 실행하기 전까지 비활성화됩니다. 위의 ‘확인’을 눌러 이 기기가 재생할 수 있는 형식을 확인하세요.",
   "renderer.startDelay": "시작 지연",
   "renderer.startDelayHint": "재생이 시작되기 전 일시 정지로, DLNA 앰프가 버퍼링할 수 있도록 합니다(처음 몇 초가 끊길 때 유용합니다). 0 = 기본값.",
