@@ -743,7 +743,12 @@
 
   <!-- GROUP 2: SERVICES (streaming + media) -->
   <nav class="nav-section services-section">
-    <span class="section-label">{$t('nav.services')}</span>
+    <!-- « Sources » et non « Services » : cette section regroupe TOUT ce qui
+         fournit de la musique — services de streaming, radios, favoris radio,
+         podcasts, serveurs multimédia et navigation par dossiers. Seul le
+         premier de ces éléments est un « service ». L'onglet mobile, lui,
+         garde `nav.services` : il ne mène qu'aux services de streaming. -->
+    <span class="section-label">{$t('nav.sources')}</span>
     {#each activeServices as svc}
       <button
         class="nav-item"

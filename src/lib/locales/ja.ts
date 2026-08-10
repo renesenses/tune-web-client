@@ -135,6 +135,7 @@ export default {
   'nav.settings': '設定',
   'nav.navigation': 'ナビゲーション',
   'nav.services': 'サービス',
+  'nav.sources': 'ソース',
   'nav.reglages': '設定',
   'nav.tools': 'ツール',
   'nav.maintenance': 'メタデータ',

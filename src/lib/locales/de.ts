@@ -135,6 +135,7 @@ export default {
   'nav.settings': 'Einstellungen',
   'nav.navigation': 'NAVIGATION',
   'nav.services': 'DIENSTE',
+  'nav.sources': 'QUELLEN',
   'nav.reglages': 'EINSTELLUNGEN',
   'nav.tools': 'WERKZEUGE',
   'nav.maintenance': 'Metadaten',
