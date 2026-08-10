@@ -68,6 +68,28 @@
   const sectionTitle = (sec: FeaturedSection) =>
     SECTION_KEYS[sec.id] ? $tr(SECTION_KEYS[sec.id]) : sec.name;
 
+  // Catégories de playlists Qobuz. L'API sert des slugs (`artist`, `mood`,
+  // `label`…) et un libellé que les entrées ne portent pas toutes : sans cette
+  // table, les rangées s'intitulaient « artist » et « mood » dans une
+  // interface en français. Un slug inconnu garde le libellé du serveur.
+  const TAG_KEYS: Record<string, string> = {
+    artist: 'streaming.tag.artist',
+    mood: 'streaming.tag.mood',
+    focus: 'streaming.tag.focus',
+    label: 'streaming.tag.label',
+    event: 'streaming.tag.event',
+    new: 'streaming.tag.new',
+    'hi-res': 'streaming.tag.hires',
+    summer: 'streaming.tag.summer',
+    popular: 'streaming.tag.popular',
+    speakers: 'streaming.tag.speakers',
+    danslecasque: 'streaming.tag.headphones',
+    qobuzdigs: 'streaming.tag.qobuzdigs',
+    auditoriums: 'streaming.tag.auditoriums',
+  };
+  const tagTitle = (group: api.PlaylistTagGroup) =>
+    TAG_KEYS[group.id] ? $tr(TAG_KEYS[group.id]) : group.name;
+
   let favAlbums = $state<Album[]>([]);
   let favArtists = $state<Artist[]>([]);
   let favTracks = $state<Track[]>([]);
@@ -1326,7 +1348,7 @@
       {#if featuredPlaylistGroups.length > 0}
         {#each featuredPlaylistGroups as group (group.id)}
           <div class="featured-section">
-            <h3 class="featured-section-title">{group.name}</h3>
+            <h3 class="featured-section-title">{tagTitle(group)}</h3>
             <div class="carousel">
               {#each group.playlists as playlist}{@render playlistCard(playlist)}{/each}
             </div>
