@@ -2573,6 +2573,21 @@ function toggleAdvancedSystem() {
     </section>
     {/if}
 
+    <!-- Bascule des reglages avances : dans son PROPRE bloc, gate sur le seul
+         onglet. Elle vivait d'abord dans la section « Emplacement des donnees »,
+         qui est reservee au mode appliance (config.appliance) : sur une
+         installation normale le bouton ne s'affichait jamais et les cinq
+         sections repliees devenaient inatteignables. -->
+    {#if settingsTab === 'system'}
+      <button class="advanced-toggle" onclick={toggleAdvancedSystem} aria-expanded={showAdvancedSystem}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"
+             style="transform: rotate({showAdvancedSystem ? 90 : 0}deg); transition: transform .15s;">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+        {showAdvancedSystem ? $t('settings.advancedHide' as any) : $t('settings.advancedShow' as any)}
+      </button>
+    {/if}
+
     {#if settingsTab === 'system' && (config?.server_urls?.length ?? 0) > 0}
     <!-- Accès depuis un autre appareil (Android ne résout pas .local → IP) -->
     <section class="settings-section">
@@ -2597,14 +2612,6 @@ function toggleAdvancedSystem() {
     {/if}
 
     {#if settingsTab === 'system' && config?.appliance}
-    <button class="advanced-toggle" onclick={toggleAdvancedSystem} aria-expanded={showAdvancedSystem}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"
-           style="transform: rotate({showAdvancedSystem ? 90 : 0}deg); transition: transform .15s;">
-        <path d="M9 18l6-6-6-6" />
-      </svg>
-      {showAdvancedSystem ? $t('settings.advancedHide' as any) : $t('settings.advancedShow' as any)}
-    </button>
-
     <!-- Appliance (Tune OS): data location (docs/DATA-RELOCATION.md) -->
     <section class="settings-section" class:advanced-hidden={!showAdvancedSystem}>
       <h3>{$t('settings.dataLocation')}</h3>
