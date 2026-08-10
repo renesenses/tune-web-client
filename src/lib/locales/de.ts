@@ -1630,6 +1630,7 @@ export default {
   "renderer.wav24Hint": "Echtes 24-Bit-WAV ausgeben. Verfügbar, sobald die Erkennungsprüfung bestätigt, dass der Renderer audio/L24 oder generisches audio/wav ankündigt.",
   "renderer.depthCapNotRate": "Hinweis: Eine Begrenzung der Bittiefe begrenzt nicht die Abtastrate. Aus 96 kHz/24 Bit wird 96 kHz/16 Bit – weiterhin 96 kHz. Wenn Ihr Gerät bei 48 kHz endet, stellen Sie auch „Max. Abtastrate“ ein.",
   "renderer.flacOverriddenByWav": "„WAV erzwingen“ ist aktiv und hat Vorrang: natives FLAC wird für diese Zone ignoriert. Schalten Sie „WAV erzwingen“ aus, um FLAC unverändert zu senden.",
+  "renderer.wav24NeedsProbe": "24 Bit bleibt ausgegraut, bis die Geräteerkennung gelaufen ist: Klicken Sie oben auf „Prüfen“, um zu sehen, was dieses Gerät wiedergeben kann.",
   "renderer.startDelay": "Startverzögerung",
   "renderer.startDelayHint": "Pause vor dem Start der Wiedergabe, damit ein DLNA-Verstärker puffern kann (hilft, wenn die ersten Sekunden stocken). 0 = Standardwert.",
   "renderer.probeFailed": "Die Fähigkeiten des Renderers konnten nicht gelesen werden. Stelle sicher, dass er eingeschaltet und im selben Netzwerk ist.",

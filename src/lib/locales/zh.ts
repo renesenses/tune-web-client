@@ -1630,6 +1630,7 @@ export default {
   "renderer.wav24Hint": "输出真正的 24 位 WAV。当发现检测确认渲染器声明支持 audio/L24 或通用 audio/wav 时可用。",
   "renderer.depthCapNotRate": "注意：限制位深并不会限制采样率。96 kHz/24 位的文件会变成 96 kHz/16 位，仍然是 96 kHz。如果您的播放设备最高只支持 48 kHz，请同时设置“最大采样率”。",
   "renderer.flacOverriddenByWav": "“强制 WAV”已启用并优先生效：此区域将忽略原生 FLAC。若要按原样传输 FLAC，请关闭“强制 WAV”。",
+  "renderer.wav24NeedsProbe": "在运行发现检测之前，24 位选项将保持灰色。请点击上方的“检查”，了解此设备支持的格式。",
   "renderer.startDelay": "启动延迟",
   "renderer.startDelayHint": "播放开始前的暂停，以便 DLNA 功放缓冲（当最初几秒卡顿时有帮助）。0 = 默认值。",
   "renderer.probeFailed": "无法读取渲染器的功能。请确保它已开机并连接到同一网络。",

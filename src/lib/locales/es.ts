@@ -1630,6 +1630,7 @@ export default {
   "renderer.wav24Hint": "Reproduce WAV de 24 bits auténtico. Disponible cuando la comprobación de detección confirma que el renderer anuncia audio/L24 o audio/wav genérico.",
   "renderer.depthCapNotRate": "Aviso: limitar la profundidad de bits no limita la frecuencia de muestreo. Un archivo de 96 kHz/24 bits pasa a 96 kHz/16 bits, sigue en 96 kHz. Si su reproductor llega solo a 48 kHz, ajuste también «Frecuencia máxima».",
   "renderer.flacOverriddenByWav": "«Forzar WAV» está activo y tiene prioridad: el FLAC nativo se ignora en esta zona. Desactive «Forzar WAV» para servir el FLAC tal cual.",
+  "renderer.wav24NeedsProbe": "El 24 bits permanece atenuado hasta que se ejecute la comprobación de descubrimiento: pulse «Comprobar» arriba para saber qué admite este reproductor.",
   "renderer.startDelay": "Retardo de inicio",
   "renderer.startDelayHint": "Pausa antes de que comience la reproducción, para permitir que un amplificador DLNA almacene en búfer (útil si los primeros segundos se entrecortan). 0 = valor predeterminado.",
   "renderer.probeFailed": "No se pudieron leer las capacidades del renderer. Asegúrate de que esté encendido y en la misma red.",

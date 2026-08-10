@@ -36,6 +36,7 @@
   // garde ses réglages, il sait juste lequel s'applique.
   let flacOverriddenByWav = $derived(nativeFlac && forceWav !== 'off');
 
+
   let caps = $state<RendererCapabilities | null>(null);
   let probing = $state(false);
   let probeError = $state<string | null>(null);
@@ -100,6 +101,14 @@
   // fresh probe so the current state isn't silently downgraded.
   let wav24Available = $derived(!!caps?.lpcm24 || !!caps?.wav || forceWav === '24');
 
+  // Le bouton « 24 bits » dépend de `caps`, qui reste null tant que le test de
+  // découverte n'a pas tourné : il est donc grisé sur TOUS les renderers à
+  // l'ouverture de l'écran, y compris ceux qui savent le faire. Yves en a conclu
+  // que le 24 bits ne marchait sur aucun de ses appareils. La raison vivait dans
+  // une infobulle posée sur un bouton désactivé — que plusieurs navigateurs
+  // n'affichent pas. On invite donc explicitement à lancer le test.
+  let wav24NeedsProbe = $derived(caps === null && forceWav !== '24');
+
   function setForceWav(mode: 'off' | '16' | '24') {
     if (mode === '24' && !wav24Available) return;
     forceWav = mode;
@@ -161,6 +170,9 @@
         <button class:active={forceWav === '24'} disabled={!wav24Available} title={$t('renderer.wav24Hint')} onclick={() => setForceWav('24')}>{$t('renderer.wav24')}</button>
       </div>
     </div>
+    {#if wav24NeedsProbe}
+      <p class="rc-warn">{$t('renderer.wav24NeedsProbe')}</p>
+    {/if}
 
     <label class="rc-toggle" title={$t('settings.dlnaCap16bitHint')}>
       <input type="checkbox" checked={cap16} onchange={(e) => setCap16((e.target as HTMLInputElement).checked)} />
