@@ -1434,6 +1434,8 @@ export default {
   "settings.tabServices": "服务",
   "settings.tabNetworkAudio": "网络与音频",
   "settings.tabSystem": "系统",
+  "settings.advancedShow": "显示高级设置",
+  "settings.advancedHide": "隐藏高级设置",
   "settings.tabMultiroom": "多房间",
   "settings.audioDiagnostic": "音频诊断",
   "settings.playbackZones": "播放区域",

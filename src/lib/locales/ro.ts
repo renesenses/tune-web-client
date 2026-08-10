@@ -1442,6 +1442,8 @@ export default {
   "settings.tabServices": "Servicii",
   "settings.tabNetworkAudio": "Rețea & Audio",
   "settings.tabSystem": "Sistem",
+  "settings.advancedShow": "Afișează setările avansate",
+  "settings.advancedHide": "Ascunde setările avansate",
   "settings.tabMultiroom": "Multi-cameră",
   "settings.audioDiagnostic": "Diagnostic audio",
   "settings.playbackZones": "Zone de redare",

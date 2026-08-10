@@ -1420,6 +1420,8 @@ export default {
   "settings.tabServices": "Tjänster",
   "settings.tabNetworkAudio": "Nätverk & ljud",
   "settings.tabSystem": "System",
+  "settings.advancedShow": "Visa avancerade inställningar",
+  "settings.advancedHide": "Dölj avancerade inställningar",
   "settings.tabMultiroom": "Flera rum",
   "settings.audioDiagnostic": "Ljuddiagnostik",
   "settings.playbackZones": "Uppspelningszoner",

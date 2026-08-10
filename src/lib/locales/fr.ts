@@ -1658,6 +1658,8 @@ export default {
   "settings.tabServices": "Services",
   "settings.tabNetworkAudio": "Réseau & Audio",
   "settings.tabSystem": "Système",
+  "settings.advancedShow": "Afficher les réglages avancés",
+  "settings.advancedHide": "Masquer les réglages avancés",
   "settings.tabMultiroom": "Multi-room",
   "settings.audioDiagnostic": "Diagnostic audio",
   "settings.playbackZones": "Zones de lecture",

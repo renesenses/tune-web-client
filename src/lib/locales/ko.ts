@@ -1417,6 +1417,8 @@ export default {
   "settings.tabServices": "서비스",
   "settings.tabNetworkAudio": "네트워크 및 오디오",
   "settings.tabSystem": "시스템",
+  "settings.advancedShow": "고급 설정 표시",
+  "settings.advancedHide": "고급 설정 숨기기",
   "settings.tabMultiroom": "멀티룸",
   "settings.audioDiagnostic": "오디오 진단",
   "settings.playbackZones": "재생 존",
