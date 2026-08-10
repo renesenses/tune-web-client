@@ -1253,6 +1253,34 @@ export function searchAcoustic(query: string, limit = 50) {
   return apiPost('/library/search/acoustic', { query, limit }) as Promise<AcousticSearchResult>;
 }
 
+/** Une ambiance enregistrée : le NOM que l'utilisateur lui donne et la REQUÊTE
+ *  envoyée au moteur acoustique. Deux champs distincts, comme les ambiances
+ *  fournies : la tour texte est entraînée en anglais, on doit pouvoir appeler
+ *  « Jazz feutré » ce qu'on interroge en anglais. Rangé par profil côté
+ *  serveur — un localStorage ne suivrait ni le profil ni l'appareil. */
+export interface SavedAmbiance {
+  id: string;
+  name: string;
+  query: string;
+  created_at: number;
+}
+
+export function getAmbiances() {
+  return fetchJSON<{ ambiances: SavedAmbiance[] }>(`${BASE}/library/ambiances`);
+}
+
+export function createAmbiance(name: string, query: string) {
+  return apiPost('/library/ambiances', { name, query }) as Promise<SavedAmbiance>;
+}
+
+export function updateAmbiance(id: string, patch: { name?: string; query?: string }) {
+  return apiPatch(`/library/ambiances/${encodeURIComponent(id)}`, patch) as Promise<SavedAmbiance>;
+}
+
+export function deleteAmbiance(id: string) {
+  return apiDelete(`/library/ambiances/${encodeURIComponent(id)}`);
+}
+
 export function getPlaybackHistory(limit = 50) {
   return fetchJSON<{ items: any[]; total: number }>(`${BASE}/library/history?limit=${limit}`);
 }
