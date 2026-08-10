@@ -135,6 +135,7 @@ export default {
   'nav.settings': 'Setări',
   'nav.navigation': 'NAVIGARE',
   'nav.services': 'SERVICII',
+  'nav.sources': 'SURSE',
   'nav.reglages': 'SETĂRI',
   'nav.tools': 'INSTRUMENTE',
   'nav.maintenance': 'Metadate',

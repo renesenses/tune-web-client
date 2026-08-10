@@ -135,6 +135,7 @@ export default {
   'nav.settings': '설정',
   'nav.navigation': '네비게이션',
   'nav.services': '서비스',
+  'nav.sources': '소스',
   'nav.reglages': '설정',
   'nav.tools': '도구',
   'nav.maintenance': '메타데이터',

@@ -135,6 +135,7 @@ export default {
   'nav.settings': '设置',
   'nav.navigation': '导航',
   'nav.services': '服务',
+  'nav.sources': '来源',
   'nav.reglages': '设置',
   'nav.tools': '工具',
   'nav.maintenance': '元数据',

@@ -308,6 +308,7 @@ export default {
   'nav.settings': 'Paramètres',
   'nav.navigation': 'NAVIGATION',
   'nav.services': 'SERVICES',
+  'nav.sources': 'SOURCES',
   'nav.reglages': 'RÉGLAGES',
   'nav.tools': 'OUTILS',
   'nav.maintenance': 'Métadonnées',

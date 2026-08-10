@@ -129,6 +129,7 @@ export default {
   'nav.settings': 'Inställningar',
   'nav.navigation': 'NAVIGERING',
   'nav.services': 'TJÄNSTER',
+  'nav.sources': 'KÄLLOR',
   'nav.reglages': 'INSTÄLLNINGAR',
   'nav.tools': 'VERKTYG',
   'nav.maintenance': 'Metadata',
