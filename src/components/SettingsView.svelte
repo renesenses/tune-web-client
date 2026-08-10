@@ -75,7 +75,37 @@
   // Consume settingsInitialTab once: allows sidebar shortcuts to open a specific tab
   const _initialTab = get(settingsInitialTab);
   settingsInitialTab.set(null);
-  let settingsTab = $state<string>(_initialTab ?? 'general');
+  // 'multiroom' n'existe plus comme onglet : son contenu a rejoint « Réseau ».
+// Un raccourci enregistré sur l'ancien onglet, ou un lien externe, doit
+// atterrir sur le nouveau plutôt que sur une page blanche.
+const MERGED_TABS: Record<string, string> = { multiroom: 'network' };
+function normalizeTab(tab: string | null | undefined): string {
+  if (!tab) return 'general';
+  return MERGED_TABS[tab] ?? tab;
+}
+let settingsTab = $state<string>(normalizeTab(_initialTab));
+
+// Repli des reglages de maintenance de l'onglet Systeme.
+//
+// Cet onglet portait onze sections qui melangeaient l'usage courant — licence,
+// cloud, acces depuis un appareil — et la maintenance qu'on ouvre une fois par
+// an : emplacement des donnees, base, import, configuration, export CSV.
+// Ces cinq-la sont desormais repliees par defaut.
+//
+// Masquage par classe et non par {#if} : les sections restent montees, donc
+// leur etat interne et leurs chargements ne repartent pas de zero a chaque
+// bascule — et surtout, aucune structure n'est deplacee dans un fichier de
+// 7 000 lignes.
+//
+// Le choix est memorise : celui qui vit dans ces reglages ne veut pas les
+// redeplier a chaque visite.
+let showAdvancedSystem = $state(
+  (() => { try { return localStorage.getItem('tune_settings_advanced') === '1'; } catch { return false; } })()
+);
+function toggleAdvancedSystem() {
+  showAdvancedSystem = !showAdvancedSystem;
+  try { localStorage.setItem('tune_settings_advanced', showAdvancedSystem ? '1' : '0'); } catch {}
+}
 
   // Premium feature widgets: clicking an available feature opens its page.
   // Features without a dedicated destination (declick, social_sharing,
@@ -2393,7 +2423,10 @@
     (window as any).__tuneSettingsShortcut = () => settingsTab;
     const onRestore = (e: Event) => {
       const tab = (e as CustomEvent).detail?.settingsTab;
-      if (typeof tab === 'string') settingsTab = tab;
+      // Passe par normalizeTab : un raccourci enregistré du temps où
+      // « Multiroom » était un onglet doit rouvrir « Réseau », pas une page
+      // vide (Elie enregistre ses raccourcis sur des sous-pages précises).
+      if (typeof tab === 'string') settingsTab = normalizeTab(tab);
     };
     window.addEventListener('tune:shortcut-restore-settings', onRestore);
     return () => {
@@ -2491,12 +2524,6 @@
       </svg>
       {$t('settings.tabSystem')}
     </button>
-    <button class="settings-tab" class:active={settingsTab === 'multiroom'} onclick={() => settingsTab = 'multiroom'}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-        <rect x="2" y="7" width="8" height="10" rx="1" /><rect x="14" y="7" width="8" height="10" rx="1" /><path d="M10 12h4" />
-      </svg>
-      {$t('settings.tabMultiroom')}
-    </button>
   </div>
 
   {#if loading}
@@ -2505,8 +2532,11 @@
       {$t('common.loading')}
     </div>
   {:else}
-    {#if settingsTab === 'multiroom'}
-    <!-- Multi-room settings -->
+    {#if settingsTab === 'network'}
+    <!-- Le multiroom n'avait pas de quoi remplir un onglet : trois champs, et
+         il traite de la synchronisation entre zones — donc du même sujet que
+         le reste de cet onglet. Un onglet de moins, et le réglage se trouve
+         là où on le cherche. -->
     <MultiroomSettings />
     {/if}
 
@@ -2543,6 +2573,21 @@
     </section>
     {/if}
 
+    <!-- Bascule des reglages avances : dans son PROPRE bloc, gate sur le seul
+         onglet. Elle vivait d'abord dans la section « Emplacement des donnees »,
+         qui est reservee au mode appliance (config.appliance) : sur une
+         installation normale le bouton ne s'affichait jamais et les cinq
+         sections repliees devenaient inatteignables. -->
+    {#if settingsTab === 'system'}
+      <button class="advanced-toggle" onclick={toggleAdvancedSystem} aria-expanded={showAdvancedSystem}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"
+             style="transform: rotate({showAdvancedSystem ? 90 : 0}deg); transition: transform .15s;">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+        {showAdvancedSystem ? $t('settings.advancedHide' as any) : $t('settings.advancedShow' as any)}
+      </button>
+    {/if}
+
     {#if settingsTab === 'system' && (config?.server_urls?.length ?? 0) > 0}
     <!-- Accès depuis un autre appareil (Android ne résout pas .local → IP) -->
     <section class="settings-section">
@@ -2568,7 +2613,7 @@
 
     {#if settingsTab === 'system' && config?.appliance}
     <!-- Appliance (Tune OS): data location (docs/DATA-RELOCATION.md) -->
-    <section class="settings-section">
+    <section class="settings-section" class:advanced-hidden={!showAdvancedSystem}>
       <h3>{$t('settings.dataLocation')}</h3>
       {#if dataStatus}
         <p class="diag-hint">
@@ -3143,7 +3188,7 @@
     {#if settingsTab === 'system'}
     <!-- Database -->
     {#if config}
-    <section class="settings-section">
+    <section class="settings-section" class:advanced-hidden={!showAdvancedSystem}>
       <h3>{$t('settings.database')}</h3>
       <div class="db-info">
         <div class="db-row">
@@ -3273,7 +3318,7 @@
     {/if}
 
     <!-- Library Import (Roon / Plex / Playlists) -->
-    <section class="settings-section">
+    <section class="settings-section" class:advanced-hidden={!showAdvancedSystem}>
       <h3>{$t('import.title' as any)}</h3>
 
       {#if importStep === 'select'}
@@ -4755,7 +4800,7 @@
 
     {#if settingsTab === 'system'}
     <!-- Config Export/Import -->
-    <section class="settings-section">
+    <section class="settings-section" class:advanced-hidden={!showAdvancedSystem}>
       <h3>{$t('settings.configSection' as any)}</h3>
       <div class="db-ie-actions">
         <button class="btn-secondary" onclick={handleExportConfig} disabled={configExporting}>
@@ -4801,7 +4846,7 @@
       </div>
     </section>
 
-    <section class="settings-section">
+    <section class="settings-section" class:advanced-hidden={!showAdvancedSystem}>
       <h3>{$t('settings.exportCsv')}</h3>
       <p class="section-hint">{$t('settings.exportCsvHint')}</p>
       <div class="db-ie-actions">
@@ -7360,5 +7405,28 @@
     margin-top: 14px;
     font-size: 13px;
     color: var(--tune-text);
+  }
+  /* Réglages de maintenance repliés : masqués sans être démontés, pour que
+     leur état et leurs chargements survivent à la bascule. */
+  .settings-section.advanced-hidden {
+    display: none;
+  }
+
+  .advanced-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.5rem 0 1rem;
+    padding: 0.5rem 0.75rem;
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: 8px;
+    color: var(--tune-text-secondary, #9ca3af);
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .advanced-toggle:hover {
+    color: var(--tune-text, #e5e7eb);
   }
 </style>
