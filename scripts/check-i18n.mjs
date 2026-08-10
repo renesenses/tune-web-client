@@ -114,3 +114,47 @@ l'écran. Ajoutez-la à src/lib/locales/fr.ts et en.ts.
   process.exit(1);
 }
 console.log(`i18n check: ${fr.size} clés, aucune référence orpheline.`);
+
+/* -------------------------------------------------------------------------
+ * Troisième contrôle : parité des dix langues.
+ *
+ * Les huit langues non françaises ont longtemps stagné autour de 89 % — 282 à
+ * 307 clés manquantes chacune. Ce défaut-là ne se voit pas : la clé absente
+ * retombe silencieusement sur le français, si bien qu'un utilisateur allemand
+ * lisait du français au milieu de son interface sans que rien ne le signale.
+ *
+ * Elles sont désormais à 100 %. Ce contrôle est ce qui les y garde : ajouter
+ * une clé à fr.ts sans la traduire partout échoue ici, tout de suite, plutôt
+ * que de se découvrir des mois plus tard sur une capture d'écran.
+ * ---------------------------------------------------------------------- */
+
+const LOCALES = ['en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
+const gaps = [];
+
+for (const locale of LOCALES) {
+  const keys = localeKeys(locale);
+  const missing = [...fr].filter((k) => !keys.has(k));
+  const extra = [...keys].filter((k) => !fr.has(k));
+  if (missing.length > 0 || extra.length > 0) gaps.push({ locale, missing, extra });
+}
+
+if (gaps.length > 0) {
+  console.error('\nLes traductions ont divergé du français :\n');
+  for (const { locale, missing, extra } of gaps) {
+    if (missing.length > 0) {
+      console.error(`  ${locale} — ${missing.length} clé(s) manquante(s) :`);
+      for (const k of missing.slice(0, 10)) console.error(`      ${k}`);
+      if (missing.length > 10) console.error(`      … et ${missing.length - 10} autre(s)`);
+    }
+    if (extra.length > 0) {
+      console.error(`  ${locale} — ${extra.length} clé(s) absente(s) de fr.ts (orpheline ?) :`);
+      for (const k of extra.slice(0, 10)) console.error(`      ${k}`);
+    }
+  }
+  console.error(`
+fr.ts fait référence. Une clé qui y est doit être dans les neuf autres —
+sans quoi la langue concernée retombe sur le français, en silence.
+`);
+  process.exit(1);
+}
+console.log(`i18n check: ${LOCALES.length + 1} langues à 100 %, aucune dérive.`);
