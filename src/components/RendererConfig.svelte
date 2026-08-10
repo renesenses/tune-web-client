@@ -27,6 +27,15 @@
   // dernier. On le dit là où la case est cochée, pas dans une infobulle.
   let rateStillUncapped = $derived((cap16 || forceWav !== 'off') && !zone.max_sample_rate);
 
+  // « FLAC natif » et « Forcer le WAV » se contredisent, et c'est le WAV qui
+  // gagne (orchestrator.rs, `dlna_force_wav` testé avant `dlna_native_flac`).
+  // La règle est bonne, mais elle s'appliquait en silence : Yves a vu son FLAC
+  // transcodé en WAV alors que « FLAC natif » était coché, et en a conclu que
+  // Tune gardait en mémoire les réglages du morceau précédent. On écrit donc la
+  // règle à l'écran plutôt que de désactiver l'une des deux cases — l'utilisateur
+  // garde ses réglages, il sait juste lequel s'applique.
+  let flacOverriddenByWav = $derived(nativeFlac && forceWav !== 'off');
+
   let caps = $state<RendererCapabilities | null>(null);
   let probing = $state(false);
   let probeError = $state<string | null>(null);
@@ -136,6 +145,9 @@
       <input type="checkbox" checked={nativeFlac} onchange={(e) => setNativeFlac((e.target as HTMLInputElement).checked)} />
       <span>{$t('settings.dlnaNativeFlac')}</span>
     </label>
+    {#if flacOverriddenByWav}
+      <p class="rc-warn">{$t('renderer.flacOverriddenByWav')}</p>
+    {/if}
     <label class="rc-toggle" title={$t('settings.alacPassthroughHint')}>
       <input type="checkbox" checked={alacNative} onchange={(e) => setAlac((e.target as HTMLInputElement).checked)} />
       <span>{$t('settings.alacPassthrough')}</span>
