@@ -1561,6 +1561,7 @@ export default {
   "renderer.wav16": "16-bitars",
   "renderer.wav24": "24-bitars",
   "renderer.wav24Hint": "Spela upp äkta 24-bitars WAV. Tillgängligt när identifieringskontrollen bekräftar att renderaren annonserar audio/L24 eller generiskt audio/wav.",
+  "renderer.depthCapNotRate": "Obs: att begränsa bitdjupet begränsar inte samplingsfrekvensen. En fil på 96 kHz/24 bitar blir 96 kHz/16 bitar – fortfarande 96 kHz. Om din spelare klarar högst 48 kHz, ställ även in ”Max samplingsfrekvens”.",
   "renderer.startDelay": "Startfördröjning",
   "renderer.startDelayHint": "Paus innan uppspelningen börjar, så att en DLNA-förstärkare hinner buffra (hjälper när de första sekunderna hackar). 0 = standardvärde.",
   "renderer.probeFailed": "Kunde inte läsa renderarens kapaciteter. Kontrollera att den är påslagen och på samma nätverk.",
