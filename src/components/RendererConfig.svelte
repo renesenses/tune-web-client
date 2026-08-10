@@ -27,14 +27,15 @@
   // dernier. On le dit là où la case est cochée, pas dans une infobulle.
   let rateStillUncapped = $derived((cap16 || forceWav !== 'off') && !zone.max_sample_rate);
 
-  // « FLAC natif » et « Forcer le WAV » se contredisent, et c'est le WAV qui
-  // gagne (orchestrator.rs, `dlna_force_wav` testé avant `dlna_native_flac`).
-  // La règle est bonne, mais elle s'appliquait en silence : Yves a vu son FLAC
-  // transcodé en WAV alors que « FLAC natif » était coché, et en a conclu que
-  // Tune gardait en mémoire les réglages du morceau précédent. On écrit donc la
-  // règle à l'écran plutôt que de désactiver l'une des deux cases — l'utilisateur
-  // garde ses réglages, il sait juste lequel s'applique.
-  let flacOverriddenByWav = $derived(nativeFlac && forceWav !== 'off');
+  // Les deux cases ne se contredisent plus : elles décrivent deux sources
+  // différentes. « Forcer le WAV » vise le décodeur ALAC du renderer, donc il
+  // ne s'applique QU'AUX sources non-FLAC ; un FLAC avec « FLAC natif » coché
+  // part en FLAC (serveur : `wav_override_applies`, forum #1437).
+  //
+  // Le message précédent disait l'inverse — que le WAV l'emportait et que le
+  // FLAC natif était ignoré. C'était exact, ce ne l'est plus : on décrit donc
+  // le partage plutôt qu'une précédence.
+  let flacAndWavSplitBySource = $derived(nativeFlac && forceWav !== 'off');
 
 
   let caps = $state<RendererCapabilities | null>(null);
@@ -154,8 +155,8 @@
       <input type="checkbox" checked={nativeFlac} onchange={(e) => setNativeFlac((e.target as HTMLInputElement).checked)} />
       <span>{$t('settings.dlnaNativeFlac')}</span>
     </label>
-    {#if flacOverriddenByWav}
-      <p class="rc-warn">{$t('renderer.flacOverriddenByWav')}</p>
+    {#if flacAndWavSplitBySource}
+      <p class="rc-hint">{$t('renderer.flacAndWavSplitBySource')}</p>
     {/if}
     <label class="rc-toggle" title={$t('settings.alacPassthroughHint')}>
       <input type="checkbox" checked={alacNative} onchange={(e) => setAlac((e.target as HTMLInputElement).checked)} />
@@ -273,6 +274,14 @@
     font-size: 12px;
     line-height: 1.4;
     color: var(--tune-warning, #d29922);
+  }
+  /* Même gabarit, ton neutre : le partage FLAC/WAV par source n'est pas un
+     avertissement mais une explication de ce qui va se passer. */
+  .rc-hint {
+    margin: -2px 0 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--tune-text-secondary, #9ca3af);
   }
   .rc-wav {
     display: flex;
