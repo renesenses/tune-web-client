@@ -2381,6 +2381,23 @@ export default {
   "settings.lyricsLrclibHelp": "不足している歌詞をオンラインのコミュニティデータベース LRCLIB から取得します。既定では無効です。",
   "settings.acousticAnalysis": "音響解析（ムード検索）",
   "settings.acousticAnalysisHelp": "音響解析はバックグラウンドでライブラリを走査し、曲ごとに音の指紋を計算します。ムード検索はこれに依存します。モデルは初回利用時にダウンロードされ、大きなライブラリでは解析に時間がかかり CPU 負荷も高くなります。",
+  "podcasts.genre.all": "すべて",
+  "podcasts.genre.news": "ニュース",
+  "podcasts.genre.society": "社会",
+  "podcasts.genre.artsCulture": "アート＆カルチャー",
+  "podcasts.genre.music": "音楽",
+  "podcasts.genre.comedy": "コメディ",
+  "podcasts.genre.science": "科学",
+  "podcasts.genre.history": "歴史",
+  "podcasts.genre.trueCrime": "犯罪実話",
+  "podcasts.genre.education": "教育",
+  "podcasts.genre.business": "ビジネス",
+  "podcasts.genre.tech": "テクノロジー",
+  "podcasts.genre.sport": "スポーツ",
+  "podcasts.genre.fiction": "フィクション",
+  "podcasts.trendingIn": "{country}のトレンド",
+  "podcasts.topIn": "{country}のトップ",
+  "podcasts.topGenre": "{genre}のトップ",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

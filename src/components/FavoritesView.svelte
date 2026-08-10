@@ -394,6 +394,19 @@
     }
   }
 
+  /** Reference streaming d'un favori, quand il en vient d'un.
+   *
+   *  Cette fonction etait UTILISEE deux fois plus bas et declaree nulle part :
+   *  naviguer vers un artiste favori, ou lancer un album favori, levait une
+   *  ReferenceError et la vue restait muette (#1335). Le defaut jumeau de
+   *  `albumWall`, qui a fige la Bibliotheque en 0.9.62 — meme cause, meme
+   *  invisibilite au build. C'est le garde-fou svelte-check, porte ici en meme
+   *  temps, qui l'a signale. */
+  function streamingRef(o: unknown): { source?: string; source_id?: string } {
+    const s = o as { source?: string; source_id?: string } | null | undefined;
+    return { source: s?.source, source_id: s?.source_id };
+  }
+
   function navigateToAlbum(album: Album) {
     if (!album.id) return;
     selectedArtist.set(null);
