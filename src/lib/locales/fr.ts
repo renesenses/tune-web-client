@@ -1723,6 +1723,7 @@ export default {
   "settings.installedRestarting": "Installée — redémarrage...",
   "settings.installing": "Installation...",
   "settings.updateButton": "Mettre à jour",
+  "settings.updateStopsPlayback": "De la musique joue en ce moment : installer la mise à jour redémarre le serveur et coupera la lecture.",
   "settings.tuneServersOnNetwork": "Serveurs Tune sur le réseau",
   "settings.applianceWifi": "Réseau WiFi",
   "settings.wifiConnectedTo": "Connecté à {ssid}",

@@ -1722,6 +1722,7 @@ export default {
   "settings.installedRestarting": "Installed — restarting...",
   "settings.installing": "Installing...",
   "settings.updateButton": "Update",
+  "settings.updateStopsPlayback": "Music is playing right now: installing the update restarts the server and will stop playback.",
   "settings.tuneServersOnNetwork": "Tune servers on the network",
   "settings.applianceWifi": "WiFi Network",
   "settings.wifiConnectedTo": "Connected to {ssid}",

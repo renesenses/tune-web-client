@@ -1499,6 +1499,7 @@ export default {
   "settings.installedRestarting": "Installato — riavvio in corso...",
   "settings.installing": "Installazione...",
   "settings.updateButton": "Aggiorna",
+  "settings.updateStopsPlayback": "È in corso una riproduzione: installare l'aggiornamento riavvia il server e interromperà l'ascolto.",
   "settings.tuneServersOnNetwork": "Server Tune sulla rete",
   "settings.applianceWifi": "Rete WiFi",
   "settings.wifiConnectedTo": "Connesso a {ssid}",

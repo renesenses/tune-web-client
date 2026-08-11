@@ -1499,6 +1499,7 @@ export default {
   "settings.installedRestarting": "インストール済み — 再起動中...",
   "settings.installing": "インストール中...",
   "settings.updateButton": "アップデート",
+  "settings.updateStopsPlayback": "現在音楽を再生中です。アップデートをインストールするとサーバーが再起動し、再生が停止します。",
   "settings.tuneServersOnNetwork": "ネットワーク上の Tune サーバー",
   "settings.applianceWifi": "WiFi ネットワーク",
   "settings.wifiConnectedTo": "{ssid} に接続中",

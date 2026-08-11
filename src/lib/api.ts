@@ -2631,7 +2631,7 @@ export async function checkForUpdate(): Promise<any> {
   return res.json();
 }
 
-export async function installUpdate(): Promise<any> {
+export async function installUpdate(force = false): Promise<any> {
   // Must carry the admin token: since v0.9.43, POST /system/update/install is
   // RBAC-gated (admin) when auth is enabled. A bare fetch worked same-origin
   // (tune_session cookie) but 401'd cross-origin/relay — the "MAJ ne marche
@@ -2640,7 +2640,15 @@ export async function installUpdate(): Promise<any> {
   const token = getToken();
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(`${BASE}/system/update/install`, { method: 'POST', headers });
+  // force=true bypasses the server's deferral guards. Since v0.9.68 the server
+  // refuses to install while a zone is playing — installing re-execs the
+  // process and the music stops mid-track (#1462). The button below the
+  // "music is playing" warning is a deliberate answer to that warning, so it
+  // forces; anything calling this without a user in front of it must not.
+  const url = force
+    ? `${BASE}/system/update/install?force=true`
+    : `${BASE}/system/update/install`;
+  const res = await fetch(url, { method: 'POST', headers });
   return res.json();
 }
 

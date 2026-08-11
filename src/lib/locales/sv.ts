@@ -1485,6 +1485,7 @@ export default {
   "settings.installedRestarting": "Installerad — startar om...",
   "settings.installing": "Installerar...",
   "settings.updateButton": "Uppdatera",
+  "settings.updateStopsPlayback": "Musik spelas just nu: att installera uppdateringen startar om servern och avbryter uppspelningen.",
   "settings.tuneServersOnNetwork": "Tune-servrar i nätverket",
   "settings.applianceWifi": "WiFi-nätverk",
   "settings.wifiConnectedTo": "Ansluten till {ssid}",

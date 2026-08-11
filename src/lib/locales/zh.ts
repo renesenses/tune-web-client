@@ -1499,6 +1499,7 @@ export default {
   "settings.installedRestarting": "已安装 — 正在重启…",
   "settings.installing": "安装中…",
   "settings.updateButton": "更新",
+  "settings.updateStopsPlayback": "当前正在播放音乐：安装更新会重启服务器并中断播放。",
   "settings.tuneServersOnNetwork": "网络上的 Tune 服务器",
   "settings.applianceWifi": "WiFi 网络",
   "settings.wifiConnectedTo": "已连接到 {ssid}",
