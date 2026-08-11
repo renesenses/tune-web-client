@@ -2820,6 +2820,17 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "機種名",
   "zoneConfig.modelNone": "— 機種を選択 —",
   "zoneConfig.other": "その他…",
+  "acoustic.progressHelp": "ライブラリ全体の音響解析の進み具合。再起動しても続きから再開するため、サーバーを止めても失われません。",
+  "oxygen.enableHelp": "ナビゲーションのライブラリの隣に Oxygen を追加します。従来のライブラリはそのまま。置き換えではなく、もう一つの見方です。",
+  "oxygen.defaultViewHelp": "Oxygen を開いたときの表示。画面上でいつでも切り替えられます。ここで決まるのは最初の表示だけです。",
+  "oxygen.facetsLabel": "ナビゲーションのファセット",
+  "oxygen.facetsHelp": "Oxygen の左側に並ぶ絞り込み列です。数を減らすと画面が軽くなり、大きなライブラリでは表示も速くなります。",
+  "settings.themeHelp": "このブラウザにのみ適用されます。端末ごとに設定は独立しており、ここで暗くしてもタブレットには影響しません。",
+  "settings.languageHelp": "この画面の表示言語で、ブラウザごとに保存されます。曲名やアルバム名は翻訳されず、ファイルのままです。",
+  "settings.startupViewHelp": "このブラウザで Tune を開いたときの画面。オーディオの脇に置いたタブレットなら「再生中」を直接開くと便利です。",
+  "settings.defaultZoneHelp": "起動時に選ばれるゾーン（どこも再生していない場合）。再生中のゾーンがあれば、そちらに合わせます。",
+  "settings.volumeDisplayHelp": "音量をパーセントかデシベルで表示します。表示方法が変わるだけで、機器に送る音量は変わりません。",
+  "acoustic.throttleHelp": "1分あたりに解析する曲数。本体が熱くなる、再生が途切れる場合は下げ、再生していないときは上げると早く終わります。",
   "settings.updateBlockedFlag": "サーバーフォルダーの .no-auto-update ファイルにより更新がブロックされています。更新を許可するには削除してください。特定の構成を守るための印なので、先に確認を。",
   "settings.updateAlreadyRunning": "このサーバーではすでに更新が進行中です。完了までお待ちください。",
   "settings.updateBlockedScan": "更新を保留しました。ライブラリのスキャン中です。今入れるとサーバーが再起動し、スキャンは最初からやり直しになります。",
@@ -2828,3 +2839,4 @@ export default {
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
+

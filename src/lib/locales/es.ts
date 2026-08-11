@@ -2820,6 +2820,17 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "Nombre del modelo",
   "zoneConfig.modelNone": "— Elegir un modelo —",
   "zoneConfig.other": "Otro…",
+  "acoustic.progressHelp": "Avance del análisis acústico en toda la biblioteca. Se reanuda donde lo dejó tras un reinicio: no se pierde nada si detiene el servidor.",
+  "oxygen.enableHelp": "Añade una entrada Oxygen a la navegación, junto a Biblioteca. Su biblioteca clásica no cambia: es otra forma de recorrerla, no un reemplazo.",
+  "oxygen.defaultViewHelp": "La vista con la que se abre Oxygen. Puede cambiarla con un clic desde la propia pantalla; esto solo fija el punto de partida.",
+  "oxygen.facetsLabel": "Facetas de navegación",
+  "oxygen.facetsHelp": "Las columnas de filtros que aparecen a la izquierda de Oxygen. Marcar menos aligera la pantalla y la acelera en bibliotecas grandes.",
+  "settings.themeHelp": "Se aplica solo a este navegador. Cada dispositivo conserva su elección: el modo oscuro aquí no afecta a su tableta.",
+  "settings.languageHelp": "Idioma de la interfaz, propio de este navegador. Los nombres de pistas y álbumes no se traducen: quedan como están en sus archivos.",
+  "settings.startupViewHelp": "La pantalla con la que se abre Tune en este navegador. Útil en una tableta junto al equipo: abra directamente en Reproduciendo.",
+  "settings.defaultZoneHelp": "La zona seleccionada al abrir, si ninguna está sonando. Si una zona está reproduciendo, Tune se une a ella en lugar de imponer esta.",
+  "settings.volumeDisplayHelp": "Mostrar el volumen en porcentaje o en decibelios. Solo cambia cómo se lee, nunca el nivel enviado al aparato.",
+  "acoustic.throttleHelp": "Pistas analizadas por minuto. Redúzcalo si la máquina se calienta o la reproducción se entrecorta; auméntelo para terminar antes con una biblioteca en reposo.",
   "settings.updateBlockedFlag": "Actualización bloqueada por el archivo .no-auto-update en la carpeta del servidor. Elimínelo para permitir actualizaciones: está ahí para proteger una instalación concreta, compruébelo antes.",
   "settings.updateAlreadyRunning": "Ya hay una actualización en curso en este servidor. Espere a que termine.",
   "settings.updateBlockedScan": "Actualización aplazada: hay un escaneo de la biblioteca en curso. Instalar reiniciaría el servidor y el escaneo empezaría de nuevo.",
@@ -2828,3 +2839,4 @@ export default {
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];
+

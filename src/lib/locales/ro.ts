@@ -2820,6 +2820,17 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "Numele modelului",
   "zoneConfig.modelNone": "— Alege un model —",
   "zoneConfig.other": "Altul…",
+  "acoustic.progressHelp": "Progresul analizei acustice pe întreaga bibliotecă. Reia de unde a rămas după o repornire: nu se pierde nimic dacă opriți serverul.",
+  "oxygen.enableHelp": "Adaugă o intrare Oxygen în navigare, lângă Bibliotecă. Biblioteca clasică rămâne neschimbată: este un al doilea mod de a o parcurge, nu un înlocuitor.",
+  "oxygen.defaultViewHelp": "Vizualizarea cu care se deschide Oxygen. O puteți schimba oricând cu un clic din ecran; aici se stabilește doar punctul de plecare.",
+  "oxygen.facetsLabel": "Fațete de navigare",
+  "oxygen.facetsHelp": "Coloanele de filtre din stânga în Oxygen. Bifarea a mai puține ușurează ecranul și îl accelerează pe biblioteci mari.",
+  "settings.themeHelp": "Se aplică doar acestui browser. Fiecare dispozitiv își păstrează alegerea: întunecat aici nu impune nimic tabletei.",
+  "settings.languageHelp": "Limba interfeței, specifică acestui browser. Numele pieselor și albumelor nu sunt traduse: rămân ca în fișierele dvs.",
+  "settings.startupViewHelp": "Ecranul cu care se deschide Tune în acest browser. Util pe o tabletă lângă sistem: deschideți direct pe În redare.",
+  "settings.defaultZoneHelp": "Zona selectată la deschidere, când niciuna nu redă deja. Dacă o zonă redă, Tune se alătură ei în loc să o impună pe aceasta.",
+  "settings.volumeDisplayHelp": "Afișează volumul în procente sau în decibeli. Schimbă doar citirea, niciodată nivelul trimis aparatului.",
+  "acoustic.throttleHelp": "Piese analizate pe minut. Reduceți-l dacă mașina se încălzește sau redarea se întrerupe; măriți-l pentru a termina mai repede o bibliotecă în repaus.",
   "settings.updateBlockedFlag": "Actualizare blocată de fișierul .no-auto-update din folderul serverului. Ștergeți-l pentru a permite actualizările — protejează o instalare anume, verificați întâi.",
   "settings.updateAlreadyRunning": "O actualizare este deja în curs pe acest server. Așteptați să se termine.",
   "settings.updateBlockedScan": "Actualizare amânată: o scanare a bibliotecii este în curs. Instalarea ar reporni serverul și scanarea ar lua-o de la capăt.",
@@ -2828,3 +2839,4 @@ export default {
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
+
