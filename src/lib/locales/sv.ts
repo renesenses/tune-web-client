@@ -1393,6 +1393,7 @@ export default {
   "settings.restartServerNeeded": "Starta om servern.",
   "settings.audioBackend": "Ljud-backend",
   "settings.audioBackendError": "Kunde inte byta ljud-backend",
+  "tip.volumeLockedPure": "Volymen är låst på 100 %: Audiophile-läget garanterar en bit-perfekt signalväg, och en mjukvaruvolym skulle ändra varje sampling. Ställ nivån på förstärkaren eller DAC:en.",
   "tip.oxygenTrackRow": "Klicka för detaljer, dubbelklicka för att spela upp.",
   "tip.writeTags": "Sparar och skriver sedan in uppgifterna i själva ljudfilerna, på disken.",
   "tip.clearLibrary": "Tömmer databasen: spår, album, artister. Zoner, spellistor och radiokanaler behålls.",

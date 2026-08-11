@@ -836,7 +836,7 @@
       {/if}
     </div>
     </div>
-    <VolumeControl />
+    <VolumeControl locked={audiophileEnabled} />
   </div>
 </div>
 

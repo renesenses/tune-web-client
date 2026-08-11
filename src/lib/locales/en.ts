@@ -1629,6 +1629,7 @@ export default {
   "settings.restartServerNeeded": "Restart the server.",
   "settings.audioBackend": "Audio backend",
   "settings.audioBackendError": "Failed to change audio backend",
+  "tip.volumeLockedPure": "Volume locked at 100%: Audiophile mode guarantees a bit-perfect path, and a software volume would alter every sample. Set the level on your amplifier or DAC.",
   "tip.oxygenTrackRow": "Click to see the details, double-click to start playback.",
   "tip.writeTags": "Saves, then writes this information into the audio files themselves, on disk.",
   "tip.clearLibrary": "Empties the database: tracks, albums, artists. Zones, playlists and radios are kept.",

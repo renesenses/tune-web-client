@@ -1,10 +1,18 @@
 <script lang="ts">
   import { currentZone } from '../lib/stores/zones';
+  import { tip } from '../lib/tooltip';
   import { zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
   import { preferences } from '../lib/stores/preferences';
   import { isBrowserZone, browserSetVolume } from '../lib/stores/browserAudio';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
+
+  /// Zone en mode PURE (audiophile) : le volume y est épinglé à 100 % côté
+  /// serveur, parce qu'un volume logiciel multiplie chaque échantillon et
+  /// romprait le bit-perfect que ce mode promet. Le curseur est donc désactivé
+  /// plutôt que laissé actif à ne rien faire — c'est le réglage inerte, pas la
+  /// contrainte, qui déroute (testeur Linux, forum).
+  let { locked = false }: { locked?: boolean } = $props();
 
   let zone = $derived($currentZone);
   let vol = $derived($zoneVolume);
@@ -107,17 +115,27 @@
   <input
     type="range"
     class="volume-slider"
+    class:locked
     min="0"
     max="1"
     step="0.01"
-    value={vol}
+    value={locked ? 1 : vol}
     oninput={handleVolume}
+    disabled={locked}
+    use:tip={locked ? 'tip.volumeLockedPure' : 'zone.volume'}
     aria-label="Volume"
   />
-  <span class="volume-value">{volumeDisplay(vol)}</span>
+  <span class="volume-value">{volumeDisplay(locked ? 1 : vol)}</span>
 </div>
 
 <style>
+  /* Le curseur verrouillé reste lisible : on montre qu'il est à fond et
+     inactif, sans le faire disparaître — sa position renseigne. */
+  .volume-slider.locked {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
   .volume-control {
     display: flex;
     align-items: center;

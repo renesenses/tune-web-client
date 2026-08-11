@@ -1414,6 +1414,7 @@ export default {
   "settings.restartServerNeeded": "Repornește serverul.",
   "settings.audioBackend": "Backend audio",
   "settings.audioBackendError": "Schimbarea backendului audio a eșuat",
+  "tip.volumeLockedPure": "Volum blocat la 100%: modul Audiophile garantează un traseu bit-perfect, iar un volum software ar modifica fiecare eșantion. Reglează nivelul din amplificator sau DAC.",
   "tip.oxygenTrackRow": "Clic pentru detalii, dublu clic pentru a porni redarea.",
   "tip.writeTags": "Salvează, apoi scrie aceste informații chiar în fișierele audio, pe disc.",
   "tip.clearLibrary": "Golește baza de date: piese, albume, artiști. Zonele, playlisturile și radiourile se păstrează.",

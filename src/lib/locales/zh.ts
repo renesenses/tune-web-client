@@ -1406,6 +1406,7 @@ export default {
   "settings.restartServerNeeded": "请重启服务器。",
   "settings.audioBackend": "音频后端",
   "settings.audioBackendError": "更改音频后端失败",
+  "tip.volumeLockedPure": "音量锁定为 100%：Audiophile 模式保证比特完美的信号路径，软件音量会改变每一个采样点。请在功放或 DAC 上调节音量。",
   "tip.oxygenTrackRow": "单击查看详情，双击开始播放。",
   "tip.writeTags": "先保存，然后把这些信息写入磁盘上的音频文件本身。",
   "tip.clearLibrary": "清空数据库：曲目、专辑、艺人。区域、播放列表和电台会保留。",

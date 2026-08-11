@@ -1406,6 +1406,7 @@ export default {
   "settings.restartServerNeeded": "サーバーを再起動してください。",
   "settings.audioBackend": "オーディオバックエンド",
   "settings.audioBackendError": "オーディオバックエンドの変更に失敗しました",
+  "tip.volumeLockedPure": "音量は100%に固定されます。Audiophile モードはビットパーフェクトな経路を保証するため、ソフトウェア音量ではすべてのサンプルが変化してしまいます。音量はアンプまたは DAC で調整してください。",
   "tip.oxygenTrackRow": "クリックで詳細、ダブルクリックで再生を開始します。",
   "tip.writeTags": "保存したうえで、この情報を音声ファイル自体（ディスク上）に書き込みます。",
   "tip.clearLibrary": "データベースを空にします（曲・アルバム・アーティスト）。ゾーン、プレイリスト、ラジオは残ります。",
