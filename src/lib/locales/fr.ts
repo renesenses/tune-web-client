@@ -391,6 +391,7 @@ export default {
   'zone.paused': 'Pause',
   'zone.stopped': 'Arrêté',
   'zone.buffering': 'Chargement',
+  'zone.resolving': 'Recherche…',
   'zone.online': 'En ligne',
   'zone.mute': 'Couper le son',
   'zone.unmute': 'Rétablir le son',

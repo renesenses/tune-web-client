@@ -213,6 +213,7 @@ export default {
   'zone.paused': 'In pausa',
   'zone.stopped': 'Fermato',
   'zone.buffering': 'Buffering',
+  'zone.resolving': 'Ricerca del brano…',
   'zone.online': 'Online',
   'zone.mute': 'Disattiva audio',
   'zone.unmute': 'Riattiva audio',

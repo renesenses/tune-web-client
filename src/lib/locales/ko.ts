@@ -213,6 +213,7 @@ export default {
   'zone.paused': '일시 중지',
   'zone.stopped': '정지됨',
   'zone.buffering': '버퍼링',
+  'zone.resolving': '트랙 찾는 중…',
   'zone.online': '온라인',
   'zone.mute': '음소거',
   'zone.unmute': '음소거 해제',

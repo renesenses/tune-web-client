@@ -211,6 +211,7 @@ export default {
   'zone.paused': 'Pausad',
   'zone.stopped': 'Stoppad',
   'zone.buffering': 'Buffrar',
+  'zone.resolving': 'Söker spår …',
   'zone.online': 'Online',
   'zone.mute': 'Tysta',
   'zone.unmute': 'Slå på ljud',

@@ -213,6 +213,7 @@ export default {
   'zone.paused': '一時停止',
   'zone.stopped': '停止',
   'zone.buffering': 'バッファリング中',
+  'zone.resolving': '曲を検索中…',
   'zone.online': 'オンライン',
   'zone.mute': 'ミュート',
   'zone.unmute': 'ミュート解除',

@@ -213,6 +213,7 @@ export default {
   'zone.paused': 'En pausa',
   'zone.stopped': 'Detenida',
   'zone.buffering': 'Cargando',
+  'zone.resolving': 'Buscando pista…',
   'zone.online': 'En línea',
   'zone.mute': 'Silenciar',
   'zone.unmute': 'Restaurar sonido',

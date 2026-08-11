@@ -247,6 +247,8 @@ export interface Zone {
   /** Modèle choisi par l'utilisateur (override). null si non défini. */
   model?: string | null;
   /** Marque détectée en UPnP pour le device assigné (pré-remplissage). */
+  /** Le serveur cherche encore une URL jouable (extraction YouTube longue). */
+  resolving?: boolean;
   detected_manufacturer?: string | null;
   /** Modèle détecté en UPnP pour le device assigné (pré-remplissage). */
   detected_model?: string | null;

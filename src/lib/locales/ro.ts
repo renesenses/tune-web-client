@@ -217,6 +217,7 @@ export default {
   'zone.paused': 'În pauză',
   'zone.stopped': 'Oprit',
   'zone.buffering': 'Se stochează',
+  'zone.resolving': 'Se caută piesa…',
   'zone.online': 'Online',
   'zone.mute': 'Mut',
   'zone.unmute': 'Anulează mut',
