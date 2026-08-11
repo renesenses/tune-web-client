@@ -167,7 +167,7 @@
     genreLoading = false;
   }
 
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, untrack } from 'svelte';
   onMount(() => {
     window.addEventListener('tune:shortcut-restore-genre', handleShortcutRestore);
     window.addEventListener('tune:streaming-favorites-changed', handleFavoritesChanged);
@@ -186,8 +186,25 @@
   let ytmMoodTitle = $state<string>('');
   let ytmLoading = $state(false);
 
+  // Remise a zero de la navigation QUAND LE SERVICE CHANGE — et seulement la.
+  //
+  // `untrack` n'est pas une precaution de style : sans lui, cet effet ne fait
+  // pas ce que son nom dit. `loadLocalFavorites` lit `$currentProfileId` en
+  // synchrone, avant son premier `await` ; Svelte l'enregistre donc comme
+  // dependance de l'effet, et changer de profil rejoue TOUT le bloc — y
+  // compris `browsingGenres = false` et `genreBreadcrumb = []`. L'utilisateur
+  // se retrouve a la racine de Qobuz en pleine navigation, sans avoir touche
+  // au selecteur de service (Dominique COMET, 0.9.66, Windows).
+  //
+  // Toute lecture reactive faite par l'un des sept chargeurs ci-dessous
+  // deviendrait une dependance de plus. Les enfermer une bonne fois evite que
+  // le prochain chargeur ajoute rouvre le meme trou en silence.
   $effect(() => {
     const s = service;
+    untrack(() => resetForService(s));
+  });
+
+  function resetForService(s: string | null) {
     // Reset all navigation state on service change to prevent UI freeze
     selectedAlbum = null;
     selectedArtist = null;
@@ -225,7 +242,7 @@
     ytmBrowseTab = null;
     ytmMoodPlaylists = [];
     ytmMoodTitle = '';
-  });
+  }
 
   $effect(() => {
     const album = $pendingStreamingAlbum;
