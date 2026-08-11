@@ -2818,6 +2818,18 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "型号名称",
   "zoneConfig.modelNone": "— 选择型号 —",
   "zoneConfig.other": "其他…",
+  "acoustic.progressHelp": "全库声学分析的进度。重启后从中断处继续，停止服务器不会丢失进度。",
+  "oxygen.enableHelp": "在导航栏的\"音乐库\"旁加入 Oxygen 入口。原有音乐库不变：这是另一种浏览方式，而非替代。",
+  "oxygen.defaultViewHelp": "打开 Oxygen 时显示的视图。你随时可在界面上一键切换，这里只决定起始视图。",
+  "oxygen.facetsLabel": "浏览分面",
+  "oxygen.facetsHelp": "Oxygen 左侧的筛选列。勾选越少，界面越轻快，大型音乐库显示更快。",
+  "settings.themeHelp": "仅对当前浏览器生效。每台设备各自保存选择：这里选深色不会影响你的平板。",
+  "settings.languageHelp": "界面语言，按浏览器保存。曲目和专辑名称不会被翻译，保持文件中的原样。",
+  "settings.startupViewHelp": "在此浏览器中打开 Tune 时显示的界面。放在音响旁的平板可直接打开\"正在播放\"。",
+  "settings.defaultZoneHelp": "打开时选中的区域（在没有区域正在播放时）。若有区域正在播放，Tune 会跟随该区域。",
+  "settings.volumeDisplayHelp": "以百分比或分贝显示音量。只改变读数方式，不改变发送到设备的电平。",
+  "acoustic.throttleHelp": "每分钟分析的曲目数。若机器发热或播放卡顿请调低；空闲时调高可更快完成。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];
+

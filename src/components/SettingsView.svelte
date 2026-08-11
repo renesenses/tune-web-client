@@ -3965,7 +3965,7 @@ function toggleAdvancedSystem() {
              Raspberry Pi, ou sur le serveur qui sert aussi la musique, la
              cadence par défaut se remarque. -->
         {#if $acousticEnabled}
-          <label class="pref-label" for="acoustic-throttle">{$t('acoustic.throttle')}</label>
+          <label class="pref-label" for="acoustic-throttle">{$t('acoustic.throttle')}<SettingHint k="acoustic.throttleHelp" labelKey="acoustic.throttle" /></label>
           <select id="acoustic-throttle" class="pref-select"
                   value={$acousticStatus?.throttle ?? 'equilibre'}
                   onchange={async (e) => { await api.updateConfig({ audio_embedding_throttle: (e.target as HTMLSelectElement).value }); await refreshAcousticStatus(); }}>
@@ -3985,7 +3985,7 @@ function toggleAdvancedSystem() {
     <section class="settings-section">
       <h3>{$t('oxygen.settingsTitle')} <span class="license-badge premium">Premium</span></h3>
       <div class="pref-grid">
-        <label class="pref-label" for="oxy-enable">{$t('oxygen.enable')}</label>
+        <label class="pref-label" for="oxy-enable">{$t('oxygen.enable')}<SettingHint k="oxygen.enableHelp" labelKey="oxygen.enable" /></label>
         <!-- Le titre porte sur le label, pas sur l'input : un input desactive
              ne recoit pas les evenements souris dans plusieurs navigateurs, et
              l'infobulle ne s'afficherait jamais. Sans elle, la case grisee se
@@ -3997,7 +3997,7 @@ function toggleAdvancedSystem() {
           <span class="toggle-slider"></span>
         </label>
 
-        <label class="pref-label" for="oxy-view">{$t('oxygen.defaultView')}</label>
+        <label class="pref-label" for="oxy-view">{$t('oxygen.defaultView')}<SettingHint k="oxygen.defaultViewHelp" labelKey="oxygen.defaultView" /></label>
         <select id="oxy-view" class="pref-select" value={$preferences.oxygenView}
           onchange={(e) => preferences.update((p) => ({ ...p, oxygenView: (e.target as HTMLSelectElement).value as OxygenViewMode }))}>
           <option value="detail">{$t('oxygen.detailsTable')}</option>
@@ -4009,7 +4009,7 @@ function toggleAdvancedSystem() {
 
       {#if $preferences.oxygenEnabled}
       <div class="pref-grid" style="margin-top: 6px;">
-        <label class="pref-label">Facettes de navigation</label>
+        <label class="pref-label">{$t('oxygen.facetsLabel')}<SettingHint k="oxygen.facetsHelp" labelKey="oxygen.facetsLabel" /></label>
         <div style="display:flex;flex-wrap:wrap;gap:10px 16px;">
           {#each OXYGEN_FACETS_ALL as f}
             <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--tune-text-secondary);cursor:pointer;">
@@ -4126,7 +4126,7 @@ function toggleAdvancedSystem() {
     <section class="settings-section">
       <h3>{$t('settings.interface')}</h3>
       <div class="pref-grid">
-        <label class="pref-label" for="pref-theme">{$t('settings.theme')}</label>
+        <label class="pref-label" for="pref-theme">{$t('settings.theme')}<SettingHint k="settings.themeHelp" labelKey="settings.theme" /></label>
         <select id="pref-theme" class="pref-select" value={$preferences.theme}
           onchange={(e) => {
             const theme = (e.target as HTMLSelectElement).value as ThemeMode;
@@ -4139,7 +4139,7 @@ function toggleAdvancedSystem() {
           <option value="midnight">{$t('settings.themeMidnight' as any)}</option>
         </select>
 
-        <label class="pref-label" for="pref-lang">{$t('settings.language')}</label>
+        <label class="pref-label" for="pref-lang">{$t('settings.language')}<SettingHint k="settings.languageHelp" labelKey="settings.language" /></label>
         <select id="pref-lang" class="pref-select" value={$preferences.language ?? 'fr'}
           onchange={(e) => {
             const language = (e.target as HTMLSelectElement).value as Locale;
@@ -4151,7 +4151,7 @@ function toggleAdvancedSystem() {
           {/each}
         </select>
 
-        <label class="pref-label" for="pref-startup">{$t('settings.startupView')}</label>
+        <label class="pref-label" for="pref-startup">{$t('settings.startupView')}<SettingHint k="settings.startupViewHelp" labelKey="settings.startupView" /></label>
         <select id="pref-startup" class="pref-select" value={$preferences.startupView}
           onchange={(e) => {
             const startupView = (e.target as HTMLSelectElement).value as StartupView;
@@ -4166,7 +4166,7 @@ function toggleAdvancedSystem() {
           <option value="settings">{$t('nav.settings')}</option>
         </select>
 
-        <label class="pref-label" for="pref-zone">{$t('settings.defaultZone')}</label>
+        <label class="pref-label" for="pref-zone">{$t('settings.defaultZone')}<SettingHint k="settings.defaultZoneHelp" labelKey="settings.defaultZone" /></label>
         <select id="pref-zone" class="pref-select" value={$preferences.defaultZoneId ?? ''}
           onchange={(e) => {
             const val = (e.target as HTMLSelectElement).value;
@@ -4180,7 +4180,7 @@ function toggleAdvancedSystem() {
           {/each}
         </select>
 
-        <label class="pref-label" for="pref-volume">{$t('settings.volumeDisplay')}</label>
+        <label class="pref-label" for="pref-volume">{$t('settings.volumeDisplay')}<SettingHint k="settings.volumeDisplayHelp" labelKey="settings.volumeDisplay" /></label>
         <select id="pref-volume" class="pref-select" value={$preferences.volumeDisplay}
           onchange={(e) => {
             const volumeDisplay = (e.target as HTMLSelectElement).value as VolumeDisplay;

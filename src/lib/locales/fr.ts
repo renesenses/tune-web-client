@@ -2827,6 +2827,18 @@ export default {
   "common.edit": "Modifier",
   "dashboard.slot.empty": "Rien à afficher pour l'instant.",
   "dashboard.slot.play": "Lire ce titre",
+  "acoustic.progressHelp": "Avancement de l'analyse acoustique sur toute la bibliothèque. L'analyse reprend où elle en était après un redémarrage : rien n'est perdu si vous arrêtez le serveur.",
+  "oxygen.enableHelp": "Ajoute une entrée Oxygen à la navigation, à côté de Bibliothèque. Votre bibliothèque classique reste inchangée : c'est une seconde façon de la parcourir, pas un remplacement.",
+  "oxygen.defaultViewHelp": "La vue affichée à l'ouverture d'Oxygen. Vous pouvez toujours en changer d'un clic depuis l'écran ; ce réglage ne fixe que le point de départ.",
+  "oxygen.facetsLabel": "Facettes de navigation",
+  "oxygen.facetsHelp": "Les colonnes de filtres proposées à gauche d'Oxygen. En cocher moins allège l'écran et accélère l'affichage sur une grande bibliothèque.",
+  "settings.themeHelp": "S'applique à ce navigateur seulement. Chaque appareil garde son propre choix : le thème sombre ici n'impose rien à votre tablette.",
+  "settings.languageHelp": "Langue de l'interface, propre à ce navigateur. Les noms de vos morceaux et albums ne sont pas traduits : ils restent tels qu'ils sont dans vos fichiers.",
+  "settings.startupViewHelp": "L'écran affiché à l'ouverture de Tune dans ce navigateur. Pratique sur une tablette posée près de la chaîne : ouvrez directement sur Lecture en cours.",
+  "settings.defaultZoneHelp": "La zone sélectionnée à l'ouverture, quand aucune ne joue déjà. Si une zone est en lecture, Tune la rejoint plutôt que d'imposer celle-ci.",
+  "settings.volumeDisplayHelp": "Affichage du volume en pourcentage ou en décibels. Change seulement la façon de le lire, jamais le niveau envoyé à l'appareil.",
+  "acoustic.throttleHelp": "Nombre de morceaux analysés par minute. Baissez-le si la machine chauffe ou si la lecture hoquette pendant l'analyse ; montez-le pour finir plus vite une bibliothèque au repos.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];
+

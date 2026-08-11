@@ -2818,6 +2818,18 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "모델 이름",
   "zoneConfig.modelNone": "— 모델 선택 —",
   "zoneConfig.other": "기타…",
+  "acoustic.progressHelp": "라이브러리 전체의 음향 분석 진행도입니다. 재시작해도 중단된 지점부터 이어지므로 서버를 멈춰도 잃지 않습니다.",
+  "oxygen.enableHelp": "탐색 메뉴의 라이브러리 옆에 Oxygen 항목을 추가합니다. 기존 라이브러리는 그대로이며, 대체가 아니라 또 다른 탐색 방식입니다.",
+  "oxygen.defaultViewHelp": "Oxygen을 열 때의 보기입니다. 화면에서 언제든 한 번의 클릭으로 바꿀 수 있으며, 여기서는 시작 화면만 정합니다.",
+  "oxygen.facetsLabel": "탐색 패싯",
+  "oxygen.facetsHelp": "Oxygen 왼쪽에 표시되는 필터 열입니다. 적게 선택할수록 화면이 가벼워지고 큰 라이브러리에서 더 빨라집니다.",
+  "settings.themeHelp": "이 브라우저에만 적용됩니다. 기기마다 설정이 독립적이어서 여기서 어둡게 해도 태블릿에는 영향이 없습니다.",
+  "settings.languageHelp": "이 브라우저에만 적용되는 인터페이스 언어입니다. 곡·앨범 이름은 번역되지 않고 파일에 있는 그대로 표시됩니다.",
+  "settings.startupViewHelp": "이 브라우저에서 Tune을 열 때 표시할 화면입니다. 오디오 옆 태블릿이라면 \"재생 중\"으로 바로 여는 것이 편합니다.",
+  "settings.defaultZoneHelp": "아무 곳도 재생 중이 아닐 때 열면서 선택되는 존입니다. 재생 중인 존이 있으면 이 설정 대신 그 존을 따릅니다.",
+  "settings.volumeDisplayHelp": "음량을 백분율 또는 데시벨로 표시합니다. 표시 방식만 바뀔 뿐 기기로 보내는 레벨은 변하지 않습니다.",
+  "acoustic.throttleHelp": "분당 분석하는 곡 수입니다. 기기가 뜨거워지거나 재생이 끊기면 낮추고, 재생하지 않을 때는 높이면 더 빨리 끝납니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
+

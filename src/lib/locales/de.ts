@@ -2818,6 +2818,18 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "Name des Modells",
   "zoneConfig.modelNone": "— Modell wählen —",
   "zoneConfig.other": "Andere…",
+  "acoustic.progressHelp": "Fortschritt der akustischen Analyse über die gesamte Bibliothek. Nach einem Neustart wird dort fortgesetzt, wo sie aufgehört hat — nichts geht verloren.",
+  "oxygen.enableHelp": "Fügt der Navigation einen Oxygen-Eintrag neben der Bibliothek hinzu. Ihre klassische Bibliothek bleibt unverändert: eine zweite Art zu stöbern, kein Ersatz.",
+  "oxygen.defaultViewHelp": "Die Ansicht, mit der Oxygen startet. Sie können jederzeit mit einem Klick wechseln — dies legt nur den Ausgangspunkt fest.",
+  "oxygen.facetsLabel": "Navigationsfacetten",
+  "oxygen.facetsHelp": "Die Filterspalten links in Oxygen. Weniger auszuwählen entlastet die Ansicht und beschleunigt sie bei großen Bibliotheken.",
+  "settings.themeHelp": "Gilt nur für diesen Browser. Jedes Gerät behält seine eigene Wahl: Dunkel hier ändert nichts an Ihrem Tablet.",
+  "settings.languageHelp": "Sprache der Oberfläche, nur für diesen Browser. Titel- und Albumnamen werden nicht übersetzt — sie bleiben wie in Ihren Dateien.",
+  "settings.startupViewHelp": "Der Bildschirm, mit dem Tune in diesem Browser startet. Praktisch auf einem Tablet neben der Anlage: direkt bei „Wiedergabe\" starten.",
+  "settings.defaultZoneHelp": "Die beim Öffnen ausgewählte Zone, wenn keine bereits spielt. Läuft eine Zone, schließt sich Tune ihr an, statt diese zu erzwingen.",
+  "settings.volumeDisplayHelp": "Lautstärke in Prozent oder Dezibel anzeigen. Ändert nur die Darstellung, nie den an das Gerät gesendeten Pegel.",
+  "acoustic.throttleHelp": "Pro Minute analysierte Titel. Verringern Sie den Wert, wenn das Gerät heiß läuft oder die Wiedergabe stockt; erhöhen Sie ihn, um eine ruhende Bibliothek schneller abzuschließen.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];
+

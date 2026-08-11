@@ -2818,6 +2818,18 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "Nome del modello",
   "zoneConfig.modelNone": "— Scegli un modello —",
   "zoneConfig.other": "Altro…",
+  "acoustic.progressHelp": "Avanzamento dell'analisi acustica sull'intera libreria. Riprende da dove era rimasta dopo un riavvio: nulla va perso se fermi il server.",
+  "oxygen.enableHelp": "Aggiunge una voce Oxygen alla navigazione, accanto a Libreria. La libreria classica resta invariata: è un secondo modo di sfogliarla, non un sostituto.",
+  "oxygen.defaultViewHelp": "La vista con cui si apre Oxygen. Puoi cambiarla con un clic dalla schermata stessa: qui si definisce solo il punto di partenza.",
+  "oxygen.facetsLabel": "Sfaccettature di navigazione",
+  "oxygen.facetsHelp": "Le colonne di filtri proposte a sinistra in Oxygen. Selezionarne meno alleggerisce la schermata e la velocizza su librerie grandi.",
+  "settings.themeHelp": "Vale solo per questo browser. Ogni dispositivo mantiene la propria scelta: scuro qui non impone nulla al tablet.",
+  "settings.languageHelp": "Lingua dell'interfaccia, propria di questo browser. I nomi di brani e album non vengono tradotti: restano come nei tuoi file.",
+  "settings.startupViewHelp": "La schermata con cui Tune si apre in questo browser. Comodo su un tablet vicino all'impianto: apri direttamente su In riproduzione.",
+  "settings.defaultZoneHelp": "La zona selezionata all'apertura, quando nessuna sta suonando. Se una zona è in riproduzione, Tune si unisce a quella invece di imporre questa.",
+  "settings.volumeDisplayHelp": "Mostra il volume in percentuale o in decibel. Cambia solo la lettura, mai il livello inviato all'apparecchio.",
+  "acoustic.throttleHelp": "Brani analizzati al minuto. Riducilo se la macchina scalda o la riproduzione singhiozza; aumentalo per finire prima con una libreria a riposo.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];
+
