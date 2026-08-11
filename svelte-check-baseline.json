@@ -27,7 +27,6 @@
   "src/components/SettingsView.svelte :: Property 'audio_embedding_enabled' does not exist on type 'SystemConfig'.",
   "src/components/SettingsView.svelte :: Property 'community_sync_enabled' does not exist on type 'SystemConfig'.",
   "src/components/SettingsView.svelte :: Property 'replaygain_analysis_enabled' does not exist on type 'SystemConfig'.",
-  "src/components/SettingsView.svelte :: Property 'scan_folder_playlists' does not exist on type 'SystemConfig'.",
   "src/components/Sidebar.svelte :: Property 'version' does not exist on type 'SystemHealth'.",
   "src/components/StreamingView.svelte :: Property 'album' does not exist on type 'Track'.",
   "src/components/TrackEditModal.svelte :: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'Record<string, string> | {}'.\\n No index signature with a parameter of type 'string' was found on type 'Record<string, string> | {}'.",

@@ -1470,6 +1470,8 @@ export default {
   "settings.scanCompleted": "Scan abgeschlossen: {scanned} Dateien, {added} hinzugefügt, {updated} aktualisiert, {removed} entfernt",
   "settings.folderPlaylists": "Ordner → Playlists",
   "settings.folderPlaylistsHelp": "Beim Scan wird ein Ordner, dessen Titel aus mehreren Alben stammen (eigene Zusammenstellung), zu einer gleichnamigen lokalen Playlist, die bei jedem Scan aktualisiert wird.",
+  "settings.importPlaylistFiles": "M3U- und PLS-Dateien importieren",
+  "settings.importPlaylistFilesHelp": "Ein Scan durchsucht alle eingerichteten Musikordner, nicht nur den zuletzt hinzugefügten: vergessene .m3u-Dateien können alte Playlists zurückbringen. Deaktivieren Sie die Option, um sie nicht mehr zu importieren.",
   "settings.serviceTokensBridgeHelp": "API-Tokens für Metadaten-Anreicherung (Discogs, Genius, MusicBrainz) und Scrobbling (Last.fm, ListenBrainz): Eingabe, Validierung und Schritt-für-Schritt-Hilfe.",
   "settings.scanReportTitle": "Letzter Scan-Bericht",
   "settings.scanReportUnchanged": "unverÃ¤ndert",

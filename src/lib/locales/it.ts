@@ -1470,6 +1470,8 @@ export default {
   "settings.scanCompleted": "Scansione completata: {scanned} file, {added} aggiunti, {updated} aggiornati, {removed} rimossi",
   "settings.folderPlaylists": "Cartelle → playlist",
   "settings.folderPlaylistsHelp": "Durante la scansione, una cartella con brani provenienti da più album (compilation fatta a mano) diventa una playlist locale con lo stesso nome, risincronizzata a ogni scansione.",
+  "settings.importPlaylistFiles": "Importa i file .m3u e .pls",
+  "settings.importPlaylistFilesHelp": "La scansione percorre tutte le cartelle musicali configurate, non solo quella appena aggiunta: vecchi file .m3u dimenticati possono far riapparire playlist datate. Deseleziona per non importarli più.",
   "settings.serviceTokensBridgeHelp": "Token API per l'arricchimento dei metadati (Discogs, Genius, MusicBrainz) e lo scrobbling (Last.fm, ListenBrainz): inserimento, convalida e guida passo passo.",
   "settings.scanReportTitle": "Ultimo rapporto di scansione",
   "settings.scanReportUnchanged": "invariati",

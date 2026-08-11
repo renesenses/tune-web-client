@@ -1470,6 +1470,8 @@ export default {
   "settings.scanCompleted": "スキャン完了: {scanned} 件のファイル、{added} 件を追加、{updated} 件を更新、{removed} 件を削除",
   "settings.folderPlaylists": "フォルダ → プレイリスト",
   "settings.folderPlaylistsHelp": "スキャン時、複数のアルバムの曲を含むフォルダ（自作コンピレーション）は同名のローカルプレイリストになり、スキャンごとに同期されます。",
+  "settings.importPlaylistFiles": "M3U・PLS ファイルを取り込む",
+  "settings.importPlaylistFilesHelp": "スキャンは追加したばかりのフォルダだけでなく、設定済みのすべての音楽フォルダを巡回します。忘れられた .m3u ファイルから古いプレイリストが復活することがあります。取り込みをやめるにはオフにしてください。",
   "settings.serviceTokensBridgeHelp": "メタデータ強化（Discogs、Genius、MusicBrainz）と scrobbling（Last.fm、ListenBrainz）用の API トークン：入力・検証・手順ガイド。",
   "settings.scanReportTitle": "前回のスキャンレポート",
   "settings.scanReportUnchanged": "変更なし",

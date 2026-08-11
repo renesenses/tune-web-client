@@ -1693,6 +1693,8 @@ export default {
   "settings.scanCompleted": "Scan complete: {scanned} files, {added} added, {updated} updated, {removed} removed",
   "settings.folderPlaylists": "Folders → playlists",
   "settings.folderPlaylistsHelp": "During a scan, a folder whose tracks span several albums (hand-made compilation) becomes a local playlist with the same name, re-synced on every scan.",
+  "settings.importPlaylistFiles": "Import .m3u and .pls files",
+  "settings.importPlaylistFilesHelp": "A scan walks every configured music folder, not just the one you have just added: forgotten .m3u files can bring old playlists back. Uncheck to stop importing them.",
   "settings.serviceTokensBridgeHelp": "API tokens for metadata enrichment (Discogs, Genius, MusicBrainz) and scrobbling (Last.fm, ListenBrainz): entry, validation and step-by-step help.",
   "settings.scanReportTitle": "Last scan report",
   "settings.scanReportUnchanged": "unchanged",
