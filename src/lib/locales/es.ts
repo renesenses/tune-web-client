@@ -1470,6 +1470,8 @@ export default {
   "settings.scanCompleted": "Análisis completado: {scanned} archivos, {added} añadidos, {updated} actualizados, {removed} eliminados",
   "settings.folderPlaylists": "Carpetas → listas",
   "settings.folderPlaylistsHelp": "Durante el escaneo, una carpeta cuyas pistas provienen de varios álbumes (recopilación propia) se convierte en una lista local con el mismo nombre, resincronizada en cada escaneo.",
+  "settings.importPlaylistFiles": "Importar archivos .m3u y .pls",
+  "settings.importPlaylistFilesHelp": "El escaneo recorre todas las carpetas de música configuradas, no solo la que acaba de añadir: archivos .m3u olvidados pueden hacer reaparecer listas antiguas. Desmarque para dejar de importarlos.",
   "settings.serviceTokensBridgeHelp": "Tokens de API para el enriquecimiento de metadatos (Discogs, Genius, MusicBrainz) y scrobbling (Last.fm, ListenBrainz): entrada, validación y ayuda paso a paso.",
   "settings.scanReportTitle": "Ãltimo informe de escaneo",
   "settings.scanReportUnchanged": "sin cambios",

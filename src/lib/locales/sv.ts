@@ -1457,6 +1457,8 @@ export default {
   "settings.scanCompleted": "Skanning klar: {scanned} filer, {added} tillagda, {updated} uppdaterade, {removed} borttagna",
   "settings.folderPlaylists": "Mappar → spellistor",
   "settings.folderPlaylistsHelp": "Under en skanning blir en mapp vars spår sträcker sig över flera album (handgjord samling) en lokal spellista med samma namn, omsynkad vid varje skanning.",
+  "settings.importPlaylistFiles": "Importera .m3u- och .pls-filer",
+  "settings.importPlaylistFilesHelp": "En skanning går igenom alla konfigurerade musikmappar, inte bara den du nyss lade till: bortglömda .m3u-filer kan få gamla spellistor att dyka upp igen. Avmarkera för att sluta importera dem.",
   "settings.scanReportTitle": "Senaste skanningsrapport",
   "settings.scanReportUnchanged": "oförändrade",
   "settings.scanReportDuplicates": "dubbletter överhoppade",

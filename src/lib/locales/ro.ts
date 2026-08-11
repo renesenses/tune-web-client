@@ -1478,6 +1478,8 @@ export default {
   "settings.scanCompleted": "Scanare completă: {scanned} fișiere, {added} adăugate, {updated} actualizate, {removed} eliminate",
   "settings.folderPlaylists": "Foldere → playlisturi",
   "settings.folderPlaylistsHelp": "La scanare, un folder ale cărui piese provin din mai multe albume (compilație proprie) devine un playlist local cu același nume, resincronizat la fiecare scanare.",
+  "settings.importPlaylistFiles": "Importă fișierele .m3u și .pls",
+  "settings.importPlaylistFilesHelp": "Scanarea parcurge toate folderele de muzică configurate, nu doar cel adăugat acum: fișiere .m3u uitate pot readuce playlisturi vechi. Debifați pentru a nu le mai importa.",
   "settings.serviceTokensBridgeHelp": "Tokenuri API pentru îmbogățirea metadatelor (Discogs, Genius, MusicBrainz) și scrobbling (Last.fm, ListenBrainz): introducere, validare și ghid pas cu pas.",
   "settings.scanReportTitle": "Ultimul raport de scanare",
   "settings.scanReportUnchanged": "neschimbate",

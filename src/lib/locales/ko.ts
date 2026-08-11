@@ -1453,6 +1453,8 @@ export default {
   "settings.scanCompleted": "스캔 완료: {scanned}개 파일, {added}개 추가됨, {updated}개 업데이트됨, {removed}개 제거됨",
   "settings.folderPlaylists": "폴더 → 재생목록",
   "settings.folderPlaylistsHelp": "스캔 시 여러 앨범의 곡이 섞인 폴더(직접 만든 컴필레이션)는 같은 이름의 로컬 재생목록이 되며, 스캔할 때마다 다시 동기화됩니다.",
+  "settings.importPlaylistFiles": "M3U 및 PLS 파일 가져오기",
+  "settings.importPlaylistFilesHelp": "스캔은 방금 추가한 폴더뿐 아니라 설정된 모든 음악 폴더를 훑습니다. 잊고 있던 .m3u 파일 때문에 예전 재생목록이 다시 나타날 수 있습니다. 가져오지 않으려면 해제하세요.",
   "settings.serviceTokensBridgeHelp": "메타데이터 보강(Discogs, Genius, MusicBrainz) 및 스크로블링(Last.fm, ListenBrainz)용 API 토큰: 입력, 검증, 단계별 도움말.",
   "settings.scanReportTitle": "마지막 스캔 보고서",
   "settings.scanReportUnchanged": "변경 없음",
