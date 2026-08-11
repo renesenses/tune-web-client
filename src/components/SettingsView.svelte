@@ -3,7 +3,8 @@
   import { tip } from '../lib/tooltip';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
-  import { refreshAcousticStatus } from '../lib/stores/acoustic';
+  import { refreshAcousticStatus, acousticStatus, acousticEnabled } from '../lib/stores/acoustic';
+  import AcousticProgress from './AcousticProgress.svelte';
   import { tuneWS } from '../lib/websocket';
   import { zones, currentZoneId, followMe } from '../lib/stores/zones';
   import { loopByDefault } from '../lib/stores/loopByDefault';
@@ -3943,6 +3944,24 @@ function toggleAdvancedSystem() {
           <input type="checkbox" checked={config.audio_embedding_enabled === true || config.audio_embedding_enabled === 'true'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.audio_embedding_enabled = val; await api.updateConfig({ audio_embedding_enabled: val }); await refreshAcousticStatus(); }} />
           <span class="toggle-slider"></span>
         </label>
+
+        <!-- Combien de machine l'analyse a le droit de prendre. Elle décode dix
+             secondes par piste et fait tourner un réseau dessus : sur un
+             Raspberry Pi, ou sur le serveur qui sert aussi la musique, la
+             cadence par défaut se remarque. -->
+        {#if $acousticEnabled}
+          <label class="pref-label" for="acoustic-throttle">{$t('acoustic.throttle')}</label>
+          <select id="acoustic-throttle" class="pref-select"
+                  value={$acousticStatus?.throttle ?? 'equilibre'}
+                  onchange={async (e) => { await api.updateConfig({ audio_embedding_throttle: (e.target as HTMLSelectElement).value }); await refreshAcousticStatus(); }}>
+            <option value="eco">{$t('acoustic.throttleEco')}</option>
+            <option value="equilibre">{$t('acoustic.throttleBalanced')}</option>
+            <option value="rapide">{$t('acoustic.throttleFast')}</option>
+          </select>
+
+          <span class="pref-label">{$t('acoustic.progress')}</span>
+          <AcousticProgress compact />
+        {/if}
       </div>
       <p class="settings-note">{$t('settings.metadataReadonlyHelp')}</p>
       <p class="settings-note">{$t('settings.enrichOnScanHelp')}</p>

@@ -8,7 +8,8 @@
   import HeartButton from './HeartButton.svelte';
   import { formatTime } from '../lib/utils';
   import type { Track } from '../lib/types';
-  import { acousticStatus, acousticEnabled, refreshAcousticStatus } from '../lib/stores/acoustic';
+  import { acousticStatus, acousticEnabled, acousticProgress, refreshAcousticStatus } from '../lib/stores/acoustic';
+  import AcousticProgress from './AcousticProgress.svelte';
 
   let loading = $state(false);
   let tracks = $state<(Track & { similarity?: number })[]>([]);
@@ -78,8 +79,10 @@
         // encore analysée, ou requête sans correspondance. Le serveur les
         // distingue désormais — on ne laisse plus l'utilisateur reformuler une
         // requête qui ne pouvait pas aboutir (retour Fabien).
-        error =
-          "Aucun titre de ta bibliothèque n'a encore été analysé acoustiquement — la recherche par ambiance ne peut donc rien trouver, quelle que soit la requête. L'analyse tourne en tâche de fond une fois activée sur le serveur (réglage « audio_embedding_enabled »), et n'est pas encore réglable depuis cette interface : contacte le support.";
+        // Le message renvoyait au support pour un réglage devenu accessible en
+        // deux clics, et citait un nom de variable au passage. Il ne s'affiche
+        // qu'à quelqu'un qui vient précisément d'activer l'analyse.
+        error = $t('ambiance.analysisNotReady');
         tracks = [];
       } else {
         tracks = res.tracks ?? [];
@@ -346,6 +349,13 @@
       <p class="acoustic-notice-body">
         {$t('ambiance.analysisNoneYet')}
       </p>
+      <AcousticProgress />
+    </div>
+  {:else if !$acousticProgress?.complete}
+    <!-- L'analyse avance : on cherche déjà dans ce qui est prêt, mais la jauge
+         dit pourquoi certains titres manquent encore à l'appel. -->
+    <div class="acoustic-notice">
+      <AcousticProgress />
     </div>
   {/if}
 
