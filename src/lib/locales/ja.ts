@@ -2820,6 +2820,11 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "機種名",
   "zoneConfig.modelNone": "— 機種を選択 —",
   "zoneConfig.other": "その他…",
+  "settings.updateBlockedFlag": "サーバーフォルダーの .no-auto-update ファイルにより更新がブロックされています。更新を許可するには削除してください。特定の構成を守るための印なので、先に確認を。",
+  "settings.updateAlreadyRunning": "このサーバーではすでに更新が進行中です。完了までお待ちください。",
+  "settings.updateBlockedScan": "更新を保留しました。ライブラリのスキャン中です。今入れるとサーバーが再起動し、スキャンは最初からやり直しになります。",
+  "settings.updateBlockedPlaying": "更新を保留しました。再生中のゾーンがあります。今入れると曲の途中で音が止まります。",
+  "settings.updateBlockedUnknown": "サーバーが理由を示さずに更新を拒否しました。サーバーのログを確認してください。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

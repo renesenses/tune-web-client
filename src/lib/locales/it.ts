@@ -2820,6 +2820,11 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "Nome del modello",
   "zoneConfig.modelNone": "— Scegli un modello —",
   "zoneConfig.other": "Altro…",
+  "settings.updateBlockedFlag": "Aggiornamento bloccato dal file .no-auto-update nella cartella del server. Eliminalo per consentire gli aggiornamenti: protegge un'installazione specifica, verifica prima.",
+  "settings.updateAlreadyRunning": "È già in corso un aggiornamento su questo server. Attendi che finisca.",
+  "settings.updateBlockedScan": "Aggiornamento rinviato: è in corso una scansione della libreria. Installare riavvierebbe il server e la scansione ripartirebbe da capo.",
+  "settings.updateBlockedPlaying": "Aggiornamento rinviato: una zona è in riproduzione. Installare interromperebbe la musica.",
+  "settings.updateBlockedUnknown": "Il server ha rifiutato l'aggiornamento senza indicarne il motivo. Consulta i log del server.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

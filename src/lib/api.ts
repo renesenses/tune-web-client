@@ -2649,7 +2649,13 @@ export async function installUpdate(force = false): Promise<any> {
     ? `${BASE}/system/update/install?force=true`
     : `${BASE}/system/update/install`;
   const res = await fetch(url, { method: 'POST', headers });
-  return res.json();
+  // Le REFUS doit remonter. Le serveur répond 409 avec un motif — drapeau
+  // .no-auto-update, zone en lecture, scan en cours, installation déjà
+  // lancée — et `fetch` ne lève pas sur un 409 : renvoyer `res.json()` seul
+  // faisait disparaître l'explication, l'appelant enchaînait sur 180 s
+  // d'attente d'un redémarrage qui n'arriverait jamais (#412).
+  const body = await res.json().catch(() => ({}));
+  return { ...body, ok: res.ok, httpStatus: res.status };
 }
 
 export async function getUpdateStatus(): Promise<any> {

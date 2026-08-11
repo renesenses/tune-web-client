@@ -2829,6 +2829,11 @@ export default {
   "dashboard.slot.empty": "Nothing to show yet.",
   "dashboard.slot.play": "Play this track",
   "dashboard.section.weekday_hourly": "When you listen (weekday × hour)",
+  "settings.updateBlockedFlag": "Update blocked by the .no-auto-update file in the server folder. Delete it to allow updates — it is there to protect a specific install, so check first.",
+  "settings.updateAlreadyRunning": "An update is already running on this server. Wait for it to finish.",
+  "settings.updateBlockedScan": "Update deferred: a library scan is running. Installing would restart the server and the scan would start over.",
+  "settings.updateBlockedPlaying": "Update deferred: a zone is playing. Installing would cut the music mid-track.",
+  "settings.updateBlockedUnknown": "The server refused the update without giving a reason. Check the server logs.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

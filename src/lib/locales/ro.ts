@@ -2820,6 +2820,11 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "Numele modelului",
   "zoneConfig.modelNone": "— Alege un model —",
   "zoneConfig.other": "Altul…",
+  "settings.updateBlockedFlag": "Actualizare blocată de fișierul .no-auto-update din folderul serverului. Ștergeți-l pentru a permite actualizările — protejează o instalare anume, verificați întâi.",
+  "settings.updateAlreadyRunning": "O actualizare este deja în curs pe acest server. Așteptați să se termine.",
+  "settings.updateBlockedScan": "Actualizare amânată: o scanare a bibliotecii este în curs. Instalarea ar reporni serverul și scanarea ar lua-o de la capăt.",
+  "settings.updateBlockedPlaying": "Actualizare amânată: o zonă redă. Instalarea ar întrerupe muzica.",
+  "settings.updateBlockedUnknown": "Serverul a refuzat actualizarea fără a da un motiv. Consultați jurnalele serverului.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

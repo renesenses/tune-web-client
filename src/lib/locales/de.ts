@@ -2820,6 +2820,11 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "Name des Modells",
   "zoneConfig.modelNone": "— Modell wählen —",
   "zoneConfig.other": "Andere…",
+  "settings.updateBlockedFlag": "Aktualisierung durch die Datei .no-auto-update im Serverordner blockiert. Löschen Sie sie, um Updates zu erlauben — sie schützt eine bestimmte Installation, prüfen Sie das zuerst.",
+  "settings.updateAlreadyRunning": "Auf diesem Server läuft bereits eine Aktualisierung. Warten Sie, bis sie beendet ist.",
+  "settings.updateBlockedScan": "Aktualisierung verschoben: Ein Bibliotheks-Scan läuft. Die Installation würde den Server neu starten und der Scan begänne von vorn.",
+  "settings.updateBlockedPlaying": "Aktualisierung verschoben: Eine Zone spielt. Die Installation würde die Musik mitten im Titel abbrechen.",
+  "settings.updateBlockedUnknown": "Der Server hat die Aktualisierung ohne Angabe eines Grundes abgelehnt. Prüfen Sie die Serverprotokolle.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];
