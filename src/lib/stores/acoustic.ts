@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import * as api from '../api';
 
 /** État de la brique acoustique côté serveur, tel que renvoyé par
@@ -7,6 +7,13 @@ export interface AcousticStatus {
   available: boolean;
   enabled: boolean;
   analysed_tracks: number;
+  /** Pistes que la passe PEUT analyser — pas la bibliothèque entière : le DSD
+   *  et les pistes sans fichier local en sont exclus. Absent sur un serveur
+   *  antérieur à la jauge de progression. */
+  eligible_tracks?: number;
+  pending_tracks?: number;
+  /** Débit de la passe : 'eco' | 'equilibre' | 'rapide'. */
+  throttle?: string;
 }
 
 export const acousticStatus = writable<AcousticStatus | null>(null);
@@ -45,5 +52,52 @@ export async function refreshAcousticStatus(): Promise<void> {
     // Serveur plus ancien (route absente) ou hors ligne : on reste sur `null`,
     // donc l'entrée reste masquée plutôt que de promettre ce qu'on ne sait pas.
     acousticStatus.set(null);
+  }
+}
+
+/** Progression de l'analyse, ou `null` quand le serveur ne sait pas la dire
+ *  (version antérieure, ou aucune piste analysable). */
+export const acousticProgress = derived(acousticStatus, ($s) => {
+  const total = $s?.eligible_tracks;
+  if (!$s || typeof total !== 'number' || total <= 0) return null;
+  const done = Math.min($s.analysed_tracks, total);
+  return {
+    done,
+    total,
+    // Arrondi vers le BAS : afficher « 100 % » alors qu'il reste des pistes
+    // ferait croire à un blocage juste avant la fin.
+    percent: Math.floor((done / total) * 100),
+    remaining: Math.max(total - done, 0),
+    complete: done >= total,
+  };
+});
+
+/** Suivi vivant : tant que l'analyse tourne, on redemande l'état. Le pas est
+ *  volontairement lent — cette page n'est pas un tableau de bord temps réel, et
+ *  chaque appel fait deux COUNT sur la base. Le suivi s'arrête tout seul dès
+ *  que l'analyse est finie, désactivée, ou que l'onglet passe en arrière-plan :
+ *  personne n'a besoin d'une jauge qui progresse dans un onglet invisible. */
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+const POLL_MS = 10_000;
+
+export function startAcousticPolling(): () => void {
+  const tick = async () => {
+    if (typeof document !== 'undefined' && document.hidden) return;
+    await refreshAcousticStatus();
+    const s = get(acousticStatus);
+    const total = s?.eligible_tracks;
+    const done = typeof total === 'number' && total > 0 && s!.analysed_tracks >= total;
+    if (!s?.enabled || done) stopAcousticPolling();
+  };
+  stopAcousticPolling();
+  void tick();
+  pollTimer = setInterval(tick, POLL_MS);
+  return stopAcousticPolling;
+}
+
+export function stopAcousticPolling(): void {
+  if (pollTimer !== null) {
+    clearInterval(pollTimer);
+    pollTimer = null;
   }
 }
