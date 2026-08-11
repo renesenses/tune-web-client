@@ -1,8 +1,9 @@
 <script lang="ts">
-  // Paire de VU-mètres analogiques (G/D) pour le mode Grand écran — cadrans à
-  // aiguille façon appli tvOS, nourris par les niveaux RMS réels du serveur
-  // (événements audio_levels). Balistique VU classique : intégration ~300 ms,
-  // zone rouge au-dessus de 0 VU, témoin de crête.
+  // Paire de cadrans analogiques (G/D) pour le mode Grand écran — aiguilles
+  // nourries par les crêtes dBFS du serveur (événements audio_levels). Affichage
+  // en dBFS sur l'échelle imprimée (−20…+3), pas en VU broadcast (RMS+18) :
+  // ce calage collait les aiguilles en butée sur les masters hi-res courants.
+  // Balistique type VU : montée rapide, retombée douce ; témoin de crête.
   import { onMount, onDestroy } from 'svelte';
   import { audioLevels } from '../lib/stores/audioLevels';
   import { t } from '../lib/i18n';
@@ -17,24 +18,13 @@
   let canvas: HTMLCanvasElement | undefined = $state();
   let animId: number | null = null;
 
-  // 0 VU calé sur -18 dBFS, la référence usuelle en numérique.
-  //
-  // Le calage précédent, -14 dBFS, plaçait la butée haute du cadran (+3 VU) à
-  // -11 dBFS de RMS — un niveau où vit en permanence la quasi-totalité des
-  // masters modernes. Les aiguilles restaient donc collées en butée sur
-  // presque tout, ce qui laissait croire à une saturation inexistante (retour
-  // Alex Campbell, sur un enregistrement ambient très calme). À -18, l'aiguille
-  // vit autour de 0 sur un disque courant et la zone rouge redevient
-  // significative — ce que le commentaire d'origine visait déjà.
-  const ZERO_VU_DBFS = -18;
-  /// Témoin de crête : proche de la pleine échelle, pas « au-dessus de 0 VU ».
-  /// Adossé à ZERO_VU_DBFS, il s'allumait dès -13 dBFS, donc en continu.
+  /// Témoin de crête : proche de la pleine échelle (−3 dBFS).
   const PEAK_LAMP_DBFS = -3;
-  const MIN_VU = -20; // graduation basse du cadran
+  const MIN_VU = -20; // graduation basse du cadran (dBFS)
   const MAX_VU = 3;   // graduation haute
   const TICKS = [-20, -10, -7, -5, -3, -2, -1, 0, 1, 2, 3];
 
-  // Position angulaire d'une valeur VU sur l'arc (gauche → droite).
+  // Position angulaire d'une valeur dBFS sur l'arc (gauche → droite).
   const SPAN = Math.PI * 0.66; // ~120°
   function vuToAngle(vu: number): number {
     const t = (Math.min(MAX_VU, Math.max(MIN_VU, vu)) - MIN_VU) / (MAX_VU - MIN_VU);
@@ -118,7 +108,7 @@
     // Libellés
     ctx.fillStyle = 'rgba(237,233,224,0.5)';
     ctx.font = `600 ${Math.round(11 * dpr)}px "Avenir Next Condensed", "Arial Narrow", sans-serif`;
-    ctx.fillText('VU', 0, faceR * 0.06);
+    ctx.fillText('dB', 0, faceR * 0.06);
     ctx.font = `600 ${Math.round(12 * dpr)}px "Avenir Next Condensed", "Arial Narrow", sans-serif`;
     ctx.fillStyle = 'rgba(242,180,65,0.85)';
     ctx.fillText(label, 0, faceR * 0.5);
@@ -169,9 +159,10 @@
     ctx.clearRect(0, 0, w, h);
 
     const levels = $audioLevels;
-    const targets = [levels.rms_left_db, levels.rms_right_db].map((db) => {
+    // Aiguilles = crêtes dBFS (échelle du cadran), pas RMS−(−18) style VU.
+    const targets = [levels.peak_left_db, levels.peak_right_db].map((db) => {
       if (!playing || db <= -95) return MIN_VU;
-      return db - ZERO_VU_DBFS; // dBFS → VU
+      return db;
     });
     const peaks = [levels.peak_left_db, levels.peak_right_db];
 
