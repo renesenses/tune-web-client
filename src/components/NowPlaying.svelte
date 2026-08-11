@@ -1596,6 +1596,21 @@
               <polyline points="18 15 12 9 6 15" />
             </svg>
           </button>
+          <!-- Porte vers la page File d'attente complete (AutoPlay, sauvegarde
+               en playlist, reordonnancement). La barre ci-dessus deplie le
+               panneau lateral : on ne detourne pas ce geste, on ajoute l'acces
+               a cote — c'est ici que Sandro l'a cherche. -->
+          <button
+            class="queue-sheet-open"
+            onclick={() => activeView.set('queue')}
+            title={$t('queue.title')}
+            aria-label={$t('queue.title')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M15 3h6v6" /><path d="M10 14L21 3" />
+              <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
+            </svg>
+          </button>
         {/if}
 
         <!-- Up Next (only when sheet is collapsed) -->
@@ -3568,6 +3583,20 @@
     color: var(--tune-accent);
   }
 
+  .queue-sheet-open {
+    background: none;
+    border: none;
+    color: var(--tune-text-secondary, #9ca3af);
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .queue-sheet-open:hover {
+    color: var(--tune-text, #e5e7eb);
+    background: var(--tune-hover, rgba(255, 255, 255, 0.06));
+  }
   .queue-sheet-count {
     font-family: var(--font-label);
     font-size: 10px;
