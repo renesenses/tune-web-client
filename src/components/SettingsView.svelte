@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import SettingHint from './SettingHint.svelte';
   import { tip } from '../lib/tooltip';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
@@ -3922,19 +3923,19 @@ function toggleAdvancedSystem() {
     <section class="settings-section">
       <h3>{$t('metadata.title')}</h3>
       <div class="pref-grid">
-        <label class="pref-label">{$t('settings.metadataReadonly')}</label>
+        <label class="pref-label">{$t('settings.metadataReadonly')}<SettingHint k="settings.metadataReadonlyHelp" labelKey="settings.metadataReadonly" /></label>
         <label class="toggle-switch">
           <input type="checkbox" checked={config.metadata_readonly} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.metadata_readonly = val; await api.updateConfig({ metadata_readonly: val }); }} />
           <span class="toggle-slider"></span>
         </label>
 
-        <label class="pref-label">{$t('settings.enrichOnScan')}</label>
+        <label class="pref-label">{$t('settings.enrichOnScan')}<SettingHint k="settings.enrichOnScanHelp" labelKey="settings.enrichOnScan" /></label>
         <label class="toggle-switch">
           <input type="checkbox" checked={config.enrich_on_scan !== false && config.enrich_on_scan !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.enrich_on_scan = val; await api.updateConfig({ enrich_on_scan: val }); }} />
           <span class="toggle-slider"></span>
         </label>
 
-        <label class="pref-label">{$t('settings.lyricsLrclib')}</label>
+        <label class="pref-label">{$t('settings.lyricsLrclib')}<SettingHint k="settings.lyricsLrclibHelp" labelKey="settings.lyricsLrclib" /></label>
         <label class="toggle-switch">
           <input type="checkbox" checked={config.lyrics_lrclib_enabled === true || config.lyrics_lrclib_enabled === 'true'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.lyrics_lrclib_enabled = val; await api.updateConfig({ lyrics_lrclib_enabled: val }); }} />
           <span class="toggle-slider"></span>
@@ -3944,7 +3945,7 @@ function toggleAdvancedSystem() {
              vaut vrai côté serveur), d'où le test sur !== false. Philippe a
              demandé où le couper quand la bibliothèque est sur un partage
              réseau chargé — il n'y avait nulle part (forum #1310). -->
-        <label class="pref-label">{$t('settings.replaygainAnalysis')}</label>
+        <label class="pref-label">{$t('settings.replaygainAnalysis')}<SettingHint k="settings.replaygainAnalysisHelp" labelKey="settings.replaygainAnalysis" /></label>
         <label class="toggle-switch">
           <input type="checkbox" checked={config.replaygain_analysis_enabled !== false && config.replaygain_analysis_enabled !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.replaygain_analysis_enabled = val; await api.updateConfig({ replaygain_analysis_enabled: val }); }} />
           <span class="toggle-slider"></span>
@@ -3954,7 +3955,7 @@ function toggleAdvancedSystem() {
              écrire ce réglage depuis toujours, mais rien ne l'exposait : l'écran
              Ambiance restait donc vide sans qu'aucun geste ne puisse y remédier
              (retour Fabien). -->
-        <label class="pref-label">{$t('settings.acousticAnalysis')}</label>
+        <label class="pref-label">{$t('settings.acousticAnalysis')}<SettingHint k="settings.acousticAnalysisHelp" labelKey="settings.acousticAnalysis" /></label>
         <label class="toggle-switch">
           <input type="checkbox" checked={config.audio_embedding_enabled === true || config.audio_embedding_enabled === 'true'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.audio_embedding_enabled = val; await api.updateConfig({ audio_embedding_enabled: val }); await refreshAcousticStatus(); }} />
           <span class="toggle-slider"></span>
@@ -3978,11 +3979,6 @@ function toggleAdvancedSystem() {
           <AcousticProgress compact />
         {/if}
       </div>
-      <p class="settings-note">{$t('settings.metadataReadonlyHelp')}</p>
-      <p class="settings-note">{$t('settings.enrichOnScanHelp')}</p>
-      <p class="settings-note">{$t('settings.lyricsLrclibHelp')}</p>
-      <p class="settings-note">{$t('settings.replaygainAnalysisHelp')}</p>
-      <p class="settings-note">{$t('settings.acousticAnalysisHelp')}</p>
     </section>
     {/if}
 
