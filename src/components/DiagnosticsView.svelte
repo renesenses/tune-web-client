@@ -7,8 +7,24 @@
   import { get } from 'svelte/store';
   import { connectionState } from '../lib/stores/connection';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
+
   import { t } from '../lib/i18n';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus } from '../lib/types';
+
+  // « Services actifs » affichait `serverDiag.connectors`, c'est-a-dire la
+  // liste des connecteurs ENREGISTRES au demarrage — les cinq, toujours, pour
+  // tout le monde (state.rs les enregistre inconditionnellement). L'etiquette
+  // etait donc fausse sur une donnee juste : elle nommait « actifs » ce qui
+  // n'est que « pris en charge ».
+  //
+  // On lit desormais le meme etat que l'utilisateur voit dans ses Reglages :
+  // activE ET identifiE. Signale par Fabien, qui n'avait que Qobuz et YouTube
+  // connectes et voyait les cinq.
+  let connectedServices = $derived(
+    Object.entries($streamingServicesStore)
+      .filter(([, svc]) => svc.enabled && svc.authenticated)
+      .map(([name]) => name),
+  );
 
   // Guard: prevent $state writes after component teardown (async callbacks
   // that resolve after navigation away could otherwise trigger Svelte
@@ -558,10 +574,10 @@
         </div>
         {/if}
       </div>
-      {#if serverDiag.connectors != null && serverDiag.connectors.length > 0}
+      {#if connectedServices.length > 0}
         <div class="dashboard-services">
           <span class="dashboard-services-label">{$t('diagnostics.activeServices' as any)} :</span>
-          {#each serverDiag.connectors as svc}
+          {#each connectedServices as svc}
             <span class="dashboard-service-badge">{streamingLabel(svc)}</span>
           {/each}
         </div>
@@ -765,7 +781,12 @@
                 {:else if svc.authenticated}
                   <span class="status-badge ok">{$t('settings.connected')}</span>
                 {:else}
-                  <span class="status-badge warn">{$t('diagnostics.enabled')}</span>
+                  <!-- « Non connecté », et non « Activé » : la fiche détaillée
+                       des Réglages nomme AINSI cet état. Deux mots pour une
+                       seule réalité empêchaient de comprendre qu'il s'agissait
+                       du même service — Fabien a lu les deux écrans et n'a pas
+                       pu faire le lien. -->
+                  <span class="status-badge warn">{$t('settings.notConnected')}</span>
                 {/if}
               </div>
             </div>
