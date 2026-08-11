@@ -1470,6 +1470,8 @@ export default {
   "settings.scanCompleted": "扫描完成：{scanned} 个文件，{added} 个已添加，{updated} 个已更新，{removed} 个已移除",
   "settings.folderPlaylists": "文件夹 → 播放列表",
   "settings.folderPlaylistsHelp": "扫描时，包含多张专辑曲目的文件夹（自制合辑）会成为同名的本地播放列表，并在每次扫描时重新同步。",
+  "settings.importPlaylistFiles": "导入 .m3u 和 .pls 文件",
+  "settings.importPlaylistFilesHelp": "扫描会遍历所有已配置的音乐文件夹，而不只是刚添加的那个：被遗忘的 .m3u 文件可能让旧播放列表重新出现。取消勾选即可停止导入。",
   "settings.serviceTokensBridgeHelp": "用于元数据增强（Discogs、Genius、MusicBrainz）和 scrobbling（Last.fm、ListenBrainz）的 API 令牌：输入、验证和分步帮助。",
   "settings.scanReportTitle": "上次扫描报告",
   "settings.scanReportUnchanged": "未变更",
@@ -2829,6 +2831,11 @@ export default {
   "settings.defaultZoneHelp": "打开时选中的区域（在没有区域正在播放时）。若有区域正在播放，Tune 会跟随该区域。",
   "settings.volumeDisplayHelp": "以百分比或分贝显示音量。只改变读数方式，不改变发送到设备的电平。",
   "acoustic.throttleHelp": "每分钟分析的曲目数。若机器发热或播放卡顿请调低；空闲时调高可更快完成。",
+  "settings.updateBlockedFlag": "服务器目录中的 .no-auto-update 文件阻止了更新。删除该文件即可允许更新——它用于保护特定安装，请先确认。",
+  "settings.updateAlreadyRunning": "此服务器已有更新正在进行，请等待完成。",
+  "settings.updateBlockedScan": "更新已推迟：音乐库正在扫描。现在安装会重启服务器，扫描将从头开始。",
+  "settings.updateBlockedPlaying": "更新已推迟：有区域正在播放。现在安装会中断正在播放的音乐。",
+  "settings.updateBlockedUnknown": "服务器拒绝了更新但未说明原因。请查看服务器日志。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

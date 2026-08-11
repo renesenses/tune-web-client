@@ -1693,6 +1693,8 @@ export default {
   "settings.scanCompleted": "Scan complete: {scanned} files, {added} added, {updated} updated, {removed} removed",
   "settings.folderPlaylists": "Folders → playlists",
   "settings.folderPlaylistsHelp": "During a scan, a folder whose tracks span several albums (hand-made compilation) becomes a local playlist with the same name, re-synced on every scan.",
+  "settings.importPlaylistFiles": "Import .m3u and .pls files",
+  "settings.importPlaylistFilesHelp": "A scan walks every configured music folder, not just the one you have just added: forgotten .m3u files can bring old playlists back. Uncheck to stop importing them.",
   "settings.serviceTokensBridgeHelp": "API tokens for metadata enrichment (Discogs, Genius, MusicBrainz) and scrobbling (Last.fm, ListenBrainz): entry, validation and step-by-step help.",
   "settings.scanReportTitle": "Last scan report",
   "settings.scanReportUnchanged": "unchanged",
@@ -2838,6 +2840,11 @@ export default {
   "settings.defaultZoneHelp": "The zone selected on opening, when none is already playing. If a zone is playing, Tune joins it rather than forcing this one.",
   "settings.volumeDisplayHelp": "Show volume as a percentage or in decibels. Changes only how it reads, never the level sent to the device.",
   "acoustic.throttleHelp": "Tracks analysed per minute. Lower it if the machine runs hot or playback stutters during analysis; raise it to finish faster on an idle library.",
+  "settings.updateBlockedFlag": "Update blocked by the .no-auto-update file in the server folder. Delete it to allow updates — it is there to protect a specific install, so check first.",
+  "settings.updateAlreadyRunning": "An update is already running on this server. Wait for it to finish.",
+  "settings.updateBlockedScan": "Update deferred: a library scan is running. Installing would restart the server and the scan would start over.",
+  "settings.updateBlockedPlaying": "Update deferred: a zone is playing. Installing would cut the music mid-track.",
+  "settings.updateBlockedUnknown": "The server refused the update without giving a reason. Check the server logs.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

@@ -1470,6 +1470,8 @@ export default {
   "settings.scanCompleted": "スキャン完了: {scanned} 件のファイル、{added} 件を追加、{updated} 件を更新、{removed} 件を削除",
   "settings.folderPlaylists": "フォルダ → プレイリスト",
   "settings.folderPlaylistsHelp": "スキャン時、複数のアルバムの曲を含むフォルダ（自作コンピレーション）は同名のローカルプレイリストになり、スキャンごとに同期されます。",
+  "settings.importPlaylistFiles": "M3U・PLS ファイルを取り込む",
+  "settings.importPlaylistFilesHelp": "スキャンは追加したばかりのフォルダだけでなく、設定済みのすべての音楽フォルダを巡回します。忘れられた .m3u ファイルから古いプレイリストが復活することがあります。取り込みをやめるにはオフにしてください。",
   "settings.serviceTokensBridgeHelp": "メタデータ強化（Discogs、Genius、MusicBrainz）と scrobbling（Last.fm、ListenBrainz）用の API トークン：入力・検証・手順ガイド。",
   "settings.scanReportTitle": "前回のスキャンレポート",
   "settings.scanReportUnchanged": "変更なし",
@@ -2829,6 +2831,11 @@ export default {
   "settings.defaultZoneHelp": "起動時に選ばれるゾーン（どこも再生していない場合）。再生中のゾーンがあれば、そちらに合わせます。",
   "settings.volumeDisplayHelp": "音量をパーセントかデシベルで表示します。表示方法が変わるだけで、機器に送る音量は変わりません。",
   "acoustic.throttleHelp": "1分あたりに解析する曲数。本体が熱くなる、再生が途切れる場合は下げ、再生していないときは上げると早く終わります。",
+  "settings.updateBlockedFlag": "サーバーフォルダーの .no-auto-update ファイルにより更新がブロックされています。更新を許可するには削除してください。特定の構成を守るための印なので、先に確認を。",
+  "settings.updateAlreadyRunning": "このサーバーではすでに更新が進行中です。完了までお待ちください。",
+  "settings.updateBlockedScan": "更新を保留しました。ライブラリのスキャン中です。今入れるとサーバーが再起動し、スキャンは最初からやり直しになります。",
+  "settings.updateBlockedPlaying": "更新を保留しました。再生中のゾーンがあります。今入れると曲の途中で音が止まります。",
+  "settings.updateBlockedUnknown": "サーバーが理由を示さずに更新を拒否しました。サーバーのログを確認してください。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

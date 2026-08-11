@@ -1470,6 +1470,8 @@ export default {
   "settings.scanCompleted": "Scansione completata: {scanned} file, {added} aggiunti, {updated} aggiornati, {removed} rimossi",
   "settings.folderPlaylists": "Cartelle → playlist",
   "settings.folderPlaylistsHelp": "Durante la scansione, una cartella con brani provenienti da più album (compilation fatta a mano) diventa una playlist locale con lo stesso nome, risincronizzata a ogni scansione.",
+  "settings.importPlaylistFiles": "Importa i file .m3u e .pls",
+  "settings.importPlaylistFilesHelp": "La scansione percorre tutte le cartelle musicali configurate, non solo quella appena aggiunta: vecchi file .m3u dimenticati possono far riapparire playlist datate. Deseleziona per non importarli più.",
   "settings.serviceTokensBridgeHelp": "Token API per l'arricchimento dei metadati (Discogs, Genius, MusicBrainz) e lo scrobbling (Last.fm, ListenBrainz): inserimento, convalida e guida passo passo.",
   "settings.scanReportTitle": "Ultimo rapporto di scansione",
   "settings.scanReportUnchanged": "invariati",
@@ -2829,6 +2831,11 @@ export default {
   "settings.defaultZoneHelp": "La zona selezionata all'apertura, quando nessuna sta suonando. Se una zona è in riproduzione, Tune si unisce a quella invece di imporre questa.",
   "settings.volumeDisplayHelp": "Mostra il volume in percentuale o in decibel. Cambia solo la lettura, mai il livello inviato all'apparecchio.",
   "acoustic.throttleHelp": "Brani analizzati al minuto. Riducilo se la macchina scalda o la riproduzione singhiozza; aumentalo per finire prima con una libreria a riposo.",
+  "settings.updateBlockedFlag": "Aggiornamento bloccato dal file .no-auto-update nella cartella del server. Eliminalo per consentire gli aggiornamenti: protegge un'installazione specifica, verifica prima.",
+  "settings.updateAlreadyRunning": "È già in corso un aggiornamento su questo server. Attendi che finisca.",
+  "settings.updateBlockedScan": "Aggiornamento rinviato: è in corso una scansione della libreria. Installare riavvierebbe il server e la scansione ripartirebbe da capo.",
+  "settings.updateBlockedPlaying": "Aggiornamento rinviato: una zona è in riproduzione. Installare interromperebbe la musica.",
+  "settings.updateBlockedUnknown": "Il server ha rifiutato l'aggiornamento senza indicarne il motivo. Consulta i log del server.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

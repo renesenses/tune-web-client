@@ -1470,6 +1470,8 @@ export default {
   "settings.scanCompleted": "Análisis completado: {scanned} archivos, {added} añadidos, {updated} actualizados, {removed} eliminados",
   "settings.folderPlaylists": "Carpetas → listas",
   "settings.folderPlaylistsHelp": "Durante el escaneo, una carpeta cuyas pistas provienen de varios álbumes (recopilación propia) se convierte en una lista local con el mismo nombre, resincronizada en cada escaneo.",
+  "settings.importPlaylistFiles": "Importar archivos .m3u y .pls",
+  "settings.importPlaylistFilesHelp": "El escaneo recorre todas las carpetas de música configuradas, no solo la que acaba de añadir: archivos .m3u olvidados pueden hacer reaparecer listas antiguas. Desmarque para dejar de importarlos.",
   "settings.serviceTokensBridgeHelp": "Tokens de API para el enriquecimiento de metadatos (Discogs, Genius, MusicBrainz) y scrobbling (Last.fm, ListenBrainz): entrada, validación y ayuda paso a paso.",
   "settings.scanReportTitle": "Ãltimo informe de escaneo",
   "settings.scanReportUnchanged": "sin cambios",
@@ -2829,6 +2831,11 @@ export default {
   "settings.defaultZoneHelp": "La zona seleccionada al abrir, si ninguna está sonando. Si una zona está reproduciendo, Tune se une a ella en lugar de imponer esta.",
   "settings.volumeDisplayHelp": "Mostrar el volumen en porcentaje o en decibelios. Solo cambia cómo se lee, nunca el nivel enviado al aparato.",
   "acoustic.throttleHelp": "Pistas analizadas por minuto. Redúzcalo si la máquina se calienta o la reproducción se entrecorta; auméntelo para terminar antes con una biblioteca en reposo.",
+  "settings.updateBlockedFlag": "Actualización bloqueada por el archivo .no-auto-update en la carpeta del servidor. Elimínelo para permitir actualizaciones: está ahí para proteger una instalación concreta, compruébelo antes.",
+  "settings.updateAlreadyRunning": "Ya hay una actualización en curso en este servidor. Espere a que termine.",
+  "settings.updateBlockedScan": "Actualización aplazada: hay un escaneo de la biblioteca en curso. Instalar reiniciaría el servidor y el escaneo empezaría de nuevo.",
+  "settings.updateBlockedPlaying": "Actualización aplazada: una zona está reproduciendo. Instalar cortaría la música en curso.",
+  "settings.updateBlockedUnknown": "El servidor rechazó la actualización sin dar un motivo. Consulte los registros del servidor.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

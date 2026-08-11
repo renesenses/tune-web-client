@@ -1453,6 +1453,8 @@ export default {
   "settings.scanCompleted": "스캔 완료: {scanned}개 파일, {added}개 추가됨, {updated}개 업데이트됨, {removed}개 제거됨",
   "settings.folderPlaylists": "폴더 → 재생목록",
   "settings.folderPlaylistsHelp": "스캔 시 여러 앨범의 곡이 섞인 폴더(직접 만든 컴필레이션)는 같은 이름의 로컬 재생목록이 되며, 스캔할 때마다 다시 동기화됩니다.",
+  "settings.importPlaylistFiles": "M3U 및 PLS 파일 가져오기",
+  "settings.importPlaylistFilesHelp": "스캔은 방금 추가한 폴더뿐 아니라 설정된 모든 음악 폴더를 훑습니다. 잊고 있던 .m3u 파일 때문에 예전 재생목록이 다시 나타날 수 있습니다. 가져오지 않으려면 해제하세요.",
   "settings.serviceTokensBridgeHelp": "메타데이터 보강(Discogs, Genius, MusicBrainz) 및 스크로블링(Last.fm, ListenBrainz)용 API 토큰: 입력, 검증, 단계별 도움말.",
   "settings.scanReportTitle": "마지막 스캔 보고서",
   "settings.scanReportUnchanged": "변경 없음",
@@ -2829,6 +2831,11 @@ export default {
   "settings.defaultZoneHelp": "아무 곳도 재생 중이 아닐 때 열면서 선택되는 존입니다. 재생 중인 존이 있으면 이 설정 대신 그 존을 따릅니다.",
   "settings.volumeDisplayHelp": "음량을 백분율 또는 데시벨로 표시합니다. 표시 방식만 바뀔 뿐 기기로 보내는 레벨은 변하지 않습니다.",
   "acoustic.throttleHelp": "분당 분석하는 곡 수입니다. 기기가 뜨거워지거나 재생이 끊기면 낮추고, 재생하지 않을 때는 높이면 더 빨리 끝납니다.",
+  "settings.updateBlockedFlag": "서버 폴더의 .no-auto-update 파일이 업데이트를 막고 있습니다. 업데이트를 허용하려면 삭제하세요. 특정 설치를 보호하려고 둔 표시이니 먼저 확인하세요.",
+  "settings.updateAlreadyRunning": "이 서버에서 이미 업데이트가 진행 중입니다. 완료될 때까지 기다려 주세요.",
+  "settings.updateBlockedScan": "업데이트를 미뤘습니다. 라이브러리 검색이 진행 중이며, 지금 설치하면 서버가 재시작되어 검색이 처음부터 다시 시작됩니다.",
+  "settings.updateBlockedPlaying": "업데이트를 미뤘습니다. 재생 중인 존이 있어 지금 설치하면 음악이 중간에 끊깁니다.",
+  "settings.updateBlockedUnknown": "서버가 이유를 밝히지 않고 업데이트를 거부했습니다. 서버 로그를 확인하세요.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

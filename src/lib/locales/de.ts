@@ -1470,6 +1470,8 @@ export default {
   "settings.scanCompleted": "Scan abgeschlossen: {scanned} Dateien, {added} hinzugefügt, {updated} aktualisiert, {removed} entfernt",
   "settings.folderPlaylists": "Ordner → Playlists",
   "settings.folderPlaylistsHelp": "Beim Scan wird ein Ordner, dessen Titel aus mehreren Alben stammen (eigene Zusammenstellung), zu einer gleichnamigen lokalen Playlist, die bei jedem Scan aktualisiert wird.",
+  "settings.importPlaylistFiles": "M3U- und PLS-Dateien importieren",
+  "settings.importPlaylistFilesHelp": "Ein Scan durchsucht alle eingerichteten Musikordner, nicht nur den zuletzt hinzugefügten: vergessene .m3u-Dateien können alte Playlists zurückbringen. Deaktivieren Sie die Option, um sie nicht mehr zu importieren.",
   "settings.serviceTokensBridgeHelp": "API-Tokens für Metadaten-Anreicherung (Discogs, Genius, MusicBrainz) und Scrobbling (Last.fm, ListenBrainz): Eingabe, Validierung und Schritt-für-Schritt-Hilfe.",
   "settings.scanReportTitle": "Letzter Scan-Bericht",
   "settings.scanReportUnchanged": "unverÃ¤ndert",
@@ -2829,6 +2831,11 @@ export default {
   "settings.defaultZoneHelp": "Die beim Öffnen ausgewählte Zone, wenn keine bereits spielt. Läuft eine Zone, schließt sich Tune ihr an, statt diese zu erzwingen.",
   "settings.volumeDisplayHelp": "Lautstärke in Prozent oder Dezibel anzeigen. Ändert nur die Darstellung, nie den an das Gerät gesendeten Pegel.",
   "acoustic.throttleHelp": "Pro Minute analysierte Titel. Verringern Sie den Wert, wenn das Gerät heiß läuft oder die Wiedergabe stockt; erhöhen Sie ihn, um eine ruhende Bibliothek schneller abzuschließen.",
+  "settings.updateBlockedFlag": "Aktualisierung durch die Datei .no-auto-update im Serverordner blockiert. Löschen Sie sie, um Updates zu erlauben — sie schützt eine bestimmte Installation, prüfen Sie das zuerst.",
+  "settings.updateAlreadyRunning": "Auf diesem Server läuft bereits eine Aktualisierung. Warten Sie, bis sie beendet ist.",
+  "settings.updateBlockedScan": "Aktualisierung verschoben: Ein Bibliotheks-Scan läuft. Die Installation würde den Server neu starten und der Scan begänne von vorn.",
+  "settings.updateBlockedPlaying": "Aktualisierung verschoben: Eine Zone spielt. Die Installation würde die Musik mitten im Titel abbrechen.",
+  "settings.updateBlockedUnknown": "Der Server hat die Aktualisierung ohne Angabe eines Grundes abgelehnt. Prüfen Sie die Serverprotokolle.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

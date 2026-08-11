@@ -392,6 +392,17 @@ export interface SystemConfig {
   zone_auto_create?: boolean;
   metadata_readonly: boolean;
   enrich_on_scan: ConfigFlag;
+  /**
+   * Fabrique une playlist à partir d'un DOSSIER dont les pistes viennent de
+   * plusieurs albums — opt-in, inactif par défaut.
+   */
+  scan_folder_playlists?: ConfigFlag;
+  /**
+   * Import des fichiers .m3u/.pls rencontrés au scan — actif par défaut, car
+   * il l'a toujours été. Distinct de `scan_folder_playlists` ci-dessus : celui-ci
+   * lit des fichiers de playlist, l'autre déduit une playlist d'un dossier.
+   */
+  scan_import_playlists?: ConfigFlag;
   /** Paroles en ligne (LRCLIB, base communautaire) — désactivé par défaut. */
   lyrics_lrclib_enabled?: ConfigFlag;
   discogs_token_set: boolean;

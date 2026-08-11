@@ -687,10 +687,13 @@
           {@const assignedDev = deviceById[zone.output_device_id]}
           <span
             class="assigned-device-name"
-            title={[assignedDev.name, assignedDev.manufacturer, assignedDev.model, assignedDev.mac_address].filter(Boolean).join(' — ')}
+            title={[assignedDev.name, zone.brand ?? assignedDev.manufacturer, zone.model ?? assignedDev.model, assignedDev.mac_address].filter(Boolean).join(' — ')}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><polyline points="17 2 12 7 7 2" /></svg>
-            {assignedDev.name}{#if assignedDev.manufacturer}<span class="device-brand"> · {assignedDev.manufacturer}</span>{/if}
+            <!-- La marque corrigée par l'utilisateur (zone.brand) prime sur celle
+                 déduite de la découverte : c'est tout l'objet de l'éditeur « Appareil ».
+                 Sans ça, la correction n'était visible que dans « Mon système ». -->
+            {assignedDev.name}{#if zone.brand ?? assignedDev.manufacturer}<span class="device-brand"> · {zone.brand ?? assignedDev.manufacturer}</span>{/if}
           </span>
         {:else if zone.output_type === 'local'}
           <span class="assigned-device-name muted">

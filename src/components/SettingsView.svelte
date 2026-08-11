@@ -1583,15 +1583,40 @@ function toggleAdvancedSystem() {
   // le clic plutôt que de le laisser découvrir à l'oreille.
   const playingZones = $derived($zones.filter((z) => z.state === 'playing').length);
 
+  /** Message lisible pour un refus de mise à jour renvoyé par le serveur.
+   *  Les motifs connus sont traduits ; un motif inconnu retombe sur le texte
+   *  du serveur, qui vaut mieux que rien. */
+  let updateRefusal = $state('');
+  function updateRefusalMessage(res: any): string {
+    const raw = String(res?.message ?? res?.status ?? '');
+    if (raw.includes('.no-auto-update')) return $t('settings.updateBlockedFlag');
+    if (res?.status === 'already_in_progress') return $t('settings.updateAlreadyRunning');
+    if (raw.toLowerCase().includes('scan')) return $t('settings.updateBlockedScan');
+    if (raw.toLowerCase().includes('playing') || raw.toLowerCase().includes('zone'))
+      return $t('settings.updateBlockedPlaying');
+    return raw || $t('settings.updateBlockedUnknown');
+  }
+
   async function installUpdate() {
     updateInstalling = true;
+    updateRefusal = '';
     try {
       // Server returns immediately ("started"). Download runs in the
       // background; we poll /update/status until it completes.
       // force=true : le bouton est cliqué juste sous l'avertissement de coupure,
       // donc la garde serveur ne doit pas re-refuser ce que l'utilisateur vient
       // d'accepter.
-      await api.installUpdate(true);
+      const res = await api.installUpdate(true);
+      // Un refus explicite du serveur (409) : on le DIT et on s'arrête. Sans
+      // ça, l'interface entrait dans 180 s d'attente d'un redémarrage qui
+      // n'arriverait jamais, et l'utilisateur voyait un bouton mort là où le
+      // serveur avait répondu clairement (#412 — vécu sur une machine portant
+      // un drapeau .no-auto-update).
+      if (res && res.ok === false) {
+        updateInstalling = false;
+        updateRefusal = updateRefusalMessage(res);
+        return;
+      }
     } catch (e) {
       // Old server (≤ v0.7.41) blocked the request for the full
       // download and the browser reported 'Failed to fetch' even though
@@ -3084,6 +3109,13 @@ function toggleAdvancedSystem() {
           <label class="pref-label">{$t('settings.folderPlaylists' as any)}<SettingHint k="settings.folderPlaylistsHelp" labelKey="settings.folderPlaylists" /></label>
           <label class="toggle-switch">
             <input type="checkbox" checked={config.scan_folder_playlists === true || config.scan_folder_playlists === 'true'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.scan_folder_playlists = val; await api.updateConfig({ scan_folder_playlists: val }); }} />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="pref-grid">
+          <label class="pref-label">{$t('settings.importPlaylistFiles' as any)}<SettingHint k="settings.importPlaylistFilesHelp" labelKey="settings.importPlaylistFiles" /></label>
+          <label class="toggle-switch">
+            <input type="checkbox" checked={config.scan_import_playlists !== false && config.scan_import_playlists !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.scan_import_playlists = val; await api.updateConfig({ scan_import_playlists: val }); }} />
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -5207,6 +5239,9 @@ function toggleAdvancedSystem() {
           {#if updateInfo.installable === false && updateInfo.install_hint}
             <div class="install-hint">{updateInfo.install_hint}</div>
           {/if}
+          {#if updateRefusal}
+            <div class="update-refusal">⛔ {updateRefusal}</div>
+          {/if}
           {#if playingZones > 0 && updateInfo.installable !== false && !updateDone && !updateDmgReady && !updateInstalling}
             <div class="update-playing-warning">
               ⚠️ {$t('settings.updateStopsPlayback')}
@@ -5606,6 +5641,19 @@ function toggleAdvancedSystem() {
 
   /* Même traitement visuel que .install-hint : c'est le même registre — une
      conséquence à connaître avant de cliquer, pas une erreur. */
+  /* Refus explicite du serveur : doit se lire, pas se deviner (#412). */
+  .update-refusal {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm, 6px);
+    background: rgba(229, 72, 77, 0.12);
+    border: 1px solid var(--tune-error, #e5484d);
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+
   .update-playing-warning {
     margin-top: var(--space-sm);
     padding: var(--space-sm) var(--space-md);

@@ -1694,6 +1694,8 @@ export default {
   "settings.scanCompleted": "Scan terminé : {scanned} fichiers, {added} ajoutés, {updated} mis à jour, {removed} supprimés",
   "settings.folderPlaylists": "Dossiers → playlists",
   "settings.folderPlaylistsHelp": "Au scan, un dossier dont les pistes proviennent de plusieurs albums (compilation maison) devient une playlist locale du même nom, resynchronisée à chaque scan.",
+  "settings.importPlaylistFiles": "Importer les fichiers .m3u et .pls",
+  "settings.importPlaylistFilesHelp": "Le scan parcourt tous les dossiers de musique configurés, pas seulement celui que vous venez d’ajouter : d’anciens fichiers .m3u oubliés peuvent y faire réapparaître des playlists. Décochez pour ne plus les importer.",
   "settings.serviceTokensBridgeHelp": "Tokens d'API pour l'enrichissement des métadonnées (Discogs, Genius, MusicBrainz) et le scrobbling (Last.fm, ListenBrainz) : saisie, validation et aide pas à pas.",
   "settings.scanReportTitle": "Dernier rapport de scan",
   "settings.scanReportUnchanged": "inchangÃ©s",
@@ -2838,6 +2840,11 @@ export default {
   "settings.defaultZoneHelp": "La zone sélectionnée à l'ouverture, quand aucune ne joue déjà. Si une zone est en lecture, Tune la rejoint plutôt que d'imposer celle-ci.",
   "settings.volumeDisplayHelp": "Affichage du volume en pourcentage ou en décibels. Change seulement la façon de le lire, jamais le niveau envoyé à l'appareil.",
   "acoustic.throttleHelp": "Nombre de morceaux analysés par minute. Baissez-le si la machine chauffe ou si la lecture hoquette pendant l'analyse ; montez-le pour finir plus vite une bibliothèque au repos.",
+  "settings.updateBlockedFlag": "Mise à jour bloquée par le fichier .no-auto-update, dans le dossier du serveur. Supprimez-le pour autoriser les mises à jour — il est là pour protéger une installation particulière, vérifiez avant.",
+  "settings.updateAlreadyRunning": "Une mise à jour est déjà en cours sur ce serveur. Attendez qu'elle se termine.",
+  "settings.updateBlockedScan": "Mise à jour reportée : un scan de la bibliothèque est en cours. Elle redémarrerait le serveur et le scan repartirait de zéro.",
+  "settings.updateBlockedPlaying": "Mise à jour reportée : une zone est en lecture. Installer couperait la musique en cours.",
+  "settings.updateBlockedUnknown": "Le serveur a refusé la mise à jour sans en donner la raison. Consultez les journaux du serveur.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

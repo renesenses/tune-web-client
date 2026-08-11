@@ -1478,6 +1478,8 @@ export default {
   "settings.scanCompleted": "Scanare completă: {scanned} fișiere, {added} adăugate, {updated} actualizate, {removed} eliminate",
   "settings.folderPlaylists": "Foldere → playlisturi",
   "settings.folderPlaylistsHelp": "La scanare, un folder ale cărui piese provin din mai multe albume (compilație proprie) devine un playlist local cu același nume, resincronizat la fiecare scanare.",
+  "settings.importPlaylistFiles": "Importă fișierele .m3u și .pls",
+  "settings.importPlaylistFilesHelp": "Scanarea parcurge toate folderele de muzică configurate, nu doar cel adăugat acum: fișiere .m3u uitate pot readuce playlisturi vechi. Debifați pentru a nu le mai importa.",
   "settings.serviceTokensBridgeHelp": "Tokenuri API pentru îmbogățirea metadatelor (Discogs, Genius, MusicBrainz) și scrobbling (Last.fm, ListenBrainz): introducere, validare și ghid pas cu pas.",
   "settings.scanReportTitle": "Ultimul raport de scanare",
   "settings.scanReportUnchanged": "neschimbate",
@@ -2829,6 +2831,11 @@ export default {
   "settings.defaultZoneHelp": "Zona selectată la deschidere, când niciuna nu redă deja. Dacă o zonă redă, Tune se alătură ei în loc să o impună pe aceasta.",
   "settings.volumeDisplayHelp": "Afișează volumul în procente sau în decibeli. Schimbă doar citirea, niciodată nivelul trimis aparatului.",
   "acoustic.throttleHelp": "Piese analizate pe minut. Reduceți-l dacă mașina se încălzește sau redarea se întrerupe; măriți-l pentru a termina mai repede o bibliotecă în repaus.",
+  "settings.updateBlockedFlag": "Actualizare blocată de fișierul .no-auto-update din folderul serverului. Ștergeți-l pentru a permite actualizările — protejează o instalare anume, verificați întâi.",
+  "settings.updateAlreadyRunning": "O actualizare este deja în curs pe acest server. Așteptați să se termine.",
+  "settings.updateBlockedScan": "Actualizare amânată: o scanare a bibliotecii este în curs. Instalarea ar reporni serverul și scanarea ar lua-o de la capăt.",
+  "settings.updateBlockedPlaying": "Actualizare amânată: o zonă redă. Instalarea ar întrerupe muzica.",
+  "settings.updateBlockedUnknown": "Serverul a refuzat actualizarea fără a da un motiv. Consultați jurnalele serverului.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

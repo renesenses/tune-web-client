@@ -1457,6 +1457,8 @@ export default {
   "settings.scanCompleted": "Skanning klar: {scanned} filer, {added} tillagda, {updated} uppdaterade, {removed} borttagna",
   "settings.folderPlaylists": "Mappar → spellistor",
   "settings.folderPlaylistsHelp": "Under en skanning blir en mapp vars spår sträcker sig över flera album (handgjord samling) en lokal spellista med samma namn, omsynkad vid varje skanning.",
+  "settings.importPlaylistFiles": "Importera .m3u- och .pls-filer",
+  "settings.importPlaylistFilesHelp": "En skanning går igenom alla konfigurerade musikmappar, inte bara den du nyss lade till: bortglömda .m3u-filer kan få gamla spellistor att dyka upp igen. Avmarkera för att sluta importera dem.",
   "settings.scanReportTitle": "Senaste skanningsrapport",
   "settings.scanReportUnchanged": "oförändrade",
   "settings.scanReportDuplicates": "dubbletter överhoppade",
@@ -2828,4 +2830,9 @@ export default {
   "settings.defaultZoneHelp": "Zonen som väljs vid start när ingen redan spelar. Om en zon spelar ansluter Tune till den i stället.",
   "settings.volumeDisplayHelp": "Visa volymen i procent eller decibel. Ändrar bara avläsningen, aldrig nivån som skickas till enheten.",
   "acoustic.throttleHelp": "Spår som analyseras per minut. Sänk om maskinen blir varm eller uppspelningen hackar; höj för att bli klar snabbare när inget spelas.",
+  "settings.updateBlockedFlag": "Uppdateringen blockeras av filen .no-auto-update i serverns mapp. Ta bort den för att tillåta uppdateringar — den skyddar en särskild installation, kontrollera först.",
+  "settings.updateAlreadyRunning": "En uppdatering pågår redan på denna server. Vänta tills den är klar.",
+  "settings.updateBlockedScan": "Uppdateringen sköts upp: en biblioteksgenomsökning pågår. Installation startar om servern och genomsökningen börjar om.",
+  "settings.updateBlockedPlaying": "Uppdateringen sköts upp: en zon spelar. Installation skulle avbryta musiken mitt i spåret.",
+  "settings.updateBlockedUnknown": "Servern nekade uppdateringen utan att ange skäl. Kontrollera serverloggarna.",
 } as const;
