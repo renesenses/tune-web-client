@@ -913,6 +913,9 @@ export default {
   'audiophile.enabled': 'Audiophiler Modus aktiv',
   'audiophile.disabled': 'Audiophiler Modus inaktiv',
   'audiophile.pure': 'PURE',
+  'audiophile.lockVolume': "Volle Lautstärke im Audiophil-Modus",
+  'audiophile.lockVolumeHelp': "Die Lautstärke ist ein Multiplikator: Absenken bricht die Bit-Perfect-Kette. Einschalten, um sie auf 100 % festzusetzen und den Regler zu sperren.",
+  'audiophile.volumeLockedHint': "Lautstärke durch den Audiophil-Modus auf 100 % festgesetzt",
 
   // Streaming Quality
   'settings.streamingQuality': 'Streaming-Qualität',

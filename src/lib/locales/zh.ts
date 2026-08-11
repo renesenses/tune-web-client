@@ -914,6 +914,9 @@ export default {
   'audiophile.enabled': '发烧友模式已启用',
   'audiophile.disabled': '发烧友模式未启用',
   'audiophile.pure': 'PURE',
+  'audiophile.lockVolume': "发烧模式下音量固定为 100 %",
+  'audiophile.lockVolumeHelp': "音量是一个乘数：衰减会破坏比特完美。开启后将其固定在 100 % 并锁定滑块。",
+  'audiophile.volumeLockedHint': "音量已由发烧模式固定在 100 %",
 
   // Streaming Quality
   'settings.streamingQuality': '流媒体质量',

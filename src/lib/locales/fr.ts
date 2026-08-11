@@ -1137,6 +1137,9 @@ export default {
   'audiophile.enabled': 'Mode audiophile actif',
   'audiophile.disabled': 'Mode audiophile inactif',
   'audiophile.pure': 'PURE',
+  'audiophile.lockVolume': "Volume à 100 % en mode Audiophile",
+  'audiophile.lockVolumeHelp': "Le volume est un multiplicateur : l’atténuer rompt le bit-perfect. Activez pour le figer à 100 % et geler le curseur.",
+  'audiophile.volumeLockedHint': "Volume figé à 100 % par le mode Audiophile",
 
   // Streaming Quality
   'settings.streamingQuality': 'Qualite streaming',

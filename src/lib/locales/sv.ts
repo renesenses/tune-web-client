@@ -906,6 +906,9 @@ export default {
   'audiophile.enabled': 'Audiofilläge aktivt',
   'audiophile.disabled': 'Audiofilläge inaktivt',
   'audiophile.pure': 'PURE',
+  'audiophile.lockVolume': "Full volym i Audiofilt läge",
+  'audiophile.lockVolumeHelp': "Volymen är en multiplikator: att sänka den bryter bit-perfect. Slå på för att låsa den vid 100 % och frysa reglaget.",
+  'audiophile.volumeLockedHint': "Volymen är låst vid 100 % av Audiofilt läge",
 
   // Streaming Quality
   'settings.streamingQuality': 'Streamingkvalitet',

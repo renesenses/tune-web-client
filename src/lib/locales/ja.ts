@@ -914,6 +914,9 @@ export default {
   'audiophile.enabled': 'オーディオファイルモード有効',
   'audiophile.disabled': 'オーディオファイルモード無効',
   'audiophile.pure': 'PURE',
+  'audiophile.lockVolume': "オーディオファイルモードで音量を 100 % に固定",
+  'audiophile.lockVolumeHelp': "音量は乗算です。下げるとビットパーフェクトが崩れます。オンにすると 100 % に固定し、スライダーを操作できなくします。",
+  'audiophile.volumeLockedHint': "オーディオファイルモードにより音量は 100 % に固定されています",
 
   // Streaming Quality
   'settings.streamingQuality': 'ストリーミング品質',

@@ -897,6 +897,9 @@ export default {
   'audiophile.enabled': '오디오파일 모드 활성',
   'audiophile.disabled': '오디오파일 모드 비활성',
   'audiophile.pure': 'PURE',
+  'audiophile.lockVolume': "오디오파일 모드에서 볼륨 100 % 고정",
+  'audiophile.lockVolumeHelp': "볼륨은 곱셈 연산입니다. 낮추면 비트퍼펙트가 깨집니다. 켜면 100 %로 고정하고 슬라이더를 잠급니다.",
+  'audiophile.volumeLockedHint': "오디오파일 모드가 볼륨을 100 %로 고정했습니다",
 
   // Streaming Quality
   'settings.streamingQuality': '스트리밍 품질',
