@@ -1575,12 +1575,22 @@ function toggleAdvancedSystem() {
     } catch { /* ignore */ }
   }
 
+  // Combien de zones jouent en ce moment. Installer une mise à jour relance le
+  // serveur, ce qui coupe la lecture en cours — sur .18 le 10 août, six mises à
+  // jour dans la journée ont coupé la musique sans que rien ne le dise, et le
+  // symptôme est remonté en « micro-coupures du son » (#1462). On le dit avant
+  // le clic plutôt que de le laisser découvrir à l'oreille.
+  const playingZones = $derived($zones.filter((z) => z.state === 'playing').length);
+
   async function installUpdate() {
     updateInstalling = true;
     try {
       // Server returns immediately ("started"). Download runs in the
       // background; we poll /update/status until it completes.
-      await api.installUpdate();
+      // force=true : le bouton est cliqué juste sous l'avertissement de coupure,
+      // donc la garde serveur ne doit pas re-refuser ce que l'utilisateur vient
+      // d'accepter.
+      await api.installUpdate(true);
     } catch (e) {
       // Old server (≤ v0.7.41) blocked the request for the full
       // download and the browser reported 'Failed to fetch' even though
@@ -2727,6 +2737,11 @@ function toggleAdvancedSystem() {
             <span class="update-btn" style="opacity:0.6">{$t('settings.installing')}</span>
           {:else}
             <button class="update-btn" onclick={installUpdate}>{$t('settings.updateButton')}</button>
+          {/if}
+          {#if playingZones > 0 && !updateDone && !updateInstalling}
+            <div class="update-playing-warning">
+              ⚠️ {$t('settings.updateStopsPlayback')}
+            </div>
           {/if}
         </div>
       </section>
@@ -5201,6 +5216,11 @@ function toggleAdvancedSystem() {
           {#if updateInfo.installable === false && updateInfo.install_hint}
             <div class="install-hint">{updateInfo.install_hint}</div>
           {/if}
+          {#if playingZones > 0 && updateInfo.installable !== false && !updateDone && !updateDmgReady && !updateInstalling}
+            <div class="update-playing-warning">
+              ⚠️ {$t('settings.updateStopsPlayback')}
+            </div>
+          {/if}
         {:else if clientStale}
           <div class="about-row">
             <span class="about-label">{$t('settings.updates')}</span>
@@ -5583,6 +5603,19 @@ function toggleAdvancedSystem() {
   }
 
   .install-hint {
+    margin-top: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: var(--radius-md);
+    color: #fbbf24;
+    font-family: var(--font-body);
+    font-size: 13px;
+  }
+
+  /* Même traitement visuel que .install-hint : c'est le même registre — une
+     conséquence à connaître avant de cliquer, pas une erreur. */
+  .update-playing-warning {
     margin-top: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
     background: rgba(245, 158, 11, 0.08);

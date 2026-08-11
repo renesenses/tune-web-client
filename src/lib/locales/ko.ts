@@ -1482,6 +1482,7 @@ export default {
   "settings.installedRestarting": "설치됨 — 다시 시작 중...",
   "settings.installing": "설치 중...",
   "settings.updateButton": "업데이트",
+  "settings.updateStopsPlayback": "지금 음악이 재생 중입니다. 업데이트를 설치하면 서버가 재시작되어 재생이 중단됩니다.",
   "settings.tuneServersOnNetwork": "네트워크의 Tune 서버",
   "settings.applianceWifi": "WiFi 네트워크",
   "settings.wifiConnectedTo": "{ssid}에 연결됨",

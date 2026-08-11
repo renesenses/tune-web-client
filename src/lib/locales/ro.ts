@@ -1507,6 +1507,7 @@ export default {
   "settings.installedRestarting": "Instalat — se repornește...",
   "settings.installing": "Se instalează...",
   "settings.updateButton": "Actualizează",
+  "settings.updateStopsPlayback": "Se redă muzică chiar acum: instalarea actualizării repornește serverul și va opri redarea.",
   "settings.tuneServersOnNetwork": "Servere Tune din rețea",
   "settings.applianceWifi": "Rețea WiFi",
   "settings.wifiConnectedTo": "Conectat la {ssid}",

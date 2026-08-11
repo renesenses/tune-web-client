@@ -1499,6 +1499,7 @@ export default {
   "settings.installedRestarting": "Installiert — wird neu gestartet…",
   "settings.installing": "Wird installiert…",
   "settings.updateButton": "Aktualisieren",
+  "settings.updateStopsPlayback": "Es läuft gerade Musik: Die Installation startet den Server neu und stoppt die Wiedergabe.",
   "settings.tuneServersOnNetwork": "Tune-Server im Netzwerk",
   "settings.applianceWifi": "WLAN-Netzwerk",
   "settings.wifiConnectedTo": "Verbunden mit {ssid}",
