@@ -2820,6 +2820,11 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "모델 이름",
   "zoneConfig.modelNone": "— 모델 선택 —",
   "zoneConfig.other": "기타…",
+  "settings.updateBlockedFlag": "서버 폴더의 .no-auto-update 파일이 업데이트를 막고 있습니다. 업데이트를 허용하려면 삭제하세요. 특정 설치를 보호하려고 둔 표시이니 먼저 확인하세요.",
+  "settings.updateAlreadyRunning": "이 서버에서 이미 업데이트가 진행 중입니다. 완료될 때까지 기다려 주세요.",
+  "settings.updateBlockedScan": "업데이트를 미뤘습니다. 라이브러리 검색이 진행 중이며, 지금 설치하면 서버가 재시작되어 검색이 처음부터 다시 시작됩니다.",
+  "settings.updateBlockedPlaying": "업데이트를 미뤘습니다. 재생 중인 존이 있어 지금 설치하면 음악이 중간에 끊깁니다.",
+  "settings.updateBlockedUnknown": "서버가 이유를 밝히지 않고 업데이트를 거부했습니다. 서버 로그를 확인하세요.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

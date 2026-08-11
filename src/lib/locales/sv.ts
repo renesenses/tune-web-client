@@ -2819,4 +2819,9 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "Modellens namn",
   "zoneConfig.modelNone": "— Välj en modell —",
   "zoneConfig.other": "Annat…",
+  "settings.updateBlockedFlag": "Uppdateringen blockeras av filen .no-auto-update i serverns mapp. Ta bort den för att tillåta uppdateringar — den skyddar en särskild installation, kontrollera först.",
+  "settings.updateAlreadyRunning": "En uppdatering pågår redan på denna server. Vänta tills den är klar.",
+  "settings.updateBlockedScan": "Uppdateringen sköts upp: en biblioteksgenomsökning pågår. Installation startar om servern och genomsökningen börjar om.",
+  "settings.updateBlockedPlaying": "Uppdateringen sköts upp: en zon spelar. Installation skulle avbryta musiken mitt i spåret.",
+  "settings.updateBlockedUnknown": "Servern nekade uppdateringen utan att ange skäl. Kontrollera serverloggarna.",
 } as const;

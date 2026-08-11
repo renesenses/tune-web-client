@@ -2820,6 +2820,11 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "型号名称",
   "zoneConfig.modelNone": "— 选择型号 —",
   "zoneConfig.other": "其他…",
+  "settings.updateBlockedFlag": "服务器目录中的 .no-auto-update 文件阻止了更新。删除该文件即可允许更新——它用于保护特定安装，请先确认。",
+  "settings.updateAlreadyRunning": "此服务器已有更新正在进行，请等待完成。",
+  "settings.updateBlockedScan": "更新已推迟：音乐库正在扫描。现在安装会重启服务器，扫描将从头开始。",
+  "settings.updateBlockedPlaying": "更新已推迟：有区域正在播放。现在安装会中断正在播放的音乐。",
+  "settings.updateBlockedUnknown": "服务器拒绝了更新但未说明原因。请查看服务器日志。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

@@ -2829,6 +2829,11 @@ export default {
   "common.edit": "Modifier",
   "dashboard.slot.empty": "Rien à afficher pour l'instant.",
   "dashboard.slot.play": "Lire ce titre",
+  "settings.updateBlockedFlag": "Mise à jour bloquée par le fichier .no-auto-update, dans le dossier du serveur. Supprimez-le pour autoriser les mises à jour — il est là pour protéger une installation particulière, vérifiez avant.",
+  "settings.updateAlreadyRunning": "Une mise à jour est déjà en cours sur ce serveur. Attendez qu'elle se termine.",
+  "settings.updateBlockedScan": "Mise à jour reportée : un scan de la bibliothèque est en cours. Elle redémarrerait le serveur et le scan repartirait de zéro.",
+  "settings.updateBlockedPlaying": "Mise à jour reportée : une zone est en lecture. Installer couperait la musique en cours.",
+  "settings.updateBlockedUnknown": "Le serveur a refusé la mise à jour sans en donner la raison. Consultez les journaux du serveur.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];
