@@ -3081,13 +3081,12 @@ function toggleAdvancedSystem() {
 
       {#if config}
         <div class="pref-grid">
-          <label class="pref-label">{$t('settings.folderPlaylists' as any)}</label>
+          <label class="pref-label">{$t('settings.folderPlaylists' as any)}<SettingHint k="settings.folderPlaylistsHelp" labelKey="settings.folderPlaylists" /></label>
           <label class="toggle-switch">
             <input type="checkbox" checked={config.scan_folder_playlists === true || config.scan_folder_playlists === 'true'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.scan_folder_playlists = val; await api.updateConfig({ scan_folder_playlists: val }); }} />
             <span class="toggle-slider"></span>
           </label>
         </div>
-        <p class="settings-note">{$t('settings.folderPlaylistsHelp' as any)}</p>
       {/if}
 
       <div class="action-buttons">
@@ -4027,7 +4026,7 @@ function toggleAdvancedSystem() {
         </div>
       </div>
       <div class="pref-grid" style="margin-top: 6px;">
-        <label class="pref-label" for="oxy-facet-limit">{$t('oxygen.facetValues')}</label>
+        <label class="pref-label" for="oxy-facet-limit">{$t('oxygen.facetValues')}<SettingHint k="oxygen.facetHelp" labelKey="oxygen.facetValues" /></label>
         <select id="oxy-facet-limit" class="pref-select" value={String($preferences.oxygenFacetLimit)}
           onchange={(e) => preferences.update((p) => ({ ...p, oxygenFacetLimit: Number((e.target as HTMLSelectElement).value) }))}>
           <option value="50">{$t('oxygen.facet50')}</option>
@@ -4037,7 +4036,6 @@ function toggleAdvancedSystem() {
           <option value="0">{$t('oxygen.facetAll')}</option>
         </select>
       </div>
-      <p class="settings-note">{$t('oxygen.facetHelp')}</p>
       <div class="settings-actions">
         <button class="action-btn" onclick={() => activeView.set('oxygen')}>{$t('oxygen.open')}</button>
       </div>
@@ -4097,7 +4095,7 @@ function toggleAdvancedSystem() {
       {/if}
       <p class="settings-note">{$t('settings.enrichArtworkNote')}</p>
       <div class="pref-grid" style="margin-top: 8px;">
-        <label class="pref-label">{$t('settings.discogsToken')}</label>
+        <label class="pref-label">{$t('settings.discogsToken')}<SettingHint k="settings.discogsTokenHelp" labelKey="settings.discogsToken" /></label>
         <span class="pref-value">
           {#if config.discogs_token_set}
             <span class="badge-ok">{$t('settings.discogsTokenSet')}</span>
@@ -4107,7 +4105,6 @@ function toggleAdvancedSystem() {
         </span>
       </div>
       <p class="settings-note">{$t('settings.discogsFallbackNote')}</p>
-      <p class="settings-note">{$t('settings.discogsTokenHelp')}</p>
       <p class="settings-note">{$t('settings.discogsEnvHint')}</p>
 
       <!-- 3) Fichiers — action qui modifie les fichiers sur disque -->
@@ -4508,13 +4505,12 @@ function toggleAdvancedSystem() {
       <section class="settings-section">
         <h3>{$t('settings.zoneAutoCreate' as any)}</h3>
         <div class="pref-grid">
-          <label class="pref-label">{$t('settings.zoneAutoCreateLabel' as any)}</label>
+          <label class="pref-label">{$t('settings.zoneAutoCreateLabel' as any)}<SettingHint k="settings.zoneAutoCreateHint" labelKey="settings.zoneAutoCreateLabel" /></label>
           <label class="toggle-switch">
             <input type="checkbox" checked={config.zone_auto_create ?? true} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.zone_auto_create = val; await api.updateConfig({ zone_auto_create: val }); }} />
             <span class="toggle-slider"></span>
           </label>
         </div>
-        <p class="settings-note">{$t('settings.zoneAutoCreateHint' as any)}</p>
       </section>
     {/if}
 
@@ -4522,13 +4518,12 @@ function toggleAdvancedSystem() {
     <section class="settings-section">
       <h3>{$t('settings.followMe' as any)}</h3>
       <div class="pref-grid">
-        <label class="pref-label">{$t('settings.followMeLabel' as any)}</label>
+        <label class="pref-label">{$t('settings.followMeLabel' as any)}<SettingHint k="settings.followMeHint" labelKey="settings.followMeLabel" /></label>
         <label class="toggle-switch">
           <input type="checkbox" bind:checked={$followMe} />
           <span class="toggle-slider"></span>
         </label>
       </div>
-      <p class="settings-note">{$t('settings.followMeHint' as any)}</p>
     </section>
 
     <!-- Zone audio settings (DSD mode, gapless, fixed volume) -->
