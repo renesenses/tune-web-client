@@ -32,9 +32,6 @@
   "src/components/TrackEditModal.svelte :: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'Record<string, string> | {}'.\\n No index signature with a parameter of type 'string' was found on type 'Record<string, string> | {}'.",
   "src/components/TransportBar.svelte :: Argument of type 'Zone' is not assignable to parameter of type '{ id: number; } & Record<string, unknown>'.\\n Type 'Zone' is not assignable to type '{ id: number; }'.\\n Types of property 'id' are incompatible.\\n Type 'number | null' is not assignable to type 'number'.\\n Type 'null' is not assignable to type 'number'.",
   "src/lib/__tests__/api.test.ts :: 'location' is specified more than once, so this usage will be overwritten.",
-  "src/lib/__tests__/api.test.ts :: Cannot find module 'fs' or its corresponding type declarations.",
-  "src/lib/__tests__/api.test.ts :: Cannot find module 'path' or its corresponding type declarations.",
-  "src/lib/__tests__/api.test.ts :: Cannot find name '__dirname'.",
   "src/lib/api.ts :: Type 'string' is not assignable to type 'Source | undefined'.",
   "src/lib/playback.ts :: Argument of type 'number | null' is not assignable to parameter of type 'number'.\\n Type 'null' is not assignable to type 'number'."
 ]
