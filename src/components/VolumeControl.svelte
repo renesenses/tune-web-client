@@ -4,6 +4,7 @@
   import { preferences } from '../lib/stores/preferences';
   import { isBrowserZone, browserSetVolume } from '../lib/stores/browserAudio';
   import { t } from '../lib/i18n';
+  import { volumeLocked } from '../lib/stores/audiophile';
   import * as api from '../lib/api';
 
   let zone = $derived($currentZone);
@@ -22,7 +23,7 @@
   let _volPending: (() => void) | null = null;
 
   function handleVolume(e: Event) {
-    if (!zone?.id) return;
+    if (!zone?.id || $volumeLocked) return;
     const val = Number((e.target as HTMLInputElement).value);
     if (val > 0) mutedVolume.set(null);
     zoneVolume.set(val);
@@ -50,7 +51,7 @@
   }
 
   async function toggleMute() {
-    if (!zone?.id) return;
+    if (!zone?.id || $volumeLocked) return;
     if (vol > 0) {
       mutedVolume.set(vol);
       applyVolume(0);
@@ -69,7 +70,7 @@
   const STEP = 0.01;
 
   async function stepDown() {
-    if (!zone?.id) return;
+    if (!zone?.id || $volumeLocked) return;
     const next = Math.max(0, vol - STEP);
     if (next > 0) mutedVolume.set(null);
     applyVolume(next);
@@ -77,7 +78,7 @@
   }
 
   async function stepUp() {
-    if (!zone?.id) return;
+    if (!zone?.id || $volumeLocked) return;
     const next = Math.min(1, vol + STEP);
     mutedVolume.set(null);
     applyVolume(next);
@@ -85,8 +86,14 @@
   }
 </script>
 
-<div class="volume-control">
-  <button class="volume-btn" class:muted={isMuted} onclick={toggleMute} title={$t('volume.title')}>
+<div class="volume-control" class:locked={$volumeLocked}>
+  <button
+    class="volume-btn"
+    class:muted={isMuted}
+    onclick={toggleMute}
+    disabled={$volumeLocked}
+    title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : $t('volume.title')}
+  >
     {#if isMuted || vol === 0}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
@@ -112,6 +119,8 @@
     step="0.01"
     value={vol}
     oninput={handleVolume}
+    disabled={$volumeLocked}
+    title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : undefined}
     aria-label="Volume"
   />
   <span class="volume-value">{volumeDisplay(vol)}</span>
@@ -122,6 +131,18 @@
     display: flex;
     align-items: center;
     gap: var(--space-sm);
+  }
+
+  /* Verrou du mode PURE : le curseur reste lisible (on veut voir qu'il est à
+     100 %), mais il n'accepte plus rien — `disabled` sur les contrôles fait le
+     vrai travail, ceci ne fait que le dire. */
+  .volume-control.locked {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .volume-control.locked :global(input),
+  .volume-control.locked :global(button) {
+    pointer-events: none;
   }
 
   .volume-btn {

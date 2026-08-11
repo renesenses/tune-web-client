@@ -921,6 +921,9 @@ export default {
   'audiophile.enabled': 'Mod audiofil activ',
   'audiophile.disabled': 'Mod audiofil inactiv',
   'audiophile.pure': 'PUR',
+  'audiophile.lockVolume': "Volum la 100 % în modul Audiofil",
+  'audiophile.lockVolumeHelp': "Volumul este un multiplicator: atenuarea lui rupe bit-perfect. Activați pentru a-l fixa la 100 % și a bloca cursorul.",
+  'audiophile.volumeLockedHint': "Volum fixat la 100 % de modul Audiofil",
 
   // Streaming Quality
   'settings.streamingQuality': 'Calitate streaming',

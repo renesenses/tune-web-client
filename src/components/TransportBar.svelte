@@ -17,6 +17,14 @@
   import type { OutputType, RepeatMode } from '../lib/types';
   import { activeView, mobileNowPlayingOpen } from '../lib/stores/navigation';
   import { isPremium } from '../lib/stores/license';
+  import {
+    audiophileEnabled,
+    audiophileLockVolume,
+    refreshAudiophile,
+    refreshVolumeLock,
+    setVolumeLock,
+    volumeLocked,
+  } from '../lib/stores/audiophile';
 
   function deviceTypeLabel(type?: OutputType): string {
     switch (type) {
@@ -47,7 +55,7 @@
 
   async function handleMobileVolume(e: Event) {
     const z = $currentZone;
-    if (!z?.id) return;
+    if (!z?.id || $volumeLocked) return;
     const val = Number((e.target as HTMLInputElement).value);
     if (val > 0) mutedVolume.set(null);
     applyMobileVolume(z, val);
@@ -56,7 +64,7 @@
 
   async function mobileVolumeStep(delta: number) {
     const z = $currentZone;
-    if (!z?.id) return;
+    if (!z?.id || $volumeLocked) return;
     const newVal = Math.max(0, Math.min(1, mobileVol + delta));
     if (newVal > 0) mutedVolume.set(null);
     applyMobileVolume(z, newVal);
@@ -65,7 +73,7 @@
 
   async function toggleMobileMute() {
     const z = $currentZone;
-    if (!z?.id) return;
+    if (!z?.id || $volumeLocked) return;
     if (mobileVol > 0) {
       mutedVolume.set(mobileVol);
       applyMobileVolume(z, 0);
@@ -384,19 +392,17 @@
 
   let showSignalPath = $state(false);
 
-  // Audiophile mode
-  let audiophileEnabled = $state(false);
+  // Audiophile mode — l'état vit dans un store partagé : VolumeControl doit
+  // lire le même (griser le curseur quand le verrou est armé).
   let audiophileLoading = $state(false);
-  let audiophileGeneration = 0;
+  let lockLoading = $state(false);
 
   $effect(() => {
-    const zoneId = $currentZoneId;
-    if (zoneId) {
-      const gen = ++audiophileGeneration;
-      api.getAudiophileMode(zoneId).then(res => {
-        if (gen === audiophileGeneration) audiophileEnabled = res.enabled;
-      }).catch(() => {});
-    }
+    void refreshAudiophile($currentZoneId);
+  });
+
+  $effect(() => {
+    void refreshVolumeLock();
   });
 
   async function toggleAudiophile() {
@@ -404,10 +410,35 @@
     if (!z?.id || audiophileLoading) return;
     audiophileLoading = true;
     try {
-      const res = await api.setAudiophileMode(z.id, !audiophileEnabled);
-      audiophileEnabled = res.enabled;
+      const res = await api.setAudiophileMode(z.id, !$audiophileEnabled);
+      audiophileEnabled.set(res.enabled);
+      // Le serveur remonte le volume lui-même quand le verrou est armé ;
+      // on reflète tout de suite, sans attendre un événement.
+      if (res.enabled && $audiophileLockVolume) {
+        mutedVolume.set(null);
+        zoneVolume.set(1);
+      }
     } catch {}
     audiophileLoading = false;
+  }
+
+  async function toggleVolumeLock() {
+    if (lockLoading) return;
+    lockLoading = true;
+    try {
+      await setVolumeLock(!$audiophileLockVolume);
+      if ($audiophileLockVolume && $audiophileEnabled) {
+        const z = $currentZone;
+        if (z?.id) {
+          mutedVolume.set(null);
+          zoneVolume.set(1);
+          await api.setVolume(z.id, 1);
+        }
+      }
+    } catch {
+      // setVolumeLock a déjà remis le store dans son état d'origine.
+    }
+    lockLoading = false;
   }
 
   const detailTranslations: Record<string, string> = {
@@ -685,7 +716,7 @@
     </button>
     {#if mobileVolumeOpen}
       <div class="mobile-volume-backdrop" onclick={() => mobileVolumeOpen = false} role="button" tabindex={0} aria-label="Close volume"></div>
-      <div class="mobile-volume-popup">
+      <div class="mobile-volume-popup" class:locked={$volumeLocked}>
         <button class="mobile-mute-btn" onclick={(e) => { e.stopPropagation(); toggleMobileMute(); }}>
           {#if mobileIsMuted || mobileVol === 0}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
@@ -707,6 +738,7 @@
           step="0.01"
           value={mobileVol}
           oninput={handleMobileVolume}
+          disabled={$volumeLocked}
           {...{ orient: 'vertical' }}
           aria-label="Volume"
           onclick={(e) => e.stopPropagation()}
@@ -767,16 +799,16 @@
 
     <button
       class="audiophile-btn signal-shield-btn"
-      class:active={audiophileEnabled}
-      class:bit-perfect={zone?.signal_path?.bit_perfect || audiophileEnabled}
-      class:lossy={zone?.signal_path && zone.state === 'playing' && !zone.signal_path.bit_perfect && !audiophileEnabled}
+      class:active={$audiophileEnabled}
+      class:bit-perfect={zone?.signal_path?.bit_perfect || $audiophileEnabled}
+      class:lossy={zone?.signal_path && zone.state === 'playing' && !zone.signal_path.bit_perfect && !$audiophileEnabled}
       onclick={(e) => { e.stopPropagation(); toggleAudiophile(); }}
-      title={audiophileEnabled ? $t('audiophile.enabled' as any) : $t('audiophile.disabled' as any)}
+      title={$audiophileEnabled ? $t('audiophile.enabled' as any) : $t('audiophile.disabled' as any)}
     >
-      <svg viewBox="0 0 24 26" fill={audiophileEnabled ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5" width="18" height="18">
+      <svg viewBox="0 0 24 26" fill={$audiophileEnabled ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5" width="18" height="18">
         <path d="M12 2L4 8v7c0 4.5 3.5 8.5 8 9.5c4.5-1 8-5 8-9.5V8l-8-6z" />
       </svg>
-      {#if audiophileEnabled}
+      {#if $audiophileEnabled}
         <span class="audiophile-label">{$t('audiophile.pure' as any)}</span>
       {/if}
     </button>
@@ -854,16 +886,37 @@
       <div class="sp-audiophile">
         <div class="sp-ap-text">
           <span class="sp-ap-title">{$t('audiophile.title' as any)}</span>
-          <span class="sp-ap-sub">{audiophileEnabled ? $t('audiophile.enabled' as any) : $t('audiophile.disabled' as any)}</span>
+          <span class="sp-ap-sub">{$audiophileEnabled ? $t('audiophile.enabled' as any) : $t('audiophile.disabled' as any)}</span>
         </div>
         <button
           class="sp-ap-switch"
-          class:on={audiophileEnabled}
+          class:on={$audiophileEnabled}
           onclick={() => toggleAudiophile()}
           disabled={audiophileLoading}
           role="switch"
-          aria-checked={audiophileEnabled}
+          aria-checked={$audiophileEnabled}
           aria-label={$t('audiophile.title' as any)}
+        >
+          <span class="sp-ap-knob"></span>
+        </button>
+      </div>
+
+      <!-- Le volume est un multiplicateur : en PURE il est la seule chose qui
+           touche encore les échantillons. Le geler à 100 % est un choix, pas
+           un défaut — d'où l'interrupteur, inactif au départ. -->
+      <div class="sp-audiophile sp-ap-sub-row">
+        <div class="sp-ap-text">
+          <span class="sp-ap-title">{$t('audiophile.lockVolume' as any)}</span>
+          <span class="sp-ap-sub">{$t('audiophile.lockVolumeHelp' as any)}</span>
+        </div>
+        <button
+          class="sp-ap-switch"
+          class:on={$audiophileLockVolume}
+          onclick={() => toggleVolumeLock()}
+          disabled={lockLoading}
+          role="switch"
+          aria-checked={$audiophileLockVolume}
+          aria-label={$t('audiophile.lockVolume' as any)}
         >
           <span class="sp-ap-knob"></span>
         </button>
@@ -1967,6 +2020,13 @@
     border: 1px solid var(--tune-border);
     border-radius: var(--radius-sm);
   }
+  /* Rangée secondaire : elle qualifie le mode juste au-dessus, elle doit
+     donc s'y rattacher visuellement au lieu de flotter comme un pair. */
+  .sp-ap-sub-row {
+    margin-top: -6px;
+    background: transparent;
+    border-style: dashed;
+  }
   .sp-ap-text {
     display: flex;
     flex-direction: column;
@@ -2336,6 +2396,14 @@
 
   .mobile-mute-btn:hover {
     color: var(--tune-text);
+  }
+
+  .mobile-volume-popup.locked {
+    opacity: 0.55;
+  }
+  .mobile-volume-popup.locked :global(input),
+  .mobile-volume-popup.locked :global(button) {
+    pointer-events: none;
   }
 
   .mobile-volume-slider {

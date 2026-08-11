@@ -393,6 +393,12 @@ export interface SystemConfig {
   metadata_readonly: boolean;
   enrich_on_scan: ConfigFlag;
   /**
+   * Le mode PURE (audiophile) impose-t-il le volume à 100 % et gèle-t-il le
+   * curseur ? Inactif par défaut — cocher « Audiophile » ne doit pas changer
+   * le niveau sans prévenir.
+   */
+  audiophile_lock_volume?: ConfigFlag;
+  /**
    * Fabrique une playlist à partir d'un DOSSIER dont les pistes viennent de
    * plusieurs albums — opt-in, inactif par défaut.
    */
