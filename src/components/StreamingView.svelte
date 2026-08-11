@@ -707,10 +707,22 @@
     }
   }
 
-  async function playStreamingAlbum(album: Album) {
+  /// Lancer un album de streaming, eventuellement A PARTIR d'une piste.
+  ///
+  /// Signale par un testeur (« Lire a partir d'un morceau impossible ») :
+  /// cliquer un titre n'en jouait QUE celui-la. Il avait raison, et il a meme
+  /// nomme le remede — « lire a partir de.. ».
+  ///
+  /// Le bouton existait deja pour les PLAYLISTS de streaming, avec son style ;
+  /// seuls les albums en etaient prives. Et le serveur accepte deja
+  /// `start_index` sur `streaming_album_id` (playback.rs) : il n'y avait donc
+  /// rien a inventer, ni cote serveur ni ici. Passer l'index suffit — enfiler
+  /// les pistes suivantes a la main aurait produit une file d'une autre forme
+  /// que celle de « Tout lire ».
+  async function playStreamingAlbum(album: Album, startIndex?: number) {
     if (!zone?.id || !service || !album.source_id) return;
     try {
-      await playAndSync(zone.id, { source: (album.source || service) as any, streaming_album_id: album.source_id });
+      await playAndSync(zone.id, { source: (album.source || service) as any, streaming_album_id: album.source_id, start_index: startIndex });
     } catch (e) {
       console.error('Play streaming album error:', e);
     }
@@ -803,6 +815,9 @@
                 <HeartButton streaming={{ itemType: 'track', service: t.source ?? service, serviceId: String(t.source_id), title: t.title, artist: t.artist_name ?? undefined, album: (t as any).album_title ?? undefined, coverUrl: t.cover_path ?? undefined }} size={14} />
               {/if}
             </span>
+            <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); selectedAlbum && playStreamingAlbum(selectedAlbum, index); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="6 3 20 12 6 21 6 3" /><line x1="2" y1="4" x2="2" y2="20" /></svg>
+            </button>
             <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
