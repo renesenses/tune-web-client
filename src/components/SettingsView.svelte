@@ -48,6 +48,35 @@
   function isLocalZone(z: { output_type?: string }): boolean {
     return ['local', 'browser'].includes(z.output_type ?? '');
   }
+  // Le DoP fait voyager le DSD dans des trames PCM 24 bits à un seizième du
+  // débit DSD : DSD64 → 176,4 kHz, DSD128 → 352,8 kHz, DSD256 → 705,6 kHz.
+  // Un plafond de fréquence plus bas ne « préserve » donc rien du tout — le
+  // serveur repasse en PCM sans rien dire (orchestrator.rs,
+  // `dsd_dop_rate_exceeds_zone_max_falling_back_to_pcm`).
+  //
+  // Cyrille avait choisi 384 kHz, la valeur la plus haute que cette liste
+  // proposait, et perdait son DSD256 : aucune option n'aurait pu marcher, et
+  // l'infobulle lui promettait l'inverse (forum #1320). D'où les deux paliers
+  // DoP ajoutés à la liste, et cet avertissement sous le réglage.
+  //
+  // Sortie locale uniquement : le serveur ne déclenche le DoP que sur un
+  // `output_device_id` en `local:`, et un renderer réseau reçoit le fichier DSD
+  // tel quel sans jamais consulter ce plafond.
+  // Seuil = le DoP du DSD256, pas celui du DSD512 : au-dessus de 705,6 kHz on
+  // ne perd plus que du DSD512, que presque personne ne possède, et un
+  // avertissement qui se déclenche pour rien finit par ne plus être lu.
+  const DOP_RATE_DSD256 = 705600;
+  function dopCappedToPcm(z: {
+    output_type?: string;
+    dsd_mode?: string;
+    max_sample_rate?: number | null;
+  }): boolean {
+    if (z.output_type !== 'local') return false;
+    if (!['native', 'dop'].includes(z.dsd_mode ?? 'auto')) return false;
+    const cap = z.max_sample_rate;
+    if (!cap) return false;
+    return cap < DOP_RATE_DSD256;
+  }
   // Readable device hint from output_device_id ("local:Haut-parleurs…" →
   // "Haut-parleurs…") so two same-named zones can be told apart.
   function zoneDeviceHint(z: { output_device_id?: string | null; output_type?: string }): string {
@@ -4636,9 +4665,14 @@ function toggleAdvancedSystem() {
                         <option value="192000">192 kHz</option>
                         <option value="352800">352.8 kHz</option>
                         <option value="384000">384 kHz</option>
+                        <option value="705600">705.6 kHz</option>
+                        <option value="1411200">1411.2 kHz</option>
                       </select>
                     </label>
                   </div>
+                  {#if dopCappedToPcm(z)}
+                    <p class="zone-warn">{$t('settings.maxSampleRateDsdCap')}</p>
+                  {/if}
                   {#if zoneHasAdvanced(z)}
                     <details class="zone-adv">
                       <summary class="zone-adv-summary">{$t('settings.zoneAdvanced')}</summary>
@@ -7474,6 +7508,9 @@ function toggleAdvancedSystem() {
   .zone-online.offline .zone-online-dot { box-shadow: none; }
   .zone-card-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
   .zone-setting-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tune-text-muted); }
+  /* Même gabarit que .rc-warn (RendererConfig) : un réglage qui en annule
+     silencieusement un autre se dit sous le réglage, pas dans une infobulle. */
+  .zone-warn { margin: 2px 0 0; font-size: 12px; line-height: 1.4; color: var(--tune-warning, #d29922); }
   .zone-setting-checkbox { cursor: pointer; }
   .zone-select {
     padding: 4px 8px; font-size: 12px; border-radius: var(--radius-sm, 4px);
