@@ -2290,6 +2290,7 @@ export default {
   "converter.noMusicDir": "Niciun director de muzică configurat",
   "converter.emptyDir": "Director gol",
   "converter.outputFormat": "Format de ieșire",
+  "converter.formatUnavailable": "Indisponibil pe acest server",
   "converter.quality": "Calitate / Bitrate",
   "converter.sampleRate": "Rată de eșantionare",
   "converter.bitDepth": "Adâncime de biți",

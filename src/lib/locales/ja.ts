@@ -2280,6 +2280,7 @@ export default {
   "converter.noMusicDir": "音楽ディレクトリが設定されていません",
   "converter.emptyDir": "空のディレクトリ",
   "converter.outputFormat": "出力フォーマット",
+  "converter.formatUnavailable": "このサーバーでは利用できません",
   "converter.quality": "品質 / ビットレート",
   "converter.sampleRate": "サンプルレート",
   "converter.bitDepth": "ビット深度",

@@ -163,6 +163,36 @@
   // Load on mount
   loadAlbums();
 
+  // --- Server capabilities (#1524) ---
+  // Which formats THIS server can actually produce: flac/wav/opus are
+  // native, mp3/aac/alac depend on tools shipped with the release. Before
+  // this, all six formats were offered blind and four could end in an
+  // error after the user had already picked files and clicked start.
+  // null = unknown (older server without the endpoint) → grey nothing.
+  let serverFormats = $state<Record<string, boolean> | null>(null);
+
+  async function loadCapabilities() {
+    try {
+      const caps = await api.getConverterCapabilities();
+      serverFormats = caps.formats;
+    } catch {
+      serverFormats = null;
+    }
+  }
+  loadCapabilities();
+
+  function formatAvailable(format: string): boolean {
+    return serverFormats === null || serverFormats[format] !== false;
+  }
+
+  // If the selected preset's format turns out unavailable, fall back to the
+  // CD FLAC preset — always native, always possible.
+  $effect(() => {
+    if (serverFormats && !isCustom && !formatAvailable(selectedPreset.format)) {
+      selectedPresetId = 'cd-flac';
+    }
+  });
+
   // --- Load browse roots ---
   async function loadBrowseRoots() {
     browseLoading = true;
@@ -574,9 +604,13 @@
 
     <div class="preset-grid">
       {#each presets as preset (preset.id)}
+        {@const unavailable = preset.id !== 'custom' && !formatAvailable(preset.format)}
         <button
           class="preset-card"
           class:active={selectedPresetId === preset.id}
+          class:unavailable
+          disabled={unavailable}
+          title={unavailable ? $t('converter.formatUnavailable') : undefined}
           onclick={() => {
             selectedPresetId = preset.id;
             if (preset.id !== 'custom') {
@@ -589,7 +623,7 @@
         >
           <span class="preset-label">{preset.label}</span>
           {#if preset.id !== 'custom'}
-            <span class="preset-desc">{preset.description}</span>
+            <span class="preset-desc">{unavailable ? $t('converter.formatUnavailable') : preset.description}</span>
           {/if}
         </button>
       {/each}
@@ -605,7 +639,9 @@
             customQuality = opts[0]?.value ?? 'lossless';
           }}>
             {#each formatOptions as opt}
-              <option value={opt.value}>{opt.label}</option>
+              <option value={opt.value} disabled={!formatAvailable(opt.value)}>
+                {opt.label}{formatAvailable(opt.value) ? '' : ` — ${$t('converter.formatUnavailable')}`}
+              </option>
             {/each}
           </select>
         </div>
@@ -1105,6 +1141,17 @@
   .preset-card.active {
     border-color: var(--tune-accent);
     background: rgba(107, 110, 217, 0.1);
+  }
+
+  /* Format que ce serveur ne sait pas produire (#1524) : visible mais
+     inerte — l'utilisateur voit ce qui existe, sans pouvoir échouer. */
+  .preset-card.unavailable {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .preset-card.unavailable:hover {
+    border-color: transparent;
   }
 
   .preset-label {

@@ -3958,6 +3958,17 @@ export function getConverterPresets(): Promise<{ id: string; label: string; form
   return fetchJSON(`${BASE}/converter/presets`);
 }
 
+// Which formats THIS server can actually produce (#1524): flac/wav/opus are
+// native; mp3/aac/alac depend on external tools shipped with the release.
+export interface ConverterCapabilities {
+  formats: Record<string, boolean>;
+  tools: { ffmpeg: string | null; lame: string | null };
+}
+
+export function getConverterCapabilities(): Promise<ConverterCapabilities> {
+  return fetchJSON(`${BASE}/converter/capabilities`);
+}
+
 export function startConversion(
   // The server expects a flat array of sources, each an album, a track or a
   // path (Vec<ConvertSource>) — NOT a {type, ids} object, and numeric

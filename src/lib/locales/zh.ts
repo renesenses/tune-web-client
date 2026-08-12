@@ -2282,6 +2282,7 @@ export default {
   "converter.noMusicDir": "未配置音乐目录",
   "converter.emptyDir": "空目录",
   "converter.outputFormat": "输出格式",
+  "converter.formatUnavailable": "此服务器上不可用",
   "converter.quality": "质量 / 比特率",
   "converter.sampleRate": "采样率",
   "converter.bitDepth": "位深",

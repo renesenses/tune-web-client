@@ -2266,6 +2266,7 @@ export default {
   "converter.noMusicDir": "Ingen musikkatalog konfigurerad",
   "converter.emptyDir": "Tom katalog",
   "converter.outputFormat": "Utdataformat",
+  "converter.formatUnavailable": "Inte tillgängligt på den här servern",
   "converter.quality": "Kvalitet / Bitrate",
   "converter.sampleRate": "Samplingsfrekvens",
   "converter.bitDepth": "Bitdjup",
