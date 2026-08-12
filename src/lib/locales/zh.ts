@@ -1286,6 +1286,7 @@ export default {
   "home.trackNotFoundOn": "在以下服务未找到曲目",
   "home.nowListening": "正在收听",
   "home.continueListening": "继续收听",
+  "home.openAlbum": "打开专辑",
   "home.listens": "收听次数",
   "home.listened": "已收听",
   "home.libraryDuration": "音乐库",

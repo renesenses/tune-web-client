@@ -1510,6 +1510,7 @@ export default {
   "home.trackNotFoundOn": "Piste introuvable sur",
   "home.nowListening": "En cours d'écoute",
   "home.continueListening": "Continuer l'écoute",
+  "home.openAlbum": "Ouvrir l'album",
   "home.listens": "Écoutes",
   "home.listened": "Écouté",
   "home.libraryDuration": "Bibliothèque",

@@ -1294,6 +1294,7 @@ export default {
   "home.trackNotFoundOn": "Piesă negăsită pe",
   "home.nowListening": "Se ascultă acum",
   "home.continueListening": "Continuă ascultarea",
+  "home.openAlbum": "Deschide albumul",
   "home.listens": "Ascultări",
   "home.listened": "Ascultat",
   "home.libraryDuration": "Bibliotecă",

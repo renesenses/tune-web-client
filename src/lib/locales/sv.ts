@@ -1273,6 +1273,7 @@ export default {
   "home.trackNotFoundOn": "Spåret hittades inte på",
   "home.nowListening": "Lyssnar nu",
   "home.continueListening": "Fortsätt lyssna",
+  "home.openAlbum": "Öppna albumet",
   "home.listens": "Lyssningar",
   "home.listened": "Lyssnat",
   "home.libraryDuration": "Bibliotek",

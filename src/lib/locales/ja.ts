@@ -1286,6 +1286,7 @@ export default {
   "home.trackNotFoundOn": "次では曲が見つかりません:",
   "home.nowListening": "再生中",
   "home.continueListening": "続きを聴く",
+  "home.openAlbum": "アルバムを開く",
   "home.listens": "再生回数",
   "home.listened": "再生済み",
   "home.libraryDuration": "ライブラリ",
