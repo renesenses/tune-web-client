@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
   import * as api from '../lib/api';
+  import { errText } from '../lib/utils';
   import { artworkUrl } from '../lib/api';
   import type { Album, Artist, Track, Source, CompletenessStats, BackupInfo, MetadataFilter } from '../lib/types';
   import { t } from '../lib/i18n';
@@ -711,7 +712,7 @@
       dupAlbumPaths = { ...dupAlbumPaths };
     } catch (e: any) {
       console.error('Move to duplicates error:', e);
-      alert($t('metadata.failurePrefix').replace('{error}', String(e?.message || e)));
+      notifications.error($t('metadata.failurePrefix').replace('{error}', errText(e) ?? $t('common.serverUnreachable')));
     }
   }
 
@@ -732,7 +733,7 @@
       writeResult = { type: 'tags', message: $t('metadata.mergeGroupResult').replace('{moved}', String(result.tracks_moved)).replace('{total}', String(result.total_tracks)) };
     } catch (e: any) {
       console.error('Merge error:', e);
-      alert($t('metadata.mergeErrorPrefix').replace('{error}', String(e?.message || e)));
+      notifications.error($t('metadata.mergeErrorPrefix').replace('{error}', errText(e) ?? $t('common.serverUnreachable')));
     }
   }
 

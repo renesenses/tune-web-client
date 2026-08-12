@@ -164,6 +164,7 @@ export default {
   'common.tracks': 'piese',
   'common.noResult': 'Niciun rezultat',
   'common.error': 'Eroare',
+  "common.serverUnreachable": "Serverul nu răspunde. Dacă repornește — sau un VPN taie conexiunea — încercați din nou peste câteva secunde.",
   'common.ok': 'OK',
   'common.title': 'Titlu',
   'common.artist': 'Artist',

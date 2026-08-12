@@ -164,6 +164,7 @@ export default {
   'common.tracks': 'トラック',
   'common.noResult': '結果がありません',
   'common.error': 'エラー',
+  "common.serverUnreachable": "サーバーが応答しません。再起動中か、VPN が接続を遮断している場合は、数秒後にもう一度お試しください。",
   'common.ok': 'OK',
   'common.title': 'タイトル',
   'common.artist': 'アーティスト',

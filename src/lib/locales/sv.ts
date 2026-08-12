@@ -158,6 +158,7 @@ export default {
   'common.tracks': 'spår',
   'common.noResult': 'Inga resultat',
   'common.error': 'Fel',
+  "common.serverUnreachable": "Servern svarar inte. Om den startar om — eller ett VPN bryter anslutningen — försök igen om några sekunder.",
   'common.ok': 'OK',
   'common.title': 'Titel',
   'common.artist': 'Artist',
