@@ -2524,6 +2524,7 @@ export default {
   "ambiance.notAnalysed": "Die Bibliothek wurde möglicherweise noch nicht akustisch analysiert.",
   "ambiance.subtitle": "Akustische Suche — beschreiben Sie eine Stimmung, finden Sie die Titel, die so klingen",
   "acoustic.inProgress": "Analyse läuft",
+  "acoustic.noModel": "Die Analyse ist aktiviert, ihr akustisches Modell ist aber noch nicht verfügbar: Bis zum Download wird nichts analysiert. Es lädt sich beim ersten Gebrauch selbst — dauert es zu lange, prüfen Sie die Internetverbindung des Servers.",
   "acoustic.done": "Analyse abgeschlossen",
   "acoustic.tracks": "Titel",
   "acoustic.remaining": "verbleibend",

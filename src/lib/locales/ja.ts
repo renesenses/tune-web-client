@@ -2522,6 +2522,7 @@ export default {
   "ambiance.notAnalysed": "ライブラリはまだ音響分析されていない可能性があります。",
   "ambiance.subtitle": "音響検索 — 雰囲気を言葉にすると、同じように響く曲が見つかります",
   "acoustic.inProgress": "解析中",
+  "acoustic.noModel": "解析は有効ですが、音響モデルがまだ利用できません。ダウンロードが完了するまで何も解析されません。初回利用時に自動取得されます — 待ち時間が長い場合はサーバーのインターネット接続をご確認ください。",
   "acoustic.done": "解析完了",
   "acoustic.tracks": "曲",
   "acoustic.remaining": "残り",

@@ -2755,6 +2755,7 @@ export default {
   "oxygen.open": "Open the Oxygen view",
   "ambiance.subtitle": "Acoustic search — describe a mood, find the tracks that sound like it",
   "acoustic.inProgress": "Analysis running",
+  "acoustic.noModel": "Analysis is enabled but its acoustic model is not available yet: nothing will be analysed until it has been downloaded. It fetches itself on first use — if the wait drags on, check the server's Internet connection.",
   "acoustic.done": "Analysis complete",
   "acoustic.tracks": "tracks",
   "acoustic.remaining": "left",

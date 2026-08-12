@@ -2508,6 +2508,7 @@ export default {
   "ambiance.notAnalysed": "Biblioteket har kanske inte analyserats akustiskt än.",
   "ambiance.subtitle": "Akustisk sökning – beskriv en stämning och hitta spåren som låter likadant",
   "acoustic.inProgress": "Analys pågår",
+  "acoustic.noModel": "Analysen är aktiverad men dess akustiska modell är inte tillgänglig ännu: ingenting analyseras förrän den har laddats ned. Den hämtas automatiskt vid första användningen — om väntan drar ut, kontrollera serverns internetanslutning.",
   "acoustic.done": "Analysen klar",
   "acoustic.tracks": "spår",
   "acoustic.remaining": "kvar",
