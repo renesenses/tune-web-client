@@ -123,20 +123,25 @@
     }
   }
 
-  function stateLabel(state: string | undefined): string {
+  // `resolving` prime sur l'état : le serveur a accepté la demande mais n'a pas
+  // encore d'URL jouable. Sur YouTube cette recherche dure une trentaine de
+  // secondes (l'extraction passe par yt-dlp, les surfaces natives étant refusées
+  // par le service). Sans rien afficher, l'utilisateur conclut à une panne — un
+  // testeur a signalé « la lecture ne se lance pas » alors qu'elle se lançait.
+  function stateLabel(state: string | undefined, resolving = false): string {
+    if (resolving) return $t('zone.resolving');
     switch (state) {
       case 'playing': return $t('zone.playing');
       case 'paused': return $t('zone.paused');
-      case 'buffering': return $t('zone.buffering');
       default: return $t('zone.stopped');
     }
   }
 
-  function stateClass(state: string | undefined): string {
+  function stateClass(state: string | undefined, resolving = false): string {
+    if (resolving) return 'state-buffering';
     switch (state) {
       case 'playing': return 'state-playing';
       case 'paused': return 'state-paused';
-      case 'buffering': return 'state-buffering';
       default: return 'state-stopped';
     }
   }
@@ -677,7 +682,7 @@
             ></span>
           {/if}
           <span class="output-badge {zone.output_type ?? 'local'}">{outputTypeIcon(zone.output_type)}</span>
-          <span class="state-badge {stateClass(zone.state)}">{stateLabel(zone.state)}</span>
+          <span class="state-badge {stateClass(zone.state, zone.resolving)}">{stateLabel(zone.state, zone.resolving)}</span>
         </div>
       </div>
 

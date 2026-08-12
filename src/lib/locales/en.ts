@@ -391,6 +391,7 @@ export default {
   'zone.paused': 'Paused',
   'zone.stopped': 'Stopped',
   'zone.buffering': 'Buffering',
+  'zone.resolving': 'Finding track…',
   'zone.online': 'Online',
   'zone.mute': 'Mute',
   'zone.unmute': 'Unmute',

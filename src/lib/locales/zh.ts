@@ -213,6 +213,7 @@ export default {
   'zone.paused': '已暂停',
   'zone.stopped': '已停止',
   'zone.buffering': '缓冲中',
+  'zone.resolving': '正在查找曲目…',
   'zone.online': '在线',
   'zone.mute': '静音',
   'zone.unmute': '取消静音',
