@@ -243,6 +243,12 @@
     localId?: number;
     streamingId?: string;
     streamingSource?: Source;
+    /** Une playlist que l'utilisateur possède, par opposition à une playlist du
+     *  catalogue remontée par la recherche. Les deux se ressemblent trop pour
+     *  cohabiter sans être distinguées. */
+    owned: boolean;
+    /** Le créateur, pour les playlists du catalogue (« par Qobuz »). */
+    owner?: string | null;
   }
   let playlistMatches = $state<PlaylistMatch[]>([]);
 
@@ -271,6 +277,7 @@
           trackCount: p.track_count ?? 0,
           source: 'Local',
           localId: p.id ?? undefined,
+          owned: true,
         }));
 
       const services = $streamingServices;
@@ -288,6 +295,7 @@
                       source: service.charAt(0).toUpperCase() + service.slice(1),
                       streamingId: p.source_id,
                       streamingSource: p.source,
+                      owned: true,
                     });
                   }
                 }
@@ -297,6 +305,28 @@
         }
       }
       await Promise.all(streamingPromises);
+
+      // Les playlists du CATALOGUE, que la recherche fédérée renvoie déjà.
+      // Elles étaient jetées : la section n'affichait que les playlists de
+      // l'utilisateur, filtrées par sous-chaîne — chercher une playlist Qobuz
+      // ou Tidal ne donnait donc jamais rien (Alex Campbell, 11/08).
+      for (const [service, res] of Object.entries(federated.services ?? {})) {
+        for (const p of res?.playlists ?? []) {
+          matches.push({
+            name: p.name,
+            trackCount: p.track_count,
+            source: service.charAt(0).toUpperCase() + service.slice(1),
+            streamingId: p.source_id,
+            streamingSource: service as Source,
+            owned: false,
+            owner: p.owner,
+          });
+        }
+      }
+
+      // Les siennes d'abord : c'est ce qu'il cherchait le plus souvent, et
+      // l'ordre de la recherche fédérée n'a aucune raison de le refléter.
+      matches.sort((a, b) => Number(b.owned) - Number(a.owned));
       playlistMatches = matches;
     } catch (e) {
       console.error('Search error:', e);
@@ -1170,7 +1200,9 @@
                     </div>
                     <div class="playlist-info">
                       <span class="playlist-name">{pl.name}</span>
-                      <span class="playlist-meta">{pl.trackCount} pistes</span>
+                      <span class="playlist-meta">
+                        {pl.trackCount} pistes{#if !pl.owned && pl.owner} · {pl.owner}{/if}
+                      </span>
                     </div>
                     <span class="playlist-source">{pl.source}</span>
                   </button>
