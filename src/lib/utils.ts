@@ -257,3 +257,15 @@ export async function copyText(text: string): Promise<boolean> {
     return false;
   }
 }
+
+/** Message d'erreur montrable, ou `null` si c'est l'erreur réseau générique du
+ *  navigateur — « Failed to fetch » (Chrome), « Load failed » (Safari),
+ *  « NetworkError… » (Firefox). Le texte brut n'explique rien à l'utilisateur
+ *  (capture Stéphane Villerio, 12/08/2026 : boîte « localhost:8888 indique
+ *  Erreur : Failed to fetch ») ; l'appelant affiche alors sa phrase claire —
+ *  ou traite la coupure comme un événement attendu, cas du redémarrage. */
+export function errText(e: unknown): string | null {
+  const m = e instanceof Error ? e.message : String(e ?? '');
+  if (/^(Failed to fetch|Load failed|NetworkError)/i.test(m)) return null;
+  return m || null;
+}

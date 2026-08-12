@@ -3,7 +3,7 @@
   import { playlists as playlistsStore } from '../lib/stores/playlists';
   import { streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
-  import { formatTime, formatAudioBadge } from '../lib/utils';
+  import { formatTime, formatAudioBadge, errText } from '../lib/utils';
   import type { Playlist, Track, StreamingPlaylist, UnifiedPlaylistsResponse, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
@@ -151,7 +151,7 @@
       // Reload local playlists
       try { localPlaylists = await api.getPlaylists(); } catch {}
     } catch (err: any) {
-      alert($tr('playlistManager.mergeError').replace('{error}', String(err.message || err)));
+      notifications.error($tr('playlistManager.mergeError').replace('{error}', errText(err) ?? $tr('common.serverUnreachable')));
     }
     merging = false;
   }
@@ -348,7 +348,7 @@
       showCollabCreate = false;
       await loadCollabPlaylists();
     } catch (err: any) {
-      alert($tr('playlistManager.errorGeneric').replace('{error}', String(err.message || err)));
+      notifications.error($tr('playlistManager.errorGeneric').replace('{error}', errText(err) ?? $tr('common.serverUnreachable')));
     }
     creatingCollab = false;
   }
@@ -373,7 +373,7 @@
         collabTracks = [];
       }
     } catch (err: any) {
-      alert($tr('playlistManager.errorGeneric').replace('{error}', String(err.message || err)));
+      notifications.error($tr('playlistManager.errorGeneric').replace('{error}', errText(err) ?? $tr('common.serverUnreachable')));
     }
     deletingCollab = null;
   }
@@ -446,7 +446,7 @@
       await api.deletePlaylistSnapshot(snap.id);
       snapshots = snapshots.filter(s => s.id !== snap.id);
     } catch (err: any) {
-      alert($tr('playlistManager.errorGeneric').replace('{error}', String(err.message || err)));
+      notifications.error($tr('playlistManager.errorGeneric').replace('{error}', errText(err) ?? $tr('common.serverUnreachable')));
     }
   }
 

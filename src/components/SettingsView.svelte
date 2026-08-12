@@ -16,7 +16,7 @@
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
   import RendererConfig from './RendererConfig.svelte';
   import { notifications } from '../lib/stores/notifications';
-  import { copyText } from '../lib/utils';
+  import { copyText, errText } from '../lib/utils';
   import { activeView, settingsInitialTab, type View } from '../lib/stores/navigation';
   import { licenseState, isPremium, loadLicense } from '../lib/stores/license';
   import SmbWizard from './SmbWizard.svelte';
@@ -242,9 +242,17 @@ function toggleAdvancedSystem() {
     try {
       await api.restartServer();
     } catch (e) {
-      restarting = false;
-      alert((e as Error).message);
-      return;
+      // Le serveur peut couper la connexion AVANT d'avoir répondu : ici,
+      // « Failed to fetch » signifie que le redémarrage a COMMENCÉ, pas qu'il
+      // a échoué. L'ancien code l'affichait en boîte native et abandonnait le
+      // suivi — c'est la capture de Stéphane Villerio (12/08/2026). On ne
+      // s'arrête que sur une vraie erreur applicative.
+      const msg = errText(e);
+      if (msg !== null) {
+        restarting = false;
+        notifications.error(msg);
+        return;
+      }
     }
     const start = Date.now();
     let sawDown = false;
@@ -841,7 +849,7 @@ function toggleAdvancedSystem() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert(get(t)('settings.logsError') + ': ' + (err?.message ?? String(err)));
+      notifications.error(get(t)('settings.logsError') + ': ' + (errText(err) ?? get(t)('common.serverUnreachable')));
     } finally {
       logsDownloading = false;
     }
@@ -863,7 +871,7 @@ function toggleAdvancedSystem() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert(get(t)('settings.diagnosticError') + ': ' + (err?.message ?? String(err)));
+      notifications.error(get(t)('settings.diagnosticError') + ': ' + (errText(err) ?? get(t)('common.serverUnreachable')));
     } finally {
       diagDownloading = false;
     }
@@ -4953,7 +4961,7 @@ function toggleAdvancedSystem() {
       <h3>{$t('settings.exportCsv')}</h3>
       <p class="section-hint">{$t('settings.exportCsvHint')}</p>
       <div class="db-ie-actions">
-        <button class="btn-secondary" onclick={async () => { csvExporting = 'albums'; try { await api.exportAlbumsCsv(); } catch (e) { alert($t('common.error') + ' : ' + (e as Error).message); } finally { csvExporting = null; } }} disabled={csvExporting !== null}>
+        <button class="btn-secondary" onclick={async () => { csvExporting = 'albums'; try { await api.exportAlbumsCsv(); } catch (e) { notifications.error($t('common.error') + ' : ' + (errText(e) ?? $t('common.serverUnreachable'))); } finally { csvExporting = null; } }} disabled={csvExporting !== null}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
@@ -4961,7 +4969,7 @@ function toggleAdvancedSystem() {
           </svg>
           {csvExporting === 'albums' ? $t('settings.exportInProgress') : $t('settings.albums') + ' (CSV)'}
         </button>
-        <button class="btn-secondary" onclick={async () => { csvExporting = 'tracks'; try { await api.exportTracksCsv(); } catch (e) { alert($t('common.error') + ' : ' + (e as Error).message); } finally { csvExporting = null; } }} disabled={csvExporting !== null}>
+        <button class="btn-secondary" onclick={async () => { csvExporting = 'tracks'; try { await api.exportTracksCsv(); } catch (e) { notifications.error($t('common.error') + ' : ' + (errText(e) ?? $t('common.serverUnreachable'))); } finally { csvExporting = null; } }} disabled={csvExporting !== null}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
@@ -4969,7 +4977,7 @@ function toggleAdvancedSystem() {
           </svg>
           {csvExporting === 'tracks' ? $t('settings.exportInProgress') : $t('settings.tracks') + ' (CSV)'}
         </button>
-        <button class="btn-secondary" onclick={async () => { csvExporting = 'artists'; try { await api.exportArtistsCsv(); } catch (e) { alert($t('common.error') + ' : ' + (e as Error).message); } finally { csvExporting = null; } }} disabled={csvExporting !== null}>
+        <button class="btn-secondary" onclick={async () => { csvExporting = 'artists'; try { await api.exportArtistsCsv(); } catch (e) { notifications.error($t('common.error') + ' : ' + (errText(e) ?? $t('common.serverUnreachable'))); } finally { csvExporting = null; } }} disabled={csvExporting !== null}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />

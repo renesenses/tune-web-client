@@ -164,6 +164,7 @@ export default {
   'common.tracks': '곡',
   'common.noResult': '결과 없음',
   'common.error': '오류',
+  "common.serverUnreachable": "서버가 응답하지 않습니다. 서버가 재시작 중이거나 VPN이 연결을 끊었다면 몇 초 후 다시 시도하세요.",
   'common.ok': '확인',
   'common.title': '제목',
   'common.artist': '아티스트',

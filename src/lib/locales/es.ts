@@ -164,6 +164,7 @@ export default {
   'common.tracks': 'pistas',
   'common.noResult': 'Sin resultados',
   'common.error': 'Error',
+  "common.serverUnreachable": "El servidor no responde. Si se está reiniciando — o una VPN corta la conexión — inténtelo de nuevo en unos segundos.",
   'common.ok': 'Aceptar',
   'common.title': 'Título',
   'common.artist': 'Artista',

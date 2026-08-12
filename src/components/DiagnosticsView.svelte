@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy, untrack } from 'svelte';
   import { tip } from '../lib/tooltip';
+  import { notifications } from '../lib/stores/notifications';
+  import { errText } from '../lib/utils';
   import * as api from '../lib/api';
   import { zones } from '../lib/stores/zones';
   import { devices } from '../lib/stores/devices';
@@ -352,7 +354,7 @@
     clearing = true;
     try {
       const r = await api.apiPost('/system/clear-cache');
-      alert($t('diagnostics.filesDeleted' as any).replace('{count}', String(r.cleared)));
+      notifications.success($t('diagnostics.filesDeleted' as any).replace('{count}', String(r.cleared)));
     } catch (e) { console.error(e); }
     clearing = false;
   }
@@ -393,7 +395,7 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      alert($t('common.error') + ' : ' + (e?.message || e));
+      notifications.error($t('common.error') + ' : ' + (errText(e) ?? $t('common.serverUnreachable')));
     }
     downloadingLogs = false;
   }

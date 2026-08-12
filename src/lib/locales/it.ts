@@ -164,6 +164,7 @@ export default {
   'common.tracks': 'brani',
   'common.noResult': 'Nessun risultato',
   'common.error': 'Errore',
+  "common.serverUnreachable": "Il server non risponde. Se si sta riavviando — o una VPN interrompe la connessione — riprovate tra qualche secondo.",
   'common.ok': 'OK',
   'common.title': 'Titolo',
   'common.artist': 'Artista',
