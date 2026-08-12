@@ -177,6 +177,9 @@ export default {
 
   // Zone
   'zone.zones': '区域',
+  'zone.noOutputBanner': '此区域没有音频输出：在选择输出之前不会有声音。',
+  'zone.noOutputBannerAction': '选择输出',
+  'zone.browserUnattendedBanner': '此区域正在浏览器中播放，但没有标签页在接收声音。请在那台电脑上打开 Tune，或选择其他区域。',
   'zone.newZone': '新建区域',
   'zone.zoneName': '区域名称',
   'zone.selectDevice': '-- 选择设备 --',

@@ -177,6 +177,9 @@ export default {
 
   // Zone
   'zone.zones': '존',
+  'zone.noOutputBanner': '이 존에는 오디오 출력이 없습니다. 출력을 선택하기 전까지는 소리가 나지 않습니다.',
+  'zone.noOutputBannerAction': '출력 선택',
+  'zone.browserUnattendedBanner': '이 존은 브라우저에서 재생 중이지만 소리를 받는 탭이 없습니다. 해당 컴퓨터에서 Tune을 열거나 다른 존을 선택하세요.',
   'zone.newZone': '새 존',
   'zone.zoneName': '존 이름',
   'zone.selectDevice': '-- 기기 --',

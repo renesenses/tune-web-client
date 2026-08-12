@@ -172,6 +172,9 @@ export default {
 
   // Zone
   'zone.zones': 'ZONER',
+  'zone.noOutputBanner': 'Den här zonen har ingen ljudutgång: inget hörs förrän du väljer en.',
+  'zone.noOutputBannerAction': 'Välj en utgång',
+  'zone.browserUnattendedBanner': 'Den här zonen spelar i webbläsaren, men ingen flik tar emot ljudet. Öppna Tune på den datorn eller välj en annan zon.',
   'zone.newZone': 'Ny zon',
   'zone.zoneName': 'Zonnamn',
   'zone.selectDevice': '-- Enhet --',

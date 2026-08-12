@@ -18,6 +18,7 @@
   import { selectedArtist, selectedAlbum, albumTracks, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
   import { activeView, previousView, pendingSearchQuery } from '../lib/stores/navigation';
   import VolumeControl from './VolumeControl.svelte';
+  import ZoneOutputBanner from './ZoneOutputBanner.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery } from '../lib/lyrics';
@@ -1134,6 +1135,9 @@
        would nudge open (#1261 follow-up: the JS wheel guard couldn't stop the
        native path). The queue sheet lives OUTSIDE this wrapper. -->
   <div class="np-scroll">
+  <!-- Hors de la garde `displayTrack` : « aucune sortie » doit se voir AVANT
+       d'appuyer sur Lecture, pas une fois la file remplie pour rien (#1499). -->
+  <ZoneOutputBanner {zone} />
   {#if zone && displayTrack}
     <div class="content-layout" class:wide={isWide}>
       <div class="artwork-container" bind:this={artworkEl}>

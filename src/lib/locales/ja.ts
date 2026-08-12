@@ -177,6 +177,9 @@ export default {
 
   // Zone
   'zone.zones': 'ゾーン',
+  'zone.noOutputBanner': 'このゾーンには音声出力がありません。出力を選ぶまで音は出ません。',
+  'zone.noOutputBannerAction': '出力を選ぶ',
+  'zone.browserUnattendedBanner': 'このゾーンはブラウザーで再生していますが、音を受け取っているタブがありません。そのパソコンで Tune を開くか、別のゾーンを選んでください。',
   'zone.newZone': '新しいゾーン',
   'zone.zoneName': 'ゾーン名',
   'zone.selectDevice': '-- デバイス --',
