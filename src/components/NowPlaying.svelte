@@ -2,9 +2,9 @@
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { tip } from '../lib/tooltip';
   import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, stopSeekTimer, nowPlayingToTrack } from '../lib/stores/nowPlaying';
-  import { upNextTracks, queueTracks, queuePosition, queueLength } from '../lib/stores/queue';
+  import { upNextTracks, queueTracks, queuePosition, queueLength, upNextCount, upNextMs } from '../lib/stores/queue';
   import { currentZoneId, zones } from '../lib/stores/zones';
-  import { formatTime, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
+  import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
   import { isMiddlePressWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
@@ -1728,6 +1728,11 @@
         <div class="qs-header-left">
           <h3 class="qs-title">{$t('queue.title')}</h3>
           <span class="qs-count">{$queueTracks.length} {$t('common.tracks')}</span>
+          <!-- Le total ne bouge pas pendant qu'on ecoute : c'est ce qui reste
+               a entendre qu'on veut savoir (Dominique COMET). -->
+          {#if $upNextCount > 0}
+            <span class="qs-remaining">{$t('queue.upNextSummary').replace('{count}', String($upNextCount)).replace('{time}', formatDuration($upNextMs))}</span>
+          {/if}
         </div>
         <div class="qs-header-actions">
           {#if $queueTracks.length > 0}
@@ -3791,6 +3796,16 @@
     font-size: 12px;
     color: var(--tune-text-muted);
     white-space: nowrap;
+  }
+
+  /* Meme discretion que le total qu'il complete : c'est une information de
+     contexte, pas un titre. */
+  .qs-remaining {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-muted);
+    white-space: nowrap;
+    opacity: 0.85;
   }
 
   .qs-header-actions {
