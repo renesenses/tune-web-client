@@ -1478,6 +1478,7 @@ export default {
   "settings.scanReportErrorDirs": "Fel vid genomsökning av dessa mappar — deras spår behölls",
   "settings.scanReportFailedPaths": "filer med fel",
   "settings.tabGeneral": "Allmänt",
+  "settings.tabClap": "CLAP",
   "settings.tabServices": "Tjänster",
   "settings.tabNetworkAudio": "Nätverk & ljud",
   "settings.tabSystem": "System",

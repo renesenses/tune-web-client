@@ -1500,6 +1500,7 @@ export default {
   "settings.scanReportErrorDirs": "Erori la parcurgerea acestor foldere — piesele lor au fost păstrate",
   "settings.scanReportFailedPaths": "fișiere cu erori",
   "settings.tabGeneral": "General",
+  "settings.tabClap": "CLAP",
   "settings.tabServices": "Servicii",
   "settings.tabNetworkAudio": "Rețea & Audio",
   "settings.tabSystem": "Sistem",
