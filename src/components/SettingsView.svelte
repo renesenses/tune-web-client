@@ -2604,6 +2604,12 @@ function toggleAdvancedSystem() {
       </svg>
       {$t('settings.tabSystem')}
     </button>
+    <button class="settings-tab" class:active={settingsTab === 'clap'} onclick={() => settingsTab = 'clap'}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <path d="M2 12h2l2-7 3 14 3-10 2 5 2-2h6" />
+      </svg>
+      {$t('settings.tabClap' as any)}
+    </button>
   </div>
 
   {#if loading}
@@ -4046,34 +4052,6 @@ function toggleAdvancedSystem() {
           <input type="checkbox" checked={config.replaygain_analysis_enabled !== false && config.replaygain_analysis_enabled !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.replaygain_analysis_enabled = val; await api.updateConfig({ replaygain_analysis_enabled: val }); }} />
           <span class="toggle-slider"></span>
         </label>
-
-        <!-- Prérequis de la recherche par ambiance. Le serveur sait lire et
-             écrire ce réglage depuis toujours, mais rien ne l'exposait : l'écran
-             Ambiance restait donc vide sans qu'aucun geste ne puisse y remédier
-             (retour Fabien). -->
-        <label class="pref-label">{$t('settings.acousticAnalysis')}<SettingHint k="settings.acousticAnalysisHelp" labelKey="settings.acousticAnalysis" /></label>
-        <label class="toggle-switch">
-          <input type="checkbox" checked={config.audio_embedding_enabled === true || config.audio_embedding_enabled === 'true'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.audio_embedding_enabled = val; await api.updateConfig({ audio_embedding_enabled: val }); await refreshAcousticStatus(); }} />
-          <span class="toggle-slider"></span>
-        </label>
-
-        <!-- Combien de machine l'analyse a le droit de prendre. Elle décode dix
-             secondes par piste et fait tourner un réseau dessus : sur un
-             Raspberry Pi, ou sur le serveur qui sert aussi la musique, la
-             cadence par défaut se remarque. -->
-        {#if $acousticEnabled}
-          <label class="pref-label" for="acoustic-throttle">{$t('acoustic.throttle')}<SettingHint k="acoustic.throttleHelp" labelKey="acoustic.throttle" /></label>
-          <select id="acoustic-throttle" class="pref-select"
-                  value={$acousticStatus?.throttle ?? 'equilibre'}
-                  onchange={async (e) => { await api.updateConfig({ audio_embedding_throttle: (e.target as HTMLSelectElement).value }); await refreshAcousticStatus(); }}>
-            <option value="eco">{$t('acoustic.throttleEco')}</option>
-            <option value="equilibre">{$t('acoustic.throttleBalanced')}</option>
-            <option value="rapide">{$t('acoustic.throttleFast')}</option>
-          </select>
-
-          <span class="pref-label">{$t('acoustic.progress')}</span>
-          <AcousticProgress compact />
-        {/if}
       </div>
     </section>
     {/if}
@@ -4214,6 +4192,47 @@ function toggleAdvancedSystem() {
       <p class="settings-note settings-note-warn">{$t('settings.writeTagsWarning')}</p>
 
       <p class="settings-note">{$t('settings.autoEnrichPremiumNote')}</p>
+    </section>
+    {/if}
+    {/if}
+
+    <!-- L'UI d'avancement de l'analyse acoustique était introuvable, enfouie
+         en bas de Bibliothèque → Métadonnées (Bertrand, 12/08) : onglet dédié
+         « CLAP » demandé explicitement. Bloc DÉPLACÉ ici, pas dupliqué. -->
+    {#if settingsTab === 'clap'}
+    {#if config}
+    <section class="settings-section">
+      <h3>{$t('settings.tabClap' as any)}</h3>
+      <p class="settings-note">{$t('settings.acousticAnalysisHelp')}</p>
+      <div class="pref-grid">
+        <!-- Prérequis de la recherche par ambiance. Le serveur sait lire et
+             écrire ce réglage depuis toujours, mais rien ne l'exposait : l'écran
+             Ambiance restait donc vide sans qu'aucun geste ne puisse y remédier
+             (retour Fabien). -->
+        <label class="pref-label">{$t('settings.acousticAnalysis')}<SettingHint k="settings.acousticAnalysisHelp" labelKey="settings.acousticAnalysis" /></label>
+        <label class="toggle-switch">
+          <input type="checkbox" checked={config.audio_embedding_enabled === true || config.audio_embedding_enabled === 'true'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.audio_embedding_enabled = val; await api.updateConfig({ audio_embedding_enabled: val }); await refreshAcousticStatus(); }} />
+          <span class="toggle-slider"></span>
+        </label>
+
+        <!-- Combien de machine l'analyse a le droit de prendre. Elle décode dix
+             secondes par piste et fait tourner un réseau dessus : sur un
+             Raspberry Pi, ou sur le serveur qui sert aussi la musique, la
+             cadence par défaut se remarque. -->
+        {#if $acousticEnabled}
+          <label class="pref-label" for="acoustic-throttle">{$t('acoustic.throttle')}<SettingHint k="acoustic.throttleHelp" labelKey="acoustic.throttle" /></label>
+          <select id="acoustic-throttle" class="pref-select"
+                  value={$acousticStatus?.throttle ?? 'equilibre'}
+                  onchange={async (e) => { await api.updateConfig({ audio_embedding_throttle: (e.target as HTMLSelectElement).value }); await refreshAcousticStatus(); }}>
+            <option value="eco">{$t('acoustic.throttleEco')}</option>
+            <option value="equilibre">{$t('acoustic.throttleBalanced')}</option>
+            <option value="rapide">{$t('acoustic.throttleFast')}</option>
+          </select>
+
+          <span class="pref-label">{$t('acoustic.progress')}</span>
+          <AcousticProgress />
+        {/if}
+      </div>
     </section>
     {/if}
     {/if}

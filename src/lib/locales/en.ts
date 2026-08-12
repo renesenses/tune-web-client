@@ -1715,6 +1715,7 @@ export default {
   "settings.scanReportErrorDirs": "Errors while browsing these folders — their tracks were kept",
   "settings.scanReportFailedPaths": "files in error",
   "settings.tabGeneral": "General",
+  "settings.tabClap": "CLAP",
   "settings.tabServices": "Services",
   "settings.tabNetworkAudio": "Network & Audio",
   "settings.tabSystem": "System",

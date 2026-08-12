@@ -1492,6 +1492,7 @@ export default {
   "settings.scanReportErrorDirs": "Errori nell’esplorazione di queste cartelle — le loro tracce sono state conservate",
   "settings.scanReportFailedPaths": "file in errore",
   "settings.tabGeneral": "Generale",
+  "settings.tabClap": "CLAP",
   "settings.tabServices": "Servizi",
   "settings.tabNetworkAudio": "Rete e audio",
   "settings.tabSystem": "Sistema",

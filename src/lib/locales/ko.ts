@@ -1475,6 +1475,7 @@ export default {
   "settings.scanReportErrorDirs": "폴더 탐색 오류 — 해당 트랙은 유지됨",
   "settings.scanReportFailedPaths": "개 오류 파일",
   "settings.tabGeneral": "일반",
+  "settings.tabClap": "CLAP",
   "settings.tabServices": "서비스",
   "settings.tabNetworkAudio": "네트워크 및 오디오",
   "settings.tabSystem": "시스템",

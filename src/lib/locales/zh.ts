@@ -1492,6 +1492,7 @@ export default {
   "settings.scanReportErrorDirs": "遍历这些文件夹时出错 — 其曲目已保留",
   "settings.scanReportFailedPaths": "个出错文件",
   "settings.tabGeneral": "通用",
+  "settings.tabClap": "CLAP",
   "settings.tabServices": "服务",
   "settings.tabNetworkAudio": "网络与音频",
   "settings.tabSystem": "系统",

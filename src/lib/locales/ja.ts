@@ -1492,6 +1492,7 @@ export default {
   "settings.scanReportErrorDirs": "フォルダの走査エラー — トラックは保持されました",
   "settings.scanReportFailedPaths": "件のエラーファイル",
   "settings.tabGeneral": "一般",
+  "settings.tabClap": "CLAP",
   "settings.tabServices": "サービス",
   "settings.tabNetworkAudio": "ネットワークとオーディオ",
   "settings.tabSystem": "システム",
