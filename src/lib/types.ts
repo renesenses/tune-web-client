@@ -345,6 +345,25 @@ export interface SearchResult {
   tracks: Track[];
   albums: Album[];
   artists: Artist[];
+  /**
+   * Playlists du CATALOGUE du service — celles que la recherche fait remonter,
+   * pas celles que possède l'utilisateur (`StreamingPlaylist`, qui porte en
+   * plus `duration_ms` et `source`). Optionnel : un serveur antérieur à la
+   * 0.9.71 ne renvoie pas le champ.
+   */
+  playlists?: CataloguePlaylist[];
+}
+
+/** Miroir exact de `StreamPlaylist` côté serveur : `id` y est sérialisé en
+ *  `source_id`. Le service d'origine n'est pas dans l'objet — c'est la clé de
+ *  `FederatedSearchResult.services` qui le porte. */
+export interface CataloguePlaylist {
+  source_id: string;
+  name: string;
+  description?: string | null;
+  cover_path?: string | null;
+  track_count: number;
+  owner?: string | null;
 }
 
 export interface FederatedSearchResult {
