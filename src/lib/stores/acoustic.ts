@@ -14,6 +14,10 @@ export interface AcousticStatus {
   pending_tracks?: number;
   /** Débit de la passe : 'eco' | 'equilibre' | 'rapide'. */
   throttle?: string;
+  /** La passe peut-elle réellement travailler — modèle configuré ET présent ?
+   *  Absent sur un serveur antérieur : on suppose alors que oui, faute de
+   *  mieux, plutôt que d'annoncer un problème qu'on ne sait pas constater. */
+  model_ready?: boolean;
 }
 
 export const acousticStatus = writable<AcousticStatus | null>(null);
@@ -54,6 +58,17 @@ export async function refreshAcousticStatus(): Promise<void> {
     acousticStatus.set(null);
   }
 }
+
+/** L'analyse est activée mais hors d'état de tourner : modèle non configuré ou
+ *  absent. La jauge doit alors se taire et laisser place à une explication —
+ *  « Analyse en cours — 0 % » sur une passe qui ne démarrera jamais se lit
+ *  comme un blocage (Fabien, v0.9.68).
+ *
+ *  `model_ready` absent = serveur antérieur : on ne prétend pas savoir. */
+export const acousticStalled = derived(
+  acousticStatus,
+  ($s) => $s?.enabled === true && $s?.model_ready === false,
+);
 
 /** Progression de l'analyse, ou `null` quand le serveur ne sait pas la dire
  *  (version antérieure, ou aucune piste analysable). */

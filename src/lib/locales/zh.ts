@@ -2524,6 +2524,7 @@ export default {
   "ambiance.notAnalysed": "音乐库可能尚未完成声学分析。",
   "ambiance.subtitle": "声学搜索——描述一种氛围，找到听感相似的曲目",
   "acoustic.inProgress": "分析进行中",
+  "acoustic.noModel": "分析已启用，但其声学模型尚不可用：在模型下载完成前不会分析任何内容。首次使用时会自动获取——若等待过久，请检查服务器的网络连接。",
   "acoustic.done": "分析已完成",
   "acoustic.tracks": "首",
   "acoustic.remaining": "剩余",

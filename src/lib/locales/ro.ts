@@ -2532,6 +2532,7 @@ export default {
   "ambiance.notAnalysed": "Este posibil ca biblioteca să nu fi fost încă analizată acustic.",
   "ambiance.subtitle": "Căutare acustică — descrie o ambianță, găsește piesele care sună la fel",
   "acoustic.inProgress": "Analiză în curs",
+  "acoustic.noModel": "Analiza este activată, dar modelul său acustic nu este încă disponibil: nimic nu va fi analizat până la descărcarea lui. Se preia singur la prima utilizare — dacă așteptarea se prelungește, verificați conexiunea la internet a serverului.",
   "acoustic.done": "Analiză finalizată",
   "acoustic.tracks": "piese",
   "acoustic.remaining": "rămase",

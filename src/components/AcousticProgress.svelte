@@ -14,6 +14,7 @@
   import {
     acousticStatus,
     acousticProgress,
+    acousticStalled,
     startAcousticPolling,
     stopAcousticPolling,
   } from '../lib/stores/acoustic';
@@ -31,7 +32,12 @@
   const nf = new Intl.NumberFormat('fr');
 </script>
 
-{#if $acousticStatus?.enabled && $acousticProgress}
+{#if $acousticStalled}
+  <!-- Activée mais hors d'état de tourner. Une barre à 0 % ferait croire à une
+       analyse qui piétine ; ici rien ne démarrera tant que le modèle n'est pas
+       là, et le dire vaut mieux que de l'afficher. -->
+  <p class="acx-stalled">{$t('acoustic.noModel')}</p>
+{:else if $acousticStatus?.enabled && $acousticProgress}
   <div class="acx" class:compact>
     <div class="acx-head">
       <span class="acx-label">
@@ -89,5 +95,6 @@
   /* Terminé = un état, pas une série : il change de couleur ET de libellé. */
   .acx-fill.complete { background: var(--tune-success); border-radius: 3px; }
   .acx-sub { font-size: 11px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
+  .acx-stalled { margin: 0; font-size: 12.5px; color: var(--tune-text-secondary); line-height: 1.5; }
   .compact .acx-sub { font-size: 10.5px; }
 </style>
