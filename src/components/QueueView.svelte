@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { queueTracks, queuePosition, queueLength } from '../lib/stores/queue';
+  import { queueTracks, queuePosition, queueLength, upNextCount, upNextMs } from '../lib/stores/queue';
   import { tip } from '../lib/tooltip';
   import { currentZone, currentZoneId, zones, playAndSync, syncZone } from '../lib/stores/zones';
   import { currentTrack, seekPositionMs, stopSeekTimer } from '../lib/stores/nowPlaying';
@@ -96,14 +96,9 @@
     return index === $queuePosition;
   }
 
-  // "Up next" summary: tracks after the current one and their total time
-  // (Dominique Comet's suggestion). Guarded ≥ 0 for an unset/last position.
-  let upNextCount = $derived(Math.max(0, $queueTracks.length - ($queuePosition + 1)));
-  let upNextMs = $derived(
-    $queueTracks
-      .slice($queuePosition + 1)
-      .reduce((sum, t) => sum + (t.duration_ms ?? 0), 0),
-  );
+  // "Up next" summary (suggestion de Dominique Comet) : le calcul vit
+  // desormais dans le store de file, pour que l'ecran Lecture en cours
+  // affiche exactement la meme chose sans le reecrire.
 
   async function playFromPosition(index: number) {
     if (!zone?.id) return;
@@ -329,8 +324,8 @@
       <span class="queue-zone">{zone.name}</span>
     {/if}
     <span class="queue-count">{$queueTracks.length} {$t('common.tracks')}</span>
-    {#if upNextCount > 0}
-      <span class="queue-remaining">{$t('queue.upNextSummary').replace('{count}', String(upNextCount)).replace('{time}', formatDuration(upNextMs))}</span>
+    {#if $upNextCount > 0}
+      <span class="queue-remaining">{$t('queue.upNextSummary').replace('{count}', String($upNextCount)).replace('{time}', formatDuration($upNextMs))}</span>
     {/if}
     <!-- AutoPlay toggle -->
     <button
