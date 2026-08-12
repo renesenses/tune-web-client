@@ -64,6 +64,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
   import MiniPlayer from './components/MiniPlayer.svelte';
   import ToastContainer from './components/ToastContainer.svelte';
+  import DialogContainer from './components/DialogContainer.svelte';
   import ImportWizard from './components/ImportWizard.svelte';
   import OnboardingWizard from './components/OnboardingWizard.svelte';
   import OnboardingView from './components/OnboardingView.svelte';
@@ -1225,6 +1226,7 @@ import AlarmsView from './components/AlarmsView.svelte';
 
   <AiChat />
   <ToastContainer />
+  <DialogContainer />
 </div>
 
 <!-- Mode Grand écran : overlay plein viewport au-dessus de tout (afficheur
