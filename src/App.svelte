@@ -831,8 +831,9 @@ import AlarmsView from './components/AlarmsView.svelte';
               } else if (type === 'playback.stopped') {
                 browserStop();
               } else if (type === 'playback.resumed') {
-                if (z?.stream_url) browserPlay(z.stream_url);
-                else browserResume();
+                // Même règle que resumeAndSync : browserResume sait
+                // recharger tout seul quand la source est morte.
+                browserResume(z?.stream_url);
               } else if (type === 'playback.started' || type === 'playback.track_changed') {
                 // Force a reload on a track change: the next track may reuse the
                 // same per-zone stream URL, and without this the ended element
