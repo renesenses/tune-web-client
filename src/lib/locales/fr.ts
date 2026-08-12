@@ -352,6 +352,9 @@ export default {
 
   // Zone
   'zone.zones': 'ZONES',
+  'zone.noOutputBanner': 'Cette zone n\'a aucune sortie audio : rien ne sortira tant que vous ne lui en aurez pas choisi une.',
+  'zone.noOutputBannerAction': 'Choisir une sortie',
+  'zone.browserUnattendedBanner': 'Cette zone joue dans le navigateur, mais aucun onglet ne reçoit le son. Ouvrez Tune sur cet ordinateur, ou choisissez une autre zone.',
   'zone.newZone': 'Nouvelle zone',
   'zone.zoneName': 'Nom de la zone',
   'zone.selectDevice': '-- Appareil --',

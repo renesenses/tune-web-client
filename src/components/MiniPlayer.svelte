@@ -14,6 +14,7 @@
    */
   import { onMount, onDestroy } from 'svelte';
   import { zones, currentZone, currentZoneId, switchZone } from '../lib/stores/zones';
+  import ZoneOutputBanner from './ZoneOutputBanner.svelte';
   import { currentTrack, playbackState, seekPositionMs } from '../lib/stores/nowPlaying';
   import * as controls from '../lib/playback-controls';
   import * as api from '../lib/api';
@@ -110,6 +111,10 @@
       {/each}
     </select>
   </div>
+
+  <!-- Le mini-lecteur est ce qui reste visible pendant qu'on navigue : c'est
+       là qu'on cherche pourquoi il n'y a pas de son (#1499). -->
+  <ZoneOutputBanner {zone} />
 
   <div class="mini-cover">
     <!-- `album_id` n'existe pas sur le now-playing de la zone (le serveur ne

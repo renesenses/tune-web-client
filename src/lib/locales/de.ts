@@ -177,6 +177,9 @@ export default {
 
   // Zone
   'zone.zones': 'ZONEN',
+  'zone.noOutputBanner': 'Diese Zone hat keinen Audioausgang: Es ist nichts zu hören, bis Sie einen auswählen.',
+  'zone.noOutputBannerAction': 'Ausgang wählen',
+  'zone.browserUnattendedBanner': 'Diese Zone spielt im Browser, aber kein Tab empfängt den Ton. Öffnen Sie Tune auf diesem Computer oder wählen Sie eine andere Zone.',
   'zone.newZone': 'Neue Zone',
   'zone.zoneName': 'Zonenname',
   'zone.selectDevice': '-- Gerät --',

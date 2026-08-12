@@ -215,6 +215,19 @@ export interface Zone {
   error?: string | null;
   stream_url?: string | null;
   online?: boolean;
+  /**
+   * Où va réellement le son de cette zone (#1499). `online` répond « la sortie
+   * répond-elle ? », pas « y a-t-il une sortie ? », et vaut toujours `true`
+   * pour une zone navigateur — même quand aucun onglet n'écoute.
+   *
+   * - `ok` — le son a une destination.
+   * - `no_output` — aucune sortie associée : la lecture sera refusée.
+   * - `browser_unattended` — zone navigateur qui joue depuis plus de douze
+   *   secondes sans qu'un seul octet ait été tiré : personne n'écoute.
+   *
+   * Absent des serveurs < 0.9.70 : traiter l'absence comme `ok`.
+   */
+  output_reach?: 'ok' | 'no_output' | 'browser_unattended';
   /** Seconds since recovery started (null = not recovering) */
   recovery_started_at?: number | null;
   /** Number of consecutive failed poll attempts during recovery */
