@@ -2266,6 +2266,7 @@ export default {
   "converter.noMusicDir": "구성된 음악 디렉터리 없음",
   "converter.emptyDir": "빈 디렉터리",
   "converter.outputFormat": "출력 포맷",
+  "converter.formatUnavailable": "이 서버에서 사용할 수 없음",
   "converter.quality": "품질 / 비트레이트",
   "converter.sampleRate": "샘플 레이트",
   "converter.bitDepth": "비트 심도",

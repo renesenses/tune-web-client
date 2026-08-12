@@ -2283,6 +2283,7 @@ export default {
   "converter.noMusicDir": "Nessuna cartella musicale configurata",
   "converter.emptyDir": "Cartella vuota",
   "converter.outputFormat": "Formato di uscita",
+  "converter.formatUnavailable": "Non disponibile su questo server",
   "converter.quality": "Qualità / Bitrate",
   "converter.sampleRate": "Frequenza di campionamento",
   "converter.bitDepth": "Profondità di bit",
