@@ -14,6 +14,7 @@
   import MetadataMp3Panel from './MetadataMp3Panel.svelte';
   import MetadataSuggestionsPanel from './MetadataSuggestionsPanel.svelte';
   import MetadataDuplicatesPanel from './MetadataDuplicatesPanel.svelte';
+  import MetadataProposalsPanel from './MetadataProposalsPanel.svelte';
 
   let toolsMenuOpen = $state(false);
   /* Hauteur réelle de `.meta-filters` (elle varie : les onglets peuvent passer
@@ -58,6 +59,11 @@
   let suggestions = $state<any[]>([]);
   let suggestionCount = $state(0);
   let showSuggestions = $state(false);
+
+  let proposals = $state<api.MetadataProposal[]>([]);
+  let proposalCount = $state(0);
+  let showProposals = $state(false);
+  let proposalsAutoApply = $state(false);
 
   let fixYearsRunning = $state<string | null>(null);
   let fixYearsResult = $state<{ source: string; total: number; fixed: number; not_found: number } | null>(null);
@@ -516,6 +522,24 @@
   async function handleShowSuggestions() {
     showSuggestions = !showSuggestions;
     if (showSuggestions) await loadSuggestions();
+  }
+
+  /* Propositions de la communauté — ce que d'autres bibliothèques affirment
+     sur les albums qu'on possède. Le compteur est chargé au montage pour que
+     le menu dise s'il y a quelque chose à regarder ; la liste ne l'est qu'à
+     l'ouverture. */
+  async function loadProposals() {
+    try {
+      const res = await api.listMetadataProposals();
+      proposals = res.proposals ?? [];
+      proposalCount = res.pending ?? 0;
+      proposalsAutoApply = res.auto_apply ?? false;
+    } catch {}
+  }
+
+  async function handleShowProposals() {
+    showProposals = !showProposals;
+    if (showProposals) await loadProposals();
   }
 
   async function handleAcceptSuggestion(id: number) {
@@ -1214,6 +1238,9 @@
   onMount(() => {
     loadData();
     loadBackups();
+    // Le compteur seul, pour que le menu dise s'il y a quelque chose a
+    // regarder. La liste n'est chargee qu'a l'ouverture du panneau.
+    loadProposals();
   });
 
   // WS subscription: refresh stats + albums when enrichment completes
@@ -1462,6 +1489,10 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
               {$t('metadata.viewSuggestions')}{suggestionCount ? ` (${suggestionCount})` : ''}
             </button>
+            <button class="tools-item" onclick={() => { closeToolsMenu(); handleShowProposals(); }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+              {$t('metadataProposals.title')}{proposalCount ? ` (${proposalCount})` : ''}
+            </button>
           </div>
         {/if}
       </div>
@@ -1583,6 +1614,16 @@
         onReject={handleRejectSuggestion}
         onAcceptAll={handleAcceptAll}
         onClose={() => showSuggestions = false}
+      />
+    {/if}
+
+    <!-- Propositions de la communauté -->
+    {#if showProposals}
+      <MetadataProposalsPanel
+        {proposals}
+        autoApply={proposalsAutoApply}
+        onDecided={loadProposals}
+        onClose={() => showProposals = false}
       />
     {/if}
 

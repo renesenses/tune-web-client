@@ -4222,3 +4222,39 @@ export function applianceInstallToDisk(device: string): Promise<{ started: boole
 export function applianceInstallStatus(): Promise<{ phase: string; written_bytes: number; error: string | null; target: string }> {
   return apiFetch('/appliance/install-to-disk/status');
 }
+
+// ---------------------------------------------------------------------------
+// Propositions de correction venues de la communaute
+// ---------------------------------------------------------------------------
+
+export interface MetadataProposal {
+  id: number;
+  entity: string;
+  local_id: number;
+  title: string | null;
+  artist: string | null;
+  field: string;
+  current: string | null;
+  proposed: string | null;
+  /** Combien de bibliotheques portent la valeur proposee. */
+  servers_count: number;
+  fetched_at: string;
+}
+
+export function listMetadataProposals(
+  limit = 100,
+): Promise<{ proposals: MetadataProposal[]; pending: number; auto_apply: boolean }> {
+  return apiFetch(`/library/proposals?limit=${limit}`);
+}
+
+/** `accept: false` compte comme une voix pour la valeur qu'on possede deja. */
+export function decideMetadataProposal(
+  id: number,
+  accept: boolean,
+): Promise<{ decided: boolean; decision: string; applied: boolean }> {
+  return apiPost(`/library/proposals/${id}/decision`, { accept });
+}
+
+export function setMetadataProposalsAutoApply(enabled: boolean): Promise<{ auto_apply: boolean }> {
+  return apiPost('/library/proposals/auto-apply', { enabled });
+}
