@@ -8,6 +8,7 @@
   import AcousticProgress from './AcousticProgress.svelte';
   import { tuneWS } from '../lib/websocket';
   import { zones, currentZoneId, followMe } from '../lib/stores/zones';
+  import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../lib/stores/audiophile';
   import { loopByDefault } from '../lib/stores/loopByDefault';
   import { devices } from '../lib/stores/devices';
   import { preferences, applyTheme, OXYGEN_FACETS_ALL, type ThemeMode, type VolumeDisplay, type StartupView, type OxygenViewMode } from '../lib/stores/preferences';
@@ -2471,6 +2472,10 @@ function toggleAdvancedSystem() {
   // sidebar clicks are never processed.
   onMount(() => {
     loadAll();
+    // L'état du verrou vit côté serveur ; sans ce refresh, le toggle du
+    // panneau Général afficherait « off » tant que la barre de lecture n'a
+    // pas elle-même initialisé le store.
+    refreshVolumeLock();
     // Last scan report is persisted server-side — show it across reloads.
     api.getScanReport()
       .then((r) => { if (r && r.total_files != null) scanReport = r; })
@@ -2961,6 +2966,29 @@ function toggleAdvancedSystem() {
     <!-- Playback / Crossfade -->
     <section class="settings-section">
       <h3>{$t('settings.playback')}</h3>
+      <!-- Miroir du réglage du panneau « Chemin du signal » : le même état,
+           exposé AUSSI ici — introuvable pour qui le cherche dans les
+           Réglages, réflexe naturel pour ce type d'option (Bertrand, 12/08). -->
+      <div class="setting-row">
+        <div class="setting-label">
+          <span>{$t('audiophile.lockVolume' as any)}</span>
+          <span class="setting-hint">{$t('audiophile.lockVolumeHelp' as any)}</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" checked={$audiophileLockVolume} onchange={async () => {
+            try {
+              await setVolumeLock(!$audiophileLockVolume);
+              // En PURE, verrouiller remonte aussi la zone courante à 100 % —
+              // même geste que l'interrupteur du chemin du signal.
+              if ($audiophileLockVolume && $audiophileEnabled) {
+                const zid = $currentZoneId;
+                if (zid != null) await api.setVolume(zid, 1);
+              }
+            } catch { /* setVolumeLock a déjà restauré le store */ }
+          }} />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
       <div class="setting-row">
         <div class="setting-label">
           <span>Crossfade</span>
