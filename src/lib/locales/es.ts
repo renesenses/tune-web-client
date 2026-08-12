@@ -1286,6 +1286,7 @@ export default {
   "home.trackNotFoundOn": "Pista no encontrada en",
   "home.nowListening": "Escuchando ahora",
   "home.continueListening": "Continuar escuchando",
+  "home.openAlbum": "Abrir el álbum",
   "home.listens": "Escuchas",
   "home.listened": "Escuchado",
   "home.libraryDuration": "Biblioteca",

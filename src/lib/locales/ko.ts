@@ -1269,6 +1269,7 @@ export default {
   "home.trackNotFoundOn": "트랙을 찾을 수 없음:",
   "home.nowListening": "지금 듣는 중",
   "home.continueListening": "이어 듣기",
+  "home.openAlbum": "앨범 열기",
   "home.listens": "재생 수",
   "home.listened": "들음",
   "home.libraryDuration": "라이브러리",

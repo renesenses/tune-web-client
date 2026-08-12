@@ -123,6 +123,47 @@
     }
   }
 
+  // Ouvrir une entrée « Continuer l'écoute » : même résolution que le titre
+  // cliquable sous la pochette — l'entrée ne porte pas toujours d'album_id
+  // (source streaming, ou piste isolée), il faut alors la retrouver.
+  async function openContinueEntry(item: any) {
+    if (item.album_id) { navigateToAlbum(item.album_id); return; }
+    const q = (item.title ?? item.album_title ?? '').trim();
+    if (!q) return;
+    const results = await api.searchLibrary(`${q} ${item.artist_name ?? ''}`, 5);
+    const match = results.albums?.find((a: any) => a.title?.toLowerCase() === q.toLowerCase());
+    if (match?.id) navigateToAlbum(match.id);
+  }
+
+  // Lecture d'une entrée « Continuer l'écoute » — ce que faisait la pochette
+  // entière jusqu'ici, désormais réservé au bouton de lecture.
+  async function playContinueEntry(item: any) {
+    if (!zone?.id) return;
+    const src = item.source;
+    if (src && src !== 'local' && src !== 'radio') {
+      const q = `${item.title ?? item.album_title ?? ''} ${item.artist_name ?? ''}`.trim();
+      try {
+        const results = await api.searchStreaming(src as Source, q, 5);
+        const match = results.albums?.find((a: any) => a.title?.toLowerCase() === (item.title ?? item.album_title)?.toLowerCase())
+          ?? results.tracks?.[0];
+        if (match?.source_id) {
+          await playAndSync(zone.id, { source: src as Source, streaming_album_id: match.source_id });
+        }
+      } catch {}
+    } else if (item.album_id) {
+      await playAndSync(zone.id, { album_id: item.album_id });
+    } else {
+      const q = `${item.title ?? item.album_title ?? ''} ${item.artist_name ?? ''}`.trim();
+      if (q) {
+        const results = await api.searchLibrary(q, 5);
+        const match = results.tracks?.find((t: Track) => t.album_id);
+        if (match?.album_id) {
+          await playAndSync(zone.id, { album_id: match.album_id });
+        }
+      }
+    }
+  }
+
   async function navigateToAlbum(albumId: number) {
     selectedArtist.set(null);
     libraryLoading.set(true);
@@ -637,43 +678,17 @@
         <div class="carousel carousel-scrollable" bind:this={continueCarousel}>
           {#each continueListening as item}
             <div class="carousel-card">
-              <button class="carousel-cover" type="button" onclick={async () => {
-                if (!zone?.id) return;
-                const src = item.source;
-                if (src && src !== 'local' && src !== 'radio') {
-                  const q = `${item.title ?? item.album_title ?? ''} ${item.artist_name ?? ''}`.trim();
-                  try {
-                    const results = await api.searchStreaming(src as Source, q, 5);
-                    const match = results.albums?.find((a: any) => a.title?.toLowerCase() === (item.title ?? item.album_title)?.toLowerCase())
-                      ?? results.tracks?.[0];
-                    if (match?.source_id) {
-                      await playAndSync(zone.id, { source: src as Source, streaming_album_id: match.source_id });
-                    }
-                  } catch {}
-                } else if (item.album_id) {
-                  await playAndSync(zone.id, { album_id: item.album_id });
-                } else {
-                  const q = `${item.title ?? item.album_title ?? ''} ${item.artist_name ?? ''}`.trim();
-                  if (q) {
-                    const results = await api.searchLibrary(q, 5);
-                    const match = results.tracks?.find((t: Track) => t.album_id);
-                    if (match?.album_id) {
-                      await playAndSync(zone.id, { album_id: match.album_id });
-                    }
-                  }
-                }
-              }}>
-                <AlbumArt coverPath={item.cover_path} albumId={item.album_id ?? item.id} size={160} alt={item.title ?? item.album_title ?? ''} />
-                <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
-              </button>
-              <button class="carousel-title truncate" type="button" onclick={async () => {
-                if (item.album_id) { navigateToAlbum(item.album_id); return; }
-                const q = (item.title ?? item.album_title ?? '').trim();
-                if (!q) return;
-                const results = await api.searchLibrary(`${q} ${item.artist_name ?? ''}`, 5);
-                const match = results.albums?.find((a: any) => a.title?.toLowerCase() === q.toLowerCase());
-                if (match?.id) navigateToAlbum(match.id);
-              }}>{item.title ?? item.album_title ?? ''}</button>
+              <div class="carousel-cover-wrap">
+                <button class="carousel-cover" type="button" onclick={() => openContinueEntry(item)}
+                        title={$t('home.openAlbum')} aria-label={$t('home.openAlbum')}>
+                  <AlbumArt coverPath={item.cover_path} albumId={item.album_id ?? item.id} size={160} alt={item.title ?? item.album_title ?? ''} />
+                </button>
+                <button class="play-badge" type="button" onclick={() => playContinueEntry(item)}
+                        title={$t('library.playAlbum')} aria-label={$t('library.playAlbum')}>
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M8 5v14l11-7z" /></svg>
+                </button>
+              </div>
+              <button class="carousel-title truncate" type="button" onclick={() => openContinueEntry(item)}>{item.title ?? item.album_title ?? ''}</button>
               <button class="carousel-artist truncate" type="button" onclick={() => {
                 if (item.artist_name) navigateArtistByName(item.artist_name);
               }}>{item.artist_name ?? ''}</button>
@@ -1280,6 +1295,40 @@
 
   .carousel-cover:hover .play-overlay {
     opacity: 1;
+  }
+
+  /* Cliquer la pochette OUVRE l'album ; seul ce bouton lance la lecture.
+     Avant, l'« icône Play » couvrait toute la pochette (inset: 0) : il n'y
+     avait aucune zone distincte, et le moindre clic sur l'image lançait la
+     lecture alors qu'on voulait voir les titres (Fabien, 11/08/2026). */
+  .carousel-cover-wrap { position: relative; display: block; line-height: 0; }
+  .play-badge {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    background: var(--tune-accent);
+    color: #fff;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.15s, transform 0.15s;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  }
+  .carousel-cover-wrap:hover .play-badge,
+  .play-badge:focus-visible { opacity: 1; transform: none; }
+  /* Tactile : rien ne survole, le bouton doit rester visible en permanence. */
+  @media (hover: none) {
+    .play-badge { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .play-badge { transition: none; }
   }
 
   .play-overlay {
