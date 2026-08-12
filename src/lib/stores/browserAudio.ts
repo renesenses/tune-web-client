@@ -129,9 +129,54 @@ export function browserPause() {
   audio.pause();
 }
 
-/** Resume browser audio */
-export function browserResume() {
+/**
+ * L'élément a-t-il encore une source jouable, ou faut-il la recharger ?
+ *
+ * Pendant une pause, le navigateur cesse de lire la réponse HTTP et finit par
+ * lâcher la connexion. La session de flux côté serveur est à consommateur
+ * unique : on ne peut pas la reprendre en cours de route. `audio.play()` sur
+ * un élément dans cet état ne produit alors aucun son — et aucune erreur non
+ * plus, ce qui est le pire des deux mondes (Alex, « No sound », 0.9.68 Linux :
+ * pause, retour au navigateur, Lecture, silence).
+ *
+ * Les trois états qui imposent un rechargement :
+ *   - pas de source du tout ;
+ *   - l'élément porte une erreur média ;
+ *   - `readyState === HAVE_NOTHING` (0) : plus une seule donnée en réserve.
+ *
+ * Une pause courte laisse l'élément avec son tampon et un `readyState` ≥ 1 :
+ * on reprend alors sans recharger, sinon on ferait repartir le morceau du
+ * début à chaque pause.
+ */
+export function needsSourceReload(audio: {
+  src?: string;
+  error?: unknown;
+  readyState?: number;
+}): boolean {
+  if (!audio.src) return true;
+  if (audio.error) return true;
+  return (audio.readyState ?? 0) === 0;
+}
+
+/**
+ * Resume browser audio.
+ *
+ * `streamUrl` est l'URL courante de la zone, quand l'appelant la connaît. Sans
+ * elle on ne peut que tenter la reprise à l'aveugle — c'est ce que faisait
+ * cette fonction, et c'était l'asymétrie du bug : le chemin événementiel
+ * (App.svelte) re-pointait bien l'élément sur `stream_url`, le bouton Lecture
+ * non.
+ */
+export function browserResume(streamUrl?: string | null) {
   const audio = getAudio();
+  if (streamUrl) {
+    // Source morte pendant la pause → on la redemande au serveur. Sinon on
+    // délègue à browserPlay, qui recharge si l'URL a changé et se contente de
+    // relancer si elle est identique : c'est exactement ce que faisait déjà le
+    // chemin événementiel, et il ne faut pas le perdre.
+    browserPlay(streamUrl, needsSourceReload(audio));
+    return;
+  }
   if (audio.src) {
     audio.play().catch((e) => {
       console.warn('Browser audio resume failed:', e);

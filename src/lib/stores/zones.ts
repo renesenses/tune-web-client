@@ -196,10 +196,17 @@ export async function resumeAndSync(zoneId: number): Promise<Zone> {
   const zone = await api.resume(zoneId);
   checkPlayError(zone);
   syncZone(zone);
-  // For browser zones, resume local audio
+  // For browser zones, resume local audio.
+  //
+  // On passe `stream_url` : sans elle la reprise se faisait à l'aveugle sur un
+  // élément dont la source avait pu mourir pendant la pause (le navigateur
+  // lâche la connexion, et la session serveur est à consommateur unique).
+  // `audio.play()` ne rendait alors ni son ni erreur — « No sound » d'Alex.
+  // Le chemin événementiel (App.svelte, `playback.resumed`) re-pointait déjà
+  // l'élément sur `stream_url` ; le bouton Lecture, lui, ne le faisait pas.
   if (isBrowserZone(zone)) {
     const { browserResume } = await getBrowserAudio();
-    browserResume();
+    browserResume(zone.stream_url);
   }
   return zone;
 }
