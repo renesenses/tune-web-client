@@ -118,6 +118,18 @@ function normalizeTab(tab: string | null | undefined): string {
 }
 let settingsTab = $state<string>(normalizeTab(_initialTab));
 
+// Already-open case: clicking a sidebar shortcut (e.g. CLAP) while Settings is
+// already displayed must still switch tabs — the one-shot consumption above
+// only runs at init. Consume the store reactively too; the first run sees null
+// (already consumed) and is a no-op.
+$effect(() => {
+  const tab = $settingsInitialTab;
+  if (tab) {
+    settingsTab = normalizeTab(tab);
+    settingsInitialTab.set(null);
+  }
+});
+
 // Repli des reglages de maintenance de l'onglet Systeme.
 //
 // Cet onglet portait onze sections qui melangeaient l'usage courant — licence,
