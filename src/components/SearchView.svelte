@@ -81,6 +81,7 @@
   let showArtists = $state(true);
   let showAlbums = $state(true);
   let showTracks = $state(true);
+  let showPlaylists = $state(true);
 
   // Quality filters
   type QualityFilter = 'all' | 'hires' | 'cd' | 'lossy';
@@ -709,10 +710,10 @@
 
   // Section order: put the most relevant category first
   let sectionOrder = $derived.by(() => {
-    if (!topResult) return ['artists', 'albums', 'tracks'] as const;
-    if (topResult.type === 'album') return ['albums', 'artists', 'tracks'] as const;
-    if (topResult.type === 'track') return ['tracks', 'albums', 'artists'] as const;
-    return ['artists', 'albums', 'tracks'] as const;
+    if (!topResult) return ['artists', 'albums', 'tracks', 'playlists'] as const;
+    if (topResult.type === 'album') return ['albums', 'artists', 'tracks', 'playlists'] as const;
+    if (topResult.type === 'track') return ['tracks', 'albums', 'artists', 'playlists'] as const;
+    return ['artists', 'albums', 'tracks', 'playlists'] as const;
   });
 </script>
 
@@ -764,6 +765,10 @@
           <button class="type-pill" class:active={showTracks} onclick={() => showTracks = !showTracks}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M9 18V5l12-3v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="15" r="3" /></svg>
             Pistes
+          </button>
+          <button class="type-pill" class:active={showPlaylists} onclick={() => showPlaylists = !showPlaylists}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="3" y1="6" x2="13" y2="6" /><line x1="3" y1="12" x2="13" y2="12" /><line x1="3" y1="18" x2="9" y2="18" /><path d="M17 16V5l4 2" /><circle cx="15" cy="17" r="2" /></svg>
+            {$t('nav.playlists')}
           </button>
         </div>
         <div class="quality-filters">
@@ -1185,31 +1190,28 @@
                   </div>
                 {/each}
               </section>
+            {:else if sec === 'playlists' && showPlaylists && playlistMatches.length > 0}
+              <section class="section">
+                <h3 class="section-title">{$t('nav.playlists')} <span class="count">{playlistMatches.length}</span></h3>
+                <div class="playlist-list">
+                  {#each playlistMatches as pl}
+                    <button class="playlist-row" onclick={() => playPlaylist(pl)}>
+                      <div class="playlist-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 18V5l12-3v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="15" r="3" /></svg>
+                      </div>
+                      <div class="playlist-info">
+                        <span class="playlist-name">{pl.name}</span>
+                        <span class="playlist-meta">
+                          {pl.trackCount} pistes{#if !pl.owned && pl.owner} · {pl.owner}{/if}
+                        </span>
+                      </div>
+                      <span class="playlist-source">{pl.source}</span>
+                    </button>
+                  {/each}
+                </div>
+              </section>
             {/if}
           {/each}
-
-          <!-- PLAYLISTS (always last) -->
-          {#if playlistMatches.length > 0}
-            <section class="section">
-              <h3 class="section-title">Playlists <span class="count">{playlistMatches.length}</span></h3>
-              <div class="playlist-list">
-                {#each playlistMatches as pl}
-                  <button class="playlist-row" onclick={() => playPlaylist(pl)}>
-                    <div class="playlist-icon">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 18V5l12-3v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="15" r="3" /></svg>
-                    </div>
-                    <div class="playlist-info">
-                      <span class="playlist-name">{pl.name}</span>
-                      <span class="playlist-meta">
-                        {pl.trackCount} pistes{#if !pl.owned && pl.owner} · {pl.owner}{/if}
-                      </span>
-                    </div>
-                    <span class="playlist-source">{pl.source}</span>
-                  </button>
-                {/each}
-              </div>
-            </section>
-          {/if}
         </div>
       {/if}
     {/if}
