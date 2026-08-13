@@ -12,6 +12,7 @@
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import type { DiscoveredDevice, LocalAudioDevice, OutputType, Zone, ZoneGroupResponse, StreamingServiceStatus } from '../lib/types';
+  import { favoritesFirst, toggleFavoriteId, type DeviceFavPrefix } from '../lib/deviceFavorites';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ProfileSelector from './ProfileSelector.svelte';
   import { notifications } from '../lib/stores/notifications';
@@ -79,12 +80,34 @@
   let zoneGroups = $state<ZoneGroupResponse[]>([]);
   let audioDevices = $state<LocalAudioDevice[]>([]);
 
+  // Appareils favoris (#1622) : favoris en tête, ordre de découverte préservé
+  // pour le reste — logique dans lib/deviceFavorites.ts (testée unitairement).
   let visibleAudioDevices = $derived(
-    audioDevices.filter(d => !$preferences.hiddenDeviceIds.includes(`audio:${d.id}`))
+    favoritesFirst(
+      audioDevices.filter(d => !$preferences.hiddenDeviceIds.includes(`audio:${d.id}`)),
+      'audio',
+      $preferences.favoriteDeviceIds
+    )
   );
   let visibleNetDevices = $derived(
-    $devices.filter(d => !$preferences.hiddenDeviceIds.includes(`net:${d.id}`))
+    favoritesFirst(
+      $devices.filter(d => !$preferences.hiddenDeviceIds.includes(`net:${d.id}`)),
+      'net',
+      $preferences.favoriteDeviceIds
+    )
   );
+
+  function isFavoriteDevice(prefix: DeviceFavPrefix, id: string): boolean {
+    return $preferences.favoriteDeviceIds.includes(`${prefix}:${id}`);
+  }
+
+  function toggleFavoriteDevice(prefix: DeviceFavPrefix, id: string, e: MouseEvent) {
+    e.stopPropagation();
+    preferences.update((p) => ({
+      ...p,
+      favoriteDeviceIds: toggleFavoriteId(p.favoriteDeviceIds, `${prefix}:${id}`),
+    }));
+  }
 
   async function fetchGroups() {
     try {
@@ -980,6 +1003,20 @@
     </div>
   </div>
 
+  {#snippet favoriteStar(prefix: 'audio' | 'net', id: string)}
+    {@const fav = isFavoriteDevice(prefix, id)}
+    <button
+      class="device-fav-btn"
+      class:is-fav={fav}
+      onclick={(e) => toggleFavoriteDevice(prefix, id, e)}
+      title={fav ? $t('zone.unfavoriteDevice') : $t('zone.favoriteDevice')}
+      aria-label={fav ? $t('zone.unfavoriteDevice') : $t('zone.favoriteDevice')}
+      aria-pressed={fav}
+    >
+      <svg viewBox="0 0 24 24" fill={fav ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="12" height="12"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+    </button>
+  {/snippet}
+
   <div class="devices-section">
     <span class="section-label">{$t('zone.devices')}</span>
     <div class="devices-list">
@@ -989,6 +1026,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" /></svg>
           </span>
           <span class="device-name truncate">{audioDevice.name}</span>
+          {@render favoriteStar('audio', audioDevice.id)}
           <span class="device-type-tag">{$t('settings.usb')}</span>
           <button class="device-add-btn" onclick={() => createZoneFromAudioDevice(audioDevice)} title={$t('zone.createZone')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
@@ -1010,6 +1048,7 @@
             <svg class="device-lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           {/if}
           <span class="device-name truncate">{device.name}</span>
+          {@render favoriteStar('net', device.id)}
           <span class="device-type-tag">{deviceTypeIcon(device.type)}</span>
           {#if device.available}
             {#if device.type === 'airplay' && !pairedDeviceIds.has(device.id)}
@@ -1769,6 +1808,35 @@
     color: var(--tune-accent);
   }
 
+  /* Étoile favori (#1622) : invisible au repos, révélée au survol de la
+     ligne ; toujours visible (et accentuée) quand l'appareil est favori. */
+  .device-fav-btn {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    padding: 1px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.12s ease-out, color 0.12s ease-out;
+  }
+
+  .device-item:hover .device-fav-btn,
+  .device-fav-btn:focus-visible {
+    opacity: 1;
+  }
+
+  .device-fav-btn:hover {
+    color: var(--tune-accent);
+  }
+
+  .device-fav-btn.is-fav {
+    opacity: 1;
+    color: var(--tune-accent);
+  }
+
   .device-status {
     font-size: 8px;
     flex-shrink: 0;
@@ -1963,6 +2031,13 @@
   @media (hover: none) and (pointer: coarse) {
     .zone-drag-handle {
       opacity: 0.4;
+    }
+    /* Pas de survol au doigt : l'étoile favori reste discrète mais visible. */
+    .device-fav-btn {
+      opacity: 0.4;
+    }
+    .device-fav-btn.is-fav {
+      opacity: 1;
     }
   }
 

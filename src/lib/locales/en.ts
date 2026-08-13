@@ -375,6 +375,8 @@ export default {
   'zone.defaultOutput': '-- Default output --',
   'zone.browserOutput': 'This computer (browser)',
   'zone.devices': 'DEVICES',
+  'zone.favoriteDevice': "Add device to favorites",
+  'zone.unfavoriteDevice': "Remove device from favorites",
   'zone.clearDevices': 'Clear all',
   'zone.createZone': 'Create Zone',
   'zone.activeGroup': 'Active Group',

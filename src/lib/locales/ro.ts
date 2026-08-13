@@ -188,6 +188,8 @@ export default {
   'zone.defaultOutput': '-- Ieșire implicită --',
   'zone.browserOutput': 'Acest browser',
   'zone.devices': 'DISPOZITIVE',
+  'zone.favoriteDevice': "Adaugă dispozitivul la favorite",
+  'zone.unfavoriteDevice': "Elimină dispozitivul din favorite",
   'zone.clearDevices': 'Șterge tot',
   'zone.createZone': 'Creează zonă',
   'zone.activeGroup': 'Grup activ',

@@ -182,6 +182,8 @@ export default {
   'zone.defaultOutput': '-- Standardutgång --',
   'zone.browserOutput': 'Den här datorn (webbläsare)',
   'zone.devices': 'ENHETER',
+  'zone.favoriteDevice': "Lägg till enheten som favorit",
+  'zone.unfavoriteDevice': "Ta bort enheten från favoriter",
   'zone.clearDevices': 'Rensa alla',
   'zone.createZone': 'Skapa zon',
   'zone.activeGroup': 'Aktiv grupp',

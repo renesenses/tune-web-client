@@ -187,6 +187,8 @@ export default {
   'zone.defaultOutput': '-- 默认输出 --',
   'zone.browserOutput': '此浏览器',
   'zone.devices': '设备',
+  'zone.favoriteDevice': "将设备添加到收藏",
+  'zone.unfavoriteDevice': "从收藏中移除设备",
   'zone.clearDevices': '全部删除',
   'zone.createZone': '创建区域',
   'zone.activeGroup': '活跃组',

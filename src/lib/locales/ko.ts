@@ -187,6 +187,8 @@ export default {
   'zone.defaultOutput': '-- 기본 출력 --',
   'zone.browserOutput': '이 브라우저',
   'zone.devices': '기기',
+  'zone.favoriteDevice': "기기를 즐겨찾기에 추가",
+  'zone.unfavoriteDevice': "기기를 즐겨찾기에서 제거",
   'zone.clearDevices': '모두 삭제',
   'zone.createZone': '존 생성',
   'zone.activeGroup': '활성 그룹',

@@ -187,6 +187,8 @@ export default {
   'zone.defaultOutput': '-- Salida por defecto --',
   'zone.browserOutput': 'Este navegador',
   'zone.devices': 'DISPOSITIVOS',
+  'zone.favoriteDevice': "Añadir dispositivo a favoritos",
+  'zone.unfavoriteDevice': "Quitar dispositivo de favoritos",
   'zone.clearDevices': 'Eliminar todos',
   'zone.createZone': 'Crear zona',
   'zone.activeGroup': 'Grupo activo',
