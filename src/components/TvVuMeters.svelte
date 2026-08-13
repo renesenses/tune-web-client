@@ -2,9 +2,18 @@
   // Paire de VU-mètres analogiques (G/D) pour le mode Grand écran — cadrans à
   // aiguille façon appli tvOS, nourris par les niveaux RMS réels du serveur
   // (événements audio_levels). Balistique VU classique : intégration ~300 ms,
-  // zone rouge au-dessus de 0 VU, témoin de crête.
+  // zone rouge réservée aux vrais −3…0 dBFS, témoin de crête.
   import { onMount, onDestroy } from 'svelte';
   import { audioLevels } from '../lib/stores/audioLevels';
+  import {
+    MIN_DB,
+    MAX_DB,
+    RED_FROM_DB,
+    PEAK_LAMP_DBFS,
+    TICKS,
+    LABELED_TICKS,
+    dbToFraction,
+  } from '../lib/tvVuScale';
   import { t } from '../lib/i18n';
 
   interface Props {
@@ -17,34 +26,19 @@
   let canvas: HTMLCanvasElement | undefined = $state();
   let animId: number | null = null;
 
-  // 0 VU calé sur -18 dBFS, la référence usuelle en numérique.
-  //
-  // Le calage précédent, -14 dBFS, plaçait la butée haute du cadran (+3 VU) à
-  // -11 dBFS de RMS — un niveau où vit en permanence la quasi-totalité des
-  // masters modernes. Les aiguilles restaient donc collées en butée sur
-  // presque tout, ce qui laissait croire à une saturation inexistante (retour
-  // Alex Campbell, sur un enregistrement ambient très calme). À -18, l'aiguille
-  // vit autour de 0 sur un disque courant et la zone rouge redevient
-  // significative — ce que le commentaire d'origine visait déjà.
-  const ZERO_VU_DBFS = -18;
-  /// Témoin de crête : proche de la pleine échelle, pas « au-dessus de 0 VU ».
-  /// Adossé à ZERO_VU_DBFS, il s'allumait dès -13 dBFS, donc en continu.
-  const PEAK_LAMP_DBFS = -3;
-  const MIN_VU = -20; // graduation basse du cadran
-  const MAX_VU = 3;   // graduation haute
-  const TICKS = [-20, -10, -7, -5, -3, -2, -1, 0, 1, 2, 3];
+  // Échelle du cadran : dBFS RMS, de −40 à la pleine échelle (0). Constantes,
+  // graduations et courbe dans lib/tvVuScale.ts (testé unitairement) — voir
+  // #439 pour l'historique des calages VU broadcast qui collaient les
+  // aiguilles en butée dans le rouge.
 
-  // Position angulaire d'une valeur VU sur l'arc (gauche → droite).
+  // Position angulaire d'une valeur dBFS sur l'arc (gauche → droite).
   const SPAN = Math.PI * 0.66; // ~120°
-  function vuToAngle(vu: number): number {
-    const t = (Math.min(MAX_VU, Math.max(MIN_VU, vu)) - MIN_VU) / (MAX_VU - MIN_VU);
-    // Échelle légèrement logarithmique comme un vrai cadran (resserrée à gauche).
-    const warped = Math.pow(t, 0.75);
-    return -SPAN / 2 + warped * SPAN;
+  function dbToAngle(db: number): number {
+    return -SPAN / 2 + dbToFraction(db) * SPAN;
   }
 
   // État des aiguilles (balistique) et des témoins de crête.
-  let needle = [MIN_VU, MIN_VU];
+  let needle = [MIN_DB, MIN_DB];
   let peakHold = [0, 0]; // frames restantes d'allumage du témoin
 
   const reducedMotion =
@@ -57,7 +51,7 @@
     cy: number,
     radius: number,
     label: string,
-    vu: number,
+    db: number,
     peakLit: boolean,
     dpr: number,
   ) {
@@ -80,18 +74,18 @@
     ctx.fill();
     ctx.stroke();
 
-    // Arc gradué : partie « saine » ivoire, partie > 0 VU rouge
-    const a0 = -Math.PI / 2 + vuToAngle(MIN_VU);
-    const aZero = -Math.PI / 2 + vuToAngle(0);
-    const a1 = -Math.PI / 2 + vuToAngle(MAX_VU);
+    // Arc gradué : partie « saine » ivoire, zone rouge sur les vrais −3…0 dBFS
+    const a0 = -Math.PI / 2 + dbToAngle(MIN_DB);
+    const aRed = -Math.PI / 2 + dbToAngle(RED_FROM_DB);
+    const a1 = -Math.PI / 2 + dbToAngle(MAX_DB);
     ctx.lineWidth = 2.4 * dpr;
     ctx.strokeStyle = 'rgba(237,233,224,0.75)';
     ctx.beginPath();
-    ctx.arc(0, faceR * 0.42, arcR, a0, aZero);
+    ctx.arc(0, faceR * 0.42, arcR, a0, aRed);
     ctx.stroke();
     ctx.strokeStyle = 'rgba(224,82,82,0.95)';
     ctx.beginPath();
-    ctx.arc(0, faceR * 0.42, arcR, aZero, a1);
+    ctx.arc(0, faceR * 0.42, arcR, aRed, a1);
     ctx.stroke();
 
     // Graduations + chiffres
@@ -99,18 +93,18 @@
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (const tick of TICKS) {
-      const a = -Math.PI / 2 + vuToAngle(tick);
+      const a = -Math.PI / 2 + dbToAngle(tick);
       const inner = arcR - 6 * dpr;
-      const outer = arcR + (tick === 0 ? 7 : 4) * dpr;
-      ctx.strokeStyle = tick >= 0 ? 'rgba(224,82,82,0.95)' : 'rgba(237,233,224,0.7)';
-      ctx.lineWidth = (tick === 0 ? 2.2 : 1.2) * dpr;
+      const outer = arcR + (tick === RED_FROM_DB ? 7 : 4) * dpr;
+      ctx.strokeStyle = tick >= RED_FROM_DB ? 'rgba(224,82,82,0.95)' : 'rgba(237,233,224,0.7)';
+      ctx.lineWidth = (tick === RED_FROM_DB ? 2.2 : 1.2) * dpr;
       ctx.beginPath();
       ctx.moveTo(Math.cos(a) * inner, faceR * 0.42 + Math.sin(a) * inner);
       ctx.lineTo(Math.cos(a) * outer, faceR * 0.42 + Math.sin(a) * outer);
       ctx.stroke();
-      if ([-20, -10, -7, -5, -3, 0, 3].includes(tick)) {
+      if (LABELED_TICKS.includes(tick)) {
         const tr = arcR + 13 * dpr;
-        ctx.fillStyle = tick >= 0 ? 'rgba(224,82,82,0.9)' : 'rgba(237,233,224,0.6)';
+        ctx.fillStyle = tick >= RED_FROM_DB ? 'rgba(224,82,82,0.9)' : 'rgba(237,233,224,0.6)';
         ctx.fillText(String(Math.abs(tick)), Math.cos(a) * tr, faceR * 0.42 + Math.sin(a) * tr);
       }
     }
@@ -118,7 +112,7 @@
     // Libellés
     ctx.fillStyle = 'rgba(237,233,224,0.5)';
     ctx.font = `600 ${Math.round(11 * dpr)}px "Avenir Next Condensed", "Arial Narrow", sans-serif`;
-    ctx.fillText('VU', 0, faceR * 0.06);
+    ctx.fillText('dB', 0, faceR * 0.06);
     ctx.font = `600 ${Math.round(12 * dpr)}px "Avenir Next Condensed", "Arial Narrow", sans-serif`;
     ctx.fillStyle = 'rgba(242,180,65,0.85)';
     ctx.fillText(label, 0, faceR * 0.5);
@@ -136,7 +130,7 @@
     }
 
     // Aiguille
-    const na = -Math.PI / 2 + vuToAngle(vu);
+    const na = -Math.PI / 2 + dbToAngle(db);
     const pivotY = faceR * 0.42;
     ctx.strokeStyle = '#f2b441';
     ctx.lineWidth = 2.2 * dpr;
@@ -169,9 +163,10 @@
     ctx.clearRect(0, 0, w, h);
 
     const levels = $audioLevels;
+    // L'aiguille lit le RMS en dBFS, directement sur l'échelle du cadran.
     const targets = [levels.rms_left_db, levels.rms_right_db].map((db) => {
-      if (!playing || db <= -95) return MIN_VU;
-      return db - ZERO_VU_DBFS; // dBFS → VU
+      if (!playing || db <= -95) return MIN_DB;
+      return db;
     });
     const peaks = [levels.peak_left_db, levels.peak_right_db];
 
