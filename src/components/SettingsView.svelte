@@ -78,6 +78,41 @@
     if (!cap) return false;
     return cap < DOP_RATE_DSD256;
   }
+  // Le DoP transporte le DSD dans des trames PCM avec deux octets de marquage
+  // par échantillon : le MOINDRE calcul sur les échantillons les détruit, et
+  // le DAC lit alors du PCM brut — grésillement violent, sans erreur nulle
+  // part (Cyrille, forum 1320, #436). Trois traitements font ce calcul dans
+  // la sortie locale : le volume de zone (< 100 %), le ReplayGain (inclus
+  // dans le volume effectif — `recompute_effective_volume`, local.rs) et
+  // l'égaliseur. Chacun a son avertissement, nommé, sous le réglage DSD.
+  //
+  // `fixed_volume` n'est pas exposé au client, mais quand il est actif le
+  // serveur épingle le volume à 100 en base — `z.volume < 100` reste donc un
+  // signal fiable.
+  function dsdWantsBitPerfect(z: { output_type?: string; dsd_mode?: string }): boolean {
+    return z.output_type === 'local' && ['native', 'dop'].includes(z.dsd_mode ?? 'auto');
+  }
+  // EQ par zone : l'état n'est pas dans le payload des zones, il se charge à
+  // part (`GET /zones/{id}/eq`). Uniquement pour les zones locales en DSD
+  // natif/DoP — les seules où l'avertissement peut s'afficher — et une seule
+  // fois par zone (l'échec retombe sur false : pas d'avertissement fantôme).
+  let zoneEqEnabled = $state<Record<number, boolean>>({});
+  const eqFetched = new Set<number>();
+  $effect(() => {
+    for (const z of $zones) {
+      if (z.id == null || !dsdWantsBitPerfect(z) || eqFetched.has(z.id)) continue;
+      eqFetched.add(z.id);
+      const id = z.id;
+      api
+        .getEq(id)
+        .then((eq) => {
+          zoneEqEnabled[id] = !!eq.enabled;
+        })
+        .catch(() => {
+          zoneEqEnabled[id] = false;
+        });
+    }
+  });
   // Readable device hint from output_device_id ("local:Haut-parleurs…" →
   // "Haut-parleurs…") so two same-named zones can be told apart.
   function zoneDeviceHint(z: { output_device_id?: string | null; output_type?: string }): string {
@@ -4739,6 +4774,17 @@ function toggleAdvancedSystem() {
                   </div>
                   {#if dopCappedToPcm(z)}
                     <p class="zone-warn">{$t('settings.maxSampleRateDsdCap')}</p>
+                  {/if}
+                  {#if dsdWantsBitPerfect(z)}
+                    {#if (z.volume ?? 100) < 100}
+                      <p class="zone-warn">{$t('settings.dsdDspVolume')}</p>
+                    {/if}
+                    {#if replayGainMode !== 'off'}
+                      <p class="zone-warn">{$t('settings.dsdDspReplayGain')}</p>
+                    {/if}
+                    {#if z.id != null && zoneEqEnabled[z.id]}
+                      <p class="zone-warn">{$t('settings.dsdDspEq')}</p>
+                    {/if}
                   {/if}
                   {#if zoneHasAdvanced(z)}
                     <details class="zone-adv">
