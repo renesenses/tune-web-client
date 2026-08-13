@@ -242,6 +242,10 @@ export interface Zone {
   dlna_native_flac?: boolean;
   /** Plafond de fréquence d'échantillonnage de la zone (null = pas de limite). */
   max_sample_rate?: number | null;
+  /** Volume fixe (bit-perfect) : signal à 100 %, épinglé — il survit au
+   *  redémarrage du serveur, là où un 100 % ordinaire est rabaissé à 20 %
+   *  par le garde-fou anti-réveil (tune-server-rust#1616). */
+  fixed_volume?: boolean;
   /** Envoi de l'ALAC tel quel au renderer, sans transcodage. */
   alac_passthrough?: boolean;
   /**

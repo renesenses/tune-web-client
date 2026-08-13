@@ -4785,6 +4785,28 @@ function toggleAdvancedSystem() {
                         <option value="1411200">1411.2 kHz</option>
                       </select>
                     </label>
+                    <!-- Le serveur gérait ce réglage depuis toujours, mais
+                         aucun écran ne l'exposait : le commentaire du bloc le
+                         promettait, le contrôle n'existait pas. Or c'est LA
+                         condition du DoP qui survit — sans lui, un volume à
+                         100 % est rabaissé à 20 % à chaque redémarrage par le
+                         garde-fou anti-réveil (tune-server-rust#1616, Cyrille
+                         forum 1320). Activer épingle aussi le volume à 100 %
+                         en base : on le reflète localement sans attendre. -->
+                    <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.fixedVolumeHint')}>
+                      <input
+                        type="checkbox"
+                        checked={z.fixed_volume ?? false}
+                        onchange={async (e) => {
+                          const enabled = (e.target as HTMLInputElement).checked;
+                          if (z.id == null) return;
+                          z.fixed_volume = enabled;
+                          if (enabled) z.volume = 100;
+                          await api.updateZoneFixedVolume(z.id, enabled);
+                        }}
+                      />
+                      <span>{$t('settings.fixedVolume')}</span>
+                    </label>
                   </div>
                   {#if dopCappedToPcm(z)}
                     <p class="zone-warn">{$t('settings.maxSampleRateDsdCap')}</p>

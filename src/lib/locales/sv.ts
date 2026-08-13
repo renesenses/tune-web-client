@@ -1607,6 +1607,8 @@ export default {
   "settings.lyricsOffsetHint": "Fördröjer synkad text så att den stämmer med det du hör. Ljudet passerar enhetens buffert, så texten ligger före — särskilt på radio. Öka tills den visade raden stämmer med sången.",
   "settings.lyricsOffsetNone": "Ingen",
   "settings.maxSampleRateNone": "Ingen",
+  "settings.fixedVolume": "Fast volym (bit-perfekt)",
+  "settings.fixedVolumeHint": "Signalen skickas på 100 %, utan mjukvaruvolym — krävs för nativ DSD (DoP). Överlever en omstart av servern.",
   "settings.maxSampleRateHint": "Omsampla endast när källan överskrider detta tak. Med nativt DSD på en lokal utgång begränsar det även DoP.",
   "settings.maxSampleRateDsdCap": "Detta tak omvandlar DSD tillbaka till PCM: DoP kräver 176,4 kHz för DSD64, 352,8 kHz för DSD128 och 705,6 kHz för DSD256. Välj ”Ingen” eller ett tak som är minst lika högt.",
   "settings.dsdDspVolume": "Zonvolymen är under 100 %: DoP-markörerna förstörs och DSD spelas som PCM (risk för kraftigt brus). Ställ tillbaka volymen på 100 %.",

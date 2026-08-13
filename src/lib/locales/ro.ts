@@ -1634,6 +1634,8 @@ export default {
   "settings.lyricsOffsetHint": "Întârzie versurile sincronizate ca să se potrivească cu ce auziți. Sunetul trece prin memoria tampon a aparatului, deci versurile o iau înainte — mai ales la radio. Măriți până când rândul afișat se potrivește cu vocea.",
   "settings.lyricsOffsetNone": "Niciuna",
   "settings.maxSampleRateNone": "Niciuna",
+  "settings.fixedVolume": "Volum fix (bit-perfect)",
+  "settings.fixedVolumeHint": "Semnal trimis la 100%, fără volum software — indispensabil pentru DSD nativ (DoP). Rezistă la repornirea serverului.",
   "settings.maxSampleRateHint": "Reeșantionează doar când sursa depășește acest plafon. Cu DSD nativ pe o ieșire locală, plafonează și DoP.",
   "settings.maxSampleRateDsdCap": "Acest plafon transformă DSD-ul înapoi în PCM: DoP are nevoie de 176,4 kHz pentru DSD64, 352,8 kHz pentru DSD128 și 705,6 kHz pentru DSD256. Alegeți „Niciuna” sau un plafon cel puțin egal.",
   "settings.dsdDspVolume": "Volumul zonei este sub 100%: marcatorii DoP vor fi distruși și DSD va reda ca PCM (posibil zgomot puternic). Readuceți volumul la 100%.",

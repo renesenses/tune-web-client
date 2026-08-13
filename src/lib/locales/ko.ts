@@ -1609,6 +1609,8 @@ export default {
   "settings.lyricsOffsetHint": "동기화된 가사를 늦춰 실제로 들리는 소리에 맞춥니다. 소리는 기기의 버퍼를 거치므로 특히 라디오에서 가사가 앞서갑니다. 표시된 줄이 목소리와 맞을 때까지 늘리십시오.",
   "settings.lyricsOffsetNone": "없음",
   "settings.maxSampleRateNone": "없음",
+  "settings.fixedVolume": "고정 볼륨(비트 퍼펙트)",
+  "settings.fixedVolumeHint": "신호를 100%로 전송하며 소프트웨어 볼륨을 적용하지 않습니다. 네이티브 DSD(DoP)에 필수이며 서버 재시작 후에도 유지됩니다.",
   "settings.maxSampleRateHint": "소스가 이 상한을 초과할 때만 리샘플링합니다. 로컬 출력의 네이티브 DSD에서는 DoP에도 이 상한이 적용됩니다.",
   "settings.maxSampleRateDsdCap": "이 상한은 DSD를 다시 PCM으로 변환합니다. DoP에는 DSD64에 176.4 kHz, DSD128에 352.8 kHz, DSD256에 705.6 kHz가 필요합니다. '없음' 또는 그 이상의 상한을 선택하세요.",
   "settings.dsdDspVolume": "존 볼륨이 100% 미만입니다. DoP 마커가 손상되어 DSD가 PCM으로 재생됩니다(심한 잡음 가능). 볼륨을 100%로 되돌리세요.",
