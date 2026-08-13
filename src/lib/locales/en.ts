@@ -1875,6 +1875,8 @@ export default {
   "settings.lyricsOffsetHint": "Delays synced lyrics so they match what you hear. Sound goes through the device's buffer, so lyrics run ahead — especially on radio. Increase until the displayed line matches the voice.",
   "settings.lyricsOffsetNone": "None",
   "settings.maxSampleRateNone": "None",
+  "settings.fixedVolume": "Fixed volume (bit-perfect)",
+  "settings.fixedVolumeHint": "Signal sent at 100%, no software volume — required for native DSD (DoP). Survives a server restart.",
   "settings.maxSampleRateHint": "Only resample when the source exceeds this ceiling. With native DSD on a local output, it caps DoP too.",
   "settings.maxSampleRateDsdCap": "This ceiling turns DSD back into PCM: DoP needs 176.4 kHz for DSD64, 352.8 kHz for DSD128 and 705.6 kHz for DSD256. Pick “None” or a ceiling at least that high.",
   "settings.dsdDspVolume": "Zone volume below 100%: DoP markers will be destroyed and DSD will play as PCM (possible harsh noise). Set the volume back to 100%.",

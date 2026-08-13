@@ -1626,6 +1626,8 @@ export default {
   "settings.lyricsOffsetHint": "延迟同步歌词，使其与您听到的声音一致。声音需经过设备缓冲，因此歌词会提前——尤其是电台。逐步增加，直到显示的那一行与人声吻合。",
   "settings.lyricsOffsetNone": "无",
   "settings.maxSampleRateNone": "无",
+  "settings.fixedVolume": "固定音量（比特完美）",
+  "settings.fixedVolumeHint": "以 100% 发送信号，不应用软件音量 — 原生 DSD（DoP）所必需。服务器重启后保持不变。",
   "settings.maxSampleRateHint": "仅当源超过此上限时重采样。本地输出使用原生 DSD 时，该上限同样限制 DoP。",
   "settings.maxSampleRateDsdCap": "此上限会把 DSD 转回 PCM：DoP 需要 176.4 kHz（DSD64）、352.8 kHz（DSD128）、705.6 kHz（DSD256）。请选择「无」或不低于该值的上限。",
   "settings.dsdDspVolume": "区域音量低于 100%：DoP 标记将被破坏，DSD 会以 PCM 播放（可能出现强烈噪声）。请将音量调回 100%。",

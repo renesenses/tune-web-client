@@ -1626,6 +1626,8 @@ export default {
   "settings.lyricsOffsetHint": "Retrasa las letras sincronizadas para que coincidan con lo que oyes. El sonido pasa por el búfer del aparato, así que las letras van adelantadas — sobre todo en radio. Auméntalo hasta que la línea mostrada coincida con la voz.",
   "settings.lyricsOffsetNone": "Ninguno",
   "settings.maxSampleRateNone": "Ninguna",
+  "settings.fixedVolume": "Volumen fijo (bit-perfect)",
+  "settings.fixedVolumeHint": "Señal enviada al 100 %, sin volumen por software — imprescindible para DSD nativo (DoP). Sobrevive al reinicio del servidor.",
   "settings.maxSampleRateHint": "Remuestrea solo cuando la fuente supera este límite. Con DSD nativo en una salida local, también limita el DoP.",
   "settings.maxSampleRateDsdCap": "Este límite vuelve a convertir el DSD en PCM: el DoP necesita 176,4 kHz para DSD64, 352,8 kHz para DSD128 y 705,6 kHz para DSD256. Elija «Ninguna» o un límite al menos igual.",
   "settings.dsdDspVolume": "Volumen de zona por debajo del 100 %: los marcadores DoP se destruirán y el DSD sonará como PCM (posible ruido fuerte). Vuelva a poner el volumen al 100 %.",

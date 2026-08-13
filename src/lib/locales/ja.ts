@@ -1623,6 +1623,8 @@ export default {
   "settings.lyricsOffsetHint": "同期歌詞を遅らせて、実際に聞こえる音に合わせます。音は機器のバッファを通るため、特にラジオでは歌詞が先行します。表示行が歌声と一致するまで増やしてください。",
   "settings.lyricsOffsetNone": "なし",
   "settings.maxSampleRateNone": "なし",
+  "settings.fixedVolume": "固定音量（ビットパーフェクト）",
+  "settings.fixedVolumeHint": "信号を100%で送出し、ソフトウェア音量を適用しません。ネイティブDSD（DoP）に必須。サーバー再起動後も維持されます。",
   "settings.maxSampleRateHint": "ソースがこの上限を超えた場合のみリサンプリングします。ローカル出力のネイティブ DSD では、DoP にもこの上限が適用されます。",
   "settings.maxSampleRateDsdCap": "この上限により DSD は PCM に戻されます。DoP には DSD64 で 176.4 kHz、DSD128 で 352.8 kHz、DSD256 で 705.6 kHz が必要です。「なし」または同等以上の上限を選んでください。",
   "settings.dsdDspVolume": "ゾーン音量が100%未満です。DoPマーカーが壊れ、DSDはPCMとして再生されます（大きなノイズの可能性）。音量を100%に戻してください。",

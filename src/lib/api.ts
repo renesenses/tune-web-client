@@ -338,6 +338,16 @@ export function updateZoneMaxSampleRate(id: number, rate: number | null) {
   });
 }
 
+// Volume fixe (bit-perfect) : le serveur épingle aussi le volume à 100 % en
+// base quand on l'active, et la zone redémarre à 100 % au lieu du garde-fou
+// anti-réveil de 20 % (tune-server-rust#1616).
+export function updateZoneFixedVolume(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ fixed_volume: enabled }),
+  });
+}
+
 export function updateZoneDlnaNativeFlac(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
