@@ -2862,6 +2862,7 @@ export default {
   "settings.updateBlockedScan": "업데이트를 미뤘습니다. 라이브러리 검색이 진행 중이며, 지금 설치하면 서버가 재시작되어 검색이 처음부터 다시 시작됩니다.",
   "settings.updateBlockedPlaying": "업데이트를 미뤘습니다. 재생 중인 존이 있어 지금 설치하면 음악이 중간에 끊깁니다.",
   "settings.updateBlockedUnknown": "서버가 이유를 밝히지 않고 업데이트를 거부했습니다. 서버 로그를 확인하세요.",
+  "settings.updateDockerHint": "Tune이 Docker 컨테이너에서 실행 중입니다. 새 이미지를 받아 업데이트하세요(docker compose pull && docker compose up -d). 마운트된 볼륨의 데이터는 유지됩니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

@@ -2862,6 +2862,7 @@ export default {
   "settings.updateBlockedScan": "更新已推迟：音乐库正在扫描。现在安装会重启服务器，扫描将从头开始。",
   "settings.updateBlockedPlaying": "更新已推迟：有区域正在播放。现在安装会中断正在播放的音乐。",
   "settings.updateBlockedUnknown": "服务器拒绝了更新但未说明原因。请查看服务器日志。",
+  "settings.updateDockerHint": "Tune 正在 Docker 容器中运行：请拉取新镜像进行更新（docker compose pull && docker compose up -d）。挂载卷中的数据会保留。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

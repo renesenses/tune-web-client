@@ -2871,6 +2871,7 @@ export default {
   "settings.updateBlockedScan": "Update deferred: a library scan is running. Installing would restart the server and the scan would start over.",
   "settings.updateBlockedPlaying": "Update deferred: a zone is playing. Installing would cut the music mid-track.",
   "settings.updateBlockedUnknown": "The server refused the update without giving a reason. Check the server logs.",
+  "settings.updateDockerHint": "Tune is running in a Docker container: update by pulling the new image (docker compose pull && docker compose up -d). Your data in mounted volumes is preserved.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

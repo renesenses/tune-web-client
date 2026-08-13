@@ -2871,6 +2871,7 @@ export default {
   "settings.updateBlockedScan": "Mise à jour reportée : un scan de la bibliothèque est en cours. Elle redémarrerait le serveur et le scan repartirait de zéro.",
   "settings.updateBlockedPlaying": "Mise à jour reportée : une zone est en lecture. Installer couperait la musique en cours.",
   "settings.updateBlockedUnknown": "Le serveur a refusé la mise à jour sans en donner la raison. Consultez les journaux du serveur.",
+  "settings.updateDockerHint": "Tune tourne dans un conteneur Docker : la mise a jour se fait en recuperant la nouvelle image (docker compose pull && docker compose up -d). Vos donnees montees en volume sont conservees.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

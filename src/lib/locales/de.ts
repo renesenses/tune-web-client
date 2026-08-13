@@ -2862,6 +2862,7 @@ export default {
   "settings.updateBlockedScan": "Aktualisierung verschoben: Ein Bibliotheks-Scan läuft. Die Installation würde den Server neu starten und der Scan begänne von vorn.",
   "settings.updateBlockedPlaying": "Aktualisierung verschoben: Eine Zone spielt. Die Installation würde die Musik mitten im Titel abbrechen.",
   "settings.updateBlockedUnknown": "Der Server hat die Aktualisierung ohne Angabe eines Grundes abgelehnt. Prüfen Sie die Serverprotokolle.",
+  "settings.updateDockerHint": "Tune laeuft in einem Docker-Container: Aktualisieren Sie, indem Sie das neue Image laden (docker compose pull && docker compose up -d). Ihre Daten in eingebundenen Volumes bleiben erhalten.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];
