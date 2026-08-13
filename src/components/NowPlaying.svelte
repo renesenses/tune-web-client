@@ -1596,6 +1596,14 @@
             </svg>
             {$t('queue.title')}
             <span class="queue-sheet-count">{$queueTracks.length}</span>
+            <!-- Le total ne bouge pas pendant qu'on ecoute. Dominique COMET a
+                 demande deux fois ce qu'il reste a entendre : une premiere
+                 fois pour l'en-tete de la file (livre en 0.9.70), une seconde
+                 pour CE bandeau — celui qui reste visible sans deplier, donc
+                 celui qu'on regarde vraiment. Meme calcul, meme libelle. -->
+            {#if $upNextCount > 0}
+              <span class="queue-sheet-remaining">{$t('queue.upNextSummary').replace('{count}', String($upNextCount)).replace('{time}', formatDuration($upNextMs))}</span>
+            {/if}
             <svg class="queue-sheet-chevron" class:rotated={queueSheetState !== 'collapsed'} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
               <polyline points="18 15 12 9 6 15" />
             </svg>
@@ -3606,6 +3614,16 @@
     color: var(--tune-text, #e5e7eb);
     background: var(--tune-hover, rgba(255, 255, 255, 0.06));
   }
+  /* Discret : complete le total sans lui voler la vedette, et disparait
+     quand il ne reste rien a annoncer. */
+  .queue-sheet-remaining {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    white-space: nowrap;
+    opacity: 0.85;
+  }
+
   .queue-sheet-count {
     font-family: var(--font-label);
     font-size: 10px;
