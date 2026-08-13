@@ -2862,6 +2862,7 @@ export default {
   "settings.updateBlockedScan": "更新を保留しました。ライブラリのスキャン中です。今入れるとサーバーが再起動し、スキャンは最初からやり直しになります。",
   "settings.updateBlockedPlaying": "更新を保留しました。再生中のゾーンがあります。今入れると曲の途中で音が止まります。",
   "settings.updateBlockedUnknown": "サーバーが理由を示さずに更新を拒否しました。サーバーのログを確認してください。",
+  "settings.updateDockerHint": "Tune は Docker コンテナーで動作しています。新しいイメージを取得して更新してください（docker compose pull && docker compose up -d）。マウントしたボリュームのデータは保持されます。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

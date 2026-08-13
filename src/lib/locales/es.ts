@@ -2862,6 +2862,7 @@ export default {
   "settings.updateBlockedScan": "Actualización aplazada: hay un escaneo de la biblioteca en curso. Instalar reiniciaría el servidor y el escaneo empezaría de nuevo.",
   "settings.updateBlockedPlaying": "Actualización aplazada: una zona está reproduciendo. Instalar cortaría la música en curso.",
   "settings.updateBlockedUnknown": "El servidor rechazó la actualización sin dar un motivo. Consulte los registros del servidor.",
+  "settings.updateDockerHint": "Tune se ejecuta en un contenedor Docker: actualiza descargando la nueva imagen (docker compose pull && docker compose up -d). Tus datos en volumenes montados se conservan.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

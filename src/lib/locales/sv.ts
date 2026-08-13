@@ -2861,4 +2861,5 @@ export default {
   "settings.updateBlockedScan": "Uppdateringen sköts upp: en biblioteksgenomsökning pågår. Installation startar om servern och genomsökningen börjar om.",
   "settings.updateBlockedPlaying": "Uppdateringen sköts upp: en zon spelar. Installation skulle avbryta musiken mitt i spåret.",
   "settings.updateBlockedUnknown": "Servern nekade uppdateringen utan att ange skäl. Kontrollera serverloggarna.",
+  "settings.updateDockerHint": "Tune kors i en Docker-container: uppdatera genom att hamta den nya avbildningen (docker compose pull && docker compose up -d). Dina data i monterade volymer bevaras.",
 } as const;

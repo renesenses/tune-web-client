@@ -2862,6 +2862,7 @@ export default {
   "settings.updateBlockedScan": "Actualizare amânată: o scanare a bibliotecii este în curs. Instalarea ar reporni serverul și scanarea ar lua-o de la capăt.",
   "settings.updateBlockedPlaying": "Actualizare amânată: o zonă redă. Instalarea ar întrerupe muzica.",
   "settings.updateBlockedUnknown": "Serverul a refuzat actualizarea fără a da un motiv. Consultați jurnalele serverului.",
+  "settings.updateDockerHint": "Tune ruleaza intr-un container Docker: actualizati descarcand noua imagine (docker compose pull && docker compose up -d). Datele din volumele montate sunt pastrate.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

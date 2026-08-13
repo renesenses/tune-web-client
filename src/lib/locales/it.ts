@@ -2862,6 +2862,7 @@ export default {
   "settings.updateBlockedScan": "Aggiornamento rinviato: è in corso una scansione della libreria. Installare riavvierebbe il server e la scansione ripartirebbe da capo.",
   "settings.updateBlockedPlaying": "Aggiornamento rinviato: una zona è in riproduzione. Installare interromperebbe la musica.",
   "settings.updateBlockedUnknown": "Il server ha rifiutato l'aggiornamento senza indicarne il motivo. Consulta i log del server.",
+  "settings.updateDockerHint": "Tune e in esecuzione in un container Docker: aggiorna scaricando la nuova immagine (docker compose pull && docker compose up -d). I dati nei volumi montati vengono conservati.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

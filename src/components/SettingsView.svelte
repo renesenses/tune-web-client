@@ -1702,6 +1702,20 @@ function toggleAdvancedSystem() {
         updateRefusal = updateRefusalMessage(res);
         return;
       }
+      // Docker : le serveur répond 200 — ce n'est pas une erreur, c'est une
+      // consigne. Le binaire vit dans une couche d'image en lecture seule,
+      // donc aucune installation n'a démarré et aucun redémarrage ne viendra.
+      //
+      // Sans ce test, `ok === true` laissait passer, et l'interface entrait
+      // dans les 180 s d'attente ci-dessous pour un redémarrage qui n'arrive
+      // jamais : bouton mort pendant trois minutes, message du serveur jeté
+      // (Alex Campbell, Tune en conteneur — « the browser update function
+      // doesn't work, I had to force the update in docker »).
+      if (res && res.status === 'docker') {
+        updateInstalling = false;
+        updateRefusal = res.message || $t('settings.updateDockerHint');
+        return;
+      }
     } catch (e) {
       // Old server (≤ v0.7.41) blocked the request for the full
       // download and the browser reported 'Failed to fetch' even though
