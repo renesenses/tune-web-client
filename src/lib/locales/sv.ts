@@ -1609,6 +1609,7 @@ export default {
   "settings.maxSampleRateNone": "Ingen",
   "settings.fixedVolume": "Fast volym (bit-perfekt)",
   "settings.fixedVolumeHint": "Signalen skickas på 100 %, utan mjukvaruvolym — krävs för nativ DSD (DoP). Överlever en omstart av servern.",
+  "settings.fixedVolumeNetConfirm": "På den här nätverksenheten skickar aktivering 100 % volym till själva enheten: ljudet spelas på full nivå. Kontrollera förstärkarens volym innan du bekräftar.",
   "settings.maxSampleRateHint": "Omsampla endast när källan överskrider detta tak. Med nativt DSD på en lokal utgång begränsar det även DoP.",
   "settings.maxSampleRateDsdCap": "Detta tak omvandlar DSD tillbaka till PCM: DoP kräver 176,4 kHz för DSD64, 352,8 kHz för DSD128 och 705,6 kHz för DSD256. Välj ”Ingen” eller ett tak som är minst lika högt.",
   "settings.dsdDspVolume": "Zonvolymen är under 100 %: DoP-markörerna förstörs och DSD spelas som PCM (risk för kraftigt brus). Ställ tillbaka volymen på 100 %.",

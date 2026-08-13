@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import SettingHint from './SettingHint.svelte';
   import { tip } from '../lib/tooltip';
+  import { dialogs } from '../lib/stores/dialogs';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
   import { refreshAcousticStatus, acousticStatus, acousticEnabled } from '../lib/stores/acoustic';
@@ -4798,8 +4799,24 @@ function toggleAdvancedSystem() {
                         type="checkbox"
                         checked={z.fixed_volume ?? false}
                         onchange={async (e) => {
-                          const enabled = (e.target as HTMLInputElement).checked;
+                          const input = e.target as HTMLInputElement;
+                          const enabled = input.checked;
                           if (z.id == null) return;
+                          // Sur une zone RÉSEAU, activer envoie 100 % à
+                          // l'appareil lui-même (SetVolume au renderer) :
+                          // l'ampli part à fond — vécu par Cyrille sur son
+                          // Yamaha (forum 1320, réponse #21), très
+                          // désagréable et risqué pour les enceintes. On
+                          // demande confirmation AVANT, en nommant la
+                          // conséquence. Sur une zone locale, rien à
+                          // confirmer : 100 % logiciel est justement le but.
+                          if (enabled && !isLocalZone(z)) {
+                            const ok = await dialogs.confirm($t('settings.fixedVolumeNetConfirm'), { danger: true });
+                            if (!ok) {
+                              input.checked = false;
+                              return;
+                            }
+                          }
                           z.fixed_volume = enabled;
                           if (enabled) z.volume = 100;
                           await api.updateZoneFixedVolume(z.id, enabled);
