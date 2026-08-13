@@ -1628,6 +1628,7 @@ export default {
   "settings.maxSampleRateNone": "无",
   "settings.fixedVolume": "固定音量（比特完美）",
   "settings.fixedVolumeHint": "以 100% 发送信号，不应用软件音量 — 原生 DSD（DoP）所必需。服务器重启后保持不变。",
+  "settings.fixedVolumeNetConfirm": "在此网络设备上启用后，会向设备本身发送 100% 音量：声音将以最大音量播放。确认前请先检查功放音量。",
   "settings.maxSampleRateHint": "仅当源超过此上限时重采样。本地输出使用原生 DSD 时，该上限同样限制 DoP。",
   "settings.maxSampleRateDsdCap": "此上限会把 DSD 转回 PCM：DoP 需要 176.4 kHz（DSD64）、352.8 kHz（DSD128）、705.6 kHz（DSD256）。请选择「无」或不低于该值的上限。",
   "settings.dsdDspVolume": "区域音量低于 100%：DoP 标记将被破坏，DSD 会以 PCM 播放（可能出现强烈噪声）。请将音量调回 100%。",

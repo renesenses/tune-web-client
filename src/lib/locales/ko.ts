@@ -1611,6 +1611,7 @@ export default {
   "settings.maxSampleRateNone": "없음",
   "settings.fixedVolume": "고정 볼륨(비트 퍼펙트)",
   "settings.fixedVolumeHint": "신호를 100%로 전송하며 소프트웨어 볼륨을 적용하지 않습니다. 네이티브 DSD(DoP)에 필수이며 서버 재시작 후에도 유지됩니다.",
+  "settings.fixedVolumeNetConfirm": "이 네트워크 기기에서는 활성화하면 기기 자체에 100% 볼륨이 전송되어 최대 음량으로 재생됩니다. 확인 전에 앰프 볼륨을 점검하세요.",
   "settings.maxSampleRateHint": "소스가 이 상한을 초과할 때만 리샘플링합니다. 로컬 출력의 네이티브 DSD에서는 DoP에도 이 상한이 적용됩니다.",
   "settings.maxSampleRateDsdCap": "이 상한은 DSD를 다시 PCM으로 변환합니다. DoP에는 DSD64에 176.4 kHz, DSD128에 352.8 kHz, DSD256에 705.6 kHz가 필요합니다. '없음' 또는 그 이상의 상한을 선택하세요.",
   "settings.dsdDspVolume": "존 볼륨이 100% 미만입니다. DoP 마커가 손상되어 DSD가 PCM으로 재생됩니다(심한 잡음 가능). 볼륨을 100%로 되돌리세요.",
