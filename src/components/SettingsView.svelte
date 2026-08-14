@@ -286,7 +286,7 @@ function toggleAdvancedSystem() {
   // DOWN, or as a fallback if it restarted too fast to catch the drop), with a
   // hard backstop so we never hang forever.
   async function restartServerAndReload() {
-    if (!confirm(get(t)('settings.restartConfirm'))) return;
+    if (!(await dialogs.confirm(get(t)('settings.restartConfirm'), { danger: true }))) return;
     restarting = true;
     try {
       await api.restartServer();
@@ -665,7 +665,7 @@ function toggleAdvancedSystem() {
   }
 
   async function handleDeactivateLicense() {
-    if (!confirm(get(t)('settings.deactivateLicenseConfirm'))) return;
+    if (!(await dialogs.confirm(get(t)('settings.deactivateLicenseConfirm'), { danger: true }))) return;
     licenseDeactivating = true;
     try {
       await api.deactivateLicense();
@@ -1634,7 +1634,11 @@ function toggleAdvancedSystem() {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
-    if (!confirm(get(t)('settings.importDbConfirm').replace('{name}', file.name))) {
+    if (
+      !(await dialogs.confirm(get(t)('settings.importDbConfirm').replace('{name}', file.name), {
+        danger: true,
+      }))
+    ) {
       input.value = '';
       return;
     }
@@ -1984,7 +1988,13 @@ function toggleAdvancedSystem() {
   async function relocateData(vol: api.ApplianceVolume) {
     if (!vol.uuid || dataMoving) return;
     const name = vol.label || vol.device;
-    if (!confirm($t('settings.dataMoveConfirm').replace('{disk}', name))) return;
+    if (!(await dialogs.confirm($t('settings.dataMoveConfirm').replace('{disk}', name), { danger: true }))) return;
+    // Le garde `dataMoving` en tête de fonction a été évalué AVANT la modale.
+    // L'ancien confirm() natif bloquait le fil : rien ne pouvait s'intercaler.
+    // La modale, elle, rend la main — un second clic (autre volume, ou le même)
+    // franchit le garde pendant que la première attend, et deux relocalisations
+    // partent. On revérifie donc après coup.
+    if (dataMoving) return;
     dataMoving = true;
     dataError = '';
     dataDone = false;
@@ -2041,11 +2051,15 @@ function toggleAdvancedSystem() {
 
   async function installToDisk(disk: api.ApplianceDisk) {
     if (installBusy) return;
-    const typed = prompt(
+    const typed = await dialogs.prompt(
       $t('settings.installConfirmPrompt')
         .replace('{disk}', `${disk.name} (${disk.size} ${disk.model})`.trim())
     );
     if (typed !== 'EFFACER') return;
+    // Même raison que pour `dataMoving` : le garde `installBusy` a été évalué
+    // avant la saisie, qui rend la main. Une installation qui efface un disque
+    // ne doit pas pouvoir partir en double.
+    if (installBusy) return;
     installBusy = true;
     installError = '';
     installDone = false;
@@ -2143,7 +2157,7 @@ function toggleAdvancedSystem() {
   }
 
   async function handleRemoveMusicDir(path: string) {
-    if (!confirm(get(t)('settings.removeMusicDirConfirm'))) return;
+    if (!(await dialogs.confirm(get(t)('settings.removeMusicDirConfirm'), { danger: true }))) return;
     removingMusicDir = path;
     try {
       await api.removeMusicDir(path);
@@ -2163,7 +2177,7 @@ function toggleAdvancedSystem() {
   let clearingLibrary = $state(false);
 
   async function handleClearLibrary() {
-    if (!confirm(get(t)('settings.clearLibraryConfirm'))) return;
+    if (!(await dialogs.confirm(get(t)('settings.clearLibraryConfirm'), { danger: true }))) return;
     clearingLibrary = true;
     try {
       const result = await api.clearLibrary();
