@@ -1,5 +1,6 @@
 <script lang="ts">
   import { get } from 'svelte/store';
+  import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
   import { currentZoneId, currentZone } from '../lib/stores/zones';
   import { isBrowserZone, browserPlay } from '../lib/stores/browserAudio';
@@ -43,7 +44,7 @@
   }
 
   async function clearAllSaved() {
-    if (!confirm($t('radio.clearConfirm'))) return;
+    if (!(await dialogs.confirm($t('radio.clearConfirm'), { danger: true }))) return;
     try {
       await api.apiDelete('/radio-favorites');
       savedTracks = [];
@@ -186,7 +187,7 @@
 
   async function deleteRadio(radio: RadioStation) {
     if (!radio.id) return;
-    if (!confirm($t('radio.deleteConfirm'))) return;
+    if (!(await dialogs.confirm($t('radio.deleteConfirm'), { danger: true }))) return;
     try {
       await api.deleteRadio(radio.id);
       radios = radios.filter(r => r.id !== radio.id);

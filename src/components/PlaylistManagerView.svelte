@@ -1,5 +1,6 @@
 <script lang="ts">
   import { currentZone, zones, playAndSync } from '../lib/stores/zones';
+  import { dialogs } from '../lib/stores/dialogs';
   import { playlists as playlistsStore } from '../lib/stores/playlists';
   import { streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
@@ -363,7 +364,7 @@
   }
 
   async function deleteCollab(playlistId: number) {
-    if (!confirm($tr('playlistManager.confirmDeleteCollab'))) return;
+    if (!(await dialogs.confirm($tr('playlistManager.confirmDeleteCollab'), { danger: true }))) return;
     deletingCollab = playlistId;
     try {
       await api.deleteCollaborativePlaylist(playlistId);
@@ -404,7 +405,7 @@
   }
 
   async function restoreSnapshot(snap: api.PlaylistSnapshot) {
-    const name = prompt($tr('playlistManager.restorePrompt').replaceAll('{name}', snap.playlist_name), snap.playlist_name);
+    const name = await dialogs.prompt($tr('playlistManager.restorePrompt').replaceAll('{name}', snap.playlist_name), snap.playlist_name);
     if (name === null) return;
     restoringSnapshotId = snap.id;
     restoreMessage = '';
@@ -419,7 +420,7 @@
     } catch (err: any) {
       // If conflict, ask user about overwrite
       if (err?.message?.includes('already exists') || err?.status === 409) {
-        if (confirm($tr('playlistManager.confirmOverwrite').replace('{name}', name || snap.playlist_name))) {
+        if (await dialogs.confirm($tr('playlistManager.confirmOverwrite').replace('{name}', name || snap.playlist_name), { danger: true })) {
           try {
             const result = await api.restorePlaylistSnapshot(snap.id, {
               target_name: name || undefined,
@@ -441,7 +442,7 @@
   }
 
   async function deleteSnapshot(snap: api.PlaylistSnapshot) {
-    if (!confirm($tr('playlistManager.confirmDeleteSnapshot').replace('{name}', snap.playlist_name))) return;
+    if (!(await dialogs.confirm($tr('playlistManager.confirmDeleteSnapshot').replace('{name}', snap.playlist_name), { danger: true }))) return;
     try {
       await api.deletePlaylistSnapshot(snap.id);
       snapshots = snapshots.filter(s => s.id !== snap.id);

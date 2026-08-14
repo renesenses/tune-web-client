@@ -1,5 +1,6 @@
 <script lang="ts">
   import { profiles, currentProfileId, createProfile, deleteProfile, updateProfile, selectProfile, type Profile } from '../lib/stores/profile';
+  import { dialogs } from '../lib/stores/dialogs';
   import { isPremium } from '../lib/stores/license';
   import { t } from '../lib/i18n';
 
@@ -45,7 +46,7 @@
   }
 
   async function handleDelete(p: Profile) {
-    if (!confirm($t('profiles.confirmDelete').replace('{name}', p.name))) return;
+    if (!(await dialogs.confirm($t('profiles.confirmDelete').replace('{name}', p.name), { danger: true }))) return;
     await deleteProfile(p.id);
   }
 </script>

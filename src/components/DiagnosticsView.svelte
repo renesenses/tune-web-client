@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy, untrack } from 'svelte';
+  import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
   import { notifications } from '../lib/stores/notifications';
   import { errText } from '../lib/utils';
@@ -323,7 +324,7 @@
   let logsLoading = $state(false);
 
   async function restartServer() {
-    if (!confirm($t('diagnostics.confirmRestart' as any))) return;
+    if (!(await dialogs.confirm($t('diagnostics.confirmRestart' as any), { danger: true }))) return;
     restarting = true;
     try {
       await api.apiPost('/system/restart');
@@ -340,7 +341,7 @@
   }
 
   async function cleanupServer() {
-    if (!confirm($t('diagnostics.confirmCleanup' as any))) return;
+    if (!(await dialogs.confirm($t('diagnostics.confirmCleanup' as any), { danger: true }))) return;
     cleaning = true;
     cleanupResults = null;
     try {

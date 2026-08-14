@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
+  import { dialogs } from '../lib/stores/dialogs';
   import * as api from '../lib/api';
   import { errText } from '../lib/utils';
   import { artworkUrl } from '../lib/api';
@@ -203,7 +204,7 @@
 
   async function handleRepairMp3All() {
     if (!mp3Issues.length) return;
-    if (!confirm($t('metadata.mp3RepairConfirm').replace('{count}', String(mp3Issues.length)))) return;
+    if (!(await dialogs.confirm($t('metadata.mp3RepairConfirm').replace('{count}', String(mp3Issues.length)), { danger: true }))) return;
     const r = await runAsyncOp({
       pending: $t('metadata.mp3RepairRunning').replace('{count}', String(mp3Issues.length)),
       errorPrefix: $t('metadata.mp3RepairFailed'),
@@ -233,7 +234,7 @@
 
   let mergingAlbums = $state(false);
   async function handleMergeDuplicates() {
-    if (!confirm($t('metadata.mergeDuplicatesConfirm'))) return;
+    if (!(await dialogs.confirm($t('metadata.mergeDuplicatesConfirm'), { danger: true }))) return;
     const r = await runAsyncOp({
       pending: $t('metadata.mergeDuplicatesRunning'),
       errorPrefix: $t('metadata.mergeFailed'),
@@ -304,7 +305,7 @@
   let writeResult = $state<{ type: string; message: string } | null>(null);
 
   async function handleWriteTags() {
-    if (!confirm($t('metadata.writeTagsConfirm'))) return;
+    if (!(await dialogs.confirm($t('metadata.writeTagsConfirm'), { danger: true }))) return;
     writeResult = null;
     await runAsyncOp({
       pending: $t('metadata.writeTagsRunning'),
@@ -724,7 +725,7 @@
 
   async function moveToDuplicates(album: Album, groupIndex: number) {
     if (!album.id) return;
-    if (!confirm($t('metadata.moveToDuplicatesConfirm').replace('{title}', String(album.title)).replace('{artist}', String(album.artist_name)))) return;
+    if (!(await dialogs.confirm($t('metadata.moveToDuplicatesConfirm').replace('{title}', String(album.title)).replace('{artist}', String(album.artist_name)), { danger: true }))) return;
     try {
       const result = await api.moveAlbumToDuplicates(album.id);
       // Remove from allAlbums — triggers recompute of duplicateGroups
@@ -745,7 +746,7 @@
     if (!group || group.length < 2) return;
     const ids = group.map((a: Album) => a.id!).filter(Boolean);
     const trackCounts = group.map((a: any) => $t('metadata.mergeGroupItem').replace('{title}', String(a.title)).replace('{count}', String(a.track_count ?? '?'))).join('\n');
-    if (!confirm($t('metadata.mergeGroupConfirm').replace('{count}', String(group.length)).replace('{list}', trackCounts))) return;
+    if (!(await dialogs.confirm($t('metadata.mergeGroupConfirm').replace('{count}', String(group.length)).replace('{list}', trackCounts), { danger: true }))) return;
     try {
       const result = await api.mergeAlbums(ids);
       // Remove merged albums from allAlbums, keep master
@@ -1210,7 +1211,7 @@
   }
 
   async function restoreBackup(filename: string) {
-    if (!confirm($t('maintenance.restoreConfirm'))) return;
+    if (!(await dialogs.confirm($t('maintenance.restoreConfirm'), { danger: true }))) return;
     restoring = filename;
     backupMessage = null;
     try {

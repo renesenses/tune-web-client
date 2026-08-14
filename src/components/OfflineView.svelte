@@ -1,5 +1,6 @@
 <script lang="ts">
   import { get } from 'svelte/store';
+  import { dialogs } from '../lib/stores/dialogs';
   import * as api from '../lib/api';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
@@ -97,7 +98,7 @@
   }
 
   async function handleClear() {
-    if (!confirm(get(t)('offline.clearConfirm'))) return;
+    if (!(await dialogs.confirm(get(t)('offline.clearConfirm'), { danger: true }))) return;
     clearing = true;
     try {
       await api.clearOffline();

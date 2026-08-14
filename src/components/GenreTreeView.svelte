@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { dialogs } from '../lib/stores/dialogs';
   import * as api from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
   import { t } from '../lib/i18n';
@@ -72,7 +73,7 @@
 
   async function removeParent(parent: string) {
     if (!tree[parent]) return;
-    if (!confirm($t('genreTree.confirmRemoveBranch').replace('{name}', parent).replace('{count}', String(tree[parent].length)))) return;
+    if (!(await dialogs.confirm($t('genreTree.confirmRemoveBranch').replace('{name}', parent).replace('{count}', String(tree[parent].length)), { danger: true }))) return;
     const { [parent]: _, ...rest } = tree;
     tree = rest;
     await persistTree();
@@ -92,9 +93,10 @@
     // rewrites tags, then reload the server truth (tags + tree both updated
     // server-side).
     if (
-      !confirm(
-        $t('genreTree.confirmRenameLibrary').replace('{from}', oldName).replace('{to}', newName)
-      )
+      !(await dialogs.confirm(
+        $t('genreTree.confirmRenameLibrary').replace('{from}', oldName).replace('{to}', newName),
+        { danger: true }
+      ))
     ) {
       input.value = oldName;
       return;
@@ -135,7 +137,7 @@
   // mis-spelled genre so it stops reappearing (forum "Arbre des genres").
   let renaming = $state<string | null>(null);
   async function mergeGenre(genre: string) {
-    const to = (prompt($t('genreTree.renameGenrePrompt').replace('{genre}', genre), genre) || '').trim();
+    const to = ((await dialogs.prompt($t('genreTree.renameGenrePrompt').replace('{genre}', genre), genre)) || '').trim();
     if (!to || to === genre) return;
     renaming = genre;
     try {
@@ -200,8 +202,8 @@
     dragHoverTarget = null;
   }
 
-  function reset() {
-    if (!confirm($t('genreTree.confirmReset'))) return;
+  async function reset() {
+    if (!(await dialogs.confirm($t('genreTree.confirmReset'), { danger: true }))) return;
     tree = JSON.parse(originalJson);
   }
 

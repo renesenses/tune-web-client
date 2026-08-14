@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t } from '../lib/i18n';
+  import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
   import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
@@ -31,7 +32,7 @@
   }
 
   async function clearAll() {
-    if (!confirm($t('radioFav.confirmClearAll'))) return;
+    if (!(await dialogs.confirm($t('radioFav.confirmClearAll'), { danger: true }))) return;
     try {
       await api.apiDelete('/radio-favorites');
       savedTracks = [];

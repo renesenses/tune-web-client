@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { dialogs } from '../lib/stores/dialogs';
   import { formatAlbumYear } from '../lib/utils';
   import * as api from '../lib/api';
   import type { SmartCollection } from '../lib/types';
@@ -142,7 +143,7 @@
 
   async function deleteCollection(col: SmartCollection, ev: MouseEvent) {
     ev.stopPropagation();
-    if (!confirm($t('smartCollection.confirmDelete').replace('{name}', col.name))) return;
+    if (!(await dialogs.confirm($t('smartCollection.confirmDelete').replace('{name}', col.name), { danger: true }))) return;
     try {
       await api.deleteSmartCollection(col.id);
       collections = collections.filter(c => c.id !== col.id);

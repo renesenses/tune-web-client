@@ -1,5 +1,6 @@
 <script lang="ts">
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
   import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, stopSeekTimer, nowPlayingToTrack } from '../lib/stores/nowPlaying';
   import { upNextTracks, queueTracks, queuePosition, queueLength, upNextCount, upNextMs } from '../lib/stores/queue';
@@ -1082,7 +1083,7 @@
 
   async function qsHandleSaveAsPlaylist() {
     if (zone?.id == null) return;
-    const name = prompt($t('nowplaying.playlistNamePrompt'));
+    const name = await dialogs.prompt($t('nowplaying.playlistNamePrompt'));
     if (!name?.trim()) return;
     qsSavingQueue = true;
     try {
