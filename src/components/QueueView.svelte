@@ -1,5 +1,6 @@
 <script lang="ts">
   import { queueTracks, queuePosition, queueLength, upNextCount, upNextMs } from '../lib/stores/queue';
+  import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
   import { currentZone, currentZoneId, zones, playAndSync, syncZone } from '../lib/stores/zones';
   import { currentTrack, seekPositionMs, stopSeekTimer } from '../lib/stores/nowPlaying';
@@ -214,7 +215,7 @@
 
   async function handleSaveAsPlaylist() {
     if (!zone?.id) return;
-    const name = prompt($t('queue.playlistNamePrompt'));
+    const name = await dialogs.prompt($t('queue.playlistNamePrompt'));
     if (!name?.trim()) return;
     savingQueue = true;
     try {

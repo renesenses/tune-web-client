@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
   import * as api from '../lib/api';
   import type { ServiceTokenInfo } from '../lib/api';
@@ -77,7 +78,7 @@
   }
 
   async function remove(service: ServiceTokenInfo) {
-    if (!confirm($t('serviceTokens.confirmRemove').replace('{name}', service.name))) return;
+    if (!(await dialogs.confirm($t('serviceTokens.confirmRemove').replace('{name}', service.name), { danger: true }))) return;
     busy = service.id;
     try {
       await api.deleteServiceToken(service.id);
@@ -140,7 +141,7 @@
   }
 
   async function lastfmDisconnect() {
-    if (!confirm($t('serviceTokens.confirmDisconnect'))) return;
+    if (!(await dialogs.confirm($t('serviceTokens.confirmDisconnect'), { danger: true }))) return;
     busy = 'lastfm';
     try {
       await api.lastfmDisconnect();

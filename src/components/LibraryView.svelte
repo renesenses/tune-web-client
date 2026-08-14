@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
+  import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
@@ -532,7 +533,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   // (PUT/DELETE /tags/{id}); this surfaces them in the UI.
   let manageTags = $state(false);
   async function handleRenameTag(tag: UserTag) {
-    const next = prompt($tr('library.renameTagPrompt' as any), tag.name);
+    const next = await dialogs.prompt($tr('library.renameTagPrompt' as any), tag.name);
     if (next === null) return;
     const name = next.trim();
     if (!name || name === tag.name) return;
@@ -542,7 +543,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     } catch (e) { console.error('updateTag error:', e); }
   }
   async function handleDeleteTag(tag: UserTag) {
-    if (!confirm($tr('library.deleteTagConfirm' as any).replace('{name}', tag.name))) return;
+    if (!(await dialogs.confirm($tr('library.deleteTagConfirm' as any).replace('{name}', tag.name), { danger: true }))) return;
     try {
       await api.deleteTag(tag.id!);
       if (albumTagFilter === tag.id) applyTagFilter(null);
