@@ -68,13 +68,19 @@ function mockFetch(body: unknown, status = 200, contentType = 'application/json'
 
 let api: typeof import('../api');
 
+// Le réimport à froid du graphe `api.ts` (vi.resetModules + import) peut
+// dépasser les 10 s par défaut quand la machine est chargée — mesuré le
+// 14/08 sous un load average de 158-205 : les 3 premiers tests du fichier
+// tombaient en timeout de hook, puis le cache de modules prenait le relais
+// (#444). Ce n'est pas le test qui est lent, c'est la compilation initiale ;
+// on lui donne le temps qu'elle coûte réellement sous charge.
 beforeEach(async () => {
   fetchCalls = [];
   storage.clear();
   // Fresh import each time to avoid stale state
   vi.resetModules();
   api = await import('../api');
-});
+}, 60_000);
 
 afterEach(() => {
   vi.restoreAllMocks();
