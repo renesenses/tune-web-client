@@ -3955,6 +3955,29 @@ function toggleAdvancedSystem() {
           </select>
         </div>
       {/if}
+      <!-- Source du gain (#1627) : l'interrupteur d'analyse vivait dans la
+           section Métadonnées, à un écran d'ici — le lien entre les deux était
+           invisible (question de Bebelalu55, #1382 : « Tune utilise-t-il mes
+           tags rsgain ? »). Même réglage serveur (`replaygain_analysis_enabled`,
+           via updateConfig), pure présentation : avec le sélecteur ci-dessus,
+           le bloc dit les trois modes — Désactivé / Tags des fichiers (coche
+           décochée) / Tags + analyse (coche cochée). Les tags des fichiers
+           priment TOUJOURS, l'analyse ne fait que combler les manques.
+           Visible même en mode Désactivé : le balayage tourne aussi dans ce
+           cas (pré-remplissage silencieux), et il doit rester coupable quand
+           la bibliothèque est sur un partage réseau chargé (Philippe, forum
+           #1310). Coche allumée par défaut : un réglage absent vaut vrai côté
+           serveur, d'où le test sur !== false. -->
+      {#if config}
+        <div class="about-row" style="margin-bottom: 0.35rem">
+          <span class="about-label">{$t('settings.replaygainSource')}<SettingHint k="settings.replaygainAnalysisHelp" labelKey="settings.replaygainSource" /></span>
+          <label class="toggle-switch">
+            <input type="checkbox" checked={config.replaygain_analysis_enabled !== false && config.replaygain_analysis_enabled !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.replaygain_analysis_enabled = val; await api.updateConfig({ replaygain_analysis_enabled: val }); }} />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <p class="muted" style="margin-top: 0; margin-bottom: 0.75rem">{(config.replaygain_analysis_enabled !== false && config.replaygain_analysis_enabled !== 'false') ? $t('settings.replaygainSourceTagsAnalysis') : $t('settings.replaygainSourceTagsOnly')}</p>
+      {/if}
       <div class="device-toggle-list">
         {#each audioDevices as device}
           {@const prefId = `audio:${device.id}`}
@@ -4101,16 +4124,6 @@ function toggleAdvancedSystem() {
         <label class="pref-label">{$t('settings.lyricsLrclib')}<SettingHint k="settings.lyricsLrclibHelp" labelKey="settings.lyricsLrclib" /></label>
         <label class="toggle-switch">
           <input type="checkbox" checked={config.lyrics_lrclib_enabled === true || config.lyrics_lrclib_enabled === 'true'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.lyrics_lrclib_enabled = val; await api.updateConfig({ lyrics_lrclib_enabled: val }); }} />
-          <span class="toggle-slider"></span>
-        </label>
-
-        <!-- ReplayGain : le balayage est ALLUMÉ par défaut (un réglage absent
-             vaut vrai côté serveur), d'où le test sur !== false. Philippe a
-             demandé où le couper quand la bibliothèque est sur un partage
-             réseau chargé — il n'y avait nulle part (forum #1310). -->
-        <label class="pref-label">{$t('settings.replaygainAnalysis')}<SettingHint k="settings.replaygainAnalysisHelp" labelKey="settings.replaygainAnalysis" /></label>
-        <label class="toggle-switch">
-          <input type="checkbox" checked={config.replaygain_analysis_enabled !== false && config.replaygain_analysis_enabled !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.replaygain_analysis_enabled = val; await api.updateConfig({ replaygain_analysis_enabled: val }); }} />
           <span class="toggle-slider"></span>
         </label>
       </div>
