@@ -12,6 +12,7 @@
   import { loopByDefault } from '../lib/stores/loopByDefault';
   import { devices } from '../lib/stores/devices';
   import { preferences, applyTheme, OXYGEN_FACETS_ALL, type ThemeMode, type VolumeDisplay, type StartupView, type OxygenViewMode } from '../lib/stores/preferences';
+  import { SETTING_LEVELS, SETTINGS_LEVELS, isSettingVisible, hiddenCountByTab, nextLevel, type SettingKey, type SettingsLevel } from '../lib/settingLevels';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry, BackupInfo } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
@@ -165,26 +166,21 @@ $effect(() => {
   }
 });
 
-// Repli des reglages de maintenance de l'onglet Systeme.
+// Niveaux d'affichage des réglages (#1617) — voir lib/settingLevels.ts.
 //
-// Cet onglet portait onze sections qui melangeaient l'usage courant — licence,
-// cloud, acces depuis un appareil — et la maintenance qu'on ouvre une fois par
-// an : emplacement des donnees, base, import, configuration, export CSV.
-// Ces cinq-la sont desormais repliees par defaut.
+// L'ancien toggle « Afficher les réglages avancés » de cet onglet Système
+// (localStorage `tune_settings_advanced`) est absorbé : actif ⇒ niveau
+// expert au premier chargement (migration dans stores/preferences.ts).
 //
-// Masquage par classe et non par {#if} : les sections restent montees, donc
-// leur etat interne et leurs chargements ne repartent pas de zero a chaque
-// bascule — et surtout, aucune structure n'est deplacee dans un fichier de
-// 7 000 lignes.
-//
-// Le choix est memorise : celui qui vit dans ces reglages ne veut pas les
-// redeplier a chaque visite.
-let showAdvancedSystem = $state(
-  (() => { try { return localStorage.getItem('tune_settings_advanced') === '1'; } catch { return false; } })()
-);
-function toggleAdvancedSystem() {
-  showAdvancedSystem = !showAdvancedSystem;
-  try { localStorage.setItem('tune_settings_advanced', showAdvancedSystem ? '1' : '0'); } catch {}
+// Masquage par classe (`lv-hidden`) et non par {#if} : les sections restent
+// montées, donc leur état interne et leurs chargements ne repartent pas de
+// zéro à chaque bascule — et aucune structure n'est déplacée dans un fichier
+// de 7 000 lignes. Le mécanisme de visibilité (lvOk/lvAny) et le compteur de
+// réglages masqués sont déclarés en fin de script, après les états qu'ils
+// observent pour la règle d'or.
+const settingsLevel = $derived($preferences.settingsLevel);
+function setSettingsLevel(level: SettingsLevel) {
+  preferences.update((p) => ({ ...p, settingsLevel: level }));
 }
 
   // Premium feature widgets: clicking an available feature opens its page.
@@ -2628,10 +2624,122 @@ function toggleAdvancedSystem() {
       if (batchEnrichTimer) { clearInterval(batchEnrichTimer); batchEnrichTimer = null; }
     };
   });
+
+  // ─── Niveaux d'affichage (#1617) : règle d'or + compteur de masqués ──────
+  //
+  // `settingModified` matérialise la règle d'or : un réglage dont la valeur
+  // diffère de son défaut reste TOUJOURS visible, quel que soit le niveau.
+  // Les défauts client viennent de preferences.ts ; pour les réglages serveur,
+  // le défaut est celui que le serveur applique quand la clé est absente
+  // (mêmes tests que les `checked=`/`value=` des contrôles ci-dessous).
+  // Les actions (boutons) n'ont pas de valeur, donc jamais « modifiées ».
+  const settingModified = $derived.by((): Partial<Record<SettingKey, boolean>> => ({
+    'general.lockVolume': $audiophileLockVolume,
+    'general.crossfade': crossfadeEnabled,
+    'general.crossfadeDuration': crossfadeDuration !== 3,
+    'general.volumeDisplay': $preferences.volumeDisplay !== 'percent',
+    'general.voiceCommand': (() => { try { return localStorage.getItem('tune_voice_ai_enabled') === 'true'; } catch { return false; } })(),
+    'library.folderPlaylists': config?.scan_folder_playlists === true || config?.scan_folder_playlists === 'true',
+    'library.importPlaylistFiles': config?.scan_import_playlists === false || config?.scan_import_playlists === 'false',
+    'library.qualitySplit': config?.quality_split === false || config?.quality_split === 'false' || config?.quality_split === 0 || config?.quality_split === '0',
+    'library.scanSchedule': scanScheduleEnabled,
+    'library.scanScheduleTime': scanScheduleTime !== '03:00',
+    'library.enrichOnScan': config?.enrich_on_scan === false || config?.enrich_on_scan === 'false',
+    'library.lyricsLrclib': config?.lyrics_lrclib_enabled === true || config?.lyrics_lrclib_enabled === 'true',
+    'library.replaygainAnalysis': config?.replaygain_analysis_enabled === false || config?.replaygain_analysis_enabled === 'false',
+    'library.oxygenEnable': $preferences.oxygenEnabled,
+    'library.oxygenView': $preferences.oxygenView !== 'detail',
+    'library.metadataReadonly': !!config?.metadata_readonly,
+    'library.ingestTemplate': !!ingestSettings?.template && ingestSettings.template !== ingestSettings.default_template,
+    'library.discogsToken': !!config?.discogs_token_set,
+    'library.metadataFields': metadataCategories.some((c) => c.fields.some((f) => !f.enabled)),
+    'services.deezerArl': !!$streamingServicesStore['deezer']?.enabled,
+    'services.spotifyConnect': !!spotifyConnect?.enabled,
+    'services.zoneAutoCreate': config?.zone_auto_create === false,
+    'services.followMe': $followMe,
+    'services.perZoneLyricsOffset': $zones.some((z) => (z.lyrics_offset_ms ?? 0) !== 0),
+    'services.perZoneFixedVolume': $zones.some((z) => !!z.fixed_volume),
+    'services.perZoneDsdMode': $zones.some((z) => (z.dsd_mode ?? 'auto') !== 'auto'),
+    'services.perZoneMaxSampleRate': $zones.some((z) => (z.max_sample_rate ?? 0) > 0),
+    'services.zoneAdvanced': $zones.some((z) => !!z.alac_passthrough || !!z.dlna_lpcm),
+    'services.squeezebox': !!config?.squeezebox_enabled,
+    'services.hqplayer': hqplayerEnabled,
+    'network.tuneServers': tunePeers.length > 0,
+    'network.networkDevices': $preferences.hiddenDeviceIds.some((id) => id.startsWith('net:')),
+    'network.replayGain': replayGainMode !== 'off',
+    'network.replayGainPreamp': replayGainPreamp !== 0,
+    'network.replayGainAntiClip': !replayGainPreventClipping,
+    'network.wasapiMode': exclusiveMode,
+    'network.audioBackend': audioBackend !== 'auto',
+    'network.dsdNetwork': dsdLpcmStream,
+    'network.eqBands': eqExpertBands !== 10,
+    'network.tuneBridge': bridgeEnabled,
+    'system.telemetry': cloudTelemetryEnabled,
+    'system.communitySync': config?.community_sync_enabled === true || config?.community_sync_enabled === 'true',
+    'system.logLevel': logLevel !== 'info',
+  }));
+
+  // Blocs qui ne se rendent pas du tout dans le contexte courant : exclus du
+  // compteur « n réglages masqués » (rien à révéler en montant de niveau).
+  const settingPresent = $derived.by((): Partial<Record<SettingKey, boolean>> => ({
+    'system.dataLocation': !!config?.appliance,
+    'network.applianceWifi': !!config?.appliance,
+    'services.spotifyConnect': !!spotifyConnect,
+    'services.perZoneLyricsOffset': $zones.length > 0,
+    'services.perZoneFixedVolume': $zones.length > 0,
+    'services.perZoneDsdMode': $zones.length > 0,
+    'services.perZoneMaxSampleRate': $zones.length > 0,
+    'services.zoneAdvanced': $zones.length > 0,
+  }));
+
+  /** Visibilité d'un réglage : niveau ≤ niveau choisi, OU valeur ≠ défaut. */
+  function lvOk(key: SettingKey): boolean {
+    return isSettingVisible(SETTING_LEVELS[key].level, settingsLevel, !!settingModified[key]);
+  }
+  /** Visibilité d'une section : au moins un de ses réglages est visible. */
+  function lvAny(...keys: SettingKey[]): boolean {
+    return keys.some(lvOk);
+  }
+
+  const hiddenCounts = $derived(hiddenCountByTab(
+    settingsLevel,
+    (k) => !!settingModified[k],
+    (k) => settingPresent[k] !== false,
+  ));
+  const hiddenInCurrentTab = $derived(
+    settingsTab === 'general' || settingsTab === 'library' || settingsTab === 'services'
+      || settingsTab === 'network' || settingsTab === 'system'
+      ? hiddenCounts[settingsTab] : 0,
+  );
+
+  const LEVEL_LABEL_KEYS: Record<SettingsLevel, string> = {
+    beginner: 'settings.levelBeginner',
+    intermediate: 'settings.levelIntermediate',
+    expert: 'settings.levelExpert',
+  };
 </script>
 
 <div class="settings-view">
   <h2>{$t('settings.title')}</h2>
+
+  <!-- Niveau d'affichage (#1617) : segmented control discret, toujours
+       visible à tout niveau — on peut toujours remonter. -->
+  <div class="level-selector" role="radiogroup" aria-label={$t('settings.displayLevel' as any)}>
+    <span class="level-selector-label">{$t('settings.displayLevel' as any)}</span>
+    <div class="level-segments">
+      {#each SETTINGS_LEVELS as level (level)}
+        <button
+          class="level-segment"
+          class:active={settingsLevel === level}
+          role="radio"
+          aria-checked={settingsLevel === level}
+          onclick={() => setSettingsLevel(level)}
+        >
+          {$t(LEVEL_LABEL_KEYS[level] as any)}
+        </button>
+      {/each}
+    </div>
+  </div>
 
   <div class="settings-tabs">
     <button class="settings-tab" class:active={settingsTab === 'general'} onclick={() => settingsTab = 'general'}>
@@ -2684,7 +2792,9 @@ function toggleAdvancedSystem() {
          il traite de la synchronisation entre zones — donc du même sujet que
          le reste de cet onglet. Un onglet de moins, et le réglage se trouve
          là où on le cherche. -->
-    <MultiroomSettings />
+    <div class:lv-hidden={!lvOk('network.multiroomOffsets')}>
+      <MultiroomSettings />
+    </div>
     {/if}
 
     {#if settingsTab === 'network'}
@@ -2720,21 +2830,6 @@ function toggleAdvancedSystem() {
     </section>
     {/if}
 
-    <!-- Bascule des reglages avances : dans son PROPRE bloc, gate sur le seul
-         onglet. Elle vivait d'abord dans la section « Emplacement des donnees »,
-         qui est reservee au mode appliance (config.appliance) : sur une
-         installation normale le bouton ne s'affichait jamais et les cinq
-         sections repliees devenaient inatteignables. -->
-    {#if settingsTab === 'system'}
-      <button class="advanced-toggle" onclick={toggleAdvancedSystem} aria-expanded={showAdvancedSystem}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"
-             style="transform: rotate({showAdvancedSystem ? 90 : 0}deg); transition: transform .15s;">
-          <path d="M9 18l6-6-6-6" />
-        </svg>
-        {showAdvancedSystem ? $t('settings.advancedHide' as any) : $t('settings.advancedShow' as any)}
-      </button>
-    {/if}
-
     {#if settingsTab === 'system' && (config?.server_urls?.length ?? 0) > 0}
     <!-- Accès depuis un autre appareil (Android ne résout pas .local → IP) -->
     <section class="settings-section">
@@ -2760,7 +2855,7 @@ function toggleAdvancedSystem() {
 
     {#if settingsTab === 'system' && config?.appliance}
     <!-- Appliance (Tune OS): data location (docs/DATA-RELOCATION.md) -->
-    <section class="settings-section" class:advanced-hidden={!showAdvancedSystem}>
+    <section class="settings-section" class:lv-hidden={!lvOk('system.dataLocation')}>
       <h3>{$t('settings.dataLocation')}</h3>
       {#if dataStatus}
         <p class="diag-hint">
@@ -2981,7 +3076,7 @@ function toggleAdvancedSystem() {
 
     {#if settingsTab === 'network'}
     <!-- Tune Peers on the network -->
-    <section class="settings-section">
+    <section class="settings-section" class:lv-hidden={!lvOk('network.tuneServers')}>
       <h3>{$t('settings.tuneServersOnNetwork')}</h3>
       {#if peersLoading}
         <div class="loading"><div class="spinner small"></div> {$t('settings.searching')}</div>
@@ -3036,7 +3131,7 @@ function toggleAdvancedSystem() {
       <!-- Miroir du réglage du panneau « Chemin du signal » : le même état,
            exposé AUSSI ici — introuvable pour qui le cherche dans les
            Réglages, réflexe naturel pour ce type d'option (Bertrand, 12/08). -->
-      <div class="setting-row">
+      <div class="setting-row" class:lv-hidden={!lvOk('general.lockVolume')}>
         <div class="setting-label">
           <span>{$t('audiophile.lockVolume' as any)}</span>
           <span class="setting-hint">{$t('audiophile.lockVolumeHelp' as any)}</span>
@@ -3056,7 +3151,7 @@ function toggleAdvancedSystem() {
           <span class="toggle-slider"></span>
         </label>
       </div>
-      <div class="setting-row">
+      <div class="setting-row" class:lv-hidden={!lvOk('general.crossfade')}>
         <div class="setting-label">
           <span>Crossfade</span>
           <span class="setting-hint">{$t('settings.crossfadeHint')}</span>
@@ -3067,7 +3162,7 @@ function toggleAdvancedSystem() {
         </label>
       </div>
       {#if crossfadeEnabled}
-        <div class="setting-row">
+        <div class="setting-row" class:lv-hidden={!lvOk('general.crossfadeDuration')}>
           <div class="setting-label">
             <span>{$t('settings.duration')} : {crossfadeDuration}s</span>
           </div>
@@ -3093,7 +3188,7 @@ function toggleAdvancedSystem() {
     </section>
 
     <!-- Voice AI -->
-    <section class="settings-section">
+    <section class="settings-section" class:lv-hidden={!lvOk('general.voiceCommand')}>
       <h3>Tune Voice AI</h3>
       <div class="setting-row">
         <div class="setting-label">
@@ -3237,14 +3332,14 @@ function toggleAdvancedSystem() {
       {/if}
 
       {#if config}
-        <div class="pref-grid">
+        <div class="pref-grid" class:lv-hidden={!lvOk('library.folderPlaylists')}>
           <label class="pref-label">{$t('settings.folderPlaylists' as any)}<SettingHint k="settings.folderPlaylistsHelp" labelKey="settings.folderPlaylists" /></label>
           <label class="toggle-switch">
             <input type="checkbox" checked={config.scan_folder_playlists === true || config.scan_folder_playlists === 'true'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.scan_folder_playlists = val; await api.updateConfig({ scan_folder_playlists: val }); }} />
             <span class="toggle-slider"></span>
           </label>
         </div>
-        <div class="pref-grid">
+        <div class="pref-grid" class:lv-hidden={!lvOk('library.importPlaylistFiles')}>
           <label class="pref-label">{$t('settings.importPlaylistFiles' as any)}<SettingHint k="settings.importPlaylistFilesHelp" labelKey="settings.importPlaylistFiles" /></label>
           <label class="toggle-switch">
             <input type="checkbox" checked={config.scan_import_playlists !== false && config.scan_import_playlists !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.scan_import_playlists = val; await api.updateConfig({ scan_import_playlists: val }); }} />
@@ -3265,7 +3360,7 @@ function toggleAdvancedSystem() {
             {$t('settings.scanLibrary')}
           {/if}
         </button>
-        <button class="scan-btn" onclick={() => handleScan(true)} disabled={scanning} title={$t('settings.fullScanTitle')}>
+        <button class="scan-btn" class:lv-hidden={!lvOk('library.fullScan')} onclick={() => handleScan(true)} disabled={scanning} title={$t('settings.fullScanTitle')}>
           {#if scanning}
             <div class="spinner small"></div>
           {:else}
@@ -3295,7 +3390,7 @@ function toggleAdvancedSystem() {
           {/if}
         </button>
 
-        <button class="scan-btn danger-btn" onclick={handleClearLibrary} disabled={clearingLibrary} use:tip={'tip.clearLibrary'}>
+        <button class="scan-btn danger-btn" class:lv-hidden={!lvOk('library.clearLibrary')} onclick={handleClearLibrary} disabled={clearingLibrary} use:tip={'tip.clearLibrary'}>
           {#if clearingLibrary}
             <div class="spinner small"></div>
             {$t('settings.deleting')}
@@ -3310,7 +3405,7 @@ function toggleAdvancedSystem() {
     </section>
 
     <!-- Quality Split -->
-    <section class="settings-section">
+    <section class="settings-section" class:lv-hidden={!lvOk('library.qualitySplit')}>
       <h3>{$t('settings.scanOptions')}</h3>
       <div class="setting-row">
         <div class="setting-label">
@@ -3330,7 +3425,7 @@ function toggleAdvancedSystem() {
     </section>
 
     <!-- Scan Schedule -->
-    <section class="settings-section">
+    <section class="settings-section" class:lv-hidden={!lvAny('library.scanSchedule', 'library.scanScheduleTime')}>
       <h3>{$t('settings.scanSchedule' as any)}</h3>
       <div class="setting-row">
         <div class="setting-label">
@@ -3369,7 +3464,7 @@ function toggleAdvancedSystem() {
     {#if settingsTab === 'system'}
     <!-- Database -->
     {#if config}
-    <section class="settings-section" class:advanced-hidden={!showAdvancedSystem}>
+    <section class="settings-section" class:lv-hidden={!lvAny('system.databaseInfo', 'system.databaseExportImport', 'system.searchReindex', 'system.databaseMigration')}>
       <h3>{$t('settings.database')}</h3>
       <div class="db-info">
         <div class="db-row">
@@ -3499,7 +3594,7 @@ function toggleAdvancedSystem() {
     {/if}
 
     <!-- Library Import (Roon / Plex / Playlists) -->
-    <section class="settings-section" class:advanced-hidden={!showAdvancedSystem}>
+    <section class="settings-section" class:lv-hidden={!lvOk('system.libraryImport')}>
       <h3>{$t('import.title' as any)}</h3>
 
       {#if importStep === 'select'}
@@ -3765,7 +3860,7 @@ function toggleAdvancedSystem() {
     </section>
 
     <!-- Defaults for "Add content" (library ingest) -->
-    <section class="settings-section">
+    <section class="settings-section" class:lv-hidden={!lvAny('library.ingestMode', 'library.ingestConflict', 'library.ingestDestRoot', 'library.ingestTemplate', 'library.ingestWriteTags')}>
       <h3>{$t('settings.ingest')}</h3>
       <p class="muted">{$t('settings.ingestDesc')}</p>
 
@@ -3843,7 +3938,7 @@ function toggleAdvancedSystem() {
 
     {#if settingsTab === 'network'}
     <!-- Network Devices (DLNA / AirPlay) -->
-    <section class="settings-section">
+    <section class="settings-section" class:lv-hidden={!lvOk('network.networkDevices')}>
       <h3>{$t('settings.networkDevices')}</h3>
       <div class="devices-actions">
         <button class="scan-btn small" onclick={showAllDevices}>{$t('settings.showAll')}</button>
@@ -3912,7 +4007,7 @@ function toggleAdvancedSystem() {
     <!-- Local Audio Outputs -->
     <section class="settings-section">
       <h3>{$t('settings.localAudio')}</h3>
-      <div class="about-row" style="margin-bottom: 0.75rem">
+      <div class="about-row" style="margin-bottom: 0.75rem" class:lv-hidden={!lvOk('network.audioBackend')}>
         <span class="about-label">{$t('settings.audioBackend')}</span>
         <select class="log-level-select" value={audioBackend} onchange={(e) => changeAudioBackend((e.target as HTMLSelectElement).value)}>
           <option value="auto">{$t('settings.autoDefault')}</option>
@@ -3921,7 +4016,7 @@ function toggleAdvancedSystem() {
         </select>
       </div>
       {#if audioBackend === 'wasapi'}
-      <div class="about-row" style="margin-bottom: 0.75rem">
+      <div class="about-row" style="margin-bottom: 0.75rem" class:lv-hidden={!lvOk('network.wasapiMode')}>
         <span class="about-label">Mode WASAPI</span>
         <select class="log-level-select" value={exclusiveMode ? 'exclusive' : 'shared'} onchange={(e) => { const v = (e.target as HTMLSelectElement).value; if ((v === 'exclusive') !== exclusiveMode) toggleExclusiveMode(); }}>
           <option value="shared">{$t('settings.sharedDefault')}</option>
@@ -3929,7 +4024,7 @@ function toggleAdvancedSystem() {
         </select>
       </div>
       {/if}
-      <div class="about-row" style="margin-bottom: 0.35rem">
+      <div class="about-row" style="margin-bottom: 0.35rem" class:lv-hidden={!lvOk('network.replayGain')}>
         <span class="about-label">{$t('settings.replayGain')}</span>
         <select class="log-level-select" value={replayGainMode} onchange={(e) => { replayGainMode = (e.target as HTMLSelectElement).value; saveReplayGain({ replaygain_mode: replayGainMode }); }}>
           <option value="off">{$t('settings.replayGainOff')}</option>
@@ -3937,9 +4032,9 @@ function toggleAdvancedSystem() {
           <option value="album">{$t('settings.replayGainAlbum')}</option>
         </select>
       </div>
-      <p class="muted" style="margin-top: 0; margin-bottom: 0.75rem">{$t('settings.replayGainHint')}</p>
+      <p class="muted" style="margin-top: 0; margin-bottom: 0.75rem" class:lv-hidden={!lvOk('network.replayGain')}>{$t('settings.replayGainHint')}</p>
       {#if replayGainMode !== 'off'}
-        <div class="about-row" style="margin-bottom: 0.75rem">
+        <div class="about-row" style="margin-bottom: 0.75rem" class:lv-hidden={!lvOk('network.replayGainPreamp')}>
           <span class="about-label">{$t('settings.replayGainPreamp')}</span>
           <select class="log-level-select" value={String(replayGainPreamp)} onchange={(e) => { replayGainPreamp = Number((e.target as HTMLSelectElement).value); saveReplayGain({ replaygain_preamp_db: replayGainPreamp }); }}>
             {#each [-6, -3, 0, 3, 6] as db}
@@ -3947,7 +4042,7 @@ function toggleAdvancedSystem() {
             {/each}
           </select>
         </div>
-        <div class="about-row" style="margin-bottom: 0.75rem">
+        <div class="about-row" style="margin-bottom: 0.75rem" class:lv-hidden={!lvOk('network.replayGainAntiClip')}>
           <span class="about-label">{$t('settings.replayGainPreventClipping')}</span>
           <select class="log-level-select" value={replayGainPreventClipping ? 'on' : 'off'} onchange={(e) => { replayGainPreventClipping = (e.target as HTMLSelectElement).value === 'on'; saveReplayGain({ replaygain_prevent_clipping: replayGainPreventClipping }); }}>
             <option value="on">{$t('eq.enabled')}</option>
@@ -3987,7 +4082,7 @@ function toggleAdvancedSystem() {
     </section>
 
     <!-- DSD streaming to network (DLNA) renderers -->
-    <section class="settings-section">
+    <section class="settings-section" class:lv-hidden={!lvOk('network.dsdNetwork')}>
       <h3>{$t('settings.dsdNetworkTitle')}</h3>
       <p class="muted" style="margin-bottom: 1rem">{$t('settings.dsdNetworkHint')}</p>
       <div class="about-row">
@@ -4007,7 +4102,7 @@ function toggleAdvancedSystem() {
     </section>
 
     <!-- Résolution de l'égaliseur Expert (10/15/31 bandes) -->
-    <section class="settings-section">
+    <section class="settings-section" class:lv-hidden={!lvOk('network.eqBands')}>
       <h3>{$t('settings.eqBandsTitle')}</h3>
       <p class="muted" style="margin-bottom: 1rem">{$t('settings.eqBandsHint')}</p>
       <div class="about-row">
@@ -4025,7 +4120,7 @@ function toggleAdvancedSystem() {
     </section>
 
     <!-- Tune Bridge (Remote Access) -->
-    <section class="settings-section">
+    <section class="settings-section" class:lv-hidden={!lvOk('network.tuneBridge')}>
       <h3>Tune Bridge</h3>
       <p class="muted" style="margin-bottom: 1rem">
         Access your Tune server from anywhere — no VPN or port forwarding needed.
@@ -4083,11 +4178,11 @@ function toggleAdvancedSystem() {
     {#if settingsTab === 'library'}
     <!-- Metadata -->
     {#if config}
-    <section class="settings-section">
+    <section class="settings-section" class:lv-hidden={!lvAny('library.metadataReadonly', 'library.enrichOnScan', 'library.lyricsLrclib', 'library.replaygainAnalysis')}>
       <h3>{$t('metadata.title')}</h3>
       <div class="pref-grid">
-        <label class="pref-label">{$t('settings.metadataReadonly')}<SettingHint k="settings.metadataReadonlyHelp" labelKey="settings.metadataReadonly" /></label>
-        <label class="toggle-switch">
+        <label class="pref-label" class:lv-hidden={!lvOk('library.metadataReadonly')}>{$t('settings.metadataReadonly')}<SettingHint k="settings.metadataReadonlyHelp" labelKey="settings.metadataReadonly" /></label>
+        <label class="toggle-switch" class:lv-hidden={!lvOk('library.metadataReadonly')}>
           <input type="checkbox" checked={config.metadata_readonly} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.metadata_readonly = val; await api.updateConfig({ metadata_readonly: val }); }} />
           <span class="toggle-slider"></span>
         </label>
@@ -4118,7 +4213,7 @@ function toggleAdvancedSystem() {
     {/if}
 
     <!-- Oxygen advanced library view (parameterizable) -->
-    <section class="settings-section">
+    <section class="settings-section" class:lv-hidden={!lvAny('library.oxygenEnable', 'library.oxygenView')}>
       <h3>{$t('oxygen.settingsTitle')} <span class="license-badge premium">Premium</span></h3>
       <div class="pref-grid">
         <label class="pref-label" for="oxy-enable">{$t('oxygen.enable')}<SettingHint k="oxygen.enableHelp" labelKey="oxygen.enable" /></label>
@@ -4144,7 +4239,7 @@ function toggleAdvancedSystem() {
       <p class="settings-note">{$t('oxygen.description')}</p>
 
       {#if $preferences.oxygenEnabled}
-      <div class="pref-grid" style="margin-top: 6px;">
+      <div class="pref-grid" style="margin-top: 6px;" class:lv-hidden={!lvOk('library.oxygenFacets')}>
         <label class="pref-label">{$t('oxygen.facetsLabel')}<SettingHint k="oxygen.facetsHelp" labelKey="oxygen.facetsLabel" /></label>
         <div style="display:flex;flex-wrap:wrap;gap:10px 16px;">
           {#each OXYGEN_FACETS_ALL as f}
@@ -4161,7 +4256,7 @@ function toggleAdvancedSystem() {
           {/each}
         </div>
       </div>
-      <div class="pref-grid" style="margin-top: 6px;">
+      <div class="pref-grid" style="margin-top: 6px;" class:lv-hidden={!lvOk('library.oxygenFacetLimit')}>
         <label class="pref-label" for="oxy-facet-limit">{$t('oxygen.facetValues')}<SettingHint k="oxygen.facetHelp" labelKey="oxygen.facetValues" /></label>
         <select id="oxy-facet-limit" class="pref-select" value={String($preferences.oxygenFacetLimit)}
           onchange={(e) => preferences.update((p) => ({ ...p, oxygenFacetLimit: Number((e.target as HTMLSelectElement).value) }))}>
@@ -4180,7 +4275,7 @@ function toggleAdvancedSystem() {
 
     <!-- Enrichment -->
     {#if config}
-    <section class="settings-section">
+    <section class="settings-section" class:lv-hidden={!lvAny('library.batchEnrich', 'library.enrichArtwork', 'library.discogsToken', 'library.writeTags')}>
       <h3>{$t('settings.enrichment')}</h3>
 
       <!-- 1) Métadonnées (MusicBrainz) — bouton unique avec barre de progression -->
@@ -4230,7 +4325,7 @@ function toggleAdvancedSystem() {
         </div>
       {/if}
       <p class="settings-note">{$t('settings.enrichArtworkNote')}</p>
-      <div class="pref-grid" style="margin-top: 8px;">
+      <div class="pref-grid" style="margin-top: 8px;" class:lv-hidden={!lvOk('library.discogsToken')}>
         <label class="pref-label">{$t('settings.discogsToken')}<SettingHint k="settings.discogsTokenHelp" labelKey="settings.discogsToken" /></label>
         <span class="pref-value">
           {#if config.discogs_token_set}
@@ -4240,17 +4335,17 @@ function toggleAdvancedSystem() {
           {/if}
         </span>
       </div>
-      <p class="settings-note">{$t('settings.discogsFallbackNote')}</p>
-      <p class="settings-note">{$t('settings.discogsEnvHint')}</p>
+      <p class="settings-note" class:lv-hidden={!lvOk('library.discogsToken')}>{$t('settings.discogsFallbackNote')}</p>
+      <p class="settings-note" class:lv-hidden={!lvOk('library.discogsToken')}>{$t('settings.discogsEnvHint')}</p>
 
       <!-- 3) Fichiers — action qui modifie les fichiers sur disque -->
-      <h4 class="enrich-group-title">{$t('settings.enrichFilesTitle')}</h4>
-      <div class="settings-actions">
+      <h4 class="enrich-group-title" class:lv-hidden={!lvOk('library.writeTags')}>{$t('settings.enrichFilesTitle')}</h4>
+      <div class="settings-actions" class:lv-hidden={!lvOk('library.writeTags')}>
         <button class="action-btn" onclick={async () => { await api.writeAllTags(); enrichMsg = $t('settings.writeTagsStarted'); setTimeout(() => enrichMsg = '', 5000); }}>
           {$t('settings.writeTags')}
         </button>
       </div>
-      <p class="settings-note settings-note-warn">{$t('settings.writeTagsWarning')}</p>
+      <p class="settings-note settings-note-warn" class:lv-hidden={!lvOk('library.writeTags')}>{$t('settings.writeTagsWarning')}</p>
 
       <p class="settings-note">{$t('settings.autoEnrichPremiumNote')}</p>
     </section>
@@ -4357,8 +4452,8 @@ function toggleAdvancedSystem() {
           {/each}
         </select>
 
-        <label class="pref-label" for="pref-volume">{$t('settings.volumeDisplay')}<SettingHint k="settings.volumeDisplayHelp" labelKey="settings.volumeDisplay" /></label>
-        <select id="pref-volume" class="pref-select" value={$preferences.volumeDisplay}
+        <label class="pref-label" for="pref-volume" class:lv-hidden={!lvOk('general.volumeDisplay')}>{$t('settings.volumeDisplay')}<SettingHint k="settings.volumeDisplayHelp" labelKey="settings.volumeDisplay" /></label>
+        <select id="pref-volume" class="pref-select" class:lv-hidden={!lvOk('general.volumeDisplay')} value={$preferences.volumeDisplay}
           onchange={(e) => {
             const volumeDisplay = (e.target as HTMLSelectElement).value as VolumeDisplay;
             preferences.update((p) => ({ ...p, volumeDisplay }));
@@ -4391,7 +4486,7 @@ function toggleAdvancedSystem() {
          (forum #1113) and its entry here only said « Last.fm », so nobody
          looking for the Discogs/Genius/ListenBrainz tokens ever clicked it
          (Bertrand). Name every token service it actually hosts. -->
-    <section class="settings-section">
+    <section class="settings-section" class:lv-hidden={!lvOk('services.tokensBridge')}>
       <h3>Services &amp; Tokens</h3>
       <p class="settings-note">{$t('settings.serviceTokensBridgeHelp' as any)}</p>
       <div class="service-list">
@@ -4526,7 +4621,7 @@ function toggleAdvancedSystem() {
                     {/if}
                   </div>
                 {:else if name === 'deezer'}
-                  <div class="service-auth-form">
+                  <div class="service-auth-form" class:lv-hidden={!lvOk('services.deezerArl')}>
                     <p class="auth-hint">{$t('settings.deezerArlHint')}</p>
                     <input
                       class="auth-input"
@@ -4590,7 +4685,7 @@ function toggleAdvancedSystem() {
         </div>
 
         <!-- YouTube playback (managed yt-dlp helper) -->
-        <div class="yt-playback">
+        <div class="yt-playback" class:lv-hidden={!lvOk('services.youtubePlayback')}>
           <div class="yt-playback-head">
             <span class="yt-playback-title">{$t('settings.youtubePlaybackTitle')}</span>
             {#if ytPlaybackInstalled}
@@ -4616,7 +4711,7 @@ function toggleAdvancedSystem() {
 
     <!-- Spotify Connect (receiver) -->
     {#if spotifyConnect}
-      <section class="settings-section">
+      <section class="settings-section" class:lv-hidden={!lvOk('services.spotifyConnect')}>
         <h3>Spotify Connect</h3>
         <p class="section-hint">
           {$t('settings.spotifyConnectHint')}
@@ -4679,7 +4774,7 @@ function toggleAdvancedSystem() {
 
     <!-- Zone auto-create -->
     {#if config}
-      <section class="settings-section">
+      <section class="settings-section" class:lv-hidden={!lvOk('services.zoneAutoCreate')}>
         <h3>{$t('settings.zoneAutoCreate' as any)}</h3>
         <div class="pref-grid">
           <label class="pref-label">{$t('settings.zoneAutoCreateLabel' as any)}<SettingHint k="settings.zoneAutoCreateHint" labelKey="settings.zoneAutoCreateLabel" /></label>
@@ -4692,7 +4787,7 @@ function toggleAdvancedSystem() {
     {/if}
 
     <!-- Follow me: pause the zone you leave when switching zones (client pref) -->
-    <section class="settings-section">
+    <section class="settings-section" class:lv-hidden={!lvOk('services.followMe')}>
       <h3>{$t('settings.followMe' as any)}</h3>
       <div class="pref-grid">
         <label class="pref-label">{$t('settings.followMeLabel' as any)}<SettingHint k="settings.followMeHint" labelKey="settings.followMeLabel" /></label>
@@ -4705,7 +4800,7 @@ function toggleAdvancedSystem() {
 
     <!-- Zone audio settings (DSD mode, gapless, fixed volume) -->
     {#if $zones.length > 0}
-      <section class="settings-section">
+      <section class="settings-section" class:lv-hidden={!lvAny('services.perZoneLyricsOffset', 'services.perZoneFixedVolume', 'services.perZoneDsdMode', 'services.perZoneMaxSampleRate', 'services.zoneAdvanced')}>
         <h3>{$t('settings.perZoneSettings')}</h3>
         <p class="section-hint">{$t('settings.perZoneHint')}</p>
         <div class="zone-settings-list">
@@ -4728,7 +4823,7 @@ function toggleAdvancedSystem() {
                     {/if}
                   </div>
                   <div class="zone-card-row">
-                    <label class="zone-setting-label">
+                    <label class="zone-setting-label" class:lv-hidden={!lvOk('services.perZoneDsdMode')}>
                       <span>DSD</span>
                       <select
                         class="zone-select"
@@ -4745,7 +4840,7 @@ function toggleAdvancedSystem() {
                         <option value="pcm">{$t('settings.dsdPcm')}</option>
                       </select>
                     </label>
-                    <label class="zone-setting-label" title={$t('settings.lyricsOffsetHint' as any)}>
+                    <label class="zone-setting-label" class:lv-hidden={!lvOk('services.perZoneLyricsOffset')} title={$t('settings.lyricsOffsetHint' as any)}>
                       <span>{$t('settings.lyricsOffset' as any)}</span>
                       <select
                         class="zone-select"
@@ -4762,7 +4857,7 @@ function toggleAdvancedSystem() {
                         {/each}
                       </select>
                     </label>
-                    <label class="zone-setting-label" title={$t('settings.maxSampleRateHint')}>
+                    <label class="zone-setting-label" class:lv-hidden={!lvOk('services.perZoneMaxSampleRate')} title={$t('settings.maxSampleRateHint')}>
                       <span>{$t('settings.maxSampleRate')}</span>
                       <select
                         class="zone-select"
@@ -4823,7 +4918,7 @@ function toggleAdvancedSystem() {
                     {/if}
                   {/if}
                   {#if zoneHasAdvanced(z)}
-                    <details class="zone-adv">
+                    <details class="zone-adv" class:lv-hidden={!lvOk('services.zoneAdvanced')}>
                       <summary class="zone-adv-summary">{$t('settings.zoneAdvanced')}</summary>
                       <div class="zone-adv-body">
                         {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
@@ -4869,7 +4964,7 @@ function toggleAdvancedSystem() {
 
     <!-- Squeezebox / Lyrion Music Server -->
     {#if config}
-      <section class="settings-section">
+      <section class="settings-section" class:lv-hidden={!lvOk('services.squeezebox')}>
         <h3>{$t('settings.squeezebox' as any)}</h3>
         <p class="section-hint">{$t('settings.squeezeboxHint' as any)}</p>
 
@@ -4961,7 +5056,7 @@ function toggleAdvancedSystem() {
 
     <!-- HQPlayer -->
     {#if config}
-      <section class="settings-section">
+      <section class="settings-section" class:lv-hidden={!lvOk('services.hqplayer')}>
         <h3>HQPlayer</h3>
         <p class="section-hint">{$t('settings.hqplayerHint')}</p>
 
@@ -5052,7 +5147,7 @@ function toggleAdvancedSystem() {
 
     {#if settingsTab === 'system'}
     <!-- Config Export/Import -->
-    <section class="settings-section" class:advanced-hidden={!showAdvancedSystem}>
+    <section class="settings-section" class:lv-hidden={!lvOk('system.configExportImport')}>
       <h3>{$t('settings.configSection' as any)}</h3>
       <div class="db-ie-actions">
         <button class="btn-secondary" onclick={handleExportConfig} disabled={configExporting}>
@@ -5098,7 +5193,7 @@ function toggleAdvancedSystem() {
       </div>
     </section>
 
-    <section class="settings-section" class:advanced-hidden={!showAdvancedSystem}>
+    <section class="settings-section" class:lv-hidden={!lvOk('system.exportCsv')}>
       <h3>{$t('settings.exportCsv')}</h3>
       <p class="section-hint">{$t('settings.exportCsvHint')}</p>
       <div class="db-ie-actions">
@@ -5132,7 +5227,7 @@ function toggleAdvancedSystem() {
 
     {#if settingsTab === 'library'}
     <!-- Metadata Fields Configuration -->
-    <section class="settings-section">
+    <section class="settings-section" class:lv-hidden={!lvOk('library.metadataFields')}>
       <h3>{$t('metadata.title')}</h3>
       <p class="meta-fields-hint">{$t('settings.metaFieldsHint')}</p>
       {#if !metadataLoading && metadataCategories.length > 0}
@@ -5232,7 +5327,7 @@ function toggleAdvancedSystem() {
       </div>
 
       <!-- Telemetry -->
-      <div class="cloud-subsection">
+      <div class="cloud-subsection" class:lv-hidden={!lvOk('system.telemetry')}>
         <div class="cloud-toggle-row">
           <div class="cloud-toggle-label">
             <span>{$t('settings.telemetry')}</span>
@@ -5251,7 +5346,7 @@ function toggleAdvancedSystem() {
       <!-- Community metadata sync (opt-in). The server-side loop (resolve
            MBIDs, pull/push enrichments and Vademecum extra) shipped in
            v0.9.24 but had NO web UI — the flag was only settable via SQL. -->
-      <div class="cloud-subsection">
+      <div class="cloud-subsection" class:lv-hidden={!lvOk('system.communitySync')}>
         <div class="cloud-toggle-row">
           <div class="cloud-toggle-label">
             <span>{$t('settings.communitySync')}</span>
@@ -5269,7 +5364,7 @@ function toggleAdvancedSystem() {
       </div>
 
       <!-- Plugins marketplace link -->
-      <div class="cloud-subsection">
+      <div class="cloud-subsection" class:lv-hidden={!lvOk('system.browsePlugins')}>
         <button class="scan-btn" onclick={() => activeView.set('plugins')}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
             <path d="M20 16V7a2 2 0 0 0-2-2h-3a2 2 0 0 1-2-2 2 2 0 0 0-2 2H8a2 2 0 0 0-2 2v3a2 2 0 0 1 2 2 2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h3a2 2 0 0 1 2 2 2 2 0 0 0 2-2h3a2 2 0 0 0 2-2z"/>
@@ -5443,7 +5538,7 @@ function toggleAdvancedSystem() {
         {/if}
 
         <!-- Diagnostics bundle (Windows-friendly support tool) -->
-        <div class="about-row" style="margin-top: 0.75rem">
+        <div class="about-row" style="margin-top: 0.75rem" class:lv-hidden={!lvOk('system.diagnostics')}>
           <span class="about-label">Diagnostics</span>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
             <button
@@ -5475,7 +5570,7 @@ function toggleAdvancedSystem() {
         </div>
 
         <!-- Log Level -->
-        <div class="about-row" style="margin-top: 0.75rem">
+        <div class="about-row" style="margin-top: 0.75rem" class:lv-hidden={!lvOk('system.logLevel')}>
           <span class="about-label">{$t('settings.logLevel')}</span>
           <select
             class="log-level-select"
@@ -5503,7 +5598,7 @@ function toggleAdvancedSystem() {
         </div>
 
         <!-- API Documentation -->
-        <div class="about-row" style="margin-top: 0.75rem">
+        <div class="about-row" style="margin-top: 0.75rem" class:lv-hidden={!lvOk('system.apiDocs')}>
           <span class="about-label">{$t('settings.apiDocs' as any)}</span>
           <!-- Points at the live endpoint catalog. The old "/docs" path had no
                server route, so the SPA fallback served index.html → the link
@@ -5527,6 +5622,18 @@ function toggleAdvancedSystem() {
         </div>
       </div>
     </section>
+    {/if}
+
+    <!-- Indice de découvrabilité (#1617) : ce que le niveau courant masque
+         dans CET onglet, avec le geste pour le révéler. Les réglages modifiés
+         ne comptent pas — la règle d'or les laisse visibles. -->
+    {#if hiddenInCurrentTab > 0 && settingsLevel !== 'expert'}
+      <p class="hidden-settings-hint">
+        {$t('settings.hiddenSettingsCount' as any).replace('{n}', String(hiddenInCurrentTab))}
+        <button class="hidden-settings-raise" onclick={() => setSettingsLevel(nextLevel(settingsLevel))}>
+          {$t('settings.hiddenSettingsRaise' as any)}
+        </button>
+      </p>
     {/if}
   {/if}
 </div>
@@ -7706,27 +7813,71 @@ function toggleAdvancedSystem() {
     font-size: 13px;
     color: var(--tune-text);
   }
-  /* Réglages de maintenance repliés : masqués sans être démontés, pour que
-     leur état et leurs chargements survivent à la bascule. */
-  .settings-section.advanced-hidden {
-    display: none;
+  /* Réglages au-dessus du niveau d'affichage choisi (#1617) : masqués sans
+     être démontés, pour que leur état et leurs chargements survivent au
+     changement de niveau. `!important` : la classe se pose aussi sur des
+     éléments qui portent leur propre display (flex, grid…). */
+  .lv-hidden {
+    display: none !important;
   }
 
-  .advanced-toggle {
+  /* Sélecteur de niveau d'affichage : discret, sous le titre. */
+  .level-selector {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin: 0.5rem 0 1rem;
-    padding: 0.5rem 0.75rem;
-    background: none;
-    border: 1px solid var(--tune-border);
-    border-radius: 8px;
-    color: var(--tune-text-secondary, #9ca3af);
-    font-size: 0.85rem;
-    cursor: pointer;
+    gap: 10px;
+    margin-top: -8px;
   }
 
-  .advanced-toggle:hover {
+  .level-selector-label {
+    font-size: 12px;
+    color: var(--tune-text-secondary, #9ca3af);
+  }
+
+  .level-segments {
+    display: inline-flex;
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .level-segment {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border: none;
+    background: transparent;
+    color: var(--tune-text-secondary, #9ca3af);
+    cursor: pointer;
+    transition: all 0.15s ease-out;
+  }
+
+  .level-segment:hover {
     color: var(--tune-text, #e5e7eb);
+  }
+
+  .level-segment.active {
+    background: var(--tune-accent);
+    color: white;
+  }
+
+  /* « n réglages masqués — passez au niveau supérieur » en pied d'onglet. */
+  .hidden-settings-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--tune-text-secondary, #9ca3af);
+  }
+
+  .hidden-settings-raise {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 12px;
+    color: var(--tune-accent);
+    cursor: pointer;
+    text-decoration: underline;
   }
 </style>

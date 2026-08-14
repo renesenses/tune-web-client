@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import type { Locale } from '../i18n';
+import { isSettingsLevel, legacyAdvancedToLevel, type SettingsLevel } from '../settingLevels';
 
 export type ThemeMode = 'dark' | 'light' | 'oled' | 'midnight';
 export type VolumeDisplay = 'percent' | 'dB';
@@ -68,6 +69,12 @@ export interface Preferences {
    *  jour devient du bruit au centième — celui qui connaît l'interface ne
    *  doit pas subir une infobulle à chaque survol. */
   tooltipsEnabled: boolean;
+  /** Niveau d'affichage des réglages (#1617) : l'UI ne montre que les
+   *  réglages ≤ ce niveau, règle d'or mise à part (valeur ≠ défaut ⇒ visible).
+   *  Défaut : débutant pour TOUS, installations existantes comprises
+   *  (arbitrage Bertrand, 14/08) — l'ancien toggle « réglages avancés »
+   *  migre vers expert au premier chargement (voir loadPrefs). */
+  settingsLevel: SettingsLevel;
 }
 
 const STORAGE_KEY = 'tune-preferences';
@@ -88,7 +95,19 @@ const defaults: Preferences = {
   albumSortOrder: 'asc',
   albumGridDensity: 'detail',
   tooltipsEnabled: true,
+  settingsLevel: 'beginner',
 };
+
+/** Migration one-shot du toggle « Afficher les réglages avancés » (#1617) :
+ *  appliquée seulement quand les préférences stockées ne portent AUCUN niveau
+ *  (elles prédatent le sélecteur) — un choix explicite fait toujours foi. */
+function legacySettingsLevel(): SettingsLevel {
+  try {
+    return legacyAdvancedToLevel(localStorage.getItem('tune_settings_advanced'));
+  } catch {
+    return 'beginner';
+  }
+}
 
 // One-time migration of the album sort, which #1134 moved from the per-browser
 // `tune_album_sort`/`tune_album_sort_order` localStorage keys into the synced
@@ -138,11 +157,17 @@ function loadPrefs(): Preferences {
       if (!(raw && typeof raw === 'object' && 'albumSort' in raw)) {
         adoptLegacyAlbumSort(p);
       }
+      // Niveau d'affichage (#1617) : valeur invalide ou absente → défaut
+      // débutant, sauf si l'ancien toggle « avancé » était actif (⇒ expert).
+      if (!isSettingsLevel((raw as { settingsLevel?: unknown })?.settingsLevel)) {
+        p.settingsLevel = legacySettingsLevel();
+      }
       return p;
     }
   } catch { /* ignore */ }
   const p = { ...defaults };
   adoptLegacyAlbumSort(p);
+  p.settingsLevel = legacySettingsLevel();
   return p;
 }
 
