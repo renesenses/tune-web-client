@@ -1,9 +1,43 @@
-import { writable, derived } from 'svelte/store';
-import type { Track } from '../types';
+import { writable, derived, get } from 'svelte/store';
+import type { Track, Zone } from '../types';
 
 export const queueTracks = writable<Track[]>([]);
 export const queuePosition = writable<number>(0);
 export const queueLength = writable<number>(0);
+
+/**
+ * Sauter à une position de la file, et faire suivre l'affichage.
+ *
+ * La surbrillance suivait l'événement WebSocket, et rien d'autre. `POST
+ * /queue/jump` renvoie pourtant la zone à jour — position de file et morceau
+ * courant compris — mais la réponse était jetée : l'affichage attendait que
+ * `playback.started` revienne pour se corriger. Deux façons d'attendre en
+ * vain : l'événement se perd, ou le client est passé en sondage de repli, qui
+ * ne relit que `/zones` et jamais la file. On entendait alors un morceau et on
+ * en voyait un autre, sans que rien ne rattrape l'écart (Levente Toth, 0.9.70
+ * Linux — #1589).
+ *
+ * La réponse du serveur fait foi ; l'optimisme ne couvre que l'instant entre
+ * le clic et la réponse, et il est défait si l'appel échoue — sans quoi la
+ * file montrerait un morceau qui n'a jamais démarré.
+ */
+export async function jumpAndSync(
+  zoneId: number,
+  index: number,
+  jump: (zoneId: number, index: number) => Promise<Zone>,
+  applyZone: (zone: Zone) => void,
+): Promise<Zone | null> {
+  const precedente = get(queuePosition);
+  queuePosition.set(index);
+  try {
+    const zoneAJour = await jump(zoneId, index);
+    applyZone(zoneAJour);
+    return zoneAJour;
+  } catch (e) {
+    queuePosition.set(precedente);
+    throw e;
+  }
+}
 
 /** Next 5 tracks after the current position */
 export const upNextTracks = derived(

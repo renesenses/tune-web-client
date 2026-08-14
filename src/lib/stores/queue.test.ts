@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
-import { queueTracks, queuePosition, upNextCount, upNextMs } from './queue';
-import type { Track } from '../types';
+import { queueTracks, queuePosition, upNextCount, upNextMs, jumpAndSync } from './queue';
+import type { Track, Zone } from '../types';
 
 const t = (duration_ms?: number): Track => ({ id: 1, title: 'x', duration_ms }) as Track;
 
@@ -51,5 +51,47 @@ describe('résumé « à suivre »', () => {
     setQueue([], 0);
     expect(get(upNextCount)).toBe(0);
     expect(get(upNextMs)).toBe(0);
+  });
+});
+
+/**
+ * #1589 — Levente Toth, 0.9.70 Linux : « after clicking on any other song, it
+ * starts playing but doesn't change the highlight in the list or in the bottom
+ * left ». La vue jetait la réponse de `POST /queue/jump` et s'en remettait à
+ * `playback.started`. Quand cet événement n'arrive pas — perdu, ou client passé
+ * en sondage de repli, qui ne relit que `/zones` — on entend un morceau et on
+ * en voit un autre, définitivement.
+ */
+describe('jumpAndSync', () => {
+  const zoneFactice = { id: 7, name: 'Salon' } as unknown as Zone;
+
+  it('déplace la surbrillance sans attendre la réponse du serveur', async () => {
+    queuePosition.set(0);
+    let resoudre: (z: Zone) => void = () => {};
+    const enAttente = new Promise<Zone>((r) => { resoudre = r; });
+
+    const promesse = jumpAndSync(7, 4, () => enAttente, () => {});
+    // La réponse n'est pas encore arrivée : la surbrillance a déjà bougé.
+    expect(get(queuePosition)).toBe(4);
+
+    resoudre(zoneFactice);
+    await promesse;
+    expect(get(queuePosition)).toBe(4);
+  });
+
+  it('applique la zone renvoyée — le lecteur en bas suit aussi', async () => {
+    queuePosition.set(0);
+    let appliquee: Zone | null = null;
+    await jumpAndSync(7, 2, async () => zoneFactice, (z) => { appliquee = z; });
+    expect(appliquee).toBe(zoneFactice);
+  });
+
+  it('revient en arrière si le saut échoue', async () => {
+    queuePosition.set(3);
+    await expect(
+      jumpAndSync(7, 9, async () => { throw new Error('zone hors ligne'); }, () => {}),
+    ).rejects.toThrow('zone hors ligne');
+    // Sans ce retour en arrière, la file désignerait un morceau jamais lancé.
+    expect(get(queuePosition)).toBe(3);
   });
 });

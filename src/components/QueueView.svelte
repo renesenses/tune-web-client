@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { queueTracks, queuePosition, queueLength, upNextCount, upNextMs } from '../lib/stores/queue';
+  import { queueTracks, queuePosition, queueLength, upNextCount, upNextMs, jumpAndSync } from '../lib/stores/queue';
   import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
   import { currentZone, currentZoneId, zones, playAndSync, syncZone } from '../lib/stores/zones';
@@ -103,8 +103,9 @@
 
   async function playFromPosition(index: number) {
     if (!zone?.id) return;
+    // Voir `jumpAndSync` : la surbrillance ne dépend plus de l'événement.
     try {
-      await api.jumpInQueue(zone.id, index);
+      await jumpAndSync(zone.id, index, api.jumpInQueue, syncZone);
     } catch (e) {
       console.error('Jump in queue error:', e);
     }
