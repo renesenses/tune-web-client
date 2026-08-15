@@ -24,6 +24,31 @@
     switchZone(zoneId);
   }
 
+  // « Transférer ici » 1-tap (point 17, revue 2026-08-15) : quand la zone
+  // courante joue, chaque autre zone propose un bouton qui bascule lecture +
+  // file + position d'un geste (le serveur conserve la position et l'état
+  // pause depuis feat/transfer-keeps-position), puis suit sur la cible.
+  let transferringTo = $state<number | null>(null);
+  let currentZonePlaying = $derived.by(() => {
+    const cz = $zones.find((z) => z.id === $currentZoneId);
+    return cz?.state === 'playing' || cz?.state === 'paused';
+  });
+  async function transferHere(target: Zone, e: Event) {
+    e.stopPropagation();
+    const fromId = $currentZoneId;
+    if (fromId == null || target.id == null || fromId === target.id || transferringTo !== null) return;
+    transferringTo = target.id;
+    try {
+      await api.transferPlayback(fromId, target.id);
+      switchZone(target.id);
+      zones.set(await api.getZones());
+    } catch (err: any) {
+      notifications.error(err?.message || String(err));
+    } finally {
+      transferringTo = null;
+    }
+  }
+
   // Display the server version (single source of truth) — falls back to
   // the client build version (__APP_VERSION__) until the API responds.
   //
@@ -991,6 +1016,20 @@
             </div>
           </div>
           <span class="zone-meta">
+            {#if currentZonePlaying && zone.id !== $currentZoneId}
+              <span
+                class="zone-transfer-btn"
+                class:busy={transferringTo === zone.id}
+                onclick={(e) => transferHere(zone, e)}
+                onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); transferHere(zone, e); } }}
+                title={$t('zone.transferHere')}
+                aria-label={$t('zone.transferHere')}
+                role="button"
+                tabindex={0}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+              </span>
+            {/if}
             {#if zone.output_type && zone.output_type !== 'local'}
               <span class="zone-type-badge">{deviceTypeIcon(zone.output_type)}</span>
             {/if}
@@ -1974,6 +2013,21 @@
     border-radius: var(--radius-sm);
     cursor: pointer;
   }
+
+  .zone-transfer-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tune-text-muted);
+    opacity: 0;
+    transition: opacity 0.12s, color 0.12s;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .zone-item:hover .zone-transfer-btn { opacity: 1; }
+  .zone-transfer-btn:hover { color: var(--tune-accent); }
+  .zone-transfer-btn.busy { opacity: 0.4; pointer-events: none; }
 
   .zone-item:hover .zone-config-btn,
   .zone-item.active .zone-config-btn {

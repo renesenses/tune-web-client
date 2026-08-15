@@ -193,6 +193,7 @@ export default {
   'zone.createZone': 'Crea zona',
   'zone.activeGroup': 'Gruppo attivo',
   'zone.configure': 'Configura',
+  'zone.transferHere': 'Trasferisci qui la riproduzione',
   'zone.offline': 'Offline',
   'zone.searchingDevices': 'Ricerca dispositivi...',
   'zone.noZone': 'Nessuna zona',

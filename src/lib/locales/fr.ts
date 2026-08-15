@@ -381,6 +381,7 @@ export default {
   'zone.createZone': 'Créer une zone',
   'zone.activeGroup': 'Groupe actif',
   'zone.configure': 'Configurer',
+  'zone.transferHere': 'Transférer la lecture ici',
   'zone.offline': 'Hors ligne',
   'zone.recovering': 'Reconnexion...',
   'zone.recovered': 'Reconnecté',

@@ -188,6 +188,7 @@ export default {
   'zone.createZone': 'Skapa zon',
   'zone.activeGroup': 'Aktiv grupp',
   'zone.configure': 'Konfigurera',
+  'zone.transferHere': 'Överför uppspelningen hit',
   'zone.offline': 'Offline',
   'zone.recovering': 'Återansluter...',
   'zone.recovered': 'Återansluten',
