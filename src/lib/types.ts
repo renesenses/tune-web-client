@@ -259,6 +259,10 @@ export interface Zone {
   dlna_wav24?: boolean;
   /** Per-zone SetAVTransportURI→Play delay in ms (0 = config default). */
   dlna_play_delay_ms?: number;
+  /** Trim de gain du renderer en dB (±12), appliqué au volume envoyé au
+   *  device uniquement — l'affichage garde le volume utilisateur. 0 = neutre.
+   *  Sans effet sur une zone fixed_volume. */
+  gain_trim_db?: number;
   /** Marque choisie par l'utilisateur au catalogue (override). null si non défini. */
   brand?: string | null;
   /** Modèle choisi par l'utilisateur (override). null si non défini. */

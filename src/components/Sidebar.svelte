@@ -844,6 +844,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         {$t('sidebar.connectedServices')}
       </button>
+      <button class="nav-item" class:active={$activeView === 'settings' && false} onclick={() => navigateToSettingsTab('devices')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="14" r="4"/><line x1="12" y1="6" x2="12.01" y2="6"/></svg>
+        {$t('settings.tabDevices')}
+      </button>
       <button class="nav-item" class:active={$activeView === 'genretree'} onclick={() => navigate('genretree')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6"/><circle cx="12" cy="10" r="2"/><path d="M12 12v3"/><path d="M5 17a3 3 0 1 0 6 0 3 3 0 0 0-6 0zm8 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0z"/><path d="M8 14h8"/><path d="M8 14v3"/><path d="M16 14v3"/></svg>
         {$t('sidebar.genreTree')}

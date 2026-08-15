@@ -25,6 +25,7 @@
   import SmbWizard from './SmbWizard.svelte';
   import FolderWizard from './FolderWizard.svelte';
   import MultiroomSettings from './MultiroomSettings.svelte';
+  import DevicesSettings from './DevicesSettings.svelte';
 
   // ─── Per-zone settings: transport badge + Local/Network grouping ───────────
   // The flat list showed every zone the same way, so the 4 identical
@@ -2799,6 +2800,12 @@ function setSettingsLevel(level: SettingsLevel) {
       </svg>
       {$t('settings.tabClap' as any)}
     </button>
+    <button class="settings-tab" class:active={settingsTab === 'devices'} onclick={() => settingsTab = 'devices'}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <rect x="4" y="2" width="16" height="20" rx="2" /><circle cx="12" cy="14" r="4" /><line x1="12" y1="6" x2="12.01" y2="6" />
+      </svg>
+      {$t('settings.tabDevices')}
+    </button>
   </div>
 
   {#if loading}
@@ -4383,6 +4390,16 @@ function setSettingsLevel(level: SettingsLevel) {
       <p class="settings-note">{$t('settings.autoEnrichPremiumNote')}</p>
     </section>
     {/if}
+    {/if}
+
+    <!-- Onglet « Appareils » : identité, trim de gain et config renderer par
+         zone — remontés en surface (avant : Réseau → zone → Avancé, trois
+         niveaux ; point 7 de la revue 2026-08-15). -->
+    {#if settingsTab === 'devices'}
+      <section class="settings-section">
+        <h3>{$t('settings.tabDevices')}</h3>
+        <DevicesSettings />
+      </section>
     {/if}
 
     <!-- L'UI d'avancement de l'analyse acoustique était introuvable, enfouie

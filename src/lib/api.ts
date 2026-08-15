@@ -308,6 +308,14 @@ export function renameZone(id: number, name: string) {
   });
 }
 
+/** Trim de gain du renderer, en dB (le serveur borne à ±12 ; 0 = efface). */
+export function updateZoneGainTrim(id: number, gainTrimDb: number) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ gain_trim_db: gainTrimDb }),
+  });
+}
+
 export function updateZoneSyncDelay(id: number, syncDelayMs: number) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
