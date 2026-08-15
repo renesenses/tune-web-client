@@ -4672,11 +4672,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     gap: var(--space-sm);
     margin-bottom: var(--space-lg);
     flex-wrap: wrap;
-    /* Pin under the sticky .library-header so the breadcrumb, per-genre album
-       count and the sort control stay visible while scrolling — #1282
-       refinement (Jean Valjean). Genres-only class → no cross-tab impact. */
+    /* Épinglé en haut du conteneur de défilement pour que le fil d'Ariane, le
+       compte d'albums du genre et le tri restent visibles — #1282 (Jean
+       Valjean). `top: 0` depuis #470 : l'en-tête ayant quitté le scroller, les
+       72px de compensation étaient devenus 72px de vide. Classe propre aux
+       Genres → aucun effet sur les autres onglets. */
     position: sticky;
-    top: 72px;
+    top: 0;
     z-index: 10;
     background: var(--tune-bg);
   }
@@ -5472,7 +5474,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
      viewport) is provably untouched. */
   .genres-summary {
     position: sticky;
-    top: 72px;
+    /* `top: 0` depuis #470, même raison que `.genre-detail-header` ci-dessus :
+       l'en-tête n'est plus dans le conteneur de défilement. */
+    top: 0;
     z-index: 10;
     background: var(--tune-bg);
   }
