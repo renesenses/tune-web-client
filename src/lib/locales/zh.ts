@@ -65,6 +65,8 @@ export default {
   "support.category.library": "媒体库",
   "support.category.hardware": "硬件",
   "support.sys.copy": "复制信息",
+  'support.sys.copyMermaid': '复制示意图（Mermaid）',
+  'support.sys.copyMermaidHint': '服务器 → 区域 → 设备示意图，可粘贴到工单或 Mermaid 渲染器中',
   "support.sys.copied": "已复制！",
   "support.sys.server": "服务器",
   "support.sys.library": "媒体库",

@@ -65,6 +65,8 @@ export default {
   "support.category.library": "Bibliotecă",
   "support.category.hardware": "Hardware",
   "support.sys.copy": "Copiază fișa",
+  'support.sys.copyMermaid': 'Copiați schema (Mermaid)',
+  'support.sys.copyMermaidHint': 'Schema server → zone → dispozitive, de lipit într-un tichet sau un randator Mermaid',
   "support.sys.copied": "Fișă copiată!",
   "support.sys.server": "Server",
   "support.sys.library": "Bibliotecă",
