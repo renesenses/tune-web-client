@@ -338,6 +338,14 @@ export function applyZoneDevicePreset(id: number, settings: Record<string, unkno
   });
 }
 
+/** Opt-in : la zone s'annonce en MediaRenderer UPnP (JPlay, BubbleUPnP…). */
+export function updateZoneUpnpRenderer(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ upnp_renderer: enabled }),
+  });
+}
+
 /** Trim de gain du renderer, en dB (le serveur borne à ±12 ; 0 = efface). */
 export function updateZoneGainTrim(id: number, gainTrimDb: number) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {

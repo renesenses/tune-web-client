@@ -1505,6 +1505,8 @@ export default {
   "devices.gainTrimHint": "Desfase en dB aplicado al volumen enviado a este dispositivo, para igualar el nivel percibido entre zonas. No afecta al volumen mostrado.",
   "devices.gainTrimFixedVolume": "Volumen fijo activo: el ajuste no tiene efecto (bit-perfect).",
   "devices.rendererConfig": "Configuración del renderer",
+  "devices.upnpRenderer": "Renderer UPnP",
+  "devices.upnpRendererHint": "La zona se anuncia como salida UPnP: JPlay, BubbleUPnP o mconnect pueden enviarle la reproducción. El flujo pasa por toda la cadena de Tune (EQ, convolución, ajuste).",
   "devices.presetTitle": "Preajuste comunitario ({count} usuarios)",
   "devices.presetApply": "Aplicar",
   "devices.presetDismiss": "Descartar",

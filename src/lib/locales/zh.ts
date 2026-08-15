@@ -1505,6 +1505,8 @@ export default {
   "devices.gainTrimHint": "应用于发送到此设备的音量的 dB 偏移，用于统一各区域的感知响度。不影响显示的音量。",
   "devices.gainTrimFixedVolume": "固定音量已启用：微调无效（比特完美）。",
   "devices.rendererConfig": "渲染器配置",
+  "devices.upnpRenderer": "UPnP 渲染器",
+  "devices.upnpRendererHint": "该区域将作为 UPnP 输出在网络上公开：JPlay、BubbleUPnP 或 mconnect 可以将播放发送到这里。音频流会经过 Tune 的完整处理链（EQ、卷积、微调）。",
   "devices.presetTitle": "社区预设（{count} 位用户）",
   "devices.presetApply": "应用",
   "devices.presetDismiss": "忽略",

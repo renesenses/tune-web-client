@@ -1505,6 +1505,8 @@ export default {
   "devices.gainTrimHint": "Versatz in dB auf die an dieses Gerät gesendete Lautstärke, um die wahrgenommene Lautheit zwischen Zonen anzugleichen. Die angezeigte Lautstärke bleibt unverändert.",
   "devices.gainTrimFixedVolume": "Feste Lautstärke aktiv: der Trim hat keine Wirkung (Bit-perfekt).",
   "devices.rendererConfig": "Renderer-Konfiguration",
+  "devices.upnpRenderer": "UPnP-Renderer",
+  "devices.upnpRendererHint": "Die Zone meldet sich als UPnP-Ausgang im Netzwerk: JPlay, BubbleUPnP oder mconnect können die Wiedergabe dorthin senden. Der Stream durchläuft die gesamte Tune-Kette (EQ, Faltung, Trim).",
   "devices.presetTitle": "Community-Voreinstellung ({count} Nutzer)",
   "devices.presetApply": "Anwenden",
   "devices.presetDismiss": "Verwerfen",

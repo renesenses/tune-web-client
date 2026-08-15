@@ -1513,6 +1513,8 @@ export default {
   "devices.gainTrimHint": "Decalaj în dB aplicat volumului trimis către acest dispozitiv, pentru a uniformiza nivelul perceput între zone. Nu afectează volumul afișat.",
   "devices.gainTrimFixedVolume": "Volum fix activ: trim-ul nu are efect (bit-perfect).",
   "devices.rendererConfig": "Configurarea renderer-ului",
+  "devices.upnpRenderer": "Renderer UPnP",
+  "devices.upnpRendererHint": "Zona se anunță ca ieșire UPnP: JPlay, BubbleUPnP sau mconnect pot trimite redarea către ea. Fluxul trece prin întregul lanț Tune (EQ, convoluție, trim).",
   "devices.presetTitle": "Presetare comunitară ({count} utilizatori)",
   "devices.presetApply": "Aplică",
   "devices.presetDismiss": "Ignoră",
