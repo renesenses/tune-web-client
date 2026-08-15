@@ -2176,12 +2176,17 @@ function setSettingsLevel(level: SettingsLevel) {
     if (!(await dialogs.confirm(get(t)('settings.clearLibraryConfirm'), { danger: true }))) return;
     clearingLibrary = true;
     try {
+      // Le serveur repond HTTP 200 meme quand le vidage echoue, avec
+      // { ok: false, error }. Tester la verite de l'objet ne suffit donc pas :
+      // { ok: false } est truthy et on annoncait « videe » sur un echec —
+      // vecu par un testeur dont la base SQLite etait corrompue (#1715).
       const result = await api.clearLibrary();
-      if (result) {
+      if (result?.ok) {
         scanMessage = get(t)('settings.libraryCleared');
         stats = await api.getStats();
       } else {
-        scanMessage = get(t)('settings.deletionError');
+        const detail = result?.error ? ` : ${result.error}` : '';
+        scanMessage = `${get(t)('settings.deletionError')}${detail}`;
       }
     } catch (e: any) {
       scanMessage = `${get(t)('common.error')}: ${e?.message || e}`;

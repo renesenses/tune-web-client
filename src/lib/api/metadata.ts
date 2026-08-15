@@ -378,8 +378,16 @@ export function repairMp3(trackIds: number[]) {
 
 // --- Misc ---
 
-export function clearLibrary() {
-  return fetchJSON(`${BASE}/system/library/clear`, { method: 'POST' });
+/** Reponse de `POST /system/library/clear` : le serveur repond 200 meme en cas
+ *  d'echec, avec `ok: false` et le message. Voir #1715. */
+export interface ClearLibraryResult {
+  ok: boolean;
+  deleted?: number;
+  error?: string;
+}
+
+export function clearLibrary(): Promise<ClearLibraryResult> {
+  return fetchJSON<ClearLibraryResult>(`${BASE}/system/library/clear`, { method: 'POST' });
 }
 
 export interface WriteAllResult {
