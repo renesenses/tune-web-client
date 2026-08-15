@@ -870,6 +870,7 @@ export default {
   'eq.presetSaved': 'Förinställning "{name}" sparad',
   'eq.presetSaveFailed': 'Kunde inte spara förinställningen',
   'eq.applyFailed': 'Inställningen tillämpades inte — servern nekade',
+  'eq.effectNextTrack': 'Träder i kraft vid nästa spår',
   'eq.premiumRequired': 'Equalizern kräver Tune Premium',
   'eq.premiumGate': 'Equalizern och den akustiska profilen är en funktion i',
 

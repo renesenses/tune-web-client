@@ -886,6 +886,7 @@ export default {
   'eq.presetSaved': 'Preset „{name}" salvat',
   'eq.presetSaveFailed': 'Presetul nu a putut fi salvat',
   'eq.applyFailed': 'Setarea nu a fost aplicată — serverul a refuzat-o',
+  'eq.effectNextTrack': 'Va avea efect de la piesa următoare',
   'eq.premiumRequired': 'Egalizatorul necesită Tune Premium',
 
   // Onboarding

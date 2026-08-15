@@ -879,6 +879,7 @@ export default {
   'eq.presetSaved': 'プリセット「{name}」を保存しました',
   'eq.presetSaveFailed': 'プリセットを保存できませんでした',
   'eq.applyFailed': '設定は適用されませんでした — サーバーが拒否しました',
+  'eq.effectNextTrack': '次の曲から反映されます',
   'eq.premiumRequired': 'イコライザーには Tune Premium が必要です',
 
   // Onboarding

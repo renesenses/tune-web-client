@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { tip } from '../lib/tooltip';
   import { t } from '../lib/i18n';
-  import { currentZoneId } from '../lib/stores/zones';
+  import { currentZone, currentZoneId } from '../lib/stores/zones';
   import * as api from '../lib/api';
   import type { EqBand, EqSettings, CrossfeedSettings } from '../lib/api';
   import { NEUTRAL_PARAMETRIC_BAND, resetParametricBands } from '../lib/eqReset';
@@ -239,6 +239,10 @@
   // Dernier refus signale a l'utilisateur, pour ne pas repeter la meme alerte
   // a chaque mouvement de curseur. Remis a zero des qu'un envoi passe.
   let dernierRefus: string | null = null;
+  // Idem pour l'info « prendra effet a la piste suivante » : une bande
+  // touchee = un envoi, donc sans garde-fou l'utilisateur la recevrait a
+  // chaque mouvement de curseur. Rearmee des qu'un reglage passe a chaud.
+  let prochainePisteSignalee = false;
 
   function queueSendToServer() {
     if (eqSendTimer) clearTimeout(eqSendTimer);
@@ -254,8 +258,25 @@
     const bands = expertSubMode === 'parametric' ? $state.snapshot(pBands) : buildBands();
     const settings: EqSettings = { bands, enabled };
     try {
-      await api.setEq(zoneId, settings);
+      const res = await api.setEq(zoneId, settings);
       dernierRefus = null;
+      // Le serveur applique le réglage au flux en cours quand il le peut
+      // (#1725). Quand il ne le peut pas — zone réseau, mode PURE — et que
+      // l'utilisateur est en train d'écouter, il pousse un curseur et
+      // n'entend rien : c'est exactement ce silence qui se raconte comme
+      // « l'égaliseur ne fonctionne pas ». On le dit, une fois.
+      //
+      // `=== false` et non `!res.applied_live` : un serveur antérieur à #1725
+      // omet le champ, et on n'affirme rien de ce qu'il ne dit pas.
+      const enEcoute = $currentZone?.state === 'playing';
+      if (res?.applied_live === false && enEcoute) {
+        if (!prochainePisteSignalee) {
+          prochainePisteSignalee = true;
+          notifications.info($t('eq.effectNextTrack' as any));
+        }
+      } else if (res?.applied_live === true) {
+        prochainePisteSignalee = false;
+      }
     } catch (e) {
       // Un refus silencieux, c'est un égaliseur qui « ne marche pas ».
       //

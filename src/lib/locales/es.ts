@@ -878,6 +878,7 @@ export default {
   'eq.presetSaved': 'Ajuste «{name}» guardado',
   'eq.presetSaveFailed': 'No se pudo guardar el ajuste',
   'eq.applyFailed': 'Ajuste no aplicado — el servidor lo rechazó',
+  'eq.effectNextTrack': 'Se aplicará en la siguiente pista',
   'eq.premiumRequired': 'El ecualizador requiere Tune Premium',
 
   // Onboarding
