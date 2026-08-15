@@ -11,6 +11,7 @@
   let originalJson = $state('{}');
   let loading = $state(true);
   let saving = $state(false);
+  let helpOpen = $state(false);
   let dirty = $derived(JSON.stringify(tree) !== originalJson);
   let newParent = $state('');
   let knownGenres = $state<string[]>([]);
@@ -219,6 +220,22 @@
       {$t('genreTree.ledePart3')} <code>albums.genre</code>
       {$t('genreTree.ledePart4')}
     </p>
+    <!-- Mode d'emploi dépliable (point 8, revue 2026-08-15) : les gestes de
+         la vue — glisser-déposer, renommage, suppression immédiate — étaient
+         invisibles sans les découvrir par accident. Pattern accordéon repris
+         de ServiceTokensView. -->
+    <button class="help-toggle" onclick={() => (helpOpen = !helpOpen)}>
+      {helpOpen ? '▾' : '▸'} {$t('genreTree.helpToggle')}
+    </button>
+    {#if helpOpen}
+      <ol class="help-steps">
+        <li>{$t('genreTree.helpStep1')}</li>
+        <li>{$t('genreTree.helpStep2')}</li>
+        <li>{$t('genreTree.helpStep3')}</li>
+        <li>{$t('genreTree.helpStep4')}</li>
+        <li>{$t('genreTree.helpStep5')}</li>
+      </ol>
+    {/if}
     <div class="actions">
       <button class="btn-save" disabled={saving || !dirty} onclick={save}>
         {saving ? $t('genreTree.savingProgress') : dirty ? $t('common.save') : $t('genreTree.upToDate')}
@@ -298,6 +315,9 @@
   header h1 { margin: 0 0 4px; font-size: 1.5rem; color: var(--tune-text); }
   .lede { color: var(--tune-text-muted); font-size: 13px; margin: 0 0 14px; max-width: 760px; line-height: 1.45; }
   .lede code { background: var(--tune-bg); padding: 1px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; }
+  .help-toggle { background: none; border: 0; color: var(--tune-accent); font: inherit; font-size: 13px; padding: 0; margin: 0 0 10px; cursor: pointer; }
+  .help-steps { color: var(--tune-text-muted); font-size: 13px; line-height: 1.5; margin: 0 0 14px; padding-left: 20px; max-width: 760px; }
+  .help-steps li { margin-bottom: 4px; }
   /* Boutons figés au défilement — le vrai « haut utile » de cette vue (#1237). */
   .actions { display: flex; gap: 8px; margin-bottom: 16px; position: sticky; top: 0; z-index: 20; background: var(--tune-bg); padding: 10px 0; margin-top: -10px; }
   .btn-save, .btn-secondary, .btn-add {
