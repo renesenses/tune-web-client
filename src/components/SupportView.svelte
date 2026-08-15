@@ -982,6 +982,15 @@
     padding: 1.5rem;
     color: var(--text, #e8e8ea);
   }
+  /* En-tête épinglé : les quatre onglets (Diagnostic, Tickets, Nouveau,
+     Mon système) partaient au défilement, on ne pouvait plus changer d'onglet
+     sans remonter (#463, Jean Valjean).
+     Ici un `sticky` suffit, contrairement à Diagnostics : cette vue n'a pas de
+     conteneur de défilement à elle, elle défile dans `.view-scroller`, qui est
+     un bloc simple depuis #1282 — Firefox honore donc l'ancrage.
+     Le fond est indispensable : sans lui le contenu défilerait EN TRANSPARENCE
+     derrière les onglets. Le couple margin/padding absorbe le `padding` de
+     `.support-view`, pour que rien ne dépasse au-dessus du bandeau. */
   .support-header {
     display: flex;
     align-items: center;
@@ -989,6 +998,12 @@
     flex-wrap: wrap;
     gap: 1rem;
     margin-bottom: 1.25rem;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--tune-bg);
+    margin-top: -1.5rem;
+    padding-top: 1.5rem;
   }
   .support-header h1 {
     font-size: 1.4rem;
