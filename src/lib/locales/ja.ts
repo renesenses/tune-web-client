@@ -193,6 +193,7 @@ export default {
   'zone.createZone': 'ゾーンを作成',
   'zone.activeGroup': 'アクティブグループ',
   'zone.configure': '設定',
+  'zone.transferHere': '再生をここに転送',
   'zone.offline': 'オフライン',
   'zone.searchingDevices': 'デバイスを検索中...',
   'zone.noZone': 'ゾーンがありません',

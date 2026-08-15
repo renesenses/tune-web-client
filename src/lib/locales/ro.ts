@@ -194,6 +194,7 @@ export default {
   'zone.createZone': 'Creează zonă',
   'zone.activeGroup': 'Grup activ',
   'zone.configure': 'Configurează',
+  'zone.transferHere': 'Transferă redarea aici',
   'zone.offline': 'Offline',
   'zone.recovering': 'Se reconectează...',
   'zone.recovered': 'Reconectat',

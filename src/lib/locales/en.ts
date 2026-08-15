@@ -381,6 +381,7 @@ export default {
   'zone.createZone': 'Create Zone',
   'zone.activeGroup': 'Active Group',
   'zone.configure': 'Configure',
+  'zone.transferHere': 'Transfer playback here',
   'zone.offline': 'Offline',
   'zone.recovering': 'Reconnecting...',
   'zone.recovered': 'Reconnected',

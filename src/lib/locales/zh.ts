@@ -193,6 +193,7 @@ export default {
   'zone.createZone': '创建区域',
   'zone.activeGroup': '活跃组',
   'zone.configure': '配置',
+  'zone.transferHere': '将播放转移到这里',
   'zone.offline': '离线',
   'zone.searchingDevices': '搜索设备中...',
   'zone.noZone': '无区域',
