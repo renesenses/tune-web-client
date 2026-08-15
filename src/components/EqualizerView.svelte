@@ -5,6 +5,7 @@
   import { currentZoneId } from '../lib/stores/zones';
   import * as api from '../lib/api';
   import type { EqBand, EqSettings, CrossfeedSettings } from '../lib/api';
+  import { NEUTRAL_PARAMETRIC_BAND, resetParametricBands } from '../lib/eqReset';
   import { notifications } from '../lib/stores/notifications';
   import { isPremium } from '../lib/stores/license';
   import ParametricEq from './ParametricEq.svelte';
@@ -285,7 +286,7 @@
     if (mode === 'parametric' && pBands.length === 0) {
       // Première ouverture : partir de la courbe graphique actuelle.
       pBands = buildBands().filter(b => b.gain !== 0);
-      if (pBands.length === 0) pBands = [{ freq: 1000, gain: 0, q: 1.41, type: 'peak' }];
+      if (pBands.length === 0) pBands = [{ ...NEUTRAL_PARAMETRIC_BAND }];
     }
     expertSubMode = mode;
     saveLocal();
@@ -436,6 +437,18 @@
   }
 
   function resetFlat() {
+    // Le bouton est rendu hors de la branche de sous-mode : il est donc visible
+    // AUSSI quand l'éditeur paramétrique est à l'écran. `applyPreset('flat')`
+    // ne remet à plat que la grille graphique (`gains`) ; `pBands` n'était
+    // jamais touché, et `sendToServer()` renvoyait au serveur les bandes
+    // inchangées — la courbe restait audible (Jean Valjean, forum #1385).
+    if (expertSubMode === 'parametric') {
+      pBands = resetParametricBands();
+      activePreset = 'flat';
+      saveLocal();
+      sendToServer();
+      return;
+    }
     applyPreset('flat');
   }
 
