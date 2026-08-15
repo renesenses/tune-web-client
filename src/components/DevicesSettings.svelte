@@ -44,6 +44,58 @@
   function transportLabel(z: Zone): string {
     return (z.output_type ?? '').toUpperCase();
   }
+
+  // Préréglages communautaires (#1743) : proposés à l'affichage quand
+  // l'appareil est identifié, que la zone n'a AUCUN réglage local et qu'au
+  // moins 3 instances concordent. Jamais d'application automatique — un
+  // bouton, un PATCH, c'est tout.
+  import { onMount } from 'svelte';
+  import type { DevicePreset } from '../lib/api';
+  let proposals = $state<Record<number, DevicePreset | null>>({});
+  let applying = $state<Record<number, boolean>>({});
+  const MIN_OCCURRENCES = 3;
+
+  function hasLocalRendererSettings(z: Zone): boolean {
+    return !!(z.dlna_native_flac || z.alac_passthrough || z.dlna_lpcm
+      || z.dlna_cap_16bit || z.dlna_wav24 || (z.dlna_play_delay_ms ?? 0) > 0
+      || (z.gain_trim_db ?? 0) !== 0);
+  }
+
+  function presetSummary(p: DevicePreset): string {
+    return Object.entries(p.settings)
+      .map(([k, v]) => (v === true ? k : `${k}=${v}`))
+      .join(' · ');
+  }
+
+  onMount(async () => {
+    for (const z of deviceZones) {
+      if (z.id == null) continue;
+      const identified = !!(z.brand ?? z.detected_manufacturer) && !!(z.model ?? z.detected_model);
+      if (!identified || hasLocalRendererSettings(z)) continue;
+      try {
+        const r = await api.getZoneDevicePresets(z.id);
+        const best = r.presets?.[0];
+        if (best && best.occurrences >= MIN_OCCURRENCES && Object.keys(best.settings ?? {}).length > 0) {
+          proposals = { ...proposals, [z.id]: best };
+        }
+      } catch { /* site injoignable : pas de proposition, pas d'erreur */ }
+    }
+  });
+
+  async function applyPreset(z: Zone) {
+    const id = z.id;
+    if (id == null) return;
+    const p = proposals[id];
+    if (!p) return;
+    applying = { ...applying, [id]: true };
+    try {
+      await api.applyZoneDevicePreset(id, p.settings);
+      proposals = { ...proposals, [id]: null };
+      await refreshZones();
+    } finally {
+      applying = { ...applying, [id]: false };
+    }
+  }
 </script>
 
 <div class="devices-settings">
@@ -61,6 +113,20 @@
       </header>
 
       <ZoneDeviceEditor zone={z} onSaved={() => refreshZones()} />
+
+      {#if z.id != null && proposals[z.id]}
+        {@const p = proposals[z.id]!}
+        <div class="preset-proposal">
+          <div class="preset-text">
+            <strong>{$t('devices.presetTitle').replace('{count}', String(p.occurrences))}</strong>
+            <span class="preset-summary">{presetSummary(p)}</span>
+          </div>
+          <button class="preset-apply" disabled={applying[z.id]} onclick={() => applyPreset(z)}>
+            {$t('devices.presetApply')}
+          </button>
+          <button class="preset-dismiss" onclick={() => { proposals = { ...proposals, [z.id ?? -1]: null }; }} title={$t('devices.presetDismiss')} aria-label={$t('devices.presetDismiss')}>×</button>
+        </div>
+      {/if}
 
       <div class="trim-row">
         <label for={'trim-' + z.id} use:tip={'devices.gainTrimHint'}>
@@ -123,4 +189,18 @@
   .trim-fixed { font-size: 12px; color: var(--tune-text-muted); }
   .renderer-adv summary { cursor: pointer; font-size: 13px; color: var(--tune-text-muted); }
   .renderer-adv[open] summary { margin-bottom: 8px; }
+  .preset-proposal {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--tune-accent, #6366f1);
+    border-radius: 8px; padding: 8px 12px;
+    background: color-mix(in srgb, var(--tune-accent, #6366f1) 8%, transparent);
+  }
+  .preset-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; font-size: 13px; }
+  .preset-summary { color: var(--tune-text-muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+  .preset-apply {
+    background: var(--tune-accent, #6366f1); color: white; border: 0;
+    border-radius: 6px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer;
+  }
+  .preset-apply:disabled { opacity: 0.5; }
+  .preset-dismiss { background: none; border: 0; color: var(--tune-text-muted); font-size: 16px; cursor: pointer; padding: 2px 6px; }
 </style>
