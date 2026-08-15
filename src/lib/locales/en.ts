@@ -1097,6 +1097,8 @@ export default {
   'eq.noPresets': 'No saved presets',
   'eq.presetSaved': 'Preset "{name}" saved',
   'eq.presetSaveFailed': 'Could not save preset',
+  'eq.applyFailed': 'Setting not applied — the server refused it',
+  'eq.premiumRequired': 'The equalizer requires Tune Premium',
   'eq.premiumGate': 'The equalizer and acoustic profile are a feature of',
   // Crossfeed (headphones)
   'dsp.crossfeedTitle': 'Crossfeed (headphones)',

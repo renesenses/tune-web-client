@@ -235,6 +235,10 @@
   }
 
   let eqSendTimer: ReturnType<typeof setTimeout> | null = null;
+  // Dernier refus signale a l'utilisateur, pour ne pas repeter la meme alerte
+  // a chaque mouvement de curseur. Remis a zero des qu'un envoi passe.
+  let dernierRefus: string | null = null;
+
   function queueSendToServer() {
     if (eqSendTimer) clearTimeout(eqSendTimer);
     eqSendTimer = setTimeout(() => {
@@ -250,8 +254,29 @@
     const settings: EqSettings = { bands, enabled };
     try {
       await api.setEq(zoneId, settings);
-    } catch {
-      // Backend may not support parametric EQ yet -- silently ignore
+      dernierRefus = null;
+    } catch (e) {
+      // Un refus silencieux, c'est un égaliseur qui « ne marche pas ».
+      //
+      // Ce catch avalait TOUT — 402 premium, 500, coupure réseau — au motif
+      // que le serveur ne gérait peut-être pas encore le parametrique. Les
+      // curseurs bougeaient, `saveLocal()` gardait la courbe en local, elle
+      // revenait même après rechargement… et le son ne changeait jamais.
+      // Aucun moyen, pour l'utilisateur, de distinguer « appliqué » de
+      // « refusé » (Bilou 09/08, BARATOUX 12/08, Jean Marie 14/08 — trois
+      // signalements « l'égaliseur ne fonctionne pas », #1688).
+      //
+      // Même règle que le volume refusé : ce qui n'atteint pas le son doit se
+      // voir. Le reste de cet écran distingue déjà `premium_required`, seul
+      // ce chemin — celui qui porte le réglage — ne le faisait pas.
+      // Une bande touchee = un envoi : sans ce garde-fou, un utilisateur non
+      // premium recevrait une alerte par mouvement de curseur. On ne signale
+      // qu'au changement de motif, et le prochain succes rearme.
+      const cle = (e as Error)?.message === 'premium_required' ? 'eq.premiumRequired' : 'eq.applyFailed';
+      if (cle !== dernierRefus) {
+        dernierRefus = cle;
+        notifications.error($t(cle as any));
+      }
     }
   }
 

@@ -856,6 +856,8 @@ export default {
   'eq.noPresets': '저장된 프리셋 없음',
   'eq.presetSaved': '프리셋 "{name}" 저장됨',
   'eq.presetSaveFailed': '프리셋을 저장할 수 없습니다',
+  'eq.applyFailed': '설정이 적용되지 않았습니다 — 서버가 거부했습니다',
+  'eq.premiumRequired': '이퀄라이저에는 Tune Premium이 필요합니다',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Tune Server에 오신 것을 환영합니다',

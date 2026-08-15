@@ -880,6 +880,8 @@ export default {
   'eq.noPresets': 'Niciun preset salvat',
   'eq.presetSaved': 'Preset „{name}" salvat',
   'eq.presetSaveFailed': 'Presetul nu a putut fi salvat',
+  'eq.applyFailed': 'Setarea nu a fost aplicată — serverul a refuzat-o',
+  'eq.premiumRequired': 'Egalizatorul necesită Tune Premium',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Bine ai venit la Tune Server',
