@@ -308,6 +308,36 @@ export function renameZone(id: number, name: string) {
   });
 }
 
+/** Préréglages communautaires pour l'appareil d'une zone (#1743) — proxy
+ *  serveur vers mozaiklabs ; liste vide si l'appareil n'est pas identifié ou
+ *  si le site est injoignable. */
+export interface DevicePreset {
+  settings: Record<string, unknown>;
+  output_type?: string | null;
+  occurrences: number;
+}
+export function getZoneDevicePresets(id: number) {
+  return fetchJSON<{ presets: DevicePreset[] }>(`${BASE}/zones/${id}/device-presets`);
+}
+
+/** Applique un préréglage communautaire en UN PATCH — clés whitelistées :
+ *  tout le reste du JSON communautaire est ignoré (on n'applique jamais des
+ *  clés arbitraires venues du réseau sur une zone). */
+const PRESET_KEYS = [
+  'dlna_native_flac', 'alac_passthrough', 'dlna_lpcm', 'dlna_cap_16bit',
+  'dlna_wav24', 'dlna_play_delay_ms', 'gain_trim_db',
+] as const;
+export function applyZoneDevicePreset(id: number, settings: Record<string, unknown>) {
+  const body: Record<string, unknown> = {};
+  for (const k of PRESET_KEYS) {
+    if (k in settings) body[k] = settings[k];
+  }
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
 /** Trim de gain du renderer, en dB (le serveur borne à ±12 ; 0 = efface). */
 export function updateZoneGainTrim(id: number, gainTrimDb: number) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
