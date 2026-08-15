@@ -1,5 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import * as api from '../api';
+import { connectionState } from './connection';
 
 /** État de la brique acoustique côté serveur, tel que renvoyé par
  *  `GET /library/search/acoustic/status`. `null` tant qu'on n'a pas répondu. */
@@ -58,6 +59,19 @@ export async function refreshAcousticStatus(): Promise<void> {
     acousticStatus.set(null);
   }
 }
+
+// Le fetch de la sidebar est unique, au mount : un serveur encore en train de
+// démarrer (ou une coupure au chargement) laissait l'entrée Ambiance masquée
+// jusqu'au rechargement complet de la page — vécu « la fonction a disparu »
+// (point 19, revue 2026-08-15). Tant qu'on n'a pas obtenu UNE réponse, on
+// retente à chaque retour de la connexion ; dès qu'un statut est connu, ce
+// chemin ne fait plus rien (les rafraîchissements suivants restent aux mains
+// des écrans concernés).
+connectionState.subscribe((s) => {
+  if ((s === 'connected' || s === 'polling') && get(acousticStatus) === null) {
+    void refreshAcousticStatus();
+  }
+});
 
 /** L'analyse est activée mais hors d'état de tourner : modèle non configuré ou
  *  absent. La jauge doit alors se taire et laisser place à une explication —
