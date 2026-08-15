@@ -236,22 +236,36 @@
         <li>{$t('genreTree.helpStep5')}</li>
       </ol>
     {/if}
+  </header>
+
+  <!-- Barre d'outils épinglée. `.actions` vivait DANS le <header> : un sticky
+       est borné par la boîte de son parent, pas par le conteneur de
+       défilement, si bien que les boutons décrochaient dès que l'en-tête
+       sortait de l'écran — bien avant la fin de la liste des branches
+       (#463, Jean Valjean : « les 2 lignes disparaissent, À jour et Nouvelle
+       branche »). Sortis du <header>, ils sont bornés par `.gt-view`, donc
+       par toute la vue. `.add-parent` les rejoint : c'est la seconde ligne
+       signalée, et la regrouper évite d'avoir à chiffrer en dur la hauteur de
+       la première pour les empiler. -->
+  <div class="gt-toolbar">
     <div class="actions">
       <button class="btn-save" disabled={saving || !dirty} onclick={save}>
         {saving ? $t('genreTree.savingProgress') : dirty ? $t('common.save') : $t('genreTree.upToDate')}
       </button>
       <button class="btn-secondary" disabled={!dirty} onclick={reset}>{$t('common.cancel')}</button>
     </div>
-  </header>
+
+    {#if !loading}
+      <div class="add-parent">
+        <input type="text" placeholder={$t('genreTree.newBranchPlaceholder')} bind:value={newParent} onkeydown={(e) => { if (e.key === 'Enter') addParent(); }} />
+        <button class="btn-add" onclick={addParent} disabled={!newParent.trim()}>{$t('genreTree.addBranch')}</button>
+      </div>
+    {/if}
+  </div>
 
   {#if loading}
     <div class="state">…</div>
   {:else}
-    <div class="add-parent">
-      <input type="text" placeholder={$t('genreTree.newBranchPlaceholder')} bind:value={newParent} onkeydown={(e) => { if (e.key === 'Enter') addParent(); }} />
-      <button class="btn-add" onclick={addParent} disabled={!newParent.trim()}>{$t('genreTree.addBranch')}</button>
-    </div>
-
     <div class="grid">
       {#each Object.keys(tree).sort((a, b) => a.localeCompare(b)) as parent (parent)}
         <div
@@ -319,7 +333,11 @@
   .help-steps { color: var(--tune-text-muted); font-size: 13px; line-height: 1.5; margin: 0 0 14px; padding-left: 20px; max-width: 760px; }
   .help-steps li { margin-bottom: 4px; }
   /* Boutons figés au défilement — le vrai « haut utile » de cette vue (#1237). */
-  .actions { display: flex; gap: 8px; margin-bottom: 16px; position: sticky; top: 0; z-index: 20; background: var(--tune-bg); padding: 10px 0; margin-top: -10px; }
+  /* L'ancrage vit sur la barre, pas sur chaque ligne : `.gt-view` est un bloc
+     simple qui défile dans `.view-scroller` — lui aussi un bloc simple depuis
+     #1282 — donc Firefox honore ce sticky. */
+  .gt-toolbar { position: sticky; top: 0; z-index: 20; background: var(--tune-bg); padding: 10px 0; margin-top: -10px; }
+  .actions { display: flex; gap: 8px; margin-bottom: 16px; }
   .btn-save, .btn-secondary, .btn-add {
     padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
     cursor: pointer; border: none;

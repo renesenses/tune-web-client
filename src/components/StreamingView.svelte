@@ -765,7 +765,7 @@
         </button>
       </div>
     </div>
-    <span class="album-card-title truncate">{playlist.name}</span>
+    <span class="album-card-title truncate" title={playlist.name}>{playlist.name}</span>
     <span class="album-card-artist truncate">{playlist.track_count} {$tr('home.tracks').toLowerCase()}</span>
   </div>
 {/snippet}
@@ -819,9 +819,9 @@
           <div class="track-item" onclick={() => playStreamingTrack(t)}>
             <span class="track-num">{t.track_number ?? index + 1}</span>
             <div class="track-info">
-              <span class="track-title truncate">{t.title}</span>
+              <span class="track-title truncate" title={t.title}>{t.title}</span>
               {#if t.artist_name}
-                <span class="track-artist truncate">{t.artist_name}</span>
+                <span class="track-artist truncate" title={t.artist_name}>{t.artist_name}</span>
               {/if}
             </div>
             <ServiceBadge source={t.source} compact />
@@ -882,9 +882,9 @@
           <div class="track-item" onclick={() => selectedStreamingPlaylist ? playStreamingPlaylist(selectedStreamingPlaylist, index) : playStreamingTrack(t)}>
             <span class="track-num">{index + 1}</span>
             <div class="track-info">
-              <span class="track-title truncate">{t.title}</span>
+              <span class="track-title truncate" title={t.title}>{t.title}</span>
               {#if t.artist_name}
-                <span class="track-artist truncate">{t.artist_name}</span>
+                <span class="track-artist truncate" title={t.artist_name}>{t.artist_name}</span>
               {/if}
             </div>
             <ServiceBadge source={t.source} compact />
@@ -938,7 +938,7 @@
                 </button>
               </div>
             </div>
-            <span class="album-card-title truncate">{album.title}</span>
+            <span class="album-card-title truncate" title={album.title}>{album.title}</span>
             {#if album.year || album.original_year}
               <span class="album-card-year">{formatAlbumYear(album)}</span>
             {/if}
@@ -999,9 +999,9 @@
                   </div>
                 </div>
                 <div class="album-card-meta">
-                  <span class="album-card-title truncate">{album.title}</span>
+                  <span class="album-card-title truncate" title={album.title}>{album.title}</span>
                   {#if album.artist_name}
-                    <span class="album-card-artist truncate">{album.artist_name}</span>
+                    <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
                   {/if}
                 </div>
               </div>
@@ -1044,8 +1044,8 @@
               <div class="track-item" onclick={() => playStreamingTrack(t)}>
                 <span class="track-num">{i + 1}</span>
                 <div class="track-info">
-                  <span class="track-title truncate">{t.title}</span>
-                  <span class="track-artist truncate">{t.artist_name ?? ''}</span>
+                  <span class="track-title truncate" title={t.title}>{t.title}</span>
+                  <span class="track-artist truncate" title={t.artist_name ?? ''}>{t.artist_name ?? ''}</span>
                 </div>
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
                 <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
@@ -1068,8 +1068,8 @@
               <div class="track-item" onclick={() => playStreamingTrack(t)}>
                 <span class="track-num">{i + 1}</span>
                 <div class="track-info">
-                  <span class="track-title truncate">{t.title}</span>
-                  <span class="track-artist truncate">{t.artist_name ?? ''}</span>
+                  <span class="track-title truncate" title={t.title}>{t.title}</span>
+                  <span class="track-artist truncate" title={t.artist_name ?? ''}>{t.artist_name ?? ''}</span>
                 </div>
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
                 <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
@@ -1092,8 +1092,8 @@
               <div class="track-item" onclick={() => playStreamingTrack(t)}>
                 <span class="track-num">{i + 1}</span>
                 <div class="track-info">
-                  <span class="track-title truncate">{t.title}</span>
-                  <span class="track-artist truncate">{t.artist_name ?? ''}</span>
+                  <span class="track-title truncate" title={t.title}>{t.title}</span>
+                  <span class="track-artist truncate" title={t.artist_name ?? ''}>{t.artist_name ?? ''}</span>
                 </div>
                 <span class="track-duration">{formatTime(t.duration_ms)}</span>
                 <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNextStreaming(t); }} title={$tr('streaming.playNext')}>
@@ -1127,9 +1127,9 @@
                 </div>
               </div>
               <div class="album-card-meta">
-                <span class="album-card-title truncate">{item.title}</span>
+                <span class="album-card-title truncate" title={item.title}>{item.title}</span>
                 {#if item.description}
-                  <span class="album-card-artist truncate">{item.description}</span>
+                  <span class="album-card-artist truncate" title={item.description}>{item.description}</span>
                 {/if}
               </div>
             </div>
@@ -1228,9 +1228,9 @@
                 </div>
               </div>
               <div class="album-card-meta">
-                <span class="album-card-title truncate">{album.title}</span>
+                <span class="album-card-title truncate" title={album.title}>{album.title}</span>
                 {#if album.artist_name}
-                  <span class="album-card-artist truncate">{album.artist_name}</span>
+                  <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
                 {/if}
               </div>
               <button class="fav-btn" class:is-fav={favAlbumIds.has(String(album.source_id ?? album.id))} onclick={(e) => { e.stopPropagation(); toggleFavorite('albums', album); }} title={$tr('streaming.favorite')}>♥</button>
@@ -1260,7 +1260,7 @@
             <div class="track-item" onclick={() => playStreamingTrack(t)}>
               <span class="track-num">{index + 1}</span>
               <div class="track-info">
-                <span class="track-title truncate">{t.title}</span>
+                <span class="track-title truncate" title={t.title}>{t.title}</span>
                 <span class="track-artist truncate">{t.artist_name ?? ''} {t.album_title ? `- ${t.album_title}` : ''}</span>
               </div>
               <ServiceBadge source={t.source} compact />
@@ -1337,9 +1337,9 @@
                         </button>
                       </div>
                     </div>
-                    <span class="album-card-title truncate">{album.title}</span>
+                    <span class="album-card-title truncate" title={album.title}>{album.title}</span>
                     {#if album.artist_name}
-                      <span class="album-card-artist truncate">{album.artist_name}</span>
+                      <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
                     {/if}
                   </div>
                 {/each}
@@ -1366,9 +1366,9 @@
                     </button>
                   </div>
                 </div>
-                <span class="album-card-title truncate">{album.title}</span>
+                <span class="album-card-title truncate" title={album.title}>{album.title}</span>
                 {#if album.artist_name}
-                  <span class="album-card-artist truncate">{album.artist_name}</span>
+                  <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
                 {/if}
               </div>
             {/each}
@@ -1413,7 +1413,7 @@
                     </button>
                   </div>
                 </div>
-                <span class="album-card-title truncate">{playlist.name}</span>
+                <span class="album-card-title truncate" title={playlist.name}>{playlist.name}</span>
                 <span class="album-card-artist truncate">{playlist.track_count} {$tr('home.tracks').toLowerCase()}</span>
               </div>
             {/each}
@@ -1438,8 +1438,8 @@
                     </button>
                   </div>
                 </div>
-                <span class="album-card-title truncate">{album.title}</span>
-                <span class="album-card-artist truncate">{album.artist_name}</span>
+                <span class="album-card-title truncate" title={album.title}>{album.title}</span>
+                <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
               </div>
             {/each}
           </div>
@@ -1463,7 +1463,7 @@
                     </button>
                   </div>
                 </div>
-                <span class="album-card-title truncate">{artist.name}</span>
+                <span class="album-card-title truncate" title={artist.name}>{artist.name}</span>
               </div>
             {/each}
           </div>
@@ -1484,7 +1484,7 @@
                   <AlbumArt coverPath={track.cover_path} size={36} alt={track.title} />
                 </div>
                 <div class="track-info">
-                  <span class="track-title truncate">{track.title}</span>
+                  <span class="track-title truncate" title={track.title}>{track.title}</span>
                   <span class="track-artist truncate">{track.artist_name}{#if track.album} — {track.album}{/if}</span>
                 </div>
                 <ServiceBadge source={track.source} compact />
