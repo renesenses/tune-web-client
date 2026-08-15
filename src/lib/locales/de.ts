@@ -215,6 +215,8 @@ export default {
   'zone.confirmDelete': 'Löschen bestätigen?',
   'zone.renameError': 'Fehler beim Umbenennen',
   'zone.groupError': 'Fehler beim Gruppieren',
+  'zone.sameOutputBadge': 'Doppelt',
+  'zone.sameOutputAs': 'Gleicher Audioausgang wie {names}: Diese Zonen können nicht gruppiert werden.',
   'zone.ungroupError': 'Fehler beim Entgruppieren',
   'zone.manager': 'Zonenverwaltung',
   'zone.volume': 'Lautstärke',

@@ -215,6 +215,8 @@ export default {
   'zone.confirmDelete': '确认删除？',
   'zone.renameError': '重命名失败',
   'zone.groupError': '分组失败',
+  'zone.sameOutputBadge': '重复',
+  'zone.sameOutputAs': '与 {names} 使用相同的音频输出：这些区域无法编组。',
   'zone.ungroupError': '取消分组失败',
   'zone.manager': '区域管理器',
   'zone.volume': '音量',

@@ -219,6 +219,8 @@ export default {
   'zone.confirmDelete': 'Confirmi ștergerea?',
   'zone.renameError': 'Eroare la redenumirea zonei',
   'zone.groupError': 'Eroare la gruparea zonelor',
+  'zone.sameOutputBadge': 'Duplicat',
+  'zone.sameOutputAs': 'Aceeași ieșire audio ca {names}: aceste zone nu pot fi grupate.',
   'zone.ungroupError': 'Eroare la degruparea zonelor',
   'zone.manager': 'Manager zone',
   'zone.volume': 'Volum',

@@ -215,6 +215,8 @@ export default {
   'zone.confirmDelete': '삭제를 확인하시겠습니까?',
   'zone.renameError': '이름 바꾸기 오류',
   'zone.groupError': '그룹 설정 오류',
+  'zone.sameOutputBadge': '중복',
+  'zone.sameOutputAs': '{names}과(와) 같은 오디오 출력입니다. 이 영역들은 그룹으로 묶을 수 없습니다.',
   'zone.ungroupError': '그룹 해제 오류',
   'zone.manager': '존 관리자',
   'zone.volume': '볼륨',

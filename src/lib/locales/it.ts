@@ -215,6 +215,8 @@ export default {
   'zone.confirmDelete': 'Confermare l\'eliminazione?',
   'zone.renameError': 'Errore durante la ridenominazione',
   'zone.groupError': 'Errore durante il raggruppamento',
+  'zone.sameOutputBadge': 'Doppione',
+  'zone.sameOutputAs': 'Stessa uscita audio di {names}: queste zone non possono essere raggruppate.',
   'zone.ungroupError': 'Errore durante lo scioglimento del gruppo',
   'zone.manager': 'Gestore zone',
   'zone.volume': 'Volume',
