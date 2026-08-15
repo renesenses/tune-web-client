@@ -881,6 +881,8 @@ export default {
   'eq.presetSaveFailed': 'No se pudo guardar el ajuste',
   'eq.applyFailed': 'Ajuste no aplicado — el servidor lo rechazó',
   'eq.effectNextTrack': 'Se aplicará en la siguiente pista',
+  'eq.profilerApplied': 'Perfil acústico aplicado',
+  'eq.profilerDisabled': 'Perfil desactivado',
   'eq.premiumRequired': 'El ecualizador requiere Tune Premium',
 
   // Onboarding

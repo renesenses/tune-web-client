@@ -882,6 +882,8 @@ export default {
   'eq.presetSaveFailed': 'プリセットを保存できませんでした',
   'eq.applyFailed': '設定は適用されませんでした — サーバーが拒否しました',
   'eq.effectNextTrack': '次の曲から反映されます',
+  'eq.profilerApplied': '音響プロファイルを適用しました',
+  'eq.profilerDisabled': 'プロファイルを無効にしました',
   'eq.premiumRequired': 'イコライザーには Tune Premium が必要です',
 
   // Onboarding
