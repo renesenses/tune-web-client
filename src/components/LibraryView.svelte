@@ -1248,7 +1248,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     if (!album.id) return;
     savedAlbumScrollTop = albumScrollTop;
     if ($libraryTab === 'genres') {
-      const scrollEl = document.querySelector('.library-view');
+      const scrollEl = document.querySelector('.library-scroller');
       savedGenreScrollTop = scrollEl ? scrollEl.scrollTop : 0;
     }
     // NE PAS vider selectedArtist ici : le garder permet à goBack() de revenir à
@@ -1289,11 +1289,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     if (!$selectedAlbum) {
       savedAlbumScrollTop = albumScrollTop;
     }
-    // The artist list scrolls inside `.library-view` (height:100% + overflow-y:
+    // The artist list scrolls inside `.library-scroller` (height:100% + overflow-y:
     // auto), NOT `.main-content` — whose child fills it exactly, so its scrollTop
     // stays 0. Reading `.main-content` here always captured 0, so Back landed at
     // the top of the artist list instead of the viewed artist (#1118, #870).
-    const scrollEl = document.querySelector('.library-view');
+    const scrollEl = document.querySelector('.library-scroller');
     if (scrollEl) savedArtistScrollTop = scrollEl.scrollTop;
     if ($libraryTab === 'genres' && scrollEl) savedGenreScrollTop = scrollEl.scrollTop;
     selectedArtist.set(artist);
@@ -1500,16 +1500,16 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   }
 
   // Same poll-until-ready pattern as albums, but for the artist list, whose
-  // scroll container is `.library-view` (not the album grid viewport). A fixed
+  // scroll container is `.library-scroller` (not the album grid viewport). A fixed
   // double-rAF clamped to 0 on a large artist list, so Back landed at the top
   // of the list instead of the viewed artist (#1118, #870).
   function restoreArtistScrollWhenReady(target: number) {
     if (target <= 0) return;
     let attempts = 0;
     const tick = () => {
-      // Restore on the real scroll container `.library-view` (see the capture
+      // Restore on the real scroll container `.library-scroller` (see the capture
       // in selectArtistDetail) — not `.main-content`, which never scrolls.
-      const el = document.querySelector('.library-view') as HTMLElement | null;
+      const el = document.querySelector('.library-scroller') as HTMLElement | null;
       const ready = el && el.scrollHeight >= target + el.clientHeight;
       if (ready || attempts >= 30) {
         if (el) el.scrollTop = target;
@@ -1847,7 +1847,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       if (wasInDetail && !inDetail && $libraryTab === 'artists' && savedArtistScrollTop > 0) {
         restoreArtistScrollWhenReady(savedArtistScrollTop);
       }
-      // Genres tab: same container as the artist list (`.library-view`) —
+      // Genres tab: same container as the artist list (`.library-scroller`) —
       // restore the drill's position on browser-back too (#1215).
       if (wasInDetail && !inDetail && $libraryTab === 'genres' && savedGenreScrollTop > 0) {
         restoreArtistScrollWhenReady(savedGenreScrollTop);
@@ -1874,6 +1874,54 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 </script>
 
 <div class="library-view">
+  <!-- En-tete de la vue principale : HORS du conteneur de defilement,
+       donc il ne bouge pas — sans `position: sticky`, que Firefox
+       n'honore pas dans un scroller flex-colonne (#463, #1282). -->
+  {#if !$selectedAlbum && !$selectedArtist}
+      <div class="library-header">
+        <h2>{$tr('library.title')}</h2>
+        {#if scopedFolder}
+          <button class="folder-scope-chip" onclick={clearFolderScope} title={scopedFolder}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span class="folder-scope-name">{scopedFolderName}</span>
+            <span class="folder-scope-x">×</span>
+          </button>
+        {/if}
+        <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title={searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffleResults') : $tr('library.shuffleAll')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+          {shuffleAllLoading ? $tr('common.loading') : (searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffle') : $tr('library.shuffleAll'))}
+        </button>
+        <button class="add-content-btn" onclick={() => (showImportWizard = true)} title={$tr('library.addContent')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          {$tr('library.addContent')}
+        </button>
+        <div class="library-header-right">
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+            <input type="text" placeholder={$tr('library.searchPlaceholder')} bind:value={searchQuery} />
+            {#if searchQuery}
+              <button class="search-clear" onclick={() => searchQuery = ''}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            {/if}
+          </div>
+          <div class="tab-bar">
+            <button class="tab" class:active={$libraryTab === 'albums'} onclick={() => switchTab('albums')}>{$tr('common.albums')}</button>
+            <button class="tab" class:active={$libraryTab === 'artists'} onclick={() => switchTab('artists')}>{$tr('common.artists')}</button>
+            <button class="tab" class:active={$libraryTab === 'tracks'} onclick={() => switchTab('tracks')}>{$tr('home.tracks')}</button>
+            <button class="tab" class:active={$libraryTab === 'genres'} onclick={() => switchTab('genres')}>{$tr('common.genres')}</button>
+            <button class="tab" class:active={$libraryTab === 'years'} onclick={() => switchTab('years')}>{$tr('common.years')}</button>
+          </div>
+        </div>
+      </div>
+  {/if}
+  <!-- UN SEUL conteneur de defilement, hors de la chaine conditionnelle : il doit SURVIVRE
+       au passage grille -> detail -> retour. Place dans la branche
+       bibliotheque, il etait detruit puis recree, et la position de la
+       liste Artistes repartait a zero au Retour (mesure : meme element
+       apres retour = false). C'est ce qu'assurait `.library-view` avant,
+       en enjambant les trois branches. -->
+  <div class="library-scroller">
   {#if $selectedAlbum}
     <!-- Album detail -->
     <div class="detail-header">
@@ -2480,42 +2528,6 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   {:else}
     <!-- Main library view -->
-    <div class="library-header">
-      <h2>{$tr('library.title')}</h2>
-      {#if scopedFolder}
-        <button class="folder-scope-chip" onclick={clearFolderScope} title={scopedFolder}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          <span class="folder-scope-name">{scopedFolderName}</span>
-          <span class="folder-scope-x">×</span>
-        </button>
-      {/if}
-      <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title={searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffleResults') : $tr('library.shuffleAll')}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
-        {shuffleAllLoading ? $tr('common.loading') : (searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffle') : $tr('library.shuffleAll'))}
-      </button>
-      <button class="add-content-btn" onclick={() => (showImportWizard = true)} title={$tr('library.addContent')}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        {$tr('library.addContent')}
-      </button>
-      <div class="library-header-right">
-        <div class="search-box">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-          <input type="text" placeholder={$tr('library.searchPlaceholder')} bind:value={searchQuery} />
-          {#if searchQuery}
-            <button class="search-clear" onclick={() => searchQuery = ''}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-            </button>
-          {/if}
-        </div>
-        <div class="tab-bar">
-          <button class="tab" class:active={$libraryTab === 'albums'} onclick={() => switchTab('albums')}>{$tr('common.albums')}</button>
-          <button class="tab" class:active={$libraryTab === 'artists'} onclick={() => switchTab('artists')}>{$tr('common.artists')}</button>
-          <button class="tab" class:active={$libraryTab === 'tracks'} onclick={() => switchTab('tracks')}>{$tr('home.tracks')}</button>
-          <button class="tab" class:active={$libraryTab === 'genres'} onclick={() => switchTab('genres')}>{$tr('common.genres')}</button>
-          <button class="tab" class:active={$libraryTab === 'years'} onclick={() => switchTab('years')}>{$tr('common.years')}</button>
-        </div>
-      </div>
-    </div>
 
     {#if $libraryLoading}
       <div class="loading">
@@ -3024,6 +3036,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
     {/if}
   {/if}
+  </div>
 </div>
 
 {#if editingAlbum}
@@ -3066,18 +3079,49 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 {/if}
 
 <style>
+  /* Cette vue MET EN PAGE, elle ne defile pas : le defilement appartient a
+     `.library-scroller`. Elle etait les deux a la fois — flex-colonne ET
+     scroller — avec `.library-header` en `position: sticky` dedans, ce que
+     Firefox n'honore pas : l'en-tete (titre, recherche, onglets) partait avec
+     le contenu dans Albums / Artistes / Genres, alors qu'il tenait sous Chrome
+     (#463, Jean Valjean, 0.9.75 Windows/Firefox — retour du defaut #1282, que
+     la 0.9.44 avait corrige au niveau de `.main-content`).
+     Le `flex-direction: column` reste indispensable : `.album-viewport-wrapper`
+     s'appuie sur `flex: 1` pour occuper la hauteur restante (#1119). */
   .library-view {
     height: 100%;
     display: flex;
     flex-direction: column;
     padding: var(--space-lg) 28px;
     padding-bottom: calc(var(--space-lg) + 24px);
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
     /* Firefox: the global `* { scrollbar-width: thin }` (tune-theme.css) makes the
        Artists/Genres scrollbar too thin to grab (#1143, Bilou). Chrome keeps the
        14px ::-webkit-scrollbar. Restore a full-width, grabbable bar in Firefox and
        colour it to match the webkit thumb. WebKit rules are untouched. */
+    scrollbar-width: auto;
+    scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+  }
+
+  /* Le conteneur qui defile reellement. Il garde la colonne flex parce que
+     `.album-viewport-wrapper` en depend (`flex: 1`, #1119) ; il porte le
+     padding-bottom qui vivait sur `.library-view`, sinon la derniere ligne
+     collerait au bas de la fenetre. */
+  .library-scroller {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    /* Pas de padding-bottom ici : `.library-view` porte deja le sien
+       (`calc(var(--space-lg) + 24px)`), qui reduit d'autant la hauteur du
+       scroller. Le doubler ajouterait un vide en fin de liste. */
+    /* Firefox : le `* { scrollbar-width: thin }` global (tune-theme.css) rend
+       la barre des listes Artistes/Genres trop fine pour etre saisie (#1143,
+       Bilou). Chrome garde son ::-webkit-scrollbar de 14px. Regle deplacee
+       avec le defilement, sinon elle s'appliquerait a un bloc qui ne defile
+       plus. */
     scrollbar-width: auto;
     scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
   }
@@ -3097,12 +3141,12 @@ import CollapsibleSection from './CollapsibleSection.svelte';
        Albums/Années ont leur propre viewport et ne défilent pas ici (#1237,
        Jean). Le margin/padding absorbe le padding-top du conteneur pour que
        le contenu ne dépasse pas au-dessus du bandeau. */
-    position: sticky;
-    top: 0;
+    /* Plus de `position: sticky` : l'en-tete est desormais un FRERE du
+       conteneur de defilement, donc il ne bouge pas — sans dependre du
+       traitement du sticky par le navigateur. */
+    flex: 0 0 auto;
     z-index: 20;
     background: var(--tune-bg);
-    margin-top: calc(-1 * var(--space-lg));
-    padding-top: var(--space-lg);
     padding-bottom: var(--space-sm);
   }
 
