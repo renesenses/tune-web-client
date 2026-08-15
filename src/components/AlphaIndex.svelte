@@ -89,11 +89,15 @@
      long date/letter lists scroll internally on short screens. */
   .alpha-index.sticky {
     position: sticky;
-    /* Offset below the sticky .library-header (~66px tall, measured live) so the
-       first letters (A, B…) aren't hidden behind it — #1282 refinement (Jean
-       Valjean). The sticky variant is only applied on the Artists tab, so this
-       never affects the non-sticky Albums date index. */
-    top: 72px;
+    /* `top: 0`, et non plus 72px. L'offset compensait la hauteur de
+       `.library-header`, alors épinglé À L'INTÉRIEUR du conteneur de
+       défilement. Depuis #470 l'en-tête est un frère de ce conteneur : le bord
+       haut du scroller commence déjà sous lui, et les 72px n'étaient plus une
+       compensation mais un trou — les premières lettres partaient 72px trop
+       bas. Le repère d'origine reste #1282 (Jean Valjean). La variante sticky
+       ne sert que sur l'onglet Artistes, l'index par date des Albums n'est
+       donc jamais touché. */
+    top: 0;
     align-self: flex-start;
     max-height: calc(100vh - 120px);
   }

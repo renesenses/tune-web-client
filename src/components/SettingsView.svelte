@@ -2808,6 +2808,7 @@ function setSettingsLevel(level: SettingsLevel) {
     </button>
   </div>
 
+  <div class="settings-body">
   {#if loading}
     <div class="loading">
       <div class="spinner"></div>
@@ -5702,6 +5703,7 @@ function setSettingsLevel(level: SettingsLevel) {
       </p>
     {/if}
   {/if}
+  </div>
 </div>
 
 {#if showSmbWizard}
@@ -5731,7 +5733,18 @@ function setSettingsLevel(level: SettingsLevel) {
     flex-direction: column;
     padding: var(--space-lg) 28px;
     padding-bottom: calc(var(--space-lg) + 24px);
+    overflow: hidden;
+    gap: var(--space-lg);
+  }
+
+  /* Le défilement appartient au corps, pas à la vue — le titre, le sélecteur
+     de niveau et la barre d'onglets restent en place. */
+  .settings-body {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     gap: var(--space-lg);
   }
 
@@ -5744,17 +5757,18 @@ function setSettingsLevel(level: SettingsLevel) {
 
   /* Tab pills */
   /* Barre d'onglets figée au défilement (#1237, Jean). */
+  /* Plus de `position: sticky` ici : la barre d'onglets était épinglée DANS un
+     scroller `flex-direction: column`, construction que Firefox n'honore pas
+     (#1282). Elle décrochait donc sur les cinq onglets à la fois — Chrome la
+     tenait, Firefox non (#463, Jean Valjean). Elle est désormais un frère du
+     conteneur de défilement `.settings-body`, hors de sa portée : elle ne peut
+     plus défiler puisqu'elle n'est plus dans ce qui défile. Vrai dans tous les
+     navigateurs, sans dépendre du comportement du sticky. */
   .settings-tabs {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
     margin-bottom: 4px;
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    background: var(--tune-bg);
-    margin-top: calc(-1 * var(--space-lg));
-    padding-top: var(--space-lg);
     padding-bottom: 8px;
   }
 
