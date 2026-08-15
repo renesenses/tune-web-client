@@ -1,7 +1,7 @@
 import { writable, derived } from 'svelte/store';
-import { fr, en, de, es, it, zh, ja, ko, ro, sv } from './locales';
+import { fr, en, de, es, it, zh, ja, ko, ro, sv, hu } from './locales';
 
-export type Locale = 'fr' | 'en' | 'de' | 'es' | 'it' | 'zh' | 'ja' | 'ko' | 'ro' | 'sv';
+export type Locale = 'fr' | 'en' | 'de' | 'es' | 'it' | 'zh' | 'ja' | 'ko' | 'ro' | 'sv' | 'hu';
 
 export const localeNames: Record<Locale, string> = {
   fr: 'Français',
@@ -14,9 +14,10 @@ export const localeNames: Record<Locale, string> = {
   ko: '한국어',
   ro: 'Română',
   sv: 'Svenska',
+  hu: 'Magyar',
 };
 
-const messages: Record<Locale, Record<string, string>> = { fr, en, de, es, it, zh, ja, ko, ro, sv };
+const messages: Record<Locale, Record<string, string>> = { fr, en, de, es, it, zh, ja, ko, ro, sv, hu };
 
 export const locale = writable<Locale>('fr');
 

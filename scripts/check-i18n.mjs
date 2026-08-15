@@ -116,7 +116,7 @@ l'écran. Ajoutez-la à src/lib/locales/fr.ts et en.ts.
 console.log(`i18n check: ${fr.size} clés, aucune référence orpheline.`);
 
 /* -------------------------------------------------------------------------
- * Troisième contrôle : parité des dix langues.
+ * Troisième contrôle : parité des onze langues.
  *
  * Les huit langues non françaises ont longtemps stagné autour de 89 % — 282 à
  * 307 clés manquantes chacune. Ce défaut-là ne se voit pas : la clé absente
@@ -128,7 +128,7 @@ console.log(`i18n check: ${fr.size} clés, aucune référence orpheline.`);
  * que de se découvrir des mois plus tard sur une capture d'écran.
  * ---------------------------------------------------------------------- */
 
-const LOCALES = ['en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
+const LOCALES = ['en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu'];
 const gaps = [];
 
 for (const locale of LOCALES) {
@@ -152,7 +152,7 @@ if (gaps.length > 0) {
     }
   }
   console.error(`
-fr.ts fait référence. Une clé qui y est doit être dans les neuf autres —
+fr.ts fait référence. Une clé qui y est doit être dans les dix autres —
 sans quoi la langue concernée retombe sur le français, en silence.
 `);
   process.exit(1);
