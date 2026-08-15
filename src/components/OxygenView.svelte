@@ -797,7 +797,9 @@
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   /* box-shadow, not border-bottom: with border-collapse the collapsed bottom
      border detaches from a sticky th and scrolls away; the inset shadow rides along. */
-  thead th { position: sticky; top: 0; z-index: 2; background: var(--tune-bg-secondary); text-align: left; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--tune-text-secondary); font-weight: 600; padding: 9px 12px; box-shadow: inset 0 -1px 0 var(--tune-border); white-space: nowrap; }
+  /* --tune-bg-secondary is not defined by the themes: without the fallback the
+     declaration is invalid and the sticky header scrolls with a transparent bg. */
+  thead th { position: sticky; top: 0; z-index: 2; background: var(--tune-bg-secondary, var(--tune-surface)); text-align: left; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--tune-text-secondary); font-weight: 600; padding: 9px 12px; box-shadow: inset 0 -1px 0 var(--tune-border); white-space: nowrap; }
   th.n, td.n { width: 34px; text-align: right; color: var(--tune-text-muted); }
   th.r, td.r { text-align: right; }
   tbody td { padding: 7px 12px; border-bottom: 1px solid var(--tune-border); white-space: nowrap; }

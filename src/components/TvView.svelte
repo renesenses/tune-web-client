@@ -1,7 +1,8 @@
 <script lang="ts">
   // Mode « Grand écran » façon tvOS : afficheur plein viewport (pochette géante,
-  // typo XXL lisible à 3 m, paroles synchronisées), AUCUN contrôle de lecture —
-  // on pilote depuis un autre appareil. Échap ou clic = retour à l'app.
+  // typo XXL lisible à 3 m, paroles synchronisées), aucun contrôle visible —
+  // on pilote depuis un autre appareil ou au clavier/télécommande : ↑/↓ volume,
+  // ←/→ piste précédente/suivante. Échap ou clic = retour à l'app.
   import { onMount, onDestroy } from 'svelte';
   import { get } from 'svelte/store';
   import { currentZone } from '../lib/stores/zones';
@@ -15,6 +16,7 @@
     type LyricsData,
   } from '../lib/lyrics';
   import { formatTime } from '../lib/utils';
+  import { skipNext, skipPrevious } from '../lib/playback-controls';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
@@ -97,8 +99,34 @@
     const prev = get(previousView);
     activeView.set(prev && prev !== 'tv' ? prev : 'nowplaying');
   }
+  // Listener en capture (cf. onMount) : preventDefault + stopPropagation
+  // court-circuitent le mapping global de lib/keyboard.ts (sinon les flèches
+  // déclencheraient volume ET seek en même temps).
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape') { e.stopPropagation(); exitTv(); }
+    if (e.key === 'Escape') { e.stopPropagation(); exitTv(); return; }
+    if (!zone?.id) return;
+    switch (e.code) {
+      case 'ArrowUp': {
+        e.preventDefault(); e.stopPropagation();
+        const vol = zone.volume ?? 0.5;
+        api.setVolume(zone.id, Math.min(1, Math.round((vol + 0.01) * 100) / 100));
+        break;
+      }
+      case 'ArrowDown': {
+        e.preventDefault(); e.stopPropagation();
+        const vol = zone.volume ?? 0.5;
+        api.setVolume(zone.id, Math.max(0, Math.round((vol - 0.01) * 100) / 100));
+        break;
+      }
+      case 'ArrowRight':
+        e.preventDefault(); e.stopPropagation();
+        skipNext(zone);
+        break;
+      case 'ArrowLeft':
+        e.preventDefault(); e.stopPropagation();
+        skipPrevious(zone);
+        break;
+    }
   }
 
   // ─── Position interpolée ────────────────────────────────────────────────
