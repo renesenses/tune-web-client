@@ -1491,6 +1491,8 @@ export default {
   "devices.gainTrimHint": "Förskjutning i dB som tillämpas på volymen som skickas till denna enhet, för att jämna ut upplevd ljudnivå mellan zoner. Påverkar inte den visade volymen.",
   "devices.gainTrimFixedVolume": "Fast volym aktiv: trimmen har ingen effekt (bit-perfekt).",
   "devices.rendererConfig": "Renderer-konfiguration",
+  "devices.upnpRenderer": "UPnP-renderare",
+  "devices.upnpRendererHint": "Zonen annonserar sig som en UPnP-utgång: JPlay, BubbleUPnP eller mconnect kan skicka uppspelning till den. Strömmen går genom hela Tune-kedjan (EQ, faltning, trim).",
   "devices.presetTitle": "Communityförval ({count} användare)",
   "devices.presetApply": "Tillämpa",
   "devices.presetDismiss": "Avfärda",

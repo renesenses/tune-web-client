@@ -1742,6 +1742,8 @@ export default {
   "devices.gainTrimHint": "Décalage en dB appliqué au volume envoyé à cet appareil, pour harmoniser le niveau perçu entre zones. N'affecte pas le volume affiché.",
   "devices.gainTrimFixedVolume": "Volume fixe actif : le trim est sans effet (bit-perfect).",
   "devices.rendererConfig": "Configuration du renderer",
+  "devices.upnpRenderer": "Renderer UPnP",
+  "devices.upnpRendererHint": "La zone s'annonce sur le réseau comme sortie UPnP : JPlay, BubbleUPnP ou mconnect peuvent y envoyer la lecture. Le flux traverse toute la chaîne Tune (EQ, convolveur, trim).",
   "devices.presetTitle": "Préréglage communautaire ({count} utilisateurs)",
   "devices.presetApply": "Appliquer",
   "devices.presetDismiss": "Ignorer",

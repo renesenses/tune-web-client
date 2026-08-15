@@ -1741,6 +1741,8 @@ export default {
   "devices.gainTrimHint": "Offset in dB applied to the volume sent to this device, to even out perceived loudness across zones. Does not affect the displayed volume.",
   "devices.gainTrimFixedVolume": "Fixed volume enabled: the trim has no effect (bit-perfect).",
   "devices.rendererConfig": "Renderer configuration",
+  "devices.upnpRenderer": "UPnP renderer",
+  "devices.upnpRendererHint": "The zone announces itself as a UPnP output: JPlay, BubbleUPnP or mconnect can send playback to it. The stream goes through the full Tune chain (EQ, convolver, trim).",
   "devices.presetTitle": "Community preset ({count} users)",
   "devices.presetApply": "Apply",
   "devices.presetDismiss": "Dismiss",

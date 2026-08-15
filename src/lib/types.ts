@@ -259,6 +259,9 @@ export interface Zone {
   dlna_wav24?: boolean;
   /** Per-zone SetAVTransportURI→Play delay in ms (0 = config default). */
   dlna_play_delay_ms?: number;
+  /** La zone s'annonce en MediaRenderer UPnP (pilotable par JPlay & co).
+   *  Opt-in, défaut off. */
+  upnp_renderer?: boolean;
   /** Trim de gain du renderer en dB (±12), appliqué au volume envoyé au
    *  device uniquement — l'affichage garde le volume utilisateur. 0 = neutre.
    *  Sans effet sur une zone fixed_volume. */

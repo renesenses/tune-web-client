@@ -1505,6 +1505,8 @@ export default {
   "devices.gainTrimHint": "このデバイスに送るボリュームに適用する dB オフセットです。ゾーン間の聴感上の音量を揃えます。表示されるボリュームには影響しません。",
   "devices.gainTrimFixedVolume": "固定ボリュームが有効：トリムは無効です（ビットパーフェクト）。",
   "devices.rendererConfig": "レンダラー設定",
+  "devices.upnpRenderer": "UPnP レンダラー",
+  "devices.upnpRendererHint": "ゾーンが UPnP 出力としてネットワークに公開されます。JPlay、BubbleUPnP、mconnect から再生を送信できます。ストリームは Tune の全チェーン（EQ、コンボルバー、トリム）を通ります。",
   "devices.presetTitle": "コミュニティプリセット（{count} 人のユーザー）",
   "devices.presetApply": "適用",
   "devices.presetDismiss": "閉じる",

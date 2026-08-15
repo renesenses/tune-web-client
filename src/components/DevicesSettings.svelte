@@ -45,6 +45,20 @@
     return (z.output_type ?? '').toUpperCase();
   }
 
+  // Opt-in MediaRenderer UPnP (#1750) : la zone devient pilotable par
+  // JPlay/BubbleUPnP. Le serveur annonce (ou retire) immédiatement.
+  let upnpSaving = $state<Record<number, boolean>>({});
+  async function setUpnpRenderer(z: Zone, enabled: boolean) {
+    if (z.id == null) return;
+    upnpSaving = { ...upnpSaving, [z.id]: true };
+    try {
+      await api.updateZoneUpnpRenderer(z.id, enabled);
+      await refreshZones();
+    } finally {
+      upnpSaving = { ...upnpSaving, [z.id]: false };
+    }
+  }
+
   // Préréglages communautaires (#1743) : proposés à l'affichage quand
   // l'appareil est identifié, que la zone n'a AUCUN réglage local et qu'au
   // moins 3 instances concordent. Jamais d'application automatique — un
@@ -151,6 +165,16 @@
         {/if}
       </div>
 
+      <label class="upnp-renderer-row" use:tip={'devices.upnpRendererHint'}>
+        <input
+          type="checkbox"
+          checked={z.upnp_renderer ?? false}
+          disabled={z.id == null || upnpSaving[z.id ?? -1]}
+          onchange={(e) => setUpnpRenderer(z, (e.target as HTMLInputElement).checked)}
+        />
+        {$t('devices.upnpRenderer')}
+      </label>
+
       {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
         <details class="renderer-adv">
           <summary>{$t('devices.rendererConfig')}</summary>
@@ -187,6 +211,8 @@
   .trim-value { font-variant-numeric: tabular-nums; font-size: 13px; min-width: 62px; text-align: right; }
   .trim-value.neutral { color: var(--tune-text-muted); }
   .trim-fixed { font-size: 12px; color: var(--tune-text-muted); }
+  .upnp-renderer-row { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  .upnp-renderer-row input { accent-color: var(--tune-accent); }
   .renderer-adv summary { cursor: pointer; font-size: 13px; color: var(--tune-text-muted); }
   .renderer-adv[open] summary { margin-bottom: 8px; }
   .preset-proposal {

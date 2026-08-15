@@ -1488,6 +1488,8 @@ export default {
   "devices.gainTrimHint": "이 기기로 전송되는 볼륨에 적용되는 dB 오프셋으로, 존 간 체감 음량을 맞춥니다. 표시되는 볼륨에는 영향을 주지 않습니다.",
   "devices.gainTrimFixedVolume": "고정 볼륨 활성화: 트림이 적용되지 않습니다(비트 퍼펙트).",
   "devices.rendererConfig": "렌더러 설정",
+  "devices.upnpRenderer": "UPnP 렌더러",
+  "devices.upnpRendererHint": "존이 UPnP 출력으로 네트워크에 공개됩니다. JPlay, BubbleUPnP, mconnect에서 재생을 보낼 수 있습니다. 스트림은 Tune의 전체 체인(EQ, 컨볼버, 트림)을 거칩니다.",
   "devices.presetTitle": "커뮤니티 프리셋({count}명의 사용자)",
   "devices.presetApply": "적용",
   "devices.presetDismiss": "닫기",
