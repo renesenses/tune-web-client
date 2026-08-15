@@ -882,6 +882,8 @@ export default {
   'eq.presetSaveFailed': '无法保存预设',
   'eq.applyFailed': '设置未应用 — 服务器已拒绝',
   'eq.effectNextTrack': '将在下一首生效',
+  'eq.profilerApplied': '已应用声学配置',
+  'eq.profilerDisabled': '已停用配置',
   'eq.premiumRequired': '均衡器需要 Tune Premium',
 
   // Onboarding

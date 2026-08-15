@@ -889,6 +889,8 @@ export default {
   'eq.presetSaveFailed': 'Presetul nu a putut fi salvat',
   'eq.applyFailed': 'Setarea nu a fost aplicată — serverul a refuzat-o',
   'eq.effectNextTrack': 'Va avea efect de la piesa următoare',
+  'eq.profilerApplied': 'Profil acustic aplicat',
+  'eq.profilerDisabled': 'Profil dezactivat',
   'eq.premiumRequired': 'Egalizatorul necesită Tune Premium',
 
   // Onboarding

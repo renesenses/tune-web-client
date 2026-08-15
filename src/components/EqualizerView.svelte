@@ -87,7 +87,7 @@
     const zoneId = $currentZoneId;
     if (zoneId === null) return;
     try {
-      await api.setDsp(zoneId, {
+      const res = await api.setDsp(zoneId, {
         eq_profile: {
           enabled: true,
           listening,
@@ -99,7 +99,10 @@
         }
       });
       saveProfiler();
-      if (!quiet) notifications.success('Profil acoustique applique');
+      // Meme regle que les bandes expertes : dire quand le reglage n'a PAS
+      // atteint le son en cours, plutot que d'annoncer « applique » a tort.
+      signalerPortee(res?.eq_applied_live);
+      if (!quiet) notifications.success($t('eq.profilerApplied' as any));
     } catch (e) {
       console.error('Apply profiler error:', e);
       // fetchJSON already showed the dedicated Premium popup for a 402 —
@@ -117,7 +120,7 @@
     const zoneId = $currentZoneId;
     if (zoneId === null) return;
     try {
-      await api.setDsp(zoneId, {
+      const res = await api.setDsp(zoneId, {
         eq_profile: {
           enabled: false,
           listening,
@@ -129,7 +132,10 @@
         }
       });
       saveProfiler();
-      notifications.success('Profil desactive');
+      // Desactiver aussi doit s'entendre : sinon la correction qu'on vient de
+      // retirer continue de jouer jusqu'a la piste suivante, sans le dire.
+      signalerPortee(res?.eq_applied_live);
+      notifications.success($t('eq.profilerDisabled' as any));
     } catch {}
   }
 
@@ -244,6 +250,30 @@
   // chaque mouvement de curseur. Rearmee des qu'un reglage passe a chaud.
   let prochainePisteSignalee = false;
 
+  // Le serveur dit, sur CHAQUE ecriture de profil, si le reglage a atteint le
+  // son du flux en cours : `applied_live` (POST /zones/{id}/eq) ou
+  // `eq_applied_live` (PUT /zones/{id}/dsp, depuis #1762).
+  //
+  // Les curseurs MACRO du profileur passent par le second et ignoraient la
+  // reponse : ils affichaient « applique » quoi qu'il arrive. Sur une zone
+  // DLNA ou en mode PURE, l'utilisateur poussait les graves, lisait
+  // « applique », et n'entendait rien — le geste du debutant, celui qu'on fait
+  // avant meme d'ouvrir le mode expert (#1710).
+  //
+  // `=== false` et non `!valeur` : un serveur anterieur omet le champ, et on
+  // n'affirme rien de ce qu'il ne dit pas.
+  function signalerPortee(appliqueAChaud: boolean | undefined) {
+    const enEcoute = $currentZone?.state === 'playing';
+    if (appliqueAChaud === false && enEcoute) {
+      if (!prochainePisteSignalee) {
+        prochainePisteSignalee = true;
+        notifications.info($t('eq.effectNextTrack' as any));
+      }
+    } else if (appliqueAChaud === true) {
+      prochainePisteSignalee = false;
+    }
+  }
+
   function queueSendToServer() {
     if (eqSendTimer) clearTimeout(eqSendTimer);
     eqSendTimer = setTimeout(() => {
@@ -265,18 +295,7 @@
       // l'utilisateur est en train d'écouter, il pousse un curseur et
       // n'entend rien : c'est exactement ce silence qui se raconte comme
       // « l'égaliseur ne fonctionne pas ». On le dit, une fois.
-      //
-      // `=== false` et non `!res.applied_live` : un serveur antérieur à #1725
-      // omet le champ, et on n'affirme rien de ce qu'il ne dit pas.
-      const enEcoute = $currentZone?.state === 'playing';
-      if (res?.applied_live === false && enEcoute) {
-        if (!prochainePisteSignalee) {
-          prochainePisteSignalee = true;
-          notifications.info($t('eq.effectNextTrack' as any));
-        }
-      } else if (res?.applied_live === true) {
-        prochainePisteSignalee = false;
-      }
+      signalerPortee(res?.applied_live);
     } catch (e) {
       // Un refus silencieux, c'est un égaliseur qui « ne marche pas ».
       //

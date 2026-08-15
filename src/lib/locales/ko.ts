@@ -865,6 +865,8 @@ export default {
   'eq.presetSaveFailed': '프리셋을 저장할 수 없습니다',
   'eq.applyFailed': '설정이 적용되지 않았습니다 — 서버가 거부했습니다',
   'eq.effectNextTrack': '다음 트랙부터 적용됩니다',
+  'eq.profilerApplied': '음향 프로필이 적용되었습니다',
+  'eq.profilerDisabled': '프로필이 비활성화되었습니다',
   'eq.premiumRequired': '이퀄라이저에는 Tune Premium이 필요합니다',
 
   // Onboarding

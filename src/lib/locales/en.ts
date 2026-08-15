@@ -1106,6 +1106,8 @@ export default {
   'eq.presetSaveFailed': 'Could not save preset',
   'eq.applyFailed': 'Setting not applied — the server refused it',
   'eq.effectNextTrack': 'Will take effect on the next track',
+  'eq.profilerApplied': 'Acoustic profile applied',
+  'eq.profilerDisabled': 'Profile disabled',
   'eq.premiumRequired': 'The equalizer requires Tune Premium',
   'eq.premiumGate': 'The equalizer and acoustic profile are a feature of',
   // Crossfeed (headphones)
