@@ -240,6 +240,7 @@
       </button>
     </div>
 
+    <div class="browse-body">
     {#if loading}
       <div class="loading">
         <div class="spinner"></div>
@@ -314,6 +315,7 @@
         <div class="empty">{$tr('browse.noTracks')}</div>
       {/if}
     {/if}
+    </div>
 
   {:else}
     <!-- Roots view -->
@@ -321,6 +323,7 @@
       <h2>{$tr('browse.title')}</h2>
     </div>
 
+    <div class="browse-body">
     {#if loading}
       <div class="loading">
         <div class="spinner"></div>
@@ -352,16 +355,33 @@
         {/each}
       </div>
     {/if}
+    </div>
   {/if}
 </div>
 
 <style>
+  /* Le défilement appartient à `.browse-body`, PAS à cette vue : le fil
+     d'Ariane (Emplacements / Dossiers / Sous-dossier) doit rester lisible
+     quand on descend dans une arborescence profonde, or il partait avec le
+     contenu (#463, Jean Valjean). L'en-tête reste donc un frère du conteneur
+     de défilement, hors de sa portée — plutôt qu'un `position: sticky`
+     imbriqué dans un scroller flex-colonne, que Firefox n'honore pas (#1282). */
   .browse-view {
     height: 100%;
     display: flex;
     flex-direction: column;
     padding: var(--space-lg) 28px;
+    overflow: hidden;
+  }
+
+  .browse-body {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
+    /* Colonne flex conservée : `.track-list` s'appuie sur `flex: 1` pour
+       occuper la hauteur restante sous la liste des dossiers. */
+    display: flex;
+    flex-direction: column;
   }
 
   .browse-header {
