@@ -878,6 +878,7 @@ export default {
   'eq.presetSaved': 'Preset «{name}» salvato',
   'eq.presetSaveFailed': 'Impossibile salvare il preset',
   'eq.applyFailed': 'Impostazione non applicata — il server l’ha rifiutata',
+  'eq.effectNextTrack': 'Avrà effetto dal brano successivo',
   'eq.premiumRequired': 'L’equalizzatore richiede Tune Premium',
 
   // Onboarding

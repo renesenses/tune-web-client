@@ -879,6 +879,7 @@ export default {
   'eq.presetSaved': '预设"{name}"已保存',
   'eq.presetSaveFailed': '无法保存预设',
   'eq.applyFailed': '设置未应用 — 服务器已拒绝',
+  'eq.effectNextTrack': '将在下一首生效',
   'eq.premiumRequired': '均衡器需要 Tune Premium',
 
   // Onboarding

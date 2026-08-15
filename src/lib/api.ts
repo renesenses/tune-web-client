@@ -1537,12 +1537,25 @@ export interface EqSettings {
   enabled: boolean;
 }
 
+/** Reponse de `POST /zones/{id}/eq`. */
+export interface EqSetResult extends EqSettings {
+  /**
+   * Vrai quand le reglage vient d'atteindre le son d'un flux EN COURS.
+   *
+   * Faux ne veut PAS dire echec : rien ne joue, la zone n'est pas locale, ou
+   * elle est en mode PURE. Absent quand le serveur est anterieur a #1725 —
+   * d'ou l'`undefined` volontaire dans le type : ne rien afficher plutot que
+   * d'affirmer quoi que ce soit d'un serveur qui ne le dit pas.
+   */
+  applied_live?: boolean;
+}
+
 export function getEq(zoneId: number) {
   return fetchJSON<EqSettings>(`${BASE}/zones/${zoneId}/eq`);
 }
 
 export function setEq(zoneId: number, settings: EqSettings) {
-  return fetchJSON<EqSettings>(`${BASE}/zones/${zoneId}/eq`, {
+  return fetchJSON<EqSetResult>(`${BASE}/zones/${zoneId}/eq`, {
     method: 'POST',
     body: JSON.stringify(settings),
   });

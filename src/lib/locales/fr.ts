@@ -1104,6 +1104,7 @@ export default {
   'eq.presetSaved': 'Preset « {name} » enregistré',
   'eq.presetSaveFailed': 'Enregistrement du preset impossible',
   'eq.applyFailed': 'Réglage non appliqué — le serveur l’a refusé',
+  'eq.effectNextTrack': 'Prendra effet à la piste suivante',
   'eq.premiumRequired': 'L’égaliseur nécessite Tune Premium',
   'eq.premiumGate': "L'égaliseur et le profil acoustique sont une fonctionnalité",
   // Crossfeed (casque)
