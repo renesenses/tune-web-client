@@ -187,6 +187,8 @@ export default {
   'zone.defaultOutput': '-- デフォルト出力 --',
   'zone.browserOutput': 'このブラウザ',
   'zone.devices': 'デバイス',
+  'zone.favoriteDevice': "デバイスをお気に入りに追加",
+  'zone.unfavoriteDevice': "デバイスをお気に入りから削除",
   'zone.clearDevices': 'すべて削除',
   'zone.createZone': 'ゾーンを作成',
   'zone.activeGroup': 'アクティブグループ',

@@ -44,6 +44,11 @@ export interface Preferences {
   startupView: StartupView;
   defaultZoneId: number | null;
   hiddenDeviceIds: string[];
+  /** Appareils favoris de la sidebar, remontés en tête de la liste APPAREILS.
+   *  Mêmes identifiants préfixés (`audio:`/`net:`) que hiddenDeviceIds, et même
+   *  persistance (ui_preferences synchronisé serveur) — la liste peut compter
+   *  une douzaine d'appareils découverts chez certains testeurs (#1622). */
+  favoriteDeviceIds: string[];
   // --- Oxygen advanced library view (parameterizable) ---
   oxygenEnabled: boolean;
   oxygenView: OxygenViewMode;
@@ -86,6 +91,7 @@ const defaults: Preferences = {
   startupView: 'home',
   defaultZoneId: null,
   hiddenDeviceIds: [],
+  favoriteDeviceIds: [],
   oxygenEnabled: false,
   oxygenView: 'detail',
   oxygenFacets: ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'country'],
