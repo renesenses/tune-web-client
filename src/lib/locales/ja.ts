@@ -65,6 +65,8 @@ export default {
   "support.category.library": "ライブラリ",
   "support.category.hardware": "ハードウェア",
   "support.sys.copy": "情報をコピー",
+  'support.sys.copyMermaid': '図をコピー（Mermaid）',
+  'support.sys.copyMermaidHint': 'サーバー → ゾーン → デバイスの図。チケットや Mermaid レンダラーに貼り付けられます',
   "support.sys.copied": "コピーしました！",
   "support.sys.server": "サーバー",
   "support.sys.library": "ライブラリ",

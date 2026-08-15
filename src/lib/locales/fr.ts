@@ -115,6 +115,8 @@ export default {
   "support.category.library": "Bibliothèque",
   "support.category.hardware": "Matériel",
   "support.sys.copy": "Copier la fiche",
+  'support.sys.copyMermaid': 'Copier le schéma (Mermaid)',
+  'support.sys.copyMermaidHint': 'Schéma serveur → zones → appareils, à coller dans un ticket ou un rendu Mermaid',
   "support.sys.copied": "Fiche copiée !",
   "support.sys.server": "Serveur",
   "support.sys.library": "Bibliothèque",

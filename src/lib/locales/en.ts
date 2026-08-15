@@ -115,6 +115,8 @@ export default {
   "support.category.library": "Library",
   "support.category.hardware": "Hardware",
   "support.sys.copy": "Copy report",
+  'support.sys.copyMermaid': 'Copy diagram (Mermaid)',
+  'support.sys.copyMermaidHint': 'Server → zones → devices diagram, paste into a ticket or a Mermaid renderer',
   "support.sys.copied": "Report copied!",
   "support.sys.server": "Server",
   "support.sys.library": "Library",

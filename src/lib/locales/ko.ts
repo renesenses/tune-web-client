@@ -65,6 +65,8 @@ export default {
   "support.category.library": "라이브러리",
   "support.category.hardware": "하드웨어",
   "support.sys.copy": "정보 복사",
+  'support.sys.copyMermaid': '다이어그램 복사(Mermaid)',
+  'support.sys.copyMermaidHint': '서버 → 존 → 기기 다이어그램. 티켓이나 Mermaid 렌더러에 붙여넣으세요',
   "support.sys.copied": "복사되었습니다!",
   "support.sys.server": "서버",
   "support.sys.library": "라이브러리",

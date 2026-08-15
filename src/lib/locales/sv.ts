@@ -65,6 +65,8 @@ export default {
   "support.category.library": "Bibliotek",
   "support.category.hardware": "Hårdvara",
   "support.sys.copy": "Kopiera rapporten",
+  'support.sys.copyMermaid': 'Kopiera diagrammet (Mermaid)',
+  'support.sys.copyMermaidHint': 'Diagram server → zoner → enheter, klistra in i ett ärende eller en Mermaid-renderare',
   "support.sys.copied": "Rapport kopierad!",
   "support.sys.server": "Server",
   "support.sys.library": "Bibliotek",

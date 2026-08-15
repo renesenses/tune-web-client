@@ -65,6 +65,8 @@ export default {
   "support.category.library": "Biblioteca",
   "support.category.hardware": "Hardware",
   "support.sys.copy": "Copiar la ficha",
+  'support.sys.copyMermaid': 'Copiar el esquema (Mermaid)',
+  'support.sys.copyMermaidHint': 'Esquema servidor → zonas → dispositivos, para pegar en un ticket o un renderizador Mermaid',
   "support.sys.copied": "¡Ficha copiada!",
   "support.sys.server": "Servidor",
   "support.sys.library": "Biblioteca",

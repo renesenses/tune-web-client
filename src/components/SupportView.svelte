@@ -4,6 +4,7 @@
   import * as api from '../lib/api';
   import { t } from '../lib/i18n';
   import { zones, currentZone } from '../lib/stores/zones';
+  import { copyText } from '../lib/utils';
   import { licenseState, isPremium } from '../lib/stores/license';
   import { updateAvailable, latestVersion, currentVersion } from '../lib/stores/updates';
   import { activeView, settingsInitialTab } from '../lib/stores/navigation';
@@ -428,6 +429,11 @@
           // repli que le volet « Mon système », plutôt qu'un ticket sans fiche.
           try { system = await buildLocalProfile(); } catch { /* sans la fiche */ }
         }
+        // Schéma Mermaid du système joint à la fiche : rendu côté admin
+        // mozaiklabs dans le ticket (point 4, revue 2026-08-15).
+        if (system) {
+          try { system.mermaid = buildSystemMermaid(); } catch { /* sans le schéma */ }
+        }
       }
 
       if (attachments.length > 0) {
@@ -479,6 +485,43 @@
   let profileLoading = $state(false);
   /** true = fiche composée localement (GET /system/profile absent du serveur). */
   let profileFallback = $state(false);
+  let mermaidCopied = $state(false);
+
+  /** Schéma du système en Mermaid (serveur → zones → appareils), généré
+   *  depuis l'état connu du client. Embarqué dans le payload des tickets
+   *  (rendu côté admin mozaiklabs) et copiable depuis « Mon système »
+   *  (point 4, revue 2026-08-15). Les libellés sont échappés en entités
+   *  numériques Mermaid (#NN;) — un nom d'appareil avec guillemets ou
+   *  crochets casserait le parseur sinon. */
+  function buildSystemMermaid(): string {
+    const esc = (s: string) => s.replace(/[^\p{L}\p{N} .:+/·'-]/gu, (c) => `#${c.codePointAt(0)};`);
+    const version = get(currentVersion) ?? __APP_VERSION__;
+    const lines: string[] = ['flowchart LR', `  S["Tune Server v${esc(String(version))}"]`];
+    const zoneList = get(zones).filter((z) => z.id != null);
+    zoneList.forEach((z, i) => {
+      const zid = `Z${i}`;
+      const transport = (z.output_type ?? 'local').toUpperCase();
+      lines.push(`  S --> ${zid}["${esc(z.name)} (${esc(transport)})"]`);
+      const device = [z.brand ?? z.detected_manufacturer, z.model ?? z.detected_model]
+        .filter(Boolean)
+        .join(' ');
+      if (device) {
+        lines.push(`  ${zid} --> D${i}["${esc(device)}"]`);
+      }
+      if (z.online === false) {
+        lines.push(`  style ${zid} stroke-dasharray: 4 4`);
+      }
+    });
+    return lines.join('\n');
+  }
+
+  async function copyMermaid() {
+    try {
+      await copyText(buildSystemMermaid());
+      mermaidCopied = true;
+      setTimeout(() => { if (!destroyed) mermaidCopied = false; }, 2000);
+    } catch { /* presse-papiers indisponible */ }
+  }
   let sysSections = $state<SysSection[]>([]);
   let sysCopied = $state(false);
   /** Zone dont on corrige la marque/le modèle depuis la fiche système. */
@@ -880,6 +923,9 @@
           {/if}
           <button class="btn-primary" onclick={copyProfile}>
             {sysCopied ? $t('support.sys.copied') : $t('support.sys.copy')}
+          </button>
+          <button class="btn-secondary" onclick={copyMermaid} title={$t('support.sys.copyMermaidHint')}>
+            {mermaidCopied ? $t('support.sys.copied') : $t('support.sys.copyMermaid')}
           </button>
         </div>
         {#each sysSections as section (section.key)}
