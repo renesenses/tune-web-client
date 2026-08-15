@@ -873,6 +873,8 @@ export default {
   'eq.noPresets': '保存済みプリセットなし',
   'eq.presetSaved': 'プリセット「{name}」を保存しました',
   'eq.presetSaveFailed': 'プリセットを保存できませんでした',
+  'eq.applyFailed': '設定は適用されませんでした — サーバーが拒否しました',
+  'eq.premiumRequired': 'イコライザーには Tune Premium が必要です',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Tune Serverへようこそ',

@@ -864,6 +864,8 @@ export default {
   'eq.noPresets': 'Inga sparade förinställningar',
   'eq.presetSaved': 'Förinställning "{name}" sparad',
   'eq.presetSaveFailed': 'Kunde inte spara förinställningen',
+  'eq.applyFailed': 'Inställningen tillämpades inte — servern nekade',
+  'eq.premiumRequired': 'Equalizern kräver Tune Premium',
   'eq.premiumGate': 'Equalizern och den akustiska profilen är en funktion i',
 
   // Onboarding

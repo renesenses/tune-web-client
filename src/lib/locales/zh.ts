@@ -873,6 +873,8 @@ export default {
   'eq.noPresets': '无已保存预设',
   'eq.presetSaved': '预设"{name}"已保存',
   'eq.presetSaveFailed': '无法保存预设',
+  'eq.applyFailed': '设置未应用 — 服务器已拒绝',
+  'eq.premiumRequired': '均衡器需要 Tune Premium',
 
   // Onboarding
   'onboarding.welcomeTitle': '欢迎使用 Tune Server',

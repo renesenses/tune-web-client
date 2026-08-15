@@ -872,6 +872,8 @@ export default {
   'eq.noPresets': 'Sin ajustes guardados',
   'eq.presetSaved': 'Ajuste «{name}» guardado',
   'eq.presetSaveFailed': 'No se pudo guardar el ajuste',
+  'eq.applyFailed': 'Ajuste no aplicado — el servidor lo rechazó',
+  'eq.premiumRequired': 'El ecualizador requiere Tune Premium',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Bienvenido a Tune Server',

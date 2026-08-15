@@ -872,6 +872,8 @@ export default {
   'eq.noPresets': 'Keine gespeicherten Presets',
   'eq.presetSaved': 'Preset „{name}" gespeichert',
   'eq.presetSaveFailed': 'Preset konnte nicht gespeichert werden',
+  'eq.applyFailed': 'Einstellung nicht übernommen — der Server hat sie abgelehnt',
+  'eq.premiumRequired': 'Der Equalizer erfordert Tune Premium',
 
   // Onboarding
   'onboarding.welcomeTitle': 'Willkommen bei Tune Server',
