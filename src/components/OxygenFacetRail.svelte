@@ -182,7 +182,9 @@
 
 <style>
   .rail { display: flex; flex-direction: column; overflow-y: auto; min-height: 0; padding: 8px 8px 16px; }
-  .railhead { display: flex; align-items: center; gap: 8px; padding: 2px 8px 6px; border-bottom: 1px solid var(--tune-border); margin-bottom: 4px; }
+  /* Sticky within .rail (the scroller): negative margins absorb the rail's
+     8px padding so the opaque header spans the full scrollport width. */
+  .railhead { position: sticky; top: 0; z-index: 3; background: var(--tune-surface); display: flex; align-items: center; gap: 8px; margin: -8px -8px 4px; padding: 10px 16px 6px; border-bottom: 1px solid var(--tune-border); }
   .rht { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; color: var(--tune-text-muted); }
   .allbtn { display: flex; align-items: center; gap: 5px; margin-left: auto; background: none; border: 0; color: var(--tune-text-muted); font: inherit; font-size: 11px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
   .allbtn:hover { color: var(--tune-accent); background: var(--tune-surface-hover); }

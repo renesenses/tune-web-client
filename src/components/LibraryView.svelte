@@ -940,6 +940,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   // Years tab: group albums by year (descending), unknown year at the bottom
   // Treat year=0 as unknown (same as null) so totals match the albums tab
+  // Years tab sort direction (persisted like tune_genre_sort_order).
+  let yearSortOrder = $state<'asc' | 'desc'>((localStorage.getItem('tune_year_sort_order') as 'asc' | 'desc') || 'desc');
+  function toggleYearSortOrder() {
+    yearSortOrder = yearSortOrder === 'desc' ? 'asc' : 'desc';
+    localStorage.setItem('tune_year_sort_order', yearSortOrder);
+  }
+
   let yearGroups = $derived.by(() => {
     const map = new Map<number | null, Album[]>();
     const filtered = searchQuery.trim()
@@ -957,7 +964,8 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       map.get(y)!.push(album);
     }
     const groups: { year: number | null; label: string; albums: Album[] }[] = [];
-    const years = [...map.keys()].filter((y): y is number => y !== null).sort((a, b) => b - a);
+    const years = [...map.keys()].filter((y): y is number => y !== null)
+      .sort((a, b) => (yearSortOrder === 'desc' ? b - a : a - b));
     for (const y of years) {
       groups.push({ year: y, label: String(y), albums: map.get(y)! });
     }
@@ -2970,6 +2978,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
         <div class="year-summary">
           <span class="year-summary-total">{yearGroupsTotalCount} {yearGroupsTotalCount > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
           <span class="year-summary-groups">{yearGroups.length} {yearGroups.length > 1 ? $tr('library.yearGroupPlural') : $tr('library.yearGroup')}</span>
+          <button class="sort-order-btn year-sort-btn" onclick={toggleYearSortOrder} title={yearSortOrder === 'asc' ? $tr('library.ascending') : $tr('library.descending')}>
+            {#if yearSortOrder === 'asc'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14M5 12l7-7 7 7" /></svg>
+            {:else}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 19V5M5 12l7 7 7-7" /></svg>
+            {/if}
+          </button>
         </div>
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="year-grid-viewport" bind:this={yearGridViewport} onscroll={handleYearGridScroll}
@@ -5403,6 +5418,8 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     font-size: 13px;
     color: var(--tune-text-muted);
   }
+
+  .year-sort-btn { margin-left: auto; }
 
   /* Genres tab only: pin the summary bar (total album count + "sans genre" +
      the right-side sort control) under the sticky header so it doesn't scroll

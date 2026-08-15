@@ -16,6 +16,9 @@
   let colorClass = $derived(getQualityTierColor(tier));
   let tierLabel = $derived(getQualityTierLabel(tier));
   let hasData = $derived(!!(format || sampleRate || bitDepth));
+  // DSD sans sample_rate exploitable : formatCompactQuality retombe sur le
+  // format brut → « DSD DSD ». On masque le détail quand il répète le tier.
+  let showDetail = $derived(label.toUpperCase() !== tierLabel.toUpperCase());
 </script>
 
 {#if hasData && label}
@@ -24,7 +27,9 @@
     {#if tier === 'hires_max'}
       <span class="qb-star">✦</span>
     {/if}
-    <span class="qb-detail">{label}</span>
+    {#if showDetail}
+      <span class="qb-detail">{label}</span>
+    {/if}
   </span>
 {/if}
 

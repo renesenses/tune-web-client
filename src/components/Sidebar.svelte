@@ -832,7 +832,6 @@
       <button class="nav-item" class:active={$activeView === 'zonemanager'} onclick={() => navigate('zonemanager')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h.01"></path><path d="M7 20v-4"></path><path d="M12 20v-8"></path><path d="M17 20V8"></path><path d="M22 4v16"></path></svg>
         {$t('nav.zonemanager')}
-        <span class="badge-new">POC</span>
       </button>
       <button class="nav-item" class:active={$activeView === 'alarms'} onclick={() => navigate('alarms')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M5 3L2 6"></path><path d="M22 6l-3-3"></path></svg>
@@ -1980,7 +1979,7 @@
     .nav-item { justify-content: center; padding: 12px 0; font-size: 0; }
     .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
     /* Hide text badges in icon-only mode to prevent overflow */
-    .badge-new, .badge-update { display: none; }
+    .badge-update { display: none; }
     /* Icon-only : la pastille support devient un point discret superposable */
     .support-unread-badge { min-width: 8px; width: 8px; height: 8px; padding: 0; font-size: 0; margin-left: -4px; }
     .connected-dot { display: none; }
@@ -1990,16 +1989,6 @@
     .reglages-items { display: flex; }
     .zones-section, .devices-section { display: none; }
     .resize-handle { display: none; }
-  }
-
-  .badge-new {
-    margin-left: auto;
-    background: var(--tune-accent, #6366f1);
-    color: white;
-    border-radius: 999px;
-    padding: 0.05rem 0.4rem;
-    font-size: 0.65rem;
-    font-weight: 600;
   }
 
   .badge-update {
