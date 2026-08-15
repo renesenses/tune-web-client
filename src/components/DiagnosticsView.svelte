@@ -529,6 +529,7 @@
     </div>
   </div>
 
+  <div class="diagnostics-body">
     <!-- Server Stats Dashboard -->
     {#if serverDiag}
     <section class="diag-section">
@@ -917,6 +918,7 @@
       {/if}
     </section>
   {/if}
+  </div>
 </div>
 
 {#if showBugReport}
@@ -999,12 +1001,29 @@
 {/if}
 
 <style>
+  /* Le défilement appartient à `.diagnostics-body`, PAS à cette vue : le titre
+     et ses boutons doivent rester atteignables quand on descend dans les
+     journaux, or ils partaient avec le contenu (#463, Jean Valjean). L'en-tête
+     est un frère du conteneur de défilement, hors de sa portée — plutôt qu'un
+     `position: sticky` imbriqué dans un scroller flex-colonne, que Firefox
+     n'honore pas (#1282). */
   .diagnostics-view {
     height: 100%;
     display: flex;
     flex-direction: column;
     padding: var(--space-lg) 28px;
+    overflow: hidden;
+    gap: var(--space-lg);
+  }
+
+  .diagnostics-body {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    /* Reprend l'écart entre sections, que la vue appliquait jusqu'ici à ses
+       enfants directs — elle n'en a plus que deux. */
     gap: var(--space-lg);
   }
 
