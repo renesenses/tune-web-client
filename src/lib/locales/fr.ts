@@ -406,6 +406,8 @@ export default {
   'zone.confirmDelete': 'Confirmer la suppression ?',
   'zone.renameError': 'Erreur lors du renommage',
   'zone.groupError': 'Erreur lors du groupement',
+  'zone.sameOutputBadge': 'Doublon',
+  'zone.sameOutputAs': 'Même sortie audio que {names} : ces zones ne peuvent pas être groupées.',
   'zone.ungroupError': 'Erreur lors du dégroupement',
   'zone.manager': 'Gestionnaire de zones',
   'zone.volume': 'Volume',

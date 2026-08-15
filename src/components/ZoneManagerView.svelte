@@ -86,6 +86,31 @@
     return zoneGroups.find(g => g.zone_ids.includes(zone.id!)) ?? null;
   }
 
+  /** Zones that share their output device with another zone.
+   *
+   *  Tune creates one zone per discovered output, and the same sound card
+   *  surfaces twice under two names ("PC" and "Haut parleurs", #1702). Such
+   *  zones cannot be grouped — the server refuses, rightly. Naming the twin
+   *  on the card lets the user see *which* two clash before trying, instead
+   *  of discovering it through an error. Keyed by zone id -> twin names.
+   */
+  let sameOutputTwins = $derived.by(() => {
+    const byDevice = new Map<string, Zone[]>();
+    for (const z of $zones) {
+      if (z.id === null || !z.output_device_id) continue;
+      const list = byDevice.get(z.output_device_id);
+      if (list) list.push(z); else byDevice.set(z.output_device_id, [z]);
+    }
+    const twins: Record<number, string[]> = {};
+    for (const list of byDevice.values()) {
+      if (list.length < 2) continue;
+      for (const z of list) {
+        twins[z.id!] = list.filter(o => o.id !== z.id).map(o => o.name);
+      }
+    }
+    return twins;
+  });
+
   function getStereoPairForZone(zone: Zone): StereoPairInfo | null {
     if (zone.id === null) return null;
     return stereoPairs.find(p =>
@@ -668,6 +693,12 @@
           <span class="zone-name">{zone.name}</span>
           {#if pair}
             <span class="stereo-badge">{getChannelLabel(zone, pair)}</span>
+          {/if}
+          {#if zone.id !== null && sameOutputTwins[zone.id]}
+            <span
+              class="same-output-badge"
+              title={$t('zone.sameOutputAs').replace('{names}', sameOutputTwins[zone.id].join(', '))}
+            >{$t('zone.sameOutputBadge')}</span>
           {/if}
         </div>
         <div class="card-badges">
@@ -1496,6 +1527,20 @@
     padding: 1px 6px;
     border-radius: 4px;
     flex-shrink: 0;
+  }
+
+  /* Zone pointing at an output another zone already uses (#1702). Amber, not
+     red: it is not a fault, just a pair that cannot be grouped. */
+  .same-output-badge {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 700;
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.15);
+    padding: 1px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    cursor: help;
   }
 
   .card-badges {

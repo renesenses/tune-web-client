@@ -213,6 +213,8 @@ export default {
   'zone.confirmDelete': 'Bekräfta borttagning?',
   'zone.renameError': 'Kunde inte byta namn på zonen',
   'zone.groupError': 'Kunde inte gruppera zonerna',
+  'zone.sameOutputBadge': 'Dubblett',
+  'zone.sameOutputAs': 'Samma ljudutgång som {names}: dessa zoner kan inte grupperas.',
   'zone.ungroupError': 'Kunde inte avgruppera zonerna',
   'zone.manager': 'Zonhanterare',
   'zone.volume': 'Volym',

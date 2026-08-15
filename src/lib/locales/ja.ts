@@ -215,6 +215,8 @@ export default {
   'zone.confirmDelete': '削除を確認しますか？',
   'zone.renameError': '名前の変更エラー',
   'zone.groupError': 'グループ化エラー',
+  'zone.sameOutputBadge': '重複',
+  'zone.sameOutputAs': '{names} と同じオーディオ出力です。これらのゾーンはグループ化できません。',
   'zone.ungroupError': 'グループ解除エラー',
   'zone.manager': 'ゾーンマネージャー',
   'zone.volume': '音量',
