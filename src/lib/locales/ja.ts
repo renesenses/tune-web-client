@@ -140,6 +140,7 @@ export default {
   'nav.history': '履歴',
   'nav.search': '検索',
   'nav.ambiance': '雰囲気',
+  'nav.bandcamp': 'Bandcamp',
   'nav.settings': '設定',
   'nav.navigation': 'ナビゲーション',
   'nav.services': 'サービス',
