@@ -2690,7 +2690,7 @@ export default {
   "lyrics.karaoke": "Karaoke",
   "lyrics.plainText": "Text simplu",
   "mediaservers.addAll": "+ Adaugă tot",
-  "mediaservers.playAlbum": "Redă albumul",
+  "mediaservers.playAll": "Redă tot",
   "mediaservers.shuffle": "Aleatoriu",
   "metadata.autoFixProgress": "{fixed} corectate, {suggestions} sugestii",
   "metadata.missingArtistCovers": "Imagini de artist lipsă",

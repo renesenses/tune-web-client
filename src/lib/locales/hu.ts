@@ -209,7 +209,7 @@ export default {
   "offline.tracksSection": "Számok",
   "radio.fileTooLarge": "Túl nagy fájl ({size} MB, legfeljebb {max} MB)",
   "radio.importResult": "{imported} importálva, {skipped} kihagyva",
-  "mediaservers.playAlbum": "Album lejátszása",
+  "mediaservers.playAll": "Összes lejátszása",
   "mediaservers.shuffle": "Véletlenszerű",
   "mediaservers.addAll": "+ Összes hozzáadása",
   "addShortcut.added": "A(z) „{name}” gyorsindító hozzáadva",
@@ -2861,6 +2861,8 @@ export default {
   "settings.updateBlockedPlaying": "A frissítés elhalasztva: egy zóna épp játszik. A telepítés a szám közepén vágná el a zenét.",
   "settings.updateBlockedUnknown": "A szerver indoklás nélkül elutasította a frissítést. Nézd meg a szervernaplókat.",
   "settings.updateDockerHint": "A Tune Docker-konténerben fut: frissítsd az új képfájl lehúzásával (docker compose pull && docker compose up -d). A csatolt kötetekben lévő adataid megmaradnak.",
+  "eq.profilerApplied": "Akusztikai profil alkalmazva",
+  "eq.profilerDisabled": "Profil letiltva",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];
