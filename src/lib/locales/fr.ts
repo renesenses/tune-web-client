@@ -1605,6 +1605,7 @@ export default {
   "library.sortAddedDate": "Date d'ajout",
   "library.sortYear": "Année",
   "library.writingTags": "Gravure...",
+  "library.dynamicRangeTip": "Dynamique (DR), lue dans les tags des fichiers — plus la valeur est élevée, moins le mastering est compressé.",
   "library.writeTags": "Graver tags",
   "library.noCollections": "Aucune collection",
   "library.newTagPlaceholder": "Nouveau tag...",

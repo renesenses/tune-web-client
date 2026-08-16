@@ -77,6 +77,10 @@ export interface Album {
   quality?: string | null;
   label?: string | null;
   catalog_number?: string | null;
+  /** Dynamic Range lu dans les tags des fichiers, chiffres seuls (« 12 »).
+   *  Servi uniquement par `GET /library/albums/{id}`, et absent de la réponse
+   *  quand aucune piste ne porte le tag — ce qui est le cas courant. */
+  dynamic_range?: string | null;
 }
 
 export interface Track {

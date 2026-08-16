@@ -1368,6 +1368,7 @@ export default {
   "library.sortAddedDate": "Hinzugefügt am",
   "library.sortYear": "Jahr",
   "library.writingTags": "Wird geschrieben…",
+  "library.dynamicRangeTip": "Dynamikumfang (DR), aus den Datei-Tags gelesen — je höher, desto weniger komprimiert das Mastering.",
   "library.writeTags": "Tags schreiben",
   "library.noCollections": "Keine Sammlung",
   "library.newTagPlaceholder": "Neuer Tag…",

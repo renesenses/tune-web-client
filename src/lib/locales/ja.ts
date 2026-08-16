@@ -1368,6 +1368,7 @@ export default {
   "library.sortAddedDate": "追加日",
   "library.sortYear": "年",
   "library.writingTags": "書き込み中...",
+  "library.dynamicRangeTip": "ダイナミックレンジ（DR）。ファイルのタグから読み取った値で、大きいほどマスタリングの圧縮が少ないことを示します。",
   "library.writeTags": "タグを書き込む",
   "library.noCollections": "コレクションなし",
   "library.newTagPlaceholder": "新しいタグ...",

@@ -1368,6 +1368,7 @@ export default {
   "library.sortAddedDate": "Data di aggiunta",
   "library.sortYear": "Anno",
   "library.writingTags": "Scrittura...",
+  "library.dynamicRangeTip": "Gamma dinamica (DR), letta dai tag dei file: più alto è il valore, meno è compresso il mastering.",
   "library.writeTags": "Scrivi i tag",
   "library.noCollections": "Nessuna collezione",
   "library.newTagPlaceholder": "Nuovo tag...",

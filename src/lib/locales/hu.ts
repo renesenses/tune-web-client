@@ -1537,6 +1537,7 @@ export default {
   "library.sortAddedDate": "Hozzáadás dátuma",
   "library.sortYear": "Év",
   "library.writingTags": "Írás...",
+  "library.dynamicRangeTip": "Dinamikatartomány (DR), a fájlcímkékből olvasva — minél nagyobb az érték, annál kevésbé tömörített a mastering.",
   "library.writeTags": "Címkék beírása",
   "library.noCollections": "Nincs gyűjtemény",
   "library.newTagPlaceholder": "Új címke...",
