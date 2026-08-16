@@ -342,6 +342,18 @@ export interface DiscoveredDevice {
 }
 
 export interface LocalAudioDevice {
+  /**
+   * Identifiant de registre, `local:<nom>` — celui qu'attend `output_device_id`
+   * à la création d'une zone.
+   *
+   * Le serveur ne le publie que depuis la 0.9.82 (tune-server-rust#1823) ;
+   * `getAudioDevices()` le reconstruit sinon, de sorte que cette promesse en
+   * soit une. Elle n'en était pas une avant : le champ était déclaré ici et
+   * absent de la charge utile, donc toujours `undefined`. De là sont venues
+   * des zones créées avec le nom du périphérique — que rien ne pouvait jouer —
+   * et des identifiants `audio:undefined` dans les favoris et les appareils
+   * masqués.
+   */
   id: string;
   name: string;
   channels: number;

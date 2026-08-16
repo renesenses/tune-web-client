@@ -311,7 +311,20 @@
 
   async function createZoneFromAudioDevice(device: LocalAudioDevice) {
     try {
-      const zone = await api.createZone(device.name, 'local', device.name);
+      // L'identifiant d'une sortie locale est `local:<nom>`, et ce préfixe
+      // n'est pas décoratif : c'est lui, et lui seul, qui dit au serveur
+      // « carte son » plutôt que « lecteur réseau ». Une zone créée avec le
+      // nom nu ne joue rien — la lecture part sur le chemin réseau, télécharge
+      // la piste entière, la décode, la ré-encode, puis pousse une URL vers un
+      // appareil qui n'existe pas : plus d'une minute d'attente, aucun son
+      // (DEvir, tune-server-rust#1823). Elle double aussi la zone
+      // auto-découverte du même appareil, qui porte le bon identifiant.
+      //
+      // On passait `device.name` parce que `device.id` était vide : la charge
+      // utile de /devices/audio n'en portait pas, malgré ce qu'annonçait le
+      // type. Le serveur le publie désormais ; le repli garde le client
+      // fonctionnel face à un serveur plus ancien.
+      const zone = await api.createZone(device.name, 'local', device.id);
       zones.update((zs) => [...zs, zone]);
       if (zone.id !== null) currentZoneId.set(zone.id);
     } catch (e: any) {
