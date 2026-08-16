@@ -4327,3 +4327,53 @@ export function decideMetadataProposal(
 export function setMetadataProposalsAutoApply(enabled: boolean): Promise<{ auto_apply: boolean }> {
   return apiPost('/library/proposals/auto-apply', { enabled });
 }
+
+// --- Bandcamp (plugin, monté sur /ext/bandcamp) ---
+
+export interface BandcampItem {
+  artist: string;
+  title: string;
+  type: string;
+  url: string;
+  art_id?: number;
+}
+
+export interface BandcampCollectionPage {
+  fan_id: number;
+  count: number;
+  items: BandcampItem[];
+  more_available: boolean;
+  last_token: string | null;
+}
+
+/** Lier un compte Bandcamp par son PSEUDO. Aucun mot de passe : la page de
+ *  profil est publique, et Tune ne manipule jamais d'identifiants Bandcamp. */
+export function bandcampLink(username: string) {
+  return fetchJSON<{ username: string; fan_id: number; linked: boolean }>(
+    `${BASE}/ext/bandcamp/collection/link`,
+    { method: 'POST', body: JSON.stringify({ username }) },
+  );
+}
+
+/** Une page de collection. Bandcamp pagine par CURSEUR : on réémet le
+ *  `last_token` reçu jusqu'à `more_available === false`. */
+export function bandcampCollection(olderThanToken?: string | null, count = 100) {
+  const p = new URLSearchParams({ count: String(count) });
+  if (olderThanToken) p.set('older_than_token', olderThanToken);
+  return fetchJSON<BandcampCollectionPage>(`${BASE}/ext/bandcamp/collection?${p}`);
+}
+
+/** Toute la collection, page après page. Un acheteur de longue date en a
+ *  plusieurs centaines : la boucle est bornée pour qu'une pagination cassée
+ *  côté Bandcamp ne tourne pas indéfiniment. */
+export async function bandcampAllCollection(): Promise<BandcampItem[]> {
+  const tout: BandcampItem[] = [];
+  let jeton: string | null = null;
+  for (let page = 0; page < 50; page++) {
+    const r: BandcampCollectionPage = await bandcampCollection(jeton);
+    tout.push(...(r.items ?? []));
+    if (!r.more_available || !r.last_token) break;
+    jeton = r.last_token;
+  }
+  return tout;
+}
