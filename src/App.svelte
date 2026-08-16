@@ -5,6 +5,7 @@
   import { devices } from './lib/stores/devices';
   import { isBrowserZone, browserPlay, browserPause, browserResume, browserStop } from './lib/stores/browserAudio';
   import { seekPositionMs, startSeekTimer, stopSeekTimer, shuffleEnabled, repeatMode, nowPlayingToTrack } from './lib/stores/nowPlaying';
+  import { mergeTransport, type TransportState } from './lib/transportSync';
   import { queueTracks, queuePosition, queueLength } from './lib/stores/queue';
   import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
   import { connectionState, reconnectAttempts } from './lib/stores/connection';
@@ -143,6 +144,11 @@ import AlarmsView from './components/AlarmsView.svelte';
     const unsub = currentZoneId.subscribe((zoneId) => {
       if (zoneId == null) return;
       stopSeekTimer();
+      // La répétition et l'aléatoire appartiennent à la zone, pas à l'écran :
+      // en changer, c'est changer d'état de transport (#1810).
+      const transport = transportByZone.get(zoneId);
+      if (transport?.repeat) repeatMode.set(transport.repeat as any);
+      if (typeof transport?.shuffle === 'boolean') shuffleEnabled.set(transport.shuffle);
       const zone = get(zones).find((z: any) => z.id === zoneId);
       if (zone) {
         seekPositionMs.set(zone.position_ms ?? 0);
@@ -256,6 +262,39 @@ import AlarmsView from './components/AlarmsView.svelte';
       console.error('Fetch playlists error:', e);
       showError('Failed to load playlists');
     }
+  }
+
+  /**
+   * Dernière répétition / lecture aléatoire connues du serveur, par zone.
+   *
+   * Ces deux champs ne voyagent que dans les instantanés WebSocket ; la liste
+   * REST des zones ne les porte pas. On les retient donc au passage, pour
+   * pouvoir recaler les commandes de transport au moment où l'on change de
+   * zone, sans requête supplémentaire.
+   */
+  const transportByZone = new Map<number, TransportState>();
+
+  /**
+   * Aligner les boutons de transport sur ce que fait vraiment le serveur.
+   *
+   * `repeatMode` et `shuffleEnabled` sont des miroirs locaux : ils repartent de
+   * « off » à chaque chargement de page, alors que le serveur, lui, conserve la
+   * répétition — il la persiste à chaque changement et la restaure au
+   * démarrage. Une zone laissée en repeat-one bouclait donc sur une piste
+   * indéfiniment pendant que le bouton affichait « désactivé », et le premier
+   * clic renvoyait « one » au lieu de l'éteindre : il faut trois clics pour
+   * revenir à off depuis une base fausse (Dominique Comet, #1810).
+   *
+   * On ne recale que sur des valeurs présentes : écraser avec un `undefined`
+   * venu d'une charge utile REST remettrait exactement le mensonge en place.
+   */
+  function syncTransportFromZone(zone: any) {
+    if (!zone || typeof zone.id !== 'number') return;
+    const merged = mergeTransport(transportByZone.get(zone.id), zone);
+    transportByZone.set(zone.id, merged);
+    if (zone.id !== get(currentZoneId)) return;
+    if (merged.repeat) repeatMode.set(merged.repeat);
+    if (typeof merged.shuffle === 'boolean') shuffleEnabled.set(merged.shuffle);
   }
 
   /**
@@ -603,6 +642,16 @@ import AlarmsView from './components/AlarmsView.svelte';
         return;
       }
 
+      // Instantané d'ouverture de connexion. Le serveur l'envoie pour que le
+      // client « ait la vérité tout de suite » (routes/ws.rs), et il est le
+      // seul endroit d'où la répétition et la lecture aléatoire arrivent :
+      // ni /zones ni /zones/{id} ne les portent. On ne s'en sert que pour
+      // cela — la liste des zones reste servie par fetchZones, inchangée.
+      if (type === 'snapshot' && Array.isArray(event.data?.zones)) {
+        for (const z of event.data.zones) syncTransportFromZone(z);
+        return;
+      }
+
       // Polling bulk zone update — replace all zones at once
       if (type === 'zone.updated' && event.data?.zones && Array.isArray(event.data.zones)) {
         const zoneList = event.data.zones;
@@ -622,6 +671,7 @@ import AlarmsView from './components/AlarmsView.svelte';
         // timer, which would cause the progress bar to oscillate.
         let curId: number | null = null;
         currentZoneId.subscribe((v) => (curId = v))();
+        for (const z of zoneList) syncTransportFromZone(z);
         const curZone = curId !== null ? zoneList.find((z: any) => z.id === curId) : null;
         if (curZone) {
           if (curZone.state === 'playing') {
