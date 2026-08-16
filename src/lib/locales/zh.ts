@@ -140,6 +140,7 @@ export default {
   'nav.history': '历史记录',
   'nav.search': '搜索',
   'nav.ambiance': '氛围',
+  'nav.bandcamp': 'Bandcamp',
   'nav.settings': '设置',
   'nav.navigation': '导航',
   'nav.services': '服务',

@@ -8,6 +8,7 @@
   import { activeStreamingService, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { isPremium } from '../lib/stores/license';
   import { ambianceUsable, refreshAcousticStatus } from '../lib/stores/acoustic';
+  import { bandcampUsable, refreshBandcampPlugin } from '../lib/stores/bandcamp';
   import { preferences } from '../lib/stores/preferences';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
@@ -62,6 +63,9 @@
   onMount(() => {
     // L'état acoustique décide de l'affichage de l'entrée Ambiance.
     refreshAcousticStatus();
+    // Idem pour Bandcamp : l'entrée n'a de sens que si le binaire embarque le
+    // plugin. Sans cet appel, l'écran existait mais rien n'y menait (#1768).
+    refreshBandcampPlugin();
     // Primary: get version from /system/health (always available)
     api.getHealth()
       .then((r) => { if (!sidebarDestroyed && r?.version) serverVersion = r.version; })
@@ -738,6 +742,16 @@
       <button class="nav-item" class:active={$activeView === 'ambiance'} onclick={() => navigate('ambiance')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="9" x2="4" y2="15"></line><line x1="9" y1="5" x2="9" y2="19"></line><line x1="14" y1="8" x2="14" y2="16"></line><line x1="19" y1="11" x2="19" y2="13"></line></svg>
         {$t('nav.ambiance')}
+      </button>
+    {/if}
+    <!-- Masquée quand le binaire n'embarque pas le plugin Bandcamp : même
+         règle que ci-dessus, une porte fermée est pire que rien. Reste visible
+         dès qu'il est présent, même non installé — l'écran explique alors le
+         geste plutôt que de disparaître. -->
+    {#if $bandcampUsable}
+      <button class="nav-item" class:active={$activeView === 'bandcamp'} onclick={() => navigate('bandcamp')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"></rect><line x1="7" y1="12" x2="17" y2="12"></line></svg>
+        {$t('nav.bandcamp')}
       </button>
     {/if}
     <button class="nav-item" class:active={$activeView === 'history'} onclick={() => navigate('history')}>

@@ -140,6 +140,7 @@ export default {
   'nav.history': 'Cronologia',
   'nav.search': 'Ricerca',
   'nav.ambiance': 'Atmosfera',
+  'nav.bandcamp': 'Bandcamp',
   'nav.settings': 'Impostazioni',
   'nav.navigation': 'NAVIGAZIONE',
   'nav.services': 'SERVIZI',

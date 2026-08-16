@@ -326,6 +326,7 @@ export default {
   'nav.history': 'Historique',
   'nav.search': 'Recherche',
   'nav.ambiance': 'Ambiance',
+  'nav.bandcamp': 'Bandcamp',
   'nav.settings': 'Paramètres',
   'nav.navigation': 'NAVIGATION',
   'nav.services': 'SERVICES',

@@ -310,6 +310,7 @@ export default {
   "nav.history": "Előzmények",
   "nav.search": "Keresés",
   "nav.ambiance": "Hangulat",
+  "nav.bandcamp": "Bandcamp",
   "nav.settings": "Beállítások",
   "nav.navigation": "NAVIGÁCIÓ",
   "nav.services": "SZOLGÁLTATÁSOK",

@@ -134,6 +134,7 @@ export default {
   'nav.history': 'Historik',
   'nav.search': 'Sök',
   'nav.ambiance': 'Stämning',
+  'nav.bandcamp': 'Bandcamp',
   'nav.settings': 'Inställningar',
   'nav.navigation': 'NAVIGERING',
   'nav.services': 'TJÄNSTER',
