@@ -2687,7 +2687,7 @@ export default {
   "lyrics.karaoke": "卡拉OK",
   "lyrics.plainText": "纯文本",
   "mediaservers.addAll": "+ 全部添加",
-  "mediaservers.playAlbum": "播放专辑",
+  "mediaservers.playAll": "全部播放",
   "mediaservers.shuffle": "随机播放",
   "metadata.autoFixProgress": "已修正 {fixed} 项，{suggestions} 条建议",
   "metadata.missingArtistCovers": "缺失的艺人图片",

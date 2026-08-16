@@ -2685,7 +2685,7 @@ export default {
   "lyrics.karaoke": "カラオケ",
   "lyrics.plainText": "プレーンテキスト",
   "mediaservers.addAll": "+ すべて追加",
-  "mediaservers.playAlbum": "アルバムを再生",
+  "mediaservers.playAll": "すべて再生",
   "mediaservers.shuffle": "シャッフル",
   "metadata.autoFixProgress": "{fixed} 件修正、{suggestions} 件の提案",
   "metadata.missingArtistCovers": "アーティスト画像がありません",

@@ -2679,7 +2679,7 @@ export default {
   "lyrics.karaoke": "Karaoke",
   "lyrics.plainText": "Vanlig text",
   "mediaservers.addAll": "+ Lägg till alla",
-  "mediaservers.playAlbum": "Spela albumet",
+  "mediaservers.playAll": "Spela alla",
   "mediaservers.shuffle": "Blanda",
   "metadata.autoFixProgress": "{fixed} korrigerade, {suggestions} förslag",
   "metadata.missingArtistCovers": "Saknade artistbilder",
