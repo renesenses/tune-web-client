@@ -2,6 +2,7 @@
   import * as api from '../lib/api';
   import { tip } from '../lib/tooltip';
   import { t } from '../lib/i18n';
+  import { parseSmbAddress } from '../lib/smbAddress';
   import { notifications } from '../lib/stores/notifications';
   import type { BrowseRootEntry } from '../lib/types';
 
@@ -70,19 +71,29 @@
   }
 
   async function scanManualHost() {
-    if (!manualHost.trim()) return;
+    // Ce champ attend un hôte, et les gens y collent le chemin Windows complet
+    // — partage et sous-dossier compris. On le prenait tel quel : la chaîne
+    // entière servait de nom d'hôte, l'assistant lui concaténait ensuite le
+    // partage choisi, et la cible obtenue ne désignait rien. « Échec de la
+    // connexion », sans qu'aucun élément à l'écran ne dise que l'adresse avait
+    // été mal comprise (Benjithom, tune-server-rust#1846).
+    //
+    // Le reste du chemin n'est pas jeté : c'est très probablement le partage
+    // que l'utilisateur vise, et on le pré-sélectionne quand il existe.
+    const adresse = parseSmbAddress(manualHost);
+    if (!adresse) return;
     scanning = true;
     scanError = null;
     try {
       const scanUser = showScanCredentials && username !== 'guest' ? username : undefined;
       const scanPass = showScanCredentials && password ? password : undefined;
-      const result = await api.scanHost(manualHost.trim(), 'smb', scanUser, scanPass);
+      const result = await api.scanHost(adresse.host, 'smb', scanUser, scanPass);
       const shares = result.shares ?? (Array.isArray(result) ? result : []);
       if (shares.length > 0) {
         const share: NetworkShareInfo = {
-          id: `smb://${manualHost.trim()}`,
-          name: manualHost.trim(),
-          host: manualHost.trim(),
+          id: `smb://${adresse.host}`,
+          name: adresse.host,
+          host: adresse.host,
           protocol: 'smb',
           shares: shares,
           available: true,
@@ -91,8 +102,17 @@
           networkShares = [...networkShares, share];
         }
         selectHost(share);
+        // Le partage saisi dans l'adresse, s'il fait bien partie de ceux que
+        // l'hôte annonce — comparaison insensible à la casse, Windows ne la
+        // distingue pas et l'utilisateur recopie ce qu'il a sous les yeux.
+        if (adresse.share) {
+          const trouve = shares.find(
+            (nom: string) => nom.toLowerCase() === adresse.share!.toLowerCase(),
+          );
+          if (trouve) selectShare(trouve);
+        }
       } else {
-        const errMsg = result.error || $t('smb.noSharesOnHost').replace('{host}', manualHost.trim());
+        const errMsg = result.error || $t('smb.noSharesOnHost').replace('{host}', adresse.host);
         scanError = errMsg;
         if (errMsg.includes('refusé') || errMsg.includes('auth') || errMsg.includes('Authentication') || errMsg.includes('ACCESS_DENIED')) {
           showScanCredentials = true;
