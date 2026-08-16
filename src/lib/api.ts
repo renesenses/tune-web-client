@@ -497,7 +497,11 @@ export function getDevice(id: string) {
 
 export async function getAudioDevices(): Promise<LocalAudioDevice[]> {
   const data = await fetchJSON<any>(`${BASE}/devices/audio`);
-  return Array.isArray(data) ? data : (data?.devices ?? []);
+  const devices: any[] = Array.isArray(data) ? data : (data?.devices ?? []);
+  // Garantir l'identifiant de registre ici, une fois, plutôt que dans chacun
+  // des écrans qui s'en servent. Un serveur antérieur à la 0.9.82 ne l'envoie
+  // pas (tune-server-rust#1823) et la clé est connue : `local:<nom>`.
+  return devices.map((d) => ({ ...d, id: d.id ?? `local:${d.name}` }));
 }
 
 export function beginPairing(deviceId: string) {
