@@ -116,7 +116,7 @@ l'écran. Ajoutez-la à src/lib/locales/fr.ts et en.ts.
 console.log(`i18n check: ${fr.size} clés, aucune référence orpheline.`);
 
 /* -------------------------------------------------------------------------
- * Troisième contrôle : parité des onze langues.
+ * Troisième contrôle : parité des langues.
  *
  * Les huit langues non françaises ont longtemps stagné autour de 89 % — 282 à
  * 307 clés manquantes chacune. Ce défaut-là ne se voit pas : la clé absente
@@ -126,9 +126,42 @@ console.log(`i18n check: ${fr.size} clés, aucune référence orpheline.`);
  * Elles sont désormais à 100 %. Ce contrôle est ce qui les y garde : ajouter
  * une clé à fr.ts sans la traduire partout échoue ici, tout de suite, plutôt
  * que de se découvrir des mois plus tard sur une capture d'écran.
+ *
+ * Les langues sont DÉCOUVERTES dans locales/, jamais énumérées ici. La liste
+ * écrite à la main laissait passer précisément la langue qu'on venait
+ * d'ajouter : le jour où hu.ts est arrivé, ce script a annoncé « 10 langues à
+ * 100 % » sans l'avoir ouverte une seule fois. Une langue est couverte dès
+ * que son fichier existe.
  * ---------------------------------------------------------------------- */
 
-const LOCALES = ['en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu'];
+const LOCALES = readdirSync(join('src', 'lib', 'locales'))
+  .filter((f) => f.endsWith('.ts') && f !== 'index.ts')
+  .map((f) => f.slice(0, -3))
+  .filter((l) => l !== 'fr') // fr est la référence, pas une langue à comparer
+  .sort();
+
+if (LOCALES.length === 0) {
+  console.error('Aucune langue trouvée dans src/lib/locales — le contrôle ne vérifierait rien.');
+  process.exit(1);
+}
+
+/* Un fichier de langue non enregistré dans i18n.ts est du travail mort : il
+ * n'apparaît ni dans le sélecteur ni dans `messages`. L'oubli inverse — une
+ * langue déclarée sans fichier — casse la compilation, donc il se voit. */
+const i18nSrc = readFileSync(join('src', 'lib', 'i18n.ts'), 'utf8');
+const bloc = i18nSrc.match(/localeNames[^{]*\{([^}]*)\}/s);
+const enregistrees = bloc ? [...bloc[1].matchAll(/^\s*([a-z]{2}):/gm)].map((m) => m[1]).sort() : [];
+const surDisque = [...LOCALES, 'fr'].sort();
+
+const orphelines = surDisque.filter((l) => !enregistrees.includes(l));
+if (orphelines.length > 0) {
+  console.error(
+    `\nLangue(s) presente(s) dans locales/ mais absente(s) de localeNames (i18n.ts) : ${orphelines.join(', ')}\n` +
+      "Le fichier existe, mais rien ne l'utilise : ni sélecteur, ni dictionnaire.\n"
+  );
+  process.exit(1);
+}
+
 const gaps = [];
 
 for (const locale of LOCALES) {
@@ -152,9 +185,11 @@ if (gaps.length > 0) {
     }
   }
   console.error(`
-fr.ts fait référence. Une clé qui y est doit être dans les dix autres —
+fr.ts fait référence. Une clé qui y est doit être dans les ${LOCALES.length} autres —
 sans quoi la langue concernée retombe sur le français, en silence.
 `);
   process.exit(1);
 }
-console.log(`i18n check: ${LOCALES.length + 1} langues à 100 %, aucune dérive.`);
+console.log(
+  `i18n check: ${LOCALES.length + 1} langues à 100 % (${surDisque.join(', ')}), aucune dérive.`
+);
