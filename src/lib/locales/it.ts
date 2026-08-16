@@ -2687,7 +2687,7 @@ export default {
   "lyrics.karaoke": "Karaoke",
   "lyrics.plainText": "Testo semplice",
   "mediaservers.addAll": "+ Aggiungi tutto",
-  "mediaservers.playAlbum": "Riproduci l'album",
+  "mediaservers.playAll": "Riproduci tutto",
   "mediaservers.shuffle": "Casuale",
   "metadata.autoFixProgress": "{fixed} corretti, {suggestions} suggerimenti",
   "metadata.missingArtistCovers": "Immagini artista mancanti",

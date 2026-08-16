@@ -211,7 +211,7 @@ export default {
   'offline.tracksSection': 'Tracks',
   'radio.fileTooLarge': 'File too large ({size} MB, max {max} MB)',
   'radio.importResult': '{imported} imported, {skipped} skipped',
-  'mediaservers.playAlbum': 'Play album',
+  'mediaservers.playAll': 'Play all',
   'mediaservers.shuffle': 'Shuffle',
   'mediaservers.addAll': '+ Add all',
   'addShortcut.added': 'Shortcut "{name}" added',

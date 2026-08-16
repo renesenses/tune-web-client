@@ -211,7 +211,7 @@ export default {
   'offline.tracksSection': 'Pistes',
   'radio.fileTooLarge': 'Fichier trop volumineux ({size} Mo, max {max} Mo)',
   'radio.importResult': '{imported} importées, {skipped} ignorées',
-  'mediaservers.playAlbum': "Lire l'album",
+  'mediaservers.playAll': 'Tout lire',
   'mediaservers.shuffle': 'Aléatoire',
   'mediaservers.addAll': '+ Tout ajouter',
   'addShortcut.added': 'Raccourci "{name}" ajouté',

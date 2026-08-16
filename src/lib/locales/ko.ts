@@ -2679,7 +2679,7 @@ export default {
   "lyrics.karaoke": "노래방",
   "lyrics.plainText": "일반 텍스트",
   "mediaservers.addAll": "+ 모두 추가",
-  "mediaservers.playAlbum": "앨범 재생",
+  "mediaservers.playAll": "모두 재생",
   "mediaservers.shuffle": "셔플",
   "metadata.autoFixProgress": "{fixed}개 수정, {suggestions}개 제안",
   "metadata.missingArtistCovers": "누락된 아티스트 이미지",
