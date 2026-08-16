@@ -7,7 +7,7 @@ export type VolumeDisplay = 'percent' | 'dB';
 export type StartupView = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'search' | 'settings';
 
 /** Layout mode for the Oxygen library view. */
-export type OxygenViewMode = 'album' | 'grid' | 'detail';
+export type OxygenViewMode = 'album' | 'grid' | 'cards' | 'detail';
 /** Densité de la grille d'albums.
  *  `detail` = pochette + titre + artiste (historique).
  *  `wall`   = mur de pochettes seules, plus dense : on choisit un album de

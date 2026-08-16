@@ -4,7 +4,7 @@
   import QualityBadge from './QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
   import HeartButton from './HeartButton.svelte';
-  import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, getLibraryStats, artworkUrl, addToQueue, getQueue, jumpInQueue, type FacetValue, type FolderFacet } from '../lib/api';
+  import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, getLibraryStats, getAlbumsDetailed, artworkUrl, addToQueue, getQueue, jumpInQueue, type FacetValue, type FolderFacet, type AlbumDetailed } from '../lib/api';
   import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../lib/api/metadata';
   import { displayFields } from '../lib/stores/displayFields';
   import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
@@ -59,6 +59,38 @@
   let libStats = $state<{ tracks: number; albums: number; artists: number } | null>(null);
   /** Séparateur de milliers selon la langue : 55 234 se lit, 55234 se compte. */
   const nf = (n: number) => n.toLocaleString();
+
+  // ---- Vue cartes album ---------------------------------------------------
+  // Les agrégats (durée, nombre de CD, nombre de pistes) viennent du SERVEUR :
+  // les dériver des pistes chargées donnait des comptes faux dès qu'un album
+  // chevauchait la pagination — c'est-à-dire presque toujours sur une grosse
+  // bibliothèque. La vue ne partage donc pas `albums`, qui reste la dérivation
+  // client des autres modes.
+  let cards = $state<AlbumDetailed[]>([]);
+  let cardsTotal = $state(0);
+  let cardsLoading = $state(false);
+  async function loadCards() {
+    cardsLoading = true;
+    try {
+      const res = await getAlbumsDetailed(facetParam(facetSels), 500, 0);
+      cards = res.items ?? [];
+      cardsTotal = res.total ?? 0;
+    } catch {
+      cards = [];
+      cardsTotal = 0;
+    } finally {
+      cardsLoading = false;
+    }
+  }
+  /** Durée TOTALE d'un album : distincte de `fmtDur` (durée d'une piste, plus
+   *  bas), qui ne sait pas dépasser l'heure et rend une chaîne vide à zéro.
+   *  Un album de 1 h 12 s'écrit 1:12:00, pas 72:00. */
+  function fmtAlbumDur(ms: number): string {
+    const s = Math.max(0, Math.round((ms ?? 0) / 1000));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    const two = (n: number) => String(n).padStart(2, '0');
+    return h > 0 ? `${h}:${two(m)}:${two(sec)}` : `${m}:${two(sec)}`;
+  }
   let loading = $state(true);
   let loadingMore = $state(false);
   let error = $state<string | null>(null);
@@ -213,6 +245,9 @@
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   }
   function setMode(m: OxygenViewMode) { preferences.update(p => ({ ...p, oxygenView: m })); }
+  /** Depuis une carte : on repasse en vue album filtrée sur celui-ci, comme le
+   *  fait déjà un clic dans la grille de pochettes. */
+  function openAlbumById(id: number) { albumFilter = id; setMode('album'); }
 
   async function select(t: Track) {
     selected = t; ext = {};
@@ -478,6 +513,9 @@
 
   // Server-driven: (re)fetch the filtered tracks whenever the selection changes.
   $effect(() => { void JSON.stringify(facetSels); loadTracks(); });
+  // Ne charge que dans son mode : l'agrégat coûte un GROUP BY sur toute la
+  // sélection, inutile tant que la vue n'est pas à l'écran.
+  $effect(() => { void JSON.stringify(facetSels); if (mode === 'cards') loadCards(); });
   // Facet counts also re-fetch when the per-facet value limit changes.
   $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(serverFacetFields); void $preferences.oxygenFacetLimit; loadFacets(); });
   // Folder drill-down re-fetches its children when the path or any filter changes.
@@ -512,6 +550,9 @@
       </button>
       <button class:on={mode === 'grid'} onclick={() => setMode('grid')} title={$t('oxygen.view.grid')} aria-label={$t('oxygen.view.grid')}>
         <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      </button>
+      <button class:on={mode === 'cards'} onclick={() => setMode('cards')} title={$t('oxygen.view.cards')} aria-label={$t('oxygen.view.cards')}>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="8" height="8" rx="1.5"/><path d="M13 6h8M13 10h5"/><rect x="3" y="14" width="8" height="6" rx="1.5"/><path d="M13 16h8M13 19h5"/></svg>
       </button>
       <button class:on={mode === 'detail'} onclick={() => setMode('detail')} title={$t('oxygen.view.detail')} aria-label={$t('oxygen.view.detail')}>
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
@@ -558,6 +599,36 @@
         <div class="state err">{error}</div>
       {:else if !visible.length}
         <div class="state">{$t('oxygen.empty')}</div>
+      {:else if mode === 'cards'}
+        {#if cardsLoading && !cards.length}
+          <div class="state">{$t('oxygen.loading')}</div>
+        {:else if !cards.length}
+          <div class="state">{$t('oxygen.empty')}</div>
+        {:else}
+          <div class="cards">
+            {#each cards as a (a.album_id)}
+              <div class="acard" role="button" tabindex="0"
+                onclick={() => openAlbumById(a.album_id)}
+                onkeydown={(e) => e.key === 'Enter' && openAlbumById(a.album_id)}>
+                <div class="acover">
+                  {#if a.cover_path}<img src={artworkUrl(a.cover_path)} alt="" loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />{:else}<div class="ph">♪</div>{/if}
+                </div>
+                <div class="ainfo">
+                  <div class="aartist">{a.album_artist ?? ''}</div>
+                  <div class="atitle">{a.title ?? ''}</div>
+                  <dl class="ameta">
+                    {#if a.label}<dt>{$t('oxygen.card.label')}</dt><dd>{a.label}</dd>{/if}
+                    {#if a.year}<dt>{$t('oxygen.card.year')}</dt><dd>{a.year}</dd>{/if}
+                    <dt>{$t('oxygen.card.duration')}</dt><dd>{fmtAlbumDur(a.duration_ms)}</dd>
+                    {#if a.disc_count > 1}<dt>{$t('oxygen.card.discs')}</dt><dd>{a.disc_count}</dd>{/if}
+                    <dt>{$t('oxygen.card.tracks')}</dt><dd>{a.track_count}</dd>
+                  </dl>
+                  <QualityBadge format={a.format} sampleRate={a.sample_rate} bitDepth={a.bit_depth} source={null} />
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
       {:else if mode === 'grid'}
         <div class="grid">
           {#each albums as g (g.key)}
@@ -887,6 +958,24 @@
   /* Discrète par construction : on la lit quand on la cherche, elle ne dispute
      pas l'attention à la musique. Chiffres tabulaires pour qu'ils ne dansent
      pas quand les comptes changent. */
+  /* Cartes album : une grille de fiches denses, calquée sur Helium — pochette à
+     gauche, métadonnées en colonne. `auto-fill` plutôt qu'un nombre fixe : la
+     même vue sert un rail ouvert sur 1 400 px et un plein écran sur 2 560. */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; padding: 12px; }
+  .acard { display: flex; gap: 12px; padding: 10px; background: var(--tune-surface); border: 1px solid var(--tune-border);
+           border-radius: 10px; cursor: pointer; text-align: left; }
+  .acard:hover { border-color: var(--tune-accent); }
+  .acover { width: 74px; height: 74px; flex-shrink: 0; border-radius: 6px; overflow: hidden; background: var(--tune-grey2); }
+  .acover img { width: 100%; height: 100%; object-fit: cover; }
+  .acover .ph { width: 100%; height: 100%; display: grid; place-items: center; color: var(--tune-text-muted); font-size: 22px; }
+  .ainfo { min-width: 0; flex: 1; }
+  .aartist { font-size: 12px; color: var(--tune-text-secondary); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .atitle { font-size: 13.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Grille clé/valeur : les valeurs s'alignent quelle que soit la longueur du
+     libellé, y compris en allemand où « Aufnahmejahr » double la largeur. */
+  .ameta { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; margin: 5px 0 6px; font-size: 11px; }
+  .ameta dt { color: var(--tune-text-muted); }
+  .ameta dd { margin: 0; color: var(--tune-text-secondary); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .statusbar {
     flex-shrink: 0;
     display: flex;
