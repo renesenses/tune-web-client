@@ -1057,6 +1057,8 @@ export default {
   "eq.presetSaveFailed": "A beállítást nem sikerült menteni",
   "eq.applyFailed": "A beállítás nem lépett érvénybe — a szerver elutasította",
   "eq.effectNextTrack": "A következő számnál lép érvénybe",
+  "eq.profilerApplied": "Akusztikai profil alkalmazva",
+  "eq.profilerDisabled": "Profil kikapcsolva",
   "eq.premiumRequired": "A hangszínszabályzóhoz Tune Premium szükséges",
   "eq.premiumGate": "A hangszínszabályzó és az akusztikai profil ennek a funkciója:",
   // Crossfeed (fejhallgató)

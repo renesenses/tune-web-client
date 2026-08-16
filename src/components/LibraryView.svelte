@@ -2070,9 +2070,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                   <span class="num-play">&#9654;</span>
                 </span>
                 <div class="track-info">
-                  <span class="track-title truncate">{t.title}</span>
+                  <span class="track-title truncate" title={t.title}>{t.title}</span>
                   {#if t.artist_name}
-                    <span class="track-artist truncate">{t.artist_name}</span>
+                    <span class="track-artist truncate" title={t.artist_name}>{t.artist_name}</span>
                   {/if}
                   <MetadataChips track={t} fields={$displayFields} />
                 </div>
@@ -2154,9 +2154,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                 <span class="num-play">&#9654;</span>
               </span>
               <div class="track-info" title={t.file_path ?? ''}>
-                <span class="track-title truncate">{t.title}</span>
+                <span class="track-title truncate" title={t.title}>{t.title}</span>
                 {#if t.artist_name}
-                  <span class="track-artist truncate">{t.artist_name}</span>
+                  <span class="track-artist truncate" title={t.artist_name}>{t.artist_name}</span>
                 {/if}
                 <MetadataChips track={t} fields={$displayFields} />
               </div>
@@ -2739,7 +2739,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <div class="artist-card-avatar">
               <AlbumArt coverPath={artist.image_path} size={100} alt={artist.name} round fallbackInitials={initials(artist.name)} />
             </div>
-            <span class="artist-card-name truncate">{artist.name}</span>
+            <span class="artist-card-name truncate" title={artist.name}>{artist.name}</span>
           </div>
         {/each}
         {#if filteredArtists.length === 0}
@@ -2788,7 +2788,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <div class="track-item" style="position:absolute;top:{(visibleTracks.startIdx + i) * TRACK_ROW_HEIGHT}px;left:0;right:0;height:{TRACK_ROW_HEIGHT}px;" onclick={() => t.id && playTrack(t.id)}>
               <span class="track-thumb"><AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.album_title ?? ''} /></span>
               <div class="track-info" title={t.file_path ?? ''}>
-                <span class="track-title truncate">{t.title}</span>
+                <span class="track-title truncate" title={t.title}>{t.title}</span>
                 <span class="track-meta truncate">{#if t.artist_name}<button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.artist_id) selectArtistDetail({ id: t.artist_id, name: t.artist_name! }); }}>{t.artist_name}</button>{/if}{#if t.album_title}<span class="track-sep"> — </span><button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.album_id) selectAlbumDetail({ id: t.album_id, title: t.album_title!, artist_name: t.artist_name } as Album); }}>{t.album_title}</button>{/if}</span>
                 <MetadataChips track={t} fields={$displayFields} />
               </div>
@@ -2895,7 +2895,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                 <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
               {/if}
               {#if selectedParent && album.genre && album.genre.toLowerCase() !== (selectedParent ?? '').toLowerCase()}
-                <span class="album-card-genre truncate">{album.genre.split(/[;\/\\]/).map(g => g.trim()).filter(Boolean).join(', ')}</span>
+                <span class="album-card-genre truncate" title={album.genre.split(/[;\/\\]/).map(g => g.trim()).filter(Boolean).join(', ')}>{album.genre.split(/[;\/\\]/).map(g => g.trim()).filter(Boolean).join(', ')}</span>
               {/if}
             </div>
           {/each}

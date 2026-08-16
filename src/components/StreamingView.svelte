@@ -1261,7 +1261,7 @@
               <span class="track-num">{index + 1}</span>
               <div class="track-info">
                 <span class="track-title truncate" title={t.title}>{t.title}</span>
-                <span class="track-artist truncate">{t.artist_name ?? ''} {t.album_title ? `- ${t.album_title}` : ''}</span>
+                <span class="track-artist truncate" title={`${t.artist_name ?? ''}${t.album_title ? ` - ${t.album_title}` : ''}`}>{t.artist_name ?? ''} {t.album_title ? `- ${t.album_title}` : ''}</span>
               </div>
               <ServiceBadge source={t.source} compact />
               <QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} />
@@ -1485,7 +1485,7 @@
                 </div>
                 <div class="track-info">
                   <span class="track-title truncate" title={track.title}>{track.title}</span>
-                  <span class="track-artist truncate">{track.artist_name}{#if track.album} — {track.album}{/if}</span>
+                  <span class="track-artist truncate" title={`${track.artist_name ?? ''}${track.album ? ` — ${track.album}` : ''}`}>{track.artist_name}{#if track.album} — {track.album}{/if}</span>
                 </div>
                 <ServiceBadge source={track.source} compact />
                 <QualityBadge format={track.format} sampleRate={track.sample_rate} bitDepth={track.bit_depth} source={track.source} />
