@@ -4,7 +4,7 @@
   import QualityBadge from './QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
   import HeartButton from './HeartButton.svelte';
-  import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, artworkUrl, addToQueue, getQueue, jumpInQueue, type FacetValue, type FolderFacet } from '../lib/api';
+  import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, getLibraryStats, artworkUrl, addToQueue, getQueue, jumpInQueue, type FacetValue, type FolderFacet } from '../lib/api';
   import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../lib/api/metadata';
   import { displayFields } from '../lib/stores/displayFields';
   import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
@@ -51,6 +51,14 @@
   // que les premiers albums de l'ordre alphabétique et taisait le reste
   // (Alex Campbell, 10/08/2026 : « only displays maybe 100 albums »).
   let total = $state(0);
+  /** Totaux de la bibliothèque ENTIÈRE, indépendants des facettes actives.
+   *  Sans eux, « 812 pistes » ne dit pas si on en a écarté 30 ou 50 000 : c'est
+   *  le rapport au tout qui rend un système de facettes lisible (Helium l'affiche
+   *  en permanence). Un seul appel, au montage — ces nombres ne bougent qu'au
+   *  scan. */
+  let libStats = $state<{ tracks: number; albums: number; artists: number } | null>(null);
+  /** Séparateur de milliers selon la langue : 55 234 se lit, 55234 se compte. */
+  const nf = (n: number) => n.toLocaleString();
   let loading = $state(true);
   let loadingMore = $state(false);
   let error = $state<string | null>(null);
@@ -455,6 +463,9 @@
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && get(focusMode)) focusMode.set(false); };
     window.addEventListener('keydown', onKey);
     getMetadataFieldSettings().then(f => { categories = f.categories ?? []; }).catch(() => {});
+    // Échec silencieux : la barre d'état se contente alors du compte filtré.
+    // Une bibliothèque qui n'annonce pas son total vaut mieux qu'un écran en erreur.
+    getLibraryStats().then(st => { libStats = st; }).catch(() => {});
     return () => {
       mq.removeEventListener('change', upd);
       mqPhone.removeEventListener('change', updPhone);
@@ -671,6 +682,30 @@
       <button class="backdrop" onclick={() => { mobileRail = false; mobileInspector = false; }} aria-label={$t('oxygen.close')}></button>
     {/if}
   </div>
+
+  <!-- Barre d'état. Trois nombres, et c'est le RAPPORT entre eux qui informe :
+       « 812 pistes » ne dit pas si on en a écarté trente ou cinquante mille.
+       Le total de bibliothèque vient de /library/stats (indépendant des
+       facettes) ; « filtrées » est le compte serveur pour la sélection
+       courante ; « affichées » ce qui reste après le filtre texte local. Les
+       deux derniers ne s'affichent que s'ils apportent quelque chose. -->
+  <footer class="statusbar">
+    {#if libStats}
+      <span class="sb-lib">
+        {nf(libStats.tracks)} {$t('oxygen.status.tracks')} ·
+        {nf(libStats.albums)} {$t('oxygen.status.albums')} ·
+        {nf(libStats.artists)} {$t('oxygen.status.artists')}
+      </span>
+    {/if}
+    {#if libStats && total !== libStats.tracks}
+      <span class="sb-sep">—</span>
+      <span class="sb-filtered">{nf(total)} {$t('oxygen.status.filtered')}</span>
+    {/if}
+    {#if visible.length !== total}
+      <span class="sb-sep">·</span>
+      <span class="sb-shown">{nf(visible.length)} {$t('oxygen.status.shown')}</span>
+    {/if}
+  </footer>
 </div>
 
 <style>
@@ -849,4 +884,22 @@
   .state { padding: 40px 20px; text-align: center; color: var(--tune-text-muted); }
   .state.err { color: var(--tune-danger, var(--tune-error)); }
   .state.small { padding: 20px 4px; font-size: 12.5px; }
+  /* Discrète par construction : on la lit quand on la cherche, elle ne dispute
+     pas l'attention à la musique. Chiffres tabulaires pour qu'ils ne dansent
+     pas quand les comptes changent. */
+  .statusbar {
+    flex-shrink: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: baseline;
+    padding: 6px 14px;
+    border-top: 1px solid var(--tune-border);
+    background: var(--tune-surface);
+    color: var(--tune-text-muted);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .statusbar .sb-sep { opacity: .5; }
+  .statusbar .sb-filtered { color: var(--tune-text-secondary); }
 </style>
