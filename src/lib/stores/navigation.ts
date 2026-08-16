@@ -1,6 +1,6 @@
 import { writable, get } from 'svelte/store';
 
-export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'playlistmanager' | 'playlistshub' | 'smartplaylists' | 'smart-ai' | 'ambiance' | 'browse' | 'search' | 'settings' | 'history' | 'streaming' | 'metadata' | 'radios' | 'radiofavorites' | 'genres' | 'mediaservers' | 'favorites' | 'podcasts' | 'zonemanager' | 'diagnostics' | 'collections' | 'smartcollections' | 'dashboard' | 'services' | 'genretree' | 'equalizer' | 'plugins' | 'onboarding' | 'offline' | 'alarms' | 'login' | 'converter' | 'declick' | 'shortcuts' | 'oxygen' | 'support' | 'tv';
+export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'playlistmanager' | 'playlistshub' | 'smartplaylists' | 'smart-ai' | 'ambiance' | 'browse' | 'search' | 'settings' | 'history' | 'streaming' | 'metadata' | 'radios' | 'radiofavorites' | 'genres' | 'mediaservers' | 'favorites' | 'podcasts' | 'zonemanager' | 'diagnostics' | 'collections' | 'smartcollections' | 'dashboard' | 'services' | 'genretree' | 'equalizer' | 'plugins' | 'onboarding' | 'offline' | 'alarms' | 'login' | 'converter' | 'declick' | 'shortcuts' | 'oxygen' | 'support' | 'tv' | 'bandcamp';
 export const activeView = writable<View>('home');
 export const previousView = writable<View | null>(null);
 
