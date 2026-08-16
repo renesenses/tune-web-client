@@ -321,6 +321,7 @@ export default {
   'oxygen.status.artists': 'artists',
   'oxygen.status.filtered': 'filtered',
   'oxygen.status.shown': 'shown',
+  'oxygen.alphaIndex': 'Alphabetical index',
   'oxygen.folder.home': 'Library',
   'oxygen.folder.empty': 'No sub-folders here.',
   'oxygen.facetsTitle': 'Facets',

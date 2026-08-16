@@ -135,6 +135,7 @@ export default {
   'oxygen.status.artists': 'artistas',
   'oxygen.status.filtered': 'filtradas',
   'oxygen.status.shown': 'mostradas',
+  'oxygen.alphaIndex': 'Índice alfabético',
   'oxygen.folder.home': 'Biblioteca',
   'oxygen.folder.empty': 'No hay subcarpetas aquí.',
   'oxygen.facetsTitle': 'Facetas',

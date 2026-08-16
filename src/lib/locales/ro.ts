@@ -135,6 +135,7 @@ export default {
   'oxygen.status.artists': 'artiști',
   'oxygen.status.filtered': 'filtrate',
   'oxygen.status.shown': 'afișate',
+  'oxygen.alphaIndex': 'Index alfabetic',
   'oxygen.folder.home': 'Bibliotecă',
   'oxygen.folder.empty': 'Niciun subdosar aici.',
   'oxygen.facetsTitle': 'Fațete',

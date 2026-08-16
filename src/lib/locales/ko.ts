@@ -135,6 +135,7 @@ export default {
   'oxygen.status.artists': '아티스트',
   'oxygen.status.filtered': '필터됨',
   'oxygen.status.shown': '표시됨',
+  'oxygen.alphaIndex': '알파벳 색인',
   'oxygen.folder.home': '라이브러리',
   'oxygen.folder.empty': '하위 폴더가 없습니다.',
   'oxygen.facetsTitle': '패싯',

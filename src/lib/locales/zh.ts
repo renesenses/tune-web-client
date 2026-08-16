@@ -135,6 +135,7 @@ export default {
   'oxygen.status.artists': '位艺人',
   'oxygen.status.filtered': '已筛选',
   'oxygen.status.shown': '已显示',
+  'oxygen.alphaIndex': '字母索引',
   'oxygen.folder.home': '音乐库',
   'oxygen.folder.empty': '此处没有子文件夹。',
   'oxygen.facetsTitle': '分面',

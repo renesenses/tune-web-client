@@ -135,6 +135,7 @@ export default {
   'oxygen.status.artists': 'アーティスト',
   'oxygen.status.filtered': '絞り込み',
   'oxygen.status.shown': '表示中',
+  'oxygen.alphaIndex': 'アルファベット索引',
   'oxygen.folder.home': 'ライブラリ',
   'oxygen.folder.empty': 'サブフォルダーはありません。',
   'oxygen.facetsTitle': 'ファセット',

@@ -305,6 +305,7 @@ export default {
   "oxygen.status.artists": "előadó",
   "oxygen.status.filtered": "szűrve",
   "oxygen.status.shown": "megjelenítve",
+  "oxygen.alphaIndex": "Betűrendes mutató",
   "oxygen.folder.home": "Gyűjtemény",
   "oxygen.folder.empty": "Itt nincs almappa.",
   "oxygen.facetsTitle": "Szempontok",

@@ -2805,6 +2805,7 @@ export default {
   "oxygen.status.artists": "artister",
   "oxygen.status.filtered": "filtrerade",
   "oxygen.status.shown": "visade",
+  "oxygen.alphaIndex": "Alfabetiskt register",
   "oxygen.facet.folder": "Mapp",
   "oxygen.facet.rating": "Betyg",
   "oxygen.facet50": "50 (de vanligaste)",

@@ -135,6 +135,7 @@ export default {
   'oxygen.status.artists': 'artisti',
   'oxygen.status.filtered': 'filtrati',
   'oxygen.status.shown': 'mostrati',
+  'oxygen.alphaIndex': 'Indice alfabetico',
   'oxygen.folder.home': 'Libreria',
   'oxygen.folder.empty': 'Nessuna sottocartella qui.',
   'oxygen.facetsTitle': 'Sfaccettature',
