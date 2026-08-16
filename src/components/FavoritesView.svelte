@@ -13,7 +13,7 @@
   import ServiceBadge from './ServiceBadge.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
-  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist } from '../lib/stores/streaming';
+  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices } from '../lib/stores/streaming';
   import type { Track, Album, Artist } from '../lib/types';
 
   interface Props {
@@ -66,11 +66,33 @@
     sourceFilter === 'all' ? favArtists : favArtists.filter((a) => srcOf(a) === sourceFilter),
   );
 
-  // Sources present in the active tab, for the filter chips.
   let currentList = $derived(
     activeTab === 'tracks' ? favTracks : activeTab === 'albums' ? favAlbums : favArtists,
   );
-  let availableSources = $derived([...new Set(currentList.map(srcOf))].sort());
+
+  // Les pastilles de filtre listent les sources dont l'utilisateur DISPOSE, pas
+  // celles qui se trouvent avoir chargé.
+  //
+  // Elles étaient dérivées du contenu affiché : `[...new Set(currentList.map(srcOf))]`.
+  // Il suffisait donc qu'un appel aux favoris Qobuz échoue — et il échoue en
+  // silence, chaque `getStreamingFavorites` étant suivi d'un `.catch(() => null)` —
+  // pour que la liste retombe au seul « local », que le compte tombe à un, et
+  // que la barre entière disparaisse. Un filtre qui s'efface ne se lit pas comme
+  // une panne : il se lit comme une fonction retirée. C'est exactement ce que
+  // Fabien a rapporté, deux fois, à quatre versions d'écart (#1729).
+  //
+  // `streamingServices` est rafraîchi par huit écrans : il survit à un échec
+  // ponctuel ici, là où une liste reconstruite à chaque chargement ne survit à
+  // rien. On y ajoute « local », toujours possible, et les sources réellement
+  // présentes — au cas où un favori porterait une source qu'on n'attendait pas.
+  let connectedSources = $derived(
+    Object.entries($streamingServices)
+      .filter(([, s]) => s?.authenticated)
+      .map(([name]) => name),
+  );
+  let availableSources = $derived(
+    [...new Set(['local', ...connectedSources, ...currentList.map(srcOf)])].sort(),
+  );
 
   function sourcesFor(tab: FavTab): Set<string> {
     const list = tab === 'tracks' ? favTracks : tab === 'albums' ? favAlbums : favArtists;
