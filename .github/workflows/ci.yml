@@ -1,0 +1,43 @@
+# Le seul garde-fou de ce dépôt s'appelle `npm test`. Il enchaîne quatre
+# contrôles — dérive i18n, erreurs Svelte nouvelles, dialogues natifs, tests
+# unitaires — et il n'a jamais été automatisé : il ne s'exécutait que si
+# quelqu'un pensait à le lancer avant de merger.
+#
+# Le 15/08 quelqu'un n'y a pas pensé : deux clés hongroises ajoutées en
+# français et en anglais mais pas en hongrois (#473) ont laissé `main` rouge
+# pour tout le monde jusqu'au lendemain matin. Une clé manquante fait
+# silencieusement retomber la langue concernée sur le français ; un identifiant
+# non déclaré, que ce même gate attrape, fait un écran blanc chez l'utilisateur
+# — et `npm run build` le laisse passer.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Une PR poussée trois fois de suite n'occupe qu'un seul exécuteur : les runs
+# précédents sont annulés.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: npm test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` et non `npm install` : il installe EXACTEMENT le lockfile et
+      # échoue si celui-ci a divergé de package.json — ce qui est précisément
+      # le contrôle qu'on veut, le lockfile devant suivre chaque bump.
+      - run: npm ci
+
+      - run: npm test
