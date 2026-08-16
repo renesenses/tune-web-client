@@ -25,16 +25,25 @@ export type AlbumGridDensity = 'detail' | 'wall';
 // browses by (direct tracks columns; server column_facet). `folder` is special:
 // a hierarchical drill-down (breadcrumb + child folders) backed by
 // /library/folder-facet, rendered by OxygenFolderFacet — not a flat value list.
-export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source', 'rating', 'collection', 'folder'] as const;
-/** Facets removed from OXYGEN_FACETS_ALL — used to migrate old stored prefs. */
-const OXYGEN_FACETS_REMOVED = ['untagged'];
+export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'folder'] as const;
+/** Facets removed from OXYGEN_FACETS_ALL — used to migrate old stored prefs.
+ *  `untagged` en était sorti par `bf46fad7` (« only offer facets the rail can
+ *  render ») en même temps que collection/folder/rating, faute d'un rendu. Les
+ *  trois autres sont revenues depuis ; celle-ci revient maintenant, avec le
+ *  sien. La liste des retirées redevient donc vide. */
+const OXYGEN_FACETS_REMOVED: string[] = [];
 /** Révision courante de la liste de facettes livrée. À incrémenter en même
  *  temps qu'on ajoute une entrée à ADDED_BY_REV ci-dessous. */
-const OXYGEN_FACETS_REV = 1;
+const OXYGEN_FACETS_REV = 2;
 /** Facettes apparues à chaque révision : elles sont ajoutées une fois aux
  *  préférences déjà enregistrées, puis le choix de l'utilisateur fait foi. */
 const OXYGEN_FACETS_ADDED_BY_REV: Record<number, string[]> = {
   1: ['composer'],
+  // Lot 1 du rapprochement avec Helium : Favoris, Listes de lecture et
+  // Sans étiquette. `untagged` n'est PAS un ajout mais un retour — d'où sa
+  // sortie de OXYGEN_FACETS_REMOVED ci-dessus, sans quoi la migration
+  //  réinitialiserait les préférences de tous ceux qui la portent encore.
+  2: ['favorite', 'playlist', 'untagged'],
 };
 
 export interface Preferences {

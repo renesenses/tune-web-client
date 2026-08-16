@@ -1198,6 +1198,9 @@ export async function getFilteredTracks(opts: {
   folder?: string;        // Oxygen folder facet: absolute dir prefix (subtree)
   rating?: number;        // Oxygen rating facet: album rating 1-5 (profile 1)
   collection?: string;    // Oxygen collection facet: manual collection name
+  favorite?: string;      // Oxygen favorite facet: 'track' | 'album' (profile 1)
+  playlist?: string;      // Oxygen playlist facet: playlist name
+  untagged?: string;      // Oxygen untagged facet: 'genre'|'year'|'artist'|'album'|'cover'
   limit?: number;
   offset?: number;
 }): Promise<{ items: Track[]; total: number }> {

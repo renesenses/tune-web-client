@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Track } from '../lib/types';
   import type { FacetValue, FolderChild, FolderCrumb } from '../lib/api';
+  import { get } from 'svelte/store';
   import { t } from '../lib/i18n';
   import OxygenFolderFacet from './OxygenFolderFacet.svelte';
 
@@ -28,6 +29,7 @@
     country: 'Pays', mood: 'Moods', source: 'Support',
     format: 'Format', sample_rate: 'Fréquence', bit_depth: 'Résolution',
     rating: 'Note', collection: 'Collections',
+    favorite: 'Favoris', playlist: 'Listes de lecture', untagged: 'Sans étiquette',
     folder: 'Répertoire',
   };
   // Fields computable client-side from Track columns (fallback when the server
@@ -54,6 +56,14 @@
     if (field === 'rating') {
       const n = Math.max(0, Math.min(5, Number(value) || 0));
       return '★'.repeat(n) + '☆'.repeat(5 - n);
+    }
+    // Favoris et Sans étiquette portent des valeurs techniques (`track`,
+    // `cover`…) que le serveur renvoie telles quelles. On les traduit ici, en
+    // gardant row.value brut pour la sélection — même principe que les kHz.
+    if (field === 'favorite' || field === 'untagged') {
+      const key = `oxygen.facetValue.${field}.${value}`;
+      const label = get(t)(key as any);
+      return label && label !== key ? label : value;
     }
     return value;
   }
