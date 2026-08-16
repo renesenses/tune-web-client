@@ -1351,6 +1351,7 @@ export default {
   "library.sortAddedDate": "추가된 날짜",
   "library.sortYear": "연도",
   "library.writingTags": "쓰는 중...",
+  "library.dynamicRangeTip": "다이내믹 레인지(DR). 파일 태그에서 읽은 값이며, 값이 클수록 마스터링 압축이 적습니다.",
   "library.writeTags": "태그 쓰기",
   "library.noCollections": "컬렉션 없음",
   "library.newTagPlaceholder": "새 태그...",

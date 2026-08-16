@@ -1368,6 +1368,7 @@ export default {
   "library.sortAddedDate": "Fecha de adición",
   "library.sortYear": "Año",
   "library.writingTags": "Escribiendo...",
+  "library.dynamicRangeTip": "Rango dinámico (DR), leído de las etiquetas del archivo: cuanto más alto, menos comprimida está la masterización.",
   "library.writeTags": "Escribir etiquetas",
   "library.noCollections": "Sin colección",
   "library.newTagPlaceholder": "Nueva etiqueta...",

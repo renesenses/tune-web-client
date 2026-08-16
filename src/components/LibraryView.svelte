@@ -1262,13 +1262,25 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // its albumId prop changes.
     libraryLoading.set(true);
     try {
-      // Fetch full album if cover_path is missing (e.g. navigating from tracks view)
-      const full = album.cover_path !== undefined ? album : await api.getAlbum(album.id);
-      selectedAlbum.set(full);
+      // The detail endpoint carries fields the grid listing cannot: the Dynamic
+      // Range read from the files' tags, for one. The old shortcut — reuse the
+      // grid item whenever it already had a cover_path — meant those fields
+      // never arrived on the common path, and their absence is indistinguishable
+      // from "this album simply has no DR tag".
+      //
+      // So the album is always fetched, but CONCURRENTLY with its tracks rather
+      // than before them. The previous code awaited the two in sequence, so this
+      // costs no extra wall-clock on the slow path and one small keyed GET on
+      // the fast one — next to the track list, which is far heavier.
+      //
       // Forward the active grid quality/format filter so the detail shows only
       // the matching tracks (a mixed album opened under a Hi-Res/FLAC filter
       // no longer reveals its MP3/44.1 tracks).
-      const result = await api.getAlbumTracks(album.id, albumQualityFilter, albumFormatFilter);
+      const [full, result] = await Promise.all([
+        api.getAlbum(album.id),
+        api.getAlbumTracks(album.id, albumQualityFilter, albumFormatFilter),
+      ]);
+      selectedAlbum.set(full);
       albumTracks.set(result);
       window.history.pushState({ view: 'library', albumId: album.id, tab: $libraryTab }, '', '#library');
     } catch (e) {
@@ -1950,6 +1962,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             {/if}
             {#if albumTotalDuration > 0}
               <span>{formatDuration(albumTotalDuration)}</span>
+            {/if}
+            <!-- Dynamic Range, quand les fichiers portent le tag (#303, #1418).
+                 Rien n'est affiché sinon : la plupart des bibliothèques ne sont
+                 pas taguées, et une mention vide sur chaque album serait pire
+                 que l'absence. -->
+            {#if $selectedAlbum.dynamic_range}
+              <span class="dr-badge" use:tip={'library.dynamicRangeTip'}>DR {$selectedAlbum.dynamic_range}</span>
             {/if}
           </div>
           {#if $selectedAlbum.source && $selectedAlbum.source !== 'local'}

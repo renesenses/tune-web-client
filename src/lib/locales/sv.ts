@@ -1355,6 +1355,7 @@ export default {
   "library.sortAddedDate": "Datum tillagt",
   "library.sortYear": "År",
   "library.writingTags": "Skriver...",
+  "library.dynamicRangeTip": "Dynamiskt omfång (DR), avläst från filernas taggar – ju högre värde, desto mindre komprimerad mastring.",
   "library.writeTags": "Skriv taggar",
   "library.noCollections": "Ingen samling",
   "library.newTagPlaceholder": "Ny tagg...",
