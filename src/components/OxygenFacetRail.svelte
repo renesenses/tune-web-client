@@ -1,7 +1,9 @@
 <script lang="ts">
   import type { Track } from '../lib/types';
   import type { FacetValue, FolderChild, FolderCrumb } from '../lib/api';
+  import { get } from 'svelte/store';
   import { t } from '../lib/i18n';
+  import { OXYGEN_FACETS_ALL } from '../lib/stores/preferences';
   import OxygenFolderFacet from './OxygenFolderFacet.svelte';
 
   interface Props {
@@ -22,14 +24,6 @@
     folderCrumbs = [], folderChildren = [], folderLoading = false, onFolderDrill = () => {},
   }: Props = $props();
 
-  const FIELD_LABELS: Record<string, string> = {
-    genre: 'Genres', label: 'Labels', year: 'Années', artist: 'Artistes',
-    composer: 'Compositeurs',
-    country: 'Pays', mood: 'Moods', source: 'Support',
-    format: 'Format', sample_rate: 'Fréquence', bit_depth: 'Résolution',
-    rating: 'Note', collection: 'Collections',
-    folder: 'Répertoire',
-  };
   // Fields computable client-side from Track columns (fallback when the server
   // index is unavailable). k/v fields (country/mood/source) need the server.
   // Technical dimensions (format/sample_rate/bit_depth) are plain Track columns,
@@ -55,10 +49,61 @@
       const n = Math.max(0, Math.min(5, Number(value) || 0));
       return '★'.repeat(n) + '☆'.repeat(5 - n);
     }
+    // Favoris et Sans étiquette portent des valeurs techniques (`track`,
+    // `cover`…) que le serveur renvoie telles quelles. On les traduit ici, en
+    // gardant row.value brut pour la sélection — même principe que les kHz.
+    if (field === 'favorite' || field === 'untagged') {
+      const key = `oxygen.facetValue.${field}.${value}`;
+      const label = get(t)(key as any);
+      return label && label !== key ? label : value;
+    }
     return value;
   }
 
-  const shown = $derived(facets.filter(f => f in FIELD_LABELS));
+  // UNE SEULE source de vérité : la liste des facettes livrées vit dans les
+  // préférences, et c'est elle qui décide de ce que le rail sait rendre.
+  //
+  // Avant, une table `FIELD_LABELS` locale doublait cette liste — et servait
+  // UNIQUEMENT de test d'appartenance, ses libellés français codés en dur
+  // n'étant plus affichés depuis que l'en-tête passe par `$t`. Une facette
+  // absente de cette table disparaissait donc SANS UN MOT : c'est ce qui est
+  // arrivé à `collection`, `folder`, `rating` et `untagged` (bf46fad7), et il a
+  // fallu des mois pour les ramener une par une. Deux listes à tenir à jour, une
+  // seule visible du développeur qui ajoute une facette.
+  const RENDERABLE: ReadonlySet<string> = new Set(OXYGEN_FACETS_ALL);
+  const shown = $derived(facets.filter(f => RENDERABLE.has(f)));
+
+  // ---- Index alphabétique -------------------------------------------------
+  // Sur 8 873 artistes (bibliothèque de Bertrand), dérouler la liste n'est pas
+  // une navigation : Helium replie les siens en dossiers A→Z. Ici la bande de
+  // lettres NARROW la liste au lieu de la replier — un clic, une lettre, et le
+  // tri en cours (fréquence ou alphabétique) reste celui qu'on avait choisi.
+  // Seules les listes assez longues pour être illisibles la reçoivent.
+  const ALPHA_MIN = 25;
+  /** Première lettre d'affichage : accents repliés (Étienne → E), tout ce qui
+   *  n'est pas une lettre regroupé sous « # » (compilations « 4 Non Blondes »,
+   *  labels numériques…). */
+  function initialOf(value: string): string {
+    const c = (value ?? '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toUpperCase();
+    return c >= 'A' && c <= 'Z' ? c : '#';
+  }
+  let alphaSel = $state<Record<string, string>>({});
+  const alphaOf = (f: string) => alphaSel[f] ?? '';
+  function pickAlpha(f: string, letter: string) {
+    alphaSel = { ...alphaSel, [f]: alphaOf(f) === letter ? '' : letter };
+  }
+  /** Les initiales réellement présentes, dans l'ordre, « # » en dernier. */
+  function alphaLetters(f: string): string[] {
+    const set = new Set((groups[f] ?? []).map(r => initialOf(fmtValue(f, r.value))));
+    const letters = [...set].filter(c => c !== '#').sort();
+    return set.has('#') ? [...letters, '#'] : letters;
+  }
+  /** Le jeu affiché : filtré par la lettre choisie, s'il y en a une. */
+  function rowsOf(f: string) {
+    const rows = groups[f] ?? [];
+    const a = alphaOf(f);
+    return a ? rows.filter(r => initialOf(fmtValue(f, r.value)) === a) : rows;
+  }
 
   function clientCounts(field: string): FacetValue[] {
     const get = CLIENT_GET[field];
@@ -161,11 +206,21 @@
                D'où « classement alphabétique absent » alors que le tri existait
                (retour Stéphane Villerio, 08/08/2026). -->
           <button class="sortbtn" title={modeOf(f) === 'count' ? $t('oxygen.sortAlpha') : $t('oxygen.sortCount')} onclick={() => cycleSort(f)}>{modeOf(f) === 'count' ? 'A→Z' : '#'}</button>
-          <span class="gn">{(groups[f] ?? []).length}</span>
+          <span class="gn">{alphaOf(f) ? `${rowsOf(f).length}/${(groups[f] ?? []).length}` : (groups[f] ?? []).length}</span>
         </div>
         {#if isOpen(f)}
+          {#if (groups[f] ?? []).length >= ALPHA_MIN}
+            {@const letters = alphaLetters(f)}
+            {#if letters.length > 1}
+              <div class="alpha" role="group" aria-label={$t('oxygen.alphaIndex')}>
+                {#each letters as c (c)}
+                  <button class="al" class:on={alphaOf(f) === c} onclick={() => pickAlpha(f, c)}>{c}</button>
+                {/each}
+              </div>
+            {/if}
+          {/if}
           <div class="values">
-            {#each groups[f] ?? [] as row (row.value)}
+            {#each rowsOf(f) as row (row.value)}
               <button class="val" class:active={selected[f] === row.value}
                 onclick={() => onSelect(f, selected[f] === row.value ? null : row.value)}>
                 <span class="vl" title={row.value}>{fmtValue(f, row.value)}</span>
@@ -185,6 +240,14 @@
   /* Sticky within .rail (the scroller): negative margins absorb the rail's
      8px padding so the opaque header spans the full scrollport width. */
   .railhead { position: sticky; top: 0; z-index: 3; background: var(--tune-surface); display: flex; align-items: center; gap: 8px; margin: -8px -8px 4px; padding: 10px 16px 6px; border-bottom: 1px solid var(--tune-border); }
+  /* Bande de lettres : dense, elle doit tenir sur deux lignes au plus dans un
+     rail de 240 px, et ne jamais voler l'attention aux valeurs elles-mêmes. */
+  .alpha { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px 2px 6px; }
+  .alpha .al { min-width: 18px; padding: 2px 0; background: none; border: 0; border-radius: 4px;
+               color: var(--tune-text-muted); font: inherit; font-size: 10.5px; font-weight: 700;
+               cursor: pointer; text-align: center; }
+  .alpha .al:hover { color: var(--tune-text); background: var(--tune-surface-hover); }
+  .alpha .al.on { background: var(--tune-accent); color: #1a1206; }
   .rht { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; color: var(--tune-text-muted); }
   .allbtn { display: flex; align-items: center; gap: 5px; margin-left: auto; background: none; border: 0; color: var(--tune-text-muted); font: inherit; font-size: 11px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
   .allbtn:hover { color: var(--tune-accent); background: var(--tune-surface-hover); }

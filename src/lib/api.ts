@@ -1198,6 +1198,10 @@ export async function getFilteredTracks(opts: {
   folder?: string;        // Oxygen folder facet: absolute dir prefix (subtree)
   rating?: number;        // Oxygen rating facet: album rating 1-5 (profile 1)
   collection?: string;    // Oxygen collection facet: manual collection name
+  favorite?: string;      // Oxygen favorite facet: 'track' | 'album' (profile 1)
+  playlist?: string;      // Oxygen playlist facet: playlist name
+  untagged?: string;      // Oxygen untagged facet: 'genre'|'year'|'artist'|'album'|'cover'
+  original_year?: number; // Oxygen recording-year facet (albums.original_year)
   limit?: number;
   offset?: number;
 }): Promise<{ items: Track[]; total: number }> {
@@ -1245,6 +1249,38 @@ export async function getLibraryFacets(
   if (limit != null) params.set('limit', String(limit));
   const raw = await fetchJSON<any>(`${BASE}/library/facets?${params}`);
   return (raw && typeof raw === 'object') ? raw : {};
+}
+
+/** Une carte album d'Oxygen : les agrégats calculés PAR LE SERVEUR sur la
+ *  sélection de facettes courante. Les dériver des pistes chargées donnait des
+ *  comptes faux dès qu'un album chevauchait la pagination. */
+export interface AlbumDetailed {
+  album_id: number;
+  title: string | null;
+  album_artist: string | null;
+  cover_path: string | null;
+  label: string | null;
+  year: number | null;
+  duration_ms: number;
+  disc_count: number;
+  track_count: number;
+  format: string | null;
+  sample_rate: number | null;
+  bit_depth: number | null;
+}
+
+/** Albums agrégés pour la vue cartes. `filters` = les mêmes paramètres de
+ *  facette que /library/tracks et /library/facets. */
+export async function getAlbumsDetailed(
+  filters?: Record<string, string | number>,
+  limit = 500,
+  offset = 0,
+): Promise<{ items: AlbumDetailed[]; total: number }> {
+  const params = new URLSearchParams();
+  if (filters) for (const [k, v] of Object.entries(filters)) params.set(k, String(v));
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+  return fetchJSON<{ items: AlbumDetailed[]; total: number }>(`${BASE}/library/albums-detailed?${params}`);
 }
 
 export interface FolderChild { name: string; path: string; count: number; has_children: boolean; }
