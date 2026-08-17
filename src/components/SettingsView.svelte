@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import SettingHint from './SettingHint.svelte';
   import { tip } from '../lib/tooltip';
   import { dialogs } from '../lib/stores/dialogs';
@@ -2352,6 +2352,31 @@ function setSettingsLevel(level: SettingsLevel) {
     }, 10000);
   }
 
+  /**
+   * Retrouver un enrichissement déjà en cours à l'ouverture de l'écran.
+   *
+   * Le sondage n'était lancé que par le bouton. Quitter l'écran détruisait le
+   * composant, donc le minuteur et l'état : en revenant, l'affichage était
+   * muet alors que le serveur travaillait toujours — et l'utilisateur relançait
+   * la passe sans savoir s'il doublait le travail (Bilou,
+   * tune-server-rust#1867).
+   *
+   * L'état est pourtant persistant côté serveur (réglage `enrich_all_status`,
+   * exposé par `/library/enrich-all/status`) : il suffisait de le demander.
+   */
+  async function reprendreEnrichissementEnCours() {
+    try {
+      const status = await api.getBatchEnrichStatus();
+      if (status?.status !== 'running') return;
+      batchEnrichRunning = true;
+      batchEnrichCurrent = status.enriched ?? 0;
+      batchEnrichTotal = status.total ?? 0;
+      pollBatchEnrich();
+    } catch {
+      /* pas d'enrichissement en cours, ou serveur muet : rien à restaurer */
+    }
+  }
+
   // --- Artist image enrichment (async: POST returns 202, work runs minutes) ---
   // Without progress the button looked like it "did nothing" (Bruno #1286): the
   // ~2s were just the 202 ack. Poll the status endpoint and show progress.
@@ -2571,7 +2596,14 @@ function setSettingsLevel(level: SettingsLevel) {
     loadEqExpertBands();
     loadIngestSettings();
     fetchYoutubeAuthStatus();
+    reprendreEnrichissementEnCours();
     if (pushEnabled) initPushNotifications();
+  });
+
+  // Arrêter le sondage quand l'écran disparaît : sans cela l'intervalle
+  // continue d'interroger le serveur pour un composant détruit.
+  onDestroy(() => {
+    if (batchEnrichTimer) { clearInterval(batchEnrichTimer); batchEnrichTimer = null; }
   });
 
   // Shortcut capture/restore for a SPECIFIC settings sub-page (Elie): expose
