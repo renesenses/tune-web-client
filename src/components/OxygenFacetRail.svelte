@@ -3,6 +3,7 @@
   import type { FacetValue, FolderChild, FolderCrumb } from '../lib/api';
   import { get } from 'svelte/store';
   import { t } from '../lib/i18n';
+  import { OXYGEN_FACETS_ALL } from '../lib/stores/preferences';
   import OxygenFolderFacet from './OxygenFolderFacet.svelte';
 
   interface Props {
@@ -23,15 +24,6 @@
     folderCrumbs = [], folderChildren = [], folderLoading = false, onFolderDrill = () => {},
   }: Props = $props();
 
-  const FIELD_LABELS: Record<string, string> = {
-    genre: 'Genres', label: 'Labels', year: 'Années', artist: 'Artistes',
-    composer: 'Compositeurs',
-    country: 'Pays', mood: 'Moods', source: 'Support',
-    format: 'Format', sample_rate: 'Fréquence', bit_depth: 'Résolution',
-    rating: 'Note', collection: 'Collections', original_year: 'Enregistrement',
-    favorite: 'Favoris', playlist: 'Listes de lecture', untagged: 'Sans étiquette',
-    folder: 'Répertoire',
-  };
   // Fields computable client-side from Track columns (fallback when the server
   // index is unavailable). k/v fields (country/mood/source) need the server.
   // Technical dimensions (format/sample_rate/bit_depth) are plain Track columns,
@@ -68,7 +60,18 @@
     return value;
   }
 
-  const shown = $derived(facets.filter(f => f in FIELD_LABELS));
+  // UNE SEULE source de vérité : la liste des facettes livrées vit dans les
+  // préférences, et c'est elle qui décide de ce que le rail sait rendre.
+  //
+  // Avant, une table `FIELD_LABELS` locale doublait cette liste — et servait
+  // UNIQUEMENT de test d'appartenance, ses libellés français codés en dur
+  // n'étant plus affichés depuis que l'en-tête passe par `$t`. Une facette
+  // absente de cette table disparaissait donc SANS UN MOT : c'est ce qui est
+  // arrivé à `collection`, `folder`, `rating` et `untagged` (bf46fad7), et il a
+  // fallu des mois pour les ramener une par une. Deux listes à tenir à jour, une
+  // seule visible du développeur qui ajoute une facette.
+  const RENDERABLE: ReadonlySet<string> = new Set(OXYGEN_FACETS_ALL);
+  const shown = $derived(facets.filter(f => RENDERABLE.has(f)));
 
   // ---- Index alphabétique -------------------------------------------------
   // Sur 8 873 artistes (bibliothèque de Bertrand), dérouler la liste n'est pas
