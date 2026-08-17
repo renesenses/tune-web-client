@@ -4381,3 +4381,88 @@ export async function bandcampAllCollection(): Promise<BandcampItem[]> {
   }
   return tout;
 }
+
+// --- Bandcamp : explorer le catalogue ---
+//
+// La collection répond à « qu'ai-je acheté ? ». Ces appels-ci répondent à
+// « qu'y a-t-il chez Bandcamp ? » — et c'est ce qui rend l'écran utile à qui
+// n'a encore rien acheté, ou dont la collection est vide.
+//
+// Le serveur normalise les réponses de Bandcamp avant de les rendre : les
+// champs ci-dessous sont ceux du plugin, pas ceux de Bandcamp, qui changent
+// sans préavis.
+
+/** Un résultat de navigation : album, piste ou artiste. */
+export interface BandcampResultat {
+  id?: number;
+  titre: string;
+  artiste: string | null;
+  url: string;
+  pochette?: string | null;
+  genre?: string | null;
+  lieu?: string | null;
+  /** Extrait mp3-128 offert par Bandcamp, quand il y en a un. */
+  extrait?: string | null;
+  album?: string | null;
+}
+
+export interface BandcampDecouverte {
+  tag: string;
+  sort: string;
+  page: number;
+  items: BandcampResultat[];
+  qualite: string;
+  lossless: boolean;
+}
+
+export interface BandcampRecherche {
+  q: string;
+  artistes: BandcampResultat[];
+  albums: BandcampResultat[];
+  pistes: BandcampResultat[];
+}
+
+export interface BandcampPiste {
+  num: number;
+  title: string;
+  artist: string;
+  duration_s: number;
+  stream_url: string;
+  quality: string;
+  track_id?: number;
+}
+
+export interface BandcampAlbumDetail {
+  title: string;
+  artist: string;
+  url: string;
+  art_id?: number;
+  track_count: number;
+  tracks: BandcampPiste[];
+  quality: string;
+  lossless: boolean;
+  quality_note?: string;
+}
+
+/** Les genres proposés par Bandcamp. Liste stable, servie par le plugin. */
+export function bandcampTags() {
+  return fetchJSON<{ tags: string[] }>(`${BASE}/ext/bandcamp/tags`);
+}
+
+/** Parcourir un genre. `sort` : `top`, `new` ou `rec`. */
+export function bandcampDiscover(tag: string, sort = 'top', page = 0) {
+  const p = new URLSearchParams({ tag, sort, page: String(page) });
+  return fetchJSON<BandcampDecouverte>(`${BASE}/ext/bandcamp/discover?${p}`);
+}
+
+/** Rechercher artistes, albums et pistes. */
+export function bandcampSearch(q: string) {
+  const p = new URLSearchParams({ q });
+  return fetchJSON<BandcampRecherche>(`${BASE}/ext/bandcamp/search?${p}`);
+}
+
+/** Résoudre une page publique Bandcamp en pistes écoutables (mp3-128). */
+export function bandcampAlbum(url: string) {
+  const p = new URLSearchParams({ url });
+  return fetchJSON<BandcampAlbumDetail>(`${BASE}/ext/bandcamp/album?${p}`);
+}
