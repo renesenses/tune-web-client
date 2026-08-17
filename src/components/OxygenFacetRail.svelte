@@ -28,7 +28,7 @@
     composer: 'Compositeurs',
     country: 'Pays', mood: 'Moods', source: 'Support',
     format: 'Format', sample_rate: 'Fréquence', bit_depth: 'Résolution',
-    rating: 'Note', collection: 'Collections',
+    rating: 'Note', collection: 'Collections', original_year: 'Enregistrement',
     favorite: 'Favoris', playlist: 'Listes de lecture', untagged: 'Sans étiquette',
     folder: 'Répertoire',
   };

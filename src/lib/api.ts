@@ -1201,6 +1201,7 @@ export async function getFilteredTracks(opts: {
   favorite?: string;      // Oxygen favorite facet: 'track' | 'album' (profile 1)
   playlist?: string;      // Oxygen playlist facet: playlist name
   untagged?: string;      // Oxygen untagged facet: 'genre'|'year'|'artist'|'album'|'cover'
+  original_year?: number; // Oxygen recording-year facet (albums.original_year)
   limit?: number;
   offset?: number;
 }): Promise<{ items: Track[]; total: number }> {
