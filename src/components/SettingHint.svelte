@@ -110,7 +110,14 @@
     z-index: 30;
     width: max-content;
     max-width: min(340px, 70vw);
-    background: var(--tune-surface-hover, #2a2a35);
+    /* Fond OPAQUE : `--tune-surface-hover` est une teinte de survol —
+       `rgba(60, 60, 63, 0.3)` en thème sombre — faite pour être posée SUR une
+       surface, pas pour en tenir lieu. En fond d'une bulle flottante, la page
+       transparaissait au travers et le texte se mélangeait aux boutons situés
+       dessous : illisible dans les Réglages, où les bulles surplombent la
+       rangée d'actions (Jean Valjean, tune-server-rust#1875).
+       `--tune-surface` est opaque dans les quatre thèmes. */
+    background: var(--tune-surface, #2a2a35);
     color: var(--tune-text);
     border: 1px solid var(--tune-border);
     border-radius: var(--radius-sm, 6px);
