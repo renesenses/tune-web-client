@@ -12,6 +12,8 @@
   import VolumeControl from './VolumeControl.svelte';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
+  import ZoneTypeIcon from './ZoneTypeIcon.svelte';
+  import { zoneTypeLabel, zoneDeviceName, zoneChipLabel, zoneFullLabel } from '../lib/zoneIdentity';
   import { t } from '../lib/i18n';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
   import type { OutputType, RepeatMode } from '../lib/types';
@@ -26,19 +28,14 @@
     volumeLocked,
   } from '../lib/stores/audiophile';
 
-  function deviceTypeLabel(type?: OutputType): string {
-    switch (type) {
-      case 'dlna': return 'DLNA';
-      case 'airplay': return 'AirPlay';
-      case 'chromecast': return 'Cast';
-      case 'bluos': return 'BluOS';
-      case 'openhome': return 'OpenHome';
-      case 'sonos': return 'Sonos';
-      case 'browser': return 'Browser';
-      case 'local': return '';
-      default: return '';
-    }
-  }
+  // Le libellé de protocole vivait ici en copie locale (il en existe encore
+  // deux autres, Sidebar et BottomTabBar). Il est passé dans `lib/zoneIdentity`
+  // avec le reste de l'identité de zone, pour que le pictogramme, le nom
+  // d'appareil et le nom de protocole ne puissent pas diverger entre la
+  // pastille et la liste déroulante — c'est exactement ce qui produisait le
+  // signalement de FabienM (#1460) : la barre latérale montrait le type, la
+  // barre de lecture non.
+  const deviceTypeLabel = zoneTypeLabel;
 
   // --- Mobile Volume Popup ---
   let mobileVolumeOpen = $state(false);
@@ -821,17 +818,22 @@
         class:zone-online={zone?.online !== false && zone?.recovery_started_at == null}
         onclick={(e) => { e.stopPropagation(); showZoneDropdown = !showZoneDropdown; }}
         oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); if (zone) configZone = zone; }}
-        title={zone?.name ? `${zone.name} — ${$t('zone.switchZone')}` : $t('zone.switchZone')}
-        aria-label={zone?.name ?? $t('zone.switchZone')}
+        title={zone ? `${zoneFullLabel(zone)} — ${$t('zone.switchZone')}` : $t('zone.switchZone')}
+        aria-label={zone ? zoneFullLabel(zone) : $t('zone.switchZone')}
       >
-        <!-- Spotify-style "Connect to a device" icon (monitor + speaker). -->
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="2.5" y="4.5" width="13" height="10" rx="1.5" />
-          <path d="M6.5 18h6" />
-          <path d="M9.5 14.5V18" />
-          <rect x="18" y="8.5" width="3.5" height="10" rx="1" />
-        </svg>
-        <span class="zone-status-pip"></span>
+        <!-- Le pictogramme suit le TYPE de la zone. Il portait jusqu'ici le
+             même dessin pour toutes, si bien que la barre de lecture ne disait
+             pas où jouait la musique (FabienM, #1460) — alors que la barre
+             latérale, elle, montrait déjà le type. -->
+        <span class="zone-icon-wrap">
+          <ZoneTypeIcon type={zone?.output_type} size={20} />
+          <span class="zone-status-pip"></span>
+        </span>
+        <!-- L'appareil par son nom, le nom de zone en repli. C'est lui qui
+             sépare deux zones du MÊME type, que le pictogramme confond par
+             construction. Masqué sous 980px : la pastille y redevient un
+             carré, comme le reste de la barre se dépouille. -->
+        <span class="truncate zone-chip-label">{zoneChipLabel(zone)}</span>
       </button>
       {#if showZoneDropdown}
         <div class="zone-popover-backdrop" onclick={() => showZoneDropdown = false} onkeydown={(e) => { if (e.key === 'Escape') showZoneDropdown = false; }} role="button" tabindex={0} aria-label="Close zone selector"></div>
@@ -847,7 +849,17 @@
               onclick={() => { if (z.id !== null) currentZoneId.set(z.id); showZoneDropdown = false; }}
             >
               <span class="zone-dot" class:online={z.online !== false && z.recovery_started_at == null} class:recovering={z.recovery_started_at != null}></span>
-              <span class="zone-popover-name truncate">{z.name}</span>
+              <span class="zone-popover-icon"><ZoneTypeIcon type={z.output_type} size={16} /></span>
+              <!-- Nom de zone au-dessus, appareil en dessous : deux zones
+                   nommées « Salon » et « Chambre » ne disent pas SUR QUOI
+                   elles jouent, et c'est la question posée. La seconde ligne
+                   ne s'affiche que si elle apporte autre chose que le nom. -->
+              <span class="zone-popover-labels">
+                <span class="zone-popover-name truncate">{z.name}</span>
+                {#if zoneDeviceName(z) && zoneDeviceName(z) !== z.name}
+                  <span class="zone-popover-device truncate">{zoneDeviceName(z)}</span>
+                {/if}
+              </span>
               <span class="zone-popover-meta">
                 {#if deviceTypeLabel(z.output_type)}
                   <span class="zone-popover-badge">{deviceTypeLabel(z.output_type)}</span>
@@ -1056,6 +1068,17 @@
     }
     .zone-selector-btn {
       max-width: 120px;
+    }
+    /* Sous cette largeur, le libellé d'appareil est ce qui part en premier :
+       la pastille redevient le carré qu'elle était, et l'infobulle continue de
+       donner zone, appareil et protocole. */
+    .zone-chip-label {
+      display: none;
+    }
+    .zone-icon-btn {
+      max-width: 32px;
+      padding: 0;
+      justify-content: center;
     }
     .transport-right :global(.volume-slider) {
       width: 100px;
@@ -1469,12 +1492,19 @@
     position: relative;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 32px;
+    /* La pastille portait un carré de 32px, icône centrée et rien d'autre.
+       Elle porte désormais le nom de l'appareil à côté du pictogramme
+       (FabienM, #1460), donc elle s'élargit à son contenu — et retombe au
+       carré quand le libellé est masqué, `min-width` valant alors la largeur
+       du pictogramme plus les marges. */
+    justify-content: flex-start;
+    gap: 7px;
+    width: auto;
+    min-width: 32px;
+    max-width: 210px;
     height: 32px;
-    padding: 0;
-    max-width: none;
-    min-width: 0;
+    padding: 0 9px 0 6px;
+    overflow: hidden;
     background: none;
     border: none;
     border-radius: var(--radius-md);
@@ -1497,10 +1527,28 @@
     color: var(--tune-text-muted, #666);
   }
   /* Small status pip at the icon's corner. */
+  /* Le pictogramme et sa pastille d'état forment un bloc solidaire : la pastille
+     doit rester collée à l'icône, pas au coin du bouton — sinon elle atterrit
+     sous la fin du libellé dès que celui-ci s'affiche. */
+  .zone-icon-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+  .zone-chip-label {
+    font-size: 12.5px;
+    min-width: 0;
+    flex: 0 1 auto;
+    line-height: 1;
+  }
   .zone-status-pip {
     position: absolute;
-    right: 3px;
-    bottom: 3px;
+    right: -2px;
+    bottom: -2px;
     width: 6px;
     height: 6px;
     border-radius: 50%;
@@ -1656,9 +1704,26 @@
     transition: background 0.1s;
   }
 
-  .zone-popover-item > .zone-popover-name {
+  /* Le bloc de texte porte désormais deux lignes (nom de zone, appareil) :
+     c'est lui qui prend la place restante et qui tronque, pas le nom seul. */
+  .zone-popover-item > .zone-popover-labels {
     min-width: 0;
     flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .zone-popover-device {
+    font-size: 11px;
+    color: var(--tune-text-muted);
+  }
+  .zone-popover-icon {
+    display: flex;
+    flex-shrink: 0;
+    color: var(--tune-text-muted);
+  }
+  .zone-popover-item.active .zone-popover-icon {
+    color: inherit;
   }
 
   .zone-popover-item:hover {
