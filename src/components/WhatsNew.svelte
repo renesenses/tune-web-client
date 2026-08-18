@@ -19,6 +19,13 @@
   let changelog = $state<ChangelogEntry[]>([]);
   let serverVersion = $state<string | null>(null);
   let loading = $state(true);
+  /**
+   * Le serveur n'a pas pu joindre la source des notes et sert son jeu de
+   * secours, figé et ancien. Sans ce drapeau, la première entrée du secours
+   * recevrait le badge « Récent » et serait présentée comme la version en
+   * cours — une affirmation fausse, là où un panneau vide n'affirmait rien.
+   */
+  let offline = $state(false);
 
   $effect(() => {
     Promise.all([
@@ -26,6 +33,7 @@
       fetch(`/api/v1/system/changelog?limit=10`)
         .then(r => r.ok ? r.json() : Promise.reject('not ok'))
         .then((data: any) => {
+          offline = data?.offline === true;
           const entries = data?.entries ?? data;
           if (!Array.isArray(entries)) return;
           changelog = entries.map((e: any) => {
@@ -45,10 +53,14 @@
     ]).finally(() => { loading = false; });
   });
 
+  // Hors ligne, on ne met AUCUNE entrée en avant : retomber sur `changelog[0]`
+  // désignerait une version de secours comme étant celle qui tourne.
   let currentEntry = $derived(
-    serverVersion
-      ? changelog.find((e) => e.version === serverVersion) ?? changelog[0]
-      : changelog[0]
+    offline
+      ? undefined
+      : serverVersion
+        ? changelog.find((e) => e.version === serverVersion) ?? changelog[0]
+        : changelog[0]
   );
 
   function handleBackdropClick(e: MouseEvent) {
@@ -61,7 +73,12 @@
 
   function close() {
     // Mark current version as seen
-    const ver = serverVersion ?? changelog[0]?.version;
+    //
+    // Hors ligne, `changelog[0]` est une entrée de secours : l'enregistrer
+    // reviendrait à noter « l'utilisateur a vu les notes de la 0.8.15 » sur un
+    // serveur 0.9.84, et à lui cacher les vraies notes au retour du réseau.
+    // `serverVersion` reste fiable s'il a pu être lu ; sinon on n'écrit rien.
+    const ver = offline ? serverVersion : (serverVersion ?? changelog[0]?.version);
     if (ver) {
       localStorage.setItem('tune_last_seen_version', ver);
     }
@@ -93,12 +110,15 @@
           <span>{$t('whatsnew.loading')}</span>
         </div>
       {:else}
+        {#if offline}
+          <p class="whatsnew-offline">{$t('whatsnew.error')}</p>
+        {/if}
         {#each changelog as entry, i}
           <div class="whatsnew-version" class:current={entry.version === currentEntry?.version}>
             <div class="version-badge">
               <span class="version-tag">v{entry.version}</span>
               <span class="version-date">{entry.date}</span>
-              {#if i === 0}
+              {#if i === 0 && !offline}
                 <span class="version-latest-badge">{$t('whatsNew.latest')}</span>
               {/if}
             </div>
@@ -262,6 +282,20 @@
   .whatsnew-body::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.15);
     border-radius: 3px;
+  }
+
+  /* Bandeau discret : il explique pourquoi les versions listées sont
+     anciennes, sans transformer le panneau en écran d'erreur. */
+  .whatsnew-offline {
+    margin: 0 0 16px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--tune-border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.4;
   }
 
   .whatsnew-loading {
