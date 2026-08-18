@@ -4,6 +4,7 @@
   import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
   import { rapprocher, type Rapprochement } from '../lib/bandcampMatch';
+  import { bandcampCharge, bandcampAttendRedemarrage } from '../lib/stores/bandcamp';
 
   // L'écran ne présente PAS Bandcamp : il répond à « qu'est-ce que j'ai acheté
   // et pas encore importé ? ». Le rapprochement se fait ici, dans le
@@ -48,6 +49,11 @@
   );
 
   onMount(() => {
+    // Ne RIEN demander tant que le routeur du plugin n'est pas monté. Sans ce
+    // garde, l'écran tirait sur `/api/v1/ext/bandcamp/…` et récoltait le 404
+    // nu d'axum, que l'utilisateur voyait tel quel — « 404 Not Found » en
+    // rouge, sans rien lui dire du geste qui manquait (#1768).
+    if (!$bandcampCharge) return () => arreter_extrait();
     charger_genres();
     explorer();
     // Couper le son en quittant l'écran : un extrait qui continue après un
@@ -199,6 +205,21 @@
     <p class="bc-sous">{$t('bandcamp.subtitle' as any)}</p>
   </header>
 
+  {#if !$bandcampCharge}
+    <!-- Le plugin est dans le binaire mais son routeur n'est pas monté. On
+         explique le geste exact plutôt que de laisser l'écran échouer : c'est
+         la promesse que le commentaire du store faisait déjà, et que la vue
+         ne tenait pas. -->
+    <section class="bc-dormant">
+      <h3>{$t('bandcamp.dormantTitle' as any)}</h3>
+      {#if $bandcampAttendRedemarrage}
+        <p>{$t('bandcamp.dormantRestart' as any)}</p>
+      {:else}
+        <p>{$t('bandcamp.dormantInstall' as any)}</p>
+      {/if}
+      <p class="bc-note">{$t('bandcamp.dormantWhy' as any)}</p>
+    </section>
+  {:else}
   <nav class="bc-modes">
     <button class:actif={mode === 'explorer'} onclick={() => (mode = 'explorer')}>
       {$t('bandcamp.explore' as any)}
@@ -403,6 +424,7 @@
       </ul>
     {/if}
   {/if}
+  {/if}
 </div>
 
 <style>
@@ -473,4 +495,11 @@
   .bc-num { color: var(--text-muted, #888); width: 1.5rem; font-variant-numeric: tabular-nums; }
   .bc-p-titre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bc-duree { color: var(--text-muted, #888); font-variant-numeric: tabular-nums; }
+
+  .bc-dormant {
+    background: var(--surface, #1b1b1b); padding: 1.25rem; border-radius: 8px;
+    max-width: 42rem;
+  }
+  .bc-dormant h3 { margin: 0 0 0.5rem; }
+  .bc-dormant p { margin: 0 0 0.5rem; }
 </style>
