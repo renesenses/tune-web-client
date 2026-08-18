@@ -252,7 +252,7 @@
       // Server-rendered markdown (includes diagnostics + recent logs).
       const resp = await fetch(`/api/v1/system/bug-report/markdown`);
       if (destroyed) return;
-      if (!resp.ok) throw new Error(`${resp.status}`);
+      if (!resp.ok) throw await api.erreurDepuisReponse(resp);
       bugReportText = await resp.text();
     } catch (e) {
       if (destroyed) return;
@@ -289,7 +289,7 @@
         body: JSON.stringify({ description: bugReportDescription.trim() }),
       });
       if (destroyed) return;
-      if (!resp.ok) throw new Error(`${resp.status}`);
+      if (!resp.ok) throw await api.erreurDepuisReponse(resp);
       const data = await resp.json().catch(() => ({}));
       if (destroyed) return;
       if (typeof data?.url === 'string') bugReportThreadUrl = data.url;
