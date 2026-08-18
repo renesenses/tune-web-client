@@ -1089,6 +1089,8 @@ export default {
   'bandcamp.noResults': "Nincs találat.",
   'bandcamp.albums': "Albumok",
   'bandcamp.artists': "Előadók",
+  'bandcamp.tracks': "Számok",
+  'bandcamp.artistFailed': "A diszkográfia nem érhető el",
   'bandcamp.previewQuality': "A részletek MP3 128 kbit/s minőségűek — ez az egyetlen minőség, amit a Bandcamp vásárlás nélkül sugároz. Az eredeti minőségért vásárolja meg az albumot.",
   'bandcamp.buyOnBandcamp': "Megvásárlás a Bandcampen",
   'bandcamp.discoverFailed': "A felfedezés nem érhető el",

@@ -918,6 +918,8 @@ export default {
   'bandcamp.noResults': "결과가 없습니다.",
   'bandcamp.albums': "앨범",
   'bandcamp.artists': "아티스트",
+  'bandcamp.tracks': "트랙",
+  'bandcamp.artistFailed': "디스코그래피를 사용할 수 없습니다",
   'bandcamp.previewQuality': "미리듣기는 MP3 128 kbit/s입니다. 구매 없이 Bandcamp가 제공하는 유일한 음질입니다. 원본 음질은 앨범을 구매하세요.",
   'bandcamp.buyOnBandcamp': "Bandcamp에서 구매",
   'bandcamp.discoverFailed': "둘러보기를 사용할 수 없습니다",

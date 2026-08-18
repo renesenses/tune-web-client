@@ -935,6 +935,8 @@ export default {
   'bandcamp.noResults': "没有结果。",
   'bandcamp.albums': "专辑",
   'bandcamp.artists': "艺人",
+  'bandcamp.tracks': "曲目",
+  'bandcamp.artistFailed': "无法获取作品列表",
   'bandcamp.previewQuality': "试听为 MP3 128 kbit/s，这是 Bandcamp 未购买时提供的唯一音质。购买专辑可获得原始音质。",
   'bandcamp.buyOnBandcamp': "在 Bandcamp 购买",
   'bandcamp.discoverFailed': "探索不可用",

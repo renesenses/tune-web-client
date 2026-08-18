@@ -942,6 +942,8 @@ export default {
   'bandcamp.noResults': "Niciun rezultat.",
   'bandcamp.albums': "Albume",
   'bandcamp.artists': "Artiști",
+  'bandcamp.tracks': "Piese",
+  'bandcamp.artistFailed': "Discografie indisponibilă",
   'bandcamp.previewQuality': "Fragmente în MP3 128 kbit/s — singura calitate difuzată de Bandcamp fără cumpărare. Cumpărați albumul pentru calitatea originală.",
   'bandcamp.buyOnBandcamp': "Cumpără pe Bandcamp",
   'bandcamp.discoverFailed': "Explorarea indisponibilă",
