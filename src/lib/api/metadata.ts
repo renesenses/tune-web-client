@@ -134,8 +134,20 @@ export function rejectSuggestion(id: number) {
   return fetchJSON(`${BASE}/metadata/suggestions/${id}/reject`, { method: 'POST' });
 }
 
+/**
+ * Applique d'un coup toutes les suggestions au-dessus d'un seuil de confiance.
+ *
+ * Appelait `/suggestions/accept-all?min_confidence=…`, une route qui n'a jamais
+ * existé côté serveur : 404 à chaque clic (#1893). La fonction, elle, existe
+ * bien — sous le nom `/suggestions/auto-apply`, et avec le seuil dans le CORPS
+ * de la requête, pas dans l'URL. Ce n'est donc pas une route à écrire, c'est un
+ * appel à corriger.
+ */
 export function acceptAllSuggestions(minConfidence = 0.9) {
-  return fetchJSON(`${BASE}/metadata/suggestions/accept-all?min_confidence=${minConfidence}`, { method: 'POST' });
+  return fetchJSON(`${BASE}/metadata/suggestions/auto-apply`, {
+    method: 'POST',
+    body: JSON.stringify({ threshold: minConfidence }),
+  });
 }
 
 // --- Cleanup helpers (years / genres / merge) ---
