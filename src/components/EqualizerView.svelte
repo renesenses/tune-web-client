@@ -578,7 +578,17 @@
       delay_ms: Math.min(CF_MAX_DELAY, Math.max(CF_MIN_DELAY, cfDelay)),
     };
     try {
-      await api.setDsp(zoneId, { crossfeed });
+      const res = await api.setDsp(zoneId, { crossfeed });
+      // Dernier point du lot 4 (#1710). Le serveur dit sur CHAQUE écriture si
+      // le réglage a atteint le flux en cours — `crossfeed_applied_live`
+      // depuis #1786 — et cet appel-ci jetait sa réponse.
+      //
+      // Le crossfeed est un réglage qu'on juge à l'oreille, immédiatement :
+      // on le pousse pour entendre la scène se resserrer. Quand il ne prend
+      // pas — zone réseau, mode PURE — et qu'on écoute, on bouge le curseur
+      // et rien ne change. C'est le silence qui se raconte ensuite comme
+      // « le crossfeed ne marche pas ».
+      signalerPortee(res?.crossfeed_applied_live);
     } catch (e) {
       // fetchJSON already surfaced the Premium popup on a 402 — don't stack.
       if ((e as Error)?.message !== 'premium_required') {
