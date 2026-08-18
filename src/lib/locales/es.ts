@@ -934,6 +934,8 @@ export default {
   'bandcamp.noResults': "Sin resultados.",
   'bandcamp.albums': "Álbumes",
   'bandcamp.artists': "Artistas",
+  'bandcamp.tracks': "Pistas",
+  'bandcamp.artistFailed': "Discografía no disponible",
   'bandcamp.previewQuality': "Muestras en MP3 128 kbit/s: la única calidad que Bandcamp emite sin compra. Compre el álbum para obtener la calidad original.",
   'bandcamp.buyOnBandcamp': "Comprar en Bandcamp",
   'bandcamp.discoverFailed': "Descubrimiento no disponible",

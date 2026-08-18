@@ -904,6 +904,8 @@ export default {
   'bandcamp.noResults': "Inga resultat.",
   'bandcamp.albums': "Album",
   'bandcamp.artists': "Artister",
+  'bandcamp.tracks': "Låtar",
+  'bandcamp.artistFailed': "Diskografin är inte tillgänglig",
   'bandcamp.previewQuality': "Smakprov i MP3 128 kbit/s — den enda kvalitet Bandcamp strömmar utan köp. Köp albumet för originalkvalitet.",
   'bandcamp.buyOnBandcamp': "Köp på Bandcamp",
   'bandcamp.discoverFailed': "Utforska är inte tillgängligt",

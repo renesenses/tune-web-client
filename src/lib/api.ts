@@ -4502,3 +4502,15 @@ export function bandcampAlbum(url: string) {
   const p = new URLSearchParams({ url });
   return fetchJSON<BandcampAlbumDetail>(`${BASE}/ext/bandcamp/album?${p}`);
 }
+
+export interface BandcampDiscographie {
+  url: string;
+  count: number;
+  albums: Array<{ titre: string; url: string; pochette?: string | null; type: string }>;
+}
+
+/** La discographie publique d'un artiste, lue sur sa page `/music`. */
+export function bandcampArtist(url: string) {
+  const p = new URLSearchParams({ url });
+  return fetchJSON<BandcampDiscographie>(`${BASE}/ext/bandcamp/artist?${p}`);
+}

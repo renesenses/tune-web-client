@@ -37,6 +37,9 @@
 
   let albumOuvert = $state<api.BandcampAlbumDetail | null>(null);
   let albumEnCours = $state(false);
+  let artisteOuvert = $state<api.BandcampDiscographie | null>(null);
+  let artisteEnCours = $state(false);
+  let artisteNom = $state('');
   /** Extrait en cours d'écoute, par URL de flux — un seul à la fois. */
   let extraitJoue = $state<string | null>(null);
   let lecteur: HTMLAudioElement | null = null;
@@ -114,6 +117,7 @@
   async function ouvrir_album(url: string) {
     albumEnCours = true;
     exploreErreur = '';
+    artisteOuvert = null;
     try {
       albumOuvert = await api.bandcampAlbum(url);
     } catch (e) {
@@ -123,9 +127,35 @@
     }
   }
 
+  /** Ouvrir la discographie d'un artiste.
+   *
+   *  L'écran n'offrait qu'un lien « Ouvrir sur Bandcamp » : cliquer un artiste
+   *  faisait donc sortir de Tune. Le serveur sait lire sa page `/music`
+   *  depuis #1768 ; on reste chez nous. */
+  async function ouvrir_artiste(url: string, nom: string) {
+    if (!url) return;
+    artisteEnCours = true;
+    exploreErreur = '';
+    albumOuvert = null;
+    artisteNom = nom;
+    try {
+      artisteOuvert = await api.bandcampArtist(url);
+    } catch (e) {
+      exploreErreur = (e as Error)?.message || $t('bandcamp.artistFailed' as any);
+      artisteOuvert = null;
+    } finally {
+      artisteEnCours = false;
+    }
+  }
+
   function fermer_album() {
     arreter_extrait();
     albumOuvert = null;
+  }
+
+  function fermer_artiste() {
+    artisteOuvert = null;
+    artisteNom = '';
   }
 
   function arreter_extrait() {
@@ -266,6 +296,75 @@
         <p class="bc-erreur">{exploreErreur}</p>
       {/if}
 
+      <!-- Les panneaux ouverts se placent ICI, au-dessus des résultats.
+           Rendus en dessous, ils tombaient sous une grille de 35 vignettes :
+           cliquer un album ne produisait rien de visible et passait pour un
+           bouton mort (#1768). -->
+      {#if albumEnCours || artisteEnCours}
+        <p class="bc-attente">{$t('bandcamp.loading' as any)}</p>
+      {/if}
+
+      {#if albumOuvert}
+        <section class="bc-album">
+          <header>
+            <div>
+              <h3>{albumOuvert.title}</h3>
+              <p class="bc-sous">{albumOuvert.artist}</p>
+            </div>
+            <button class="bc-fermer" onclick={fermer_album}>{$t('common.close' as any)}</button>
+          </header>
+          <!-- La qualité est répétée ici, sur l'écran même où l'on écoute : le
+               plugin l'annonce dans chaque réponse, encore faut-il que
+               l'utilisateur la voie avant de juger un disque. -->
+          <p class="bc-qualite">{$t('bandcamp.previewQuality' as any)}</p>
+          <ol class="bc-pistes">
+            {#each albumOuvert.tracks as p (p.stream_url)}
+              <li>
+                <button class="bc-ecouter" onclick={() => ecouter(p.stream_url)}>
+                  {extraitJoue === p.stream_url ? '⏸' : '▶'}
+                </button>
+                <span class="bc-num">{p.num}</span>
+                <span class="bc-p-titre">{p.title}</span>
+                <span class="bc-duree">{duree(p.duration_s)}</span>
+              </li>
+            {/each}
+          </ol>
+          <a href={albumOuvert.url} target="_blank" rel="noopener noreferrer">
+            {$t('bandcamp.buyOnBandcamp' as any)}
+          </a>
+        </section>
+      {/if}
+
+      {#if artisteOuvert}
+        <section class="bc-album">
+          <header>
+            <div>
+              <h3>{artisteNom}</h3>
+              <p class="bc-sous">
+                {artisteOuvert.count}
+                {$t('bandcamp.albums' as any)}
+              </p>
+            </div>
+            <button class="bc-fermer" onclick={fermer_artiste}>{$t('common.close' as any)}</button>
+          </header>
+          {#if artisteOuvert.albums.length === 0}
+            <p class="bc-vide">{$t('bandcamp.noResults' as any)}</p>
+          {:else}
+            <div class="bc-grille">
+              {#each artisteOuvert.albums as d (d.url)}
+                <button class="bc-vignette" onclick={() => ouvrir_album(d.url)}>
+                  {#if d.pochette}<img src={d.pochette} alt="" loading="lazy" />{/if}
+                  <span class="bc-v-titre">{d.titre}</span>
+                </button>
+              {/each}
+            </div>
+          {/if}
+          <a href={artisteOuvert.url} target="_blank" rel="noopener noreferrer">
+            {$t('bandcamp.openOnBandcamp' as any)}
+          </a>
+        </section>
+      {/if}
+
       {#if exploreEnCours}
         <p class="bc-attente">{$t('bandcamp.loading' as any)}</p>
       {:else if recherche}
@@ -284,15 +383,36 @@
             {/each}
           </div>
         {/if}
+        {#if recherche.pistes.length > 0}
+          <!-- Les pistes étaient calculées et JAMAIS affichées : le serveur les
+               renvoyait, l'écran les jetait. Une piste isolée s'ouvre comme un
+               album — `/album?url=` résout les deux. -->
+          <h3>{$t('bandcamp.tracks' as any)}</h3>
+          <ul class="bc-liste">
+            {#each recherche.pistes as p (p.url)}
+              <li>
+                <button class="bc-lien" onclick={() => ouvrir_album(p.url)}>
+                  <span class="bc-artiste">{p.titre}</span>
+                  <span class="bc-titre">
+                    {p.artiste}{#if p.album} — {p.album}{/if}
+                  </span>
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
         {#if recherche.artistes.length > 0}
           <h3>{$t('bandcamp.artists' as any)}</h3>
           <ul class="bc-liste">
             {#each recherche.artistes as a (a.url)}
               <li>
-                <div class="bc-item">
+                <!-- Cliquer un artiste ouvre sa discographie DANS Tune. Avant,
+                     le seul geste possible était un lien externe : chercher un
+                     artiste faisait sortir de l'application. -->
+                <button class="bc-lien" onclick={() => ouvrir_artiste(a.url, a.titre)}>
                   <span class="bc-artiste">{a.titre}</span>
                   {#if a.lieu}<span class="bc-local">{a.lieu}</span>{/if}
-                </div>
+                </button>
                 <a href={a.url} target="_blank" rel="noopener noreferrer">
                   {$t('bandcamp.openOnBandcamp' as any)}
                 </a>
@@ -316,40 +436,6 @@
       {/if}
     </section>
 
-    {#if albumEnCours}
-      <p class="bc-attente">{$t('bandcamp.loading' as any)}</p>
-    {/if}
-
-    {#if albumOuvert}
-      <section class="bc-album">
-        <header>
-          <div>
-            <h3>{albumOuvert.title}</h3>
-            <p class="bc-sous">{albumOuvert.artist}</p>
-          </div>
-          <button class="bc-fermer" onclick={fermer_album}>{$t('common.close' as any)}</button>
-        </header>
-        <!-- La qualité est répétée ici, sur l'écran même où l'on écoute : le
-             plugin l'annonce dans chaque réponse, encore faut-il que
-             l'utilisateur la voie avant de juger un disque. -->
-        <p class="bc-qualite">{$t('bandcamp.previewQuality' as any)}</p>
-        <ol class="bc-pistes">
-          {#each albumOuvert.tracks as p (p.stream_url)}
-            <li>
-              <button class="bc-ecouter" onclick={() => ecouter(p.stream_url)}>
-                {extraitJoue === p.stream_url ? '⏸' : '▶'}
-              </button>
-              <span class="bc-num">{p.num}</span>
-              <span class="bc-p-titre">{p.title}</span>
-              <span class="bc-duree">{duree(p.duration_s)}</span>
-            </li>
-          {/each}
-        </ol>
-        <a href={albumOuvert.url} target="_blank" rel="noopener noreferrer">
-          {$t('bandcamp.buyOnBandcamp' as any)}
-        </a>
-      </section>
-    {/if}
   {/if}
 
   {#if mode === 'collection' && !analyse}
@@ -502,4 +588,13 @@
   }
   .bc-dormant h3 { margin: 0 0 0.5rem; }
   .bc-dormant p { margin: 0 0 0.5rem; }
+
+  /* Une entree de liste cliquable : meme presentation que l'ancien texte
+     inerte, mais c'est un bouton — un artiste s'ouvre, il ne se lit pas. */
+  .bc-lien {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem;
+    background: none; border: 0; padding: 0; cursor: pointer; text-align: left;
+    min-width: 0; color: inherit; font: inherit;
+  }
+  .bc-lien:hover .bc-artiste { text-decoration: underline; }
 </style>
