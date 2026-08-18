@@ -2714,7 +2714,7 @@ function setSettingsLevel(level: SettingsLevel) {
     'services.perZoneFixedVolume': $zones.some((z) => !!z.fixed_volume),
     'services.perZoneDsdMode': $zones.some((z) => (z.dsd_mode ?? 'auto') !== 'auto'),
     'services.perZoneMaxSampleRate': $zones.some((z) => (z.max_sample_rate ?? 0) > 0),
-    'services.zoneAdvanced': $zones.some((z) => !!z.alac_passthrough || !!z.dlna_lpcm),
+    'services.zoneAdvanced': $zones.some((z) => !!z.alac_passthrough || !!z.aac_passthrough || !!z.dlna_lpcm),
     'services.squeezebox': !!config?.squeezebox_enabled,
     'services.hqplayer': hqplayerEnabled,
     'network.tuneServers': tunePeers.length > 0,
@@ -5037,6 +5037,17 @@ function setSettingsLevel(level: SettingsLevel) {
                               }}
                             />
                             <span>{$t('settings.alacPassthrough')}</span>
+                          </label>
+                          <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.aacPassthroughHint')}>
+                            <input
+                              type="checkbox"
+                              checked={z.aac_passthrough ?? false}
+                              onchange={async (e) => {
+                                if (z.id == null) return;
+                                await api.updateZoneAacPassthrough(z.id, (e.target as HTMLInputElement).checked);
+                              }}
+                            />
+                            <span>{$t('settings.aacPassthrough')}</span>
                           </label>
                           <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaLpcmHint')}>
                             <input

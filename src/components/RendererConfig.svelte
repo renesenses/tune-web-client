@@ -12,6 +12,7 @@
   // Optimistic local state, seeded from the zone.
   let nativeFlac = $state(zone.dlna_native_flac ?? false);
   let alacNative = $state(zone.alac_passthrough ?? false);
+  let aacNative = $state(zone.aac_passthrough ?? false);
   let cap16 = $state(zone.dlna_cap_16bit ?? false);
   // 'off' | '16' | '24'. 24-bit WAV is offered once a discovery check confirms the
   // renderer advertises audio/L24 or generic audio/wav — capping to 16-bit LPCM on
@@ -88,6 +89,10 @@
     alacNative = v;
     if (zone.id != null) save(() => api.updateZoneAlacPassthrough(zone.id!, v));
   }
+  function setAac(v: boolean) {
+    aacNative = v;
+    if (zone.id != null) save(() => api.updateZoneAacPassthrough(zone.id!, v));
+  }
   function setCap16(v: boolean) {
     cap16 = v;
     if (zone.id != null) save(() => api.updateZoneDlnaCap16bit(zone.id!, v));
@@ -162,6 +167,17 @@
       <input type="checkbox" checked={alacNative} onchange={(e) => setAlac((e.target as HTMLInputElement).checked)} />
       <span>{$t('settings.alacPassthrough')}</span>
     </label>
+    <!-- Marco Polo (#1424) : « Je le cherche au même endroit que pour forcer
+         l'ALAC mais il ne s'y trouve pas. » Le serveur portait le réglage
+         depuis la 0.9.83 ; aucun écran ne l'exposait. Il vit donc ICI, contre
+         l'ALAC, parce que c'est là qu'on est allé le chercher. -->
+    <label class="rc-toggle" title={$t('settings.aacPassthroughHint')}>
+      <input type="checkbox" checked={aacNative} onchange={(e) => setAac((e.target as HTMLInputElement).checked)} />
+      <span>{$t('settings.aacPassthrough')}</span>
+    </label>
+    {#if aacNative && forceWav !== 'off'}
+      <p class="rc-hint">{$t('renderer.aacIgnoredWhenWavForced')}</p>
+    {/if}
 
     <div class="rc-wav">
       <span class="rc-wav-label">{$t('renderer.forceWav')}</span>
