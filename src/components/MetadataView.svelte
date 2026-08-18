@@ -446,8 +446,10 @@
       // Refresh data without full reload
       const sc = await api.getCompletenessStats();
       stats = sc;
-    } catch (e) {
-      fixAlbumsResult = $t('metadata.error');
+    } catch (e: any) {
+      // « Erreur » seul ne dit ni quoi ni pourquoi. La cause est déjà
+      // disponible, autant l'afficher — c'est ce que fait le reste de l'écran.
+      fixAlbumsResult = $t('metadata.failurePrefix').replace('{error}', errText(e) ?? $t('common.serverUnreachable'));
     }
     fixingAlbums = false;
   }
@@ -459,16 +461,33 @@
       await api.startAutoFix();
       // Poll status
       const poll = setInterval(async () => {
-        const s = await api.getAutoFixStatus();
-        autoFixProgress = `${s.current}/${s.total}`;
-        if (s.status === 'completed') {
-          autoFixStatus = 'idle';
-          autoFixProgress = $t('metadata.autoFixProgress').replace('{fixed}', String(s.fixed)).replace('{suggestions}', String(s.suggestions));
+        // Le sondage doit porter sa propre garde : une exception lancée dans
+        // un rappel de setInterval ne remonte à personne, et l'intervalle
+        // n'est jamais nettoyé — le client interrogerait une route morte
+        // toutes les 2 s jusqu'à la fermeture de l'onglet.
+        try {
+          const s = await api.getAutoFixStatus();
+          autoFixProgress = `${s.current}/${s.total}`;
+          if (s.status === 'completed') {
+            autoFixStatus = 'idle';
+            autoFixProgress = $t('metadata.autoFixProgress').replace('{fixed}', String(s.fixed)).replace('{suggestions}', String(s.suggestions));
+            clearInterval(poll);
+            await loadSuggestions();
+          }
+        } catch (e: any) {
           clearInterval(poll);
-          await loadSuggestions();
+          autoFixStatus = 'idle';
+          autoFixProgress = '';
+          notifications.error($t('metadata.failurePrefix').replace('{error}', errText(e) ?? $t('common.serverUnreachable')));
         }
       }, 2000);
-    } catch { autoFixStatus = 'idle'; }
+    } catch (e: any) {
+      // Le `catch` muet d'origine remettait le statut à `idle` sans un mot :
+      // l'utilisateur voyait un scintillement et pouvait tout aussi bien
+      // conclure que la correction avait eu lieu.
+      autoFixStatus = 'idle';
+      notifications.error($t('metadata.failurePrefix').replace('{error}', errText(e) ?? $t('common.serverUnreachable')));
+    }
   }
 
   let scanDupMessage = $state<string | null>(null);
@@ -556,8 +575,16 @@
   }
 
   async function handleAcceptAll() {
-    await api.acceptAllSuggestions(0.9);
-    await loadSuggestions();
+    // Sans garde, l'échec rejetait une promesse que personne n'attrapait :
+    // `loadSuggestions()` n'était jamais atteint, la liste restait affichée
+    // telle quelle, et rien ne distinguait « aucune suggestion acceptée »
+    // d'un serveur qui refuse la route.
+    try {
+      await api.acceptAllSuggestions(0.9);
+      await loadSuggestions();
+    } catch (e: any) {
+      notifications.error($t('metadata.failurePrefix').replace('{error}', errText(e) ?? $t('common.serverUnreachable')));
+    }
   }
 
   let editAlbum = $state<Album | null>(null);
