@@ -57,7 +57,16 @@ import type {
   OutputType,
 } from './types';
 
-export const BASE = '/api/v1';
+import { baseApi, entetesRelais } from './bridge';
+
+/**
+ * Base des appels d'API.
+ *
+ * `/api/v1` en local — inchange. Servie par le relais Tune Bridge, la page
+ * pointe vers `/api/relay/{server_id}`, qui remplace exactement ce prefixe :
+ * les appels qui passent par cette base suivent sans etre touches.
+ */
+export const BASE = baseApi();
 
 function stripDoubleBase(path: string): string {
   if (path.startsWith(BASE)) return path.slice(BASE.length);
@@ -70,7 +79,7 @@ function stripDoubleBase(path: string): string {
  *  vit en localStorage et non dans un cookie. */
 export function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
   const token = getToken();
-  const headers: Record<string, string> = { ...extra };
+  const headers: Record<string, string> = { ...extra, ...entetesRelais() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   return headers;
 }
@@ -176,6 +185,7 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       'Accept-Language': acceptLang(),
       'Content-Type': 'application/json',
       ...profileHeader(),
+      ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     response = await fetch(url, {
@@ -250,6 +260,7 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
       'Accept-Language': acceptLang(),
       'Content-Type': 'application/json',
       ...profileHeader(),
+      ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     response = await fetch(url, {
@@ -4023,6 +4034,7 @@ export async function createSupportTicketMultipart(form: FormData): Promise<any>
     Accept: 'application/json',
     'Accept-Language': acceptLang(),
     ...profileHeader(),
+      ...entetesRelais(),
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}/support/tickets`, { method: 'POST', headers, body: form });

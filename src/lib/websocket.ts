@@ -3,6 +3,7 @@
 
 import type { WSEvent } from './types';
 import { apiFetch } from './api';
+import { urlWebSocket } from './bridge';
 
 type EventHandler = (event: WSEvent) => void;
 
@@ -46,8 +47,9 @@ class TuneWebSocket {
   connect() {
     // If we're in polling mode, still attempt a WS connection in the background
     // to see if WS has become available (e.g. after server restart)
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const url = `${protocol}//${window.location.host}/ws`;
+    // `/ws` en local ; `/ws/client/{server_id}?token=…` a travers le relais,
+    // dont la poignee de main ne peut pas porter d'en-tete.
+    const url = urlWebSocket();
 
     try {
       this.ws = new WebSocket(url);

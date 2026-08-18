@@ -23,6 +23,7 @@
   import { get } from 'svelte/store';
   import { t } from './lib/i18n';
   import * as api from './lib/api';
+  import { urlFlux } from './lib/bridge';
   import Sidebar from './components/Sidebar.svelte';
   import NowPlaying from './components/NowPlaying.svelte';
   import TvView from './components/TvView.svelte';
@@ -885,12 +886,16 @@ import AlarmsView from './components/AlarmsView.svelte';
               } else if (type === 'playback.resumed') {
                 // Même règle que resumeAndSync : browserResume sait
                 // recharger tout seul quand la source est morte.
-                browserResume(z?.stream_url);
+                browserResume(urlFlux(z?.stream_url, (z as any)?.stream_url_remote) ?? undefined);
               } else if (type === 'playback.started' || type === 'playback.track_changed') {
                 // Force a reload on a track change: the next track may reuse the
                 // same per-zone stream URL, and without this the ended element
                 // just replays the old track (album "repeats" — Elie).
-                if (z?.stream_url) browserPlay(z.stream_url, type === 'playback.track_changed');
+                // A travers le relais, `stream_url` pointe sur une adresse LAN
+                // qui ne mene nulle part depuis l'exterieur. Le serveur annonce
+                // aussi `stream_url_remote` : c'est celle-la qu'il faut.
+                const src = urlFlux(z?.stream_url, (z as any)?.stream_url_remote);
+                if (src) browserPlay(src, type === 'playback.track_changed');
               }
             }
 
