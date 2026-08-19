@@ -252,6 +252,11 @@ export interface Zone {
   fixed_volume?: boolean;
   /** Envoi de l'ALAC tel quel au renderer, sans transcodage. */
   alac_passthrough?: boolean;
+  /** Envoyer l'AAC tel quel au renderer au lieu de le transcoder en FLAC.
+   *  Marco Polo (#1424) : un Marantz SR7009 ou un Denon RC12 le decodent
+   *  nativement, et la source etant deja compressee avec perte, le
+   *  transcodage n'apporte aucune qualite — il retarde le premier son. */
+  aac_passthrough?: boolean;
   /**
    * AutoPlay : le serveur ajoute des morceaux similaires a la fin de la file.
    * Porte par la ZONE, en base — c'est ce que lit le poller. Desactive par

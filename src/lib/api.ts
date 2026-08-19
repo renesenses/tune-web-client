@@ -335,7 +335,7 @@ export function getZoneDevicePresets(id: number) {
  *  tout le reste du JSON communautaire est ignoré (on n'applique jamais des
  *  clés arbitraires venues du réseau sur une zone). */
 const PRESET_KEYS = [
-  'dlna_native_flac', 'alac_passthrough', 'dlna_lpcm', 'dlna_cap_16bit',
+  'dlna_native_flac', 'alac_passthrough', 'aac_passthrough', 'dlna_lpcm', 'dlna_cap_16bit',
   'dlna_wav24', 'dlna_play_delay_ms', 'gain_trim_db',
 ] as const;
 export function applyZoneDevicePreset(id: number, settings: Record<string, unknown>) {
@@ -423,6 +423,17 @@ export function updateZoneAlacPassthrough(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ alac_passthrough: enabled }),
+  });
+}
+
+/** Meme mecanique que l'ALAC (Marco Polo, #1424). Le serveur portait deja le
+ *  reglage `aac_passthrough` ; aucun ecran ne l'exposait, donc il etait
+ *  inatteignable — signale en 0.9.85 : « Le reglage n'apparait pas. Je le
+ *  cherche au meme endroit que pour forcer l'ALAC mais il ne s'y trouve pas ». */
+export function updateZoneAacPassthrough(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ aac_passthrough: enabled }),
   });
 }
 

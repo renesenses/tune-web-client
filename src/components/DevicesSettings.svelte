@@ -70,7 +70,7 @@
   const MIN_OCCURRENCES = 3;
 
   function hasLocalRendererSettings(z: Zone): boolean {
-    return !!(z.dlna_native_flac || z.alac_passthrough || z.dlna_lpcm
+    return !!(z.dlna_native_flac || z.alac_passthrough || z.aac_passthrough || z.dlna_lpcm
       || z.dlna_cap_16bit || z.dlna_wav24 || (z.dlna_play_delay_ms ?? 0) > 0
       || (z.gain_trim_db ?? 0) !== 0);
   }
