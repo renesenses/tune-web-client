@@ -13,6 +13,15 @@ export interface AcousticStatus {
    *  antérieur à la jauge de progression. */
   eligible_tracks?: number;
   pending_tracks?: number;
+  /** Pistes TRAITÉES pour le modèle courant — empreinte écrite **ou** échec
+   *  constaté. C'est ce nombre qui doit piloter la jauge : lui seul atteint le
+   *  dénominateur quand il ne reste plus rien à faire. Absent sur un serveur
+   *  antérieur, d'où le repli sur `analysed_tracks`. */
+  processed_tracks?: number;
+  /** Pistes traitées sans empreinte. Ni une file d'attente ni un blocage :
+   *  elles sont FINIES, elles ont échoué. Les taire fabrique une jauge qui
+   *  n'atteint jamais 100 %. */
+  failed_tracks?: number;
   /** Débit de la passe : 'eco' | 'equilibre' | 'rapide'. */
   throttle?: string;
   /** La passe peut-elle réellement travailler — modèle configuré ET présent ?
@@ -89,7 +98,19 @@ export const acousticStalled = derived(
 export const acousticProgress = derived(acousticStatus, ($s) => {
   const total = $s?.eligible_tracks;
   if (!$s || typeof total !== 'number' || total <= 0) return null;
-  const done = Math.min($s.analysed_tracks, total);
+  // Le numérateur est `processed`, PAS `analysed`.
+  //
+  // Une piste traitée sans empreinte — un fichier que le décodeur refuse —
+  // compte dans `processed` et pas dans `analysed`. Prendre `analysed` fige
+  // donc la jauge juste sous 100 % **à jamais**, alors que la passe a fini et
+  // ne fait plus rien. C'est exactement le défaut que #1819 a corrigé côté
+  // serveur, où le commentaire le dit noir sur blanc : « c'est `processed` qui
+  // doit piloter la barre ». Le serveur expose les deux depuis ; le client
+  // continuait de prendre le mauvais (Bilou, « CLAP bloqué à 99 % », #1479).
+  //
+  // Repli sur `analysed_tracks` pour un serveur antérieur à `processed_tracks`.
+  const done = Math.min($s.processed_tracks ?? $s.analysed_tracks, total);
+  const failed = $s.failed_tracks ?? 0;
   return {
     done,
     total,
@@ -98,6 +119,9 @@ export const acousticProgress = derived(acousticStatus, ($s) => {
     percent: Math.floor((done / total) * 100),
     remaining: Math.max(total - done, 0),
     complete: done >= total,
+    // Traitées sans empreinte. L'écran doit pouvoir les NOMMER : « 51 pistes
+    // n'ont pas pu être analysées » se comprend, une jauge coincée non.
+    failed,
   };
 });
 
@@ -115,7 +139,10 @@ export function startAcousticPolling(): () => void {
     await refreshAcousticStatus();
     const s = get(acousticStatus);
     const total = s?.eligible_tracks;
-    const done = typeof total === 'number' && total > 0 && s!.analysed_tracks >= total;
+    // Même grandeur que la jauge, sinon le suivi continuerait d'interroger le
+    // serveur pour une passe terminée — toutes les dix secondes, indéfiniment.
+    const traitees = s?.processed_tracks ?? s?.analysed_tracks ?? 0;
+    const done = typeof total === 'number' && total > 0 && traitees >= total;
     if (!s?.enabled || done) stopAcousticPolling();
   };
   stopAcousticPolling();
