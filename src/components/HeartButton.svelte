@@ -10,6 +10,7 @@
     loadProfiles,
   } from '../lib/stores/profile';
   import * as api from '../lib/api';
+  import { toggleStreamingFavorite, isStreamingFavorite } from '../lib/streamingFavorites';
 
   /** A streaming item (Qobuz/Tidal/…) to favorite, instead of a local id. */
   interface StreamingItem {
@@ -39,7 +40,7 @@
 
   // Read membership from the in-memory sets — populated once per profile.
   let isFavorite = $derived.by(() => {
-    if (streamKey) return $favoriteStreamingKeys.has(streamKey);
+    if (streaming) return isStreamingFavorite($favoriteStreamingKeys, streaming);
     if (trackId)  return $favoriteTrackIds.has(trackId);
     if (albumId)  return $favoriteAlbumIds.has(albumId);
     if (artistId) return $favoriteArtistIds.has(artistId);
@@ -67,41 +68,10 @@
     // Streaming item: profile-scoped streaming favorites (keyed by service/id),
     // a separate store/API from the local numeric-id favorites below.
     if (streaming && streamKey) {
-      const key = streamKey;
-      favoriteStreamingKeys.update((s) => { wasFav ? s.delete(key) : s.add(key); return s; });
-      try {
-        if (wasFav) {
-          await api.removeProfileStreamingFavorite(pid, {
-            item_type: streaming.itemType,
-            service: streaming.service,
-            service_id: streaming.serviceId,
-          });
-        } else {
-          await api.addProfileStreamingFavorite(pid, {
-            item_type: streaming.itemType,
-            service: streaming.service,
-            service_id: streaming.serviceId,
-            title: streaming.title,
-            artist: streaming.artist,
-            album: streaming.album,
-            cover_url: streaming.coverUrl,
-          });
-        }
-      } catch (e) {
-        favoriteStreamingKeys.update((s) => { wasFav ? s.add(key) : s.delete(key); return s; }); // revert
-        console.error('Toggle streaming favorite error:', e);
-      }
-      // Mirror to the streaming service's OWN favorites (Qobuz/Tidal/…) so the
-      // item also shows up in that service's app, not only in Tune (Fabien).
-      // Best-effort and fire-and-forget: services without a favorites API
-      // (YouTube) or a transient failure must not undo the local heart above.
-      // itemType is singular here; the service endpoint expects the plural.
-      const svcType = `${streaming.itemType}s` as 'tracks' | 'albums' | 'artists';
-      if (wasFav) {
-        api.removeStreamingFavorite(streaming.service, svcType, streaming.serviceId).catch(() => {});
-      } else {
-        api.addStreamingFavorite(streaming.service, svcType, streaming.serviceId).catch(() => {});
-      }
+      // Chemin unique, partagé avec la barre de lecture (`lib/streamingFavorites`).
+      // Il vivait ici en propre ; la barre en avait un autre, et les deux cœurs
+      // divergeaient sur la même piste (Didier, #1478).
+      await toggleStreamingFavorite(streaming);
       toggling = false;
       return;
     }

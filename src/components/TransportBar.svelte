@@ -4,7 +4,8 @@
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
   import { ytPlayerState, ytLoading } from '../lib/stores/ytPlayer';
   import { isBrowserZone, browserSetVolume, browserSeek } from '../lib/stores/browserAudio';
-  import { currentProfileId, favoriteTrackIds } from '../lib/stores/profile';
+  import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../lib/stores/profile';
+  import { toggleStreamingFavorite, isStreamingFavorite } from '../lib/streamingFavorites';
   import * as api from '../lib/api';
   import * as controls from '../lib/playback-controls';
   import AlbumArt from './AlbumArt.svelte';
@@ -240,8 +241,10 @@
     } else if (kind === 'library' && libId(track) != null) {
       isFavorite = $favoriteTrackIds.has(libId(track)!);
     } else if (kind === 'streaming') {
-      // Streaming favorites are per-service; check via API
-      checkStreamingFavorite(track!);
+      // Le magasin, pas un aller-retour reseau : c'est LUI que lit le coeur de
+      // la liste des pistes, et interroger le service donnait une reponse qui
+      // pouvait le contredire (Didier, #1478).
+      isFavorite = isStreamingFavorite($favoriteStreamingKeys, streamRef(track));
     } else {
       isFavorite = false;
     }
@@ -256,18 +259,36 @@
     }
   });
 
+  // Meme garde que pour la bibliotheque : une bascule faite depuis un autre
+  // ecran doit repeindre le coeur de la barre.
+  $effect(() => {
+    const track = $currentTrack;
+    const keys = $favoriteStreamingKeys;
+    if (getFavKind(track) === 'streaming') {
+      isFavorite = isStreamingFavorite(keys, streamRef(track));
+    }
+  });
+
+  /** Reference d'objet de service pour la piste en cours, ou null. */
+  function streamRef(track: any) {
+    if (!track?.source || track.source === 'local' || track.source === 'radio') return null;
+    const id = track.source_id ?? track.id;
+    if (id == null) return null;
+    return {
+      itemType: 'track' as const,
+      service: String(track.source),
+      serviceId: String(id),
+      title: track.title ?? undefined,
+      artist: track.artist_name ?? undefined,
+      album: (track as any).album ?? (track as any).album_title ?? undefined,
+      coverUrl: track.cover_path ?? undefined,
+    };
+  }
+
   async function checkRadioFavorite(title: string, artist: string) {
     try {
       const res = await api.apiFetch(`/radio-favorites/is-favorite?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`);
       isFavorite = res.is_favorite;
-    } catch { isFavorite = false; }
-  }
-
-  async function checkStreamingFavorite(track: NonNullable<typeof displayTrack>) {
-    try {
-      const res = await api.getStreamingFavorites(track.source!, 'tracks');
-      const favTracks: any[] = res.tracks ?? res as any ?? [];
-      isFavorite = favTracks.some((f: any) => String(f.source_id ?? f.id) === String(track.source_id ?? track.id));
     } catch { isFavorite = false; }
   }
 
@@ -310,14 +331,12 @@
           isFavorite = true;
         }
       } else if (kind === 'streaming') {
-        const itemId = String(track!.source_id ?? track!.id);
-        if (isFavorite) {
-          await api.removeStreamingFavorite(track!.source!, 'tracks', itemId);
-          isFavorite = false;
-        } else {
-          await api.addStreamingFavorite(track!.source!, 'tracks', itemId);
-          isFavorite = true;
-        }
+        // Chemin unique, partage avec HeartButton. L'ancien code n'ecrivait que
+        // dans les favoris DU SERVICE : le coeur de la liste, qui lit le magasin
+        // de Tune, restait vide (Didier, #1478).
+        const ref = streamRef(track);
+        const now = ref ? await toggleStreamingFavorite(ref) : null;
+        if (now !== null) isFavorite = now;
       }
     } catch (e) {
       console.error('toggleFavorite error:', e);
