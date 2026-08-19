@@ -899,6 +899,8 @@ export default {
   "favorites.shuffle": "Véletlenszerű",
   "favorites.localSource": "Helyi",
   "favorites.addedToFavorites": "Hozzáadva a kedvencekhez",
+  "favorites.addTrack": "Hozzáadás a kedvencekhez",
+  "favorites.removeTrack": "Eltávolítás a kedvencek közül",
   "favorites.removedFromFavorites": "Eltávolítva a kedvencekből",
   "favorites.filter": "Kedvencek",
   // Névjegy

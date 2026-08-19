@@ -17,7 +17,24 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const VISIBLE = />([^<>{}]*[a-zà-ÿ][^<>{}]*)<|(?:title|placeholder|aria-label|label)="([^"{}]+)"/g;
-const FRENCH = /(è|é\w|ê|à |ù|ç|œ|\b(?:le|la|les|des|une|un|du|dans|pour|avec|sans|sur|par|est|sont|vers|aucun|aucune)\b)/i;
+
+/**
+ * Deuxième forme, ajoutée après coup : le français glissé dans une EXPRESSION
+ * d'attribut, `title={cond ? 'Retirer des favoris' : 'Ajouter aux favoris'}`.
+ *
+ * `VISIBLE` ne pouvait pas le voir — elle exige des guillemets doubles et
+ * exclut les accolades. Le défaut a donc vécu dans la barre de lecture, visible
+ * de tout utilisateur anglophone survolant le cœur, jusqu'à ce qu'une capture
+ * d'écran de l'interface anglaise le montre en toutes lettres (19/08/2026).
+ *
+ * On ne lit que les littéraux à l'intérieur de l'expression : le reste est du
+ * code, et un identifiant français y est un choix de nommage, pas une chaîne
+ * affichée.
+ */
+const ATTR_EXPR = /(?:title|placeholder|aria-label|alt|label)=\{([^}]*)\}/g;
+const LITERAL = /'([^'\\]{4,})'|"([^"\\]{4,})"/g;
+
+const FRENCH = /(è|é\w|ê|à |ù|ç|œ|\b(?:le|la|les|des|une|un|du|dans|pour|avec|sans|sur|par|est|sont|vers|aucun|aucune|aux)\b)/i;
 
 function* svelteFiles(dir) {
   for (const name of readdirSync(dir)) {
@@ -33,11 +50,28 @@ for (const file of svelteFiles('src')) {
   lines.forEach((line, idx) => {
     const trimmed = line.trim();
     if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('<!--')) return;
-    if (line.includes('$t(')) return;
-    for (const m of line.matchAll(VISIBLE)) {
-      const text = (m[1] ?? m[2] ?? '').trim();
-      if (text.length < 4) continue;
-      if (FRENCH.test(text)) offences.push(`${file}:${idx + 1}  ${text.slice(0, 90)}`);
+
+    // `$t(` sur la ligne n'exonère plus la ligne ENTIÈRE : une ligne qui mêle
+    // une chaîne traduite et une chaîne en dur passait sans être lue, et rien
+    // ne le signalait. On ne saute donc que la forme statique, celle dont un
+    // appel `$t()` voisin peut légitimement être l'origine.
+    if (!line.includes('$t(')) {
+      for (const m of line.matchAll(VISIBLE)) {
+        const text = (m[1] ?? m[2] ?? '').trim();
+        if (text.length < 4) continue;
+        if (FRENCH.test(text)) offences.push(`${file}:${idx + 1}  ${text.slice(0, 90)}`);
+      }
+    }
+
+    // Les expressions d'attribut sont lues dans tous les cas : c'est là que le
+    // français se cache le mieux, et un `$t()` ailleurs sur la ligne n'y change
+    // rien.
+    for (const m of line.matchAll(ATTR_EXPR)) {
+      for (const lit of m[1].matchAll(LITERAL)) {
+        const text = (lit[1] ?? lit[2] ?? '').trim();
+        if (text.length < 4) continue;
+        if (FRENCH.test(text)) offences.push(`${file}:${idx + 1}  ${text.slice(0, 90)}`);
+      }
     }
   });
 }

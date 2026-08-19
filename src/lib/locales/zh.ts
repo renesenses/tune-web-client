@@ -724,6 +724,8 @@ export default {
   'favorites.artists': '艺术家',
   'favorites.empty': '暂无收藏',
   'favorites.addedToFavorites': '已添加到收藏',
+  "favorites.addTrack": "添加到收藏",
+  "favorites.removeTrack": "从收藏中移除",
   'favorites.removedFromFavorites': '已从收藏中移除',
   'favorites.filter': '收藏',
 

@@ -724,6 +724,8 @@ export default {
   'favorites.artists': '아티스트',
   'favorites.empty': '즐겨찾기 없음',
   'favorites.addedToFavorites': '즐겨찾기에 추가됨',
+  "favorites.addTrack": "즐겨찾기에 추가",
+  "favorites.removeTrack": "즐겨찾기에서 제거",
   'favorites.removedFromFavorites': '즐겨찾기에서 제거됨',
   'favorites.filter': '즐겨찾기',
 
