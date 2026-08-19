@@ -307,7 +307,7 @@
       {$t('radio.allGenres')}
     </button>
     <button class="filter-chip" class:active={filterFavorite} onclick={() => { filterFavorite = !filterFavorite; filterGenre = null; }}>
-      <svg viewBox="0 0 24 24" fill={filterFavorite ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="12" height="12"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+      <svg viewBox="0 0 24 24" fill={filterFavorite ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
       {$t('radio.favorites')}
     </button>
     {#each genres as g}
@@ -341,7 +341,7 @@
           </div>
           <div class="radio-actions">
             <button class="action-btn favorite-btn" class:is-favorite={radio.favorite} onclick={() => toggleFavorite(radio)} title={$t('radio.favorite')}>
-              <svg viewBox="0 0 24 24" fill={radio.favorite ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+              <svg viewBox="0 0 24 24" fill={radio.favorite ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
             </button>
             <button class="action-btn play-btn" onclick={() => playRadio(radio)} title={$t('radio.play')} disabled={!$currentZoneId}>
               <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><polygon points="5 3 19 12 5 21 5 3" /></svg>
