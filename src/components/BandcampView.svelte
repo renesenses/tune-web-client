@@ -5,6 +5,7 @@
   import * as api from '../lib/api';
   import { rapprocher, type Rapprochement } from '../lib/bandcampMatch';
   import { bandcampCharge, bandcampAttendRedemarrage } from '../lib/stores/bandcamp';
+  import { currentZone, playAndSync } from '../lib/stores/zones';
 
   // L'écran ne présente PAS Bandcamp : il répond à « qu'est-ce que j'ai acheté
   // et pas encore importé ? ». Le rapprochement se fait ici, dans le
@@ -40,9 +41,8 @@
   let artisteOuvert = $state<api.BandcampDiscographie | null>(null);
   let artisteEnCours = $state(false);
   let artisteNom = $state('');
-  /** Extrait en cours d'écoute, par URL de flux — un seul à la fois. */
-  let extraitJoue = $state<string | null>(null);
-  let lecteur: HTMLAudioElement | null = null;
+  /** Piste dont l'envoi vers la zone est en cours, par URL de flux. */
+  let envoiEnCours = $state<string | null>(null);
 
   let manquants = $derived(resultats.filter((r) => r.verdict === 'manquante'));
   let ambigus = $derived(resultats.filter((r) => r.verdict === 'ambigue'));
@@ -56,13 +56,9 @@
     // garde, l'écran tirait sur `/api/v1/ext/bandcamp/…` et récoltait le 404
     // nu d'axum, que l'utilisateur voyait tel quel — « 404 Not Found » en
     // rouge, sans rien lui dire du geste qui manquait (#1768).
-    if (!$bandcampCharge) return () => arreter_extrait();
+    if (!$bandcampCharge) return;
     charger_genres();
     explorer();
-    // Couper le son en quittant l'écran : un extrait qui continue après un
-    // changement de vue est le genre de détail qui rend une application
-    // pénible.
-    return () => arreter_extrait();
   });
 
   async function charger_genres() {
@@ -149,7 +145,6 @@
   }
 
   function fermer_album() {
-    arreter_extrait();
     albumOuvert = null;
   }
 
@@ -158,27 +153,95 @@
     artisteNom = '';
   }
 
-  function arreter_extrait() {
-    lecteur?.pause();
-    lecteur = null;
-    extraitJoue = null;
+  /** La piste, décrite comme une piste DISTANTE — la forme que le serveur
+   *  attend depuis toujours pour tout ce qui n'a pas de ligne en bibliothèque
+   *  (`routes/playback.rs::PlayRequest` et `QueueAddRequest`, champs
+   *  identiques). Bandcamp n'invente donc aucune structure : il remplit la
+   *  même.
+   *
+   *  Le FORMAT n'est délibérément pas envoyé d'ici. Le serveur le sait — il
+   *  n'existe qu'un encodage possible — et l'affirme lui-même. Le laisser
+   *  déclarer par le client donnerait deux vérités : celle du premier clic, et
+   *  celle de l'avance de file, où aucun client ne repasse. */
+  function piste_distante(p: api.BandcampPiste) {
+    return {
+      source: 'bandcamp' as const,
+      source_id: p.stream_url,
+      title: p.title,
+      artist_name: p.artist || albumOuvert?.artist || '',
+      album_title: albumOuvert?.title ?? '',
+      cover_path: albumOuvert?.pochette ?? null,
+      duration_ms: Math.round((p.duration_s || 0) * 1000),
+    };
   }
 
-  /** Écouter un extrait dans le navigateur.
+  /** Envoyer une piste Bandcamp vers la ZONE sélectionnée.
    *
-   *  Ce n'est PAS une lecture vers une zone : c'est du mp3-128 rendu par
-   *  l'onglet, pour se faire une idée avant d'acheter. Envoyer 128 kbit/s vers
-   *  un DAC de salon serait exactement ce que #1768 s'interdit d'encourager. */
-  function ecouter(url: string) {
-    if (extraitJoue === url) return arreter_extrait();
-    arreter_extrait();
-    lecteur = new Audio(url);
-    lecteur.play().catch(() => {
-      exploreErreur = $t('bandcamp.previewFailed' as any);
-      arreter_extrait();
-    });
-    lecteur.onended = () => arreter_extrait();
-    extraitJoue = url;
+   *  L'écran faisait `new Audio(url)` : l'onglet jouait, la zone était
+   *  ignorée, et l'utilisateur — qui avait bien une zone active — concluait
+   *  qu'elle était cassée. Le raisonnement d'origine (« 128 kbit/s n'a rien à
+   *  faire sur un DAC de salon ») était défendable ; le résultat, non : un son
+   *  qui sort ailleurs SANS un mot. Bertrand a tranché en connaissance de
+   *  cause.
+   *
+   *  La contrepartie est tenue partout : la qualité est écrite sur le bouton,
+   *  répétée au-dessus de la liste, redite dans la notification, et le lecteur
+   *  affiche « MP3 128 kbit/s ». On passe par `playAndSync`, comme n'importe
+   *  quelle autre lecture — c'est lui qui remonte `zone.error` à l'écran, et
+   *  c'est par là qu'une zone qui refuse le format se fait entendre au lieu
+   *  d'échouer en silence. */
+  async function ecouter(p: api.BandcampPiste) {
+    const zone = $currentZone;
+    if (!zone?.id) {
+      exploreErreur = $t('bandcamp.noZone' as any);
+      return;
+    }
+    envoiEnCours = p.stream_url;
+    exploreErreur = '';
+    try {
+      const apres = await playAndSync(zone.id, piste_distante(p));
+      // `output_sent === false` : le serveur a bien résolu le flux mais la
+      // sortie ne l'a pas pris. C'est le cas que #1768 devait couvrir — une
+      // zone peut refuser ce format — et le seul endroit où l'utilisateur
+      // peut l'apprendre. `playAndSync` a déjà affiché `zone.error` s'il y en
+      // avait un ; ici on nomme la zone, pour qu'il sache laquelle a refusé.
+      if (apres.output_sent === false && !apres.error) {
+        notifications.error(
+          `${zone.name} — ${$t('bandcamp.zoneRefused' as any)}`,
+          8000,
+        );
+        return;
+      }
+      notifications.success(
+        `${p.title} → ${zone.name} · ${$t('bandcamp.qualityBadge' as any)}`,
+      );
+    } catch (e) {
+      exploreErreur = (e as Error)?.message || $t('bandcamp.playFailed' as any);
+    } finally {
+      envoiEnCours = null;
+    }
+  }
+
+  /** Ranger la piste dans la file d'attente de la zone.
+   *
+   *  Même route et même corps que pour une piste Tidal ou Qobuz
+   *  (`QueueAddRequest`). Une piste Bandcamp n'est pas un cas à part : elle
+   *  entre dans la file par la porte commune, et l'avance de file la
+   *  re-résout par le même chemin (`resolve_queue_item_url`). */
+  async function mettre_en_file(p: api.BandcampPiste) {
+    const zone = $currentZone;
+    if (!zone?.id) {
+      exploreErreur = $t('bandcamp.noZone' as any);
+      return;
+    }
+    try {
+      await api.addToQueue(zone.id, piste_distante(p));
+      notifications.success(
+        `${p.title} — ${$t('queue.addToQueue' as any).toLowerCase()} · ${$t('bandcamp.qualityBadge' as any)}`,
+      );
+    } catch (e) {
+      exploreErreur = (e as Error)?.message || $t('bandcamp.playFailed' as any);
+    }
   }
 
   function duree(s: number): string {
@@ -315,16 +378,48 @@
           </header>
           <!-- La qualité est répétée ici, sur l'écran même où l'on écoute : le
                plugin l'annonce dans chaque réponse, encore faut-il que
-               l'utilisateur la voie avant de juger un disque. -->
-          <p class="bc-qualite">{$t('bandcamp.previewQuality' as any)}</p>
+               l'utilisateur la voie AVANT de lancer la lecture — et non après
+               l'avoir jugé sur 128 kbit/s sans le savoir. -->
+          <p class="bc-qualite">
+            <span class="bc-debit">{$t('bandcamp.qualityBadge' as any)}</span>
+            {$t('bandcamp.previewQuality' as any)}
+          </p>
+          <!-- La zone de destination est nommée ICI, au-dessus des boutons :
+               c'est la question que l'utilisateur se posait — « où va sortir
+               le son ? » — et à laquelle l'écran ne répondait pas. -->
+          {#if $currentZone?.name}
+            <p class="bc-vers-zone">
+              {$t('bandcamp.playTo' as any)} <strong>{$currentZone.name}</strong>
+            </p>
+          {:else}
+            <p class="bc-erreur">{$t('bandcamp.noZone' as any)}</p>
+          {/if}
           <ol class="bc-pistes">
             {#each albumOuvert.tracks as p (p.stream_url)}
               <li>
-                <button class="bc-ecouter" onclick={() => ecouter(p.stream_url)}>
-                  {extraitJoue === p.stream_url ? '⏸' : '▶'}
+                <button
+                  class="bc-ecouter"
+                  disabled={envoiEnCours === p.stream_url}
+                  title="{$t('bandcamp.play' as any)} · {$t('bandcamp.qualityBadge' as any)}"
+                  aria-label="{$t('bandcamp.play' as any)} — {p.title} · {$t('bandcamp.qualityBadge' as any)}"
+                  onclick={() => ecouter(p)}
+                >
+                  {envoiEnCours === p.stream_url ? '…' : '▶'}
+                </button>
+                <button
+                  class="bc-file"
+                  title="{$t('queue.addToQueue' as any)} · {$t('bandcamp.qualityBadge' as any)}"
+                  aria-label="{$t('queue.addToQueue' as any)} — {p.title}"
+                  onclick={() => mettre_en_file(p)}
+                >
+                  ＋
                 </button>
                 <span class="bc-num">{p.num}</span>
                 <span class="bc-p-titre">{p.title}</span>
+                <!-- Le débit est écrit sur CHAQUE ligne, pas seulement en tête
+                     de liste : c'est la ligne qu'on clique, c'est là que
+                     l'information doit être. -->
+                <span class="bc-debit-piste">{$t('bandcamp.qualityBadge' as any)}</span>
                 <span class="bc-duree">{duree(p.duration_s)}</span>
               </li>
             {/each}
@@ -577,7 +672,22 @@
     display: flex; align-items: center; gap: 0.75rem; padding: 0.35rem 0;
     border-bottom: 1px solid var(--border, #2a2a2a);
   }
-  .bc-ecouter { background: none; border: 0; cursor: pointer; font-size: 1rem; }
+  .bc-ecouter, .bc-file { background: none; border: 0; cursor: pointer; font-size: 1rem; }
+  .bc-ecouter[disabled] { opacity: 0.5; cursor: default; }
+  .bc-file { color: var(--text-muted, #888); }
+  .bc-file:hover { color: var(--accent, #2b7); }
+  .bc-vers-zone { color: var(--text-muted, #aaa); font-size: 0.8125rem; margin: 0 0 0.75rem; }
+  /* Le débit ne se murmure pas : la puce le pose en tête de l'avertissement,
+     et se relit sur chaque ligne de piste. */
+  .bc-debit {
+    display: inline-block; margin-right: 0.4rem; padding: 0.05rem 0.45rem;
+    border-radius: 999px; background: var(--border, #2a2a2a);
+    color: var(--text, #ddd); font-size: 0.75rem; font-weight: 600;
+    white-space: nowrap;
+  }
+  .bc-debit-piste {
+    color: var(--text-muted, #888); font-size: 0.75rem; white-space: nowrap;
+  }
   .bc-num { color: var(--text-muted, #888); width: 1.5rem; font-variant-numeric: tabular-nums; }
   .bc-p-titre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bc-duree { color: var(--text-muted, #888); font-variant-numeric: tabular-nums; }

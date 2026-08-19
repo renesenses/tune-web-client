@@ -136,7 +136,22 @@ const SOURCE_LABELS: Record<string, string> = {
   youtube: 'YouTube',
   local: 'Local',
   radio: 'Radio',
+  bandcamp: 'Bandcamp',
 };
+
+/** Le débit annoncé pour une source qui n'en sert qu'un seul, ou `null`.
+ *
+ *  `NowPlaying` ne porte pas de champ « débit » : le chemin du signal se
+ *  décrit en format / fréquence / profondeur. Pour Bandcamp c'est insuffisant
+ *  — « MP3 44,1 kHz » ne dit pas 128 kbit/s, et un auditeur pourrait juger un
+ *  disque sur un débit qu'on ne lui a pas montré. Bandcamp ne diffuse QUE du
+ *  mp3-128 sans achat (le plugin le grave dans chaque réponse,
+ *  `BC_STREAM_QUALITY`), donc la valeur se déduit de la source sans rien
+ *  inventer. Toute autre source rend `null` : on n'affiche pas un débit
+ *  qu'on ne connaît pas. */
+export function fixedBitrateLabel(source: string | null | undefined): string | null {
+  return (source ?? '').toLowerCase() === 'bandcamp' ? '128 kbit/s' : null;
+}
 
 /** Build the source + quality label, e.g. "Tidal Hi-Res", "Qobuz 24/96", "Local FLAC" */
 export function formatQualitySource(
@@ -168,21 +183,36 @@ export function formatQualitySource(
     detail = fmt || 'Lossy';
   }
 
+  // Le débit, quand la source n'en sert qu'un seul (Bandcamp : 128 kbit/s).
+  // Sans lui, la puce affichait « Bandcamp MP3 » — vrai, mais muet sur ce qui
+  // compte ici. La décision d'ouvrir Bandcamp à la lecture vers une zone a
+  // pour contrepartie que le débit soit LU, pas seulement lisible ailleurs.
+  const debit = fixedBitrateLabel(track.source);
+  if (debit) detail = `${detail} ${debit}`;
+
   return source ? `${source} ${detail}` : detail;
 }
 
-/** Compact badge for mini player: "FLAC 96/24" */
+/** Compact badge for mini player: "FLAC 96/24", "MP3 128 kbit/s" */
 export function formatCompactQuality(
   track: {
     format?: string | null;
     sample_rate?: number | null;
     bit_depth?: number | null;
+    source?: string | null;
   } | null | undefined,
 ): string {
   if (!track) return '';
   const fmt = (track.format ?? '').toUpperCase();
   const sr = track.sample_rate ?? 0;
   const bd = track.bit_depth ?? 0;
+
+  // Pour une source à débit unique, le débit DIT plus que « 44,1/16 » — qui
+  // décrirait ici le PCM après décodage, pas ce que Bandcamp a envoyé. On le
+  // montre à sa place, jamais en plus : deux chiffres pour la même chose se
+  // contrediraient à l'œil.
+  const debit = fixedBitrateLabel(track.source);
+  if (debit) return fmt ? `${fmt} ${debit}` : debit;
 
   if (!fmt && !sr && !bd) return '';
 
@@ -214,6 +244,8 @@ export function formatQualityTooltip(
   lines.push(`Quality: ${tierLabel}`);
   lines.push(`Source: ${source}`);
   lines.push(`Format: ${fmt}`);
+  const debit = fixedBitrateLabel(track.source);
+  if (debit) lines.push(`Bitrate: ${debit}`);
   if (sr > 0) lines.push(`Sample rate: ${(sr / 1000).toFixed(sr % 1000 === 0 ? 0 : 1)} kHz`);
   if (bd > 0) lines.push(`Bit depth: ${bd}-bit`);
   return lines.join('\n');

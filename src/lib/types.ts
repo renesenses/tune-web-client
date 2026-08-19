@@ -1,7 +1,11 @@
 // Types mirroring tune-server Pydantic models
 
 // Enums
-export type Source = 'local' | 'tidal' | 'qobuz' | 'youtube' | 'amazon' | 'spotify' | 'deezer' | 'radio';
+// `bandcamp` est une source DISTANTE au même titre que `radio` : une URL déjà
+// jouable, sans service authentifié derrière. Le serveur la résout par la même
+// porte (`Orchestrator::resolve_direct_url`), et la file d'attente la range
+// comme les autres pistes distantes.
+export type Source = 'local' | 'tidal' | 'qobuz' | 'youtube' | 'amazon' | 'spotify' | 'deezer' | 'radio' | 'bandcamp';
 // `dsf`/`dff` sont les formats réellement portés par les fichiers DSD : les
 // omettre rendait le test de la puce « DSD » impossible selon le type (il ne
 // passait que par le repli sur l'extension du chemin).

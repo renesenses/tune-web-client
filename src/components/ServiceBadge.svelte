@@ -13,6 +13,10 @@
     youtube: { name: 'YT',      bg: '#FF0000', color: '#ffffff' },
     amazon:  { name: 'AMAZON',  bg: '#00A8E1', color: '#ffffff' },
     local:   { name: 'LOCAL',   bg: '#4B5563', color: '#ffffff' },
+    // Bandcamp est une source de lecture au même titre que les autres depuis
+    // qu'elle sort par la zone. Sans cette entrée, la puce ne s'affichait pas
+    // du tout : le lecteur ne disait pas d'où venait le morceau.
+    bandcamp:{ name: 'BANDCAMP',bg: '#1DA0C3', color: '#ffffff' },
   };
 
   let info = $derived(source ? services[source] ?? null : null);
@@ -91,6 +95,13 @@
     color: #00C8FF;
     background: rgba(0, 168, 225, 0.12);
     border: 1px solid rgba(0, 168, 225, 0.30);
+  }
+
+  /* Bandcamp: teal tones */
+  .service-badge.bandcamp {
+    color: #4FC3E0;
+    background: rgba(29, 160, 195, 0.12);
+    border: 1px solid rgba(29, 160, 195, 0.30);
   }
 
   /* Local library: neutral grey tones */
