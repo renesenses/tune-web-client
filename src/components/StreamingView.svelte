@@ -803,10 +803,24 @@
         {#if selectedAlbum.year || selectedAlbum.original_year}
           <p class="detail-meta">{formatAlbumYear(selectedAlbum)}</p>
         {/if}
-        <button class="play-all-btn" onclick={() => selectedAlbum && playStreamingAlbum(selectedAlbum)}>
-          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
-          {$tr('common.play')}
-        </button>
+        <div class="album-detail-actions">
+          <button class="play-all-btn" onclick={() => selectedAlbum && playStreamingAlbum(selectedAlbum)}>
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
+            {$tr('common.play')}
+          </button>
+          <!-- Didier (#1478) : on pouvait mettre une PISTE Qobuz en favori, jamais
+               un ALBUM — alors que l'ecran Favoris affiche ceux ajoutes depuis
+               une autre application. Tune savait les lire et les montrer, pas
+               les ajouter. La mecanique etait deja generique : il manquait le
+               bouton, pas le moteur. -->
+          {#if selectedAlbum.source_id}
+            <HeartButton
+              streaming={{ itemType: 'album', service, serviceId: String(selectedAlbum.source_id),
+                           title: selectedAlbum.title, artist: selectedAlbum.artist_name ?? undefined,
+                           coverUrl: selectedAlbum.cover_path ?? undefined }}
+              size={20} />
+          {/if}
+        </div>
       </div>
     </div>
     {#if loading}
@@ -2340,5 +2354,13 @@
 
   .genre-albums-section {
     margin-top: var(--space-md);
+  }
+
+  /* Le coeur d'album vit sur la meme ligne que « Lire » : c'est la que se
+     prennent les decisions sur un album (Didier, #1478). */
+  .album-detail-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 </style>
