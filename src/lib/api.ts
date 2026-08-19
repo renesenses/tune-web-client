@@ -84,6 +84,48 @@ export function authHeaders(extra: Record<string, string> = {}): Record<string, 
   return headers;
 }
 
+/**
+ * Construit l'erreur d'une reponse HTTP en echec, EN LISANT SON CORPS.
+ *
+ * Le serveur explique presque toujours pourquoi il refuse :
+ *
+ *   Json(json!({ "error": format!("mount failed: {stderr}") }))
+ *
+ * Ce message etait jete. Philippe Landes n'a vu que « 500 Internal Server
+ * Error » en montant un partage SMB : la cause exacte — le stderr de
+ * `mount.cifs` — avait ete produite, transmise, puis perdue ici. Chaque echec
+ * coutait alors un aller-retour avec un testeur pour retrouver une information
+ * que la machine avait deja.
+ *
+ * Robuste par construction : un corps illisible, vide, ou une page d'erreur
+ * HTML ramenent au statut seul. On n'echange jamais un message pauvre contre
+ * pas de message du tout.
+ */
+export async function erreurDepuisReponse(resp: Response): Promise<Error> {
+  let detail = '';
+  try {
+    const texte = await resp.text();
+    const t = texte.trim();
+    if (t) {
+      try {
+        const j = JSON.parse(t);
+        if (typeof j === 'string') detail = j;
+        else detail = j?.error ?? j?.message ?? j?.detail ?? '';
+      } catch {
+        // Pas du JSON. Une page d'erreur HTML n'apprend rien a l'utilisateur ;
+        // du texte brut court, si.
+        if (!t.startsWith('<')) detail = t;
+      }
+    }
+  } catch {
+    // Corps illisible (connexion coupee en cours de lecture) : le statut reste.
+  }
+  detail = String(detail ?? '').trim();
+  // Un stderr de mount.cifs peut etre long ; l'interface doit rester lisible.
+  if (detail.length > 300) detail = detail.slice(0, 300) + '…';
+  return detail ? new Error(`${resp.status} — ${detail}`) : new Error(`${resp.status}`);
+}
+
 // Generic helpers for radio favorites and custom endpoints
 export async function apiFetch(path: string): Promise<any> {
   const token = getToken();
@@ -91,7 +133,7 @@ export async function apiFetch(path: string): Promise<any> {
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { headers });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
-  if (!resp.ok) throw new Error(`${resp.status}`);
+  if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
     throw new Error('Expected JSON but received HTML — check the endpoint URL');
@@ -110,7 +152,7 @@ export async function apiPost(path: string, body?: any): Promise<any> {
     body: body ? JSON.stringify(body) : undefined,
   });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
-  if (!resp.ok) throw new Error(`${resp.status}`);
+  if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
     throw new Error('Expected JSON but received HTML — check the endpoint URL');
@@ -129,7 +171,7 @@ export async function apiPatch(path: string, body?: any): Promise<any> {
     body: body ? JSON.stringify(body) : undefined,
   });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
-  if (!resp.ok) throw new Error(`${resp.status}`);
+  if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
     throw new Error('Expected JSON but received HTML — check the endpoint URL');
@@ -143,7 +185,7 @@ export async function apiDelete(path: string): Promise<any> {
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { method: 'DELETE', headers });
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
-  if (!resp.ok) throw new Error(`${resp.status}`);
+  if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   // Tolerate empty bodies (e.g. HTTP 204 No Content from delete_radio_favorite):
   // a successful delete may return no content, which must not be treated as an error (#1266).
@@ -4094,7 +4136,7 @@ export async function getBugReportMarkdown(): Promise<string> {
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}/system/bug-report/markdown`, { headers });
-  if (!resp.ok) throw new Error(`${resp.status}`);
+  if (!resp.ok) throw await erreurDepuisReponse(resp);
   return resp.text();
 }
 
