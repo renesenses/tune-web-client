@@ -732,6 +732,8 @@ export default {
   'favorites.artists': 'Artiști',
   'favorites.empty': 'Încă niciun favorit',
   'favorites.addedToFavorites': 'Adăugat la favorite',
+  "favorites.addTrack": "Adaugă la favorite",
+  "favorites.removeTrack": "Elimină din favorite",
   'favorites.removedFromFavorites': 'Eliminat din favorite',
   'favorites.filter': 'Favorite',
 

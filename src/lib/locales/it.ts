@@ -724,6 +724,8 @@ export default {
   'favorites.artists': 'Artisti',
   'favorites.empty': 'Nessun preferito',
   'favorites.addedToFavorites': 'Aggiunto ai preferiti',
+  "favorites.addTrack": "Aggiungi ai preferiti",
+  "favorites.removeTrack": "Rimuovi dai preferiti",
   'favorites.removedFromFavorites': 'Rimosso dai preferiti',
   'favorites.filter': 'Preferiti',
 

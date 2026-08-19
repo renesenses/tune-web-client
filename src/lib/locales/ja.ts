@@ -724,6 +724,8 @@ export default {
   'favorites.artists': 'アーティスト',
   'favorites.empty': 'お気に入りはありません',
   'favorites.addedToFavorites': 'お気に入りに追加しました',
+  "favorites.addTrack": "お気に入りに追加",
+  "favorites.removeTrack": "お気に入りから削除",
   'favorites.removedFromFavorites': 'お気に入りから削除しました',
   'favorites.filter': 'お気に入り',
 

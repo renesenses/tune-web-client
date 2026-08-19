@@ -940,6 +940,8 @@ export default {
   'favorites.shuffle': 'Shuffle',
   'favorites.localSource': 'Local',
   'favorites.addedToFavorites': 'Added to favorites',
+  "favorites.addTrack": "Add to favorites",
+  "favorites.removeTrack": "Remove from favorites",
   'favorites.removedFromFavorites': 'Removed from favorites',
   'favorites.filter': 'Favorites',
 

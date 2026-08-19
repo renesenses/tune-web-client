@@ -708,6 +708,8 @@ export default {
   'favorites.artists': 'Artister',
   'favorites.empty': 'Inga favoriter än',
   'favorites.addedToFavorites': 'Tillagd bland favoriter',
+  "favorites.addTrack": "Lägg till i favoriter",
+  "favorites.removeTrack": "Ta bort från favoriter",
   'favorites.removedFromFavorites': 'Borttagen från favoriter',
   'favorites.filter': 'Favoriter',
 
