@@ -2634,6 +2634,7 @@ export default {
   "acoustic.noModel": "분석은 켜져 있지만 음향 모델을 아직 사용할 수 없습니다. 내려받기가 끝날 때까지 아무것도 분석되지 않습니다. 처음 사용할 때 자동으로 받아옵니다 — 오래 걸리면 서버의 인터넷 연결을 확인하세요.",
   "acoustic.done": "분석 완료",
   "acoustic.tracks": "곡",
+  "acoustic.failedTracks": "{count}곡을 분석할 수 없습니다. 파일은 읽었지만 디코더가 아무것도 만들어내지 못했습니다. 다시 시도하지 않습니다 — 진행률은 실제로 100 %입니다.",
   "acoustic.remaining": "남음",
   "acoustic.progress": "진행률",
   "acoustic.throttle": "분석 처리량",

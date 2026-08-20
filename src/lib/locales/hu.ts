@@ -2847,6 +2847,7 @@ export default {
   "acoustic.noModel": "Az elemzés be van kapcsolva, de az akusztikai modellje még nem érhető el: addig semmit nem elemzünk, amíg le nem töltődik. Az első használatkor magától letöltődik — ha sokáig húzódik, ellenőrizd a szerver internetkapcsolatát.",
   "acoustic.done": "Az elemzés kész",
   "acoustic.tracks": "szám",
+  "acoustic.failedTracks": "{count} szám elemzése nem sikerült: a fájlt beolvastuk, de a dekódoló nem adott eredményt. Nem próbáljuk újra — a jelző valóban 100%-on áll.",
   "acoustic.remaining": "van hátra",
   "acoustic.progress": "Haladás",
   "acoustic.throttle": "Az elemzés sebessége",

@@ -2649,6 +2649,7 @@ export default {
   "acoustic.noModel": "解析は有効ですが、音響モデルがまだ利用できません。ダウンロードが完了するまで何も解析されません。初回利用時に自動取得されます — 待ち時間が長い場合はサーバーのインターネット接続をご確認ください。",
   "acoustic.done": "解析完了",
   "acoustic.tracks": "曲",
+  "acoustic.failedTracks": "{count} 曲を解析できませんでした。ファイルは読み込めましたが、デコーダーが何も出力しませんでした。再試行はされません — 進捗は確かに 100 % です。",
   "acoustic.remaining": "残り",
   "acoustic.progress": "進捗",
   "acoustic.throttle": "解析スループット",

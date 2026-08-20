@@ -2651,6 +2651,7 @@ export default {
   "acoustic.noModel": "Die Analyse ist aktiviert, ihr akustisches Modell ist aber noch nicht verfügbar: Bis zum Download wird nichts analysiert. Es lädt sich beim ersten Gebrauch selbst — dauert es zu lange, prüfen Sie die Internetverbindung des Servers.",
   "acoustic.done": "Analyse abgeschlossen",
   "acoustic.tracks": "Titel",
+  "acoustic.failedTracks": "{count} Titel konnten nicht analysiert werden: Die Datei wurde gelesen, aber der Decoder lieferte nichts. Sie werden nicht erneut versucht — die Anzeige steht wirklich auf 100 %.",
   "acoustic.remaining": "verbleibend",
   "acoustic.progress": "Fortschritt",
   "acoustic.throttle": "Analysedurchsatz",

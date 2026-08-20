@@ -2659,6 +2659,7 @@ export default {
   "acoustic.noModel": "Analiza este activată, dar modelul său acustic nu este încă disponibil: nimic nu va fi analizat până la descărcarea lui. Se preia singur la prima utilizare — dacă așteptarea se prelungește, verificați conexiunea la internet a serverului.",
   "acoustic.done": "Analiză finalizată",
   "acoustic.tracks": "piese",
+  "acoustic.failedTracks": "{count} piese nu au putut fi analizate: fișierul a fost citit, dar decodorul nu a produs nimic. Nu vor fi reîncercate — indicatorul chiar este la 100 %.",
   "acoustic.remaining": "rămase",
   "acoustic.progress": "Progres",
   "acoustic.throttle": "Debitul analizei",
