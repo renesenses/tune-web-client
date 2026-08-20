@@ -537,6 +537,34 @@
     return text;
   }
 
+  /**
+   * Cette étape-là laisse-t-elle le signal intact ?
+   *
+   * Le serveur calcule ce drapeau POUR CHAQUE étape (`zones.rs`,
+   * `build_signal_path` : source, transcodage, volume, DSP, transport…) et le
+   * sérialise dans `steps[].bit_perfect`. Le champ était typé dans
+   * `SignalPathStep`… et lu nulle part : les trois pastilles — icône, trait,
+   * point — étaient toutes liées au verdict GLOBAL. La conséquence est double,
+   * et fausse dans les deux sens :
+   *
+   *   - un seul maillon altéré (une atténuation de volume, un égaliseur) fait
+   *     virer au gris TOUTE la chaîne, y compris la source et le transport, qui
+   *     n'ont rien fait ;
+   *   - un verdict vert peint en vert un maillon que le serveur a marqué faux.
+   *
+   * Le panneau n'existe que pour répondre « où mon signal a-t-il été touché ? ».
+   * Répéter six fois la réponse d'ensemble ne répond jamais à cette question
+   * (Jean Valjean, #1985 : « tout est en vert donc en théorie pas de
+   * modification »).
+   *
+   * Le repli sur le verdict global n'est pas décoratif : `bit_perfect` est
+   * optionnel dans `SignalPathStep` et les serveurs qui ne l'envoient pas
+   * doivent garder l'affichage d'avant, pas une chaîne entièrement grise.
+   */
+  function etapeIntacte(step: { bit_perfect?: boolean }, verdict: boolean): boolean {
+    return step.bit_perfect ?? verdict;
+  }
+
   $effect(() => {
     const tr = track;
     if (tr?.source === 'radio' && tr.title && tr.artist_name) {
@@ -1437,7 +1465,7 @@
                     {#each zone.signal_path.steps as step, i}
                       <div class="sp-step">
                         <div class="sp-step-icon-col">
-                          <div class="sp-step-icon" class:bit-perfect={zone.signal_path.bit_perfect}>
+                          <div class="sp-step-icon" class:bit-perfect={etapeIntacte(step, zone.signal_path.bit_perfect)}>
                             {#if step.name === 'Source'}
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /></svg>
                             {:else if step.name === 'Transport' || step.name === 'Decoder'}
@@ -1447,11 +1475,15 @@
                             {/if}
                           </div>
                           {#if i < zone.signal_path.steps.length - 1}
-                            <div class="sp-step-line" class:bit-perfect={zone.signal_path.bit_perfect}></div>
+                            <!-- Le trait relie deux étapes : il n'est intact que
+                                 si ses DEUX extrémités le sont. Le peindre
+                                 d'après la seule étape amont ferait descendre du
+                                 vert dans un maillon altéré. -->
+                            <div class="sp-step-line" class:bit-perfect={etapeIntacte(step, zone.signal_path.bit_perfect) && etapeIntacte(zone.signal_path.steps[i + 1], zone.signal_path.bit_perfect)}></div>
                           {/if}
                         </div>
                         <div class="sp-step-info">
-                          <span class="sp-step-name">{trDesc(step.description)} <span class="sp-step-dot" class:bit-perfect={zone.signal_path.bit_perfect}></span></span>
+                          <span class="sp-step-name">{trDesc(step.description)} <span class="sp-step-dot" class:bit-perfect={etapeIntacte(step, zone.signal_path.bit_perfect)}></span></span>
                           {#if step.detail}
                             <span class="sp-step-detail">{trDetail(step.detail)}</span>
                           {/if}

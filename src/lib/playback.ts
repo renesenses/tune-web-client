@@ -5,9 +5,18 @@ import { notifications } from './stores/notifications';
 import { queueTracks, queuePosition } from './stores/queue';
 import { t } from './i18n';
 
-/** A row a list can offer to "play from here": local (numeric `id`) or streaming
- *  (`source` + `source_id`). Favorites, search results and Bandcamp lists mix
- *  both in the same list. */
+/**
+ * A row a list can offer to "play from here": local (numeric `id`) or streaming
+ * (`source` + `source_id`). Favorites, search results and Bandcamp lists mix
+ * both in the same list.
+ *
+ * ⚠️ `title`, `artist_name` et `album_title` acceptent `null`, et ce n'est pas
+ * de la complaisance : c'est ainsi que `Track` les déclare (`types.ts`), et les
+ * six vues qui appellent `playFromHere` lui passent des `Track[]`. Les avoir
+ * typés `string | undefined` rendait chacun de ces six appels invalide — sans
+ * casser le build, puisque esbuild transpile sans résoudre les types, mais en
+ * laissant `check-svelte` rouge sur `main`, donc en bloquant toute PR web.
+ */
 export type PlayableRow = {
   id?: number | null;
   source?: string | null;
@@ -41,8 +50,13 @@ async function enfilerUneLigne(zoneId: number, t: PlayableRow): Promise<void> {
   if (estStreaming(t)) {
     await api.addToQueue(zoneId, {
       source: t.source as any, source_id: t.source_id as string,
-      title: t.title, artist_name: t.artist_name,
-      album_title: t.album_title, cover_path: t.cover_path, duration_ms: t.duration_ms,
+      // `?? undefined` et non le `null` brut : `JSON.stringify` supprime une
+      // clé `undefined` mais transmet `null`. Une ligne sans artiste connu doit
+      // OMETTRE le champ, comme le déclare `addToQueue`, pas affirmer un
+      // artiste nul.
+      title: t.title, artist_name: t.artist_name ?? undefined,
+      album_title: t.album_title ?? undefined,
+      cover_path: t.cover_path, duration_ms: t.duration_ms,
     });
   } else {
     await api.addToQueue(zoneId, { track_id: t.id as number });
