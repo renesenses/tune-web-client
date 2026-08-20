@@ -5,24 +5,23 @@ import { notifications } from './stores/notifications';
 import { queueTracks, queuePosition } from './stores/queue';
 import { t } from './i18n';
 
-/** A row a list can offer to "play from here": local (numeric `id`) or streaming
- *  (`source` + `source_id`). Favorites, search results and Bandcamp lists mix
- *  both in the same list. */
 /**
- * Une ligne jouable, locale ou de service.
+ * A row a list can offer to "play from here": local (numeric `id`) or streaming
+ * (`source` + `source_id`). Favorites, search results and Bandcamp lists mix
+ * both in the same list.
  *
- * ⚠️ `artist_name` et `album_title` acceptent `null`, et ce n'est pas de la
- * complaisance : c'est ainsi que `Track` les déclare (`types.ts`), et les six
- * vues qui appellent `playFromHere` lui passent des `Track[]`. Les avoir typés
- * `string | undefined` rendait chacun de ces six appels invalide — sans casser
- * le build, puisque esbuild transpile sans résoudre les types, mais en laissant
- * `main` rouge sur `check-svelte` et donc en bloquant toutes les PR web.
+ * ⚠️ `title`, `artist_name` et `album_title` acceptent `null`, et ce n'est pas
+ * de la complaisance : c'est ainsi que `Track` les déclare (`types.ts`), et les
+ * six vues qui appellent `playFromHere` lui passent des `Track[]`. Les avoir
+ * typés `string | undefined` rendait chacun de ces six appels invalide — sans
+ * casser le build, puisque esbuild transpile sans résoudre les types, mais en
+ * laissant `check-svelte` rouge sur `main`, donc en bloquant toute PR web.
  */
 export type PlayableRow = {
   id?: number | null;
   source?: string | null;
   source_id?: string | null;
-  title?: string;
+  title?: string | null;
   artist_name?: string | null;
   album_title?: string | null;
   cover_path?: string | null;

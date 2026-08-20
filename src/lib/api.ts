@@ -800,7 +800,10 @@ export function listStereoPairs() {
  *  signature, si bien qu'un appelant TypeScript ne pouvait pas les envoyer
  *  sans mentir au compilateur.
  */
-export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string; artist_name?: string; album_title?: string; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number }) {
+// Comme `addToQueue` : les champs descriptifs acceptent `null`, que le serveur
+// reçoit en `Option<String>`. Le type `Track` les déclare `string | null`, et
+// sans cela chaque appelant devait les blanchir en `undefined`.
+export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -876,11 +879,12 @@ export function getQueue(zoneId: number) {
 // Pas d'`album_id` ici : /queue/add ne l'accepte pas (contrairement au endpoint
 // de lecture) et répond 400. Pour enfiler un album, résoudre ses pistes via
 // getAlbumTracks() et envoyer `track_ids`.
-// `cover_path` accepte `null` : une pochette absente est une réponse, et le
-// serveur la reçoit très bien (`Option<String>`). Sans le `| null`, tout
-// appelant qui a une pochette FACULTATIVE — une piste distante, typiquement —
-// devait la blanchir en `undefined` avant d'appeler.
-export function addToQueue(zoneId: number, body: { track_id?: number; track_ids?: number[]; source?: Source | 'upload'; source_id?: string; file_path?: string; position?: number; title?: string; artist_name?: string; album_title?: string; cover_path?: string | null; duration_ms?: number }) {
+// Les champs descriptifs acceptent `null` : une pochette, un titre d'album ou
+// un artiste absents sont une réponse, et le serveur les reçoit très bien
+// (`Option<String>`). Sans le `| null`, tout appelant qui les a FACULTATIFS —
+// une piste distante, typiquement, dont le type `Track` les déclare
+// `string | null` — devait les blanchir en `undefined` avant d'appeler.
+export function addToQueue(zoneId: number, body: { track_id?: number; track_ids?: number[]; source?: Source | 'upload'; source_id?: string; file_path?: string; position?: number; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number }) {
   return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/add`, {
     method: 'POST',
     body: JSON.stringify(body),

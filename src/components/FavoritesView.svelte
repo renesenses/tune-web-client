@@ -7,6 +7,7 @@
   import { activeView } from '../lib/stores/navigation';
   import * as api from '../lib/api';
   import { t as tr } from '../lib/i18n';
+  import { notifications } from '../lib/stores/notifications';
   import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import MetadataChips from './MetadataChips.svelte';
@@ -325,16 +326,42 @@
     }
   }
 
+  // Le « + » d'un favori — local OU de service.
+  //
+  // La fonction ne connaissait que `track.id`. Un favori Qobuz/Tidal n'a pas
+  // d'identifiant local : il porte `source` + `source_id` (cf. streamToTrack et
+  // nativeToTrack juste au-dessus, qui les fabriquent). Il traversait donc le
+  // `if` SANS RIEN FAIRE, puis la file était relue quand même — l'écran donnait
+  // l'apparence d'un ajout réussi, alors qu'aucune requête n'était partie
+  // (Tades #1487, sur ses favoris). Même défaut que celui corrigé dans
+  // LibraryView et StreamingView (#1959), dans la vue qu'il utilisait vraiment.
   async function addToQueue(track: Track) {
-    if (!zone?.id) return;
+    if (!zone?.id) {
+      notifications.error($tr('library.noZoneSelectedSelectZone'));
+      return;
+    }
+    const st = track as unknown as { source?: string; source_id?: string };
     try {
       if (track.id) {
         await api.addToQueue(zone.id, { track_id: track.id });
+      } else if (st.source_id && st.source) {
+        await api.addToQueue(zone.id, {
+          source: st.source as any, source_id: st.source_id,
+          title: track.title, artist_name: track.artist_name,
+          album_title: track.album_title, cover_path: track.cover_path,
+          duration_ms: track.duration_ms,
+        });
+      } else {
+        // Un « + » qui ne fait rien est indistinguable d'un « + » cassé.
+        notifications.error($tr('queue.addFailed'));
+        console.error('addToQueue: favori sans identifiant exploitable', track);
+        return;
       }
       const qs = await api.getQueue(zone.id);
       queueTracks.set(qs.tracks);
       queuePosition.set(qs.position);
     } catch (e) {
+      notifications.error($tr('queue.addFailed'));
       console.error('Add to queue error:', e);
     }
   }
