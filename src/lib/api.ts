@@ -4223,9 +4223,20 @@ export async function downloadConversion(jobId: string): Promise<string> {
   return URL.createObjectURL(blob);
 }
 
+/** Annuler une conversion en cours.
+ *
+ *  L'appel visait `POST /converter/cancel/{id}` — ni ce chemin ni ce verbe
+ *  n'existent : annuler une conversion échouait en 404, et l'utilisateur
+ *  restait devant une tâche qu'il croyait avoir arrêtée (#2004).
+ *
+ *  La fonction existe pourtant, et complètement : `DELETE /converter/jobs/{id}`
+ *  (`routes/converter.rs`) passe la tâche en `Cancelled`, efface son répertoire
+ *  de sortie et la retire du registre. Ce n'était donc pas une route à écrire
+ *  mais une adresse ET un verbe à corriger — la réponse `{job_id, status}`
+ *  correspondait déjà au type déclaré ici. */
 export function cancelConversion(jobId: string): Promise<{ status: string }> {
-  return fetchJSON(`${BASE}/converter/cancel/${encodeURIComponent(jobId)}`, {
-    method: 'POST',
+  return fetchJSON(`${BASE}/converter/jobs/${encodeURIComponent(jobId)}`, {
+    method: 'DELETE',
   });
 }
 
