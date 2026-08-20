@@ -1097,6 +1097,7 @@ export default {
   'bandcamp.previewQuality': "A részletek MP3 128 kbit/s minőségűek — ez az egyetlen minőség, amit a Bandcamp vásárlás nélkül sugároz. Az eredeti minőségért vásárolja meg az albumot.",
   'bandcamp.buyOnBandcamp': "Megvásárlás a Bandcampen",
   'bandcamp.discoverFailed': "A felfedezés nem érhető el",
+  'bandcamp.allSubgenres': "Minden stílus",
   'bandcamp.searchFailed': "A keresés sikertelen",
   'bandcamp.albumFailed': "Az album nem olvasható",
   'bandcamp.playFailed': "A lejátszás nem indult el",

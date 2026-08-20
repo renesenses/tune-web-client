@@ -1168,6 +1168,7 @@ export default {
   'bandcamp.previewQuality': "Extraits en MP3 128 kbit/s — la seule qualité que Bandcamp diffuse sans achat. Achetez l'album pour l'obtenir en qualité d'origine.",
   'bandcamp.buyOnBandcamp': "Acheter sur Bandcamp",
   'bandcamp.discoverFailed': "Découverte indisponible",
+  'bandcamp.allSubgenres': "Tous les styles",
   'bandcamp.searchFailed': "Recherche impossible",
   'bandcamp.albumFailed': "Album illisible",
   'bandcamp.playFailed': "La lecture n'a pas pu démarrer",

@@ -26,8 +26,13 @@
   // demande ni pseudo ni compte.
   let mode = $state<'explorer' | 'collection'>('explorer');
 
-  let genres = $state<string[]>([]);
+  let genres = $state<api.BandcampGenre[]>([]);
   let genre = $state('jazz');
+  // Sous-genre courant, vide = le genre entier. Yves Corbat : Bandcamp offre
+  // une seconde rangée de styles dès qu'on choisit un genre, Tune s'arrêtait
+  // aux styles génériques (#2009).
+  let sousGenre = $state('');
+  let sousGenresDuGenre = $derived(genres.find((g) => g.slug === genre)?.sous_genres ?? []);
   let tri = $state<'top' | 'new' | 'rec'>('top');
   let decouvertes = $state<api.BandcampResultat[]>([]);
   let exploreEnCours = $state(false);
@@ -64,7 +69,9 @@
   async function charger_genres() {
     try {
       const r = await api.bandcampTags();
-      genres = r.tags ?? [];
+      // Un serveur antérieur ne rend que `tags` : on en fabrique des genres
+      // sans sous-genres plutôt que d'afficher une liste vide.
+      genres = r.genres ?? (r.tags ?? []).map((t) => ({ slug: t, label: t, sous_genres: [] }));
     } catch {
       // Les genres sont un confort de navigation : leur absence ne doit pas
       // empêcher d'explorer le genre par défaut ni de chercher.
@@ -76,7 +83,7 @@
     exploreErreur = '';
     recherche = null;
     try {
-      const r = await api.bandcampDiscover(genre, tri, 0);
+      const r = await api.bandcampDiscover(genre, tri, 0, sousGenre || undefined);
       decouvertes = r.items ?? [];
     } catch (e) {
       exploreErreur = (e as Error)?.message || $t('bandcamp.discoverFailed' as any);
@@ -106,6 +113,10 @@
 
   function choisir_genre(g: string) {
     genre = g;
+    // Changer de genre remet la seconde rangée à zéro : « post-rock » n'a
+    // aucun sens sous « jazz », et Bandcamp ignorerait le sous-genre orphelin
+    // en silence, en rendant le genre entier sans le dire.
+    sousGenre = '';
     requete = '';
     explorer();
   }
@@ -336,10 +347,30 @@
 
       {#if !recherche}
         <div class="bc-genres">
-          {#each genres as g (g)}
-            <button class:actif={g === genre} onclick={() => choisir_genre(g)}>{g}</button>
+          {#each genres as g (g.slug)}
+            <button class:actif={g.slug === genre} onclick={() => choisir_genre(g.slug)}>{g.label}</button>
           {/each}
         </div>
+        {#if sousGenresDuGenre.length > 0}
+          <div class="bc-sous-genres">
+            <button
+              class:actif={sousGenre === ''}
+              onclick={() => {
+                sousGenre = '';
+                explorer();
+              }}>{$t('bandcamp.allSubgenres' as any)}</button
+            >
+            {#each sousGenresDuGenre as sg (sg.slug)}
+              <button
+                class:actif={sg.slug === sousGenre}
+                onclick={() => {
+                  sousGenre = sg.slug;
+                  explorer();
+                }}>{sg.label}</button
+              >
+            {/each}
+          </div>
+        {/if}
         <div class="bc-tris">
           {#each ['top', 'new', 'rec'] as s (s)}
             <button
@@ -637,12 +668,17 @@
   .bc-modes button { padding: 0.4rem 1rem; border-radius: 999px; }
   .bc-modes button.actif { background: var(--accent, #2b7); color: #fff; }
 
-  .bc-genres, .bc-tris { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0.75rem 0; }
-  .bc-genres button, .bc-tris button {
+  .bc-genres, .bc-sous-genres, .bc-tris { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0.75rem 0; }
+  .bc-genres button, .bc-sous-genres button, .bc-tris button {
     padding: 0.25rem 0.7rem; border-radius: 999px; font-size: 0.8125rem;
     background: var(--surface, #1b1b1b); color: var(--text-muted, #aaa);
   }
-  .bc-genres button.actif, .bc-tris button.actif { background: var(--accent, #2b7); color: #fff; }
+  .bc-genres button.actif, .bc-sous-genres button.actif, .bc-tris button.actif { background: var(--accent, #2b7); color: #fff; }
+  /* La seconde rangée se lit comme une précision de la première : décalée,
+     un cran plus petite, et sans marge haute qui la détacherait du genre
+     qu'elle affine. */
+  .bc-sous-genres { margin-top: -0.35rem; padding-left: 0.6rem; }
+  .bc-sous-genres button { font-size: 0.75rem; }
 
   /* Grille de pochettes : c'est ce qu'on regarde en premier chez Bandcamp,
      et l'écran doit lui laisser la place. `auto-fill` pour que la même vue
