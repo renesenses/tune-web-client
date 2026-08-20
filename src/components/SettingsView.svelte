@@ -84,38 +84,46 @@
   // Le DoP transporte le DSD dans des trames PCM avec deux octets de marquage
   // par échantillon : le MOINDRE calcul sur les échantillons les détruit, et
   // le DAC lit alors du PCM brut — grésillement violent, sans erreur nulle
-  // part (Cyrille, forum 1320, #436). Trois traitements font ce calcul dans
-  // la sortie locale : le volume de zone (< 100 %), le ReplayGain (inclus
-  // dans le volume effectif — `recompute_effective_volume`, local.rs) et
-  // l'égaliseur. Chacun a son avertissement, nommé, sous le réglage DSD.
+  // part (Cyrille, forum 1320, #436).
   //
-  // `fixed_volume` n'est pas exposé au client, mais quand il est actif le
-  // serveur épingle le volume à 100 en base — `z.volume < 100` reste donc un
-  // signal fiable.
+  // ⚠️ CE N'EST PLUS À L'UTILISATEUR DE S'EN GARDER.
+  //
+  // Trois avertissements vivaient ici — volume sous 100 %, ReplayGain actif,
+  // égaliseur actif — chacun disant que le traitement « détruira les marqueurs »
+  // et demandant de le couper. **Le serveur les neutralise désormais lui-même** :
+  // l'égaliseur, le crossfeed et le convolveur sortent avant traitement sur un
+  // flux DoP (#1735, livré en 0.9.78), et le volume effectif — ReplayGain replié
+  // dedans — est épinglé à l'unité tant que dure le DoP (#1735, second lot).
+  //
+  // Les trois consignes sont donc devenues fausses, et coûteuses : elles font
+  // couper des réglages qui n'ont plus d'effet néfaste, et surtout elles
+  // laissent croire que le curseur de volume marche. Il ne marche pas, et c'est
+  // ça qu'il faut dire. Un avertissement qui ment est pire que pas
+  // d'avertissement.
+  //
+  // Le serveur détecte le DoP SUR LES OCTETS (`is_dop_pcm`) et le publie en
+  // `dop_active`. `dsd_mode` ne dit que ce qui a été demandé : le plafond
+  // « Fréquence max » peut faire retomber en PCM sans rien annoncer. Les deux
+  // servent, mais pas à la même chose — voir `dsdVolumeInerte` ci-dessous.
   function dsdWantsBitPerfect(z: { output_type?: string; dsd_mode?: string }): boolean {
     return z.output_type === 'local' && ['native', 'dop'].includes(z.dsd_mode ?? 'auto');
   }
-  // EQ par zone : l'état n'est pas dans le payload des zones, il se charge à
-  // part (`GET /zones/{id}/eq`). Uniquement pour les zones locales en DSD
-  // natif/DoP — les seules où l'avertissement peut s'afficher — et une seule
-  // fois par zone (l'échec retombe sur false : pas d'avertissement fantôme).
-  let zoneEqEnabled = $state<Record<number, boolean>>({});
-  const eqFetched = new Set<number>();
-  $effect(() => {
-    for (const z of $zones) {
-      if (z.id == null || !dsdWantsBitPerfect(z) || eqFetched.has(z.id)) continue;
-      eqFetched.add(z.id);
-      const id = z.id;
-      api
-        .getEq(id)
-        .then((eq) => {
-          zoneEqEnabled[id] = !!eq.enabled;
-        })
-        .catch(() => {
-          zoneEqEnabled[id] = false;
-        });
-    }
-  });
+  // Le volume est-il réellement inerte sur cette zone, en ce moment ?
+  //
+  // `dop_active` est la seule source qui décrive ce qui part sur le fil. Absent
+  // (serveur antérieur à la 0.9.91) il vaut `undefined` : on ne sait pas, et on
+  // n'affirme rien — l'ancien serveur, lui, laissait vraiment le volume casser
+  // le flux, et lui promettre l'inverse serait le pire des deux mondes.
+  function dsdVolumeInerte(z: { dop_active?: boolean }): boolean {
+    return z.dop_active === true;
+  }
+  // L'état de l'égaliseur par zone se chargeait ici par un `GET /zones/{id}/eq`
+  // dédié, pour alimenter l'avertissement « égaliseur actif : il détruira les
+  // marqueurs DoP ». Cet avertissement n'a plus lieu d'être — le serveur sort
+  // l'égaliseur du chemin sur un flux DoP (#1735) — et la requête n'avait plus
+  // aucun lecteur : un appel réseau par zone DSD, à chaque ouverture des
+  // réglages, pour une valeur que personne ne lisait.
+  //
   // Readable device hint from output_device_id ("local:Haut-parleurs…" →
   // "Haut-parleurs…") so two same-named zones can be told apart.
   function zoneDeviceHint(z: { output_device_id?: string | null; output_type?: string }): string {
@@ -5044,16 +5052,8 @@ function setSettingsLevel(level: SettingsLevel) {
                   {#if dopCappedToPcm(z)}
                     <p class="zone-warn">{$t('settings.maxSampleRateDsdCap')}</p>
                   {/if}
-                  {#if dsdWantsBitPerfect(z)}
-                    {#if (z.volume ?? 100) < 100}
-                      <p class="zone-warn">{$t('settings.dsdDspVolume')}</p>
-                    {/if}
-                    {#if replayGainMode !== 'off'}
-                      <p class="zone-warn">{$t('settings.dsdDspReplayGain')}</p>
-                    {/if}
-                    {#if z.id != null && zoneEqEnabled[z.id]}
-                      <p class="zone-warn">{$t('settings.dsdDspEq')}</p>
-                    {/if}
+                  {#if dsdVolumeInerte(z)}
+                    <p class="zone-note">{$t('settings.dsdVolumeNeutralised')}</p>
                   {/if}
                   {#if zoneHasAdvanced(z)}
                     <details class="zone-adv" class:lv-hidden={!lvOk('services.zoneAdvanced')}>
@@ -7929,6 +7929,10 @@ function setSettingsLevel(level: SettingsLevel) {
   /* Même gabarit que .rc-warn (RendererConfig) : un réglage qui en annule
      silencieusement un autre se dit sous le réglage, pas dans une infobulle. */
   .zone-warn { margin: 2px 0 0; font-size: 12px; line-height: 1.4; color: var(--tune-warning, #d29922); }
+  /* Constat, pas alerte : le serveur a déjà fait le nécessaire, l'utilisateur
+     n'a rien à corriger. Teinté comme du texte secondaire et non en orange,
+     pour ne pas dévaluer les vrais avertissements posés juste au-dessus. */
+  .zone-note { margin: 2px 0 0; font-size: 12px; line-height: 1.4; color: var(--tune-text-dim, #8b949e); }
   .zone-setting-checkbox { cursor: pointer; }
   .zone-select {
     padding: 4px 8px; font-size: 12px; border-radius: var(--radius-sm, 4px);
