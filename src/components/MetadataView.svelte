@@ -516,10 +516,18 @@
 
   // `keepTrackId` est optionnel côté panneau (`c?.track_id`) : sans lui, l'appel
   // partait avec keep_track_id=undefined dans l'URL. On s'abstient plutôt.
+  //
+  // Le serveur veut les DEUX pistes — celle qu'on garde et celle qu'on
+  // supprime — alors que le panneau ne connaît que celle sur laquelle on a
+  // cliqué. L'autre se déduit de la paire, qui est ici sous la main (#1893).
   async function resolveDuplicate(duplicateId: number, keepTrackId: number | undefined) {
     if (keepTrackId == null) return;
+    const paire = duplicates.find(d => d.id === duplicateId);
+    const deleteTrackId =
+      paire?.a?.track_id === keepTrackId ? paire?.b?.track_id : paire?.a?.track_id;
+    if (deleteTrackId == null || deleteTrackId === keepTrackId) return;
     try {
-      await api.resolveDuplicate(duplicateId, keepTrackId);
+      await api.resolveDuplicate(keepTrackId, deleteTrackId);
       duplicates = duplicates.filter(d => d.id !== duplicateId);
       api.getCompletenessStats().then(s => stats = s);
     } catch (e) {

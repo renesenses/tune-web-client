@@ -18,7 +18,6 @@
   "src/components/PlaylistManagerView.svelte :: Argument of type 'number | null' is not assignable to parameter of type 'number'.\\n Type 'null' is not assignable to type 'number'.",
   "src/components/PlaylistManagerView.svelte :: Block-scoped variable 'authenticatedServices' used before its declaration.",
   "src/components/PlaylistManagerView.svelte :: Variable 'authenticatedServices' is used before being assigned.",
-  "src/components/PlaylistsView.svelte :: Object literal may only specify known properties, and 'title' does not exist in type '{ track_id?: number | undefined; track_ids?: number[] | undefined; album_id?: number | undefined; playlist_id?: number | undefined; source?: Source | undefined; source_id?: string | undefined; streaming_album_id?: string | undefined; streaming_playlist_id?: string | undefined; start_index?: number | undefined; file_...'.",
   "src/components/PluginsView.svelte :: 'category' is specified more than once, so this usage will be overwritten.",
   "src/components/PluginsView.svelte :: 'compatible' is specified more than once, so this usage will be overwritten.",
   "src/components/PluginsView.svelte :: 'status' is specified more than once, so this usage will be overwritten.",
