@@ -943,6 +943,7 @@ export default {
   'bandcamp.previewQuality': "試聴は MP3 128 kbit/s です。購入なしで Bandcamp が配信する唯一の音質です。原音質はアルバムを購入してください。",
   'bandcamp.buyOnBandcamp': "Bandcamp で購入",
   'bandcamp.discoverFailed': "さがす機能を利用できません",
+  'bandcamp.allSubgenres': "すべてのスタイル",
   'bandcamp.searchFailed': "検索できませんでした",
   'bandcamp.albumFailed': "アルバムを読み取れません",
   'bandcamp.playFailed': "再生を開始できませんでした",

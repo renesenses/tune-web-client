@@ -1167,6 +1167,7 @@ export default {
   'bandcamp.previewQuality': "Previews are 128 kbit/s MP3 — the only quality Bandcamp streams without a purchase. Buy the album for the original quality.",
   'bandcamp.buyOnBandcamp': "Buy on Bandcamp",
   'bandcamp.discoverFailed': "Discovery unavailable",
+  'bandcamp.allSubgenres': "All styles",
   'bandcamp.searchFailed': "Search failed",
   'bandcamp.albumFailed': "Album unavailable",
   'bandcamp.playFailed': "Playback could not start",

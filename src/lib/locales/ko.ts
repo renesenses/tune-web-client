@@ -926,6 +926,7 @@ export default {
   'bandcamp.previewQuality': "미리듣기는 MP3 128 kbit/s입니다. 구매 없이 Bandcamp가 제공하는 유일한 음질입니다. 원본 음질은 앨범을 구매하세요.",
   'bandcamp.buyOnBandcamp': "Bandcamp에서 구매",
   'bandcamp.discoverFailed': "둘러보기를 사용할 수 없습니다",
+  'bandcamp.allSubgenres': "모든 스타일",
   'bandcamp.searchFailed': "검색하지 못했습니다",
   'bandcamp.albumFailed': "앨범을 읽을 수 없습니다",
   'bandcamp.playFailed': "재생을 시작할 수 없습니다",

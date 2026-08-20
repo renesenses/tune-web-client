@@ -4566,14 +4566,32 @@ export interface BandcampAlbumDetail {
   quality_note?: string;
 }
 
-/** Les genres proposés par Bandcamp. Liste stable, servie par le plugin. */
-export function bandcampTags() {
-  return fetchJSON<{ tags: string[] }>(`${BASE}/ext/bandcamp/tags`);
+export interface BandcampSousGenre {
+  slug: string;
+  label: string;
 }
 
-/** Parcourir un genre. `sort` : `top`, `new` ou `rec`. */
-export function bandcampDiscover(tag: string, sort = 'top', page = 0) {
+export interface BandcampGenre {
+  slug: string;
+  label: string;
+  sous_genres: BandcampSousGenre[];
+}
+
+/**
+ * Les genres proposés par Bandcamp, et leurs sous-genres.
+ *
+ * `genres` est servi par les serveurs qui lisent le catalogue chez Bandcamp ;
+ * `tags` reste rendu par tous, y compris les plus anciens. L'appelant retombe
+ * donc sur `tags` — sans sous-genres, mais sans écran vide non plus.
+ */
+export function bandcampTags() {
+  return fetchJSON<{ tags: string[]; genres?: BandcampGenre[] }>(`${BASE}/ext/bandcamp/tags`);
+}
+
+/** Parcourir un genre, éventuellement restreint à l'un de ses sous-genres. */
+export function bandcampDiscover(tag: string, sort = 'top', page = 0, subgenre?: string) {
   const p = new URLSearchParams({ tag, sort, page: String(page) });
+  if (subgenre) p.set('subgenre', subgenre);
   return fetchJSON<BandcampDecouverte>(`${BASE}/ext/bandcamp/discover?${p}`);
 }
 

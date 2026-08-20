@@ -950,6 +950,7 @@ export default {
   'bandcamp.previewQuality': "Fragmente în MP3 128 kbit/s — singura calitate difuzată de Bandcamp fără cumpărare. Cumpărați albumul pentru calitatea originală.",
   'bandcamp.buyOnBandcamp': "Cumpără pe Bandcamp",
   'bandcamp.discoverFailed': "Explorarea indisponibilă",
+  'bandcamp.allSubgenres': "Toate stilurile",
   'bandcamp.searchFailed': "Căutare eșuată",
   'bandcamp.albumFailed': "Album ilizibil",
   'bandcamp.playFailed': "Redarea nu a putut porni",
