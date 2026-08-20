@@ -102,20 +102,90 @@ export function getAutoFixStatus() {
   return fetchJSON<AutoFixStatus>(`${BASE}/metadata/auto-fix/status`);
 }
 
-export function scanDuplicates() {
-  return fetchJSON<DuplicateScanResult>(`${BASE}/metadata/duplicates/scan?limit=0`, { method: 'POST' });
+/** Une paire de doublons, telle que le PANNEAU l'attend : deux copies `a` et
+ *  `b`, chacune portant son `track_id`.
+ *
+ *  Le serveur, lui, rend `{track_a, track_b}` sous `/library/`. L'écart n'était
+ *  pas qu'un préfixe : c'est un modèle différent, et c'est pour ça qu'aucune
+ *  correction d'URL seule n'aurait suffi. L'adaptation vit ici plutôt que dans
+ *  le panneau — l'interface n'a pas à connaître la forme du serveur. */
+export interface PaireDoublon {
+  id: number;
+  a: Record<string, unknown> & { track_id: number };
+  b: Record<string, unknown> & { track_id: number };
+  type: 'track';
 }
 
-export function listDuplicates() {
-  return fetchJSON<unknown[]>(`${BASE}/metadata/duplicates`);
+/** Le chemin réel des doublons.
+ *
+ *  Tout l'écran appelait `/metadata/duplicates…` — quatre routes qui n'ont
+ *  jamais existé (#1893). Mesuré sur un serveur 0.9.88 : les quatre répondent
+ *  404, tandis que `/library/duplicates`, `/library/duplicates/smart` et
+ *  `/library/duplicates/resolve` répondent. La fonction existait ; c'est
+ *  l'adresse qui était fausse. */
+const DUP = `${BASE}/library/duplicates`;
+
+/** `duplicates/smart` compare par empreinte (durée, titre, artiste) là où
+ *  `duplicates` ne trouve que les exacts — sur une bibliothèque réelle, le
+ *  premier rend des résultats quand le second rend une liste vide. */
+async function paires(limit = 200): Promise<PaireDoublon[]> {
+  const r = await fetchJSON<{ count?: number; duplicates?: unknown[] }>(
+    `${DUP}/smart?limit=${limit}`,
+  );
+  return (r.duplicates ?? []).map((d) => {
+    const p = d as { track_a?: Record<string, unknown>; track_b?: Record<string, unknown> };
+    const a = (p.track_a ?? {}) as Record<string, unknown>;
+    const b = (p.track_b ?? {}) as Record<string, unknown>;
+    return {
+      // Pas d'identité de PAIRE côté serveur : celle de la copie `a` la
+      // désigne sans ambiguïté, deux paires ne partageant pas leur première
+      // copie dans un même lot.
+      id: Number(a.id ?? 0),
+      a: { ...a, track_id: Number(a.id ?? 0) },
+      b: { ...b, track_id: Number(b.id ?? 0) },
+      type: 'track' as const,
+    };
+  });
 }
 
-export function moveAlbumToDuplicates(albumId: number) {
-  return fetchJSON(`${BASE}/metadata/duplicates/move-album?album_id=${albumId}`, { method: 'POST' });
+/** Le « scan » n'est pas une opération distincte côté serveur : l'analyse se
+ *  fait à la lecture. On rend donc les compteurs que l'écran attend, sans
+ *  prétendre déclencher quoi que ce soit. */
+export async function scanDuplicates(): Promise<DuplicateScanResult> {
+  const p = await paires();
+  return { total_scanned: p.length * 2, duplicates_found: p.length };
 }
 
-export function resolveDuplicate(duplicateId: number, keepTrackId: number) {
-  return fetchJSON(`${BASE}/metadata/duplicates/resolve?duplicate_id=${duplicateId}&keep_track_id=${keepTrackId}`, { method: 'POST' });
+export function listDuplicates(): Promise<PaireDoublon[]> {
+  return paires();
+}
+
+/** Résoudre : garder une copie, supprimer l'autre.
+ *
+ *  Le serveur attend `{keep_id, delete_id}` dans le CORPS — deux identifiants
+ *  de PISTE. L'ancien appel envoyait un `duplicate_id` et un `keep_track_id`
+ *  en paramètres d'URL, sur une route absente : ni le chemin, ni la forme, ni
+ *  le transport n'étaient justes. */
+export function resolveDuplicate(keepTrackId: number, deleteTrackId: number) {
+  return fetchJSON(`${DUP}/resolve`, {
+    method: 'POST',
+    body: JSON.stringify({ keep_id: keepTrackId, delete_id: deleteTrackId }),
+  });
+}
+
+/** ⚠️ Sans équivalent serveur, à ce jour.
+ *
+ *  `/metadata/duplicates/move-album` n'existe nulle part, et aucune route
+ *  voisine ne fait ce qu'elle promet : `/library/albums/merge-duplicates`
+ *  FUSIONNE des albums, ce qui n'est pas « déplacer vers les doublons ».
+ *
+ *  Plutôt que de laisser un bouton partir en 404 silencieux, on échoue avec un
+ *  message que l'appelant peut montrer. Écrire la route ou retirer le bouton
+ *  est une décision produit, pas une correction (#1893). */
+export function moveAlbumToDuplicates(_albumId: number): Promise<never> {
+  return Promise.reject(
+    new Error("Déplacer un album vers les doublons n'est pas encore disponible côté serveur."),
+  );
 }
 
 /** Ne renvoie qu'un **compteur**, pas la liste : `{ pending: n }` (routes/
