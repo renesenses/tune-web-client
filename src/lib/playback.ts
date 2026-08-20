@@ -12,9 +12,9 @@ export type PlayableRow = {
   id?: number | null;
   source?: string | null;
   source_id?: string | null;
-  title?: string;
-  artist_name?: string;
-  album_title?: string;
+  title?: string | null;
+  artist_name?: string | null;
+  album_title?: string | null;
   cover_path?: string | null;
   duration_ms?: number;
 };
