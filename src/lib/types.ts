@@ -286,6 +286,24 @@ export interface Zone {
   /** Marque détectée en UPnP pour le device assigné (pré-remplissage). */
   /** Le serveur cherche encore une URL jouable (extraction YouTube longue). */
   resolving?: boolean;
+  /**
+   * La zone sert un flux DoP en ce moment — donc **le curseur de volume est
+   * sans effet**.
+   *
+   * Le serveur épingle le volume à l'unité tant que dure le DoP : tout autre
+   * facteur réécrirait le marqueur du flux, le DAC quitterait le mode DSD et se
+   * couperait. C'est lui qui neutralise volume, ReplayGain et égaliseur — il n'y
+   * a plus rien à demander à l'utilisateur.
+   *
+   * ⚠️ Ce n'est PAS `dsd_mode`. Celui-ci dit ce qui a été *demandé* ; le serveur
+   * le détecte sur les octets qui partent réellement, et le plafond
+   * « Fréquence max » peut faire retomber en PCM sans rien annoncer. Ne jamais
+   * déduire l'un de l'autre.
+   *
+   * Absent des serveurs antérieurs à la 0.9.91 : `undefined` y vaut « on ne
+   * sait pas », et l'interface ne doit alors rien affirmer.
+   */
+  dop_active?: boolean;
   detected_manufacturer?: string | null;
   /** Modèle détecté en UPnP pour le device assigné (pré-remplissage). */
   detected_model?: string | null;
