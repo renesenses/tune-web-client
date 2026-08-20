@@ -69,6 +69,29 @@
         · {nf.format($acousticProgress.remaining)} {$t('acoustic.remaining')}
       {/if}
     </div>
+
+    <!--
+      Les pistes traitées SANS empreinte : un fichier que le décodeur refuse.
+      Elles comptent dans le numérateur, donc la jauge atteint bien 100 % — mais
+      sans cette ligne, l'utilisateur qui compare le compte de sa bibliothèque à
+      celui de l'analyse trouve un écart que rien n'explique, et en conclut que
+      l'analyse est bloquée. C'est exactement ce qui s'est passé : trois fils
+      forum, et un testeur qui a redémarré son serveur plusieurs fois pour un
+      état parfaitement normal.
+
+      Le magasin calcule `failed` depuis #1819 et le commentaire qui l'accompagne
+      demandait déjà cet affichage — « l'écran doit pouvoir les NOMMER ». Il n'a
+      jamais été écrit : c'est la moitié restée sur le quai.
+
+      Affiché seulement s'il y en a, et en teinte d'avertissement plutôt que
+      d'erreur : ce n'est pas une panne, c'est un reste normal sur une grande
+      bibliothèque.
+    -->
+    {#if $acousticProgress.failed > 0}
+      <div class="acx-failed">
+        {$t('acoustic.failedTracks').replace('{count}', nf.format($acousticProgress.failed))}
+      </div>
+    {/if}
   </div>
 {/if}
 
@@ -95,6 +118,11 @@
   /* Terminé = un état, pas une série : il change de couleur ET de libellé. */
   .acx-fill.complete { background: var(--tune-success); border-radius: 3px; }
   .acx-sub { font-size: 11px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
+  /* Teinte d'avertissement, pas d'erreur : sur une grande bibliothèque, quelques
+     fichiers que le décodeur refuse sont un reste normal. Ce qui n'était pas
+     normal, c'est de ne pas le dire. */
+  .acx-failed { font-size: 11px; color: var(--tune-warning, #d29922); font-variant-numeric: tabular-nums; }
+  .compact .acx-failed { font-size: 10.5px; }
   .acx-stalled { margin: 0; font-size: 12.5px; color: var(--tune-text-secondary); line-height: 1.5; }
   .compact .acx-sub { font-size: 10.5px; }
 </style>

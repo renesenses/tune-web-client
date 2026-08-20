@@ -2899,6 +2899,7 @@ export default {
   "acoustic.noModel": "L'analyse est activée mais son modèle acoustique n'est pas encore disponible : rien ne sera analysé tant qu'il n'est pas téléchargé. Il se récupère tout seul au premier usage — si l'attente se prolonge, vérifiez la connexion Internet du serveur.",
   "acoustic.done": "Analyse terminée",
   "acoustic.tracks": "titres",
+  "acoustic.failedTracks": "{count} titres n’ont pas pu être analysés : leur fichier a été lu mais le décodeur n’en a rien tiré. Ils ne repasseront pas — la jauge est bien à 100 %.",
   "acoustic.remaining": "restants",
   "acoustic.progress": "Avancement",
   "acoustic.throttle": "Débit de l'analyse",
