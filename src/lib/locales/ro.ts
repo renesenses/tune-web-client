@@ -1741,6 +1741,7 @@ export default {
   "settings.fixedVolumeHint": "Semnal trimis la 100%, fără volum software — indispensabil pentru DSD nativ (DoP). Rezistă la repornirea serverului.",
   "settings.fixedVolumeNetConfirm": "Pe acest dispozitiv de rețea, activarea trimite volumul la 100% către dispozitivul însuși: sunetul va porni la nivel maxim. Verificați volumul amplificatorului înainte de a confirma.",
   "settings.maxSampleRateHint": "Reeșantionează doar când sursa depășește acest plafon. Cu DSD nativ pe o ieșire locală, plafonează și DoP.",
+  "settings.dsdVolumeNeutralised": "DSD peste PCM: Tune neutralizează volumul, ReplayGain și egalizatorul pentru a păstra marcajele fluxului. Cursorul de volum nu are deci niciun efect cât timp rulează această piesă — reglați nivelul pe DAC sau pe amplificator.",
   "settings.maxSampleRateDsdCap": "Acest plafon transformă DSD-ul înapoi în PCM: DoP are nevoie de 176,4 kHz pentru DSD64, 352,8 kHz pentru DSD128 și 705,6 kHz pentru DSD256. Alegeți „Niciuna” sau un plafon cel puțin egal.",
   "settings.hqplayerHint": "Conectează Tune la HQPlayer pentru upsampling și filtre audiofile. Port implicit: 4321 (v4/v5) sau 8019 (v6).",
   "settings.enableHqplayer": "Activează HQPlayer",

@@ -1733,6 +1733,7 @@ export default {
   "settings.fixedVolumeHint": "Signal wird mit 100 % gesendet, ohne Software-Lautstärke — für natives DSD (DoP) erforderlich. Übersteht einen Server-Neustart.",
   "settings.fixedVolumeNetConfirm": "Bei diesem Netzwerkgerät sendet das Aktivieren 100 % Lautstärke an das Gerät selbst: Der Ton wird mit vollem Pegel wiedergegeben. Prüfen Sie die Lautstärke Ihres Verstärkers, bevor Sie bestätigen.",
   "settings.maxSampleRateHint": "Nur neu abtasten, wenn die Quelle dieses Limit überschreitet. Bei nativem DSD an einem lokalen Ausgang begrenzt es auch DoP.",
+  "settings.dsdVolumeNeutralised": "DSD über PCM: Tune deaktiviert Lautstärke, ReplayGain und Equalizer, um die Marker des Datenstroms zu erhalten. Der Lautstärkeregler hat daher keine Wirkung, solange dieser Titel läuft — stellen Sie den Pegel an Ihrem DAC oder Verstärker ein.",
   "settings.maxSampleRateDsdCap": "Dieses Limit wandelt DSD wieder in PCM: DoP benötigt 176,4 kHz für DSD64, 352,8 kHz für DSD128 und 705,6 kHz für DSD256. Wählen Sie „Keine“ oder ein mindestens ebenso hohes Limit.",
   "settings.hqplayerHint": "Verbinde Tune mit HQPlayer für Upsampling und audiophile Filter. Standardport: 4321 (v4/v5) oder 8019 (v6).",
   "settings.enableHqplayer": "HQPlayer aktivieren",
