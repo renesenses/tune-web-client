@@ -3290,11 +3290,25 @@ export function getAudiophileMode(zoneId: number) {
   return fetchJSON<{ enabled: boolean }>(`${BASE}/zones/${zoneId}/audiophile`);
 }
 
+/**
+ * Basculer le mode PURE d'une zone.
+ *
+ * `applied_live` dit si la bascule a atteint le SON tout de suite, ou seulement
+ * au prochain flux. Ce n'est pas un détail : jusqu'à ce que le serveur repousse
+ * l'état vers la sortie, cocher PURE allumait le badge pendant que l'égaliseur
+ * continuait de filtrer — c'est le signalement de Jean Valjean (#1986).
+ *
+ * Optionnel à dessein : un serveur antérieur ne renvoie pas le champ, et on
+ * n'affirme alors rien de ce qu'il ne dit pas (même règle que `setEq`).
+ */
 export function setAudiophileMode(zoneId: number, enabled: boolean) {
-  return fetchJSON<{ enabled: boolean }>(`${BASE}/zones/${zoneId}/audiophile`, {
-    method: 'POST',
-    body: JSON.stringify({ enabled }),
-  });
+  return fetchJSON<{ enabled: boolean; applied_live?: boolean }>(
+    `${BASE}/zones/${zoneId}/audiophile`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ enabled }),
+    },
+  );
 }
 
 // --- Streaming Quality ---

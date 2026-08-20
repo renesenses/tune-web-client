@@ -20,6 +20,7 @@
   import type { OutputType, RepeatMode } from '../lib/types';
   import { activeView, mobileNowPlayingOpen } from '../lib/stores/navigation';
   import { isPremium } from '../lib/stores/license';
+  import { notifications } from '../lib/stores/notifications';
   import {
     audiophileEnabled,
     audiophileLockVolume,
@@ -433,6 +434,20 @@
       if (res.enabled && $audiophileLockVolume) {
         mutedVolume.set(null);
         zoneVolume.set(1);
+      }
+      // La bascule a-t-elle atteint le SON, ou seulement le prochain flux ?
+      // Sur une zone réseau, le traitement est gravé dans le fichier déjà
+      // transcodé : le serveur programme un redémarrage, et d'ici là
+      // l'égaliseur s'entend encore malgré le badge PURE (#1986). Le taire
+      // est ce qui a fait écrire à Jean Valjean « il me semble que
+      // l'égaliseur est toujours actif ».
+      //
+      // Comparaison stricte à `false`, et non une négation booléenne : un
+      // serveur antérieur n'envoie pas le champ, et on n'affirme rien de ce
+      // qu'il ne dit pas. (Le garde lit la source telle quelle, commentaires
+      // compris — d'où la formulation en toutes lettres.)
+      if (res.applied_live === false && z.state === 'playing') {
+        notifications.info($t('eq.effectNextTrack' as any));
       }
     } catch {}
     audiophileLoading = false;

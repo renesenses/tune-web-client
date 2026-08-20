@@ -74,3 +74,45 @@ describe('garde : un réglage DSP écrit rapporte sa portée', () => {
     expect(source).not.toContain('if (!appliqueAChaud');
   });
 });
+
+/**
+ * La bascule PURE relève de la même règle, et pour une raison plus forte.
+ *
+ * L'égaliseur et le crossfeed ne promettaient qu'un réglage tardif. PURE
+ * promet que RIEN ne touche le signal — et jusqu'à ce que le serveur repousse
+ * l'état vers la sortie, le badge s'allume pendant que l'`EqProcessor` filtre
+ * encore (#1986). Sur une zone réseau, où le traitement est gravé dans le
+ * fichier transcodé, le délai subsiste même après le correctif serveur : le
+ * flux doit redémarrer. C'est exactement ce que `applied_live` sert à dire.
+ */
+describe('garde : la bascule PURE rapporte sa portée', () => {
+  const source = readFileSync(
+    resolve(__dirname, '../../components/TransportBar.svelte'),
+    'utf-8',
+  );
+
+  it('la réponse de setAudiophileMode est capturée, pas jetée', () => {
+    expect(source).toContain('api.setAudiophileMode(');
+    const jetes = source
+      .split('\n')
+      .filter((l) => {
+        const t = l.trim();
+        return t.startsWith('await api.setAudiophileMode(') || t.startsWith('void api.setAudiophileMode(');
+      });
+    expect(
+      jetes,
+      'réponse jetée : le serveur dit si la bascule a atteint le son',
+    ).toEqual([]);
+  });
+
+  it('applied_live est lu, et « faux » distingué de « absent »', () => {
+    expect(
+      source.includes('res.applied_live === false'),
+      'applied_live n’est lu nulle part : le testeur ne saura pas que PURE ' +
+        'n’a pas encore atteint le son',
+    ).toBe(true);
+    // Un serveur < 0.9.91 n'envoie pas le champ. Le raccourci booléen
+    // annoncerait « prendra effet à la piste suivante » à tout le parc.
+    expect(source).not.toContain('!res.applied_live');
+  });
+});
