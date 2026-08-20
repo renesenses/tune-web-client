@@ -308,6 +308,7 @@ export default {
   'queue.addToPlaylist': '添加到播放列表',
   'queue.removeFromQueue': '从队列中移除',
   'queue.addToQueue': '添加到队列',
+  'queue.addFailed': "无法加入队列",
 
   // Home
   'home.morning': '早上好',

@@ -280,6 +280,7 @@ export default {
   'queue.addToPlaylist': 'Lägg till i spellista',
   'queue.removeFromQueue': 'Ta bort från kön',
   'queue.addToQueue': 'Lägg till i kön',
+  'queue.addFailed': "Kunde inte läggas till i kön",
 
   // Home
   'home.morning': 'God morgon',

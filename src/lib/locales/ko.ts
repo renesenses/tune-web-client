@@ -308,6 +308,7 @@ export default {
   'queue.addToPlaylist': '재생목록에 추가',
   'queue.removeFromQueue': '대기열에서 제거',
   'queue.addToQueue': '대기열에 추가',
+  'queue.addFailed': "대기열에 추가하지 못했습니다",
 
   // Home
   'home.morning': '좋은 아침입니다',

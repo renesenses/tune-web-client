@@ -474,6 +474,7 @@ export default {
   "queue.addToPlaylist": "Hozzáadás lejátszási listához",
   "queue.removeFromQueue": "Eltávolítás a várólistáról",
   "queue.addToQueue": "Hozzáadás a várólistához",
+  "queue.addFailed": "Nem sikerült a lejátszási sorhoz adni",
   // Kezdőlap
   "home.morning": "Jó reggelt",
   "home.afternoon": "Szép napot",
