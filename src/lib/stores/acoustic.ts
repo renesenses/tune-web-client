@@ -28,6 +28,30 @@ export interface AcousticStatus {
    *  Absent sur un serveur antérieur : on suppose alors que oui, faute de
    *  mieux, plutôt que d'annoncer un problème qu'on ne sait pas constater. */
   model_ready?: boolean;
+  /** POURQUOI la passe ne travaille pas, quand elle ne travaille pas :
+   *  `playback` (elle cède le passage à la musique), `thermal`, `low_memory`,
+   *  `not_premium`. `null` quand rien ne l'empêche de tourner.
+   *
+   *  Le serveur le calcule depuis le 18/08 (#1866/#1915) et **aucun client ne
+   *  le lisait**. Le commentaire qui accompagne ce calcul dit pourquoi il
+   *  existe : « une passe en pause et une passe cassée donnaient exactement le
+   *  même écran — jauge immobile, rien qui bouge ». Bilou a ouvert #1457 sur
+   *  une analyse "qui ne démarre pas" alors qu'elle cédait le passage à sa
+   *  musique, comme prévu ; le fil #1939 repose la même question deux jours
+   *  après que le serveur a su y répondre. */
+  paused_reason?: string | null;
+  /** Où en est le téléchargement du modèle. `model_ready: false` seul confond
+   *  « jamais tenté », « en cours » et « en échec » — les trois donnaient le
+   *  même message, et l'utilisateur allait chercher la panne du côté de sa
+   *  connexion (#1658) ou concluait à une jauge bloquée (#1512). Exposé par le
+   *  serveur depuis le 15/08 (#1765), jamais lu non plus. */
+  model_fetch?: {
+    in_progress?: boolean;
+    downloaded_bytes?: number;
+    total_bytes?: number;
+    attempts?: number;
+    last_error?: string | null;
+  } | null;
 }
 
 export const acousticStatus = writable<AcousticStatus | null>(null);
@@ -92,6 +116,47 @@ export const acousticStalled = derived(
   acousticStatus,
   ($s) => $s?.enabled === true && $s?.model_ready === false,
 );
+
+/** Les raisons de pause que le serveur sait nommer, et pour lesquelles nous
+ *  avons une phrase. Toute autre valeur — une raison ajoutée côté serveur et
+ *  pas encore traduite ici — retombe sur un libellé générique plutôt que sur
+ *  un identifiant technique jeté à l'écran.
+ *
+ *  Cette liste EST le contrat : quand le serveur en ajoute une, elle doit
+ *  apparaître ici et dans les onze langues, sans quoi l'utilisateur lira
+ *  « en pause » sans savoir pourquoi — c'est-à-dire le défaut d'origine. */
+export const RAISONS_DE_PAUSE = ['playback', 'thermal', 'low_memory', 'not_premium'] as const;
+
+/** Pourquoi la passe ne travaille pas, ou `null` si rien ne l'en empêche.
+ *
+ *  `null` couvre aussi le serveur antérieur qui n'envoie pas le champ : on
+ *  n'affirme rien de ce qu'il ne dit pas, même règle que `model_ready`. */
+export const acousticPausedReason = derived(acousticStatus, ($s) => {
+  const r = $s?.paused_reason;
+  if (typeof r !== 'string' || r.length === 0) return null;
+  return {
+    raison: r,
+    /** Clé i18n, ou `null` pour le libellé générique. */
+    cle: (RAISONS_DE_PAUSE as readonly string[]).includes(r)
+      ? `acoustic.paused.${r}`
+      : null,
+  };
+});
+
+/** Le téléchargement du modèle a-t-il ÉCHOUÉ — par opposition à « en cours »
+ *  et à « jamais tenté », que `model_ready: false` confondait.
+ *
+ *  On ne parle d'échec que si le serveur nomme une erreur ET que rien n'est en
+ *  cours : une tentative en vol après un premier échec est un espoir, pas une
+ *  panne, et l'annoncer ferait paniquer quelqu'un dont le téléchargement va
+ *  aboutir. */
+export const acousticModelError = derived(acousticStatus, ($s) => {
+  const f = $s?.model_fetch;
+  if (!f || f.in_progress === true) return null;
+  const err = f.last_error;
+  if (typeof err !== 'string' || err.length === 0) return null;
+  return { message: err, tentatives: f.attempts ?? 0 };
+});
 
 /** Progression de l'analyse, ou `null` quand le serveur ne sait pas la dire
  *  (version antérieure, ou aucune piste analysable). */

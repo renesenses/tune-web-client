@@ -15,6 +15,8 @@
     acousticStatus,
     acousticProgress,
     acousticStalled,
+    acousticPausedReason,
+    acousticModelError,
     startAcousticPolling,
     stopAcousticPolling,
   } from '../lib/stores/acoustic';
@@ -37,6 +39,23 @@
        analyse qui piétine ; ici rien ne démarrera tant que le modèle n'est pas
        là, et le dire vaut mieux que de l'afficher. -->
   <p class="acx-stalled">{$t('acoustic.noModel')}</p>
+  <!--
+    ...et POURQUOI il n'est pas là. « Modèle absent » confondait « jamais
+    tenté », « en cours de téléchargement » et « en échec » : les trois
+    donnaient le même écran, et l'utilisateur allait chercher la panne du côté
+    de sa connexion (#1658) ou concluait à une jauge bloquée (#1512).
+
+    Le serveur répond `model_fetch` depuis le 15/08 (#1765). Personne ne le
+    lisait — la correction serveur avait été écrite pour tuer ce symptôme, et
+    le symptôme était intact.
+  -->
+  {#if $acousticModelError}
+    <p class="acx-model-error">
+      {$t('acoustic.modelFetchFailed')
+        .replace('{attempts}', String($acousticModelError.tentatives))}
+      <span class="acx-model-cause">{$acousticModelError.message}</span>
+    </p>
+  {/if}
 {:else if $acousticStatus?.enabled && $acousticProgress}
   <div class="acx" class:compact>
     <div class="acx-head">
@@ -92,6 +111,31 @@
         {$t('acoustic.failedTracks').replace('{count}', nf.format($acousticProgress.failed))}
       </div>
     {/if}
+
+    <!--
+      POURQUOI la jauge ne bouge pas.
+
+      C'est le même défaut que la ligne au-dessus, un cran plus haut : une passe
+      EN PAUSE et une passe CASSÉE donnaient exactement le même écran — barre
+      immobile, rien qui bouge. Bilou a ouvert un fil sur une analyse « qui ne
+      démarre pas » (#1457) alors qu'elle cédait simplement le passage à sa
+      musique, ce qui est le comportement voulu.
+
+      Le serveur nomme la raison depuis le 18/08 (#1866/#1915) et aucun client
+      ne la lisait. Deux jours plus tard, le fil #1939 — « Enrichissement et
+      CLAP Bloqués ? » — repose la question à laquelle le serveur répondait
+      déjà.
+
+      Teinte d'information et non d'avertissement : céder le passage à la
+      lecture n'est pas un incident, c'est ce qu'on lui demande de faire.
+    -->
+    {#if $acousticPausedReason}
+      <div class="acx-paused">
+        {$acousticPausedReason.cle
+          ? $t($acousticPausedReason.cle as any)
+          : $t('acoustic.pausedUnknown').replace('{reason}', $acousticPausedReason.raison)}
+      </div>
+    {/if}
   </div>
 {/if}
 
@@ -123,6 +167,17 @@
      normal, c'est de ne pas le dire. */
   .acx-failed { font-size: 11px; color: var(--tune-warning, #d29922); font-variant-numeric: tabular-nums; }
   .compact .acx-failed { font-size: 10.5px; }
+  /* Information, pas avertissement : céder le passage à la lecture est ce qu'on
+     demande à cette passe de faire. La colorer en orange ferait passer un
+     fonctionnement normal pour un incident — l'erreur exactement inverse de
+     celle qu'on corrige. */
+  .acx-paused { font-size: 11px; color: var(--tune-text-secondary); }
+  .compact .acx-paused { font-size: 10.5px; }
+  /* Là en revanche c'est un échec, et il porte sa cause. La cause vient du
+     réseau ou du disque : elle est technique, donc en retrait et en petit,
+     mais présente — c'est elle qu'un testeur recopie dans un fil. */
+  .acx-model-error { margin: 4px 0 0; font-size: 12px; color: var(--tune-danger, #d1242f); line-height: 1.45; }
+  .acx-model-cause { display: block; font-size: 11px; color: var(--tune-text-muted); word-break: break-word; }
   .acx-stalled { margin: 0; font-size: 12.5px; color: var(--tune-text-secondary); line-height: 1.5; }
   .compact .acx-sub { font-size: 10.5px; }
 </style>
