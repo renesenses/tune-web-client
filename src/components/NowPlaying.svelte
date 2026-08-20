@@ -43,7 +43,9 @@
 
   // Lightbox state for hi-res artwork zoom
   let showLightbox = $state(false);
-  let currentEqPreset = $state('flat');
+  // '' = pas encore lu. Surtout PAS 'flat' : le panneau affichait alors Flat en
+  // actif a chaque ouverture, quel que soit l'egaliseur reel (#2037).
+  let currentEqPreset = $state('');
   let karaokeMode = $state(false);
   let syncedLines: { time: number; text: string }[] = $state([]);
 
@@ -252,6 +254,28 @@
     api.getAudiophileMode(id)
       .then((r) => { zonePureMode = r.enabled === true; })
       .catch(() => { zonePureMode = false; });
+  });
+
+  // L'egaliseur REEL de la zone. Sans cette lecture, `currentEqPreset` ne
+  // valait que ce qu'on venait de cliquer : le panneau affirmait « Flat » a
+  // chaque ouverture, et une courbe reglee dans l'ecran Egaliseur restait
+  // invisible ici (#2037).
+  let eqBands = $state<api.EqBand[]>([]);
+  let eqEnabled = $state(true);
+  $effect(() => {
+    const id = zone?.id;
+    if (id == null) { eqBands = []; eqEnabled = true; return; }
+    api.getEq(id)
+      .then((r) => {
+        eqBands = r.bands ?? [];
+        eqEnabled = r.enabled !== false;
+        // Des gains tous nuls SONT un egaliseur plat — on peut le dire. Toute
+        // autre courbe reste sans nom : le serveur ne memorise pas quel
+        // prereglage l'a produite, et deviner serait retomber dans le defaut.
+        const plat = eqBands.length > 0 && eqBands.every((b) => (b.gain ?? 0) === 0);
+        currentEqPreset = plat ? 'flat' : '';
+      })
+      .catch(() => { eqBands = []; eqEnabled = true; currentEqPreset = ''; });
   });
 
   async function setEqPreset(preset: string) {
@@ -1416,7 +1440,7 @@
               />
             {/if}
             {#if showEq}
-              <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} />
+              <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} bands={eqBands} enabled={eqEnabled} />
             {/if}
           {/if}
           {#if !displayTrack.id && npMetaQuery}

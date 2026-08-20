@@ -1949,7 +1949,20 @@ function mapZoneQuality(zone: any): Zone {
 
 // --- Search ---
 
-export function federatedSearch(q: string, sources?: string[], limit = 20) {
+/**
+ * Nombre de résultats demandé par service, pour TOUS les écrans de recherche.
+ *
+ * Il existait deux plafonds différents et aucun des deux n'avait été choisi :
+ * `SearchView` passait 30 en dur, `searchStreaming` prenait 50 par défaut. Un
+ * même mot-clé rendait donc plus de résultats dans un écran que dans l'autre,
+ * sans que rien ne l'explique (#2036, signalé par Vincent sur Qobuz).
+ *
+ * 50 est le plafond de page de l'API Qobuz — demander davantage ne rend pas
+ * davantage. Au-delà, il faut paginer, pas augmenter ce nombre.
+ */
+export const SEARCH_PAGE_LIMIT = 50;
+
+export function federatedSearch(q: string, sources?: string[], limit = SEARCH_PAGE_LIMIT) {
   let url = `${BASE}/search?q=${encodeURIComponent(q)}&limit=${limit}`;
   if (sources && sources.length > 0) {
     url += `&sources=${sources.join(',')}`;
@@ -2219,7 +2232,7 @@ export function triggerEnrich() {
 
 // --- Streaming ---
 
-export function searchStreaming(service: string, q: string, limit = 50) {
+export function searchStreaming(service: string, q: string, limit = SEARCH_PAGE_LIMIT) {
   return fetchJSON<SearchResult>(`${BASE}/streaming/${encodeURIComponent(service)}/search?q=${encodeURIComponent(q)}&limit=${limit}`)
     .then(mapStreamingSearchResult);
 }

@@ -36,7 +36,7 @@
 <div class="folder-overlay" onclick={onClose} onkeydown={(e) => e.key === 'Escape' && onClose()} role="button" tabindex="-1">
   <div class="folder-modal" onclick={(e) => e.stopPropagation()} role="dialog">
     <header>
-      <h3>Select Music Folder</h3>
+      <h3>{$t('ingest.selectFolder')}</h3>
       <button class="close-btn" onclick={onClose}>&times;</button>
     </header>
 
@@ -93,7 +93,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    /* Ce sélecteur est TOUJOURS ouvert depuis un autre dialogue — ImportWizard
+       (z-index 1100) ou FolderWizard (1000). Il doit donc passer au-dessus des
+       deux, sans quoi il s'affiche DERRIÈRE celui qui vient de l'ouvrir : seul
+       son bandeau de titre dépasse, la liste des dossiers est recouverte, et
+       l'étape « Source » devient infranchissable (#2041, signalé par Yacine).
+       Face à FolderWizard, à z-index égal, le rendu tenait à l'ordre du DOM —
+       correct par accident, et cassable au premier remaniement. */
+    z-index: 1200;
   }
   .folder-modal {
     background: var(--tune-bg-secondary, #1e1e1e);

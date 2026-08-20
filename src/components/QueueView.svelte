@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { queueTracks, queuePosition, queueLength, upNextCount, upNextMs, jumpAndSync } from '../lib/stores/queue';
+  import { queueTracks, queuePosition, queueLength, upNextCount, upNextMs, queueTotalMs, jumpAndSync } from '../lib/stores/queue';
   import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
   import { currentZone, currentZoneId, zones, playAndSync, syncZone } from '../lib/stores/zones';
@@ -326,6 +326,11 @@
       <span class="queue-zone">{zone.name}</span>
     {/if}
     <span class="queue-count">{$queueTracks.length} {$t('common.tracks')}</span>
+    {#if $queueTotalMs > 0}
+      <!-- Durée de l'ENSEMBLE de la file. Distincte du « à suivre » plus bas,
+           qui ne compte que ce qui vient après la piste en cours (#2040). -->
+      <span class="queue-total">{formatDuration($queueTotalMs)}</span>
+    {/if}
     {#if $upNextCount > 0}
       <span class="queue-remaining">{$t('queue.upNextSummary').replace('{count}', String($upNextCount)).replace('{time}', formatDuration($upNextMs))}</span>
     {/if}
@@ -551,6 +556,13 @@
     font-size: 13px;
     color: var(--tune-text-muted);
     margin-left: auto;
+  }
+
+  .queue-total {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    margin-left: 10px;
   }
 
   .queue-remaining {

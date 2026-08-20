@@ -3,6 +3,7 @@
   import { isBrowserZone, browserSeek } from '../lib/stores/browserAudio';
   import * as api from '../lib/api';
   import { formatTime } from '../lib/utils';
+  import { t } from '../lib/i18n';
   import { seekPositionMs, startSeekTimer, stopSeekTimer } from '../lib/stores/nowPlaying';
 
   interface Props {
@@ -106,6 +107,33 @@
 
   let displayPositionMs = $derived(isDragging ? dragPositionMs : positionMs);
   let progress = $derived(durationMs > 0 ? (displayPositionMs / durationMs) * 100 : 0);
+
+  // La valeur de droite bascule entre durée totale et temps restant (#2040,
+  // Vincent). Les deux nombres nécessaires sont déjà là — c'est une
+  // soustraction, pas une donnée de plus à demander au serveur.
+  //
+  // Le choix se retient : quelqu'un qui préfère le temps restant le préfère
+  // sur toutes les pistes, pas seulement celle-ci. localStorage plutôt que le
+  // serveur — c'est une préférence d'affichage locale, pas un réglage de zone.
+  const REMAINING_KEY = 'tune.seekbar.showRemaining';
+  let showRemaining = $state(
+    typeof localStorage !== 'undefined' && localStorage.getItem(REMAINING_KEY) === '1'
+  );
+
+  function toggleRemaining() {
+    showRemaining = !showRemaining;
+    try {
+      localStorage.setItem(REMAINING_KEY, showRemaining ? '1' : '0');
+    } catch {
+      // Navigation privée, quota plein : la bascule marche quand même pour
+      // cette session. Ne pas faire échouer un affichage sur un stockage.
+    }
+  }
+
+  // `max(0, …)` : la position peut dépasser la durée d'une fraction de seconde
+  // en fin de piste (le pointeur avance entre deux rafraîchissements), et
+  // « -0:01 » restant se lit comme un défaut.
+  let remainingMs = $derived(Math.max(0, durationMs - displayPositionMs));
 </script>
 
 <div class="seek-bar" class:disabled={!enabled}>
@@ -114,7 +142,12 @@
     <div class="seek-fill" style="width: {progress}%"></div>
     <div class="seek-thumb" style="left: {progress}%"></div>
   </div>
-  <span class="time">{formatTime(durationMs)}</span>
+  <button
+    class="time time-toggle"
+    onclick={toggleRemaining}
+    title={showRemaining ? $t('player.showTotalTime') : $t('player.showRemainingTime')}
+    aria-label={showRemaining ? $t('player.showTotalTime') : $t('player.showRemainingTime')}
+  >{showRemaining ? `-${formatTime(remainingMs)}` : formatTime(durationMs)}</button>
 </div>
 
 <style>
@@ -140,6 +173,23 @@
 
   .time:last-child {
     text-align: right;
+  }
+
+  /* La valeur de droite est un bouton : elle doit rester visuellement
+     identique aux deux chiffres qui l'encadrent — un bouton qui ressemble à
+     un bouton attirerait l'œil sur une bascule d'affichage, au détriment de
+     la lecture du temps. */
+  .time-toggle {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+  }
+
+  .time-toggle:hover {
+    color: var(--tune-text);
   }
 
   .seek-track {
