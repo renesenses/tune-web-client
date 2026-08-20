@@ -2456,6 +2456,40 @@ function setSettingsLevel(level: SettingsLevel) {
     }, 6000);
   }
 
+  /**
+   * Retrouver un enrichissement d'images d'artistes déjà en cours.
+   *
+   * Même défaut que l'enrichissement MusicBrainz corrigé en #1867 : le sondage
+   * ne démarrait qu'au clic sur le bouton. Quitter l'écran détruit le composant,
+   * donc le minuteur et l'état — en revenant, la barre a disparu alors que le
+   * serveur travaille toujours, et rien ne distingue « c'est fini » de « je ne
+   * regarde plus ». La passe se compte en minutes : l'utilisateur relance, sans
+   * savoir s'il double le travail.
+   *
+   * On n'accepte de reprendre que sur une preuve d'activité — une phase
+   * présente et différente de `done`. Le réglage de résultat conserve la
+   * DERNIÈRE passe, donc un `phase: "done"` peut très bien être le vestige d'un
+   * run terminé il y a trois jours : le lire comme « en cours » afficherait une
+   * barre fantôme à chaque ouverture de l'écran.
+   */
+  async function reprendreImagesArtistesEnCours() {
+    try {
+      const status = await api.enrichArtistImagesStatus();
+      const phase = status?.result?.phase;
+      if (!phase || phase === 'done') return;
+
+      artistImgRunning = true;
+      artistImgSawActivity = true;
+      artistImgPolls = 0;
+      artistImgProcessed = status.result?.processed ?? 0;
+      artistImgTotal = status.result?.total ?? 0;
+      artistImgRemaining = status.artists_without_image ?? 0;
+      pollEnrichArtistImages();
+    } catch {
+      /* pas de passe en cours, ou serveur muet : rien à restaurer */
+    }
+  }
+
   // --- Library Import (Roon / Plex / Playlists) ---
   type ImportSource = 'roon' | 'plex' | 'playlists';
   type ImportStep = 'select' | 'preview' | 'done';
@@ -2597,6 +2631,7 @@ function setSettingsLevel(level: SettingsLevel) {
     loadIngestSettings();
     fetchYoutubeAuthStatus();
     reprendreEnrichissementEnCours();
+    reprendreImagesArtistesEnCours();
     if (pushEnabled) initPushNotifications();
   });
 
@@ -2604,6 +2639,10 @@ function setSettingsLevel(level: SettingsLevel) {
   // continue d'interroger le serveur pour un composant détruit.
   onDestroy(() => {
     if (batchEnrichTimer) { clearInterval(batchEnrichTimer); batchEnrichTimer = null; }
+    // artistImgTimer manquait : il survivait au composant et interrogeait le
+    // serveur toutes les 6 s dans le vide. Désormais qu'il peut aussi démarrer
+    // au montage, chaque passage par les réglages en aurait laissé un de plus.
+    if (artistImgTimer) { clearInterval(artistImgTimer); artistImgTimer = null; }
   });
 
   // Shortcut capture/restore for a SPECIFIC settings sub-page (Elie): expose
