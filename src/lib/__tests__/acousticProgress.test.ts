@@ -1,6 +1,22 @@
 import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
-import { acousticStatus, acousticProgress } from '../stores/acoustic';
+import {
+  acousticStatus,
+  acousticProgress,
+  acousticPausedReason,
+  acousticModelError,
+  RAISONS_DE_PAUSE,
+} from '../stores/acoustic';
+
+/** Un état minimal et sain : la passe tourne, rien ne la gêne. Les cas
+ *  ci-dessous n'en changent qu'un champ à la fois. */
+const BASE = {
+  available: true,
+  enabled: true,
+  analysed_tracks: 10,
+  processed_tracks: 10,
+  eligible_tracks: 100,
+} as any;
 
 function poser(s: Partial<Parameters<typeof acousticStatus.set>[0]> | null) {
   acousticStatus.set(s as any);
@@ -65,5 +81,67 @@ describe('acousticProgress', () => {
     });
     expect(p?.percent).toBe(100);
     expect(p?.remaining).toBe(0);
+  });
+});
+
+/**
+ * #1939 / audit des champs orphelins — le serveur savait, l'écran se taisait.
+ *
+ * `paused_reason` est calculé depuis le 18/08 (#1866/#1915) et `model_fetch`
+ * depuis le 15/08 (#1765). Aucun client ne les lisait : ni le web, ni Flutter,
+ * ni iOS, ni macOS, ni iPadOS. Les deux corrections serveur avaient été
+ * écrites pour tuer un symptôme précis — « une passe en pause et une passe
+ * cassée donnent le même écran » — et le symptôme est resté intact.
+ */
+describe('acoustique : dire pourquoi la passe ne travaille pas', () => {
+  it('une raison connue donne une clé i18n', () => {
+    for (const r of RAISONS_DE_PAUSE) {
+      acousticStatus.set({ ...BASE, paused_reason: r });
+      expect(get(acousticPausedReason)).toEqual({ raison: r, cle: `acoustic.paused.${r}` });
+    }
+  });
+
+  it('une raison INCONNUE ne jette pas un identifiant technique à l’écran', () => {
+    // Le serveur peut en ajouter une sans nous prévenir : elle doit tomber sur
+    // le libellé générique, pas sur une clé i18n absente — qui s'afficherait
+    // telle quelle, « acoustic.paused.disk_full », et vaudrait moins que rien.
+    acousticStatus.set({ ...BASE, paused_reason: 'disk_full' });
+    expect(get(acousticPausedReason)).toEqual({ raison: 'disk_full', cle: null });
+  });
+
+  it('rien à dire quand rien n’empêche la passe de tourner', () => {
+    for (const v of [null, undefined, '']) {
+      acousticStatus.set({ ...BASE, paused_reason: v as any });
+      expect(get(acousticPausedReason)).toBeNull();
+    }
+  });
+
+  it('un serveur antérieur n’envoie pas le champ : on n’affirme rien', () => {
+    acousticStatus.set({ ...BASE });
+    expect(get(acousticPausedReason)).toBeNull();
+    expect(get(acousticModelError)).toBeNull();
+  });
+
+  it('un téléchargement EN COURS n’est pas un échec', () => {
+    // Une tentative en vol après un premier échec est un espoir, pas une panne.
+    // L'annoncer ferait paniquer quelqu'un dont le téléchargement va aboutir.
+    acousticStatus.set({
+      ...BASE,
+      model_fetch: { in_progress: true, attempts: 2, last_error: 'connection reset' },
+    });
+    expect(get(acousticModelError)).toBeNull();
+  });
+
+  it('un téléchargement échoué porte sa cause et son nombre de tentatives', () => {
+    acousticStatus.set({
+      ...BASE,
+      model_fetch: { in_progress: false, attempts: 3, last_error: 'connection reset' },
+    });
+    expect(get(acousticModelError)).toEqual({ message: 'connection reset', tentatives: 3 });
+  });
+
+  it('pas d’erreur nommée = pas d’échec annoncé', () => {
+    acousticStatus.set({ ...BASE, model_fetch: { in_progress: false, attempts: 0, last_error: null } });
+    expect(get(acousticModelError)).toBeNull();
   });
 });
