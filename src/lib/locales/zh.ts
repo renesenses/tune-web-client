@@ -2652,6 +2652,7 @@ export default {
   "acoustic.noModel": "分析已启用，但其声学模型尚不可用：在模型下载完成前不会分析任何内容。首次使用时会自动获取——若等待过久，请检查服务器的网络连接。",
   "acoustic.done": "分析已完成",
   "acoustic.tracks": "首",
+  "acoustic.failedTracks": "{count} 首曲目无法分析：文件已读取，但解码器未产生任何内容。它们不会重试 — 进度确实是 100%。",
   "acoustic.remaining": "剩余",
   "acoustic.progress": "进度",
   "acoustic.throttle": "分析速率",

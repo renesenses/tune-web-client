@@ -2899,6 +2899,7 @@ export default {
   "acoustic.noModel": "Analysis is enabled but its acoustic model is not available yet: nothing will be analysed until it has been downloaded. It fetches itself on first use — if the wait drags on, check the server's Internet connection.",
   "acoustic.done": "Analysis complete",
   "acoustic.tracks": "tracks",
+  "acoustic.failedTracks": "{count} tracks could not be analysed: the file was read but the decoder produced nothing. They will not be retried — the gauge really is at 100%.",
   "acoustic.remaining": "left",
   "acoustic.progress": "Progress",
   "acoustic.throttle": "Analysis throughput",

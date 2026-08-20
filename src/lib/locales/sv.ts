@@ -2617,6 +2617,7 @@ export default {
   "acoustic.noModel": "Analysen är aktiverad men dess akustiska modell är inte tillgänglig ännu: ingenting analyseras förrän den har laddats ned. Den hämtas automatiskt vid första användningen — om väntan drar ut, kontrollera serverns internetanslutning.",
   "acoustic.done": "Analysen klar",
   "acoustic.tracks": "spår",
+  "acoustic.failedTracks": "{count} spår kunde inte analyseras: filen lästes men avkodaren gav ingenting. De görs inte om — mätaren står verkligen på 100 %.",
   "acoustic.remaining": "kvar",
   "acoustic.progress": "Förlopp",
   "acoustic.throttle": "Analysens takt",
