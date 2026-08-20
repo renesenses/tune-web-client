@@ -67,3 +67,22 @@ export const upNextCount = derived(
 export const upNextMs = derived([queueTracks, queuePosition], ([$tracks, $pos]) =>
   $tracks.slice($pos + 1).reduce((sum, t) => sum + (t.duration_ms ?? 0), 0)
 );
+
+/**
+ * Durée totale de la file, toutes pistes confondues.
+ *
+ * L'en-tête annonçait le NOMBRE de titres et le temps « à suivre », jamais la
+ * durée de l'ensemble : impossible de savoir si une file de 40 titres fait deux
+ * heures ou six (#2040, Vincent).
+ *
+ * ⚠️ À ne pas confondre avec [`upNextMs`], qui est délibérément le temps
+ * RESTANT APRÈS la piste en cours — c'est ce que dit son libellé, « à suivre ».
+ * Les deux valeurs sont justes et ne mesurent pas la même chose ; les fusionner
+ * casserait le résumé demandé par Dominique COMET.
+ *
+ * Même convention que les autres : une piste sans durée connue (radio, flux)
+ * compte pour zéro.
+ */
+export const queueTotalMs = derived(queueTracks, ($tracks) =>
+  $tracks.reduce((sum, t) => sum + (t.duration_ms ?? 0), 0)
+);

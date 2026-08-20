@@ -264,7 +264,9 @@
       const includeLocal = !activeSources || activeSources.includes('local');
 
       const [federated, localPlaylists] = await Promise.all([
-        api.federatedSearch(searchQuery.trim(), activeSources, 30),
+        // Pas de plafond en dur ici : SEARCH_PAGE_LIMIT est la seule valeur,
+        // partagée avec searchStreaming (#2036).
+        api.federatedSearch(searchQuery.trim(), activeSources),
         includeLocal ? api.getPlaylists().catch(() => [] as Playlist[]) : Promise.resolve([] as Playlist[]),
       ]);
       results = federated;
