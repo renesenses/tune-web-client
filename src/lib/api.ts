@@ -3470,11 +3470,19 @@ export interface ImportResponse {
   details?: ImportReport['details'];
 }
 
+// Les trois imports vivent sous `/system/import/*` côté serveur
+// (routes/system/mod.rs), pas sous `/library` : chaque appel partait en 404 et
+// l'import Roon/Plex/playlists était intégralement inopérant (#2004).
+//
+// Ils omettaient AUSSI `authHeaders()`, seuls de tous les envois multipart du
+// client. Corriger le seul préfixe aurait remplacé le 404 par un 401 — la
+// fonctionnalité serait restée cassée, avec un symptôme différent.
+
 export async function importRoon(file: File, preview = false): Promise<ImportReport> {
   const form = new FormData();
   form.append('file', file);
-  const url = `${BASE}/library/import/roon?preview=${preview}`;
-  const res = await fetch(url, { method: 'POST', body: form });
+  const url = `${BASE}/system/import/roon?preview=${preview}`;
+  const res = await fetch(url, { method: 'POST', headers: authHeaders(), body: form });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`Import Roon failed (${res.status}): ${text || res.statusText}`);
@@ -3485,8 +3493,8 @@ export async function importRoon(file: File, preview = false): Promise<ImportRep
 export async function importPlex(file: File, preview = false): Promise<ImportReport> {
   const form = new FormData();
   form.append('file', file);
-  const url = `${BASE}/library/import/plex?preview=${preview}`;
-  const res = await fetch(url, { method: 'POST', body: form });
+  const url = `${BASE}/system/import/plex?preview=${preview}`;
+  const res = await fetch(url, { method: 'POST', headers: authHeaders(), body: form });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`Import Plex failed (${res.status}): ${text || res.statusText}`);
@@ -3497,8 +3505,8 @@ export async function importPlex(file: File, preview = false): Promise<ImportRep
 export async function importPlaylists(file: File, preview = false): Promise<ImportReport> {
   const form = new FormData();
   form.append('file', file);
-  const url = `${BASE}/library/import/playlists?preview=${preview}`;
-  const res = await fetch(url, { method: 'POST', body: form });
+  const url = `${BASE}/system/import/playlists?preview=${preview}`;
+  const res = await fetch(url, { method: 'POST', headers: authHeaders(), body: form });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`Import playlists failed (${res.status}): ${text || res.statusText}`);
