@@ -2091,7 +2091,14 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             {#each discTracks as t, index}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div class="track-item" onclick={() => t.id && playTrack(t.id)}>
+              <!-- `t.id != null` d'abord : sans ce garde, deux pistes sans
+                   identifiant se surligneraient ensemble. Voir .track-item.playing. -->
+              <div
+                class="track-item"
+                class:playing={t.id != null && t.id === $currentTrackId}
+                aria-current={t.id != null && t.id === $currentTrackId ? 'true' : undefined}
+                onclick={() => t.id && playTrack(t.id)}
+              >
                 <span class="track-num">
                   <span class="num-text">{t.track_number ?? index + 1}</span>
                   <span class="num-play">&#9654;</span>
@@ -2175,7 +2182,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           {#each $albumTracks as t, index}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="track-item" onclick={() => t.id && playTrack(t.id)}>
+            <!-- Voir .track-item.playing — même garde `t.id != null`. -->
+            <div
+              class="track-item"
+              class:playing={t.id != null && t.id === $currentTrackId}
+              aria-current={t.id != null && t.id === $currentTrackId ? 'true' : undefined}
+              onclick={() => t.id && playTrack(t.id)}
+            >
               <span class="track-num">
                 <span class="num-text">{t.track_number ?? index + 1}</span>
                 <span class="num-play">&#9654;</span>
@@ -2812,7 +2825,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
         <div style="height:{visibleTracks.totalHeight}px;position:relative;">
           {#each filteredTracks.slice(visibleTracks.startIdx, visibleTracks.endIdx) as t, i (t.id ?? visibleTracks.startIdx + i)}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <div class="track-item" style="position:absolute;top:{(visibleTracks.startIdx + i) * TRACK_ROW_HEIGHT}px;left:0;right:0;height:{TRACK_ROW_HEIGHT}px;" onclick={() => t.id && playTrack(t.id)}>
+            <!-- Liste virtualisée de l'onglet Titres : même indicateur, sinon
+                 il dépendrait de l'écran où l'on se trouve. Voir .track-item.playing. -->
+            <div
+              class="track-item"
+              class:playing={t.id != null && t.id === $currentTrackId}
+              aria-current={t.id != null && t.id === $currentTrackId ? 'true' : undefined}
+              style="position:absolute;top:{(visibleTracks.startIdx + i) * TRACK_ROW_HEIGHT}px;left:0;right:0;height:{TRACK_ROW_HEIGHT}px;"
+              onclick={() => t.id && playTrack(t.id)}
+            >
               <span class="track-thumb"><AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.album_title ?? ''} /></span>
               <div class="track-info" title={t.file_path ?? ''}>
                 <span class="track-title truncate" title={t.title}>{t.title}</span>
@@ -4394,6 +4415,29 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   .track-item:hover {
     background: var(--tune-surface-hover);
+  }
+
+  /* La piste en cours de lecture.
+   *
+   * Demandée deux fois, à quatre mois d'écart : Levente
+   * (tune-server-rust#1589, « doesn't highlight on the list ») et Didier
+   * (#1845, « sans avoir à passer dans la vue lecture en cours »). Sans elle,
+   * savoir ce qui joue obligeait à changer d'écran.
+   *
+   * Elle réutilise le ▶ déjà affiché au survol, mais permanent : le symbole est
+   * connu à cet endroit, et une ligne survolée ressemble alors à ce qu'elle
+   * deviendrait si on la lançait. Une icône de plus aurait chargé une ligne qui
+   * porte déjà six boutons.
+   *
+   * Pas de fond coloré : la ligne doit rester survolable et cliquable sans que
+   * deux teintes se disputent. La couleur d'accent sur le titre et le numéro
+   * suffit, et elle survit au survol — c'est le point, on veut pouvoir la
+   * repérer en parcourant la liste à la souris. */
+  .track-item.playing .num-text { display: none; }
+  .track-item.playing .num-play { display: inline; }
+  .track-item.playing .track-title {
+    color: var(--tune-accent);
+    font-weight: 600;
   }
 
   .track-thumb {
