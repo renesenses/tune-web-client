@@ -308,6 +308,7 @@ export default {
   'queue.addToPlaylist': 'Aggiungi a una playlist',
   'queue.removeFromQueue': 'Rimuovi dalla coda',
   'queue.addToQueue': 'Aggiungi alla coda',
+  'queue.addFailed': "Impossibile aggiungere alla coda",
 
   // Home
   'home.morning': 'Buongiorno',

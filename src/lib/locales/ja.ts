@@ -308,6 +308,7 @@ export default {
   'queue.addToPlaylist': 'プレイリストに追加',
   'queue.removeFromQueue': 'キューから削除',
   'queue.addToQueue': 'キューに追加',
+  'queue.addFailed': "キューに追加できませんでした",
 
   // Home
   'home.morning': 'おはようございます',

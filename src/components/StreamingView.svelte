@@ -12,6 +12,7 @@
   import HeartButton from './HeartButton.svelte';
   import type { Album, Artist, Track, SearchResult, FeaturedSection, StreamingPlaylist, StreamingGenre } from '../lib/types';
   import { t as tr } from '../lib/i18n';
+  import { notifications } from '../lib/stores/notifications';
   import { playVideo } from '../lib/stores/ytPlayer';
   import { currentProfileId } from '../lib/stores/profile';
 
@@ -656,13 +657,32 @@
   }
 
   async function addStreamingTrackToQueue(track: Track) {
-    if (!zone?.id || !track.source || !track.source_id) return;
+    // La source se déduit de l'écran quand la piste ne la porte pas.
+    //
+    // La garde exigeait `track.source` alors que la ligne juste en dessous
+    // retombait déjà sur `service` en son absence : une piste d'album Qobuz,
+    // qui n'a pas besoin de porter sa source puisque l'URL de la requête la
+    // dit, était donc rejetée par la garde avant d'atteindre le repli. Le
+    // bouton « + » ne faisait rien, sans requête, sans erreur, sans message
+    // (Cyrille Moutia #1489, Tades #1487 — deux utilisateurs, même symptôme).
+    const source = (track.source || service) as any;
+    if (!zone?.id) {
+      notifications.error($tr('library.noZoneSelectedSelectZone'));
+      return;
+    }
+    if (!source || !track.source_id) {
+      // Un « + » qui ne fait rien est indistinguable d'un « + » cassé.
+      notifications.error($tr('queue.addFailed'));
+      console.error('addStreamingTrackToQueue: piste sans source exploitable', track);
+      return;
+    }
     try {
-      await api.addToQueue(zone.id, { source: (track.source || service) as any, source_id: track.source_id });
+      await api.addToQueue(zone.id, { source, source_id: track.source_id });
       const qs = await api.getQueue(zone.id);
       queueTracks.set(qs.tracks);
       queuePosition.set(qs.position);
     } catch (e) {
+      notifications.error($tr('queue.addFailed'));
       console.error('Add streaming track to queue error:', e);
     }
   }

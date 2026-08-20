@@ -308,6 +308,7 @@ export default {
   'queue.addToPlaylist': 'Zur Playlist hinzufügen',
   'queue.removeFromQueue': 'Aus Warteschlange entfernen',
   'queue.addToQueue': 'Zur Warteschlange hinzufügen',
+  'queue.addFailed': "Konnte nicht zur Warteschlange hinzugefügt werden",
 
   // Home
   'home.morning': 'Guten Morgen',

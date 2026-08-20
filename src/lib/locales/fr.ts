@@ -499,6 +499,7 @@ export default {
   'queue.addToPlaylist': 'Ajouter à une playlist',
   'queue.removeFromQueue': 'Retirer de la file',
   'queue.addToQueue': 'Ajouter à la file',
+  'queue.addFailed': "Impossible d'ajouter à la file",
 
   // Home
   'home.morning': 'Bonjour',

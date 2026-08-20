@@ -312,6 +312,7 @@ export default {
   'queue.addToPlaylist': 'Adaugă la playlist',
   'queue.removeFromQueue': 'Elimină din coadă',
   'queue.addToQueue': 'Adaugă la coadă',
+  'queue.addFailed': "Nu s-a putut adăuga în coadă",
 
   // Home
   'home.morning': 'Bună dimineața',

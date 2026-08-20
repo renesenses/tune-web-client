@@ -308,6 +308,7 @@ export default {
   'queue.addToPlaylist': 'Añadir a una lista de reproducción',
   'queue.removeFromQueue': 'Eliminar de la cola',
   'queue.addToQueue': 'Añadir a la cola',
+  'queue.addFailed': "No se ha podido añadir a la cola",
 
   // Home
   'home.morning': 'Buenos días',

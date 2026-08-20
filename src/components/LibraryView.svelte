@@ -1828,6 +1828,14 @@ import CollapsibleSection from './CollapsibleSection.svelte';
         await api.addToQueue(zone.id, { track_id: track.id });
       } else if (track.source && track.source_id) {
         await api.addToQueue(zone.id, { source: track.source, source_id: track.source_id });
+      } else {
+        // Sans ce dernier cas, une piste qui n'a ni identifiant local ni
+        // couple source/source_id tombait entre les deux branches SANS RIEN
+        // FAIRE — et le rafraîchissement de file juste en dessous s'exécutait
+        // quand même, donnant à l'écran l'apparence d'un ajout réussi.
+        notifications.error($tr('queue.addFailed'));
+        console.error('addTrackToQueue: piste sans identifiant exploitable', track);
+        return;
       }
       // Refresh queue after add
       const qs = await api.getQueue(zone.id);
