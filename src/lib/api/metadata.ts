@@ -148,12 +148,29 @@ async function paires(limit = 200): Promise<PaireDoublon[]> {
   });
 }
 
-/** Le « scan » n'est pas une opération distincte côté serveur : l'analyse se
- *  fait à la lecture. On rend donc les compteurs que l'écran attend, sans
- *  prétendre déclencher quoi que ce soit. */
+/** Le scan est désormais une VRAIE opération serveur.
+ *
+ *  Il ne l'était pas quand cette fonction a été écrite, d'où les compteurs
+ *  fabriqués à partir de la liste : `paires × 2` annonçait « 40 pistes
+ *  analysées » sur une bibliothèque de 50 000. Le chiffre affiché à côté du
+ *  nombre de doublons était donc faux, et faux vers le bas — de quoi croire
+ *  que le scan n'avait presque rien regardé.
+ *
+ *  `POST /library/duplicates/scan` existe depuis tune-server-rust#2018. Il
+ *  parcourt la bibliothèque, CALCULE l'empreinte audio des pistes qui n'en ont
+ *  pas et la persiste — ce que rien ne faisait après l'indexation initiale —
+ *  puis rend le compte réel. C'est ce qui rend la recherche exacte capable de
+ *  trouver quelque chose sur une bibliothèque ancienne.
+ *
+ *  Repli sur les compteurs dérivés si le serveur est plus vieux que #2018 :
+ *  l'écran continue d'afficher un résultat plutôt qu'une erreur. */
 export async function scanDuplicates(): Promise<DuplicateScanResult> {
-  const p = await paires();
-  return { total_scanned: p.length * 2, duplicates_found: p.length };
+  try {
+    return await fetchJSON<DuplicateScanResult>(`${DUP}/scan`, { method: 'POST' });
+  } catch {
+    const p = await paires();
+    return { total_scanned: p.length * 2, duplicates_found: p.length };
+  }
 }
 
 export function listDuplicates(): Promise<PaireDoublon[]> {
