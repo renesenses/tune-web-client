@@ -1,13 +1,104 @@
 import { get } from 'svelte/store';
 import { currentZone, playAndSync } from './stores/zones';
+import * as api from './api';
+import { notifications } from './stores/notifications';
+import { queueTracks, queuePosition } from './stores/queue';
+import { t } from './i18n';
 
-/** Play an ordered list of LOCAL tracks starting at `index` (Play from here). */
-export async function playFromHere(tracks: Array<{ id?: number | null }>, index: number): Promise<void> {
+/** A row a list can offer to "play from here": local (numeric `id`) or streaming
+ *  (`source` + `source_id`). Favorites, search results and Bandcamp lists mix
+ *  both in the same list. */
+export type PlayableRow = {
+  id?: number | null;
+  source?: string | null;
+  source_id?: string | null;
+  title?: string;
+  artist_name?: string;
+  album_title?: string;
+  cover_path?: string | null;
+  duration_ms?: number;
+};
+
+function estStreaming(t?: PlayableRow | null): boolean {
+  return !!(t && t.source && t.source_id);
+}
+
+/** Start one row, whichever kind it is. */
+async function lireUneLigne(zoneId: number, t: PlayableRow): Promise<void> {
+  if (estStreaming(t)) {
+    await playAndSync(zoneId, {
+      source: t.source as any, source_id: t.source_id as string,
+      title: t.title, artist_name: t.artist_name,
+      album_title: t.album_title, cover_path: t.cover_path,
+    } as any);
+  } else {
+    await playAndSync(zoneId, { track_id: t.id as number });
+  }
+}
+
+/** Append one row to the queue, whichever kind it is. */
+async function enfilerUneLigne(zoneId: number, t: PlayableRow): Promise<void> {
+  if (estStreaming(t)) {
+    await api.addToQueue(zoneId, {
+      source: t.source as any, source_id: t.source_id as string,
+      title: t.title, artist_name: t.artist_name,
+      album_title: t.album_title, cover_path: t.cover_path, duration_ms: t.duration_ms,
+    });
+  } else {
+    await api.addToQueue(zoneId, { track_id: t.id as number });
+  }
+}
+
+/**
+ * Play an ordered list starting at `index` ("Play from here").
+ *
+ * An all-local list goes out in one call, queue included, exactly as before.
+ *
+ * A list that carries streaming rows cannot: `POST /play` takes either
+ * `track_ids` (local only) or ONE `source`+`source_id`, never a mixed list.
+ * The previous version simply dropped every non-local row — so clicking a
+ * streaming track played `ids[0]`, i.e. the TOP of the list instead of the row
+ * clicked (#1488, Tades: an emptied queue restarted on "Lazarus"), and a list
+ * with no local row at all returned in silence. Here we start the clicked row
+ * and enqueue what follows it, the same compromise `playAllTracks` already
+ * makes in FavoritesView.
+ */
+export async function playFromHere(tracks: PlayableRow[], index: number): Promise<void> {
   const zone = get(currentZone);
-  if (!zone) return;
-  const ids = tracks.map(t => t?.id).filter((id): id is number => typeof id === 'number');
-  if (ids.length === 0) return;
-  const targetId = tracks[index]?.id;
-  const startIndex = typeof targetId === 'number' ? Math.max(0, ids.indexOf(targetId)) : 0;
-  await playAndSync(zone.id, { track_ids: ids, start_index: startIndex });
+  if (!zone || typeof zone.id !== 'number') {
+    notifications.error(get(t)('library.noZoneSelectedSelectZone'));
+    return;
+  }
+  const zoneId = zone.id;
+  const cliquee = tracks[index];
+  const jouable = (t?: PlayableRow | null) => !!t && (typeof t.id === 'number' || estStreaming(t));
+  if (!jouable(cliquee)) {
+    notifications.error(get(t)('library.playbackError'));
+    return;
+  }
+
+  try {
+    // All-local: one call, start_index — unchanged behaviour.
+    if (tracks.every(t => typeof t?.id === 'number')) {
+      const ids = tracks.map(t => t.id as number);
+      await playAndSync(zoneId, { track_ids: ids, start_index: Math.max(0, index) });
+      return;
+    }
+
+    // Mixed or streaming: start on the row actually clicked, then queue the rest.
+    await lireUneLigne(zoneId, cliquee);
+    for (const t of tracks.slice(index + 1)) {
+      if (jouable(t)) await enfilerUneLigne(zoneId, t);
+    }
+    // The queue view follows `POST /play`'s zone, not our appends: re-read it,
+    // otherwise "up next" stays empty until the next WebSocket event.
+    try {
+      const qs = await api.getQueue(zoneId);
+      queueTracks.set(qs.tracks);
+      queuePosition.set(qs.position);
+    } catch { /* affichage seul : ne pas faire échouer une lecture qui a démarré */ }
+  } catch (e) {
+    console.error('Play from here error:', e);
+    notifications.error(get(t)('library.playbackError'));
+  }
 }
