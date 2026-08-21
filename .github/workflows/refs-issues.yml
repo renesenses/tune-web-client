@@ -1,0 +1,58 @@
+name: Références d'issues
+
+# Rend visible, et actionnable, ce qu'une PR déclare corriger.
+#
+# ⚠️ Le piège propre à ce dépôt : LES ISSUES VIVENT AILLEURS. Les signalements
+# des testeurs sont ouverts dans `renesenses/tune-server-rust`, y compris ceux
+# dont le correctif est entièrement ici. Or GitHub résout un `#N` nu dans le
+# dépôt DE LA PR — « Closes #2036 » écrit ici ne désigne donc pas l'issue #2036
+# du serveur.
+#
+# Vécu le 20/08/2026 : la PR #527 portait quatre `Closes` (#2036, #2037, #2040,
+# #2041, toutes dans `tune-server-rust`). Fusionnée : aucune fermée, aucun lien
+# créé. Les quatre ont dû être fermées à la main.
+#
+# Second piège, mesuré le même jour : le client web est embarqué dans la release
+# du serveur. Le bundle de la v0.9.92 a été construit à 14:42:53 UTC, la PR #527
+# fusionnée à 16:44:57 UTC — deux heures trop tard. Les quatre correctifs
+# annoncés « corrigés » n'étaient pas dans la version que les testeurs ont
+# installée.
+#
+# Ce contrôle n'échoue jamais. Il signale la forme qui ne désigne rien, propose
+# la forme complète, rend les commandes de fermeture prêtes à coller, et
+# rappelle de ne pas annoncer de version. Un contrôle qui bloque sur une règle
+# inopérante se fait désactiver dans la semaine.
+#
+# La logique et ses 17 cas de preuve vivent dans
+# scripts/verifier-refs-issues.sh, dont l'--autotest est joué AVANT l'analyse à
+# chaque exécution : un garde-fou dont la contre-épreuve ne tourne pas finit par
+# répondre vert sur le défaut qu'il devait attraper.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  refs:
+    name: Issues déclarées corrigées
+    runs-on: ubuntu-latest
+    # Sans plafond, un blocage tourne six heures avant que GitHub ne le tue.
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Contre-épreuve du contrôle
+        run: bash scripts/verifier-refs-issues.sh --autotest
+
+      - name: Analyser le corps de la PR
+        env:
+          # Le corps passe par l'ENVIRONNEMENT, jamais par une interpolation
+          # ${{ }} dans `run:` — c'est du texte fourni par l'extérieur, et
+          # l'interpoler dans le shell permettrait d'y injecter des commandes.
+          CORPS: ${{ github.event.pull_request.body }}
+          TITRE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n%s\n' "$TITRE" "$CORPS" | bash scripts/verifier-refs-issues.sh
