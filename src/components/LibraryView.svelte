@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
   import { dialogs } from '../lib/stores/dialogs';
+  import { trierAlbumsParAnnee } from '../lib/trierAlbums';
   import { tip } from '../lib/tooltip';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
@@ -946,6 +947,25 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     yearSortOrder = yearSortOrder === 'desc' ? 'asc' : 'desc';
     localStorage.setItem('tune_year_sort_order', yearSortOrder);
   }
+
+  // Sens de tri des albums d'un artiste (#1659, Sevy Tabroc).
+  //
+  // Le défaut reste CROISSANT — c'est l'ordre chronologique que la vue avait
+  // déjà, et Sevy demandait le choix, pas un autre défaut. Persisté comme les
+  // autres tris de cette page : quelqu'un qui préfère le plus récent d'abord
+  // le préfère sur tous les artistes, pas seulement celui-ci.
+  let artistAlbumSortOrder = $state<'asc' | 'desc'>(
+    (localStorage.getItem('tune_artist_album_sort_order') as 'asc' | 'desc') || 'asc'
+  );
+  function toggleArtistAlbumSortOrder() {
+    artistAlbumSortOrder = artistAlbumSortOrder === 'asc' ? 'desc' : 'asc';
+    localStorage.setItem('tune_artist_album_sort_order', artistAlbumSortOrder);
+  }
+
+  // La règle du tri vit dans `trierAlbums.ts`, avec ses tests : l'année
+  // absente doit rester en fin de liste DANS LES DEUX SENS, et ça ne se déduit
+  // pas à la lecture.
+  let sortedArtistAlbums = $derived(trierAlbumsParAnnee($artistAlbums, artistAlbumSortOrder));
 
   let yearGroups = $derived.by(() => {
     const map = new Map<number | null, Album[]>();
@@ -2322,6 +2342,20 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           {/if}
           {#if $artistAlbums.length > 0}
             <span class="artist-detail-count">{$artistAlbums.length} {$artistAlbums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
+            <!-- Sens du tri chronologique (#1659). Même bouton et même icône
+                 que l'onglet Années, pour que le geste se reconnaisse. -->
+            <button
+              class="sort-order-btn artist-sort-btn"
+              onclick={toggleArtistAlbumSortOrder}
+              title={artistAlbumSortOrder === 'asc' ? $tr('library.ascending') : $tr('library.descending')}
+              aria-label={artistAlbumSortOrder === 'asc' ? $tr('library.ascending') : $tr('library.descending')}
+            >
+              {#if artistAlbumSortOrder === 'asc'}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14M5 12l7-7 7 7" /></svg>
+              {:else}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 19V5M5 12l7 7 7-7" /></svg>
+              {/if}
+            </button>
             <div class="artist-play-actions">
               <button class="artist-play-btn" onclick={() => playArtistLibrary(false)} disabled={artistPlayLoading} title={$tr('library.playAllArtist')}>
                 <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
@@ -2484,7 +2518,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           <div class="empty-hint" style="padding: 8px 0; color: var(--tune-text-muted); font-size: 13px;">{$tr('library.noLocalAlbumsHint')}</div>
         {/if}
         <div class="albums-grid">
-          {#each $artistAlbums as album}
+          {#each sortedArtistAlbums as album}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="album-card" onclick={() => selectAlbumDetail(album)}>
@@ -4973,6 +5007,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   .artist-name-save:disabled {
     opacity: 0.5;
     cursor: default;
+  }
+
+  .artist-sort-btn {
+    margin-left: 8px;
+    vertical-align: middle;
   }
 
   .artist-detail-count {
