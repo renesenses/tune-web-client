@@ -162,6 +162,8 @@ export default {
   'common.tracks': 'spår',
   'common.noResult': 'Inga resultat',
   'common.error': 'Fel',
+  'eq.profileApplyError': "Profilen kunde inte tillämpas",
+  'smartai.noZoneOrTracks': "Ingen zon eller inga låtar",
   "common.serverUnreachable": "Servern svarar inte. Om den startar om — eller ett VPN bryter anslutningen — försök igen om några sekunder.",
   'common.ok': 'OK',
   'common.title': 'Titel',

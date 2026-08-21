@@ -83,13 +83,13 @@
       notifications.success($t('history.cleared'));
     } catch (e) {
       console.error('Clear history error:', e);
-      notifications.error('Erreur lors de la suppression');
+      notifications.error($t('settings.deletionError'));
     }
   }
 
   async function replay(entry: HistoryEntry, index: number) {
     if (!zone?.id) {
-      notifications.error('Aucune zone selectionnee');
+      notifications.error($t('queue.noZoneSelected'));
       return;
     }
     playingIndex = index;

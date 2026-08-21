@@ -193,14 +193,14 @@
 
   async function playTrack(track: Track, index: number) {
     if (!zone?.id) {
-      notifications.error('Aucune zone sélectionnée');
+      notifications.error($t('queue.noZoneSelected'));
       return;
     }
     playingIndex = index;
     try {
       if (track.id) await playAndSync(zone.id, { track_id: track.id });
     } catch {
-      notifications.error('Erreur de lecture');
+      notifications.error($t('library.playbackError'));
     }
     playingIndex = null;
   }
@@ -211,7 +211,7 @@
 
   async function playAll(shuffle = false) {
     if (!zone?.id) {
-      notifications.error('Aucune zone sélectionnée');
+      notifications.error($t('queue.noZoneSelected'));
       return;
     }
     let ids = trackIds();
@@ -227,7 +227,7 @@
       await playAndSync(zone.id, { track_ids: ids });
       notifications.success(`Lecture de ${ids.length} titres`);
     } catch {
-      notifications.error('Erreur de lecture');
+      notifications.error($t('library.playbackError'));
     }
   }
 

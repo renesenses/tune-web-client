@@ -117,7 +117,7 @@
 
   async function playTrack(track: Track, index: number) {
     if (!zone?.id) {
-      notifications.error('Aucune zone selectionnee');
+      notifications.error($t('queue.noZoneSelected'));
       return;
     }
     playingIndex = index;
@@ -135,7 +135,7 @@
 
   async function playAll() {
     if (!zone?.id || tracks.length === 0) {
-      notifications.error('Aucune zone ou aucun titre');
+      notifications.error($t('smartai.noZoneOrTracks' as any));
       return;
     }
     const ids = tracks.map(t => t.id).filter((id): id is number => id != null && id > 0);

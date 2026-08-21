@@ -108,7 +108,7 @@
       // fetchJSON already showed the dedicated Premium popup for a 402 —
       // don't stack a generic one on top of it.
       if ((e as Error)?.message !== 'premium_required') {
-        notifications.error('Erreur lors de l\'application du profil');
+        notifications.error($t('eq.profileApplyError' as any));
       }
     }
   }
