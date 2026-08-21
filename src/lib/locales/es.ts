@@ -1201,7 +1201,6 @@ export default {
   // === i18n Phase 1b (auto-translated) ===
   "metadata.advancedFilters": "Filtros avanzados",
   "metadata.artistPlaceholder": "Artista...",
-  "metadata.autoFixAlbumsResult": "{tracks} pistas corregidas, {albums} álbumes creados",
   "metadata.badgeAlbum": "Álbum",
   "metadata.badgeTrack": "Pista",
   "metadata.burnError": "Error al escribir: {error}",

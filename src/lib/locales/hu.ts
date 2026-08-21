@@ -1375,7 +1375,6 @@ export default {
   // === i18n 1. fázis ===
   "metadata.advancedFilters": "Speciális szűrők",
   "metadata.artistPlaceholder": "Előadó...",
-  "metadata.autoFixAlbumsResult": "{tracks} szám javítva, {albums} album létrehozva",
   "metadata.badgeAlbum": "Album",
   "metadata.badgeTrack": "Szám",
   "metadata.burnError": "Beírási hiba: {error}",

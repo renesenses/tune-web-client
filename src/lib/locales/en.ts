@@ -1442,7 +1442,6 @@ export default {
   // === i18n Phase 1 (auto-added: SettingsView, MetadataView, high-traffic + no-i18n components) ===
   "metadata.advancedFilters": "Advanced filters",
   "metadata.artistPlaceholder": "Artist...",
-  "metadata.autoFixAlbumsResult": "{tracks} tracks fixed, {albums} albums created",
   "metadata.badgeAlbum": "Album",
   "metadata.badgeTrack": "Track",
   "metadata.burnError": "Burn error: {error}",

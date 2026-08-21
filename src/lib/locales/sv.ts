@@ -1172,7 +1172,6 @@ export default {
   // === i18n Phase 1 (auto-added: SettingsView, MetadataView, high-traffic + no-i18n components) ===
   "metadata.advancedFilters": "Avancerade filter",
   "metadata.artistPlaceholder": "Artist...",
-  "metadata.autoFixAlbumsResult": "{tracks} spår korrigerade, {albums} album skapade",
   "metadata.badgeAlbum": "Album",
   "metadata.badgeTrack": "Spår",
   "metadata.burnError": "Skrivfel: {error}",
