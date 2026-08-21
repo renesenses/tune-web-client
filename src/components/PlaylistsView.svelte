@@ -2,6 +2,8 @@
   import { get } from 'svelte/store';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { playFromHere } from '../lib/playback';
+  import { melangee } from '../lib/shuffle';
+  import { notifications } from '../lib/stores/notifications';
   import { playlists as playlistsStore, playlistsLoaded, streamingPlaylistsCache, streamingPlaylistsLoaded } from '../lib/stores/playlists';
   import { streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
@@ -214,6 +216,32 @@
     }
   }
 
+  /**
+   * Lire la liste dans un ordre aléatoire.
+   *
+   * On envoie `track_ids` mélangés plutôt que `playlist_id` : c'est le serveur
+   * qui déciderait de l'ordre autrement, et il le prend dans la liste. Le
+   * mélange doit se faire ici, sur ce que l'utilisateur voit.
+   *
+   * Une piste sans identifiant local — s'il s'en glissait une — ne peut pas
+   * entrer dans un lot `track_ids` : on le dit, au lieu de la faire disparaître
+   * en silence comme « lire à partir d'ici » le faisait avant #1995.
+   */
+  async function playPlaylistShuffled() {
+    if (!zone?.id) return;
+    const ids = playlistTracks.map((t) => t.id).filter((id): id is number => typeof id === 'number');
+    if (ids.length === 0) {
+      notifications.error($tr('queue.addFailed'));
+      return;
+    }
+    try {
+      await playAndSync(zone.id, { track_ids: melangee(ids), start_index: 0 });
+    } catch (e) {
+      console.error('Shuffle playlist error:', e);
+      notifications.error($tr('library.playbackError'));
+    }
+  }
+
   async function playTrack(trackId: number) {
     if (!zone?.id) return;
     try {
@@ -311,6 +339,15 @@
         <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
         {$tr('common.play')}
       </button>
+      {#if playlistTracks.length > 1}
+        <button class="play-all-btn shuffle-btn" onclick={playPlaylistShuffled}>
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"
+            ><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"
+            /></svg
+          >
+          {$tr('favorites.shuffle')}
+        </button>
+      {/if}
     </div>
     {#if loading}
       <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>

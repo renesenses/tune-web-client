@@ -3,6 +3,7 @@
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { playFromHere } from '../lib/playback';
   import { trier, clesPourOnglet, type CleDeTri } from '../lib/favoritesSort';
+  import { melangee } from '../lib/shuffle';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { selectedAlbum, albumTracks, selectedArtist, artistAlbums } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
@@ -143,15 +144,6 @@
     return s === 'local' ? $tr('favorites.localSource') : s.charAt(0).toUpperCase() + s.slice(1);
   }
 
-  function shuffled<T>(arr: T[]): T[] {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
-
   // Play just one item (local via track_id, streaming via source/source_id).
   async function playSingle(t: Track) {
     if (!zone?.id) return;
@@ -173,7 +165,7 @@
   // addToQueue takes them one by one).
   async function playAllTracks(shuffle: boolean) {
     if (!zone?.id) return;
-    const list = shuffle ? shuffled(displayTracks) : displayTracks;
+    const list = shuffle ? melangee(displayTracks) : displayTracks;
     if (list.length === 0) return;
     try {
       if (list.every((t) => typeof t.id === 'number')) {
