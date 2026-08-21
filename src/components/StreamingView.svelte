@@ -2115,13 +2115,39 @@
     align-items: center;
     justify-content: center;
     transition: all 0.12s ease-out;
-    opacity: 0;
+    opacity: 1;
   }
 
-  .track-item:hover .add-queue-btn,
-  .track-item:hover .play-from-here-btn,
-  .track-item:hover .play-next-btn {
-    opacity: 1;
+  /* Les actions d'une piste ne s'effacent QUE là où le survol existe (#1848).
+     Elles étaient à `opacity: 0` par défaut, révélées au `:hover`. Sur une
+     tablette ou un téléphone il n'y a pas de survol : les boutons restaient
+     donc invisibles — et pourtant CLIQUABLES, puisque `opacity` ne retire ni la
+     place ni les événements. Un doigt qui touche la ligne pouvait ajouter une
+     piste à la file sans jamais avoir vu le bouton.
+
+     C'est ce qui a fait dire à Dominique Comet qu'on ne peut pas ajouter une
+     piste Qobuz à la file : la capacité existait, l'affordance non.
+
+     `:focus-within` couvre le clavier, qui n'a pas de survol non plus et
+     tabulait jusqu'à des boutons invisibles. */
+  @media (hover: hover) and (pointer: fine) {
+    .add-queue-btn,
+    .play-from-here-btn,
+    .play-next-btn,
+    .add-playlist-btn {
+      opacity: 0;
+    }
+
+    .track-item:hover .add-queue-btn,
+    .track-item:hover .play-from-here-btn,
+    .track-item:hover .play-next-btn,
+    .track-item:hover .add-playlist-btn,
+    .track-item:focus-within .add-queue-btn,
+    .track-item:focus-within .play-from-here-btn,
+    .track-item:focus-within .play-next-btn,
+    .track-item:focus-within .add-playlist-btn {
+      opacity: 1;
+    }
   }
 
   .add-queue-btn:hover,
@@ -2144,7 +2170,7 @@
     align-items: center;
     justify-content: center;
     transition: all 0.12s ease-out;
-    opacity: 0;
+    opacity: 1;
   }
 
   .fav-btn {
@@ -2181,10 +2207,6 @@
     align-items: center;
     justify-content: center;
     transition: all 0.12s ease-out;
-    opacity: 0;
-  }
-
-  .track-item:hover .add-playlist-btn {
     opacity: 1;
   }
 
