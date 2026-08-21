@@ -12,6 +12,7 @@
   import HeartButton from './HeartButton.svelte';
   import type { Album, Artist, Track, SearchResult, FeaturedSection, StreamingPlaylist, StreamingGenre } from '../lib/types';
   import { t as tr } from '../lib/i18n';
+  import { fusionnerPage } from '../lib/pagination';
   import { notifications } from '../lib/stores/notifications';
   import { playVideo } from '../lib/stores/ytPlayer';
   import { currentProfileId } from '../lib/stores/profile';
@@ -627,10 +628,51 @@
     loading = true;
     try {
       artistAlbums = await api.getStreamingArtistAlbums(service, artistId);
+      // Une première page pleine laisse supposer une suite ; une page courte
+      // dit qu'il n'y a rien après, et le bouton ne s'affiche pas du tout.
+      artistePlus = artistAlbums.length >= TAILLE_DE_PAGE;
     } catch (e) {
       console.error('Get streaming artist albums error:', e);
+      artistePlus = false;
     }
     loading = false;
+  }
+
+  /// Combien d'albums le serveur rend par page — la même valeur que lui.
+  const TAILLE_DE_PAGE = 50;
+  let artistePlus = $state(false);
+  let artisteEnChargement = $state(false);
+
+  /**
+   * « Voir plus » : la page suivante de la discographie.
+   *
+   * La discographie s'arrêtait au cinquantième album sans que rien n'indique
+   * qu'il y en avait d'autres — un `limit` écrit en dur, sans `offset`.
+   *
+   * On s'arrête sur une page VIDE ou COURTE, et non sur un compte total que
+   * le service ne donne pas toujours. Un service qui ne sait pas paginer rend
+   * vide dès le premier offset non nul : le bouton disparaît après un essai,
+   * sans jamais resservir la première page.
+   */
+  async function voirPlusDAlbums() {
+    const artistId = String(
+      selectedArtist?.source_id ?? selectedArtist?.id ?? selectedArtist?.musicbrainz_id ?? selectedArtist?.discogs_id ?? '',
+    );
+    if (!service || !artistId || artisteEnChargement) return;
+    artisteEnChargement = true;
+    try {
+      const suite = await api.getStreamingArtistAlbums(service, artistId, artistAlbums.length);
+      const r = fusionnerPage(artistAlbums, suite, TAILLE_DE_PAGE, (a) =>
+        String(a.source_id ?? a.id),
+      );
+      artistAlbums = r.liste;
+      artistePlus = r.encore;
+    } catch (e) {
+      console.error('Voir plus (discographie) :', e);
+      artistePlus = false;
+    } finally {
+      artisteEnChargement = false;
+    }
   }
 
   async function selectStreamingPlaylist(playlist: StreamingPlaylist) {
@@ -979,6 +1021,13 @@
           </div>
         {/each}
       </div>
+      {#if artistePlus}
+        <div class="voir-plus">
+          <button onclick={voirPlusDAlbums} disabled={artisteEnChargement}>
+            {artisteEnChargement ? $tr('common.loading') : $tr('oxygen.loadMore')}
+          </button>
+        </div>
+      {/if}
     {/if}
 
   {:else if browsingGenres}
@@ -1835,6 +1884,12 @@
     background: var(--tune-accent-hover);
   }
 
+.voir-plus { display: flex; justify-content: center; margin: 1rem 0 1.5rem; }
+  .voir-plus button {
+    padding: 0.5rem 1.4rem; border-radius: 999px; font-size: 0.875rem;
+    background: var(--surface, #1b1b1b); color: var(--text, #ddd);
+  }
+  .voir-plus button:disabled { opacity: 0.6; cursor: default; }
   .albums-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));

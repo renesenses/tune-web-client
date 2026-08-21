@@ -2250,8 +2250,17 @@ export function getStreamingArtist(service: string, artistId: string) {
   return fetchJSON<Artist>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}`);
 }
 
-export function getStreamingArtistAlbums(service: string, artistId: string) {
-  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/albums`);
+/**
+ * Une page de la discographie d'un artiste.
+ *
+ * `offset` omis vaut 0 côté serveur : un client qui ne pagine pas garde le
+ * comportement d'avant. Une page vide signifie « il n'y a plus rien » — c'est
+ * ce qui arrête le « voir plus », y compris sur un service qui ne sait pas
+ * paginer et qui rend alors vide dès le premier offset non nul.
+ */
+export function getStreamingArtistAlbums(service: string, artistId: string, offset = 0) {
+  const p = offset > 0 ? `?offset=${offset}` : '';
+  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/albums${p}`);
 }
 
 export function getStreamingFeaturedSections(service: string) {
