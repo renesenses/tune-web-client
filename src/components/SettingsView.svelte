@@ -23,6 +23,7 @@
   import { activeView, settingsInitialTab, type View } from '../lib/stores/navigation';
   import { licenseState, isPremium, loadLicense } from '../lib/stores/license';
   import SmbWizard from './SmbWizard.svelte';
+  import { etatPartage } from '../lib/smbMountState';
   import FolderWizard from './FolderWizard.svelte';
   import MultiroomSettings from './MultiroomSettings.svelte';
   import DevicesSettings from './DevicesSettings.svelte';
@@ -338,6 +339,23 @@ function setSettingsLevel(level: SettingsLevel) {
   let audioDevices = $state<LocalAudioDevice[]>([]);
   let artworkProgress: { current: number; total: number; found: number } | null = $state(null);
   let musicRoots = $state<BrowseRootEntry[]>([]);
+
+  // Partages SMB et leur ÉTAT RÉEL (#2069). Le serveur le publie depuis la
+  // v0.9.91 (#1916, #1847) et aucun écran ne le lisait : Éric (`ricouxxx`)
+  // voyait ses partages « toujours présents sur l'interface » — c'était la
+  // liste des répertoires, qui affiche le dossier configuré, monté ou non.
+  let smbMounts = $state<api.SmbMount[]>([]);
+
+  async function loadSmbMounts() {
+    // Chargé à part du bloc parallèle : un serveur antérieur à la 0.9.91 rend
+    // 404 sur cette route, et ça ne doit pas priver la page de ses autres
+    // données. Échec silencieux, section masquée.
+    try {
+      smbMounts = await api.listSmbMounts();
+    } catch {
+      smbMounts = [];
+    }
+  }
 
   // Peer discovery
   let tunePeers = $state<api.TunePeer[]>([]);
@@ -1818,6 +1836,7 @@ function setSettingsLevel(level: SettingsLevel) {
       $streamingServicesStore = val(rStreaming, {} as Record<string, StreamingServiceStatus>) as Record<string, StreamingServiceStatus>;
       scanning = val(rScan, { scanning: false }).scanning;
       musicRoots = val(rBrowse, { roots: [] as any[] }).roots;
+      loadSmbMounts();
       config = val(rConfig, null);
       backups = val(rBackups, []);
       // Log individual failures for debugging
@@ -3918,6 +3937,43 @@ function setSettingsLevel(level: SettingsLevel) {
       {#if musicDirError}
         <div class="music-dir-error">{musicDirError}</div>
       {/if}
+
+      <!-- Partages réseau et leur état réel (#2069).
+           Masquée s'il n'y en a aucun, ou si le serveur est antérieur à la
+           0.9.91 et ne publie pas la route : une section vide poserait une
+           question là où il n'y a rien à voir. -->
+      {#if smbMounts.length > 0}
+        <div class="smb-mounts">
+          <h4 class="smb-mounts-title">{$t('settings.smbMountsTitle')}</h4>
+          {#each smbMounts as m}
+            {@const e = etatPartage(m)}
+            {@const enEchec = e.enEchec}
+            <div class="smb-mount" class:failed={enEchec}>
+              <div class="smb-mount-head">
+                <span class="smb-mount-name">\\{m.server}\{m.share}</span>
+                <span class="smb-badge" class:ok={!enEchec} class:ko={enEchec}>
+                  {enEchec ? $t('settings.smbNotMounted') : $t('settings.smbMounted')}
+                </span>
+                {#if e.signalerSmb1}
+                  <!-- SMB 1 est obsolète et non chiffré. Y retomber peut être
+                       la seule façon de lire un partage exposé par un
+                       streamer — mais le faire en silence, non. -->
+                  <span class="smb-badge warn" title={$t('settings.smb1Hint')}>SMB 1.0</span>
+                {/if}
+              </div>
+              {#if m.mount_path}
+                <div class="smb-mount-path">{m.mount_path}</div>
+              {/if}
+              {#if e.cause}
+                <!-- La cause telle que mount.cifs l'a rendue. C'est ce qui
+                     manquait à Éric : son partage échouait, seul le journal le
+                     savait, et la lecture rendait une erreur réseau générique. -->
+                <div class="smb-mount-error">{e.cause}</div>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
       {#if musicRoots.length === 0}
         <p class="muted">{$t('settings.noMusicDirs')}</p>
       {:else}
@@ -5794,6 +5850,8 @@ function setSettingsLevel(level: SettingsLevel) {
     onMusicDirsChanged={async () => {
       const br = await api.getBrowseRoots().catch(() => ({ roots: [] }));
       musicRoots = br.roots;
+      // Un partage vient d'être ajouté : sa ligne d'état doit apparaître.
+      loadSmbMounts();
     }}
   />
 {/if}
@@ -6529,6 +6587,82 @@ function setSettingsLevel(level: SettingsLevel) {
   .pairing-message {
     font-size: 12px;
     color: var(--tune-accent);
+  }
+
+  .smb-mounts {
+    margin-top: 14px;
+  }
+
+  .smb-mounts-title {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+  }
+
+  .smb-mount {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--tune-border, rgba(255,255,255,0.1));
+    margin-bottom: 6px;
+  }
+
+  /* Un partage en échec se voit AVANT d'être lu : c'est tout l'objet de la
+     section. Une bordure, pas un fond criard — la page en compte déjà
+     beaucoup, et un partage non monté n'est pas une panne du serveur. */
+  .smb-mount.failed {
+    border-color: var(--tune-danger, #e05252);
+  }
+
+  .smb-mount-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .smb-mount-name {
+    font-size: 13px;
+    color: var(--tune-text);
+    font-family: var(--font-mono, monospace);
+  }
+
+  .smb-badge {
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+
+  .smb-badge.ok {
+    background: rgba(60, 160, 90, 0.18);
+    color: #6fcf97;
+  }
+
+  .smb-badge.ko {
+    background: rgba(224, 82, 82, 0.18);
+    color: #e08a8a;
+  }
+
+  .smb-badge.warn {
+    background: rgba(224, 170, 60, 0.18);
+    color: #e0b45a;
+    cursor: help;
+  }
+
+  .smb-mount-path {
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--tune-text-muted);
+  }
+
+  .smb-mount-error {
+    margin-top: 5px;
+    font-size: 11.5px;
+    line-height: 1.4;
+    color: #e08a8a;
+    font-family: var(--font-mono, monospace);
+    word-break: break-word;
   }
 
   .music-dir-error {
