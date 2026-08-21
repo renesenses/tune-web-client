@@ -301,3 +301,38 @@ export function errText(e: unknown): string | null {
   if (/^(Failed to fetch|Load failed|NetworkError)/i.test(m)) return null;
   return m || null;
 }
+
+/** Libellés portés par les puces de QUALITÉ, en majuscules. */
+export const LIBELLES_QUALITE = ['DSD', 'HI-RES', 'CD', 'LOSSY'];
+
+/**
+ * Écarter des puces de FORMAT tout libellé déjà porté par une puce de qualité.
+ *
+ * Dans l'onglet Albums, les deux rangées vivent dans le même bloc, séparées
+ * d'une simple barre et sans intitulé. « DSD » est le seul terme qui soit à la
+ * fois un palier de qualité et un format de fichier : une bibliothèque
+ * contenant du DSD affichait donc
+ *
+ *     CD | Lossy | DSD | Hi-Res | FLAC | MP3 | DSD | ALAC | AAC | WAV
+ *                  ↑                          ↑
+ *
+ * deux puces identiques au même endroit (Cyrille Moutia, #1612).
+ *
+ * Reproduit sur une bibliothèque réelle de 2222 albums : une SEULE valeur
+ * `dsd` en base, aucun doublon de donnée. Ce n'était donc ni deux extensions
+ * (.dsf/.dff) ni deux casses, comme on l'avait d'abord supposé — mais la
+ * collision d'affichage entre deux facettes légitimes.
+ *
+ * Règle générale plutôt que le cas « dsd » : si un format entre un jour en
+ * collision avec un palier, elle tiendra sans qu'on y revienne. C'est le
+ * palier qu'on garde, car il filtre plus large — il retient aussi les `.dsf`
+ * et `.dff` dont le `format` diffère.
+ *
+ * L'onglet Pistes n'est pas concerné : sa rangée de formats porte un intitulé
+ * « Format », qui lève l'ambiguïté.
+ */
+export function formatsSansCollision(formats: (string | null | undefined)[]): string[] {
+  return [...new Set(formats.filter(Boolean) as string[])]
+    .filter((fmt) => !LIBELLES_QUALITE.includes(fmt.toUpperCase()))
+    .sort();
+}
