@@ -2910,6 +2910,45 @@ export function listMounts() {
   return fetchJSON<any[]>(`${BASE}/network/mounts`);
 }
 
+/**
+ * Un partage SMB enregistré, avec l'état RÉEL de son montage.
+ *
+ * ⚠️ `active` et `mount_state` ne disent pas la même chose, et les confondre
+ * redonne exactement le défaut de #1916 :
+ *
+ * - `active`      : l'INTENTION — « ce partage doit être monté » ;
+ * - `mount_state` : le CONSTAT — ce qu'a donné le dernier essai ;
+ * - `mounted`     : vérifié à l'instant, sur le système de fichiers.
+ *
+ * Éric (`ricouxxx`) voyait ses partages « toujours présents sur l'interface »
+ * alors que leur remontage avait échoué : rien ne portait le constat.
+ */
+export interface SmbMount {
+  id: number;
+  server: string;
+  share: string;
+  mount_path: string | null;
+  username: string | null;
+  /** Intention de l'utilisateur, pas état du montage. */
+  active: boolean;
+  /** Constaté à l'instant sur le système de fichiers. */
+  mounted: boolean;
+  /** `mounted` | `failed` — `null` quand aucun montage n'a été tenté. */
+  mount_state: string | null;
+  /** Cause du dernier échec, telle que `mount.cifs` l'a rendue. */
+  last_mount_error: string | null;
+  /** Dialecte retenu : `negocie`, `2.0`, `1.0`. `null` sur macOS. */
+  smb_version: string | null;
+}
+
+/**
+ * Les partages SMB et leur état. Publié par le serveur depuis la v0.9.91
+ * (#1916, #1847) ; aucun écran ne le lisait jusqu'à #2069.
+ */
+export function listSmbMounts() {
+  return fetchJSON<SmbMount[]>(`${BASE}/network/smb/mounts`);
+}
+
 // --- DJ Mode ---
 
 export function enableDJ(zoneId: number) {
