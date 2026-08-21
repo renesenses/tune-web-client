@@ -4,6 +4,7 @@
   import * as api from '../lib/api';
   import { onMount, onDestroy } from 'svelte';
   import { t as tr } from '../lib/i18n';
+  import { ouvertureParDefaut } from '../lib/mediaServerHome';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import type { MediaServer, MediaServerBrowseResult, MediaServerItem } from '../lib/types';
   import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
@@ -49,6 +50,27 @@
     selectedServer = server;
     navigationStack = [];
     await browseTo('0', server.name);
+
+    // Un autre serveur Tune n'est pas un inconnu : sa racine est
+    // Artists / Albums / Genres / All Tracks / Radio. On ouvre donc
+    // directement sur les albums, comme la bibliothèque locale s'ouvre sur les
+    // albums — la racine reste à un clic dans le fil d'Ariane.
+    //
+    // Et on ne le fait QUE si les albums répondent : un dossier ouvert
+    // d'autorité et vide se lirait comme une bibliothèque cassée, alors que la
+    // racine, elle, marche toujours. Le repli est donc le comportement d'avant.
+    const ouverture = ouvertureParDefaut(server);
+    if (ouverture && (browseResult?.containers?.length ?? 0) > 0) {
+      const avant = browseResult;
+      await browseTo(ouverture.objectId, ouverture.titre);
+      const vide =
+        (browseResult?.containers?.length ?? 0) === 0 &&
+        (browseResult?.items?.length ?? 0) === 0;
+      if (vide) {
+        navigationStack = [];
+        browseResult = avant;
+      }
+    }
   }
 
   async function browseTo(objectId: string, title?: string) {
