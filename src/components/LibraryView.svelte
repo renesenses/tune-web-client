@@ -1310,6 +1310,30 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     libraryLoading.set(false);
   }
 
+  /// Ouvre la fiche artiste depuis le nom affiché sous une vignette d'album.
+  ///
+  /// Demandé trois fois — #1868, #1927 (fil forum de FabienM) et #1580 — et
+  /// jamais fait : #1868 a été fermée comme doublon de #1580, mais les deux ne
+  /// parlent pas du même endroit. #1580 visait la FICHE d'un album, où le lien
+  /// existe depuis longtemps ; #1927 vise les VIGNETTES de la grille, où le nom
+  /// n'était qu'un `<span>`. Cliquer dessus ouvrait l'album, comme le reste de
+  /// la carte.
+  ///
+  /// `stopPropagation` est indispensable : sans lui le clic remonte à la carte
+  /// et ouvre l'album, c'est-à-dire exactement ce que FabienM veut éviter.
+  ///
+  /// Repli assumé : un album sans `artist_id` — un résultat de streaming sans
+  /// ligne artiste locale — ouvre l'album plutôt que de ne rien faire. Un lien
+  /// mort se lit comme une panne ; le comportement d'avant reste préférable.
+  function ouvrirArtisteDepuisAlbum(e: MouseEvent, album: Album) {
+    e.stopPropagation();
+    if (album.artist_id && album.artist_name) {
+      selectArtistDetail({ id: album.artist_id, name: album.artist_name } as Artist);
+      return;
+    }
+    selectAlbumDetail(album);
+  }
+
   async function selectArtistDetail(artist: Artist, keepSimilarStack = false) {
     if (!artist.id) return;
     // Fresh entry into the artist view (from the grid, search, an album, a track
@@ -2789,7 +2813,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                   {#if !albumWall}
                     <span class="album-card-title truncate" title={album.title}>{album.title}</span>
                     {#if album.artist_name}
-                      <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
+                      <button
+                        class="album-card-artist album-card-artist-link truncate"
+                        title={album.artist_name}
+                        onclick={(e) => ouvrirArtisteDepuisAlbum(e, album)}
+                      >{album.artist_name}</button>
                     {/if}
                   {/if}
                 </div>
@@ -2974,7 +3002,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               </div>
               <span class="album-card-title truncate" title={album.title}>{album.title}</span>
               {#if album.artist_name}
-                <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
+                <button
+                        class="album-card-artist album-card-artist-link truncate"
+                        title={album.artist_name}
+                        onclick={(e) => ouvrirArtisteDepuisAlbum(e, album)}
+                      >{album.artist_name}</button>
               {/if}
               {#if selectedParent && album.genre && album.genre.toLowerCase() !== (selectedParent ?? '').toLowerCase()}
                 <span class="album-card-genre truncate" title={album.genre.split(/[;\/\\]/).map(g => g.trim()).filter(Boolean).join(', ')}>{album.genre.split(/[;\/\\]/).map(g => g.trim()).filter(Boolean).join(', ')}</span>
@@ -3105,7 +3137,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                       </div>
                       <span class="album-card-title truncate" title={album.title}>{album.title}</span>
                       {#if album.artist_name}
-                        <span class="album-card-artist truncate" title={album.artist_name}>{album.artist_name}</span>
+                        <button
+                        class="album-card-artist album-card-artist-link truncate"
+                        title={album.artist_name}
+                        onclick={(e) => ouvrirArtisteDepuisAlbum(e, album)}
+                      >{album.artist_name}</button>
                       {/if}
                     </div>
                   {/each}
@@ -4280,6 +4316,23 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     font-size: 14px;
     font-weight: 700;
     max-width: 160px;
+  }
+
+  /* Un bouton qui doit se lire comme du texte : la carte entière est déjà
+     cliquable, un bouton visible ferait croire à deux actions concurrentes.
+     Seul le survol signale qu'il mène ailleurs. */
+  .album-card-artist-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .album-card-artist-link:hover {
+    color: var(--tune-text);
+    text-decoration: underline;
   }
 
   .album-card-artist, .album-card-year {
