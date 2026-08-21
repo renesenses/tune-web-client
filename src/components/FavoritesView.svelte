@@ -2,6 +2,7 @@
   import { currentProfileId } from '../lib/stores/profile';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { playFromHere } from '../lib/playback';
+  import { trier, clesPourOnglet, type CleDeTri } from '../lib/favoritesSort';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { selectedAlbum, albumTracks, selectedArtist, artistAlbums } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
@@ -57,15 +58,46 @@
   let sourceFilter = $state<string>('all');
   const srcOf = (x: any): string => x?.source ?? 'local';
 
+  // Tri des favoris (#2001) — la logique vit dans `favoritesSort.ts`, où elle
+  // est éprouvée : accents, champs absents et sens de tri sont exactement les
+  // règles qu'on croit évidentes et qu'on écrit de travers.
+  let tri = $state<CleDeTri>('defaut');
+  let triDescendant = $state(false);
+
+  // Le tri s'applique APRÈS le filtre par source, et il pilote donc aussi
+  // l'ordre de lecture : `playAllTracks` et « lire à partir d'ici » travaillent
+  // sur `displayTracks`. C'est exactement ce que Tades demandait — les écouter
+  // dans l'ordre qu'il choisit.
   let displayTracks = $derived(
-    sourceFilter === 'all' ? favTracks : favTracks.filter((t) => srcOf(t) === sourceFilter),
+    trier(
+      sourceFilter === 'all' ? favTracks : favTracks.filter((t) => srcOf(t) === sourceFilter),
+      tri,
+      triDescendant,
+    ),
   );
   let displayAlbums = $derived(
-    sourceFilter === 'all' ? favAlbums : favAlbums.filter((a) => srcOf(a) === sourceFilter),
+    trier(
+      sourceFilter === 'all' ? favAlbums : favAlbums.filter((a) => srcOf(a) === sourceFilter),
+      tri,
+      triDescendant,
+    ),
   );
   let displayArtists = $derived(
-    sourceFilter === 'all' ? favArtists : favArtists.filter((a) => srcOf(a) === sourceFilter),
+    trier(
+      sourceFilter === 'all' ? favArtists : favArtists.filter((a) => srcOf(a) === sourceFilter),
+      tri,
+      triDescendant,
+    ),
   );
+
+  let clesDeTri = $derived(clesPourOnglet(activeTab));
+
+  // Changer d'onglet peut invalider la clé courante — « album » n'existe pas
+  // sur les artistes. On retombe sur l'ordre d'ajout plutôt que de trier sur
+  // un champ vide, ce qui donnerait une liste d'apparence aléatoire.
+  $effect(() => {
+    if (!clesDeTri.includes(tri)) tri = 'defaut';
+  });
 
   let currentList = $derived(
     activeTab === 'tracks' ? favTracks : activeTab === 'albums' ? favAlbums : favArtists,
@@ -536,6 +568,33 @@
     </div>
   {/if}
 
+  {#if !loading && currentList.length > 1}
+    <div class="filter-bar tri-bar">
+      <span class="tri-label">{$tr('favorites.sortBy')}</span>
+      {#each clesDeTri as cle (cle)}
+        <button class="chip" class:active={tri === cle} onclick={() => (tri = cle)}>
+          {cle === 'defaut'
+            ? $tr('library.sortAddedDate')
+            : cle === 'titre'
+              ? $tr('library.sortTitle')
+              : cle === 'artiste'
+                ? $tr('library.sortArtist')
+                : $tr('common.album')}
+        </button>
+      {/each}
+      <!-- Le sens n'a aucun sens sur l'ordre d'ajout : on ne l'affiche pas
+           plutôt que de le griser, un bouton grisé faisant croire à un défaut. -->
+      {#if tri !== 'defaut'}
+        <button
+          class="chip"
+          onclick={() => (triDescendant = !triDescendant)}
+          title={triDescendant ? $tr('common.descending') : $tr('common.ascending')}
+          aria-label={triDescendant ? $tr('common.descending') : $tr('common.ascending')}
+        >{triDescendant ? '↓' : '↑'}</button>
+      {/if}
+    </div>
+  {/if}
+
   {#if loading}
     <div class="loading">
       <div class="spinner"></div>
@@ -703,6 +762,11 @@
   }
 
   /* Source filter chips (Fabien: filter favorites by service) */
+.tri-bar { margin-top: -0.35rem; }
+  .tri-label {
+    align-self: center; font-size: 0.8125rem; color: var(--text-muted, #888);
+    margin-right: 0.15rem;
+  }
   .filter-bar {
     display: flex;
     flex-wrap: wrap;
