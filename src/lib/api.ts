@@ -1062,19 +1062,12 @@ export function unassignSnapcastClient(clientId: string, zoneId: number) {
 export function listSonosSpeakers() {
   return fetchJSON<import('./types').SonosSpeaker[]>(`${BASE}/sonos/speakers`);
 }
-export function discoverSonos() {
-  return fetchJSON<import('./types').SonosSpeaker[]>(`${BASE}/sonos/discover`, { method: 'POST' });
-}
-export function setSonosGroup(coordinatorUid: string, memberUids: string[]) {
-  return fetchJSON(`${BASE}/sonos/groups`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ coordinator_uid: coordinatorUid, member_uids: memberUids }),
-  });
-}
-export function unjoinSonosSpeaker(uid: string) {
-  return fetchJSON(`${BASE}/sonos/speakers/${encodeURIComponent(uid)}/unjoin`, { method: 'POST' });
-}
+// `discoverSonos`, `setSonosGroup` et `unjoinSonosSpeaker` ont ete retirees le
+// 21/08/2026 : aucun composant ne les appelait, et leurs routes
+// (`/sonos/discover`, `/sonos/groups`, `/sonos/speakers/{uid}/unjoin`)
+// n'existent pas cote serveur. Le groupage Sonos reste a ecrire — des DEUX
+// cotes, en partant du service UPnP ZoneGroupTopology, que le serveur
+// n'interroge pas encore.
 
 // v0.8.0 — Squeezebox / Lyrion Music Server (LMS) integration.
 export interface SqueezeboxPlayer {

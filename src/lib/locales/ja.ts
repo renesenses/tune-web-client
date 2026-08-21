@@ -1201,7 +1201,6 @@ export default {
   // === i18n Phase 1b (auto-translated) ===
   "metadata.advancedFilters": "詳細フィルター",
   "metadata.artistPlaceholder": "アーティスト...",
-  "metadata.autoFixAlbumsResult": "{tracks} 曲を修正、{albums} 枚のアルバムを作成しました",
   "metadata.badgeAlbum": "アルバム",
   "metadata.badgeTrack": "トラック",
   "metadata.burnError": "書き込みエラー: {error}",

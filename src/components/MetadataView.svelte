@@ -434,26 +434,6 @@
     applying = false;
   }
 
-  let fixingAlbums = $state(false);
-  let fixAlbumsResult = $state('');
-
-  async function handleAutoFixAlbums() {
-    fixingAlbums = true;
-    try {
-      const r = await api.autoFixAlbums();
-      fixAlbumsResult = $t('metadata.autoFixAlbumsResult').replace('{tracks}', String(r.tracks_fixed)).replace('{albums}', String(r.albums_created));
-      // Refresh stats
-      // Refresh data without full reload
-      const sc = await api.getCompletenessStats();
-      stats = sc;
-    } catch (e: any) {
-      // « Erreur » seul ne dit ni quoi ni pourquoi. La cause est déjà
-      // disponible, autant l'afficher — c'est ce que fait le reste de l'écran.
-      fixAlbumsResult = $t('metadata.failurePrefix').replace('{error}', errText(e) ?? $t('common.serverUnreachable'));
-    }
-    fixingAlbums = false;
-  }
-
   async function handleAutoFix() {
     if (autoFixStatus === 'running') return;
     autoFixStatus = 'running';

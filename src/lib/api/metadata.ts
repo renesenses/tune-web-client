@@ -68,10 +68,6 @@ export function mergeAlbums(albumIds: number[]) {
   });
 }
 
-export function batchEditTracks(trackIds: number[], updates: Record<string, any>) {
-  return fetchJSON(`${BASE}/metadata/batch/tracks`, { method: 'POST', body: JSON.stringify({ track_ids: trackIds, updates }) });
-}
-
 // --- Lookup & enrichment ---
 // lookupTrack/lookupAlbum, enrichTrack/enrichAlbum, fetchAlbumCover et
 // fingerprint* : jamais appelés depuis un composant (retirés — la refonte
@@ -252,10 +248,6 @@ export interface MetadataFixResult {
   requested?: number;
   details?: unknown[];
   [key: string]: unknown;
-}
-
-export function autoFixAlbums() {
-  return fetchJSON<MetadataFixResult>(`${BASE}/metadata/auto-fix-albums`, { method: 'POST' });
 }
 
 // Online year sources (MusicBrainz/Discogs/Tidal/iTunes/Wikidata) are not

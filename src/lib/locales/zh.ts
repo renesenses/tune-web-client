@@ -1201,7 +1201,6 @@ export default {
   // === i18n Phase 1b (auto-translated) ===
   "metadata.advancedFilters": "高级筛选",
   "metadata.artistPlaceholder": "艺术家…",
-  "metadata.autoFixAlbumsResult": "已修复 {tracks} 首曲目，创建 {albums} 张专辑",
   "metadata.badgeAlbum": "专辑",
   "metadata.badgeTrack": "曲目",
   "metadata.burnError": "写入错误：{error}",

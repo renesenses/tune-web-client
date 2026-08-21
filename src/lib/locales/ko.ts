@@ -1184,7 +1184,6 @@ export default {
   // === i18n Phase 1b (auto-translated) ===
   "metadata.advancedFilters": "고급 필터",
   "metadata.artistPlaceholder": "아티스트...",
-  "metadata.autoFixAlbumsResult": "{tracks}개 트랙 수정됨, {albums}개 앨범 생성됨",
   "metadata.badgeAlbum": "앨범",
   "metadata.badgeTrack": "트랙",
   "metadata.burnError": "쓰기 오류: {error}",

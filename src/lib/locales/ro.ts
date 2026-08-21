@@ -1209,7 +1209,6 @@ export default {
   // === i18n Phase 1 (auto-added: SettingsView, MetadataView, high-traffic + no-i18n components) ===
   "metadata.advancedFilters": "Filtre avansate",
   "metadata.artistPlaceholder": "Artist...",
-  "metadata.autoFixAlbumsResult": "{tracks} piese reparate, {albums} albume create",
   "metadata.badgeAlbum": "Album",
   "metadata.badgeTrack": "Piesă",
   "metadata.burnError": "Eroare la scriere: {error}",
