@@ -2926,7 +2926,7 @@ export default {
   "acoustic.throttleEco": "Ménagé — laisse la machine tranquille",
   "acoustic.throttleBalanced": "Équilibré",
   "acoustic.throttleFast": "Rapide — machine dédiée",
-  "ambiance.analysisNotReady": "L'analyse acoustique vient d'être activée : elle parcourt la bibliothèque en tâche de fond et les résultats arrivent au fur et à mesure. Son avancement et son débit se règlent dans Paramètres, section Métadonnées.",
+  "ambiance.analysisNotReady": "L'analyse acoustique vient d'être activée : elle parcourt la bibliothèque en tâche de fond et les résultats arrivent au fur et à mesure. Son avancement et son débit se règlent dans Paramètres, onglet « {onglet} ».",
   "ambiance.mine": "Mes ambiances",
   "ambiance.saveThis": "Enregistrer cette ambiance",
   "ambiance.save": "Enregistrer",

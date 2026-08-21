@@ -2638,7 +2638,7 @@ export default {
   "acoustic.throttleEco": "Skonsam — låter maskinen vara",
   "acoustic.throttleBalanced": "Balanserad",
   "acoustic.throttleFast": "Snabb — dedikerad maskin",
-  "ambiance.analysisNotReady": "Den akustiska analysen har just aktiverats: den går igenom biblioteket i bakgrunden och resultaten dyker upp efter hand. Förlopp och takt finns i Inställningar, avsnittet Metadata.",
+  "ambiance.analysisNotReady": "Den akustiska analysen har just aktiverats: den går igenom biblioteket i bakgrunden och resultaten dyker upp efter hand. Förlopp och takt finns i Inställningar, fliken ”{onglet}”.",
   "ambiance.mine": "Mina stämningar",
   "ambiance.saveThis": "Spara den här stämningen",
   "ambiance.save": "Spara",

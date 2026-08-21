@@ -2673,7 +2673,7 @@ export default {
   "acoustic.throttleEco": "轻柔 — 不占用机器",
   "acoustic.throttleBalanced": "均衡",
   "acoustic.throttleFast": "快速 — 专用机器",
-  "ambiance.analysisNotReady": "声学分析刚刚启用：它会在后台遍历音乐库，结果将陆续出现。进度和速率见「设置 → 元数据」。",
+  "ambiance.analysisNotReady": "声学分析刚刚启用：它会在后台遍历音乐库，结果将陆续出现。进度和速率见「设置 → {onglet}」选项卡。",
   "ambiance.mine": "我的氛围",
   "ambiance.saveThis": "保存此氛围",
   "ambiance.save": "保存",

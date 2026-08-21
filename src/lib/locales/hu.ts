@@ -2874,7 +2874,7 @@ export default {
   "acoustic.throttleEco": "Kíméletes — békén hagyja a gépet",
   "acoustic.throttleBalanced": "Kiegyensúlyozott",
   "acoustic.throttleFast": "Gyors — dedikált gép",
-  "ambiance.analysisNotReady": "Az akusztikai elemzést épp most kapcsoltad be: a háttérben végigmegy a gyűjteményen, és az eredmények menet közben jelennek meg. A haladása és a sebessége a Beállítások Metaadatok szakaszában található.",
+  "ambiance.analysisNotReady": "Az akusztikai elemzést épp most kapcsoltad be: a háttérben végigmegy a gyűjteményen, és az eredmények menet közben jelennek meg. A haladása és a sebessége a Beállítások „{onglet}” lapján található.",
   "ambiance.mine": "Saját hangulataim",
   "ambiance.saveThis": "Ennek a hangulatnak a mentése",
   "ambiance.save": "Mentés",
