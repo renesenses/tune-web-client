@@ -1330,139 +1330,137 @@
           {#if !isRadio && displayTrack.source === 'local' && trackPlays !== null && trackPlays > 0}
             <p class="track-plays">{trackPlays} {$t('home.plays')}</p>
           {/if}
-          {#if !isRadio && displayTrack.id}
-            <div class="np-extra-btns">
-            <button class="np-credits-btn" class:active={showCredits} onclick={() => { showCredits = !showCredits; showLyrics = false; if (showCredits && displayTrack.id) loadNpCredits(displayTrack.id); }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-              {$t('artist.credits')}
-            </button>
-            {#if showCredits}
-              {#if npCredits.length > 0}
-                <div class="np-credits">
-                  {#each sortedRoleEntries(npCredits) as [role, credits]}
-                    <div class="np-credits-group">
-                      <span class="np-credits-role">{formatRole(role)}</span>
-                      <div class="np-credits-names">
-                        {#each credits ?? [] as c}
-                          <button
-                            class="np-credit-chip"
-                            class:linkable={!!c.artist_id}
-                            disabled={!c.artist_id}
-                            onclick={() => navigateToArtist(c.artist_id ?? undefined, c.artist_name)}
-                          >
-                            {c.artist_name}{#if c.instrument}<span class="np-credit-instr">{c.instrument}</span>{/if}
-                          </button>
-                        {/each}
+          <!-- La barre d'actions. Ce qui a besoin d'un identifiant de piste
+               (crédits, paroles, partage) reste conditionné ; l'ÉGALISEUR, non.
+               Il se lit par api.getEq(zone.id) et s'écrit par
+               api.setEqualizer(zone.id, ...) : c'est un réglage de ZONE, qui
+               ne touche jamais displayTrack. Enfermé ici avec les crédits, il
+               disparaissait sur une radio et sur toute piste hors bibliothèque
+               (Bandcamp, ajout par URL) — exactement l'auditeur qui veut
+               corriger son grave. Garde : src/lib/__tests__/npEqButton.test.ts -->
+          <div class="np-extra-btns">
+            {#if !isRadio && displayTrack.id}
+              <button class="np-credits-btn" class:active={showCredits} onclick={() => { showCredits = !showCredits; showLyrics = false; if (showCredits && displayTrack.id) loadNpCredits(displayTrack.id); }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                {$t('artist.credits')}
+              </button>
+              {#if showCredits}
+                {#if npCredits.length > 0}
+                  <div class="np-credits">
+                    {#each sortedRoleEntries(npCredits) as [role, credits]}
+                      <div class="np-credits-group">
+                        <span class="np-credits-role">{formatRole(role)}</span>
+                        <div class="np-credits-names">
+                          {#each credits ?? [] as c}
+                            <button
+                              class="np-credit-chip"
+                              class:linkable={!!c.artist_id}
+                              disabled={!c.artist_id}
+                              onclick={() => navigateToArtist(c.artist_id ?? undefined, c.artist_name)}
+                            >
+                              {c.artist_name}{#if c.instrument}<span class="np-credit-instr">{c.instrument}</span>{/if}
+                            </button>
+                          {/each}
+                        </div>
                       </div>
-                    </div>
-                  {/each}
-                </div>
-              {:else}
-                <div class="np-credits-empty">
-                  <div class="np-credits-empty-title">{$t('credits.empty.title')}</div>
-                  <button
-                    class="np-credits-empty-cta"
-                    onclick={enrichCurrentTrackCredits}
-                    disabled={creditsEnriching}
-                  >
-                    {creditsEnriching ? $t('credits.enrich.in_progress') : $t('credits.empty.cta_enrich')}
-                  </button>
-                </div>
+                    {/each}
+                  </div>
+                {:else}
+                  <div class="np-credits-empty">
+                    <div class="np-credits-empty-title">{$t('credits.empty.title')}</div>
+                    <button
+                      class="np-credits-empty-cta"
+                      onclick={enrichCurrentTrackCredits}
+                      disabled={creditsEnriching}
+                    >
+                      {creditsEnriching ? $t('credits.enrich.in_progress') : $t('credits.empty.cta_enrich')}
+                    </button>
+                  </div>
+                {/if}
               {/if}
+              <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; showCredits = false; showEq = false; if (!showLyrics) karaokeMode = false; if (showLyrics) loadLyricsFor(displayTrack); }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+                {$t('nowplaying.lyrics')}
+              </button>
+            {:else if npMetaQuery}
+              <!-- Piste sans id de bibliothèque (radio ou streaming Qobuz/Tidal)
+                   avec titre+artiste : paroles via /lyrics/by-meta. Karaoké
+                   possible pour le streaming (position réelle), pas pour la
+                   radio (position trop imprécise, donc texte simple). -->
+              <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; showEq = false; if (!showLyrics) karaokeMode = false; if (showLyrics) loadLyricsFor(displayTrack); }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+                {$t('nowplaying.lyrics')}
+              </button>
             {/if}
-            <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; showCredits = false; showEq = false; if (!showLyrics) karaokeMode = false; if (showLyrics) loadLyricsFor(displayTrack); }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
-              {$t('nowplaying.lyrics')}
-            </button>
             <button class="np-credits-btn" class:active={showEq} onclick={() => { showEq = !showEq; showCredits = false; showLyrics = false; karaokeMode = false; }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>
               EQ
             </button>
-            <button class="np-credits-btn" onclick={handleShare}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
-              {$t('nowplaying.share')}
-            </button>
-            <div class="np-sleep-wrapper" style="position:relative;display:inline-flex">
-              <button class="np-credits-btn" class:active={sleepActive} onclick={() => { showSleepMenu = !showSleepMenu; showDspMenu = false; }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
-                Sleep
+            {#if !isRadio && displayTrack.id}
+              <button class="np-credits-btn" onclick={handleShare}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+                {$t('nowplaying.share')}
               </button>
-              {#if showSleepMenu}
-                <div class="np-sleep-dropdown">
-                  {#each [15, 30, 45, 60] as m}
-                    <button class="sleep-option" class:active={sleepActive && sleepMinutes === m} onclick={() => handleSleepTimer(m)}>{m} min</button>
-                  {/each}
-                  <button class="sleep-option sleep-off" onclick={() => handleSleepTimer(0)}>Off</button>
-                </div>
-              {/if}
-            </div>
-            <div class="np-sleep-wrapper" style="position:relative;display:inline-flex">
-              <button class="np-credits-btn" class:active={currentCrossfeed !== null} onclick={() => { showDspMenu = !showDspMenu; showSleepMenu = false; }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h4l3-9 6 18 3-9h4" /></svg>
-                DSP
-              </button>
-              {#if showDspMenu}
-                <div class="np-sleep-dropdown">
-                  {#each DSP_PRESETS as preset}
-                    <button class="sleep-option" class:active={currentCrossfeed === preset.value} onclick={() => handleDsp(preset.value)}>{preset.label}</button>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-            <button class="np-credits-btn" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
-              {$t('nowplaying.alarm')}
-            </button>
-            </div>
-            {#if showAlarm}
-              <div class="np-alarm-panel">
-                <div class="alarm-row">
-                  <input type="time" class="alarm-time-input" bind:value={alarmTime} />
-                  <button class="alarm-set-btn" onclick={handleSetAlarm} disabled={alarmSetting || !alarmTime}>
-                    {alarmSetting ? '...' : $t('nowplaying.activate')}
-                  </button>
-                  {#if alarmActive}
-                    <button class="alarm-cancel-btn" onclick={handleCancelAlarm}>{$t('nowplaying.cancel')}</button>
-                  {/if}
-                </div>
-                {#if alarmActive}
-                  <span class="alarm-status">{$t('nowplaying.alarmActive')} {alarmTime}</span>
+              <div class="np-sleep-wrapper" style="position:relative;display:inline-flex">
+                <button class="np-credits-btn" class:active={sleepActive} onclick={() => { showSleepMenu = !showSleepMenu; showDspMenu = false; }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+                  Sleep
+                </button>
+                {#if showSleepMenu}
+                  <div class="np-sleep-dropdown">
+                    {#each [15, 30, 45, 60] as m}
+                      <button class="sleep-option" class:active={sleepActive && sleepMinutes === m} onclick={() => handleSleepTimer(m)}>{m} min</button>
+                    {/each}
+                    <button class="sleep-option sleep-off" onclick={() => handleSleepTimer(0)}>Off</button>
+                  </div>
                 {/if}
               </div>
-            {/if}
-            {#if showLyrics}
-              <NowPlayingLyrics
-                loading={lyricsLoading}
-                lyrics={npLyrics}
-                {syncedLines}
-                {karaokeMode}
-                onToggleKaraoke={() => { karaokeMode = !karaokeMode; }}
-              />
-            {/if}
-            {#if showEq}
-              <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} bands={eqBands} enabled={eqEnabled} />
-            {/if}
-          {/if}
-          {#if !displayTrack.id && npMetaQuery}
-            <!-- Piste sans id de bibliothèque (radio ou streaming Qobuz/Tidal)
-                 avec titre+artiste : paroles via /lyrics/by-meta. Karaoké
-                 possible pour le streaming (position réelle), pas pour la
-                 radio (position trop imprécise → texte simple). -->
-            <div class="np-extra-btns">
-              <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; if (!showLyrics) karaokeMode = false; if (showLyrics) loadLyricsFor(displayTrack); }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
-                {$t('nowplaying.lyrics')}
+              <div class="np-sleep-wrapper" style="position:relative;display:inline-flex">
+                <button class="np-credits-btn" class:active={currentCrossfeed !== null} onclick={() => { showDspMenu = !showDspMenu; showSleepMenu = false; }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h4l3-9 6 18 3-9h4" /></svg>
+                  DSP
+                </button>
+                {#if showDspMenu}
+                  <div class="np-sleep-dropdown">
+                    {#each DSP_PRESETS as preset}
+                      <button class="sleep-option" class:active={currentCrossfeed === preset.value} onclick={() => handleDsp(preset.value)}>{preset.label}</button>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+              <button class="np-credits-btn" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
+                {$t('nowplaying.alarm')}
               </button>
-            </div>
-            {#if showLyrics}
-              <NowPlayingLyrics
-                loading={lyricsLoading}
-                lyrics={npLyrics}
-                {syncedLines}
-                {karaokeMode}
-                onToggleKaraoke={() => { karaokeMode = !karaokeMode; }}
-              />
             {/if}
+          </div>
+          {#if showAlarm && !isRadio && displayTrack.id}
+            <div class="np-alarm-panel">
+              <div class="alarm-row">
+                <input type="time" class="alarm-time-input" bind:value={alarmTime} />
+                <button class="alarm-set-btn" onclick={handleSetAlarm} disabled={alarmSetting || !alarmTime}>
+                  {alarmSetting ? '...' : $t('nowplaying.activate')}
+                </button>
+                {#if alarmActive}
+                  <button class="alarm-cancel-btn" onclick={handleCancelAlarm}>{$t('nowplaying.cancel')}</button>
+                {/if}
+              </div>
+              {#if alarmActive}
+                <span class="alarm-status">{$t('nowplaying.alarmActive')} {alarmTime}</span>
+              {/if}
+            </div>
+          {/if}
+          {#if showLyrics}
+            <NowPlayingLyrics
+              loading={lyricsLoading}
+              lyrics={npLyrics}
+              {syncedLines}
+              {karaokeMode}
+              onToggleKaraoke={() => { karaokeMode = !karaokeMode; }}
+            />
+          {/if}
+          {#if showEq}
+            <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} bands={eqBands} enabled={eqEnabled} />
           {/if}
           {#if zone?.signal_path}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
