@@ -190,6 +190,8 @@ export default {
   'common.tracks': 'pistas',
   'common.noResult': 'Sin resultados',
   'common.error': 'Error',
+  'eq.profileApplyError': "No se pudo aplicar el perfil",
+  'smartai.noZoneOrTracks': "Ninguna zona o ninguna pista",
   "common.serverUnreachable": "El servidor no responde. Si se está reiniciando — o una VPN corta la conexión — inténtelo de nuevo en unos segundos.",
   'common.ok': 'Aceptar',
   'common.title': 'Título',

@@ -379,6 +379,8 @@ export default {
   'common.tracks': 'tracks',
   'common.noResult': 'No results',
   'common.error': 'Error',
+  'eq.profileApplyError': "Could not apply the profile",
+  'smartai.noZoneOrTracks': "No zone or no tracks",
   "common.serverUnreachable": "The server is not responding. If it is restarting — or a VPN is cutting the connection — try again in a few seconds.",
   'common.ok': 'OK',
   'common.title': 'Title',

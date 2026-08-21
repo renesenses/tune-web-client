@@ -190,6 +190,8 @@ export default {
   'common.tracks': 'brani',
   'common.noResult': 'Nessun risultato',
   'common.error': 'Errore',
+  'eq.profileApplyError': "Impossibile applicare il profilo",
+  'smartai.noZoneOrTracks': "Nessuna zona o nessun brano",
   "common.serverUnreachable": "Il server non risponde. Se si sta riavviando — o una VPN interrompe la connessione — riprovate tra qualche secondo.",
   'common.ok': 'OK',
   'common.title': 'Titolo',

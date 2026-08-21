@@ -362,6 +362,8 @@ export default {
   "common.tracks": "szám",
   "common.noResult": "Nincs találat",
   "common.error": "Hiba",
+  'eq.profileApplyError': "A profil nem alkalmazható",
+  'smartai.noZoneOrTracks': "Nincs zóna vagy nincs szám",
   "common.ok": "OK",
   "common.title": "Cím",
   "common.artist": "Előadó",

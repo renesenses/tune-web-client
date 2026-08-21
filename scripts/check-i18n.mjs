@@ -34,6 +34,22 @@ const VISIBLE = />([^<>{}]*[a-zà-ÿ][^<>{}]*)<|(?:title|placeholder|aria-label|
 const ATTR_EXPR = /(?:title|placeholder|aria-label|alt|label)=\{([^}]*)\}/g;
 const LITERAL = /'([^'\\]{4,})'|"([^"\\]{4,})"/g;
 
+
+/**
+ * Troisième forme : le français passé à une NOTIFICATION.
+ *
+ * `VISIBLE` ne lit que le balisage (`>texte<` et attributs statiques), et
+ * `ATTR_EXPR` que les expressions d'attribut. Ni l'une ni l'autre ne regarde
+ * le bloc `<script>` — or `notifications.error('Aucune zone sélectionnée')`
+ * s'affiche à l'écran comme n'importe quel texte.
+ *
+ * Cinq chaînes ont vécu ainsi dans Ambiance, Historique, Égaliseur et
+ * SmartAI, pendant que ce contrôle affirmait « no hardcoded French in visible
+ * text » (21/08/2026). Un garde qui rassure sans regarder est pire que pas de
+ * garde.
+ */
+const NOTIF = /notifications\.(?:error|success|info|warning)\(\s*(?:'([^'\\]{4,})'|"([^"\\]{4,})")/g;
+
 const FRENCH = /(è|é\w|ê|à |ù|ç|œ|\b(?:le|la|les|des|une|un|du|dans|pour|avec|sans|sur|par|est|sont|vers|aucun|aucune|aux)\b)/i;
 
 function* svelteFiles(dir) {
@@ -60,6 +76,15 @@ for (const file of svelteFiles('src')) {
         const text = (m[1] ?? m[2] ?? '').trim();
         if (text.length < 4) continue;
         if (FRENCH.test(text)) offences.push(`${file}:${idx + 1}  ${text.slice(0, 90)}`);
+      }
+    }
+
+    // Les notifications sont lues dans tous les cas : elles vivent dans le
+    // `<script>`, que les deux formes ci-dessus n'atteignent jamais.
+    for (const m of line.matchAll(NOTIF)) {
+      const text = (m[1] ?? m[2] ?? '').trim();
+      if (text.length >= 4 && FRENCH.test(text)) {
+        offences.push(`${file}:${idx + 1}  ${text.slice(0, 90)}`);
       }
     }
 

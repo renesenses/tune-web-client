@@ -190,6 +190,8 @@ export default {
   'common.tracks': '首',
   'common.noResult': '无结果',
   'common.error': '错误',
+  'eq.profileApplyError': "无法应用配置",
+  'smartai.noZoneOrTracks': "没有区域或曲目",
   "common.serverUnreachable": "服务器无响应。如果它正在重启——或 VPN 切断了连接——请几秒后重试。",
   'common.ok': '确定',
   'common.title': '标题',

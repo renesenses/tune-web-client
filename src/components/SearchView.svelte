@@ -352,7 +352,7 @@
 
   async function playTrack(track: Track) {
     if (!zone?.id) {
-      notifications.error('Aucune zone selectionnee');
+      notifications.error($t('queue.noZoneSelected'));
       return;
     }
     const src = track.source ?? (track as any)._source;
@@ -371,7 +371,7 @@
 
   async function addTrackToQueue(track: Track) {
     if (!zone?.id) {
-      notifications.error('Aucune zone selectionnee');
+      notifications.error($t('queue.noZoneSelected'));
       return;
     }
     const src = track.source ?? (track as any)._source;
@@ -393,7 +393,7 @@
 
   async function playAlbum(album: Album) {
     if (!zone?.id) {
-      notifications.error('Aucune zone selectionnee');
+      notifications.error($t('queue.noZoneSelected'));
       return;
     }
     const src = album.source ?? (album as any)._source;
@@ -480,7 +480,7 @@
   let localAlbums = $derived(filteredAlbums.filter(isLocalAlbum));
   async function playAllAlbums() {
     if (!zone?.id) {
-      notifications.error('Aucune zone selectionnee');
+      notifications.error($t('queue.noZoneSelected'));
       return;
     }
     const albums = localAlbums;

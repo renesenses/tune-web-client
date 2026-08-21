@@ -190,6 +190,8 @@ export default {
   'common.tracks': 'piese',
   'common.noResult': 'Niciun rezultat',
   'common.error': 'Eroare',
+  'eq.profileApplyError': "Profilul nu a putut fi aplicat",
+  'smartai.noZoneOrTracks': "Nicio zonă sau nicio piesă",
   "common.serverUnreachable": "Serverul nu răspunde. Dacă repornește — sau un VPN taie conexiunea — încercați din nou peste câteva secunde.",
   'common.ok': 'OK',
   'common.title': 'Titlu',
