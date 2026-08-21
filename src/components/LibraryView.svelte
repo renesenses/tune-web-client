@@ -7,6 +7,7 @@
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { preferences } from '../lib/stores/preferences';
   import { currentTrackId, seekPositionMs } from '../lib/stores/nowPlaying';
+  import { formatsSansCollision } from '../lib/utils';
   import { isBrowserZone, browserSeek } from '../lib/stores/browserAudio';
   import { playFromHere } from '../lib/playback';
   import { tuneWS } from '../lib/websocket';
@@ -747,7 +748,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   });
 
   let albumFormats = $derived(
-    [...new Set(searchFilteredAlbums.map(a => a.format).filter(Boolean))].sort() as string[]
+    formatsSansCollision(searchFilteredAlbums.map((a) => a.format)),
   );
 
   let albumSampleRates = $derived(
