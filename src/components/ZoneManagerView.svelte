@@ -5,6 +5,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
+  import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
   import OaatGroupsPanel from './OaatGroupsPanel.svelte';
   import AirplayPairingModal from './AirplayPairingModal.svelte';
   import type { Zone, ZoneGroupResponse, OutputType, DiscoveredDevice, StereoPairInfo, LocalAudioDevice } from '../lib/types';
@@ -648,7 +649,7 @@
           <select class="form-select" bind:value={newZoneDeviceId}>
             <option value={undefined}>{$t('zone.defaultOutput')}</option>
             {#each localAudioDevices as dev}
-              <option value={"local:" + dev.name}>{dev.name} ({dev.channels}ch, {dev.sample_rate / 1000}kHz){dev.is_default ? ' *' : ''}</option>
+              <option value={"local:" + dev.name}>{dev.name} ({etiquetteCaracteristiques(dev)}){dev.is_default ? ' *' : ''}</option>
             {/each}
           </select>
         {:else}
@@ -887,7 +888,7 @@
               <select class="form-select" bind:value={changeOutputDeviceId}>
                 <option value={undefined}>{$t('zone.defaultOutput')}</option>
                 {#each localAudioDevices as dev}
-                  <option value={"local:" + dev.name}>{dev.name} ({dev.channels}ch, {dev.sample_rate / 1000}kHz){dev.is_default ? ' *' : ''}</option>
+                  <option value={"local:" + dev.name}>{dev.name} ({etiquetteCaracteristiques(dev)}){dev.is_default ? ' *' : ''}</option>
                 {/each}
               </select>
             {:else}
