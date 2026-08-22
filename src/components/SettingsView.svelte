@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import SettingHint from './SettingHint.svelte';
   import { tip } from '../lib/tooltip';
+  import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
   import { dialogs } from '../lib/stores/dialogs';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
@@ -4249,7 +4250,7 @@ function setSettingsLevel(level: SettingsLevel) {
               <rect x="4" y="2" width="16" height="20" rx="2" /><circle cx="12" cy="14" r="4" /><line x1="12" y1="6" x2="12.01" y2="6" />
             </svg>
             <span class="device-toggle-name">{device.name}</span>
-            <span class="device-toggle-tag local">{device.channels}ch · {Math.round(device.sample_rate / 1000)} kHz</span>
+            <span class="device-toggle-tag local">{etiquetteCaracteristiques(device)}</span>
           </label>
         {/each}
         {#if audioDevices.length === 0}

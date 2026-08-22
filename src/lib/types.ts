@@ -383,8 +383,28 @@ export interface LocalAudioDevice {
    */
   id: string;
   name: string;
-  channels: number;
-  sample_rate: number;
+  /**
+   * Nombre maximal de canaux. Clé serveur : `max_channels`.
+   *
+   * ⚠️ Ce champ s'appelait `channels` ici, et ce nom n'a JAMAIS existé dans la
+   * charge utile (#2098) — exactement le piège décrit ci-dessus pour `id`,
+   * resté dans la même interface sans que personne le voie. Le serveur
+   * sérialise `struct AudioDevice` sans aucun `rename` : les clés sont
+   * `max_channels` et `sample_rates`, sans exception.
+   *
+   * Déclaré non optionnel, TypeScript ne pouvait rien signaler : c'était une
+   * promesse que la charge utile ne tenait pas.
+   */
+  max_channels: number;
+  /**
+   * Fréquences d'échantillonnage supportées, en Hz. Clé serveur :
+   * `sample_rates`.
+   *
+   * Une LISTE, pas une valeur courante — un périphérique ne joue pas, c'est
+   * une zone qui joue. Passer par `etiquetteCaracteristiques()` pour l'afficher
+   * plutôt que d'en prendre un élément au hasard.
+   */
+  sample_rates: number[];
   is_default?: boolean;
 }
 
