@@ -1683,6 +1683,15 @@ export interface EqBand {
   q: number;
   /// Type de filtre (routes/eq_pro.rs) — absent = peak.
   type?: 'peak' | 'low_shelf' | 'high_shelf' | 'low_pass' | 'high_pass' | 'notch';
+  /**
+   * Canal visé — `0` gauche, `1` droite. **Absent = les deux**, et c'est le
+   * défaut : un préréglage enregistré avant cette version n'a pas ce champ et
+   * se comporte exactement comme avant.
+   *
+   * Une pièce dissymétrique — un mur d'un côté, une ouverture de l'autre — ne
+   * se corrige pas avec la même courbe des deux côtés.
+   */
+  channel?: number;
 }
 
 export interface EqSettings {

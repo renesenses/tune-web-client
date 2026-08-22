@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t } from '../lib/i18n';
+  import { choixDepuisBande, canalDepuisChoix } from '../lib/eqChannel';
   import type { EqBand } from '../lib/api';
 
   // Éditeur paramétrique : jusqu'à 31 bandes libres (fréquence, gain, Q, type),
@@ -272,6 +273,23 @@
           {#each BAND_TYPES as bt}
             <option value={bt}>{bt}</option>
           {/each}
+        </select>
+      </label>
+      <label>
+        <span>{$t('eq.peqChannel' as any)}</span>
+        <!--
+          Absent = les deux canaux. On envoie donc `undefined` et non `-1` :
+          le serveur lit l'absence du champ, et un préréglage qui ne vise pas
+          de canal ne doit pas repartir avec une valeur qui en désigne un.
+        -->
+        <select
+          value={choixDepuisBande(b.channel)}
+          onchange={(e) =>
+            updateSelected({ channel: canalDepuisChoix((e.target as HTMLSelectElement).value) })}
+        >
+          <option value="both">{$t('eq.peqChannelBoth' as any)}</option>
+          <option value="0">{$t('eq.peqChannelLeft' as any)}</option>
+          <option value="1">{$t('eq.peqChannelRight' as any)}</option>
         </select>
       </label>
       <button class="peq-del" onclick={() => removeBand(selected!)}>{$t('eq.peqRemove' as any)}</button>
