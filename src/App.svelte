@@ -94,6 +94,10 @@ import AlarmsView from './components/AlarmsView.svelte';
   // Declared at component scope so onDestroy can unsubscribe (was a const inside
   // onMount → ReferenceError in onDestroy that blanked the app on teardown/HMR).
   let unsubZoneForPolling: (() => void) | null = null;
+  // Idem pour le gestionnaire d'événements WS : sans ça, un remontage de App
+  // (teardown/HMR, ou simplement un second onMount) empile un abonnement de
+  // plus et chaque événement est traité N fois.
+  let unsubWsEvents: (() => void) | null = null;
   let scanIndicator = $state(false);
   let playlistModalTrack = $state<Track | null>(null);
   let showOnboarding = $state(false);
@@ -612,7 +616,7 @@ import AlarmsView from './components/AlarmsView.svelte';
     // Initialize browser push notifications if enabled
     if (isPushEnabled()) initPushNotifications();
 
-    tuneWS.onEvent((event) => {
+    unsubWsEvents = tuneWS.onEvent((event) => {
       // The Rust server emits playback failures as `zone.playback_error`
       // (orchestrator.rs), while the embedded iPad server emits
       // `playback.error`. Normalize to the latter so the error branch below —
@@ -1056,6 +1060,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   onDestroy(() => {
     cleanupKeyboard?.();
     unsubZoneForPolling?.();
+    unsubWsEvents?.();
     tuneWS.disconnect();
     stopSeekTimer();
     stopUpdatePolling();

@@ -876,7 +876,7 @@
             <span class="zone-popover-title">{$t('zone.zones')}</span>
             <span class="zone-popover-count">{$zones.length}</span>
           </div>
-          {#each $zones.filter((z, i, arr) => arr.findIndex(x => x.output_device_id === z.output_device_id) === i).slice(0, 50) as z}
+          {#each $zones.filter((z, i, arr) => !z.output_device_id || arr.findIndex(x => x.output_device_id === z.output_device_id) === i).slice(0, 50) as z (z.id)}
             <button
               class="zone-popover-item"
               class:active={z.id === $currentZoneId}
