@@ -465,7 +465,21 @@
       </div>
     {/if}
 
-    {#if zone.output_type === 'local' || zone.output_device_id?.startsWith('local:')}
+    <!--
+      La correction de piece vaut pour TOUTE zone : une zone, un appareil, un
+      FIR.
+
+      Cette section etait reservee aux sorties LOCALES. Le serveur, lui, a ete
+      etendu aux zones reseau et le dit dans son propre code : `zone_has_active_ir`
+      force le transcodage « so the FIR reaches network renderers, not just
+      local », et `load_convolver` charge `ir_path_{zone}` pour le flux servi a
+      un renderer DLNA/UPnP/AirPlay.
+
+      L'ecran est reste sur l'ancienne condition. Un abonne qui ecoute sur un
+      lecteur reseau ne voyait donc JAMAIS la fonction et concluait qu'elle
+      n'existait pas — c'est le cas d'Alexander Jam, abonne Premium venu
+      chercher exactement cela.
+    -->
     <div class="modal-section">
       <h3 class="section-title">{$t('zoneConfig.firTitle')}</h3>
       <p class="section-desc">{$t('zoneConfig.firDesc')}</p>
@@ -502,7 +516,6 @@
         <div class="ir-message" class:ir-error={irError}>{irMessage}</div>
       {/if}
     </div>
-    {/if}
 
     <div class="modal-section danger-section">
       <h3 class="section-title">{$t('zone.actions')}</h3>
