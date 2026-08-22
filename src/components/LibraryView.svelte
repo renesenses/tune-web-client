@@ -66,6 +66,17 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     const unsub = tuneWS.onEvent((event) => {
       if (event.type === 'library.scan.progress') {
         scanProgress = { scanned: event.data?.scanned ?? 0, added: event.data?.added ?? 0 };
+      } else if (event.type === 'library.updated') {
+        // Le surveillant de fichiers vient d'importer ou de retirer quelque
+        // chose. Il ne le disait a personne : les listes en memoire restaient
+        // telles quelles, et il fallait changer d'onglet puis revenir pour voir
+        // arriver les albums qu'on venait de deposer (Patatorz, fil #1517).
+        //
+        // Meme rechargement selectif que pour un scan : un onglet jamais ouvert
+        // se chargera de lui-meme a sa premiere visite.
+        if (albumsLoaded) loadAlbums();
+        if (artistsLoaded) loadArtists();
+        if (tracksLoaded) loadTracks();
       } else if (event.type === 'library.scan.completed' || event.type === 'library.scan.started') {
         scanProgress = event.type === 'library.scan.started' ? { scanned: 0, added: 0 } : null;
         if (event.type === 'library.scan.completed') {
