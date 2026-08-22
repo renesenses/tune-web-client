@@ -4413,6 +4413,18 @@ export function getApplianceStatus(): Promise<ApplianceStatus> {
   return applianceFetch('/appliance/status');
 }
 
+/**
+ * Éteindre la machine — appliance Tune OS uniquement.
+ *
+ * La route n'existe pas ailleurs : sur une installation de bureau, Tune partage
+ * la machine avec son utilisateur, et l'éteindre depuis une page web serait au
+ * mieux une surprise. Le serveur rend 404 hors appliance, et l'écran
+ * n'affiche le bouton que si `getApplianceStatus().appliance` est vrai.
+ */
+export function applianceShutdown(): Promise<{ status: string }> {
+  return applianceFetch('/appliance/shutdown', {});
+}
+
 export function applianceWifiScan(): Promise<{ networks: ApplianceWifiNetwork[] }> {
   return applianceFetch('/appliance/wifi/scan');
 }
