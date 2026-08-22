@@ -4,7 +4,7 @@
   import * as api from '../lib/api';
   import { onMount, onDestroy } from 'svelte';
   import { t as tr } from '../lib/i18n';
-  import { ouvertureParDefaut } from '../lib/mediaServerHome';
+  import { ouvertureParDefaut, estUnServeurTune, RAYONS_TUNE } from '../lib/mediaServerHome';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import type { MediaServer, MediaServerBrowseResult, MediaServerItem } from '../lib/types';
   import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
@@ -45,6 +45,25 @@
   let msEl = $state<HTMLDivElement | null>(null);
   const msKey = (objectId: string) => 'ms:' + (selectedServer?.id ?? '') + ':' + objectId;
   const currentObjectId = () => navigationStack.length ? navigationStack[navigationStack.length - 1].objectId : '0';
+
+  // Un serveur Tune se reconnait a ce qu'il annonce (MozAIk Labs / Tune) : on
+  // ne connait la racine QUE de celui-la, et proposer ses rayons a un serveur
+  // tiers afficherait des dossiers qui n'existent pas chez lui.
+  let estServeurTune = $derived(!!selectedServer && estUnServeurTune(selectedServer));
+
+  /**
+   * Aller directement a un rayon, sans repasser par la racine.
+   *
+   * On REMPLACE la pile de navigation au lieu d'empiler : passer des albums
+   * aux artistes n'est pas descendre d'un cran, c'est changer de rayon. Sans
+   * cela, « Retour » ramenerait aux albums plutot qu'a la racine, et le fil
+   * d'Ariane s'allongerait a chaque va-et-vient.
+   */
+  async function allerAuRayon(objectId: string, titre: string) {
+    if (!selectedServer) return;
+    navigationStack = [];
+    await browseTo(objectId, titre);
+  }
 
   async function selectServer(server: MediaServer) {
     selectedServer = server;
@@ -333,6 +352,21 @@
       </div>
     {:else}
       <!-- Containers: grid with covers if albums, list if folders -->
+      {#if estServeurTune}
+        <!-- Les rayons d'un serveur Tune, en onglets : sans eux, passer des
+             albums aux artistes imposait de remonter à la racine. C'est ce qui
+             séparait « une grille d'albums » de la vue bibliothèque. -->
+        <div class="rayons">
+          {#each RAYONS_TUNE as r (r.objectId)}
+            <button
+              class="rayon"
+              class:actif={currentObjectId() === r.objectId}
+              onclick={() => allerAuRayon(r.objectId, $tr(r.cle as any))}>{$tr(r.cle as any)}</button
+            >
+          {/each}
+        </div>
+      {/if}
+
       {#if browseResult.containers.length > 0}
         {@const categoryNames = new Set(['Album Artist', 'Album', 'Title', 'Composer', 'Genre', 'Dynamic Browsing', 'TuneIn Internet Radio', 'Additional', 'New Albums', 'Jukebox Track Selection', 'Top Artists', 'Top Albums', 'All Albums', 'All Artists', '[All Albums]', '[All Artists]'])}
         {@const isCategoryLevel = browseResult.containers.every(c => categoryNames.has(c.title) || c.title.match(/^\[.*\]$/))}
@@ -349,6 +383,13 @@
                   </div>
                 {/if}
                 <span class="album-grid-title truncate">{container.title}</span>
+                {#if container.artist}
+                  <!-- Le serveur envoyait `dc:creator` depuis toujours ; c'est
+                       notre analyseur DIDL qui le jetait pour les conteneurs.
+                       Une grille d'albums sans artiste n'est pas une
+                       bibliothèque. -->
+                  <span class="album-grid-artist truncate">{container.artist}</span>
+                {/if}
               </button>
             {/each}
           </div>
@@ -696,6 +737,17 @@
     color: var(--tune-text-muted);
   }
 
+.rayons { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0 0 0.9rem; }
+  .rayon {
+    padding: 0.3rem 0.85rem; border-radius: 999px; font-size: 0.8125rem;
+    background: var(--surface, #1b1b1b); color: var(--text-muted, #aaa);
+  }
+  .rayon.actif { background: var(--accent, #2b7); color: #fff; }
+  /* L'artiste se lit sous le titre, plus discret que lui — comme dans la
+     bibliotheque locale. */
+  .album-grid-artist {
+    display: block; font-size: 0.75rem; color: var(--text-muted, #888);
+  }
   .album-grid-title {
     font-family: var(--font-body);
     font-size: 12px;

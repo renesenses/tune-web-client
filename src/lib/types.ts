@@ -649,6 +649,8 @@ export interface MediaServerContainer {
   id: string;
   parent_id: string;
   title: string;
+  /** `dc:creator` / `upnp:artist` du conteneur — l'artiste d'un album. */
+  artist?: string | null;
   child_count: number;
   album_art_uri?: string | null;
 }
