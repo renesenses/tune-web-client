@@ -2680,7 +2680,7 @@ export default {
   "acoustic.throttleEco": "Menajat — lasă mașina în pace",
   "acoustic.throttleBalanced": "Echilibrat",
   "acoustic.throttleFast": "Rapid — mașină dedicată",
-  "ambiance.analysisNotReady": "Analiza acustică tocmai a fost activată: parcurge biblioteca în fundal, iar rezultatele apar pe măsură. Progresul și debitul se află în Setări, secțiunea Metadate.",
+  "ambiance.analysisNotReady": "Analiza acustică tocmai a fost activată: parcurge biblioteca în fundal, iar rezultatele apar pe măsură. Progresul și debitul se află în Setări, fila „{onglet}”.",
   "ambiance.mine": "Ambianțele mele",
   "ambiance.saveThis": "Salvează această ambianță",
   "ambiance.save": "Salvează",

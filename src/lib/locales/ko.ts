@@ -2655,7 +2655,7 @@ export default {
   "acoustic.throttleEco": "절약 — 기기에 부담을 주지 않음",
   "acoustic.throttleBalanced": "균형",
   "acoustic.throttleFast": "빠름 — 전용 기기",
-  "ambiance.analysisNotReady": "음향 분석을 방금 켰습니다. 백그라운드에서 라이브러리를 훑으며 결과가 차례로 나타납니다. 진행률과 처리량은 설정 → 메타데이터에 있습니다.",
+  "ambiance.analysisNotReady": "음향 분석을 방금 켰습니다. 백그라운드에서 라이브러리를 훑으며 결과가 차례로 나타납니다. 진행률과 처리량은 설정 → 「{onglet}」 탭에 있습니다.",
   "ambiance.mine": "내 무드",
   "ambiance.saveThis": "이 무드 저장",
   "ambiance.save": "저장",

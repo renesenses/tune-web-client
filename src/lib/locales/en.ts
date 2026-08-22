@@ -2924,7 +2924,7 @@ export default {
   "acoustic.throttleEco": "Gentle — leaves the machine alone",
   "acoustic.throttleBalanced": "Balanced",
   "acoustic.throttleFast": "Fast — dedicated machine",
-  "ambiance.analysisNotReady": "Acoustic analysis has just been enabled: it sweeps the library in the background and results appear as it goes. Its progress and throughput are in Settings, under Metadata.",
+  "ambiance.analysisNotReady": "Acoustic analysis has just been enabled: it sweeps the library in the background and results appear as it goes. Its progress and throughput are in Settings, under the “{onglet}” tab.",
   "ambiance.mine": "My moods",
   "ambiance.saveThis": "Save this mood",
   "ambiance.save": "Save",
