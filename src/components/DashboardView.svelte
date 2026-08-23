@@ -6,6 +6,7 @@
   import { selectedAlbum, selectedArtist, libraryTab, albumTracks, artistAlbums } from '../lib/stores/library';
   import { artworkUrl } from '../lib/api';
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import DashboardHighlights from './DashboardHighlights.svelte';
   import HeartButton from './HeartButton.svelte';
 
   let tree = $state<Record<string, string[]>>({});
@@ -630,6 +631,14 @@
       </div>
     {/if}
   {/if}
+
+  <!--
+    Classements et statistiques d'écoute, venus de l'accueil. Ils sont EN
+    DEHORS du `{#if data}` ci-dessus : ils chargent leurs propres données et
+    doivent rester visibles même quand le tableau de bord principal n'a rien à
+    montrer pour la période choisie.
+  -->
+  <DashboardHighlights />
 </section>
 
 {#if slotOpen}
