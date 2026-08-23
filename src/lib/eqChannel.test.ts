@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { choixDepuisBande, canalDepuisChoix } from './eqChannel';
+import {
+  choixDepuisBande,
+  canalDepuisChoix,
+  bandesDuCanal,
+  reglageAsymetrique,
+} from './eqChannel';
+import type { EqBand } from './api';
 
 describe('choixDepuisBande', () => {
   it('nomme les deux canaux', () => {
@@ -54,5 +60,87 @@ describe('aller-retour', () => {
     const une = canalDepuisChoix(choixDepuisBande(7));
     expect(une).toBeUndefined();
     expect(canalDepuisChoix(choixDepuisBande(une))).toBeUndefined();
+  });
+});
+
+describe('bandesDuCanal', () => {
+  // Annotées `EqBand` : c'est le type réel, et sans annotation une bande sans
+  // `channel` ne partagerait aucune propriété avec la contrainte — TypeScript
+  // refuse alors l'appel (détection des « types faibles »).
+  const grave: EqBand = { freq: 60, gain: 4, q: 1, channel: 0 };
+  const aigu: EqBand = { freq: 8000, gain: -2, q: 1, channel: 1 };
+  const commune: EqBand = { freq: 1000, gain: 1, q: 1 };
+
+  it('rend les bandes du canal ET celles qui ne visent personne', () => {
+    const bandes = [grave, aigu, commune];
+    expect(bandesDuCanal(bandes, 0)).toEqual([grave, commune]);
+    expect(bandesDuCanal(bandes, 1)).toEqual([aigu, commune]);
+  });
+
+  it("le cas de Daniel Jan : +4 dB à gauche n'apparaît QUE à gauche", () => {
+    // Le défaut d'origine : la courbe sommait tout, et montrait +4 dB sur un
+    // graphe unique qui ne décrivait ni la gauche ni la droite.
+    const bandes = [grave];
+    expect(bandesDuCanal(bandes, 0)).toHaveLength(1);
+    expect(bandesDuCanal(bandes, 1)).toHaveLength(0);
+  });
+
+  it('un réglage symétrique donne deux fois la même chose', () => {
+    // `channel: null` ne peut pas venir d'`EqBand` — mais peut arriver d'un
+    // préréglage sérialisé ailleurs, et l'aide doit le traiter comme absent.
+    const bandes: { freq: number; gain: number; q: number; channel?: number | null }[] = [
+      commune,
+      { freq: 100, gain: 3, q: 1, channel: null },
+    ];
+    expect(bandesDuCanal(bandes, 0)).toEqual(bandes);
+    expect(bandesDuCanal(bandes, 1)).toEqual(bandes);
+  });
+
+  it("un canal inconnu ne disparaît d'aucune courbe", () => {
+    // Même repli que le sélecteur : mieux vaut le montrer deux fois que nulle
+    // part. Une bande absente des deux courbes serait invisible à l'écran.
+    const bizarre: EqBand = { freq: 500, gain: 2, q: 1, channel: 7 };
+    expect(bandesDuCanal([bizarre], 0)).toEqual([bizarre]);
+    expect(bandesDuCanal([bizarre], 1)).toEqual([bizarre]);
+  });
+
+  it("ne touche pas au tableau qu'on lui donne", () => {
+    const bandes = [grave, commune];
+    bandesDuCanal(bandes, 1);
+    expect(bandes).toEqual([grave, commune]);
+  });
+
+  it('une liste vide rend une liste vide, pas une erreur', () => {
+    expect(bandesDuCanal([], 0)).toEqual([]);
+  });
+});
+
+describe('reglageAsymetrique', () => {
+  it('faux quand aucune bande ne vise un canal', () => {
+    expect(reglageAsymetrique([])).toBe(false);
+    expect(reglageAsymetrique([{ channel: undefined }, { channel: null }])).toBe(false);
+  });
+
+  it('vrai dès UNE bande visant un canal', () => {
+    expect(reglageAsymetrique([{ channel: undefined }, { channel: 1 }])).toBe(true);
+  });
+
+  it("un canal inconnu ne rend pas le réglage asymétrique", () => {
+    // Il s'applique aux deux : les courbes se superposent, donc pas de légende.
+    expect(reglageAsymetrique([{ channel: 7 }])).toBe(false);
+  });
+
+  it("d'accord avec bandesDuCanal : symétrique ⇔ mêmes bandes des deux côtés", () => {
+    const jeux = [
+      [{ channel: undefined }],
+      [{ channel: 0 }],
+      [{ channel: 7 }],
+      [{ channel: undefined }, { channel: 1 }],
+    ];
+    for (const bandes of jeux) {
+      const memes =
+        JSON.stringify(bandesDuCanal(bandes, 0)) === JSON.stringify(bandesDuCanal(bandes, 1));
+      expect(reglageAsymetrique(bandes)).toBe(!memes);
+    }
   });
 });

@@ -35,3 +35,37 @@ export function choixDepuisBande(channel: number | null | undefined): ChoixDeCan
 export function canalDepuisChoix(choix: string): number | undefined {
   return choix === 'both' ? undefined : Number(choix);
 }
+
+/** Gauche et droite, dans l'ordre où on les dessine. */
+export const CANAUX = [0, 1] as const;
+export type Canal = (typeof CANAUX)[number];
+
+/**
+ * Les bandes qui agissent sur un canal donné.
+ *
+ * Une bande qui ne vise personne les vise **tous** — c'est la lecture du
+ * serveur (`Option<u16>` absent = tous les canaux), et c'est aussi le repli de
+ * [[choixDepuisBande]] pour une valeur qu'on ne sait pas nommer. Passer par ce
+ * dernier plutôt que de comparer `b.channel` à la main garantit que la courbe
+ * et le sélecteur ne divergeront jamais sur un cas limite.
+ */
+export function bandesDuCanal<T extends { channel?: number | null }>(
+  bandes: readonly T[],
+  canal: Canal,
+): T[] {
+  return bandes.filter((b) => {
+    const choix = choixDepuisBande(b.channel);
+    return choix === 'both' || choix === String(canal);
+  });
+}
+
+/**
+ * Les deux canaux reçoivent-ils des réglages différents ?
+ *
+ * Sert uniquement à décider si l'écran doit s'expliquer : quand tout est
+ * symétrique — le cas de presque tout le monde — les deux courbes se
+ * superposent et une légende « gauche / droite » n'apporterait que du bruit.
+ */
+export function reglageAsymetrique(bandes: readonly { channel?: number | null }[]): boolean {
+  return bandes.some((b) => choixDepuisBande(b.channel) !== 'both');
+}

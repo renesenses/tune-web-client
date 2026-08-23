@@ -1,6 +1,11 @@
 <script lang="ts">
   import { t } from '../lib/i18n';
-  import { choixDepuisBande, canalDepuisChoix } from '../lib/eqChannel';
+  import {
+    choixDepuisBande,
+    canalDepuisChoix,
+    bandesDuCanal,
+    reglageAsymetrique,
+  } from '../lib/eqChannel';
   import type { EqBand } from '../lib/api';
 
   // Éditeur paramétrique : jusqu'à 31 bandes libres (fréquence, gain, Q, type),
@@ -111,9 +116,14 @@
     return 20 * Math.log10(Math.max(mag, 1e-9));
   }
 
-  let curvePath = $derived.by(() => {
-    if (!bands.length) return `M 0 ${H / 2} L ${W} ${H / 2}`;
-    const cs = bands.map(coeffs);
+  // Une courbe PAR CANAL. Sommer toutes les bandes sans regarder leur canal
+  // traçait, pour un réglage asymétrique, une courbe qui ne décrivait NI la
+  // gauche NI la droite — le son était juste, l'écran mentait. Quand tout est
+  // symétrique les deux tracés se superposent exactement, et l'écran est celui
+  // qu'on a toujours connu.
+  function cheminPour(bandesDuTrace: EqBand[]): string {
+    if (!bandesDuTrace.length) return `M 0 ${H / 2} L ${W} ${H / 2}`;
+    const cs = bandesDuTrace.map(coeffs);
     const pts: string[] = [];
     const N = 160;
     for (let i = 0; i <= N; i++) {
@@ -123,7 +133,11 @@
       pts.push(`${((i / N) * W).toFixed(1)} ${yOf(Math.max(-DB_RANGE, Math.min(DB_RANGE, db))).toFixed(1)}`);
     }
     return 'M ' + pts.join(' L ');
-  });
+  }
+
+  let cheminGauche = $derived(cheminPour(bandesDuCanal(bands, 0)));
+  let cheminDroite = $derived(cheminPour(bandesDuCanal(bands, 1)));
+  let asymetrique = $derived(reglageAsymetrique(bands));
 
   const GRID_FREQS = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
 
@@ -219,8 +233,16 @@
       <line x1="0" y1={yOf(db)} x2={W} y2={yOf(db)} class={db === 0 ? 'grid-zero' : 'grid-h'} />
       <text x="4" y={yOf(db) - 3} class="grid-label">{db > 0 ? '+' : ''}{db}</text>
     {/each}
-    <!-- Réponse cumulée -->
-    <path d={curvePath} class="response" />
+    <!--
+      Réponse cumulée, une courbe par canal. La droite est tracée EN DESSOUS :
+      quand le réglage est symétrique les deux chemins sont identiques au pixel
+      près, la gauche la recouvre entièrement, et on retrouve exactement le
+      trait unique d'avant. Le tireté n'apparaît donc que si les canaux
+      diffèrent réellement — et il distingue les deux courbes même pour qui ne
+      sépare pas les couleurs.
+    -->
+    <path d={cheminDroite} class="response response-droite" />
+    <path d={cheminGauche} class="response response-gauche" />
     <!-- Points de bande -->
     {#each bands as b, i}
       <circle
@@ -237,6 +259,18 @@
       />
     {/each}
   </svg>
+
+  <!--
+    La légende n'apparaît QUE si les canaux diffèrent. Tant que tout est
+    symétrique, les deux courbes se superposent : nommer « gauche » et
+    « droite » sous un trait unique ne ferait qu'égarer.
+  -->
+  {#if asymetrique}
+    <div class="peq-legende">
+      <span><i class="l"></i>{$t('eq.peqChannelLeft' as any)}</span>
+      <span><i class="r"></i>{$t('eq.peqChannelRight' as any)}</span>
+    </div>
+  {/if}
 
   <div class="peq-toolbar">
     <span class="peq-count">{bands.length}/{maxBands}</span>
@@ -313,7 +347,15 @@
   .grid-v, .grid-h { stroke: rgba(255, 255, 255, 0.06); stroke-width: 1; }
   .grid-zero { stroke: rgba(255, 255, 255, 0.18); stroke-width: 1; }
   .grid-label { fill: rgba(255, 255, 255, 0.35); font-size: 9px; }
-  .response { fill: none; stroke: var(--tune-accent, #6366f1); stroke-width: 2; }
+  .response { fill: none; stroke-width: 2; }
+  .response-gauche { stroke: var(--tune-accent, #6366f1); }
+  .response-droite { stroke: var(--tune-accent-2, #f59e0b); stroke-dasharray: 6 4; }
+
+  .peq-legende { display: flex; gap: 1rem; align-items: center; font-size: 0.8rem; opacity: 0.85; }
+  .peq-legende span { display: inline-flex; gap: 0.4rem; align-items: center; }
+  .peq-legende i { width: 1.1rem; height: 0; border-top-width: 2px; border-top-style: solid; }
+  .peq-legende .l { border-color: var(--tune-accent, #6366f1); }
+  .peq-legende .r { border-color: var(--tune-accent-2, #f59e0b); border-top-style: dashed; }
   .band-dot { fill: var(--tune-accent, #6366f1); opacity: 0.85; cursor: grab; }
   .band-dot.selected { fill: #f59e0b; opacity: 1; }
   .peq-toolbar { display: flex; align-items: center; gap: 0.75rem; font-size: 0.75rem; }
