@@ -2853,6 +2853,22 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <div class="artist-card-avatar">
               <AlbumArt coverPath={artist.image_path} size={100} alt={artist.name} round fallbackInitials={initials(artist.name)} />
             </div>
+            <!--
+              Le cœur manquait, et seulement pour les artistes. `HeartButton`
+              acceptait `artistId` depuis toujours, le store `favoriteArtistIds`
+              et la route existaient — mais aucun écran ne passait jamais cette
+              propriété. Mettre un artiste en favori était donc impossible, ce
+              qui explique le zéro absolu en base bien mieux que la discrétion
+              du bouton.
+
+              Il est posé sur la CARTE et non sur l'avatar : celui-ci porte un
+              `overflow: hidden` avec un `border-radius: 50%`, qui rognerait
+              tout ce qu'on placerait dans ses coins. Il arrête la propagation
+              lui-même — le clic n'ouvre pas la fiche.
+            -->
+            <span class="artist-card-heart">
+              <HeartButton artistId={artist.id} size={18} />
+            </span>
             <span class="artist-card-name truncate" title={artist.name}>{artist.name}</span>
           </div>
         {/each}
@@ -4393,6 +4409,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   }
 
   .artist-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -4406,7 +4423,24 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     transform: translateY(-2px);
   }
 
+  /*
+    Hors du flux, calé sur le bord bas-droit du disque de 100 px. Sur la CARTE
+    et non sur l'avatar, qui recadre tout ce qu'il contient.
+  */
+  .artist-card-heart {
+    position: absolute;
+    top: 72px;
+    left: 50%;
+    margin-left: 22px;
+    display: flex;
+    padding: 5px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  }
+
   .artist-card-avatar {
+    position: relative;
     width: 100px;
     height: 100px;
     border-radius: 50%;

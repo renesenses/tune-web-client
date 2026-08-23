@@ -122,7 +122,13 @@
     align-items: center;
     justify-content: center;
     color: var(--tune-text-muted);
-    opacity: 0.4;
+    /*
+      0.75 et non 0.4. À 0.4 sur un fond sombre, le cœur passait sous le seuil
+      où on le remarque : il fallait déjà savoir qu'il était là pour le voir.
+      Mesuré sur une bibliothèque de 25 821 pistes : ZÉRO favori d'artiste ou
+      d'album. Ce n'est pas un désintérêt, c'est un bouton qu'on ne trouve pas.
+    */
+    opacity: 0.75;
     transition: opacity 0.12s, color 0.12s, transform 0.15s;
     flex-shrink: 0;
   }
@@ -132,11 +138,26 @@
     opacity: 1;
   }
 
-  /* Show on parent hover */
+  /*
+    Le survol RENFORCE, il ne révèle plus.
+
+    L'ancienne règle montait de 0.4 à 0.6 au survol du parent — donc sur un
+    appareil tactile, où il n'y a pas de survol, le bouton restait à 0.4 pour
+    toujours. C'est l'iPad et le téléphone qui payaient le plus cher une
+    affordance conçue à la souris.
+  */
   :global(.album-card:hover) .heart-btn,
   :global(.track-item:hover) .heart-btn,
   :global(.artist-card:hover) .heart-btn {
-    opacity: 0.6;
+    opacity: 1;
+  }
+
+  /*
+    Sans survol possible, on ne peut rien garder en réserve : le cœur est à
+    pleine opacité en permanence.
+  */
+  @media (hover: none) {
+    .heart-btn { opacity: 1; }
   }
 
   .heart-btn:hover {
