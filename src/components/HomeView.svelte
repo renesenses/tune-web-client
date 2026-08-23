@@ -9,7 +9,7 @@
   import { activeStreamingService, pendingStreamingAlbum, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import { currentProfileId } from '../lib/stores/profile';
   import { get } from 'svelte/store';
-  import { formatNumber } from '../lib/utils';
+  import { formatDuration, formatNumber } from '../lib/utils';
   import {
     ouvrirAlbum as navigateToAlbum,
     ouvrirArtiste as navigateToArtist,
@@ -63,6 +63,9 @@
   let recentTab = $state<'played' | 'added'>('played');
   let newInLibrary: Album[] = $state([]);
   let newInLibraryLoaded = $state(false);
+  // « Autres versions de vos ecoutes du jour ». `null` tant que la reponse
+  // n'est pas revenue : la section ne doit pas clignoter au chargement.
+  let otherVersions: api.OtherVersionGroup[] | null = $state(null);
   let favoriteAlbums: Album[] = $state([]);
   let favoritesLoaded = $state(false);
 
@@ -394,6 +397,17 @@
     }
   }
 
+  async function loadOtherVersions() {
+    try {
+      otherVersions = await api.getOtherVersions();
+    } catch (e) {
+      console.error('Load other versions error:', e);
+      // Un echec vaut « rien a montrer » : la section disparait plutot que
+      // d'afficher une erreur pour une rubrique secondaire.
+      otherVersions = [];
+    }
+  }
+
   async function loadNewInLibrary() {
     try {
       newInLibrary = await api.getNewInLibrary();
@@ -444,6 +458,7 @@
     loadRecentAlbums();
     loadContinueListening();
     loadNewInLibrary();
+    loadOtherVersions();
     loadFavorites();
     loadHomeProfile();
 
@@ -702,6 +717,57 @@
         <button class="carousel-arrow right" onclick={() => scrollCarousel(newInLibraryCarousel, 1)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
         </button>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Autres versions de vos écoutes du jour -->
+  <!--
+    La section n'existe que si elle a quelque chose à dire : `otherVersions`
+    vaut `null` tant que la réponse n'est pas revenue, et un tableau vide
+    quand il n'y a rien. Aucun des deux ne doit dessiner un cadre creux — mais
+    aucun des deux ne doit non plus faire clignoter la page au chargement,
+    d'où les deux états distincts plutôt qu'un simple `.length`.
+  -->
+  {#if otherVersions && otherVersions.length > 0}
+    <div class="recent-section">
+      <h2 class="section-title">{$t('home.otherVersions')}</h2>
+      <div class="versions-list">
+        {#each otherVersions as groupe}
+          <div class="version-group">
+            <div class="version-head">
+              <AlbumArt coverPath={groupe.versions[0]?.cover_path ?? null} size={38} alt={groupe.title} />
+              <div class="version-head-text">
+                <div class="version-title truncate">{groupe.title}</div>
+                <div class="version-sub truncate">
+                  {groupe.artist_name} · {groupe.versions.length + 1} {$t('home.versions')}
+                </div>
+              </div>
+            </div>
+            <div class="version-rows">
+              <!-- La version écoutée d'abord, et signalée : sans elle on ne
+                   sait pas à quoi les autres se comparent. -->
+              <div class="version-row played">
+                <span class="truncate">{groupe.played_album}</span>
+                <span class="version-badge">{$t('home.playedToday')}</span>
+              </div>
+              {#each groupe.versions as v}
+                <div class="version-row">
+                  {#if v.album_id}
+                    <button class="version-link truncate" onclick={() => navigateToAlbum(v.album_id!)}>
+                      {v.album_title ?? ''}
+                    </button>
+                  {:else}
+                    <span class="truncate">{v.album_title ?? ''}</span>
+                  {/if}
+                  {#if v.duration_ms}
+                    <span class="version-duration">{formatDuration(v.duration_ms)}</span>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/each}
       </div>
     </div>
   {/if}
@@ -1050,6 +1116,42 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
+  }
+
+  .versions-list { display: flex; flex-direction: column; gap: 0.5rem; }
+  .version-group {
+    background: var(--surface, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--border, rgba(128, 128, 128, 0.2));
+    border-radius: 8px;
+    padding: 0.7rem 0.8rem;
+  }
+  .version-head { display: flex; align-items: center; gap: 0.7rem; }
+  /* `min-width: 0` : sans lui, `truncate` ne tronque pas dans un flex — le
+     texte pousse le conteneur au lieu de se couper. */
+  .version-head-text { min-width: 0; }
+  .version-title { font-size: 0.9rem; font-weight: 600; }
+  .version-sub { font-size: 0.78rem; opacity: 0.65; }
+  .version-rows { display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.6rem; }
+  .version-row {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.35rem 0.6rem; border-radius: 6px;
+    background: rgba(128, 128, 128, 0.07);
+    font-size: 0.84rem;
+  }
+  .version-row.played { background: rgba(212, 160, 23, 0.1); }
+  .version-badge {
+    margin-left: auto; font-size: 0.66rem; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    opacity: 0.8; white-space: nowrap;
+  }
+  .version-link {
+    background: none; border: 0; padding: 0; font: inherit; color: inherit;
+    cursor: pointer; text-align: left;
+  }
+  .version-link:hover { text-decoration: underline; }
+  .version-duration {
+    margin-left: auto; font-variant-numeric: tabular-nums;
+    font-size: 0.8rem; opacity: 0.6;
   }
 
   .section-title {

@@ -3920,6 +3920,32 @@ export function getNewInLibrary() {
   return fetchJSON<any[]>(`${BASE}/home/new-in-library`);
 }
 
+/** Un groupe rendu par `/home/other-versions` : un morceau, ses autres versions. */
+export interface OtherVersionGroup {
+  title: string;
+  artist_name: string;
+  /** L'album depuis lequel le morceau a ete ecoute aujourd'hui. */
+  played_album: string;
+  versions: {
+    track_id: number | null;
+    album_id: number | null;
+    album_title: string | null;
+    cover_path: string | null;
+    duration_ms: number | null;
+  }[];
+}
+
+/**
+ * Les autres versions, DANS LA BIBLIOTHEQUE, des morceaux ecoutes aujourd'hui.
+ *
+ * Ni reprises par un autre interprete (il faudrait les relations d'oeuvre
+ * MusicBrainz), ni versions Qobuz (un appel par morceau ecoute). Le serveur
+ * fait le regroupement : l'ecran n'a qu'a dessiner.
+ */
+export function getOtherVersions(limit = 20) {
+  return fetchJSON<OtherVersionGroup[]>(`${BASE}/home/other-versions?limit=${limit}`);
+}
+
 export function getHomeRecommendations() {
   return fetchJSON<any[]>(`${BASE}/home/recommendations`);
 }
