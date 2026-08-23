@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { tip } from '../lib/tooltip';
+  import { bandesGraphiques, courbesDepuisBandes, delier } from '../lib/eqGraphicChannels';
   import { t } from '../lib/i18n';
   import { currentZone, currentZoneId } from '../lib/stores/zones';
   import * as api from '../lib/api';
@@ -159,6 +160,12 @@
   };
 
   let gains = $state<number[]>(Array(10).fill(0)); // redimensionné par la résolution au mount
+  // Courbe du canal DROIT. `null` = courbes liées, et c'est le défaut : une
+  // seule passe part au serveur, sans champ `channel`, exactement comme avant.
+  // Voir `lib/eqGraphicChannels` — c'est là que vit la règle, et ses tests.
+  let gainsDroite = $state<number[] | null>(null);
+  // Quelle courbe les curseurs modifient quand elles sont déliées.
+  let canalEdite = $state<'gauche' | 'droite'>('gauche');
   // Sous-mode Expert : graphique (grille fixe) ou paramétrique (bandes libres,
   // fréquence/gain/Q/type — le serveur les accepte déjà, routes/eq_pro.rs).
   let expertSubMode = $state<'graphic' | 'parametric'>('graphic');
@@ -190,7 +197,7 @@
 
   function saveLocal() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ gains, enabled, activePreset, pBands: $state.snapshot(pBands), expertSubMode }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ gains, gainsDroite: $state.snapshot(gainsDroite), canalEdite, enabled, activePreset, pBands: $state.snapshot(pBands), expertSubMode }));
     } catch { /* ignore */ }
   }
 
@@ -202,6 +209,15 @@
         if (Array.isArray(parsed.gains) && adoptGains(parsed.gains)) {
           enabled = parsed.enabled ?? true;
           activePreset = parsed.activePreset ?? null;
+          // Un reglage enregistre AVANT cette version n'a pas ce champ : il
+          // se recharge lie, donc inchange.
+          if (Array.isArray(parsed.gainsDroite)) {
+            gainsDroite =
+              parsed.gainsDroite.length === bandCount
+                ? [...parsed.gainsDroite]
+                : resampleGains(parsed.gainsDroite, GRIDS[parsed.gainsDroite.length] ?? BANDS, BANDS);
+            canalEdite = parsed.canalEdite === 'droite' ? 'droite' : 'gauche';
+          }
         }
         if (Array.isArray(parsed.pBands)) pBands = parsed.pBands;
         if (parsed.expertSubMode === 'parametric') expertSubMode = 'parametric';
@@ -209,9 +225,45 @@
     } catch { /* ignore */ }
   }
 
+  /// La courbe que les curseurs affichent et modifient.
+  ///
+  /// Liées : il n'y en a qu'une. Déliées : celle du canal choisi.
+  let courbeEditee = $derived(
+    gainsDroite !== null && canalEdite === 'droite' ? gainsDroite : gains,
+  );
+
+  /// L'autre courbe, quand elles sont déliées — dessinée en pointillés pour
+  /// qu'on voie l'écart qu'on est en train de créer.
+  let courbeAutre = $derived(
+    gainsDroite === null ? null : canalEdite === 'droite' ? gains : gainsDroite,
+  );
+
   function buildBands(): EqBand[] {
     const q = GRID_Q[bandCount] ?? DEFAULT_Q;
-    return BANDS.map((freq, i) => ({ freq, gain: gains[i] ?? 0, q }));
+    return bandesGraphiques(BANDS, gains, gainsDroite, q);
+  }
+
+  /// Délier : la droite part de la gauche, à l'identique.
+  ///
+  /// Rien ne doit changer à ce qu'on entend au moment de délier — c'est une
+  /// préparation, pas un réglage.
+  function delierLesCanaux() {
+    gainsDroite = delier(gains);
+    canalEdite = 'gauche';
+    saveLocal();
+    queueSendToServer();
+  }
+
+  /// Relier : la courbe qui survit est celle de GAUCHE.
+  ///
+  /// Il faut en choisir une. Une moyenne inventerait une courbe que personne
+  /// n'a réglée ; prendre la plus forte changerait le niveau. L'écran
+  /// l'annonce avant de le faire.
+  function relierLesCanaux() {
+    gainsDroite = null;
+    canalEdite = 'gauche';
+    saveLocal();
+    queueSendToServer();
   }
 
   // Rééchantillonne une courbe de gains d'une grille vers une autre
@@ -342,7 +394,13 @@
   }
 
   function setGain(index: number, value: number) {
-    gains[index] = value;
+    // Ecrire dans la courbe EDITEE, pas dans `gains` : sinon bouger un
+    // curseur en mode « droite » modifierait la gauche, en silence.
+    if (gainsDroite !== null && canalEdite === 'droite') {
+      gainsDroite[index] = value;
+    } else {
+      gains[index] = value;
+    }
     // Bouger un curseur allume l'égaliseur (comportement attendu d'un EQ) :
     // on ne verrouille plus les bandes tant que l'EQ est en bypass.
     if (!enabled) enabled = true;
@@ -502,12 +560,30 @@
 
   // Marge : au-delà de +6 dB de boost cumulable, on rappelle que le soft-clip
   // serveur protège mais qu'une marge de volume évite de l'atteindre.
-  let maxBoost = $derived(Math.max(0, ...gains));
+  let maxBoost = $derived(Math.max(0, ...gains, ...(gainsDroite ?? [])));
 
   // Curve path for response visualization
+  /// Le trace d'une courbe de gains, en coordonnees du graphe.
+  function tracer(courbe: number[]): string {
+    const pts = courbe.map((g, i) => ({
+      x: (i / (courbe.length - 1)) * 500,
+      y: 60 - (g / MAX_GAIN) * 55,
+    }));
+    if (pts.length < 2) return '';
+    let d = `M${pts[0].x},${pts[0].y}`;
+    for (let j = 1; j < pts.length; j++) {
+      const cp1x = pts[j - 1].x + (pts[j].x - pts[j - 1].x) / 3;
+      const cp2x = pts[j].x - (pts[j].x - pts[j - 1].x) / 3;
+      d += ` C${cp1x},${pts[j - 1].y} ${cp2x},${pts[j].y} ${pts[j].x},${pts[j].y}`;
+    }
+    return d;
+  }
+
+  let curvePathAutre = $derived(courbeAutre === null ? '' : tracer(courbeAutre));
+
   let curvePath = $derived.by(() => {
-    const pts = gains.map((g, i) => ({
-      x: (i / (gains.length - 1)) * 500,
+    const pts = courbeEditee.map((g, i) => ({
+      x: (i / (courbeEditee.length - 1)) * 500,
       y: 60 - (g / MAX_GAIN) * 55,
     }));
     if (pts.length < 2) return '';
@@ -522,7 +598,7 @@
 
   let curveFillPath = $derived(curvePath + ' L500,120 L0,120 Z');
 
-  let curvePoints = $derived(gains.map((g, i) => ({
+  let curvePoints = $derived(courbeEditee.map((g, i) => ({
     x: (i / (gains.length - 1)) * 500,
     y: 60 - (g / MAX_GAIN) * 55,
   })));
@@ -644,9 +720,38 @@
     try {
       const eq = await api.getEq(zoneId);
       if (eq?.bands?.length) {
-        const isGrid = !!GRIDS[eq.bands.length]
+        // Deux passes de la meme grille = une courbe par canal. La longueur
+        // est alors DOUBLE, et `GRIDS[…]` ne la reconnaitrait pas : il faut
+        // tester la moitie, sans quoi un reglage delie serait pris pour du
+        // parametrique et l'ecran basculerait d'onglet tout seul.
+        const moitie = eq.bands.length / 2;
+        const parCanal =
+          eq.bands.length % 2 === 0
+          && !!GRIDS[moitie]
+          && eq.bands.every((b) => (b.type ?? 'peak') === 'peak')
+          && eq.bands.slice(0, moitie).every((b, i) => b.freq === GRIDS[moitie][i] && b.channel === 0)
+          && eq.bands.slice(moitie).every((b, i) => b.freq === GRIDS[moitie][i] && b.channel === 1);
+
+        // Une seule chaine de decisions, et AUCUN `return` : la suite de la
+        // fonction charge le crossfeed. Un retour anticipe le sauterait, et
+        // ce reglage disparaitrait de l'ecran sans que rien ne le signale.
+        const isGrid = !parCanal
+          && !!GRIDS[eq.bands.length]
           && eq.bands.every((b, i) => b.freq === GRIDS[eq.bands.length][i] && (b.type ?? 'peak') === 'peak');
-        if (isGrid && adoptGains(eq.bands.map(b => b.gain))) {
+
+        if (parCanal) {
+          const { gauche, droite } = courbesDepuisBandes(eq.bands, moitie);
+          bandCount = moitie;
+          gains = [...gauche];
+          gainsDroite = droite === null ? null : [...droite];
+          canalEdite = 'gauche';
+          enabled = eq.enabled;
+          activePreset = detectPreset();
+          saveLocal();
+        } else if (isGrid && adoptGains(eq.bands.map(b => b.gain))) {
+          // Une grille simple vient d'un reglage LIE : on relie, sinon une
+          // courbe droite restee en memoire s'appliquerait par-dessus.
+          gainsDroite = null;
           enabled = eq.enabled;
           activePreset = detectPreset();
           saveLocal();
@@ -906,6 +1011,43 @@
     {/each}
   </div>
 
+  <!-- Canaux : liés, ou une courbe par canal -->
+  <!--
+    Placé AU-DESSUS des curseurs, pas dans un repli : c'est ce que l'on
+    cherche quand on vient corriger une pièce dissymétrique, et le réglage
+    équivalent du mode Paramétrique n'apparaît qu'une bande sélectionnée —
+    invisible sur un égaliseur vierge.
+  -->
+  <div class="canaux-barre">
+    {#if gainsDroite === null}
+      <button class="canal-btn" onclick={delierLesCanaux}>
+        {$t('eq.splitChannels' as any)}
+      </button>
+      <span class="canal-note">{$t('eq.channelsLinked' as any)}</span>
+    {:else}
+      <div class="canal-choix" role="group">
+        <button
+          class="canal-btn"
+          class:actif={canalEdite === 'gauche'}
+          aria-pressed={canalEdite === 'gauche'}
+          onclick={() => (canalEdite = 'gauche')}
+        >{$t('eq.peqChannelLeft' as any)}</button>
+        <button
+          class="canal-btn"
+          class:actif={canalEdite === 'droite'}
+          aria-pressed={canalEdite === 'droite'}
+          onclick={() => (canalEdite = 'droite')}
+        >{$t('eq.peqChannelRight' as any)}</button>
+      </div>
+      <button class="canal-btn" onclick={relierLesCanaux}>
+        {$t('eq.linkChannels' as any)}
+      </button>
+      <!-- Dire ce que « relier » va faire AVANT de le faire : il faut bien
+           choisir une courbe, et deviner serait pire. -->
+      <span class="canal-note">{$t('eq.linkKeepsLeft' as any)}</span>
+    {/if}
+  </div>
+
   <!-- Sliders -->
   <div class="sliders-container" class:disabled={!enabled}>
     <!-- dB scale on the left -->
@@ -921,8 +1063,8 @@
     <div class="sliders" class:dense={bandCount > 10}>
       {#each BANDS as freq, i}
         <div class="slider-band">
-          <div class="slider-value" class:positive={gains[i] > 0} class:negative={gains[i] < 0}>
-            {gains[i] > 0 ? '+' : ''}{gains[i].toFixed(1)} dB
+          <div class="slider-value" class:positive={courbeEditee[i] > 0} class:negative={courbeEditee[i] < 0}>
+            {courbeEditee[i] > 0 ? '+' : ''}{courbeEditee[i].toFixed(1)} dB
           </div>
           <div class="slider-track-wrap">
             <input
@@ -931,7 +1073,7 @@
               min={MIN_GAIN}
               max={MAX_GAIN}
               step="0.5"
-              value={gains[i]}
+              value={courbeEditee[i]}
               oninput={(e) => setGain(i, parseFloat((e.target as HTMLInputElement).value))}
               orient="vertical"
             />
@@ -955,6 +1097,11 @@
       <line x1="0" y1="30" x2="500" y2="30" stroke="rgba(255,255,255,0.05)" stroke-width="0.5" stroke-dasharray="4,4" />
       <line x1="0" y1="90" x2="500" y2="90" stroke="rgba(255,255,255,0.05)" stroke-width="0.5" stroke-dasharray="4,4" />
       <!-- Curve -->
+      <!-- L'autre canal en pointillés : on voit l'écart qu'on est en train
+           de créer, sans le confondre avec la courbe qu'on modifie. -->
+      {#if curvePathAutre}
+        <path d={curvePathAutre} fill="none" stroke="var(--tune-accent, #6366f1)" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.45" />
+      {/if}
       <path d={curvePath} fill="none" stroke="var(--tune-accent, #6366f1)" stroke-width="2" opacity="0.9" />
       <!-- Fill under curve -->
       <path d={curveFillPath} fill="var(--tune-accent, #6366f1)" opacity="0.08" />
@@ -1037,6 +1184,24 @@
 </section>
 
 <style>
+  .canaux-barre {
+    display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+    margin: 0 0 0.6rem;
+  }
+  .canal-choix { display: flex; gap: 0.25rem; }
+  .canal-btn {
+    font: inherit; font-size: 0.8rem; padding: 0.25rem 0.7rem;
+    border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--border, rgba(128, 128, 128, 0.3));
+    background: transparent; color: inherit;
+  }
+  .canal-btn.actif {
+    background: var(--tune-accent, #6366f1);
+    border-color: var(--tune-accent, #6366f1);
+    color: #16202e; font-weight: 700;
+  }
+  .canal-note { font-size: 0.75rem; opacity: 0.6; }
+
   .equalizer-view {
     padding: 1.5rem;
     max-width: 900px;
