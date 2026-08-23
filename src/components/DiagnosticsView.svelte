@@ -335,27 +335,8 @@
   // Le bouton d'extinction n'existe que sur l'appliance : sur une machine de
   // bureau, Tune la partage avec son utilisateur. On interroge donc le serveur
   // plutôt que de deviner — et en cas de doute on n'affiche rien.
-  let estAppliance = $state(false);
-  let extinctionEnCours = $state(false);
 
-  $effect(() => {
-    api
-      .getApplianceStatus()
-      .then((s) => (estAppliance = !!s?.appliance))
-      .catch(() => (estAppliance = false));
-  });
 
-  async function eteindreLaMachine() {
-    if (!(await dialogs.confirm($t('diagnostics.confirmShutdown' as any), { danger: true }))) return;
-    extinctionEnCours = true;
-    try {
-      await api.applianceShutdown();
-    } catch {
-      /* attendu — la machine s'arrête, la réponse peut ne pas revenir */
-    }
-    // On ne remet PAS le bouton à l'état initial : la machine s'éteint, et
-    // proposer de recommencer donnerait à croire que ça n'a pas marché.
-  }
 
   async function rescanLibrary() {
     scanning = true;
@@ -622,12 +603,13 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
           <span>{restarting ? $t('diagnostics.restarting' as any) : $t('diagnostics.restartServer' as any)}</span>
         </button>
-        {#if estAppliance}
-          <button class="server-action-btn danger" onclick={eteindreLaMachine} disabled={extinctionEnCours}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" /></svg>
-            <span>{extinctionEnCours ? $t('diagnostics.shuttingDown' as any) : $t('diagnostics.shutdown' as any)}</span>
-          </button>
-        {/if}
+        <!--
+          « Éteindre » est parti dans Réglages → Santé du serveur, à côté de
+          « Redémarrer ». Il était ici depuis #1511 et AUCUN testeur ne l'avait
+          trouvé : personne n'ouvre une page de diagnostic pour arrêter sa
+          machine. Un geste dangereux ne se duplique pas — il vit à un seul
+          endroit, celui où on le cherche.
+        -->
         <button class="server-action-btn" onclick={rescanLibrary} disabled={scanning} use:tip={'tip.rescanLibrary'}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
           <span>{scanning ? $t('diagnostics.scanning' as any) : $t('diagnostics.rescanLibrary' as any)}</span>
