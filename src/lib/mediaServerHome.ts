@@ -47,3 +47,22 @@ export function ouvertureParDefaut(
 ): { objectId: string; titre: string } | null {
   return estUnServeurTune(s) ? { objectId: CONTENEUR_ALBUMS, titre: 'Albums' } : null;
 }
+
+/**
+ * Les rayons d'un serveur Tune, tels que sa racine les expose.
+ *
+ * `ROOT_CONTAINERS` dans `tune-core/src/upnp_server.rs` — ordre et
+ * identifiants compris, ce fichier s'en déclare la seule source de vérité.
+ *
+ * Les afficher en onglets evite l'aller-retour par la racine : c'est ce qui
+ * separait « une grille d'albums » de « la vue bibliotheque ». On ne les
+ * propose QUE sur un serveur Tune, puisqu'on ne connait la racine que de
+ * celui-la.
+ */
+export const RAYONS_TUNE: { objectId: string; cle: string }[] = [
+  { objectId: 'artists', cle: 'favorites.artists' },
+  { objectId: 'albums', cle: 'favorites.albums' },
+  { objectId: 'genres', cle: 'nav.genres' },
+  { objectId: 'tracks', cle: 'favorites.tracks' },
+  { objectId: 'radios', cle: 'nav.radios' },
+];
