@@ -46,6 +46,11 @@ describe('trouverArtisteExact', () => {
     expect(trouverArtisteExact(resultats, '')).toBeNull();
   });
 
+  it("accepte un nom absent — une écoute de streaming peut n'en avoir aucun", () => {
+    expect(trouverArtisteExact(resultats, null)).toBeNull();
+    expect(trouverArtisteExact(resultats, undefined)).toBeNull();
+  });
+
   it("survit à un nom absent dans les résultats", () => {
     const bancal = [{ id: 30, name: null }, { id: 31, name: 'Air' }];
     expect(trouverArtisteExact(bancal, 'Air')).toBe(31);

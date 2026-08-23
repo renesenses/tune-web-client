@@ -4,7 +4,6 @@
   "src/components/BrowseView.svelte :: 'browseResult' is possibly 'null'.",
   "src/components/DiagnosticsView.svelte :: Property 'version' does not exist on type 'SystemHealth'.",
   "src/components/EqualizerView.svelte :: Object literal may only specify known properties, and '\\\"orient\\\"' does not exist in type 'HTMLProps<\\\"input\\\", HTMLAttributes<any>>'.",
-  "src/components/HomeView.svelte :: Argument of type 'string | null' is not assignable to parameter of type 'string'.\\n Type 'null' is not assignable to type 'string'.",
   "src/components/HomeView.svelte :: Property 'title' does not exist on type '{ zone_id: any; zone_name: any; track_title: any; artist_name: any; cover_path: any; album_id: any; state: any; }'.",
   "src/components/HomeView.svelte :: Type 'string' is not assignable to type 'Source | undefined'.",
   "src/components/LibraryView.svelte :: 'albumSampleRateFilter' is possibly 'null'.",

@@ -42,7 +42,7 @@ export function ouvrirBibliotheque(onglet: OngletBibliotheque): void {
  */
 export function trouverArtisteExact(
   artistes: readonly { id?: number | null; name?: string | null }[] | null | undefined,
-  nom: string,
+  nom: string | null | undefined,
 ): number | null {
   if (!nom || !artistes) return null;
   const cible = nom.toLowerCase();
@@ -96,7 +96,11 @@ export async function ouvrirArtiste(artistId: number): Promise<void> {
  * arbitraire : l'auditeur voit qu'il doit chercher, au lieu de croire qu'il est
  * arrivé.
  */
-export async function ouvrirArtisteParNom(nom: string): Promise<void> {
+export async function ouvrirArtisteParNom(nom: string | null | undefined): Promise<void> {
+  // `string | null` et non `string` : les classements viennent de l'historique,
+  // où une écoute de streaming peut n'avoir aucun nom d'artiste. La garde
+  // existait déjà — c'est la signature qui ne le disait pas, et l'appelant
+  // devait mentir au compilateur pour passer.
   if (!nom) return;
   try {
     const resultats = await api.searchLibrary(nom, 5);
