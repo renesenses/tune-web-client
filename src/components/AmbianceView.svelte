@@ -82,7 +82,11 @@
         // Le message renvoyait au support pour un réglage devenu accessible en
         // deux clics, et citait un nom de variable au passage. Il ne s'affiche
         // qu'à quelqu'un qui vient précisément d'activer l'analyse.
-        error = $t('ambiance.analysisNotReady');
+        // `{onglet}` interpolé depuis `settings.tabClap`, la clé qui nomme
+        // l'onglet lui-même : renommer l'onglet corrigera ce message sans
+        // qu'il faille rouvrir onze locales. Les onze renvoyaient à
+        // « Métadonnées », où le bloc n'est plus depuis le 12/08 (#2104).
+        error = $t('ambiance.analysisNotReady').replace('{onglet}', $t('settings.tabClap' as any));
         tracks = [];
       } else {
         tracks = res.tracks ?? [];

@@ -2673,7 +2673,7 @@ export default {
   "acoustic.throttleEco": "控えめ — マシンに負荷をかけない",
   "acoustic.throttleBalanced": "バランス",
   "acoustic.throttleFast": "高速 — 専用マシン向け",
-  "ambiance.analysisNotReady": "音響解析を有効にしました。バックグラウンドでライブラリを走査し、結果は順次表示されます。進捗とスループットは「設定 → メタデータ」にあります。",
+  "ambiance.analysisNotReady": "音響解析を有効にしました。バックグラウンドでライブラリを走査し、結果は順次表示されます。進捗とスループットは「設定 → {onglet}」タブにあります。",
   "ambiance.mine": "マイムード",
   "ambiance.saveThis": "このムードを保存",
   "ambiance.save": "保存",
