@@ -63,6 +63,9 @@
   let recentTab = $state<'played' | 'added'>('played');
   let newInLibrary: Album[] = $state([]);
   let newInLibraryLoaded = $state(false);
+  // « Nouveautes de vos artistes ». `null` tant que la reponse n'est pas
+  // revenue : la section ne doit pas clignoter au chargement de l'accueil.
+  let artistReleases: api.ArtistReleaseGroup[] | null = $state(null);
   // « Autres versions de vos ecoutes du jour ». `null` tant que la reponse
   // n'est pas revenue : la section ne doit pas clignoter au chargement.
   let otherVersions: api.OtherVersionGroup[] | null = $state(null);
@@ -408,6 +411,17 @@
     }
   }
 
+  async function loadArtistReleases() {
+    try {
+      artistReleases = await api.getArtistReleases();
+    } catch (e) {
+      console.error('Load artist releases error:', e);
+      // Aucun service connecte, ou un service en echec : « rien a montrer »
+      // plutot qu'une erreur pour une rubrique secondaire.
+      artistReleases = [];
+    }
+  }
+
   async function loadNewInLibrary() {
     try {
       newInLibrary = await api.getNewInLibrary();
@@ -459,6 +473,7 @@
     loadContinueListening();
     loadNewInLibrary();
     loadOtherVersions();
+    loadArtistReleases();
     loadFavorites();
     loadHomeProfile();
 
@@ -540,6 +555,54 @@
         <button class="carousel-arrow right" onclick={() => scrollCarousel(continueCarousel, 1)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
         </button>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Nouveautés de vos artistes -->
+  {#if artistReleases && artistReleases.length > 0}
+    <div class="recent-section">
+      <h2 class="section-title">{$t('home.artistReleases')}</h2>
+      <div class="artist-releases">
+        {#each artistReleases as groupe}
+          <div class="artist-group" class:favorite={groupe.is_favorite}>
+            <div class="artist-group-head">
+              <div class="artist-group-name truncate">
+                {groupe.artist_name}
+                <span class="artist-count">
+                  {groupe.releases.length} {$t('home.newReleases')}
+                </span>
+              </div>
+              <!--
+                Le « pourquoi » de la maquette, en une ligne et sans inventer :
+                le serveur ne renvoie que ce qu'il sait — favori, et nombre
+                d'albums possédés. Une phrase plus riche demanderait des
+                données qu'on n'a pas.
+              -->
+              <div class="artist-group-why">
+                {#if groupe.is_favorite}{$t('home.inYourFavorites')}{/if}
+                {#if groupe.is_favorite && groupe.library_albums > 0} · {/if}
+                {#if groupe.library_albums > 0}
+                  {groupe.library_albums} {$t('common.albums').toLowerCase()}
+                {/if}
+              </div>
+            </div>
+            <div class="artist-releases-row">
+              {#each groupe.releases as parution}
+                <div class="artist-release">
+                  <AlbumArt coverPath={parution.cover_path} size={72} alt={parution.title} />
+                  <div class="artist-release-text">
+                    <div class="artist-release-title truncate">{parution.title}</div>
+                    <div class="artist-release-sub">
+                      <ServiceBadge source={parution.service} compact />
+                      {#if parution.year}<span class="artist-release-year">{parution.year}</span>{/if}
+                    </div>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/each}
       </div>
     </div>
   {/if}
@@ -1153,6 +1216,33 @@
     margin-left: auto; font-variant-numeric: tabular-nums;
     font-size: 0.8rem; opacity: 0.6;
   }
+
+  .artist-releases { display: flex; flex-direction: column; gap: 0.5rem; }
+  .artist-group {
+    background: var(--surface, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--border, rgba(128, 128, 128, 0.2));
+    border-radius: 8px;
+    padding: 0.7rem 0.8rem;
+  }
+  /* Un favori se distingue par une bordure, pas par une couleur de fond :
+     le fond porte deja l'etat « en cours de lecture » ailleurs sur l'accueil. */
+  .artist-group.favorite { border-color: rgba(212, 160, 23, 0.45); }
+  .artist-group-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+  .artist-group-name { font-size: 0.95rem; font-weight: 600; min-width: 0; }
+  .artist-count {
+    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; opacity: 0.75; margin-left: 0.4rem;
+  }
+  .artist-group-why { font-size: 0.78rem; opacity: 0.6; margin-left: auto; }
+  .artist-releases-row {
+    display: flex; gap: 0.8rem; margin-top: 0.6rem;
+    overflow-x: auto; padding-bottom: 0.2rem;
+  }
+  .artist-release { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+  .artist-release-text { min-width: 0; }
+  .artist-release-title { font-size: 0.82rem; max-width: 14rem; }
+  .artist-release-sub { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.2rem; }
+  .artist-release-year { font-size: 0.74rem; opacity: 0.55; font-variant-numeric: tabular-nums; }
 
   .section-title {
     font-family: var(--font-label);

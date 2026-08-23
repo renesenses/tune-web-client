@@ -3920,6 +3920,32 @@ export function getNewInLibrary() {
   return fetchJSON<any[]>(`${BASE}/home/new-in-library`);
 }
 
+/** Un artiste et ses parutions recentes, rendu par `/home/artist-releases`. */
+export interface ArtistReleaseGroup {
+  artist_name: string;
+  /** Vrai si l'artiste est dans les favoris — ces groupes viennent en tete. */
+  is_favorite: boolean;
+  /** Nombre d'albums de cet artiste dans la bibliotheque (0 = suivi seulement). */
+  library_albums: number;
+  releases: {
+    service: string;
+    source_id: string;
+    title: string;
+    cover_path: string | null;
+    year: number | null;
+  }[];
+}
+
+/**
+ * Les parutions recentes des artistes qu'on possede ou qu'on aime.
+ *
+ * Un appel par service connecte cote serveur, pas un par artiste : le cout
+ * suit le nombre de services, pas la taille de la bibliotheque.
+ */
+export function getArtistReleases(limit = 12) {
+  return fetchJSON<ArtistReleaseGroup[]>(`${BASE}/home/artist-releases?limit=${limit}`);
+}
+
 /** Un groupe rendu par `/home/other-versions` : un morceau, ses autres versions. */
 export interface OtherVersionGroup {
   title: string;
