@@ -744,16 +744,6 @@
         {$t('nav.ambiance')}
       </button>
     {/if}
-    <!-- Masquée quand le binaire n'embarque pas le plugin Bandcamp : même
-         règle que ci-dessus, une porte fermée est pire que rien. Reste visible
-         dès qu'il est présent, même non installé — l'écran explique alors le
-         geste plutôt que de disparaître. -->
-    {#if $bandcampUsable}
-      <button class="nav-item" class:active={$activeView === 'bandcamp'} onclick={() => navigate('bandcamp')}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"></rect><line x1="7" y1="12" x2="17" y2="12"></line></svg>
-        {$t('nav.bandcamp')}
-      </button>
-    {/if}
     <button class="nav-item" class:active={$activeView === 'history'} onclick={() => navigate('history')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
       {$t('nav.history')}
@@ -844,6 +834,20 @@
         <span class="connected-dot"></span>
       </button>
     {/each}
+    <!-- Bandcamp est une SOURCE de musique, pas un écran de navigation : il
+         vit donc ici, avec les services de streaming, les radios et les
+         serveurs multimédia — et non plus entre « Ambiance » et
+         « Historique », où il était rangé par accident d'implémentation.
+
+         Masqué quand le binaire n'embarque pas le plugin : une porte fermée
+         est pire que rien. Reste visible dès qu'il est présent, même non
+         installé — l'écran explique alors le geste plutôt que de disparaître. -->
+    {#if $bandcampUsable}
+      <button class="nav-item" class:active={$activeView === 'bandcamp'} onclick={() => navigate('bandcamp')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"></rect><line x1="7" y1="12" x2="17" y2="12"></line></svg>
+        {$t('nav.bandcamp')}
+      </button>
+    {/if}
     <button class="nav-item" class:active={$activeView === 'radios'} onclick={() => navigate('radios')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5"></path><line x1="12" y1="19" x2="12" y2="22"></line><path d="M8 22h8"></path></svg>
       {$t('nav.radios')}
