@@ -196,6 +196,14 @@ export interface NowPlaying {
   bit_depth?: number | null;
   genre?: string | null;
   year?: number | null;
+  /** L'album et l'artiste de la piste, par identifiant.
+   *
+   *  Ils manquaient côté serveur : le client devait deviner l'album depuis son
+   *  titre, et cliquer sur « Entreat (2010) » atterrissait sur la page de
+   *  The Cure (FabienM, v0.9.102). Absents pour une radio ou un flux, qui
+   *  n'ont pas d'entrée en bibliothèque. */
+  album_id?: number | null;
+  artist_id?: number | null;
   /** Epoch ms (horloge serveur) du dernier changement titre/artiste — ancrage
    *  temporel des paroles radio. */
   metadata_changed_at?: number;
