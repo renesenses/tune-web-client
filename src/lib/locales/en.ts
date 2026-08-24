@@ -888,6 +888,12 @@ export default {
   'mediaservers.containers': 'Folders',
   'mediaservers.items': 'Items',
   'mediaservers.noContent': 'No content in this container',
+  'mediaservers.searchPlaceholder': 'Search this server…',
+  'mediaservers.searchScopeFolder': 'This folder',
+  'mediaservers.searchScopeServer': 'Whole server',
+  'mediaservers.searchNoResults': 'No results',
+  'mediaservers.searchLocalFallback': 'This server cannot search: filtering the current folder.',
+  'mediaservers.searchResults': 'Results',
   'mediaservers.refresh': 'Refresh',
 
   // Radios

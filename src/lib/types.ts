@@ -681,6 +681,20 @@ export interface MediaServerBrowseResult {
   number_returned: number;
 }
 
+/** Ce que rend `/network/media-servers/{id}/search`.
+ *
+ *  `supported` dit si le SERVEUR DISTANT sait chercher : sans `dc:title` dans
+ *  ses `SearchCapabilities`, on ne lui envoie pas de critère qu'il ne sait pas
+ *  évaluer — beaucoup répondent alors par toute leur bibliothèque, ce qui
+ *  ressemble à un résultat et n'en est pas. Le client se rabat sur un filtrage
+ *  du dossier affiché, et le dit. */
+export interface MediaServerSearchResult extends Omit<MediaServerBrowseResult, 'object_id'> {
+  container: string;
+  query: string;
+  supported: boolean;
+  reason: string;
+}
+
 export interface StreamingPlaylist {
   source_id: string;
   name: string;

@@ -852,6 +852,12 @@ export default {
   "mediaservers.containers": "Mappák",
   "mediaservers.items": "Elemek",
   "mediaservers.noContent": "Nincs tartalom ebben a tárolóban",
+  "mediaservers.searchPlaceholder": "Keresés ezen a kiszolgálón…",
+  "mediaservers.searchScopeFolder": "Ez a mappa",
+  "mediaservers.searchScopeServer": "A teljes kiszolgáló",
+  "mediaservers.searchNoResults": "Nincs találat",
+  "mediaservers.searchLocalFallback": "Ez a kiszolgáló nem tud keresni: a megjelenített mappát szűrjük.",
+  "mediaservers.searchResults": "Találatok",
   "mediaservers.refresh": "Frissítés",
   // Rádiók
   "nav.radios": "Élő rádiók",
