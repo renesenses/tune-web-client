@@ -292,6 +292,60 @@ function setSettingsLevel(level: SettingsLevel) {
   // Poll /system/health and reload once it comes back UP (after observing it go
   // DOWN, or as a fallback if it restarted too fast to catch the drop), with a
   // hard backstop so we never hang forever.
+  // Confirmation EN PAGE, pas `confirm()` : les dialogues natifs sont
+  // inutilisables dans les webviews des applications mobiles — le bouton
+  // demande sa confirmation lui-meme, et l'oublie au bout de cinq secondes.
+  let arretArme = $state(false);
+  let extinctionArmee = $state(false);
+  let arretEnCours = $state(false);
+  let arretMessage = $state<string | null>(null);
+  let armeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function armer(quoi: 'arret' | 'extinction') {
+    if (armeTimer) clearTimeout(armeTimer);
+    arretArme = quoi === 'arret';
+    extinctionArmee = quoi === 'extinction';
+    armeTimer = setTimeout(() => {
+      arretArme = false;
+      extinctionArmee = false;
+    }, 5000);
+  }
+
+  async function arreterLeServeur() {
+    if (!arretArme) return armer('arret');
+    arretArme = false;
+    arretEnCours = true;
+    try {
+      const r = await api.stopServer();
+      // Dire ce qui va REELLEMENT se passer : sous systemd `Restart=always`,
+      // le serveur revient. Annoncer un arret qui n'en est pas un serait le
+      // meme defaut que le prereglage repondant 200 sans rien faire.
+      arretMessage = r.supervised
+        ? $t('settings.stopServerSupervised' as any)
+        : $t('settings.stopServerDone' as any);
+    } catch (e) {
+      // Le serveur se ferme pendant qu'on lit sa reponse : une erreur reseau
+      // ici veut dire que l'arret a fonctionne.
+      arretMessage = $t('settings.stopServerDone' as any);
+      console.warn('stopServer', e);
+    }
+  }
+
+  async function eteindreLaMachine() {
+    if (!extinctionArmee) return armer('extinction');
+    extinctionArmee = false;
+    arretEnCours = true;
+    try {
+      await api.powerOffMachine();
+      arretMessage = $t('settings.powerOffDone' as any);
+    } catch (e) {
+      arretEnCours = false;
+      // Une extinction refusee faute de droits doit se VOIR : le serveur rend
+      // la sortie d'erreur du systeme, on la montre telle quelle.
+      arretMessage = (e as Error).message;
+    }
+  }
+
   async function restartServerAndReload() {
     if (!(await dialogs.confirm(get(t)('settings.restartConfirm'), { danger: true }))) return;
     restarting = true;
@@ -3131,7 +3185,31 @@ function setSettingsLevel(level: SettingsLevel) {
         >
           {restarting ? $t('settings.restarting') : $t('settings.restartServer')}
         </button>
+        <button
+          class="stop-btn"
+          class:arme={arretArme}
+          disabled={arretEnCours}
+          onclick={arreterLeServeur}
+        >
+          {arretArme ? $t('settings.confirmAction' as any) : $t('settings.stopServer' as any)}
+        </button>
+        {#if config?.appliance}
+          <!-- Eteindre la MACHINE : appliance seulement. Ailleurs, Tune est une
+               application parmi d'autres et la route rend 404. -->
+          <button
+            class="stop-btn danger"
+            class:arme={extinctionArmee}
+            disabled={arretEnCours}
+            onclick={eteindreLaMachine}
+          >
+            {extinctionArmee ? $t('settings.confirmAction' as any) : $t('settings.powerOff' as any)}
+          </button>
+        {/if}
       </div>
+      {#if arretMessage}
+        <p class="stop-message">{arretMessage}</p>
+      {/if}
+      <p class="diag-hint">{$t('settings.stopServerHint' as any)}</p>
     </section>
     {/if}
 
@@ -5868,6 +5946,21 @@ function setSettingsLevel(level: SettingsLevel) {
 {/if}
 
 <style>
+  .stop-btn {
+    font: inherit; font-size: 0.85rem; padding: 0.4rem 0.9rem;
+    border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border, rgba(128, 128, 128, 0.35));
+    background: transparent; color: inherit;
+  }
+  /* Arme : le bouton demande sa confirmation LUI-MEME. Pas de dialogue natif,
+     inutilisable dans les webviews mobiles. */
+  .stop-btn.arme {
+    border-color: #d4a017; color: #d4a017; font-weight: 700;
+  }
+  .stop-btn.danger.arme { border-color: #c0392b; color: #c0392b; }
+  .stop-btn:disabled { opacity: 0.5; cursor: default; }
+  .stop-message { font-size: 0.85rem; opacity: 0.75; margin: 0.5rem 0 0; }
+
   .settings-view {
     height: 100%;
     display: flex;

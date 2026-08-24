@@ -2047,6 +2047,28 @@ export function restartServer() {
   return fetchJSON<{ status: string; message: string }>(`${BASE}/system/restart`, { method: 'POST' });
 }
 
+/**
+ * Arrete le serveur Tune. Il ne redemarre pas.
+ *
+ * `supervised: true` signifie qu'un superviseur (systemd `Restart=always`) va
+ * le relancer : l'arret n'est alors pas definitif, et l'ecran doit le dire
+ * AVANT de laisser cliquer.
+ */
+export function stopServer() {
+  return fetchJSON<{ stopping: boolean; supervised: boolean }>(`${BASE}/system/shutdown`, { method: 'POST' });
+}
+
+/**
+ * Eteint la MACHINE. Appliance Tune OS uniquement — 404 ailleurs.
+ *
+ * Distincte de [[stopServer]] a dessein : sur un Mac ou un PC, Tune est une
+ * application parmi d'autres, et eteindre l'hote parce qu'on quitte un lecteur
+ * de musique serait une surprise couteuse.
+ */
+export function powerOffMachine() {
+  return fetchJSON<{ powering_off: boolean }>(`${BASE}/appliance/poweroff`, { method: 'POST' });
+}
+
 // Peer discovery
 export interface TunePeer {
   name: string;
