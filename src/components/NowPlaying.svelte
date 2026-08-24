@@ -8,6 +8,7 @@
   import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
   import { isMiddlePressWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
+  import { CF_PRESETS, presetActif, reglagesCrossfeed } from '../lib/crossfeed';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import SeekBar from './SeekBar.svelte';
@@ -163,13 +164,67 @@
 
   // DSP / Crossfeed
   let showDspMenu = $state(false);
-  let currentCrossfeed = $state<string | null>(null);
-  const DSP_PRESETS = [
-    { value: null, label: 'Off' },
-    { value: 'light', label: 'Light' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'strong', label: 'Strong' },
-  ];
+  // --- Crossfeed -----------------------------------------------------------
+  //
+  // Le menu precedent envoyait un NOM de preset en POST sur /zones/{id}/dsp.
+  // Cette route n'accepte que GET et PUT : chaque clic repartait en 405, et
+  // l'ecran allumait quand meme le bouton. Verifie sur .18 le 24/08.
+  //
+  // On lit et on ecrit desormais le vrai objet crossfeed — celui que
+  // l'egaliseur manipule deja —, avec les memes reglages tout faits et les
+  // memes bornes, definis une seule fois dans `lib/crossfeed`.
+  let cfEnabled = $state(false);
+  let cfAmount = $state(0.3);
+  let cfDelay = $state(0.3);
+  let cfPorteeLive = $state<boolean | null>(null);
+  let cfTimer: ReturnType<typeof setTimeout> | null = null;
+
+  async function chargerCrossfeed() {
+    if (zone?.id == null) return;
+    try {
+      const dsp = await api.getDsp(zone.id);
+      const cf = dsp?.crossfeed;
+      if (cf) {
+        cfEnabled = !!cf.enabled;
+        cfAmount = cf.amount ?? 0.3;
+        cfDelay = cf.delay_ms ?? 0.3;
+      }
+    } catch {
+      // Une zone sans DSP n'est pas une erreur : on garde les valeurs par defaut.
+    }
+  }
+
+  /// Ecriture amortie : un curseur emet a chaque pixel, pas la peine d'en
+  /// faire autant de requetes.
+  function planifierCrossfeed() {
+    if (cfTimer) clearTimeout(cfTimer);
+    cfTimer = setTimeout(enregistrerCrossfeed, 300);
+  }
+
+  async function enregistrerCrossfeed() {
+    cfTimer = null;
+    if (zone?.id == null) return;
+    try {
+      const res = await api.setDsp(zone.id, {
+        crossfeed: reglagesCrossfeed(cfEnabled, cfAmount, cfDelay),
+      });
+      // Le serveur dit si le reglage a atteint le flux EN COURS. Sans ca, on
+      // pousse le curseur, rien ne change a l'oreille, et ca se raconte
+      // ensuite comme « le crossfeed ne marche pas ».
+      cfPorteeLive = res?.crossfeed_applied_live ?? null;
+    } catch (e) {
+      if ((e as Error)?.message !== 'premium_required') {
+        console.error('Crossfeed :', e);
+      }
+    }
+  }
+
+  function appliquerPreset(p: { amount: number; delay: number }) {
+    cfAmount = p.amount;
+    cfDelay = p.delay;
+    cfEnabled = true;
+    void enregistrerCrossfeed();
+  }
 
   async function handleSleepTimer(minutes: number) {
     if (zone?.id == null) return;
@@ -217,17 +272,6 @@
     }
   }
 
-  async function handleDsp(crossfeed: string | null) {
-    if (zone?.id == null) return;
-    try {
-      await api.setDSP(zone.id, crossfeed);
-      currentCrossfeed = crossfeed;
-      showDspMenu = false;
-      notifications.success(crossfeed ? `DSP Crossfeed: ${crossfeed}` : 'DSP off');
-    } catch (e) {
-      console.error('DSP error:', e);
-    }
-  }
 
   // Load sleep timer state when zone changes
   $effect(() => {
@@ -1415,19 +1459,14 @@
                   </div>
                 {/if}
               </div>
-              <div class="np-sleep-wrapper" style="position:relative;display:inline-flex">
-                <button class="np-credits-btn" class:active={currentCrossfeed !== null} onclick={() => { showDspMenu = !showDspMenu; showSleepMenu = false; }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h4l3-9 6 18 3-9h4" /></svg>
-                  DSP
-                </button>
-                {#if showDspMenu}
-                  <div class="np-sleep-dropdown">
-                    {#each DSP_PRESETS as preset}
-                      <button class="sleep-option" class:active={currentCrossfeed === preset.value} onclick={() => handleDsp(preset.value)}>{preset.label}</button>
-                    {/each}
-                  </div>
-                {/if}
-              </div>
+              <button
+                class="np-credits-btn"
+                class:active={cfEnabled}
+                onclick={() => { showDspMenu = !showDspMenu; showSleepMenu = false; if (showDspMenu) void chargerCrossfeed(); }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h4l3-9 6 18 3-9h4" /></svg>
+                {$t('dsp.crossfeedTitle')}
+              </button>
               <button class="np-credits-btn" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
                 {$t('nowplaying.alarm')}
@@ -1461,6 +1500,64 @@
           {/if}
           {#if showEq}
             <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} bands={eqBands} enabled={eqEnabled} />
+          {/if}
+          {#if showDspMenu}
+            <div class="np-crossfeed">
+              <div class="cf-ligne">
+                <label class="cf-bascule">
+                  <input
+                    type="checkbox"
+                    bind:checked={cfEnabled}
+                    onchange={() => void enregistrerCrossfeed()}
+                  />
+                  <span>{cfEnabled ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}</span>
+                </label>
+                <div class="cf-presets">
+                  {#each CF_PRESETS as p (p.key)}
+                    <button
+                      class="cf-preset"
+                      class:actif={cfEnabled && presetActif(cfAmount, cfDelay) === p.key}
+                      onclick={() => appliquerPreset(p)}>{$t(p.labelKey as any)}</button
+                    >
+                  {/each}
+                </div>
+              </div>
+
+              <label class="cf-curseur">
+                <span>{$t('dsp.crossfeedAmount')}</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="0.5"
+                  step="0.01"
+                  bind:value={cfAmount}
+                  oninput={planifierCrossfeed}
+                  disabled={!cfEnabled}
+                />
+                <output>{cfAmount.toFixed(2)}</output>
+              </label>
+
+              <label class="cf-curseur">
+                <span>{$t('dsp.crossfeedDelay')}</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  bind:value={cfDelay}
+                  oninput={planifierCrossfeed}
+                  disabled={!cfEnabled}
+                />
+                <output>{cfDelay.toFixed(1)} ms</output>
+              </label>
+
+              <p class="cf-note">{$t('dsp.crossfeedDesc')}</p>
+              {#if cfPorteeLive === false}
+                <!-- Le serveur dit que le reglage n'a pas atteint le flux en
+                     cours : le taire, c'est laisser croire a une panne. -->
+                <p class="cf-note cf-note-alerte">{$t('eq.effectNextTrack')}</p>
+              {/if}
+            </div>
           {/if}
           {#if zone?.signal_path}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -2802,6 +2899,74 @@
   }
 
   /* Now Playing Credits */
+  .np-crossfeed {
+    margin: 10px 0 0;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm, 8px);
+    background: var(--tune-bg-elevated, rgba(255, 255, 255, 0.04));
+    border: 1px solid var(--tune-border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+  }
+  .cf-ligne {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .cf-bascule {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .cf-presets {
+    display: flex;
+    gap: 6px;
+  }
+  .cf-preset {
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm, 6px);
+    color: var(--tune-text-muted);
+    font-size: 0.78rem;
+    padding: 4px 9px;
+    cursor: pointer;
+  }
+  .cf-preset.actif {
+    background: var(--tune-accent);
+    border-color: var(--tune-accent);
+    color: #fff;
+  }
+  .cf-curseur {
+    display: grid;
+    grid-template-columns: 4.5rem 1fr 3.5rem;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.82rem;
+    color: var(--tune-text-muted);
+  }
+  .cf-curseur input[type='range'] {
+    width: 100%;
+  }
+  .cf-curseur output {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .cf-note {
+    margin: 0;
+    font-size: 0.76rem;
+    color: var(--tune-text-muted);
+    line-height: 1.35;
+  }
+  .cf-note-alerte {
+    color: var(--tune-accent);
+  }
+
   .np-credits-btn {
     display: inline-flex;
     align-items: center;

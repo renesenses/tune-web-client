@@ -3091,9 +3091,6 @@ export function setNormalization(zoneId: number, enabled: boolean, targetLufs = 
 
 // --- DSP / Crossfeed ---
 
-export function setDSP(zoneId: number, crossfeed: string | null) {
-  return fetchJSON<any>(`${BASE}/zones/${zoneId}/dsp`, { method: 'POST', body: JSON.stringify({ crossfeed }) });
-}
 
 // --- Recommendations ---
 
