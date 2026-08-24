@@ -27,6 +27,7 @@
   import { tuneWS } from '../lib/websocket';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
+  import RecommendationsSection from './RecommendationsSection.svelte';
   import type { Album, Track, Source, TopTrack, TopArtist } from '../lib/types';
 
   let activeStreamingServices = $derived(
@@ -872,6 +873,13 @@
       </div>
     </div>
   {/if}
+
+  <!-- Recommandations — EN BAS : une invitation a decouvrir, apres avoir
+       parcouru ce qu'on possede deja. Elle etait partie dans le Tableau de bord
+       avec les classements, mais elle n'a pas leur nature : un classement se
+       date et gagne au selecteur de periode, une recommandation non
+       (Bertrand, 24/08/2026). -->
+  <RecommendationsSection />
 
 </div>
 

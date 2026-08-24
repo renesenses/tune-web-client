@@ -396,7 +396,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   function formatAlbumQualityLabel(album: Album): string {
     const parts: string[] = [];
     if (album.format) parts.push(String(album.format).toUpperCase());
-    if (album.sample_rate) parts.push(`${(album.sample_rate / 1000).toFixed(album.sample_rate % 1000 === 0 ? 0 : 1)}kHz`);
+    if (album.sample_rate) parts.push(formatSampleRate(album.sample_rate));
     if (album.bit_depth) parts.push(`${album.bit_depth}-bit`);
     if (parts.length === 0 && album.quality) parts.push(album.quality.toUpperCase());
     return parts.join(' ') || '?';
@@ -736,7 +736,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     let result = searchFilteredAlbums;
     if (albumQualityFilter) result = result.filter(a => a.quality === albumQualityFilter);
     if (albumFormatFilter) result = result.filter(a => a.format === albumFormatFilter);
-    if (albumSampleRateFilter) result = result.filter(a => (a.sample_rate ?? 0) >= albumSampleRateFilter);
+    // Cadence EXACTE, jamais « ou plus ». Le filtre « 176,4 kHz » montrait aussi
+    // les albums 192 kHz (Patatorz, forum) : le « + » du libellé annonçait bien
+    // un `>=`, mais personne ne le lit ainsi — on choisit une cadence pour
+    // n'avoir QUE celle-là.
+    if (albumSampleRateFilter) result = result.filter(a => a.sample_rate === albumSampleRateFilter);
     if (albumFavoritesFilter) result = result.filter(a => a.id !== null && favAlbumIds.has(a.id!));
     if (albumYearFilter) result = result.filter(a => a.year === albumYearFilter);
     if (albumDuplicatesFilter) result = result.filter(a => a.id !== null && duplicateAlbumIds.has(a.id!));
@@ -761,6 +765,14 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   let albumFormats = $derived(
     formatsSansCollision(searchFilteredAlbums.map((a) => a.format)),
   );
+
+  /// « 44.1kHz », « 48kHz », « 176.4kHz » — une decimale seulement quand elle
+  /// existe. Meme regle que la ligne de qualite d'un album, pour que la
+  /// vignette et le badge disent la meme chose.
+  function formatSampleRate(sr: number): string {
+    if (sr < 1000) return `${sr}Hz`;
+    return `${(sr / 1000).toFixed(sr % 1000 === 0 ? 0 : 1)}kHz`;
+  }
 
   let albumSampleRates = $derived(
     [...new Set(searchFilteredAlbums.map(a => a.sample_rate).filter(Boolean))].sort((a, b) => (a ?? 0) - (b ?? 0)) as number[]
@@ -2679,11 +2691,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
         {/if}
         {#if albumSampleRates.length > 1}
           <span class="filter-sep">|</span>
-          {#each [44100, 48000, 88200, 96000, 176400, 192000] as sr}
-            {@const count = searchFilteredAlbums.filter(a => (a.sample_rate ?? 0) >= sr).length}
-            {#if count > 0 && albumSampleRates.some(r => (r ?? 0) >= sr)}
+          <!-- Les cadences REELLEMENT presentes, pas une liste figee : une
+               bibliotheque en 352,8 kHz n'avait aucune vignette. -->
+          {#each albumSampleRates as sr}
+            {@const count = searchFilteredAlbums.filter(a => a.sample_rate === sr).length}
+            {#if count > 0}
               <button class="quality-chip samplerate" class:active={albumSampleRateFilter === sr} onclick={() => setAlbumSampleRateChip(albumSampleRateFilter === sr ? null : sr)}>
-                {sr >= 1000 ? (sr / 1000) + 'kHz' : sr + 'Hz'}+ ({count})
+                {formatSampleRate(sr)} ({count})
               </button>
             {/if}
           {/each}
