@@ -1,6 +1,7 @@
 <script lang="ts">
   import { get } from 'svelte/store';
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { currentTrack, currentTrackId, estLaPisteEnLecture } from '../lib/stores/nowPlaying';
   import { playFromHere } from '../lib/playback';
   import { melangee } from '../lib/shuffle';
   import { notifications } from '../lib/stores/notifications';
@@ -355,6 +356,8 @@
       <div class="track-list">
         {#each playlistTracks as t, index (`${t.id}-${index}`)}
           <div class="track-item"
+            class:playing={estLaPisteEnLecture(t, $currentTrackId, $currentTrack)}
+            aria-current={estLaPisteEnLecture(t, $currentTrackId, $currentTrack) ? 'true' : undefined}
             draggable="true"
             ondragstart={(e) => { e.dataTransfer?.setData('text/plain', String(index)); dragIdx = index; }}
             ondragover={(e) => { e.preventDefault(); dragOverIdx = index; }}
@@ -371,7 +374,7 @@
               </button>
             </div>
             <button class="track-play" onclick={() => t.id && playTrack(t.id)}>
-              <span class="track-num">{index + 1}</span>
+              <span class="track-num"><span class="num-text">{index + 1}</span><span class="num-play">&#9654;</span></span>
               <div class="track-info">
                 <span class="track-title truncate">{t.title}</span>
                 <span class="track-artist truncate">{t.artist_name ?? ''}</span>
@@ -425,9 +428,13 @@
     {:else}
       <div class="track-list">
         {#each streamingPlTracks as t, index}
-          <div class="track-item">
+          <div
+            class="track-item"
+            class:playing={estLaPisteEnLecture(t, $currentTrackId, $currentTrack)}
+            aria-current={estLaPisteEnLecture(t, $currentTrackId, $currentTrack) ? 'true' : undefined}
+          >
             <button class="track-play" onclick={() => selectedStreamingPl ? playStreamingPlaylist(selectedStreamingPl, index) : playStreamingTrack(t)}>
-              <span class="track-num">{index + 1}</span>
+              <span class="track-num"><span class="num-text">{index + 1}</span><span class="num-play">&#9654;</span></span>
               <div class="track-info">
                 <span class="track-title truncate">{t.title}</span>
                 {#if t.artist_name}<span class="track-artist truncate">{t.artist_name}</span>{/if}
@@ -638,6 +645,14 @@
   .track-item { display: flex; align-items: center; gap: 0; cursor: grab; transition: background 0.12s; }
   .track-item:active { cursor: grabbing; }
   .track-item.drag-over { background: var(--tune-accent-bg, rgba(99,102,241,0.12)); border-top: 2px solid var(--tune-accent); }
+  /* La piste en cours. Meme parti pris qu'en bibliotheque : pas de fond
+     colore — la ligne doit rester survolable sans que deux teintes se
+     disputent —, le numero cede la place au chevron et le titre prend
+     l'accent, qui survit au survol. */
+  .track-item .num-play { display: none; }
+  .track-item.playing .num-text { display: none; }
+  .track-item.playing .num-play { display: inline; }
+  .track-item.playing .track-title { color: var(--tune-accent); font-weight: 600; }
   .reorder-btns { display: flex; flex-direction: column; gap: 0; margin-right: 4px; opacity: 0; transition: opacity 0.12s; }
   .track-item:hover .reorder-btns { opacity: 1; }
   .move-btn { background: none; border: none; color: var(--tune-text-muted); cursor: pointer; padding: 2px 4px; border-radius: 4px; }

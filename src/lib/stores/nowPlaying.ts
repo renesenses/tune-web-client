@@ -1,6 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import { currentZone, currentZoneId } from './zones';
-import type { NowPlaying, PlaybackState, Track } from '../types';
+import type { NowPlaying, PlaybackState, Source, Track } from '../types';
 
 // Seek position in milliseconds
 export const seekPositionMs = writable<number>(0);
@@ -31,6 +31,38 @@ export const currentTrackId = derived(
   currentTrack,
   ($track) => $track?.track_id ?? $track?.id ?? null,
 );
+
+/** La piste `t` est-elle celle qui joue ?
+ *
+ *  Deux clés, parce qu'il y a deux natures de piste :
+ *  - une piste de bibliothèque se reconnaît à son identifiant. Le garde
+ *    `!= null` est indispensable : sans lui, toutes les pistes sans
+ *    identifiant se surligneraient ensemble ;
+ *  - une piste en streaming n'a pas d'entrée en bibliothèque. Le serveur
+ *    envoie alors `source` et `source_id` (`NowPlaying`, playback/mod.rs) :
+ *    c'est la seule clé commune avec la ligne affichée.
+ *
+ *  Les deux comparaisons sont indépendantes ; aucune ne devine quoi que ce
+ *  soit à partir du titre ou de l'artiste. Si le serveur n'envoie ni
+ *  identifiant ni `source_id`, rien n'est surligné — pas de faux positif.
+ *
+ *  Écrit pour les vues Playlists, où la piste en cours n'était pas mise en
+ *  évidence du tout (Bertrand, .18, 0.9.102) alors que la bibliothèque le fait
+ *  depuis toujours. */
+export function estLaPisteEnLecture(
+  t: { id?: number | null; source?: Source | null; source_id?: string | null },
+  currentId: number | null,
+  np: NowPlaying | null,
+): boolean {
+  if (t.id != null && currentId != null && t.id === currentId) return true;
+  if (t.source_id != null && np?.source_id != null && t.source_id === np.source_id) {
+    // La source doit concorder quand les deux la portent : deux services
+    // peuvent numéroter une piste pareil.
+    if (t.source != null && np.source != null && t.source !== np.source) return false;
+    return true;
+  }
+  return false;
+}
 
 /** Convertit le now-playing d'une zone en `Track` de bibliothèque.
  *
