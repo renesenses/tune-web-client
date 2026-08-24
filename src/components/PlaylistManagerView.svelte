@@ -1,5 +1,6 @@
 <script lang="ts">
   import { currentZone, zones, playAndSync } from '../lib/stores/zones';
+  import { currentTrack, currentTrackId, estLaPisteEnLecture } from '../lib/stores/nowPlaying';
   import { dialogs } from '../lib/stores/dialogs';
   import { playlists as playlistsStore } from '../lib/stores/playlists';
   import { streamingServices } from '../lib/stores/streaming';
@@ -1192,6 +1193,8 @@
         {#each detailTracks as t, index}
           <div
             class="track-item"
+            class:playing={estLaPisteEnLecture(t, $currentTrackId, $currentTrack)}
+            aria-current={estLaPisteEnLecture(t, $currentTrackId, $currentTrack) ? 'true' : undefined}
             class:drag-over={dragOverIndex === index}
             class:dragging={dragIndex === index}
             draggable={!!selectedPlaylist}
@@ -1205,7 +1208,7 @@
                  sinon la file ne contient qu'une piste et rien ne s'enchaîne
                  (« l'enchaînement ne marche pas », Bertrand, Qobuz sur .18). -->
             <button class="track-play" onclick={() => playFromIndex(index)}>
-              <span class="track-num">{index + 1}</span>
+              <span class="track-num"><span class="num-text">{index + 1}</span><span class="num-play">&#9654;</span></span>
               <span class="track-thumb">
                 <AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.album_title ?? t.title ?? ''} />
               </span>
@@ -2713,6 +2716,13 @@
   .track-item.drag-over {
     box-shadow: inset 0 2px 0 0 var(--tune-accent, #7c5cff);
   }
+
+  /* La piste en cours. Meme parti pris qu'en bibliotheque : pas de fond
+     colore, le numero cede la place au chevron, le titre prend l'accent. */
+  .track-item .num-play { display: none; }
+  .track-item.playing .num-text { display: none; }
+  .track-item.playing .num-play { display: inline; }
+  .track-item.playing .track-title { color: var(--tune-accent); font-weight: 600; }
 
   .track-play {
     flex: 1;
