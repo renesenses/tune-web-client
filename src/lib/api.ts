@@ -876,15 +876,17 @@ export function getQueue(zoneId: number) {
   return fetchJSON<QueueStateResponse>(`${BASE}/zones/${zoneId}/queue`);
 }
 
-// Pas d'`album_id` ici : /queue/add ne l'accepte pas (contrairement au endpoint
-// de lecture) et répond 400. Pour enfiler un album, résoudre ses pistes via
-// getAlbumTracks() et envoyer `track_ids`.
+// `album_id` enfile l'album ENTIER, et c'est la bonne façon de le faire.
+// Résoudre les pistes ici via getAlbumTracks() puis envoyer `track_ids` — ce
+// que ce commentaire recommandait — ignore le rattrapage de la ligne sœur que
+// le serveur applique : l'album s'ajoutait VIDE là où « lire » fonctionne
+// (Pascal, Totaldac, v0.9.21).
 // Les champs descriptifs acceptent `null` : une pochette, un titre d'album ou
 // un artiste absents sont une réponse, et le serveur les reçoit très bien
 // (`Option<String>`). Sans le `| null`, tout appelant qui les a FACULTATIFS —
 // une piste distante, typiquement, dont le type `Track` les déclare
 // `string | null` — devait les blanchir en `undefined` avant d'appeler.
-export function addToQueue(zoneId: number, body: { track_id?: number; track_ids?: number[]; source?: Source | 'upload'; source_id?: string; file_path?: string; position?: number; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number }) {
+export function addToQueue(zoneId: number, body: { album_id?: number; track_id?: number; track_ids?: number[]; source?: Source | 'upload'; source_id?: string; file_path?: string; position?: number; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number }) {
   return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/add`, {
     method: 'POST',
     body: JSON.stringify(body),

@@ -1785,6 +1785,35 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   // the queue matches what the user sees instead of silently enqueuing the whole
   // (mixed-quality) album. Streaming albums (tracks without a numeric id) and any
   // load failure fall back to the plain album_id play.
+  let ajoutFileEnCours = $state(false);
+
+  /**
+   * Ajouter l'album entier à la file d'attente.
+   *
+   * On envoie `album_id` au serveur plutôt que de résoudre les pistes ici. Ce
+   * n'est pas une économie de requêtes : le serveur sait RATTRAPER un album
+   * dont la ligne est vide en cherchant une ligne sœur peuplée — celle que la
+   * vue Artistes atteint (Pascal, Totaldac, v0.9.21). Résoudre les pistes côté
+   * client ignorerait ce rattrapage, et l'album s'ajouterait VIDE là où « lire »
+   * fonctionne.
+   */
+  async function ajouterAlbumALaFile() {
+    const albumId = $selectedAlbum?.id;
+    const zoneId = $currentZone?.id;
+    if (!albumId || !zoneId || ajoutFileEnCours) return;
+    ajoutFileEnCours = true;
+    try {
+      const r = await api.addToQueue(zoneId, { album_id: albumId });
+      notifications.success(
+        `${$tr('library.albumQueued')} — ${r.queue_length} ${$tr('home.tracks').toLowerCase()}`,
+      );
+    } catch (e: any) {
+      notifications.error(e?.message ?? $tr('library.albumQueueFailed'));
+    } finally {
+      ajoutFileEnCours = false;
+    }
+  }
+
   async function playAlbumDetail() {
     if (!zone?.id) {
       notifications.error($tr('library.noZoneSelected'));
@@ -2053,6 +2082,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           <div class="detail-actions">
             <button class="play-all-btn" onclick={() => playAlbumDetail()} title={$tr('library.playAlbum')}>
               <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M8 5v14l11-7z" /></svg>
+            </button>
+            <button
+              class="queue-album-btn"
+              onclick={() => ajouterAlbumALaFile()}
+              disabled={ajoutFileEnCours || !$currentZone?.id}
+              title={$tr('queue.addToQueue')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><line x1="18" y1="9" x2="18" y2="19" /><line x1="13" y1="14" x2="23" y2="14" /></svg>
+              {$tr('queue.addToQueue')}
             </button>
             <button class="edit-btn" onclick={(e) => $selectedAlbum && openAlbumEdit(e, $selectedAlbum)} title={$tr('metadata.editAlbum')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
@@ -3556,6 +3594,32 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   .edit-btn:hover {
     border-color: var(--tune-accent);
     color: var(--tune-text);
+  }
+
+  /* Même habillage que « Modifier » et « Écrire les tags » : c'est une action
+     secondaire de la fiche album, pas une deuxième façon de lancer la lecture. */
+  .queue-album-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--tune-grey2);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 13px;
+    transition: all 0.12s;
+  }
+  .queue-album-btn:hover:not(:disabled) {
+    border-color: var(--tune-accent);
+    color: var(--tune-text);
+  }
+  .queue-album-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .queue-album-btn:focus-visible {
+    outline: 2px solid var(--tune-accent);
+    outline-offset: 2px;
   }
 
   .write-tags-btn {

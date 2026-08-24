@@ -560,16 +560,100 @@
     </div>
   {/if}
 
+  /**
+   * Ouvrir une parution de « Nouveautés de vos artistes ».
+   *
+   * La section n'était PAS cliquable : tout y était en div, sans un seul
+   * `onclick` ni le moindre bouton (FabienM, point 4 sur la v0.9.102, puis
+   * Bertrand sur le .18). On voyait des nouveautés sans pouvoir les ouvrir.
+   *
+   * ⚠️ Aucun chevron dans les commentaires de ce bloc script : le compilateur
+   * Svelte les lit comme des balises et désynchronise tout l'analyseur. Le
+   * message d'erreur tombe alors des dizaines de lignes plus bas, sur du code
+   * parfaitement valide.
+   *
+   * Contrairement au bloc « récemment joué » juste au-dessus, aucune recherche
+   * n'est nécessaire ici : le serveur renvoie déjà le `source_id` de l'ALBUM,
+   * pas celui d'une piste. On arme donc `pendingStreamingAlbum` directement —
+   * c'est le store que `StreamingView` consomme à l'ouverture.
+   */
+  /**
+   * Vue « liste » ou « grille » des nouveautés, mémorisée d'un passage à l'autre.
+   *
+   * La liste tient dans une bande horizontale et convient quand un artiste n'a
+   * qu'une ou deux parutions. La grille montre les pochettes en grand — c'est
+   * ce qu'on regarde en premier — et encaisse un artiste qui en sort dix.
+   * Demandé par Bertrand ; ni l'une ni l'autre n'est bonne dans tous les cas,
+   * donc on laisse le choix plutôt que d'en imposer une.
+   */
+  // ⚠️ Ne PAS passer un type littéral en paramètre générique de $state : le
+  // compilateur Svelte lit le chevron ouvrant comme le début d'une balise et
+  // rend « Expected a valid element or component name ». On annote la variable
+  // à la place. Et pour la même raison, ce commentaire n'écrit aucun chevron —
+  // ma première version en contenait, et elle déclenchait le défaut qu'elle
+  // décrivait.
+  // La préférence survit d'une visite à l'autre. Pas de type littéral en
+  // paramètre générique de $state : le compilateur Svelte lit le chevron
+  // ouvrant comme une balise. On annote la variable.
+  type VueNouveautes = 'liste' | 'grille';
+  const vueLue =
+    typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('tune.home.artistReleasesView') as VueNouveautes | null)
+      : null;
+  let vueNouveautes: VueNouveautes = $state(vueLue === 'grille' ? 'grille' : 'liste');
+
+  function basculerVueNouveautes() {
+    vueNouveautes = vueNouveautes === 'liste' ? 'grille' : 'liste';
+    try {
+      localStorage.setItem('tune.home.artistReleasesView', vueNouveautes);
+    } catch (_e) {
+      // Mode privé : la préférence ne survit pas, l'affichage marche quand même.
+    }
+  }
+
+  function ouvrirParution(groupe: any, parution: any) {
+    if (!parution?.service || !parution?.source_id) return;
+    activeStreamingService.set(parution.service);
+    pendingStreamingAlbum.set({
+      id: parution.source_id,
+      source_id: parution.source_id,
+      source: parution.service,
+      title: parution.title,
+      artist_name: groupe?.artist_name ?? null,
+      cover_path: parution.cover_path ?? null,
+      year: parution.year ?? null,
+    } as any);
+    activeView.set('streaming');
+  }
+
   <!-- Nouveautés de vos artistes -->
   {#if artistReleases && artistReleases.length > 0}
     <div class="recent-section">
-      <h2 class="section-title">{$t('home.artistReleases')}</h2>
+      <div class="artist-releases-head">
+        <h2 class="section-title">{$t('home.artistReleases')}</h2>
+        <button
+          class="vue-toggle"
+          onclick={basculerVueNouveautes}
+          title={vueNouveautes === 'liste' ? $t('home.gridView') : $t('home.listView')}
+          aria-label={vueNouveautes === 'liste' ? $t('home.gridView') : $t('home.listView')}
+        >
+          {#if vueNouveautes === 'liste'}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
+          {/if}
+        </button>
+      </div>
       <div class="artist-releases">
         {#each artistReleases as groupe}
           <div class="artist-group" class:favorite={groupe.is_favorite}>
             <div class="artist-group-head">
               <div class="artist-group-name truncate">
-                {groupe.artist_name}
+                <button
+                  class="artist-group-link"
+                  onclick={() => navigateArtistByName(groupe.artist_name)}
+                  title={$t('home.openArtist')}
+                >{groupe.artist_name}</button>
                 <span class="artist-count">
                   {groupe.releases.length} {$t('home.newReleases')}
                 </span>
@@ -588,9 +672,13 @@
                 {/if}
               </div>
             </div>
-            <div class="artist-releases-row">
+            <div class="artist-releases-row" class:grille={vueNouveautes === 'grille'}>
               {#each groupe.releases as parution}
-                <div class="artist-release">
+                <button
+                  class="artist-release"
+                  onclick={() => ouvrirParution(groupe, parution)}
+                  title={$t('home.openAlbum')}
+                >
                   <AlbumArt coverPath={parution.cover_path} size={72} alt={parution.title} />
                   <div class="artist-release-text">
                     <div class="artist-release-title truncate">{parution.title}</div>
@@ -599,7 +687,7 @@
                       {#if parution.year}<span class="artist-release-year">{parution.year}</span>{/if}
                     </div>
                   </div>
-                </div>
+                </button>
               {/each}
             </div>
           </div>
@@ -1242,11 +1330,66 @@
     text-transform: uppercase; opacity: 0.75; margin-left: 0.4rem;
   }
   .artist-group-why { font-size: 0.78rem; opacity: 0.6; margin-left: auto; }
+  .artist-releases-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.8rem;
+  }
+  .vue-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: 1px solid var(--tune-border, rgba(128,128,128,0.3));
+    border-radius: 6px; padding: 0.3rem; cursor: pointer;
+    color: var(--tune-text-secondary); transition: color 0.12s, border-color 0.12s;
+  }
+  .vue-toggle:hover { color: var(--tune-accent); border-color: var(--tune-accent); }
+  .vue-toggle:focus-visible { outline: 2px solid var(--tune-accent); outline-offset: 2px; }
+
+  /* GRILLE — la pochette passe au-dessus et prend toute la largeur de la case.
+     `auto-fill` pour que la même vue tienne sur un portable et sur un écran de
+     salon, comme la grille Bandcamp dont elle reprend la mesure. */
+  .artist-releases-row.grille {
+    display: grid; overflow-x: visible;
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: 1rem;
+  }
+  .artist-releases-row.grille .artist-release {
+    flex-direction: column; align-items: stretch; gap: 0.35rem;
+  }
+  .artist-releases-row.grille .artist-release-title { max-width: none; }
+  /* La pochette est rendue par AlbumArt en 72 px ; en grille elle doit remplir
+     la case. On agit sur le conteneur direct plutôt que sur le composant, pour
+     ne pas toucher les autres écrans qui l'utilisent. */
+  .artist-releases-row.grille .artist-release > :global(*:first-child) {
+    width: 100%; height: auto; aspect-ratio: 1;
+  }
+  .artist-releases-row.grille .artist-release > :global(*:first-child img) {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+
   .artist-releases-row {
     display: flex; gap: 0.8rem; margin-top: 0.6rem;
     overflow-x: auto; padding-bottom: 0.2rem;
   }
-  .artist-release { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+  /* `.artist-release` et `.artist-group-link` sont des <button> depuis qu'on
+     peut enfin les ouvrir : sans cette remise à zéro, le navigateur y colle sa
+     bordure, son fond et sa police. Le survol et le focus sont explicites —
+     une zone cliquable qui ne le montre pas ne vaut guère mieux qu'un <div>. */
+  .artist-release {
+    display: flex; align-items: center; gap: 0.6rem; min-width: 0;
+    background: none; border: 0; padding: 0; margin: 0;
+    font: inherit; color: inherit; text-align: left; cursor: pointer;
+    border-radius: 6px; transition: opacity 0.12s;
+  }
+  .artist-release:hover .artist-release-title { color: var(--tune-accent); }
+  .artist-release:focus-visible,
+  .artist-group-link:focus-visible {
+    outline: 2px solid var(--tune-accent); outline-offset: 2px;
+  }
+
+  .artist-group-link {
+    background: none; border: 0; padding: 0; margin: 0;
+    font: inherit; color: inherit; cursor: pointer;
+    border-radius: 4px; transition: color 0.12s;
+  }
+  .artist-group-link:hover { color: var(--tune-accent); }
   .artist-release-text { min-width: 0; }
   .artist-release-title { font-size: 0.82rem; max-width: 14rem; }
   .artist-release-sub { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.2rem; }
