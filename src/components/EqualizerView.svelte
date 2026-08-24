@@ -5,6 +5,14 @@
   import { t } from '../lib/i18n';
   import { currentZone, currentZoneId } from '../lib/stores/zones';
   import * as api from '../lib/api';
+  import {
+    CF_MAX_AMOUNT,
+    CF_MAX_DELAY,
+    CF_MIN_AMOUNT,
+    CF_MIN_DELAY,
+    CF_PRESETS,
+    reglagesCrossfeed,
+  } from '../lib/crossfeed';
   import type { EqBand, EqSettings, CrossfeedSettings } from '../lib/api';
   import { NEUTRAL_PARAMETRIC_BAND, resetParametricBands } from '../lib/eqReset';
   import { notifications } from '../lib/stores/notifications';
@@ -618,10 +626,9 @@
   // --- Crossfeed (casque) -------------------------------------------------
   // Lives in the same DSP panel and reads/writes the SAME active zone via the
   // shared /zones/{id}/dsp route (crossfeed sub-object). Local output only.
-  const CF_MIN_AMOUNT = 0;
-  const CF_MAX_AMOUNT = 0.5;
-  const CF_MIN_DELAY = 0;
-  const CF_MAX_DELAY = 5;
+  // Bornes et reglages tout faits : une seule definition, partagee avec
+  // « En ecoute » (`lib/crossfeed`). Deux listes de presets qui derivent, et
+  // « Standard » ne veut plus dire la meme chose d'un ecran a l'autre.
 
   let cfEnabled = $state(false);
   let cfAmount = $state(0.30);
@@ -629,11 +636,6 @@
 
   // amount/delay per preset. Same save path as the EQ (debounced PUT), never
   // one request per slider tick.
-  const CF_PRESETS: { key: string; labelKey: string; amount: number; delay: number }[] = [
-    { key: 'light',    labelKey: 'dsp.crossfeedPresetLight',    amount: 0.25, delay: 0.3 },
-    { key: 'standard', labelKey: 'dsp.crossfeedPresetStandard', amount: 0.30, delay: 0.5 },
-    { key: 'strong',   labelKey: 'dsp.crossfeedPresetStrong',   amount: 0.40, delay: 0.7 },
-  ];
 
   let cfSendTimer: ReturnType<typeof setTimeout> | null = null;
   function queueCrossfeedSave() {
@@ -647,12 +649,7 @@
   async function saveCrossfeed() {
     const zoneId = $currentZoneId;
     if (zoneId === null) return;
-    const crossfeed: CrossfeedSettings = {
-      enabled: cfEnabled,
-      // Clamp to the server's accepted ranges before sending.
-      amount: Math.min(CF_MAX_AMOUNT, Math.max(CF_MIN_AMOUNT, cfAmount)),
-      delay_ms: Math.min(CF_MAX_DELAY, Math.max(CF_MIN_DELAY, cfDelay)),
-    };
+    const crossfeed: CrossfeedSettings = reglagesCrossfeed(cfEnabled, cfAmount, cfDelay);
     try {
       const res = await api.setDsp(zoneId, { crossfeed });
       // Dernier point du lot 4 (#1710). Le serveur dit sur CHAQUE écriture si
