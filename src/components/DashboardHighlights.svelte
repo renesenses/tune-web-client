@@ -36,8 +36,6 @@
   let topArtistsLoaded = $state(false);
   let topTracks: TopTrack[] = $state([]);
   let topTracksLoaded = $state(false);
-  let recommendations: any[] = $state([]);
-  let recsLoaded = $state(false);
   let topMixes: any[] = $state([]);
   let topMixesLoaded = $state(false);
   let radioPicks: any[] = $state([]);
@@ -71,17 +69,6 @@
     } catch (e) {
       console.error('Load top tracks error:', e);
       topTracksLoaded = true;
-    }
-  }
-
-  async function loadRecommendations() {
-    try {
-      const r = await api.getRecommendations(12);
-      recommendations = Array.isArray(r) ? r : (r.albums ?? r.recommendations ?? []);
-      recsLoaded = true;
-    } catch (e) {
-      console.error('Load recommendations error:', e);
-      recsLoaded = true;
     }
   }
 
@@ -178,7 +165,6 @@
     loadStats();
     loadTopArtists();
     loadTopTracks();
-    loadRecommendations();
     loadTopMixes();
     loadRadioPicks();
     loadDashboard();
@@ -232,25 +218,6 @@
               </button>
             {/if}
           </div>
-        {/each}
-      </div>
-    </div>
-  {/if}
-
-  <!-- Recommendations -->
-  {#if recsLoaded && recommendations.length > 0}
-    <div class="top-section">
-      <h2 class="section-title">{$t('home.recommendations')}</h2>
-      <div class="recs-carousel">
-        {#each recommendations as rec}
-          <button class="rec-card" onclick={() => rec.id ? navigateToAlbum(rec.id) : (rec.album_id ? navigateToAlbum(rec.album_id) : null)}>
-            <AlbumArt coverPath={rec.cover_path} albumId={rec.id ?? rec.album_id} size={140} alt={rec.title} />
-            <span class="rec-title truncate">{rec.title}</span>
-            <span class="rec-artist truncate">{rec.artist_name ?? ''}</span>
-            {#if rec.reason}
-              <span class="rec-reason">{rec.reason}</span>
-            {/if}
-          </button>
         {/each}
       </div>
     </div>
@@ -569,6 +536,9 @@
   }
 
   /* Recommendations carousel */
+  /* Cartes en carrousel — partagees par « Radio Picks ». Les
+     « Recommandations » les utilisaient aussi avant leur depart vers l'accueil
+     (RecommendationsSection.svelte) ; elles restent donc ici. */
   .recs-carousel {
     display: flex;
     gap: var(--space-md);
@@ -610,22 +580,6 @@
     font-size: 12px;
     color: var(--tune-text-secondary);
     max-width: 140px;
-  }
-
-  .rec-reason {
-    display: inline-block;
-    font-family: var(--font-label);
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--tune-accent);
-    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12);
-    padding: 2px 8px;
-    border-radius: 8px;
-    margin-top: auto;
-    white-space: nowrap;
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   /* Dashboard */
