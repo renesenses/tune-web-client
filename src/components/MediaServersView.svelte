@@ -5,8 +5,14 @@
   import { onMount, onDestroy } from 'svelte';
   import { t as tr } from '../lib/i18n';
   import { ouvertureParDefaut, estUnServeurTune, RAYONS_TUNE } from '../lib/mediaServerHome';
+  import { filtrerLocalement } from '../lib/rechercheServeurMedia';
   import { formatTime, formatAudioBadge } from '../lib/utils';
-  import type { MediaServer, MediaServerBrowseResult, MediaServerItem } from '../lib/types';
+  import type {
+    MediaServer,
+    MediaServerBrowseResult,
+    MediaServerItem,
+    MediaServerSearchResult,
+  } from '../lib/types';
   import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
 
   let zone = $derived($currentZone);
@@ -17,6 +23,88 @@
   let selectedServer = $state<MediaServer | null>(null);
   let browseResult = $state<MediaServerBrowseResult | null>(null);
   let navigationStack = $state<Array<{ objectId: string; title: string }>>([]);
+
+  // --- Recherche DANS le serveur -------------------------------------------
+  //
+  // Parcourir une arborescence de plusieurs milliers d'entrées pour y trouver
+  // un titre est intenable : `Search` demande au serveur de chercher dans SON
+  // index. Tous ne savent pas le faire — la route rend alors `supported:
+  // false`, et on filtre le dossier affiché en le DISANT, plutôt que de laisser
+  // croire à une recherche complète.
+  let requete = $state('');
+  let toutLeServeur = $state(true);
+  let resultatRecherche = $state<MediaServerSearchResult | null>(null);
+  let rechercheEnCours = $state(false);
+  let repliLocal = $state(false);
+  let minuterieRecherche: ReturnType<typeof setTimeout> | null = null;
+
+  /** Ce qu'on affiche : les résultats s'il y en a, sinon le dossier courant. */
+  const RESULTAT_VIDE: MediaServerBrowseResult = {
+    object_id: '0',
+    containers: [],
+    items: [],
+    total_matches: 0,
+    number_returned: 0,
+  };
+
+  // Jamais `null` : ce bloc n'est rendu que serveur ouvert, et un type
+  // nullable ici obligerait a garder chaque acces dans le gabarit.
+  let affichage = $derived.by<MediaServerBrowseResult>(() => {
+    if (!requete.trim()) return browseResult ?? RESULTAT_VIDE;
+    if (resultatRecherche && !repliLocal) {
+      return {
+        object_id: resultatRecherche.container,
+        containers: resultatRecherche.containers,
+        items: resultatRecherche.items,
+        total_matches: resultatRecherche.total_matches,
+        number_returned: resultatRecherche.number_returned,
+      };
+    }
+    // Repli : on filtre ce qui est déjà à l'écran, avec le même repli
+    // d'accents que la recherche de la bibliothèque (module testé).
+    if (!browseResult) return RESULTAT_VIDE;
+    return filtrerLocalement(browseResult, requete);
+  });
+
+  function surSaisieRecherche() {
+    if (minuterieRecherche) clearTimeout(minuterieRecherche);
+    // 300 ms : assez pour ne pas interroger à chaque touche, assez court pour
+    // que la liste suive la frappe.
+    minuterieRecherche = setTimeout(lancerRecherche, 300);
+  }
+
+  async function lancerRecherche() {
+    const q = requete.trim();
+    if (!selectedServer || !q) {
+      resultatRecherche = null;
+      repliLocal = false;
+      return;
+    }
+    rechercheEnCours = true;
+    try {
+      const res = await api.searchMediaServer(
+        selectedServer.id,
+        q,
+        toutLeServeur ? '0' : currentObjectId()
+      );
+      resultatRecherche = res;
+      repliLocal = !res.supported;
+    } catch (e) {
+      console.error('Recherche serveur média :', e);
+      // Une panne de la route ne doit pas laisser l'écran vide : on filtre ce
+      // qu'on a déjà.
+      resultatRecherche = null;
+      repliLocal = true;
+    }
+    rechercheEnCours = false;
+  }
+
+  function effacerRecherche() {
+    if (minuterieRecherche) clearTimeout(minuterieRecherche);
+    requete = '';
+    resultatRecherche = null;
+    repliLocal = false;
+  }
 
   // Breadcrumbs derived from navigation stack
   let breadcrumbs = $derived.by(() => {
@@ -345,6 +433,38 @@
       </button>
     </div>
 
+    <div class="ms-recherche">
+      <input
+        class="ms-recherche-champ"
+        type="search"
+        bind:value={requete}
+        oninput={surSaisieRecherche}
+        placeholder={$tr('mediaservers.searchPlaceholder')}
+        aria-label={$tr('mediaservers.searchPlaceholder')}
+      />
+      <div class="ms-portee" role="group" aria-label={$tr('mediaservers.searchResults')}>
+        <button
+          class="ms-portee-btn"
+          class:actif={toutLeServeur}
+          onclick={() => { toutLeServeur = true; lancerRecherche(); }}>{$tr('mediaservers.searchScopeServer')}</button
+        >
+        <button
+          class="ms-portee-btn"
+          class:actif={!toutLeServeur}
+          onclick={() => { toutLeServeur = false; lancerRecherche(); }}>{$tr('mediaservers.searchScopeFolder')}</button
+        >
+      </div>
+      {#if requete}
+        <button class="ms-recherche-effacer" onclick={effacerRecherche} aria-label={$tr('common.close')}>×</button>
+      {/if}
+    </div>
+
+    {#if requete.trim() && repliLocal}
+      <!-- Le serveur ne sait pas chercher : le dire, plutot que de laisser
+           croire que la recherche a porte sur toute la bibliotheque. -->
+      <p class="ms-repli">{$tr('mediaservers.searchLocalFallback')}</p>
+    {/if}
+
     {#if loading}
       <div class="loading">
         <div class="spinner"></div>
@@ -367,13 +487,13 @@
         </div>
       {/if}
 
-      {#if browseResult.containers.length > 0}
+      {#if affichage.containers.length > 0}
         {@const categoryNames = new Set(['Album Artist', 'Album', 'Title', 'Composer', 'Genre', 'Dynamic Browsing', 'TuneIn Internet Radio', 'Additional', 'New Albums', 'Jukebox Track Selection', 'Top Artists', 'Top Albums', 'All Albums', 'All Artists', '[All Albums]', '[All Artists]'])}
-        {@const isCategoryLevel = browseResult.containers.every(c => categoryNames.has(c.title) || c.title.match(/^\[.*\]$/))}
-        {@const isAlbumGrid = !isCategoryLevel && browseResult.containers.some(c => c.album_art_uri)}
+        {@const isCategoryLevel = affichage.containers.every(c => categoryNames.has(c.title) || c.title.match(/^\[.*\]$/))}
+        {@const isAlbumGrid = !isCategoryLevel && affichage.containers.some(c => c.album_art_uri)}
         {#if isAlbumGrid}
           <div class="album-grid">
-            {#each browseResult.containers as container}
+            {#each affichage.containers as container}
               <button class="album-grid-card" onclick={() => browseTo(container.id, container.title)}>
                 {#if container.album_art_uri}
                   <img src={container.album_art_uri} alt="" class="album-grid-art" loading="lazy" />
@@ -395,7 +515,7 @@
           </div>
         {:else}
           <div class="container-list">
-            {#each browseResult.containers as container}
+            {#each affichage.containers as container}
               <button class="container-item" onclick={() => browseTo(container.id, container.title)}>
                 <svg class="container-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
@@ -412,9 +532,9 @@
       {/if}
 
       <!-- Items (tracks) -->
-      {#if browseResult.items.length > 0}
+      {#if affichage.items.length > 0}
         <div class="items-header">
-          <span class="items-count">{browseResult.items.length} {$tr('mediaservers.items')}</span>
+          <span class="items-count">{affichage.items.length} {$tr('mediaservers.items')}</span>
           <div class="items-actions">
             <button class="play-all-btn" onclick={() => playAllItems()}>
               <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
@@ -428,7 +548,7 @@
           </div>
         </div>
         <div class="item-list">
-          {#each browseResult.items as item, index}
+          {#each affichage.items as item, index}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="item-row" class:clickable={!!item.res_url} onclick={() => item.res_url && playItem(item)}>
@@ -462,7 +582,7 @@
             </div>
           {/each}
         </div>
-      {:else if browseResult.containers.length === 0}
+      {:else if affichage.containers.length === 0}
         <div class="empty">{$tr('mediaservers.noContent')}</div>
       {/if}
     {/if}
@@ -554,6 +674,59 @@
   .back-btn:hover {
     border-color: var(--tune-text-muted);
     color: var(--tune-text);
+  }
+
+  .ms-recherche {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px 10px;
+  }
+  .ms-recherche-champ {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 10px;
+    border-radius: var(--radius-sm, 6px);
+    border: 1px solid var(--tune-border);
+    background: var(--tune-bg-elevated, var(--tune-bg));
+    color: var(--tune-text);
+    font-size: 0.9rem;
+  }
+  .ms-portee {
+    display: flex;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm, 6px);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .ms-portee-btn {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .ms-portee-btn.actif {
+    background: var(--tune-accent);
+    color: #fff;
+  }
+  .ms-recherche-effacer {
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+  }
+  .ms-repli {
+    margin: 0 16px 10px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm, 6px);
+    background: var(--tune-accent-bg, rgba(99, 102, 241, 0.12));
+    color: var(--tune-text-muted);
+    font-size: 0.85rem;
   }
 
   .breadcrumbs {

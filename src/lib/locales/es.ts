@@ -672,6 +672,12 @@ export default {
   'mediaservers.containers': 'Carpetas',
   'mediaservers.items': 'Elementos',
   'mediaservers.noContent': 'Sin contenido en este contenedor',
+  'mediaservers.searchPlaceholder': 'Buscar en este servidor…',
+  'mediaservers.searchScopeFolder': 'Esta carpeta',
+  'mediaservers.searchScopeServer': 'Todo el servidor',
+  'mediaservers.searchNoResults': 'Sin resultados',
+  'mediaservers.searchLocalFallback': 'Este servidor no sabe buscar: se filtra la carpeta mostrada.',
+  'mediaservers.searchResults': 'Resultados',
   'mediaservers.refresh': 'Actualizar',
 
   // Radios

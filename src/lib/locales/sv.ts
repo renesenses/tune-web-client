@@ -650,6 +650,12 @@ export default {
   'mediaservers.containers': 'Mappar',
   'mediaservers.items': 'Objekt',
   'mediaservers.noContent': 'Inget innehåll i den här behållaren',
+  'mediaservers.searchPlaceholder': 'Sök i den här servern…',
+  'mediaservers.searchScopeFolder': 'Den här mappen',
+  'mediaservers.searchScopeServer': 'Hela servern',
+  'mediaservers.searchNoResults': 'Inga träffar',
+  'mediaservers.searchLocalFallback': 'Den här servern kan inte söka: filtrerar den visade mappen.',
+  'mediaservers.searchResults': 'Resultat',
   'mediaservers.refresh': 'Uppdatera',
 
   // Radios

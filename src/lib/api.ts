@@ -1568,6 +1568,16 @@ export function browseMediaServer(serverId: string, objectId: string = '0') {
   );
 }
 
+/** Cherche DANS un serveur de médias, par son action ContentDirectory Search.
+ *
+ *  `container` restreint au dossier affiché ; `'0'` cherche tout le serveur. */
+export function searchMediaServer(serverId: string, query: string, container: string = '0') {
+  return fetchJSON<import('./types').MediaServerSearchResult>(
+    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/search` +
+      `?q=${encodeURIComponent(query)}&container=${encodeURIComponent(container)}`
+  );
+}
+
 export function getMediaServerItemStreamUrl(serverId: string, itemId: string) {
   return fetchJSON<{ url: string }>(
     `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/item/${encodeURIComponent(itemId)}/stream-url`

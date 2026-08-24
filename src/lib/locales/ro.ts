@@ -680,6 +680,12 @@ export default {
   'mediaservers.containers': 'Foldere',
   'mediaservers.items': 'Elemente',
   'mediaservers.noContent': 'Niciun conținut în acest container',
+  'mediaservers.searchPlaceholder': 'Caută în acest server…',
+  'mediaservers.searchScopeFolder': 'Acest dosar',
+  'mediaservers.searchScopeServer': 'Tot serverul',
+  'mediaservers.searchNoResults': 'Niciun rezultat',
+  'mediaservers.searchLocalFallback': 'Acest server nu poate căuta: se filtrează dosarul afișat.',
+  'mediaservers.searchResults': 'Rezultate',
   'mediaservers.refresh': 'Reîmprospătează',
 
   // Radios

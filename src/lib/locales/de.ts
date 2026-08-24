@@ -672,6 +672,12 @@ export default {
   'mediaservers.containers': 'Ordner',
   'mediaservers.items': 'Elemente',
   'mediaservers.noContent': 'Kein Inhalt in diesem Container',
+  'mediaservers.searchPlaceholder': 'Diesen Server durchsuchen…',
+  'mediaservers.searchScopeFolder': 'Dieser Ordner',
+  'mediaservers.searchScopeServer': 'Ganzer Server',
+  'mediaservers.searchNoResults': 'Keine Ergebnisse',
+  'mediaservers.searchLocalFallback': 'Dieser Server kann nicht suchen: Der angezeigte Ordner wird gefiltert.',
+  'mediaservers.searchResults': 'Ergebnisse',
   'mediaservers.refresh': 'Aktualisieren',
 
   // Radios

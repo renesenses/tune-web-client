@@ -672,6 +672,12 @@ export default {
   'mediaservers.containers': '文件夹',
   'mediaservers.items': '项目',
   'mediaservers.noContent': '此容器中没有内容',
+  'mediaservers.searchPlaceholder': '在此服务器中搜索…',
+  'mediaservers.searchScopeFolder': '当前文件夹',
+  'mediaservers.searchScopeServer': '整个服务器',
+  'mediaservers.searchNoResults': '没有结果',
+  'mediaservers.searchLocalFallback': '此服务器不支持搜索：仅筛选当前文件夹。',
+  'mediaservers.searchResults': '结果',
   'mediaservers.refresh': '刷新',
 
   // Radios

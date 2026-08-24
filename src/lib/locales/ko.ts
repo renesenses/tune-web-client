@@ -672,6 +672,12 @@ export default {
   'mediaservers.containers': '폴더',
   'mediaservers.items': '항목',
   'mediaservers.noContent': '이 컨테이너에 콘텐츠가 없습니다',
+  'mediaservers.searchPlaceholder': '이 서버에서 검색…',
+  'mediaservers.searchScopeFolder': '이 폴더',
+  'mediaservers.searchScopeServer': '서버 전체',
+  'mediaservers.searchNoResults': '결과 없음',
+  'mediaservers.searchLocalFallback': '이 서버는 검색을 지원하지 않습니다: 현재 폴더만 필터링합니다.',
+  'mediaservers.searchResults': '검색 결과',
   'mediaservers.refresh': '새로고침',
 
   // Radios

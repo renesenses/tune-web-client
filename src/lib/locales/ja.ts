@@ -672,6 +672,12 @@ export default {
   'mediaservers.containers': 'フォルダ',
   'mediaservers.items': 'アイテム',
   'mediaservers.noContent': 'このコンテナにはコンテンツがありません',
+  'mediaservers.searchPlaceholder': 'このサーバー内を検索…',
+  'mediaservers.searchScopeFolder': 'このフォルダー',
+  'mediaservers.searchScopeServer': 'サーバー全体',
+  'mediaservers.searchNoResults': '結果なし',
+  'mediaservers.searchLocalFallback': 'このサーバーは検索に対応していません。表示中のフォルダーを絞り込みます。',
+  'mediaservers.searchResults': '検索結果',
   'mediaservers.refresh': '更新',
 
   // Radios
