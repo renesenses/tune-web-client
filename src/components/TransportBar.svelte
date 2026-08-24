@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { zones, currentZone, currentZoneId } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
+  import { upNextCount } from '../lib/stores/queue';
   import { ytPlayerState, ytLoading } from '../lib/stores/ytPlayer';
   import { isBrowserZone, browserSetVolume, browserSeek } from '../lib/stores/browserAudio';
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../lib/stores/profile';
@@ -689,9 +690,16 @@
     {/if}
 
     {#if displayTrack?.source !== 'radio'}
+      <!-- « Suivant » n'a de sens que s'il reste quelque chose APRÈS.
+           Le bouton restait cliquable sur une file d'un seul titre (FabienM,
+           v0.9.102) : il n'y avait rien vers quoi aller.
+           En répétition, en revanche, il en garde un — `all` reboucle sur le
+           début, `one` rejoue la piste — donc on ne le désactive que si la
+           répétition est éteinte. Une vidéo YouTube pilote sa propre suite. -->
       <button
         class="control-btn"
-        disabled={playState === 'stopped' && !ytActive && !track}
+        disabled={(playState === 'stopped' && !ytActive && !track) ||
+          (!ytActive && $upNextCount === 0 && $repeatMode === 'off')}
         onclick={handleNext}
         title={$t('transport.next')}
       >

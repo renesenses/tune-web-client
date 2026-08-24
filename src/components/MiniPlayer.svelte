@@ -15,7 +15,8 @@
   import { onMount, onDestroy } from 'svelte';
   import { zones, currentZone, currentZoneId, switchZone } from '../lib/stores/zones';
   import ZoneOutputBanner from './ZoneOutputBanner.svelte';
-  import { currentTrack, playbackState, seekPositionMs } from '../lib/stores/nowPlaying';
+  import { currentTrack, playbackState, seekPositionMs, repeatMode } from '../lib/stores/nowPlaying';
+  import { upNextCount } from '../lib/stores/queue';
   import * as controls from '../lib/playback-controls';
   import * as api from '../lib/api';
   import { connectionState } from '../lib/stores/connection';
@@ -153,7 +154,14 @@
         <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M8 5v14l11-7z" /></svg>
       {/if}
     </button>
-    <button class="mini-btn" onclick={() => controls.skipNext(zone)} aria-label={$t('transport.next')}>
+    <!-- Même règle que la barre de transport : rien après, pas de « suivant ».
+         Deux surfaces, une seule règle — sinon elles divergent. -->
+    <button
+      class="mini-btn"
+      disabled={$upNextCount === 0 && $repeatMode === 'off'}
+      onclick={() => controls.skipNext(zone)}
+      aria-label={$t('transport.next')}
+    >
       <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z" /></svg>
     </button>
   </div>
