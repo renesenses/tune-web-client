@@ -1752,11 +1752,48 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     }
   }
 
-  async function playAlbum(albumId: number) {
+  /// « FLAC 96 kHz / 24 bit », « DSF 2822 kHz »… pour le toast qualité.
+  function libelleQualite(b: api.BetterQuality): string {
+    const fmt = (b.format ?? '').toUpperCase();
+    const sr = b.sample_rate ? `${Math.round(b.sample_rate / 1000)} kHz` : '';
+    const bd = b.bit_depth && b.bit_depth > 1 ? ` / ${b.bit_depth} bit` : '';
+    return [fmt, sr].filter(Boolean).join(' ') + bd;
+  }
+
+  /// La lecture demandée part IMMÉDIATEMENT ; la proposition arrive en toast,
+  /// jamais en travers du chemin (Bertrand, 25/08 — pistes ET albums).
+  async function proposerMeilleureQualiteAlbum(albumId: number) {
+    try {
+      const r = await api.albumBetterQuality(albumId);
+      const b = r.better;
+      if (!b?.album_id || b.album_id === albumId) return;
+      notifications.withAction(
+        `${$tr('library.betterQualityAvailable')} : ${libelleQualite(b)}`,
+        $tr('library.playBetterQuality'),
+        () => { void playAlbum(b.album_id!, { sansProposition: true }); },
+      );
+    } catch { /* proposition silencieuse : jamais d'erreur pour ça */ }
+  }
+
+  async function proposerMeilleureQualitePiste(trackId: number) {
+    try {
+      const r = await api.trackBetterQuality(trackId);
+      const b = r.better;
+      if (!b?.track_id || b.track_id === trackId) return;
+      notifications.withAction(
+        `${$tr('library.betterQualityAvailable')} : ${libelleQualite(b)}`,
+        $tr('library.playBetterQuality'),
+        () => { void playTrack(b.track_id!, { sansProposition: true }); },
+      );
+    } catch { /* proposition silencieuse */ }
+  }
+
+  async function playAlbum(albumId: number, opts?: { sansProposition?: boolean }) {
     if (!zone?.id) {
       notifications.error($tr('library.noZoneSelected'));
       return;
     }
+    if (!opts?.sansProposition) void proposerMeilleureQualiteAlbum(albumId);
     try {
       // Respect the active quality/format filter: play only the matching tracks
       // instead of the whole (mixed-quality) album. Sergio #910/#915 — with a
@@ -1852,11 +1889,12 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     }
   }
 
-  async function playTrack(trackId: number) {
+  async function playTrack(trackId: number, opts?: { sansProposition?: boolean }) {
     if (!zone?.id) {
       notifications.error($tr('library.noZoneSelected'));
       return;
     }
+    if (!opts?.sansProposition) void proposerMeilleureQualitePiste(trackId);
     // If this track is already the one playing, restart it from the beginning
     // instead of rebuilding the queue (Elie: "retour au début de la piste").
     // Via currentTrackId : `$currentTrack.id` est absent de la charge utile de

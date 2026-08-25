@@ -2055,6 +2055,27 @@ export function triggerScan(path?: string, full = false) {
   return fetchJSON<{ status: string; music_dirs: string[]; full?: boolean }>(url, { method: 'POST' });
 }
 
+export interface BetterQuality {
+  track_id?: number | null;
+  album_id: number | null;
+  album_title?: string | null;
+  title?: string | null;
+  format: string | null;
+  sample_rate: number | null;
+  bit_depth: number | null;
+  cover_path?: string | null;
+}
+
+/** La meilleure variante possédée d'une piste, ou null. */
+export function trackBetterQuality(id: number) {
+  return fetchJSON<{ better: BetterQuality | null }>(`${BASE}/library/tracks/${id}/better-quality`);
+}
+
+/** La meilleure édition possédée d'un album, ou null. */
+export function albumBetterQuality(id: number) {
+  return fetchJSON<{ better: BetterQuality | null }>(`${BASE}/library/albums/${id}/better-quality`);
+}
+
 export function restartServer() {
   return fetchJSON<{ status: string; message: string }>(`${BASE}/system/restart`, { method: 'POST' });
 }

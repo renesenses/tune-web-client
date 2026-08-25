@@ -366,6 +366,8 @@ export default {
   'library.yearGroup': 'perioadă',
   'library.yearGroupPlural': 'perioade',
   'library.playAlbum': 'Redă albumul',
+  'library.betterQualityAvailable': 'Dețineți o versiune mai bună',
+  'library.playBetterQuality': 'Redă acea versiune',
   "library.wallOn": "Perete de coperți",
   "library.wallOff": "Înapoi la vizualizarea detaliată",
   'library.openAlbum': 'Deschide albumul',

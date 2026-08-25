@@ -19,6 +19,11 @@
       {/if}
     </svg>
     <span class="toast-msg">{n.message}</span>
+    {#if n.action}
+      <button class="toast-action" onclick={() => { n.action?.run(); notifications.dismiss(n.id); }}>
+        {n.action.label}
+      </button>
+    {/if}
     <button class="toast-dismiss" onclick={() => notifications.dismiss(n.id)}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
     </button>
@@ -26,6 +31,19 @@
 {/each}
 
 <style>
+  .toast-action {
+    border: 1px solid currentColor;
+    background: none;
+    color: inherit;
+    border-radius: var(--radius-sm, 4px);
+    font: inherit;
+    font-weight: 600;
+    padding: 2px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .toast-action:hover { background: rgba(255, 255, 255, 0.12); }
+
   .toast {
     position: fixed;
     bottom: calc(var(--transport-height) + 16px);

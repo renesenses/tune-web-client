@@ -570,6 +570,8 @@ export default {
   'library.yearGroup': 'période',
   'library.yearGroupPlural': 'périodes',
   'library.playAlbum': "Lire l'album",
+  'library.betterQualityAvailable': "Vous possédez une meilleure version",
+  'library.playBetterQuality': "Jouer cette version",
   'library.playAllArtist': 'Toutes les pistes',
   'library.shuffleArtist': 'Lecture aléatoire',
   "library.wallOn": "Mur de pochettes",

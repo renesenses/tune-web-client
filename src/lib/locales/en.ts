@@ -558,6 +558,8 @@ export default {
   'library.yearGroup': 'period',
   'library.yearGroupPlural': 'periods',
   'library.playAlbum': 'Play Album',
+  'library.betterQualityAvailable': 'You own a better version',
+  'library.playBetterQuality': 'Play that version',
   'library.playAllArtist': 'All tracks',
   'library.shuffleArtist': 'Shuffle',
   "library.wallOn": "Cover wall",

@@ -358,6 +358,8 @@ export default {
   'library.yearGroup': '기간',
   'library.yearGroupPlural': '기간',
   'library.playAlbum': '앨범 재생',
+  'library.betterQualityAvailable': '더 좋은 음질의 버전을 보유하고 있습니다',
+  'library.playBetterQuality': '해당 버전 재생',
   "library.wallOn": "커버 월",
   "library.wallOff": "상세 보기로 돌아가기",
   'library.openAlbum': '앨범 열기',

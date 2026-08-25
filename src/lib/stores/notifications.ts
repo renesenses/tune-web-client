@@ -14,15 +14,22 @@ export interface Notification {
   message: string;
   /** Auto-dismiss after this many ms (default 5000). 0 = persistent. */
   duration: number;
+  /** Bouton d'action optionnel — « Jouer cette version », etc. */
+  action?: { label: string; run: () => void };
 }
 
 function createStore() {
   const { subscribe, update } = writable<Notification[]>([]);
   let nextId = 1;
 
-  function push(message: string, level: NotificationLevel = 'error', duration = 5000) {
+  function push(
+    message: string,
+    level: NotificationLevel = 'error',
+    duration = 5000,
+    action?: Notification['action'],
+  ) {
     const id = nextId++;
-    update((list) => [...list, { id, level, message, duration }]);
+    update((list) => [...list, { id, level, message, duration, action }]);
     if (duration > 0) {
       setTimeout(() => {
         update((list) => list.filter((n) => n.id !== id));
@@ -40,6 +47,9 @@ function createStore() {
     error: (msg: string, duration = 5000) => push(msg, 'error', duration),
     success: (msg: string, duration = 4000) => push(msg, 'success', duration),
     info: (msg: string, duration = 3000) => push(msg, 'info', duration),
+    /** Toast avec bouton d'action — reste plus longtemps qu'une info. */
+    withAction: (msg: string, label: string, run: () => void, duration = 10000) =>
+      push(msg, 'info', duration, { label, run }),
     dismiss,
   };
 }

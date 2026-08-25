@@ -358,6 +358,8 @@ export default {
   'library.yearGroup': 'Zeitraum',
   'library.yearGroupPlural': 'Zeiträume',
   'library.playAlbum': 'Album abspielen',
+  'library.betterQualityAvailable': 'Sie besitzen eine bessere Version',
+  'library.playBetterQuality': 'Diese Version abspielen',
   "library.wallOn": "Cover-Wand",
   "library.wallOff": "Zurück zur Detailansicht",
   'library.openAlbum': 'Album öffnen',

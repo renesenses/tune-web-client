@@ -358,6 +358,8 @@ export default {
   'library.yearGroup': '时期',
   'library.yearGroupPlural': '时期',
   'library.playAlbum': '播放专辑',
+  'library.betterQualityAvailable': '您拥有音质更好的版本',
+  'library.playBetterQuality': '播放该版本',
   "library.wallOn": "封面墙",
   "library.wallOff": "返回详细视图",
   'library.openAlbum': '打开专辑',
