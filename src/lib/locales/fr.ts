@@ -506,6 +506,8 @@ export default {
   'queue.addToPlaylist': 'Ajouter à une playlist',
   'queue.removeFromQueue': 'Retirer de la file',
   'queue.addToQueue': 'Ajouter à la file',
+  'library.albumQueued': 'Album ajouté à la file',
+  'library.albumQueueFailed': 'Impossible d’ajouter cet album à la file',
   'queue.addFailed': "Impossible d'ajouter à la file",
 
   // Home
@@ -520,6 +522,11 @@ export default {
   'home.artistReleases': 'Nouveautés de vos artistes',
   'home.newReleases': 'parutions',
   'home.inYourFavorites': 'Dans vos favoris',
+  // `home.openAlbum` existe déjà plus bas dans ce fichier : ne pas le
+  // redéclarer, un littéral d'objet refuse deux fois la même clé.
+  'home.openArtist': 'Ouvrir l’artiste',
+  'home.gridView': 'Vue grille',
+  'home.listView': 'Vue liste',
   'home.otherVersions': 'Autres versions de vos écoutes du jour',
   'home.playedToday': "Écouté aujourd'hui",
   'home.versions': 'versions',
