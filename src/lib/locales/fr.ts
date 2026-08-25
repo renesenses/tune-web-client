@@ -390,6 +390,8 @@ export default {
   'common.artists': 'Artistes',
   'common.genres': 'Genres',
   'common.years': 'Années',
+  'common.labels': 'Labels',
+  'library.noLabels': 'Aucun label dans les tags',
   'common.create': 'Créer',
   'common.all': 'Toutes',
   'common.save': 'Enregistrer',

@@ -2738,6 +2738,8 @@ export default {
   "common.edit": "编辑",
   "common.saved": "已保存",
   "common.years": "年份",
+  "common.labels": "厂牌",
+  "library.noLabels": "标签中没有厂牌信息",
   "dashboard.section.weekday_hourly": "你的收听时段（星期 × 小时）",
   "dashboard.slot.empty": "暂无内容。",
   "dashboard.slot.play": "播放此曲目",

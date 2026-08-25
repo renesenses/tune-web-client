@@ -2738,6 +2738,8 @@ export default {
   "common.edit": "Editar",
   "common.saved": "Guardado",
   "common.years": "Años",
+  "common.labels": "Sellos",
+  "library.noLabels": "Ningún sello en las etiquetas",
   "dashboard.section.weekday_hourly": "Cuándo escuchas (día × hora)",
   "dashboard.slot.empty": "Nada que mostrar por ahora.",
   "dashboard.slot.play": "Reproducir este tema",

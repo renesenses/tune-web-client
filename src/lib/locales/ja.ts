@@ -2736,6 +2736,8 @@ export default {
   "common.edit": "編集",
   "common.saved": "保存しました",
   "common.years": "年代",
+  "common.labels": "レーベル",
+  "library.noLabels": "タグにレーベルがありません",
   "dashboard.section.weekday_hourly": "聴いている時間帯（曜日 × 時間）",
   "dashboard.slot.empty": "表示できるものがまだありません。",
   "dashboard.slot.play": "この曲を再生",

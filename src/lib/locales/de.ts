@@ -2738,6 +2738,8 @@ export default {
   "common.edit": "Bearbeiten",
   "common.saved": "Gespeichert",
   "common.years": "Jahre",
+  "common.labels": "Labels",
+  "library.noLabels": "Kein Label in den Tags",
   "dashboard.section.weekday_hourly": "Wann Sie hören (Wochentag × Stunde)",
   "dashboard.slot.empty": "Noch nichts anzuzeigen.",
   "dashboard.slot.play": "Diesen Titel abspielen",
