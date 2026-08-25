@@ -489,6 +489,72 @@
       }
     });
   });
+
+  /**
+   * Ouvrir une parution de « Nouveautés de vos artistes ».
+   *
+   * La section n'était PAS cliquable : tout y était en div, sans un seul
+   * `onclick` ni le moindre bouton (FabienM, point 4 sur la v0.9.102, puis
+   * Bertrand sur le .18). On voyait des nouveautés sans pouvoir les ouvrir.
+   *
+   * ⚠️ Aucun chevron dans les commentaires de ce bloc script : le compilateur
+   * Svelte les lit comme des balises et désynchronise tout l'analyseur. Le
+   * message d'erreur tombe alors des dizaines de lignes plus bas, sur du code
+   * parfaitement valide.
+   *
+   * Contrairement au bloc « récemment joué » juste au-dessus, aucune recherche
+   * n'est nécessaire ici : le serveur renvoie déjà le `source_id` de l'ALBUM,
+   * pas celui d'une piste. On arme donc `pendingStreamingAlbum` directement —
+   * c'est le store que `StreamingView` consomme à l'ouverture.
+   */
+  /**
+   * Vue « liste » ou « grille » des nouveautés, mémorisée d'un passage à l'autre.
+   *
+   * La liste tient dans une bande horizontale et convient quand un artiste n'a
+   * qu'une ou deux parutions. La grille montre les pochettes en grand — c'est
+   * ce qu'on regarde en premier — et encaisse un artiste qui en sort dix.
+   * Demandé par Bertrand ; ni l'une ni l'autre n'est bonne dans tous les cas,
+   * donc on laisse le choix plutôt que d'en imposer une.
+   */
+  // ⚠️ Ne PAS passer un type littéral en paramètre générique de $state : le
+  // compilateur Svelte lit le chevron ouvrant comme le début d'une balise et
+  // rend « Expected a valid element or component name ». On annote la variable
+  // à la place. Et pour la même raison, ce commentaire n'écrit aucun chevron —
+  // ma première version en contenait, et elle déclenchait le défaut qu'elle
+  // décrivait.
+  // La préférence survit d'une visite à l'autre. Pas de type littéral en
+  // paramètre générique de $state : le compilateur Svelte lit le chevron
+  // ouvrant comme une balise. On annote la variable.
+  type VueNouveautes = 'liste' | 'grille';
+  const vueLue =
+    typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('tune.home.artistReleasesView') as VueNouveautes | null)
+      : null;
+  let vueNouveautes: VueNouveautes = $state(vueLue === 'grille' ? 'grille' : 'liste');
+
+  function basculerVueNouveautes() {
+    vueNouveautes = vueNouveautes === 'liste' ? 'grille' : 'liste';
+    try {
+      localStorage.setItem('tune.home.artistReleasesView', vueNouveautes);
+    } catch (_e) {
+      // Mode privé : la préférence ne survit pas, l'affichage marche quand même.
+    }
+  }
+
+  function ouvrirParution(groupe: any, parution: any) {
+    if (!parution?.service || !parution?.source_id) return;
+    activeStreamingService.set(parution.service);
+    pendingStreamingAlbum.set({
+      id: parution.source_id,
+      source_id: parution.source_id,
+      source: parution.service,
+      title: parution.title,
+      artist_name: groupe?.artist_name ?? null,
+      cover_path: parution.cover_path ?? null,
+      year: parution.year ?? null,
+    } as any);
+    activeView.set('streaming');
+  }
 </script>
 
 <div class="home-view">
@@ -559,72 +625,6 @@
       </div>
     </div>
   {/if}
-
-  /**
-   * Ouvrir une parution de « Nouveautés de vos artistes ».
-   *
-   * La section n'était PAS cliquable : tout y était en div, sans un seul
-   * `onclick` ni le moindre bouton (FabienM, point 4 sur la v0.9.102, puis
-   * Bertrand sur le .18). On voyait des nouveautés sans pouvoir les ouvrir.
-   *
-   * ⚠️ Aucun chevron dans les commentaires de ce bloc script : le compilateur
-   * Svelte les lit comme des balises et désynchronise tout l'analyseur. Le
-   * message d'erreur tombe alors des dizaines de lignes plus bas, sur du code
-   * parfaitement valide.
-   *
-   * Contrairement au bloc « récemment joué » juste au-dessus, aucune recherche
-   * n'est nécessaire ici : le serveur renvoie déjà le `source_id` de l'ALBUM,
-   * pas celui d'une piste. On arme donc `pendingStreamingAlbum` directement —
-   * c'est le store que `StreamingView` consomme à l'ouverture.
-   */
-  /**
-   * Vue « liste » ou « grille » des nouveautés, mémorisée d'un passage à l'autre.
-   *
-   * La liste tient dans une bande horizontale et convient quand un artiste n'a
-   * qu'une ou deux parutions. La grille montre les pochettes en grand — c'est
-   * ce qu'on regarde en premier — et encaisse un artiste qui en sort dix.
-   * Demandé par Bertrand ; ni l'une ni l'autre n'est bonne dans tous les cas,
-   * donc on laisse le choix plutôt que d'en imposer une.
-   */
-  // ⚠️ Ne PAS passer un type littéral en paramètre générique de $state : le
-  // compilateur Svelte lit le chevron ouvrant comme le début d'une balise et
-  // rend « Expected a valid element or component name ». On annote la variable
-  // à la place. Et pour la même raison, ce commentaire n'écrit aucun chevron —
-  // ma première version en contenait, et elle déclenchait le défaut qu'elle
-  // décrivait.
-  // La préférence survit d'une visite à l'autre. Pas de type littéral en
-  // paramètre générique de $state : le compilateur Svelte lit le chevron
-  // ouvrant comme une balise. On annote la variable.
-  type VueNouveautes = 'liste' | 'grille';
-  const vueLue =
-    typeof localStorage !== 'undefined'
-      ? (localStorage.getItem('tune.home.artistReleasesView') as VueNouveautes | null)
-      : null;
-  let vueNouveautes: VueNouveautes = $state(vueLue === 'grille' ? 'grille' : 'liste');
-
-  function basculerVueNouveautes() {
-    vueNouveautes = vueNouveautes === 'liste' ? 'grille' : 'liste';
-    try {
-      localStorage.setItem('tune.home.artistReleasesView', vueNouveautes);
-    } catch (_e) {
-      // Mode privé : la préférence ne survit pas, l'affichage marche quand même.
-    }
-  }
-
-  function ouvrirParution(groupe: any, parution: any) {
-    if (!parution?.service || !parution?.source_id) return;
-    activeStreamingService.set(parution.service);
-    pendingStreamingAlbum.set({
-      id: parution.source_id,
-      source_id: parution.source_id,
-      source: parution.service,
-      title: parution.title,
-      artist_name: groupe?.artist_name ?? null,
-      cover_path: parution.cover_path ?? null,
-      year: parution.year ?? null,
-    } as any);
-    activeView.set('streaming');
-  }
 
   <!-- Nouveautés de vos artistes -->
   {#if artistReleases && artistReleases.length > 0}
