@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices as streamingServicesStore, streamingGenreBreadcrumb } from '../lib/stores/streaming';
+  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingAlbumOrigin, streamingServices as streamingServicesStore, streamingGenreBreadcrumb } from '../lib/stores/streaming';
   import { tip } from '../lib/tooltip';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
@@ -208,6 +208,7 @@
 
   function resetForService(s: string | null) {
     // Reset all navigation state on service change to prevent UI freeze
+    streamingAlbumOrigin.set(null);
     selectedAlbum = null;
     selectedArtist = null;
     selectedStreamingPlaylist = null;
@@ -623,6 +624,8 @@
   async function selectArtist(artist: Artist) {
     const artistId = String(artist.source_id ?? artist.id ?? artist.musicbrainz_id ?? artist.discogs_id ?? '');
     if (!service || !artistId) return;
+    // On descend dans le service : la provenance (accueil) ne vaut plus.
+    streamingAlbumOrigin.set(null);
     selectedArtist = artist;
     selectedAlbum = null;
     loading = true;
@@ -677,6 +680,7 @@
 
   async function selectStreamingPlaylist(playlist: StreamingPlaylist) {
     if (!service) return;
+    streamingAlbumOrigin.set(null);
     selectedStreamingPlaylist = playlist;
     selectedAlbum = null;
     selectedArtist = null;
@@ -749,6 +753,13 @@
   }
 
   function goBack() {
+    // Une fiche ouverte depuis un autre écran (accueil) : le premier retour
+    // y ramène, au lieu d'atterrir sur la grille du service.
+    const provenance = $streamingAlbumOrigin;
+    if (provenance) {
+      streamingAlbumOrigin.set(null);
+      activeView.set(provenance as any);
+    }
     selectedAlbum = null;
     selectedArtist = null;
     selectedStreamingPlaylist = null;

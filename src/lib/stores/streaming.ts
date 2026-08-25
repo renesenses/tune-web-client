@@ -55,6 +55,14 @@ function createStreamingServices() {
 export const streamingServices = createStreamingServices();
 
 export const pendingStreamingAlbum = writable<Album | null>(null);
+
+/// D'où l'album en attente a été ouvert (`'home'`, …). Consommé par le
+/// PREMIER retour de StreamingView : fermer une fiche ouverte depuis
+/// l'accueil doit ramener à l'accueil, pas au service de streaming
+/// (Bertrand, 25/08 : « le bouton retour renvoie sur Qobuz »). Toute
+/// navigation interne au service (artiste, playlist, changement de
+/// service) efface la provenance.
+export const streamingAlbumOrigin = writable<string | null>(null);
 export const pendingStreamingArtist = writable<Artist | null>(null);
 
 export interface GenreBreadcrumbItem {
