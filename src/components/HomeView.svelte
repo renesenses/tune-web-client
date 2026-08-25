@@ -753,7 +753,11 @@
                 title={$t('home.openAlbum')}
               >
                 <div class="nouveaute-carte-art">
-                  <AlbumArt coverPath={parution.cover_path} size={200} alt={parution.title} />
+                  <!-- Pas de `size` : le mode `fill` d'AlbumArt épouse la case.
+                       Un `size` fixe pose un style inline de 200 px que le CSS
+                       ne peut pas battre — les pochettes débordaient sur leurs
+                       voisines (captures du 25/08). -->
+                  <AlbumArt coverPath={parution.cover_path} alt={parution.title} />
                 </div>
                 <span class="nouveaute-carte-titre truncate" title={parution.title}>{parution.title}</span>
                 <button
@@ -1030,7 +1034,7 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div class="version-tuile" onclick={() => v.album_id && navigateToAlbum(v.album_id)}>
                   <div class="version-tuile-art">
-                    <AlbumArt coverPath={v.cover_path} size={200} alt={v.album_title ?? ''} />
+                    <AlbumArt coverPath={v.cover_path} alt={v.album_title ?? ''} />
                   </div>
                   <span class="version-tuile-titre truncate">{v.album_title ?? ''}</span>
                   <span class="version-tuile-sub">
@@ -1043,7 +1047,7 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div class="version-tuile" onclick={() => ouvrirVersionStreaming(v)}>
                   <div class="version-tuile-art">
-                    <AlbumArt coverPath={v.cover_path} size={200} alt={v.album_title ?? v.title} />
+                    <AlbumArt coverPath={v.cover_path} alt={v.album_title ?? v.title} />
                   </div>
                   <span class="version-tuile-titre truncate">{v.album_title ?? v.title}</span>
                   <span class="version-tuile-sub">
@@ -1056,7 +1060,7 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div class="version-tuile reprise" onclick={() => ouvrirVersionStreaming(v)}>
                   <div class="version-tuile-art">
-                    <AlbumArt coverPath={v.cover_path} size={200} alt={v.title} />
+                    <AlbumArt coverPath={v.cover_path} alt={v.title} />
                     <span class="reprise-chip">{$t('home.coverVersion')}</span>
                   </div>
                   <span class="version-tuile-titre truncate">{v.artist_name}</span>
@@ -1454,13 +1458,7 @@
     display: flex; flex-direction: column; gap: 0.3rem;
     cursor: pointer; min-width: 0;
   }
-  .version-tuile-art { position: relative; width: 100%; aspect-ratio: 1; }
-  .version-tuile-art > :global(*:first-child) {
-    width: 100%; height: 100%; aspect-ratio: 1;
-  }
-  .version-tuile-art :global(img) {
-    width: 100%; height: 100%; object-fit: cover; border-radius: 6px;
-  }
+  .version-tuile-art { position: relative; width: 100%; }
   .version-tuile-titre {
     font-size: 0.85rem; font-weight: 600; color: var(--text-primary);
   }
@@ -1522,14 +1520,7 @@
     display: flex; flex-direction: column; gap: 0.3rem;
     cursor: pointer; min-width: 0;
   }
-  .nouveaute-carte-art { width: 100%; aspect-ratio: 1; }
-  /* AlbumArt rend en taille fixe ; en grille la pochette remplit la case. */
-  .nouveaute-carte-art > :global(*:first-child) {
-    width: 100%; height: 100%; aspect-ratio: 1;
-  }
-  .nouveaute-carte-art :global(img) {
-    width: 100%; height: 100%; object-fit: cover; border-radius: 6px;
-  }
+  .nouveaute-carte-art { width: 100%; }
   .nouveaute-carte-titre {
     font-size: 0.85rem; font-weight: 600; color: var(--text-primary);
   }
