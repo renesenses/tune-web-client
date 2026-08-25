@@ -530,7 +530,9 @@
     typeof localStorage !== 'undefined'
       ? (localStorage.getItem('tune.home.artistReleasesView') as VueNouveautes | null)
       : null;
-  let vueNouveautes: VueNouveautes = $state(vueLue === 'grille' ? 'grille' : 'liste');
+  // La GRILLE est la vue par défaut (Bertrand, 25/08) — la liste reste un
+  // choix mémorisé, plus l'état de départ.
+  let vueNouveautes: VueNouveautes = $state(vueLue === 'liste' ? 'liste' : 'grille');
 
   function basculerVueNouveautes() {
     vueNouveautes = vueNouveautes === 'liste' ? 'grille' : 'liste';
