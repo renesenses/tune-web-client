@@ -1276,6 +1276,8 @@ export default {
   'audiophile.pure': 'PURE',
   'audiophile.lockVolume': "Full volume in Audiophile mode",
   'audiophile.lockVolumeHelp': "Volume is a multiplier: attenuating it breaks bit-perfect. Turn on to pin it at 100% and freeze the slider.",
+  'audiophile.lockVolumeWarn': "⚠ Volume will go to 100%: the signal leaves at full level towards your amplifier and speakers. Check the amp volume BEFORE confirming.",
+  'audiophile.lockVolumeConfirm': "I confirm: volume at 100%",
   'audiophile.volumeLockedHint': "Volume pinned at 100% by Audiophile mode",
 
   // Streaming Quality

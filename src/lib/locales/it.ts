@@ -1043,6 +1043,8 @@ export default {
   'audiophile.pure': 'PURE',
   'audiophile.lockVolume': "Volume al 100 % in modalità Audiofila",
   'audiophile.lockVolumeHelp': "Il volume è un moltiplicatore: attenuarlo rompe il bit-perfect. Attiva per fissarlo al 100 % e bloccare il cursore.",
+  'audiophile.lockVolumeWarn': "⚠ Il volume andrà al 100 %: il segnale esce a pieno livello verso amplificatore e diffusori. Controlla il volume dell'amplificatore PRIMA di confermare.",
+  'audiophile.lockVolumeConfirm': "Confermo: volume al 100 %",
   'audiophile.volumeLockedHint': "Volume fissato al 100 % dalla modalità Audiofila",
 
   // Streaming Quality

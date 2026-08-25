@@ -2772,6 +2772,10 @@ function setSettingsLevel(level: SettingsLevel) {
   // le défaut est celui que le serveur applique quand la clé est absente
   // (mêmes tests que les `checked=`/`value=` des contrôles ci-dessous).
   // Les actions (boutons) n'ont pas de valeur, donc jamais « modifiées ».
+  // Volume 100 % : le premier geste arme, le second applique (double
+  // bascule). L'armement ne survit pas à la page — c'est voulu.
+  let lockVolumeArme = $state(false);
+
   const settingModified = $derived.by((): Partial<Record<SettingKey, boolean>> => ({
     'general.lockVolume': $audiophileLockVolume,
     'general.crossfade': crossfadeEnabled,
@@ -3304,21 +3308,45 @@ function setSettingsLevel(level: SettingsLevel) {
           <span>{$t('audiophile.lockVolume' as any)}</span>
           <span class="setting-hint">{$t('audiophile.lockVolumeHelp' as any)}</span>
         </div>
+        <!-- DOUBLE bascule (Bertrand, 25/08) : le premier geste ARME et
+             affiche l'avertissement rouge ; seul le second APPLIQUE. Le
+             volume part à 100 % sur l'ampli — un seul clic ne suffit pas.
+             Désactiver, lui, est immédiat : couper n'a rien de dangereux. -->
         <label class="toggle">
-          <input type="checkbox" checked={$audiophileLockVolume} onchange={async () => {
-            try {
-              await setVolumeLock(!$audiophileLockVolume);
-              // En PURE, verrouiller remonte aussi la zone courante à 100 % —
-              // même geste que l'interrupteur du chemin du signal.
-              if ($audiophileLockVolume && $audiophileEnabled) {
-                const zid = $currentZoneId;
-                if (zid != null) await api.setVolume(zid, 1);
-              }
-            } catch { /* setVolumeLock a déjà restauré le store */ }
+          <input type="checkbox" checked={$audiophileLockVolume || lockVolumeArme} onchange={async () => {
+            if ($audiophileLockVolume) {
+              lockVolumeArme = false;
+              try { await setVolumeLock(false); } catch { /* store restauré */ }
+              return;
+            }
+            lockVolumeArme = !lockVolumeArme;
           }} />
           <span class="toggle-slider"></span>
         </label>
       </div>
+      {#if lockVolumeArme && !$audiophileLockVolume}
+        <div class="setting-warn-rouge" class:lv-hidden={!lvOk('general.lockVolume')}>
+          <p>{$t('audiophile.lockVolumeWarn' as any)}</p>
+          <label class="toggle-confirm">
+            <label class="toggle">
+              <input type="checkbox" checked={false} onchange={async () => {
+                lockVolumeArme = false;
+                try {
+                  await setVolumeLock(true);
+                  // En PURE, verrouiller remonte aussi la zone courante à
+                  // 100 % — même geste que l'interrupteur du chemin du signal.
+                  if ($audiophileLockVolume && $audiophileEnabled) {
+                    const zid = $currentZoneId;
+                    if (zid != null) await api.setVolume(zid, 1);
+                  }
+                } catch { /* setVolumeLock a déjà restauré le store */ }
+              }} />
+              <span class="toggle-slider"></span>
+            </label>
+            <span>{$t('audiophile.lockVolumeConfirm' as any)}</span>
+          </label>
+        </div>
+      {/if}
       <div class="setting-row" class:lv-hidden={!lvOk('general.crossfade')}>
         <div class="setting-label">
           <span>Crossfade</span>
@@ -5914,6 +5942,25 @@ function setSettingsLevel(level: SettingsLevel) {
 {/if}
 
 <style>
+  .setting-warn-rouge {
+    margin: 0.2rem 0 0.6rem;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid rgba(220, 60, 60, 0.55);
+    border-left: 4px solid #dc3c3c;
+    border-radius: 6px;
+    background: rgba(220, 60, 60, 0.08);
+  }
+  .setting-warn-rouge p {
+    margin: 0 0 0.5rem;
+    color: #e05555;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  .toggle-confirm {
+    display: flex; align-items: center; gap: 0.6rem;
+    color: #e05555; font-size: 0.85rem; cursor: pointer;
+  }
+
   .settings-view {
     height: 100%;
     display: flex;

@@ -1043,6 +1043,8 @@ export default {
   'audiophile.pure': 'PURE',
   'audiophile.lockVolume': "Volle Lautstärke im Audiophil-Modus",
   'audiophile.lockVolumeHelp': "Die Lautstärke ist ein Multiplikator: Absenken bricht die Bit-Perfect-Kette. Einschalten, um sie auf 100 % festzusetzen und den Regler zu sperren.",
+  'audiophile.lockVolumeWarn': "⚠ Die Lautstärke geht auf 100 %: Das Signal verlässt Tune mit vollem Pegel Richtung Verstärker und Lautsprecher. Prüfen Sie die Verstärker-Lautstärke VOR dem Bestätigen.",
+  'audiophile.lockVolumeConfirm': "Ich bestätige: Lautstärke auf 100 %",
   'audiophile.volumeLockedHint': "Lautstärke durch den Audiophil-Modus auf 100 % festgesetzt",
 
   // Streaming Quality

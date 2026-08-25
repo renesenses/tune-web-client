@@ -1000,6 +1000,8 @@ export default {
   'audiophile.pure': 'PURE',
   'audiophile.lockVolume': "Full volym i Audiofilt läge",
   'audiophile.lockVolumeHelp': "Volymen är en multiplikator: att sänka den bryter bit-perfect. Slå på för att låsa den vid 100 % och frysa reglaget.",
+  'audiophile.lockVolumeWarn': "⚠ Volymen går till 100 %: signalen lämnar på full nivå mot förstärkare och högtalare. Kontrollera förstärkarens volym INNAN du bekräftar.",
+  'audiophile.lockVolumeConfirm': "Jag bekräftar: volym på 100 %",
   'audiophile.volumeLockedHint': "Volymen är låst vid 100 % av Audiofilt läge",
 
   // Streaming Quality
