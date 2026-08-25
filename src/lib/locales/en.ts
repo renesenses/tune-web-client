@@ -1649,6 +1649,7 @@ export default {
   "home.openAlbum": "Open album",
   "home.openArtist": "Open artist",
   "home.gridView": "Grid view",
+  "home.coverVersion": "Cover",
   "home.sortReleases": "Sort new releases",
   "home.sortRelevance": "Relevance",
   "home.sortArtist": "Artist (A–Z)",

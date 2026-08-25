@@ -373,6 +373,7 @@ export default {
   'library.albumQueueFailed': 'Albumul nu a putut fi adăugat în coadă',
   'home.openArtist': 'Deschide artistul',
   'home.gridView': 'Vizualizare grilă',
+  'home.coverVersion': 'Cover',
   'home.sortReleases': 'Sortează noutățile',
   'home.sortRelevance': 'Relevanță',
   'home.sortArtist': 'Artist (A–Z)',

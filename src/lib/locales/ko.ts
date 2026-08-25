@@ -365,6 +365,7 @@ export default {
   'library.albumQueueFailed': '앨범을 대기열에 추가할 수 없습니다',
   'home.openArtist': '아티스트 열기',
   'home.gridView': '그리드 보기',
+  'home.coverVersion': '커버',
   'home.sortReleases': '신보 정렬',
   'home.sortRelevance': '관련도',
   'home.sortArtist': '아티스트 (A–Z)',

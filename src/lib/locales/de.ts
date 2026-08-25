@@ -365,6 +365,7 @@ export default {
   'library.albumQueueFailed': 'Album konnte nicht zur Warteschlange hinzugefügt werden',
   'home.openArtist': 'Künstler öffnen',
   'home.gridView': 'Rasteransicht',
+  'home.coverVersion': 'Coverversion',
   'home.sortReleases': 'Neuheiten sortieren',
   'home.sortRelevance': 'Relevanz',
   'home.sortArtist': 'Künstler (A–Z)',

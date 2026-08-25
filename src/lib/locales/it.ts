@@ -365,6 +365,7 @@ export default {
   'library.albumQueueFailed': 'Impossibile aggiungere questo album alla coda',
   'home.openArtist': 'Apri artista',
   'home.gridView': 'Vista a griglia',
+  'home.coverVersion': 'Cover',
   'home.sortReleases': 'Ordina le novità',
   'home.sortRelevance': 'Rilevanza',
   'home.sortArtist': 'Artista (A–Z)',

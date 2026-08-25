@@ -365,6 +365,7 @@ export default {
   'library.albumQueueFailed': '无法将该专辑加入队列',
   'home.openArtist': '打开艺术家',
   'home.gridView': '网格视图',
+  'home.coverVersion': '翻唱',
   'home.sortReleases': '新发行排序',
   'home.sortRelevance': '相关度',
   'home.sortArtist': '艺术家（A–Z）',

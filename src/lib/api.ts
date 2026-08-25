@@ -3961,6 +3961,18 @@ export interface OtherVersionGroup {
   artist_name: string;
   /** L'album depuis lequel le morceau a ete ecoute aujourd'hui. */
   played_album: string;
+  /** Versions et reprises trouvees chez les services et sur Bandcamp. */
+  streaming?: {
+    service: string;
+    source_id: string | null;
+    title: string;
+    artist_name: string | null;
+    album_title: string | null;
+    album_id: string | null;
+    cover_path: string | null;
+    kind: 'version' | 'reprise';
+    url?: string | null;
+  }[];
   versions: {
     track_id: number | null;
     album_id: number | null;
