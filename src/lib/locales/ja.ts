@@ -1766,7 +1766,7 @@ export default {
   "settings.maxSampleRateNone": "なし",
   "settings.fixedVolume": "固定音量（ビットパーフェクト）",
   "settings.fixedVolumeHint": "信号を100%で送出し、ソフトウェア音量を適用しません。ネイティブDSD（DoP）に必須。サーバー再起動後も維持されます。",
-  "settings.fixedVolumeNetConfirm": "このネットワーク機器では、有効にすると機器自体に音量100%が送られ、フル音量で再生されます。確認する前にアンプの音量をご確認ください。",
+  "settings.fixedVolumeNetConfirm": "このネットワーク機器では、有効にすると機器自体の音量が100 %に設定され、フル音量で再生されます。アンプの音量を確認し、確認のため 100 と入力してください：",
   "settings.maxSampleRateHint": "ソースがこの上限を超えた場合のみリサンプリングします。ローカル出力のネイティブ DSD では、DoP にもこの上限が適用されます。",
   "settings.dsdVolumeNeutralised": "DSD over PCM：Tune はストリームのマーカーを保つため、音量・ReplayGain・イコライザーを無効にします。このトラックの再生中は音量スライダーが効きません — レベルは DAC またはアンプ側で調整してください。",
   "settings.maxSampleRateDsdCap": "この上限により DSD は PCM に戻されます。DoP には DSD64 で 176.4 kHz、DSD128 で 352.8 kHz、DSD256 で 705.6 kHz が必要です。「なし」または同等以上の上限を選んでください。",

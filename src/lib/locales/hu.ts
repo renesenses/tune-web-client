@@ -1956,7 +1956,7 @@ export default {
   "settings.maxSampleRateNone": "Nincs",
   "settings.fixedVolume": "Rögzített hangerő (bit-perfect)",
   "settings.fixedVolumeHint": "A jel 100%-on megy ki, szoftveres hangerő nélkül — a natív DSD-hez (DoP) szükséges. Szerverújraindítás után is megmarad.",
-  "settings.fixedVolumeNetConfirm": "Ezen a hálózati eszközön a bekapcsolás 100%-os hangerőt küld magára az eszközre: a hang teljes szinten szólal meg. Ellenőrizd az erősítőd hangerejét, mielőtt megerősíted.",
+  "settings.fixedVolumeNetConfirm": "Ezen a hálózati eszközön a bekapcsolás 100 %-os hangerőt küld magának az eszköznek: a hang teljes hangerőn szól majd. Ellenőrizze az erősítő hangerejét, majd írja be: 100 a megerősítéshez:",
   "settings.maxSampleRateHint": "Csak akkor mintavételez újra, ha a forrás meghaladja ezt a felső határt. Helyi kimeneten, natív DSD esetén a DoP-ot is korlátozza.",
   "settings.dsdVolumeNeutralised": "DSD PCM-ben: a Tune kikapcsolja a hangerőt, a ReplayGaint és a hangszínszabályzót, hogy megőrizze a folyam jelöléseit. A hangerőcsúszka ezért hatástalan, amíg ez a szám szól — a szintet a DAC-on vagy az erősítőn állítsa be.",
   "settings.maxSampleRateDsdCap": "Ez a felső határ visszaalakítja a DSD-t PCM-mé: a DoP-hoz DSD64 esetén 176,4 kHz, DSD128 esetén 352,8 kHz, DSD256 esetén 705,6 kHz kell. Válaszd a „Nincs” lehetőséget, vagy legalább ekkora határt.",
