@@ -3,7 +3,7 @@
   import { tip } from '../lib/tooltip';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
-  import { activeView, settingsInitialTab } from '../lib/stores/navigation';
+  import { activeView, settingsInitialTab, saveViewContext, loadViewContext } from '../lib/stores/navigation';
   import * as api from '../lib/api';
   import { formatTime, formatAlbumYear } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
@@ -201,10 +201,79 @@
   // Toute lecture reactive faite par l'un des sept chargeurs ci-dessous
   // deviendrait une dependance de plus. Les enfermer une bonne fois evite que
   // le prochain chargeur ajoute rouvre le meme trou en silence.
+  // Contexte de navigation persistant (#bug-bouton-retour) : forme sérialisable
+  // de la position dans Qobuz/Tidal. On y met les IDENTIFIANTS via les objets
+  // eux-mêmes (sérialisables) ; les pistes/discographies se rechargent par
+  // selectAlbum/selectArtist/… à la restauration, jamais persistées.
+  interface ContexteStreaming {
+    service: string | null;
+    tab: StreamingTab;
+    searchQuery: string;
+    selectedAlbum: Album | null;
+    selectedArtist: Artist | null;
+    selectedStreamingPlaylist: StreamingPlaylist | null;
+    genreBreadcrumb: { id: string | null; name: string }[] | null;
+  }
+
+  let ctxSauve: ContexteStreaming | undefined = loadViewContext<ContexteStreaming>('streaming');
+  let contexteRestaure = false;
+  let serviceConnu: string | null = ctxSauve?.service ?? null;
+
   $effect(() => {
     const s = service;
-    untrack(() => resetForService(s));
+    untrack(() => {
+      // Remontage de la vue avec un contexte du MÊME service : on restaure la
+      // position au lieu de repartir à la racine — c'est le correctif du
+      // « bouton retour réinitialise la navigation ».
+      if (!contexteRestaure && ctxSauve && s === ctxSauve.service) {
+        contexteRestaure = true;
+        serviceConnu = s;
+        restaurerContexte(ctxSauve);
+        ctxSauve = undefined;
+      } else if (s !== serviceConnu) {
+        // Vrai changement de service (ou premier montage sans contexte).
+        serviceConnu = s;
+        contexteRestaure = true; // un contexte d'un AUTRE service ne s'applique pas
+        resetForService(s);
+      }
+    });
   });
+
+  // Enregistre en continu un instantané de la position, pour que le prochain
+  // montage (retour) reparte d'ici. Ne persiste que des données légères et
+  // sérialisables.
+  $effect(() => {
+    const snapshot: ContexteStreaming = {
+      service,
+      tab,
+      searchQuery,
+      selectedAlbum,
+      selectedArtist,
+      selectedStreamingPlaylist,
+      genreBreadcrumb: browsingGenres ? genreBreadcrumb : null,
+    };
+    saveViewContext('streaming', snapshot);
+  });
+
+  async function restaurerContexte(ctx: ContexteStreaming) {
+    // Recharge les données de service en fond (accueil, favoris…) SANS écraser
+    // la position, puis rétablit exactement où l'utilisateur était.
+    chargerDonneesService(ctx.service);
+    tab = ctx.tab;
+    searchQuery = ctx.searchQuery;
+    if (ctx.genreBreadcrumb && ctx.genreBreadcrumb.length > 0) {
+      await restoreGenreBrowsing(ctx.genreBreadcrumb);
+    } else if (ctx.selectedAlbum) {
+      await selectAlbum(ctx.selectedAlbum);
+    } else if (ctx.selectedArtist) {
+      await selectArtist(ctx.selectedArtist);
+    } else if (ctx.selectedStreamingPlaylist) {
+      await selectStreamingPlaylist(ctx.selectedStreamingPlaylist);
+    } else if (searchQuery && tab === 'search') {
+      // La recherche se rejoue pour retrouver la grille de résultats.
+      await search();
+    }
+  }
 
   function resetForService(s: string | null) {
     // Reset all navigation state on service change to prevent UI freeze
@@ -217,6 +286,23 @@
     playlistTracks = [];
     results = null;
     searchQuery = '';
+    // Reset genre browsing on service change
+    browsingGenres = false;
+    genres = [];
+    genreAlbums = [];
+    genreBreadcrumb = [];
+    // Reset YouTube browse on service change
+    ytmBrowseTab = null;
+    ytmMoodPlaylists = [];
+    ytmMoodTitle = '';
+    chargerDonneesService(s);
+  }
+
+  // Chargement des données de service (accueil, favoris, nouveautés…) SANS
+  // toucher à la position de navigation. Séparé de `resetForService` pour que
+  // la RESTAURATION d'un contexte (retour sur la vue) recharge ces données en
+  // fond sans effacer l'album/artiste/playlist que l'utilisateur regardait.
+  function chargerDonneesService(s: string | null) {
     if (s) {
       loadFeatured(s);
       loadUserPlaylists(s);
@@ -236,15 +322,6 @@
       favArtists = [];
       favTracks = [];
     }
-    // Reset genre browsing on service change
-    browsingGenres = false;
-    genres = [];
-    genreAlbums = [];
-    genreBreadcrumb = [];
-    // Reset YouTube browse on service change
-    ytmBrowseTab = null;
-    ytmMoodPlaylists = [];
-    ytmMoodTitle = '';
   }
 
   $effect(() => {
