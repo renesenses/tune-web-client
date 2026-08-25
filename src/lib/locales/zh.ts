@@ -1044,6 +1044,8 @@ export default {
   'audiophile.pure': 'PURE',
   'audiophile.lockVolume': "发烧模式下音量固定为 100 %",
   'audiophile.lockVolumeHelp': "音量是一个乘数：衰减会破坏比特完美。开启后将其固定在 100 % 并锁定滑块。",
+  'audiophile.lockVolumeWarn': "⚠ 音量将设为 100 %：信号将以最大电平输出到功放和音箱。确认之前请先检查功放音量。",
+  'audiophile.lockVolumeConfirm': "我确认：音量 100 %",
   'audiophile.volumeLockedHint': "音量已由发烧模式固定在 100 %",
 
   // Streaming Quality

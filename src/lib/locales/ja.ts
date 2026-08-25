@@ -1044,6 +1044,8 @@ export default {
   'audiophile.pure': 'PURE',
   'audiophile.lockVolume': "オーディオファイルモードで音量を 100 % に固定",
   'audiophile.lockVolumeHelp': "音量は乗算です。下げるとビットパーフェクトが崩れます。オンにすると 100 % に固定し、スライダーを操作できなくします。",
+  'audiophile.lockVolumeWarn': "⚠ 音量が100 %になります。信号はフルレベルでアンプとスピーカーへ出力されます。確認する前にアンプの音量を必ずチェックしてください。",
+  'audiophile.lockVolumeConfirm': "確認しました：音量100 %",
   'audiophile.volumeLockedHint': "オーディオファイルモードにより音量は 100 % に固定されています",
 
   // Streaming Quality

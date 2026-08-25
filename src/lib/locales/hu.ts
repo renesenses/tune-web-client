@@ -1233,6 +1233,8 @@ export default {
   "audiophile.pure": "PURE",
   "audiophile.lockVolume": "Teljes hangerő audiofil módban",
   "audiophile.lockVolumeHelp": "A hangerő szorzóként működik: a csökkentése megtöri a bit-perfect lejátszást. Kapcsold be, hogy 100%-on rögzüljön, és a csúszka befagyjon.",
+  "audiophile.lockVolumeWarn": "⚠ A hangerő 100 %-ra áll: a jel teljes szinten megy az erősítő és a hangfalak felé. A megerősítés ELŐTT ellenőrizze az erősítő hangerejét.",
+  "audiophile.lockVolumeConfirm": "Megerősítem: hangerő 100 %",
   "audiophile.volumeLockedHint": "A hangerőt az audiofil mód 100%-on rögzítette",
   // Streaming minősége
   "settings.streamingQuality": "Streaming minősége",
