@@ -358,6 +358,8 @@ export default {
   'library.yearGroup': '期間',
   'library.yearGroupPlural': '期間',
   'library.playAlbum': 'アルバムを再生',
+  'library.betterQualityAvailable': 'より高音質のバージョンを所有しています',
+  'library.playBetterQuality': 'そのバージョンを再生',
   "library.wallOn": "ジャケットウォール",
   "library.wallOff": "詳細表示に戻る",
   'library.openAlbum': 'アルバムを開く',

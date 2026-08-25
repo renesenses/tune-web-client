@@ -530,6 +530,8 @@ export default {
   "library.yearGroup": "időszak",
   "library.yearGroupPlural": "időszak",
   "library.playAlbum": "Album lejátszása",
+  "library.betterQualityAvailable": "Van egy jobb minőségű változata",
+  "library.playBetterQuality": "Azt a változatot játssza",
   "library.playAllArtist": "Összes szám",
   "library.shuffleArtist": "Véletlenszerű",
   "library.wallOn": "Borítófal",
