@@ -284,6 +284,25 @@ function setSettingsLevel(level: SettingsLevel) {
       : `${m}:${String(sec).padStart(2, '0')}`;
   });
   let restarting = $state(false);
+  let extinctionEnCours = $state(false);
+
+  /**
+   * Éteindre la machine — appliance Tune OS uniquement.
+   *
+   * On ne remet PAS le bouton à son état initial ensuite : la machine
+   * s'arrête, et proposer de recommencer donnerait à croire que ça n'a pas
+   * marché. L'erreur du `catch` est ATTENDUE — le serveur meurt avant de
+   * répondre.
+   */
+  async function eteindreLaMachine() {
+    if (!(await dialogs.confirm(get(t)('diagnostics.confirmShutdown' as any), { danger: true }))) return;
+    extinctionEnCours = true;
+    try {
+      await api.applianceShutdown();
+    } catch {
+      /* attendu : la machine s'éteint, la réponse peut ne jamais revenir */
+    }
+  }
 
   // Restart the server and reload the page only once it is actually back.
   // A plain restart can drop the port and rebind a few seconds later (bind-retry
@@ -3131,6 +3150,28 @@ function setSettingsLevel(level: SettingsLevel) {
         >
           {restarting ? $t('settings.restarting') : $t('settings.restartServer')}
         </button>
+        <!--
+          « Éteindre » vit ICI, à côté de « Redémarrer », et non plus sous
+          Diagnostiques et logs. Personne n'ouvre une page de diagnostic pour
+          arrêter sa machine : le bouton existait depuis #1511 et aucun testeur
+          ne l'avait trouvé.
+
+          Réservé à une appliance Tune OS via `config.appliance` — le même
+          drapeau qui garde la configuration WiFi plus bas. Sur une
+          installation de bureau, Tune partage la machine avec son
+          utilisateur : proposer d'éteindre tout le poste serait dangereux.
+        -->
+        {#if config?.appliance}
+          <button
+            class="shutdown-btn"
+            disabled={extinctionEnCours}
+            onclick={eteindreLaMachine}
+          >
+            {extinctionEnCours
+              ? $t('diagnostics.shuttingDown' as any)
+              : $t('diagnostics.shutdown' as any)}
+          </button>
+        {/if}
       </div>
     </section>
     {/if}
@@ -6112,6 +6153,39 @@ function setSettingsLevel(level: SettingsLevel) {
 
   .server-actions {
     margin-top: var(--space-md);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  /*
+    Rouge et non ambre : « Redémarrer » se rattrape tout seul, « Éteindre »
+    demande de retourner appuyer sur un bouton physique. Les deux gestes ne
+    coûtent pas la même chose, l'écran doit le dire.
+  */
+  .shutdown-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--tune-grey2);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 14px;
+    transition: all 0.12s ease-out;
+  }
+
+  .shutdown-btn:hover:not(:disabled) {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+  }
+
+  .shutdown-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
   }
 
   .restart-btn {
