@@ -1769,7 +1769,7 @@ export default {
   "settings.maxSampleRateNone": "Ninguna",
   "settings.fixedVolume": "Volumen fijo (bit-perfect)",
   "settings.fixedVolumeHint": "Señal enviada al 100 %, sin volumen por software — imprescindible para DSD nativo (DoP). Sobrevive al reinicio del servidor.",
-  "settings.fixedVolumeNetConfirm": "En este dispositivo de red, activarlo envía el volumen al 100 % al propio dispositivo: el sonido saldrá a plena potencia. Compruebe el volumen de su amplificador antes de confirmar.",
+  "settings.fixedVolumeNetConfirm": "En este dispositivo de red, activar envía el volumen al 100 % al propio dispositivo: el sonido saldrá a plena potencia. Compruebe el volumen de su amplificador y escriba 100 para confirmar:",
   "settings.maxSampleRateHint": "Remuestrea solo cuando la fuente supera este límite. Con DSD nativo en una salida local, también limita el DoP.",
   "settings.dsdVolumeNeutralised": "DSD sobre PCM: Tune neutraliza el volumen, el ReplayGain y el ecualizador para preservar los marcadores del flujo. Por eso el control de volumen no tiene efecto mientras suene esta pista: ajuste el nivel en su DAC o amplificador.",
   "settings.maxSampleRateDsdCap": "Este límite vuelve a convertir el DSD en PCM: el DoP necesita 176,4 kHz para DSD64, 352,8 kHz para DSD128 y 705,6 kHz para DSD256. Elija «Ninguna» o un límite al menos igual.",

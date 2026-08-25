@@ -5133,8 +5133,13 @@ function setSettingsLevel(level: SettingsLevel) {
                           // conséquence. Sur une zone locale, rien à
                           // confirmer : 100 % logiciel est justement le but.
                           if (enabled && !isLocalZone(z)) {
-                            const ok = await dialogs.confirm($t('settings.fixedVolumeNetConfirm'), { danger: true });
-                            if (!ok) {
+                            // Même sécurité que l'installation Tune OS sur un
+                            // disque : un simple « OK » se clique sans lire.
+                            // Ici l'ampli part à fond — on exige de TAPER 100,
+                            // comme on exige de taper EFFACER avant d'écraser
+                            // un disque (Bertrand, 25/08).
+                            const typed = await dialogs.prompt($t('settings.fixedVolumeNetConfirm'));
+                            if (typed !== '100') {
                               input.checked = false;
                               return;
                             }

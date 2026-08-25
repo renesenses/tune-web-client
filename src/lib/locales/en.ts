@@ -2023,7 +2023,7 @@ export default {
   "settings.maxSampleRateNone": "None",
   "settings.fixedVolume": "Fixed volume (bit-perfect)",
   "settings.fixedVolumeHint": "Signal sent at 100%, no software volume — required for native DSD (DoP). Survives a server restart.",
-  "settings.fixedVolumeNetConfirm": "On this network device, enabling sends 100% volume to the device itself: sound will play at full level. Check your amplifier volume before confirming.",
+  "settings.fixedVolumeNetConfirm": "On this network device, enabling sends 100% volume to the device itself: sound will play at full level. Check your amplifier volume, then type 100 to confirm:",
   "settings.maxSampleRateHint": "Only resample when the source exceeds this ceiling. With native DSD on a local output, it caps DoP too.",
   "settings.maxSampleRateDsdCap": "This ceiling turns DSD back into PCM: DoP needs 176.4 kHz for DSD64, 352.8 kHz for DSD128 and 705.6 kHz for DSD256. Pick “None” or a ceiling at least that high.",
   "settings.dsdVolumeNeutralised": "DSD over PCM: Tune neutralises volume, ReplayGain and the equalizer to preserve the stream markers. The volume slider therefore has no effect for as long as this track plays — set the level on your DAC or amplifier.",
