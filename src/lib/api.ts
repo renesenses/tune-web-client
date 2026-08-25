@@ -2080,6 +2080,12 @@ export function restartServer() {
   return fetchJSON<{ status: string; message: string }>(`${BASE}/system/restart`, { method: 'POST' });
 }
 
+/** Arrêter le PROCESSUS serveur (pas la machine). L'erreur réseau qui suit
+ *  est attendue : le serveur meurt après avoir répondu. */
+export function stopServer() {
+  return fetchJSON<{ stopping: boolean }>(`${BASE}/system/stop`, { method: 'POST' });
+}
+
 // Peer discovery
 export interface TunePeer {
   name: string;

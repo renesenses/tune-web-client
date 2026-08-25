@@ -285,6 +285,19 @@ function setSettingsLevel(level: SettingsLevel) {
   });
   let restarting = $state(false);
   let extinctionEnCours = $state(false);
+  let arretEnCours = $state(false);
+
+  /**
+   * Arrêter le PROCESSUS serveur — visible partout, contrairement à
+   * « Éteindre » (machine, appliance uniquement). Le bouton ne revient pas
+   * à son état initial : le serveur est mort, l'onglet va perdre la main.
+   * La confirmation dit l'honnête : un superviseur peut relancer aussitôt.
+   */
+  async function arreterLeServeur() {
+    if (!(await dialogs.confirm(get(t)('settings.stopServerConfirm' as any), { danger: true }))) return;
+    arretEnCours = true;
+    try { await api.stopServer(); } catch { /* attendu : le serveur meurt */ }
+  }
 
   /**
    * Éteindre la machine — appliance Tune OS uniquement.
@@ -3165,6 +3178,17 @@ function setSettingsLevel(level: SettingsLevel) {
           installation de bureau, Tune partage la machine avec son
           utilisateur : proposer d'éteindre tout le poste serait dangereux.
         -->
+        <!-- Arrêter le PROCESSUS : partout, même hors appliance — c'est le
+             geste qui manquait, y compris en Expert (Bertrand, 25/08). -->
+        <button
+          class="shutdown-btn"
+          disabled={arretEnCours}
+          onclick={arreterLeServeur}
+        >
+          {arretEnCours
+            ? $t('settings.stoppingServer' as any)
+            : $t('settings.stopServer' as any)}
+        </button>
         {#if config?.appliance}
           <button
             class="shutdown-btn"
