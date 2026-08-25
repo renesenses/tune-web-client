@@ -541,6 +541,59 @@
     }
   }
 
+  // ── Tri des nouveautés ──
+  // Le serveur ne fournit que l'ANNÉE d'une parution : « date de sortie »
+  // se trie donc à l'année près. « Pertinence » = l'ordre du serveur
+  // (favoris d'abord, puis récence).
+  type TriNouveautes = 'pertinence' | 'artiste' | 'annee';
+  const triLu =
+    typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('tune.home.artistReleasesSort') as TriNouveautes | null)
+      : null;
+  let triNouveautes: TriNouveautes = $state(
+    triLu === 'artiste' || triLu === 'annee' ? triLu : 'pertinence'
+  );
+  function retenirTriNouveautes() {
+    try {
+      localStorage.setItem('tune.home.artistReleasesSort', triNouveautes);
+    } catch (_e) {
+      // Mode privé : la préférence ne survit pas, l'affichage marche quand même.
+    }
+  }
+  function anneeDuGroupe(g: api.ArtistReleaseGroup): number {
+    return g.releases.reduce((max, r) => Math.max(max, r.year ?? 0), 0);
+  }
+  const groupesTries = $derived.by(() => {
+    const gs = artistReleases ?? [];
+    if (triNouveautes === 'artiste') {
+      return [...gs].sort((a, b) => a.artist_name.localeCompare(b.artist_name));
+    }
+    if (triNouveautes === 'annee') {
+      return [...gs].sort((a, b) => anneeDuGroupe(b) - anneeDuGroupe(a));
+    }
+    return gs;
+  });
+  const parutionsTriees = $derived.by(() => {
+    const plates = (artistReleases ?? []).flatMap((groupe) =>
+      groupe.releases.map((parution) => ({ groupe, parution }))
+    );
+    if (triNouveautes === 'artiste') {
+      return plates.sort(
+        (a, b) =>
+          a.groupe.artist_name.localeCompare(b.groupe.artist_name) ||
+          (b.parution.year ?? 0) - (a.parution.year ?? 0)
+      );
+    }
+    if (triNouveautes === 'annee') {
+      return plates.sort(
+        (a, b) =>
+          (b.parution.year ?? 0) - (a.parution.year ?? 0) ||
+          a.groupe.artist_name.localeCompare(b.groupe.artist_name)
+      );
+    }
+    return plates;
+  });
+
   function ouvrirParution(groupe: any, parution: any) {
     if (!parution?.service || !parution?.source_id) return;
     activeStreamingService.set(parution.service);
@@ -632,6 +685,17 @@
     <div class="recent-section">
       <div class="artist-releases-head">
         <h2 class="section-title">{$t('home.artistReleases')}</h2>
+        <select
+          class="tri-nouveautes"
+          bind:value={triNouveautes}
+          onchange={retenirTriNouveautes}
+          title={$t('home.sortReleases')}
+          aria-label={$t('home.sortReleases')}
+        >
+          <option value="pertinence">{$t('home.sortRelevance')}</option>
+          <option value="artiste">{$t('home.sortArtist')}</option>
+          <option value="annee">{$t('home.sortYear')}</option>
+        </select>
         <button
           class="vue-toggle"
           onclick={basculerVueNouveautes}
@@ -650,8 +714,7 @@
              pochettes à la même taille, artistes mélangés (Bertrand, 25/08).
              Le regroupement par artiste n'existe qu'en vue liste. -->
         <div class="nouveautes-grille">
-          {#each artistReleases as groupe}
-            {#each groupe.releases as parution}
+          {#each parutionsTriees as { groupe, parution }}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
@@ -673,12 +736,11 @@
                   {#if parution.year}<span class="artist-release-year">{parution.year}</span>{/if}
                 </span>
               </div>
-            {/each}
           {/each}
         </div>
       {:else}
       <div class="artist-releases">
-        {#each artistReleases as groupe}
+        {#each groupesTries as groupe}
           <div class="artist-group" class:favorite={groupe.is_favorite}>
             <div class="artist-group-head">
               <div class="artist-group-name truncate">
@@ -1410,6 +1472,18 @@
     cursor: pointer; min-width: 0;
   }
   .nouveaute-carte-artiste:hover { color: var(--text-primary); text-decoration: underline; }
+  .tri-nouveautes {
+    margin-left: auto;
+    background: var(--bg-secondary, rgba(255, 255, 255, 0.06));
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+    border-radius: 6px;
+    font: inherit; font-size: 0.78rem;
+    padding: 0.2rem 0.4rem;
+    cursor: pointer;
+  }
+  .tri-nouveautes:hover { color: var(--text-primary); }
+
   .nouveaute-carte-sub {
     display: flex; align-items: center; gap: 0.35rem;
     font-size: 0.75rem; color: var(--text-secondary);

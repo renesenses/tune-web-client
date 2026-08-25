@@ -526,6 +526,10 @@ export default {
   // redéclarer, un littéral d'objet refuse deux fois la même clé.
   'home.openArtist': 'Ouvrir l’artiste',
   'home.gridView': 'Vue grille',
+  'home.sortReleases': 'Trier les nouveautés',
+  'home.sortRelevance': 'Pertinence',
+  'home.sortArtist': 'Artiste (A–Z)',
+  'home.sortYear': 'Année (récent d’abord)',
   'home.listView': 'Vue liste',
   'home.otherVersions': 'Autres versions de vos écoutes du jour',
   'home.playedToday': "Écouté aujourd'hui",
