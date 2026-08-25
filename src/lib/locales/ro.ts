@@ -201,6 +201,8 @@ export default {
   'common.artists': 'Artiști',
   'common.genres': 'Genuri',
   'common.years': 'Ani',
+  'common.labels': 'Case de discuri',
+  'library.noLabels': 'Nicio casă de discuri în taguri',
   'common.create': 'Creează',
   'common.all': 'Toate',
   'common.save': 'Salvează',

@@ -302,6 +302,44 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   let searchQuery = $state('');
   let selectedGenre = $state<string | null>(null);
   let selectedParent = $state<string | null>(null);
+  // ── Onglet Labels (Bertrand, 25/08) ──
+  // La facette label compte des PISTES (t.label) ; la grille d'albums vient
+  // de /library/albums-detailed, agrégée PAR LE SERVEUR avec le même filtre.
+  let labelsList = $state<{ value: string; count: number }[]>([]);
+  let labelsLoaded = $state(false);
+  let selectedLabel = $state<string | null>(null);
+  let labelAlbums = $state<api.AlbumDetailed[]>([]);
+  let labelAlbumsLoading = $state(false);
+
+  /// Les tags portent du bruit (« Columbia\rLegacy » avec un retour chariot) :
+  /// on nettoie à l'AFFICHAGE, le filtre garde la valeur brute exacte.
+  function nomLabelPropre(v: string): string {
+    return v.replace(/[\r\n]+/g, ' · ').trim();
+  }
+
+  async function loadLabels() {
+    try {
+      const f = await api.getLibraryFacets(['label'], undefined, 0);
+      labelsList = (f.label ?? []).filter((l) => l.value && l.value.trim());
+      labelsLoaded = true;
+    } catch (e) {
+      console.error('loadLabels error:', e);
+    }
+  }
+
+  async function selectLabel(value: string) {
+    selectedLabel = value;
+    labelAlbumsLoading = true;
+    labelAlbums = [];
+    try {
+      labelAlbums = (await api.getAlbumsDetailed({ label: value }, 500)).items;
+    } catch (e) {
+      console.error('label albums error:', e);
+    } finally {
+      labelAlbumsLoading = false;
+    }
+  }
+
   let genreTree = $state<Record<string, string[]>>({});
   // Whether the genre tree has been fetched at least once. Until it has, we must
   // NOT treat every library genre as "orphan" (see orphanGenres): doing so dumps
@@ -2024,6 +2062,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       if (tab === 'tracks' && !tracksLoaded && $tracks.length === 0) loadTracks();
       if (tab === 'genres' && !albumsLoaded && $albums.length === 0) loadAlbums();
       if (tab === 'years' && !albumsLoaded && $albums.length === 0) loadAlbums();
+      if (tab === 'labels' && !labelsLoaded) loadLabels();
     });
   });
 </script>
@@ -2066,6 +2105,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <button class="tab" class:active={$libraryTab === 'tracks'} onclick={() => switchTab('tracks')}>{$tr('home.tracks')}</button>
             <button class="tab" class:active={$libraryTab === 'genres'} onclick={() => switchTab('genres')}>{$tr('common.genres')}</button>
             <button class="tab" class:active={$libraryTab === 'years'} onclick={() => switchTab('years')}>{$tr('common.years')}</button>
+            <button class="tab" class:active={$libraryTab === 'labels'} onclick={() => switchTab('labels')}>{$tr('common.labels' as any)}</button>
           </div>
         </div>
       </div>
@@ -3215,6 +3255,59 @@ import CollapsibleSection from './CollapsibleSection.svelte';
         {/if}
       {/if}
 
+    {:else if $libraryTab === 'labels'}
+      {#if selectedLabel}
+        <div class="label-detail-head">
+          <button class="back-btn" onclick={() => { selectedLabel = null; labelAlbums = []; }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
+            {$tr('common.back')}
+          </button>
+          <h2 class="label-detail-name">{nomLabelPropre(selectedLabel)}</h2>
+          <span class="label-detail-count">{labelAlbums.length} {labelAlbums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
+        </div>
+        {#if labelAlbumsLoading}
+          <div class="empty">{$tr('common.loading')}</div>
+        {:else if labelAlbums.length === 0}
+          <div class="empty">{$tr('library.noAlbums')}</div>
+        {:else}
+          <div class="albums-grid">
+            {#each labelAlbums as a (a.album_id)}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="album-card" onclick={() => selectAlbumDetail({ id: a.album_id, title: a.title ?? '', cover_path: a.cover_path } as any)}>
+                <div class="album-card-art">
+                  {#if a.cover_path}
+                    <img class="album-cover-img" src={api.artworkUrl(a.cover_path, 200)} alt={a.title ?? ''} loading="lazy" />
+                  {/if}
+                  <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playAlbum(a.album_id); }} title={$tr('library.playAlbum')}>
+                    <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
+                  </button>
+                  {#if a.format || a.sample_rate}
+                    <span class="quality-overlay"><QualityBadge format={a.format} sampleRate={a.sample_rate} bitDepth={a.bit_depth} /></span>
+                  {/if}
+                </div>
+                <span class="album-card-title truncate" title={a.title ?? ''}>{a.title ?? ''}</span>
+                {#if a.album_artist}
+                  <span class="album-card-artist truncate">{a.album_artist}</span>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        {/if}
+      {:else if !labelsLoaded}
+        <div class="empty">{$tr('common.loading')}</div>
+      {:else if labelsList.length === 0}
+        <div class="empty">{$tr('library.noLabels' as any)}</div>
+      {:else}
+        <div class="genres-grid">
+          {#each labelsList as l (l.value)}
+            <button class="genre-card" onclick={() => selectLabel(l.value)}>
+              <span class="genre-card-name">{nomLabelPropre(l.value)}</span>
+              <span class="genre-card-count">{l.count} {$tr('home.tracks').toLowerCase()}</span>
+            </button>
+          {/each}
+        </div>
+      {/if}
     {:else if $libraryTab === 'years'}
       {#if yearGroups.length === 0}
         <div class="empty">{$tr('library.noAlbums')}</div>
@@ -4945,6 +5038,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   }
 
   /* Genres grid */
+  .label-detail-head {
+    display: flex; align-items: center; gap: var(--space-md, 12px);
+    margin-bottom: var(--space-md, 12px);
+  }
+  .label-detail-name { margin: 0; font-size: 18px; font-weight: 700; }
+  .label-detail-count { color: var(--tune-text-secondary); font-size: 13px; }
+
   .genres-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));

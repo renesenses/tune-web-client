@@ -372,6 +372,8 @@ export default {
   "common.artists": "Előadók",
   "common.genres": "Műfajok",
   "common.years": "Évek",
+  "common.labels": "Kiadók",
+  "library.noLabels": "Nincs kiadó a címkékben",
   "common.create": "Létrehozás",
   "common.all": "Összes",
   "common.save": "Mentés",

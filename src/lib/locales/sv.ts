@@ -173,6 +173,8 @@ export default {
   'common.artists': 'Artister',
   'common.genres': 'Genrer',
   'common.years': 'År',
+  'common.labels': 'Skivbolag',
+  'library.noLabels': 'Inget skivbolag i taggarna',
   'common.create': 'Skapa',
   'common.all': 'Alla',
   'common.save': 'Spara',

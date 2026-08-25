@@ -2713,6 +2713,8 @@ export default {
   "common.edit": "편집",
   "common.saved": "저장됨",
   "common.years": "연도",
+  "common.labels": "레이블",
+  "library.noLabels": "태그에 레이블이 없습니다",
   "dashboard.section.weekday_hourly": "듣는 시간대 (요일 × 시간)",
   "dashboard.slot.empty": "아직 표시할 항목이 없습니다.",
   "dashboard.slot.play": "이 곡 재생",

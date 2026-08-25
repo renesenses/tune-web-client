@@ -2738,6 +2738,8 @@ export default {
   "common.edit": "Modifica",
   "common.saved": "Salvato",
   "common.years": "Anni",
+  "common.labels": "Etichette",
+  "library.noLabels": "Nessuna etichetta nei tag",
   "dashboard.section.weekday_hourly": "Quando ascolti (giorno × ora)",
   "dashboard.slot.empty": "Niente da mostrare per ora.",
   "dashboard.slot.play": "Riproduci questo brano",
