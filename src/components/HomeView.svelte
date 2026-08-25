@@ -6,7 +6,7 @@
   import { currentZone, currentZoneId, zones, playAndSync } from '../lib/stores/zones';
   import { currentTrackId } from '../lib/stores/nowPlaying';
   import { playFromHere } from '../lib/playback';
-  import { activeStreamingService, pendingStreamingAlbum, streamingServices as streamingServicesStore } from '../lib/stores/streaming';
+  import { activeStreamingService, pendingStreamingAlbum, streamingServices as streamingServicesStore, streamingAlbumOrigin } from '../lib/stores/streaming';
   import { currentProfileId } from '../lib/stores/profile';
   import { get } from 'svelte/store';
   import { formatDuration, formatNumber } from '../lib/utils';
@@ -553,6 +553,7 @@
       cover_path: parution.cover_path ?? null,
       year: parution.year ?? null,
     } as any);
+    streamingAlbumOrigin.set('home');
     activeView.set('streaming');
   }
 </script>
@@ -644,6 +645,38 @@
           {/if}
         </button>
       </div>
+      {#if vueNouveautes === 'grille'}
+        <!-- La grille est PLATE, comme Bibliothèque / Albums : toutes les
+             pochettes à la même taille, artistes mélangés (Bertrand, 25/08).
+             Le regroupement par artiste n'existe qu'en vue liste. -->
+        <div class="nouveautes-grille">
+          {#each artistReleases as groupe}
+            {#each groupe.releases as parution}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="nouveaute-carte"
+                onclick={() => ouvrirParution(groupe, parution)}
+                title={$t('home.openAlbum')}
+              >
+                <div class="nouveaute-carte-art">
+                  <AlbumArt coverPath={parution.cover_path} size={200} alt={parution.title} />
+                </div>
+                <span class="nouveaute-carte-titre truncate" title={parution.title}>{parution.title}</span>
+                <button
+                  class="nouveaute-carte-artiste truncate"
+                  onclick={(e) => { e.stopPropagation(); navigateArtistByName(groupe.artist_name); }}
+                  title={$t('home.openArtist')}
+                >{groupe.artist_name}</button>
+                <span class="nouveaute-carte-sub">
+                  <ServiceBadge source={parution.service} compact />
+                  {#if parution.year}<span class="artist-release-year">{parution.year}</span>{/if}
+                </span>
+              </div>
+            {/each}
+          {/each}
+        </div>
+      {:else}
       <div class="artist-releases">
         {#each artistReleases as groupe}
           <div class="artist-group" class:favorite={groupe.is_favorite}>
@@ -672,7 +705,7 @@
                 {/if}
               </div>
             </div>
-            <div class="artist-releases-row" class:grille={vueNouveautes === 'grille'}>
+            <div class="artist-releases-row">
               {#each groupe.releases as parution}
                 <button
                   class="artist-release"
@@ -693,6 +726,7 @@
           </div>
         {/each}
       </div>
+      {/if}
     </div>
   {/if}
 
@@ -1345,23 +1379,40 @@
   /* GRILLE — la pochette passe au-dessus et prend toute la largeur de la case.
      `auto-fill` pour que la même vue tienne sur un portable et sur un écran de
      salon, comme la grille Bandcamp dont elle reprend la mesure. */
-  .artist-releases-row.grille {
-    display: grid; overflow-x: visible;
-    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
-    gap: 1rem;
+  /* Grille PLATE, calquée sur Bibliothèque / Albums : mêmes colonnes, mêmes
+     proportions. Les artistes se mélangent — c'est voulu (Bertrand, 25/08). */
+  .nouveautes-grille {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-auto-rows: min-content;
+    gap: var(--space-lg, 1rem);
+    align-items: start;
+    margin-top: 0.6rem;
   }
-  .artist-releases-row.grille .artist-release {
-    flex-direction: column; align-items: stretch; gap: 0.35rem;
+  .nouveaute-carte {
+    display: flex; flex-direction: column; gap: 0.3rem;
+    cursor: pointer; min-width: 0;
   }
-  .artist-releases-row.grille .artist-release-title { max-width: none; }
-  /* La pochette est rendue par AlbumArt en 72 px ; en grille elle doit remplir
-     la case. On agit sur le conteneur direct plutôt que sur le composant, pour
-     ne pas toucher les autres écrans qui l'utilisent. */
-  .artist-releases-row.grille .artist-release > :global(*:first-child) {
-    width: 100%; height: auto; aspect-ratio: 1;
+  .nouveaute-carte-art { width: 100%; aspect-ratio: 1; }
+  /* AlbumArt rend en taille fixe ; en grille la pochette remplit la case. */
+  .nouveaute-carte-art > :global(*:first-child) {
+    width: 100%; height: 100%; aspect-ratio: 1;
   }
-  .artist-releases-row.grille .artist-release > :global(*:first-child img) {
-    width: 100%; height: 100%; object-fit: cover;
+  .nouveaute-carte-art :global(img) {
+    width: 100%; height: 100%; object-fit: cover; border-radius: 6px;
+  }
+  .nouveaute-carte-titre {
+    font-size: 0.85rem; font-weight: 600; color: var(--text-primary);
+  }
+  .nouveaute-carte-artiste {
+    background: none; border: none; padding: 0; text-align: left;
+    font: inherit; font-size: 0.8rem; color: var(--text-secondary);
+    cursor: pointer; min-width: 0;
+  }
+  .nouveaute-carte-artiste:hover { color: var(--text-primary); text-decoration: underline; }
+  .nouveaute-carte-sub {
+    display: flex; align-items: center; gap: 0.35rem;
+    font-size: 0.75rem; color: var(--text-secondary);
   }
 
   .artist-releases-row {
