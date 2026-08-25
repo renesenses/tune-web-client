@@ -365,6 +365,7 @@ export default {
   'library.albumQueueFailed': 'No se pudo añadir este álbum a la cola',
   'home.openArtist': 'Abrir artista',
   'home.gridView': 'Vista de cuadrícula',
+  'home.coverVersion': 'Versión',
   'home.sortReleases': 'Ordenar novedades',
   'home.sortRelevance': 'Relevancia',
   'home.sortArtist': 'Artista (A–Z)',

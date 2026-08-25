@@ -365,6 +365,7 @@ export default {
   'library.albumQueueFailed': 'アルバムをキューに追加できませんでした',
   'home.openArtist': 'アーティストを開く',
   'home.gridView': 'グリッド表示',
+  'home.coverVersion': 'カバー',
   'home.sortReleases': '新着の並べ替え',
   'home.sortRelevance': '関連度',
   'home.sortArtist': 'アーティスト（A–Z）',

@@ -594,6 +594,36 @@
     return plates;
   });
 
+  function ouvrirVersionStreaming(v: {
+    service: string;
+    source_id?: string | null;
+    album_id?: string | null;
+    album_title?: string | null;
+    title: string;
+    artist_name?: string | null;
+    cover_path?: string | null;
+    url?: string | null;
+  }) {
+    // Bandcamp n'a pas de fiche album dans Tune : on ouvre la page publique.
+    if (v.service === 'bandcamp') {
+      if (v.url) window.open(v.url, '_blank', 'noopener');
+      return;
+    }
+    const albumId = v.album_id ?? v.source_id;
+    if (!albumId) return;
+    activeStreamingService.set(v.service);
+    pendingStreamingAlbum.set({
+      id: albumId,
+      source_id: albumId,
+      source: v.service,
+      title: v.album_title ?? v.title,
+      artist_name: v.artist_name ?? null,
+      cover_path: v.cover_path ?? null,
+    } as any);
+    streamingAlbumOrigin.set('home');
+    activeView.set('streaming');
+  }
+
   function ouvrirParution(groupe: any, parution: any) {
     if (!parution?.service || !parution?.source_id) return;
     activeStreamingService.set(parution.service);
@@ -982,35 +1012,58 @@
       <h2 class="section-title">{$t('home.otherVersions')}</h2>
       <div class="versions-list">
         {#each otherVersions as groupe}
+          {@const reprises = (groupe.streaming ?? []).filter((v) => v.kind === 'reprise')}
+          {@const versionsStreaming = (groupe.streaming ?? []).filter((v) => v.kind === 'version')}
           <div class="version-group">
             <div class="version-head">
-              <AlbumArt coverPath={groupe.versions[0]?.cover_path ?? null} size={38} alt={groupe.title} />
               <div class="version-head-text">
                 <div class="version-title truncate">{groupe.title}</div>
                 <div class="version-sub truncate">
-                  {groupe.artist_name} · {groupe.versions.length + 1} {$t('home.versions')}
+                  {groupe.artist_name}
+                  <span class="version-played-from">· {$t('home.playedToday')} : {groupe.played_album}</span>
                 </div>
               </div>
             </div>
-            <div class="version-rows">
-              <!-- La version écoutée d'abord, et signalée : sans elle on ne
-                   sait pas à quoi les autres se comparent. -->
-              <div class="version-row played">
-                <span class="truncate">{groupe.played_album}</span>
-                <span class="version-badge">{$t('home.playedToday')}</span>
-              </div>
+            <div class="version-tuiles">
               {#each groupe.versions as v}
-                <div class="version-row">
-                  {#if v.album_id}
-                    <button class="version-link truncate" onclick={() => navigateToAlbum(v.album_id!)}>
-                      {v.album_title ?? ''}
-                    </button>
-                  {:else}
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div class="version-tuile" onclick={() => v.album_id && navigateToAlbum(v.album_id)}>
+                  <div class="version-tuile-art">
+                    <AlbumArt coverPath={v.cover_path} size={200} alt={v.album_title ?? ''} />
+                  </div>
+                  <span class="version-tuile-titre truncate">{v.album_title ?? ''}</span>
+                  <span class="version-tuile-sub">
+                    {#if v.duration_ms}<span>{formatDuration(v.duration_ms)}</span>{/if}
+                  </span>
+                </div>
+              {/each}
+              {#each versionsStreaming as v}
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div class="version-tuile" onclick={() => ouvrirVersionStreaming(v)}>
+                  <div class="version-tuile-art">
+                    <AlbumArt coverPath={v.cover_path} size={200} alt={v.album_title ?? v.title} />
+                  </div>
+                  <span class="version-tuile-titre truncate">{v.album_title ?? v.title}</span>
+                  <span class="version-tuile-sub">
+                    <ServiceBadge source={v.service} compact />
+                  </span>
+                </div>
+              {/each}
+              {#each reprises as v}
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <div class="version-tuile reprise" onclick={() => ouvrirVersionStreaming(v)}>
+                  <div class="version-tuile-art">
+                    <AlbumArt coverPath={v.cover_path} size={200} alt={v.title} />
+                    <span class="reprise-chip">{$t('home.coverVersion')}</span>
+                  </div>
+                  <span class="version-tuile-titre truncate">{v.artist_name}</span>
+                  <span class="version-tuile-sub">
+                    <ServiceBadge source={v.service} compact />
                     <span class="truncate">{v.album_title ?? ''}</span>
-                  {/if}
-                  {#if v.duration_ms}
-                    <span class="version-duration">{formatDuration(v.duration_ms)}</span>
-                  {/if}
+                  </span>
                 </div>
               {/each}
             </div>
@@ -1386,27 +1439,41 @@
   .version-head-text { min-width: 0; }
   .version-title { font-size: 0.9rem; font-weight: 600; }
   .version-sub { font-size: 0.78rem; opacity: 0.65; }
-  .version-rows { display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.6rem; }
-  .version-row {
-    display: flex; align-items: center; gap: 0.75rem;
-    padding: 0.35rem 0.6rem; border-radius: 6px;
-    background: rgba(128, 128, 128, 0.07);
-    font-size: 0.84rem;
+  .version-played-from { opacity: 0.8; }
+  /* La MÊME grille que Bibliothèque / Albums, comme pour les nouveautés
+     (Bertrand, 25/08 : « là aussi, une grille idem library / Album »). */
+  .version-tuiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-auto-rows: min-content;
+    gap: var(--space-lg, 1rem);
+    align-items: start;
+    margin-top: 0.6rem;
   }
-  .version-row.played { background: rgba(212, 160, 23, 0.1); }
-  .version-badge {
-    margin-left: auto; font-size: 0.66rem; font-weight: 700;
-    letter-spacing: 0.06em; text-transform: uppercase;
-    opacity: 0.8; white-space: nowrap;
+  .version-tuile {
+    display: flex; flex-direction: column; gap: 0.3rem;
+    cursor: pointer; min-width: 0;
   }
-  .version-link {
-    background: none; border: 0; padding: 0; font: inherit; color: inherit;
-    cursor: pointer; text-align: left;
+  .version-tuile-art { position: relative; width: 100%; aspect-ratio: 1; }
+  .version-tuile-art > :global(*:first-child) {
+    width: 100%; height: 100%; aspect-ratio: 1;
   }
-  .version-link:hover { text-decoration: underline; }
-  .version-duration {
-    margin-left: auto; font-variant-numeric: tabular-nums;
-    font-size: 0.8rem; opacity: 0.6;
+  .version-tuile-art :global(img) {
+    width: 100%; height: 100%; object-fit: cover; border-radius: 6px;
+  }
+  .version-tuile-titre {
+    font-size: 0.85rem; font-weight: 600; color: var(--text-primary);
+  }
+  .version-tuile-sub {
+    display: flex; align-items: center; gap: 0.35rem;
+    font-size: 0.75rem; color: var(--text-secondary); min-width: 0;
+  }
+  .reprise-chip {
+    position: absolute; top: 6px; left: 6px;
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.1rem 0.4rem; border-radius: 4px;
+    background: rgba(0, 0, 0, 0.65); color: #fff;
   }
 
   .artist-releases { display: flex; flex-direction: column; gap: 0.5rem; }

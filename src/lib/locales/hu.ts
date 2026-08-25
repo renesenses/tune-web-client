@@ -539,6 +539,7 @@ export default {
   "library.albumQueueFailed": "Az albumot nem sikerült a sorhoz adni",
   "home.openArtist": "Előadó megnyitása",
   "home.gridView": "Rácsnézet",
+  "home.coverVersion": "Feldolgozás",
   "home.sortReleases": "Újdonságok rendezése",
   "home.sortRelevance": "Relevancia",
   "home.sortArtist": "Előadó (A–Z)",

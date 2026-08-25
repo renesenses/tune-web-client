@@ -526,6 +526,7 @@ export default {
   // redéclarer, un littéral d'objet refuse deux fois la même clé.
   'home.openArtist': 'Ouvrir l’artiste',
   'home.gridView': 'Vue grille',
+  'home.coverVersion': 'Reprise',
   'home.sortReleases': 'Trier les nouveautés',
   'home.sortRelevance': 'Pertinence',
   'home.sortArtist': 'Artiste (A–Z)',

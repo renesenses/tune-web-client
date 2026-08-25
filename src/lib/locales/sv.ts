@@ -333,6 +333,7 @@ export default {
   'library.albumQueueFailed': 'Det gick inte att lägga till albumet i kön',
   'home.openArtist': 'Öppna artist',
   'home.gridView': 'Rutnätsvy',
+  'home.coverVersion': 'Cover',
   'home.sortReleases': 'Sortera nyheter',
   'home.sortRelevance': 'Relevans',
   'home.sortArtist': 'Artist (A–Ö)',
