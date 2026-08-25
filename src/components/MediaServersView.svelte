@@ -340,6 +340,23 @@
     }
   }
 
+  /// Jouer un conteneur (album) depuis sa pochette, sans y naviguer —
+  /// le geste de la bibliothèque : la carte ouvre, le survol joue.
+  async function jouerConteneur(container: { id: string }) {
+    if (!zone?.id || !selectedServer) return;
+    try {
+      const res = await api.browseMediaServer(selectedServer.id, container.id);
+      const items = (res.items ?? []).filter((i: any) => i.res_url);
+      if (items.length === 0) return;
+      await playItem(items[0]);
+      for (let i = 1; i < items.length; i++) {
+        await addItemToQueue(items[i]);
+      }
+    } catch (e) {
+      console.error('Play container error:', e);
+    }
+  }
+
   async function playAllItems() {
     if (!zone?.id || !browseResult) return;
     const items = browseResult.items.filter(i => i.res_url);
@@ -494,14 +511,24 @@
         {#if isAlbumGrid}
           <div class="album-grid">
             {#each affichage.containers as container}
-              <button class="album-grid-card" onclick={() => browseTo(container.id, container.title)}>
-                {#if container.album_art_uri}
-                  <img src={container.album_art_uri} alt="" class="album-grid-art" loading="lazy" />
-                {:else}
-                  <div class="album-grid-placeholder">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32" opacity="0.3"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-                  </div>
-                {/if}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div class="album-grid-card" onclick={() => browseTo(container.id, container.title)}>
+                <div class="album-grid-art-wrap">
+                  {#if container.album_art_uri}
+                    <img src={container.album_art_uri} alt="" class="album-grid-art" loading="lazy" />
+                  {/if}
+                  <!-- Le geste de la bibliothèque : la carte OUVRE l'album, le
+                       survol de la pochette le JOUE — iso Library/Albums
+                       (Bertrand, 25/08). -->
+                  <button
+                    class="play-overlay"
+                    onclick={(e) => { e.stopPropagation(); jouerConteneur(container); }}
+                    title={$tr('mediaservers.playAll')}
+                  >
+                    <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
+                  </button>
+                </div>
                 <span class="album-grid-title truncate">{container.title}</span>
                 {#if container.artist}
                   <!-- Le serveur envoyait `dc:creator` depuis toujours ; c'est
@@ -510,7 +537,7 @@
                        bibliothèque. -->
                   <span class="album-grid-artist truncate">{container.artist}</span>
                 {/if}
-              </button>
+              </div>
             {/each}
           </div>
         {:else}
@@ -867,47 +894,73 @@
   }
 
   /* Album grid */
+  /* Iso Bibliothèque / Albums : mêmes colonnes, mêmes cartes, même survol
+     (Bertrand, 25/08). Les valeurs viennent de LibraryView — si l'une
+     change là-bas, elle doit changer ici. */
   .album-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(var(--album-col-min, 140px), 1fr));
+    grid-auto-rows: min-content;
+    gap: var(--space-lg);
+    align-items: start;
     margin-bottom: var(--space-lg);
   }
 
   .album-grid-card {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    background: none;
-    border: none;
+    gap: var(--space-xs, 6px);
     cursor: pointer;
-    text-align: left;
-    padding: 0;
+    min-width: 0;
     color: var(--tune-text);
-    transition: opacity 0.12s;
   }
 
-  .album-grid-card:hover {
-    opacity: 0.85;
+  .album-grid-art-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--tune-grey2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .album-grid-art-wrap::before {
+    content: "♪";
+    position: absolute;
+    font-size: 32px;
+    color: var(--tune-text-muted, #555);
+    opacity: 0.3;
+    z-index: 0;
   }
 
   .album-grid-art {
     width: 100%;
-    aspect-ratio: 1;
+    height: 100%;
     object-fit: cover;
-    border-radius: var(--radius-lg);
-    background: var(--tune-surface);
+    display: block;
+    position: relative;
+    z-index: 1;
   }
 
-  .album-grid-placeholder {
-    width: 100%;
-    aspect-ratio: 1;
+  .play-overlay {
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--tune-surface);
-    border-radius: var(--radius-lg);
-    color: var(--tune-text-muted);
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+    border: none;
+    cursor: pointer;
+    z-index: 2;
+  }
+
+  .album-grid-art-wrap:hover .play-overlay {
+    opacity: 1;
   }
 
 .rayons { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0 0 0.9rem; }
@@ -919,12 +972,14 @@
   /* L'artiste se lit sous le titre, plus discret que lui — comme dans la
      bibliotheque locale. */
   .album-grid-artist {
-    display: block; font-size: 0.75rem; color: var(--text-muted, #888);
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
   }
   .album-grid-title {
     font-family: var(--font-body);
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
   }
 
   /* Container list */
