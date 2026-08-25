@@ -759,7 +759,11 @@
                        Un `size` fixe pose un style inline de 200 px que le CSS
                        ne peut pas battre — les pochettes débordaient sur leurs
                        voisines (captures du 25/08). -->
-                  <AlbumArt coverPath={parution.cover_path} alt={parution.title} />
+                  <!-- size={0} : le prop a un DÉFAUT de 300 px — l'omettre ne
+                       déclenche pas le mode fill, il pose un style inline de
+                       300 px que la grille ne peut pas battre. Mesuré dans le
+                       navigateur le 25/08 : c'était TOUT le bug d'affichage. -->
+                  <AlbumArt coverPath={parution.cover_path} size={0} alt={parution.title} />
                 </div>
                 <span class="nouveaute-carte-titre truncate" title={parution.title}>{parution.title}</span>
                 <button
@@ -1036,7 +1040,7 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div class="version-tuile" onclick={() => v.album_id && navigateToAlbum(v.album_id)}>
                   <div class="version-tuile-art">
-                    <AlbumArt coverPath={v.cover_path} alt={v.album_title ?? ''} />
+                    <AlbumArt coverPath={v.cover_path} size={0} alt={v.album_title ?? ''} />
                   </div>
                   <span class="version-tuile-titre truncate">{v.album_title ?? ''}</span>
                   <span class="version-tuile-sub">
@@ -1049,7 +1053,7 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div class="version-tuile" onclick={() => ouvrirVersionStreaming(v)}>
                   <div class="version-tuile-art">
-                    <AlbumArt coverPath={v.cover_path} alt={v.album_title ?? v.title} />
+                    <AlbumArt coverPath={v.cover_path} size={0} alt={v.album_title ?? v.title} />
                   </div>
                   <span class="version-tuile-titre truncate">{v.album_title ?? v.title}</span>
                   <span class="version-tuile-sub">
@@ -1062,7 +1066,7 @@
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div class="version-tuile reprise" onclick={() => ouvrirVersionStreaming(v)}>
                   <div class="version-tuile-art">
-                    <AlbumArt coverPath={v.cover_path} alt={v.title} />
+                    <AlbumArt coverPath={v.cover_path} size={0} alt={v.title} />
                     <span class="reprise-chip">{$t('home.coverVersion')}</span>
                   </div>
                   <span class="version-tuile-titre truncate">{v.artist_name}</span>
