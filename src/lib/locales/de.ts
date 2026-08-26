@@ -325,6 +325,7 @@ export default {
   'home.tracks': 'Titel',
   'home.searchPlaceholder': 'In Musikbibliothek suchen...',
   'home.recentlyPlayed': 'Zuletzt gespielt',
+  'home.playedTrack': 'Gespielter Titel',
   'home.recentlyAdded': 'Zuletzt hinzugefügt',
   'home.newInLibrary': 'Neu in Ihrer Bibliothek',
   'home.artistReleases': 'Neues von Ihren Künstlern',
