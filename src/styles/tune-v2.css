@@ -1,0 +1,11 @@
+/* Jeu de tokens du nouveau client (direction Levente).
+   Portée .tune-v2 pour cohabiter avec le thème historique sans le perturber. */
+.tune-v2{
+  --v2-bg:#071418; --v2-bg2:#0A1A1F; --v2-surface:#161D2A; --v2-surface2:#0C111A;
+  --v2-line:#1c2634; --v2-line2:#243040;
+  --v2-txt:#FFFFFF; --v2-txt2:#8E9AA8; --v2-txt3:#4F5D6D;
+  --v2-acc1:#00D4AA; --v2-acc2:#00BCD4; --v2-acc-tint:#E0FFF8;
+  --v2-r-card:4px; --v2-r-pill:20px; --v2-r-md:12px;
+  --v2-mono:'Roboto Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --v2-sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
