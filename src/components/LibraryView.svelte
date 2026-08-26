@@ -3494,6 +3494,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             {$tr('common.back')}
           </button>
           <h2 class="label-detail-name">{nomLabelPropre(selectedLabel)}</h2>
+          <HeartButton facet={{ facet: 'label', value: selectedLabel }} size={20} />
           <span class="label-detail-count">{labelAlbums.length} {labelAlbums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
         </div>
         {#if labelAlbumsLoading}
@@ -3532,10 +3533,18 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       {:else}
         <div class="genres-grid">
           {#each labelsList as l (l.value)}
-            <button class="genre-card" onclick={() => selectLabel(l.value)}>
-              <span class="genre-card-name">{nomLabelPropre(l.value)}</span>
-              <span class="genre-card-count">{l.count} {$tr('home.tracks').toLowerCase()}</span>
-            </button>
+            <!-- Le coeur vit A COTE du bouton, jamais dedans : un bouton dans un
+                 bouton est du HTML invalide, et le clic du coeur ouvrirait le
+                 label. #2442 -->
+            <div class="label-card-wrap">
+              <button class="genre-card" onclick={() => selectLabel(l.value)}>
+                <span class="genre-card-name">{nomLabelPropre(l.value)}</span>
+                <span class="genre-card-count">{l.count} {$tr('home.tracks').toLowerCase()}</span>
+              </button>
+              <span class="label-card-heart">
+                <HeartButton facet={{ facet: 'label', value: l.value }} size={16} />
+              </span>
+            </div>
           {/each}
         </div>
       {/if}
@@ -5334,6 +5343,26 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   .genre-card:hover {
     border-color: var(--tune-accent);
     background: var(--tune-surface-hover);
+  }
+
+  /* Carte de label : le cœur se pose PAR-DESSUS la carte, sans jamais être
+     imbriqué dans son bouton (#2442). */
+  .label-card-wrap {
+    position: relative;
+    display: flex;
+  }
+
+  .label-card-wrap .genre-card {
+    flex: 1;
+    /* De la place pour le cœur, sinon un nom long passe dessous. */
+    padding-right: calc(var(--space-lg) + 20px);
+  }
+
+  .label-card-heart {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    display: flex;
   }
 
   .genre-card-name {

@@ -765,6 +765,8 @@ export default {
   'favorites.tracks': 'Pistas',
   'favorites.albums': 'Álbumes',
   'favorites.artists': 'Artistas',
+  'favorites.playlists': 'Listas',
+  'favorites.labels': 'Sellos',
   'favorites.empty': 'Sin favoritos',
   'favorites.addedToFavorites': 'Añadido a favoritos',
   "favorites.addTrack": "Añadir a favoritos",

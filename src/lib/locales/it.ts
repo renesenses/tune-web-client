@@ -765,6 +765,8 @@ export default {
   'favorites.tracks': 'Brani',
   'favorites.albums': 'Album',
   'favorites.artists': 'Artisti',
+  'favorites.playlists': 'Playlist',
+  'favorites.labels': 'Etichette',
   'favorites.empty': 'Nessun preferito',
   'favorites.addedToFavorites': 'Aggiunto ai preferiti',
   "favorites.addTrack": "Aggiungi ai preferiti",

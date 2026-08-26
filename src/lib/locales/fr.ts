@@ -988,6 +988,8 @@ export default {
   'favorites.tracks': 'Pistes',
   'favorites.albums': 'Albums',
   'favorites.artists': 'Artistes',
+  'favorites.playlists': 'Playlists',
+  'favorites.labels': 'Labels',
   'favorites.empty': 'Aucun favori',
   'favorites.shuffle': 'Aléatoire',
   "favorites.sortBy": "Trier par",

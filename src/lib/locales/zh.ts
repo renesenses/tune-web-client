@@ -765,6 +765,8 @@ export default {
   'favorites.tracks': '歌曲',
   'favorites.albums': '专辑',
   'favorites.artists': '艺术家',
+  'favorites.playlists': '播放列表',
+  'favorites.labels': '厂牌',
   'favorites.empty': '暂无收藏',
   'favorites.addedToFavorites': '已添加到收藏',
   "favorites.addTrack": "添加到收藏",

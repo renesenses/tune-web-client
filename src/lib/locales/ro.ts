@@ -775,6 +775,8 @@ export default {
   'favorites.tracks': 'Piese',
   'favorites.albums': 'Albume',
   'favorites.artists': 'Artiști',
+  'favorites.playlists': 'Liste',
+  'favorites.labels': 'Case de discuri',
   'favorites.empty': 'Încă niciun favorit',
   'favorites.addedToFavorites': 'Adăugat la favorite',
   "favorites.addTrack": "Adaugă la favorite",

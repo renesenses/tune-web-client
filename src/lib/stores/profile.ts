@@ -54,6 +54,18 @@ export const profileReady = writable<boolean>(false);
 export const favoriteTrackIds = writable<Set<number>>(new Set());
 export const favoriteAlbumIds = writable<Set<number>>(new Set());
 export const favoriteArtistIds = writable<Set<number>>(new Set());
+// Playlists LOCALES mises en favori (#2442). Même mécanique : `playlists.id`
+// est un entier, le cœur répond en O(1) sans requête par ligne.
+export const favoritePlaylistIds = writable<Set<number>>(new Set());
+
+// Favoris de FACETTE — le label d'abord (#2442). Des CHAÎNES, pas des ids : un
+// label n'a pas d'identifiant côté serveur, il est désigné par sa valeur telle
+// que la facette la sélectionne. Clé = `${facet}:${value}`.
+export const favoriteFacetKeys = writable<Set<string>>(new Set());
+
+export function facetFavKey(facet: string, value: string): string {
+  return `${facet}:${value.trim()}`;
+}
 
 // Streaming favorites (Qobuz/Tidal/… items hearted in Tune, stored per-profile
 // with metadata). Keyed by `${item_type}:${service}:${service_id}` so a shared
@@ -74,6 +86,8 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoriteTrackIds.set(new Set());
     favoriteAlbumIds.set(new Set());
     favoriteArtistIds.set(new Set());
+    favoritePlaylistIds.set(new Set());
+    favoriteFacetKeys.set(new Set());
     favoriteStreamingKeys.set(new Set());
     return;
   }
@@ -82,8 +96,17 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoriteTrackIds.set(new Set((favs.tracks ?? []).map((t: any) => t.id)));
     favoriteAlbumIds.set(new Set((favs.albums ?? []).map((a: any) => a.id)));
     favoriteArtistIds.set(new Set((favs.artists ?? []).map((a: any) => a.id)));
+    favoritePlaylistIds.set(new Set((favs.playlists ?? []).map((p: any) => p.id)));
   } catch (e) {
     console.error('Load favorite ids error:', e);
+  }
+  try {
+    // Un échec ici ne doit pas vider les ensembles d'ids déjà chargés : chaque
+    // famille de favoris a son propre appel, et son propre try.
+    const facets = await api.getFacetFavorites(profileId);
+    favoriteFacetKeys.set(new Set(facets.map((f) => facetFavKey(f.facet, f.value))));
+  } catch (e) {
+    console.error('Load facet favorites error:', e);
   }
   try {
     const sfavs = await api.getProfileStreamingFavorites(profileId);
