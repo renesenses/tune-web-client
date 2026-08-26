@@ -434,9 +434,9 @@
               <AlbumArt albumId={queueTrack.album_id} size={40} alt={queueTrack.title} />
             {/if}
             <div class="queue-info">
-              <span class="queue-title truncate">{queueTrack.title || $t('queue.unknownTrack')}</span>
+              <span class="queue-title truncate" title={queueTrack.title || $t('queue.unknownTrack')}>{queueTrack.title || $t('queue.unknownTrack')}</span>
               {#if queueTrack.artist_name}
-                <span class="queue-artist truncate">{queueTrack.artist_name}</span>
+                <span class="queue-artist truncate" title={queueTrack.artist_name}>{queueTrack.artist_name}</span>
               {/if}
               <MetadataChips track={queueTrack} fields={$displayFields} />
             </div>

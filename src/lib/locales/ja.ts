@@ -2780,6 +2780,8 @@ export default {
   "favorites.sortBy": "並べ替え",
   "common.ascending": "昇順",
   "common.descending": "降順",
+  "common.showMore": "もっと見る",
+  "common.showLess": "折りたたむ",
   "folderWizard.add": "追加",
   "folderWizard.addError": "フォルダーの追加中にエラーが発生しました",
   "folderWizard.added": "追加済み",
