@@ -1486,6 +1486,8 @@ export default {
   "library.moreOptions": "더 보기",
   "library.goToArtist": "아티스트로 이동",
   "library.goToAlbum": "앨범으로 이동",
+  "library.otherVersions": "다른 버전",
+  "library.noOtherVersions": "다른 버전을 찾을 수 없습니다",
   "library.editArtist": "아티스트 편집",
   "library.reEnrich": "다시 보강",
   "library.enrichBio": "약력 보강",

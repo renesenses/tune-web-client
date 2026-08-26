@@ -1762,6 +1762,8 @@ export default {
   "library.moreOptions": "Plus d'options",
   "library.goToArtist": "Aller à l'artiste",
   "library.goToAlbum": "Aller à l'album",
+  "library.otherVersions": "Autres versions",
+  "library.noOtherVersions": "Aucune autre version connue",
   "library.editArtist": "Éditer l'artiste",
   "library.reEnrich": "Ré-enrichir",
   "library.enrichBio": "Enrichir la biographie",

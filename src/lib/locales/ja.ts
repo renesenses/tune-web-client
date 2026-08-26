@@ -1511,6 +1511,8 @@ export default {
   "library.moreOptions": "その他のオプション",
   "library.goToArtist": "アーティストへ移動",
   "library.goToAlbum": "アルバムへ移動",
+  "library.otherVersions": "他のバージョン",
+  "library.noOtherVersions": "他のバージョンは見つかりません",
   "library.editArtist": "アーティストを編集",
   "library.reEnrich": "再補完",
   "library.enrichBio": "バイオグラフィーを補完",

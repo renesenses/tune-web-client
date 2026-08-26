@@ -1692,6 +1692,8 @@ export default {
   "library.moreOptions": "További lehetőségek",
   "library.goToArtist": "Ugrás az előadóhoz",
   "library.goToAlbum": "Ugrás az albumhoz",
+  "library.otherVersions": "Más változatok",
+  "library.noOtherVersions": "Nem található másik változat",
   "library.editArtist": "Előadó szerkesztése",
   "library.reEnrich": "Újragazdagítás",
   "library.enrichBio": "Életrajz gazdagítása",

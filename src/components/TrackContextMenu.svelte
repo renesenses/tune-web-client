@@ -8,6 +8,15 @@
     onAddToQueue: () => void;
     /** Omit to hide the "more like this" (acoustic radio) item. */
     onPlaySimilar?: () => void;
+    /**
+     * Omit to hide the "other versions" item (#2372).
+     *
+     * Le rapprochement existait deja cote serveur, mais la seule porte etait
+     * la section d'accueil, bornee aux dernieres ecoutes. C'est l'entree qui
+     * manquait : « Il serait interessant de consulter les versions d'un titre
+     * comme une nouvelle option » (FabienM, fil 1538, 24/08).
+     */
+    onOtherVersions?: () => void;
     /** Omit to hide the "add to playlist" item. */
     onAddToPlaylist?: () => void;
     /** Omit to hide the "go to artist" item. Caller resolves the artist. */
@@ -16,8 +25,16 @@
     onGoToAlbum?: () => void;
   }
 
-  let { onClose, onPlay, onAddToQueue, onPlaySimilar, onAddToPlaylist, onGoToArtist, onGoToAlbum }: Props =
-    $props();
+  let {
+    onClose,
+    onPlay,
+    onAddToQueue,
+    onPlaySimilar,
+    onOtherVersions,
+    onAddToPlaylist,
+    onGoToArtist,
+    onGoToAlbum,
+  }: Props = $props();
 
   // Every item stops propagation, closes the menu, then runs its action.
   function run(fn: () => void, e: MouseEvent) {
@@ -43,6 +60,12 @@
     <button class="track-menu-item" onclick={(e) => run(onPlaySimilar, e)}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 12a8 8 0 0 1 8-8"/><path d="M20 12a8 8 0 0 1-8 8"/><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/></svg>
       {$tr('library.playSimilar')}
+    </button>
+  {/if}
+  {#if onOtherVersions}
+    <button class="track-menu-item" onclick={(e) => run(onOtherVersions, e)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="7" y="7" width="14" height="14" rx="2"/><path d="M3 17V5a2 2 0 0 1 2-2h12"/></svg>
+      {$tr('library.otherVersions')}
     </button>
   {/if}
   {#if onAddToPlaylist}
