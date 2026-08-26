@@ -2751,6 +2751,8 @@ export default {
   "favorites.sortBy": "Sortera efter",
   "common.ascending": "Stigande",
   "common.descending": "Fallande",
+  "common.showMore": "Visa mer",
+  "common.showLess": "Visa mindre",
   "folderWizard.add": "Lägg till",
   "folderWizard.addError": "Fel när mappen skulle läggas till",
   "folderWizard.added": "Tillagd",
