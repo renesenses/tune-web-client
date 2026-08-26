@@ -12,6 +12,7 @@
   import type { Playlist, Track, StreamingPlaylist } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import AlbumArt from './AlbumArt.svelte';
+  import ClampedText from './ClampedText.svelte';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -412,7 +413,9 @@
       <div class="playlist-detail-info">
         <h2>{selectedPlaylist.name}</h2>
         {#if selectedPlaylist.description}
-          <p class="playlist-desc">{selectedPlaylist.description}</p>
+          <ClampedText lines={3} resetKey={selectedPlaylist.description}>
+            <p class="playlist-desc">{selectedPlaylist.description}</p>
+          </ClampedText>
         {/if}
         <span class="playlist-count">{playlistTracks.length} {$tr('common.tracks')}</span>
       </div>
@@ -489,7 +492,9 @@
         <span class="source-badge">{serviceName(selectedService)}</span>
         <h2>{selectedStreamingPl.name}</h2>
         {#if selectedStreamingPl.description}
-          <p class="playlist-desc">{selectedStreamingPl.description}</p>
+          <ClampedText lines={3} resetKey={selectedStreamingPl.description}>
+            <p class="playlist-desc">{selectedStreamingPl.description}</p>
+          </ClampedText>
         {/if}
         <span class="playlist-count">{selectedStreamingPl.track_count} {$tr('common.tracks')}</span>
       </div>

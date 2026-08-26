@@ -2789,6 +2789,8 @@ export default {
   "favorites.sortBy": "Sortează după",
   "common.ascending": "Crescător",
   "common.descending": "Descrescător",
+  "common.showMore": "Vezi mai mult",
+  "common.showLess": "Vezi mai puțin",
   "folderWizard.add": "Adaugă",
   "folderWizard.addError": "Eroare la adăugarea dosarului",
   "folderWizard.added": "Adăugat",
