@@ -362,6 +362,8 @@ export default {
   'library.playBetterQuality': 'そのバージョンを再生',
   "library.wallOn": "ジャケットウォール",
   "library.wallOff": "詳細表示に戻る",
+  "library.moreFilters": "すべてのフィルター",
+  "library.lessFilters": "フィルターを折りたたむ",
   'library.openAlbum': 'アルバムを開く',
   'library.albumQueued': 'アルバムをキューに追加しました',
   'library.albumQueueFailed': 'アルバムをキューに追加できませんでした',

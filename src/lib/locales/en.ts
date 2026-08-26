@@ -566,6 +566,8 @@ export default {
   'library.shuffleArtist': 'Shuffle',
   "library.wallOn": "Cover wall",
   "library.wallOff": "Back to detailed view",
+  "library.moreFilters": "All filters",
+  "library.lessFilters": "Fewer filters",
   'library.openAlbum': 'Open Album',
   'library.albumQueued': 'Album added to queue',
   'library.albumQueueFailed': 'Could not add this album to the queue',

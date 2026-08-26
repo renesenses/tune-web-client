@@ -332,6 +332,8 @@ export default {
   'library.playBetterQuality': 'Spela den versionen',
   "library.wallOn": "Omslagsvägg",
   "library.wallOff": "Tillbaka till detaljerad vy",
+  "library.moreFilters": "Alla filter",
+  "library.lessFilters": "Färre filter",
   'library.openAlbum': 'Öppna album',
   'library.albumQueued': 'Album tillagt i kön',
   'library.albumQueueFailed': 'Det gick inte att lägga till albumet i kön',

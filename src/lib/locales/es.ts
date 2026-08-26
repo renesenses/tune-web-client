@@ -362,6 +362,8 @@ export default {
   'library.playBetterQuality': 'Reproducir esa versión',
   "library.wallOn": "Muro de portadas",
   "library.wallOff": "Volver a la vista detallada",
+  "library.moreFilters": "Todos los filtros",
+  "library.lessFilters": "Menos filtros",
   'library.openAlbum': 'Abrir álbum',
   'library.albumQueued': 'Álbum añadido a la cola',
   'library.albumQueueFailed': 'No se pudo añadir este álbum a la cola',

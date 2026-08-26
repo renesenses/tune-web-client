@@ -362,6 +362,8 @@ export default {
   'library.playBetterQuality': '播放该版本',
   "library.wallOn": "封面墙",
   "library.wallOff": "返回详细视图",
+  "library.moreFilters": "全部筛选",
+  "library.lessFilters": "收起筛选",
   'library.openAlbum': '打开专辑',
   'library.albumQueued': '专辑已加入队列',
   'library.albumQueueFailed': '无法将该专辑加入队列',

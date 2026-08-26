@@ -362,6 +362,8 @@ export default {
   'library.playBetterQuality': '해당 버전 재생',
   "library.wallOn": "커버 월",
   "library.wallOff": "상세 보기로 돌아가기",
+  "library.moreFilters": "모든 필터",
+  "library.lessFilters": "필터 접기",
   'library.openAlbum': '앨범 열기',
   'library.albumQueued': '앨범이 대기열에 추가되었습니다',
   'library.albumQueueFailed': '앨범을 대기열에 추가할 수 없습니다',
