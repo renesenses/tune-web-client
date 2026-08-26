@@ -325,6 +325,7 @@ export default {
   'home.tracks': '곡',
   'home.searchPlaceholder': '라이브러리에서 검색...',
   'home.recentlyPlayed': '최근 재생',
+  'home.playedTrack': '재생한 트랙',
   'home.recentlyAdded': '최근 추가',
   'home.newInLibrary': '라이브러리의 새 항목',
   'home.artistReleases': '내 아티스트의 새 앨범',
