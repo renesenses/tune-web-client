@@ -978,6 +978,8 @@ export default {
   'favorites.tracks': 'Tracks',
   'favorites.albums': 'Albums',
   'favorites.artists': 'Artists',
+  'favorites.playlists': 'Playlists',
+  'favorites.labels': 'Labels',
   'favorites.empty': 'No favorites yet',
   'favorites.shuffle': 'Shuffle',
   "favorites.sortBy": "Sort by",

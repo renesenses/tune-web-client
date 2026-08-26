@@ -765,6 +765,8 @@ export default {
   'favorites.tracks': 'トラック',
   'favorites.albums': 'アルバム',
   'favorites.artists': 'アーティスト',
+  'favorites.playlists': 'プレイリスト',
+  'favorites.labels': 'レーベル',
   'favorites.empty': 'お気に入りはありません',
   'favorites.addedToFavorites': 'お気に入りに追加しました',
   "favorites.addTrack": "お気に入りに追加",

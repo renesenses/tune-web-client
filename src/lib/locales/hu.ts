@@ -945,6 +945,8 @@ export default {
   "favorites.tracks": "Számok",
   "favorites.albums": "Albumok",
   "favorites.artists": "Előadók",
+  "favorites.playlists": "Lejátszási listák",
+  "favorites.labels": "Kiadók",
   "favorites.empty": "Még nincs kedvenc",
   "favorites.shuffle": "Véletlenszerű",
   "favorites.sortBy": "Rendezés",

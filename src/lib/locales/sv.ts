@@ -745,6 +745,8 @@ export default {
   'favorites.tracks': 'Spår',
   'favorites.albums': 'Album',
   'favorites.artists': 'Artister',
+  'favorites.playlists': 'Spellistor',
+  'favorites.labels': 'Bolag',
   'favorites.empty': 'Inga favoriter än',
   'favorites.addedToFavorites': 'Tillagd bland favoriter',
   "favorites.addTrack": "Lägg till i favoriter",

@@ -765,6 +765,8 @@ export default {
   'favorites.tracks': '곡',
   'favorites.albums': '앨범',
   'favorites.artists': '아티스트',
+  'favorites.playlists': '재생목록',
+  'favorites.labels': '레이블',
   'favorites.empty': '즐겨찾기 없음',
   'favorites.addedToFavorites': '즐겨찾기에 추가됨',
   "favorites.addTrack": "즐겨찾기에 추가",
