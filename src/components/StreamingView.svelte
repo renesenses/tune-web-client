@@ -275,11 +275,20 @@
     return () => { delete (window as any).__tuneStreamingShortcut; };
   });
 
+  // Sections éditoriales : intitulés et données sont publiés ENSEMBLE, à la
+  // fin, sous la garde `service === s`. Publier `featuredSections` dès son
+  // retour (liste statique, immédiate) éteignait les squelettes — dont la
+  // condition est `featuredSections.length === 0` — pendant que les données,
+  // elles, attendaient le `Promise.all` (lent à froid sur Qobuz). Résultat :
+  // une page « finie » et vide, où les catégories surgissaient plus tard, par
+  // exemple au retour d'un aller-retour par Genres (Dimitri, 0.9.68, fil
+  // forum 1372). Le drapeau de chargement obéit à la même garde, sinon
+  // l'appel périmé d'un service quitté rouvre la même fenêtre vide sur le
+  // service courant.
   async function loadFeatured(s: string) {
     featuredLoading = true;
     try {
       const sections = await api.getStreamingFeaturedSections(s);
-      featuredSections = sections;
       const data: Record<string, Album[]> = {};
       const promises = sections.map(async (sec) => {
         try {
@@ -290,12 +299,13 @@
       });
       await Promise.all(promises);
       if (service === s) {
+        featuredSections = sections;
         featuredData = data;
       }
     } catch (e) {
       console.error('Load featured error:', e);
     }
-    featuredLoading = false;
+    if (service === s) featuredLoading = false;
   }
 
   async function loadUserPlaylists(s: string) {
