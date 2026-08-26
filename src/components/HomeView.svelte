@@ -606,9 +606,39 @@
     cover_path?: string | null;
     url?: string | null;
   }) {
-    // Bandcamp n'a pas de fiche album dans Tune : on ouvre la page publique.
+    // Bandcamp se JOUE dans Tune (Bertrand, 25/08 : « play bandcamp files in
+    // Tune and not in bandcamp !! ») : la page de la reprise est résolue par
+    // le plugin (data-tralbum, pages album ET piste) et la piste part vers la
+    // zone par playAndSync — la porte commune, celle de la vue Bandcamp.
+    // La page publique ne s'ouvre plus qu'en repli, si la résolution échoue.
     if (v.service === 'bandcamp') {
-      if (v.url) window.open(v.url, '_blank', 'noopener');
+      if (!v.url) return;
+      const zid = $currentZone?.id;
+      if (zid == null) {
+        notifications.error($t('bandcamp.noZone' as any));
+        return;
+      }
+      void (async () => {
+        try {
+          const d = await api.bandcampAlbum(v.url!);
+          const pistes = d?.tracks ?? [];
+          const piste =
+            pistes.find((t) => t.title?.toLowerCase() === v.title.toLowerCase()) ?? pistes[0];
+          if (!piste?.stream_url) throw new Error('no stream');
+          await playAndSync(zid, {
+            source: 'bandcamp',
+            source_id: piste.stream_url,
+            title: piste.title,
+            artist_name: piste.artist || v.artist_name || '',
+            album_title: d?.title ?? '',
+            cover_path: d?.pochette ?? v.cover_path ?? null,
+            duration_ms: Math.round((piste.duration_s || 0) * 1000),
+          } as any);
+          notifications.success(`${piste.title} · ${$t('bandcamp.qualityBadge' as any)}`);
+        } catch {
+          window.open(v.url!, '_blank', 'noopener');
+        }
+      })();
       return;
     }
     const albumId = v.album_id ?? v.source_id;
