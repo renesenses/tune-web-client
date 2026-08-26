@@ -2782,6 +2782,8 @@ export default {
   "favorites.sortBy": "排序方式",
   "common.ascending": "升序",
   "common.descending": "降序",
+  "common.showMore": "查看更多",
+  "common.showLess": "收起",
   "folderWizard.add": "添加",
   "folderWizard.addError": "添加文件夹时出错",
   "folderWizard.added": "已添加",

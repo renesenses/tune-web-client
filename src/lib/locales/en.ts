@@ -983,6 +983,8 @@ export default {
   "favorites.sortBy": "Sort by",
   "common.ascending": "Ascending",
   "common.descending": "Descending",
+  "common.showMore": "Show more",
+  "common.showLess": "Show less",
   'favorites.localSource': 'Local',
   'favorites.addedToFavorites': 'Added to favorites',
   "favorites.addTrack": "Add to favorites",
