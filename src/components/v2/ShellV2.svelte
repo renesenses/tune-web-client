@@ -12,6 +12,7 @@
   import Sidebar from './Sidebar.svelte';
   import LibraryV2 from './LibraryV2.svelte';
   import HomeV2 from './HomeV2.svelte';
+  import SearchV2 from './SearchV2.svelte';
   import PlayerV2 from './PlayerV2.svelte';
   import '../../styles/tune-v2.css';
 
@@ -33,6 +34,8 @@
         <HomeV2 />
       {:else if $activeView === 'library'}
         <LibraryV2 />
+      {:else if $activeView === 'search'}
+        <SearchV2 />
       {:else}
         <div class="soon">
           <div class="badge">À venir</div>
