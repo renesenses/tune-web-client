@@ -245,6 +245,9 @@ export default {
   'queue.upNextSummary': '{count} up next · {time}',
   'lyrics.plainText': 'Plain text',
   'lyrics.karaoke': 'Karaoke',
+  'lyrics.source.lrc': 'Source: .lrc file',
+  'lyrics.source.tag': 'Source: file tag',
+  'lyrics.source.lrclib': 'Source: LRCLIB (online)',
   'plugins.docFallback': '# Plugin documentation\n\nSee the full documentation at [mozaiklabs.fr]({url}).',
   // AI chat (Tune AI assistant)
   'ai.fabTitle': 'Drag to move · click to ask Tune…',

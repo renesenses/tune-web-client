@@ -245,6 +245,9 @@ export default {
   'queue.upNextSummary': '{count} à suivre · {time}',
   'lyrics.plainText': 'Texte simple',
   'lyrics.karaoke': 'Karaoké',
+  'lyrics.source.lrc': 'Source : fichier .lrc',
+  'lyrics.source.tag': 'Source : étiquette du fichier',
+  'lyrics.source.lrclib': 'Source : LRCLIB (en ligne)',
   'plugins.docFallback': '# Documentation du plugin\n\nConsultez la documentation complète sur [mozaiklabs.fr]({url}).',
   // AI chat (assistant Tune AI)
   'ai.fabTitle': 'Glissez pour déplacer · cliquez pour demander à Tune…',

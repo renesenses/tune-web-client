@@ -36,6 +36,10 @@
   let creditsEnriching = $state(false);
   let showLyrics = $state(false);
   let npLyrics: string | null = $state(null);
+  /** Provenance annoncée par le serveur pour les paroles affichées ("lrc",
+   *  "tag" ou "lrclib"). Elle traversait déjà la normalisation et s'arrêtait
+   *  là (renesenses/tune-server-rust#2432). */
+  let npLyricsSource: string | null = $state(null);
   let npLyricsTrackId: number | null = $state(null);
   /** Clé `artist|title` des paroles radio chargées (piste sans track id). */
   let npLyricsRadioKey: string | null = $state(null);
@@ -496,6 +500,7 @@
     const data = await fetchTrackLyrics(trackId);
     if (npLyricsTrackId === trackId) {
       npLyrics = data ? data.lines.map((l) => l.text).join('\n') : null;
+      npLyricsSource = data?.source ?? null;
       syncedLines = data?.synced
         ? data.lines.filter((l) => l.t_ms != null).map((l) => ({ time: l.t_ms!, text: l.text }))
         : [];
@@ -516,6 +521,7 @@
     const data = await fetchLyricsByMeta(q);
     if (npLyricsRadioKey === key) {
       npLyrics = data ? data.lines.map((l) => l.text).join('\n') : null;
+      npLyricsSource = data?.source ?? null;
       syncedLines =
         !q.radio && data?.synced
           ? data.lines.filter((l) => l.t_ms != null).map((l) => ({ time: l.t_ms!, text: l.text }))
@@ -541,7 +547,7 @@
       // Piste sans id (radio/streaming) : paroles par métadonnées.
       const key = `${q.artist}|${q.title}|${q.album ?? ''}`;
       if (showLyrics) loadMetaLyrics(q);
-      if (key !== npLyricsRadioKey) { npLyrics = null; syncedLines = []; karaokeMode = false; }
+      if (key !== npLyricsRadioKey) { npLyrics = null; npLyricsSource = null; syncedLines = []; karaokeMode = false; }
       return;
     }
     if (!tr?.id) return;
@@ -551,7 +557,7 @@
     if (showLyrics) loadNpLyrics(tr.id);
     // Reset when track changes
     if (tr?.id !== npCreditsTrackId) { npCredits = []; npCreditsTrackId = null; }
-    if (tr?.id !== npLyricsTrackId) { npLyrics = null; syncedLines = []; npLyricsTrackId = null; karaokeMode = false; }
+    if (tr?.id !== npLyricsTrackId) { npLyrics = null; npLyricsSource = null; syncedLines = []; npLyricsTrackId = null; karaokeMode = false; }
   });
 
   // Compact inline credits summary: "Piano: K. Jarrett / Bass: G. Peacock / Drums: J. DeJohnette"
@@ -1493,6 +1499,7 @@
             <NowPlayingLyrics
               loading={lyricsLoading}
               lyrics={npLyrics}
+              source={npLyricsSource}
               {syncedLines}
               {karaokeMode}
               onToggleKaraoke={() => { karaokeMode = !karaokeMode; }}
