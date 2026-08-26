@@ -3356,7 +3356,9 @@ function setSettingsLevel(level: SettingsLevel) {
               <input type="checkbox" checked={false} onchange={async () => {
                 lockVolumeArme = false;
                 try {
-                  await setVolumeLock(true);
+                  // Le second geste constitue l'accord explicite transmis au
+                  // serveur ; le premier n'a fait qu'afficher l'avertissement.
+                  await setVolumeLock(true, true);
                   // En PURE, verrouiller remonte aussi la zone courante à
                   // 100 % — même geste que l'interrupteur du chemin du signal.
                   if ($audiophileLockVolume && $audiophileEnabled) {
@@ -5176,6 +5178,7 @@ function setSettingsLevel(level: SettingsLevel) {
                           const input = e.target as HTMLInputElement;
                           const enabled = input.checked;
                           if (z.id == null) return;
+                          let fullVolumeConfirmed = false;
                           // Sur une zone RÉSEAU, activer envoie 100 % à
                           // l'appareil lui-même (SetVolume au renderer) :
                           // l'ampli part à fond — vécu par Cyrille sur son
@@ -5195,10 +5198,17 @@ function setSettingsLevel(level: SettingsLevel) {
                               input.checked = false;
                               return;
                             }
+                            fullVolumeConfirmed = true;
                           }
-                          z.fixed_volume = enabled;
-                          if (enabled) z.volume = 100;
-                          await api.updateZoneFixedVolume(z.id, enabled);
+                          try {
+                            await api.updateZoneFixedVolume(z.id, enabled, fullVolumeConfirmed);
+                            z.fixed_volume = enabled;
+                            if (enabled) z.volume = 100;
+                          } catch {
+                            // Refus serveur ou réseau : ne jamais afficher le
+                            // plein volume comme armé quand rien n'a été écrit.
+                            input.checked = z.fixed_volume ?? false;
+                          }
                         }}
                       />
                       <span>{$t('settings.fixedVolume')}</span>

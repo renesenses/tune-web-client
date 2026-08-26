@@ -1062,8 +1062,8 @@ export default {
   'audiophile.enabled': 'Mod audiofil activ',
   'audiophile.disabled': 'Mod audiofil inactiv',
   'audiophile.pure': 'PUR',
-  'audiophile.lockVolume': "Volum la 100 % în modul Audiofil",
-  'audiophile.lockVolumeHelp': "Volumul este un multiplicator: atenuarea lui rupe bit-perfect. Activați pentru a-l fixa la 100 % și a bloca cursorul.",
+  'audiophile.lockVolume': "Volum la 100 % în modul Audiofil (toate zonele)",
+  'audiophile.lockVolumeHelp': "Setare globală pentru toate zonele: volumul este un multiplicator, iar atenuarea lui rupe bit-perfect. Activați pentru a-l fixa la 100 % și a bloca cursorul.",
   'audiophile.lockVolumeWarn': "⚠ Volumul va trece la 100 %: semnalul iese la nivel maxim către amplificator și boxe. Verificați volumul amplificatorului ÎNAINTE de a confirma.",
   'audiophile.lockVolumeConfirm': "Confirm: volum la 100 %",
   'audiophile.volumeLockedHint': "Volum fixat la 100 % de modul Audiofil",
@@ -3055,4 +3055,3 @@ export default {
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
-

@@ -1301,8 +1301,8 @@ export default {
   'audiophile.enabled': 'Mode audiophile actif',
   'audiophile.disabled': 'Mode audiophile inactif',
   'audiophile.pure': 'PURE',
-  'audiophile.lockVolume': "Volume à 100 % en mode Audiophile",
-  'audiophile.lockVolumeHelp': "Le volume est un multiplicateur : l’atténuer rompt le bit-perfect. Activez pour le figer à 100 % et geler le curseur.",
+  'audiophile.lockVolume': "Volume à 100 % en mode Audiophile (toutes les zones)",
+  'audiophile.lockVolumeHelp': "Réglage global pour toutes les zones : le volume est un multiplicateur et l’atténuer rompt le bit-perfect. Activez pour le figer à 100 % et geler le curseur.",
   'audiophile.lockVolumeWarn': "⚠ Le volume partira à 100 % : le signal sort à plein niveau vers votre ampli et vos enceintes. Vérifiez le volume de l'ampli AVANT de confirmer.",
   'audiophile.lockVolumeConfirm': "Je confirme : volume à 100 %",
   'audiophile.volumeLockedHint': "Volume figé à 100 % par le mode Audiophile",
@@ -3066,4 +3066,3 @@ export default {
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];
-
