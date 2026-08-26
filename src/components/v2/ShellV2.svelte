@@ -1,21 +1,43 @@
 <script lang="ts">
   /**
-   * Coquille du nouveau client (direction Levente) : assemble la barre
-   * latérale à niveaux, la vue principale et le lecteur. Portée `.tune-v2`.
+   * Coquille du nouveau client (direction Levente) : barre latérale à
+   * niveaux + vue principale routée sur `activeView` + lecteur. Portée
+   * `.tune-v2`.
    *
-   * Pour l'instant la vue principale est la Bibliothèque ; le routage complet
-   * (activeView → composant) viendra quand le nouveau client remplacera l'app.
+   * Seule la Bibliothèque est redessinée à ce stade ; les autres vues
+   * affichent un cadre « à venir » dans la coquille — on les redessinera une
+   * à une, sans jamais casser la navigation.
    */
+  import { activeView, type View } from '../../lib/stores/navigation';
   import Sidebar from './Sidebar.svelte';
   import LibraryV2 from './LibraryV2.svelte';
   import PlayerV2 from './PlayerV2.svelte';
   import '../../styles/tune-v2.css';
+
+  const LABELS: Partial<Record<View, string>> = {
+    home: 'Accueil', radios: 'Radio', playlists: 'Playlists', search: 'Recherche',
+    podcasts: 'Podcasts', streaming: 'Streaming', queue: "File d'attente", favorites: 'Favoris',
+    zonemanager: 'Zones', equalizer: 'Égaliseur / DSP', converter: 'Convertisseur',
+    declick: 'Déclic', metadata: 'Métadonnées', plugins: 'Extensions',
+    diagnostics: 'Diagnostics', settings: 'Réglages', support: 'Support', genres: 'Genres',
+  };
+  const label = $derived(LABELS[$activeView] ?? $activeView);
 </script>
 
 <div class="v2-shell tune-v2">
   <div class="row">
     <Sidebar />
-    <main class="main"><LibraryV2 /></main>
+    <main class="main">
+      {#if $activeView === 'library'}
+        <LibraryV2 />
+      {:else}
+        <div class="soon">
+          <div class="badge">À venir</div>
+          <h2>{label}</h2>
+          <p>Cet écran sera redessiné dans la direction Levente. La navigation, la barre latérale à niveaux et le lecteur sont déjà en place autour de lui.</p>
+        </div>
+      {/if}
+    </main>
   </div>
   <PlayerV2 />
 </div>
@@ -23,5 +45,11 @@
 <style>
   .v2-shell{display:flex; flex-direction:column; height:100vh; background:var(--v2-bg); overflow:hidden}
   .row{flex:1; min-height:0; display:grid; grid-template-columns:236px 1fr}
-  .main{min-width:0; overflow:hidden}
+  .main{min-width:0; overflow:hidden; display:flex}
+  .soon{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    text-align:center; color:var(--v2-txt); font-family:var(--v2-sans); padding:40px}
+  .soon .badge{font:700 10px var(--v2-mono); letter-spacing:.16em; text-transform:uppercase; color:#04121a;
+    background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); padding:5px 12px; border-radius:999px}
+  .soon h2{font-size:28px; font-weight:800}
+  .soon p{max-width:420px; color:var(--v2-txt2); font-size:14px; line-height:1.5}
 </style>
