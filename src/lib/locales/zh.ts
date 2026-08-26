@@ -325,6 +325,7 @@ export default {
   'home.tracks': '歌曲',
   'home.searchPlaceholder': '搜索媒体库...',
   'home.recentlyPlayed': '最近播放',
+  'home.playedTrack': '播放的曲目',
   'home.recentlyAdded': '最近添加',
   'home.newInLibrary': '资料库新增',
   'home.artistReleases': '你关注艺人的新作',
