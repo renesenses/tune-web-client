@@ -23,6 +23,8 @@
   import { activeView, mobileNowPlayingOpen } from '../lib/stores/navigation';
   import { isPremium } from '../lib/stores/license';
   import { notifications } from '../lib/stores/notifications';
+  import { dialogs } from '../lib/stores/dialogs';
+  import { fullVolumeConfirmationRequired } from '../lib/audiophileSafety';
   import {
     audiophileEnabled,
     audiophileLockVolume,
@@ -429,8 +431,25 @@
     const z = $currentZone;
     if (!z?.id || audiophileLoading) return;
     audiophileLoading = true;
+    const enabled = !$audiophileEnabled;
+    const confirmationRequired = fullVolumeConfirmationRequired('audiophile', {
+      audiophileEnabled: $audiophileEnabled,
+      volumeLockEnabled: $audiophileLockVolume,
+    });
+    let fullVolumeConfirmed = false;
+    if (confirmationRequired) {
+      fullVolumeConfirmed = await dialogs.confirm($t('audiophile.lockVolumeWarn' as any), {
+        danger: true,
+      });
+      if (!fullVolumeConfirmed) {
+        audiophileLoading = false;
+        return;
+      }
+    }
     try {
-      const res = await api.setAudiophileMode(z.id, !$audiophileEnabled);
+      // Le témoin n'est envoyé qu'après l'accord : le serveur refuse sinon
+      // avant d'écrire PURE ou de toucher au volume (#2445).
+      const res = await api.setAudiophileMode(z.id, enabled, fullVolumeConfirmed);
       audiophileEnabled.set(res.enabled);
       // Le serveur remonte le volume lui-même quand le verrou est armé ;
       // on reflète tout de suite, sans attendre un événement.
@@ -459,8 +478,23 @@
   async function toggleVolumeLock() {
     if (lockLoading) return;
     lockLoading = true;
+    const enabled = !$audiophileLockVolume;
+    const confirmationRequired = fullVolumeConfirmationRequired('volume-lock', {
+      audiophileEnabled: $audiophileEnabled,
+      volumeLockEnabled: $audiophileLockVolume,
+    });
+    let fullVolumeConfirmed = false;
+    if (confirmationRequired) {
+      fullVolumeConfirmed = await dialogs.confirm($t('audiophile.lockVolumeWarn' as any), {
+        danger: true,
+      });
+      if (!fullVolumeConfirmed) {
+        lockLoading = false;
+        return;
+      }
+    }
     try {
-      await setVolumeLock(!$audiophileLockVolume);
+      await setVolumeLock(enabled, fullVolumeConfirmed);
       if ($audiophileLockVolume && $audiophileEnabled) {
         const z = $currentZone;
         if (z?.id) {

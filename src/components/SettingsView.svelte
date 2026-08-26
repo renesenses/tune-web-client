@@ -3356,7 +3356,9 @@ function setSettingsLevel(level: SettingsLevel) {
               <input type="checkbox" checked={false} onchange={async () => {
                 lockVolumeArme = false;
                 try {
-                  await setVolumeLock(true);
+                  // Le second geste constitue l'accord explicite transmis au
+                  // serveur ; le premier n'a fait qu'afficher l'avertissement.
+                  await setVolumeLock(true, true);
                   // En PURE, verrouiller remonte aussi la zone courante à
                   // 100 % — même geste que l'interrupteur du chemin du signal.
                   if ($audiophileLockVolume && $audiophileEnabled) {

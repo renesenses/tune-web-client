@@ -66,10 +66,19 @@ export async function refreshVolumeLock(): Promise<void> {
   }
 }
 
-export async function setVolumeLock(enabled: boolean): Promise<void> {
+export async function setVolumeLock(
+  enabled: boolean,
+  confirmFullVolume = false,
+): Promise<void> {
+  if (enabled && !get(audiophileLockVolume) && !confirmFullVolume) {
+    throw new Error('full_volume_confirmation_required');
+  }
   audiophileLockVolume.set(enabled);
   try {
-    await api.updateConfig({ audiophile_lock_volume: enabled });
+    await api.updateConfig({
+      audiophile_lock_volume: enabled,
+      ...(confirmFullVolume ? { _confirm_full_volume: true } : {}),
+    });
   } catch (e) {
     audiophileLockVolume.set(!enabled);
     throw e;
