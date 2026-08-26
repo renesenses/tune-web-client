@@ -130,8 +130,8 @@
   </div>
 
   <div class="mini-meta">
-    <span class="mini-title truncate">{track?.title ?? $t('nowplaying.noPlayback')}</span>
-    <span class="mini-artist truncate">{track?.artist_name ?? ''}</span>
+    <span class="mini-title truncate" title={track?.title ?? $t('nowplaying.noPlayback')}>{track?.title ?? $t('nowplaying.noPlayback')}</span>
+    <span class="mini-artist truncate" title={track?.artist_name ?? ''}>{track?.artist_name ?? ''}</span>
   </div>
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -189,8 +189,8 @@
         {#each results as r}
           <li>
             <button onclick={() => playResult(r)}>
-              <span class="truncate">{r.title}</span>
-              <small class="truncate">{r.artist_name ?? ''}</small>
+              <span class="truncate" title={r.title}>{r.title}</span>
+              <small class="truncate" title={r.artist_name ?? ''}>{r.artist_name ?? ''}</small>
             </button>
           </li>
         {/each}

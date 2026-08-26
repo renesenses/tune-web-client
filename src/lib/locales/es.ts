@@ -2784,6 +2784,8 @@ export default {
   "favorites.sortBy": "Ordenar por",
   "common.ascending": "Ascendente",
   "common.descending": "Descendente",
+  "common.showMore": "Ver más",
+  "common.showLess": "Ver menos",
   "folderWizard.add": "Añadir",
   "folderWizard.addError": "Error al añadir la carpeta",
   "folderWizard.added": "Añadido",

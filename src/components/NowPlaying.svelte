@@ -1367,10 +1367,10 @@
               </svg>
               {$t('nowplaying.liveNow')}
             </div>
-            <p class="radio-station-name truncate">{displayTrack.album_title || zone?.name || 'Radio'}</p>
+            <p class="radio-station-name truncate" title={displayTrack.album_title || zone?.name || 'Radio'}>{displayTrack.album_title || zone?.name || 'Radio'}</p>
           {/if}
           <div class="track-title-row">
-            <h2 class="track-title truncate">{displayTrack.title}</h2>
+            <h2 class="track-title truncate" title={displayTrack.title}>{displayTrack.title}</h2>
             {#if isRadio}
               <button class="np-fav-btn" class:is-fav={isFavorite} onclick={toggleFav} use:tip={'tip.favorite'}>
                 <svg viewBox="0 0 24 24" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="22" height="22">
@@ -1382,15 +1382,15 @@
           {#if displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <p class="track-artist truncate clickable" onclick={() => navigateToArtist(artistIdOf(displayTrack), displayTrack.artist_name!)}>{displayTrack.artist_name}</p>
+            <p class="track-artist truncate clickable" title={displayTrack.artist_name} onclick={() => navigateToArtist(artistIdOf(displayTrack), displayTrack.artist_name!)}>{displayTrack.artist_name}</p>
           {/if}
           {#if !isRadio && inlineCredits}
-            <p class="inline-credits">{inlineCredits}</p>
+            <p class="inline-credits" title={inlineCredits}>{inlineCredits}</p>
           {/if}
           {#if !isRadio && displayTrack.album_title}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <p class="track-album truncate clickable" onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
+            <p class="track-album truncate clickable" title={displayTrack.year ? `${displayTrack.album_title} (${displayTrack.year})` : displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
           {/if}
           {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth)}
             <p class="track-tech-info">
@@ -1816,8 +1816,8 @@
                 <button class="up-next-item" onclick={() => jumpToUpNext(nextTrack, i)}>
                   <AlbumArt coverPath={nextTrack.cover_path} albumId={nextTrack.album_id} size={32} alt={nextTrack.title} />
                   <div class="up-next-info">
-                    <span class="up-next-title truncate">{nextTrack.title}</span>
-                    <span class="up-next-artist truncate">{nextTrack.artist_name ?? ''}</span>
+                    <span class="up-next-title truncate" title={nextTrack.title}>{nextTrack.title}</span>
+                    <span class="up-next-artist truncate" title={nextTrack.artist_name ?? ''}>{nextTrack.artist_name ?? ''}</span>
                   </div>
                   <ServiceBadge source={nextTrack.source} compact />
                   {#if nextTrack.format}
@@ -1977,9 +1977,9 @@
                 <AlbumArt albumId={queueTrack.album_id} size={36} alt={queueTrack.title} />
               {/if}
               <div class="qs-track-info">
-                <span class="qs-track-title truncate">{queueTrack.title || $t('nowplaying.unknownTrack')}</span>
+                <span class="qs-track-title truncate" title={queueTrack.title || $t('nowplaying.unknownTrack')}>{queueTrack.title || $t('nowplaying.unknownTrack')}</span>
                 {#if queueTrack.artist_name}
-                  <span class="qs-track-artist truncate">{queueTrack.artist_name}</span>
+                  <span class="qs-track-artist truncate" title={queueTrack.artist_name}>{queueTrack.artist_name}</span>
                 {/if}
                 <MetadataChips track={queueTrack} fields={$displayFields} />
               </div>

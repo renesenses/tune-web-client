@@ -950,6 +950,8 @@ export default {
   "favorites.sortBy": "Rendezés",
   "common.ascending": "Növekvő",
   "common.descending": "Csökkenő",
+  "common.showMore": "Több megjelenítése",
+  "common.showLess": "Kevesebb megjelenítése",
   "favorites.localSource": "Helyi",
   "favorites.addedToFavorites": "Hozzáadva a kedvencekhez",
   "favorites.addTrack": "Hozzáadás a kedvencekhez",

@@ -2776,6 +2776,8 @@ export default {
   "favorites.sortBy": "정렬 기준",
   "common.ascending": "오름차순",
   "common.descending": "내림차순",
+  "common.showMore": "더 보기",
+  "common.showLess": "접기",
   "folderWizard.add": "추가",
   "folderWizard.addError": "폴더를 추가하는 중 오류가 발생했습니다",
   "folderWizard.added": "추가됨",

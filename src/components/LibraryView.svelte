@@ -23,6 +23,7 @@ import { formatTime, formatDuration, formatAlbumYear, fold } from '../lib/utils'
 import TrackContextMenu from './TrackContextMenu.svelte';
 import AlbumRating from './AlbumRating.svelte';
 import CollapsibleSection from './CollapsibleSection.svelte';
+  import ClampedText from './ClampedText.svelte';
   import AlbumEditModal from './AlbumEditModal.svelte';
   import ArtistEditModal from './ArtistEditModal.svelte';
   import TrackEditModal from './TrackEditModal.svelte';
@@ -2357,7 +2358,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                     <button class="bio-level-pill" class:active={albumBioLevel === 'full'} onclick={() => albumBioLevel = 'full'}>{$tr('library.bioLevelFull')}</button>
                   </div>
                 {/if}
-                <p class="album-bio-text">{displayAlbumBio}</p>
+                <ClampedText lines={3} resetKey={displayAlbumBio}>
+                  <p class="album-bio-text">{displayAlbumBio}</p>
+                </ClampedText>
               {:else}
                 <p class="album-bio-empty">{$tr('library.noAlbumNote')}</p>
               {/if}
@@ -2769,11 +2772,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <button class="bio-level-pill" class:active={bioLevel === 'full'} onclick={() => bioLevel = 'full'}>{$tr('library.bioLevelFull')}</button>
           </div>
         {/if}
-        <blockquote class="artist-bio">
-          {#each displayBio.split('\n').filter(p => p.trim()) as paragraph}
-            <p>{paragraph}</p>
-          {/each}
-        </blockquote>
+        <ClampedText lines={3} resetKey={displayBio}>
+          <blockquote class="artist-bio">
+            {#each displayBio.split('\n').filter(p => p.trim()) as paragraph}
+              <p>{paragraph}</p>
+            {/each}
+          </blockquote>
+        </ClampedText>
         <div class="bio-actions">
           <button class="bio-enrich-btn" onclick={enrichArtistBio} disabled={enrichLoading}>
             {#if enrichLoading}
