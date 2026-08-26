@@ -11,6 +11,7 @@
   import { activeView, type View } from '../../lib/stores/navigation';
   import Sidebar from './Sidebar.svelte';
   import LibraryV2 from './LibraryV2.svelte';
+  import HomeV2 from './HomeV2.svelte';
   import PlayerV2 from './PlayerV2.svelte';
   import '../../styles/tune-v2.css';
 
@@ -28,7 +29,9 @@
   <div class="row">
     <Sidebar />
     <main class="main">
-      {#if $activeView === 'library'}
+      {#if $activeView === 'home'}
+        <HomeV2 />
+      {:else if $activeView === 'library'}
         <LibraryV2 />
       {:else}
         <div class="soon">
