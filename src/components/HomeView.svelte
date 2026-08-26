@@ -1039,7 +1039,7 @@
     </div>
   {/if}
 
-  <!-- Autres versions de vos écoutes du jour -->
+  <!-- Autres versions de vos écoutes récentes -->
   <!--
     La section n'existe que si elle a quelque chose à dire : `otherVersions`
     vaut `null` tant que la réponse n'est pas revenue, et un tableau vide
@@ -1060,7 +1060,7 @@
                 <div class="version-title truncate">{groupe.title}</div>
                 <div class="version-sub truncate">
                   {groupe.artist_name}
-                  <span class="version-played-from">· {$t('home.playedToday')} : {groupe.played_album}</span>
+                  <span class="version-played-from">· {$t('home.playedFrom')} : {groupe.played_album}</span>
                 </div>
               </div>
             </div>
