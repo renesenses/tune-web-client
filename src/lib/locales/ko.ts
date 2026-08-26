@@ -1027,8 +1027,8 @@ export default {
   'audiophile.enabled': '오디오파일 모드 활성',
   'audiophile.disabled': '오디오파일 모드 비활성',
   'audiophile.pure': 'PURE',
-  'audiophile.lockVolume': "오디오파일 모드에서 볼륨 100 % 고정",
-  'audiophile.lockVolumeHelp': "볼륨은 곱셈 연산입니다. 낮추면 비트퍼펙트가 깨집니다. 켜면 100 %로 고정하고 슬라이더를 잠급니다.",
+  'audiophile.lockVolume': "오디오파일 모드에서 볼륨 100 % 고정(모든 존)",
+  'audiophile.lockVolumeHelp': "모든 존에 적용되는 전역 설정입니다. 볼륨은 곱셈 연산이므로 낮추면 비트퍼펙트가 깨집니다. 켜면 100 %로 고정하고 슬라이더를 잠급니다.",
   'audiophile.lockVolumeWarn': "⚠ 볼륨이 100 %가 됩니다. 신호가 최대 레벨로 앰프와 스피커로 출력됩니다. 확인하기 전에 앰프 볼륨을 점검하세요.",
   'audiophile.lockVolumeConfirm': "확인합니다: 볼륨 100 %",
   'audiophile.volumeLockedHint': "오디오파일 모드가 볼륨을 100 %로 고정했습니다",
@@ -3054,4 +3054,3 @@ export default {
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
-
