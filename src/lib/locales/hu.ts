@@ -497,6 +497,7 @@ export default {
   "home.tracks": "Számok",
   "home.searchPlaceholder": "Keresés a gyűjteményben...",
   "home.recentlyPlayed": "Nemrég hallgatott",
+  "home.playedTrack": "Lejátszott szám",
   "home.recentlyAdded": "Nemrég hozzáadott",
   "home.newInLibrary": "Új a gyűjteményedben",
   "home.artistReleases": "Előadóid újdonságai",

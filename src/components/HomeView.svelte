@@ -17,6 +17,7 @@
     ouvrirBibliotheque as goToLibrary,
   } from '../lib/libraryNavigation';
   import { t } from '../lib/i18n';
+  import { deriveRecentlyPlayed, type RecentAlbumEntry } from '../lib/home/recentlyPlayed';
   // Utilisé plus bas (relance de station, piste introuvable) sans jamais avoir
   // été importé : les deux appels levaient un ReferenceError au moment précis
   // où l'utilisateur avait besoin du message. Repéré par le garde-fou
@@ -172,17 +173,6 @@
     }
   }
 
-  interface RecentAlbumEntry {
-    id: number | null;
-    title: string;
-    artist_id?: number | null;
-    artist_name: string;
-    cover_path?: string | null;
-    source?: string | null;
-    source_id?: string | null;
-    firstTrack: Track;
-  }
-
   async function playRecentEntry(album: RecentAlbumEntry) {
     if (!zone?.id) return;
     try {
@@ -336,43 +326,10 @@
     return false;
   }
 
-  // Derive unique recently played albums from history
-  // Use a string key to dedupe: "local:{album_id}" or "streaming:{source}:{source_id}"
-  let recentlyPlayed = $derived.by(() => {
-    const seen = new Set<string>();
-    const albums: RecentAlbumEntry[] = [];
-    for (const entry of $playbackHistory) {
-      const t = entry.track;
-      const albumId = t.album_id;
-      // Build a dedup key — prefer album_id for local, fallback to source+album_title, file_path, or title
-      let key: string | null = null;
-      if (albumId) {
-        key = `local:${albumId}`;
-      } else if (t.source && t.album_title) {
-        key = `stream:${t.source}:${t.album_title}`;
-      } else if (t.source && t.source_id) {
-        key = `stream:${t.source}:${t.source_id}`;
-      } else if (t.file_path) {
-        key = `url:${t.file_path}`;
-      } else if (t.title) {
-        key = `title:${t.title}:${t.artist_name ?? ''}`;
-      }
-      if (!key || seen.has(key)) continue;
-      seen.add(key);
-      albums.push({
-        id: albumId ?? null,
-        title: t.album_title ?? t.title,
-        artist_id: t.artist_id ?? null,
-        artist_name: t.artist_name ?? '',
-        cover_path: t.cover_path ?? null,
-        source: t.source ?? null,
-        source_id: t.source_id ?? null,
-        firstTrack: t,
-      });
-      if (albums.length >= 20) break;
-    }
-    return albums;
-  });
+  // Les tuiles « Récemment joué » sont dérivées dans un module testable
+  // (`lib/home/recentlyPlayed.ts`) : la logique de dédoublonnage vivait ici,
+  // dans un `$derived.by` qu'aucun test ne pouvait atteindre.
+  let recentlyPlayed = $derived(deriveRecentlyPlayed($playbackHistory));
 
   // Scroll handling for carousel
   let playedCarousel: HTMLElement;
@@ -924,6 +881,12 @@
                 </button>
                 <button class="carousel-title truncate" onclick={() => navigateRecentEntry(album)}>{album.title}</button>
                 <span class="carousel-artist-row"><button class="carousel-artist truncate" onclick={() => navigateArtist(album)}>{album.artist_name}</button><ServiceBadge source={album.source} compact /></span>
+                {#if album.playedTitle}
+                  <span class="carousel-played-track" title={$t('home.playedTrack')}>
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10" aria-hidden="true"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+                    <span class="truncate">{album.playedTitle}</span>
+                  </span>
+                {/if}
               </div>
             {/each}
           </div>
@@ -1449,6 +1412,31 @@
     font-size: 12px;
     color: var(--tune-text-secondary);
     max-width: 160px;
+  }
+
+  /* Le titre réellement écouté (#2336) : troisième rang, discret, sous
+     l'artiste. La tuile reste une tuile d'album — c'est le regroupement en
+     vigueur — mais la piste qui a déclenché l'entrée cesse d'être invisible. */
+  .carousel-played-track {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    max-width: 160px;
+    margin-top: 1px;
+  }
+
+  .carousel-played-track svg {
+    flex: 0 0 auto;
+    opacity: 0.7;
+  }
+
+  /* `min-width: 0` : sans lui l'enfant flex refuse de descendre sous sa
+     largeur intrinsèque et `text-overflow` ne coupe jamais. */
+  .carousel-played-track .truncate {
+    min-width: 0;
   }
 
   .empty-recent {

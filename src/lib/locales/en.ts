@@ -523,6 +523,7 @@ export default {
   'home.tracks': 'Tracks',
   'home.searchPlaceholder': 'Search library...',
   'home.recentlyPlayed': 'Recently Played',
+  'home.playedTrack': 'Track played',
   'home.recentlyAdded': 'Recently Added',
   'home.newInLibrary': 'New in your library',
   'home.artistReleases': 'New from your artists',
