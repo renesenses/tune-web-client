@@ -372,6 +372,8 @@ export default {
   'library.playBetterQuality': 'Redă acea versiune',
   "library.wallOn": "Perete de coperți",
   "library.wallOff": "Înapoi la vizualizarea detaliată",
+  "library.moreFilters": "Toate filtrele",
+  "library.lessFilters": "Mai puține filtre",
   'library.openAlbum': 'Deschide albumul',
   'library.albumQueued': 'Album adăugat în coadă',
   'library.albumQueueFailed': 'Albumul nu a putut fi adăugat în coadă',

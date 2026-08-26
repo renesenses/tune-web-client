@@ -816,6 +816,45 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     [...new Set(searchFilteredAlbums.map(a => a.sample_rate).filter(Boolean))].sort((a, b) => (a ?? 0) - (b ?? 0)) as number[]
   );
 
+  // #2449 (Lulu, fil 1558) : le bandeau de filtres qualité est replié sur UNE
+  // ligne par défaut — voir le commentaire dans le template. L'état ci-dessous
+  // ne sert qu'à savoir si le repli cache réellement des puces : le bouton de
+  // dépliage n'apparaît que dans ce cas, et l'affichage reste identique à
+  // avant pour toute bibliothèque dont les puces tiennent sur une ligne.
+  let qualityFiltersEl = $state<HTMLDivElement | null>(null);
+  let qualityFiltersExpanded = $state(false);
+  let qualityFiltersOverflow = $state(false);
+
+  function measureQualityFiltersOverflow() {
+    const el = qualityFiltersEl;
+    if (!el) return;
+    // Replié : scrollHeight > clientHeight ⇔ des puces sont cachées.
+    // Déplié : rien n'est rogné, la mesure vaut false — le bouton reste
+    // affiché via `qualityFiltersExpanded` pour pouvoir replier.
+    qualityFiltersOverflow = el.scrollHeight - el.clientHeight > 1;
+  }
+
+  // Redimensionnement du conteneur (fenêtre, sidebar) : le point d'enroulement
+  // change, donc le débordement aussi.
+  $effect(() => {
+    const el = qualityFiltersEl;
+    if (!el) return;
+    const ro = new ResizeObserver(measureQualityFiltersOverflow);
+    ro.observe(el);
+    measureQualityFiltersOverflow();
+    return () => ro.disconnect();
+  });
+
+  // Le jeu de puces dépend de ces entrées ; en replié, leur variation ne
+  // change PAS la hauteur du conteneur (plafonnée), donc le ResizeObserver ne
+  // se déclenche pas : on re-mesure explicitement après mise à jour du DOM.
+  $effect(() => {
+    void searchFilteredAlbums; void albumFormats; void albumSampleRates;
+    void userTags; void duplicateAlbumCount; void albumYearFilter;
+    void manageTags; void qualityFiltersExpanded;
+    measureQualityFiltersOverflow();
+  });
+
   let filteredArtists = $derived.by(() => {
     let result = searchQuery.trim()
       ? $artists.filter(a => fold(a.name).includes(fold(searchQuery)))
@@ -2780,6 +2819,16 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       </div>
     {:else if $libraryTab === 'albums'}
       <div class="quality-filters">
+        <!-- #2449 (Lulu, fil 1558) : les puces dépendent de la bibliothèque
+             (formats, cadences, tags réellement présents) et le bandeau
+             s'enroulait sans limite (flex-wrap) au-dessus d'une grille qui,
+             elle, ne reçoit que le reste (flex: 1). Chaque ligne gagnée ici
+             était perdue par les pochettes — jusqu'aux « demi-pochettes ».
+             Invariant : replié (défaut), ce conteneur occupe UNE seule ligne
+             de puces quel que soit leur nombre ; un bouton libellé les
+             déplie toutes. Le tri, le mur et le compteur restent visibles
+             hors du conteneur repliable. -->
+        <div class="filter-chips" class:collapsed={!qualityFiltersExpanded} bind:this={qualityFiltersEl}>
         <button class="quality-chip" class:active={!albumQualityFilter} onclick={() => setAlbumQualityChip(null)}>{$tr('metadata.all')} ({searchFilteredAlbums.length})</button>
         {#each [
           { key: 'dsd', label: 'DSD' },
@@ -2862,6 +2911,19 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           <button class="quality-chip year active" onclick={() => albumYearFilter = null}>
             {albumYearFilter}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        {/if}
+        </div>
+        {#if qualityFiltersOverflow || qualityFiltersExpanded}
+          <!-- Libellé texte, pas une icône seule : Lulu demandait un réglage
+               qui existait déjà derrière une icône muette (le mur). -->
+          <button class="quality-chip filters-expand" onclick={() => qualityFiltersExpanded = !qualityFiltersExpanded}>
+            {qualityFiltersExpanded ? $tr('library.lessFilters') : $tr('library.moreFilters')}
+            {#if qualityFiltersExpanded}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="18 15 12 9 6 15" /></svg>
+            {:else}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="6 9 12 15 18 9" /></svg>
+            {/if}
           </button>
         {/if}
         <span class="filter-sep">|</span>
@@ -3982,11 +4044,42 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   /* Albums grid */
   .quality-filters {
     display: flex;
-    align-items: center;
+    /* flex-start, pas center : déplié, le tri et le compteur restent alignés
+       sur la première ligne de puces au lieu de flotter au milieu du bloc. */
+    align-items: flex-start;
     gap: 8px;
     padding: 12px 24px;
     flex-shrink: 0;
     flex-wrap: wrap;
+  }
+
+  /* Invariant #2449 : replié (défaut), le conteneur de puces occupe UNE seule
+     ligne quel que soit le nombre de formats/cadences/tags de la bibliothèque.
+     La grille de pochettes en dessous (.album-grid-viewport, flex: 1) garde
+     ainsi sa hauteur — c'est l'enroulement illimité de ce bandeau qui la lui
+     volait, jusqu'à ne laisser que des demi-pochettes. */
+  .filter-chips {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .filter-chips.collapsed {
+    /* Une puce fait ~25px (12px de texte + 2×4px + bordures) ; la 2e ligne
+       commence à ~33px (gap 8px). 28px : la 1re ligne entière, jamais la 2e —
+       pas de demi-puces pour soigner des demi-pochettes. */
+    max-height: 28px;
+    overflow: hidden;
+  }
+
+  .quality-chip.filters-expand {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
   }
 
   .quality-chip {

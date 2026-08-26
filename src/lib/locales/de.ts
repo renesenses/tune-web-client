@@ -362,6 +362,8 @@ export default {
   'library.playBetterQuality': 'Diese Version abspielen',
   "library.wallOn": "Cover-Wand",
   "library.wallOff": "Zurück zur Detailansicht",
+  "library.moreFilters": "Alle Filter",
+  "library.lessFilters": "Weniger Filter",
   'library.openAlbum': 'Album öffnen',
   'library.albumQueued': 'Album zur Warteschlange hinzugefügt',
   'library.albumQueueFailed': 'Album konnte nicht zur Warteschlange hinzugefügt werden',

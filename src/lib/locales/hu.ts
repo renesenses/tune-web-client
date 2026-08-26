@@ -538,6 +538,8 @@ export default {
   "library.shuffleArtist": "Véletlenszerű",
   "library.wallOn": "Borítófal",
   "library.wallOff": "Vissza a részletes nézethez",
+  "library.moreFilters": "Összes szűrő",
+  "library.lessFilters": "Kevesebb szűrő",
   "library.openAlbum": "Album megnyitása",
   "library.albumQueued": "Album hozzáadva a sorhoz",
   "library.albumQueueFailed": "Az albumot nem sikerült a sorhoz adni",

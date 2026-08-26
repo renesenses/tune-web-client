@@ -578,6 +578,8 @@ export default {
   'library.shuffleArtist': 'Lecture aléatoire',
   "library.wallOn": "Mur de pochettes",
   "library.wallOff": "Revenir à l'affichage détaillé",
+  "library.moreFilters": "Tous les filtres",
+  "library.lessFilters": "Réduire les filtres",
   'library.openAlbum': "Ouvrir l'album",
   'library.disc': 'Disque {num}',
   'library.album': 'album',
