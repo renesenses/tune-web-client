@@ -3986,7 +3986,7 @@ export function getArtistReleases(limit = 12) {
 export interface OtherVersionGroup {
   title: string;
   artist_name: string;
-  /** L'album depuis lequel le morceau a ete ecoute aujourd'hui. */
+  /** L'album depuis lequel le morceau a ete ecoute recemment. */
   played_album: string;
   /** Versions et reprises trouvees chez les services et sur Bandcamp. */
   streaming?: {
@@ -4010,11 +4010,17 @@ export interface OtherVersionGroup {
 }
 
 /**
- * Les autres versions, DANS LA BIBLIOTHEQUE, des morceaux ecoutes aujourd'hui.
+ * Les autres versions des morceaux ecoutes RECEMMENT.
  *
- * Ni reprises par un autre interprete (il faudrait les relations d'oeuvre
- * MusicBrainz), ni versions Qobuz (un appel par morceau ecoute). Le serveur
- * fait le regroupement : l'ecran n'a qu'a dessiner.
+ * La route ne borne PAS sur la journee civile : elle part des 200 dernieres
+ * ecoutes. La borne journaliere a existe, puis a ete retiree — minuit UTC
+ * coupait la soiree, et un jour ordinaire ne remplissait pas la section. Le
+ * libelle affiche doit donc parler d'ecoutes RECENTES, jamais « du jour »
+ * (#2359).
+ *
+ * Pas de reprises par un autre interprete dans la bibliotheque : il faudrait
+ * les relations d'oeuvre MusicBrainz. Le serveur fait le regroupement :
+ * l'ecran n'a qu'a dessiner.
  */
 export function getOtherVersions(limit = 20) {
   return fetchJSON<OtherVersionGroup[]>(`${BASE}/home/other-versions?limit=${limit}`);
