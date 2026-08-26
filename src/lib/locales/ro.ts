@@ -1521,6 +1521,8 @@ export default {
   "library.moreOptions": "Mai multe opțiuni",
   "library.goToArtist": "Mergi la artist",
   "library.goToAlbum": "Mergi la album",
+  "library.otherVersions": "Alte versiuni",
+  "library.noOtherVersions": "Nicio altă versiune găsită",
   "library.editArtist": "Editează artistul",
   "library.reEnrich": "Reîmbogățește",
   "library.enrichBio": "Îmbogățește biografia",

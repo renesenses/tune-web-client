@@ -4040,6 +4040,33 @@ export function getOtherVersions(limit = 20) {
   return fetchJSON<OtherVersionGroup[]>(`${BASE}/home/other-versions?limit=${limit}`);
 }
 
+/**
+ * Les autres versions d'UNE piste, rendues par `/library/tracks/{id}/versions`.
+ *
+ * Meme forme qu'un groupe de `getOtherVersions()` — le serveur reutilise le
+ * meme rapprochement (`routes/versions.rs`) —, plus le `track_id` de depart.
+ */
+export interface TrackVersions extends OtherVersionGroup {
+  track_id: number;
+}
+
+/**
+ * Les autres versions d'une piste DESIGNEE, bibliotheque et streaming.
+ *
+ * La section d'accueil part de l'historique d'ecoute : un morceau jamais
+ * ecoute recemment n'y apparait jamais (#2372). Cette route part de la piste
+ * elle-meme.
+ *
+ * `streaming: false` rend la reponse immediate en n'interrogeant que la
+ * bibliotheque locale — les services sont interroges par defaut, avec un
+ * cache de six heures partage avec la section d'accueil.
+ */
+export function getTrackVersions(id: number, streaming = true) {
+  return fetchJSON<TrackVersions>(
+    `${BASE}/library/tracks/${id}/versions?streaming=${streaming}`,
+  );
+}
+
 export function getHomeRecommendations() {
   return fetchJSON<any[]>(`${BASE}/home/recommendations`);
 }

@@ -185,6 +185,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   let trackCreditsMap = $state<Record<number, TrackCredit[]>>({});
   let trackCreditsLoading = $state<number | null>(null);
 
+  // « Autres versions de ce titre » (#2372). Meme mecanique que les credits :
+  // une ligne depliee SOUS la piste, un cache par piste, un seul deplie a la
+  // fois. Pas de nouvel ecran — la creation d'ecran revient au designer.
+  let expandedTrackVersions = $state<number | null>(null);
+  let trackVersionsMap = $state<Record<number, api.TrackVersions | null>>({});
+  let trackVersionsLoading = $state<number | null>(null);
+
   // Artist credits
   let artistCredits = $state<TrackCredit[] | null>(null);
   let artistCreditsLoading = $state(false);
@@ -241,6 +248,60 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       trackCreditsMap = { ...trackCreditsMap, [trackId]: [] };
     }
     trackCreditsLoading = null;
+  }
+
+  /**
+   * Deplie « Autres versions » sous la piste, et charge le resultat.
+   *
+   * Le serveur fait TOUT le rapprochement — bibliotheque et services — dans
+   * `GET /library/tracks/{id}/versions` : l'ecran ne fait que dessiner. Le
+   * resultat est garde par piste, parce qu'une recherche streaming coute des
+   * appels reseau et que replier/deplier ne doit pas les refacturer.
+   */
+  async function toggleTrackVersions(trackId: number) {
+    if (expandedTrackVersions === trackId) {
+      expandedTrackVersions = null;
+      return;
+    }
+    expandedTrackVersions = trackId;
+    if (trackVersionsMap[trackId] !== undefined) return;
+    trackVersionsLoading = trackId;
+    try {
+      const versions = await api.getTrackVersions(trackId);
+      trackVersionsMap = { ...trackVersionsMap, [trackId]: versions };
+    } catch (e) {
+      console.error('Load track versions error:', e);
+      // `null` distingue l'echec du « rien trouve » : les deux affichent le
+      // meme message, mais l'echec ne doit pas etre mis en cache comme un
+      // resultat definitif.
+      trackVersionsMap = { ...trackVersionsMap, [trackId]: null };
+    }
+    trackVersionsLoading = null;
+  }
+
+  /** Une version STREAMING : on ouvre son album dans la vue du service —
+   *  exactement la porte qu'emprunte deja la grille d'albums de streaming. */
+  function ouvrirVersionStreaming(v: {
+    service: string;
+    source_id?: string | null;
+    album_id?: string | null;
+    album_title?: string | null;
+    title: string;
+    artist_name?: string | null;
+    cover_path?: string | null;
+  }) {
+    const albumId = v.album_id ?? v.source_id;
+    if (!albumId) return;
+    activeStreamingService.set(v.service);
+    pendingStreamingAlbum.set({
+      id: albumId,
+      source_id: albumId,
+      source: v.service,
+      title: v.album_title ?? v.title,
+      artist_name: v.artist_name ?? null,
+      cover_path: v.cover_path ?? null,
+    } as any);
+    activeView.set('streaming');
   }
 
   async function loadArtistCredits(artistId: number) {
@@ -1376,6 +1437,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // la page de l'artiste quand l'album a été ouvert depuis celle-ci (bug Fabien-1).
     expandedTrackCredits = null;
     trackCreditsMap = {};
+    expandedTrackVersions = null;
     albumBio = null;
     albumBioAlbumId = null;
     showAlbumBio = false;
@@ -2367,6 +2429,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                       onPlay={() => t.id && playTrack(t.id)}
                       onAddToQueue={() => addTrackToQueue(t)}
                       onPlaySimilar={() => playSimilar(t)}
+                      onOtherVersions={t.id ? () => toggleTrackVersions(t.id!) : undefined}
                       onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
                       onGoToArtist={t.artist_name
                         ? () => { const a = $artists.find(ar => ar.name === t.artist_name); if (a) selectArtistDetail(a); }
@@ -2394,6 +2457,56 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                     {/each}
                   {:else}
                     <span class="credits-empty">{$tr('artist.noMetadata')}</span>
+                  {/if}
+                </div>
+              {/if}
+              {#if expandedTrackVersions === t.id}
+                <!--
+                  « Autres versions de ce titre » (#2372). La MEME surface que les
+                  crédits : une ligne dépliée sous la piste. Pas de modale, pas de vue
+                  neuve — la création d'écran revient au designer.
+                -->
+                <div class="track-versions-row">
+                  {#if trackVersionsLoading === t.id}
+                    <div class="spinner-sm"></div>
+                  {:else}
+                    {@const g = trackVersionsMap[t.id!] ?? null}
+                    {@const locales = g?.versions ?? []}
+                    {@const flux = g?.streaming ?? []}
+                    {#if locales.length === 0 && flux.length === 0}
+                      <span class="credits-empty">{$tr('library.noOtherVersions')}</span>
+                    {:else}
+                      <div class="versions-tuiles">
+                        {#each locales as v}
+                          <button class="version-tuile" onclick={(e) => { e.stopPropagation(); if (v.track_id) playTrack(v.track_id); }} title={v.album_title ?? ''}>
+                            <AlbumArt coverPath={v.cover_path} albumId={v.album_id} size={48} alt={v.album_title ?? ''} />
+                            <span class="version-tuile-texte">
+                              <span class="version-tuile-titre truncate">{v.album_title ?? ''}</span>
+                              <span class="version-tuile-sub">
+                                {#if v.duration_ms}{formatTime(v.duration_ms)}{/if}
+                              </span>
+                            </span>
+                          </button>
+                        {/each}
+                        {#each flux as v}
+                          <button
+                            class="version-tuile"
+                            class:reprise={v.kind === 'reprise'}
+                            class:inerte={!(v.album_id ?? v.source_id)}
+                            onclick={(e) => { e.stopPropagation(); ouvrirVersionStreaming(v); }}
+                            title={v.album_title ?? v.title}
+                          >
+                            <AlbumArt coverPath={v.cover_path} size={48} alt={v.album_title ?? v.title} />
+                            <span class="version-tuile-texte">
+                              <span class="version-tuile-titre truncate">{v.kind === 'reprise' ? (v.artist_name ?? v.title) : (v.album_title ?? v.title)}</span>
+                              <span class="version-tuile-sub">
+                                <ServiceBadge source={v.service} compact />
+                              </span>
+                            </span>
+                          </button>
+                        {/each}
+                      </div>
+                    {/if}
                   {/if}
                 </div>
               {/if}
@@ -2457,6 +2570,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                     onPlay={() => t.id && playTrack(t.id)}
                     onAddToQueue={() => addTrackToQueue(t)}
                       onPlaySimilar={() => playSimilar(t)}
+                      onOtherVersions={t.id ? () => toggleTrackVersions(t.id!) : undefined}
                     onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
                     onGoToArtist={t.artist_name
                       ? () => { const a = $artists.find(ar => ar.id === t.artist_id) ?? $artists.find(ar => ar.name === t.artist_name) ?? (t.artist_id != null ? { id: t.artist_id, name: t.artist_name ?? '' } as Artist : undefined); if (a?.id != null) selectArtistDetail(a as Artist); }
@@ -2485,6 +2599,56 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                   {/each}
                 {:else}
                   <span class="credits-empty">{$tr('artist.noMetadata')}</span>
+                {/if}
+              </div>
+            {/if}
+            {#if expandedTrackVersions === t.id}
+              <!--
+                « Autres versions de ce titre » (#2372). La MEME surface que les
+                crédits : une ligne dépliée sous la piste. Pas de modale, pas de vue
+                neuve — la création d'écran revient au designer.
+              -->
+              <div class="track-versions-row">
+                {#if trackVersionsLoading === t.id}
+                  <div class="spinner-sm"></div>
+                {:else}
+                  {@const g = trackVersionsMap[t.id!] ?? null}
+                  {@const locales = g?.versions ?? []}
+                  {@const flux = g?.streaming ?? []}
+                  {#if locales.length === 0 && flux.length === 0}
+                    <span class="credits-empty">{$tr('library.noOtherVersions')}</span>
+                  {:else}
+                    <div class="versions-tuiles">
+                      {#each locales as v}
+                        <button class="version-tuile" onclick={(e) => { e.stopPropagation(); if (v.track_id) playTrack(v.track_id); }} title={v.album_title ?? ''}>
+                          <AlbumArt coverPath={v.cover_path} albumId={v.album_id} size={48} alt={v.album_title ?? ''} />
+                          <span class="version-tuile-texte">
+                            <span class="version-tuile-titre truncate">{v.album_title ?? ''}</span>
+                            <span class="version-tuile-sub">
+                              {#if v.duration_ms}{formatTime(v.duration_ms)}{/if}
+                            </span>
+                          </span>
+                        </button>
+                      {/each}
+                      {#each flux as v}
+                        <button
+                          class="version-tuile"
+                          class:reprise={v.kind === 'reprise'}
+                          class:inerte={!(v.album_id ?? v.source_id)}
+                          onclick={(e) => { e.stopPropagation(); ouvrirVersionStreaming(v); }}
+                          title={v.album_title ?? v.title}
+                        >
+                          <AlbumArt coverPath={v.cover_path} size={48} alt={v.album_title ?? v.title} />
+                          <span class="version-tuile-texte">
+                            <span class="version-tuile-titre truncate">{v.kind === 'reprise' ? (v.artist_name ?? v.title) : (v.album_title ?? v.title)}</span>
+                            <span class="version-tuile-sub">
+                              <ServiceBadge source={v.service} compact />
+                            </span>
+                          </span>
+                        </button>
+                      {/each}
+                    </div>
+                  {/if}
                 {/if}
               </div>
             {/if}
@@ -5718,6 +5882,80 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     flex-wrap: wrap;
     gap: var(--space-md);
     align-items: flex-start;
+  }
+
+  /*
+    « Autres versions » (#2372) : la MÊME ligne dépliée que les crédits, aux
+    mêmes marges, pour que l'œil reconnaisse le geste. Seul le contenu change
+    — des tuiles au lieu de puces.
+  */
+  .track-versions-row {
+    padding: var(--space-sm) 28px var(--space-sm) 56px;
+    background: var(--tune-surface);
+    border-bottom: 1px solid var(--tune-border);
+  }
+
+  .versions-tuiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .version-tuile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px 4px 4px;
+    border: 1px solid var(--tune-border);
+    border-radius: 10px;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    max-width: 240px;
+    transition: all 0.12s ease-out;
+  }
+
+  .version-tuile:hover {
+    background: var(--tune-surface-hover);
+    border-color: var(--tune-accent);
+  }
+
+  /* Une tuile qu'on ne sait pas ouvrir ne doit pas se donner l'air cliquable. */
+  .version-tuile.inerte {
+    cursor: default;
+    opacity: 0.75;
+  }
+
+  .version-tuile.inerte:hover {
+    background: none;
+    border-color: var(--tune-border);
+  }
+
+  .version-tuile-texte {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .version-tuile-titre {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tune-text);
+  }
+
+  .version-tuile-sub {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+  }
+
+  .version-tuile.reprise .version-tuile-titre {
+    font-style: italic;
   }
 
   .credits-role-group {

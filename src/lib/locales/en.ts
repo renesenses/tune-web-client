@@ -1757,6 +1757,8 @@ export default {
   "library.moreOptions": "More options",
   "library.goToArtist": "Go to artist",
   "library.goToAlbum": "Go to album",
+  "library.otherVersions": "Other versions",
+  "library.noOtherVersions": "No other version found",
   "library.editArtist": "Edit artist",
   "library.reEnrich": "Re-enrich",
   "library.enrichBio": "Enrich biography",
