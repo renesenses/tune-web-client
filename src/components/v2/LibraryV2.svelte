@@ -20,6 +20,7 @@
   import type { Album } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import AvatarMenu from './AvatarMenu.svelte';
+  import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -87,6 +88,7 @@
     { view: 'library', label: 'Albums' }, { view: 'library', label: 'Artistes' }, { view: 'library', label: 'Titres' },
     { view: 'genres', label: 'Genres', adv: true }, { view: 'genres', label: 'Années', adv: true }, { view: 'genres', label: 'Labels', adv: true },
   ];
+  let opened = $state<Album | null>(null);
   function reset() { fQuality = null; fRate = null; q = ''; }
 </script>
 
@@ -144,7 +146,7 @@
       </div>
       <div class="grid" class:expert={showExpert} bind:this={gridEl}>
         {#each sorted as a (a.id)}
-          <button class="card" class:dim={!matches(a)} data-letter={firstLetter(a)} onclick={() => activeView.set('library')}>
+          <button class="card" class:dim={!matches(a)} data-letter={firstLetter(a)} onclick={() => opened = a}>
             <div class="cover">
               <AlbumArt coverPath={a.cover_path} albumId={a.id} size={220} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
               {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
@@ -157,10 +159,14 @@
       </div>
     {/if}
   </div>
+
+  {#if opened}
+    <AlbumDetailV2 album={opened} onClose={() => (opened = null)} />
+  {/if}
 </section>
 
 <style>
-  .v2-lib{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
+  .v2-lib{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden; box-sizing:border-box}
   .top{display:flex; align-items:center; gap:18px; padding:20px 30px 8px}
   .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em}
