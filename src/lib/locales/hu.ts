@@ -230,6 +230,9 @@ export default {
   "queue.upNextSummary": "{count} következik · {time}",
   "lyrics.plainText": "Egyszerű szöveg",
   "lyrics.karaoke": "Karaoke",
+  "lyrics.source.lrc": "Forrás: .lrc fájl",
+  "lyrics.source.tag": "Forrás: fájlcímke",
+  "lyrics.source.lrclib": "Forrás: LRCLIB (online)",
   "plugins.docFallback": "# Bővítmény dokumentációja\n\nA teljes dokumentáció itt olvasható: [mozaiklabs.fr]({url}).",
   // MI-csevegés (Tune MI-asszisztens)
   "ai.fabTitle": "Húzd a mozgatáshoz · kattints, és kérdezd a Tune-t…",

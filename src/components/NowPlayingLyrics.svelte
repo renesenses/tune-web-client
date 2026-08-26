@@ -1,5 +1,6 @@
 <script lang="ts">
   import { seekPositionMs } from '../lib/stores/nowPlaying';
+  import { lyricsSourceKind } from '../lib/lyrics';
   import { t } from '../lib/i18n';
 
   interface Props {
@@ -7,11 +8,17 @@
     lyrics: string | null;
     syncedLines: { time: number; text: string }[];
     karaokeMode: boolean;
+    /** Provenance annoncée par le serveur : "lrc", "tag" ou "lrclib". */
+    source: string | null;
     onToggleKaraoke: () => void;
   }
-  let { loading, lyrics, syncedLines, karaokeMode, onToggleKaraoke }: Props = $props();
+  let { loading, lyrics, syncedLines, karaokeMode, source, onToggleKaraoke }: Props = $props();
 
   let karaokePanel = $state<HTMLElement | null>(null);
+
+  /** `null` tant que la provenance est absente ou inconnue : on ne nomme que
+   *  ce que le contrat serveur nomme. */
+  let sourceKind = $derived(lyricsSourceKind(source));
 
   let currentLine = $derived.by(() => {
     if (!karaokeMode || syncedLines.length === 0) return -1;
@@ -69,6 +76,20 @@
     {:else if lyrics}
       <pre class="lyrics-text">{lyrics}</pre>
     {/if}
+
+    <!-- Provenance. Le serveur la nomme dans CHAQUE réponse ("lrc" / "tag" /
+         "lrclib") et le client la jetait : un testeur a dû demander sur le
+         forum si Tune allait chercher ses paroles en ligne
+         (renesenses/tune-server-rust#2432). Les trois cas sont nommés, pas
+         seulement le cas réseau : sans cela, personne — testeur compris — ne
+         peut vérifier de quelle source vient le texte qu'il lit. -->
+    {#if sourceKind === 'lrc'}
+      <p class="lyrics-source">{$t('lyrics.source.lrc')}</p>
+    {:else if sourceKind === 'tag'}
+      <p class="lyrics-source">{$t('lyrics.source.tag')}</p>
+    {:else if sourceKind === 'lrclib'}
+      <p class="lyrics-source">{$t('lyrics.source.lrclib')}</p>
+    {/if}
   {:else}
     <!-- No lyrics: show nothing (no empty state) -->
   {/if}
@@ -87,6 +108,12 @@
     display: flex;
     justify-content: flex-end;
     margin-bottom: 8px;
+  }
+  .lyrics-source {
+    margin: 10px 0 0;
+    font-size: 11px;
+    color: var(--tune-text-muted, rgba(255,255,255,0.55));
+    text-align: right;
   }
   .karaoke-toggle {
     display: inline-flex;
