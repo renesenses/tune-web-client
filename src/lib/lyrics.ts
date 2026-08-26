@@ -166,6 +166,21 @@ export function radioTrackHasMeta(track: MetaTrack): boolean {
   return metaLyricsQuery(track)?.radio === true;
 }
 
+/** Provenance des paroles telle que le serveur la nomme, ou `null` si elle est
+ *  absente ou inconnue de nous.
+ *
+ *  Contrat serveur (`tune-server/src/routes/library/tracks.rs`, repris par
+ *  `GET /lyrics/by-meta`) : `"lrc"` (fichier .lrc à côté du morceau), `"tag"`
+ *  (étiquette embarquée) ou `"lrclib"` (appel réseau à lrclib.net). Toute
+ *  autre valeur n'est PAS affichée : mieux vaut ne rien dire que nommer une
+ *  provenance qu'on n'a pas comprise. */
+export type LyricsSourceKind = 'lrc' | 'tag' | 'lrclib';
+
+export function lyricsSourceKind(source: string | null | undefined): LyricsSourceKind | null {
+  const s = source?.trim().toLowerCase();
+  return s === 'lrc' || s === 'tag' || s === 'lrclib' ? s : null;
+}
+
 /** Ancrage local (repère `performance.now()`) du début du morceau radio.
  *  `ageMs` vient du serveur (`metadata_age_ms`, calculé sur SON horloge) :
  *  on soustrait l'âge du « maintenant » local, aucune comparaison
