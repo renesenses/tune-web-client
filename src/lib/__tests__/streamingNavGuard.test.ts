@@ -21,7 +21,12 @@ describe('StreamingView garde sa remise à zéro sous untrack', () => {
   );
 
   it('le corps de la remise à zéro est appelé sous untrack', () => {
-    expect(source).toMatch(/untrack\(\(\)\s*=>\s*resetForService\(s\)\)/);
+    // Le corps de l'effet service est enfermé dans un untrack : la restauration
+    // du contexte OU la remise à zéro s'y font. On vérifie que resetForService(s)
+    // reste appelé À L'INTÉRIEUR de ce bloc untrack (garde Dominique COMET) —
+    // la forme exacte a changé (bloc au lieu d'appel direct) quand le bouton
+    // retour a gagné sa branche de restauration.
+    expect(source).toMatch(/untrack\(\(\)\s*=>\s*\{[\s\S]*?resetForService\(s\)/);
   });
 
   it('untrack est importé depuis svelte', () => {
