@@ -22,8 +22,22 @@
     bands?: EqBand[];
     /** L'égaliseur est-il activé sur la zone ? */
     enabled?: boolean;
+    /**
+     * L'égaliseur est hors de l'offre en cours. `POST /zones/{id}/eq` est
+     * gardée côté serveur par `require_premium(…, Feature::DspEq)` et répond
+     * 402 : laisser cliquer sept préréglages qui seront tous refusés, c'était
+     * le signalement de Daniel POUCHON (fil 1364, #2419).
+     */
+    locked?: boolean;
   }
-  let { current, onSelect, pureMode = false, bands = [], enabled = true }: Props = $props();
+  let {
+    current,
+    onSelect,
+    pureMode = false,
+    bands = [],
+    enabled = true,
+    locked = false,
+  }: Props = $props();
 
   // Échelle d'affichage. Le serveur accepte ±12 dB (EqualizerView : MIN_GAIN /
   // MAX_GAIN) ; on borne ici pour qu'une valeur aberrante ne fasse pas sortir
@@ -41,6 +55,17 @@
 </script>
 
 <div class="np-eq">
+  {#if locked}
+    <!-- Une limite d'offre n'est pas une panne, et doit se lire comme telle.
+         Le refus du serveur (402) ne vivait que dans un `console.error` et
+         dans une notification fugace en anglais : à l'écran, le bouton se
+         cliquait et il ne se passait rien. -->
+    <p class="eq-premium-notice">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span>{$t('nowplaying.eqPremium')}</span>
+    </p>
+  {/if}
+
   {#if pureMode}
     <!-- En mode PURE, load_eq_processor n'est jamais construit : le PCM atteint
          la sortie intact. Laisser cliquer un préréglage qui ne fera rien, sans
@@ -95,6 +120,8 @@
       <button
         class="eq-preset"
         class:active={current === preset.value}
+        disabled={locked}
+        title={locked ? $t('nowplaying.eqPremium') : undefined}
         onclick={() => onSelect(preset.value)}
       >
         {preset.label}
@@ -166,7 +193,24 @@
     font-size: 0.8rem;
     cursor: pointer;
   }
-  .eq-preset:hover { background: rgba(255,255,255,0.08); }
+  .eq-preset:hover:not(:disabled) { background: rgba(255,255,255,0.08); }
+  /* Un bouton refusé doit se VOIR refusé : sans ça, on garde le clic muet en
+     n'ayant fait que déplacer le silence. */
+  .eq-preset:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .eq-premium-notice {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 0.6rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: var(--tune-accent, #f0b429);
+    max-width: 48ch;
+  }
+  .eq-premium-notice svg { flex: none; }
   .eq-preset.active {
     background: var(--tune-accent, #f0b429);
     color: #1a1a1a;

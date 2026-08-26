@@ -244,12 +244,12 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       throw new Error('Session expired');
     }
     if (response.status === 402) {
-      try {
-        const body = await response.json();
-        notifications.error(body?.message || 'Tune Premium requis pour cette fonctionnalite');
-      } catch {
-        notifications.error('Tune Premium requis pour cette fonctionnalite');
-      }
+      // Ni le message du serveur ni le repli ne parlaient la langue de
+      // l'interface : `premium_guard.rs` compose le sien avec
+      // `feature.display_name()` — « Parametric EQ requires Tune Premium »,
+      // en anglais — et le repli etait du francais code en dur, montre tel
+      // quel a un anglophone. Les deux sont le meme defaut (#2419).
+      notifications.error(get(t)('premium.required'));
       throw new Error('premium_required');
     }
     const err = await apiError(response);

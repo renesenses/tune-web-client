@@ -14,6 +14,8 @@
   import SeekBar from './SeekBar.svelte';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
+  import { isPremium, licenseState } from '../lib/stores/license';
+  import { estRefusPremium } from '../lib/premiumRefus';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
@@ -326,12 +328,33 @@
       .catch(() => { eqBands = []; eqEnabled = true; currentEqPreset = ''; });
   });
 
+  // Le serveur refuse l'ecriture de l'egaliseur hors Premium
+  // (`require_premium(…, Feature::DspEq)` -> 402). `$isPremium` permet de le
+  // dire AVANT le clic, mais il est lu au demarrage et peut mentir : licence
+  // active sur un autre serveur, fonction absente du palier, statut jamais
+  // recharge. L'autorite reste donc la reponse du serveur — un 402 recu
+  // verrouille le panneau a son tour (#2419).
+  // `loaded` compte : avant que `loadLicense()` ait repondu, l'etat par defaut
+  // est `tier: 'free'`. S'en servir tel quel montrerait le cadenas a un abonne
+  // pendant le chargement — on aurait remplace un silence par un mensonge.
+  let eqRefusePremium = $state(false);
+  let eqLocked = $derived(($licenseState.loaded && !$isPremium) || eqRefusePremium);
+
   async function setEqPreset(preset: string) {
     if (zone?.id == null) return;
     try {
       await api.setEqualizer(zone.id, preset);
       currentEqPreset = preset;
-    } catch (e) { console.error('EQ error:', e); }
+      eqRefusePremium = false;
+    } catch (e) {
+      // Un refus d'offre n'est pas une panne. Il ne meurt plus dans la
+      // console : le panneau se verrouille et affiche ce qu'il refuse.
+      if (estRefusPremium(e)) {
+        eqRefusePremium = true;
+        return;
+      }
+      notifications.error($t('nowplaying.eqError'));
+    }
   }
 
   async function handleShare() {
@@ -1506,7 +1529,7 @@
             />
           {/if}
           {#if showEq}
-            <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} bands={eqBands} enabled={eqEnabled} />
+            <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} bands={eqBands} enabled={eqEnabled} locked={eqLocked} />
           {/if}
           {#if showDspMenu}
             <div class="np-crossfeed">
