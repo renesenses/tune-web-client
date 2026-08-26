@@ -88,7 +88,8 @@ import AlarmsView from './components/AlarmsView.svelte';
   import { streamingServices as streamingServicesStore } from './lib/stores/streaming';
   import { isPushEnabled, initPushNotifications } from './lib/notifications-push';
 
-  import type { Track } from './lib/types';
+  import type { Track, Zone } from './lib/types';
+  import { resolveKioskZone } from './lib/kioskZone';
 
   let cleanupKeyboard: (() => void) | null = null;
   // Declared at component scope so onDestroy can unsubscribe (was a const inside
@@ -135,6 +136,35 @@ import AlarmsView from './components/AlarmsView.svelte';
 
   // Kiosk mode: ?kiosk=true forces NowPlaying view on small touchscreen
   const isKiosk = new URLSearchParams(window.location.search).has('kiosk');
+  // La zone affichée par un écran kiosque se désigne dans l'URL —
+  // `?kiosk&zone=<id>`, ou le raccourci `?kiosk=<id>` (#2274). Sans ce
+  // paramètre elle venait du seul réglage global, donc deux écrans muraux ne
+  // pouvaient pas montrer deux zones différentes.
+  //
+  // L'URL ne vaut qu'au démarrage : une fois la zone posée, l'écran se pilote
+  // normalement (sélecteur de zone de la barre de transport) et une
+  // reconnexion WebSocket ne le ramène pas de force sur la zone de l'URL.
+  let kioskUrlZoneApplied = false;
+  function kioskUrlZoneId(zoneList: Zone[]): number | null {
+    if (!isKiosk || kioskUrlZoneApplied) return null;
+    // Liste vide : le serveur n'a pas encore ses zones. Ne pas conclure
+    // « inconnue » ici, sinon une zone parfaitement valide serait refusée pour
+    // de bon — on retentera au prochain fetchZones().
+    if (zoneList.length === 0) return null;
+    kioskUrlZoneApplied = true;
+    const resolved = resolveKioskZone(window.location.search, zoneList);
+    if (resolved.kind === 'pinned') return resolved.zoneId;
+    if (resolved.kind === 'unknown') {
+      // Repli explicite. Épingler une zone absente ferait retomber le store
+      // dérivé `currentZone` sur `zones[0]` : l'écran piloterait une autre
+      // zone en silence, ce qui est pire que de ne rien épingler.
+      console.warn(
+        `[kiosque] zone « ${resolved.requested} » demandée dans l'URL mais introuvable — ` +
+        `repli sur la zone du réglage global`,
+      );
+    }
+    return null;
+  }
   // Mode mini-lecteur : la fenetre Windows de ~320px charge cette meme
   // interface avec ?mini=1 plutot qu'un second front a maintenir. Tout le
   // reste de l'application est court-circuite — pas de barre laterale, pas de
@@ -184,6 +214,13 @@ import AlarmsView from './components/AlarmsView.svelte';
     try {
       const zoneList = await api.getZones();
       zones.set(zoneList);
+
+      // La zone demandée dans l'URL du mode kiosque prend le pas (#2274), et
+      // seulement si elle existe vraiment. Sans paramètre — ou avec une zone
+      // inconnue — on ne pose rien et la sélection ci-dessous se déroule
+      // exactement comme avant.
+      const urlZoneId = kioskUrlZoneId(zoneList);
+      if (urlZoneId !== null) currentZoneId.set(urlZoneId);
 
       // Zone selection: keep current if already set, otherwise prefer a playing
       // zone over the default/first so the UI reconnects to active playback.
