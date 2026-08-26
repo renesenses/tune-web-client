@@ -13,6 +13,7 @@
     fetchLyricsByMeta,
     metaLyricsQuery,
     radioAnchorFrom,
+    lyricsSourceKind,
     type LyricsData,
   } from '../lib/lyrics';
   import { formatTime } from '../lib/utils';
@@ -196,6 +197,10 @@
     });
   });
   let showLyrics = $derived(settings.lyrics && lyrics !== null && lyrics.lines.length > 0);
+  /** Provenance annoncée par le serveur ("lrc" / "tag" / "lrclib"). Le mode
+   *  Grand écran tenait la réponse entière et n'en montrait rien
+   *  (renesenses/tune-server-rust#2432). */
+  let lyricsSource = $derived(lyricsSourceKind(lyrics?.source));
 
   // Position servant à la synchro des paroles :
   //  - radio (durée inconnue) : ancrage large = maintenant − metadata_age ;
@@ -349,6 +354,13 @@
               {line.text || '♪'}
             </p>
           {/each}
+          {#if lyricsSource === 'lrc'}
+            <p class="tv-lyrics-source">{$t('lyrics.source.lrc')}</p>
+          {:else if lyricsSource === 'tag'}
+            <p class="tv-lyrics-source">{$t('lyrics.source.tag')}</p>
+          {:else if lyricsSource === 'lrclib'}
+            <p class="tv-lyrics-source">{$t('lyrics.source.lrclib')}</p>
+          {/if}
         </div>
       {/if}
     </div>
@@ -568,6 +580,11 @@
   }
   .tv-lyrics::-webkit-scrollbar {
     display: none;
+  }
+  .tv-lyrics-source {
+    margin: 2.5vh 0 0;
+    font-size: clamp(11px, 0.85vw, 16px);
+    opacity: 0.45;
   }
   .tv-line {
     font-family: var(--font-display, inherit);

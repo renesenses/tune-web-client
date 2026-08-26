@@ -446,7 +446,7 @@
                   ＋
                 </button>
                 <span class="bc-num">{p.num}</span>
-                <span class="bc-p-titre">{p.title}</span>
+                <span class="bc-p-titre" title={p.title}>{p.title}</span>
                 <!-- Le débit est écrit sur CHAQUE ligne, pas seulement en tête
                      de liste : c'est la ligne qu'on clique, c'est là que
                      l'information doit être. -->
@@ -480,7 +480,7 @@
               {#each artisteOuvert.albums as d (d.url)}
                 <button class="bc-vignette" onclick={() => ouvrir_album(d.url)}>
                   {#if d.pochette}<img src={d.pochette} alt="" loading="lazy" />{/if}
-                  <span class="bc-v-titre">{d.titre}</span>
+                  <span class="bc-v-titre" title={d.titre}>{d.titre}</span>
                 </button>
               {/each}
             </div>
@@ -503,8 +503,8 @@
             {#each recherche.albums as a (a.url)}
               <button class="bc-vignette" onclick={() => ouvrir_album(a.url)}>
                 {#if a.pochette}<img src={a.pochette} alt="" loading="lazy" />{/if}
-                <span class="bc-v-titre">{a.titre}</span>
-                <span class="bc-v-artiste">{a.artiste}</span>
+                <span class="bc-v-titre" title={a.titre}>{a.titre}</span>
+                <span class="bc-v-artiste" title={a.artiste}>{a.artiste}</span>
               </button>
             {/each}
           </div>
@@ -551,8 +551,8 @@
           {#each decouvertes as a (a.url)}
             <button class="bc-vignette" onclick={() => ouvrir_album(a.url)}>
               {#if a.pochette}<img src={a.pochette} alt="" loading="lazy" />{/if}
-              <span class="bc-v-titre">{a.titre}</span>
-              <span class="bc-v-artiste">{a.artiste}</span>
+              <span class="bc-v-titre" title={a.titre}>{a.titre}</span>
+              <span class="bc-v-artiste" title={a.artiste}>{a.artiste}</span>
             </button>
           {/each}
         </div>
