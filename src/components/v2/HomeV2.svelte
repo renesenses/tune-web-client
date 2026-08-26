@@ -50,13 +50,13 @@
 </script>
 
 <section class="v2-home tune-v2">
+  <div class="av-tr"><AvatarMenu /></div>
+
   <header class="top">
     <div>
       <div class="hello">{hello}</div>
       <h1>Votre musique</h1>
     </div>
-    <div class="spacer"></div>
-    <AvatarMenu />
   </header>
 
   <div class="scroll">
@@ -119,12 +119,12 @@
 </section>
 
 <style>
-  .v2-home{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
+  .v2-home{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-start; gap:18px; padding:22px 30px 6px}
+  .av-tr{position:absolute; top:20px; right:30px; z-index:50}
+  .top{padding:22px 30px 6px}
   .hello{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
   .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
-  .spacer{flex:1}
 
   .scroll{flex:1; overflow-y:auto; padding:14px 0 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
