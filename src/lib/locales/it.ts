@@ -344,6 +344,11 @@ export default {
   'history.clear': 'Cancella',
   'history.cleared': 'Cronologia cancellata',
   'history.noHistory': 'Nessuna cronologia di riproduzione',
+  'history.saveRadioFav': 'Aggiungi questo brano radio ai preferiti',
+  'history.removeRadioFav': 'Rimuovi questo brano dai preferiti radio',
+  'history.radioFavAdded': 'Brano aggiunto ai preferiti radio',
+  'history.radioFavRemoved': 'Brano rimosso dai preferiti radio',
+  'history.radioFavError': 'Impossibile aggiornare i preferiti radio',
 
   // Library
   'library.title': 'Libreria',

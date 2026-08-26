@@ -354,6 +354,11 @@ export default {
   'history.clear': 'Șterge',
   'history.cleared': 'Istoric șters',
   'history.noHistory': 'Niciun istoric de redare',
+  'history.saveRadioFav': 'Adaugă această piesă radio la favorite',
+  'history.removeRadioFav': 'Scoate această piesă din favoritele radio',
+  'history.radioFavAdded': 'Piesă adăugată la favoritele radio',
+  'history.radioFavRemoved': 'Piesă scoasă din favoritele radio',
+  'history.radioFavError': 'Nu s-au putut actualiza favoritele radio',
 
   // Library
   'library.title': 'Bibliotecă',

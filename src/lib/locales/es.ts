@@ -344,6 +344,11 @@ export default {
   'history.clear': 'Limpiar',
   'history.cleared': 'Historial eliminado',
   'history.noHistory': 'Sin historial de reproducción',
+  'history.saveRadioFav': 'Añadir este tema de radio a favoritos',
+  'history.removeRadioFav': 'Quitar este tema de los favoritos de radio',
+  'history.radioFavAdded': 'Tema añadido a los favoritos de radio',
+  'history.radioFavRemoved': 'Tema quitado de los favoritos de radio',
+  'history.radioFavError': 'No se pudieron actualizar los favoritos de radio',
 
   // Library
   'library.title': 'Biblioteca',

@@ -314,6 +314,11 @@ export default {
   'history.clear': 'Rensa',
   'history.cleared': 'Historik rensad',
   'history.noHistory': 'Ingen uppspelningshistorik',
+  'history.saveRadioFav': 'Spara denna radiolåt som favorit',
+  'history.removeRadioFav': 'Ta bort denna låt från radiofavoriter',
+  'history.radioFavAdded': 'Låten tillagd bland radiofavoriter',
+  'history.radioFavRemoved': 'Låten borttagen från radiofavoriter',
+  'history.radioFavError': 'Kunde inte uppdatera radiofavoriter',
 
   // Library
   'library.title': 'Bibliotek',

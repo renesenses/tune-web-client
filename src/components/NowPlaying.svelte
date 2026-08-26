@@ -8,6 +8,7 @@
   import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
   import { isMiddlePressWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
+  import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
   import { CF_PRESETS, presetActif, reglagesCrossfeed } from '../lib/crossfeed';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -658,11 +659,13 @@
           const favs = await api.apiFetch('/radio-favorites?limit=500');
           const match = favs.find((f: any) => f.title === tr.title && f.artist === tr.artist_name);
           if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
+          forgetRadioFavListenAt(tr.title, tr.artist_name);
           isFavorite = false;
         } else {
           const zid = zone?.id;
           if (zid != null) {
             await api.apiPost('/radio-favorites/save-current', { zone_id: zid });
+            rememberRadioFavListenAt(tr.title, tr.artist_name, isoFromMetadataChangedAt(tr.metadata_changed_at));
             isFavorite = true;
           }
         }

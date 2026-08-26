@@ -344,6 +344,11 @@ export default {
   'history.clear': 'Löschen',
   'history.cleared': 'Verlauf gelöscht',
   'history.noHistory': 'Kein Wiedergabeverlauf',
+  'history.saveRadioFav': 'Diesen Radiotitel zu den Favoriten hinzufügen',
+  'history.removeRadioFav': 'Diesen Titel aus den Radio-Favoriten entfernen',
+  'history.radioFavAdded': 'Titel zu den Radio-Favoriten hinzugefügt',
+  'history.radioFavRemoved': 'Titel aus den Radio-Favoriten entfernt',
+  'history.radioFavError': 'Radio-Favoriten konnten nicht aktualisiert werden',
 
   // Library
   'library.title': 'Musikbibliothek',

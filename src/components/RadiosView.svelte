@@ -7,6 +7,7 @@
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
+  import { radioFavDisplayAt, formatRadioFavDate, forgetRadioFavListenAt, clearRadioFavListenAt } from '../lib/radioFavListenAt';
   import { tuneWS } from '../lib/websocket';
   import { onMount } from 'svelte';
   import type { RadioStation } from '../lib/types';
@@ -38,6 +39,7 @@
   async function removeSavedTrack(fav: RadioFav) {
     try {
       await api.apiDelete(`/radio-favorites/${fav.id}`);
+      forgetRadioFavListenAt(fav.title, fav.artist);
       savedTracks = savedTracks.filter(f => f.id !== fav.id);
       savedCount = savedTracks.length;
     } catch (e) { console.error('Delete radio fav:', e); }
@@ -47,6 +49,7 @@
     if (!(await dialogs.confirm($t('radio.clearConfirm'), { danger: true }))) return;
     try {
       await api.apiDelete('/radio-favorites');
+      clearRadioFavListenAt();
       savedTracks = [];
       savedCount = 0;
     } catch (e) {
@@ -55,9 +58,8 @@
     }
   }
 
-  function formatDate(iso: string): string {
-    try { return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
-    catch { return iso; }
+  function formatDate(fav: RadioFav): string {
+    return formatRadioFavDate(radioFavDisplayAt(fav.title, fav.artist, fav.saved_at));
   }
 
   function switchTab(tab: Tab) {
@@ -394,7 +396,7 @@
           <div class="saved-info">
             <span class="saved-title">{fav.title}</span>
             <span class="saved-artist">{fav.artist}</span>
-            <span class="saved-station">{fav.station_name} · {formatDate(fav.saved_at)}</span>
+            <span class="saved-station">{fav.station_name} · {formatDate(fav)}</span>
           </div>
           <button class="action-btn delete-btn" onclick={() => removeSavedTrack(fav)} title={$t('common.delete')}>
             <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>

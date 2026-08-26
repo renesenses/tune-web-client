@@ -543,6 +543,11 @@ export default {
   'history.clear': 'Clear',
   'history.cleared': 'History cleared',
   'history.noHistory': 'No playback history',
+  'history.saveRadioFav': 'Save this radio track to favourites',
+  'history.removeRadioFav': 'Remove this track from radio favourites',
+  'history.radioFavAdded': 'Track added to radio favourites',
+  'history.radioFavRemoved': 'Track removed from radio favourites',
+  'history.radioFavError': 'Could not update radio favourites',
 
   // Library
   'library.title': 'Library',
