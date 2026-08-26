@@ -3404,12 +3404,19 @@ export function getAudiophileMode(zoneId: number) {
  * Optionnel à dessein : un serveur antérieur ne renvoie pas le champ, et on
  * n'affirme alors rien de ce qu'il ne dit pas (même règle que `setEq`).
  */
-export function setAudiophileMode(zoneId: number, enabled: boolean) {
+export function setAudiophileMode(
+  zoneId: number,
+  enabled: boolean,
+  confirmFullVolume = false,
+) {
   return fetchJSON<{ enabled: boolean; applied_live?: boolean }>(
     `${BASE}/zones/${zoneId}/audiophile`,
     {
       method: 'POST',
-      body: JSON.stringify({ enabled }),
+      body: JSON.stringify({
+        enabled,
+        ...(confirmFullVolume ? { confirm_full_volume: true } : {}),
+      }),
     },
   );
 }
