@@ -550,6 +550,28 @@
     return `${m}:${sec.toString().padStart(2, '0')}`;
   }
 
+  /**
+   * Le texte de la seconde ligne de la barre, en clair — pour l'infobulle.
+   *
+   * Cette ligne est la plus étroite de l'interface et la plus souvent coupée
+   * (#2411). Elle ne se laisse pas recopier telle quelle dans un `title=` :
+   * son balisage mêle la donnée à des pastilles (badge YT, badge de qualité,
+   * pictogramme d'antenne) qui n'ont rien à faire dans une bulle. On refait
+   * donc le texte, et lui seul : l'artiste, ou — sur une radio — l'artiste
+   * suivi de la station.
+   */
+  function miniArtistLabel(t: typeof displayTrack): string {
+    if (!t) return '';
+    if (t.source === 'radio') {
+      const nom =
+        t.artist_name && t.artist_name !== t.album_title
+          ? t.artist_name
+          : t.album_title || 'Live Radio';
+      return `${nom} · ${t.album_title || 'Radio'}`;
+    }
+    return t.artist_name ?? '';
+  }
+
   // Remember the current track's duration so a transient duration_ms=0 during
   // a restart (repeat-one on ASIO/exclusive: the re-play briefly reports no
   // duration) doesn't make the whole progress bar vanish (DEvir). Keyed by
@@ -607,13 +629,13 @@
              l'envoie pas) : on ne le passe que quand la piste vient de la file. -->
         <AlbumArt coverPath={displayTrack.cover_path} albumId={'album_id' in displayTrack ? displayTrack.album_id : null} size={56} alt={displayTrack.title} />
         <div class="track-mini">
-          <span class="mini-title truncate">
+          <span class="mini-title truncate" title={displayTrack.title}>
             {displayTrack.title}
             {#if displayTrack.source === 'radio'}
               <span class="live-badge"><span class="live-dot"></span>LIVE</span>
             {/if}
           </span>
-          <span class="mini-artist truncate">
+          <span class="mini-artist truncate" title={miniArtistLabel(displayTrack)}>
             {#if ytActive}<span class="yt-badge">YT</span>{/if}
             {#if displayTrack.source === 'radio'}
               {displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title
@@ -937,9 +959,9 @@
                    elles jouent, et c'est la question posée. La seconde ligne
                    ne s'affiche que si elle apporte autre chose que le nom. -->
               <span class="zone-popover-labels">
-                <span class="zone-popover-name truncate">{z.name}</span>
+                <span class="zone-popover-name truncate" title={z.name}>{z.name}</span>
                 {#if zoneDeviceName(z) && zoneDeviceName(z) !== z.name}
-                  <span class="zone-popover-device truncate">{zoneDeviceName(z)}</span>
+                  <span class="zone-popover-device truncate" title={zoneDeviceName(z)}>{zoneDeviceName(z)}</span>
                 {/if}
               </span>
               <span class="zone-popover-meta">

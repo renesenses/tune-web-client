@@ -11,6 +11,7 @@
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './AlbumArt.svelte';
+  import ClampedText from './ClampedText.svelte';
   import HeartButton from './HeartButton.svelte';
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
@@ -1165,7 +1166,9 @@
           {/if}
         </div>
         {#if selectedPlaylist?.description}
-          <p class="playlist-desc">{selectedPlaylist.description}</p>
+          <ClampedText lines={3} resetKey={selectedPlaylist.description}>
+            <p class="playlist-desc">{selectedPlaylist.description}</p>
+          </ClampedText>
         {/if}
         <span class="playlist-count">{detailTracks.length} {$tr('common.tracks')}</span>
       </div>
