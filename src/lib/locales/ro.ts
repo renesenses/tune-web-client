@@ -331,6 +331,7 @@ export default {
   'home.tracks': 'Piese',
   'home.searchPlaceholder': 'Caută în bibliotecă...',
   'home.recentlyPlayed': 'Redate recent',
+  'home.playedTrack': 'Piesă redată',
   'home.recentlyAdded': 'Adăugate recent',
   'home.newInLibrary': 'Noutăți în biblioteca ta',
   'home.artistReleases': 'Noutăți de la artiștii tăi',

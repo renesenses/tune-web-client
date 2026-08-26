@@ -325,6 +325,7 @@ export default {
   'home.tracks': 'Pistas',
   'home.searchPlaceholder': 'Buscar en la biblioteca...',
   'home.recentlyPlayed': 'Reproducido recientemente',
+  'home.playedTrack': 'Pista reproducida',
   'home.recentlyAdded': 'Añadido recientemente',
   'home.newInLibrary': 'Novedades en tu biblioteca',
   'home.artistReleases': 'Novedades de tus artistas',

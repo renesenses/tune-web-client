@@ -525,6 +525,7 @@ export default {
   'home.tracks': 'Pistes',
   'home.searchPlaceholder': 'Rechercher dans la bibliothèque...',
   'home.recentlyPlayed': 'Récemment joué',
+  'home.playedTrack': 'Titre écouté',
   'home.recentlyAdded': 'Récemment ajouté',
   'home.newInLibrary': 'Nouveautés dans votre bibliothèque',
   'home.artistReleases': 'Nouveautés de vos artistes',

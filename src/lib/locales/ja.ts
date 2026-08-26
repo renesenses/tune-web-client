@@ -325,6 +325,7 @@ export default {
   'home.tracks': 'トラック',
   'home.searchPlaceholder': 'ライブラリを検索...',
   'home.recentlyPlayed': '最近再生した曲',
+  'home.playedTrack': '再生した曲',
   'home.recentlyAdded': '最近追加した曲',
   'home.newInLibrary': 'ライブラリの新着',
   'home.artistReleases': 'お気に入りアーティストの新作',

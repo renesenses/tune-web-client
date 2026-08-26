@@ -47,6 +47,38 @@ export function takeViewState<T>(key: string): T | undefined {
   return v;
 }
 
+// Contexte de navigation PERSISTANT par vue (#bug-bouton-retour).
+//
+// Contrairement à `viewStateStash` (one-shot, effacé par `requestListReset`),
+// ceci SURVIT au démontage/remontage. App.svelte monte les vues dans une
+// chaîne `{#if activeView === …}` : quitter une vue la démonte et perd son
+// `$state` local ; y revenir la remonte à neuf, à la racine. C'était « le
+// bouton retour réinitialise toute la navigation ». Une vue enregistre ici un
+// instantané SÉRIALISABLE de sa position (onglet, album/artiste ouvert, fil de
+// genres, recherche) et le rétablit à son montage suivant.
+//
+// La clé est la vue ; la valeur est opaque, propriété de la vue (chaque vue
+// connaît la forme de son propre contexte). Volontairement en mémoire (pas de
+// localStorage) : le contexte vaut pour la session de navigation, un
+// rechargement complet repart proprement de l'accueil.
+const viewContexts = new Map<View, unknown>();
+
+export function saveViewContext(view: View, ctx: unknown): void {
+  if (ctx == null) {
+    viewContexts.delete(view);
+  } else {
+    viewContexts.set(view, ctx);
+  }
+}
+
+export function loadViewContext<T>(view: View): T | undefined {
+  return viewContexts.get(view) as T | undefined;
+}
+
+export function clearViewContext(view: View): void {
+  viewContexts.delete(view);
+}
+
 // Optional tab to open when navigating to settings (consumed once by SettingsView)
 export const settingsInitialTab = writable<string | null>(null);
 export const mobileNowPlayingOpen = writable(false);

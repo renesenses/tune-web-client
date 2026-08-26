@@ -299,6 +299,7 @@ export default {
   'home.tracks': 'Spår',
   'home.searchPlaceholder': 'Sök i biblioteket...',
   'home.recentlyPlayed': 'Nyligen spelat',
+  'home.playedTrack': 'Spelat spår',
   'home.recentlyAdded': 'Nyligen tillagt',
   'home.topArtists': 'Toppartister',
   'home.topTracks': 'Toppspår',
