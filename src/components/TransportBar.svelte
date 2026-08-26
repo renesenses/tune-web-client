@@ -9,6 +9,7 @@
   import { toggleStreamingFavorite, isStreamingFavorite } from '../lib/streamingFavorites';
   import * as api from '../lib/api';
   import * as controls from '../lib/playback-controls';
+  import { suivantDesactive } from '../lib/boutonSuivant';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import VolumeControl from './VolumeControl.svelte';
@@ -362,10 +363,11 @@
   let showZoneDropdown = $state(false);
   let configZone = $state<typeof zone | null>(null);
   let hasNoZone = $derived($zones.length === 0);
-  // Prev/next are always enabled when a track is loaded — the server
-  // handles boundary cases (loops back or stops gracefully).
-  // Disabling based on queue_position was unreliable because WS events
-  // don't always include updated queue info.
+  // « Précédent » reste toujours actif quand une piste est chargée : le
+  // serveur gère les bords (il reboucle ou relance la piste). « Suivant », lui,
+  // consulte la file — voir lib/boutonSuivant. Les événements WS n'apportent
+  // pas toujours la file à jour, mais `upNextCount` dérive de `queueTracks`,
+  // relu par `fetchQueue` : la garde ne dépend pas de l'événement.
 
   // YouTube IFrame state — for badge display and fallback when no zone
   let ytActive = $derived($ytPlayerState.active);
@@ -690,16 +692,20 @@
     {/if}
 
     {#if displayTrack?.source !== 'radio'}
-      <!-- « Suivant » n'a de sens que s'il reste quelque chose APRÈS.
-           Le bouton restait cliquable sur une file d'un seul titre (FabienM,
-           v0.9.102) : il n'y avait rien vers quoi aller.
-           En répétition, en revanche, il en garde un — `all` reboucle sur le
-           début, `one` rejoue la piste — donc on ne le désactive que si la
-           répétition est éteinte. Une vidéo YouTube pilote sa propre suite. -->
+      <!-- La règle vit dans lib/boutonSuivant : le mini-lecteur porte le même
+           bouton, et les deux copies avaient déjà divergé. Elle reproduit
+           `next_position_manual` côté serveur — y compris sous aléatoire, où
+           l'ordre brut de la file ne dit rien de la suite. -->
       <button
         class="control-btn"
-        disabled={(playState === 'stopped' && !ytActive && !track) ||
-          (!ytActive && $upNextCount === 0 && $repeatMode === 'off')}
+        disabled={suivantDesactive({
+          playState,
+          aUnePiste: !!track,
+          ytActive,
+          upNextCount: $upNextCount,
+          repeat: $repeatMode,
+          shuffle: $shuffleEnabled,
+        })}
         onclick={handleNext}
         title={$t('transport.next')}
       >

@@ -272,6 +272,86 @@
     }
   }
 
+  /**
+   * Lecture aleatoire d'une playlist de service.
+   *
+   * Le chemin local envoie `track_ids` melanges et le serveur batit la file ;
+   * une playlist de service n'a pas d'identifiants locaux, et la route de
+   * lecture n'accepte que `streaming_playlist_id` + un index de depart —
+   * c'est-a-dire l'ordre du service, jamais le notre. On reprend donc le
+   * chemin deja eprouve par `FavoritesView.playAllTracks` : lancer la
+   * premiere piste tiree, puis empiler les suivantes dans l'ordre melange.
+   *
+   * Portee : les pistes REELLEMENT chargees. Une playlist tres longue est
+   * tronquee a la lecture par le service (cf. la pagination absente cote
+   * serveur), et le melange ne porte donc que sur ce qui est affiche.
+   */
+  /**
+   * Coeur commun : jouer une suite de pistes de service dans l'ordre donne.
+   * Lance la premiere, empile les suivantes. Extrait le jour ou l'aleatoire
+   * a ete demande depuis la LISTE autant que depuis la playlist ouverte.
+   */
+  async function lancerPistesStreaming(source: string, pistes: Track[]) {
+    if (!zone?.id || pistes.length === 0) {
+      notifications.error($tr('queue.addFailed'));
+      return;
+    }
+    try {
+      await playStreamingTrack(pistes[0]);
+      for (const t of pistes.slice(1)) {
+        const src = t.source || source;
+        if (!t.source_id || !src) continue;
+        await api.addToQueue(zone.id, {
+          source: src as any,
+          source_id: t.source_id,
+          title: t.title,
+          artist_name: t.artist_name,
+          album_title: t.album_title,
+          cover_path: t.cover_path,
+          duration_ms: t.duration_ms,
+        });
+      }
+    } catch (e) {
+      console.error('Shuffle streaming playlist error:', e);
+      notifications.error($tr('library.playbackError'));
+    }
+  }
+
+  /** Aleatoire d'une playlist locale depuis la LISTE : ses pistes ne sont pas
+   *  encore chargees, on va les chercher avant de melanger. */
+  async function playPlaylistShuffledById(playlistId: number) {
+    if (!zone?.id) return;
+    try {
+      const pistes = await api.getPlaylistTracks(playlistId);
+      const ids = pistes.map((t) => t.id).filter((id): id is number => typeof id === 'number');
+      if (ids.length === 0) {
+        notifications.error($tr('queue.addFailed'));
+        return;
+      }
+      await playAndSync(zone.id, { track_ids: melangee(ids), start_index: 0 });
+    } catch (e) {
+      console.error('Shuffle playlist error:', e);
+      notifications.error($tr('library.playbackError'));
+    }
+  }
+
+  /** Aleatoire d'une playlist de service depuis la LISTE. */
+  async function playStreamingPlaylistShuffledFor(service: string, pl: StreamingPlaylist) {
+    if (!zone?.id) return;
+    try {
+      const pistes = await api.getStreamingPlaylistTracks(service, pl.source_id);
+      await lancerPistesStreaming(service, melangee(pistes));
+    } catch (e) {
+      console.error('Shuffle streaming playlist error:', e);
+      notifications.error($tr('library.playbackError'));
+    }
+  }
+
+  async function playStreamingPlaylistShuffled() {
+    if (!zone?.id || !selectedStreamingPl) return;
+    await lancerPistesStreaming(selectedService, melangee(streamingPlTracks));
+  }
+
   async function playStreamingTrack(t: Track) {
     if (!zone?.id || !t.source_id) return;
     const source = t.source || selectedService;
@@ -417,6 +497,15 @@
         <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
         {$tr('common.play')}
       </button>
+      {#if streamingPlTracks.length > 1}
+        <button class="play-all-btn shuffle-btn" onclick={playStreamingPlaylistShuffled}>
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"
+            ><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"
+            /></svg
+          >
+          {$tr('favorites.shuffle')}
+        </button>
+      {/if}
     </div>
     {#if selectedStreamingPl.cover_path}
       <div class="streaming-pl-cover">
@@ -542,6 +631,12 @@
                 </div>
                 <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
               </button>
+              <button class="row-mini-btn" onclick={() => pl.id && playPlaylist(pl.id)} title={$tr('common.play')} aria-label={$tr('common.play')}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z" /></svg>
+              </button>
+              <button class="row-mini-btn" onclick={() => pl.id && playPlaylistShuffledById(pl.id)} title={$tr('favorites.shuffle')} aria-label={$tr('favorites.shuffle')}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" /></svg>
+              </button>
               <button class="delete-btn" onclick={() => pl.id && deletePlaylist(pl.id)} title={$tr('common.delete')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
               </button>
@@ -569,6 +664,12 @@
                   <span class="playlist-meta">{pl.track_count} {$tr('common.tracks')}</span>
                 </div>
                 <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
+              </button>
+              <button class="row-mini-btn" onclick={() => playStreamingPlaylist(pl)} title={$tr('common.play')} aria-label={$tr('common.play')}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z" /></svg>
+              </button>
+              <button class="row-mini-btn" onclick={() => playStreamingPlaylistShuffledFor(selectedSource, pl)} title={$tr('favorites.shuffle')} aria-label={$tr('favorites.shuffle')}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" /></svg>
               </button>
             </div>
           {/each}
@@ -628,6 +729,15 @@
   .play-all-btn:hover { background: var(--tune-accent-hover); }
 
   .playlist-list { display: flex; flex-direction: column; gap: 1px; }
+  /* Lecture directe depuis la LISTE, sans ouvrir la playlist. Volontairement
+     placees AVANT le bouton supprimer : le geste destructeur reste le plus
+     eloigne du pouce. */
+  .row-mini-btn { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; flex: 0 0 auto; background: none; border: none; border-radius: 6px; color: var(--tune-text-dim); cursor: pointer; opacity: 0; transition: opacity 0.12s ease-out, background 0.12s ease-out, color 0.12s ease-out; }
+  .playlist-item:hover .row-mini-btn { opacity: 1; }
+  .row-mini-btn:hover { background: var(--tune-hover); color: var(--tune-text); }
+  .row-mini-btn:focus-visible { opacity: 1; outline: 2px solid var(--tune-accent); outline-offset: 2px; }
+  @media (hover: none) { .row-mini-btn { opacity: 1; } }
+
   .playlist-item { display: flex; align-items: center; }
   .playlist-btn { flex: 1; display: flex; align-items: center; gap: 14px; padding: 12px 28px; background: none; border: none; color: var(--tune-text); cursor: pointer; text-align: left; transition: background 0.12s ease-out; }
   .playlist-btn:hover { background: var(--tune-surface-hover); }

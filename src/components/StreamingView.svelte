@@ -6,6 +6,7 @@
   import { activeView, settingsInitialTab, saveViewContext, loadViewContext } from '../lib/stores/navigation';
   import * as api from '../lib/api';
   import { formatTime, formatAlbumYear } from '../lib/utils';
+  import { actionRetour } from '../lib/streamingRetour';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -352,11 +353,20 @@
     return () => { delete (window as any).__tuneStreamingShortcut; };
   });
 
+  // Sections éditoriales : intitulés et données sont publiés ENSEMBLE, à la
+  // fin, sous la garde `service === s`. Publier `featuredSections` dès son
+  // retour (liste statique, immédiate) éteignait les squelettes — dont la
+  // condition est `featuredSections.length === 0` — pendant que les données,
+  // elles, attendaient le `Promise.all` (lent à froid sur Qobuz). Résultat :
+  // une page « finie » et vide, où les catégories surgissaient plus tard, par
+  // exemple au retour d'un aller-retour par Genres (Dimitri, 0.9.68, fil
+  // forum 1372). Le drapeau de chargement obéit à la même garde, sinon
+  // l'appel périmé d'un service quitté rouvre la même fenêtre vide sur le
+  // service courant.
   async function loadFeatured(s: string) {
     featuredLoading = true;
     try {
       const sections = await api.getStreamingFeaturedSections(s);
-      featuredSections = sections;
       const data: Record<string, Album[]> = {};
       const promises = sections.map(async (sec) => {
         try {
@@ -367,12 +377,13 @@
       });
       await Promise.all(promises);
       if (service === s) {
+        featuredSections = sections;
         featuredData = data;
       }
     } catch (e) {
       console.error('Load featured error:', e);
     }
-    featuredLoading = false;
+    if (service === s) featuredLoading = false;
   }
 
   async function loadUserPlaylists(s: string) {
@@ -684,11 +695,26 @@
     if (searchDebounce) clearTimeout(searchDebounce);
   }
 
-  async function selectAlbum(album: Album) {
+  /**
+   * Ouvre un album du service.
+   *
+   * `depuisArtiste` dit que le clic vient de la discographie affichée sous
+   * `{:else if selectedArtist}`. Dans ce cas SEULEMENT on garde le niveau
+   * artiste ouvert dessous : c'est lui qui permet à `goBack()` de remonter
+   * d'un cran vers la fiche de l'artiste au lieu de retomber à la racine du
+   * service (Sandro, fil 1553). Même correctif que `LibraryView` pour la
+   * bibliothèque locale (« bug Fabien-1 », #1144).
+   *
+   * Partout ailleurs — résultats de recherche, accueil, genres, lien profond —
+   * il n'y a pas d'artiste au-dessus, et le vider reste la bonne chose à faire :
+   * sans ça, un artiste resté d'une navigation précédente ferait remonter vers
+   * une fiche que l'auditeur n'a jamais ouverte.
+   */
+  async function selectAlbum(album: Album, depuisArtiste = false) {
     const albumId = String(album.source_id ?? album.id ?? '');
     if (!service || !albumId) return;
     selectedAlbum = album;
-    selectedArtist = null;
+    if (!depuisArtiste) selectedArtist = null;
     loading = true;
     try {
       albumTracks = await api.getStreamingAlbumTracks(service, albumId);
@@ -830,12 +856,27 @@
   }
 
   function goBack() {
+    const suite = actionRetour({
+      provenance: $streamingAlbumOrigin,
+      album: selectedAlbum != null,
+      artiste: selectedArtist != null,
+    });
+
+    if (suite.action === 'remonter-a-l-artiste') {
+      // L'album a été ouvert DEPUIS la discographie : on ne referme que lui,
+      // et la fiche de l'artiste réapparaît — un seul niveau à la fois. Un
+      // second « Retour » ramènera alors à la racine du service, où la liste
+      // de résultats de la recherche est toujours en place.
+      selectedAlbum = null;
+      albumTracks = [];
+      return;
+    }
+
     // Une fiche ouverte depuis un autre écran (accueil) : le premier retour
     // y ramène, au lieu d'atterrir sur la grille du service.
-    const provenance = $streamingAlbumOrigin;
-    if (provenance) {
+    if (suite.action === 'quitter-la-vue') {
       streamingAlbumOrigin.set(null);
-      activeView.set(provenance as any);
+      activeView.set(suite.vers as any);
     }
     selectedAlbum = null;
     selectedArtist = null;
@@ -1093,11 +1134,11 @@
         {#each artistAlbums as album}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="album-card" onclick={() => selectAlbum(album)}>
+        <div class="album-card" onclick={() => selectAlbum(album, true)}>
             <div class="album-card-art">
               <AlbumArt coverPath={album.cover_path} size={160} alt={album.title} />
               <div class="art-hover-overlay">
-                <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); selectAlbum(album); }} title={$tr('library.openAlbum')}>
+                <button class="art-play-btn" onclick={(e) => { e.stopPropagation(); selectAlbum(album, true); }} title={$tr('library.openAlbum')}>
                   <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M8 5v14l11-7z" /></svg>
                 </button>
               </div>

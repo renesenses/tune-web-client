@@ -14,6 +14,8 @@
   import SeekBar from './SeekBar.svelte';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
+  import { isPremium, licenseState } from '../lib/stores/license';
+  import { estRefusPremium } from '../lib/premiumRefus';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
@@ -36,6 +38,10 @@
   let creditsEnriching = $state(false);
   let showLyrics = $state(false);
   let npLyrics: string | null = $state(null);
+  /** Provenance annoncée par le serveur pour les paroles affichées ("lrc",
+   *  "tag" ou "lrclib"). Elle traversait déjà la normalisation et s'arrêtait
+   *  là (renesenses/tune-server-rust#2432). */
+  let npLyricsSource: string | null = $state(null);
   let npLyricsTrackId: number | null = $state(null);
   /** Clé `artist|title` des paroles radio chargées (piste sans track id). */
   let npLyricsRadioKey: string | null = $state(null);
@@ -322,12 +328,33 @@
       .catch(() => { eqBands = []; eqEnabled = true; currentEqPreset = ''; });
   });
 
+  // Le serveur refuse l'ecriture de l'egaliseur hors Premium
+  // (`require_premium(…, Feature::DspEq)` -> 402). `$isPremium` permet de le
+  // dire AVANT le clic, mais il est lu au demarrage et peut mentir : licence
+  // active sur un autre serveur, fonction absente du palier, statut jamais
+  // recharge. L'autorite reste donc la reponse du serveur — un 402 recu
+  // verrouille le panneau a son tour (#2419).
+  // `loaded` compte : avant que `loadLicense()` ait repondu, l'etat par defaut
+  // est `tier: 'free'`. S'en servir tel quel montrerait le cadenas a un abonne
+  // pendant le chargement — on aurait remplace un silence par un mensonge.
+  let eqRefusePremium = $state(false);
+  let eqLocked = $derived(($licenseState.loaded && !$isPremium) || eqRefusePremium);
+
   async function setEqPreset(preset: string) {
     if (zone?.id == null) return;
     try {
       await api.setEqualizer(zone.id, preset);
       currentEqPreset = preset;
-    } catch (e) { console.error('EQ error:', e); }
+      eqRefusePremium = false;
+    } catch (e) {
+      // Un refus d'offre n'est pas une panne. Il ne meurt plus dans la
+      // console : le panneau se verrouille et affiche ce qu'il refuse.
+      if (estRefusPremium(e)) {
+        eqRefusePremium = true;
+        return;
+      }
+      notifications.error($t('nowplaying.eqError'));
+    }
   }
 
   async function handleShare() {
@@ -496,6 +523,7 @@
     const data = await fetchTrackLyrics(trackId);
     if (npLyricsTrackId === trackId) {
       npLyrics = data ? data.lines.map((l) => l.text).join('\n') : null;
+      npLyricsSource = data?.source ?? null;
       syncedLines = data?.synced
         ? data.lines.filter((l) => l.t_ms != null).map((l) => ({ time: l.t_ms!, text: l.text }))
         : [];
@@ -516,6 +544,7 @@
     const data = await fetchLyricsByMeta(q);
     if (npLyricsRadioKey === key) {
       npLyrics = data ? data.lines.map((l) => l.text).join('\n') : null;
+      npLyricsSource = data?.source ?? null;
       syncedLines =
         !q.radio && data?.synced
           ? data.lines.filter((l) => l.t_ms != null).map((l) => ({ time: l.t_ms!, text: l.text }))
@@ -541,7 +570,7 @@
       // Piste sans id (radio/streaming) : paroles par métadonnées.
       const key = `${q.artist}|${q.title}|${q.album ?? ''}`;
       if (showLyrics) loadMetaLyrics(q);
-      if (key !== npLyricsRadioKey) { npLyrics = null; syncedLines = []; karaokeMode = false; }
+      if (key !== npLyricsRadioKey) { npLyrics = null; npLyricsSource = null; syncedLines = []; karaokeMode = false; }
       return;
     }
     if (!tr?.id) return;
@@ -551,7 +580,7 @@
     if (showLyrics) loadNpLyrics(tr.id);
     // Reset when track changes
     if (tr?.id !== npCreditsTrackId) { npCredits = []; npCreditsTrackId = null; }
-    if (tr?.id !== npLyricsTrackId) { npLyrics = null; syncedLines = []; npLyricsTrackId = null; karaokeMode = false; }
+    if (tr?.id !== npLyricsTrackId) { npLyrics = null; npLyricsSource = null; syncedLines = []; npLyricsTrackId = null; karaokeMode = false; }
   });
 
   // Compact inline credits summary: "Piano: K. Jarrett / Bass: G. Peacock / Drums: J. DeJohnette"
@@ -1493,13 +1522,14 @@
             <NowPlayingLyrics
               loading={lyricsLoading}
               lyrics={npLyrics}
+              source={npLyricsSource}
               {syncedLines}
               {karaokeMode}
               onToggleKaraoke={() => { karaokeMode = !karaokeMode; }}
             />
           {/if}
           {#if showEq}
-            <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} bands={eqBands} enabled={eqEnabled} />
+            <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} bands={eqBands} enabled={eqEnabled} locked={eqLocked} />
           {/if}
           {#if showDspMenu}
             <div class="np-crossfeed">
