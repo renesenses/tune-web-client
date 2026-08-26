@@ -12,7 +12,7 @@
    *     - Avancé    : filtres Qualité + Fréquence, badges hi-res/DSD.
    *     - Expert    : + filtres Format & Profondeur, + ligne technique par carte.
    */
-  import { albums } from '../../lib/stores/library';
+  import { albums, libraryLoading } from '../../lib/stores/library';
   import { activeView, type View } from '../../lib/stores/navigation';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -56,6 +56,18 @@
 
   const sorted = $derived([...$albums].sort((a, b) => fold(a.title).localeCompare(fold(b.title))));
   const matchCount = $derived(sorted.filter(matches).length);
+
+  // Rail A–Z : première lettre d'un album (non-alpha → « # »).
+  const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
+  function firstLetter(a: Album): string {
+    const c = fold(a.title).charAt(0).toUpperCase();
+    return c >= 'A' && c <= 'Z' ? c : '#';
+  }
+  const present = $derived(new Set(sorted.map(firstLetter)));
+  let gridEl: HTMLDivElement | undefined = $state();
+  function jump(L: string) {
+    gridEl?.querySelector<HTMLElement>(`[data-letter="${L}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   function tech(a: Album): string {
     const t = getQualityTier(a);
@@ -119,18 +131,31 @@
     </div>
   {/if}
 
-  <div class="grid" class:expert={showExpert}>
-    {#each sorted as a (a.id)}
-      <button class="card" class:dim={!matches(a)} onclick={() => activeView.set('library')}>
-        <div class="cover">
-          <AlbumArt coverPath={a.cover_path} albumId={a.id} size={220} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
-          {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
-        </div>
-        <div class="ct">{a.title}</div>
-        <div class="ca">{a.artist_name ?? ''}</div>
-        {#if showExpert}<div class="cq">{tech(a)}</div>{/if}
-      </button>
-    {/each}
+  <div class="body">
+    {#if $libraryLoading && sorted.length === 0}
+      <div class="state">Chargement de la bibliothèque…</div>
+    {:else if sorted.length === 0}
+      <div class="state">Votre bibliothèque est vide.</div>
+    {:else}
+      <div class="rail">
+        {#each ALPHA as L (L)}
+          <button class="rl" class:hot={present.has(L)} disabled={!present.has(L)} onclick={() => jump(L)}>{L}</button>
+        {/each}
+      </div>
+      <div class="grid" class:expert={showExpert} bind:this={gridEl}>
+        {#each sorted as a (a.id)}
+          <button class="card" class:dim={!matches(a)} data-letter={firstLetter(a)} onclick={() => activeView.set('library')}>
+            <div class="cover">
+              <AlbumArt coverPath={a.cover_path} albumId={a.id} size={220} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+              {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
+            </div>
+            <div class="ct">{a.title}</div>
+            <div class="ca">{a.artist_name ?? ''}</div>
+            {#if showExpert}<div class="cq">{tech(a)}</div>{/if}
+          </button>
+        {/each}
+      </div>
+    {/if}
   </div>
 </section>
 
@@ -171,6 +196,13 @@
   .search input{background:transparent; border:0; outline:0; color:var(--v2-txt); font:14px var(--v2-sans); width:100%}
   .search input::placeholder{color:var(--v2-txt3)}
 
+  .body{flex:1; min-height:0; display:flex; padding-left:18px}
+  .state{flex:1; display:grid; place-items:center; color:var(--v2-txt3); font-size:15px}
+  .rail{display:flex; flex-direction:column; gap:1px; padding:10px 8px 0 0; position:sticky; top:0}
+  .rl{border:0; background:transparent; font:11px var(--v2-mono); color:var(--v2-txt3); cursor:pointer;
+    padding:1px 4px; border-radius:3px; transition:.12s}
+  .rl:disabled{opacity:.35; cursor:default}
+  .rl.hot:hover{color:var(--v2-acc-tint); background:#0e1f26}
   .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
     gap:22px 18px; align-content:start; padding:8px 30px 40px}
   .grid::-webkit-scrollbar{width:9px}.grid::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
