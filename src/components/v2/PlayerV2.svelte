@@ -74,11 +74,11 @@
 </div>
 
 <style>
-  .v2-player{height:88px; background:linear-gradient(180deg,#0b141b,#08121a); border-top:1px solid var(--v2-line);
+  .v2-player{height:88px; background:linear-gradient(180deg,var(--v2-player1),var(--v2-player2)); border-top:1px solid var(--v2-line);
     display:grid; grid-template-columns:300px 1fr 340px; align-items:center; gap:18px; padding:0 24px;
     font-family:var(--v2-sans); color:var(--v2-txt); box-sizing:border-box}
   .np{display:flex; align-items:center; gap:14px; min-width:0}
-  .cv{width:56px; height:56px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:0 4px 12px rgba(0,0,0,.4)}
+  .cv{width:56px; height:56px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:0 4px 12px var(--v2-sh-sm)}
   .ti{display:flex; align-items:center; gap:9px; font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ti svg{width:16px; height:16px; color:var(--v2-acc1); flex:0 0 auto}
   .ar{font:12px var(--v2-mono); color:var(--v2-txt2); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -90,16 +90,16 @@
   .ctrls svg:hover{color:var(--v2-txt)}
   .ctrls .play{width:46px; height:46px; border-radius:50%; border:0; cursor:pointer;
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); display:grid; place-items:center}
-  .ctrls .play svg{width:19px; height:19px; color:#04121a}
+  .ctrls .play svg{width:19px; height:19px; color:var(--v2-on-acc)}
   .prog{display:flex; align-items:center; gap:11px; width:100%; max-width:520px}
   .tm{font:11px var(--v2-mono); color:var(--v2-txt3); min-width:36px}
   .track{flex:1; height:4px; border-radius:3px; background:var(--v2-line2); position:relative}
   .track .fill{position:absolute; left:0; top:0; bottom:0; width:33%; border-radius:3px; background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2))}
-  .track .knob{position:absolute; left:33%; top:50%; transform:translate(-50%,-50%); width:11px; height:11px; border-radius:50%; background:#fff}
+  .track .knob{position:absolute; left:33%; top:50%; transform:translate(-50%,-50%); width:11px; height:11px; border-radius:50%; background:var(--v2-knob)}
   .right{display:flex; align-items:center; justify-content:flex-end; gap:16px}
   .right svg{width:19px; height:19px; color:var(--v2-txt2); cursor:pointer}
   .right svg:hover{color:var(--v2-txt)}
   .qbadge{font:700 11px var(--v2-mono); letter-spacing:.04em; padding:6px 10px; border-radius:8px;
-    color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); background:rgba(0,188,212,.08)}
+    color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .bperf{width:8px; height:8px; border-radius:50%; background:var(--v2-acc1); box-shadow:0 0 8px var(--v2-acc1)}
 </style>

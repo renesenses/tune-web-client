@@ -130,8 +130,8 @@
   .row::-webkit-scrollbar{display:none}
   .tile{flex:0 0 160px; width:160px; border:0; background:transparent; color:inherit; cursor:pointer; text-align:left; padding:0}
   .tile.small{flex-basis:128px; width:128px}
-  .cv{aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,.35); transition:.18s}
-  .tile:hover .cv{box-shadow:0 10px 24px rgba(0,212,170,.22)}
+  .cv{aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.18s}
+  .tile:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
   .tt{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ta{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 

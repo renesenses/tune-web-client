@@ -232,7 +232,7 @@
   .field input{width:100%; height:50px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
     background:var(--v2-surface2); color:var(--v2-txt); font:15px var(--v2-sans); padding:0 18px 0 46px; outline:none}
   .field input::placeholder{color:var(--v2-txt3)}
-  .field input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px rgba(0,188,212,.12)}
+  .field input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .field input::-webkit-search-cancel-button{-webkit-appearance:none}
   .spin{position:absolute; right:16px; width:15px; height:15px; border:2px solid var(--v2-line2);
     border-top-color:var(--v2-acc1); border-radius:50%; animation:sp .7s linear infinite}
@@ -242,7 +242,7 @@
     border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); font:600 13px var(--v2-sans); cursor:pointer}
   .acoustic svg{width:16px; height:16px}
   .acoustic:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
-  .acoustic.on{color:#04121a; border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .acoustic.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .scroll{flex:1; overflow-y:auto; padding:8px 0 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
@@ -264,15 +264,15 @@
   .arow{display:flex; gap:22px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none}
   .arow::-webkit-scrollbar{display:none}
   .artile{flex:0 0 auto; width:112px; border:0; background:transparent; color:inherit; cursor:pointer; text-align:center; padding:0}
-  .acv{display:block; width:112px; height:112px; border-radius:50%; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,.35)}
+  .acv{display:block; width:112px; height:112px; border-radius:50%; overflow:hidden; box-shadow:var(--v2-sh-card)}
   .artile .an{display:block; margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .artile:hover .an{color:var(--v2-acc-tint)}
 
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}
   .card{border:0; background:transparent; color:inherit; cursor:pointer; text-align:left; padding:0; display:flex; flex-direction:column}
   .card.static{cursor:default}
-  .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,.35); transition:.18s}
-  .card:not(.static):hover .cv{box-shadow:0 10px 24px rgba(0,212,170,.22)}
+  .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.18s}
+  .card:not(.static):hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
   .ct{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 

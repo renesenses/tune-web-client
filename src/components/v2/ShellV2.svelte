@@ -16,6 +16,8 @@
   import PlaylistsV2 from './PlaylistsV2.svelte';
   import PlayerV2 from './PlayerV2.svelte';
   import AvatarMenu from './AvatarMenu.svelte';
+  import { preferences } from '../../lib/stores/preferences';
+  import { applyV2Theme } from '../../lib/v2Theme';
   import '../../styles/tune-v2.css';
 
   const LABELS: Partial<Record<View, string>> = {
@@ -26,6 +28,10 @@
     diagnostics: 'Diagnostics', settings: 'Réglages', support: 'Support', genres: 'Genres',
   };
   const label = $derived(LABELS[$activeView] ?? $activeView);
+
+  // Le thème est posé sur <html> : les tokens s'appliquent alors à toutes les
+  // racines .tune-v2, y compris celles imbriquées dans les vues.
+  $effect(() => { applyV2Theme($preferences.v2Theme); });
 </script>
 
 <div class="v2-shell tune-v2">
@@ -63,7 +69,7 @@
   .main{min-width:0; overflow:hidden; display:flex}
   .soon{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
     text-align:center; color:var(--v2-txt); font-family:var(--v2-sans); padding:40px}
-  .soon .badge{font:700 10px var(--v2-mono); letter-spacing:.16em; text-transform:uppercase; color:#04121a;
+  .soon .badge{font:700 10px var(--v2-mono); letter-spacing:.16em; text-transform:uppercase; color:var(--v2-on-acc);
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); padding:5px 12px; border-radius:999px}
   .soon h2{font-size:28px; font-weight:800}
   .soon p{max-width:420px; color:var(--v2-txt2); font-size:14px; line-height:1.5}

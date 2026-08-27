@@ -159,7 +159,7 @@
   .newp input{height:42px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-acc2); background:var(--v2-surface2);
     color:var(--v2-txt); font:14px var(--v2-sans); padding:0 16px; outline:none; width:240px}
   .mk{height:42px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 13px var(--v2-sans);
-    color:#04121a; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+    color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .scroll{flex:1; overflow-y:auto; padding:10px 0 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
@@ -171,13 +171,13 @@
   .card{position:relative; border:0; background:transparent; color:inherit; text-align:left; padding:0; display:flex; flex-direction:column}
   .open{position:absolute; inset:0; z-index:1; border:0; background:transparent; cursor:pointer; border-radius:var(--v2-r-card)}
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
-  .cv{position:relative; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,.35);
-    transition:.18s; display:grid; place-items:center; color:#04121a; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .cv{position:relative; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card);
+    transition:.18s; display:grid; place-items:center; color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .cv.img{background:none; color:inherit}
   .cv > svg{width:52px; height:52px; opacity:.9}
-  .card:hover .cv{box-shadow:0 10px 24px rgba(0,212,170,.22)}
+  .card:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
   .pbtn{position:absolute; right:10px; bottom:10px; z-index:2; width:42px; height:42px; border-radius:50%; border:0; cursor:pointer;
-    color:#04121a; background:var(--v2-acc1); box-shadow:0 6px 16px rgba(0,0,0,.4); display:grid; place-items:center;
+    color:var(--v2-on-acc); background:var(--v2-acc1); box-shadow:0 6px 16px var(--v2-sh-sm); display:grid; place-items:center;
     opacity:0; transform:translateY(6px); transition:.16s}
   .card:hover .pbtn{opacity:1; transform:none}
   .pbtn svg{width:18px; height:18px; margin-left:2px}

@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import type { Locale } from '../i18n';
 import { isSettingsLevel, legacyAdvancedToLevel, type SettingsLevel } from '../settingLevels';
+import { isV2Theme, V2_THEME_DEFAULT, type V2Theme } from '../v2Theme';
 
 export type ThemeMode = 'dark' | 'light' | 'oled' | 'midnight';
 export type VolumeDisplay = 'percent' | 'dB';
@@ -91,6 +92,10 @@ export interface Preferences {
    *  Défaut : débutant pour TOUS, installations existantes comprises
    *  (arbitrage Bertrand, 14/08) — l'ancien toggle « réglages avancés »
    *  migre vers expert au premier chargement (voir loadPrefs). */
+  /** Thème du NOUVEAU client (six palettes, voir lib/v2Theme). Distinct de
+   *  `theme` ci-dessus, qui reste celui de l'app historique : les deux
+   *  clients cohabitent derrière le drapeau `?v2`, chacun garde le sien. */
+  v2Theme: V2Theme;
   settingsLevel: SettingsLevel;
 }
 
@@ -113,6 +118,7 @@ const defaults: Preferences = {
   albumSortOrder: 'asc',
   albumGridDensity: 'detail',
   tooltipsEnabled: true,
+  v2Theme: V2_THEME_DEFAULT,
   settingsLevel: 'beginner',
 };
 
@@ -179,6 +185,12 @@ function loadPrefs(): Preferences {
       // débutant, sauf si l'ancien toggle « avancé » était actif (⇒ expert).
       if (!isSettingsLevel((raw as { settingsLevel?: unknown })?.settingsLevel)) {
         p.settingsLevel = legacySettingsLevel();
+      }
+      // Thème du client v2 : une valeur inconnue (préférence écrite par une
+      // version ultérieure, ou blob corrompu) retombe sur le défaut plutôt que
+      // de laisser l'interface à moitié peinte.
+      if (!isV2Theme((raw as { v2Theme?: unknown })?.v2Theme)) {
+        p.v2Theme = V2_THEME_DEFAULT;
       }
       return p;
     }

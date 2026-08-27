@@ -103,7 +103,7 @@
   }
   .brand{display:flex; align-items:center; gap:11px; padding:4px 8px 22px}
   .logo{width:40px; height:40px; border-radius:11px; display:grid; place-items:center;
-    background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 4px 14px rgba(0,212,170,.30)}
+    background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 4px 14px var(--v2-glow-strong)}
   .logo img{width:56%; height:auto; display:block}
   .brand .name{font-weight:700; font-size:18px; line-height:1}
   .brand .sub{font-family:var(--v2-mono); font-size:9.5px; letter-spacing:.18em; color:var(--v2-txt2); margin-top:3px}
@@ -122,8 +122,8 @@
     border-radius:var(--v2-r-pill); background:transparent; color:var(--v2-txt2);
     font-family:inherit; font-size:14.5px; font-weight:500; text-align:left; transition:.15s}
   .nav svg{width:19px; height:19px; flex:0 0 auto}
-  .nav:hover{color:var(--v2-txt); background:#0e1a22}
-  .nav.active{color:var(--v2-txt); background:linear-gradient(90deg,#0f2029,#0c1820); box-shadow:inset 0 0 0 1px var(--v2-line2)}
+  .nav:hover{color:var(--v2-txt); background:var(--v2-hover)}
+  .nav.active{color:var(--v2-txt); background:linear-gradient(90deg,var(--v2-active1),var(--v2-active2)); box-shadow:inset 0 0 0 1px var(--v2-line2)}
   .nav.active svg{color:var(--v2-acc1)}
   .support{margin-top:8px}
 </style>

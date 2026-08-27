@@ -121,23 +121,23 @@
   .close svg{width:18px; height:18px}
 
   .head{display:flex; gap:30px; padding:6px 0 26px}
-  .art{width:240px; height:240px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:0 16px 40px rgba(0,0,0,.5)}
+  .art{width:240px; height:240px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:var(--v2-sh-lg)}
   .meta{display:flex; flex-direction:column; gap:12px; padding-top:8px}
   .qbadge{align-self:flex-start; font:700 11px var(--v2-mono); letter-spacing:.04em; padding:6px 10px; border-radius:8px;
-    color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); background:rgba(0,188,212,.08)}
+    color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .meta h1{font-size:38px; font-weight:800; letter-spacing:-.01em; line-height:1.05}
   .artist{font-size:18px; color:var(--v2-txt2)}
   .facts{display:flex; gap:16px; font:12px var(--v2-mono); color:var(--v2-txt3)}
   .actions{display:flex; gap:12px; margin-top:8px}
   .play,.ghost{display:inline-flex; align-items:center; gap:9px; height:44px; padding:0 20px; border-radius:var(--v2-r-pill);
     font:700 14px var(--v2-sans); cursor:pointer; border:0}
-  .play{color:#04121a; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 6px 18px rgba(0,212,170,.28)}
+  .play{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 6px 18px var(--v2-glow-strong)}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .play svg,.ghost svg{width:16px; height:16px}
 
   .tracks{display:flex; flex-direction:column; gap:1px}
-  .state{padding:24px 6px; color:var(--v2-txt3)} .state.err{color:#ff8080}
+  .state{padding:24px 6px; color:var(--v2-txt3)} .state.err{color:var(--v2-danger)}
   .trk{display:grid; grid-template-columns:34px 1fr auto auto; align-items:center; gap:14px; width:100%;
     padding:11px 12px; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer; text-align:left; border-radius:8px}
   .trk:hover{background:var(--v2-surface2); color:var(--v2-txt)}
