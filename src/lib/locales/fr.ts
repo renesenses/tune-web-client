@@ -1,6 +1,7 @@
 export default {
   // App shell (bannières)
   'app.ready': 'Prêt',
+  'app.enrichmentRunning': 'Enrichissement en cours…',
   'app.syncing': 'Synchronisation de la bibliothèque…',
   'app.syncingProgress': 'Synchronisation de la bibliothèque… {count} fichiers{added}',
   'app.syncingAdded': ' · {count} ajoutés',
@@ -2020,6 +2021,7 @@ export default {
   "settings.enrichArtistImagesWorking": "Recherche des images en cours…",
   "settings.enrichArtistImagesRemaining": "{n} artistes sans image",
   "settings.enrichArtistImagesDone": "Enrichissement des images d'artistes terminé",
+  "settings.enrichArtistImagesResult": "{enriched} image(s) ajoutée(s) · {missing} artiste(s) encore sans image",
   "settings.enrichArtistImagesNoneMissing": "Tous les artistes ont déjà une image",
   "settings.autoEnrichPremiumNote": "L'enrichissement automatique après un scan est une fonctionnalité Premium. Les boutons ci-dessus le lancent manuellement pour tout le monde. Les images d'artistes utilisent Discogs/Last.fm par nom quand un artiste n'a pas d'identifiant MusicBrainz.",
   "settings.displayedMetadataFields": "Champs métadonnées affichés",
