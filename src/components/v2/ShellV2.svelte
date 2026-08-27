@@ -19,6 +19,7 @@
   import AvatarMenu from './AvatarMenu.svelte';
   import { preferences } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
+  import { bootstrapV2 } from '../../lib/v2Bootstrap';
   import '../../styles/tune-v2.css';
 
   const LABELS: Partial<Record<View, string>> = {
@@ -33,6 +34,11 @@
   // Le thème est posé sur <html> : les tokens s'appliquent alors à toutes les
   // racines .tune-v2, y compris celles imbriquées dans les vues.
   $effect(() => { applyV2Theme($preferences.v2Theme); });
+
+  // Les stores partagés sont alimentés par App.svelte, que `?v2` ne monte
+  // jamais : sans cet appel, zones/albums/appareils restent vides et toute
+  // la coquille affiche des écrans vides trompeurs. Voir lib/v2Bootstrap.
+  $effect(() => { bootstrapV2(); });
 </script>
 
 <div class="v2-shell tune-v2">

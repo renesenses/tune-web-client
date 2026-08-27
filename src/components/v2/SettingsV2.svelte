@@ -23,6 +23,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
   import type { LocalAudioDevice } from '../../lib/types';
+  import { devices } from '../../lib/stores/devices';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { V2_SETTINGS, type V2SettingsTabId } from '../../lib/v2Settings';
@@ -199,6 +200,94 @@
     creatingBrowserZone = false;
   }
 
+  // « Appareils reseau » — liste decouverte (DLNA, AirPlay, Cast, BluOS,
+  // OpenHome), visibilite par appareil, suppression, et appairage AirPlay.
+  //
+  // La liste est remplie ICI, et c'est indispensable : `fetchDevices()` vit
+  // dans App.svelte, que le mode `?v2` ne monte JAMAIS (ShellV2 le remplace).
+  // Sans ce chargement, le store restait vide et la section affichait
+  // « Aucun appareil detecte » sur toute installation — un etat vide qui
+  // ressemblait a une reponse, alors que rien n'avait ete demande au serveur.
+  let netLoaded = $state(false);
+  let netError = $state(false);
+  $effect(() => {
+    api.getDevices()
+      .then((d) => { devices.set(d ?? []); netError = false; })
+      .catch(() => { netError = true; })
+      .finally(() => { netLoaded = true; });
+  });
+  //
+  // « Tout afficher » ne revele QUE les appareils reseau et « tout masquer »
+  // ne masque QUE ceux-la : les sorties audio locales (prefixe `audio:`) ont
+  // leur propre liste, les melanger ferait ressurgir une sortie que
+  // l'utilisateur avait volontairement decochee a cote.
+  function showAllNet() {
+    preferences.update((pr) => ({ ...pr, hiddenDeviceIds: pr.hiddenDeviceIds.filter((i) => i.startsWith('audio:')) }));
+  }
+  function hideAllNet() {
+    const netIds = $devices.map((d) => `net:${d.id}`);
+    preferences.update((pr) => ({
+      ...pr,
+      hiddenDeviceIds: [...pr.hiddenDeviceIds.filter((i) => i.startsWith('audio:')), ...netIds],
+    }));
+  }
+  async function deleteDevice(deviceId: string, name: string) {
+    try {
+      await api.deleteDevice(deviceId);
+      devices.update((l) => l.filter((d) => d.id !== deviceId));
+      notifications.success($t('settings.deviceDeleted' as any).replace('{name}', name));
+    } catch (e: any) {
+      notifications.error(e?.message || $t('common.error' as any));
+    }
+  }
+  async function clearDevices() {
+    try {
+      const r = await api.clearDevices();
+      devices.set([]);
+      notifications.success($t('settings.devicesCleared' as any).replace('{count}', String(r.cleared)));
+    } catch (e: any) {
+      notifications.error(e?.message || $t('common.error' as any));
+    }
+  }
+  function netLabel(type: string): string {
+    return type === 'airplay2' ? 'AirPlay 2' : type === 'airplay' ? 'AirPlay'
+      : type === 'chromecast' ? 'Cast' : type === 'bluos' ? 'BluOS'
+      : type === 'openhome' ? 'OpenHome' : 'DLNA';
+  }
+
+  // Appairage AirPlay : le recepteur affiche un code a l'ecran, l'utilisateur
+  // le recopie. Un seul appairage a la fois — l'etat porte l'appareil vise.
+  let pairId = $state<string | null>(null);
+  let pairPin = $state('');
+  let pairBusy = $state(false);
+  let pairAwaiting = $state(false);
+  let pairMsg = $state<string | null>(null);
+  async function startPairing(deviceId: string) {
+    pairId = deviceId; pairPin = ''; pairBusy = true; pairAwaiting = false; pairMsg = null;
+    try {
+      const res = await api.beginPairing(deviceId);
+      if (res.status === 'awaiting_pin') { pairAwaiting = true; pairMsg = res.message || null; }
+    } catch {
+      pairMsg = $t('pairing.error' as any); pairId = null;
+    }
+    pairBusy = false;
+  }
+  async function submitPin() {
+    if (!pairId || !pairPin.trim()) return;
+    pairBusy = true;
+    try {
+      const res = await api.submitPairingPin(pairId, pairPin.trim());
+      if (res.status === 'paired') {
+        pairMsg = $t('pairing.success' as any);
+        setTimeout(() => { pairId = null; pairMsg = null; }, 2000);
+      }
+    } catch {
+      pairMsg = $t('pairing.error' as any);
+    }
+    pairBusy = false; pairAwaiting = false;
+  }
+  function cancelPairing() { pairId = null; pairAwaiting = false; pairPin = ''; pairMsg = null; }
+
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
@@ -241,7 +330,51 @@
               {#if s.from !== tab.id}<span class="moved">déplacé depuis « {s.from} »</span>{/if}
             </div>
 
-            {#if s.id === 'localAudio'}
+            {#if s.id === 'netDevices'}
+              <div class="acts">
+                <button class="lnk" onclick={showAllNet}>{$t('settings.showAll' as any)}</button>
+                <button class="lnk" onclick={hideAllNet}>{$t('settings.hideAll' as any)}</button>
+                <button class="lnk danger" onclick={clearDevices}>{$t('settings.clearDevices' as any)}</button>
+              </div>
+              <div class="devlist">
+                {#each $devices as d (d.id)}
+                  {@const pid = `net:${d.id}`}
+                  {@const isAir = d.type === 'airplay' || d.type === 'airplay2'}
+                  <div class="dev net">
+                    <input type="checkbox" checked={!$preferences.hiddenDeviceIds.includes(pid)}
+                      onchange={() => toggleDevice(pid)} aria-label={`Afficher ${d.name}`} />
+                    <span class="dn">{d.name}</span>
+                    <span class="dt">{netLabel(d.type)}</span>
+                    {#if d.host}<span class="dh">{d.host}</span>{/if}
+                    {#if isAir}
+                      {#if pairId === d.id && pairAwaiting}
+                        <input class="pin" type="text" placeholder={$t('pairing.pinPlaceholder' as any)}
+                          bind:value={pairPin} disabled={pairBusy}
+                          onkeydown={(e) => { if (e.key === 'Enter') submitPin(); if (e.key === 'Escape') cancelPairing(); }} />
+                        <button class="lnk" onclick={submitPin} disabled={pairBusy || !pairPin.trim()}>{$t('pairing.submit' as any)}</button>
+                        <button class="lnk" onclick={cancelPairing}>{$t('pairing.cancel' as any)}</button>
+                      {:else if pairId === d.id && pairMsg}
+                        <span class="pmsg">{pairMsg}</span>
+                      {:else}
+                        <button class="lnk" onclick={() => startPairing(d.id)} disabled={pairBusy}>
+                          {pairBusy && pairId === d.id ? $t('pairing.pairing' as any) : $t('pairing.pair' as any)}
+                        </button>
+                      {/if}
+                    {/if}
+                    <button class="del" onclick={() => deleteDevice(d.id, d.name)} aria-label={$t('settings.deleteDevice' as any)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                  </div>
+                {:else}
+                  <p class="hint">
+                    {#if !netLoaded}Recherche des appareils…
+                    {:else if netError}Liste indisponible — serveur injoignable.
+                    {:else}{$t('settings.noNetworkDevices' as any)}{/if}
+                  </p>
+                {/each}
+              </div>
+
+            {:else if s.id === 'localAudio'}
               {#if atLeast(level, 'expert')}
                 <div class="row">
                   <div class="lbl"><span>{$t('settings.audioBackend' as any)}</span></div>
@@ -456,6 +589,17 @@
   .dev input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
   .dev .dn{font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .dev .dt{font:10px var(--v2-mono); color:var(--v2-acc2); flex:0 0 auto}
+  .acts{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
+  .lnk.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
+  .dev.net{grid-template-columns:auto minmax(0,1fr) auto auto auto; cursor:default}
+  .dev .dh{font:10px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
+  .dev .pin{width:110px; height:28px; border-radius:8px; border:1px solid var(--v2-acc2);
+    background:var(--v2-surface2); color:var(--v2-txt); font:12px var(--v2-mono); padding:0 9px; outline:none}
+  .dev .pmsg{font:11px var(--v2-sans); color:var(--v2-acc-tint)}
+  .del{width:26px; height:26px; border-radius:7px; border:1px solid transparent; background:transparent;
+    color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center; flex:0 0 auto}
+  .del:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
+  .del svg{width:13px; height:13px}
   .foot{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:14px;
     padding-top:12px; border-top:1px solid var(--v2-line)}
   .foot .hint{flex:1; min-width:200px}
