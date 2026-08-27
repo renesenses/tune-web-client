@@ -3600,6 +3600,17 @@ export function setScanSchedule(time: string, enabled: boolean) {
 
 // --- Server Diagnostics Dashboard ---
 
+export interface AsioWarmScanStatus {
+  supported: boolean;
+  state: 'unsupported' | 'disabled_by_env' | 'blocked_after_crash' | 'ready';
+  blocked_after_crash: boolean;
+  disabled_by_env: boolean;
+  can_rearm: boolean;
+  retry: 'none' | 'remove_environment_override' | 'rearm_then_restart' | 'next_restart';
+  sentinel_path: string;
+  message: string;
+}
+
 export function getServerDiagnostics() {
   return fetchJSON<{
     // Server uses "server_version" — client normalises via DiagnosticsView
@@ -3614,6 +3625,9 @@ export function getServerDiagnostics() {
     connectors: string[];
     // Memory: server uses "memory_rss_mb"
     memory_rss_mb: number | null;
+    // Added by tune-server-rust #2201. Optional keeps the diagnostics screen
+    // compatible with older servers during rolling client/server updates.
+    asio_warm_scan?: AsioWarmScanStatus;
     // Scan info embedded under scan_status.*
     scan_status: {
       status: string;
@@ -3622,6 +3636,15 @@ export function getServerDiagnostics() {
       last_result: Record<string, unknown> | null;
     } | null;
   }>(`${BASE}/system/diagnostics`);
+}
+
+export function rearmAsioWarmScan() {
+  return fetchJSON<{
+    status: 'rearmed' | 'already_ready';
+    retry: 'next_restart';
+    message: string;
+    asio_warm_scan: AsioWarmScanStatus;
+  }>(`${BASE}/system/audio/asio-warm-scan/rearm`, { method: 'POST' });
 }
 
 // --- Library Import (Roon / Plex / Playlists) ---
