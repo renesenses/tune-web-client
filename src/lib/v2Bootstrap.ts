@@ -21,6 +21,7 @@ import * as api from './api';
 import { zones, currentZoneId } from './stores/zones';
 import { albums, libraryLoading } from './stores/library';
 import { devices } from './stores/devices';
+import { loadProfiles, loadFavoriteIds, currentProfileId } from './stores/profile';
 
 /** Zones + sélection courante. Sans zone, aucune lecture n'est possible. */
 async function loadZones(): Promise<void> {
@@ -58,9 +59,23 @@ async function loadDevices(): Promise<void> {
   devices.set((await api.getDevices()) ?? []);
 }
 
+/**
+ * Profil courant + identifiants de favoris.
+ *
+ * `loadProfiles()` n'est appelé que par App.svelte : sans lui, `currentProfileId`
+ * reste celui du localStorage — ou null au premier lancement — et TOUT ce qui
+ * dépend du profil (favoris, cœurs) est inerte en `?v2`. Les identifiants de
+ * favoris sont chargés dans la foulée : ils servent aux boutons cœur, qui
+ * doivent répondre « est-ce un favori ? » sans un appel réseau par ligne.
+ */
+async function loadProfile(): Promise<void> {
+  await loadProfiles();
+  await loadFavoriteIds(get(currentProfileId));
+}
+
 /** Charge tout ce dont la coquille v2 dépend. Ne rejette jamais : chaque
  *  chargement échoue isolément, pour qu'une panne de découverte réseau ne
  *  vide pas la bibliothèque. */
 export async function bootstrapV2(): Promise<void> {
-  await Promise.allSettled([loadZones(), loadAlbums(), loadDevices()]);
+  await Promise.allSettled([loadZones(), loadAlbums(), loadDevices(), loadProfile()]);
 }
