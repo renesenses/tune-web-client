@@ -641,14 +641,18 @@
       <h2 class="section-title">{$t('home.nowListening')}</h2>
       <div class="now-listening-row">
         {#each nowListening as item}
+          <!-- La bulle doit dire EXACTEMENT le texte coupé : on calcule le
+               titre une fois plutôt que de recopier l'expression dans les
+               deux, ce qui la ferait diverger à la première retouche. -->
+          {@const titrePiste = item.track_title ?? item.title ?? ''}
           <button class="nl-card" onclick={() => goToZoneNowPlaying(item.zone_id)}>
             <div class="nl-cover">
               <AlbumArt coverPath={item.cover_path} albumId={item.album_id} size={48} alt={item.track_title ?? ''} />
             </div>
             <div class="nl-info">
               <span class="nl-zone">{item.zone_name}</span>
-              <span class="nl-track truncate">{item.track_title ?? item.title ?? ''}</span>
-              <span class="nl-artist truncate">{item.artist_name ?? ''}</span>
+              <span class="nl-track truncate" title={titrePiste}>{titrePiste}</span>
+              <span class="nl-artist truncate" title={item.artist_name ?? ''}>{item.artist_name ?? ''}</span>
             </div>
             <span class="nl-playing-indicator">
               <span class="eq-bars" class:paused={item.state === 'paused'}><span></span><span></span><span></span></span>
@@ -680,8 +684,8 @@
                   <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M8 5v14l11-7z" /></svg>
                 </button>
               </div>
-              <button class="carousel-title truncate" type="button" onclick={() => openContinueEntry(item)}>{item.title ?? item.album_title ?? ''}</button>
-              <button class="carousel-artist truncate" type="button" onclick={() => {
+              <button class="carousel-title truncate" type="button" onclick={() => openContinueEntry(item)} title={item.title ?? item.album_title ?? ''}>{item.title ?? item.album_title ?? ''}</button>
+              <button class="carousel-artist truncate" type="button" title={item.artist_name ?? ''} onclick={() => {
                 if (item.artist_name) navigateArtistByName(item.artist_name);
               }}>{item.artist_name ?? ''}</button>
               {#if item.progress_percent != null}
@@ -756,7 +760,7 @@
                 <button
                   class="nouveaute-carte-artiste truncate"
                   onclick={(e) => { e.stopPropagation(); navigateArtistByName(groupe.artist_name); }}
-                  title={$t('home.openArtist')}
+                  title={`${groupe.artist_name} — ${$t('home.openArtist')}`}
                 >{groupe.artist_name}</button>
                 <span class="nouveaute-carte-sub">
                   <ServiceBadge source={parution.service} compact />
@@ -770,11 +774,11 @@
         {#each groupesTries as groupe}
           <div class="artist-group" class:favorite={groupe.is_favorite}>
             <div class="artist-group-head">
-              <div class="artist-group-name truncate">
+              <div class="artist-group-name truncate" title={groupe.artist_name}>
                 <button
                   class="artist-group-link"
                   onclick={() => navigateArtistByName(groupe.artist_name)}
-                  title={$t('home.openArtist')}
+                  title={`${groupe.artist_name} — ${$t('home.openArtist')}`}
                 >{groupe.artist_name}</button>
                 <span class="artist-count">
                   {groupe.releases.length} {$t('home.newReleases')}
@@ -799,7 +803,7 @@
                 <button
                   class="artist-release"
                   onclick={() => ouvrirParution(groupe, parution)}
-                  title={$t('home.openAlbum')}
+                  title={`${parution.title} — ${$t('home.openAlbum')}`}
                 >
                   <AlbumArt coverPath={parution.cover_path} size={72} alt={parution.title} />
                   <div class="artist-release-text">
@@ -879,10 +883,10 @@
                     <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
                   {/if}
                 </button>
-                <button class="carousel-title truncate" onclick={() => navigateRecentEntry(album)}>{album.title}</button>
-                <span class="carousel-artist-row"><button class="carousel-artist truncate" onclick={() => navigateArtist(album)}>{album.artist_name}</button><ServiceBadge source={album.source} compact /></span>
+                <button class="carousel-title truncate" onclick={() => navigateRecentEntry(album)} title={album.title}>{album.title}</button>
+                <span class="carousel-artist-row"><button class="carousel-artist truncate" onclick={() => navigateArtist(album)} title={album.artist_name}>{album.artist_name}</button><ServiceBadge source={album.source} compact /></span>
                 {#if album.playedTitle}
-                  <span class="carousel-played-track" title={$t('home.playedTrack')}>
+                  <span class="carousel-played-track" title={`${$t('home.playedTrack')} : ${album.playedTitle}`}>
                     <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10" aria-hidden="true"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
                     <span class="truncate">{album.playedTitle}</span>
                   </span>
@@ -942,14 +946,14 @@
                   <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
                 </button>
                 {#if album.id}
-                  <button class="carousel-title truncate" onclick={() => navigateToAlbum(album.id!)}>{album.title}</button>
+                  <button class="carousel-title truncate" onclick={() => navigateToAlbum(album.id!)} title={album.title}>{album.title}</button>
                 {:else}
-                  <span class="carousel-title truncate">{album.title}</span>
+                  <span class="carousel-title truncate" title={album.title}>{album.title}</span>
                 {/if}
                 {#if album.artist_id}
-                  <button class="carousel-artist truncate" onclick={() => navigateToArtist(album.artist_id!)}>{album.artist_name ?? ''}</button>
+                  <button class="carousel-artist truncate" onclick={() => navigateToArtist(album.artist_id!)} title={album.artist_name ?? ''}>{album.artist_name ?? ''}</button>
                 {:else}
-                  <span class="carousel-artist truncate">{album.artist_name ?? ''}</span>
+                  <span class="carousel-artist truncate" title={album.artist_name ?? ''}>{album.artist_name ?? ''}</span>
                 {/if}
               </div>
             {/each}
@@ -980,15 +984,15 @@
                 <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
               </button>
               {#if album.id}
-                <button class="carousel-title truncate" onclick={() => navigateToAlbum(album.id!)}>{album.title}</button>
+                <button class="carousel-title truncate" onclick={() => navigateToAlbum(album.id!)} title={album.title}>{album.title}</button>
               {:else}
-                <span class="carousel-title truncate">{album.title}</span>
+                <span class="carousel-title truncate" title={album.title}>{album.title}</span>
               {/if}
               <span class="carousel-artist-row">
                 {#if album.artist_id}
-                  <button class="carousel-artist truncate" onclick={() => navigateToArtist(album.artist_id!)}>{album.artist_name ?? ''}</button>
+                  <button class="carousel-artist truncate" onclick={() => navigateToArtist(album.artist_id!)} title={album.artist_name ?? ''}>{album.artist_name ?? ''}</button>
                 {:else}
-                  <span class="carousel-artist truncate">{album.artist_name ?? ''}</span>
+                  <span class="carousel-artist truncate" title={album.artist_name ?? ''}>{album.artist_name ?? ''}</span>
                 {/if}
                 <ServiceBadge source={album.source} compact />
               </span>
@@ -1020,8 +1024,8 @@
           <div class="version-group">
             <div class="version-head">
               <div class="version-head-text">
-                <div class="version-title truncate">{groupe.title}</div>
-                <div class="version-sub truncate">
+                <div class="version-title truncate" title={groupe.title}>{groupe.title}</div>
+                <div class="version-sub truncate" title={`${groupe.artist_name} · ${$t('home.playedFrom')} : ${groupe.played_album}`}>
                   {groupe.artist_name}
                   <span class="version-played-from">· {$t('home.playedFrom')} : {groupe.played_album}</span>
                 </div>
@@ -1035,7 +1039,7 @@
                   <div class="version-tuile-art">
                     <AlbumArt coverPath={v.cover_path} size={0} alt={v.album_title ?? ''} />
                   </div>
-                  <span class="version-tuile-titre truncate">{v.album_title ?? ''}</span>
+                  <span class="version-tuile-titre truncate" title={v.album_title ?? ''}>{v.album_title ?? ''}</span>
                   <span class="version-tuile-sub">
                     {#if v.duration_ms}<span>{formatDuration(v.duration_ms)}</span>{/if}
                   </span>
@@ -1048,7 +1052,7 @@
                   <div class="version-tuile-art">
                     <AlbumArt coverPath={v.cover_path} size={0} alt={v.album_title ?? v.title} />
                   </div>
-                  <span class="version-tuile-titre truncate">{v.album_title ?? v.title}</span>
+                  <span class="version-tuile-titre truncate" title={v.album_title ?? v.title}>{v.album_title ?? v.title}</span>
                   <span class="version-tuile-sub">
                     <ServiceBadge source={v.service} compact />
                   </span>
@@ -1062,10 +1066,10 @@
                     <AlbumArt coverPath={v.cover_path} size={0} alt={v.title} />
                     <span class="reprise-chip">{$t('home.coverVersion')}</span>
                   </div>
-                  <span class="version-tuile-titre truncate">{v.artist_name}</span>
+                  <span class="version-tuile-titre truncate" title={v.artist_name}>{v.artist_name}</span>
                   <span class="version-tuile-sub">
                     <ServiceBadge source={v.service} compact />
-                    <span class="truncate">{v.album_title ?? ''}</span>
+                    <span class="truncate" title={v.album_title ?? ''}>{v.album_title ?? ''}</span>
                   </span>
                 </div>
               {/each}
@@ -1092,15 +1096,15 @@
                 <span class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z" /></svg></span>
               </button>
               {#if album.id}
-                <button class="carousel-title truncate" onclick={() => navigateToAlbum(album.id!)}>{album.title}</button>
+                <button class="carousel-title truncate" onclick={() => navigateToAlbum(album.id!)} title={album.title}>{album.title}</button>
               {:else}
-                <span class="carousel-title truncate">{album.title}</span>
+                <span class="carousel-title truncate" title={album.title}>{album.title}</span>
               {/if}
               <span class="carousel-artist-row">
                 {#if album.artist_id}
-                  <button class="carousel-artist truncate" onclick={() => navigateToArtist(album.artist_id!)}>{album.artist_name ?? ''}</button>
+                  <button class="carousel-artist truncate" onclick={() => navigateToArtist(album.artist_id!)} title={album.artist_name ?? ''}>{album.artist_name ?? ''}</button>
                 {:else}
-                  <span class="carousel-artist truncate">{album.artist_name ?? ''}</span>
+                  <span class="carousel-artist truncate" title={album.artist_name ?? ''}>{album.artist_name ?? ''}</span>
                 {/if}
                 <ServiceBadge source={album.source} compact />
               </span>

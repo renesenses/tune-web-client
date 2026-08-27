@@ -205,10 +205,10 @@
                      Sans cover_path, on affiche le placeholder. -->
                 <AlbumArt coverPath={track.cover_path} size={44} alt={track.title} />
               </div>
-              <span class="top-track-title truncate">{track.title}</span>
+              <span class="top-track-title truncate" title={track.title}>{track.title}</span>
             </button>
             {#if track.artist_name}
-              <button class="top-track-artist-btn truncate" type="button" onclick={() => navigateArtistByName(track.artist_name)}>{track.artist_name}</button>
+              <button class="top-track-artist-btn truncate" type="button" onclick={() => navigateArtistByName(track.artist_name)} title={track.artist_name}>{track.artist_name}</button>
             {/if}
             <ServiceBadge source={track.source} compact />
             <span class="play-count-badge">{track.plays}</span>
@@ -259,9 +259,9 @@
                 </svg>
               </div>
             {/if}
-            <span class="rec-title truncate">{radio.name ?? ''}</span>
+            <span class="rec-title truncate" title={radio.name ?? ''}>{radio.name ?? ''}</span>
             {#if radio.genre}
-              <span class="rec-artist truncate">{radio.genre}</span>
+              <span class="rec-artist truncate" title={radio.genre}>{radio.genre}</span>
             {/if}
           </button>
         {/each}
