@@ -138,11 +138,11 @@ describe('le bouton EQ de l’écran « En écoute »', () => {
   /**
    * Sans ce dernier test, un analyseur cassé qui renverrait toujours une pile
    * vide laisserait les précédents au vert en n'ayant rien examiné. Les
-   * crédits, eux, ont besoin d'un identifiant de piste : leur bouton DOIT
-   * rester gardé — c'est la preuve que la pile de conditions est bien lue.
+   * crédits, eux, ont besoin d'un identifiant de piste normalisé : leur bouton
+   * DOIT rester gardé — c'est la preuve que la pile de conditions est bien lue.
    */
   it('l’analyseur voit encore la garde des crédits', () => {
     const conditions = conditionsAt(SOURCE, onlyIndexOf('class:active={showCredits}'));
-    expect(conditions.join(' && ')).toContain('displayTrack.id');
+    expect(conditions.join(' && ')).toContain('normalizedTrack?.id != null');
   });
 });
