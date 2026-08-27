@@ -20,6 +20,9 @@
   import { atLeast } from '../../lib/uiLevel';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
+  import { notifications } from '../../lib/stores/notifications';
+  import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
+  import type { LocalAudioDevice } from '../../lib/types';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { V2_SETTINGS, type V2SettingsTabId } from '../../lib/v2Settings';
@@ -101,6 +104,101 @@
     finally { qualityBusy = false; }
   }
 
+  // « Sorties audio locales » — plusieurs reglages serveur + la liste des
+  // peripheriques. Meme cles de config que l'ecran actuel, donc partage.
+  //
+  // Repartition par niveau, pour que l'Essentiel ne voie que ce qu'il peut
+  // decider seul : la liste des sorties et « lire ici ». Le moteur audio,
+  // le mode WASAPI et le detail ReplayGain n'apparaissent qu'au-dessus.
+  let audioBackend = $state('wasapi');
+  let exclusiveMode = $state(false);
+  let rgMode = $state('off');
+  let rgPreamp = $state(0);
+  let rgAntiClip = $state(true);
+  let rgAnalysis = $state(true);
+  let audioDevices = $state<LocalAudioDevice[]>([]);
+  let devicesLoaded = $state(false);
+  let creatingBrowserZone = $state(false);
+
+  $effect(() => {
+    api.getConfig()
+      .then((c: any) => {
+        // `audio_backend` d'abord : c'est la cle que renvoie le serveur recent,
+        // `local_audio_backend` restant pour les versions anterieures.
+        audioBackend = c?.audio_backend ?? c?.local_audio_backend ?? 'wasapi';
+        exclusiveMode = c?.local_exclusive_mode ?? false;
+        rgMode = c?.replaygain_mode ?? 'off';
+        rgPreamp = Number(c?.replaygain_preamp_db ?? 0);
+        rgAntiClip = c?.replaygain_prevent_clipping ?? true;
+        // Absent cote serveur vaut VRAI : d'ou le test sur !== false.
+        rgAnalysis = c?.replaygain_analysis_enabled !== false && c?.replaygain_analysis_enabled !== 'false';
+      })
+      .catch(() => {});
+    api.withTimeout(api.getAudioDevices(), 8_000, '/devices/audio')
+      .then((d) => { audioDevices = d ?? []; })
+      .catch(() => { audioDevices = []; })
+      .finally(() => { devicesLoaded = true; });
+  });
+
+  /** Ecrit une cle de config et restaure l'etat anterieur si le serveur refuse. */
+  async function patch(fields: Record<string, unknown>, revert: () => void, okMsg?: string) {
+    try {
+      await api.updateConfig(fields);
+      if (okMsg) notifications.success(okMsg);
+    } catch {
+      revert();
+      notifications.error('Enregistrement impossible');
+    }
+  }
+  function setBackend(v: string) {
+    const beforeB = audioBackend, beforeE = exclusiveMode;
+    // ASIO est exclusif par construction : le forcer evite un etat incoherent.
+    const nextExclusive = v === 'asio' ? true : exclusiveMode;
+    audioBackend = v; exclusiveMode = nextExclusive;
+    patch({ local_audio_backend: v, local_exclusive_mode: nextExclusive },
+      () => { audioBackend = beforeB; exclusiveMode = beforeE; },
+      `${$t('settings.audioBackend' as any)} : ${v.toUpperCase()}. ${$t('settings.restartServerNeeded' as any)}`);
+  }
+  function setExclusive(v: boolean) {
+    const before = exclusiveMode; exclusiveMode = v;
+    patch({ local_exclusive_mode: v }, () => { exclusiveMode = before; },
+      $t('settings.restartServerNeeded' as any));
+  }
+  function setRgMode(v: string) {
+    const before = rgMode; rgMode = v;
+    patch({ replaygain_mode: v }, () => { rgMode = before; });
+  }
+  function setRgPreamp(v: number) {
+    const before = rgPreamp; rgPreamp = v;
+    patch({ replaygain_preamp_db: v }, () => { rgPreamp = before; });
+  }
+  function setRgAntiClip(v: boolean) {
+    const before = rgAntiClip; rgAntiClip = v;
+    patch({ replaygain_prevent_clipping: v }, () => { rgAntiClip = before; });
+  }
+  function setRgAnalysis(v: boolean) {
+    const before = rgAnalysis; rgAnalysis = v;
+    patch({ replaygain_analysis_enabled: v }, () => { rgAnalysis = before; });
+  }
+  function toggleDevice(prefixedId: string) {
+    preferences.update((pr) => {
+      const ids = pr.hiddenDeviceIds;
+      const hidden = ids.includes(prefixedId);
+      return { ...pr, hiddenDeviceIds: hidden ? ids.filter((i) => i !== prefixedId) : [...ids, prefixedId] };
+    });
+  }
+  async function createBrowserZoneHere() {
+    creatingBrowserZone = true;
+    try {
+      const zone: any = await api.createZone($t('settings.thisComputer' as any), 'browser');
+      if (zone?.id != null) currentZoneId.set(zone.id);
+      notifications.success($t('settings.browserZoneCreated' as any));
+    } catch (err: any) {
+      notifications.error(err?.message ?? 'Erreur');
+    }
+    creatingBrowserZone = false;
+  }
+
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
@@ -143,7 +241,89 @@
               {#if s.from !== tab.id}<span class="moved">déplacé depuis « {s.from} »</span>{/if}
             </div>
 
-            {#if s.id === 'zoneAutoCreate'}
+            {#if s.id === 'localAudio'}
+              {#if atLeast(level, 'expert')}
+                <div class="row">
+                  <div class="lbl"><span>{$t('settings.audioBackend' as any)}</span></div>
+                  <div class="seg4">
+                    <button class:on={audioBackend === 'auto'} onclick={() => setBackend('auto')}>{$t('settings.autoDefault' as any)}</button>
+                    <button class:on={audioBackend === 'wasapi'} onclick={() => setBackend('wasapi')}>WASAPI</button>
+                    <button class:on={audioBackend === 'asio'} onclick={() => setBackend('asio')}>ASIO</button>
+                  </div>
+                </div>
+                {#if audioBackend === 'wasapi'}
+                  <div class="row">
+                    <div class="lbl"><span>Mode WASAPI</span></div>
+                    <div class="seg4">
+                      <button class:on={!exclusiveMode} onclick={() => setExclusive(false)}>{$t('settings.sharedDefault' as any)}</button>
+                      <button class:on={exclusiveMode} onclick={() => setExclusive(true)}>{$t('settings.exclusiveBitPerfect' as any)}</button>
+                    </div>
+                  </div>
+                {/if}
+              {/if}
+
+              {#if atLeast(level, 'intermediate')}
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.replayGain' as any)}</span>
+                    <span class="hint">{$t('settings.replayGainHint' as any)}</span>
+                  </div>
+                  <div class="seg4">
+                    <button class:on={rgMode === 'off'} onclick={() => setRgMode('off')}>{$t('settings.replayGainOff' as any)}</button>
+                    <button class:on={rgMode === 'track'} onclick={() => setRgMode('track')}>{$t('settings.replayGainTrack' as any)}</button>
+                    <button class:on={rgMode === 'album'} onclick={() => setRgMode('album')}>{$t('settings.replayGainAlbum' as any)}</button>
+                  </div>
+                </div>
+                {#if rgMode !== 'off' && atLeast(level, 'expert')}
+                  <div class="row">
+                    <div class="lbl"><span>{$t('settings.replayGainPreamp' as any)}</span></div>
+                    <div class="seg4">
+                      {#each [-6, -3, 0, 3, 6] as db (db)}
+                        <button class:on={rgPreamp === db} onclick={() => setRgPreamp(db)}>{db > 0 ? `+${db}` : db} dB</button>
+                      {/each}
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="lbl"><span>{$t('settings.replayGainPreventClipping' as any)}</span></div>
+                    <label class="sw">
+                      <input type="checkbox" checked={rgAntiClip} onchange={(e) => setRgAntiClip((e.currentTarget as HTMLInputElement).checked)} />
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                {/if}
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.replaygainSource' as any)}</span>
+                    <span class="hint">{rgAnalysis ? $t('settings.replaygainSourceTagsAnalysis' as any) : $t('settings.replaygainSourceTagsOnly' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={rgAnalysis} onchange={(e) => setRgAnalysis((e.currentTarget as HTMLInputElement).checked)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              {/if}
+
+              <div class="devlist">
+                {#each audioDevices as d (d.id)}
+                  {@const pid = `audio:${d.id}`}
+                  <label class="dev">
+                    <input type="checkbox" checked={!$preferences.hiddenDeviceIds.includes(pid)} onchange={() => toggleDevice(pid)} />
+                    <span class="dn">{d.name}</span>
+                    <span class="dt">{etiquetteCaracteristiques(d)}</span>
+                  </label>
+                {:else}
+                  <p class="hint">{devicesLoaded ? $t('settings.noAudioDevices' as any) : 'Recherche des sorties…'}</p>
+                {/each}
+              </div>
+
+              <div class="foot">
+                <span class="hint">{$t('settings.playHereHint' as any)}</span>
+                <button class="lnk" onclick={createBrowserZoneHere} disabled={creatingBrowserZone}>
+                  {creatingBrowserZone ? 'Création…' : $t('settings.createBrowserZone' as any)}
+                </button>
+              </div>
+
+            {:else if s.id === 'zoneAutoCreate'}
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.zoneAutoCreateLabel' as any)}</span>
@@ -269,6 +449,16 @@
   .seg4 button:hover:not(:disabled){color:var(--v2-txt)}
   .seg4 button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .seg4 button:disabled{opacity:.5; cursor:default}
+  .devlist{display:flex; flex-direction:column; gap:1px; margin-top:12px}
+  .dev{display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:11px; padding:8px 10px;
+    border-radius:9px; cursor:pointer; color:var(--v2-txt2)}
+  .dev:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  .dev input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
+  .dev .dn{font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .dev .dt{font:10px var(--v2-mono); color:var(--v2-acc2); flex:0 0 auto}
+  .foot{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:14px;
+    padding-top:12px; border-top:1px solid var(--v2-line)}
+  .foot .hint{flex:1; min-width:200px}
   .todo{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:10px;
     font-size:12px; color:var(--v2-txt3)}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
