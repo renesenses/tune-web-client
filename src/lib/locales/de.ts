@@ -1569,7 +1569,7 @@ export default {
   "tip.clearSavedRadios": "Löscht alle gespeicherten Radios.",
   "tip.clearSearchHistory": "Löscht deinen Suchverlauf.",
   "tip.eqResetFlat": "Setzt alle Bänder auf null zurück, ohne die Voreinstellung zu löschen.",
-  "tip.eqResetProfiler": "Löscht das gemessene Profil und beginnt mit einer leeren Korrektur.",
+  "tip.eqResetProfiler": "Setzt die drei Regler auf neutral zurück und schaltet das Profil aus — der Equalizer startet ohne Korrektur.",
   "tip.send": "Nachricht senden",
   "tip.favorite": "Diesen Titel zu den Favoriten hinzufügen",
   "tip.clearSearch": "Suche leeren",

@@ -1569,7 +1569,7 @@ export default {
   "tip.clearSavedRadios": "保存済みのラジオをすべて削除します。",
   "tip.clearSearchHistory": "検索履歴を消去します。",
   "tip.eqResetFlat": "プリセットは残したまま、すべての帯域をゼロに戻します。",
-  "tip.eqResetProfiler": "測定したプロファイルを消し、補正なしの状態から始めます。",
+  "tip.eqResetProfiler": "3つのスライダーをフラットに戻してプロファイルを無効にします。イコライザーは補正なしの状態から始まります。",
   "tip.send": "メッセージを送信",
   "tip.favorite": "この曲をお気に入りに追加",
   "tip.clearSearch": "検索を消去",

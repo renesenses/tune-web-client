@@ -1751,7 +1751,7 @@ export default {
   "tip.clearSavedRadios": "Töröl minden elmentett rádiót.",
   "tip.clearSearchHistory": "Törli a keresési előzményeidet.",
   "tip.eqResetFlat": "Minden sávot visszaállít nullára, a beállítás törlése nélkül.",
-  "tip.eqResetProfiler": "Törli a mért profilt, és üres korrekcióról indul.",
+  "tip.eqResetProfiler": "Visszaállítja a három csúszkát alaphelyzetbe és kikapcsolja a profilt — az equalizer korrekció nélkül indul újra.",
   "tip.send": "Az üzenet elküldése",
   "tip.favorite": "A szám hozzáadása a kedvencekhez",
   "tip.clearSearch": "A keresés törlése",

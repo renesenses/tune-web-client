@@ -1818,7 +1818,7 @@ export default {
   "tip.clearSavedRadios": "Deletes every saved radio.",
   "tip.clearSearchHistory": "Clears your search history.",
   "tip.eqResetFlat": "Sets every band back to zero, without deleting the preset.",
-  "tip.eqResetProfiler": "Erases the measured profile and starts from a blank correction.",
+  "tip.eqResetProfiler": "Resets the three sliders to flat and turns the profile off — the equalizer starts again with no correction.",
   "tip.send": "Send the message",
   "tip.favorite": "Add this track to your favourites",
   "tip.clearSearch": "Clear the search",

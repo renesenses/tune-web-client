@@ -1569,7 +1569,7 @@ export default {
   "tip.clearSavedRadios": "Elimina todas las radios guardadas.",
   "tip.clearSearchHistory": "Borra tu historial de búsquedas.",
   "tip.eqResetFlat": "Pone todas las bandas a cero, sin borrar el preajuste.",
-  "tip.eqResetProfiler": "Borra el perfil medido y parte de una corrección en blanco.",
+  "tip.eqResetProfiler": "Devuelve los tres deslizadores a plano y desactiva el perfil: el ecualizador vuelve a empezar sin ninguna corrección.",
   "tip.send": "Enviar el mensaje",
   "tip.favorite": "Añadir esta pista a tus favoritos",
   "tip.clearSearch": "Borrar la búsqueda",
