@@ -2029,7 +2029,7 @@ export default {
   "settings.playing": "Playing",
   "settings.waiting": "Waiting",
   "settings.perZoneSettings": "Per-zone settings",
-  "settings.perZoneHint": "DSD mode, fixed volume and gapless for each playback zone.",
+  "settings.perZoneHint": "DSD mode, maximum sample rate and fixed volume for each playback zone.",
   "settings.zoneGroupLocal": "Local outputs",
   "settings.zoneGroupNetwork": "Network",
   "settings.zoneAdvanced": "Advanced · renderer",

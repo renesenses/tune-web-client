@@ -1777,7 +1777,7 @@ export default {
   "settings.playing": "Reproduciendo",
   "settings.waiting": "En espera",
   "settings.perZoneSettings": "Ajustes por zona",
-  "settings.perZoneHint": "Modo DSD, volumen fijo y sin pausas para cada zona de reproducción.",
+  "settings.perZoneHint": "Modo DSD, frecuencia máxima y volumen fijo para cada zona de reproducción.",
   "settings.dsdNative": "Nativo (passthrough)",
   "settings.dsdPcm": "PCM (conversión)",
   "settings.maxSampleRate": "Frecuencia máx.",

@@ -1962,7 +1962,7 @@ export default {
   "settings.playing": "Lejátszás",
   "settings.waiting": "Várakozás",
   "settings.perZoneSettings": "Zónánkénti beállítások",
-  "settings.perZoneHint": "DSD-mód, rögzített hangerő és gapless minden lejátszási zónához.",
+  "settings.perZoneHint": "DSD-mód, maximális frekvencia és rögzített hangerő minden lejátszási zónához.",
   "settings.zoneGroupLocal": "Helyi kimenetek",
   "settings.zoneGroupNetwork": "Hálózat",
   "settings.zoneAdvanced": "Speciális · renderelő",

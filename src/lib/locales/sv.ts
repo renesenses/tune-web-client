@@ -1722,7 +1722,7 @@ export default {
   "settings.playing": "Spelar",
   "settings.waiting": "Väntar",
   "settings.perZoneSettings": "Inställningar per zon",
-  "settings.perZoneHint": "DSD-läge, fast volym och gapless för varje uppspelningszon.",
+  "settings.perZoneHint": "DSD-läge, maxfrekvens och fast volym för varje uppspelningszon.",
   "settings.dsdNative": "Native (genomsläpp)",
   "settings.dsdPcm": "PCM (konvertering)",
   "settings.dlnaNativeFlac": "Native FLAC",

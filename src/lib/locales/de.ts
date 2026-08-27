@@ -1777,7 +1777,7 @@ export default {
   "settings.playing": "Wird abgespielt",
   "settings.waiting": "Wartet",
   "settings.perZoneSettings": "Einstellungen pro Zone",
-  "settings.perZoneHint": "DSD-Modus, feste Lautstärke und lückenlose Wiedergabe für jede Wiedergabezone.",
+  "settings.perZoneHint": "DSD-Modus, maximale Abtastrate und feste Lautstärke für jede Wiedergabezone.",
   "settings.dsdNative": "Nativ (Passthrough)",
   "settings.dsdPcm": "PCM (Konvertierung)",
   "settings.maxSampleRate": "Max. Rate",
