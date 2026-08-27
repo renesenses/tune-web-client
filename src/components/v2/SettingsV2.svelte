@@ -842,6 +842,83 @@
     schedBusy = false;
   }
 
+  // ── Reglages par zone ─────────────────────────────────────────────────
+  const RATES: { v: number; l: string }[] = [
+    { v: 0, l: 'Aucune limite' }, { v: 48000, l: '48 kHz' }, { v: 88200, l: '88,2 kHz' },
+    { v: 96000, l: '96 kHz' }, { v: 176400, l: '176,4 kHz' }, { v: 192000, l: '192 kHz' },
+    { v: 352800, l: '352,8 kHz' }, { v: 384000, l: '384 kHz' }, { v: 705600, l: '705,6 kHz' },
+    { v: 1411200, l: '1411,2 kHz' },
+  ];
+  const OFFSETS = [0, 1000, 2000, 3000, 4000, 5000, 7000, 10000, 15000, 20000];
+  const isLocalZone = (z: any) => (z?.output_type ?? 'local') === 'local' || z?.output_type === 'browser';
+
+  /** Confirmation ARMEE pour le volume fixe sur une zone RESEAU.
+   *
+   *  Activer envoie 100 % a l'appareil lui-meme : l'ampli part a fond
+   *  (tune-server-rust#1616, Cyrille forum 1320). L'ecran actuel exige de
+   *  TAPER « 100 », comme on exige de taper EFFACER avant d'ecraser un
+   *  disque — un simple « OK » se clique sans lire. On garde cette exigence,
+   *  en dialogue INTEGRE : les dialogues natifs sont bannis des vues web. */
+  let fvAsk = $state<number | null>(null);
+  let fvTyped = $state('');
+  let zoneErr = $state<string | null>(null);
+
+  async function applyFixedVolume(z: any, enabled: boolean, confirmed = false) {
+    if (z?.id == null) return;
+    try {
+      const up = await api.updateZoneFixedVolume(z.id, enabled, confirmed);
+      zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...up } : x)));
+    } catch { zoneErr = 'Réglage refusé par le serveur.'; }
+  }
+  function askFixedVolume(z: any, enabled: boolean) {
+    zoneErr = null;
+    // Couper n'a rien de dangereux : immediat. Une zone LOCALE non plus —
+    // 100 % logiciel est justement le but.
+    if (!enabled || isLocalZone(z)) { applyFixedVolume(z, enabled); return; }
+    fvAsk = z.id; fvTyped = '';
+  }
+  function confirmFixedVolume(z: any) {
+    if (fvTyped.trim() !== '100') return;
+    const target = z;
+    fvAsk = null; fvTyped = '';
+    applyFixedVolume(target, true, true);
+  }
+  async function setZoneField(z: any, fn: () => Promise<any>) {
+    if (z?.id == null) return;
+    try { const up = await fn(); zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...up } : x))); }
+    catch { zoneErr = 'Réglage non enregistré.'; }
+  }
+
+  // ── CLAP (analyse acoustique) ─────────────────────────────────────────
+  let clapOn = $state(false);
+  let clapThrottle = $state('equilibre');
+  let clapAnalysed = $state(0);
+  let clapAvailable = $state<boolean | null>(null);
+  async function refreshClap() {
+    try {
+      const c: any = await api.getConfig();
+      clapOn = c?.audio_embedding_enabled === true || c?.audio_embedding_enabled === 'true';
+      clapThrottle = c?.audio_embedding_throttle ?? 'equilibre';
+    } catch { /* ignore */ }
+    try {
+      const st = await api.getAcousticStatus();
+      clapAvailable = !!st?.available;
+      clapAnalysed = st?.analysed_tracks ?? 0;
+      if (st) clapOn = !!st.enabled;
+    } catch { clapAvailable = null; }
+  }
+  $effect(() => { refreshClap(); });
+  async function setClap(v: boolean) {
+    const before = clapOn; clapOn = v;
+    try { await api.updateConfig({ audio_embedding_enabled: v }); await refreshClap(); }
+    catch { clapOn = before; }
+  }
+  async function setThrottle(v: string) {
+    const before = clapThrottle; clapThrottle = v;
+    try { await api.updateConfig({ audio_embedding_throttle: v }); }
+    catch { clapThrottle = before; }
+  }
+
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
@@ -1017,6 +1094,104 @@
                     <span class="slider"></span>
                   </label>
                 </div>
+              {/if}
+
+            {:else if s.id === 'perZone'}
+              {#if !$zones.length}
+                <p class="hint">Aucune zone. Créez-en une dans l'écran Zones.</p>
+              {:else}
+                <p class="hint">Ces réglages sont propres à CHAQUE zone : ils suivent la sortie, pas l'écoute.</p>
+                <div class="zlist">
+                  {#each $zones as z (z.id)}
+                    <div class="zc">
+                      <div class="zch">
+                        <span class="zn">{z.name}</span>
+                        <span class="zt">{isLocalZone(z) ? 'sortie locale' : 'sortie réseau'}</span>
+                      </div>
+                      <div class="zr">
+                        <label class="zf">
+                          <span>DSD</span>
+                          <select class="sel sm" value={z.dsd_mode ?? 'auto'}
+                            onchange={(e) => setZoneField(z, () => api.updateZoneDsdMode(z.id as number, (e.currentTarget as HTMLSelectElement).value))}>
+                            <option value="auto">Auto</option><option value="native">Natif</option>
+                            <option value="dop">DoP</option><option value="pcm">PCM</option>
+                          </select>
+                        </label>
+                        <label class="zf">
+                          <span>Fréquence max</span>
+                          <select class="sel sm" value={String(z.max_sample_rate ?? 0)}
+                            onchange={(e) => { const v = Number((e.currentTarget as HTMLSelectElement).value);
+                              setZoneField(z, () => api.updateZoneMaxSampleRate(z.id as number, v > 0 ? v : null)); }}>
+                            {#each RATES as r (r.v)}<option value={String(r.v)}>{r.l}</option>{/each}
+                          </select>
+                        </label>
+                        <label class="zf">
+                          <span>Décalage paroles</span>
+                          <select class="sel sm" value={String(z.lyrics_offset_ms ?? 0)}
+                            onchange={(e) => { const ms = Number((e.currentTarget as HTMLSelectElement).value);
+                              setZoneField(z, () => api.updateZoneLyricsOffset(z.id as number, ms)); }}>
+                            {#each OFFSETS as ms (ms)}<option value={String(ms)}>{ms === 0 ? 'Aucun' : `+${ms / 1000} s`}</option>{/each}
+                          </select>
+                        </label>
+                        <label class="zf chk">
+                          <input type="checkbox" checked={z.fixed_volume ?? false}
+                            onchange={(e) => askFixedVolume(z, (e.currentTarget as HTMLInputElement).checked)} />
+                          <span>Volume fixe</span>
+                        </label>
+                      </div>
+
+                      {#if fvAsk === z.id}
+                        <div class="fvbox">
+                          <p>
+                            Activer le volume fixe sur cette zone <b>réseau</b> envoie <b>100 %</b> à
+                            l'appareil : l'ampli part à fond. Tapez <b>100</b> pour confirmer.
+                          </p>
+                          <div class="inline">
+                            <input class="txt time" type="text" placeholder="100" bind:value={fvTyped}
+                              onkeydown={(e) => { if (e.key === 'Enter') confirmFixedVolume(z); if (e.key === 'Escape') fvAsk = null; }} />
+                            <button class="lnk danger" disabled={fvTyped.trim() !== '100'} onclick={() => confirmFixedVolume(z)}>Confirmer</button>
+                            <button class="lnk" onclick={() => { fvAsk = null; fvTyped = ''; }}>Annuler</button>
+                          </div>
+                        </div>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+                {#if zoneErr}<div class="errline">{zoneErr}</div>{/if}
+              {/if}
+
+            {:else if s.id === 'clap'}
+              {#if clapAvailable === false}
+                <p class="hint">Ce serveur n'embarque pas la brique acoustique.</p>
+              {:else}
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.acousticAnalysis' as any)}</span>
+                    <span class="hint">{$t('settings.acousticAnalysisHelp' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={clapOn}
+                      onchange={(e) => setClap((e.currentTarget as HTMLInputElement).checked)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                {#if clapOn}
+                  <div class="row">
+                    <div class="lbl">
+                      <span>{$t('acoustic.throttle' as any)}</span>
+                      <span class="hint">
+                        L'analyse décode dix secondes par piste et y fait tourner un réseau.
+                        Sur un Raspberry Pi, ou sur le serveur qui sert aussi la musique, la cadence se remarque.
+                      </span>
+                    </div>
+                    <div class="seg4">
+                      <button class:on={clapThrottle === 'eco'} onclick={() => setThrottle('eco')}>{$t('acoustic.throttleEco' as any)}</button>
+                      <button class:on={clapThrottle === 'equilibre'} onclick={() => setThrottle('equilibre')}>{$t('acoustic.throttleBalanced' as any)}</button>
+                      <button class:on={clapThrottle === 'rapide'} onclick={() => setThrottle('rapide')}>{$t('acoustic.throttleFast' as any)}</button>
+                    </div>
+                  </div>
+                  <p class="hint">{formatNumber(clapAnalysed)} titres analysés. L'avancement se suit dans <b>Tune Health</b>.</p>
+                {/if}
               {/if}
 
             {:else if s.id === 'library'}
@@ -1778,6 +1953,22 @@
   .sw input:checked + .slider::before{transform:translateX(19px)}
   .sw input:focus-visible + .slider{box-shadow:0 0 0 3px var(--v2-focus)}
 
+  .zlist{display:flex; flex-direction:column; gap:9px; margin-top:12px}
+  .zc{padding:13px 15px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-bg)}
+  .zch{display:flex; align-items:baseline; gap:11px}
+  .zn{font-size:14px; font-weight:700}
+  .zt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .zr{display:flex; gap:18px; flex-wrap:wrap; margin-top:12px}
+  .zf{display:flex; flex-direction:column; gap:5px}
+  .zf > span{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .zf.chk{flex-direction:row; align-items:center; gap:8px; align-self:flex-end; padding-bottom:8px; cursor:pointer}
+  .zf.chk input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
+  .zf.chk span{font:12px var(--v2-sans); text-transform:none; letter-spacing:0; color:var(--v2-txt2)}
+  .sel.sm{min-width:130px; height:32px; font-size:12.5px}
+  .fvbox{margin-top:13px; padding:12px 14px; border-radius:10px; border:1px solid var(--v2-danger-bd)}
+  .fvbox p{font-size:12.5px; line-height:1.55; color:var(--v2-txt2)}
+  .fvbox b{color:var(--v2-txt)}
+  .fvbox .inline{margin-top:11px}
   .txt.wide{width:320px}
   .txt.time{width:130px; font-family:var(--v2-mono)}
   .dirs{display:flex; flex-direction:column; gap:1px; margin-top:12px}
