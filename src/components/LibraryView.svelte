@@ -2,6 +2,7 @@
   import { onMount, untrack } from 'svelte';
   import { dialogs } from '../lib/stores/dialogs';
   import { trierAlbumsParAnnee } from '../lib/trierAlbums';
+  import { doitMemoriserPositionListe } from '../lib/libraryNavScroll';
   import { tip } from '../lib/tooltip';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
@@ -1513,9 +1514,23 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // auto), NOT `.main-content` — whose child fills it exactly, so its scrollTop
     // stays 0. Reading `.main-content` here always captured 0, so Back landed at
     // the top of the artist list instead of the viewed artist (#1118, #870).
-    const scrollEl = document.querySelector('.library-scroller');
-    if (scrollEl) savedArtistScrollTop = scrollEl.scrollTop;
-    if ($libraryTab === 'genres' && scrollEl) savedGenreScrollTop = scrollEl.scrollTop;
+    //
+    // …mais seulement si l'on quitte réellement une LISTE. `selectArtistDetail`
+    // est aussi appelée depuis une fiche déjà ouverte : lien artiste d'un album,
+    // pastilles de crédits, liens artiste des pistes, fil des « artistes
+    // similaires », et `goBack()` lui-même quand ce fil se dépile. Dans ces
+    // cas-là `.library-scroller` porte le défilement d'une page de DÉTAIL —
+    // pratiquement toujours 0 — et l'écrire ici écrasait la position de la liste
+    // mémorisée à l'entrée. Comme `restoreArtistScrollWhenReady` ne fait rien
+    // pour une cible <= 0, le retour final laissait la liste tout en haut :
+    // « le retour ramène toujours en début de liste » (Pierre M, fil 1177,
+    // renesenses/tune-server-rust#2253). La grille d'albums avait déjà sa garde
+    // (`if (!$selectedAlbum)` ci-dessus) ; l'artiste ne l'avait jamais eue.
+    if (doitMemoriserPositionListe({ albumOuvert: $selectedAlbum != null, artisteOuvert: $selectedArtist != null })) {
+      const scrollEl = document.querySelector('.library-scroller');
+      if (scrollEl) savedArtistScrollTop = scrollEl.scrollTop;
+      if ($libraryTab === 'genres' && scrollEl) savedGenreScrollTop = scrollEl.scrollTop;
+    }
     selectedArtist.set(artist);
     window.history.pushState({ view: 'library', artistId: artist.id, tab: $libraryTab }, '', '#library');
     selectedAlbum.set(null);
@@ -2184,7 +2199,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           </button>
         {/if}
         <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title={searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffleResults') : $tr('library.shuffleAll')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+          <!-- Ce bouton DECLENCHE une lecture ; la bascule de la barre de transport
+               ACTIVE un mode. Les deux portaient le meme glyphe de fleches croisees,
+               et un testeur a cliqué ici en croyant eteindre le mode aleatoire
+               (renesenses/tune-server-rust#2261). Le triangle de lecture accolé est
+               ce qui distingue « demarrer » de « activer » : ne pas le retirer, et
+               ne pas l'ajouter a la bascule de TransportBar.svelte. -->
+          <svg viewBox="0 0 36 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="16" aria-hidden="true"><polygon class="shuffle-all-play" points="1 5 1 19 10 12" fill="currentColor" stroke="none"/><g transform="translate(13,0)"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></g></svg>
           {shuffleAllLoading ? $tr('common.loading') : (searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffle') : $tr('library.shuffleAll'))}
         </button>
         <button class="add-content-btn" onclick={() => (showImportWizard = true)} title={$tr('library.addContent')}>
