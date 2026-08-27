@@ -26,6 +26,11 @@
   type StreamingTab = 'search' | 'albums' | 'artists' | 'tracks';
 
   let service = $derived($activeStreamingService);
+  let selectableServices = $derived(
+    Object.entries($streamingServicesStore)
+      .filter(([, status]) => status.enabled && status.authenticated)
+      .map(([name]) => name),
+  );
   let zone = $derived($currentZone);
   let youtubeNeedsAuth = $derived(
     service === 'youtube' && !$streamingServicesStore['youtube']?.authenticated
@@ -661,6 +666,10 @@
     return names[s] ?? s.charAt(0).toUpperCase() + s.slice(1);
   }
 
+  function selectService(s: string) {
+    activeStreamingService.set(s);
+  }
+
   async function search() {
     if (!service || !searchQuery.trim()) return;
     searching = true;
@@ -963,8 +972,22 @@
 
 <div class="streaming-view">
   {#if !service}
-    <div class="empty-center">
+    <div class="empty-center service-picker-empty">
       <p>{$tr('streaming.selectService')}</p>
+      {#if selectableServices.length > 0}
+        <div class="service-picker">
+          {#each selectableServices as availableService}
+            <button
+              class="service-picker-option"
+              onclick={() => selectService(availableService)}
+            >
+              {serviceName(availableService)}
+            </button>
+          {/each}
+        </div>
+      {:else}
+        <button class="scan-btn" onclick={goToSettings}>{$tr('streaming.goToSettings')}</button>
+      {/if}
     </div>
   {:else if youtubeNeedsAuth}
     <div class="empty-center youtube-auth-prompt">
@@ -2387,6 +2410,34 @@
   .youtube-auth-prompt {
     flex-direction: column;
     gap: 16px;
+  }
+
+  .service-picker-empty {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .service-picker {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .service-picker-option {
+    min-width: 120px;
+    padding: 10px 16px;
+    border: 1px solid var(--tune-border);
+    border-radius: 10px;
+    background: var(--tune-surface);
+    color: var(--tune-text);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .service-picker-option:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
   }
 
   .youtube-auth-prompt svg {
