@@ -222,6 +222,13 @@ describe('critical endpoint URLs', () => {
     expect(fetchCalls[0].url).toBe('/api/v1/system/diagnostics');
   });
 
+  it('rearmAsioWarmScan() calls the protected rearm endpoint', async () => {
+    mockFetch({ status: 'rearmed', retry: 'next_restart', asio_warm_scan: {} });
+    await api.rearmAsioWarmScan();
+    expect(fetchCalls[0].url).toBe('/api/v1/system/audio/asio-warm-scan/rearm');
+    expect(fetchCalls[0].init?.method).toBe('POST');
+  });
+
   it('getStats() calls /api/v1/system/stats', async () => {
     mockFetch({ tracks: 1000, albums: 100, artists: 50 });
     await api.getStats();

@@ -40,6 +40,8 @@
   let loading = $state(true);
   let refreshing = $state(false);
   let copied = $state(false);
+  let asioRearming = $state(false);
+  let asioRearmDone = $state(false);
 
   let serverVersion = $state<string | null>(null);
   let health = $state<SystemHealth | null>(null);
@@ -58,6 +60,7 @@
     artists_count: number | null;
     connectors: string[];
     memory_rss_mb: number | null;
+    asio_warm_scan?: api.AsioWarmScanStatus;
     scan_status: {
       status: string;
       tracks: number;
@@ -109,6 +112,26 @@
     refreshing = true;
     await Promise.all([fetchServerVersion(), loadAll()]);
     if (!destroyed) refreshing = false;
+  }
+
+  async function rearmAsioWarmScan() {
+    if (!(await dialogs.confirm($t('diagnostics.asioWarmConfirm' as any)))) return;
+    asioRearming = true;
+    try {
+      const result = await api.rearmAsioWarmScan();
+      if (destroyed) return;
+      if (serverDiag) {
+        serverDiag = { ...serverDiag, asio_warm_scan: result.asio_warm_scan };
+      }
+      asioRearmDone = true;
+      notifications.success($t('diagnostics.asioWarmRearmed' as any));
+    } catch (e) {
+      if (!destroyed) {
+        notifications.error(errText(e) ?? $t('common.error'));
+      }
+    } finally {
+      if (!destroyed) asioRearming = false;
+    }
   }
 
   // Use onMount (not $effect) to load data exactly once on component
@@ -536,6 +559,26 @@
   </div>
 
   <div class="diagnostics-body">
+    {#if asioRearmDone}
+      <section class="asio-warm-alert ready" aria-live="polite">
+        <div>
+          <strong>{$t('diagnostics.asioWarmRearmed' as any)}</strong>
+        </div>
+      </section>
+    {:else if serverDiag?.asio_warm_scan?.blocked_after_crash}
+      <section class="asio-warm-alert" role="alert">
+        <div class="asio-warm-copy">
+          <strong>{$t('diagnostics.asioWarmTitle' as any)}</strong>
+          <span>{$t('diagnostics.asioWarmMessage' as any)}</span>
+        </div>
+        <button class="action-btn" onclick={rearmAsioWarmScan} disabled={asioRearming}>
+          {asioRearming
+            ? $t('diagnostics.asioWarmRearming' as any)
+            : $t('diagnostics.asioWarmRearm' as any)}
+        </button>
+      </section>
+    {/if}
+
     <!-- Server Stats Dashboard -->
     {#if serverDiag}
     <section class="diag-section">
@@ -1110,6 +1153,41 @@
     font-size: 16px;
     font-weight: 600;
     margin: 0 0 var(--space-md) 0;
+  }
+
+  .asio-warm-alert {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    padding: var(--space-md) var(--space-lg);
+    border: 1px solid var(--tune-warning, #f59e0b);
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--tune-warning, #f59e0b) 10%, var(--tune-surface));
+  }
+
+  .asio-warm-alert.ready {
+    border-color: var(--tune-success, #22c55e);
+    background: color-mix(in srgb, var(--tune-success, #22c55e) 10%, var(--tune-surface));
+  }
+
+  .asio-warm-copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .asio-warm-copy span {
+    color: var(--tune-text-secondary);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 640px) {
+    .asio-warm-alert {
+      align-items: stretch;
+      flex-direction: column;
+    }
   }
 
   /* Info grid */
