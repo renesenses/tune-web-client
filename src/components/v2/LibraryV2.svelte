@@ -50,6 +50,7 @@
   function matches(a: Album): boolean {
     if (fQuality && !tierMatches(a, fQuality)) return false;
     if (fRate && (a.sample_rate ?? 0) !== fRate) return false; // exact
+    if (fYear != null && albumYear(a) !== fYear) return false;
     if (q && !fold(a.title).includes(fold(q)) && !fold(a.artist_name).includes(fold(q))) return false;
     return true;
   }
@@ -58,6 +59,62 @@
   const matchCount = $derived(sorted.filter(matches).length);
 
   // Rail A–Z : première lettre d'un album (non-alpha → « # »).
+  // ── Frise chronologique (direction Levente, brouillon v3 du 26/08) ────
+  //
+  // Troisième mode de navigation dans la collection, à côté du rail A–Z :
+  // un histogramme du nombre d'albums par année. Sur une discothèque, le
+  // repère naturel est souvent l'époque, pas la première lettre.
+  //
+  // Cohérence avec la règle d'or de l'écran : choisir une année ATTÉNUE les
+  // albums d'une autre année, elle ne les retire pas. Les pochettes gardent
+  // leur place — c'est la mémoire visuelle qui fait retrouver un album.
+  //
+  // Disponible à partir d'Avancé : en Essentiel, le rail A–Z suffit et reste
+  // le seul repère, conformément au principe « seulement le plus pertinent ».
+  type NavMode = 'alpha' | 'years';
+  let navMode = $state<NavMode>('alpha');
+  const showTimeline = $derived(atLeast(level, 'intermediate'));
+
+  /** Année retenue pour un album : l'année d'ORIGINE prime sur celle de
+   *  réédition — sur du jazz ou du classique, l'écart se compte en décennies
+   *  et c'est l'enregistrement qui situe l'œuvre. */
+  function albumYear(a: Album): number | null {
+    const y = a.original_year ?? a.year ?? null;
+    return typeof y === 'number' && y > 1800 && y < 2200 ? y : null;
+  }
+
+  let fYear = $state<number | null>(null);
+
+  /** Histogramme : une barre par année, du minimum au maximum RÉELS de la
+   *  bibliothèque — pas une plage fixe, qui laisserait des décennies vides
+   *  chez quelqu'un dont la collection commence en 1985. */
+  const histogram = $derived.by(() => {
+    const counts = new Map<number, number>();
+    for (const a of $albums) {
+      const y = albumYear(a);
+      if (y != null) counts.set(y, (counts.get(y) ?? 0) + 1);
+    }
+    if (!counts.size) return { bars: [] as { year: number; n: number }[], max: 0, min: 0, maxYear: 0 };
+    const years = [...counts.keys()].sort((x, z) => x - z);
+    const min = years[0], maxYear = years[years.length - 1];
+    const bars: { year: number; n: number }[] = [];
+    for (let y = min; y <= maxYear; y++) bars.push({ year: y, n: counts.get(y) ?? 0 });
+    return { bars, max: Math.max(...counts.values()), min, maxYear };
+  });
+
+  /** Repères de décennie sous la frise, alignés sur les barres. */
+  const decades = $derived.by(() => {
+    const { bars } = histogram;
+    if (!bars.length) return [] as { year: number; pct: number }[];
+    const out: { year: number; pct: number }[] = [];
+    for (let i = 0; i < bars.length; i++) {
+      if (bars[i].year % 10 === 0) out.push({ year: bars[i].year, pct: (i / bars.length) * 100 });
+    }
+    return out;
+  });
+
+  const yearCount = $derived(fYear == null ? 0 : $albums.filter((a) => albumYear(a) === fYear).length);
+
   const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
   function firstLetter(a: Album): string {
     const c = fold(a.title).charAt(0).toUpperCase();
@@ -88,7 +145,7 @@
     { view: 'genres', label: 'Genres', adv: true }, { view: 'genres', label: 'Années', adv: true }, { view: 'genres', label: 'Labels', adv: true },
   ];
   let opened = $state<Album | null>(null);
-  function reset() { fQuality = null; fRate = null; q = ''; }
+  function reset() { fQuality = null; fRate = null; q = ''; fYear = null; }
 </script>
 
 <section class="v2-lib tune-v2">
@@ -131,17 +188,56 @@
     </div>
   {/if}
 
+  {#if showTimeline}
+    <div class="navmode">
+      <button class:on={navMode === 'alpha'} onclick={() => { navMode = 'alpha'; fYear = null; }}>A–Z</button>
+      <button class:on={navMode === 'years'} onclick={() => (navMode = 'years')}>Années</button>
+      {#if fYear != null}
+        <button class="yearpill" onclick={() => (fYear = null)}>
+          {fYear} · {yearCount} album{yearCount > 1 ? 's' : ''}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      {/if}
+    </div>
+  {/if}
+
+  {#if showTimeline && navMode === 'years' && histogram.bars.length}
+    <div class="frise">
+      <div class="bars">
+        {#each histogram.bars as b (b.year)}
+          <button
+            class="bar"
+            class:on={fYear === b.year}
+            class:vide={b.n === 0}
+            disabled={b.n === 0}
+            title={`${b.year} — ${b.n} album${b.n > 1 ? 's' : ''}`}
+            aria-label={`${b.year}, ${b.n} albums`}
+            style="--h:{histogram.max ? Math.max(8, (b.n / histogram.max) * 100) : 0}%"
+            onclick={() => (fYear = fYear === b.year ? null : b.year)}
+          >{#if fYear === b.year}<span class="tag">{b.year}</span>{/if}</button>
+        {/each}
+      </div>
+      <div class="decs">
+        {#each decades as d (d.year)}
+          <span class="dec" style="left:{d.pct}%">{d.year}</span>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
   <div class="body">
     {#if $libraryLoading && sorted.length === 0}
       <div class="state">Chargement de la bibliothèque…</div>
     {:else if sorted.length === 0}
       <div class="state">Votre bibliothèque est vide.</div>
     {:else}
-      <div class="rail">
-        {#each ALPHA as L (L)}
-          <button class="rl" class:hot={present.has(L)} disabled={!present.has(L)} onclick={() => jump(L)}>{L}</button>
-        {/each}
-      </div>
+      {#if navMode === 'alpha'}
+        <div class="rail">
+          {#each ALPHA as L (L)}
+            <button class="rl" class:hot={present.has(L)} disabled={!present.has(L)} onclick={() => jump(L)}>{L}</button>
+          {/each}
+        </div>
+      {/if}
       <div class="grid" class:expert={showExpert} bind:this={gridEl}>
         {#each sorted as a (a.id)}
           <button class="card" class:dim={!matches(a)} data-letter={firstLetter(a)} onclick={() => opened = a}>
@@ -208,6 +304,33 @@
     padding:1px 4px; border-radius:3px; transition:.12s}
   .rl:disabled{opacity:.35; cursor:default}
   .rl.hot:hover{color:var(--v2-acc-tint); background:var(--v2-hover)}
+  /* Bascule entre les deux repères de navigation : alphabet ou époque. */
+  .navmode{display:flex; align-items:center; gap:4px; padding:2px 30px 10px}
+  .navmode > button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
+    font:600 11.5px var(--v2-sans); padding:6px 13px; border-radius:var(--v2-r-pill); cursor:pointer; transition:.15s}
+  .navmode > button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .navmode > button.on{color:var(--v2-on-acc); border-color:transparent;
+    background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .navmode .yearpill{display:inline-flex; align-items:center; gap:7px; margin-left:8px;
+    color:var(--v2-acc-tint); border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
+  .navmode .yearpill svg{width:11px; height:11px}
+
+  /* Frise : une barre par année, hauteur proportionnelle au nombre d'albums.
+     Les années sans album restent visibles mais creuses — un trou dans la
+     collection est une information, pas un défaut d'affichage. */
+  .frise{padding:2px 30px 14px; user-select:none}
+  .bars{display:flex; align-items:flex-end; gap:2px; height:74px}
+  .bar{position:relative; flex:1 1 0; min-width:2px; height:var(--h); border:0; padding:0; cursor:pointer;
+    border-radius:2px 2px 0 0; background:var(--v2-line2); transition:background .12s, transform .12s}
+  .bar:hover:not(:disabled){background:var(--v2-acc2); transform:scaleY(1.06); transform-origin:bottom}
+  .bar.vide{background:var(--v2-line); height:3px; cursor:default}
+  .bar.on{background:linear-gradient(180deg,var(--v2-acc1),var(--v2-acc2))}
+  .bar .tag{position:absolute; bottom:calc(100% + 5px); left:50%; transform:translateX(-50%);
+    font:700 9.5px var(--v2-mono); letter-spacing:.04em; color:var(--v2-on-acc); background:var(--v2-acc1);
+    padding:2px 6px; border-radius:5px; white-space:nowrap}
+  .decs{position:relative; height:16px; margin-top:7px}
+  .dec{position:absolute; transform:translateX(-50%); font:10px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
+
   .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
     gap:22px 18px; align-content:start; padding:8px 30px 40px}
   .grid::-webkit-scrollbar{width:9px}.grid::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
