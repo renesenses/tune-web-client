@@ -14,6 +14,7 @@
   import HomeV2 from './HomeV2.svelte';
   import SearchV2 from './SearchV2.svelte';
   import PlaylistsV2 from './PlaylistsV2.svelte';
+  import SettingsV2 from './SettingsV2.svelte';
   import PlayerV2 from './PlayerV2.svelte';
   import AvatarMenu from './AvatarMenu.svelte';
   import { preferences } from '../../lib/stores/preferences';
@@ -48,6 +49,8 @@
         <SearchV2 />
       {:else if $activeView === 'playlists'}
         <PlaylistsV2 />
+      {:else if $activeView === 'settings'}
+        <SettingsV2 />
       {:else}
         <div class="soon">
           <div class="badge">À venir</div>

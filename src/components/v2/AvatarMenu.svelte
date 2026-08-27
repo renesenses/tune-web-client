@@ -12,6 +12,9 @@
   import { preferences } from '../../lib/stores/preferences';
   import { LEVEL_LABELS, type SettingsLevel } from '../../lib/uiLevel';
   import { V2_THEMES, type V2Theme } from '../../lib/v2Theme';
+  import { t } from '../../lib/i18n';
+  import { searchSettings, type V2SettingsHit } from '../../lib/v2Settings';
+  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
 
   const LEVELS: SettingsLevel[] = ['beginner', 'intermediate', 'expert'];
   let open = $state(false);
@@ -24,7 +27,21 @@
   function setTheme(t: V2Theme) {
     preferences.update((p) => ({ ...p, v2Theme: t }));
   }
-  function toggle() { open = !open; }
+  // Recherche de réglages : lit la MÊME carte que l'écran Réglages v2
+  // (lib/v2Settings), donc l'index ne peut pas diverger de l'écran réel.
+  // On résout les clés i18n pour chercher sur les libellés affichés — un
+  // utilisateur tape « me suivre », pas « settings.followMe ».
+  let q = $state('');
+  const hits = $derived<V2SettingsHit[]>(searchSettings(q, (k) => $t(k as any)));
+
+  function openSetting(h: V2SettingsHit) {
+    v2SettingsTarget.set({ tab: h.tab.id, section: h.section.id });
+    activeView.set('settings');
+    q = '';
+    close();
+  }
+
+  function toggle() { open = !open; if (!open) q = ''; }
   function close() { open = false; }
   function onDocClick(e: MouseEvent) {
     if (!(e.target as HTMLElement)?.closest('.avwrap')) open = false;
@@ -46,6 +63,32 @@
         </div>
       </div>
       <div class="sep"></div>
+
+      <div class="sfield">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input
+          type="search"
+          placeholder="Rechercher un réglage…"
+          bind:value={q}
+          onkeydown={(e) => { if (e.key === 'Enter' && hits.length) openSetting(hits[0]); if (e.key === 'Escape') q = ''; }}
+        />
+      </div>
+
+      {#if q.trim().length >= 2}
+        <div class="hits">
+          {#if hits.length}
+            {#each hits as h (h.tab.id + '/' + h.section.id)}
+              <button class="hit" onclick={() => openSetting(h)}>
+                <span class="hl">{h.label}</span>
+                <span class="ht">{h.tab.label}</span>
+              </button>
+            {/each}
+          {:else}
+            <div class="nohit">Aucun réglage pour « {q.trim()} ».</div>
+          {/if}
+        </div>
+        <div class="sep"></div>
+      {/if}
 
       <div class="sec">Interface</div>
       <div class="seg">
@@ -108,6 +151,21 @@
     font-size:11.5px; font-weight:600; padding:7px 4px; border-radius:9px; cursor:pointer; transition:.15s}
   .seg button:hover{color:var(--v2-txt)}
   .seg button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 3px 10px var(--v2-glow)}
+  .sfield{position:relative; display:flex; align-items:center; margin:2px 4px 6px}
+  .sfield svg{position:absolute; left:11px; width:15px; height:15px; color:var(--v2-txt3); pointer-events:none}
+  .sfield input{width:100%; height:36px; border-radius:10px; border:1px solid var(--v2-line2);
+    background:var(--v2-surface2); color:var(--v2-txt); font:12.5px var(--v2-sans); padding:0 10px 0 33px; outline:none}
+  .sfield input::placeholder{color:var(--v2-txt3)}
+  .sfield input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+  .sfield input::-webkit-search-cancel-button{-webkit-appearance:none}
+  .hits{display:flex; flex-direction:column; gap:1px; max-height:190px; overflow-y:auto; padding:0 2px}
+  .hits::-webkit-scrollbar{width:7px}.hits::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .hit{display:flex; align-items:baseline; justify-content:space-between; gap:10px; width:100%; padding:8px;
+    border:0; border-radius:8px; background:transparent; cursor:pointer; text-align:left; color:var(--v2-txt2)}
+  .hit:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  .hit .hl{font-size:12.5px; font-weight:500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .hit .ht{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); flex:0 0 auto}
+  .nohit{padding:10px 8px; font-size:11.5px; color:var(--v2-txt3)}
   .themes{display:grid; grid-template-columns:repeat(6,1fr); gap:6px; padding:2px 4px 0}
   .sw{position:relative; aspect-ratio:1; border-radius:9px; cursor:pointer; padding:0;
     border:1px solid var(--v2-line2); background:var(--sw-bg); transition:.15s}
