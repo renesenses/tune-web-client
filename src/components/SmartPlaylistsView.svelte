@@ -8,6 +8,11 @@
   import { notifications } from '../lib/stores/notifications';
   import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
   import AlbumArt from './AlbumArt.svelte';
+  import {
+    OPERATEURS,
+    normaliserOperateur,
+    optionOperateur,
+  } from '../lib/smartPlaylistOperateurs';
 
   let zone = $derived($currentZone);
 
@@ -64,17 +69,9 @@
     { value: 'favorite', key: 'smartCollection.fieldFavorite' },
   ];
 
-  const OPERATORS: { value: string; key?: string; label?: string }[] = [
-    { value: 'contains', key: 'smartPlaylists.opContains' },
-    { value: 'equals', label: '=' },
-    { value: 'not_equals', label: '!=' },
-    { value: 'starts_with', key: 'smartPlaylists.opStartsWith' },
-    { value: 'greater_than', label: '>' },
-    { value: 'less_than', label: '<' },
-    { value: 'branch_of', key: 'smartPlaylists.opBranchOf' },
-    { value: 'is_empty', key: 'smartPlaylists.opIsEmpty' },
-    { value: 'is_not_empty', key: 'smartPlaylists.opIsNotEmpty' },
-  ];
+  // La liste et sa normalisation vivent dans `lib/smartPlaylistOperateurs.ts` :
+  // elles portent un contrat avec le serveur, et un contrat se teste.
+  const OPERATORS = OPERATEURS;
 
   // Les champs « référence » n'acceptent que est / n'est pas
   // (in|not_in côté serveur, is|is_not pour les favoris).
@@ -90,7 +87,7 @@
   function isRefField(field: string): boolean {
     return field === 'in_collection' || field === 'in_playlist' || field === 'favorite';
   }
-  function opsFor(field: string): { value: string; key?: string; label?: string }[] {
+  function opsFor(field: string): readonly { value: string; key?: string; label?: string }[] {
     if (field === 'favorite') return FAV_OPERATORS;
     if (isRefField(field)) return REF_OPERATORS;
     return OPERATORS;
@@ -141,7 +138,11 @@
         : refName(r.value);
       return `${fieldLabel} ${opLabel} « ${valueLabel} »`;
     }
-    return `${r.field} ${r.operator} "${r.value}"`;
+    // Le libellé du menu, pas la valeur interne : le résumé d'une règle doit se
+    // lire « bit_depth ≥ "24" », pas « bit_depth gte "24" ».
+    const option = optionOperateur(r.operator);
+    const opLabel = option ? (option.key ? $tr(option.key) : option.label) : r.operator;
+    return `${r.field} ${opLabel} "${r.value}"`;
   }
 
   const SORT_OPTIONS: { value: string; key: string }[] = [
@@ -309,7 +310,11 @@
 
   function parseRules(sp: SmartPlaylist): Rule[] {
     const raw: any[] = Array.isArray(sp.rules) ? sp.rules : (() => { try { return JSON.parse(sp.rules || '[]'); } catch { return []; } })();
-    return raw.map(r => ({ field: r.field, operator: r.operator || r.op || 'contains', value: r.value }));
+    return raw.map(r => ({
+      field: r.field,
+      operator: normaliserOperateur(r.operator || r.op || 'contains'),
+      value: r.value,
+    }));
   }
 
   function ruleSummary(sp: SmartPlaylist): string {
