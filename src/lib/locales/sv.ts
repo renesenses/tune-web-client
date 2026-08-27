@@ -361,7 +361,7 @@ export default {
   'search.hint': 'Skriv en sökterm för att börja',
 
   // Streaming
-  'streaming.selectService': 'Välj en streamingtjänst i sidofältet',
+  'streaming.selectService': 'Välj en streamingtjänst',
   'streaming.searchOn': 'Sök på {service}...',
   'streaming.myPlaylists': 'Mina spellistor',
   'streaming.noPlaylists': 'Inga spellistor',

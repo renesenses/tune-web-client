@@ -401,7 +401,7 @@ export default {
   'search.hint': 'Introdu un termen pentru a începe căutarea',
 
   // Streaming
-  'streaming.selectService': 'Selectează un serviciu de streaming din bara laterală',
+  'streaming.selectService': 'Selectează un serviciu de streaming',
   'streaming.searchOn': 'Caută pe {service}...',
   'streaming.myPlaylists': 'Playlisturile mele',
   'streaming.noPlaylists': 'Niciun playlist',

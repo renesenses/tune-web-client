@@ -391,7 +391,7 @@ export default {
   'search.hint': '输入搜索词开始',
 
   // Streaming
-  'streaming.selectService': '从侧边栏选择流媒体服务',
+  'streaming.selectService': '选择流媒体服务',
   'streaming.searchOn': '在 {service} 上搜索...',
   'streaming.myPlaylists': '我的播放列表',
   'streaming.noPlaylists': '没有播放列表',

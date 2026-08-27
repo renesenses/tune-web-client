@@ -568,7 +568,7 @@ export default {
   "search.noResults": "Nincs találat erre: „{query}”",
   "search.hint": "Írj be egy keresőkifejezést a kezdéshez",
   // Streaming
-  "streaming.selectService": "Válassz streamingszolgáltatást az oldalsávból",
+  "streaming.selectService": "Válassz streamingszolgáltatást",
   "streaming.searchOn": "Keresés itt: {service}...",
   "streaming.myPlaylists": "Saját lejátszási listáim",
   "streaming.noPlaylists": "Nincs lejátszási lista",
