@@ -604,6 +604,99 @@
     { v: 'settings', k: 'nav.settings' },
   ];
 
+  // ── Services de streaming : connexion ──────────────────────────────────
+  //
+  // Deux flux, et il faut les distinguer :
+  //   - IDENTIFIANTS (Qobuz) : l'utilisateur saisit ses codes, le serveur
+  //     repond `authenticated`.
+  //   - CODE D'APPAREIL (Tidal, Spotify, YouTube) : le serveur renvoie une
+  //     URL et un code a recopier sur un autre ecran, puis on SONDE l'etat
+  //     jusqu'a ce qu'il bascule.
+  //
+  // Le mot de passe n'est jamais conserve : il est efface des que la reponse
+  // arrive, succes ou echec.
+  let svcs = $state<Record<string, any>>({});
+  let svcBusy = $state<string | null>(null);
+  let svcErr = $state<Record<string, string | null>>({});
+  let cred = $state<Record<string, { user: string; pass: string }>>({});
+  let deviceFlow = $state<Record<string, { url: string; code: string | null } | undefined>>({});
+  let polls: Record<string, ReturnType<typeof setInterval>> = {};
+
+  $effect(() => {
+    api.getStreamingServices()
+      .then((r) => {
+        svcs = r ?? {};
+        // Les entrees d'identifiants sont creees ICI, au chargement, et non
+        // a la volee pendant le rendu : muter l'etat pendant qu'on rend
+        // relance le rendu en boucle.
+        const next = { ...cred };
+        for (const k of Object.keys(svcs)) if (!next[k]) next[k] = { user: '', pass: '' };
+        cred = next;
+      })
+      .catch(() => {});
+    return () => { Object.values(polls).forEach(clearInterval); polls = {}; };
+  });
+  /** Qobuz attend des identifiants ; les autres passent par un code. */
+  function usesPassword(name: string): boolean { return name === 'qobuz'; }
+
+  function stopPoll(name: string) {
+    if (polls[name]) { clearInterval(polls[name]); delete polls[name]; }
+  }
+  function startPoll(name: string) {
+    stopPoll(name);
+    polls[name] = setInterval(async () => {
+      try {
+        const st = await api.getStreamingServiceStatus(name);
+        if (st?.authenticated) {
+          stopPoll(name);
+          svcs = { ...svcs, [name]: { ...svcs[name], ...st } };
+          deviceFlow = { ...deviceFlow, [name]: undefined };
+          svcBusy = null;
+        }
+      } catch { /* le sondage peut echouer sans que ce soit une panne */ }
+    }, 3000);
+  }
+
+  async function connectSvc(name: string) {
+    svcBusy = name;
+    svcErr = { ...svcErr, [name]: null };
+    try {
+      const c = cred[name];
+      const body = usesPassword(name) ? { username: c?.user ?? '', password: c?.pass ?? '' } : undefined;
+      const res = await api.authenticateStreaming(name, body);
+      // Le mot de passe ne survit pas a la reponse, quelle qu'elle soit.
+      if (cred[name]) cred = { ...cred, [name]: { user: cred[name].user, pass: '' } };
+      if (res?.authenticated) {
+        svcs = { ...svcs, [name]: { ...svcs[name], authenticated: true } };
+        svcBusy = null;
+      } else if (res?.verification_url) {
+        const raw = res.verification_url;
+        const url = raw.startsWith('http') ? raw : `https://${raw}`;
+        deviceFlow = { ...deviceFlow, [name]: { url, code: res.user_code ?? null } };
+        startPoll(name);   // svcBusy reste pose : l'attente fait partie du flux
+      } else {
+        svcErr = { ...svcErr, [name]: usesPassword(name) ? 'Identifiants refusés.' : "Le service n'a pas renvoyé de lien." };
+        svcBusy = null;
+      }
+    } catch {
+      svcErr = { ...svcErr, [name]: 'Connexion impossible.' };
+      svcBusy = null;
+    }
+  }
+  async function disconnectSvc(name: string) {
+    stopPoll(name);
+    deviceFlow = { ...deviceFlow, [name]: undefined };
+    try {
+      await api.disconnectStreaming(name);
+      svcs = { ...svcs, [name]: { ...svcs[name], authenticated: false, username: null } };
+    } catch { svcErr = { ...svcErr, [name]: 'Déconnexion impossible.' }; }
+  }
+  function cancelFlow(name: string) {
+    stopPoll(name);
+    deviceFlow = { ...deviceFlow, [name]: undefined };
+    svcBusy = null;
+  }
+
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
@@ -778,6 +871,58 @@
                       onchange={(e) => preferences.update((pr) => ({ ...pr, tooltipsEnabled: (e.currentTarget as HTMLInputElement).checked }))} />
                     <span class="slider"></span>
                   </label>
+                </div>
+              {/if}
+
+            {:else if s.id === 'streaming'}
+              {#if !Object.keys(svcs).length}
+                <p class="hint">Aucun service configuré sur ce serveur.</p>
+              {:else}
+                <div class="svclist">
+                  {#each Object.entries(svcs) as [name, st] (name)}
+                    {@const flow = deviceFlow[name]}
+                    <div class="svc">
+                      <div class="sname">
+                        {name}
+                        <span class="sst" class:ok={st.authenticated} class:off={!st.enabled}>
+                          {!st.enabled ? 'désactivé' : st.authenticated ? 'connecté' : 'non connecté'}
+                        </span>
+                        {#if st.username}<em>{st.username}</em>{/if}
+                        {#if st.subscription}<em class="sub">{st.subscription}</em>{/if}
+                      </div>
+
+                      {#if st.authenticated}
+                        <button class="lnk danger" onclick={() => disconnectSvc(name)}>Se déconnecter</button>
+
+                      {:else if flow}
+                        <!-- Code d'appareil : on affiche le code et le lien, et on
+                             sonde en fond jusqu'à ce que le service confirme. -->
+                        <div class="flow">
+                          {#if flow.code}<code class="ucode">{flow.code}</code>{/if}
+                          <a class="lnk" href={flow.url} target="_blank" rel="noopener">Ouvrir la page de connexion</a>
+                          <span class="waiting">En attente de confirmation…</span>
+                          <button class="lnk" onclick={() => cancelFlow(name)}>Annuler</button>
+                        </div>
+
+                      {:else if usesPassword(name) && cred[name]}
+                        <div class="inline">
+                          <input class="txt" type="text" placeholder="Identifiant" autocomplete="username"
+                            bind:value={cred[name].user} disabled={svcBusy === name} />
+                          <input class="txt" type="password" placeholder="Mot de passe" autocomplete="current-password"
+                            bind:value={cred[name].pass} disabled={svcBusy === name}
+                            onkeydown={(e) => { if (e.key === 'Enter') connectSvc(name); }} />
+                          <button class="lnk" disabled={svcBusy === name || !cred[name]?.user || !cred[name]?.pass}
+                            onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : 'Se connecter'}</button>
+                        </div>
+
+                      {:else}
+                        <button class="lnk" disabled={svcBusy === name || !st.enabled}
+                          onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : 'Se connecter'}</button>
+                      {/if}
+
+                      {#if svcErr[name]}<div class="serr">{svcErr[name]}</div>{/if}
+                    </div>
+                  {/each}
                 </div>
               {/if}
 
@@ -1301,6 +1446,20 @@
   .sw input:checked + .slider::before{transform:translateX(19px)}
   .sw input:focus-visible + .slider{box-shadow:0 0 0 3px var(--v2-focus)}
 
+  .svclist{display:flex; flex-direction:column; gap:2px; margin-top:12px}
+  .svc{display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:12px 10px; border-radius:10px}
+  .svc:hover{background:var(--v2-hover)}
+  .sname{display:flex; align-items:baseline; gap:10px; flex:1; min-width:0; font-size:14px; font-weight:600;
+    text-transform:capitalize}
+  .sst{font:9px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-danger)}
+  .sst.ok{color:var(--v2-acc1)} .sst.off{color:var(--v2-txt3)}
+  .sname em{font:11px var(--v2-mono); font-style:normal; color:var(--v2-txt3); text-transform:none}
+  .sname em.sub{color:var(--v2-acc2)}
+  .flow{display:flex; align-items:center; gap:11px; flex-wrap:wrap}
+  .ucode{font:700 15px var(--v2-mono); letter-spacing:.22em; color:var(--v2-acc-tint);
+    border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); border-radius:9px; padding:6px 13px}
+  .waiting{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .serr{flex-basis:100%; font-size:11.5px; color:var(--v2-danger)}
   .unavail{font:11px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
   .lbl b{color:var(--v2-acc-tint); font-weight:700}
   .seg4{display:flex; gap:2px; padding:3px; border-radius:12px; flex:0 0 auto;
