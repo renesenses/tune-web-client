@@ -18,7 +18,8 @@
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
-  import { followMe } from '../../lib/stores/zones';
+  import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
+  import * as api from '../../lib/api';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { V2_SETTINGS, type V2SettingsTabId } from '../../lib/v2Settings';
@@ -44,6 +45,62 @@
   const sections = $derived((tab?.sections ?? []).filter((s) => atLeast(level, s.min)));
   const hiddenCount = $derived((tab?.sections.length ?? 0) - sections.length);
 
+  // ── Sections REELLEMENT portees ────────────────────────────────────────
+  // Chacune s'adosse a la meme API/au meme store que l'ecran actuel : le
+  // reglage est partage, jamais duplique.
+
+  // « Zones de lecture » — config serveur `zone_auto_create` (defaut true).
+  let autoCreate = $state<boolean | null>(null);
+  let autoCreateBusy = $state(false);
+  $effect(() => {
+    api.getConfig()
+      .then((c: any) => { autoCreate = c?.zone_auto_create ?? true; })
+      .catch(() => { autoCreate = null; });
+  });
+  async function setAutoCreate(v: boolean) {
+    autoCreateBusy = true;
+    const before = autoCreate;
+    autoCreate = v;
+    try { await api.updateConfig({ zone_auto_create: v }); }
+    catch { autoCreate = before; }   // pas d'etat menteur si le serveur refuse
+    finally { autoCreateBusy = false; }
+  }
+
+  // « Qualite streaming » — reglage PAR ZONE.
+  //
+  // Divergence assumee avec l'ecran actuel, qui applique toujours a
+  // `zones[0]` : sur une installation multi-room, regler la qualite depuis
+  // les Reglages touchait donc une zone au hasard plutot que celle qu'on
+  // ecoute. On vise ici la zone COURANTE (repli sur la premiere), et on
+  // affiche son nom pour qu'il n'y ait aucun doute sur la cible.
+  const qualityZoneId = $derived($currentZoneId ?? $zones[0]?.id ?? null);
+  const qualityZoneName = $derived($zones.find((z) => z.id === qualityZoneId)?.name ?? null);
+  const QUALITIES = [
+    { v: 'max',   k: 'settings.qualityMax' },
+    { v: 'hires', k: 'settings.qualityHires' },
+    { v: 'cd',    k: 'settings.qualityCd' },
+    { v: 'low',   k: 'settings.qualityLow' },
+  ];
+  let quality = $state<string>('max');
+  let qualityBusy = $state(false);
+  $effect(() => {
+    const zid = qualityZoneId;
+    if (zid == null) return;
+    api.getStreamingQuality(zid)
+      .then((r) => { quality = r.quality ?? 'max'; })
+      .catch(() => {});
+  });
+  async function setQuality(v: string) {
+    const zid = qualityZoneId;
+    if (zid == null) return;
+    const before = quality;
+    quality = v;
+    qualityBusy = true;
+    try { await api.setStreamingQuality(zid, v); }
+    catch { quality = before; }
+    finally { qualityBusy = false; }
+  }
+
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
@@ -58,25 +115,24 @@
     </div>
   </header>
 
-  <div class="body">
-    <nav class="rail" aria-label="Sections des réglages">
-      {#each tabs as x (x.id)}
-        <button class="rtab" class:on={x.id === tabId} onclick={() => go(x.id)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d={x.icon} /></svg>
-          <span>{x.label}</span>
-        </button>
-      {/each}
-      {#if !atLeast(level, 'expert')}
-        <div class="railnote">D'autres réglages apparaissent aux niveaux Avancé et Expert.</div>
-      {/if}
-    </nav>
+  <nav class="tabs" aria-label="Sections des réglages">
+    {#each tabs as x (x.id)}
+      <button class="tab" class:on={x.id === tabId} onclick={() => go(x.id)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d={x.icon} /></svg>
+        <span>{x.label}</span>
+      </button>
+    {/each}
+  </nav>
 
+  <div class="body">
     <div class="pane">
       {#if tab}
         <div class="panehead">
-          <h2>{tab.label}</h2>
           {#if hiddenCount > 0}
             <span class="masked">{hiddenCount} section{hiddenCount > 1 ? 's' : ''} de plus à un niveau supérieur</span>
+          {/if}
+          {#if !atLeast(level, 'expert')}
+            <span class="masked">Les niveaux Avancé et Expert ouvrent d'autres onglets.</span>
           {/if}
         </div>
 
@@ -87,7 +143,44 @@
               {#if s.from !== tab.id}<span class="moved">déplacé depuis « {s.from} »</span>{/if}
             </div>
 
-            {#if s.id === 'followMe'}
+            {#if s.id === 'zoneAutoCreate'}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.zoneAutoCreateLabel' as any)}</span>
+                  <span class="hint">{$t('settings.zoneAutoCreateHint' as any)}</span>
+                </div>
+                {#if autoCreate === null}
+                  <span class="unavail">Serveur injoignable</span>
+                {:else}
+                  <label class="sw">
+                    <input type="checkbox" checked={autoCreate} disabled={autoCreateBusy}
+                      onchange={(e) => setAutoCreate((e.currentTarget as HTMLInputElement).checked)} />
+                    <span class="slider"></span>
+                  </label>
+                {/if}
+              </div>
+
+            {:else if s.id === 'streamQuality'}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.streamingQuality' as any)}</span>
+                  <span class="hint">
+                    {#if qualityZoneName}
+                      S'applique à la zone <b>{qualityZoneName}</b>. Chaque zone a sa propre qualité.
+                    {:else}
+                      Aucune zone active — sélectionnez une zone pour régler sa qualité.
+                    {/if}
+                  </span>
+                </div>
+                <div class="seg4">
+                  {#each QUALITIES as opt (opt.v)}
+                    <button class:on={quality === opt.v} disabled={qualityBusy || qualityZoneId == null}
+                      onclick={() => setQuality(opt.v)}>{$t(opt.k as any)}</button>
+                  {/each}
+                </div>
+              </div>
+
+            {:else if s.id === 'followMe'}
               <!-- Section réellement portée : même store que l'écran actuel,
                    donc le réglage est partagé, pas dupliqué. -->
               <div class="row">
@@ -124,24 +217,27 @@
   .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
   .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
 
-  .body{flex:1; min-height:0; display:grid; grid-template-columns:216px 1fr; gap:22px; padding:6px 30px 0}
+  /* Onglets horizontaux : une barre laterale existe deja a gauche, une
+     seconde aurait mange la largeur utile et brouille la hierarchie. */
+  .tabs{display:flex; gap:4px; padding:4px 30px 0; overflow-x:auto; scrollbar-width:none;
+    border-bottom:1px solid var(--v2-line); flex:0 0 auto}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{position:relative; display:inline-flex; align-items:center; gap:8px; padding:11px 14px 13px; border:0;
+    background:transparent; color:var(--v2-txt2); font:600 13.5px var(--v2-sans); cursor:pointer;
+    white-space:nowrap; transition:.15s}
+  .tab svg{width:16px; height:16px; flex:0 0 auto}
+  .tab:hover{color:var(--v2-txt)}
+  .tab.on{color:var(--v2-txt)}
+  .tab.on svg{color:var(--v2-acc1)}
+  /* Souligne actif : cale sur le filet du conteneur, d'ou le -1px. */
+  .tab.on::after{content:""; position:absolute; left:10px; right:10px; bottom:-1px; height:2px; border-radius:2px;
+    background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2))}
 
-  .rail{display:flex; flex-direction:column; gap:2px; overflow-y:auto; padding-bottom:30px}
-  .rail::-webkit-scrollbar{width:8px}.rail::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
-  .rtab{display:flex; align-items:center; gap:11px; padding:10px 12px; border:0; border-radius:10px; cursor:pointer;
-    background:transparent; color:var(--v2-txt2); font:500 14px var(--v2-sans); text-align:left; transition:.15s}
-  .rtab svg{width:18px; height:18px; flex:0 0 auto}
-  .rtab:hover{color:var(--v2-txt); background:var(--v2-hover)}
-  .rtab.on{color:var(--v2-txt); background:linear-gradient(90deg,var(--v2-active1),var(--v2-active2));
-    box-shadow:inset 0 0 0 1px var(--v2-line2)}
-  .rtab.on svg{color:var(--v2-acc1)}
-  .railnote{margin-top:12px; padding:10px 12px; font-size:11px; line-height:1.4; color:var(--v2-txt3);
-    border:1px dashed var(--v2-line2); border-radius:10px}
-
-  .pane{overflow-y:auto; padding:0 4px 40px; display:flex; flex-direction:column; gap:14px}
+  .body{flex:1; min-height:0; display:flex; padding:0 30px}
+  .pane{flex:1; overflow-y:auto; padding:16px 4px 40px; display:flex; flex-direction:column; gap:14px}
   .pane::-webkit-scrollbar{width:9px}.pane::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
-  .panehead{display:flex; align-items:baseline; gap:14px; padding:2px 0 4px}
-  .panehead h2{font-size:20px; font-weight:700}
+  .panehead{display:flex; align-items:baseline; gap:16px; flex-wrap:wrap}
+  .panehead:empty{display:none}
   .masked{font:11px var(--v2-mono); color:var(--v2-txt3)}
 
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px}
@@ -164,6 +260,15 @@
   .sw input:checked + .slider::before{transform:translateX(19px)}
   .sw input:focus-visible + .slider{box-shadow:0 0 0 3px var(--v2-focus)}
 
+  .unavail{font:11px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
+  .lbl b{color:var(--v2-acc-tint); font-weight:700}
+  .seg4{display:flex; gap:2px; padding:3px; border-radius:12px; flex:0 0 auto;
+    background:var(--v2-surface2); border:1px solid var(--v2-line)}
+  .seg4 button{border:0; background:transparent; color:var(--v2-txt2); font:600 11.5px var(--v2-sans);
+    padding:7px 11px; border-radius:9px; cursor:pointer; transition:.15s; white-space:nowrap}
+  .seg4 button:hover:not(:disabled){color:var(--v2-txt)}
+  .seg4 button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .seg4 button:disabled{opacity:.5; cursor:default}
   .todo{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:10px;
     font-size:12px; color:var(--v2-txt3)}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
