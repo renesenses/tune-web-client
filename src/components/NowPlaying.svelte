@@ -370,9 +370,12 @@
     if (trackId === npCreditsTrackId) return;
     npCreditsTrackId = trackId;
     try {
-      npCredits = await api.getTrackCredits(trackId);
+      const credits = await api.getTrackCredits(trackId);
+      // Une réponse lente de la piste précédente ne doit pas remplacer les
+      // crédits de celle qui joue maintenant.
+      if (npCreditsTrackId === trackId) npCredits = credits;
     } catch {
-      npCredits = [];
+      if (npCreditsTrackId === trackId) npCredits = [];
     }
   }
 
@@ -495,8 +498,8 @@
   }
 
   async function enrichCurrentTrackCredits() {
-    const tr = displayTrack;
-    if (!tr?.id || creditsEnriching) return;
+    const tr = normalizedTrack;
+    if (tr?.id == null || creditsEnriching) return;
     creditsEnriching = true;
     try {
       await api.enrichTrackCredits(tr.id);
@@ -564,23 +567,47 @@
 
   // Auto-load credits and lyrics when track changes (progressive enhancement)
   $effect(() => {
-    const tr = displayTrack;
-    const q = tr && !nowPlayingToTrack(tr).id ? metaLyricsQuery(tr) : null;
+    const tr = normalizedTrack;
+    const id = tr?.id ?? null;
+    const q = tr && id == null ? metaLyricsQuery(tr) : null;
     if (q) {
       // Piste sans id (radio/streaming) : paroles par métadonnées.
       const key = `${q.artist}|${q.title}|${q.album ?? ''}`;
+      if (npCreditsTrackId !== null || npCredits.length > 0) {
+        npCredits = [];
+        npCreditsTrackId = null;
+      }
+      if (key !== npLyricsRadioKey) {
+        npLyrics = null; npLyricsSource = null;
+        syncedLines = [];
+        karaokeMode = false;
+      }
       if (showLyrics) loadMetaLyrics(q);
-      if (key !== npLyricsRadioKey) { npLyrics = null; npLyricsSource = null; syncedLines = []; karaokeMode = false; }
       return;
     }
-    if (!tr?.id) return;
-    // Always pre-load credits for the inline summary
-    loadNpCredits(tr.id);
-    // Auto-load lyrics if panel is open
-    if (showLyrics) loadNpLyrics(tr.id);
-    // Reset when track changes
-    if (tr?.id !== npCreditsTrackId) { npCredits = []; npCreditsTrackId = null; }
-    if (tr?.id !== npLyricsTrackId) { npLyrics = null; npLyricsSource = null; syncedLines = []; npLyricsTrackId = null; karaokeMode = false; }
+    if (id == null) {
+      npCredits = [];
+      npCreditsTrackId = null;
+      npLyrics = null; npLyricsSource = null;
+      syncedLines = [];
+      npLyricsTrackId = null;
+      npLyricsRadioKey = null;
+      karaokeMode = false;
+      return;
+    }
+    // Vider d'abord l'ancienne piste : loadNpCredits/loadNpLyrics mémorisent
+    // immédiatement le nouvel id pour neutraliser les réponses obsolètes.
+    if (id !== npCreditsTrackId) {
+      npCredits = [];
+      loadNpCredits(id);
+    }
+    if (id !== npLyricsTrackId) {
+      npLyrics = null; npLyricsSource = null;
+      syncedLines = [];
+      npLyricsRadioKey = null;
+      karaokeMode = false;
+      if (showLyrics) loadNpLyrics(id);
+    }
   });
 
   // Compact inline credits summary: "Piano: K. Jarrett / Bass: G. Peacock / Drums: J. DeJohnette"
@@ -663,7 +690,7 @@
   }
 
   $effect(() => {
-    const tr = track;
+    const tr = normalizedTrack;
     if (tr?.source === 'radio' && tr.title && tr.artist_name) {
       api.apiFetch(`/radio-favorites/is-favorite?title=${encodeURIComponent(tr.title)}&artist=${encodeURIComponent(tr.artist_name)}`)
         .then((r: any) => { isFavorite = r.is_favorite; })
@@ -681,7 +708,7 @@
     if (favChecking) return;
     favChecking = true;
     try {
-      const tr = track;
+      const tr = normalizedTrack;
       if (tr?.source === 'radio') {
         if (isFavorite) {
           const favs = await api.apiFetch('/radio-favorites?limit=500');
@@ -761,12 +788,12 @@
   // guarded to the exact track id so a race doesn't show a stale count.
   let trackPlays = $state<number | null>(null);
   $effect(() => {
-    const dt = displayTrack;
-    const id = dt?.id;
+    const dt = normalizedTrack;
+    const id = dt?.id ?? null;
     trackPlays = null;
-    if (id && dt?.source === 'local') {
+    if (id != null && dt?.source === 'local') {
       api.getTrackPlays(id)
-        .then((r) => { if (displayTrack?.id === id) trackPlays = r.plays; })
+        .then((r) => { if (normalizedTrack?.id === id) trackPlays = r.plays; })
         .catch(() => {});
     }
   });
@@ -1412,8 +1439,8 @@
                (Bandcamp, ajout par URL) — exactement l'auditeur qui veut
                corriger son grave. Garde : src/lib/__tests__/npEqButton.test.ts -->
           <div class="np-extra-btns">
-            {#if !isRadio && displayTrack.id}
-              <button class="np-credits-btn" class:active={showCredits} onclick={() => { showCredits = !showCredits; showLyrics = false; if (showCredits && displayTrack.id) loadNpCredits(displayTrack.id); }}>
+            {#if !isRadio && normalizedTrack?.id != null}
+              <button class="np-credits-btn" class:active={showCredits} onclick={() => { showCredits = !showCredits; showLyrics = false; if (showCredits && normalizedTrack?.id != null) loadNpCredits(normalizedTrack.id); }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                 {$t('artist.credits')}
               </button>
@@ -1469,7 +1496,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>
               EQ
             </button>
-            {#if !isRadio && displayTrack.id}
+            {#if !isRadio && normalizedTrack?.id != null}
               <button class="np-credits-btn" onclick={handleShare}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
                 {$t('nowplaying.share')}
@@ -1502,7 +1529,7 @@
               </button>
             {/if}
           </div>
-          {#if showAlarm && !isRadio && displayTrack.id}
+          {#if showAlarm && !isRadio && normalizedTrack?.id != null}
             <div class="np-alarm-panel">
               <div class="alarm-row">
                 <input type="time" class="alarm-time-input" bind:value={alarmTime} />
