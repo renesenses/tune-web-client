@@ -21,6 +21,7 @@
   import FavoritesV2 from './FavoritesV2.svelte';
   import ZonesV2 from './ZonesV2.svelte';
   import StreamingV2 from './StreamingV2.svelte';
+  import CrossfeedV2 from './CrossfeedV2.svelte';
   import PlayerV2 from './PlayerV2.svelte';
   import AvatarMenu from './AvatarMenu.svelte';
   import { preferences } from '../../lib/stores/preferences';
@@ -31,9 +32,9 @@
   const LABELS: Partial<Record<View, string>> = {
     home: 'Accueil', radios: 'Radio', playlists: 'Playlists', search: 'Recherche',
     podcasts: 'Podcasts', streaming: 'Streaming', queue: "File d'attente", favorites: 'Favoris',
-    zonemanager: 'Zones', equalizer: 'Égaliseur / DSP', converter: 'Convertisseur',
+    zonemanager: 'Zones', equalizer: 'Égaliseur', crossfeed: 'Crossfeed', converter: 'Convertisseur',
     declick: 'Déclic', metadata: 'Métadonnées', plugins: 'Extensions',
-    diagnostics: 'Diagnostics', settings: 'Réglages', support: 'Support', genres: 'Genres',
+    diagnostics: 'Tune Health', settings: 'Réglages', support: 'Support', genres: 'Genres',
   };
   const label = $derived(LABELS[$activeView] ?? $activeView);
 
@@ -75,6 +76,8 @@
         <ZonesV2 />
       {:else if $activeView === 'streaming'}
         <StreamingV2 />
+      {:else if $activeView === 'crossfeed'}
+        <CrossfeedV2 />
       {:else}
         <div class="soon">
           <div class="badge">À venir</div>

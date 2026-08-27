@@ -44,12 +44,16 @@
     { view: 'zonemanager', label: 'Zones', icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01' },
   ] as unknown as Item[];
   const STUDIO: Item[] = [
-    { view: 'equalizer', label: 'Égaliseur / DSP', icon: 'M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3' },
+    { view: 'equalizer', label: 'Égaliseur', icon: 'M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3' },
+    // Crossfeed sorti de l'Egaliseur (Bertrand, 27/08) : c'est un reglage de
+    // CASQUE, pas une correction de courbe. Melange a l'egaliseur il etait
+    // introuvable pour qui le cherche.
+    { view: 'crossfeed', label: 'Crossfeed', icon: 'M8 6a6 6 0 0 0 0 12M16 6a6 6 0 0 1 0 12M4 12h4M16 12h4' },
     { view: 'converter', label: 'Convertisseur', icon: 'M4 8h13l-3-3M20 16H7l3 3' },
     { view: 'declick', label: 'Déclic', icon: 'M3 12h4l3-8 4 16 3-8h4' },
     { view: 'metadata', label: 'Métadonnées', icon: 'M20 12l-8 8-9-9V4h7zM8 8h.01' },
     { view: 'plugins', label: 'Extensions', icon: 'M9 3v4M15 3v4M8 7h8v5a4 4 0 0 1-8 0zM12 16v5' },
-    { view: 'diagnostics', label: 'Diagnostics', icon: 'M3 12h4l2 6 4-14 2 8h6' },
+    { view: 'diagnostics', label: 'Tune Health', icon: 'M3 12h4l2 6 4-14 2 8h6' },
   ];
 
   const level = $derived($preferences.settingsLevel);
