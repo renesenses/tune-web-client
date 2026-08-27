@@ -590,7 +590,7 @@ export default {
   'search.hint': 'Type a search term to begin',
 
   // Streaming
-  'streaming.selectService': 'Select a streaming service from the sidebar',
+  'streaming.selectService': 'Select a streaming service',
   'streaming.searchOn': 'Search on {service}...',
   'streaming.myPlaylists': 'My Playlists',
   'streaming.noPlaylists': 'No playlists',
