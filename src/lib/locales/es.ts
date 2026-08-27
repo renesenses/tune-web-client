@@ -391,7 +391,7 @@ export default {
   'search.hint': 'Escribe un término de búsqueda para comenzar',
 
   // Streaming
-  'streaming.selectService': 'Selecciona un servicio de streaming en la barra lateral',
+  'streaming.selectService': 'Selecciona un servicio de streaming',
   'streaming.searchOn': 'Buscar en {service}...',
   'streaming.myPlaylists': 'Mis playlists',
   'streaming.noPlaylists': 'Sin playlists',
@@ -1522,9 +1522,9 @@ export default {
   "library.noLocalAlbumsHint": "Ningún álbum local. Ver los álbumes de streaming a continuación.",
   "library.streamingAlbums": "Álbumes de streaming",
   "library.noStreamingAlbumsHint": "No se encontró ningún álbum en los servicios de streaming conectados.",
-  "library.shuffleResults": "Resultados aleatorios",
+  "library.shuffleResults": "Reproducir resultados en aleatorio",
   "library.shuffleAll": "Reproducir todo en aleatorio",
-  "library.shuffle": "Aleatorio",
+  "library.shuffle": "Reproducir en aleatorio",
   "library.scanProgress": "{scanned} archivos analizados, {added} añadidos",
   "library.stopScan": "Detener el análisis",
   "library.duplicates": "Duplicados",

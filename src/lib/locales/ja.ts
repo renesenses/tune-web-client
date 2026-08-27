@@ -391,7 +391,7 @@ export default {
   'search.hint': '検索語を入力して開始してください',
 
   // Streaming
-  'streaming.selectService': 'サイドバーからストリーミングサービスを選択してください',
+  'streaming.selectService': 'ストリーミングサービスを選択してください',
   'streaming.searchOn': '{service}で検索...',
   'streaming.myPlaylists': 'マイプレイリスト',
   'streaming.noPlaylists': 'プレイリストなし',
@@ -1522,9 +1522,9 @@ export default {
   "library.noLocalAlbumsHint": "ローカルアルバムはありません。下のストリーミングアルバムをご覧ください。",
   "library.streamingAlbums": "ストリーミングアルバム",
   "library.noStreamingAlbumsHint": "接続済みのストリーミングサービスにアルバムは見つかりませんでした。",
-  "library.shuffleResults": "結果をシャッフル",
-  "library.shuffleAll": "すべてシャッフル",
-  "library.shuffle": "シャッフル",
+  "library.shuffleResults": "検索結果をシャッフル再生",
+  "library.shuffleAll": "すべてシャッフル再生",
+  "library.shuffle": "シャッフル再生",
   "library.scanProgress": "{scanned} 件のファイルをスキャン、{added} 件を追加",
   "library.stopScan": "スキャンを停止",
   "library.duplicates": "重複",

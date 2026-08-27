@@ -384,7 +384,7 @@
                 {:else}
                   <div class="rank-cover-empty rank-clickable" onclick={() => openArtist(a.artist_name)}>🎤</div>
                 {/if}
-                <button class="rank-name rank-link" onclick={() => openArtist(a.artist_name)} title={$t('dashboard.viewArtist')}>{a.artist_name}</button>
+                <button class="rank-name rank-link" onclick={() => openArtist(a.artist_name)} title={`${a.artist_name} — ${$t('dashboard.viewArtist')}`}>{a.artist_name}</button>
                 <span class="rank-meta">{a.plays} · {formatMs(a.listening_ms)}</span>
               </li>
             {/each}
@@ -406,8 +406,8 @@
                   {/if}
                 </div>
                 <span class="rank-info">
-                  <button class="rank-name rank-link" onclick={() => openTopAlbum(a)} title={$t('dashboard.viewAlbum')}>{a.album_title}</button>
-                  <button class="rank-artist-link" onclick={() => openArtist(a.artist_name)} title={$t('dashboard.viewArtist')}>{a.artist_name}</button>
+                  <button class="rank-name rank-link" onclick={() => openTopAlbum(a)} title={`${a.album_title} — ${$t('dashboard.viewAlbum')}`}>{a.album_title}</button>
+                  <button class="rank-artist-link" onclick={() => openArtist(a.artist_name)} title={`${a.artist_name} — ${$t('dashboard.viewArtist')}`}>{a.artist_name}</button>
                 </span>
                 <span class="rank-meta">{a.plays}</span>
               </li>
@@ -430,8 +430,8 @@
                   {/if}
                 </div>
                 <span class="rank-info">
-                  <button class="rank-name rank-link" onclick={() => openTopTrack(tk)} title={$t('dashboard.viewTrack')}>{tk.title}</button>
-                  <button class="rank-artist-link" onclick={() => openArtist(tk.artist_name)} title={$t('dashboard.viewArtist')}>{tk.artist_name}</button>
+                  <button class="rank-name rank-link" onclick={() => openTopTrack(tk)} title={`${tk.title} — ${$t('dashboard.viewTrack')}`}>{tk.title}</button>
+                  <button class="rank-artist-link" onclick={() => openArtist(tk.artist_name)} title={`${tk.artist_name} — ${$t('dashboard.viewArtist')}`}>{tk.artist_name}</button>
                 </span>
                 <span class="rank-meta">{tk.plays}</span>
                 <span class="track-heart" onclick={(e) => e.stopPropagation()}>
@@ -461,7 +461,7 @@
                     <div class="rank-cover-empty rank-clickable">📻</div>
                   {/if}
                 </div>
-                <span class="rank-name">{r.station_name}</span>
+                <span class="rank-name" title={r.station_name}>{r.station_name}</span>
                 <span class="rank-meta">{r.plays} · {formatMs(r.listening_ms)}</span>
               </li>
             {/each}
@@ -495,7 +495,7 @@
             {#each data.on_this_day.slice(0, 8) as t}
               <li class="otd-clickable" onclick={() => openTrack(null, t.track_title ?? '', t.artist_name ?? '')}>
                 <span class="otd-year">{t.year ?? '?'}</span>
-                <span class="otd-title">
+                <span class="otd-title" title={(t.track_title ?? '?') + (t.artist_name ? ` — ${t.artist_name}` : '')}>
                   {t.track_title ?? '?'}
                   {#if t.artist_name}<span class="otd-sub"> — {t.artist_name}</span>{/if}
                 </span>
@@ -513,7 +513,7 @@
         <ul class="bar-list">
           {#each visibleGenreBranches as b}
             <li>
-              <div class="bar-label">{b.branch}</div>
+              <div class="bar-label" title={b.branch}>{b.branch}</div>
               <div class="bar-track"><div class="bar-fill" style:width="{(b.plays / genreBranchMax) * 100}%"></div></div>
               <div class="bar-value">{b.plays}</div>
             </li>
@@ -590,7 +590,7 @@
             {#each data.by_zone as z}
               {@const max = Math.max(...data.by_zone.map(x => x.plays))}
               <li>
-                <div class="bar-label">{z.zone_name ?? `Zone #${z.zone_id}`}</div>
+                <div class="bar-label" title={z.zone_name ?? `Zone #${z.zone_id}`}>{z.zone_name ?? `Zone #${z.zone_id}`}</div>
                 <div class="bar-track"><div class="bar-fill" style:width="{(z.plays / max) * 100}%"></div></div>
                 <div class="bar-value">{z.plays}</div>
               </li>
@@ -606,7 +606,7 @@
             {#each data.by_source as s}
               {@const max = Math.max(...data.by_source.map(x => x.plays))}
               <li>
-                <div class="bar-label">{s.source ?? '—'}</div>
+                <div class="bar-label" title={s.source ?? '—'}>{s.source ?? '—'}</div>
                 <div class="bar-track"><div class="bar-fill" style:width="{(s.plays / max) * 100}%"></div></div>
                 <div class="bar-value">{s.plays}</div>
               </li>

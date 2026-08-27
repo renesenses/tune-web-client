@@ -304,16 +304,23 @@ function setSettingsLevel(level: SettingsLevel) {
    *
    * On ne remet PAS le bouton à son état initial ensuite : la machine
    * s'arrête, et proposer de recommencer donnerait à croire que ça n'a pas
-   * marché. L'erreur du `catch` est ATTENDUE — le serveur meurt avant de
-   * répondre.
+   * marché. Une coupure réseau est attendue — le serveur peut mourir avant de
+   * répondre. Une réponse HTTP d'erreur, elle, prouve que la machine n'a pas
+   * accepté l'ordre : le bouton doit redevenir utilisable et le dire.
    */
   async function eteindreLaMachine() {
     if (!(await dialogs.confirm(get(t)('diagnostics.confirmShutdown' as any), { danger: true }))) return;
     extinctionEnCours = true;
     try {
       await api.applianceShutdown();
-    } catch {
-      /* attendu : la machine s'éteint, la réponse peut ne jamais revenir */
+    } catch (e) {
+      const msg = errText(e);
+      if (msg !== null) {
+        extinctionEnCours = false;
+        notifications.error(msg);
+      }
+      // `null` désigne la coupure de transport générique du navigateur : le
+      // serveur a pu disparaître pendant l'extinction, comportement attendu.
     }
   }
 

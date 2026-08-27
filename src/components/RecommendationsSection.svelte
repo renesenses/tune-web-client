@@ -55,10 +55,10 @@
             size={140}
             alt={rec.title}
           />
-          <span class="rec-title truncate">{rec.title}</span>
-          <span class="rec-artist truncate">{rec.artist_name ?? ''}</span>
+          <span class="rec-title truncate" title={rec.title}>{rec.title}</span>
+          <span class="rec-artist truncate" title={rec.artist_name ?? ''}>{rec.artist_name ?? ''}</span>
           {#if rec.reason}
-            <span class="rec-reason">{rec.reason}</span>
+            <span class="rec-reason" title={rec.reason}>{rec.reason}</span>
           {/if}
         </button>
       {/each}

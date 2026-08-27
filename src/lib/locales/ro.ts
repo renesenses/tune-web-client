@@ -401,7 +401,7 @@ export default {
   'search.hint': 'Introdu un termen pentru a începe căutarea',
 
   // Streaming
-  'streaming.selectService': 'Selectează un serviciu de streaming din bara laterală',
+  'streaming.selectService': 'Selectează un serviciu de streaming',
   'streaming.searchOn': 'Caută pe {service}...',
   'streaming.myPlaylists': 'Playlisturile mele',
   'streaming.noPlaylists': 'Niciun playlist',
@@ -1532,9 +1532,9 @@ export default {
   "library.noLocalAlbumsHint": "Niciun album local. Vezi albumele de streaming mai jos.",
   "library.streamingAlbums": "Albume de streaming",
   "library.noStreamingAlbumsHint": "Niciun album găsit pe serviciile de streaming conectate.",
-  "library.shuffleResults": "Amestecă rezultatele",
-  "library.shuffleAll": "Amestecă tot",
-  "library.shuffle": "Amestecă",
+  "library.shuffleResults": "Redă rezultatele amestecat",
+  "library.shuffleAll": "Redă tot amestecat",
+  "library.shuffle": "Redă amestecat",
   "library.scanProgress": "{scanned} fișiere scanate, {added} adăugate",
   "library.stopScan": "Oprește scanarea",
   "library.duplicates": "Duplicate",

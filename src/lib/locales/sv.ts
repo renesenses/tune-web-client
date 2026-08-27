@@ -361,7 +361,7 @@ export default {
   'search.hint': 'Skriv en sökterm för att börja',
 
   // Streaming
-  'streaming.selectService': 'Välj en streamingtjänst i sidofältet',
+  'streaming.selectService': 'Välj en streamingtjänst',
   'streaming.searchOn': 'Sök på {service}...',
   'streaming.myPlaylists': 'Mina spellistor',
   'streaming.noPlaylists': 'Inga spellistor',
@@ -1475,9 +1475,9 @@ export default {
   "library.noLocalAlbumsHint": "Inget lokalt album. Se streamingalbum nedan.",
   "library.streamingAlbums": "Streamingalbum",
   "library.noStreamingAlbumsHint": "Inget album hittades på anslutna streamingtjänster.",
-  "library.shuffleResults": "Blanda resultat",
-  "library.shuffleAll": "Blanda alla",
-  "library.shuffle": "Blanda",
+  "library.shuffleResults": "Spela resultaten blandat",
+  "library.shuffleAll": "Spela allt blandat",
+  "library.shuffle": "Spela blandat",
   "library.scanProgress": "{scanned} filer skannade, {added} tillagda",
   "library.stopScan": "Stoppa skanning",
   "library.duplicates": "Dubbletter",
