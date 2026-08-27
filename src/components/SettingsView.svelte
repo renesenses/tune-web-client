@@ -3,6 +3,7 @@
   import SettingHint from './SettingHint.svelte';
   import { tip } from '../lib/tooltip';
   import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
+  import { doitSArreterFauteDImagesManquantes, type ModeEnrichissementImages } from '../lib/enrichissementImagesArtistes';
   import { dialogs } from '../lib/stores/dialogs';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
@@ -2457,18 +2458,34 @@ function setSettingsLevel(level: SettingsLevel) {
   // real activity, and cap total polls so a stuck job can't spin forever.
   let artistImgSawActivity = false;
   let artistImgPolls = 0;
+  // The forced pass re-fetches artists that already have an image, so
+  // `artists_without_image` is 0 for the whole run. Using it as a completion
+  // signal (as the normal pass does) would close the banner on the first poll.
+  let artistImgForced = false;
 
-  async function startEnrichArtistImages() {
+  async function startEnrichArtistImages(mode: ModeEnrichissementImages = 'manquantes') {
     if (artistImgTimer) { clearInterval(artistImgTimer); artistImgTimer = null; }
     artistImgRunning = true;
     artistImgProcessed = 0;
     artistImgTotal = 0;
     artistImgSawActivity = false;
     artistImgPolls = 0;
+    artistImgForced = mode === 'forcé';
     try {
+      if (mode === 'forcé') {
+        // The forced pass targets EVERY artist, including those the normal pass
+        // skips because they already "have" an image — so `artists_without_image`
+        // is not its measure of work, and the bail-out below must never apply.
+        const res = await api.forceRefetchArtistImages();
+        artistImgTotal = res.artists ?? 0;
+        enrichMsg = get(t)('settings.enrichArtistImagesStarted');
+        setTimeout(() => (enrichMsg = ''), 5000);
+        pollEnrichArtistImages();
+        return;
+      }
       const res = await api.enrichArtistImages();
       artistImgRemaining = res.artists_without_image ?? 0;
-      if (artistImgRemaining === 0) {
+      if (doitSArreterFauteDImagesManquantes(mode, artistImgRemaining)) {
         // Nothing missing → the job finishes instantly; don't imply work.
         artistImgRunning = false;
         notifications.info(get(t)('settings.enrichArtistImagesNoneMissing' as any));
@@ -2506,7 +2523,7 @@ function setSettingsLevel(level: SettingsLevel) {
         }
         const done =
           (artistImgSawActivity && phase === 'done') ||
-          artistImgRemaining === 0 ||
+          (!artistImgForced && artistImgRemaining === 0) ||
           artistImgPolls > 300; // ~30 min safety cap at 6s
         if (done) {
           artistImgRunning = false;
@@ -4584,8 +4601,17 @@ function setSettingsLevel(level: SettingsLevel) {
         <button class="action-btn" onclick={async () => { await api.triggerEnrich(); enrichMsg = $t('settings.enrichStarted'); setTimeout(() => enrichMsg = '', 3000); }}>
           {$t('settings.enrichNow')}
         </button>
-        <button class="action-btn" style="margin-left: 8px;" onclick={startEnrichArtistImages} disabled={artistImgRunning}>
+        <button class="action-btn" style="margin-left: 8px;" onclick={() => startEnrichArtistImages('manquantes')} disabled={artistImgRunning}>
           {$t('settings.enrichArtistImages')}
+        </button>
+        <button
+          class="action-btn"
+          style="margin-left: 8px;"
+          onclick={() => startEnrichArtistImages('forcé')}
+          disabled={artistImgRunning}
+          use:tip={'settings.forceRefetchArtistImagesHint'}
+        >
+          {$t('settings.forceRefetchArtistImages')}
         </button>
         {#if enrichMsg}<span class="action-feedback">{enrichMsg}</span>{/if}
       </div>
@@ -4595,10 +4621,12 @@ function setSettingsLevel(level: SettingsLevel) {
             <div class="enrich-progress-fill" style="width: {artistImgTotal > 0 ? Math.min(100, Math.round((artistImgProcessed / artistImgTotal) * 100)) : 8}%"></div>
           </div>
           <span class="enrich-progress-text">
+            <!-- Le passage forcé retraite TOUT le monde : « n restants » y
+                 vaudrait toujours 0 et laisserait croire à un travail fini. -->
             {#if artistImgTotal > 0}
-              {artistImgProcessed} / {artistImgTotal} · {$t('settings.enrichArtistImagesRemaining').replace('{n}', String(artistImgRemaining))}
+              {artistImgProcessed} / {artistImgTotal}{artistImgForced ? '' : ` · ${$t('settings.enrichArtistImagesRemaining').replace('{n}', String(artistImgRemaining))}`}
             {:else}
-              {$t('settings.enrichArtistImagesWorking')} · {$t('settings.enrichArtistImagesRemaining').replace('{n}', String(artistImgRemaining))}
+              {$t('settings.enrichArtistImagesWorking')}{artistImgForced ? '' : ` · ${$t('settings.enrichArtistImagesRemaining').replace('{n}', String(artistImgRemaining))}`}
             {/if}
           </span>
         </div>
