@@ -632,8 +632,14 @@ import AlarmsView from './components/AlarmsView.svelte';
             tab: $libraryTab ?? null,
           };
           if (album !== null) {
-            // Entering detail: push so back returns to grid
-            window.history.pushState(ctx, '', `#${view}`);
+            // Entering detail: push so back returns to grid. La fiche reçoit sa
+            // PROPRE adresse (`#album/{id}`) au lieu de réutiliser `#library`,
+            // pour que la barre d'adresse reflète la vue et que précédent /
+            // suivant soient sans ambiguïté (demande testeur, 5c420af).
+            // Aucune régression de routage : rien ne lit ce fragment au
+            // démarrage — le seul lu est `#tv` (voir `isTvHash` plus haut), et
+            // l'aiguillage se fait sur `history.state`, inchangé.
+            window.history.pushState(ctx, '', `#album/${album.id}`);
           } else {
             // Returning to grid (programmatic, not via popstate): update current entry
             window.history.replaceState(ctx, '', `#${view}`);
@@ -654,7 +660,9 @@ import AlarmsView from './components/AlarmsView.svelte';
             tab: $libraryTab ?? null,
           };
           if (artist !== null) {
-            window.history.pushState(ctx, '', `#${view}`);
+            // Adresse propre à la fiche artiste (`#artist/{id}`) ; voir le cas
+            // album ci-dessus.
+            window.history.pushState(ctx, '', `#artist/${artist.id}`);
           } else {
             window.history.replaceState(ctx, '', `#${view}`);
           }
