@@ -1569,7 +1569,7 @@ export default {
   "tip.clearSavedRadios": "Elimina tutte le radio salvate.",
   "tip.clearSearchHistory": "Cancella la cronologia delle ricerche.",
   "tip.eqResetFlat": "Riporta tutte le bande a zero, senza eliminare il preset.",
-  "tip.eqResetProfiler": "Cancella il profilo misurato e riparte da una correzione vuota.",
+  "tip.eqResetProfiler": "Riporta i tre cursori a piatto e disattiva il profilo: l'equalizzatore riparte senza alcuna correzione.",
   "tip.send": "Invia il messaggio",
   "tip.favorite": "Aggiungi questo brano ai preferiti",
   "tip.clearSearch": "Cancella la ricerca",

@@ -1544,7 +1544,7 @@ export default {
   "tip.clearSavedRadios": "저장된 라디오를 모두 삭제합니다.",
   "tip.clearSearchHistory": "검색 기록을 지웁니다.",
   "tip.eqResetFlat": "프리셋은 지우지 않고 모든 대역을 0으로 되돌립니다.",
-  "tip.eqResetProfiler": "측정된 프로필을 지우고 보정 없는 상태에서 시작합니다.",
+  "tip.eqResetProfiler": "세 개의 슬라이더를 플랫으로 되돌리고 프로필을 끕니다. 이퀄라이저는 보정 없는 상태에서 다시 시작합니다.",
   "tip.send": "메시지 보내기",
   "tip.favorite": "이 곡을 즐겨찾기에 추가",
   "tip.clearSearch": "검색어 지우기",

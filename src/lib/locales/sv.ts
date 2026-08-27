@@ -1522,7 +1522,7 @@ export default {
   "tip.clearSavedRadios": "Raderar alla sparade radiokanaler.",
   "tip.clearSearchHistory": "Rensar din sökhistorik.",
   "tip.eqResetFlat": "Nollställer alla band utan att radera förinställningen.",
-  "tip.eqResetProfiler": "Raderar den uppmätta profilen och börjar om utan korrigering.",
+  "tip.eqResetProfiler": "Återställer de tre reglagen till neutralt och stänger av profilen — equalizern börjar om utan korrigering.",
   "tip.send": "Skicka meddelandet",
   "tip.favorite": "Lägg till spåret bland favoriter",
   "tip.clearSearch": "Rensa sökningen",

@@ -1820,7 +1820,7 @@ export default {
   "tip.clearSavedRadios": "Supprime toutes les radios enregistrées.",
   "tip.clearSearchHistory": "Efface l'historique de vos recherches.",
   "tip.eqResetFlat": "Remet toutes les bandes à zéro, sans supprimer le préréglage.",
-  "tip.eqResetProfiler": "Efface le profil mesuré et repart d'une correction vierge.",
+  "tip.eqResetProfiler": "Remet les trois curseurs à plat et désactive le profil — l'égaliseur repart sans aucune correction.",
   "tip.send": "Envoyer le message",
   "tip.favorite": "Ajouter ce titre à vos favoris",
   "tip.clearSearch": "Effacer la recherche",

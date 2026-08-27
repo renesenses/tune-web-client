@@ -1579,7 +1579,7 @@ export default {
   "tip.clearSavedRadios": "Șterge toate radiourile salvate.",
   "tip.clearSearchHistory": "Șterge istoricul căutărilor.",
   "tip.eqResetFlat": "Readuce toate benzile la zero, fără să șteargă presetarea.",
-  "tip.eqResetProfiler": "Șterge profilul măsurat și pornește de la o corecție goală.",
+  "tip.eqResetProfiler": "Readuce cele trei cursoare la plat și dezactivează profilul — egalizatorul repornește fără nicio corecție.",
   "tip.send": "Trimite mesajul",
   "tip.favorite": "Adaugă piesa la favorite",
   "tip.clearSearch": "Șterge căutarea",

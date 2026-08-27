@@ -1569,7 +1569,7 @@ export default {
   "tip.clearSavedRadios": "删除所有已保存的电台。",
   "tip.clearSearchHistory": "清除搜索历史。",
   "tip.eqResetFlat": "把所有频段归零，但不删除预设。",
-  "tip.eqResetProfiler": "清除已测量的配置文件，从无校正状态重新开始。",
+  "tip.eqResetProfiler": "将三个滑块归零并关闭配置文件 — 均衡器将从无校正状态重新开始。",
   "tip.send": "发送消息",
   "tip.favorite": "将此曲目加入收藏",
   "tip.clearSearch": "清除搜索",
