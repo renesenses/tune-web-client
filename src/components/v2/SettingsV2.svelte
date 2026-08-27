@@ -24,6 +24,11 @@
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
   import type { LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
+  import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../../lib/stores/audiophile';
+  import { loopByDefault } from '../../lib/stores/loopByDefault';
+  import { locale, localeNames, type Locale } from '../../lib/i18n';
+  import { V2_THEMES, type V2Theme } from '../../lib/v2Theme';
+  import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { V2_SETTINGS, type V2SettingsTabId } from '../../lib/v2Settings';
@@ -522,6 +527,83 @@
     } catch (e: any) { wifiErr = e?.message ?? String(e); }
   }
 
+  // ── Lecture ────────────────────────────────────────────────────────────
+  // VERROU DE VOLUME : double bascule volontaire. Le premier geste ARME et
+  // affiche l'avertissement rouge ; seul le second APPLIQUE. Verrouiller
+  // envoie le volume a 100 % sur l'ampli — un clic unique serait dangereux.
+  // Deverrouiller, lui, est immediat : couper n'a rien de risque.
+  let lockArme = $state(false);
+  $effect(() => { refreshVolumeLock().catch(() => {}); });
+
+  async function unlockVolume() {
+    lockArme = false;
+    try { await setVolumeLock(false); } catch { /* le store se restaure seul */ }
+  }
+  async function confirmLockVolume() {
+    lockArme = false;
+    try {
+      // Ce second geste EST l'accord explicite transmis au serveur ; le
+      // premier n'avait fait qu'afficher l'avertissement.
+      await setVolumeLock(true, true);
+      if ($audiophileLockVolume && $audiophileEnabled) {
+        const zid = $currentZoneId;
+        if (zid != null) await api.setVolume(zid, 1);
+      }
+    } catch { /* setVolumeLock a deja restaure le store */ }
+  }
+
+  // Crossfade — reglage PAR ZONE, meme divergence assumee que la qualite
+  // streaming : on vise la zone courante et non `zones[0]`.
+  let xfEnabled = $state(false);
+  let xfDuration = $state(3);
+  $effect(() => {
+    const zid = qualityZoneId;
+    if (zid == null) return;
+    api.getCrossfade(zid)
+      .then((r) => { xfEnabled = r.enabled ?? false; xfDuration = r.duration ?? 3; })
+      .catch(() => {});
+  });
+  async function applyCrossfade() {
+    const zid = qualityZoneId;
+    if (zid == null) return;
+    try { await api.setCrossfade(zid, xfEnabled, xfDuration); } catch { /* ignore */ }
+  }
+
+  // ── Tune Voice AI ──────────────────────────────────────────────────────
+  // Preference purement locale (pas de config serveur) : le micro appartient
+  // au navigateur. On DEMANDE l'autorisation a l'activation et on retombe a
+  // faux si elle est refusee — sinon la case reste cochee pour une fonction
+  // qui ne peut pas marcher.
+  let voiceOn = $state(false);
+  $effect(() => {
+    try { voiceOn = localStorage.getItem('tune_voice_ai_enabled') === 'true'; } catch { voiceOn = false; }
+  });
+  async function setVoice(v: boolean) {
+    voiceOn = v;
+    try { localStorage.setItem('tune_voice_ai_enabled', String(v)); } catch { /* ignore */ }
+    if (!v) return;
+    try {
+      await navigator.mediaDevices?.getUserMedia({ audio: true });
+      notifications.success($t('settings.micAuthorized' as any));
+    } catch {
+      notifications.error($t('settings.micDenied' as any));
+      voiceOn = false;
+      try { localStorage.setItem('tune_voice_ai_enabled', 'false'); } catch { /* ignore */ }
+    }
+  }
+
+  // ── Interface ──────────────────────────────────────────────────────────
+  // On expose le theme DU CLIENT V2 (six palettes), pas `preferences.theme`
+  // qui pilote l'app historique : le proposer ici donnerait un reglage sans
+  // effet visible: exactement le genre de piege qu'on veut eviter.
+  function setV2Theme(t: V2Theme) { preferences.update((pr) => ({ ...pr, v2Theme: t })); }
+  const STARTUP: { v: StartupView; k: string }[] = [
+    { v: 'home', k: 'nav.home' }, { v: 'nowplaying', k: 'nav.nowplaying' },
+    { v: 'library', k: 'nav.library' }, { v: 'queue', k: 'nav.queue' },
+    { v: 'playlists', k: 'nav.playlists' }, { v: 'search', k: 'nav.search' },
+    { v: 'settings', k: 'nav.settings' },
+  ];
+
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
@@ -564,7 +646,142 @@
               {#if s.from !== tab.id}<span class="moved">déplacé depuis « {s.from} »</span>{/if}
             </div>
 
-            {#if s.id === 'wifi'}
+            {#if s.id === 'playback'}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('audiophile.lockVolume' as any)}</span>
+                  <span class="hint">{$t('audiophile.lockVolumeHelp' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$audiophileLockVolume || lockArme}
+                    onchange={() => { if ($audiophileLockVolume) unlockVolume(); else lockArme = !lockArme; }} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if lockArme && !$audiophileLockVolume}
+                <div class="danger-box">
+                  <p>{$t('audiophile.lockVolumeWarn' as any)}</p>
+                  <label class="confirm">
+                    <span class="sw">
+                      <input type="checkbox" checked={false} onchange={confirmLockVolume} />
+                      <span class="slider"></span>
+                    </span>
+                    <span>{$t('audiophile.lockVolumeConfirm' as any)}</span>
+                  </label>
+                </div>
+              {/if}
+
+              <div class="row">
+                <div class="lbl">
+                  <span>Fondu enchaîné</span>
+                  <span class="hint">{$t('settings.crossfadeHint' as any)}{qualityZoneName ? ` — zone ${qualityZoneName}` : ''}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" bind:checked={xfEnabled} onchange={applyCrossfade} disabled={qualityZoneId == null} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if xfEnabled}
+                <div class="row">
+                  <div class="lbl"><span>{$t('settings.duration' as any)} : {xfDuration} s</span></div>
+                  <input class="rng" type="range" min="1" max="12" step="1" bind:value={xfDuration} onchange={applyCrossfade} />
+                </div>
+              {/if}
+
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.loopByDefault' as any)}</span>
+                  <span class="hint">{$t('settings.loopByDefaultHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" bind:checked={$loopByDefault} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+            {:else if s.id === 'voice'}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.voiceCommand' as any)}</span>
+                  <span class="hint">{$t('settings.voiceCommandHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={voiceOn} onchange={(e) => setVoice((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+            {:else if s.id === 'interface'}
+              <div class="row">
+                <div class="lbl">
+                  <span>Thème</span>
+                  <span class="hint">Six palettes. Réglage propre au nouveau client — le thème de l'interface actuelle reste séparé.</span>
+                </div>
+                <div class="themerow">
+                  {#each V2_THEMES as th (th.id)}
+                    <button class="sw2" class:on={$preferences.v2Theme === th.id} title={th.label} aria-label={th.label}
+                      aria-pressed={$preferences.v2Theme === th.id}
+                      style="--sw-bg:{th.swatch[0]}; --sw-acc:{th.swatch[1]}"
+                      onclick={() => setV2Theme(th.id)}></button>
+                  {/each}
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="lbl"><span>{$t('settings.language' as any)}</span></div>
+                <select class="sel" value={$preferences.language ?? 'fr'}
+                  onchange={(e) => { const l = (e.currentTarget as HTMLSelectElement).value as Locale;
+                    preferences.update((pr) => ({ ...pr, language: l })); locale.set(l); }}>
+                  {#each Object.entries(localeNames) as [code, name] (code)}
+                    <option value={code}>{name}</option>
+                  {/each}
+                </select>
+              </div>
+
+              <div class="row">
+                <div class="lbl"><span>{$t('settings.startupView' as any)}</span></div>
+                <select class="sel" value={$preferences.startupView}
+                  onchange={(e) => preferences.update((pr) => ({ ...pr, startupView: (e.currentTarget as HTMLSelectElement).value as StartupView }))}>
+                  {#each STARTUP as o (o.v)}<option value={o.v}>{$t(o.k as any)}</option>{/each}
+                </select>
+              </div>
+
+              <div class="row">
+                <div class="lbl"><span>{$t('settings.defaultZone' as any)}</span></div>
+                <select class="sel" value={$preferences.defaultZoneId ?? ''}
+                  onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value;
+                    const dz = v ? Number(v) : null;
+                    preferences.update((pr) => ({ ...pr, defaultZoneId: dz }));
+                    api.setDefaultZone(dz).catch(() => {}); }}>
+                  <option value="">{$t('settings.autoZone' as any)}</option>
+                  {#each $zones as z (z.id)}<option value={z.id}>{z.name}</option>{/each}
+                </select>
+              </div>
+
+              {#if atLeast(level, 'intermediate')}
+                <div class="row">
+                  <div class="lbl"><span>{$t('settings.volumeDisplay' as any)}</span></div>
+                  <div class="seg4">
+                    <button class:on={$preferences.volumeDisplay === 'percent'}
+                      onclick={() => preferences.update((pr) => ({ ...pr, volumeDisplay: 'percent' as VolumeDisplay }))}>{$t('settings.percent' as any)}</button>
+                    <button class:on={$preferences.volumeDisplay === 'dB'}
+                      onclick={() => preferences.update((pr) => ({ ...pr, volumeDisplay: 'dB' as VolumeDisplay }))}>{$t('settings.decibels' as any)}</button>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.tooltips' as any)}</span>
+                    <span class="hint">{$t('settings.tooltipsHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={$preferences.tooltipsEnabled}
+                      onchange={(e) => preferences.update((pr) => ({ ...pr, tooltipsEnabled: (e.currentTarget as HTMLInputElement).checked }))} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              {/if}
+
+            {:else if s.id === 'wifi'}
               {#if isAppliance === false}
                 <p class="hint">Réservé aux appliances Tune OS — ici, le réseau est géré par le système hôte.</p>
               {:else if isAppliance === null}
@@ -1100,6 +1317,21 @@
   .dev input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
   .dev .dn{font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .dev .dt{font:10px var(--v2-mono); color:var(--v2-acc2); flex:0 0 auto}
+  .danger-box{margin-top:12px; padding:13px 15px; border-radius:11px;
+    border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
+  .danger-box p{font-size:12.5px; line-height:1.5; color:var(--v2-txt2)}
+  .confirm{display:flex; align-items:center; gap:12px; margin-top:12px; cursor:pointer; font-size:13px; font-weight:600}
+  .rng{flex:0 0 auto; width:200px; accent-color:var(--v2-acc1)}
+  .sel{flex:0 0 auto; height:34px; min-width:180px; border-radius:9px; border:1px solid var(--v2-line2);
+    background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans); padding:0 10px; outline:none; cursor:pointer}
+  .sel:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+  .themerow{display:flex; gap:7px; flex:0 0 auto}
+  .sw2{position:relative; width:30px; height:30px; border-radius:9px; cursor:pointer; padding:0;
+    border:1px solid var(--v2-line2); background:var(--sw-bg); transition:.15s}
+  .sw2::after{content:""; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:52%; height:52%; border-radius:50%; background:var(--sw-acc)}
+  .sw2:hover{transform:translateY(-1px); border-color:var(--sw-acc)}
+  .sw2.on{border-color:var(--sw-acc); box-shadow:0 0 0 2px var(--v2-surface2), 0 0 0 3px var(--sw-acc)}
   .wifi{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:6px 8px; border-radius:9px}
   .wifi:hover,.wifi.sel{background:var(--v2-hover)}
   .wrow{display:flex; align-items:center; gap:11px; flex:1; min-width:0; border:0; background:transparent;
