@@ -288,6 +288,240 @@
   }
   function cancelPairing() { pairId = null; pairAwaiting = false; pairPin = ''; pairMsg = null; }
 
+  // « DSD vers renderer reseau » — diffuser le transcodage au lieu d'ecrire
+  // un fichier temporaire bloquant (corrige les silences/delais en DSD
+  // 256/512 sur certains renderers DLNA).
+  let dsdStream = $state(false);
+  // « Resolution de l'egaliseur Expert » — cle serveur partagee par tous les
+  // clients ; la vue Egaliseur la relit a l'ouverture.
+  let eqBands = $state(10);
+  $effect(() => {
+    api.getConfig().then((c: any) => { dsdStream = c?.dsd_lpcm_stream ?? false; }).catch(() => {});
+    api.getEqExpertSettings()
+      .then((r) => { eqBands = r.expert_bands; })
+      .catch(() => {});   // serveur anterieur : on garde la valeur par defaut
+  });
+  function setDsdStream(v: boolean) {
+    const before = dsdStream; dsdStream = v;
+    patch({ dsd_lpcm_stream: v }, () => { dsdStream = before; },
+      $t((v ? 'settings.dsdStreamOn' : 'settings.dsdStreamOff') as any));
+  }
+  async function setEqBands(n: number) {
+    const before = eqBands; eqBands = n;
+    try { eqBands = (await api.setEqExpertSettings(n)).expert_bands; }
+    catch { eqBands = before; notifications.error('Enregistrement impossible'); }
+  }
+
+  // ── Squeezebox / Lyrion ────────────────────────────────────────────────
+  // L'activation ne suffit pas : c'est la DECOUVERTE qui fait apparaitre les
+  // lecteurs, d'ou le rafraichissement automatique a l'activation.
+  let sbEnabled = $state(false);
+  let sbStatus = $state<api.SqueezeboxStatus | null>(null);
+  let sbHost = $state('');
+  let sbSaving = $state(false);
+  let sbLoading = $state(false);
+  let sbCreating = $state<string | null>(null);
+
+  async function refreshSqueezebox() {
+    sbLoading = true;
+    try {
+      sbStatus = await api.getSqueezeboxStatus();
+      if (sbStatus?.lms_host) sbHost = sbStatus.lms_host;
+    } catch { /* serveur sans Squeezebox */ }
+    sbLoading = false;
+  }
+  async function toggleSqueezebox() {
+    sbSaving = true;
+    const next = !sbEnabled;
+    try {
+      await api.updateConfig({ squeezebox_enabled: next });
+      sbEnabled = next;
+      if (next) await refreshSqueezebox(); else sbStatus = null;
+    } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    sbSaving = false;
+  }
+  async function saveSqueezeboxHost() {
+    sbSaving = true;
+    try {
+      await api.updateConfig({ lms_host: sbHost.trim() || null });
+      await refreshSqueezebox();
+      notifications.success($t('common.saved' as any));
+    } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    sbSaving = false;
+  }
+  async function discoverSqueezebox() {
+    sbLoading = true;
+    try { sbStatus = await api.discoverSqueezebox(); }
+    catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    sbLoading = false;
+  }
+  async function zoneFromPlayer(pl: api.SqueezeboxPlayer) {
+    sbCreating = pl.id;
+    try {
+      await api.createZoneFromSqueezebox(pl.id, pl.name);
+      notifications.success($t('settings.squeezeboxZoneCreated' as any).replace('{name}', pl.name));
+    } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    sbCreating = null;
+  }
+
+  // ── HQPlayer ───────────────────────────────────────────────────────────
+  // Config et etat vivent sur /hqplayer/*, pas dans la config systeme.
+  let hqEnabled = $state(false);
+  let hqHost = $state('');
+  let hqPort = $state(4321);
+  let hqSaving = $state(false);
+  let hqChecking = $state(false);
+  let hqReachable = $state<boolean | null>(null);
+  let hqStatusHost = $state('');
+  let hqStatusPort = $state(0);
+  let hqStatusMsg = $state('');
+
+  $effect(() => {
+    api.getConfig().then((c: any) => { sbEnabled = c?.squeezebox_enabled ?? false; }).catch(() => {});
+    api.apiFetch('/hqplayer/config')
+      .then((c: any) => { hqEnabled = c?.hqplayer_enabled ?? false; hqHost = c?.hqplayer_host ?? ''; hqPort = c?.hqplayer_port ?? 4321; })
+      .catch(() => {});
+  });
+  async function saveHq(enabled = hqEnabled) {
+    hqSaving = true;
+    try {
+      await api.apiPost('/hqplayer/config', { hqplayer_host: hqHost.trim(), hqplayer_port: hqPort, hqplayer_enabled: enabled });
+      hqEnabled = enabled;
+      if (enabled) await checkHq();
+    } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    hqSaving = false;
+  }
+  async function checkHq() {
+    hqChecking = true;
+    try {
+      // Le serveur sonde 4321 puis 8019 : la reponse peut prendre quelques
+      // secondes. `connected` est le champ reel du backend.
+      const st: any = await api.apiFetch('/hqplayer/status');
+      hqReachable = st?.connected ?? false;
+      hqStatusHost = st?.host ?? hqHost;
+      hqStatusPort = st?.port ?? hqPort;
+      hqStatusMsg = st?.message ?? '';
+    } catch {
+      hqReachable = false; hqStatusHost = hqHost; hqStatusPort = hqPort; hqStatusMsg = '';
+    }
+    hqChecking = false;
+  }
+
+  // ── Tune Bridge (acces distant) ────────────────────────────────────────
+  // Le jeton n'est renvoye QU'A L'ACTIVATION et jamais relu ensuite : le
+  // statut le remet volontairement a vide. D'ou l'avertissement affiche —
+  // si l'utilisateur ne le copie pas maintenant, il est perdu.
+  let brEnabled = $state(false);
+  let brConnected = $state(false);
+  let brServerId = $state('');
+  let brUrl = $state('');
+  let brToken = $state('');
+  let brBusy = $state(false);
+  $effect(() => {
+    api.apiFetch('/cloud/bridge/status')
+      .then((d: any) => {
+        brEnabled = !!d?.enabled; brConnected = !!d?.connected;
+        brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = '';
+      })
+      .catch(() => {});   // route absente sur un serveur anterieur
+  });
+  async function toggleBridge() {
+    brBusy = true;
+    try {
+      if (brEnabled) {
+        await api.apiPost('/cloud/bridge/disable');
+        brEnabled = false; brConnected = false; brUrl = ''; brToken = '';
+      } else {
+        const d: any = await api.apiPost('/cloud/bridge/enable');
+        brEnabled = true;
+        brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = d?.bridge_token || '';
+      }
+    } catch (e: any) {
+      notifications.error(e?.message ?? 'Erreur');
+    }
+    brBusy = false;
+  }
+
+  // ── Serveurs Tune sur le reseau ────────────────────────────────────────
+  // L'ajout manuel par IP:port est le chemin robuste quand la decouverte
+  // multicast est bloquee (Docker macvlan, pare-feu Windows).
+  let peers = $state<api.TunePeer[]>([]);
+  let peersBusy = $state(false);
+  let peerHost = $state('');
+  let peerPort = $state(8888);
+  let peerAdding = $state(false);
+  async function fetchPeers() {
+    peersBusy = true;
+    try { peers = await api.withTimeout(api.getTunePeers(), 8_000, '/peers'); }
+    catch { /* silencieux : la decouverte peut echouer sans que ce soit une panne */ }
+    peersBusy = false;
+  }
+  $effect(() => { fetchPeers(); });
+  async function addPeer() {
+    const host = peerHost.trim();
+    if (!host) return;
+    peerAdding = true;
+    try { await api.addTunePeer(host, Number(peerPort) || 8888); peerHost = ''; await fetchPeers(); }
+    catch (e: any) { notifications.error(e?.message || $t('settings.peerAddError' as any)); }
+    peerAdding = false;
+  }
+  async function removePeer(pr: api.TunePeer) {
+    try { await api.removeTunePeer(pr.host, pr.port); await fetchPeers(); }
+    catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
+  }
+
+  // ── Wi-Fi de l'appliance (Tune OS) ─────────────────────────────────────
+  // N'a de sens QUE sur une appliance : ailleurs, le reseau est gere par le
+  // systeme hote. La section se declare donc indisponible plutot que
+  // d'afficher un scanner qui ne repondra jamais.
+  let isAppliance = $state<boolean | null>(null);
+  let wifiStatus = $state<api.ApplianceStatus | null>(null);
+  let wifiNets = $state<api.ApplianceWifiNetwork[]>([]);
+  let wifiScanning = $state(false);
+  let wifiConnecting = $state(false);
+  let wifiSel = $state<string | null>(null);
+  let wifiPwd = $state('');
+  let wifiErr = $state('');
+  let wifiOk = $state('');
+
+  $effect(() => {
+    api.getConfig().then(async (c: any) => {
+      isAppliance = !!c?.appliance;
+      if (!isAppliance) return;
+      try { wifiStatus = await api.getApplianceStatus(); } catch { /* ignore */ }
+      await scanWifi();
+    }).catch(() => { isAppliance = null; });
+  });
+  async function scanWifi() {
+    wifiScanning = true; wifiErr = '';
+    try { wifiNets = (await api.applianceWifiScan()).networks ?? []; }
+    catch (e: any) { wifiErr = e?.message ?? String(e); }
+    wifiScanning = false;
+  }
+  function selectWifi(ssid: string) {
+    wifiSel = wifiSel === ssid ? null : ssid;
+    wifiPwd = ''; wifiErr = ''; wifiOk = '';
+  }
+  async function connectWifi() {
+    if (!wifiSel) return;
+    const ssid = wifiSel;
+    wifiConnecting = true; wifiErr = ''; wifiOk = '';
+    try {
+      await api.applianceWifiConnect(ssid, wifiPwd || undefined);
+      wifiOk = ssid; wifiSel = null; wifiPwd = '';
+      try { wifiStatus = await api.getApplianceStatus(); } catch { /* ignore */ }
+      await scanWifi();
+    } catch (e: any) { wifiErr = e?.message ?? String(e); }
+    wifiConnecting = false;
+  }
+  async function forgetWifi(ssid: string) {
+    try {
+      await api.applianceWifiForget(ssid);
+      try { wifiStatus = await api.getApplianceStatus(); } catch { /* ignore */ }
+      await scanWifi();
+    } catch (e: any) { wifiErr = e?.message ?? String(e); }
+  }
+
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
@@ -330,7 +564,284 @@
               {#if s.from !== tab.id}<span class="moved">déplacé depuis « {s.from} »</span>{/if}
             </div>
 
-            {#if s.id === 'netDevices'}
+            {#if s.id === 'wifi'}
+              {#if isAppliance === false}
+                <p class="hint">Réservé aux appliances Tune OS — ici, le réseau est géré par le système hôte.</p>
+              {:else if isAppliance === null}
+                <p class="hint">Serveur injoignable.</p>
+              {:else}
+                <p class="hint">
+                  {#if wifiStatus?.wifi_connected}
+                    {$t('settings.wifiConnectedTo' as any).replace('{ssid}', wifiStatus?.wifi_ssid ?? '')}
+                  {:else}
+                    {$t('settings.wifiNotConnected' as any)}
+                  {/if}
+                  {#if wifiStatus?.ethernet_connected}&nbsp;·&nbsp;{$t('settings.wifiEthernetOn' as any)}{/if}
+                </p>
+                {#if wifiOk}<p class="okline">{$t('settings.wifiConnectSuccess' as any).replace('{ssid}', wifiOk)}</p>{/if}
+                {#if wifiErr}<p class="warn">{wifiErr}</p>{/if}
+                {#if wifiScanning && !wifiNets.length}
+                  <p class="hint">{$t('settings.wifiScanning' as any)}</p>
+                {:else if !wifiNets.length}
+                  <p class="hint">{$t('settings.wifiNoNetworks' as any)}</p>
+                {:else}
+                  <div class="devlist">
+                    {#each wifiNets as net (net.ssid)}
+                      <div class="wifi" class:sel={wifiSel === net.ssid}>
+                        <button class="wrow" onclick={() => selectWifi(net.ssid)}>
+                          <span class="dn">{net.ssid}</span>
+                          {#if net.security}<span class="dt">{net.security}</span>{/if}
+                          <span class="dh">{net.signal}%</span>
+                          {#if net.in_use}<span class="badge up">{$t('settings.wifiInUse' as any)}</span>{/if}
+                        </button>
+                        {#if net.in_use}
+                          <button class="lnk danger" onclick={() => forgetWifi(net.ssid)}>{$t('settings.wifiForget' as any)}</button>
+                        {:else if wifiSel === net.ssid}
+                          <div class="inline">
+                            {#if net.security}
+                              <input class="txt" type="password" placeholder={$t('settings.wifiPassword' as any)}
+                                bind:value={wifiPwd} disabled={wifiConnecting}
+                                onkeydown={(e) => { if (e.key === 'Enter') connectWifi(); }} />
+                            {/if}
+                            <button class="lnk" onclick={connectWifi} disabled={wifiConnecting || (!!net.security && !wifiPwd)}>
+                              {wifiConnecting ? '…' : $t('settings.wifiConnect' as any)}
+                            </button>
+                          </div>
+                        {/if}
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+                <div class="foot">
+                  <span class="hint"></span>
+                  <button class="lnk" onclick={scanWifi} disabled={wifiScanning}>{$t('settings.wifiScan' as any)}</button>
+                </div>
+              {/if}
+
+            {:else if s.id === 'bridge'}
+              <div class="row">
+                <div class="lbl">
+                  <span>Accès distant</span>
+                  <span class="hint">Joindre votre serveur Tune depuis n'importe où — sans VPN ni ouverture de port.</span>
+                </div>
+                <button class="lnk" class:danger={brEnabled} onclick={toggleBridge} disabled={brBusy}>
+                  {brBusy ? '…' : brEnabled ? 'Désactiver' : 'Activer'}
+                </button>
+              </div>
+              {#if brEnabled}
+                <div class="row">
+                  <div class="lbl"><span>État</span></div>
+                  <span class="badge" class:up={brConnected}>{brConnected ? 'Connecté' : 'Déconnecté'}</span>
+                </div>
+                <div class="row">
+                  <div class="lbl"><span>Identifiant du serveur</span></div>
+                  <span class="mono">{brServerId}</span>
+                </div>
+                {#if brUrl}
+                  <div class="row">
+                    <div class="lbl"><span>Adresse d'accès</span></div>
+                    <a class="mono link" href={brUrl} target="_blank" rel="noopener">{brUrl}</a>
+                  </div>
+                {/if}
+                {#if brToken}
+                  <div class="tok">
+                    <span class="tlab">Jeton</span>
+                    <code>{brToken}</code>
+                    <span class="warnline">Copiez-le maintenant : il ne sera plus jamais affiché. Redémarrez le serveur pour l'activer.</span>
+                  </div>
+                {/if}
+                {#if !brConnected}
+                  <p class="warn">Redémarrez le serveur pour qu'il se connecte au relais.</p>
+                {/if}
+              {/if}
+
+            {:else if s.id === 'tuneServers'}
+              {#if peersBusy && !peers.length}
+                <p class="hint">{$t('settings.searching' as any)}</p>
+              {:else if !peers.length}
+                <p class="hint">{$t('settings.noTunePeers' as any)}</p>
+              {:else}
+                <div class="devlist">
+                  {#each peers as pr (pr.host + ':' + pr.port)}
+                    <div class="dev net">
+                      <span class="dn">{pr.name}</span>
+                      <span class="dh">{pr.host}:{pr.port} — v{pr.version}</span>
+                      <span class="dt">{pr.tracks} {$t('common.tracks' as any)} · {$t('settings.peerZones' as any).replace('{n}', String(pr.zones))}</span>
+                      <button class="lnk" onclick={() => window.open(`http://${pr.host}:${pr.port}`, '_blank')}>{$t('settings.browse' as any)}</button>
+                      <button class="del" onclick={() => removePeer(pr)} aria-label={$t('settings.peerRemove' as any)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                      </button>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.peerAdd' as any)}</span>
+                  <span class="hint">{$t('settings.peerAddHint' as any)}</span>
+                </div>
+                <div class="inline">
+                  <input class="txt" type="text" placeholder={$t('settings.peerAddHostPlaceholder' as any)}
+                    bind:value={peerHost} disabled={peerAdding}
+                    onkeydown={(e) => { if (e.key === 'Enter') addPeer(); }} />
+                  <input class="txt num" type="number" placeholder="8888" bind:value={peerPort} disabled={peerAdding} />
+                  <button class="lnk" onclick={addPeer} disabled={peerAdding || !peerHost.trim()}>{$t('settings.peerAdd' as any)}</button>
+                  <button class="lnk" onclick={fetchPeers} disabled={peersBusy}>{$t('settings.refresh' as any)}</button>
+                </div>
+              </div>
+
+            {:else if s.id === 'squeezebox'}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.squeezeboxEnabled' as any)}</span>
+                  <span class="hint">{$t('settings.squeezeboxHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={sbEnabled} disabled={sbSaving} onchange={toggleSqueezebox} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if sbEnabled}
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.squeezeboxLmsHost' as any)}</span>
+                    {#if sbStatus?.lms_discovered && sbStatus?.lms_host}
+                      <span class="hint">{$t('settings.squeezeboxLmsDetected' as any).replace('{host}', sbStatus.lms_host)}</span>
+                    {/if}
+                  </div>
+                  <div class="inline">
+                    <input class="txt" type="text" placeholder={$t('settings.squeezeboxLmsPlaceholder' as any)}
+                      bind:value={sbHost} disabled={sbSaving}
+                      onkeydown={(e) => { if (e.key === 'Enter') saveSqueezeboxHost(); }} />
+                    <button class="lnk" onclick={saveSqueezeboxHost} disabled={sbSaving}>
+                      {sbSaving ? $t('settings.squeezeboxSaving' as any) : $t('common.save' as any)}
+                    </button>
+                  </div>
+                </div>
+                <div class="subhead">
+                  <span>{$t('settings.squeezeboxPlayers' as any)}</span>
+                  <button class="lnk" onclick={discoverSqueezebox} disabled={sbLoading}>
+                    {sbLoading ? $t('settings.squeezeboxRefreshing' as any) : $t('settings.squeezeboxRefresh' as any)}
+                  </button>
+                </div>
+                {#if sbStatus?.players?.length}
+                  <div class="devlist">
+                    {#each sbStatus.players as pl (pl.id)}
+                      <div class="dev net">
+                        <span class="badge" class:up={pl.connected}>{pl.connected ? $t('settings.squeezeboxConnected' as any) : $t('settings.squeezeboxDisconnected' as any)}</span>
+                        <span class="dn">{pl.name}</span>
+                        <span class="dh">{pl.model} — {pl.ip}</span>
+                        <button class="lnk" onclick={() => zoneFromPlayer(pl)} disabled={sbCreating === pl.id || !pl.connected}>
+                          {sbCreating === pl.id ? $t('settings.squeezeboxCreatingZone' as any) : $t('settings.squeezeboxCreateZone' as any)}
+                        </button>
+                      </div>
+                    {/each}
+                  </div>
+                {:else if !sbLoading}
+                  <p class="hint">{$t('settings.squeezeboxNoPlayers' as any)}</p>
+                {/if}
+              {/if}
+
+            {:else if s.id === 'hqplayer'}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.enableHqplayer' as any)}</span>
+                  <span class="hint">{$t('settings.hqplayerHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={hqEnabled} disabled={hqSaving} onchange={(e) => saveHq((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if hqEnabled}
+                <div class="row">
+                  <div class="lbl"><span>{$t('settings.hqplayerIp' as any)}</span></div>
+                  <div class="inline">
+                    <input class="txt" type="text" placeholder="192.168.1.100" bind:value={hqHost} disabled={hqSaving}
+                      onkeydown={(e) => { if (e.key === 'Enter') saveHq(); }} />
+                    <input class="txt num" type="number" placeholder="4321" bind:value={hqPort} disabled={hqSaving} />
+                    <button class="lnk" onclick={() => saveHq()} disabled={hqSaving}>
+                      {hqSaving ? $t('settings.saving' as any) : $t('common.save' as any)}
+                    </button>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.status' as any)}</span>
+                    {#if hqReachable === true}
+                      <span class="hint">HQPlayer @ {hqStatusHost}:{hqStatusPort}</span>
+                    {:else if hqReachable === false && hqStatusMsg}
+                      <span class="hint">{hqStatusMsg}</span>
+                    {/if}
+                  </div>
+                  <div class="inline">
+                    {#if hqChecking}
+                      <span class="badge">…</span>
+                    {:else if hqReachable === true}
+                      <span class="badge up">{$t('settings.connected' as any)}</span>
+                    {:else if hqReachable === false}
+                      <span class="badge">{$t('settings.unreachable' as any)}</span>
+                    {:else}
+                      <span class="hint">{$t('settings.notTested' as any)}</span>
+                    {/if}
+                    <button class="lnk" onclick={checkHq} disabled={hqChecking}>{$t('settings.testConnection' as any)}</button>
+                  </div>
+                </div>
+              {/if}
+
+            {:else if s.id === 'audioDiag'}
+              <!-- Bilan de sante : trois compteurs qui disent d'un coup d'oeil
+                   si la chaine est jouable. Les valeurs viennent des memes
+                   stores que le reste de l'ecran, donc jamais desynchronisees. -->
+              <div class="diag">
+                <div class="dl">
+                  <span class="di" class:ok={$zones.length > 0}>{$zones.length > 0 ? '✓' : '!'}</span>
+                  <span class="dlab">{$t('settings.playbackZones' as any)}</span>
+                  <span class="dval">{$t('settings.zonesConfigured' as any).replace('{n}', String($zones.length))}</span>
+                </div>
+                <div class="dl">
+                  <span class="di" class:ok={audioDevices.length > 0}>{audioDevices.length > 0 ? '✓' : '!'}</span>
+                  <span class="dlab">{$t('settings.audioOutputs' as any)}</span>
+                  <span class="dval">{$t('settings.outputsDetected' as any).replace('{n}', String(audioDevices.length))}</span>
+                </div>
+                <div class="dl">
+                  <span class="di info" class:ok={$devices.length > 0}>{$devices.length > 0 ? '✓' : 'i'}</span>
+                  <span class="dlab">{$t('settings.networkDevicesLabel' as any)}</span>
+                  <span class="dval">{$t('settings.devicesFound' as any).replace('{n}', String($devices.length))}</span>
+                </div>
+              </div>
+              {#if $zones.length === 0}
+                <p class="warn">{$t('settings.noZonesHint' as any)}</p>
+              {:else if audioDevices.length === 0}
+                <p class="warn">{$t('settings.noAudioOutputHint' as any)}</p>
+              {/if}
+
+            {:else if s.id === 'dsd'}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.dsdNetworkLabel' as any)}</span>
+                  <span class="hint">{$t('settings.dsdNetworkHint' as any)}</span>
+                </div>
+                <div class="seg4">
+                  <button class:on={!dsdStream} onclick={() => setDsdStream(false)}>{$t('settings.dsdOptionFile' as any)}</button>
+                  <button class:on={dsdStream} onclick={() => setDsdStream(true)}>{$t('settings.dsdOptionStream' as any)}</button>
+                </div>
+              </div>
+
+            {:else if s.id === 'eqBands'}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.eqBandsLabel' as any)}</span>
+                  <span class="hint">{$t('settings.eqBandsHint' as any)}</span>
+                </div>
+                <div class="seg4">
+                  <button class:on={eqBands === 10} onclick={() => setEqBands(10)}>{$t('settings.eqBands10' as any)}</button>
+                  <button class:on={eqBands === 15} onclick={() => setEqBands(15)}>{$t('settings.eqBands15' as any)}</button>
+                  <button class:on={eqBands === 31} onclick={() => setEqBands(31)}>{$t('settings.eqBands31' as any)}</button>
+                </div>
+              </div>
+
+            {:else if s.id === 'netDevices'}
               <div class="acts">
                 <button class="lnk" onclick={showAllNet}>{$t('settings.showAll' as any)}</button>
                 <button class="lnk" onclick={hideAllNet}>{$t('settings.hideAll' as any)}</button>
@@ -589,6 +1100,41 @@
   .dev input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
   .dev .dn{font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .dev .dt{font:10px var(--v2-mono); color:var(--v2-acc2); flex:0 0 auto}
+  .wifi{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:6px 8px; border-radius:9px}
+  .wifi:hover,.wifi.sel{background:var(--v2-hover)}
+  .wrow{display:flex; align-items:center; gap:11px; flex:1; min-width:0; border:0; background:transparent;
+    color:var(--v2-txt2); cursor:pointer; text-align:left; padding:6px 0; font-family:inherit}
+  .wifi.sel .wrow{color:var(--v2-txt)}
+  .okline{margin-top:10px; padding:9px 12px; border-radius:10px; font-size:12px; color:var(--v2-acc-tint);
+    border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
+  .mono{font:11.5px var(--v2-mono); color:var(--v2-txt2); word-break:break-all; text-align:right}
+  a.link{color:var(--v2-acc-tint); text-decoration:none}
+  a.link:hover{text-decoration:underline}
+  .tok{display:flex; flex-direction:column; gap:7px; margin-top:12px; padding:12px;
+    border-radius:10px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
+  .tok .tlab{font:10px var(--v2-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--v2-txt3)}
+  .tok code{font:11.5px var(--v2-mono); color:var(--v2-txt); word-break:break-all}
+  .warnline{font-size:11.5px; line-height:1.45; color:var(--v2-acc-tint)}
+  .inline{display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex:0 0 auto}
+  .txt{height:34px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
+    color:var(--v2-txt); font:13px var(--v2-sans); padding:0 11px; outline:none; width:210px}
+  .txt.num{width:78px; font-family:var(--v2-mono)}
+  .txt:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+  .subhead{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px;
+    padding-top:12px; border-top:1px solid var(--v2-line); font:700 12px var(--v2-sans); color:var(--v2-txt2)}
+  .badge{font:10px var(--v2-mono); letter-spacing:.05em; padding:3px 9px; border-radius:999px; flex:0 0 auto;
+    color:var(--v2-txt3); border:1px solid var(--v2-line2)}
+  .badge.up{color:var(--v2-acc-tint); border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
+  .diag{display:flex; flex-direction:column; gap:2px; margin-top:12px}
+  .dl{display:grid; grid-template-columns:24px 1fr auto; align-items:center; gap:11px; padding:8px 4px}
+  .di{width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font:700 11px var(--v2-sans);
+    color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
+  .di.info{color:var(--v2-txt3); border-color:var(--v2-line2)}
+  .di.ok{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .dlab{font-size:13px; color:var(--v2-txt2)}
+  .dval{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .warn{margin-top:10px; padding:10px 12px; border-radius:10px; font-size:12px; line-height:1.45;
+    color:var(--v2-txt2); border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
   .acts{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
   .lnk.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
   .dev.net{grid-template-columns:auto minmax(0,1fr) auto auto auto; cursor:default}
