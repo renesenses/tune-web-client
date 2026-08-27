@@ -19,6 +19,8 @@
   import PodcastsV2 from './PodcastsV2.svelte';
   import QueueV2 from './QueueV2.svelte';
   import FavoritesV2 from './FavoritesV2.svelte';
+  import ZonesV2 from './ZonesV2.svelte';
+  import StreamingV2 from './StreamingV2.svelte';
   import PlayerV2 from './PlayerV2.svelte';
   import AvatarMenu from './AvatarMenu.svelte';
   import { preferences } from '../../lib/stores/preferences';
@@ -69,6 +71,10 @@
         <QueueV2 />
       {:else if $activeView === 'favorites'}
         <FavoritesV2 />
+      {:else if $activeView === 'zonemanager'}
+        <ZonesV2 />
+      {:else if $activeView === 'streaming'}
+        <StreamingV2 />
       {:else}
         <div class="soon">
           <div class="badge">À venir</div>
