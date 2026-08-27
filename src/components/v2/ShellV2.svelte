@@ -15,6 +15,7 @@
   import SearchV2 from './SearchV2.svelte';
   import PlaylistsV2 from './PlaylistsV2.svelte';
   import PlayerV2 from './PlayerV2.svelte';
+  import AvatarMenu from './AvatarMenu.svelte';
   import '../../styles/tune-v2.css';
 
   const LABELS: Partial<Record<View, string>> = {
@@ -28,6 +29,8 @@
 </script>
 
 <div class="v2-shell tune-v2">
+  <div class="av-tr"><AvatarMenu /></div>
+
   <div class="row">
     <Sidebar />
     <main class="main">
@@ -52,7 +55,10 @@
 </div>
 
 <style>
-  .v2-shell{display:flex; flex-direction:column; height:100vh; background:var(--v2-bg); overflow:hidden}
+  .v2-shell{position:relative; display:flex; flex-direction:column; height:100vh; background:var(--v2-bg); overflow:hidden}
+  /* Avatar unique de l'application : pincé en haut à droite de l'écran, au-dessus
+     de toutes les vues (y compris les overlays de fiche). */
+  .av-tr{position:absolute; top:20px; right:30px; z-index:80}
   .row{flex:1; min-height:0; display:grid; grid-template-columns:236px 1fr}
   .main{min-width:0; overflow:hidden; display:flex}
   .soon{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;

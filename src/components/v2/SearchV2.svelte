@@ -21,7 +21,6 @@
   import { formatDuration, getQualityTier } from '../../lib/utils';
   import type { Album, Track, SearchResult, FederatedSearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
-  import AvatarMenu from './AvatarMenu.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import '../../styles/tune-v2.css';
 
@@ -101,8 +100,6 @@
 </script>
 
 <section class="v2-search tune-v2">
-  <div class="av-tr"><AvatarMenu /></div>
-
   <header class="top">
     <div class="field">
       <svg class="mag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -228,7 +225,6 @@
 <style>
   .v2-search{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .av-tr{position:absolute; top:20px; right:30px; z-index:50}
 
   .top{display:flex; align-items:center; gap:14px; padding:24px 30px 12px; padding-right:96px}
   .field{position:relative; flex:1; max-width:640px; display:flex; align-items:center}

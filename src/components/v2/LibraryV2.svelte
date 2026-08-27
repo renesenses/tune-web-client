@@ -19,7 +19,6 @@
   import { getQualityTier, fold, type QualityTier } from '../../lib/utils';
   import type { Album } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
-  import AvatarMenu from './AvatarMenu.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import '../../styles/tune-v2.css';
 
@@ -103,7 +102,6 @@
           <button class="tab" class:active={i === 0}>{t.label}</button>
         {/if}
       {/each}
-      <AvatarMenu />
     </nav>
   </header>
 
@@ -168,7 +166,8 @@
 <style>
   .v2-lib{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden; box-sizing:border-box}
-  .top{display:flex; align-items:center; gap:18px; padding:20px 30px 8px}
+  /* padding-right élargi : l'avatar de la coquille est pincé à droite. */
+  .top{display:flex; align-items:center; gap:18px; padding:20px 30px 8px; padding-right:96px}
   .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em}
   .btn{display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 18px; border-radius:var(--v2-r-pill);
     border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); font:600 14px var(--v2-sans); cursor:pointer}

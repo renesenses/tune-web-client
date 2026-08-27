@@ -16,7 +16,6 @@
   import { formatDuration } from '../../lib/utils';
   import type { Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
-  import AvatarMenu from './AvatarMenu.svelte';
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
   import '../../styles/tune-v2.css';
 
@@ -66,8 +65,6 @@
 </script>
 
 <section class="v2-playlists tune-v2">
-  <div class="av-tr"><AvatarMenu /></div>
-
   <header class="top">
     <div>
       <div class="eyebrow">Vos collections</div>
@@ -150,7 +147,6 @@
 <style>
   .v2-playlists{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .av-tr{position:absolute; top:20px; right:30px; z-index:50}
 
   .top{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:24px 30px 10px; padding-right:96px}
   .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}

@@ -18,7 +18,6 @@
   import { formatNumber } from '../../lib/utils';
   import type { Album } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
-  import AvatarMenu from './AvatarMenu.svelte';
   import '../../styles/tune-v2.css';
 
   const showMore = $derived(atLeast($preferences.settingsLevel, 'intermediate'));
@@ -50,8 +49,6 @@
 </script>
 
 <section class="v2-home tune-v2">
-  <div class="av-tr"><AvatarMenu /></div>
-
   <header class="top">
     <div>
       <div class="hello">{hello}</div>
@@ -121,7 +118,6 @@
 <style>
   .v2-home{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .av-tr{position:absolute; top:20px; right:30px; z-index:50}
   .top{padding:22px 30px 6px}
   .hello{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
   .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
