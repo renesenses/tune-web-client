@@ -391,7 +391,7 @@ export default {
   'search.hint': 'Digita un termine di ricerca per iniziare',
 
   // Streaming
-  'streaming.selectService': 'Seleziona un servizio di streaming dalla barra laterale',
+  'streaming.selectService': 'Seleziona un servizio di streaming',
   'streaming.searchOn': 'Ricerca su {service}...',
   'streaming.myPlaylists': 'Le mie playlist',
   'streaming.noPlaylists': 'Nessuna playlist',
