@@ -2,6 +2,7 @@
   import { onMount, untrack } from 'svelte';
   import { dialogs } from '../lib/stores/dialogs';
   import { trierAlbumsParAnnee } from '../lib/trierAlbums';
+  import { doitMemoriserPositionListe } from '../lib/libraryNavScroll';
   import { tip } from '../lib/tooltip';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
@@ -1513,9 +1514,23 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // auto), NOT `.main-content` — whose child fills it exactly, so its scrollTop
     // stays 0. Reading `.main-content` here always captured 0, so Back landed at
     // the top of the artist list instead of the viewed artist (#1118, #870).
-    const scrollEl = document.querySelector('.library-scroller');
-    if (scrollEl) savedArtistScrollTop = scrollEl.scrollTop;
-    if ($libraryTab === 'genres' && scrollEl) savedGenreScrollTop = scrollEl.scrollTop;
+    //
+    // …mais seulement si l'on quitte réellement une LISTE. `selectArtistDetail`
+    // est aussi appelée depuis une fiche déjà ouverte : lien artiste d'un album,
+    // pastilles de crédits, liens artiste des pistes, fil des « artistes
+    // similaires », et `goBack()` lui-même quand ce fil se dépile. Dans ces
+    // cas-là `.library-scroller` porte le défilement d'une page de DÉTAIL —
+    // pratiquement toujours 0 — et l'écrire ici écrasait la position de la liste
+    // mémorisée à l'entrée. Comme `restoreArtistScrollWhenReady` ne fait rien
+    // pour une cible <= 0, le retour final laissait la liste tout en haut :
+    // « le retour ramène toujours en début de liste » (Pierre M, fil 1177,
+    // renesenses/tune-server-rust#2253). La grille d'albums avait déjà sa garde
+    // (`if (!$selectedAlbum)` ci-dessus) ; l'artiste ne l'avait jamais eue.
+    if (doitMemoriserPositionListe({ albumOuvert: $selectedAlbum != null, artisteOuvert: $selectedArtist != null })) {
+      const scrollEl = document.querySelector('.library-scroller');
+      if (scrollEl) savedArtistScrollTop = scrollEl.scrollTop;
+      if ($libraryTab === 'genres' && scrollEl) savedGenreScrollTop = scrollEl.scrollTop;
+    }
     selectedArtist.set(artist);
     window.history.pushState({ view: 'library', artistId: artist.id, tab: $libraryTab }, '', '#library');
     selectedAlbum.set(null);
