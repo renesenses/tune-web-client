@@ -217,3 +217,54 @@ describe('SeekBar.svelte — le câblage existe', () => {
     expect(style).toContain('prefers-reduced-motion');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// #2555 — la boucle d'effet qui figeait TOUTE l'interface
+//
+// `suivreOuverture` est appelée depuis un `$effect` de SeekBar qui LIT
+// `etatOuverture` puis ÉCRIT le résultat. Si la fonction rend un objet NEUF
+// alors que rien n'a changé, l'effet invalide sa propre dépendance et se
+// relance sans fin. Svelte lève alors `effect_update_depth_exceeded` — et
+// ARRÊTE son ordonnanceur : l'URL change encore, plus rien ne s'affiche.
+//
+// Ces tests ne parlent pas de rendu : ils exigent l'IDEMPOTENCE PAR RÉFÉRENCE,
+// qui est la propriété dont dépend la convergence.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('idempotence par référence (#2555)', () => {
+  const enOuverture = { resolving: true, state: 'stopped' };
+
+  it("CONTRE-ÉPREUVE : deux appels de suite rendent le MÊME objet pendant une ouverture", () => {
+    const a = suivreOuverture(ETAT_OUVERTURE_INITIAL, enOuverture, 1_000);
+    const b = suivreOuverture(a, enOuverture, 1_000);
+    // C'est le point exact qui bouclait : l'ancien code rendait ici un objet neuf.
+    expect(b).toBe(a);
+  });
+
+  it('converge : réappliquer la fonction en boucle finit par se stabiliser', () => {
+    let etat = ETAT_OUVERTURE_INITIAL;
+    let changements = 0;
+    for (let i = 0; i < 200; i++) {
+      const suivant = suivreOuverture(etat, enOuverture, 5_000);
+      if (suivant !== etat) changements++;
+      etat = suivant;
+    }
+    // Un seul changement de référence : l'entrée en ouverture. Puis plus rien.
+    expect(changements).toBe(1);
+  });
+
+  it("l'horloge qui avance ne recrée un objet QUE si l'affichage change vraiment", () => {
+    const arme = suivreOuverture(ETAT_OUVERTURE_INITIAL, enOuverture, 0);
+    expect(suivreOuverture(arme, enOuverture, 1_000)).toBe(arme);
+    // Franchir le plafond DOIT produire un nouvel état : visible passe à false.
+    const apresPlafond = suivreOuverture(arme, enOuverture, PLAFOND_OUVERTURE_MS + 1);
+    expect(apresPlafond).not.toBe(arme);
+    expect(apresPlafond.visible).toBe(false);
+  });
+
+  it('sortir de l\'ouverture rend toujours la même référence initiale', () => {
+    const arme = suivreOuverture(ETAT_OUVERTURE_INITIAL, enOuverture, 0);
+    const fini = suivreOuverture(arme, { resolving: false, state: 'playing' }, 1_000);
+    expect(fini).toBe(ETAT_OUVERTURE_INITIAL);
+    expect(suivreOuverture(fini, { resolving: false, state: 'playing' }, 2_000)).toBe(fini);
+  });
+});
