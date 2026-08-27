@@ -23,6 +23,7 @@
   import { get } from 'svelte/store';
   import { t } from './lib/i18n';
   import * as api from './lib/api';
+  import { libelleBanniereEnrichissement, enrichissementImagesTermine, type TacheDeFond } from './lib/tachesDeFond';
   import { urlFlux } from './lib/bridge';
   import Sidebar from './components/Sidebar.svelte';
   import NowPlaying from './components/NowPlaying.svelte';
@@ -100,13 +101,17 @@ import AlarmsView from './components/AlarmsView.svelte';
   // plus et chaque événement est traité N fois.
   let unsubWsEvents: (() => void) | null = null;
   let scanIndicator = $state(false);
+  // Tâches de fond en cours (pochettes, images d'artistes, biographies…), telles
+  // que le serveur les publie par `system.background_tasks`. Sans cet état, un
+  // enrichissement qui dure des minutes est parfaitement invisible (#2227).
+  let backgroundTasks = $state<TacheDeFond[]>([]);
   let playlistModalTrack = $state<Track | null>(null);
   let showOnboarding = $state(false);
   let onboardingChecked = $state(false);
   let showWhatsNew = $state(false);
 
   // Status banner state
-  type BannerStatus = 'idle' | 'scan' | 'streaming' | 'ready';
+  type BannerStatus = 'idle' | 'scan' | 'streaming' | 'ready' | 'enrichment';
   let bannerStatus = $state<BannerStatus>('idle');
   let bannerMessage = $state('');
   let bannerFadeout = $state(false);
@@ -132,6 +137,49 @@ import AlarmsView from './components/AlarmsView.svelte';
         bannerFadeTimer = null;
       }, 600);
     }, 1500);
+  }
+
+  /**
+   * Reporter les tâches de fond du serveur dans le bandeau d'état.
+   *
+   * Le scan a son propre bandeau et reste prioritaire ; l'enrichissement ne
+   * s'affiche que lorsqu'aucun scan ne tourne, et rend la main à « Prêt »
+   * quand la dernière tâche s'achève.
+   */
+  function applyEnrichmentBanner() {
+    if (scanIndicator) return; // ne pas écraser le bandeau de scan
+    const libelle = libelleBanniereEnrichissement(backgroundTasks, get(t)('app.enrichmentRunning'));
+    if (libelle !== null) {
+      showBanner('enrichment', libelle);
+    } else if (bannerStatus === 'enrichment') {
+      showReadyBanner();
+    }
+  }
+
+  /**
+   * Afficher le bilan de l'enrichissement des images d'artistes qui vient de
+   * finir.
+   *
+   * Sans lui, le bandeau disparaît sans un mot : « la progression tourne […]
+   * mais à la fin, la fenêtre se ferme » (Jean Valjean, #2227 / fil 1108).
+   *
+   * La relance manuelle tourne pour tout le monde : un résultat à 0 veut dire
+   * « rien trouvé », jamais « il faut Premium » — ce garde-fou-là ne concerne
+   * que la passe automatique d'après-scan. Purement additif : en cas d'erreur
+   * on se tait plutôt que d'inventer un chiffre.
+   */
+  async function showArtistEnrichSummary() {
+    try {
+      const s = await api.enrichArtistImagesStatus();
+      const enriched = s?.result?.enriched ?? 0;
+      const missing = s?.artists_without_image ?? 0;
+      const msg = get(t)('settings.enrichArtistImagesResult')
+        .replace('{enriched}', String(enriched))
+        .replace('{missing}', String(missing));
+      notifications.info(msg, 6000);
+    } catch {
+      /* serveur muet : on n'affiche pas de bilan inventé */
+    }
   }
 
   // Kiosk mode: ?kiosk=true forces NowPlaying view on small touchscreen
@@ -641,6 +689,11 @@ import AlarmsView from './components/AlarmsView.svelte';
     loadLicense();
     checkOnboarding();
     checkWhatsNew();
+    // État initial des tâches de fond, au cas où un enrichissement tourne déjà
+    // au chargement ; le direct arrive ensuite par le WebSocket (#2227).
+    api.getBackgroundTasks()
+      .then((r) => { backgroundTasks = r?.tasks ?? []; applyEnrichmentBanner(); })
+      .catch(() => {});
 
     // Keep polling aware of the active zone so it can fetch the queue
     unsubZoneForPolling = currentZoneId.subscribe((zoneId) => {
@@ -1042,6 +1095,19 @@ import AlarmsView from './components/AlarmsView.svelte';
         return;
       }
 
+      // Tâches de fond : pochettes, images d'artistes, biographies, métadonnées.
+      // Le serveur publie l'avancement fin (`bg_tasks.update_progress`) ; plus
+      // personne ne le lisait depuis la fusion `f14553f6` (#2227).
+      if (type === 'system.background_tasks') {
+        const tasks: TacheDeFond[] = Array.isArray(event.data?.tasks) ? event.data.tasks : [];
+        const venaitDeFinir = enrichissementImagesTermine(backgroundTasks, tasks);
+        backgroundTasks = tasks;
+        applyEnrichmentBanner();
+        // La fenêtre se referme — mais sur un bilan, plus sur du vide.
+        if (venaitDeFinir) showArtistEnrichSummary();
+        return;
+      }
+
       // Streaming auth events
       if (type === 'streaming.auth.success' && event.data?.service) {
         const service = (event.data.service as string).toLowerCase();
@@ -1182,8 +1248,8 @@ import AlarmsView from './components/AlarmsView.svelte';
     {/if}
 
     {#if bannerStatus !== 'idle'}
-      <div class="status-banner" class:status-banner--scan={bannerStatus === 'scan'} class:status-banner--streaming={bannerStatus === 'streaming'} class:status-banner--ready={bannerStatus === 'ready'} class:status-banner--fadeout={bannerFadeout}>
-        {#if bannerStatus === 'scan' || bannerStatus === 'streaming'}
+      <div class="status-banner" class:status-banner--scan={bannerStatus === 'scan'} class:status-banner--streaming={bannerStatus === 'streaming'} class:status-banner--enrichment={bannerStatus === 'enrichment'} class:status-banner--ready={bannerStatus === 'ready'} class:status-banner--fadeout={bannerFadeout}>
+        {#if bannerStatus === 'scan' || bannerStatus === 'streaming' || bannerStatus === 'enrichment'}
           <span class="status-banner-spinner"></span>
         {:else if bannerStatus === 'ready'}
           <svg class="status-banner-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1482,6 +1548,14 @@ import AlarmsView from './components/AlarmsView.svelte';
     background: rgba(34, 197, 94, 0.1);
     color: #4ade80;
     border-bottom-color: rgba(34, 197, 94, 0.2);
+  }
+
+  /* Enrichissement en fond : même famille visuelle que le scan, teinte plus
+     discrète — c'est une tâche d'arrière-plan, pas une opération demandée. */
+  .status-banner--enrichment {
+    background: rgba(107, 110, 217, 0.1);
+    color: var(--tune-accent, #6b6ed9);
+    border-bottom-color: rgba(107, 110, 217, 0.18);
   }
 
   .status-banner--ready {

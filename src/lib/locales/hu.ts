@@ -1,6 +1,7 @@
 export default {
   // App shell (bannières)
   "app.ready": "Kész",
+  "app.enrichmentRunning": "Gazdagítás folyamatban…",
   "app.syncing": "Gyűjtemény szinkronizálása…",
   "app.syncingProgress": "Gyűjtemény szinkronizálása… {count} fájl{added}",
   "app.syncingAdded": " · {count} hozzáadva",
@@ -1750,7 +1751,7 @@ export default {
   "tip.clearSavedRadios": "Töröl minden elmentett rádiót.",
   "tip.clearSearchHistory": "Törli a keresési előzményeidet.",
   "tip.eqResetFlat": "Minden sávot visszaállít nullára, a beállítás törlése nélkül.",
-  "tip.eqResetProfiler": "Törli a mért profilt, és üres korrekcióról indul.",
+  "tip.eqResetProfiler": "Visszaállítja a három csúszkát alaphelyzetbe és kikapcsolja a profilt — az equalizer korrekció nélkül indul újra.",
   "tip.send": "Az üzenet elküldése",
   "tip.favorite": "A szám hozzáadása a kedvencekhez",
   "tip.clearSearch": "A keresés törlése",
@@ -1950,6 +1951,7 @@ export default {
   "settings.enrichArtistImagesWorking": "Képek keresése…",
   "settings.enrichArtistImagesRemaining": "{n} előadó kép nélkül",
   "settings.enrichArtistImagesDone": "Az előadói képek gazdagítása kész",
+  "settings.enrichArtistImagesResult": "{enriched} kép hozzáadva · {missing} előadó továbbra is kép nélkül",
   "settings.enrichArtistImagesNoneMissing": "Már minden előadónak van képe",
   "settings.autoEnrichPremiumNote": "A beolvasás utáni automatikus gazdagítás Premium funkció. A fenti gombokkal bárki elindíthatja kézzel. Az előadói képekhez a Discogs/Last.fm szolgál név alapján, ha egy előadónak nincs MusicBrainz-azonosítója.",
   "settings.displayedMetadataFields": "Megjelenített metaadatmezők",

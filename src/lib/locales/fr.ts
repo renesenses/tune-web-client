@@ -1,6 +1,7 @@
 export default {
   // App shell (bannières)
   'app.ready': 'Prêt',
+  'app.enrichmentRunning': 'Enrichissement en cours…',
   'app.syncing': 'Synchronisation de la bibliothèque…',
   'app.syncingProgress': 'Synchronisation de la bibliothèque… {count} fichiers{added}',
   'app.syncingAdded': ' · {count} ajoutés',
@@ -1820,7 +1821,7 @@ export default {
   "tip.clearSavedRadios": "Supprime toutes les radios enregistrées.",
   "tip.clearSearchHistory": "Efface l'historique de vos recherches.",
   "tip.eqResetFlat": "Remet toutes les bandes à zéro, sans supprimer le préréglage.",
-  "tip.eqResetProfiler": "Efface le profil mesuré et repart d'une correction vierge.",
+  "tip.eqResetProfiler": "Remet les trois curseurs à plat et désactive le profil — l'égaliseur repart sans aucune correction.",
   "tip.send": "Envoyer le message",
   "tip.favorite": "Ajouter ce titre à vos favoris",
   "tip.clearSearch": "Effacer la recherche",
@@ -2020,6 +2021,7 @@ export default {
   "settings.enrichArtistImagesWorking": "Recherche des images en cours…",
   "settings.enrichArtistImagesRemaining": "{n} artistes sans image",
   "settings.enrichArtistImagesDone": "Enrichissement des images d'artistes terminé",
+  "settings.enrichArtistImagesResult": "{enriched} image(s) ajoutée(s) · {missing} artiste(s) encore sans image",
   "settings.enrichArtistImagesNoneMissing": "Tous les artistes ont déjà une image",
   "settings.autoEnrichPremiumNote": "L'enrichissement automatique après un scan est une fonctionnalité Premium. Les boutons ci-dessus le lancent manuellement pour tout le monde. Les images d'artistes utilisent Discogs/Last.fm par nom quand un artiste n'a pas d'identifiant MusicBrainz.",
   "settings.displayedMetadataFields": "Champs métadonnées affichés",
