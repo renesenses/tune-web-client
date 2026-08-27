@@ -1524,7 +1524,7 @@ export default {
   "library.noStreamingAlbumsHint": "Nessun album trovato sui servizi di streaming connessi.",
   "library.shuffleResults": "Riproduci i risultati in casuale",
   "library.shuffleAll": "Riproduci tutto in casuale",
-  "library.shuffle": "Casuale",
+  "library.shuffle": "Riproduci in casuale",
   "library.scanProgress": "{scanned} file analizzati, {added} aggiunti",
   "library.stopScan": "Interrompi la scansione",
   "library.duplicates": "Duplicati",
