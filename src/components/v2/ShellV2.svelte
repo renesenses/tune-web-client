@@ -44,7 +44,7 @@
 <div class="v2-shell tune-v2">
   <div class="av-tr"><AvatarMenu /></div>
 
-  <div class="row">
+  <div class="v2-row">
     <Sidebar />
     <main class="main">
       {#if $activeView === 'home'}
@@ -74,7 +74,16 @@
   /* Avatar unique de l'application : pincé en haut à droite de l'écran, au-dessus
      de toutes les vues (y compris les overlays de fiche). */
   .av-tr{position:absolute; top:20px; right:30px; z-index:80}
-  .row{flex:1; min-height:0; display:grid; grid-template-columns:236px 1fr}
+  /* `auto` et non une largeur fixe : la barre laterale se replie (72 px) et
+     la colonne doit suivre, sinon le repli laisse une bande vide. C'est la
+     barre qui porte sa largeur, pas la grille.
+
+     Classe `v2-row` et non `row` : une regle GLOBALE non scopee `.row{gap:20px}`
+     de l'app historique s'appliquait a notre grille et inserait 20 px entre la
+     barre et la vue. Mesure par CDP (getMatchedStyles) avant renommage. Un nom
+     generique dans une app a CSS partage est un piege — on le retire au lieu
+     de gagner une bataille de specificite avec `gap:0`. */
+  .v2-row{flex:1; min-height:0; display:grid; grid-template-columns:auto 1fr; gap:0}
   .main{min-width:0; overflow:hidden; display:flex}
   .soon{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
     text-align:center; color:var(--v2-txt); font-family:var(--v2-sans); padding:40px}

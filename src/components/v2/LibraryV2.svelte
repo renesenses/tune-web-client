@@ -162,8 +162,12 @@
     </nav>
   </header>
 
-  {#if showFilters}
-    <div class="filters">
+  <!-- La ligne de filtres existe a TOUS les niveaux : chez Levente le champ
+       de recherche vit dans la page, a cote des filtres, et c'est le seul
+       moyen de chercher en Essentiel depuis que la Recherche a quitte la
+       barre laterale. Seules les PUCES de filtrage sont reservees a Avance. -->
+  <div class="filters">
+    {#if showFilters}
       <button class="chip count" class:active={!fQuality && !fRate && !q} onclick={reset}>Tout ({matchCount})</button>
       {#each QUALITIES as it (it.key)}
         <button class="chip" class:active={fQuality === it.key} onclick={() => fQuality = fQuality === it.key ? null : it.key as string}>{it.label}</button>
@@ -181,12 +185,17 @@
         <button class="chip xo">Format<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <button class="chip xo">Profondeur<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
       {/if}
-      <div class="search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-        <input placeholder="Rechercher" bind:value={q} />
-      </div>
+    {/if}
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+      <input placeholder="Rechercher dans la bibliothèque" bind:value={q} />
+      {#if q}
+        <button class="clr" onclick={() => (q = '')} aria-label="Effacer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      {/if}
     </div>
-  {/if}
+  </div>
 
   {#if showTimeline}
     <div class="navmode">
@@ -291,9 +300,13 @@
     padding:8px 10px; border-radius:8px; cursor:pointer}
   .drop .menu button:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .drop .menu button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .search{margin-left:auto; display:flex; align-items:center; gap:10px; height:42px; width:320px; padding:0 16px;
+  .search{position:relative; margin-left:auto; display:flex; align-items:center; gap:10px; height:42px; width:320px; padding:0 16px;
     border-radius:14px; background:var(--v2-surface2); border:1px solid var(--v2-line); color:var(--v2-txt2)}
   .search svg{width:16px; height:16px}
+  .search .clr{position:absolute; right:8px; width:20px; height:20px; border:0; border-radius:50%;
+    background:transparent; color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center}
+  .search .clr:hover{color:var(--v2-txt)}
+  .search .clr svg{width:11px; height:11px}
   .search input{background:transparent; border:0; outline:0; color:var(--v2-txt); font:14px var(--v2-sans); width:100%}
   .search input::placeholder{color:var(--v2-txt3)}
 

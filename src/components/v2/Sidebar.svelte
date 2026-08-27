@@ -19,15 +19,25 @@
 
   type Item = { view: View; label: string; icon: string };
 
+  // Noyau aligné sur le brouillon v3 de Levente (26/08) : cinq entrées, pas
+  // plus. Deux ecarts assumes avec notre version precedente :
+  //
+  //  - PODCASTS remonte dans le noyau. C'est un mode d'ecoute a part entiere,
+  //    pas une option avancee.
+  //  - RECHERCHE quitte le noyau. Chez Levente elle vit DANS la page, en
+  //    champ a cote des filtres — la Bibliotheque en a un, desormais visible
+  //    des l'Essentiel. L'ecran Recherche complet (bibliotheque + services +
+  //    acoustique) reste atteignable, mais a partir d'Avance : il fait bien
+  //    plus que filtrer une grille, et son cout d'attention le justifie.
   const CORE: Item[] = [
     { view: 'home', label: 'Accueil', icon: 'M3 11l9-8 9 8M5 10v10h14V10' },
     { view: 'library', label: 'Bibliothèque', icon: 'M4 5v14M9 5v14M14 6l5 13' },
-    { view: 'radios', label: 'Radio', icon: 'M12 12h.01M7.5 7.5a6 6 0 0 0 0 9M16.5 7.5a6 6 0 0 1 0 9M4.5 4.5a10 10 0 0 0 0 15M19.5 4.5a10 10 0 0 1 0 15' },
+    { view: 'radios', label: 'Radio en direct', icon: 'M12 12h.01M7.5 7.5a6 6 0 0 0 0 9M16.5 7.5a6 6 0 0 1 0 9M4.5 4.5a10 10 0 0 0 0 15M19.5 4.5a10 10 0 0 1 0 15' },
     { view: 'playlists', label: 'Playlists', icon: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6' },
-    { view: 'search', label: 'Recherche', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M21 21l-4-4' },
+    { view: 'podcasts', label: 'Podcasts', icon: 'M12 4a7 7 0 0 0 0 14M12 4a7 7 0 0 1 0 14M9 20h6' },
   ];
   const ADVANCED: Item[] = [
-    { view: 'podcasts', label: 'Podcasts', icon: 'M12 4a7 7 0 0 0 0 14M12 4a7 7 0 0 1 0 14M9 20h6' },
+    { view: 'search', label: 'Recherche', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M21 21l-4-4' },
     { view: 'streaming', label: 'Streaming', icon: 'M4 15a8 8 0 0 1 16 0M7.5 15a4.5 4.5 0 0 1 9 0' },
     { view: 'queue', label: "File d'attente", icon: 'M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z' },
     { view: 'favorites', label: 'Favoris', icon: 'M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z' },
@@ -47,21 +57,38 @@
   const showStudio = $derived(atLeast(level, 'expert'));
 
   function go(v: View) { activeView.set(v); }
+
+  // Repli de la barre (bouton ⟵ du brouillon v3) : la barre se reduit aux
+  // icones. Le choix persiste par navigateur — c'est une preference de
+  // place a l'ecran, pas un reglage de compte a synchroniser.
+  let collapsed = $state(false);
+  $effect(() => {
+    try { collapsed = localStorage.getItem('tune_v2_sidebar_collapsed') === '1'; } catch { /* ignore */ }
+  });
+  function toggleCollapse() {
+    collapsed = !collapsed;
+    try { localStorage.setItem('tune_v2_sidebar_collapsed', collapsed ? '1' : '0'); } catch { /* ignore */ }
+  }
 </script>
 
-<aside class="v2-sidebar tune-v2">
+<aside class="v2-sidebar tune-v2" class:collapsed>
   <div class="brand">
     <div class="logo"><img src={glyph} alt="Tune" /></div>
     <div class="txt">
       <div class="name">Tune</div>
       <div class="sub">MOZAIKLABS</div>
     </div>
+    <button class="collapse" onclick={toggleCollapse}
+      aria-label={collapsed ? 'Déplier la barre latérale' : 'Replier la barre latérale'}
+      title={collapsed ? 'Déplier' : 'Replier'}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7"/><path d="M4 4v16"/></svg>
+    </button>
   </div>
 
   <div class="navscroll">
     <nav class="grp">
       {#each CORE as it (it.view)}
-        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)}>
+        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} title={collapsed ? it.label : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{it.label}</span>
         </button>
@@ -70,7 +97,7 @@
 
     <nav class="grp reveal" class:show={showAdvanced} aria-hidden={!showAdvanced}>
       {#each ADVANCED as it (it.view)}
-        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1}>
+        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={collapsed ? it.label : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{it.label}</span>
         </button>
@@ -80,7 +107,7 @@
     <nav class="grp reveal" class:show={showStudio} aria-hidden={!showStudio}>
       <div class="grp-label">Studio</div>
       {#each STUDIO as it (it.view)}
-        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1}>
+        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={collapsed ? it.label : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{it.label}</span>
         </button>
@@ -101,7 +128,19 @@
     padding:22px 16px 18px; font-family:var(--v2-sans); color:var(--v2-txt);
     box-sizing:border-box; width:236px;
   }
-  .brand{display:flex; align-items:center; gap:11px; padding:4px 8px 22px}
+  .v2-sidebar.collapsed{width:72px; padding-left:10px; padding-right:10px}
+  .v2-sidebar.collapsed .txt,
+  .v2-sidebar.collapsed .nav span,
+  .v2-sidebar.collapsed .grp-label{display:none}
+  .v2-sidebar.collapsed .brand{justify-content:center; gap:0}
+  .v2-sidebar.collapsed .nav{justify-content:center; padding-left:0; padding-right:0}
+  .v2-sidebar.collapsed .collapse{position:absolute; top:8px; right:8px; transform:rotate(180deg)}
+
+  .brand{position:relative; display:flex; align-items:center; gap:11px; padding:4px 8px 22px}
+  .collapse{margin-left:auto; width:26px; height:26px; border-radius:8px; border:0; cursor:pointer;
+    background:transparent; color:var(--v2-txt3); display:grid; place-items:center; transition:.15s}
+  .collapse:hover{color:var(--v2-txt); background:var(--v2-hover)}
+  .collapse svg{width:15px; height:15px}
   .logo{width:40px; height:40px; border-radius:11px; display:grid; place-items:center;
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 4px 14px var(--v2-glow-strong)}
   .logo img{width:56%; height:auto; display:block}
