@@ -2312,6 +2312,54 @@
     max-width: 420px;
   }
 
+  /* Très grands écrans — TV 4K utilisée comme écran de PC musique (Alain,
+     forum fil 1077 ; renesenses/tune-server-rust#2249). Sans ces paliers,
+     l'îlot de contenu reste plafonné à 1200 px et la pochette à 640 px : sur
+     une dalle 3840 px, la pochette ne fait que 17 % de la largeur, et tout le
+     reste de l'écran n'est que fond flouté.
+
+     On agrandit ENSEMBLE la pochette, la largeur de l'îlot et la colonne
+     titres. Cette dernière est ce qui règle le blocage d'Alain : en mode large
+     la pochette et la tracklist sont côte à côte, donc une grande pochette ne
+     masque plus la liste des titres.
+
+     Paliers additifs : les points de rupture existants (<= 1800px) ne bougent
+     pas. Rétablis depuis d0b5d74c, perdu à une résolution de fusion vers la
+     ligne v0.9 alors que le commit en reste ancêtre.
+
+     PLACEMENT : ce bloc doit rester APRÈS `.content-layout.wide .info-column`
+     ci-dessus. Une requête de média n'ajoute aucune spécificité ; à
+     spécificité égale c'est l'ordre de la feuille qui tranche. Dans d0b5d74c
+     les paliers étaient placés plus haut, avant cette règle — la colonne
+     titres restait donc figée à 420px et la promesse « colonne titres
+     comprise » n'a jamais été tenue. Couvert par
+     `src/lib/__tests__/paliersGrandsEcrans.test.ts`. */
+  @media (min-width: 2400px) {
+    .content-layout.wide {
+      max-width: 1720px;
+    }
+    .artwork-container,
+    .content-layout.wide .artwork-container {
+      max-width: 900px;
+    }
+    .content-layout.wide .info-column {
+      max-width: 720px;
+    }
+  }
+
+  @media (min-width: 3200px) {
+    .content-layout.wide {
+      max-width: 2200px;
+    }
+    .artwork-container,
+    .content-layout.wide .artwork-container {
+      max-width: 1160px;
+    }
+    .content-layout.wide .info-column {
+      max-width: 960px;
+    }
+  }
+
   .track-info {
     width: 100%;
   }
