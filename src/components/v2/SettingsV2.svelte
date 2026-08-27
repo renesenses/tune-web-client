@@ -18,6 +18,7 @@
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
+  import { formatNumber } from '../../lib/utils';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { notifications } from '../../lib/stores/notifications';
@@ -26,6 +27,7 @@
   import { devices } from '../../lib/stores/devices';
   import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../../lib/stores/audiophile';
   import { loopByDefault } from '../../lib/stores/loopByDefault';
+  import { licenseState, loadLicense } from '../../lib/stores/license';
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { V2_THEMES, type V2Theme } from '../../lib/v2Theme';
   import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
@@ -697,6 +699,62 @@
     svcBusy = null;
   }
 
+  // ── Systeme : a propos, licence, sante ────────────────────────────────
+  //
+  // La derive client/serveur est SIGNALEE. Le client web est embarque dans la
+  // release du serveur : quand les deux numeros different, c'est qu'un vieux
+  // client est servi — et tout ce qui suit (404 inattendus, licence « FREE »
+  // erronee, journaux vides) devient inexplicable si on ne le voit pas.
+  const CLIENT_VERSION: string = (globalThis as any).__APP_VERSION__ ?? '';
+  let serverVersion = $state<string | null>(null);
+  let updateInfo = $state<any | null>(null);
+  let health = $state<{ status: string; components?: Record<string, boolean> } | null>(null);
+  let stats = $state<{ tracks: number; albums: number; artists: number; zones: number; devices: number } | null>(null);
+  const clientStale = $derived(!!serverVersion && !!CLIENT_VERSION && serverVersion !== CLIENT_VERSION);
+
+  $effect(() => {
+    api.apiFetch('/system/update/check')
+      .then((d: any) => {
+        serverVersion = d?.current_version ?? d?.current ?? null;
+        updateInfo = d?.update_available ? d : null;
+      })
+      .catch(() => { serverVersion = null; });
+    api.getHealth().then((h) => { health = h; }).catch(() => { health = null; });
+    api.getStats().then((st) => { stats = st; }).catch(() => { stats = null; });
+  });
+
+  // Licence : la cle n'est jamais reaffichee en clair une fois activee — on
+  // montre ses derniers caracteres, assez pour la reconnaitre, pas assez pour
+  // la recopier depuis une capture d'ecran.
+  let licKey = $state('');
+  let licBusy = $state(false);
+  let licErr = $state<string | null>(null);
+  const lic = $derived($licenseState);
+  function maskKey(k: string | null): string {
+    if (!k) return '';
+    return k.length <= 4 ? '••••' : `••••-${k.slice(-4)}`;
+  }
+  async function activateLic() {
+    const k = licKey.trim();
+    if (!k || licBusy) return;
+    licBusy = true; licErr = null;
+    try {
+      await api.activateLicense(k);
+      licKey = '';
+      await loadLicense();
+    } catch (e: any) {
+      licErr = e?.message ?? 'Activation refusée.';
+    }
+    licBusy = false;
+  }
+  async function deactivateLic() {
+    if (licBusy) return;
+    licBusy = true; licErr = null;
+    try { await api.deactivateLicense(); await loadLicense(); }
+    catch { licErr = 'Désactivation impossible.'; }
+    licBusy = false;
+  }
+
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
@@ -873,6 +931,97 @@
                   </label>
                 </div>
               {/if}
+
+            {:else if s.id === 'about'}
+              <div class="rows">
+                <div class="kv"><span>Version du client</span><b>{CLIENT_VERSION || '—'}</b></div>
+                <div class="kv"><span>Version du serveur</span><b>{serverVersion ?? '…'}</b></div>
+              </div>
+              {#if clientStale}
+                <!-- Le client web est embarque dans la release du serveur :
+                     deux numeros differents = un vieux client est servi. -->
+                <div class="warnbox">
+                  Le client affiché ({CLIENT_VERSION}) ne correspond pas au serveur ({serverVersion}).
+                  Un ancien client est servi : videz le cache du navigateur, et vérifiez que la
+                  release a bien reconstruit le client web.
+                </div>
+              {/if}
+              {#if updateInfo?.latest_version}
+                <div class="okbox">
+                  Mise à jour disponible : <b>v{updateInfo.latest_version}</b>
+                  (actuelle : v{updateInfo.current_version ?? serverVersion}).
+                  L'installation se fait depuis le client actuel.
+                </div>
+              {/if}
+
+            {:else if s.id === 'license'}
+              <div class="rows">
+                <div class="kv">
+                  <span>Palier</span>
+                  <b class="tierb" class:prem={lic.tier !== 'free'}>{lic.tier}</b>
+                </div>
+                {#if lic.licenseKey}
+                  <div class="kv"><span>Clé</span><b class="mono">{maskKey(lic.licenseKey)}</b></div>
+                {/if}
+                {#if lic.expiresAt}
+                  <div class="kv"><span>Expire le</span><b>{new Date(lic.expiresAt).toLocaleDateString('fr-FR')}</b></div>
+                {/if}
+                <div class="kv"><span>Zones autorisées</span><b>{lic.zoneLimit}</b></div>
+              </div>
+
+              {#if lic.sessionConflict}
+                <!-- Le premium est suspendu ici parce que la licence est active
+                     ailleurs : le dire, sinon l'utilisateur croit avoir perdu
+                     ses fonctions. -->
+                <div class="warnbox">
+                  Cette licence est actuellement active sur un autre serveur. Les fonctions
+                  premium sont suspendues ici tant qu'elle y reste ouverte.
+                </div>
+              {/if}
+
+              {#if lic.licenseKey}
+                <div class="row">
+                  <div class="lbl"><span>Libérer la licence</span>
+                    <span class="hint">Nécessaire avant de l'activer sur un autre serveur.</span></div>
+                  <button class="lnk danger" disabled={licBusy} onclick={deactivateLic}>Désactiver</button>
+                </div>
+              {:else}
+                <div class="row">
+                  <div class="lbl"><span>Activer une licence</span>
+                    <span class="hint">La clé vous a été envoyée par courriel à l'achat.</span></div>
+                  <div class="inline">
+                    <input class="txt" type="text" placeholder="XXXX-XXXX-XXXX" bind:value={licKey}
+                      disabled={licBusy} onkeydown={(e) => { if (e.key === 'Enter') activateLic(); }} />
+                    <button class="lnk" disabled={licBusy || !licKey.trim()} onclick={activateLic}>
+                      {licBusy ? '…' : 'Activer'}
+                    </button>
+                  </div>
+                </div>
+              {/if}
+              {#if licErr}<div class="errline">{licErr}</div>{/if}
+
+            {:else if s.id === 'health'}
+              <div class="rows">
+                <div class="kv">
+                  <span>État</span>
+                  <b class="hs" class:ok={health?.status === 'ok' || health?.status === 'healthy'}>{health?.status ?? 'inconnu'}</b>
+                </div>
+                {#if stats}
+                  <div class="kv"><span>Titres</span><b>{formatNumber(stats.tracks)}</b></div>
+                  <div class="kv"><span>Albums</span><b>{formatNumber(stats.albums)}</b></div>
+                  <div class="kv"><span>Artistes</span><b>{formatNumber(stats.artists)}</b></div>
+                  <div class="kv"><span>Zones</span><b>{formatNumber(stats.zones)}</b></div>
+                  <div class="kv"><span>Appareils</span><b>{formatNumber(stats.devices)}</b></div>
+                {/if}
+              </div>
+              {#if health?.components && Object.keys(health.components).length}
+                <div class="comps">
+                  {#each Object.entries(health.components) as [name, ok] (name)}
+                    <span class="comp" class:ok>{name}</span>
+                  {/each}
+                </div>
+              {/if}
+              <p class="hint">Les traitements de fond se suivent dans <b>Tune Health</b>.</p>
 
             {:else if s.id === 'streaming'}
               {#if !Object.keys(svcs).length}
@@ -1446,6 +1595,26 @@
   .sw input:checked + .slider::before{transform:translateX(19px)}
   .sw input:focus-visible + .slider{box-shadow:0 0 0 3px var(--v2-focus)}
 
+  .rows{display:flex; flex-direction:column; gap:1px; margin-top:12px}
+  .kv{display:flex; align-items:baseline; justify-content:space-between; gap:20px; padding:9px 10px; border-radius:8px}
+  .kv:hover{background:var(--v2-hover)}
+  .kv span{font-size:13px; color:var(--v2-txt2)}
+  .kv b{font:600 13px var(--v2-sans); color:var(--v2-txt)}
+  .kv b.mono{font-family:var(--v2-mono); font-size:12px}
+  .tierb{text-transform:uppercase; font-family:var(--v2-mono); font-size:11px; letter-spacing:.1em; color:var(--v2-txt3)}
+  .tierb.prem{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2));
+    border-radius:999px; padding:3px 11px}
+  .hs{font-family:var(--v2-mono); font-size:12px; color:var(--v2-danger)}
+  .hs.ok{color:var(--v2-acc1)}
+  .warnbox,.okbox{margin-top:14px; padding:12px 15px; border-radius:11px; font-size:12.5px; line-height:1.55}
+  .warnbox{color:var(--v2-txt2); border:1px solid var(--v2-danger-bd)}
+  .okbox{color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
+  .warnbox b,.okbox b{color:var(--v2-txt)}
+  .errline{margin-top:10px; font-size:12px; color:var(--v2-danger)}
+  .comps{display:flex; gap:6px; flex-wrap:wrap; margin-top:14px}
+  .comp{font:10px var(--v2-mono); padding:3px 9px; border-radius:999px;
+    color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
+  .comp.ok{color:var(--v2-acc1); border-color:var(--v2-acc2)}
   .svclist{display:flex; flex-direction:column; gap:2px; margin-top:12px}
   .svc{display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:12px 10px; border-radius:10px}
   .svc:hover{background:var(--v2-hover)}
