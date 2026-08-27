@@ -4644,6 +4644,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     justify-content: center;
     background: rgba(0, 0, 0, 0.5);
     opacity: 0;
+    /* `inset: 0` recouvre TOUTE la pochette. Invisible mais cliquable, la
+       pastille avalait l'appui et lançait la lecture au lieu d'ouvrir la fiche
+       — criant sur un album SANS pochette (p. ex. DSF), dont l'<img> est
+       masquée par `onerror` et qui n'offre qu'un aplat gris (Thibaud, #55).
+       Elle ne capte donc le pointeur qu'une fois révélée par le survol ; un
+       appui simple sur la pochette remonte alors à la carte → fiche de
+       l'album. Supprime aussi les lectures déclenchées par mégarde au toucher,
+       où il n'y a pas de survol du tout. */
+    pointer-events: none;
     transition: opacity 0.15s ease-out;
     border: none;
     cursor: pointer;
@@ -4652,6 +4661,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   .album-card-art:hover .play-overlay {
     opacity: 1;
+    pointer-events: auto;
   }
 
   .edit-overlay {
@@ -5586,7 +5596,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     color: var(--tune-text-muted);
     cursor: pointer;
     border-radius: 4px;
-    opacity: 0;
+    /* Toujours visible, discrètement — et non révélée au seul survol : sans
+       souris, l'icône était introuvable, donc l'édition d'un artiste
+       inatteignable au doigt sur tablette et téléphone (#1081). Même parti que
+       HeartButton. */
+    opacity: 0.55;
     transition: opacity 0.15s, color 0.15s;
   }
 
