@@ -22,6 +22,8 @@
   import ZonesV2 from './ZonesV2.svelte';
   import StreamingV2 from './StreamingV2.svelte';
   import CrossfeedV2 from './CrossfeedV2.svelte';
+  import EqualizerV2 from './EqualizerV2.svelte';
+  import TuneHealthV2 from './TuneHealthV2.svelte';
   import PlayerV2 from './PlayerV2.svelte';
   import AvatarMenu from './AvatarMenu.svelte';
   import { preferences } from '../../lib/stores/preferences';
@@ -78,6 +80,10 @@
         <StreamingV2 />
       {:else if $activeView === 'crossfeed'}
         <CrossfeedV2 />
+      {:else if $activeView === 'equalizer'}
+        <EqualizerV2 />
+      {:else if $activeView === 'diagnostics'}
+        <TuneHealthV2 />
       {:else}
         <div class="soon">
           <div class="badge">À venir</div>
