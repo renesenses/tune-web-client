@@ -104,8 +104,34 @@ export function suivreOuverture(
   // annoncer », jamais « en cours ».
   const ouvre = zone?.resolving === true && zone?.state !== 'playing';
 
-  if (!ouvre) return ETAT_OUVERTURE_INITIAL;
+  if (!ouvre) {
+    // Même RÉFÉRENCE que l'état initial : voir la note d'idempotence ci-dessous.
+    return precedent === ETAT_OUVERTURE_INITIAL ? precedent : ETAT_OUVERTURE_INITIAL;
+  }
 
   const depuisMs = precedent.depuisMs ?? maintenantMs;
-  return { depuisMs, visible: maintenantMs - depuisMs < PLAFOND_OUVERTURE_MS };
+  const visible = maintenantMs - depuisMs < PLAFOND_OUVERTURE_MS;
+
+  // ── IDEMPOTENCE : rendre le MÊME objet quand rien n'a changé (#2555) ──────
+  //
+  // Cette fonction est appelée depuis un `$effect` qui LIT `etatOuverture`
+  // (pour le passer en `precedent`) puis ÉCRIT le résultat. Tant qu'aucune
+  // ouverture ne court, le chemin ci-dessus rend `ETAT_OUVERTURE_INITIAL` —
+  // toujours la même référence — donc Svelte ne voit aucun changement et
+  // l'effet converge.
+  //
+  // Dès qu'une ouverture court, l'ancien code rendait un objet NEUF à chaque
+  // appel. L'effet invalidait alors sa propre dépendance et se relançait sans
+  // fin : Svelte s'en protège par `effect_update_depth_exceeded`, et cette
+  // erreur ARRÊTE son ordonnanceur de rendu. Toute l'interface cessait de se
+  // rafraîchir — l'URL changeait encore, plus rien ne s'affichait. Cinq
+  // testeurs, trois systèmes.
+  //
+  // Rendre `precedent` à l'identique referme la boucle à la source, sans rien
+  // changer au comportement observable : les deux seuls champs sont comparés.
+  if (precedent.depuisMs === depuisMs && precedent.visible === visible) {
+    return precedent;
+  }
+
+  return { depuisMs, visible };
 }
