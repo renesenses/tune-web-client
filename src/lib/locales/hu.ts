@@ -1,6 +1,7 @@
 export default {
   // App shell (bannières)
   "app.ready": "Kész",
+  "app.enrichmentRunning": "Gazdagítás folyamatban…",
   "app.syncing": "Gyűjtemény szinkronizálása…",
   "app.syncingProgress": "Gyűjtemény szinkronizálása… {count} fájl{added}",
   "app.syncingAdded": " · {count} hozzáadva",
@@ -1950,6 +1951,7 @@ export default {
   "settings.enrichArtistImagesWorking": "Képek keresése…",
   "settings.enrichArtistImagesRemaining": "{n} előadó kép nélkül",
   "settings.enrichArtistImagesDone": "Az előadói képek gazdagítása kész",
+  "settings.enrichArtistImagesResult": "{enriched} kép hozzáadva · {missing} előadó továbbra is kép nélkül",
   "settings.enrichArtistImagesNoneMissing": "Már minden előadónak van képe",
   "settings.autoEnrichPremiumNote": "A beolvasás utáni automatikus gazdagítás Premium funkció. A fenti gombokkal bárki elindíthatja kézzel. Az előadói képekhez a Discogs/Last.fm szolgál név alapján, ha egy előadónak nincs MusicBrainz-azonosítója.",
   "settings.displayedMetadataFields": "Megjelenített metaadatmezők",

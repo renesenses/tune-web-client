@@ -1,6 +1,7 @@
 export default {
   // App shell (banners)
   'app.ready': 'Ready',
+  'app.enrichmentRunning': 'Enrichment in progress…',
   'app.syncing': 'Syncing library…',
   'app.syncingProgress': 'Syncing library… {count} files{added}',
   'app.syncingAdded': ' · {count} added',
@@ -2017,6 +2018,7 @@ export default {
   "settings.enrichArtistImagesWorking": "Searching for images…",
   "settings.enrichArtistImagesRemaining": "{n} artists without an image",
   "settings.enrichArtistImagesDone": "Artist image enrichment complete",
+  "settings.enrichArtistImagesResult": "{enriched} image(s) added · {missing} artist(s) still without an image",
   "settings.enrichArtistImagesNoneMissing": "All artists already have an image",
   "settings.autoEnrichPremiumNote": "Automatic enrichment after a scan is a Premium feature. The buttons above run it manually for everyone. Artist images use Discogs/Last.fm by name when an artist has no MusicBrainz ID.",
   "settings.displayedMetadataFields": "Displayed metadata fields",
