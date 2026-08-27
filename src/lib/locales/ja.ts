@@ -391,7 +391,7 @@ export default {
   'search.hint': '検索語を入力して開始してください',
 
   // Streaming
-  'streaming.selectService': 'サイドバーからストリーミングサービスを選択してください',
+  'streaming.selectService': 'ストリーミングサービスを選択してください',
   'streaming.searchOn': '{service}で検索...',
   'streaming.myPlaylists': 'マイプレイリスト',
   'streaming.noPlaylists': 'プレイリストなし',
