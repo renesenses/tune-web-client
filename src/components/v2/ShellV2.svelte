@@ -28,6 +28,7 @@
   import DeclickV2 from './DeclickV2.svelte';
   import PluginsV2 from './PluginsV2.svelte';
   import MetadataV2 from './MetadataV2.svelte';
+  import SupportV2 from './SupportV2.svelte';
   import PlayerV2 from './PlayerV2.svelte';
   import AvatarMenu from './AvatarMenu.svelte';
   import { preferences } from '../../lib/stores/preferences';
@@ -96,6 +97,8 @@
         <PluginsV2 />
       {:else if $activeView === 'metadata'}
         <MetadataV2 />
+      {:else if $activeView === 'support'}
+        <SupportV2 />
       {:else}
         <div class="soon">
           <div class="badge">À venir</div>

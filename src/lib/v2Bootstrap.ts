@@ -22,6 +22,7 @@ import { zones, currentZoneId } from './stores/zones';
 import { albums, libraryLoading } from './stores/library';
 import { devices } from './stores/devices';
 import { loadProfiles, loadFavoriteIds, currentProfileId } from './stores/profile';
+import { loadLicense } from './stores/license';
 
 /** Zones + sélection courante. Sans zone, aucune lecture n'est possible. */
 async function loadZones(): Promise<void> {
@@ -77,5 +78,9 @@ async function loadProfile(): Promise<void> {
  *  chargement échoue isolément, pour qu'une panne de découverte réseau ne
  *  vide pas la bibliothèque. */
 export async function bootstrapV2(): Promise<void> {
-  await Promise.allSettled([loadZones(), loadAlbums(), loadDevices(), loadProfile()]);
+  // `loadLicense()` ne vit lui aussi que dans App.svelte. Sans lui, le palier
+  // reste 'free' et la CLE de licence nulle : le Support ne peut pas lister
+  // les tickets (ils sont interroges par cle), et toute fonction premium se
+  // croit indisponible.
+  await Promise.allSettled([loadZones(), loadAlbums(), loadDevices(), loadProfile(), loadLicense()]);
 }
