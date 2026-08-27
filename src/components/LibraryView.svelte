@@ -2184,7 +2184,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           </button>
         {/if}
         <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title={searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffleResults') : $tr('library.shuffleAll')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+          <!-- Ce bouton DECLENCHE une lecture ; la bascule de la barre de transport
+               ACTIVE un mode. Les deux portaient le meme glyphe de fleches croisees,
+               et un testeur a cliqué ici en croyant eteindre le mode aleatoire
+               (renesenses/tune-server-rust#2261). Le triangle de lecture accolé est
+               ce qui distingue « demarrer » de « activer » : ne pas le retirer, et
+               ne pas l'ajouter a la bascule de TransportBar.svelte. -->
+          <svg viewBox="0 0 36 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="16" aria-hidden="true"><polygon class="shuffle-all-play" points="1 5 1 19 10 12" fill="currentColor" stroke="none"/><g transform="translate(13,0)"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></g></svg>
           {shuffleAllLoading ? $tr('common.loading') : (searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffle') : $tr('library.shuffleAll'))}
         </button>
         <button class="add-content-btn" onclick={() => (showImportWizard = true)} title={$tr('library.addContent')}>
