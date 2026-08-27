@@ -229,7 +229,9 @@
         {#each BANDS as f, i (f)}
           <div class="band">
             <span class="g">{curve[i] > 0 ? '+' : ''}{(curve[i] ?? 0).toFixed(1)}</span>
-            <input class="v" type="range" orient="vertical" min={MIN_GAIN} max={MAX_GAIN} step="0.5"
+            <!-- Verticalite par CSS (`writing-mode`) : l'attribut `orient` est un
+                 heritage Firefox, absent des types et sans effet ailleurs. -->
+            <input class="v" type="range" min={MIN_GAIN} max={MAX_GAIN} step="0.5"
               value={curve[i] ?? 0} disabled={!enabled}
               oninput={(e) => setGain(i, Number((e.currentTarget as HTMLInputElement).value))}
               aria-label={`${freqLabel(f)} Hz`} />

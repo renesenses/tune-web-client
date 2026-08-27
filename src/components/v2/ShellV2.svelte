@@ -24,6 +24,10 @@
   import CrossfeedV2 from './CrossfeedV2.svelte';
   import EqualizerV2 from './EqualizerV2.svelte';
   import TuneHealthV2 from './TuneHealthV2.svelte';
+  import ConverterV2 from './ConverterV2.svelte';
+  import DeclickV2 from './DeclickV2.svelte';
+  import PluginsV2 from './PluginsV2.svelte';
+  import MetadataV2 from './MetadataV2.svelte';
   import PlayerV2 from './PlayerV2.svelte';
   import AvatarMenu from './AvatarMenu.svelte';
   import { preferences } from '../../lib/stores/preferences';
@@ -35,7 +39,7 @@
     home: 'Accueil', radios: 'Radio', playlists: 'Playlists', search: 'Recherche',
     podcasts: 'Podcasts', streaming: 'Streaming', queue: "File d'attente", favorites: 'Favoris',
     zonemanager: 'Zones', equalizer: 'Égaliseur', crossfeed: 'Crossfeed', converter: 'Convertisseur',
-    declick: 'Déclic', metadata: 'Métadonnées', plugins: 'Extensions',
+    declick: 'Dé-ploc', metadata: 'Métadonnées', plugins: 'Extensions',
     diagnostics: 'Tune Health', settings: 'Réglages', support: 'Support', genres: 'Genres',
   };
   const label = $derived(LABELS[$activeView] ?? $activeView);
@@ -84,6 +88,14 @@
         <EqualizerV2 />
       {:else if $activeView === 'diagnostics'}
         <TuneHealthV2 />
+      {:else if $activeView === 'converter'}
+        <ConverterV2 />
+      {:else if $activeView === 'declick'}
+        <DeclickV2 />
+      {:else if $activeView === 'plugins'}
+        <PluginsV2 />
+      {:else if $activeView === 'metadata'}
+        <MetadataV2 />
       {:else}
         <div class="soon">
           <div class="badge">À venir</div>
