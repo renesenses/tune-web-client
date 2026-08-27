@@ -755,6 +755,93 @@
     licBusy = false;
   }
 
+  // ── Bibliotheque : dossiers, analyse, planification ───────────────────
+  let musicDirs = $state<string[]>([]);
+  let newDir = $state('');
+  let dirBusy = $state(false);
+  let scanning = $state(false);
+  let scanReport = $state<any | null>(null);
+  let qualitySplit = $state(true);
+  let schedOn = $state(false);
+  let schedTime = $state('03:00');
+  let schedBusy = $state(false);
+  let libErr = $state<string | null>(null);
+
+  async function refreshLibrary() {
+    try {
+      const c: any = await api.getConfig();
+      musicDirs = Array.isArray(c?.music_dirs) ? c.music_dirs : [];
+      // Absent vaut VRAI cote serveur, et les valeurs peuvent arriver en
+      // chaine ('false') aussi bien qu'en booleen.
+      qualitySplit = !(c?.quality_split === false || c?.quality_split === 'false'
+        || c?.quality_split === 0 || c?.quality_split === '0');
+    } catch { libErr = 'Configuration indisponible.'; }
+    try {
+      const sch: any = await api.getScanSchedule();
+      schedOn = !!sch?.enabled; schedTime = sch?.time ?? '03:00';
+    } catch { /* route absente sur un serveur anterieur */ }
+  }
+  $effect(() => { refreshLibrary(); });
+
+  // L'etat d'analyse est sonde UNIQUEMENT pendant une analyse.
+  $effect(() => {
+    api.getScanStatus().then((s) => { scanning = !!s?.scanning; }).catch(() => {});
+  });
+  $effect(() => {
+    if (!scanning) return;
+    const h = setInterval(async () => {
+      try {
+        const s = await api.getScanStatus();
+        scanning = !!s?.scanning;
+        if (!scanning) { scanReport = await api.getScanReport().catch(() => null); await refreshLibrary(); }
+      } catch { /* ignore */ }
+    }, 2500);
+    return () => clearInterval(h);
+  });
+
+  async function addDir() {
+    const path = newDir.trim();
+    if (!path || dirBusy) return;
+    dirBusy = true; libErr = null;
+    try {
+      const r = await api.addMusicDir(path);
+      musicDirs = r?.music_dirs ?? musicDirs;
+      newDir = '';
+    } catch (e: any) { libErr = e?.message ?? "Dossier refusé — vérifiez le chemin et les droits."; }
+    dirBusy = false;
+  }
+  /** Retirer un dossier ne SUPPRIME aucun fichier : on le dit dans l'ecran,
+   *  sinon le bouton fait peur a juste titre. */
+  async function removeDir(path: string) {
+    if (dirBusy) return;
+    dirBusy = true; libErr = null;
+    try {
+      const r = await api.removeMusicDir(path);
+      musicDirs = r?.music_dirs ?? musicDirs.filter((d) => d !== path);
+    } catch { libErr = 'Retrait impossible.'; }
+    dirBusy = false;
+  }
+  async function scan(full: boolean) {
+    try { await api.triggerScan(undefined, full); scanning = true; scanReport = null; }
+    catch { libErr = 'Analyse impossible à lancer.'; }
+  }
+  async function stopScan() {
+    try { await api.cancelScan(); scanning = false; } catch { /* deja finie */ }
+  }
+  async function setQualitySplit(v: boolean) {
+    const before = qualitySplit; qualitySplit = v;
+    try { await api.updateConfig({ quality_split: v }); notifications.success('Enregistré — une analyse complète est nécessaire.'); }
+    catch { qualitySplit = before; libErr = 'Enregistrement impossible.'; }
+  }
+  async function saveSchedule() {
+    schedBusy = true;
+    try {
+      const r: any = await api.setScanSchedule(schedTime, schedOn);
+      schedOn = !!r?.enabled; schedTime = r?.time ?? schedTime;
+    } catch { libErr = 'Planification non enregistrée.'; }
+    schedBusy = false;
+  }
+
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
@@ -930,6 +1017,102 @@
                     <span class="slider"></span>
                   </label>
                 </div>
+              {/if}
+
+            {:else if s.id === 'library'}
+              <div class="row">
+                <div class="lbl">
+                  <span>Analyser la bibliothèque</span>
+                  <span class="hint">
+                    L'analyse rapide ne relit que ce qui a changé. L'analyse complète relit
+                    tout — nécessaire après un changement d'option de découpage.
+                  </span>
+                </div>
+                <div class="inline">
+                  {#if scanning}
+                    <span class="badge up">analyse en cours</span>
+                    <button class="lnk danger" onclick={stopScan}>Arrêter</button>
+                  {:else}
+                    <button class="lnk" onclick={() => scan(false)}>Analyse rapide</button>
+                    <button class="lnk" onclick={() => scan(true)}>Analyse complète</button>
+                  {/if}
+                </div>
+              </div>
+              {#if scanReport}
+                <div class="okbox">
+                  Dernière passe — {formatNumber(scanReport.inserted ?? 0)} ajoutés,
+                  {formatNumber(scanReport.updated ?? 0)} mis à jour,
+                  {formatNumber(scanReport.skipped ?? 0)} ignorés.
+                  {#if scanReport.failed_paths?.length}
+                    <b>{scanReport.failed_paths.length} chemin(s) en échec.</b>
+                  {/if}
+                </div>
+              {/if}
+              {#if libErr}<div class="errline">{libErr}</div>{/if}
+
+            {:else if s.id === 'musicDirs'}
+              <div class="row">
+                <div class="lbl">
+                  <span>Ajouter un dossier</span>
+                  <span class="hint">Chemin absolu vu par le SERVEUR, pas par ce navigateur.</span>
+                </div>
+                <div class="inline">
+                  <input class="txt wide" type="text" placeholder="/Volumes/Musique" bind:value={newDir}
+                    disabled={dirBusy} onkeydown={(e) => { if (e.key === 'Enter') addDir(); }} />
+                  <button class="lnk" disabled={dirBusy || !newDir.trim()} onclick={addDir}>Ajouter</button>
+                </div>
+              </div>
+              {#if musicDirs.length}
+                <div class="dirs">
+                  {#each musicDirs as d (d)}
+                    <div class="dir">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                      <span class="dp">{d}</span>
+                      <button class="del" disabled={dirBusy} onclick={() => removeDir(d)} aria-label="Retirer ce dossier">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                      </button>
+                    </div>
+                  {/each}
+                </div>
+                <p class="hint">Retirer un dossier ne supprime <b>aucun fichier</b> : il sort simplement de la bibliothèque.</p>
+              {:else}
+                <p class="hint">Aucun dossier déclaré — la bibliothèque restera vide.</p>
+              {/if}
+              {#if libErr}<div class="errline">{libErr}</div>{/if}
+
+            {:else if s.id === 'scanOpts'}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.qualitySplit' as any)}</span>
+                  <span class="hint">{$t('settings.qualitySplitHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={qualitySplit}
+                    onchange={(e) => setQualitySplit((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <p class="hint">Ce réglage ne s'applique qu'après une <b>analyse complète</b>.</p>
+
+            {:else if s.id === 'scanSched'}
+              <div class="row">
+                <div class="lbl">
+                  <span>Analyse automatique</span>
+                  <span class="hint">Une passe rapide, chaque jour, à l'heure choisie.</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" bind:checked={schedOn} onchange={saveSchedule} disabled={schedBusy} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if schedOn}
+                <div class="row">
+                  <div class="lbl"><span>Heure</span></div>
+                  <input class="txt time" type="time" bind:value={schedTime} onchange={saveSchedule} disabled={schedBusy} />
+                </div>
+                <p class="hint">Prochaine analyse à <b>{schedTime}</b>.</p>
+              {:else}
+                <p class="hint">Aucune analyse automatique n'est programmée.</p>
               {/if}
 
             {:else if s.id === 'about'}
@@ -1595,6 +1778,13 @@
   .sw input:checked + .slider::before{transform:translateX(19px)}
   .sw input:focus-visible + .slider{box-shadow:0 0 0 3px var(--v2-focus)}
 
+  .txt.wide{width:320px}
+  .txt.time{width:130px; font-family:var(--v2-mono)}
+  .dirs{display:flex; flex-direction:column; gap:1px; margin-top:12px}
+  .dir{display:grid; grid-template-columns:20px 1fr auto; align-items:center; gap:12px; padding:8px 10px; border-radius:8px}
+  .dir:hover{background:var(--v2-hover)}
+  .dir svg{width:16px; height:16px; color:var(--v2-txt3)}
+  .dp{font:12.5px var(--v2-mono); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .rows{display:flex; flex-direction:column; gap:1px; margin-top:12px}
   .kv{display:flex; align-items:baseline; justify-content:space-between; gap:20px; padding:9px 10px; border-radius:8px}
   .kv:hover{background:var(--v2-hover)}
