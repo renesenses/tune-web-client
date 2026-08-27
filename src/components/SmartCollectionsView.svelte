@@ -123,7 +123,30 @@
     }
   }
 
+  /**
+   * Retour à la liste des collections, position de défilement comprise.
+   *
+   * Le bouton se contentait de `selected = null` : la liste revenait tout en
+   * haut (0c1f144, reperdu par la fusion f14553f).
+   */
+  function backToList() {
+    selected = null;
+    clearShortcutTarget();
+    restoreDetailScroll('smartcollections-liste', scrollContainer());
+  }
+
   async function openCollection(col: SmartCollection) {
+    // Mémoriser la position de la LISTE — mais seulement si c'est bien elle
+    // qui est à l'écran. `openCollection` a quatre appelants et un seul part
+    // d'une liste : la restauration d'un raccourci, le rafraîchissement après
+    // édition des règles et la réentrée #1215 partent tous d'une fiche déjà
+    // ouverte, où la position lue (~0) écraserait celle qu'il fallait garder.
+    // C'est exactement le piège relevé par la PR #615 sur `selectArtistDetail`.
+    //
+    // Clé DISTINCTE de `smartcollections-back`, qui mémorise, lui, le
+    // défilement de la grille d'une collection ouverte avant de partir vers la
+    // fiche album de la Bibliothèque (#1215) : deux trajets, deux positions.
+    if (!selected) saveDetailScroll('smartcollections-liste', scrollContainer());
     selected = col;
     setShortcutTarget({
       key: `smartcollections:${col.id}`,
@@ -245,7 +268,7 @@
     <div class="detail">
       <div class="detail-sticky">
         <div class="detail-head">
-          <button class="back" onclick={() => { selected = null; clearShortcutTarget(); }}>← {$t('common.back')}</button>
+          <button class="back" onclick={backToList}>← {$t('common.back')}</button>
           <h2 style:color={selected.color}>{selected.name}</h2>
           <button class="edit-btn" onclick={() => openEditor(selected!)}>{$t('smartCollection.editRules')}</button>
         </div>

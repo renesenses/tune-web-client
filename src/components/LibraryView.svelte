@@ -1467,7 +1467,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       ]);
       selectedAlbum.set(full);
       albumTracks.set(result);
-      window.history.pushState({ view: 'library', albumId: album.id, tab: $libraryTab }, '', '#library');
+      // Pas de `pushState` ici : l'abonnement `selectedAlbum` d'App.svelte en a
+      // DÉJÀ empilé une, et il en est la seule source de vérité. Empiler la
+      // sienne en plus déposait deux entrées jumelles pour une seule
+      // navigation, si bien que le premier appui sur « Précédent » retombait
+      // sur la jumelle — qui porte encore `albumId`, donc que le gestionnaire
+      // `popstate` laisse en fiche. L'utilisateur voyait un appui sans effet et
+      // devait appuyer deux fois (5c420af, reperdu par la fusion f14553f).
+      // Cette entrée-là omettait de surcroît `artistId`, que l'abonnement
+      // reporte, lui — voir le cas « album ouvert depuis une fiche artiste ».
     } catch (e) {
       console.error('Load album tracks error:', e);
       selectedAlbum.set(album);
@@ -1532,7 +1540,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       if ($libraryTab === 'genres' && scrollEl) savedGenreScrollTop = scrollEl.scrollTop;
     }
     selectedArtist.set(artist);
-    window.history.pushState({ view: 'library', artistId: artist.id, tab: $libraryTab }, '', '#library');
+    // Même raison qu'en fiche album : l'abonnement `selectedArtist` d'App.svelte
+    // est la seule source de vérité de l'historique. Un second `pushState` ici
+    // rendait le premier appui sur « Précédent » sans effet.
     selectedAlbum.set(null);
     artistMetadata = null;
     artistMetadataError = false;
