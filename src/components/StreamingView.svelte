@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingAlbumOrigin, streamingServices as streamingServicesStore, streamingGenreBreadcrumb } from '../lib/stores/streaming';
+  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, pendingStreamingPlaylist, streamingAlbumOrigin, streamingServices as streamingServicesStore, streamingGenreBreadcrumb } from '../lib/stores/streaming';
   import { tip } from '../lib/tooltip';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
@@ -343,6 +343,16 @@
     if (artist && service) {
       pendingStreamingArtist.set(null);
       selectArtist(artist);
+    }
+  });
+
+  // Une playlist de service mise en favori s'ouvre depuis l'écran Favoris par
+  // ce même chemin : elle n'a pas d'identifiant local à passer (#2370).
+  $effect(() => {
+    const pl = $pendingStreamingPlaylist;
+    if (pl && service) {
+      pendingStreamingPlaylist.set(null);
+      selectStreamingPlaylist(pl);
     }
   });
 
@@ -1094,10 +1104,29 @@
           <p class="detail-artist">{selectedStreamingPlaylist.description}</p>
         {/if}
         <p class="detail-meta">{selectedStreamingPlaylist.track_count} {$tr('home.tracks').toLowerCase()}</p>
-        <button class="play-all-btn" onclick={() => selectedStreamingPlaylist && playStreamingPlaylist(selectedStreamingPlaylist)}>
-          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
-          {$tr('common.play')}
-        </button>
+        <div class="album-detail-actions">
+          <button class="play-all-btn" onclick={() => selectedStreamingPlaylist && playStreamingPlaylist(selectedStreamingPlaylist)}>
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
+            {$tr('common.play')}
+          </button>
+          <!-- Didier (#2370, fil 1541), suite exacte du #1478 : l'album Qobuz a
+               recu son coeur en 0.9.88, la playlist Qobuz jamais. Meme mecanique,
+               meme emplacement — sur la fiche, pas sur la vignette.
+
+               Le favori vit dans `streaming_favorites` (cote profil). La recopie
+               vers Qobuz est au mieux et ECHOUERA ici : `favorite_key` refuse le
+               type `playlists`, faute d'appel de souscription etabli contre leur
+               API (#2474). Ce refus n'eteint pas le coeur de Tune — c'est la
+               regle du chemin unique, et c'est ce qui rend ce bouton utile des
+               aujourd'hui. -->
+          {#if selectedStreamingPlaylist.source_id}
+            <HeartButton
+              streaming={{ itemType: 'playlist', service, serviceId: String(selectedStreamingPlaylist.source_id),
+                           title: selectedStreamingPlaylist.name,
+                           coverUrl: selectedStreamingPlaylist.cover_path ?? undefined }}
+              size={20} />
+          {/if}
+        </div>
       </div>
     </div>
     {#if loading}
