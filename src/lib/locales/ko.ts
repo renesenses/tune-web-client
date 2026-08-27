@@ -1752,7 +1752,7 @@ export default {
   "settings.playing": "재생 중",
   "settings.waiting": "대기 중",
   "settings.perZoneSettings": "존별 설정",
-  "settings.perZoneHint": "각 재생 존의 DSD 모드, 고정 볼륨 및 갭리스.",
+  "settings.perZoneHint": "각 재생 존의 DSD 모드, 최대 샘플레이트 및 고정 볼륨.",
   "settings.dsdNative": "네이티브 (패스스루)",
   "settings.dsdPcm": "PCM (변환)",
   "settings.maxSampleRate": "최대 샘플레이트",

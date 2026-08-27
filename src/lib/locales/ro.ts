@@ -1787,7 +1787,7 @@ export default {
   "settings.playing": "Se redă",
   "settings.waiting": "Se așteaptă",
   "settings.perZoneSettings": "Setări pe zonă",
-  "settings.perZoneHint": "Mod DSD, volum fix și fără pauze pentru fiecare zonă de redare.",
+  "settings.perZoneHint": "Mod DSD, frecvență maximă și volum fix pentru fiecare zonă de redare.",
   "settings.dsdNative": "Nativ (passthrough)",
   "settings.dsdPcm": "PCM (conversie)",
   "settings.maxSampleRate": "Frecvență max.",

@@ -2032,7 +2032,7 @@ export default {
   "settings.playing": "En lecture",
   "settings.waiting": "En attente",
   "settings.perZoneSettings": "Réglages par zone",
-  "settings.perZoneHint": "Mode DSD, volume fixe et gapless pour chaque zone de lecture.",
+  "settings.perZoneHint": "Mode DSD, fréquence maximale et volume fixe pour chaque zone de lecture.",
   "settings.zoneGroupLocal": "Sorties locales",
   "settings.zoneGroupNetwork": "Réseau",
   "settings.zoneAdvanced": "Avancé · renderer",

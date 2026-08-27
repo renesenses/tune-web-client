@@ -1775,7 +1775,7 @@ export default {
   "settings.playing": "再生中",
   "settings.waiting": "待機中",
   "settings.perZoneSettings": "ゾーンごとの設定",
-  "settings.perZoneHint": "各再生ゾーンの DSD モード、固定音量、ギャップレス。",
+  "settings.perZoneHint": "各再生ゾーンの DSD モード、最大サンプルレート、固定音量。",
   "settings.dsdNative": "ネイティブ（パススルー）",
   "settings.maxSampleRate": "最大サンプルレート",
   "settings.lyricsOffset": "歌詞の遅延",

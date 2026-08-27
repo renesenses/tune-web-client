@@ -1777,7 +1777,7 @@ export default {
   "settings.playing": "播放中",
   "settings.waiting": "等待中",
   "settings.perZoneSettings": "每区域设置",
-  "settings.perZoneHint": "为每个播放区域设置 DSD 模式、固定音量和无缝播放。",
+  "settings.perZoneHint": "为每个播放区域设置 DSD 模式、最大采样率和固定音量。",
   "settings.dsdNative": "原生（passthrough）",
   "settings.dsdPcm": "PCM（转换）",
   "settings.maxSampleRate": "最大采样率",
