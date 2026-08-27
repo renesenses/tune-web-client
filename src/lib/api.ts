@@ -2165,6 +2165,15 @@ export function cancelScan() {
   return fetchVoid(`${BASE}/system/scan/cancel`, { method: 'POST' });
 }
 
+/** Instantané des tâches de fond en cours (enrichissements, pochettes, images
+ *  d'artistes…). Le direct arrive par l'événement WS `system.background_tasks` ;
+ *  cet appel sert au chargement, quand une passe tourne déjà (#2227). */
+export function getBackgroundTasks() {
+  return fetchJSON<{ tasks: import('./tachesDeFond').TacheDeFond[] }>(
+    `${BASE}/system/background-tasks`
+  );
+}
+
 export function getBackups() {
   return fetchJSON<import('./types').BackupInfo[]>(`${BASE}/system/backups`);
 }
