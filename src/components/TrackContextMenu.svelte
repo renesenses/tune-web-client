@@ -42,11 +42,18 @@
     onClose();
     fn();
   }
+
+  // Le fond est rendu dans la ligne de piste, dont le clic lance la lecture.
+  // Fermer le menu doit donc consommer l'événement exactement comme ses items.
+  function dismiss(e: MouseEvent) {
+    e.stopPropagation();
+    onClose();
+  }
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="track-menu-backdrop" onclick={onClose}></div>
+<div class="track-menu-backdrop" onclick={dismiss}></div>
 <div class="track-menu">
   <button class="track-menu-item" onclick={(e) => run(onPlay, e)}>
     <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>

@@ -391,7 +391,7 @@ export default {
   'search.hint': 'Digita un termine di ricerca per iniziare',
 
   // Streaming
-  'streaming.selectService': 'Seleziona un servizio di streaming dalla barra laterale',
+  'streaming.selectService': 'Seleziona un servizio di streaming',
   'streaming.searchOn': 'Ricerca su {service}...',
   'streaming.myPlaylists': 'Le mie playlist',
   'streaming.noPlaylists': 'Nessuna playlist',
@@ -1524,7 +1524,7 @@ export default {
   "library.noStreamingAlbumsHint": "Nessun album trovato sui servizi di streaming connessi.",
   "library.shuffleResults": "Riproduci i risultati in casuale",
   "library.shuffleAll": "Riproduci tutto in casuale",
-  "library.shuffle": "Casuale",
+  "library.shuffle": "Riproduci in casuale",
   "library.scanProgress": "{scanned} file analizzati, {added} aggiunti",
   "library.stopScan": "Interrompi la scansione",
   "library.duplicates": "Duplicati",
@@ -1777,7 +1777,7 @@ export default {
   "settings.playing": "In riproduzione",
   "settings.waiting": "In attesa",
   "settings.perZoneSettings": "Impostazioni per zona",
-  "settings.perZoneHint": "Modalità DSD, volume fisso e gapless per ogni zona di riproduzione.",
+  "settings.perZoneHint": "Modalità DSD, frequenza massima e volume fisso per ogni zona di riproduzione.",
   "settings.dsdNative": "Nativo (passthrough)",
   "settings.dsdPcm": "PCM (conversione)",
   "settings.maxSampleRate": "Frequenza max",

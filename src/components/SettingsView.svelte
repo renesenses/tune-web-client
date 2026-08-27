@@ -304,16 +304,23 @@ function setSettingsLevel(level: SettingsLevel) {
    *
    * On ne remet PAS le bouton à son état initial ensuite : la machine
    * s'arrête, et proposer de recommencer donnerait à croire que ça n'a pas
-   * marché. L'erreur du `catch` est ATTENDUE — le serveur meurt avant de
-   * répondre.
+   * marché. Une coupure réseau est attendue — le serveur peut mourir avant de
+   * répondre. Une réponse HTTP d'erreur, elle, prouve que la machine n'a pas
+   * accepté l'ordre : le bouton doit redevenir utilisable et le dire.
    */
   async function eteindreLaMachine() {
     if (!(await dialogs.confirm(get(t)('diagnostics.confirmShutdown' as any), { danger: true }))) return;
     extinctionEnCours = true;
     try {
       await api.applianceShutdown();
-    } catch {
-      /* attendu : la machine s'éteint, la réponse peut ne jamais revenir */
+    } catch (e) {
+      const msg = errText(e);
+      if (msg !== null) {
+        extinctionEnCours = false;
+        notifications.error(msg);
+      }
+      // `null` désigne la coupure de transport générique du navigateur : le
+      // serveur a pu disparaître pendant l'extinction, comportement attendu.
     }
   }
 
@@ -5080,7 +5087,22 @@ function setSettingsLevel(level: SettingsLevel) {
       </div>
     </section>
 
-    <!-- Zone audio settings (DSD mode, gapless, fixed volume) -->
+    <!-- Réglages audio par zone : mode DSD, décalage des paroles, fréquence
+         maximale, volume fixe (+ le volet « Avancé » des rendus DLNA/OpenHome).
+         Ce commentaire annonçait « gapless », et l'intitulé affiché sous le
+         titre le répétait dans les onze langues — alors qu'aucun contrôle de
+         gapless n'a jamais existé ici (#2260). Le champ `gapless_enabled` EST
+         géré par le serveur, mais il ne vaut pas la même chose partout : la
+         sortie ne l'honore que si `supports_internal_gapless()` rend vrai —
+         DLNA, BluOS, pont, OpenHome avec service `playlist`, OAAT et la sortie
+         locale PARTAGÉE. Il est inerte sur Chromecast, SlimProto,
+         Squeezebox/LMS et sur une sortie locale en mode EXCLUSIF (ASIO /
+         WASAPI exclusif), où le poller n'arme jamais l'enchaînement. Une case
+         « Gapless » indifférenciée serait donc un nouveau réglage muet sur ces
+         zones-là — le défaut voisin de #2154. Tant que la capacité réelle
+         n'est pas exposée par zone de façon fiable (`output_capabilities` vaut
+         `null` dès que la sortie n'est pas ouverte), on ne promet pas.
+         Gardé par src/lib/__tests__/perZoneGaplessPromise.i18n.test.ts. -->
     {#if $zones.length > 0}
       <section class="settings-section" class:lv-hidden={!lvAny('services.perZoneLyricsOffset', 'services.perZoneFixedVolume', 'services.perZoneDsdMode', 'services.perZoneMaxSampleRate', 'services.zoneAdvanced')}>
         <h3>{$t('settings.perZoneSettings')}</h3>
