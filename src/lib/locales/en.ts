@@ -1872,6 +1872,7 @@ export default {
   "settings.scanAlreadyRunning": "Scan already running",
   "settings.scanError": "Scan error",
   "settings.scanCompleted": "Scan complete: {scanned} files, {added} added, {updated} updated, {removed} removed",
+  "settings.scanCompletedNoRemoved": "Scan complete: {scanned} files, {added} added, {updated} updated",
   "settings.folderPlaylists": "Folders → playlists",
   "settings.folderPlaylistsHelp": "During a scan, a folder whose tracks span several albums (hand-made compilation) becomes a local playlist with the same name, re-synced on every scan.",
   "settings.importPlaylistFiles": "Import .m3u and .pls files",

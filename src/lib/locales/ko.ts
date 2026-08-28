@@ -1598,6 +1598,7 @@ export default {
   "settings.scanAlreadyRunning": "스캔이 이미 실행 중",
   "settings.scanError": "스캔 오류",
   "settings.scanCompleted": "스캔 완료: {scanned}개 파일, {added}개 추가됨, {updated}개 업데이트됨, {removed}개 제거됨",
+  "settings.scanCompletedNoRemoved": "스캔 완료: {scanned}개 파일, {added}개 추가됨, {updated}개 업데이트됨",
   "settings.folderPlaylists": "폴더 → 재생목록",
   "settings.folderPlaylistsHelp": "스캔 시 여러 앨범의 곡이 섞인 폴더(직접 만든 컴필레이션)는 같은 이름의 로컬 재생목록이 되며, 스캔할 때마다 다시 동기화됩니다.",
   "settings.importPlaylistFiles": "M3U 및 PLS 파일 가져오기",

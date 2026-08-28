@@ -1805,6 +1805,7 @@ export default {
   "settings.scanAlreadyRunning": "A beolvasás már fut",
   "settings.scanError": "Beolvasási hiba",
   "settings.scanCompleted": "A beolvasás kész: {scanned} fájl, {added} hozzáadva, {updated} frissítve, {removed} eltávolítva",
+  "settings.scanCompletedNoRemoved": "A beolvasás kész: {scanned} fájl, {added} hozzáadva, {updated} frissítve",
   "settings.folderPlaylists": "Mappák → lejátszási listák",
   "settings.folderPlaylistsHelp": "Beolvasáskor az a mappa, amelynek számai több albumhoz tartoznak (kézzel készített válogatás), azonos nevű helyi lejátszási listává válik, és minden beolvasáskor újraszinkronizálódik.",
   "settings.importPlaylistFiles": ".m3u és .pls fájlok importálása",

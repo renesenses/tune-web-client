@@ -1576,6 +1576,7 @@ export default {
   "settings.scanAlreadyRunning": "Skanning pågår redan",
   "settings.scanError": "Skanningsfel",
   "settings.scanCompleted": "Skanning klar: {scanned} filer, {added} tillagda, {updated} uppdaterade, {removed} borttagna",
+  "settings.scanCompletedNoRemoved": "Skanning klar: {scanned} filer, {added} tillagda, {updated} uppdaterade",
   "settings.folderPlaylists": "Mappar → spellistor",
   "settings.folderPlaylistsHelp": "Under en skanning blir en mapp vars spår sträcker sig över flera album (handgjord samling) en lokal spellista med samma namn, omsynkad vid varje skanning.",
   "settings.importPlaylistFiles": "Importera .m3u- och .pls-filer",

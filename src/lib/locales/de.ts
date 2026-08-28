@@ -1623,6 +1623,7 @@ export default {
   "settings.scanAlreadyRunning": "Scan läuft bereits",
   "settings.scanError": "Scan-Fehler",
   "settings.scanCompleted": "Scan abgeschlossen: {scanned} Dateien, {added} hinzugefügt, {updated} aktualisiert, {removed} entfernt",
+  "settings.scanCompletedNoRemoved": "Scan abgeschlossen: {scanned} Dateien, {added} hinzugefügt, {updated} aktualisiert",
   "settings.folderPlaylists": "Ordner → Playlists",
   "settings.folderPlaylistsHelp": "Beim Scan wird ein Ordner, dessen Titel aus mehreren Alben stammen (eigene Zusammenstellung), zu einer gleichnamigen lokalen Playlist, die bei jedem Scan aktualisiert wird.",
   "settings.importPlaylistFiles": "M3U- und PLS-Dateien importieren",
