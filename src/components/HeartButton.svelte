@@ -14,10 +14,16 @@
   } from '../lib/stores/profile';
   import * as api from '../lib/api';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../lib/streamingFavorites';
+  import type { StreamingItemType } from '../lib/streamingFavorites';
 
-  /** A streaming item (Qobuz/Tidal/…) to favorite, instead of a local id. */
+  /** A streaming item (Qobuz/Tidal/…) to favorite, instead of a local id.
+   *
+   *  `playlist` : #2370 (Didier, fil 1541). ⚠️ à ne pas confondre avec la prop
+   *  `playlistId` plus bas, qui désigne une playlist LOCALE (`playlists.id`).
+   *  Une playlist de service n'a pas d'identifiant chez nous : elle est
+   *  désignée par `service` + `serviceId`, comme un album Qobuz. */
   interface StreamingItem {
-    itemType: 'track' | 'album' | 'artist';
+    itemType: StreamingItemType;
     service: string;
     serviceId: string;
     title?: string;

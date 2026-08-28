@@ -9,6 +9,7 @@
   import { tuneWS } from '../lib/websocket';
   import { notifications } from '../lib/stores/notifications';
   import type { BrowseRootEntry, DiscoveredDevice } from '../lib/types';
+  import { deviceHasBoundZone, deviceZoneActionKey, deviceZoneSuccessKey, deviceZoneTargetId } from '../lib/hiddenZoneRecovery';
 
   let step = $state(1);
   const totalSteps = 6;
@@ -210,9 +211,13 @@
 
   async function createZoneFromDevice(device: DiscoveredDevice) {
     try {
-      const zone = await api.createZone(device.name, device.type, device.id);
+      const zone = await api.createZone(device.name, device.type, deviceZoneTargetId(device));
       if (zone.id !== null) currentZoneId.set(zone.id);
-      notifications.success(get(t)('onboarding.zoneCreated').replace('{name}', device.name));
+      notifications.success(
+        device.zone_hidden
+          ? get(t)(deviceZoneSuccessKey(device))
+          : get(t)('onboarding.zoneCreated').replace('{name}', device.name),
+      );
     } catch (e: any) {
       notifications.error(e?.message || String(e));
     }
@@ -446,10 +451,13 @@
                 <div class="device-found-info">
                   <span class="device-found-name">{device.name}</span>
                   <span class="device-found-type">{device.type.toUpperCase()}</span>
+                  {#if device.zone_hidden}
+                    <span class="device-found-type">{$t('zone.deletedZone')}</span>
+                  {/if}
                 </div>
-                {#if !$zones.some(z => z.output_device_id === device.id)}
+                {#if !deviceHasBoundZone(device, new Set($zones.flatMap(z => z.output_device_id ? [z.output_device_id] : [])))}
                   <button class="btn-secondary btn-sm" onclick={() => createZoneFromDevice(device)}>
-                    {$t('onboarding.createZone')}
+                    {$t(deviceZoneActionKey(device))}
                   </button>
                 {:else}
                   <span class="badge auth">{$t('onboarding.zoneCreatedBadge')}</span>

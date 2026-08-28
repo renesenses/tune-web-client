@@ -64,11 +64,36 @@ describe('playFromHere', () => {
   });
 
   it('liste 100 % distante : ne retourne plus en silence', async () => {
-    await playFromHere([flux('x'), flux('y')], 0);
+    await playFromHere([flux('x'), flux('y'), flux('z')], 0);
     expect(playAndSync).toHaveBeenCalledTimes(1);
     expect(playAndSync.mock.calls[0][1]).toMatchObject({ source_id: 'x' });
     expect(addToQueue).toHaveBeenCalledTimes(1);
+    expect(addToQueue).toHaveBeenCalledWith(7, {
+      tracks: [
+        expect.objectContaining({ source: 'qobuz', source_id: 'y' }),
+        expect.objectContaining({ source: 'qobuz', source_id: 'z' }),
+      ],
+    });
     expect(erreur).not.toHaveBeenCalled();
+  });
+
+  it('favoris de service : propage la source de la liste aux pistes qui l omettent', async () => {
+    await playFromHere(
+      [
+        { id: null, source_id: 'fav-a', title: 'A' },
+        { id: null, source_id: 'fav-b', title: 'B' },
+      ],
+      0,
+      'qobuz',
+    );
+
+    expect(playAndSync).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ source: 'qobuz', source_id: 'fav-a' }),
+    );
+    expect(addToQueue).toHaveBeenCalledWith(7, {
+      tracks: [expect.objectContaining({ source: 'qobuz', source_id: 'fav-b' })],
+    });
   });
 
   it('aucune zone : on prévient au lieu de ne rien faire', async () => {
