@@ -1474,6 +1474,7 @@ export default {
   'plugins.updateAvailable': 'Mise à jour disponible',
   'plugins.version': 'v{version}',
   'plugins.allPlugins': 'Tous les plugins',
+  'plugins.categoriesTitle': 'Catégories',
   'plugins.categories.streaming': 'Streaming',
   'plugins.categories.audio': 'Audio',
   'plugins.categories.playback': 'Lecture',

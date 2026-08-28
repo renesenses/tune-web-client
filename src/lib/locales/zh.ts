@@ -1222,6 +1222,7 @@ export default {
   'plugins.updateAvailable': '有可用更新',
   'plugins.version': 'v{version}',
   'plugins.allPlugins': '所有插件',
+  'plugins.categoriesTitle': '分类',
   'plugins.categories.streaming': '流媒体',
   'plugins.categories.audio': '音频',
   'plugins.categories.playback': '播放',
