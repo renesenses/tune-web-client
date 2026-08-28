@@ -20,6 +20,7 @@
   import QueueV2 from './QueueV2.svelte';
   import FavoritesV2 from './FavoritesV2.svelte';
   import ZonesV2 from './ZonesV2.svelte';
+  import MediaServersV2 from './MediaServersV2.svelte';
   import StreamingV2 from './StreamingV2.svelte';
   import CrossfeedV2 from './CrossfeedV2.svelte';
   import EqualizerV2 from './EqualizerV2.svelte';
@@ -39,7 +40,8 @@
   const LABELS: Partial<Record<View, string>> = {
     home: 'Accueil', radios: 'Radio', playlists: 'Playlists', search: 'Recherche',
     podcasts: 'Podcasts', streaming: 'Streaming', queue: "File d'attente", favorites: 'Favoris',
-    zonemanager: 'Zones', equalizer: 'Égaliseur', crossfeed: 'Crossfeed', converter: 'Convertisseur',
+    zonemanager: 'Zones', mediaservers: 'Serveurs multimédia',
+    equalizer: 'Égaliseur', crossfeed: 'Crossfeed', converter: 'Convertisseur',
     declick: 'Dé-ploc', metadata: 'Métadonnées', plugins: 'Extensions',
     diagnostics: 'Tune Health', settings: 'Réglages', support: 'Support', genres: 'Genres',
   };
@@ -81,6 +83,8 @@
         <FavoritesV2 />
       {:else if $activeView === 'zonemanager'}
         <ZonesV2 />
+      {:else if $activeView === 'mediaservers'}
+        <MediaServersV2 />
       {:else if $activeView === 'streaming'}
         <StreamingV2 />
       {:else if $activeView === 'crossfeed'}

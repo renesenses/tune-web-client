@@ -5,7 +5,7 @@
    * Une seule barre, trois profondeurs pilotées par le niveau d'interface
    * (`preferences.settingsLevel`, partagé avec la vue Réglages) :
    *   - Essentiel  : le noyau seul (Accueil, Bibliothèque, Radio, Playlists, Recherche)
-   *   - Avancé     : + Podcasts, Streaming, File, Favoris, Zones
+   *   - Avancé     : + File, Favoris, Zones, Serveurs multimédia
    *   - Expert     : + section « Studio » (EQ, Convertisseur, Métadonnées, Extensions, Diagnostics)
    *
    * Principe de stabilité spatiale : le noyau ne bouge JAMAIS d'un niveau à
@@ -49,6 +49,11 @@
     { view: 'queue', label: "File d'attente", icon: 'M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z' },
     { view: 'favorites', label: 'Favoris', icon: 'M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z' },
     { view: 'zonemanager', label: 'Zones', icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01' },
+    // SERVEURS MULTIMEDIA en Avance (Bertrand, 28/08). Parcourir la
+    // bibliotheque d'une AUTRE machine suppose de savoir qu'il y a un reseau
+    // et autre chose dessus — ce n'est pas un geste de premier contact. Mais
+    // on y ECOUTE de la musique : ce n'est pas non plus du reglage d'expert.
+    { view: 'mediaservers', label: 'Serveurs multimédia', icon: 'M4 5h16v5H4zM4 14h16v5H4zM7.5 7.5h.01M7.5 16.5h.01' },
   ] as unknown as Item[];
   const STUDIO: Item[] = [
     { view: 'equalizer', label: 'Égaliseur', icon: 'M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3' },
