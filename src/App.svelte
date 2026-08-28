@@ -16,7 +16,8 @@
   import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
   import { connectionState, reconnectAttempts } from './lib/stores/connection';
   import { activeView, focusMode, settingsInitialTab, saveScrollPosition, getScrollPosition } from './lib/stores/navigation';
-  import { selectedAlbum, selectedArtist, libraryTab } from './lib/stores/library';
+  import { selectedAlbum, selectedArtist, albumTracks, artistAlbums, libraryTab } from './lib/stores/library';
+  import { reconcilierFiche } from './lib/reconciliationFiche';
   import { preferences, applyTheme, syncPreferencesFromServer } from './lib/stores/preferences';
   import { syncDisplayFieldsFromServer } from './lib/stores/displayFields';
   import { locale } from './lib/i18n';
@@ -701,6 +702,55 @@ import AlarmsView from './components/AlarmsView.svelte';
       }
     });
 
+    /**
+     * Rouvre la fiche que portait l'entrée d'historique atteinte.
+     *
+     * L'entrée sait QUOI rouvrir (`albumId` / `artistId`) mais pas avec quoi :
+     * la fiche album veut son album complet et ses pistes, la fiche artiste ses
+     * albums. C'est ici, et non dans `LibraryView`, parce que c'est ici que
+     * l'historique est tenu — et que le drapeau `_pushingState` doit couvrir les
+     * `set`, sans quoi chaque retour empilerait une entrée de plus.
+     */
+    let _jetonRestauration = 0;
+    async function rechargerFicheDepuisHistorique(album: number | null, artiste: number | null) {
+      const jeton = ++_jetonRestauration;
+      // L'entrée visée peut avoir changé pendant les requêtes (appuis répétés,
+      // clic ailleurs) : on ne plaque pas une fiche périmée sur l'écran courant.
+      const toujoursDActualite = (attendu: number, champ: 'albumId' | 'artistId') =>
+        jeton === _jetonRestauration && window.history.state?.[champ] === attendu;
+      try {
+        if (artiste != null) {
+          const [fiche, disques] = await Promise.all([
+            api.getArtist(artiste),
+            api.getArtistAlbums(artiste),
+          ]);
+          if (toujoursDActualite(artiste, 'artistId')) {
+            _pushingState = true;
+            selectedArtist.set(fiche);
+            artistAlbums.set(disques);
+            _pushingState = false;
+          }
+        }
+        if (album != null) {
+          const [fiche, pistes] = await Promise.all([
+            api.getAlbum(album),
+            api.getAlbumTracks(album),
+          ]);
+          if (toujoursDActualite(album, 'albumId')) {
+            _pushingState = true;
+            selectedAlbum.set(fiche);
+            albumTracks.set(pistes);
+            _pushingState = false;
+          }
+        }
+      } catch (err) {
+        // Une fiche qu'on n'arrive pas à relire laisse la grille : c'est le
+        // comportement d'avant, pas une régression.
+        console.error('history detail restore error', err);
+        _pushingState = false;
+      }
+    }
+
     window.addEventListener('popstate', (e) => {
       const ctx = e.state;
       _pushingState = true;
@@ -710,13 +760,29 @@ import AlarmsView from './components/AlarmsView.svelte';
           if (ctx.tab) libraryTab.set(ctx.tab);
         }
       }
-      // Always reconcile detail state: if the history entry has no albumId/artistId
-      // (or state is null, e.g. Safari initial entry), clear any active detail view.
-      // This fixes Safari where navigating back to the grid could leave stale state
-      // preventing subsequent album clicks from opening detail.
-      if (!ctx?.albumId) selectedAlbum.set(null);
-      if (!ctx?.artistId) selectedArtist.set(null);
+      // Réconcilier l'état de fiche avec l'entrée atteinte. Le gestionnaire se
+      // contentait de NETTOYER (`if (!ctx?.albumId) selectedAlbum.set(null)`),
+      // ce qui reste indispensable — Safari, dont l'entrée initiale a un `state`
+      // nul, gardait sinon une fiche fantôme qui bloquait les clics suivants.
+      // Mais il ne RÉTABLISSAIT jamais rien, alors que l'entrée porte un
+      // instantané fidèle de la fiche ouverte : revenir sur une entrée qui
+      // portait un album déposait sur la GRILLE, un écran par lequel
+      // l'utilisateur n'était pas passé, et le niveau de la fiche était sauté
+      // (renesenses/tune-server-rust#2252 : collection → fiche album → artiste,
+      // dont le retour doit revenir à la fiche album avant la collection).
+      const plan = reconcilierFiche(ctx, {
+        album: $selectedAlbum?.id ?? null,
+        artiste: $selectedArtist?.id ?? null,
+      });
+      if (plan.album === 'vider') selectedAlbum.set(null);
+      if (plan.artiste === 'vider') selectedArtist.set(null);
       _pushingState = false;
+      if (typeof plan.album === 'number' || typeof plan.artiste === 'number') {
+        void rechargerFicheDepuisHistorique(
+          typeof plan.album === 'number' ? plan.album : null,
+          typeof plan.artiste === 'number' ? plan.artiste : null,
+        );
+      }
     });
 
     connectionState.set('connecting');
