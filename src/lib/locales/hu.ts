@@ -3024,6 +3024,15 @@ export default {
   "settings.updateBlockedPlaying": "A frissítés elhalasztva: egy zóna épp játszik. A telepítés a szám közepén vágná el a zenét.",
   "settings.updateBlockedUnknown": "A szerver indoklás nélkül elutasította a frissítést. Nézd meg a szervernaplókat.",
   "settings.updateDockerHint": "A Tune Docker-konténerben fut: frissítsd az új képfájl lehúzásával (docker compose pull && docker compose up -d). A csatolt kötetekben lévő adataid megmaradnak.",
+  // Quel serveur ? (#2110) — distinct de « quelle zone ? ».
+  "sidebar.serverIdentityLabel": "Kiszolgáló",
+  "sidebar.serverIdentityTitle": "A gép, amelyhez ez a felület csatlakozik. Nem tévesztendő össze a jobb alsó sarokban lévő lejátszási zónával.",
+  "settings.serverIdentity": "Ez a kiszolgáló",
+  "settings.serverIdentityHint": "Ennek a gépnek a neve, amely mindig látható az oldalsávban. Adjon neki beszédes nevet, ha több Tune-kiszolgálót üzemeltet: így nem a rossz gépen indít lejátszást vagy frissítést. Alapértelmezés szerint a rendszer gépneve.",
+  "settings.serverNameLabel": "A kiszolgáló neve",
+  "settings.serverNamePlaceholder": "Például: Nappali, Iroda, Laptop",
+  "settings.serverNameSaved": "A kiszolgáló neve elmentve.",
+  "settings.updateTarget": "Célgép: {server}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

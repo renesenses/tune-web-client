@@ -1047,6 +1047,30 @@ function setSettingsLevel(level: SettingsLevel) {
     hqplayerChecking = false;
   }
 
+  // Nom de CE serveur (#2110) — « à quelle machine je parle ? », distinct de
+  // « quelle zone j'écoute ? ». Le serveur renvoie toujours une valeur : le nom
+  // choisi, ou à défaut le nom d'hôte de la machine.
+  let serverNameInput = $state('');
+  let serverNameSaving = $state(false);
+
+  async function saveServerName() {
+    const nom = serverNameInput.trim();
+    serverNameSaving = true;
+    try {
+      await api.updateConfig({ server_name: nom });
+      // Relire plutôt que supposer : vider le champ ne laisse pas une étiquette
+      // vide, le serveur retombe sur le nom d'hôte et c'est CE nom qu'il faut
+      // réafficher.
+      const frais = await api.getConfig();
+      config = frais;
+      serverNameInput = frais?.server_name ?? nom;
+      notifications.success(get(t)('settings.serverNameSaved' as any));
+    } catch (err: any) {
+      notifications.error(err?.message ?? 'Error');
+    }
+    serverNameSaving = false;
+  }
+
   // Squeezebox / Lyrion
   let squeezeboxStatus = $state<api.SqueezeboxStatus | null>(null);
   let squeezeboxLoading = $state(false);
@@ -1878,6 +1902,9 @@ function setSettingsLevel(level: SettingsLevel) {
       musicRoots = val(rBrowse, { roots: [] as any[] }).roots;
       loadSmbMounts();
       config = val(rConfig, null);
+      // Pré-remplir le champ « nom de ce serveur » avec ce que le serveur
+      // répond — nom choisi ou nom d'hôte (#2110).
+      serverNameInput = config?.server_name ?? '';
       backups = val(rBackups, []);
       // Log individual failures for debugging
       for (const [i, r] of results.entries()) {
@@ -3000,6 +3027,33 @@ function setSettingsLevel(level: SettingsLevel) {
     </section>
     {/if}
 
+    {#if settingsTab === 'system'}
+    <!--
+      Ce serveur (#2110). En tête de l'onglet Système : la première question à
+      laquelle cet écran doit répondre est « de quelle machine me parle-t-on ? »,
+      avant la version, avant la mise à jour, avant la base.
+    -->
+    <section class="settings-section">
+      <h3>{$t('settings.serverIdentity')}</h3>
+      <p class="diag-hint">{$t('settings.serverIdentityHint')}</p>
+      <div class="squeezebox-host-row">
+        <input
+          type="text"
+          class="auth-input"
+          aria-label={$t('settings.serverNameLabel')}
+          placeholder={$t('settings.serverNamePlaceholder')}
+          bind:value={serverNameInput}
+          disabled={serverNameSaving}
+          onkeydown={(e) => { if (e.key === 'Enter') saveServerName(); }}
+          style="max-width: 260px;"
+        />
+        <button class="scan-btn small" onclick={saveServerName} disabled={serverNameSaving}>
+          {serverNameSaving ? $t('settings.squeezeboxSaving' as any) : $t('common.save' as any)}
+        </button>
+      </div>
+    </section>
+    {/if}
+
     {#if settingsTab === 'system' && (config?.server_urls?.length ?? 0) > 0}
     <!-- Accès depuis un autre appareil (Android ne résout pas .local → IP) -->
     <section class="settings-section">
@@ -3128,6 +3182,17 @@ function setSettingsLevel(level: SettingsLevel) {
           <span class="update-text">
             {$t('settings.updateAvailable')} : <strong>v{updateInfo.latest_version}</strong>
             ({$t('settings.current')} : v{updateInfo.current_version})
+            <!--
+              Nommer la MACHINE mise à jour (#2110). C'est ici que l'ambiguïté
+              coûte le plus cher : Philippe a lancé la mise à jour depuis
+              l'interface qu'il avait sous les yeux en croyant viser sa Fedora,
+              et a mis à jour l'autre machine. Le bouton doit dire laquelle.
+            -->
+            {#if config?.server_name}
+              <span class="update-target">
+                {$t('settings.updateTarget').replace('{server}', config.server_name)}
+              </span>
+            {/if}
           </span>
           {#if updateDmgReady}
             <span class="update-done">{$t('settings.dmgReady')}</span>
@@ -6991,6 +7056,15 @@ function setSettingsLevel(level: SettingsLevel) {
   .update-text {
     flex: 1;
     font-size: 13px;
+  }
+
+  /* La machine visée par la mise à jour (#2110), sur sa propre ligne pour
+     qu'on la lise avant d'appuyer sur le bouton. */
+  .update-target {
+    display: block;
+    margin-top: 3px;
+    font-size: 12px;
+    opacity: 0.85;
   }
 
   .update-btn {

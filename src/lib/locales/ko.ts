@@ -3066,6 +3066,15 @@ export default {
   "settings.updateBlockedPlaying": "업데이트를 미뤘습니다. 재생 중인 존이 있어 지금 설치하면 음악이 중간에 끊깁니다.",
   "settings.updateBlockedUnknown": "서버가 이유를 밝히지 않고 업데이트를 거부했습니다. 서버 로그를 확인하세요.",
   "settings.updateDockerHint": "Tune이 Docker 컨테이너에서 실행 중입니다. 새 이미지를 받아 업데이트하세요(docker compose pull && docker compose up -d). 마운트된 볼륨의 데이터는 유지됩니다.",
+  // Quel serveur ? (#2110) — distinct de « quelle zone ? ».
+  "sidebar.serverIdentityLabel": "서버",
+  "sidebar.serverIdentityTitle": "이 화면이 연결된 컴퓨터입니다. 오른쪽 아래의 재생 구역과 혼동하지 마십시오.",
+  "settings.serverIdentity": "이 서버",
+  "settings.serverIdentityHint": "이 컴퓨터의 이름으로, 사이드바에 항상 표시됩니다. Tune 서버를 여러 대 운영한다면 알아보기 쉬운 이름을 지정하십시오. 엉뚜한 컴퓨터에서 재생이나 업데이트를 시작하는 일을 막아 줍니다. 기본값은 시스템 호스트 이름입니다.",
+  "settings.serverNameLabel": "이 서버의 이름",
+  "settings.serverNamePlaceholder": "예: 거실, 사무실, 노트북",
+  "settings.serverNameSaved": "서버 이름을 저장했습니다.",
+  "settings.updateTarget": "대상 컴퓨터: {server}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
