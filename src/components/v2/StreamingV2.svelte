@@ -54,9 +54,18 @@
 
   // Éditorial
   let featured = $state<any[]>([]);
-  let bcTags = $state<string[]>([]);
+  // Genres Bandcamp : le serveur rend `genres` (libelle + sous-genres) ET
+  // `tags` (liste plate) — on prend le premier, on retombe sur le second pour
+  // les serveurs qui ne servent que lui.
+  let bcGenres = $state<{ slug: string; label: string; sous: { slug: string; label: string }[] }[]>([]);
   let bcTag = $state<string>('');
+  let bcSub = $state<string>('');
   let bcItems = $state<any[]>([]);
+  // Collection : le serveur repond 428 tant qu'aucun compte n'est relie.
+  // C'est un NOM D'UTILISATEUR public, pas un identifiant de connexion.
+  let bcNeedsLink = $state(false);
+  let bcUser = $state('');
+  let bcLinking = $state(false);
   // Chez moi
   let myPlaylists = $state<StreamingPlaylist[]>([]);
   let favAlbums = $state<any[]>([]);
@@ -92,9 +101,16 @@
       else error = 'Services indisponibles.';
       if (bc.status === 'fulfilled') {
         bandcampLive = true;
-        const tags = (bc.value as any)?.tags ?? bc.value ?? [];
-        bcTags = Array.isArray(tags) ? tags.map((t: any) => (typeof t === 'string' ? t : t?.tag ?? t?.name)).filter(Boolean) : [];
-        bcTag = bcTags[0] ?? '';
+        const v: any = bc.value ?? {};
+        if (Array.isArray(v.genres) && v.genres.length) {
+          bcGenres = v.genres.map((g: any) => ({
+            slug: g.slug, label: g.label ?? g.slug,
+            sous: Array.isArray(g.sous_genres) ? g.sous_genres : [],
+          }));
+        } else if (Array.isArray(v.tags)) {
+          bcGenres = v.tags.map((t: string) => ({ slug: t, label: t, sous: [] }));
+        }
+        bcTag = bcGenres[0]?.slug ?? '';
       }
       const first = Object.entries(services).find(([, v]) => v.enabled && v.authenticated)?.[0];
       active = first ?? (bandcampLive ? BANDCAMP : null);
@@ -103,7 +119,7 @@
 
   /** Charge la vue courante. Rien ne part pour un onglet qu'on ne regarde pas. */
   $effect(() => {
-    const svc = active, view = sub, tag = bcTag;
+    const svc = active, view = sub, tag = bcTag, sg = bcSub;
     if (!svc) return;
     paneLoading = true;
     featured = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcCollection = [];
@@ -112,10 +128,19 @@
     if (svc === BANDCAMP) {
       if (view === 'editorial') {
         if (!tag) { done(); return; }
-        api.bandcampDiscover(tag).then((d: any) => { bcItems = d?.items ?? []; }).catch(() => {}).finally(done);
+        api.bandcampDiscover(tag, 'top', 0, sg || undefined)
+          .then((d: any) => { bcItems = d?.items ?? []; }).catch(() => { bcItems = []; }).finally(done);
       } else {
-        api.bandcampCollection().then((d: any) => { bcCollection = d?.items ?? d?.collection ?? []; })
-          .catch(() => { bcCollection = []; }).finally(done);
+        bcNeedsLink = false;
+        api.bandcampCollection()
+          .then((d: any) => { bcCollection = d?.items ?? d?.collection ?? []; })
+          .catch((e: any) => {
+            // 428 : aucun compte relie. Ce n'est pas une panne, c'est une
+            // etape a franchir — on le dit au lieu d'afficher « rien ».
+            bcCollection = [];
+            bcNeedsLink = e?.status === 428 || /lié|link/i.test(e?.message ?? '');
+          })
+          .finally(done);
       }
       return;
     }
@@ -184,6 +209,20 @@
     api.play(zid, { file_path: it.extrait, title: it.titre, artist_name: it.artiste ?? null, cover_path: it.pochette ?? null })
       .catch(() => { error = 'Lecture impossible.'; });
   }
+
+  async function linkBandcamp() {
+    const u = bcUser.trim();
+    if (!u || bcLinking) return;
+    bcLinking = true;
+    try {
+      await api.bandcampLink(u);
+      bcNeedsLink = false;
+      const d: any = await api.bandcampCollection();
+      bcCollection = d?.items ?? d?.collection ?? [];
+    } catch { error = "Compte introuvable — vérifiez le nom d'utilisateur Bandcamp."; }
+    bcLinking = false;
+  }
+  const currentSous = $derived(bcGenres.find((g) => g.slug === bcTag)?.sous ?? []);
 
   const pTitle = (p: any) => p?.name ?? p?.title ?? p?.titre ?? 'Sans titre';
   const pCover = (p: any) => p?.cover_path ?? p?.image ?? p?.picture ?? p?.pochette ?? null;
@@ -285,12 +324,21 @@
 
     {:else if sub === 'editorial'}
       {#if isBc}
-        {#if bcTags.length}
+        {#if bcGenres.length}
           <div class="chips">
-            {#each bcTags.slice(0, 16) as t (t)}
-              <button class="chip" class:active={bcTag === t} onclick={() => (bcTag = t)}>{t}</button>
+            {#each bcGenres as g (g.slug)}
+              <button class="chip" class:active={bcTag === g.slug}
+                onclick={() => { bcTag = g.slug; bcSub = ''; }}>{g.label}</button>
             {/each}
           </div>
+          {#if currentSous.length}
+            <div class="chips sous">
+              <button class="chip" class:active={!bcSub} onclick={() => (bcSub = '')}>Tout</button>
+              {#each currentSous as sg2 (sg2.slug)}
+                <button class="chip" class:active={bcSub === sg2.slug} onclick={() => (bcSub = sg2.slug)}>{sg2.label}</button>
+              {/each}
+            </div>
+          {/if}
         {/if}
         {#if bcItems.length}
           <div class="grid">{#each bcItems as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
@@ -307,10 +355,26 @@
 
     {:else if sub === 'mine'}
       <!-- Bandcamp : la collection EST ce qu'on y possede. -->
-      {#if bcCollection.length}
+      {#if bcNeedsLink}
+        <div class="notice">
+          <p>Aucun compte Bandcamp relié.</p>
+          <p class="sub">
+            Indiquez votre <b>nom d'utilisateur Bandcamp</b> — celui de l'adresse
+            <code>bandcamp.com/<b>votrenom</b></code>. C'est un identifiant public :
+            aucun mot de passe n'est demandé.
+          </p>
+          <div class="inline">
+            <input class="txt" type="text" placeholder="votrenom" bind:value={bcUser} disabled={bcLinking}
+              onkeydown={(e) => { if (e.key === 'Enter') linkBandcamp(); }} />
+            <button class="lnk" disabled={bcLinking || !bcUser.trim()} onclick={linkBandcamp}>
+              {bcLinking ? 'Liaison…' : 'Relier'}
+            </button>
+          </div>
+        </div>
+      {:else if bcCollection.length}
         <div class="grid">{#each bcCollection as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
       {:else}
-        <div class="state">Aucun achat trouvé. Reliez votre compte Bandcamp dans les Réglages.</div>
+        <div class="state">Votre collection Bandcamp est vide.</div>
       {/if}
 
     {:else if sub === 'playlists'}
@@ -412,6 +476,13 @@
     font:600 11.5px var(--v2-sans); padding:6px 13px; border-radius:var(--v2-r-pill); text-transform:capitalize}
   .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .chip.active{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .chips.sous{padding-top:0; margin-top:-8px}
+  .chips.sous .chip{font-size:11px; padding:5px 11px; opacity:.9}
+  .inline{display:flex; align-items:center; gap:9px; flex-wrap:wrap}
+  .txt{height:38px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:var(--v2-bg);
+    color:var(--v2-txt); font:13px var(--v2-sans); padding:0 15px; outline:none; width:240px}
+  .txt:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+  .notice code{font:11.5px var(--v2-mono); color:var(--v2-acc2)}
 
   .sec{padding:4px 0 22px}
   .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}
