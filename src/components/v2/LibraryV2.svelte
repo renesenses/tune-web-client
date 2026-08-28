@@ -51,6 +51,28 @@
 
   let fQuality = $state<string | null>(null);
   let fRate = $state<number | null>(null);
+  let fFormat = $state<string | null>(null);
+  let fDepth = $state<number | null>(null);
+
+  /** Formats et profondeurs REELLEMENT presents, avec leur compte. Proposer
+   *  une liste figee ferait offrir des rubriques vides — et un filtre qui ne
+   *  renvoie rien passe pour un bug. */
+  const formats = $derived.by(() => {
+    const m = new Map<string, number>();
+    for (const a of $albums) {
+      const f = a.format?.trim().toUpperCase();
+      if (f) m.set(f, (m.get(f) ?? 0) + 1);
+    }
+    return [...m.entries()].sort((x, z) => z[1] - x[1] || x[0].localeCompare(z[0]));
+  });
+  const depths = $derived.by(() => {
+    const m = new Map<number, number>();
+    for (const a of $albums) {
+      const d = a.bit_depth ?? 0;
+      if (d > 0) m.set(d, (m.get(d) ?? 0) + 1);
+    }
+    return [...m.entries()].sort((x, z) => x[0] - z[0]);
+  });
   let q = $state('');
 
   function tierMatches(a: Album, key: string): boolean {
@@ -62,6 +84,8 @@
     if (fQuality && !tierMatches(a, fQuality)) return false;
     if (fRate && (a.sample_rate ?? 0) !== fRate) return false; // exact
     if (fYear != null && albumYear(a) !== fYear) return false;
+    if (fFormat && (a.format?.trim().toUpperCase() ?? '') !== fFormat) return false;
+    if (fDepth != null && (a.bit_depth ?? 0) !== fDepth) return false;
     if (q && !fold(a.title).includes(fold(q)) && !fold(a.artist_name).includes(fold(q))) return false;
     return true;
   }
@@ -329,7 +353,7 @@
     api.play(zid, { track_id: t.id }).catch(() => {});
   }
   let opened = $state<Album | null>(null);
-  function reset() { fQuality = null; fRate = null; q = ''; fYear = null; }
+  function reset() { fQuality = null; fRate = null; q = ''; fYear = null; fFormat = null; fDepth = null; }
 
   // « Aléatoire » — lecture au hasard de toute la bibliothèque, en respectant
   // le filtre texte courant : si l'utilisateur a tapé « jazz », il attend un
@@ -374,7 +398,7 @@
        barre laterale. Seules les PUCES de filtrage sont reservees a Avance. -->
   <div class="filters">
     {#if showFilters}
-      <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null} onclick={reset}>Tout ({matchCount})</button>
+      <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null} onclick={reset}>Tout ({matchCount})</button>
       <div class="drop">
         <button class="chip" class:active={fQuality !== null}>Qualité{#if fQuality}&nbsp;· {QUALITIES.find(x => x.key === fQuality)?.label}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -393,9 +417,30 @@
           {/each}
         </div>
       </div>
-      {#if showExpert}
-        <button class="chip xo">Format<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
-        <button class="chip xo">Profondeur<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+      <!-- FORMAT des le niveau Essentiel : « FLAC ou MP3 ? » est la question de
+           base dans une discotheque mixte, et la maquette v3 de Levente le
+           place aussi au premier niveau. -->
+      {#if formats.length > 1}
+        <div class="drop">
+          <button class="chip" class:active={fFormat !== null}>Format{#if fFormat}&nbsp;· {fFormat}{/if}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+          <div class="menu">
+            {#each formats as [f, n] (f)}
+              <button class:on={fFormat === f} onclick={() => fFormat = fFormat === f ? null : f}>{f} <em>{n}</em></button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+      {#if showExpert && depths.length > 1}
+        <div class="drop">
+          <button class="chip" class:active={fDepth !== null}>Profondeur{#if fDepth}&nbsp;· {fDepth}-bit{/if}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+          <div class="menu">
+            {#each depths as [d, n] (d)}
+              <button class:on={fDepth === d} onclick={() => fDepth = fDepth === d ? null : d}>{d}-bit <em>{n}</em></button>
+            {/each}
+          </div>
+        </div>
       {/if}
     {/if}
     <div class="search">
@@ -698,6 +743,7 @@
 
   /* Contrôles de droite : tri et bascule d'affichage. */
   .drop.right{margin-left:0}
+  .menu button em{font:9.5px var(--v2-mono); font-style:normal; color:var(--v2-txt3); margin-left:6px}
   .chip.plain{gap:7px}
   .chip.plain svg:first-child{width:14px; height:14px}
   .viewtog{width:38px; height:38px; flex:0 0 auto; border-radius:10px; cursor:pointer;
