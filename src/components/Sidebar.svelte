@@ -14,6 +14,7 @@
   import * as api from '../lib/api';
   import type { DiscoveredDevice, LocalAudioDevice, OutputType, Zone, ZoneGroupResponse, StreamingServiceStatus } from '../lib/types';
   import { favoritesFirst, toggleFavoriteId, type DeviceFavPrefix } from '../lib/deviceFavorites';
+  import { deviceHasBoundZone, deviceZoneActionKey, deviceZoneTargetId } from '../lib/hiddenZoneRecovery';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ProfileSelector from './ProfileSelector.svelte';
   import { notifications } from '../lib/stores/notifications';
@@ -349,7 +350,7 @@
 
   async function createZoneFromDevice(device: DiscoveredDevice) {
     try {
-      const zone = await api.createZone(device.name, device.type, device.id);
+      const zone = await api.createZone(device.name, device.type, deviceZoneTargetId(device));
       zones.update((zs) => [...zs, zone]);
       if (zone.id !== null) currentZoneId.set(zone.id);
     } catch (e: any) {
@@ -1145,6 +1146,9 @@
           {/if}
           <span class="device-name truncate">{device.name}</span>
           {@render favoriteStar('net', device.id)}
+          {#if device.zone_hidden}
+            <span class="device-hidden-zone">{$t('zone.deletedZone')}</span>
+          {/if}
           <span class="device-type-tag">{deviceTypeIcon(device.type)}</span>
           {#if device.available}
             {#if device.type === 'airplay' && !pairedDeviceIds.has(device.id)}
@@ -1174,8 +1178,8 @@
                 </button>
               {/if}
             {/if}
-            {#if !$zones.some(z => z.output_device_id === device.id)}
-            <button class="device-add-btn" onclick={() => createZoneFromDevice(device)} title={$t('zone.createZone')}>
+            {#if !deviceHasBoundZone(device, new Set($zones.flatMap(z => z.output_device_id ? [z.output_device_id] : [])))}
+            <button class="device-add-btn" onclick={() => createZoneFromDevice(device)} title={$t(deviceZoneActionKey(device))}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </button>
             {:else}
@@ -1908,6 +1912,14 @@
     padding: 1px 5px;
     border-radius: var(--radius-sm);
     flex-shrink: 0;
+  }
+
+  .device-hidden-zone {
+    color: var(--tune-warning, #d97706);
+    font-family: var(--font-label);
+    font-size: 9px;
+    font-weight: 600;
+    white-space: nowrap;
   }
 
   .device-add-btn {
