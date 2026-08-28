@@ -782,18 +782,14 @@ export function deleteZoneProfile(profileId: number) {
   return fetchVoid(`${BASE}/zone-manager/profiles/${profileId}`, { method: 'DELETE' });
 }
 
-// Server-side `POST /zone-manager/measure-latency` measures RTT to EVERY zone's
-// output in one call and returns `{ latencies: [{ zone_id, rtt_ms,
-// estimated_latency_ms, ... }] }`. The old client hit a non-existent
+// Server-side `POST /zone-manager/measure-latency` measures the control RTT to
+// EVERY zone's output and returns p50/p95/p99 without relabelling half that
+// value as audio latency (#2215). The old client hit a non-existent
 // `/zone-manager/zones/{id}/measure-latency` (404) and read a non-existent
 // `latency_ms` field (Pascal: latency button → 404). Call the real route; the
 // caller picks its zone's entry out of the array.
 export function measureLatency() {
   return fetchJSON<any>(`${BASE}/zone-manager/measure-latency`, { method: 'POST' });
-}
-
-export function calibrateGroup(groupId: string) {
-  return fetchJSON<any>(`${BASE}/zone-manager/groups/${encodeURIComponent(groupId)}/calibrate`, { method: 'POST' });
 }
 
 export function getZoneHealth(zoneId: number) {
@@ -2084,10 +2080,6 @@ export function getConfig() {
   return fetchJSON<any>(`${BASE}/system/config`);
 }
 
-export function audioCheck() {
-  return fetchJSON<import('./types').AudioCheckResult>(`${BASE}/system/audio-check`);
-}
-
 export function getDatabaseStatus() {
   return fetchJSON<any>(`${BASE}/system/database/status`);
 }
@@ -2298,13 +2290,12 @@ export function getStreamingServiceStatus(service: string) {
 
 export interface SpotifyConnectStatus {
   enabled: boolean;
-  available: boolean;
   device_name: string | null;
   zone_id: number | null;
   binary_available: boolean;
-  stream_url: string | null;
   active: boolean;
   reason?: string;
+  error?: string;
 }
 
 export async function downloadDiagnosticsBundle(): Promise<{ blob: Blob; filename: string }> {
@@ -3228,16 +3219,6 @@ export function saveQueueAsPlaylist(zoneId: number, name?: string) {
   return fetchJSON<any>(`${BASE}/zones/${zoneId}/queue/save-as-playlist`, { method: 'POST', body: JSON.stringify({ name }) });
 }
 
-// --- Crossfade ---
-
-export function getCrossfade(zoneId: number) {
-  return fetchJSON<{ enabled: boolean; duration: number }>(`${BASE}/zones/${zoneId}/crossfade`);
-}
-
-export function setCrossfade(zoneId: number, enabled: boolean, duration = 3.0) {
-  return fetchJSON<any>(`${BASE}/zones/${zoneId}/crossfade`, { method: 'POST', body: JSON.stringify({ enabled, duration }) });
-}
-
 // --- Volume Normalization ---
 
 export function setNormalization(zoneId: number, enabled: boolean, targetLufs = -14.0) {
@@ -3987,16 +3968,17 @@ export function getHealthAlerts(): Promise<HealthAlert[]> {
 // --- Admin Dashboard ---
 
 export interface AdminHealth {
-  cpu_percent: number;
-  ram_mb: number;
-  ram_total_mb: number;
-  disk_free_gb: number;
-  disk_total_gb: number;
+  status: string;
   uptime_seconds: number;
-  uptime_formatted: string;
-  open_fds: number;
-  pid: number;
-  python_threads: number;
+  engine: string;
+  version: string;
+  database: { tracks: number; albums: number; engine: string };
+  playback: { zones_total: number; zones_playing: number };
+  outputs: number;
+  streaming_services: number;
+  scan_status: string;
+  disk_free_gb: number | null;
+  disk_total_gb: number | null;
 }
 
 export interface AdminZone {
@@ -4022,7 +4004,8 @@ export interface AdminError {
 
 export interface AdminConnections {
   websocket_connections: number;
-  http_streamer_sessions: number;
+  active_streams: number;
+  registered_outputs: number;
 }
 
 export interface AdminDiscoveryDevice {
@@ -4030,14 +4013,10 @@ export interface AdminDiscoveryDevice {
   name: string;
   type: string;
   host: string;
-  port: number;
-  available: boolean;
-  capabilities: Record<string, unknown>;
 }
 
 export interface AdminDiscovery {
   devices: AdminDiscoveryDevice[];
-  protocols: Record<string, boolean>;
   device_count: number;
 }
 

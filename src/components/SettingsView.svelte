@@ -1295,33 +1295,6 @@ function setSettingsLevel(level: SettingsLevel) {
     pairingMessage = null;
   }
 
-  // Crossfade
-  let crossfadeEnabled = $state(false);
-  let crossfadeDuration = $state(3);
-  let crossfadeLoading = $state(false);
-
-  async function loadCrossfade() {
-    // `zones[0].id` est nullable dans le type : on l'extrait une fois plutôt que
-    // de supposer sa présence à chaque appel.
-    const zoneId = get(zones)[0]?.id;
-    if (zoneId == null) return;
-    try {
-      const res = await api.getCrossfade(zoneId);
-      crossfadeEnabled = res.enabled ?? false;
-      crossfadeDuration = res.duration ?? 3;
-    } catch {}
-  }
-
-  async function applyCrossfade() {
-    const zoneId = get(zones)[0]?.id;
-    if (zoneId == null) return;
-    crossfadeLoading = true;
-    try {
-      await api.setCrossfade(zoneId, crossfadeEnabled, crossfadeDuration);
-    } catch {}
-    crossfadeLoading = false;
-  }
-
   // Streaming auth state
   let qobuzUsername = $state('');
   let qobuzPassword = $state('');
@@ -2778,7 +2751,6 @@ function setSettingsLevel(level: SettingsLevel) {
     fetchTunePeers();
     fetchServerVersion();
     checkForUpdate();
-    loadCrossfade();
     loadStreamingQuality();
     loadScanSchedule();
     loadMetadataFields();
@@ -2894,8 +2866,6 @@ function setSettingsLevel(level: SettingsLevel) {
 
   const settingModified = $derived.by((): Partial<Record<SettingKey, boolean>> => ({
     'general.lockVolume': $audiophileLockVolume,
-    'general.crossfade': crossfadeEnabled,
-    'general.crossfadeDuration': crossfadeDuration !== 3,
     'general.volumeDisplay': $preferences.volumeDisplay !== 'percent',
     'general.voiceCommand': (() => { try { return localStorage.getItem('tune_voice_ai_enabled') === 'true'; } catch { return false; } })(),
     'library.folderPlaylists': config?.scan_folder_playlists === true || config?.scan_folder_playlists === 'true',
@@ -3462,7 +3432,7 @@ function setSettingsLevel(level: SettingsLevel) {
     {/if}
 
     {#if settingsTab === 'general'}
-    <!-- Playback / Crossfade -->
+    <!-- Playback -->
     <section class="settings-section">
       <h3>{$t('settings.playback')}</h3>
       <!-- Miroir du réglage du panneau « Chemin du signal » : le même état,
@@ -3512,30 +3482,6 @@ function setSettingsLevel(level: SettingsLevel) {
             </label>
             <span>{$t('audiophile.lockVolumeConfirm' as any)}</span>
           </label>
-        </div>
-      {/if}
-      <div class="setting-row" class:lv-hidden={!lvOk('general.crossfade')}>
-        <div class="setting-label">
-          <span>Crossfade</span>
-          <span class="setting-hint">{$t('settings.crossfadeHint')}</span>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" bind:checked={crossfadeEnabled} onchange={() => applyCrossfade()} />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-      {#if crossfadeEnabled}
-        <div class="setting-row" class:lv-hidden={!lvOk('general.crossfadeDuration')}>
-          <div class="setting-label">
-            <span>{$t('settings.duration')} : {crossfadeDuration}s</span>
-          </div>
-          <input
-            type="range"
-            min="1" max="12" step="1"
-            bind:value={crossfadeDuration}
-            onchange={() => applyCrossfade()}
-            style="flex: 1; max-width: 200px; accent-color: var(--tune-accent, #007AFF);"
-          />
         </div>
       {/if}
       <div class="setting-row">

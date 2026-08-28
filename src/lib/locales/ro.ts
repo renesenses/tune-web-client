@@ -291,7 +291,7 @@ export default {
   'zone.noStereoPairs': 'Nicio pereche stereo',
   'zone.selected': 'selectate',
   'zone.clearSelection': 'Șterge selecția',
-  'zone.latency': 'Latență',
+  'zone.latency': 'RTT de control',
   'zone.measuring': 'Se măsoară...',
   'zone.calibrate': 'Calibrează',
   'zone.calibrating': 'Se calibrează...',

@@ -285,7 +285,7 @@ export default {
   'zone.noStereoPairs': '无立体声配对',
   'zone.selected': '已选',
   'zone.clearSelection': '取消选择',
-  'zone.latency': '延迟',
+  'zone.latency': '控制 RTT',
   'zone.measuring': '测量中...',
   'zone.calibrate': '校准',
   'zone.calibrating': '校准中...',

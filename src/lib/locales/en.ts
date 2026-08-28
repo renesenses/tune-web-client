@@ -486,7 +486,7 @@ export default {
   'zone.noStereoPairs': 'No stereo pairs',
   'zone.selected': 'selected',
   'zone.clearSelection': 'Clear selection',
-  'zone.latency': 'Latency',
+  'zone.latency': 'Control RTT',
   'zone.measuring': 'Measuring...',
   'zone.calibrate': 'Calibrate',
   'zone.calibrating': 'Calibrating...',

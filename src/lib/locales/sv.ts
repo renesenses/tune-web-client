@@ -259,7 +259,7 @@ export default {
   'zone.noStereoPairs': 'Inga stereopar',
   'zone.selected': 'valda',
   'zone.clearSelection': 'Rensa markering',
-  'zone.latency': 'Latens',
+  'zone.latency': 'Kontroll-RTT',
   'zone.measuring': 'Mäter...',
   'zone.calibrate': 'Kalibrera',
   'zone.calibrating': 'Kalibrerar...',
