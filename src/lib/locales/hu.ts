@@ -951,6 +951,7 @@ export default {
   "favorites.empty": "Még nincs kedvenc",
   "favorites.shuffle": "Véletlenszerű",
   "favorites.sortBy": "Rendezés",
+  "favorites.sortDefault": "Alapértelmezett",
   "common.ascending": "Növekvő",
   "common.descending": "Csökkenő",
   "common.showMore": "Több megjelenítése",

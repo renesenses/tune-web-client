@@ -994,6 +994,7 @@ export default {
   'favorites.empty': 'Aucun favori',
   'favorites.shuffle': 'Aléatoire',
   "favorites.sortBy": "Trier par",
+  "favorites.sortDefault": "Par défaut",
   "common.ascending": "Ordre croissant",
   "common.descending": "Ordre décroissant",
   "common.showMore": "Voir plus",

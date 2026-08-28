@@ -2760,6 +2760,7 @@ export default {
   "favorites.localSource": "Lokal",
   "favorites.shuffle": "Blanda",
   "favorites.sortBy": "Sortera efter",
+  "favorites.sortDefault": "Standardordning",
   "common.ascending": "Stigande",
   "common.descending": "Fallande",
   "common.showMore": "Visa mer",

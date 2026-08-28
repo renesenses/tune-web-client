@@ -2791,6 +2791,7 @@ export default {
   "favorites.localSource": "Local",
   "favorites.shuffle": "Aleatorio",
   "favorites.sortBy": "Ordenar por",
+  "favorites.sortDefault": "Predeterminado",
   "common.ascending": "Ascendente",
   "common.descending": "Descendente",
   "common.showMore": "Ver más",
