@@ -3547,6 +3547,18 @@ export function enrichArtistImages() {
   );
 }
 
+// Force re-fetch of EVERY artist's image, ignoring the "already has an image"
+// guard — for libraries where image_path points at stale entries that never
+// render, so the normal pass above skips them forever (Fabien: full scan, still
+// no artist images). Same background task and same status endpoint as the
+// normal pass, so the progress polling below covers this run too.
+export function forceRefetchArtistImages() {
+  return fetchJSON<{ status: string; message?: string; artists?: number }>(
+    `${BASE}/library/artwork/enrich-artists/force`,
+    { method: 'POST' }
+  );
+}
+
 // Progress of the (async, background) artist-image enrichment. The POST above
 // returns 202 immediately; the real work — MBID matching then image fetch —
 // runs for minutes. `result` mirrors the `artist_artwork_enrich_result` setting
