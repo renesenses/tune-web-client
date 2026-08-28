@@ -613,6 +613,37 @@ export interface ArtworkRescanResult {
   cover_path: string | null;
 }
 
+/** Résultat d'une ré-identification d'album (`POST /library/albums/{id}/reidentify`).
+ *
+ *  Le `verdict` est délibérément explicite : « retomber sur le même pressage »
+ *  n'est pas un échec mais ce n'est pas non plus une correction, et l'utilisateur
+ *  doit pouvoir faire la différence — sans quoi il recommence indéfiniment. */
+export interface ReidentifyResult {
+  album_id: number;
+  /** `reidentified` : nouveau pressage. `unchanged` : le même qu'avant, la
+   *  source en ligne confirme. `not_found` : rien trouvé, l'identification
+   *  précédente a été reposée. `no_tracks` : rien à ré-identifier. */
+  verdict: 'reidentified' | 'unchanged' | 'not_found' | 'no_tracks';
+  tracks_total: number;
+  tracks_matched?: number;
+  tracks_unmatched?: number;
+  was_identified_before?: boolean;
+  previous_release_id?: string | null;
+  release_id?: string;
+  release_group_id?: string | null;
+  release_title?: string;
+  release_artist?: string;
+  release_date?: string | null;
+  release_country?: string | null;
+  release_disambiguation?: string | null;
+  match_score?: number;
+  /** Champs que Tune a refusé d'écraser parce qu'ils portaient déjà une valeur. */
+  fields_left_as_is?: string[];
+  previous_identification_restored?: boolean;
+  searched_title?: string;
+  searched_artist?: string;
+}
+
 export interface BrowseRootEntry {
   name: string;
   path: string;
