@@ -1812,6 +1812,8 @@ export default {
   "settings.learnMore": "詳細を見る",
   "settings.telemetry": "テレメトリー",
   "settings.telemetryHint": "Tune 改善のため匿名の統計を送信します。",
+  "settings.cloudRateLimitPaused": "サーバーの制限を遵守するため、一部のクラウド同期を一時停止しています。",
+  "settings.cloudRetryIn": "自動再試行まで",
   "report.action": "報告",
   "report.chooseReason": "報告の理由",
   "report.sentShared": "コミュニティに報告しました",

@@ -2039,6 +2039,8 @@ export default {
   "settings.learnMore": "Tudj meg többet",
   "settings.telemetry": "Telemetria",
   "settings.telemetryHint": "Névtelen statisztikák küldése a Tune fejlesztéséhez.",
+  "settings.cloudRateLimitPaused": "Néhány felhőszinkronizálás átmenetileg szünetel a kiszolgáló korlátainak betartása érdekében.",
+  "settings.cloudRetryIn": "Automatikus újrapróbálkozás ennyi idő múlva:",
   "report.action": "Jelentés",
   "report.chooseReason": "A jelentés oka",
   "report.sentShared": "A jelentés elment a közösségnek",

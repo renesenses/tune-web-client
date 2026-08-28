@@ -547,6 +547,26 @@ function setSettingsLevel(level: SettingsLevel) {
   let cloudTelemetryEnabled = $state(false);
   let cloudTelemetryLoading = $state(false);
   let cloudTelemetryInstanceId = $state<string | null>(null);
+  let cloudRateLimits = $state<Array<{
+    scope: string;
+    until_epoch: number;
+    retry_after_seconds: number;
+  }>>([]);
+
+  function longestCloudBackoffSeconds(): number {
+    return cloudRateLimits.reduce(
+      (longest, limit) => Math.max(longest, Number(limit.retry_after_seconds) || 0),
+      0,
+    );
+  }
+
+  function formatBackoffDuration(seconds: number): string {
+    const minutes = Math.max(1, Math.ceil(seconds / 60));
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const rest = minutes % 60;
+    return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
+  }
 
   /// Relit l'etat cloud jusqu'a ce que la connexion apparaisse, ou abandon.
   ///
@@ -588,7 +608,12 @@ function setSettingsLevel(level: SettingsLevel) {
       const tel = await api.apiFetch('/cloud/telemetry/status');
       cloudTelemetryEnabled = !!tel?.enabled;
       cloudTelemetryInstanceId = tel?.instance_id || tel?.server_id || null;
-    } catch { /* endpoint may not exist */ }
+      cloudRateLimits = Array.isArray(tel?.rate_limits) ? tel.rate_limits : [];
+    } catch {
+      // The endpoint may not exist on older servers. Never retain a stale
+      // warning after a failed refresh.
+      cloudRateLimits = [];
+    }
   }
 
   async function loadBridgeStatus() {
@@ -5677,6 +5702,15 @@ function setSettingsLevel(level: SettingsLevel) {
         {#if cloudTelemetryInstanceId}
           <div class="cloud-instance-id">{$t('settings.instance')} : <code>{cloudTelemetryInstanceId}</code></div>
         {/if}
+        {#if cloudRateLimits.length > 0}
+          <div class="cloud-rate-limit-notice" role="status">
+            <span aria-hidden="true">⏳</span>
+            <span>
+              {$t('settings.cloudRateLimitPaused')}
+              {$t('settings.cloudRetryIn')} {formatBackoffDuration(longestCloudBackoffSeconds())}.
+            </span>
+          </div>
+        {/if}
       </div>
 
       <!-- Community metadata sync (opt-in). The server-side loop (resolve
@@ -7888,6 +7922,20 @@ function setSettingsLevel(level: SettingsLevel) {
     padding: 1px 6px;
     border-radius: var(--radius-sm);
     font-size: 10px;
+  }
+
+  .cloud-rate-limit-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-xs);
+    margin-top: var(--space-sm);
+    padding: var(--space-sm);
+    border: 1px solid color-mix(in srgb, var(--tune-warning, #d89b2b) 45%, transparent);
+    border-radius: var(--radius-sm);
+    color: var(--tune-text);
+    background: color-mix(in srgb, var(--tune-warning, #d89b2b) 10%, transparent);
+    font-size: 12px;
+    line-height: 1.4;
   }
 
   /* License / Premium section */
