@@ -3034,7 +3034,7 @@ export default {
   "smartai.subtitle": "Playlists construites à partir de vos critères",
   "smartai.basedOnHistory": "Basee sur votre historique",
   "search.topArtists": "Artistes les plus ecoutes",
-  "search.addToQueue": "Ajouter a la file",
+  "search.addToQueue": "Ajouter à la file",
   "login.createAccount": "Creer un compte",
   "tv.stereoVuMeters": "VU-mètres stéréo",
   "oxygen.description": "Bibliothèque à facettes façon gestionnaire de collection : table dense, badges qualité et inspecteur de métadonnées. Les colonnes de la table suivent vos champs visibles réglés ci-dessus.",

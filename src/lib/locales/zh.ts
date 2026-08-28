@@ -2996,7 +2996,7 @@ export default {
   "radio.fileTooLarge": "文件过大（{size} MB，上限 {max} MB）",
   "radio.importResult": "已导入 {imported} 个，跳过 {skipped} 个",
   "radioFav.clearError": "无法清除收藏，请重试。",
-  "search.addToQueue": "加入队列",
+  "search.addToQueue": "添加到队列",
   "search.topArtists": "最常收听的艺人",
   "settings.alacPassthrough": "ALAC 直通",
   "settings.aacPassthrough": "AAC 直通",
