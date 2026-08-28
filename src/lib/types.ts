@@ -97,6 +97,10 @@ export interface Track {
   album_artist?: string | null;
   disc_number?: number;
   disc_subtitle?: string | null;
+  /** Tag GROUPING / TIT1 / ©grp — découpe les pistes en sections À L'INTÉRIEUR
+   *  d'un disque (mouvements, bonus, ensembles), là où `disc_subtitle` nomme le
+   *  disque entier. Absent de la réponse quand la piste n'en porte pas (#2130). */
+  grouping?: string | null;
   track_number?: number;
   duration_ms?: number;
   file_path?: string | null;
