@@ -4285,6 +4285,27 @@ export interface LicenseSessionConflict {
   active_since: string | null;
 }
 
+/**
+ * Grâce hors ligne (#1999). Tune tolère une coupure réseau prolongée avant de
+ * suspendre le Premium ; ce bloc dit à l'utilisateur qu'il est couvert, depuis
+ * quand et jusqu'à quand. Purement descriptif — le serveur n'a rien durci.
+ * `null` quand la question ne se pose pas (Free, ou abonnement réellement échu).
+ * Ne contient jamais la clé ni un identifiant d'achat.
+ */
+export interface LicenseOfflineGrace {
+  /** `ok` = vérifié récemment · `grace` = hors ligne, Premium intact · `expired` = Premium en pause. */
+  phase: 'ok' | 'grace' | 'expired';
+  source: 'key' | 'account';
+  /** Dernière vérification en ligne réussie (ISO-8601). `null` = jamais. */
+  since: string | null;
+  /** Fin de la fenêtre de tolérance (ISO-8601). */
+  until: string | null;
+  days_remaining: number;
+  /** Durée totale de la tolérance, en jours — le chiffre à afficher. */
+  total_days: number;
+  days_since_validation: number;
+}
+
 export interface LicenseStatus {
   tier: string;
   license_key: string | null;
@@ -4294,6 +4315,8 @@ export interface LicenseStatus {
   hardware_fingerprint: string | null;
   /** Null unless the licence is active on another server right now. */
   session_conflict?: LicenseSessionConflict | null;
+  /** Null unless premium entitlements are in play — see LicenseOfflineGrace. */
+  offline_grace?: LicenseOfflineGrace | null;
 }
 
 export interface LicenseActivateResponse {
