@@ -2080,10 +2080,6 @@ export function getConfig() {
   return fetchJSON<any>(`${BASE}/system/config`);
 }
 
-export function audioCheck() {
-  return fetchJSON<import('./types').AudioCheckResult>(`${BASE}/system/audio-check`);
-}
-
 export function getDatabaseStatus() {
   return fetchJSON<any>(`${BASE}/system/database/status`);
 }
@@ -2294,13 +2290,12 @@ export function getStreamingServiceStatus(service: string) {
 
 export interface SpotifyConnectStatus {
   enabled: boolean;
-  available: boolean;
   device_name: string | null;
   zone_id: number | null;
   binary_available: boolean;
-  stream_url: string | null;
   active: boolean;
   reason?: string;
+  error?: string;
 }
 
 export async function downloadDiagnosticsBundle(): Promise<{ blob: Blob; filename: string }> {
@@ -3973,16 +3968,17 @@ export function getHealthAlerts(): Promise<HealthAlert[]> {
 // --- Admin Dashboard ---
 
 export interface AdminHealth {
-  cpu_percent: number;
-  ram_mb: number;
-  ram_total_mb: number;
-  disk_free_gb: number;
-  disk_total_gb: number;
+  status: string;
   uptime_seconds: number;
-  uptime_formatted: string;
-  open_fds: number;
-  pid: number;
-  python_threads: number;
+  engine: string;
+  version: string;
+  database: { tracks: number; albums: number; engine: string };
+  playback: { zones_total: number; zones_playing: number };
+  outputs: number;
+  streaming_services: number;
+  scan_status: string;
+  disk_free_gb: number | null;
+  disk_total_gb: number | null;
 }
 
 export interface AdminZone {
@@ -4008,7 +4004,8 @@ export interface AdminError {
 
 export interface AdminConnections {
   websocket_connections: number;
-  http_streamer_sessions: number;
+  active_streams: number;
+  registered_outputs: number;
 }
 
 export interface AdminDiscoveryDevice {
@@ -4016,14 +4013,10 @@ export interface AdminDiscoveryDevice {
   name: string;
   type: string;
   host: string;
-  port: number;
-  available: boolean;
-  capabilities: Record<string, unknown>;
 }
 
 export interface AdminDiscovery {
   devices: AdminDiscoveryDevice[];
-  protocols: Record<string, boolean>;
   device_count: number;
 }
 
