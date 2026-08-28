@@ -5,7 +5,7 @@
   import { devices } from './lib/stores/devices';
   import { isBrowserZone, browserPlay, browserPause, browserResume, browserStop } from './lib/stores/browserAudio';
   import { seekPositionMs, startSeekTimer, stopSeekTimer, shuffleEnabled, repeatMode, nowPlayingToTrack } from './lib/stores/nowPlaying';
-  import { mergeTransport, type TransportState } from './lib/transportSync';
+  import { mergeTransport, transportDeLEvenement, type TransportState } from './lib/transportSync';
   import { queueTracks, queuePosition, queueLength } from './lib/stores/queue';
   import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
   import { connectionState, reconnectAttempts } from './lib/stores/connection';
@@ -288,6 +288,17 @@ import AlarmsView from './components/AlarmsView.svelte';
         if (target?.id != null) currentZoneId.set(target.id);
       }
 
+      // Recaler l'aléatoire et la répétition sur ce que le serveur vient de
+      // dire (#2092). APRÈS la sélection de zone, sinon `syncTransportFromZone`
+      // comparerait à une zone courante qui n'est pas encore la bonne et ne
+      // poserait rien à l'écran.
+      //
+      // `fetchZones` est le chemin du CHARGEMENT DE PAGE et de la REPRISE DE
+      // CONNEXION : c'est ici que se joue « un aléatoire allumé la semaine
+      // dernière doit se voir dès l'ouverture ». Il couvre aussi le repli par
+      // sondage, où aucun instantané WebSocket n'arrive jamais.
+      for (const z of zoneList) syncTransportFromZone(z);
+
       // Restore seek state for the selected zone from the already-fetched data.
       // Only on initial load or WS reconnect — not on zone.* events, which would
       // reset the seek position and break the seek timer on every volume change etc.
@@ -358,10 +369,10 @@ import AlarmsView from './components/AlarmsView.svelte';
   /**
    * Dernière répétition / lecture aléatoire connues du serveur, par zone.
    *
-   * Ces deux champs ne voyagent que dans les instantanés WebSocket ; la liste
-   * REST des zones ne les porte pas. On les retient donc au passage, pour
-   * pouvoir recaler les commandes de transport au moment où l'on change de
-   * zone, sans requête supplémentaire.
+   * On retient au passage tout ce qui les porte — instantané WebSocket, liste
+   * REST des zones, zone REST isolée, annonce en direct — pour pouvoir recaler
+   * les commandes de transport au moment où l'on change de zone, sans requête
+   * supplémentaire. Voir `lib/transportSync.ts` pour le détail du contrat.
    */
   const transportByZone = new Map<number, TransportState>();
 
@@ -395,6 +406,11 @@ import AlarmsView from './components/AlarmsView.svelte';
   async function syncZoneState(zoneId: number) {
     try {
       const zone = await api.getZone(zoneId);
+      // `GET /zones/{id}` porte le transport depuis #2153 — et c'est la charge
+      // utile relue après CHAQUE événement de lecture. La lire ici, c'est la
+      // dernière chance de rattraper un écart avant que l'utilisateur ne le
+      // voie (#2092).
+      syncTransportFromZone(zone);
       zones.update((zs) =>
         zs.map((z) => {
           if (z.id !== zoneId) return z;
@@ -747,13 +763,30 @@ import AlarmsView from './components/AlarmsView.svelte';
       }
 
       // Instantané d'ouverture de connexion. Le serveur l'envoie pour que le
-      // client « ait la vérité tout de suite » (routes/ws.rs), et il est le
-      // seul endroit d'où la répétition et la lecture aléatoire arrivent :
-      // ni /zones ni /zones/{id} ne les portent. On ne s'en sert que pour
-      // cela — la liste des zones reste servie par fetchZones, inchangée.
+      // client « ait la vérité tout de suite » (routes/ws.rs). On ne s'en sert
+      // que pour le transport — la liste des zones reste servie par
+      // fetchZones, inchangée.
       if (type === 'snapshot' && Array.isArray(event.data?.zones)) {
         for (const z of event.data.zones) syncTransportFromZone(z);
         return;
+      }
+
+      // Bascule d'aléatoire ou de répétition annoncée EN DIRECT (#2092).
+      //
+      // C'est le seul chemin par lequel un changement fait AILLEURS —
+      // application mobile, seconde fenêtre, Siri, widget, appel d'API —
+      // atteint cet écran sans rechargement. Sans lui, deux télécommandes
+      // ouvertes côte à côte affichent deux vérités différentes, et celle qui
+      // n'a pas cliqué a tort.
+      //
+      // Placé AVANT le bloc générique `playback.*`, et sans `return` : c'est un
+      // AJOUT, pas un détournement. Le bloc générique continue de faire ce
+      // qu'il faisait pour ces deux événements (un `syncZoneState` de
+      // rattrapage) ; le court-circuiter aurait échangé un défaut contre le
+      // risque d'un autre.
+      {
+        const direct = transportDeLEvenement(type, event.data);
+        if (direct) syncTransportFromZone({ id: direct.zoneId, ...direct.transport });
       }
 
       // Polling bulk zone update — replace all zones at once
