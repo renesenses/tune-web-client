@@ -773,12 +773,6 @@ export interface StreamingTrackInfo {
   cover_path?: string | null;
 }
 
-// Unified playlist manager
-export interface UnifiedPlaylistsResponse {
-  local: Playlist[];
-  services: Record<string, StreamingPlaylist[]>;
-}
-
 export interface PlaylistImportResponse {
   playlist_id: number;
   name: string;
