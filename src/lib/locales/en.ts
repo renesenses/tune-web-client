@@ -3075,6 +3075,15 @@ export default {
   "settings.updateBlockedPlaying": "Update deferred: a zone is playing. Installing would cut the music mid-track.",
   "settings.updateBlockedUnknown": "The server refused the update without giving a reason. Check the server logs.",
   "settings.updateDockerHint": "Tune is running in a Docker container: update by pulling the new image (docker compose pull && docker compose up -d). Your data in mounted volumes is preserved.",
+  "library.reidentify": "Re-identify",
+  "library.reidentifying": "Re-identifying…",
+  "library.reidentifyTip": "Clears this album's MusicBrainz identification and runs it again, for this album only. Your favourites, ratings, history and manual edits are kept; no file is modified.",
+  "library.reidentifySuccess": "Album re-identified: “{title}” — {matched} of {total} track(s) linked.",
+  "library.reidentifyUnchanged": "MusicBrainz returns the same release as before. The online identification therefore confirms what is shown: if the album is still wrong, the error most likely comes from your files' tags.",
+  "library.reidentifyNotFound": "No release found for “{title}”. The previous identification was kept — nothing was lost.",
+  "library.reidentifyNoTracks": "This album has no tracks: there is nothing to re-identify.",
+  "library.reidentifyKept": "fields kept, not overwritten: {fields}",
+  "library.reidentifyFailed": "Re-identification failed",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

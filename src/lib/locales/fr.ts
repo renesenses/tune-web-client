@@ -3077,6 +3077,15 @@ export default {
   "settings.updateBlockedPlaying": "Mise à jour reportée : une zone est en lecture. Installer couperait la musique en cours.",
   "settings.updateBlockedUnknown": "Le serveur a refusé la mise à jour sans en donner la raison. Consultez les journaux du serveur.",
   "settings.updateDockerHint": "Tune tourne dans un conteneur Docker : la mise a jour se fait en recuperant la nouvelle image (docker compose pull && docker compose up -d). Vos donnees montees en volume sont conservees.",
+  "library.reidentify": "Ré-identifier",
+  "library.reidentifying": "Ré-identification…",
+  "library.reidentifyTip": "Efface l'identification MusicBrainz de cet album et la refait, pour lui seul. Vos favoris, vos notes, votre historique et vos modifications manuelles sont conservés ; aucun fichier n'est modifié.",
+  "library.reidentifySuccess": "Album ré-identifié : « {title} » — {matched} piste(s) sur {total} rattachée(s).",
+  "library.reidentifyUnchanged": "MusicBrainz retombe sur le même pressage qu'avant. L'identification en ligne confirme donc ce qui est affiché : si l'album reste faux, l'erreur vient probablement des balises de vos fichiers.",
+  "library.reidentifyNotFound": "Aucun pressage trouvé pour « {title} ». L'identification précédente a été conservée, rien n'a été perdu.",
+  "library.reidentifyNoTracks": "Cet album n'a aucune piste : il n'y a rien à ré-identifier.",
+  "library.reidentifyKept": "champs conservés, non écrasés : {fields}",
+  "library.reidentifyFailed": "Échec de la ré-identification",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

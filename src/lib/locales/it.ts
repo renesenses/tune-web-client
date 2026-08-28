@@ -3066,6 +3066,15 @@ export default {
   "settings.updateBlockedPlaying": "Aggiornamento rinviato: una zona è in riproduzione. Installare interromperebbe la musica.",
   "settings.updateBlockedUnknown": "Il server ha rifiutato l'aggiornamento senza indicarne il motivo. Consulta i log del server.",
   "settings.updateDockerHint": "Tune e in esecuzione in un container Docker: aggiorna scaricando la nuova immagine (docker compose pull && docker compose up -d). I dati nei volumi montati vengono conservati.",
+  "library.reidentify": "Reidentifica",
+  "library.reidentifying": "Reidentificazione…",
+  "library.reidentifyTip": "Cancella l'identificazione MusicBrainz di questo album e la rifà, solo per questo album. I tuoi preferiti, i voti, la cronologia e le modifiche manuali sono conservati; nessun file viene modificato.",
+  "library.reidentifySuccess": "Album reidentificato: «{title}» — {matched} brano/i su {total} collegato/i.",
+  "library.reidentifyUnchanged": "MusicBrainz restituisce la stessa edizione di prima. L'identificazione online conferma quindi quanto mostrato: se l'album resta sbagliato, l'errore viene probabilmente dai tag dei tuoi file.",
+  "library.reidentifyNotFound": "Nessuna edizione trovata per «{title}». L'identificazione precedente è stata conservata: non è andato perso nulla.",
+  "library.reidentifyNoTracks": "Questo album non ha brani: non c'è nulla da reidentificare.",
+  "library.reidentifyKept": "campi conservati, non sovrascritti: {fields}",
+  "library.reidentifyFailed": "Reidentificazione non riuscita",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

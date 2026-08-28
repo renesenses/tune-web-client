@@ -139,6 +139,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   let editingTrack = $state<Track | null>(null);
   let writingAlbumTags = $state(false);
   let writeTagsMessage = $state<string | null>(null);
+  let reidentifyingAlbum = $state(false);
 
   // Track context menu ("...")
   let trackMenuOpenId = $state<number | null>(null);
@@ -339,6 +340,57 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       writeTagsMessage = `${$tr('common.error')} : ${e?.message || e}`;
     }
     writingAlbumTags = false;
+  }
+
+  /** Refait l'identification de l'album affiché (#2128).
+   *
+   *  Le verdict est rendu tel quel à l'utilisateur, y compris quand il est
+   *  décevant : « même pressage » et « rien trouvé » sont des réponses, pas des
+   *  échecs à masquer. Sans elles, on renvoie l'utilisateur enquêter à
+   *  l'aveugle — c'est précisément ce que décrivait le fil forum #1455. */
+  async function handleReidentifyAlbum(albumId: number) {
+    reidentifyingAlbum = true;
+    const tid = notifications.info($tr('library.reidentifying'), 0);
+    try {
+      const r = await api.reidentifyAlbum(albumId);
+      notifications.dismiss(tid);
+
+      if (r.verdict === 'no_tracks') {
+        notifications.error($tr('library.reidentifyNoTracks'));
+        return;
+      }
+      if (r.verdict === 'not_found') {
+        notifications.error(
+          $tr('library.reidentifyNotFound').replace('{title}', r.searched_title ?? '')
+        );
+        return;
+      }
+      if (r.verdict === 'unchanged') {
+        // Le cas le plus instructif : la source en ligne confirme, donc
+        // l'erreur est ailleurs. Le dire évite de recommencer pour rien.
+        notifications.info($tr('library.reidentifyUnchanged'), 9000);
+        return;
+      }
+
+      let msg = $tr('library.reidentifySuccess')
+        .replace('{title}', r.release_title ?? '')
+        .replace('{matched}', String(r.tracks_matched ?? 0))
+        .replace('{total}', String(r.tracks_total ?? 0));
+      if (r.fields_left_as_is?.length) {
+        msg += ` — ${$tr('library.reidentifyKept').replace('{fields}', r.fields_left_as_is.join(', '))}`;
+      }
+      notifications.success(msg, 9000);
+      // Relire la fiche pour que l'écran montre ce qui vient d'être écrit. On
+      // ne rappelle pas `selectAlbumDetail`, qui remettrait la navigation et le
+      // défilement à zéro : seule la fiche a changé, pas la liste des pistes.
+      const full = await api.getAlbum(albumId);
+      selectedAlbum.set(full);
+    } catch (e: any) {
+      notifications.dismiss(tid);
+      notifications.error(`${$tr('library.reidentifyFailed')} : ${e?.message || e}`);
+    } finally {
+      reidentifyingAlbum = false;
+    }
   }
 
   function openAlbumEdit(e: MouseEvent, album: Album) {
@@ -2311,6 +2363,17 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               <button class="write-tags-btn" onclick={() => $selectedAlbum?.id && handleWriteAlbumTags($selectedAlbum.id)} disabled={writingAlbumTags}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
                 {writingAlbumTags ? $tr('library.writingTags') : $tr('library.writeTags')}
+              </button>
+            {/if}
+            {#if !$selectedAlbum.source || $selectedAlbum.source === 'local'}
+              <button
+                class="edit-btn"
+                onclick={() => $selectedAlbum?.id && handleReidentifyAlbum($selectedAlbum.id)}
+                disabled={reidentifyingAlbum}
+                title={$tr('library.reidentifyTip')}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+                {reidentifyingAlbum ? $tr('library.reidentifying') : $tr('library.reidentify')}
               </button>
             {/if}
             {#if $selectedAlbum.cover_path && $selectedAlbum.id}
