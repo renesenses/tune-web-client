@@ -2825,6 +2825,7 @@ export default {
   "favorites.localSource": "ローカル",
   "favorites.shuffle": "シャッフル",
   "favorites.sortBy": "並べ替え",
+  "favorites.sortDefault": "既定",
   "common.ascending": "昇順",
   "common.descending": "降順",
   "common.showMore": "もっと見る",

@@ -2827,6 +2827,7 @@ export default {
   "favorites.localSource": "本地",
   "favorites.shuffle": "随机播放",
   "favorites.sortBy": "排序方式",
+  "favorites.sortDefault": "默认",
   "common.ascending": "升序",
   "common.descending": "降序",
   "common.showMore": "查看更多",

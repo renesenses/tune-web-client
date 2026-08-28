@@ -2834,6 +2834,7 @@ export default {
   "favorites.localSource": "Local",
   "favorites.shuffle": "Aleatoriu",
   "favorites.sortBy": "Sortează după",
+  "favorites.sortDefault": "Implicit",
   "common.ascending": "Crescător",
   "common.descending": "Descrescător",
   "common.showMore": "Vezi mai mult",

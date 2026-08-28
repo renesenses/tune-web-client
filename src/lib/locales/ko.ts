@@ -2819,6 +2819,7 @@ export default {
   "favorites.localSource": "로컬",
   "favorites.shuffle": "셔플",
   "favorites.sortBy": "정렬 기준",
+  "favorites.sortDefault": "기본",
   "common.ascending": "오름차순",
   "common.descending": "내림차순",
   "common.showMore": "더 보기",

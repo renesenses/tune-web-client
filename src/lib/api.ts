@@ -2483,6 +2483,8 @@ export interface StreamingFavorite {
   artist?: string | null;
   album?: string | null;
   cover_url?: string | null;
+  /** Date de la mise en favori — le serveur la rend déjà (#2001). */
+  created_at?: string | null;
 }
 
 export function getProfileStreamingFavorites(
@@ -2884,6 +2886,13 @@ export function getTrack(id: number) {
 // `{ tracks: Track[], albums: Album[], artists: Artist[] }`. Adapt here: group
 // the ids by type, then expand each via its by-id endpoint. Failed lookups
 // (e.g. a favorited item since deleted) are dropped rather than breaking the set.
+//
+// ⚠️ La ligne de favori porte un `created_at` que la ré-hydratation laissait
+// tomber : l'écran ne recevait que l'objet de bibliothèque, dont le
+// `created_at` — quand il en a un — est la date d'IMPORT du morceau, pas celle
+// de la mise en favori. Impossible, dans ces conditions, de trier par date
+// d'ajout (#2001). Elle est donc reportée sur chaque objet sous le nom
+// `favorite_added_at`, qui ne peut se confondre avec rien.
 export async function getFavorites(
   profileId: number,
   type?: LocalFavoriteType,
@@ -2894,21 +2903,32 @@ export async function getFavorites(
   playlists: import('./types').Playlist[];
 }> {
   const q = type ? `?item_type=${type}` : '';
-  const rows = await fetchJSON<Array<{ item_type: string; item_id: number }>>(
-    `${BASE}/profiles/${profileId}/favorites${q}`,
-  );
+  const rows = await fetchJSON<
+    Array<{ item_type: string; item_id: number; created_at?: string | null }>
+  >(`${BASE}/profiles/${profileId}/favorites${q}`);
 
-  const ids = (t: string) => rows.filter((r) => r.item_type === t).map((r) => r.item_id);
-  const settle = async <T>(vals: number[], fetchOne: (id: number) => Promise<T>): Promise<T[]> => {
-    const res = await Promise.allSettled(vals.map(fetchOne));
-    return res.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
+  const lignes = (t: string) => rows.filter((r) => r.item_type === t);
+  // La date est prélevée sur la ligne d'INDEX i, celle-là même dont la
+  // relecture vient d'aboutir. Un `map` sur deux listes parallèles aurait
+  // décalé toutes les dates d'un cran dès la première relecture en échec — un
+  // favori supprimé suffit, et rien ne l'aurait signalé.
+  const settle = async <T>(
+    rs: Array<{ item_id: number; created_at?: string | null }>,
+    fetchOne: (id: number) => Promise<T>,
+  ): Promise<T[]> => {
+    const res = await Promise.allSettled(rs.map((r) => fetchOne(r.item_id)));
+    return res.flatMap((r, i) =>
+      r.status === 'fulfilled'
+        ? [{ ...r.value, favorite_added_at: rs[i].created_at ?? null }]
+        : [],
+    );
   };
 
   const [tracks, albums, artists, playlists] = await Promise.all([
-    settle(ids('track'), getTrack),
-    settle(ids('album'), getAlbum),
-    settle(ids('artist'), getArtist),
-    settle(ids('playlist'), getPlaylist),
+    settle(lignes('track'), getTrack),
+    settle(lignes('album'), getAlbum),
+    settle(lignes('artist'), getArtist),
+    settle(lignes('playlist'), getPlaylist),
   ]);
   return { tracks, albums, artists, playlists };
 }
