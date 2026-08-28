@@ -25,9 +25,18 @@
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
-  const showFilters = $derived(atLeast(level, 'intermediate'));
+  // FILTRER FAIT PARTIE DU GESTE DE BASE (Bertrand, 28/08 : « ou sont passes
+  // les filtres ?? »). Dans une app audiophile, choisir « FLAC » ou « 96 kHz »
+  // n'est pas une option avancee : c'est la facon normale de retrouver un
+  // album. Le compteur, la qualite et la frequence sont donc visibles des
+  // l'Essentiel. Ne restent en profondeur que ce qui demande de savoir ce
+  // qu'on cherche : format et profondeur de bits (Expert), tri et bascule
+  // d'affichage (Avance).
+  const showFilters = $derived(true);
   const showBadges = $derived(atLeast(level, 'intermediate'));
   const showExpert = $derived(atLeast(level, 'expert'));
+  /** Tri et bascule grille/liste : outils de confort, pas de recherche. */
+  const showTools = $derived(atLeast(level, 'intermediate'));
 
   // Fréquences en VALEURS EXACTES (jamais un seuil « ≥ »).
   const RATES: { v: number; l: string }[] = [
@@ -96,6 +105,8 @@
   // le seul repère, conformément au principe « seulement le plus pertinent ».
   type NavMode = 'alpha' | 'years';
   let navMode = $state<NavMode>('alpha');
+  /** La frise est un second repere de navigation : elle vient s'ajouter au
+   *  rail A-Z, elle ne le remplace pas. On la propose des l'Avance. */
   const showTimeline = $derived(atLeast(level, 'intermediate'));
 
   /** Année retenue pour un album : l'année d'ORIGINE prime sur celle de
@@ -397,7 +408,7 @@
       {/if}
     </div>
 
-    {#if showFilters && tab !== 'tracks'}
+    {#if showTools && tab !== 'tracks'}
       <div class="drop right">
         <button class="chip plain">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M4 12h7M4 18h4M17 5v14M14 16l3 3 3-3"/></svg>
