@@ -1411,6 +1411,7 @@ export default {
   "plugins.updateAvailable": "Elérhető frissítés",
   "plugins.version": "v{version}",
   "plugins.allPlugins": "Összes bővítmény",
+  "plugins.categoriesTitle": "Kategóriák",
   "plugins.categories.streaming": "Streaming",
   "plugins.categories.audio": "Hang",
   "plugins.categories.playback": "Lejátszás",

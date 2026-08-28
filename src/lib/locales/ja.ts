@@ -1225,6 +1225,7 @@ export default {
   'plugins.updateAvailable': '更新があります',
   'plugins.version': 'v{version}',
   'plugins.allPlugins': 'すべてのプラグイン',
+  'plugins.categoriesTitle': 'カテゴリー',
   'plugins.categories.streaming': 'ストリーミング',
   'plugins.categories.audio': 'オーディオ',
   'plugins.categories.playback': '再生',

@@ -1184,6 +1184,7 @@ export default {
   'plugins.updateAvailable': 'Uppdatering tillgänglig',
   'plugins.version': 'v{version}',
   'plugins.allPlugins': 'Alla tillägg',
+  'plugins.categoriesTitle': 'Kategorier',
   'plugins.categories.streaming': 'Streaming',
   'plugins.categories.audio': 'Ljud',
   'plugins.categories.playback': 'Uppspelning',

@@ -1200,6 +1200,7 @@ export default {
   'plugins.updateAvailable': '업데이트 가능',
   'plugins.version': 'v{version}',
   'plugins.allPlugins': '모든 플러그인',
+  'plugins.categoriesTitle': '카테고리',
   'plugins.categories.streaming': '스트리밍',
   'plugins.categories.audio': '오디오',
   'plugins.categories.playback': '재생',

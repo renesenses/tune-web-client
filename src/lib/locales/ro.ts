@@ -1235,6 +1235,7 @@ export default {
   'plugins.updateAvailable': 'Actualizare disponibilă',
   'plugins.version': 'v{version}',
   'plugins.allPlugins': 'Toate pluginurile',
+  'plugins.categoriesTitle': 'Categorii',
   'plugins.categories.streaming': 'Streaming',
   'plugins.categories.audio': 'Audio',
   'plugins.categories.playback': 'Redare',

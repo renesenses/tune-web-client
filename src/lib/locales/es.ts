@@ -1225,6 +1225,7 @@ export default {
   'plugins.updateAvailable': 'Actualización disponible',
   'plugins.version': 'v{version}',
   'plugins.allPlugins': 'Todos los plugins',
+  'plugins.categoriesTitle': 'Categorías',
   'plugins.categories.streaming': 'Streaming',
   'plugins.categories.audio': 'Audio',
   'plugins.categories.playback': 'Reproducción',
