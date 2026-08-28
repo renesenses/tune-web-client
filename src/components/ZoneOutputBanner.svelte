@@ -9,20 +9,39 @@
    * forum sur un défaut BluOS inexistant avant qu'on les lise.
    *
    * Le message dit quoi faire, pas seulement ce qui ne va pas.
+   *
+   * Encore faut-il pouvoir le lire. Sa visibilité était dérivée telle quelle
+   * de `output_reach`, un champ qui décrit l'instant présent : il retombe à
+   * `"ok"` dès que la zone quitte la lecture, si bien que le bandeau
+   * s'effaçait au geste même par lequel l'utilisateur réagissait au silence
+   * (#2588). La durée minimale d'affichage vit désormais dans
+   * `lib/bandeauLisible.ts`, avec sa justification — le composant se contente
+   * de lui transmettre ce que le serveur dit, et d'afficher ce qu'elle rend.
    */
+  import { onDestroy } from 'svelte';
   import { t } from '../lib/i18n';
   import { activeView } from '../lib/stores/navigation';
+  import { creerBandeauLisible } from '../lib/bandeauLisible';
   import type { Zone } from '../lib/types';
 
   let { zone }: { zone: Zone | null } = $props();
 
-  // Un serveur plus ancien n'envoie pas le champ : pas de champ, pas de
-  // bandeau. On ne devine rien à partir de `online`.
-  let reach = $derived(zone?.output_reach);
-  let visible = $derived(reach === 'no_output' || reach === 'browser_unattended');
+  const bandeau = creerBandeauLisible();
+  const motif = bandeau.affiche;
+
+  // `$effect.pre`, et pas `$effect` : il court AVANT la mise à jour du DOM,
+  // donc le premier état est transmis à temps pour la première image. Avec un
+  // `$effect` ordinaire, le montage rend un bandeau vide et ne le corrige
+  // qu'au balayage suivant — visible au rechargement, puisque `App.svelte`
+  // demande `/zones` dès `onMount` (App.svelte:790) et que la réponse est
+  // donc déjà là. Vérifié : sans `pre`, le rendu initial est vide.
+  $effect.pre(() => {
+    bandeau.signaler(zone?.id ?? null, zone?.output_reach);
+  });
+  onDestroy(() => bandeau.detruire());
 </script>
 
-{#if visible}
+{#if $motif}
   <div class="zone-output-banner" role="status">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" aria-hidden="true">
       <path d="M11 5 6 9H2v6h4l5 4V5z" />
@@ -30,11 +49,11 @@
       <line x1="17" y1="9" x2="23" y2="15" />
     </svg>
     <span>
-      {reach === 'no_output'
+      {$motif === 'no_output'
         ? $t('zone.noOutputBanner')
         : $t('zone.browserUnattendedBanner')}
     </span>
-    {#if reach === 'no_output'}
+    {#if $motif === 'no_output'}
       <button class="zone-output-banner-action" onclick={() => activeView.set('zonemanager')}>
         {$t('zone.noOutputBannerAction')}
       </button>
