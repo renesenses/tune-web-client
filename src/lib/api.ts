@@ -4348,11 +4348,29 @@ export function ssoDisconnect(): Promise<{ status?: string }> {
 
 // --- Support Premium v2 (fil de tickets hébergé sur mozaiklabs.fr) ---
 //
-// Le suivi de conversation parle directement à mozaiklabs.fr (contrat en cours
-// de déploiement côté serveur) ; la CRÉATION de ticket, elle, passe toujours
-// par le serveur Tune local (POST /support/tickets), qui joint la licence.
-// Tant que le serveur mozaiklabs n'est pas déployé, ces appels échouent
-// (404/CORS) : les appelants doivent dégrader en douceur, jamais casser l'écran.
+// TOUT passe par le RELAIS du serveur Tune local (#2559). Le contournement
+// historique — parler en direct à mozaiklabs.fr « tant que le contrat n'est pas
+// déployé côté serveur » — n'a plus lieu d'être : `tune-server` expose les
+// routes depuis `routes/support.rs`, et la CRÉATION de ticket les empruntait
+// déjà.
+//
+// Trois raisons de ne plus jamais appeler mozaiklabs.fr depuis la page :
+//
+//  1. **CORS.** Une page servie depuis `http://192.168.1.18:8888` n'est pas de
+//     la même origine que `https://mozaiklabs.fr` : le navigateur refuse de
+//     lire la réponse. C'est l'usage NORMAL — ouvrir Tune par l'adresse de son
+//     serveur — donc le suivi des tickets ne s'affichait jamais.
+//
+//  2. **La clé de licence circulait dans l'URL** (`?license_key=…`) : barre
+//     d'adresse, historique, journaux d'accès. Le relais local n'en a pas
+//     besoin, il résout la licence depuis ses propres réglages (`auth()` dans
+//     `routes/support.rs`).
+//
+//  3. **Le compteur de débit de mozaiklabs était consommé pour rien.** CORS
+//     s'applique APRÈS la réponse : la requête atteignait Laravel et y était
+//     traitée — la console affichait `net::ERR_FAILED 200 (OK)`, donc un
+//     statut 200. Chaque client du parc rejouait cet appel à chaque changement
+//     d'écran.
 
 export const MOZAIKLABS_API = 'https://mozaiklabs.fr/api/v1';
 
@@ -4394,24 +4412,43 @@ async function mozaikFetch(path: string, options?: RequestInit): Promise<any> {
   return JSON.parse(text);
 }
 
-export function getSupportTickets(licenseKey: string): Promise<{ tickets: SupportTicketSummary[] }> {
-  return mozaikFetch(`/support/tickets?license_key=${encodeURIComponent(licenseKey)}`);
+export function getSupportTickets(_licenseKey?: string): Promise<{ tickets: SupportTicketSummary[] }> {
+  // La clé n'est plus transmise : le relais local la résout lui-même. Le
+  // paramètre reste accepté pour ne pas casser les appelants, et ignoré.
+  return fetchJSON<{ tickets: SupportTicketSummary[] }>(`${BASE}/support/tickets`);
 }
 
 export function getSupportTicket(
   id: number,
-  licenseKey: string,
+  _licenseKey?: string,
 ): Promise<{ ticket: SupportTicketSummary; replies: SupportTicketReply[] }> {
-  return mozaikFetch(`/support/tickets/${id}?license_key=${encodeURIComponent(licenseKey)}`);
+  return fetchJSON<{ ticket: SupportTicketSummary; replies: SupportTicketReply[] }>(
+    `${BASE}/support/tickets/${id}`,
+  );
 }
 
-export function postSupportTicketReply(id: number, licenseKey: string, body: string): Promise<any> {
-  return mozaikFetch(`/support/tickets/${id}/replies`, {
+export function postSupportTicketReply(id: number, _licenseKey: string, body: string): Promise<any> {
+  // `/reply` au singulier : c'est le chemin exposé par le relais local
+  // (`routes/support.rs`). L'ancien `/replies` était celui de mozaiklabs.
+  return fetchJSON<any>(`${BASE}/support/tickets/${id}/reply`, {
     method: 'POST',
-    body: JSON.stringify({ license_key: licenseKey, body }),
+    body: JSON.stringify({ body }),
   });
 }
 
+/**
+ * ⚠️ SEUL appel encore dirigé vers mozaiklabs.fr, et donc seul à rester bloqué
+ * par CORS depuis une adresse locale (#2559).
+ *
+ * Le relais du serveur Tune n'expose PAS `/tickets/{id}/read` — vérifié dans
+ * `routes/support.rs`, qui déclare `/tickets`, `/tickets/{id}` et
+ * `/tickets/{id}/reply`, et dans `tune-core/src/cloud/support.rs`, qui n'a pas
+ * d'équivalent de `mark_read`. Le router par le relais suppose donc d'ajouter
+ * la route côté serveur : c'est un travail distinct, dans un autre dépôt.
+ *
+ * L'échec est déjà avalé par l'appelant — marquer comme lu n'est pas critique,
+ * seul le compteur de non-lus reste en retard.
+ */
 export function markSupportTicketRead(id: number, licenseKey: string): Promise<any> {
   return mozaikFetch(`/support/tickets/${id}/read`, {
     method: 'POST',
