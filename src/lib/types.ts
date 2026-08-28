@@ -97,6 +97,10 @@ export interface Track {
   album_artist?: string | null;
   disc_number?: number;
   disc_subtitle?: string | null;
+  /** Tag GROUPING / TIT1 / ©grp — découpe les pistes en sections À L'INTÉRIEUR
+   *  d'un disque (mouvements, bonus, ensembles), là où `disc_subtitle` nomme le
+   *  disque entier. Absent de la réponse quand la piste n'en porte pas (#2130). */
+  grouping?: string | null;
   track_number?: number;
   duration_ms?: number;
   file_path?: string | null;
@@ -224,6 +228,11 @@ export interface Zone {
   current_track?: NowPlaying | null;
   position_ms?: number;
   queue_length?: number;
+  /** Index de la piste en cours dans la file. Porté par `GET /zones/{id}` (pas
+   *  par la liste `/zones`) et par les événements `playback.started` /
+   *  `playback.track_changed` : il évite de retélécharger la file entière à
+   *  chaque avance de piste (#1096). Absent des serveurs plus anciens. */
+  queue_position?: number;
   signal_path?: SignalPath | null;
   stereo_pair_id?: string | null;
   stereo_channel?: 'left' | 'right' | null;
@@ -488,6 +497,10 @@ export interface SystemHealth {
   // Server /system/health does not currently send a components map; keep optional
   // so the Diagnostics view degrades gracefully instead of crashing on render.
   components?: Record<string, boolean>;
+  version?: string;
+  /** Nom lisible de la machine qui répond (#2110). Optionnel : un serveur plus
+   *  ancien que le correctif ne l'envoie pas, et l'étiquette s'efface alors. */
+  server_name?: string;
 }
 
 /** Réglage booléen tel que /system/config peut réellement le renvoyer.
@@ -538,6 +551,10 @@ export interface SystemConfig {
   appliance?: boolean;
   // Access URLs from another device (IP + .local) — shown in Settings
   server_urls?: string[];
+  /** Nom lisible de CETTE machine (#2110), réglable, par défaut le nom d'hôte.
+   *  Répond à « à quel serveur je parle ? » — à ne pas confondre avec la zone,
+   *  qui répond à « quelle enceinte joue ? ». */
+  server_name?: string;
   // Database
   db_engine: string;
   db_path?: string | null;

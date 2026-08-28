@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { doitReinitialiserLesParoles } from '../lib/nowPlayingLyricsReset';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
@@ -37,6 +38,12 @@
   let npCreditsTrackId: number | null = $state(null);
   let creditsEnriching = $state(false);
   let showLyrics = $state(false);
+  // Témoin de « la zone paroles a été remise à zéro pour cette piste ». DISTINCT
+  // de npLyricsTrackId, qui dit « les paroles de cette piste sont chargées ».
+  // Les confondre rouvrirait #2555 dans un sens ou dans l'autre : soit la garde
+  // ne se referme jamais (boucle d'effet), soit ouvrir le panneau ne charge
+  // plus rien. Voir lib/nowPlayingLyricsReset.ts.
+  let npLyricsResetPourId = $state<number | null>(null);
   let npLyrics: string | null = $state(null);
   /** Provenance annoncée par le serveur pour les paroles affichées ("lrc",
    *  "tag" ou "lrclib"). Elle traversait déjà la normalisation et s'arrêtait
@@ -592,6 +599,7 @@
       syncedLines = [];
       npLyricsTrackId = null;
       npLyricsRadioKey = null;
+      npLyricsResetPourId = null;
       karaokeMode = false;
       return;
     }
@@ -601,11 +609,15 @@
       npCredits = [];
       loadNpCredits(id);
     }
-    if (id !== npLyricsTrackId) {
+    if (doitReinitialiserLesParoles(id, npLyricsTrackId, npLyricsResetPourId)) {
       npLyrics = null; npLyricsSource = null;
       syncedLines = [];
       npLyricsRadioKey = null;
       karaokeMode = false;
+      // Referme la garde AVANT tout chargement : sans ce témoin elle restait
+      // vraie à chaque passage tant que le panneau était fermé, et l'effet
+      // réécrivait `syncedLines` — un tableau neuf — sans jamais converger.
+      npLyricsResetPourId = id;
       if (showLyrics) loadNpLyrics(id);
     }
   });
@@ -1682,7 +1694,7 @@
             bitDepth={displayTrack.bit_depth}
             format={displayTrack.format}
           />
-          <button class="viz-toggle-btn" onclick={() => vizMode = vizMode === 'spectrum' ? 'waveform' : 'spectrum'} title={vizMode === 'spectrum' ? 'Waveform' : 'Spectrum'}>
+          <button class="viz-toggle-btn" onclick={() => vizMode = vizMode === 'spectrum' ? 'waveform' : 'spectrum'} title={vizMode === 'spectrum' ? $t('player.showWaveform') : $t('player.showSpectrum')}>
             {#if vizMode === 'spectrum'}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12c4 0 6-6 10-6s6 6 10 6" /></svg>
             {:else}

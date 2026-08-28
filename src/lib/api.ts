@@ -5,6 +5,9 @@ import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
 import { locale, t } from './i18n';
 import { profileHeader } from './profileHeader';
+// `import type` : effacé à la compilation, donc aucun cycle à l'exécution
+// (`streamingFavorites` importe ce module-ci pour ses fonctions).
+import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -103,12 +106,14 @@ export function authHeaders(extra: Record<string, string> = {}): Record<string, 
  */
 export async function erreurDepuisReponse(resp: Response): Promise<Error> {
   let detail = '';
+  let corps: unknown = null;
   try {
     const texte = await resp.text();
     const t = texte.trim();
     if (t) {
       try {
         const j = JSON.parse(t);
+        corps = j;
         if (typeof j === 'string') detail = j;
         else detail = j?.error ?? j?.message ?? j?.detail ?? '';
       } catch {
@@ -123,7 +128,37 @@ export async function erreurDepuisReponse(resp: Response): Promise<Error> {
   detail = String(detail ?? '').trim();
   // Un stderr de mount.cifs peut etre long ; l'interface doit rester lisible.
   if (detail.length > 300) detail = detail.slice(0, 300) + '…';
-  return detail ? new Error(`${resp.status} — ${detail}`) : new Error(`${resp.status}`);
+  const err = (detail
+    ? new Error(`${resp.status} — ${detail}`)
+    : new Error(`${resp.status}`)) as ApiError;
+  // Le statut et le delai de reprise voyagent aussi en PROPRIETES : les lire
+  // dans le texte du message est fragile (un detail contenant « 403 » suffisait
+  // a detourner la traduction) et le `retry_after` d'un 429 s'y perdait
+  // entierement (#2178).
+  err.status = resp.status;
+  err.retryAfter = retryAfterDe(resp, corps);
+  return err;
+}
+
+/**
+ * Delai avant nouvelle tentative annonce sur un 429, en secondes.
+ *
+ * Deux sources, dans cet ordre : le champ `retry_after` du corps JSON — pose
+ * par le serveur Tune, qui l'a lu chez mozaiklabs — puis l'en-tete standard
+ * `Retry-After`. Le corps passe en premier parce qu'un en-tete de reponse n'est
+ * lisible en JavaScript que s'il est expose par CORS, ce qui n'est pas garanti
+ * derriere le relais.
+ *
+ * Rend `undefined` si rien n'est exploitable : l'interface dira « reessaie plus
+ * tard » plutot qu'un delai invente.
+ */
+function retryAfterDe(resp: Response, corps: unknown): number | undefined {
+  const duCorps = (corps as { retry_after?: unknown } | null)?.retry_after;
+  const secs =
+    typeof duCorps === 'number'
+      ? duCorps
+      : Number.parseInt(String(duCorps ?? resp.headers.get('Retry-After') ?? ''), 10);
+  return Number.isFinite(secs) && secs > 0 ? secs : undefined;
 }
 
 // Generic helpers for radio favorites and custom endpoints
@@ -201,6 +236,8 @@ export async function apiDelete(path: string): Promise<any> {
 export interface ApiError extends Error {
   code?: string;
   status?: number;
+  /** Secondes avant nouvelle tentative, sur un 429 qui l'annonce (#2178). */
+  retryAfter?: number;
 }
 
 async function apiError(response: Response): Promise<ApiError> {
@@ -2376,11 +2413,11 @@ export function getStreamingFavorites(service: string, type: 'tracks' | 'albums'
     });
 }
 
-export function addStreamingFavorite(service: string, type: 'tracks' | 'albums' | 'artists', itemId: string) {
+export function addStreamingFavorite(service: string, type: ServiceFavType, itemId: string) {
   return fetchJSON<{ok: boolean}>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}/${encodeURIComponent(itemId)}`, { method: 'POST' });
 }
 
-export function removeStreamingFavorite(service: string, type: 'tracks' | 'albums' | 'artists', itemId: string) {
+export function removeStreamingFavorite(service: string, type: ServiceFavType, itemId: string) {
   return fetchJSON<{ok: boolean}>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}/${encodeURIComponent(itemId)}`, { method: 'DELETE' });
 }
 
@@ -2392,7 +2429,7 @@ export function removeStreamingFavorite(service: string, type: 'tracks' | 'album
 export interface StreamingFavorite {
   id: number;
   profile_id: number;
-  item_type: 'track' | 'album' | 'artist';
+  item_type: StreamingItemType;
   service: string;
   service_id: string;
   title?: string | null;
@@ -2403,7 +2440,7 @@ export interface StreamingFavorite {
 
 export function getProfileStreamingFavorites(
   profileId: number,
-  type?: 'track' | 'album' | 'artist',
+  type?: StreamingItemType,
 ): Promise<StreamingFavorite[]> {
   const q = type ? `?item_type=${type}` : '';
   return fetchJSON<StreamingFavorite[]>(`${BASE}/profiles/${profileId}/favorites/streaming${q}`);
@@ -2412,7 +2449,7 @@ export function getProfileStreamingFavorites(
 export function addProfileStreamingFavorite(
   profileId: number,
   fav: {
-    item_type: 'track' | 'album' | 'artist';
+    item_type: StreamingItemType;
     service: string;
     service_id: string;
     title?: string;
@@ -2429,7 +2466,7 @@ export function addProfileStreamingFavorite(
 
 export function removeProfileStreamingFavorite(
   profileId: number,
-  params: { item_type: 'track' | 'album' | 'artist'; service: string; service_id: string },
+  params: { item_type: StreamingItemType; service: string; service_id: string },
 ) {
   return fetchVoid(`${BASE}/profiles/${profileId}/favorites/streaming/remove`, {
     method: 'POST',
@@ -3547,6 +3584,18 @@ export function enrichArtistImages() {
   );
 }
 
+// Force re-fetch of EVERY artist's image, ignoring the "already has an image"
+// guard — for libraries where image_path points at stale entries that never
+// render, so the normal pass above skips them forever (Fabien: full scan, still
+// no artist images). Same background task and same status endpoint as the
+// normal pass, so the progress polling below covers this run too.
+export function forceRefetchArtistImages() {
+  return fetchJSON<{ status: string; message?: string; artists?: number }>(
+    `${BASE}/library/artwork/enrich-artists/force`,
+    { method: 'POST' }
+  );
+}
+
 // Progress of the (async, background) artist-image enrichment. The POST above
 // returns 202 immediately; the real work — MBID matching then image fetch —
 // runs for minutes. `result` mirrors the `artist_artwork_enrich_result` setting
@@ -4285,6 +4334,27 @@ export interface LicenseSessionConflict {
   active_since: string | null;
 }
 
+/**
+ * Grâce hors ligne (#1999). Tune tolère une coupure réseau prolongée avant de
+ * suspendre le Premium ; ce bloc dit à l'utilisateur qu'il est couvert, depuis
+ * quand et jusqu'à quand. Purement descriptif — le serveur n'a rien durci.
+ * `null` quand la question ne se pose pas (Free, ou abonnement réellement échu).
+ * Ne contient jamais la clé ni un identifiant d'achat.
+ */
+export interface LicenseOfflineGrace {
+  /** `ok` = vérifié récemment · `grace` = hors ligne, Premium intact · `expired` = Premium en pause. */
+  phase: 'ok' | 'grace' | 'expired';
+  source: 'key' | 'account';
+  /** Dernière vérification en ligne réussie (ISO-8601). `null` = jamais. */
+  since: string | null;
+  /** Fin de la fenêtre de tolérance (ISO-8601). */
+  until: string | null;
+  days_remaining: number;
+  /** Durée totale de la tolérance, en jours — le chiffre à afficher. */
+  total_days: number;
+  days_since_validation: number;
+}
+
 export interface LicenseStatus {
   tier: string;
   license_key: string | null;
@@ -4294,6 +4364,8 @@ export interface LicenseStatus {
   hardware_fingerprint: string | null;
   /** Null unless the licence is active on another server right now. */
   session_conflict?: LicenseSessionConflict | null;
+  /** Null unless premium entitlements are in play — see LicenseOfflineGrace. */
+  offline_grace?: LicenseOfflineGrace | null;
 }
 
 export interface LicenseActivateResponse {
@@ -4333,11 +4405,29 @@ export function ssoDisconnect(): Promise<{ status?: string }> {
 
 // --- Support Premium v2 (fil de tickets hébergé sur mozaiklabs.fr) ---
 //
-// Le suivi de conversation parle directement à mozaiklabs.fr (contrat en cours
-// de déploiement côté serveur) ; la CRÉATION de ticket, elle, passe toujours
-// par le serveur Tune local (POST /support/tickets), qui joint la licence.
-// Tant que le serveur mozaiklabs n'est pas déployé, ces appels échouent
-// (404/CORS) : les appelants doivent dégrader en douceur, jamais casser l'écran.
+// TOUT passe par le RELAIS du serveur Tune local (#2559). Le contournement
+// historique — parler en direct à mozaiklabs.fr « tant que le contrat n'est pas
+// déployé côté serveur » — n'a plus lieu d'être : `tune-server` expose les
+// routes depuis `routes/support.rs`, et la CRÉATION de ticket les empruntait
+// déjà.
+//
+// Trois raisons de ne plus jamais appeler mozaiklabs.fr depuis la page :
+//
+//  1. **CORS.** Une page servie depuis `http://192.168.1.18:8888` n'est pas de
+//     la même origine que `https://mozaiklabs.fr` : le navigateur refuse de
+//     lire la réponse. C'est l'usage NORMAL — ouvrir Tune par l'adresse de son
+//     serveur — donc le suivi des tickets ne s'affichait jamais.
+//
+//  2. **La clé de licence circulait dans l'URL** (`?license_key=…`) : barre
+//     d'adresse, historique, journaux d'accès. Le relais local n'en a pas
+//     besoin, il résout la licence depuis ses propres réglages (`auth()` dans
+//     `routes/support.rs`).
+//
+//  3. **Le compteur de débit de mozaiklabs était consommé pour rien.** CORS
+//     s'applique APRÈS la réponse : la requête atteignait Laravel et y était
+//     traitée — la console affichait `net::ERR_FAILED 200 (OK)`, donc un
+//     statut 200. Chaque client du parc rejouait cet appel à chaque changement
+//     d'écran.
 
 export const MOZAIKLABS_API = 'https://mozaiklabs.fr/api/v1';
 
@@ -4372,6 +4462,12 @@ async function mozaikFetch(path: string, options?: RequestInit): Promise<any> {
   if (!resp.ok) {
     const err = new Error(`${resp.status}`) as ApiError;
     err.status = resp.status;
+    // Appel DIRECT à mozaiklabs : `Retry-After` n'est lisible que si le site
+    // l'expose par CORS, d'où le repli sur le corps. Absent ⇒ `undefined`, et
+    // l'écran dit « réessaie plus tard » sans inventer de délai (#2178).
+    let corps: unknown = null;
+    try { corps = JSON.parse(await resp.clone().text()); } catch { /* corps non JSON */ }
+    err.retryAfter = retryAfterDe(resp, corps);
     throw err;
   }
   const text = await resp.text();
@@ -4379,24 +4475,43 @@ async function mozaikFetch(path: string, options?: RequestInit): Promise<any> {
   return JSON.parse(text);
 }
 
-export function getSupportTickets(licenseKey: string): Promise<{ tickets: SupportTicketSummary[] }> {
-  return mozaikFetch(`/support/tickets?license_key=${encodeURIComponent(licenseKey)}`);
+export function getSupportTickets(_licenseKey?: string): Promise<{ tickets: SupportTicketSummary[] }> {
+  // La clé n'est plus transmise : le relais local la résout lui-même. Le
+  // paramètre reste accepté pour ne pas casser les appelants, et ignoré.
+  return fetchJSON<{ tickets: SupportTicketSummary[] }>(`${BASE}/support/tickets`);
 }
 
 export function getSupportTicket(
   id: number,
-  licenseKey: string,
+  _licenseKey?: string,
 ): Promise<{ ticket: SupportTicketSummary; replies: SupportTicketReply[] }> {
-  return mozaikFetch(`/support/tickets/${id}?license_key=${encodeURIComponent(licenseKey)}`);
+  return fetchJSON<{ ticket: SupportTicketSummary; replies: SupportTicketReply[] }>(
+    `${BASE}/support/tickets/${id}`,
+  );
 }
 
-export function postSupportTicketReply(id: number, licenseKey: string, body: string): Promise<any> {
-  return mozaikFetch(`/support/tickets/${id}/replies`, {
+export function postSupportTicketReply(id: number, _licenseKey: string, body: string): Promise<any> {
+  // `/reply` au singulier : c'est le chemin exposé par le relais local
+  // (`routes/support.rs`). L'ancien `/replies` était celui de mozaiklabs.
+  return fetchJSON<any>(`${BASE}/support/tickets/${id}/reply`, {
     method: 'POST',
-    body: JSON.stringify({ license_key: licenseKey, body }),
+    body: JSON.stringify({ body }),
   });
 }
 
+/**
+ * ⚠️ SEUL appel encore dirigé vers mozaiklabs.fr, et donc seul à rester bloqué
+ * par CORS depuis une adresse locale (#2559).
+ *
+ * Le relais du serveur Tune n'expose PAS `/tickets/{id}/read` — vérifié dans
+ * `routes/support.rs`, qui déclare `/tickets`, `/tickets/{id}` et
+ * `/tickets/{id}/reply`, et dans `tune-core/src/cloud/support.rs`, qui n'a pas
+ * d'équivalent de `mark_read`. Le router par le relais suppose donc d'ajouter
+ * la route côté serveur : c'est un travail distinct, dans un autre dépôt.
+ *
+ * L'échec est déjà avalé par l'appelant — marquer comme lu n'est pas critique,
+ * seul le compteur de non-lus reste en retard.
+ */
 export function markSupportTicketRead(id: number, licenseKey: string): Promise<any> {
   return mozaikFetch(`/support/tickets/${id}/read`, {
     method: 'POST',
@@ -4426,12 +4541,17 @@ export async function createSupportTicketMultipart(form: FormData): Promise<any>
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
   if (!resp.ok) {
     let message = `${resp.status}`;
+    let corps: unknown = null;
     try {
-      const data = await resp.json();
+      corps = await resp.json();
+      const data = corps as { message?: string } | null;
       if (data?.message) message = data.message;
     } catch { /* pas de corps JSON exploitable */ }
     const err = new Error(message) as ApiError;
     err.status = resp.status;
+    // Limite d'envoi atteinte : le délai remonté par le serveur doit survivre
+    // jusqu'au message affiché, sinon l'écran ne sait pas quand réessayer (#2178).
+    err.retryAfter = retryAfterDe(resp, corps);
     throw err;
   }
   const text = await resp.text();
