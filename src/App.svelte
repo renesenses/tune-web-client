@@ -6,6 +6,12 @@
   import { isBrowserZone, browserPlay, browserPause, browserResume, browserStop } from './lib/stores/browserAudio';
   import { seekPositionMs, startSeekTimer, stopSeekTimer, shuffleEnabled, repeatMode, nowPlayingToTrack } from './lib/stores/nowPlaying';
   import { mergeTransport, type TransportState } from './lib/transportSync';
+  import {
+    positionFileAnnoncee,
+    doitRechargerLaFileEntiere,
+    doitReessayerCheminSignal,
+    delaiEssaiCheminSignal,
+  } from './lib/suiviPisteEnCours';
   import { queueTracks, queuePosition, queueLength } from './lib/stores/queue';
   import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
   import { connectionState, reconnectAttempts } from './lib/stores/connection';
@@ -329,6 +335,22 @@ import AlarmsView from './components/AlarmsView.svelte';
     }
   }
 
+  /**
+   * Vrai dès qu'on a vu le serveur annoncer la position dans la file —
+   * l'événement de lecture la porte, et `GET /zones/{id}` aussi. Tant qu'on ne
+   * l'a pas vue, un changement de piste continue de recharger la file entière,
+   * pour qu'un serveur plus ancien garde une surbrillance juste quel que soit
+   * l'ordre de déploiement (#1096).
+   */
+  let serveurPorteLaPositionDeFile = false;
+
+  /**
+   * Génération courante de la chaîne de rattrapage du chemin du signal, par
+   * zone. Sauter dix pistes d'affilée empilerait sinon dix chaînes de six
+   * requêtes ; seule la dernière a encore un badge à réparer.
+   */
+  const generationCheminSignal = new Map<number, number>();
+
   async function fetchQueue() {
     let zoneId: number | null = null;
     currentZone.subscribe((z) => (zoneId = z?.id ?? null))();
@@ -424,6 +446,15 @@ import AlarmsView from './components/AlarmsView.svelte';
         curZone?.id === zoneId ||
         (zone.group_id != null && curZone?.group_id === zone.group_id);
       if (isCurrentOrGroupMember) {
+        // Second porteur de la position : la réponse REST. Elle sert de filet
+        // quand l'événement ne l'a pas portée (piste lancée depuis une autre
+        // télécommande, reprise après reconnexion) et fait tomber le
+        // rechargement complet dès la première réponse (#1096).
+        const positionZone = positionFileAnnoncee(zone);
+        if (positionZone !== null) {
+          serveurPorteLaPositionDeFile = true;
+          queuePosition.set(positionZone);
+        }
         if (zone.state === 'playing') {
           startSeekTimer();
           // Apply drift filter: only correct the interpolated position when
@@ -938,11 +969,45 @@ import AlarmsView from './components/AlarmsView.svelte';
               seekPositionMs.set(0);
               startSeekTimer();
             }
-            // Refresh queue on playback start / track change so the queue
-            // view shows the full list and the correct current position.
-            // The server does not emit playback.queue_changed when a
-            // streaming playlist begins or advances to the next track.
-            fetchQueue();
+            // Surbrillance de la file. Le serveur pose l'index AVANT d'émettre,
+            // pour que l'événement le porte : on le prend tel quel, sans le
+            // moindre aller-retour. Ce n'est qu'à défaut — démarrage de
+            // lecture, où le contenu peut être neuf, ou serveur qui ne porte
+            // pas la position — qu'on redemande la file ENTIÈRE, dont le
+            // rechargement à chaque avance figeait l'écran sous une grande file
+            // aléatoire (#1096).
+            const positionEvenement = positionFileAnnoncee(event.data);
+            if (positionEvenement !== null) {
+              serveurPorteLaPositionDeFile = true;
+              if (isCurrentZoneEvent) queuePosition.set(positionEvenement);
+            }
+            if (doitRechargerLaFileEntiere(type, serveurPorteLaPositionDeFile)) {
+              fetchQueue();
+            }
+
+            // Badge bit-perfect de la PREMIÈRE piste d'une zone démarrée à
+            // froid : la réponse autoritaire peut arriver avant que la zone ait
+            // fini de passer en lecture, et `signal_path` revient nul (#72). On
+            // relance la synchro tant qu'il manque, sans renoncer sur un état
+            // transitoire — c'était le défaut du premier correctif sur un
+            // démarrage lent (#75). Sans effet dès que le chemin est là, donc
+            // gratuit dans le cas courant (2ᵉ piste et suivantes).
+            const generation = (generationCheminSignal.get(zoneId) ?? 0) + 1;
+            generationCheminSignal.set(zoneId, generation);
+            let essaisCheminSignal = 0;
+            const assurerCheminSignal = () => {
+              // Une piste plus récente a pris la main : cette chaîne-ci n'a plus
+              // rien à réparer, et l'empiler reviendrait à lancer six requêtes
+              // par piste sautée.
+              if (generationCheminSignal.get(zoneId) !== generation) return;
+              const z = get(zones).find((zz) => zz.id === zoneId);
+              if (!doitReessayerCheminSignal(z, essaisCheminSignal)) return;
+              essaisCheminSignal++;
+              setTimeout(() => {
+                syncZoneState(zoneId).then(assurerCheminSignal);
+              }, delaiEssaiCheminSignal(essaisCheminSignal));
+            };
+            assurerCheminSignal();
           }
           // Fetch full zone state from API (authoritative update)
           syncZoneState(zoneId).then(() => {

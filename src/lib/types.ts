@@ -224,6 +224,11 @@ export interface Zone {
   current_track?: NowPlaying | null;
   position_ms?: number;
   queue_length?: number;
+  /** Index de la piste en cours dans la file. Porté par `GET /zones/{id}` (pas
+   *  par la liste `/zones`) et par les événements `playback.started` /
+   *  `playback.track_changed` : il évite de retélécharger la file entière à
+   *  chaque avance de piste (#1096). Absent des serveurs plus anciens. */
+  queue_position?: number;
   signal_path?: SignalPath | null;
   stereo_pair_id?: string | null;
   stereo_channel?: 'left' | 'right' | null;
