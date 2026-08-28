@@ -53,8 +53,6 @@ export const SETTING_LEVELS = {
   'general.streamingQuality': { tab: 'general', level: 'beginner' },
   'general.loopByDefault': { tab: 'general', level: 'beginner' },
   'general.lockVolume': { tab: 'general', level: 'intermediate' },
-  'general.crossfade': { tab: 'general', level: 'intermediate' },
-  'general.crossfadeDuration': { tab: 'general', level: 'intermediate', sub: true },
   'general.volumeDisplay': { tab: 'general', level: 'intermediate' },
   'general.voiceCommand': { tab: 'general', level: 'intermediate' },
 
