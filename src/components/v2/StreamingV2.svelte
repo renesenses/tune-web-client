@@ -2,104 +2,192 @@
   /**
    * Streaming — nouveau client (direction Levente).
    *
-   * Niveau Avancé. Hub des services : leur état réel, leurs playlists, et une
-   * recherche dans le service choisi.
+   * Entrée du NOYAU (Bertrand, 28/08) : pour qui écoute surtout en ligne,
+   * c'est la porte d'entrée principale.
    *
-   * PÉRIMÈTRE ASSUMÉ. L'écran actuel couvre aussi la navigation profonde
-   * (pages artiste, genres, discographies). Elle n'est PAS reprise ici : la
-   * Recherche v2 en couvre déjà l'essentiel, et prétendre le contraire avec
-   * des rubriques creuses serait pire qu'un renvoi honnête.
+   * TROIS RÈGLES POSÉES PAR BERTRAND :
    *
-   * L'authentification n'est jamais demandée ici : elle vit dans
-   * Réglages → Accès et jetons. Cet écran se contente de DIRE qu'elle manque
-   * et d'y emmener — un service non authentifié qui affiche une grille vide
-   * est le pire des deux mondes.
+   *  1. Seuls les services CONNECTÉS ont un onglet. Un service désactivé ou
+   *     non authentifié n'a rien à montrer ; lui donner un onglet, c'était
+   *     promettre du contenu et livrer un message d'erreur. La connexion se
+   *     fait dans Réglages → Accès et jetons, et l'écran y renvoie quand il
+   *     n'y a aucun service utilisable.
+   *
+   *  2. Deux vues par service : ÉDITORIAL (ce que le service met en avant) et
+   *     MON <SERVICE> (mes playlists et mes favoris). C'est la distinction
+   *     que font les applications natives, et elle correspond à deux gestes
+   *     différents : découvrir, ou retrouver.
+   *
+   *  3. BANDCAMP est un service comme les autres ici. Il n'est PAS
+   *     authentifié comme les autres (c'est une extension serveur) : on teste
+   *     donc s'il répond réellement, et on ne l'affiche que dans ce cas.
+   *     Son éditorial est la découverte par tag, son « chez moi » est la
+   *     collection d'achats.
    */
   import * as api from '../../lib/api';
   import { currentZoneId } from '../../lib/stores/zones';
   import { activeView } from '../../lib/stores/navigation';
-  import { preferences } from '../../lib/stores/preferences';
-  import { atLeast } from '../../lib/uiLevel';
   import type { StreamingServiceStatus, StreamingPlaylist, SearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import '../../styles/tune-v2.css';
 
-  const level = $derived($preferences.settingsLevel);
-  const showExpert = $derived(atLeast(level, 'expert'));
+  const BANDCAMP = '__bandcamp__';
 
   let services = $state<Record<string, StreamingServiceStatus>>({});
+  let bandcampLive = $state(false);
   let loading = $state(true);
   let error = $state<string | null>(null);
-  let active = $state<string | null>(null);
 
-  let mine = $state<StreamingPlaylist[]>([]);
-  let featured = $state<any[]>([]);
-  let contentLoading = $state(false);
+  let active = $state<string | null>(null);
+  // « Mon <service> » chargeait playlists ET favoris d'un bloc — 286 cartes
+  // sur Qobuz. Deux gestes differents, deux onglets (Bertrand, 28/08).
+  // Bandcamp garde deux entrees seulement : il n'a pas de playlists, sa
+  // « collection » EST l'ensemble de ce qu'on y possede.
+  type Sub = 'editorial' | 'playlists' | 'favorites' | 'mine';
+  let sub = $state<Sub>('editorial');
 
   let q = $state('');
   let results = $state<SearchResult | null>(null);
+  let bcSearch = $state<any | null>(null);
   let searching = $state(false);
   let seq = 0;
 
+  // Éditorial
+  let featured = $state<any[]>([]);
+  let bcTags = $state<string[]>([]);
+  let bcTag = $state<string>('');
+  let bcItems = $state<any[]>([]);
+  // Chez moi
+  let myPlaylists = $state<StreamingPlaylist[]>([]);
+  let favAlbums = $state<any[]>([]);
+  let favArtists = $state<any[]>([]);
+  let favTracks = $state<any[]>([]);
+  let bcCollection = $state<any[]>([]);
+  let paneLoading = $state(false);
+
+  /** Un service n'entre dans les onglets que s'il est ACTIVÉ ET CONNECTÉ. */
+  const connected = $derived(
+    Object.entries(services).filter(([, v]) => v.enabled && v.authenticated).map(([k]) => k)
+  );
+  const tabs = $derived([...connected, ...(bandcampLive ? [BANDCAMP] : [])]);
+  const isBc = $derived(active === BANDCAMP);
+  const SUBS = $derived<{ id: Sub; label: string }[]>(
+    isBc
+      ? [{ id: 'editorial', label: 'Découvrir' }, { id: 'mine', label: 'Ma collection' }]
+      : [{ id: 'editorial', label: 'Éditorial' },
+         { id: 'playlists', label: 'Playlists' },
+         { id: 'favorites', label: 'Favoris' }]
+  );
+  const label = (k: string) => (k === BANDCAMP ? 'Bandcamp' : k.charAt(0).toUpperCase() + k.slice(1));
+
   $effect(() => {
-    api.getStreamingServices()
-      .then((s) => {
-        services = s ?? {};
-        // On ouvre d'emblée le premier service UTILISABLE : proposer un
-        // service non authentifié comme entrée par défaut n'aide personne.
-        const usable = Object.entries(services).find(([, v]) => v.enabled && v.authenticated);
-        active = usable?.[0] ?? Object.keys(services)[0] ?? null;
-      })
-      .catch(() => { error = 'Services indisponibles.'; })
-      .finally(() => { loading = false; });
+    Promise.allSettled([
+      api.getStreamingServices(),
+      // Sonde FONCTIONNELLE : l'extension peut être installée sans être
+      // chargée (elle exige un redémarrage du serveur). Seule une réponse
+      // réelle prouve qu'elle est utilisable.
+      api.bandcampTags(),
+    ]).then(([svc, bc]) => {
+      if (svc.status === 'fulfilled') services = svc.value ?? {};
+      else error = 'Services indisponibles.';
+      if (bc.status === 'fulfilled') {
+        bandcampLive = true;
+        const tags = (bc.value as any)?.tags ?? bc.value ?? [];
+        bcTags = Array.isArray(tags) ? tags.map((t: any) => (typeof t === 'string' ? t : t?.tag ?? t?.name)).filter(Boolean) : [];
+        bcTag = bcTags[0] ?? '';
+      }
+      const first = Object.entries(services).find(([, v]) => v.enabled && v.authenticated)?.[0];
+      active = first ?? (bandcampLive ? BANDCAMP : null);
+    }).finally(() => { loading = false; });
   });
 
-  const status = $derived(active ? services[active] : null);
-  const usable = $derived(!!status?.enabled && !!status?.authenticated);
-
-  // Contenu du service : chargé seulement s'il est réellement utilisable.
+  /** Charge la vue courante. Rien ne part pour un onglet qu'on ne regarde pas. */
   $effect(() => {
-    const svc = active;
-    if (!svc || !usable) { mine = []; featured = []; return; }
-    contentLoading = true;
-    Promise.allSettled([api.getStreamingPlaylists(svc), api.getStreamingFeaturedPlaylists(svc)])
-      .then(([m, f]) => {
-        mine = m.status === 'fulfilled' ? (m.value ?? []) : [];
-        featured = f.status === 'fulfilled' ? ((f.value as any) ?? []) : [];
-      })
-      .finally(() => { contentLoading = false; });
+    const svc = active, view = sub, tag = bcTag;
+    if (!svc) return;
+    paneLoading = true;
+    featured = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcCollection = [];
+    const done = () => { paneLoading = false; };
+
+    if (svc === BANDCAMP) {
+      if (view === 'editorial') {
+        if (!tag) { done(); return; }
+        api.bandcampDiscover(tag).then((d: any) => { bcItems = d?.items ?? []; }).catch(() => {}).finally(done);
+      } else {
+        api.bandcampCollection().then((d: any) => { bcCollection = d?.items ?? d?.collection ?? []; })
+          .catch(() => { bcCollection = []; }).finally(done);
+      }
+      return;
+    }
+
+    if (view === 'editorial') {
+      api.getStreamingFeaturedPlaylists(svc)
+        .then((f: any) => { featured = f ?? []; }).catch(() => { featured = []; }).finally(done);
+
+    } else if (view === 'playlists') {
+      api.getStreamingPlaylists(svc)
+        .then((p) => { myPlaylists = p ?? []; }).catch(() => { myPlaylists = []; }).finally(done);
+
+    } else {
+      // Les trois natures de favoris partent ensemble : elles vivent sur le
+      // meme ecran, et les separer encore ferait trois allers-retours pour
+      // une seule question — « qu'est-ce que j'ai aime ? ».
+      Promise.allSettled([
+        api.getStreamingFavorites(svc, 'albums'),
+        api.getStreamingFavorites(svc, 'artists'),
+        api.getStreamingFavorites(svc, 'tracks'),
+      ]).then(([a, ar, tr]) => {
+        favAlbums = a.status === 'fulfilled' ? ((a.value as any)?.albums ?? []) : [];
+        favArtists = ar.status === 'fulfilled' ? ((ar.value as any)?.artists ?? []) : [];
+        favTracks = tr.status === 'fulfilled' ? ((tr.value as any)?.tracks ?? []) : [];
+      }).finally(done);
+    }
   });
 
-  // Recherche dans le service, débouncée.
+  // Recherche dans le service courant.
   $effect(() => {
     const svc = active, needle = q.trim();
-    if (!svc || !usable || needle.length < 2) { results = null; searching = false; return; }
-    const mine2 = ++seq;
+    if (!svc || needle.length < 2) { results = null; bcSearch = null; searching = false; return; }
+    const mine = ++seq;
     searching = true;
     const t = setTimeout(() => {
-      api.searchStreaming(svc, needle)
-        .then((r) => { if (mine2 === seq) results = r; })
-        .catch(() => { if (mine2 === seq) results = null; })
-        .finally(() => { if (mine2 === seq) searching = false; });
+      if (svc === BANDCAMP) {
+        api.bandcampSearch(needle).then((r) => { if (mine === seq) bcSearch = r; })
+          .catch(() => { if (mine === seq) bcSearch = null; })
+          .finally(() => { if (mine === seq) searching = false; });
+      } else {
+        api.searchStreaming(svc, needle).then((r) => { if (mine === seq) results = r; })
+          .catch(() => { if (mine === seq) results = null; })
+          .finally(() => { if (mine === seq) searching = false; });
+      }
     }, 260);
     return () => clearTimeout(t);
   });
 
   function playAlbum(a: any) {
     const zid = $currentZoneId;
-    if (zid == null || !active) return;
-    const sid = a?.source_id;
+    if (zid == null || !active || active === BANDCAMP) return;
+    const sid = a?.source_id ?? a?.id;
     if (sid) api.play(zid, { streaming_album_id: String(sid), source: active as any }).catch(() => { error = 'Lecture impossible.'; });
-    else if (a?.id != null) api.play(zid, { album_id: a.id }).catch(() => { error = 'Lecture impossible.'; });
   }
-  function playPlaylist(p: StreamingPlaylist) {
+  function playPlaylist(p: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
-    api.play(zid, { streaming_playlist_id: p.source_id, source: p.source }).catch(() => { error = 'Lecture impossible.'; });
+    api.play(zid, { streaming_playlist_id: String(p.source_id ?? p.id), source: (p.source ?? active) as any })
+      .catch(() => { error = 'Lecture impossible.'; });
   }
-  function pTitle(p: any): string { return p?.name ?? p?.title ?? 'Sans titre'; }
-  function pCover(p: any): string | null { return p?.cover_path ?? p?.image ?? p?.picture ?? null; }
-  function pId(p: any): string { return String(p?.source_id ?? p?.id ?? pTitle(p)); }
+  /** Bandcamp ne sert qu'un extrait mp3-128 : on le lit tel quel. */
+  function playBc(it: any) {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    if (!it?.extrait) { error = 'Aucun extrait disponible pour ce titre.'; return; }
+    api.play(zid, { file_path: it.extrait, title: it.titre, artist_name: it.artiste ?? null, cover_path: it.pochette ?? null })
+      .catch(() => { error = 'Lecture impossible.'; });
+  }
+
+  const pTitle = (p: any) => p?.name ?? p?.title ?? p?.titre ?? 'Sans titre';
+  const pCover = (p: any) => p?.cover_path ?? p?.image ?? p?.picture ?? p?.pochette ?? null;
+  const pSub = (p: any) => p?.artist_name ?? p?.artiste ?? (p?.track_count != null ? `${p.track_count} titres` : '');
 </script>
 
 <section class="v2-str tune-v2">
@@ -108,10 +196,10 @@
       <div class="eyebrow">Services</div>
       <h1>Streaming</h1>
     </div>
-    {#if usable}
+    {#if active}
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input placeholder={`Rechercher dans ${active}`} bind:value={q} />
+        <input placeholder={`Rechercher dans ${label(active)}`} bind:value={q} />
         {#if searching}<span class="spin" aria-hidden="true"></span>{/if}
       </div>
     {/if}
@@ -119,63 +207,66 @@
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
 
-  {#if !loading && Object.keys(services).length}
+  {#if tabs.length}
     <nav class="svcs">
-      {#each Object.entries(services) as [name, st] (name)}
-        <button class:on={active === name} onclick={() => { active = name; q = ''; results = null; }}>
-          {name}
-          <span class="st" class:ok={st.enabled && st.authenticated} class:off={!st.enabled}>
-            {!st.enabled ? 'désactivé' : st.authenticated ? 'connecté' : 'non connecté'}
-          </span>
+      {#each tabs as name (name)}
+        <button class:on={active === name} onclick={() => { active = name; sub = 'editorial'; q = ''; results = null; bcSearch = null; }}>
+          {label(name)}
+          {#if name !== BANDCAMP && services[name]?.username}<span class="who">{services[name].username}</span>{/if}
         </button>
       {/each}
     </nav>
+
+    {#if active}
+      <nav class="subs">
+        {#each SUBS as sb (sb.id)}
+          <button class:on={sub === sb.id} onclick={() => (sub = sb.id)}>{sb.label}</button>
+        {/each}
+      </nav>
+    {/if}
   {/if}
 
   <div class="scroll">
     {#if loading}
       <div class="state">Chargement des services…</div>
-    {:else if !Object.keys(services).length}
-      <div class="state">Aucun service de streaming configuré.</div>
-    {:else if !status}
-      <div class="state">Choisissez un service.</div>
-    {:else if !status.enabled}
-      <div class="notice">
-        <p><b>{active}</b> est désactivé sur ce serveur.</p>
-        <button class="lnk" onclick={() => activeView.set('settings')}>Ouvrir les réglages</button>
-      </div>
-    {:else if !status.authenticated}
-      <div class="notice">
-        <p>Vous n'êtes pas connecté à <b>{active}</b>. L'authentification se fait dans <b>Réglages → Accès et jetons</b>.</p>
-        <button class="lnk" onclick={() => activeView.set('settings')}>Ouvrir les réglages</button>
-      </div>
-    {:else}
-      {#if showExpert && (status.username || status.subscription)}
-        <div class="acct">
-          {#if status.username}<span>{status.username}</span>{/if}
-          {#if status.subscription}<span class="sub">{status.subscription}</span>{/if}
-        </div>
-      {/if}
 
-      {#if results}
+    {:else if !tabs.length}
+      <!-- Aucun service utilisable : on le dit et on emmene la ou ca se regle,
+           plutot que d'afficher des onglets qui ne montreront rien. -->
+      <div class="notice">
+        <p>Aucun service de streaming connecté.</p>
+        <p class="sub">
+          La connexion se fait dans <b>Réglages → Accès et jetons</b>. Les services
+          désactivés ou non connectés n'apparaissent pas ici.
+        </p>
+        <button class="lnk" onclick={() => activeView.set('settings')}>Ouvrir les réglages</button>
+      </div>
+
+    {:else if results || bcSearch}
+      {#if bcSearch}
+        {#if bcSearch.albums?.length}
+          <section class="sec"><h2>Albums</h2>
+            <div class="grid">{#each bcSearch.albums as a, i (a.url ?? i)}{@render tile(a, () => playBc(a))}{/each}</div>
+          </section>
+        {/if}
+        {#if bcSearch.pistes?.length}
+          <section class="sec"><h2>Titres</h2>
+            <div class="grid">{#each bcSearch.pistes as a, i (a.url ?? i)}{@render tile(a, () => playBc(a))}{/each}</div>
+          </section>
+        {/if}
+        {#if !bcSearch.albums?.length && !bcSearch.pistes?.length}
+          <div class="state">Aucun résultat sur Bandcamp.</div>
+        {/if}
+      {:else if results}
         {#if results.albums?.length}
           <section class="sec"><h2>Albums</h2>
-            <div class="grid">
-              {#each results.albums as a (a.source_id ?? a.id)}
-                <div class="card">
-                  <button class="open" onclick={() => playAlbum(a)} aria-label={`Lire ${a.title}`}></button>
-                  <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={null} size={200} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
-                  <span class="ct">{a.title}</span>
-                  <span class="ca">{a.artist_name ?? ''}</span>
-                </div>
-              {/each}
-            </div>
+            <div class="grid">{#each results.albums as a (a.source_id ?? a.id)}{@render tile(a, () => playAlbum(a))}{/each}</div>
           </section>
         {/if}
         {#if results.artists?.length}
           <section class="sec"><h2>Artistes</h2>
             <div class="arow">
-              {#each results.artists.slice(0, 12) as ar (ar.source_id ?? ar.name)}
+              {#each results.artists.slice(0, 14) as ar (ar.source_id ?? ar.name)}
                 <div class="art">
                   <span class="acv"><AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={140} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} /></span>
                   <span class="an">{ar.name}</span>
@@ -185,46 +276,88 @@
           </section>
         {/if}
         {#if !results.albums?.length && !results.artists?.length}
-          <div class="state">Aucun résultat dans {active}.</div>
+          <div class="state">Aucun résultat dans {label(active ?? '')}.</div>
         {/if}
+      {/if}
 
-      {:else if contentLoading}
-        <div class="state">Chargement du contenu…</div>
+    {:else if paneLoading}
+      <div class="state">Chargement…</div>
+
+    {:else if sub === 'editorial'}
+      {#if isBc}
+        {#if bcTags.length}
+          <div class="chips">
+            {#each bcTags.slice(0, 16) as t (t)}
+              <button class="chip" class:active={bcTag === t} onclick={() => (bcTag = t)}>{t}</button>
+            {/each}
+          </div>
+        {/if}
+        {#if bcItems.length}
+          <div class="grid">{#each bcItems as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
+        {:else}
+          <div class="state">Rien à découvrir pour ce genre.</div>
+        {/if}
+      {:else if featured.length}
+        <section class="sec"><h2>Mis en avant par {label(active ?? '')}</h2>
+          <div class="grid">{#each featured.slice(0, 40) as p, i ((p.source_id ?? p.id ?? i))}{@render tile(p, () => playPlaylist(p))}{/each}</div>
+        </section>
       {:else}
-        {#if mine.length}
-          <section class="sec"><h2>Vos playlists</h2>
-            <div class="grid">
-              {#each mine as p (p.source_id)}
-                <div class="card">
-                  <button class="open" onclick={() => playPlaylist(p)} aria-label={`Lire ${p.name}`}></button>
-                  <span class="cv"><AlbumArt coverPath={p.cover_path} albumId={null} size={200} alt={p.name} fallbackInitials={p.name?.slice(0,1)} /></span>
-                  <span class="ct">{p.name}</span>
-                  <span class="ca">{p.track_count} titres</span>
-                </div>
-              {/each}
-            </div>
-          </section>
-        {/if}
-        {#if featured.length}
-          <section class="sec"><h2>Mis en avant</h2>
-            <div class="grid">
-              {#each featured.slice(0, 24) as p, i (pId(p) + i)}
-                <div class="card">
-                  <button class="open" onclick={() => playPlaylist(p)} aria-label={`Lire ${pTitle(p)}`}></button>
-                  <span class="cv"><AlbumArt coverPath={pCover(p)} albumId={null} size={200} alt={pTitle(p)} fallbackInitials={pTitle(p).slice(0,1)} /></span>
-                  <span class="ct">{pTitle(p)}</span>
-                </div>
-              {/each}
-            </div>
-          </section>
-        {/if}
-        {#if !mine.length && !featured.length}
-          <div class="state">Rien à afficher pour {active}. Utilisez la recherche ci-dessus.</div>
-        {/if}
+        <div class="state">{label(active ?? '')} ne propose aucune sélection éditoriale pour l'instant. Utilisez la recherche.</div>
+      {/if}
+
+    {:else if sub === 'mine'}
+      <!-- Bandcamp : la collection EST ce qu'on y possede. -->
+      {#if bcCollection.length}
+        <div class="grid">{#each bcCollection as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
+      {:else}
+        <div class="state">Aucun achat trouvé. Reliez votre compte Bandcamp dans les Réglages.</div>
+      {/if}
+
+    {:else if sub === 'playlists'}
+      {#if myPlaylists.length}
+        <div class="grid">{#each myPlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p))}{/each}</div>
+      {:else}
+        <div class="state">Aucune playlist dans votre compte {label(active ?? '')}.</div>
+      {/if}
+
+    {:else}
+      {#if favAlbums.length}
+        <section class="sec"><h2>Albums</h2>
+          <div class="grid">{#each favAlbums as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+        </section>
+      {/if}
+      {#if favArtists.length}
+        <section class="sec"><h2>Artistes</h2>
+          <div class="arow">
+            {#each favArtists as ar, i ((ar.source_id ?? ar.name ?? i))}
+              <div class="art">
+                <span class="acv"><AlbumArt coverPath={ar.image_path ?? ar.picture ?? null} albumId={null} size={140} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} /></span>
+                <span class="an">{ar.name}</span>
+              </div>
+            {/each}
+          </div>
+        </section>
+      {/if}
+      {#if favTracks.length}
+        <section class="sec"><h2>Titres</h2>
+          <div class="grid">{#each favTracks as tr, i ((tr.source_id ?? tr.id ?? i))}{@render tile(tr, () => playAlbum(tr))}{/each}</div>
+        </section>
+      {/if}
+      {#if !favAlbums.length && !favArtists.length && !favTracks.length}
+        <div class="state">Aucun favori dans votre compte {label(active ?? '')}.</div>
       {/if}
     {/if}
   </div>
 </section>
+
+{#snippet tile(p: any, onPlay: () => void)}
+  <div class="card">
+    <button class="open" onclick={onPlay} aria-label={`Lire ${pTitle(p)}`}></button>
+    <span class="cv"><AlbumArt coverPath={pCover(p)} albumId={null} size={220} alt={pTitle(p)} source={p?.source} fallbackInitials={pTitle(p).slice(0,1)} /></span>
+    <span class="ct">{pTitle(p)}</span>
+    {#if pSub(p)}<span class="ca">{pSub(p)}</span>{/if}
+  </div>
+{/snippet}
 
 <style>
   .v2-str{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
@@ -245,29 +378,40 @@
     font-size:12.5px; border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
   .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
 
-  .svcs{display:flex; gap:6px; flex-wrap:wrap; padding:4px 30px 12px}
-  .svcs button{display:inline-flex; align-items:center; gap:9px; border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt2); cursor:pointer; font:600 12.5px var(--v2-sans); padding:8px 14px;
-    border-radius:var(--v2-r-pill); text-transform:capitalize; transition:.15s}
+  .svcs{display:flex; gap:6px; flex-wrap:wrap; padding:4px 30px 0}
+  .svcs button{display:inline-flex; align-items:baseline; gap:9px; border:1px solid var(--v2-line2); background:transparent;
+    color:var(--v2-txt2); cursor:pointer; font:600 13px var(--v2-sans); padding:9px 16px;
+    border-radius:var(--v2-r-pill); transition:.15s}
   .svcs button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
-  .svcs button.on{color:var(--v2-txt); border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
-  .svcs .st{font:9px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-danger)}
-  .svcs .st.ok{color:var(--v2-acc1)}
-  .svcs .st.off{color:var(--v2-txt3)}
+  .svcs button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .svcs .who{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
+  .svcs button.on .who{color:var(--v2-on-acc); opacity:.75}
 
-  .scroll{flex:1; overflow-y:auto; padding:4px 30px 40px}
+  .subs{display:flex; gap:2px; padding:14px 30px 10px; border-bottom:1px solid var(--v2-line); margin:0 0 4px}
+  .subs button{position:relative; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer;
+    font:600 13px var(--v2-sans); padding:8px 14px 12px}
+  .subs button:hover{color:var(--v2-txt)}
+  .subs button.on{color:var(--v2-txt)}
+  .subs button.on::after{content:""; position:absolute; left:10px; right:10px; bottom:-1px; height:2px; border-radius:2px;
+    background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2))}
+
+  .scroll{flex:1; overflow-y:auto; padding:8px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
-  .notice{display:flex; flex-direction:column; align-items:flex-start; gap:14px; margin-top:20px; padding:18px 20px;
+  .notice{display:flex; flex-direction:column; align-items:flex-start; gap:12px; margin-top:20px; padding:20px 22px;
     border-radius:13px; border:1px solid var(--v2-line2); background:var(--v2-surface2); max-width:640px}
-  .notice p{font-size:14px; line-height:1.55; color:var(--v2-txt2)}
-  .notice b{color:var(--v2-txt); text-transform:capitalize}
+  .notice p{font-size:15px; color:var(--v2-txt)}
+  .notice .sub{font-size:13px; line-height:1.6; color:var(--v2-txt2)}
+  .notice b{color:var(--v2-txt)}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     border-radius:var(--v2-r-pill); padding:9px 17px; font:600 12.5px var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
 
-  .acct{display:flex; gap:12px; padding:2px 0 14px; font:11px var(--v2-mono); color:var(--v2-txt3)}
-  .acct .sub{color:var(--v2-acc2)}
+  .chips{display:flex; gap:7px; flex-wrap:wrap; padding:0 0 16px}
+  .chip{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    font:600 11.5px var(--v2-sans); padding:6px 13px; border-radius:var(--v2-r-pill); text-transform:capitalize}
+  .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .chip.active{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .sec{padding:4px 0 22px}
   .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}

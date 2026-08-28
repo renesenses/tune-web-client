@@ -35,10 +35,13 @@
     { view: 'radios', label: 'Radio en direct', icon: 'M12 12h.01M7.5 7.5a6 6 0 0 0 0 9M16.5 7.5a6 6 0 0 1 0 9M4.5 4.5a10 10 0 0 0 0 15M19.5 4.5a10 10 0 0 1 0 15' },
     { view: 'playlists', label: 'Playlists', icon: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6' },
     { view: 'podcasts', label: 'Podcasts', icon: 'M12 4a7 7 0 0 0 0 14M12 4a7 7 0 0 1 0 14M9 20h6' },
+    // STREAMING dans le noyau (Bertrand, 28/08) : pour qui ecoute surtout en
+    // ligne, c'est la porte d'entree principale — la reserver a l'Avance
+    // rendait le client inutilisable en Essentiel sur une petite bibliotheque.
+    { view: 'streaming', label: 'Streaming', icon: 'M4 15a8 8 0 0 1 16 0M7.5 15a4.5 4.5 0 0 1 9 0' },
   ];
   const ADVANCED: Item[] = [
     { view: 'search', label: 'Recherche', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M21 21l-4-4' },
-    { view: 'streaming', label: 'Streaming', icon: 'M4 15a8 8 0 0 1 16 0M7.5 15a4.5 4.5 0 0 1 9 0' },
     { view: 'queue', label: "File d'attente", icon: 'M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z' },
     { view: 'favorites', label: 'Favoris', icon: 'M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z' },
     { view: 'zonemanager', label: 'Zones', icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01' },
