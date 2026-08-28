@@ -18,7 +18,7 @@
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
-  import { formatNumber } from '../../lib/utils';
+  import { formatNumber, copyText, errText } from '../../lib/utils';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { notifications } from '../../lib/stores/notifications';
@@ -919,6 +919,85 @@
     catch { clapThrottle = before; }
   }
 
+  // ── Acces depuis un autre appareil ────────────────────────────────────
+  let serverUrls = $state<string[]>([]);
+  let copied = $state<string | null>(null);
+  $effect(() => {
+    api.getConfig().then((c: any) => { serverUrls = Array.isArray(c?.server_urls) ? c.server_urls : []; }).catch(() => {});
+  });
+  async function copyUrl(u: string) {
+    if (await copyText(u)) { copied = u; setTimeout(() => { if (copied === u) copied = null; }, 2000); }
+    else notifications.error('Copie impossible.');
+  }
+
+  // ── Spotify Connect (recepteur) ───────────────────────────────────────
+  // Le recepteur transforme une ZONE en enceinte visible depuis l'appli
+  // Spotify. Il lui faut donc une zone cible : sans zone, l'activer n'a
+  // aucun sens et l'ecran le dit plutot que d'echouer a l'appel.
+  let spc = $state<any | null>(null);
+  let spcZone = $state<number | null>(null);
+  let spcName = $state('');
+  let spcBusy = $state(false);
+  let spcErr = $state<string | null>(null);
+  $effect(() => {
+    api.getSpotifyConnectStatus()
+      .then((st: any) => {
+        spc = st;
+        spcZone = st?.zone_id ?? $currentZoneId ?? null;
+        spcName = st?.device_name ?? '';
+      })
+      .catch(() => { spc = null; });
+  });
+  async function toggleSpc(on: boolean) {
+    spcBusy = true; spcErr = null;
+    try {
+      if (on) {
+        if (spcZone == null) { spcErr = 'Choisissez une zone à exposer.'; spcBusy = false; return; }
+        await api.enableSpotifyConnect(spcZone, spcName.trim() || null);
+      } else {
+        await api.disableSpotifyConnect();
+      }
+      spc = await api.getSpotifyConnectStatus();
+    } catch (e: any) { spcErr = e?.message ?? 'Action impossible.'; }
+    spcBusy = false;
+  }
+
+  // ── Base de donnees / exports ─────────────────────────────────────────
+  let dbEngine = $state<string | null>(null);
+  let dbConnected = $state<boolean | null>(null);
+  let dbPath = $state<string | null>(null);
+  let dataLoc = $state<string | null>(null);
+  let csvBusy = $state<string | null>(null);
+  let cfgBusy = $state(false);
+  let sysErr = $state<string | null>(null);
+
+  $effect(() => {
+    api.getConfig()
+      .then((c: any) => {
+        dbEngine = c?.db_engine ?? null;
+        dbConnected = c?.db_connected ?? null;
+        dbPath = c?.db_path ?? null;
+        dataLoc = c?.data_dir ?? c?.data_location ?? null;
+      })
+      .catch(() => {});
+  });
+
+  async function exportCsv(kind: 'albums' | 'tracks' | 'artists') {
+    csvBusy = kind; sysErr = null;
+    try {
+      if (kind === 'albums') await api.exportAlbumsCsv();
+      else if (kind === 'tracks') await api.exportTracksCsv();
+      else await api.exportArtistsCsv();
+    } catch (e) { sysErr = `Export impossible : ${errText(e) ?? 'serveur injoignable'}`; }
+    csvBusy = null;
+  }
+  async function doExportConfig() {
+    cfgBusy = true; sysErr = null;
+    try { await api.exportConfig(); }
+    catch { sysErr = 'Export de configuration impossible.'; }
+    cfgBusy = false;
+  }
+
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
@@ -1094,6 +1173,144 @@
                     <span class="slider"></span>
                   </label>
                 </div>
+              {/if}
+
+            {:else if s.id === 'database'}
+              <div class="rows">
+                <div class="kv">
+                  <span>Moteur</span>
+                  <b>{dbEngine === 'sqlite' ? 'SQLite' : dbEngine === 'postgres' || dbEngine === 'postgresql' ? 'PostgreSQL' : (dbEngine ?? '—')}</b>
+                </div>
+                <div class="kv">
+                  <span>Connexion</span>
+                  <b class="hs" class:ok={dbConnected === true}>{dbConnected === null ? '—' : dbConnected ? 'établie' : 'rompue'}</b>
+                </div>
+                {#if dbPath}
+                  <div class="kv"><span>Fichier</span><b class="mono">{dbPath}</b></div>
+                {/if}
+              </div>
+              {#if dbConnected === false}
+                <div class="warnbox">
+                  La base n'est pas jointe : la bibliothèque et les zones ne peuvent ni être lues
+                  ni écrites. C'est la première chose à régler avant tout autre diagnostic.
+                </div>
+              {/if}
+
+            {:else if s.id === 'dataLoc'}
+              <div class="rows">
+                <div class="kv"><span>Emplacement des données</span><b class="mono">{dataLoc ?? '—'}</b></div>
+              </div>
+              <p class="hint">
+                Base, pochettes en cache et journaux vivent ici. Déplacer ce dossier se fait
+                serveur arrêté, depuis le client actuel.
+              </p>
+
+            {:else if s.id === 'exportCsv'}
+              <p class="hint">
+                Un instantané de la bibliothèque en CSV, pour un tableur ou un inventaire.
+                L'export ne modifie rien.
+              </p>
+              <div class="inline" style="margin-top:12px">
+                <button class="lnk" disabled={csvBusy !== null} onclick={() => exportCsv('albums')}>
+                  {csvBusy === 'albums' ? 'Export…' : 'Albums (CSV)'}
+                </button>
+                <button class="lnk" disabled={csvBusy !== null} onclick={() => exportCsv('tracks')}>
+                  {csvBusy === 'tracks' ? 'Export…' : 'Titres (CSV)'}
+                </button>
+                <button class="lnk" disabled={csvBusy !== null} onclick={() => exportCsv('artists')}>
+                  {csvBusy === 'artists' ? 'Export…' : 'Artistes (CSV)'}
+                </button>
+              </div>
+              {#if sysErr}<div class="errline">{sysErr}</div>{/if}
+
+            {:else if s.id === 'config'}
+              <p class="hint">
+                Sauvegarde de la configuration du serveur — dossiers, zones, réglages audio.
+                Ne contient <b>aucun fichier de musique</b> et <b>aucun mot de passe de service</b>.
+              </p>
+              <div class="inline" style="margin-top:12px">
+                <button class="lnk" disabled={cfgBusy} onclick={doExportConfig}>
+                  {cfgBusy ? 'Export…' : 'Exporter la configuration'}
+                </button>
+              </div>
+              <!-- L'IMPORT n'est pas repris : il ecrase la configuration en
+                   place, et un ecran qui le propose sans le flux de
+                   confirmation complet inviterait a une fausse manoeuvre. -->
+              <p class="hint">
+                La <b>restauration</b> n'est pas reprise dans ce client : elle écrase la
+                configuration en place, et reste dans le client actuel.
+              </p>
+              {#if sysErr}<div class="errline">{sysErr}</div>{/if}
+
+            {:else if s.id === 'accessFrom'}
+              <p class="hint">
+                Ces adresses ouvrent Tune depuis un autre appareil du même réseau — téléphone,
+                tablette, autre ordinateur. Elles ne sortent pas de votre réseau local.
+              </p>
+              {#if !serverUrls.length}
+                <p class="hint">Aucune adresse publiée par le serveur.</p>
+              {:else}
+                <div class="urls">
+                  {#each serverUrls as u (u)}
+                    <div class="url">
+                      <span class="up">{u}</span>
+                      <button class="lnk" onclick={() => copyUrl(u)}>{copied === u ? 'Copiée' : 'Copier'}</button>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+
+            {:else if s.id === 'tokens'}
+              <p class="hint">
+                Les jetons <b>MusicBrainz</b>, <b>Discogs</b>, <b>Last.fm</b>, <b>Genius</b> et
+                <b>ListenBrainz</b> servent à l'enrichissement des métadonnées et au scrobbling.
+              </p>
+              <!-- L'ecran « Services & Jetons » n'est pas repris dans ce client :
+                   on le DIT plutot que d'offrir un bouton qui ne mene nulle part. -->
+              <p class="hint">
+                Leur saisie n'est pas encore reprise dans ce client : elle reste dans
+                l'écran <b>Services &amp; Jetons</b> du client actuel.
+              </p>
+
+            {:else if s.id === 'spotify'}
+              {#if spc && spc.available === false}
+                <p class="hint">
+                  Le récepteur Spotify Connect n'est pas disponible sur ce serveur.
+                  {#if spc.reason}<br />{spc.reason}{/if}
+                </p>
+              {:else}
+                <p class="hint">
+                  Expose une zone comme enceinte dans l'application Spotify : elle apparaît
+                  dans la liste des appareils, et la lecture arrive sur cette zone.
+                </p>
+                <div class="row">
+                  <div class="lbl">
+                    <span>Activer le récepteur</span>
+                    {#if spc?.active}<span class="hint">Actif{#if spc.device_name} sous le nom « {spc.device_name} »{/if}.</span>{/if}
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={!!spc?.enabled} disabled={spcBusy}
+                      onchange={(e) => toggleSpc((e.currentTarget as HTMLInputElement).checked)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                {#if !spc?.enabled}
+                  <div class="row">
+                    <div class="lbl"><span>Zone exposée</span>
+                      <span class="hint">Le récepteur transforme UNE zone en enceinte Spotify.</span></div>
+                    <select class="sel" value={String(spcZone ?? '')}
+                      onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value; spcZone = v ? Number(v) : null; }}>
+                      <option value="">Choisir une zone…</option>
+                      {#each $zones as z (z.id)}<option value={String(z.id)}>{z.name}</option>{/each}
+                    </select>
+                  </div>
+                  <div class="row">
+                    <div class="lbl"><span>Nom affiché</span>
+                      <span class="hint">Laissez vide pour le nom par défaut.</span></div>
+                    <input class="txt" type="text" placeholder="Tune — Salon" bind:value={spcName} />
+                  </div>
+                {/if}
+                {#if spcErr}<div class="errline">{spcErr}</div>{/if}
               {/if}
 
             {:else if s.id === 'perZone'}
@@ -1953,6 +2170,10 @@
   .sw input:checked + .slider::before{transform:translateX(19px)}
   .sw input:focus-visible + .slider{box-shadow:0 0 0 3px var(--v2-focus)}
 
+  .urls{display:flex; flex-direction:column; gap:1px; margin-top:12px}
+  .url{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:9px 10px; border-radius:8px}
+  .url:hover{background:var(--v2-hover)}
+  .up{font:12.5px var(--v2-mono); color:var(--v2-acc-tint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .zlist{display:flex; flex-direction:column; gap:9px; margin-top:12px}
   .zc{padding:13px 15px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-bg)}
   .zch{display:flex; align-items:baseline; gap:11px}
