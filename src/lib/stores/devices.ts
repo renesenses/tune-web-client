@@ -9,10 +9,10 @@ export const devices = writable<DiscoveredDevice[]>([]);
 export const unboundDevices = derived(
   [devices, zones],
   ([$devices, $zones]) => {
-    const boundDeviceIds = new Set(
+    const boundDeviceIds = new Set<string>(
       $zones
-        .filter((z) => z.output_device_id)
         .map((z) => z.output_device_id)
+        .filter((id): id is string => typeof id === 'string')
     );
     return $devices.filter((d) => d.available && !deviceHasBoundZone(d, boundDeviceIds));
   }
