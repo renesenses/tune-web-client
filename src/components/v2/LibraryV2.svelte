@@ -383,18 +383,28 @@
 
   {#if showTimeline && navMode === 'years' && histogram.bars.length}
     <div class="frise">
+      <!-- Peigne d'annees facon regle graduee (maquette Levente, v3) : CHAQUE
+           annee porte un trait, meme vide, pour que la frise se lise comme un
+           axe continu et non comme des dents isolees. La hauteur dit le
+           nombre d'albums ; le trait minimal garde l'axe lisible sur une
+           collection clairsemee. -->
       <div class="bars">
         {#each histogram.bars as b (b.year)}
           <button
-            class="bar"
+            class="tick"
             class:on={fYear === b.year}
             class:vide={b.n === 0}
-            disabled={b.n === 0}
-            title={`${b.year} — ${b.n} album${b.n > 1 ? 's' : ''}`}
-            aria-label={`${b.year}, ${b.n} albums`}
-            style="--h:{histogram.max ? Math.max(8, (b.n / histogram.max) * 100) : 0}%"
+            title={b.n ? `${b.year} — ${b.n} album${b.n > 1 ? 's' : ''}` : `${b.year} — aucun album`}
+            aria-label={`${b.year}, ${b.n} album${b.n > 1 ? 's' : ''}`}
+            aria-pressed={fYear === b.year}
+            style="--h:{histogram.max ? 34 + Math.round((b.n / histogram.max) * 66) : 34}%"
             onclick={() => (fYear = fYear === b.year ? null : b.year)}
-          >{#if fYear === b.year}<span class="tag">{b.year}</span>{/if}</button>
+          >
+            <!-- Curseur : barre pleine a l'accent, plus haute que le peigne,
+                 avec l'annee ecrite a la VERTICALE dedans. C'est lui qui
+                 parcourt les annees. -->
+            {#if fYear === b.year}<span class="curseur">{b.year}</span>{/if}
+          </button>
         {/each}
       </div>
       <div class="decs">
@@ -568,18 +578,25 @@
   /* Frise : une barre par année, hauteur proportionnelle au nombre d'albums.
      Les années sans album restent visibles mais creuses — un trou dans la
      collection est une information, pas un défaut d'affichage. */
-  .frise{padding:2px 30px 14px; user-select:none}
-  .bars{display:flex; align-items:flex-end; gap:2px; height:74px}
-  .bar{position:relative; flex:1 1 0; min-width:2px; height:var(--h); border:0; padding:0; cursor:pointer;
-    border-radius:2px 2px 0 0; background:var(--v2-line2); transition:background .12s, transform .12s}
-  .bar:hover:not(:disabled){background:var(--v2-acc2); transform:scaleY(1.06); transform-origin:bottom}
-  .bar.vide{background:var(--v2-line); height:3px; cursor:default}
-  .bar.on{background:linear-gradient(180deg,var(--v2-acc1),var(--v2-acc2))}
-  .bar .tag{position:absolute; bottom:calc(100% + 5px); left:50%; transform:translateX(-50%);
-    font:700 9.5px var(--v2-mono); letter-spacing:.04em; color:var(--v2-on-acc); background:var(--v2-acc1);
-    padding:2px 6px; border-radius:5px; white-space:nowrap}
-  .decs{position:relative; height:16px; margin-top:7px}
-  .dec{position:absolute; transform:translateX(-50%); font:10px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
+  .frise{padding:8px 30px 14px; user-select:none}
+  /* Le peigne s'aligne en BAS : les traits partent d'une ligne d'axe commune,
+     ce qui donne la regle graduee plutot qu'une suite de batons flottants. */
+  .bars{display:flex; align-items:flex-end; gap:3px; height:56px; padding-top:14px}
+  .tick{position:relative; flex:1 1 0; min-width:2px; height:var(--h); border:0; padding:0; cursor:pointer;
+    border-radius:1px; background:var(--v2-line2); transition:background .12s}
+  .tick.vide{background:var(--v2-line); cursor:pointer}
+  .tick:hover{background:var(--v2-acc2)}
+  /* Le curseur deborde le peigne vers le haut : il doit se voir d'un coup
+     d'oeil, pas se confondre avec un trait un peu plus grand. */
+  .tick.on{background:transparent}
+  .curseur{position:absolute; left:50%; transform:translateX(-50%); bottom:0; top:-14px;
+    min-width:15px; display:grid; place-items:center; border-radius:3px;
+    background:linear-gradient(180deg,var(--v2-acc1),var(--v2-acc2));
+    color:var(--v2-on-acc); font:700 9px var(--v2-mono); letter-spacing:.06em;
+    writing-mode:vertical-rl; text-orientation:mixed; padding:3px 0;
+    box-shadow:0 2px 10px var(--v2-glow-strong)}
+  .decs{position:relative; height:16px; margin-top:9px}
+  .dec{position:absolute; transform:translateX(-50%); font:10.5px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
 
   /* Contrôles de droite : tri et bascule d'affichage. */
   .drop.right{margin-left:0}
