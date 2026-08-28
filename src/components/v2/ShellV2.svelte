@@ -125,14 +125,25 @@
      barre et la vue. Mesure par CDP (getMatchedStyles) avant renommage. Un nom
      generique dans une app a CSS partage est un piege — on le retire au lieu
      de gagner une bataille de specificite avec `gap:0`. */
-  .v2-row{flex:1; min-height:0; display:grid; grid-template-columns:auto 1fr; gap:0}
+  .v2-row{flex:1; min-height:0; display:grid; grid-template-columns:auto 1fr; gap:0;
+    /* La RANGEE doit valoir la hauteur du conteneur, pas celle du contenu.
+       Sans `minmax(0,1fr)` la rangee implicite est auto-dimensionnee sur le
+       plus grand enfant : mesure, la ligne faisait 887 px mais sa rangee
+       947 px, si bien que la vue debordait de 60 px PAR-DESSUS la barre de
+       transport et masquait les commandes de lecture. */
+    grid-template-rows:minmax(0, 1fr)}
   /* `.main` est un conteneur flex ; sans `flex:1` ses enfants se dimensionnent
      a leur CONTENU et laissent le reste vide. Mesure avant correction sur
      1990 px : zone principale 1754 px, ecran Bibliotheque 1139 px — 615 px
      perdus a droite. `:global` parce que l'ecran est un composant enfant :
      le style scope de la coquille ne l'atteindrait pas. */
   .main{min-width:0; overflow:hidden; display:flex}
-  .main > :global(*){flex:1 1 auto; min-width:0}
+  /* `min-height:0` est INDISPENSABLE, pas cosmetique : un element flex a
+     `min-height:auto` par defaut et refuse de retrecir sous la taille de son
+     contenu. Sans lui, la section debordait de 60 px sous sa ligne et sa
+     grille se dessinait PAR-DESSUS la barre de transport, masquant les
+     commandes de lecture. Mesure : ligne 0->887, section 0->947. */
+  .main > :global(*){flex:1 1 auto; min-width:0; min-height:0}
   .soon{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
     text-align:center; color:var(--v2-txt); font-family:var(--v2-sans); padding:40px}
   .soon .badge{font:700 10px var(--v2-mono); letter-spacing:.16em; text-transform:uppercase; color:var(--v2-on-acc);
