@@ -42,7 +42,7 @@ describe('registre des niveaux', () => {
   it('les niveaux clés de l\'inventaire #1617 sont respectés', () => {
     // Échantillon représentatif : un par niveau et par onglet sensible.
     expect(SETTING_LEVELS['general.theme'].level).toBe('beginner');
-    expect(SETTING_LEVELS['general.crossfade'].level).toBe('intermediate');
+    expect(SETTING_LEVELS['general.volumeDisplay'].level).toBe('intermediate');
     expect(SETTING_LEVELS['library.clearLibrary'].level).toBe('expert'); // action destructive
     expect(SETTING_LEVELS['library.discogsToken'].level).toBe('expert');
     expect(SETTING_LEVELS['network.audioBackend'].level).toBe('expert');
@@ -85,14 +85,13 @@ describe('règle d\'or : valeur ≠ défaut ⇒ toujours visible', () => {
   });
 
   it('un réglage intermédiaire MODIFIÉ reste visible au niveau débutant', () => {
-    // Crossfade activé ⇒ le toggle (et sa durée) restent visibles partout.
-    expect(isKeyVisible('general.crossfade', 'beginner', true)).toBe(true);
+    expect(isKeyVisible('general.volumeDisplay', 'beginner', true)).toBe(true);
   });
 
   it('le même réglage NON modifié est bien masqué sous son niveau', () => {
     expect(isKeyVisible('services.perZoneDsdMode', 'beginner', false)).toBe(false);
     expect(isKeyVisible('services.perZoneDsdMode', 'intermediate', false)).toBe(false);
-    expect(isKeyVisible('general.crossfade', 'beginner', false)).toBe(false);
+    expect(isKeyVisible('general.volumeDisplay', 'beginner', false)).toBe(false);
   });
 
   it('la règle d\'or ne rétrograde jamais : un réglage débutant modifié reste visible', () => {
@@ -135,8 +134,8 @@ describe('compteur « n réglages masqués »', () => {
   });
 
   it('les sous-réglages ne comptent pas (invisibles sans leur parent)', () => {
-    expect(SETTING_LEVELS['general.crossfadeDuration'].sub).toBe(true);
-    const withSub = hiddenCountByTab('beginner', (k) => k === 'general.crossfadeDuration');
+    expect(SETTING_LEVELS['library.scanScheduleTime'].sub).toBe(true);
+    const withSub = hiddenCountByTab('beginner', (k) => k === 'library.scanScheduleTime');
     // Marquer un sous-réglage modifié ne change pas le compte : il n'y est pas.
     expect(withSub).toEqual(hiddenCountByTab('beginner'));
   });
