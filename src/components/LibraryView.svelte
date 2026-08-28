@@ -18,6 +18,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { groupCreditsByRole, uniqueInstruments } from '../lib/library/credits';
   import { bioDisplayText } from '../lib/library/bio';
+  import { sectionHeads } from '../lib/library/grouping';
 import { observeHeight, observeWidth } from '../lib/actions/observeSize';
 import { formatTime, formatDuration, formatAlbumYear, fold } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
@@ -410,7 +411,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   function handleTrackSaved(updated: Track) {
     tracks.update(list => list.map(t => t.id === updated.id ? updated : t));
-    albumTracks.update(list => list.map(t => t.id === updated.id ? updated : t));
+    // GROUPING vit dans `track_metadata`, pas dans la table `tracks` : la
+    // réponse de PATCH /metadata/tracks/{id} ne le porte donc jamais. Sans ce
+    // report, renommer une piste effacerait son en-tête de section jusqu'au
+    // prochain chargement de l'album (#2130).
+    albumTracks.update(list => list.map(t =>
+      t.id === updated.id ? { ...updated, grouping: updated.grouping ?? t.grouping } : t
+    ));
   }
 
   let zone = $derived($currentZone);
@@ -1287,6 +1294,12 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   });
 
   let hasMultipleDiscs = $derived(tracksByDisc.length > 1);
+
+  // GROUPING (#2130) — en-têtes de section À L'INTÉRIEUR d'un disque
+  // (mouvements, bonus, ensembles), là où DISCSUBTITLE nomme le disque entier.
+  // La règle, et pourquoi elle s'efface d'elle-même quand le tag n'apprend
+  // rien, sont dans `lib/library/grouping.ts` (couvert par ses tests).
+  let groupingHeads = $derived(sectionHeads(tracksByDisc.map(([, tracks]) => tracks)));
 
   function selectGenreInTab(name: string) {
     // If the user clicked on a genre name that's a parent in the tree,
@@ -2410,30 +2423,45 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           <!-- User tags -->
           {#if $selectedAlbum?.id}
             {@const albumId = $selectedAlbum.id}
-            {#key albumTagsKey}
-              {#await api.getTagsForItem('album', albumId) then albumTags}
-                <div class="album-tags-row">
+            <!-- #2256 (bluevelvet, fil 451) : la zone de création s'ouvrait
+                 « en bas de l'écran, juste au-dessus de la barre de lecture,
+                 partiellement masquée par celle-ci ». `.tag-picker` est
+                 `position: absolute; top: 100%` et n'avait aucun ancêtre
+                 positionné : son bloc de référence remontait jusqu'à
+                 `.view-scroller` (App.svelte, `position: relative`), qui
+                 occupe toute la hauteur de la vue — `top: 100%` tombait donc
+                 au ras du lecteur. La règle `.tag-add-wrap { position:
+                 relative }` existait depuis l'origine mais n'était employée
+                 nulle part ; c'est elle, ici, qui ancre la zone sous son
+                 bouton. Le bouton sort du bloc `{#await}` pour rester avec
+                 elle dans le même conteneur : il reste ainsi visible pendant
+                 le chargement des étiquettes au lieu d'apparaître après. -->
+            <div class="album-tags-row">
+              {#key albumTagsKey}
+                {#await api.getTagsForItem('album', albumId) then albumTags}
                   {#each albumTags as tag}
                     <span class="album-tag-chip" style="background:{tag.color}">
                       {tag.name}
                       <button class="tag-remove" onclick={async () => { await api.untagItem(tag.id!, 'album', albumId); await loadUserTags(); albumTagsKey++; }}>×</button>
                     </span>
                   {/each}
-                  <button class="tag-add-btn" onclick={() => showTagPicker = !showTagPicker}>+ Tag</button>
-                </div>
-              {/await}
-            {/key}
-            {#if showTagPicker}
-              <div class="tag-picker">
-                <input class="tag-picker-input" type="text" placeholder={$tr('library.newTagPlaceholder')} bind:value={newTagName} onkeydown={(e) => { if (e.key === 'Enter' && newTagName.trim()) handleCreateAndAssignTag(albumId); }} />
-                {#each userTags as tag}
-                  <button class="tag-picker-option" onclick={async () => { await api.tagItem(tag.id!, 'album', albumId); showTagPicker = false; await loadUserTags(); albumTagsKey++; }}>
-                    <span class="tag-dot" style="background:{tag.color}"></span>
-                    {tag.name}
-                  </button>
-                {/each}
-              </div>
-            {/if}
+                {/await}
+              {/key}
+              <span class="tag-add-wrap">
+                <button class="tag-add-btn" onclick={() => showTagPicker = !showTagPicker}>+ Tag</button>
+                {#if showTagPicker}
+                  <div class="tag-picker">
+                    <input class="tag-picker-input" type="text" placeholder={$tr('library.newTagPlaceholder')} bind:value={newTagName} onkeydown={(e) => { if (e.key === 'Enter' && newTagName.trim()) handleCreateAndAssignTag(albumId); }} />
+                    {#each userTags as tag}
+                      <button class="tag-picker-option" onclick={async () => { await api.tagItem(tag.id!, 'album', albumId); showTagPicker = false; await loadUserTags(); albumTagsKey++; }}>
+                        <span class="tag-dot" style="background:{tag.color}"></span>
+                        {tag.name}
+                      </button>
+                    {/each}
+                  </div>
+                {/if}
+              </span>
+            </div>
           {/if}
           <button class="bio-toggle-btn" onclick={() => { showAlbumBio = !showAlbumBio; if (showAlbumBio && $selectedAlbum?.id) loadAlbumBio($selectedAlbum.id); }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
@@ -2471,6 +2499,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           <div class="disc-header">{$tr('library.disc').replace('{num}', String(discNum))}{#if discSubtitle} — {discSubtitle}{/if}</div>
           <div class="track-list">
             {#each discTracks as t, index}
+              {#if t.id != null && groupingHeads.has(t.id)}
+                <div class="grouping-header">{groupingHeads.get(t.id)}</div>
+              {/if}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <!-- `t.id != null` d'abord : sans ce garde, deux pistes sans
@@ -2613,6 +2644,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       {:else}
         <div class="track-list">
           {#each $albumTracks as t, index}
+            {#if t.id != null && groupingHeads.has(t.id)}
+              <div class="grouping-header">{groupingHeads.get(t.id)}</div>
+            {/if}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <!-- Voir .track-item.playing — même garde `t.id != null`. -->
@@ -4293,6 +4327,18 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     margin-top: 0;
   }
 
+  /* Section GROUPING (#2130) : subordonnée à l'en-tête de disque — pas de
+     filet, pas de capitales, décalée sur la gauche des numéros de piste, pour
+     qu'on lise « disque 2 » puis « les bonus » et jamais l'inverse. */
+  .grouping-header {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+    padding: var(--space-sm) 28px var(--space-xs);
+    letter-spacing: 0.2px;
+  }
+
   .play-all-btn {
     display: inline-flex;
     align-items: center;
@@ -4479,7 +4525,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     line-height: 1;
   }
   .tag-remove:hover { color: white; }
-  .tag-add-wrap { position: relative; }
+  /* Bloc de référence de `.tag-picker` (#2256). Sans lui, `top: 100%` s'ancre
+     sur `.view-scroller` et la zone de création tombe contre la barre de
+     lecture. Règle load-bearing : la garde
+     `etiquetteZoneCreationAncree.test.ts` la tient. */
+  .tag-add-wrap { position: relative; display: inline-flex; }
   .tag-add-btn {
     background: none;
     border: 1px dashed var(--tune-border);
