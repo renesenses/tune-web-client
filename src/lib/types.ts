@@ -370,6 +370,10 @@ export interface DiscoveredDevice {
   port: number;
   available?: boolean;
   capabilities?: Record<string, any>;
+  /** A matching zone exists but was soft-deleted by the user. */
+  zone_hidden?: boolean;
+  /** Exact primary or alternative identity that owns the hidden zone. */
+  hidden_zone_device_id?: string;
   /** Marque : description UPnP/mDNS, sinon dérivée de l'OUI de la MAC. */
   manufacturer?: string | null;
   model?: string | null;
