@@ -1241,7 +1241,7 @@ export default {
   'bandcamp.zoneRefused': "this zone would not take Bandcamp's 128 kbit/s MP3. Try another zone.",
   'bandcamp.collectionEmpty': "This Bandcamp collection is empty — nothing to compare. Explore the catalogue to find something to buy.",
   'bandcamp.dormantTitle': "The Bandcamp plugin is not active",
-  'bandcamp.dormantInstall': "Open Settings › Plugins and install “bandcamp”, then restart the server.",
+  'bandcamp.dormantInstall': "Open “{rubrique}” in the sidebar and install “bandcamp”, then restart the server.",
   'bandcamp.dormantRestart': "The plugin is installed but not loaded yet: restart the server to activate it.",
   'bandcamp.dormantWhy': "Plugins are only loaded when the server starts. Until it restarts, this screen has no data to show.",
   'eq.profilerApplied': 'Acoustic profile applied',

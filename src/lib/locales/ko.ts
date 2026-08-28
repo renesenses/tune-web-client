@@ -987,7 +987,7 @@ export default {
   'bandcamp.zoneRefused': "이 존은 Bandcamp의 128 kbit/s MP3를 받지 못했습니다. 다른 존을 사용해 보세요.",
   'bandcamp.collectionEmpty': "이 Bandcamp 컬렉션은 비어 있습니다. 비교할 항목이 없습니다. 카탈로그를 둘러보세요.",
   'bandcamp.dormantTitle': "Bandcamp 플러그인이 활성화되어 있지 않습니다",
-  'bandcamp.dormantInstall': "설정 › 플러그인에서 ‘bandcamp’를 설치한 다음 서버를 다시 시작하세요.",
+  'bandcamp.dormantInstall': "사이드바의 ‘{rubrique}’에서 ‘bandcamp’를 설치한 다음 서버를 다시 시작하세요.",
   'bandcamp.dormantRestart': "플러그인이 설치되었지만 아직 로드되지 않았습니다. 서버를 다시 시작하여 활성화하세요.",
   'bandcamp.dormantWhy': "플러그인은 서버 시작 시에만 로드됩니다. 다시 시작하기 전까지 이 화면에 표시할 데이터가 없습니다.",
   'eq.profilerApplied': '음향 프로필이 적용되었습니다',

@@ -1171,7 +1171,7 @@ export default {
   'bandcamp.zoneRefused': "ez a zóna nem fogadta el a Bandcamp 128 kbit/s-os MP3-át. Próbáljon másik zónát.",
   'bandcamp.collectionEmpty': "Ez a Bandcamp-gyűjtemény üres — nincs mit összehasonlítani. Fedezze fel a katalógust.",
   'bandcamp.dormantTitle': "A Bandcamp bővítmény nem aktív",
-  'bandcamp.dormantInstall': "Nyissa meg a Beállítások › Bővítmények menüt, telepítse a „bandcamp” bővítményt, majd indítsa újra a kiszolgálót.",
+  'bandcamp.dormantInstall': "Nyissa meg a(z) „{rubrique}” menüpontot az oldalsávon, telepítse a „bandcamp” bővítményt, majd indítsa újra a kiszolgálót.",
   'bandcamp.dormantRestart': "A bővítmény telepítve van, de még nincs betöltve: indítsa újra a kiszolgálót az aktiválásához.",
   'bandcamp.dormantWhy': "A bővítmények csak a kiszolgáló indulásakor töltődnek be. Újraindításig ennek a képernyőnek nincs megjeleníthető adata.",
   "eq.subParametric": "Parametrikus",

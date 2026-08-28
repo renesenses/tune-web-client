@@ -1011,7 +1011,7 @@ export default {
   'bandcamp.zoneRefused': "diese Zone hat das 128-kbit/s-MP3 von Bandcamp nicht angenommen. Versuchen Sie eine andere Zone.",
   'bandcamp.collectionEmpty': "Diese Bandcamp-Sammlung ist leer — nichts zu vergleichen. Durchstöbern Sie den Katalog.",
   'bandcamp.dormantTitle': "Das Bandcamp-Plugin ist nicht aktiv",
-  'bandcamp.dormantInstall': "Öffnen Sie Einstellungen › Plugins, installieren Sie „bandcamp“ und starten Sie den Server neu.",
+  'bandcamp.dormantInstall': "Öffnen Sie „{rubrique}“ in der Seitenleiste, installieren Sie „bandcamp“ und starten Sie den Server neu.",
   'bandcamp.dormantRestart': "Das Plugin ist installiert, aber noch nicht geladen: Starten Sie den Server neu, um es zu aktivieren.",
   'bandcamp.dormantWhy': "Plugins werden nur beim Serverstart geladen. Bis zum Neustart hat dieser Bildschirm keine Daten.",
   'eq.profilerApplied': 'Akustikprofil angewendet',

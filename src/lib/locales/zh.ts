@@ -1012,7 +1012,7 @@ export default {
   'bandcamp.zoneRefused': "该区域不接受 Bandcamp 的 128 kbit/s MP3。请换一个区域。",
   'bandcamp.collectionEmpty': "此 Bandcamp 收藏为空，无可比较。浏览目录看看。",
   'bandcamp.dormantTitle': "Bandcamp 插件未启用",
-  'bandcamp.dormantInstall': "打开 设置 › 插件，安装“bandcamp”，然后重启服务器。",
+  'bandcamp.dormantInstall': "打开侧边栏的「{rubrique}」，安装“bandcamp”，然后重启服务器。",
   'bandcamp.dormantRestart': "插件已安装但尚未加载：重启服务器以启用它。",
   'bandcamp.dormantWhy': "插件仅在服务器启动时加载。在重启之前，此页面没有可显示的数据。",
   'eq.profilerApplied': '已应用声学配置',

@@ -1021,7 +1021,7 @@ export default {
   'bandcamp.zoneRefused': "această zonă nu a acceptat MP3-ul de 128 kbit/s de la Bandcamp. Încercați altă zonă.",
   'bandcamp.collectionEmpty': "Această colecție Bandcamp este goală — nimic de comparat. Explorați catalogul.",
   'bandcamp.dormantTitle': "Pluginul Bandcamp nu este activ",
-  'bandcamp.dormantInstall': "Deschideți Setări › Pluginuri și instalați „bandcamp”, apoi reporniți serverul.",
+  'bandcamp.dormantInstall': "Deschideți „{rubrique}” din bara laterală și instalați „bandcamp”, apoi reporniți serverul.",
   'bandcamp.dormantRestart': "Pluginul este instalat, dar încă neîncărcat: reporniți serverul pentru a-l activa.",
   'bandcamp.dormantWhy': "Pluginurile sunt încărcate doar la pornirea serverului. Până la repornire, acest ecran nu are date de afișat.",
   'eq.profilerApplied': 'Profil acustic aplicat',
