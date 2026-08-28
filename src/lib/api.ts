@@ -930,7 +930,34 @@ export function getQueue(zoneId: number) {
 // (`Option<String>`). Sans le `| null`, tout appelant qui les a FACULTATIFS —
 // une piste distante, typiquement, dont le type `Track` les déclare
 // `string | null` — devait les blanchir en `undefined` avant d'appeler.
-export function addToQueue(zoneId: number, body: { album_id?: number; track_id?: number; track_ids?: number[]; source?: Source | 'upload'; source_id?: string; file_path?: string; position?: number; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number }) {
+export interface StreamingQueueItem {
+  source: Source | 'upload';
+  source_id: string;
+  title?: string | null;
+  artist_name?: string | null;
+  album_title?: string | null;
+  cover_path?: string | null;
+  duration_ms?: number;
+}
+
+export interface AddToQueueRequest {
+  album_id?: number;
+  track_id?: number;
+  track_ids?: number[];
+  source?: Source | 'upload';
+  source_id?: string;
+  file_path?: string;
+  position?: number;
+  title?: string | null;
+  artist_name?: string | null;
+  album_title?: string | null;
+  cover_path?: string | null;
+  duration_ms?: number;
+  /** Ordered streaming rows, supported by QueueAddRequest on the server. */
+  tracks?: StreamingQueueItem[];
+}
+
+export function addToQueue(zoneId: number, body: AddToQueueRequest) {
   return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/add`, {
     method: 'POST',
     body: JSON.stringify(body),
@@ -2475,10 +2502,6 @@ export function removeProfileStreamingFavorite(
 }
 
 // --- Unified Playlist Manager ---
-
-export function getAllPlaylists() {
-  return fetchJSON<import('./types').UnifiedPlaylistsResponse>(`${BASE}/playlists/all`);
-}
 
 export function importPlaylist(service: string, playlistId: string, name?: string) {
   return fetchJSON<import('./types').PlaylistImportResponse>(`${BASE}/playlists/import`, {

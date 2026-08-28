@@ -17,6 +17,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { playVideo } from '../lib/stores/ytPlayer';
   import { currentProfileId } from '../lib/stores/profile';
+  import { playFromHere } from '../lib/playback';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -983,6 +984,10 @@
     }
   }
 
+  async function playFavoriteTrack(index: number) {
+    await playFromHere(favTracks, index, service || undefined);
+  }
+
   /// Lancer un album de streaming, eventuellement A PARTIR d'une piste.
   ///
   /// Signale par un testeur (« Lire a partir d'un morceau impossible ») :
@@ -1791,7 +1796,7 @@
             {#each favTracks as track, i}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div class="track-item" ondblclick={() => playStreamingTrack(track)}>
+              <div class="track-item" ondblclick={() => playFavoriteTrack(i)}>
                 <span class="track-num">{i + 1}</span>
                 <div class="track-art-small">
                   <AlbumArt coverPath={track.cover_path} size={36} alt={track.title} />
@@ -1808,7 +1813,7 @@
                     <HeartButton streaming={{ itemType: 'track', service: track.source, serviceId: String(track.source_id), title: track.title, artist: track.artist_name ?? undefined, album: (track as any).album ?? undefined, coverUrl: track.cover_path ?? undefined }} size={14} />
                   {/if}
                 </span>
-                <button class="track-action-btn" onclick={() => playStreamingTrack(track)} title="Play">
+                <button class="track-action-btn" onclick={() => playFavoriteTrack(i)} title="Play">
                   <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M8 5v14l11-7z" /></svg>
                 </button>
               </div>
