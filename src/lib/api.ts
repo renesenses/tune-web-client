@@ -55,6 +55,7 @@ import type {
   LocalAudioDevice,
   CompletenessStats,
   ArtworkRescanResult,
+  ReidentifyResult,
   Source,
   RepeatMode,
   OutputType,
@@ -1605,6 +1606,19 @@ export async function uploadAlbumArtwork(albumId: number, file: File): Promise<A
 
 export function rescanAlbumArtwork(albumId: number) {
   return fetchJSON<ArtworkRescanResult>(`${BASE}/library/albums/${albumId}/artwork/rescan`, {
+    method: 'POST',
+  });
+}
+
+/** Refait l'identification d'UN album : efface ses clés MusicBrainz et
+ *  relance la correspondance pour cet album seul (#2128).
+ *
+ *  Aucun scan n'est déclenché, aucune passe de bibliothèque : l'effet est borné
+ *  à cet album, et rien de ce que l'utilisateur a saisi n'est écrasé. Compter
+ *  quelques secondes — deux allers-retours MusicBrainz, dont un délai de
+ *  courtoisie imposé par leur limite de débit. */
+export function reidentifyAlbum(albumId: number) {
+  return fetchJSON<ReidentifyResult>(`${BASE}/library/albums/${albumId}/reidentify`, {
     method: 'POST',
   });
 }

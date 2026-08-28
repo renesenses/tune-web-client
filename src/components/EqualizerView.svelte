@@ -18,12 +18,16 @@
   import { notifications } from '../lib/stores/notifications';
   import { isPremium } from '../lib/stores/license';
   import ParametricEq from './ParametricEq.svelte';
+  import { ISO_OCTAVE_HZ, freqLabel } from '../lib/spectrumScale';
 
   // Grilles ISO : octave (10), 2/3 d'octave (15), 1/3 d'octave (31) — les
   // repères de REW. La résolution vient des Paramètres (clé serveur
   // eq_expert_bands) pour que web/iPad/mobile partagent la même grille.
+  // La grille à l'octave est partagée avec l'analyseur de spectre (#2081) :
+  // les deux écrans doivent porter les MÊMES repères, c'est tout l'objet du
+  // ticket. Deux tableaux jumeaux dériveraient l'un de l'autre.
   const GRIDS: Record<number, number[]> = {
-    10: [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
+    10: ISO_OCTAVE_HZ,
     15: [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000],
     31: [20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800,
          1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000],
@@ -146,10 +150,6 @@
       signalerPortee(res?.eq_applied_live);
       notifications.success($t('eq.profilerDisabled' as any));
     } catch {}
-  }
-
-  function freqLabel(f: number): string {
-    return f >= 1000 ? `${f / 1000}k` : `${f}`;
   }
 
   const DEFAULT_Q = 1.0;
