@@ -53,7 +53,32 @@
   let seq = 0;
 
   // Éditorial
+  //
+  // TIDAL RENDAIT UN ÉDITORIAL VIDE (Bertrand, 28/08). Mesure sur le serveur
+  // local, Tidal authentifié (PREMIUM) :
+  //   /streaming/tidal/featured                 -> []
+  //   /streaming/tidal/featured/sections        -> []
+  //   /streaming/tidal/featured-playlists/by-tag-> []
+  //   /streaming/tidal/new-releases             -> 50 albums
+  //   /streaming/tidal/genres                   -> Pop, Rock, Hip Hop…
+  //   /streaming/tidal/genres/Pop/albums        -> albums
+  // Côté serveur, `get_featured` interroge `/featured/playlists`, une route
+  // héritée que Tidal ne sert plus ; `api_get` ne contrôle pas le code HTTP
+  // (hors 401), si bien qu'un corps d'erreur devient un tableau vide silencieux.
+  // C'est un défaut SERVEUR, et nous sommes en gel : il n'est pas corrigé ici.
+  //
+  // Mais l'éditorial n'a jamais eu de raison de se réduire aux playlists mises
+  // en avant. Les nouveautés et les genres sont servis, richement, par les DEUX
+  // services. On construit donc l'éditorial des trois sources, et chaque
+  // section n'apparaît que si elle a de la matière — Qobuz garde ses playlists,
+  // Tidal cesse d'être vide, et le jour où le serveur réparera `featured`,
+  // la section reviendra d'elle-même.
   let featured = $state<any[]>([]);
+  let newRel = $state<any[]>([]);
+  let genres = $state<any[]>([]);
+  let genreId = $state<string>('');
+  let genreAlbums = $state<any[]>([]);
+  let genreLoading = $state(false);
   // Genres Bandcamp : le serveur rend `genres` (libelle + sous-genres) ET
   // `tags` (liste plate) — on prend le premier, on retombe sur le second pour
   // les serveurs qui ne servent que lui.
@@ -122,7 +147,7 @@
     const svc = active, view = sub, tag = bcTag, sg = bcSub;
     if (!svc) return;
     paneLoading = true;
-    featured = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcCollection = [];
+    featured = []; newRel = []; genres = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcCollection = [];
     const done = () => { paneLoading = false; };
 
     if (svc === BANDCAMP) {
@@ -146,8 +171,18 @@
     }
 
     if (view === 'editorial') {
-      api.getStreamingFeaturedPlaylists(svc)
-        .then((f: any) => { featured = f ?? []; }).catch(() => { featured = []; }).finally(done);
+      // Les trois sources partent ensemble et echouent separement : une route
+      // morte ne doit plus vider tout l'ecran, seulement sa propre section.
+      genreId = ''; genreAlbums = [];
+      Promise.allSettled([
+        api.getStreamingFeaturedPlaylists(svc),
+        api.getStreamingNewReleases(svc, 30),
+        api.getStreamingGenres(svc),
+      ]).then(([f, n, g]) => {
+        featured = f.status === 'fulfilled' ? ((f.value as any) ?? []) : [];
+        newRel = n.status === 'fulfilled' ? ((n.value as any) ?? []) : [];
+        genres = g.status === 'fulfilled' ? ((g.value as any) ?? []) : [];
+      }).finally(done);
 
     } else if (view === 'playlists') {
       api.getStreamingPlaylists(svc)
@@ -167,6 +202,19 @@
         favTracks = tr.status === 'fulfilled' ? ((tr.value as any)?.tracks ?? []) : [];
       }).finally(done);
     }
+  });
+
+  /** Albums d'un genre. Effet SEPARE du chargement du volet : le remettre
+   *  dans l'autre ferait repartir les trois requetes editoriales a chaque
+   *  changement de puce. */
+  $effect(() => {
+    const svc = active, gid = genreId;
+    if (!svc || svc === BANDCAMP || sub !== 'editorial' || !gid) { genreAlbums = []; return; }
+    genreLoading = true;
+    api.getStreamingGenreAlbums(svc, gid, 40)
+      .then((a: any) => { if (genreId === gid) genreAlbums = a ?? []; })
+      .catch(() => { if (genreId === gid) genreAlbums = []; })
+      .finally(() => { if (genreId === gid) genreLoading = false; });
   });
 
   // Recherche dans le service courant.
@@ -345,10 +393,36 @@
         {:else}
           <div class="state">Rien à découvrir pour ce genre.</div>
         {/if}
-      {:else if featured.length}
-        <section class="sec"><h2>Mis en avant par {label(active ?? '')}</h2>
-          <div class="grid">{#each featured.slice(0, 40) as p, i ((p.source_id ?? p.id ?? i))}{@render tile(p, () => playPlaylist(p))}{/each}</div>
-        </section>
+      {:else if featured.length || newRel.length || genres.length}
+        {#if featured.length}
+          <section class="sec"><h2>Mis en avant par {label(active ?? '')}</h2>
+            <div class="grid">{#each featured.slice(0, 40) as p, i ((p.source_id ?? p.id ?? i))}{@render tile(p, () => playPlaylist(p))}{/each}</div>
+          </section>
+        {/if}
+        {#if newRel.length}
+          <section class="sec"><h2>Nouveautés</h2>
+            <div class="grid">{#each newRel.slice(0, 30) as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+          </section>
+        {/if}
+        {#if genres.length}
+          <section class="sec"><h2>Explorer par genre</h2>
+            <div class="chips">
+              {#each genres as g (g.id)}
+                <button class="chip" class:active={genreId === g.id}
+                  onclick={() => (genreId = genreId === g.id ? '' : g.id)}>{g.name}</button>
+              {/each}
+            </div>
+            {#if genreId}
+              {#if genreLoading}
+                <div class="state">Chargement…</div>
+              {:else if genreAlbums.length}
+                <div class="grid">{#each genreAlbums as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+              {:else}
+                <div class="state">Aucun album dans ce genre.</div>
+              {/if}
+            {/if}
+          </section>
+        {/if}
       {:else}
         <div class="state">{label(active ?? '')} ne propose aucune sélection éditoriale pour l'instant. Utilisez la recherche.</div>
       {/if}
