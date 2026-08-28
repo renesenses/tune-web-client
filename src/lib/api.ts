@@ -3496,8 +3496,17 @@ export function exportArtistsCsv() { return downloadCsv('/export/artists.csv', '
 
 // --- Audiophile Mode ---
 
+export interface AudiophileModeState {
+  enabled: boolean;
+  /** null = héritage du réglage global, booléen = surcharge de cette zone. */
+  lock_volume?: boolean | null;
+  /** Valeur réellement appliquée après héritage. */
+  effective_lock_volume?: boolean;
+  applied_live?: boolean;
+}
+
 export function getAudiophileMode(zoneId: number) {
-  return fetchJSON<{ enabled: boolean }>(`${BASE}/zones/${zoneId}/audiophile`);
+  return fetchJSON<AudiophileModeState>(`${BASE}/zones/${zoneId}/audiophile`);
 }
 
 /**
@@ -3516,7 +3525,7 @@ export function setAudiophileMode(
   enabled: boolean,
   confirmFullVolume = false,
 ) {
-  return fetchJSON<{ enabled: boolean; applied_live?: boolean }>(
+  return fetchJSON<AudiophileModeState>(
     `${BASE}/zones/${zoneId}/audiophile`,
     {
       method: 'POST',
@@ -3526,6 +3535,24 @@ export function setAudiophileMode(
       }),
     },
   );
+}
+
+/**
+ * Surcharger le verrou PURE pour une zone. `null` retire la surcharge et
+ * rétablit l'héritage du réglage global (#2526).
+ */
+export function setAudiophileVolumeLock(
+  zoneId: number,
+  lockVolume: boolean | null,
+  confirmFullVolume = false,
+) {
+  return fetchJSON<AudiophileModeState>(`${BASE}/zones/${zoneId}/audiophile`, {
+    method: 'POST',
+    body: JSON.stringify({
+      lock_volume: lockVolume,
+      ...(confirmFullVolume ? { confirm_full_volume: true } : {}),
+    }),
+  });
 }
 
 // --- Streaming Quality ---
