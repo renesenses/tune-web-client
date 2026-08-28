@@ -112,6 +112,26 @@
    *  fait qu'il « parcourt les annees » au lieu d'attendre un clic. */
   let hoverYear = $state<number | null>(null);
 
+  /** Mois survole dans l'annee, 0..11.
+   *
+   *  C'est une GRADUATION, pas une donnee : sur cette bibliotheque, 6 albums
+   *  sur 54 portent un mois (`original_date`/`release_date`), les autres n'ont
+   *  que l'annee. On ne place donc AUCUN album dans un mois — l'axe est
+   *  simplement gradue au douzieme, et le curseur annonce le cran qu'il
+   *  survole. Pretendre repartir les albums par mois inventerait 89 % de la
+   *  distribution. */
+  let hoverMonth = $state<number | null>(null);
+  const MOIS = ['JAN', 'FÉV', 'MAR', 'AVR', 'MAI', 'JUN', 'JUL', 'AOÛ', 'SEP', 'OCT', 'NOV', 'DÉC'];
+
+  /** Cran de 1/12 sous le pointeur, dans le trait survole. */
+  function surveille(e: MouseEvent, year: number) {
+    hoverYear = year;
+    const el = e.currentTarget as HTMLElement;
+    const w = el.getBoundingClientRect().width;
+    if (w <= 0) { hoverMonth = null; return; }
+    hoverMonth = Math.min(11, Math.max(0, Math.floor((e.offsetX / w) * 12)));
+  }
+
   // ── Tri (contrôle « Title ▾ » du brouillon v3) ────────────────────────
   // « Ajout récent » n'est propose que si la donnee existe : sur une
   // bibliotheque importee d'un ancien serveur, `added_at` est souvent vide,
@@ -178,6 +198,15 @@
   });
   const cursorCount = $derived(
     cursorYear == null ? 0 : (histogram.bars.find((b) => b.year === cursorYear)?.n ?? 0)
+  );
+  /** Le mois n'est montre que pendant le SURVOL : une fois l'annee figee par
+   *  un clic, le filtre porte sur l'annee entiere et afficher un mois
+   *  laisserait croire qu'il filtre plus fin qu'il ne le fait. */
+  const cursorLabel = $derived(
+    cursorYear == null ? ''
+      : (fYear === null && hoverYear === cursorYear && hoverMonth !== null)
+        ? `${MOIS[hoverMonth]} ${cursorYear}`
+        : String(cursorYear)
   );
 
   const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
@@ -414,7 +443,7 @@
            nombre d'albums ; le trait minimal garde l'axe lisible sur une
            collection clairsemee. -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="bars" onmouseleave={() => (hoverYear = null)}>
+      <div class="bars" onmouseleave={() => { hoverYear = null; hoverMonth = null; }}>
         {#each histogram.bars as b (b.year)}
           <button
             class="tick"
@@ -425,7 +454,8 @@
             aria-pressed={fYear === b.year}
             style="--h:{histogram.max ? 34 + Math.round((b.n / histogram.max) * 66) : 34}%"
             onmouseenter={() => (hoverYear = b.year)}
-            onfocus={() => (hoverYear = b.year)}
+            onmousemove={(e) => surveille(e, b.year)}
+            onfocus={() => { hoverYear = b.year; hoverMonth = null; }}
             onclick={() => (fYear = fYear === b.year ? null : b.year)}
           ></button>
         {/each}
@@ -436,7 +466,7 @@
         {#if cursorPct !== null && cursorYear !== null}
           <span class="curseur" class:fige={fYear !== null} class:creux={cursorCount === 0}
             style="left:{cursorPct}%"
-            aria-hidden="true">{cursorYear}</span>
+            aria-hidden="true">{cursorLabel}</span>
         {/if}
       </div>
       <div class="decs">
@@ -614,8 +644,18 @@
   /* Le peigne s'aligne en BAS : les traits partent d'une ligne d'axe commune,
      ce qui donne la regle graduee plutot qu'une suite de batons flottants. */
   .bars{position:relative; display:flex; align-items:flex-end; gap:3px; height:56px; padding-top:14px}
+  /* Graduation au DOUZIEME : chaque annee est fendue de onze filets, ce qui
+     donne la regle fine. Un degrade repete plutot que douze elements — 59
+     annees x 12 feraient 708 noeuds pour un trait de 2 px. */
   .tick{position:relative; flex:1 1 0; min-width:2px; height:var(--h); border:0; padding:0; cursor:pointer;
-    border-radius:1px; background:var(--v2-line2); transition:background .12s}
+    border-radius:1px; background:var(--v2-line2); transition:background .12s;
+    background-image:repeating-linear-gradient(90deg,
+      transparent 0, transparent calc(100%/12 - 0.5px),
+      var(--v2-bg) calc(100%/12 - 0.5px), var(--v2-bg) calc(100%/12));
+    background-clip:padding-box}
+  /* Sous 18 px de large la fente ne se voit plus et brouille le trait : on la
+     retire plutot que d'afficher une bouillie. */
+  @media (max-width:1200px){ .tick{background-image:none} }
   .tick.vide{background:var(--v2-line); cursor:pointer}
   .tick:hover{background:var(--v2-acc2)}
   /* Le curseur deborde le peigne vers le haut : il doit se voir d'un coup
@@ -625,7 +665,7 @@
      long des annees. `pointer-events:none` — il ne doit jamais voler le survol
      au trait qu'il recouvre, sinon il se bloquerait lui-meme. */
   .curseur{position:absolute; top:0; bottom:0; transform:translateX(-50%);
-    width:16px; display:grid; place-items:center; border-radius:3px; pointer-events:none;
+    width:auto; min-width:16px; display:grid; place-items:center; border-radius:3px; pointer-events:none;
     background:linear-gradient(180deg,var(--v2-acc1),var(--v2-acc2));
     color:var(--v2-on-acc); font:700 9px var(--v2-mono); letter-spacing:.06em;
     writing-mode:vertical-rl; text-orientation:mixed; padding:3px 0;
