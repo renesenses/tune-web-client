@@ -38,11 +38,6 @@
   let measuringLatency = $state<number | null>(null);
   let latencyResults = $state<Record<number, number>>({});
 
-  // Group calibration
-  let calibratingGroupId = $state<string | null>(null);
-  // group_id -> { zone_id -> sync_delay_ms }
-  let calibrationResults = $state<Record<string, Record<number, number>>>({});
-
   // Change output
   let changingOutputId = $state<number | null>(null);
   let changeOutputType = $state<OutputType>('dlna');
@@ -393,24 +388,13 @@
     try {
       const result = await api.measureLatency();
       const entry = (result.latencies ?? []).find((l: any) => l.zone_id === zoneId);
-      latencyResults = { ...latencyResults, [zoneId]: entry?.estimated_latency_ms ?? entry?.rtt_ms ?? null };
+      const controlRtt = entry?.control_rtt?.p50_ms;
+      if (typeof controlRtt !== 'number') throw new Error(entry?.status ?? 'probe_failed');
+      latencyResults = { ...latencyResults, [zoneId]: controlRtt };
     } catch (e: any) {
       notifications.error('Latency: ' + e.message);
     } finally {
       measuringLatency = null;
-    }
-  }
-
-  async function handleCalibrateGroup(group: ZoneGroupResponse) {
-    calibratingGroupId = group.group_id;
-    try {
-      const result = await api.calibrateGroup(group.group_id);
-      calibrationResults = { ...calibrationResults, [group.group_id]: result.calibration ?? {} };
-      notifications.success($t('zone.calibrate') + ' OK');
-    } catch (e: any) {
-      notifications.error('Calibration: ' + e.message);
-    } finally {
-      calibratingGroupId = null;
     }
   }
 
@@ -836,7 +820,7 @@
           {/if}
         </button>
         {#if zone.id !== null && latencyResults[zone.id] !== undefined}
-          <span class="latency-tag">{latencyResults[zone.id]}ms</span>
+          <span class="latency-tag">RTT {latencyResults[zone.id]}ms</span>
         {/if}
 
         <!-- Change output -->
@@ -954,21 +938,6 @@
                 {/if}
               </div>
               <div class="cluster-header-right">
-                {#if !item.group.auto_synced}
-                  <button
-                    class="btn btn-ghost-sm"
-                    onclick={() => handleCalibrateGroup(item.group)}
-                    disabled={calibratingGroupId === item.group.group_id}
-                  >
-                    {#if calibratingGroupId === item.group.group_id}
-                      <span class="spinner-sm"></span>
-                      {$t('zone.calibrating')}
-                    {:else}
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                      {$t('zone.calibrate')}
-                    {/if}
-                  </button>
-                {/if}
                 <button class="btn btn-ghost-sm" onclick={() => handleUngroupZone(item.group)}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /><line x1="3" y1="3" x2="21" y2="21" /></svg>
                   {$t('zone.ungroup')}

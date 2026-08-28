@@ -464,7 +464,7 @@ export default {
   "zone.noStereoPairs": "Nincs sztereó pár",
   "zone.selected": "kiválasztva",
   "zone.clearSelection": "Kijelölés törlése",
-  "zone.latency": "Késleltetés",
+  "zone.latency": "Vezérlési RTT",
   "zone.measuring": "Mérés...",
   "zone.calibrate": "Kalibrálás",
   "zone.calibrating": "Kalibrálás...",

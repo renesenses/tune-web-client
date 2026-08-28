@@ -71,10 +71,6 @@
   let sleepActive = $state(false);
   let sleepMinutes = $state(0);
 
-  // Crossfade
-  let crossfadeEnabled = $state(false);
-  let crossfadeDuration = $state(3);
-
   // Normalization
   let normEnabled = $state(false);
   let normTargetLufs = $state(-14);
@@ -259,18 +255,6 @@
       const r = await api.getSleepTimer(zone.id);
       sleepActive = r.active;
     } catch {}
-  }
-
-  async function toggleCrossfade() {
-    if (zone?.id == null) return;
-    try {
-      const next = !crossfadeEnabled;
-      await api.setCrossfade(zone.id, next, crossfadeDuration);
-      crossfadeEnabled = next;
-      notifications.success(next ? `Crossfade: ${crossfadeDuration}s` : 'Crossfade off');
-    } catch (e) {
-      console.error('Crossfade error:', e);
-    }
   }
 
   async function toggleNormalization() {
@@ -1745,11 +1729,6 @@
             </button>
           {/if}
 
-          <button class="setting-btn" class:active={crossfadeEnabled} onclick={toggleCrossfade} title="Crossfade">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-              <path d="M2 6c4 0 6 6 10 6s6-6 10-6" /><path d="M2 18c4 0 6-6 10-6s6 6 10 6" />
-            </svg>
-          </button>
           <button class="setting-btn" class:active={normEnabled} onclick={toggleNormalization} title={$t('nowplaying.normalization')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
               <line x1="2" y1="12" x2="6" y2="12" /><line x1="18" y1="12" x2="22" y2="12" /><line x1="8" y1="8" x2="8" y2="16" /><line x1="12" y1="6" x2="12" y2="18" /><line x1="16" y1="9" x2="16" y2="15" />
