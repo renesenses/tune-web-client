@@ -571,6 +571,11 @@ export default {
   'history.clear': 'Vider',
   'history.cleared': 'Historique supprimé',
   'history.noHistory': 'Aucun historique de lecture',
+  'history.saveRadioFav': 'Ajouter ce titre radio aux favoris',
+  'history.removeRadioFav': 'Retirer ce titre des favoris radio',
+  'history.radioFavAdded': 'Titre ajouté aux favoris radio',
+  'history.radioFavRemoved': 'Titre retiré des favoris radio',
+  'history.radioFavError': 'Impossible de mettre à jour les favoris radio',
 
   // Library
   'library.title': 'Bibliothèque',

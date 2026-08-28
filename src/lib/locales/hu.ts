@@ -532,6 +532,11 @@ export default {
   "history.clear": "Ürítés",
   "history.cleared": "Az előzmények törölve",
   "history.noHistory": "Nincs lejátszási előzmény",
+  "history.saveRadioFav": "Add hozzá ezt a rádiós számot a kedvencekhez",
+  "history.removeRadioFav": "Távolítsd el ezt a számot a rádiókedvencekből",
+  "history.radioFavAdded": "Szám hozzáadva a rádiókedvencekhez",
+  "history.radioFavRemoved": "Szám eltávolítva a rádiókedvencekből",
+  "history.radioFavError": "Nem sikerült frissíteni a rádiókedvenceket",
   // Gyűjtemény
   "library.title": "Gyűjtemény",
   "library.playSimilar": "Még ilyet",

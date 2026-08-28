@@ -354,6 +354,11 @@ export default {
   'history.clear': '지우기',
   'history.cleared': '재생 기록이 삭제되었습니다',
   'history.noHistory': '재생 기록 없음',
+  'history.saveRadioFav': '이 라디오 곡을 즐겨찾기에 추가',
+  'history.removeRadioFav': '라디오 즐겨찾기에서 이 곡 제거',
+  'history.radioFavAdded': '라디오 즐겨찾기에 추가됨',
+  'history.radioFavRemoved': '라디오 즐겨찾기에서 제거됨',
+  'history.radioFavError': '라디오 즐겨찾기를 업데이트할 수 없습니다',
 
   // Library
   'library.title': '라이브러리',

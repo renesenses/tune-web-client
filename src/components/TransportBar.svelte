@@ -8,6 +8,7 @@
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../lib/stores/profile';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../lib/streamingFavorites';
   import * as api from '../lib/api';
+  import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
   import * as controls from '../lib/playback-controls';
   import { suivantDesactive } from '../lib/boutonSuivant';
   import AlbumArt from './AlbumArt.svelte';
@@ -314,11 +315,17 @@
           const favs = await api.apiFetch('/radio-favorites?limit=500');
           const match = favs.find((f: any) => f.title === track?.title && f.artist === track?.artist_name);
           if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
+          forgetRadioFavListenAt(track?.title, track?.artist_name);
           isFavorite = false;
         } else {
           const zid = $currentZoneId;
           if (zid != null) {
             await api.apiPost('/radio-favorites/save-current', { zone_id: zid });
+            rememberRadioFavListenAt(
+              track?.title,
+              track?.artist_name,
+              isoFromMetadataChangedAt(track?.metadata_changed_at),
+            );
             isFavorite = true;
           }
         }

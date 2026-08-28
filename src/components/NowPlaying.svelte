@@ -9,6 +9,7 @@
   import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
   import { isMiddlePressWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
+  import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
   import { CF_PRESETS, presetActif, reglagesCrossfeed } from '../lib/crossfeed';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -710,11 +711,13 @@
           const favs = await api.apiFetch('/radio-favorites?limit=500');
           const match = favs.find((f: any) => f.title === tr.title && f.artist === tr.artist_name);
           if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
+          forgetRadioFavListenAt(tr.title, tr.artist_name);
           isFavorite = false;
         } else {
           const zid = zone?.id;
           if (zid != null) {
             await api.apiPost('/radio-favorites/save-current', { zone_id: zid });
+            rememberRadioFavListenAt(tr.title, tr.artist_name, isoFromMetadataChangedAt(metadataChangedAtOf(displayTrack)));
             isFavorite = true;
           }
         }
@@ -778,6 +781,15 @@
     t && 'channels' in t ? t.channels : undefined;
   const filePathOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'file_path' in t ? (t.file_path ?? null) : null;
+  /** L'instant ou le flux a annonce ce titre. Il vit sur l'enveloppe
+   *  `NowPlaying`, PAS sur `Track` : c'est un fait de la LECTURE, pas du
+   *  morceau. `nowPlayingToTrack` etale l'objet (`{...t}`) donc la valeur
+   *  survit a l'execution — mais le type de retour est `Track`, qui l'efface.
+   *  La lire sur `normalizedTrack` compilait par accident hier et faisait
+   *  echouer `check-svelte` des que le socle a ete regenere. On la lit donc
+   *  a sa source, avec la meme garde `in` que `albumIdOf` et ses voisines. */
+  const metadataChangedAtOf = (t: Track | NowPlaying | null | undefined) =>
+    t && 'metadata_changed_at' in t ? t.metadata_changed_at : undefined;
 
 
   // Play count for the current local track (Progman, #1056). Fetched on demand;

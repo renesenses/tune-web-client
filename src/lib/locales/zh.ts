@@ -354,6 +354,11 @@ export default {
   'history.clear': '清空',
   'history.cleared': '历史记录已清空',
   'history.noHistory': '无播放历史',
+  'history.saveRadioFav': '将此电台曲目加入收藏',
+  'history.removeRadioFav': '从电台收藏中移除此曲目',
+  'history.radioFavAdded': '已加入电台收藏',
+  'history.radioFavRemoved': '已从电台收藏移除',
+  'history.radioFavError': '无法更新电台收藏',
 
   // Library
   'library.title': '媒体库',

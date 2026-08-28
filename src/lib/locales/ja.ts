@@ -354,6 +354,11 @@ export default {
   'history.clear': 'クリア',
   'history.cleared': '履歴を削除しました',
   'history.noHistory': '再生履歴がありません',
+  'history.saveRadioFav': 'このラジオ曲をお気に入りに追加',
+  'history.removeRadioFav': 'この曲をラジオのお気に入りから削除',
+  'history.radioFavAdded': 'ラジオのお気に入りに追加しました',
+  'history.radioFavRemoved': 'ラジオのお気に入りから削除しました',
+  'history.radioFavError': 'ラジオのお気に入りを更新できませんでした',
 
   // Library
   'library.title': 'ライブラリ',
