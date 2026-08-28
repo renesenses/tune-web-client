@@ -959,17 +959,15 @@ export interface SmartCollection {
   id: number;
   name: string;
   description: string | null;
-  icon: string;
-  color: string;
-  rules: string;            // JSON-encoded SmartRule[]
+  icon: string | null;
+  color: string | null;
+  rules: SmartRule[] | string; // anciennes réponses : JSON encodé
   match_mode: 'all' | 'any';
-  sort_by: string;
+  sort_by: string | null;
   sort_order: 'asc' | 'desc';
-  max_albums: number;
-  auto_refresh: number;
+  max_limit: number | null;
   album_count?: number;
   created_at: string;
-  updated_at: string;
 }
 
 export interface SmartCollectionPreview {

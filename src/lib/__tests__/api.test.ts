@@ -515,6 +515,20 @@ describe('API exports exist', () => {
   }
 });
 
+describe('Smart Collections contract', () => {
+  it('envoie la borne de prévisualisation sous le nom persistant max_limit', async () => {
+    mockFetch({ total: 0, albums: [] });
+
+    await api.previewSmartCollection({ rules: [], max_limit: 1 });
+
+    expect(fetchCalls).toHaveLength(1);
+    expect(JSON.parse(String(fetchCalls[0].init?.body))).toEqual({
+      rules: [],
+      max_limit: 1,
+    });
+  });
+});
+
 // =========================================================================
 // 6. withTimeout helper
 // =========================================================================
