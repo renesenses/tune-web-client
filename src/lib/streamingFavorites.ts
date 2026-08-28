@@ -27,7 +27,16 @@ import {
 } from './stores/profile';
 import * as api from './api';
 
-export type StreamingItemType = 'track' | 'album' | 'artist';
+/**
+ * `playlist` a rejoint la liste pour #2370 (Didier, fil 1541) : on pouvait
+ * favoriser un album Qobuz, jamais une playlist Qobuz.
+ *
+ * Rien n'a eu à changer dans le mécanisme ci-dessous — il ne regarde le type
+ * que pour fabriquer une clé et un pluriel. Ce qui manquait était le TYPE au
+ * sens TypeScript (le compilateur refusait l'appel), le BOUTON sur la fiche
+ * playlist, et surtout la RELECTURE (voir `fusionnerPlaylistsFavorites`).
+ */
+export type StreamingItemType = 'track' | 'album' | 'artist' | 'playlist';
 
 export interface StreamingRef {
   itemType: StreamingItemType;
@@ -61,8 +70,80 @@ export function isStreamingFavorite(
 }
 
 /** Le type au pluriel qu'attend l'API du service (`track` → `tracks`). */
-export function serviceFavType(t: StreamingItemType): 'tracks' | 'albums' | 'artists' {
-  return `${t}s` as 'tracks' | 'albums' | 'artists';
+export function serviceFavType(t: StreamingItemType): ServiceFavType {
+  return `${t}s` as ServiceFavType;
+}
+
+export type ServiceFavType = 'tracks' | 'albums' | 'artists' | 'playlists';
+
+/** Une playlist en favori, telle que l'écran Favoris la rend — locale OU de
+ *  service. Les deux vivent dans le même onglet et dans la même liste. */
+export interface PlaylistFavorite {
+  /** `playlists.id` pour une locale ; `null` pour une playlist de service, qui
+   *  n'existe pas dans notre base et n'a donc aucun identifiant entier. */
+  id: number | null;
+  name: string;
+  track_count?: number;
+  cover_path?: string | null;
+  /** `local`, `qobuz`, `tidal`… Lu par la pastille de source et par le filtre. */
+  source: string;
+  /** Identifiant chez le service ; absent pour une playlist locale. */
+  source_id?: string;
+}
+
+/** Forme minimale d'une ligne de `streaming_favorites`, tous types confondus. */
+interface FavoriDeService {
+  item_type: string;
+  service: string;
+  service_id: string;
+  title?: string | null;
+  cover_url?: string | null;
+}
+
+/**
+ * Les playlists en favori d'un profil : les locales ET celles des services.
+ *
+ * #2370. L'onglet Playlists ne lisait que `local.playlists`. Une playlist
+ * Qobuz mise en favori était donc bien écrite dans `streaming_favorites` —
+ * la route `/profiles/{id}/favorites/streaming/add` ne valide pas
+ * `item_type` — mais AUCUN écran ne la relisait. C'est le piège que le ticket
+ * nomme explicitement : « ajouter le type en écriture seule laisserait un
+ * favori qu'aucun écran ne peut relire ».
+ *
+ * Une entrée sans service ou sans identifiant est écartée : la ligne
+ * s'afficherait, et ne s'ouvrirait sur rien.
+ */
+export function fusionnerPlaylistsFavorites(
+  locales: ReadonlyArray<{ id: number | null; name: string; track_count?: number }>,
+  streaming: ReadonlyArray<FavoriDeService>,
+): PlaylistFavorite[] {
+  const out: PlaylistFavorite[] = locales.map((p) => ({
+    id: p.id,
+    name: p.name,
+    track_count: p.track_count,
+    source: 'local',
+  }));
+
+  // Deux services numérotent leurs playlists chacun de leur côté : la clé de
+  // dédoublonnage porte le service, sinon `qobuz:77` cacherait `tidal:77`.
+  const vus = new Set<string>();
+  for (const f of streaming) {
+    if (f.item_type !== 'playlist') continue;
+    const service = (f.service ?? '').trim();
+    const serviceId = (f.service_id ?? '').trim();
+    if (!service || !serviceId) continue;
+    const cle = `${service}:${serviceId}`;
+    if (vus.has(cle)) continue;
+    vus.add(cle);
+    out.push({
+      id: null,
+      name: f.title ?? '',
+      cover_path: f.cover_url ?? null,
+      source: service,
+      source_id: serviceId,
+    });
+  }
+  return out;
 }
 
 /**

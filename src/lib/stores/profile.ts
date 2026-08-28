@@ -1,5 +1,6 @@
 import { writable, get } from 'svelte/store';
 import * as api from '../api';
+import type { StreamingItemType } from '../streamingFavorites';
 
 export interface Profile {
   id: number;
@@ -74,7 +75,7 @@ export function facetFavKey(facet: string, value: string): string {
 export const favoriteStreamingKeys = writable<Set<string>>(new Set());
 
 export function streamingFavKey(
-  itemType: 'track' | 'album' | 'artist',
+  itemType: StreamingItemType,
   service: string,
   serviceId: string,
 ): string {

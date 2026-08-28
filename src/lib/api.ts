@@ -5,6 +5,9 @@ import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
 import { locale, t } from './i18n';
 import { profileHeader } from './profileHeader';
+// `import type` : effacé à la compilation, donc aucun cycle à l'exécution
+// (`streamingFavorites` importe ce module-ci pour ses fonctions).
+import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -2376,11 +2379,11 @@ export function getStreamingFavorites(service: string, type: 'tracks' | 'albums'
     });
 }
 
-export function addStreamingFavorite(service: string, type: 'tracks' | 'albums' | 'artists', itemId: string) {
+export function addStreamingFavorite(service: string, type: ServiceFavType, itemId: string) {
   return fetchJSON<{ok: boolean}>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}/${encodeURIComponent(itemId)}`, { method: 'POST' });
 }
 
-export function removeStreamingFavorite(service: string, type: 'tracks' | 'albums' | 'artists', itemId: string) {
+export function removeStreamingFavorite(service: string, type: ServiceFavType, itemId: string) {
   return fetchJSON<{ok: boolean}>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}/${encodeURIComponent(itemId)}`, { method: 'DELETE' });
 }
 
@@ -2392,7 +2395,7 @@ export function removeStreamingFavorite(service: string, type: 'tracks' | 'album
 export interface StreamingFavorite {
   id: number;
   profile_id: number;
-  item_type: 'track' | 'album' | 'artist';
+  item_type: StreamingItemType;
   service: string;
   service_id: string;
   title?: string | null;
@@ -2403,7 +2406,7 @@ export interface StreamingFavorite {
 
 export function getProfileStreamingFavorites(
   profileId: number,
-  type?: 'track' | 'album' | 'artist',
+  type?: StreamingItemType,
 ): Promise<StreamingFavorite[]> {
   const q = type ? `?item_type=${type}` : '';
   return fetchJSON<StreamingFavorite[]>(`${BASE}/profiles/${profileId}/favorites/streaming${q}`);
@@ -2412,7 +2415,7 @@ export function getProfileStreamingFavorites(
 export function addProfileStreamingFavorite(
   profileId: number,
   fav: {
-    item_type: 'track' | 'album' | 'artist';
+    item_type: StreamingItemType;
     service: string;
     service_id: string;
     title?: string;
@@ -2429,7 +2432,7 @@ export function addProfileStreamingFavorite(
 
 export function removeProfileStreamingFavorite(
   profileId: number,
-  params: { item_type: 'track' | 'album' | 'artist'; service: string; service_id: string },
+  params: { item_type: StreamingItemType; service: string; service_id: string },
 ) {
   return fetchVoid(`${BASE}/profiles/${profileId}/favorites/streaming/remove`, {
     method: 'POST',
