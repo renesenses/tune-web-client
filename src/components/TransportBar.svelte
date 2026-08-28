@@ -8,6 +8,7 @@
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../lib/stores/profile';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../lib/streamingFavorites';
   import * as api from '../lib/api';
+  import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
   import * as controls from '../lib/playback-controls';
   import { suivantDesactive } from '../lib/boutonSuivant';
   import AlbumArt from './AlbumArt.svelte';
@@ -30,7 +31,7 @@
     audiophileLockVolume,
     refreshAudiophile,
     refreshVolumeLock,
-    setVolumeLock,
+    setZoneVolumeLock,
     volumeLocked,
   } from '../lib/stores/audiophile';
 
@@ -314,11 +315,17 @@
           const favs = await api.apiFetch('/radio-favorites?limit=500');
           const match = favs.find((f: any) => f.title === track?.title && f.artist === track?.artist_name);
           if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
+          forgetRadioFavListenAt(track?.title, track?.artist_name);
           isFavorite = false;
         } else {
           const zid = $currentZoneId;
           if (zid != null) {
             await api.apiPost('/radio-favorites/save-current', { zone_id: zid });
+            rememberRadioFavListenAt(
+              track?.title,
+              track?.artist_name,
+              isoFromMetadataChangedAt(track?.metadata_changed_at),
+            );
             isFavorite = true;
           }
         }
@@ -476,7 +483,8 @@
   }
 
   async function toggleVolumeLock() {
-    if (lockLoading) return;
+    const z = $currentZone;
+    if (!z?.id || lockLoading) return;
     lockLoading = true;
     const enabled = !$audiophileLockVolume;
     const confirmationRequired = fullVolumeConfirmationRequired('volume-lock', {
@@ -494,17 +502,16 @@
       }
     }
     try {
-      await setVolumeLock(enabled, fullVolumeConfirmed);
-      if ($audiophileLockVolume && $audiophileEnabled) {
-        const z = $currentZone;
-        if (z?.id) {
-          mutedVolume.set(null);
-          zoneVolume.set(1);
-          await api.setVolume(z.id, 1);
-        }
+      const res = await setZoneVolumeLock(z.id, enabled, fullVolumeConfirmed);
+      audiophileLockVolume.set(res.effective_lock_volume ?? enabled);
+      if ((res.effective_lock_volume ?? enabled) && $audiophileEnabled) {
+        // Le serveur a déjà envoyé la commande à 100 % avant de répondre.
+        mutedVolume.set(null);
+        zoneVolume.set(1);
       }
     } catch {
-      // setVolumeLock a déjà remis le store dans son état d'origine.
+      // Le serveur est la source de vérité : relire la zone restaure le toggle.
+      await refreshAudiophile(z.id);
     }
     lockLoading = false;
   }
@@ -1022,8 +1029,8 @@
            un défaut — d'où l'interrupteur, inactif au départ. -->
       <div class="sp-audiophile sp-ap-sub-row">
         <div class="sp-ap-text">
-          <span class="sp-ap-title">{$t('audiophile.lockVolume' as any)}</span>
-          <span class="sp-ap-sub">{$t('audiophile.lockVolumeHelp' as any)}</span>
+          <span class="sp-ap-title">{$t('audiophile.lockVolumeZone' as any)}</span>
+          <span class="sp-ap-sub">{$t('audiophile.lockVolumeZoneHelp' as any)}</span>
         </div>
         <button
           class="sp-ap-switch"
@@ -1032,7 +1039,7 @@
           disabled={lockLoading}
           role="switch"
           aria-checked={$audiophileLockVolume}
-          aria-label={$t('audiophile.lockVolume' as any)}
+          aria-label={$t('audiophile.lockVolumeZone' as any)}
         >
           <span class="sp-ap-knob"></span>
         </button>

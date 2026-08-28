@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { doitReinitialiserLesParoles } from '../lib/nowPlayingLyricsReset';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
@@ -8,6 +9,7 @@
   import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
   import { isMiddlePressWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
+  import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
   import { CF_PRESETS, presetActif, reglagesCrossfeed } from '../lib/crossfeed';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -37,6 +39,12 @@
   let npCreditsTrackId: number | null = $state(null);
   let creditsEnriching = $state(false);
   let showLyrics = $state(false);
+  // Témoin de « la zone paroles a été remise à zéro pour cette piste ». DISTINCT
+  // de npLyricsTrackId, qui dit « les paroles de cette piste sont chargées ».
+  // Les confondre rouvrirait #2555 dans un sens ou dans l'autre : soit la garde
+  // ne se referme jamais (boucle d'effet), soit ouvrir le panneau ne charge
+  // plus rien. Voir lib/nowPlayingLyricsReset.ts.
+  let npLyricsResetPourId = $state<number | null>(null);
   let npLyrics: string | null = $state(null);
   /** Provenance annoncée par le serveur pour les paroles affichées ("lrc",
    *  "tag" ou "lrclib"). Elle traversait déjà la normalisation et s'arrêtait
@@ -63,10 +71,6 @@
   let showSleepMenu = $state(false);
   let sleepActive = $state(false);
   let sleepMinutes = $state(0);
-
-  // Crossfade
-  let crossfadeEnabled = $state(false);
-  let crossfadeDuration = $state(3);
 
   // Normalization
   let normEnabled = $state(false);
@@ -252,18 +256,6 @@
       const r = await api.getSleepTimer(zone.id);
       sleepActive = r.active;
     } catch {}
-  }
-
-  async function toggleCrossfade() {
-    if (zone?.id == null) return;
-    try {
-      const next = !crossfadeEnabled;
-      await api.setCrossfade(zone.id, next, crossfadeDuration);
-      crossfadeEnabled = next;
-      notifications.success(next ? `Crossfade: ${crossfadeDuration}s` : 'Crossfade off');
-    } catch (e) {
-      console.error('Crossfade error:', e);
-    }
   }
 
   async function toggleNormalization() {
@@ -592,6 +584,7 @@
       syncedLines = [];
       npLyricsTrackId = null;
       npLyricsRadioKey = null;
+      npLyricsResetPourId = null;
       karaokeMode = false;
       return;
     }
@@ -601,11 +594,15 @@
       npCredits = [];
       loadNpCredits(id);
     }
-    if (id !== npLyricsTrackId) {
+    if (doitReinitialiserLesParoles(id, npLyricsTrackId, npLyricsResetPourId)) {
       npLyrics = null; npLyricsSource = null;
       syncedLines = [];
       npLyricsRadioKey = null;
       karaokeMode = false;
+      // Referme la garde AVANT tout chargement : sans ce témoin elle restait
+      // vraie à chaque passage tant que le panneau était fermé, et l'effet
+      // réécrivait `syncedLines` — un tableau neuf — sans jamais converger.
+      npLyricsResetPourId = id;
       if (showLyrics) loadNpLyrics(id);
     }
   });
@@ -714,11 +711,13 @@
           const favs = await api.apiFetch('/radio-favorites?limit=500');
           const match = favs.find((f: any) => f.title === tr.title && f.artist === tr.artist_name);
           if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
+          forgetRadioFavListenAt(tr.title, tr.artist_name);
           isFavorite = false;
         } else {
           const zid = zone?.id;
           if (zid != null) {
             await api.apiPost('/radio-favorites/save-current', { zone_id: zid });
+            rememberRadioFavListenAt(tr.title, tr.artist_name, isoFromMetadataChangedAt(metadataChangedAtOf(displayTrack)));
             isFavorite = true;
           }
         }
@@ -782,6 +781,15 @@
     t && 'channels' in t ? t.channels : undefined;
   const filePathOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'file_path' in t ? (t.file_path ?? null) : null;
+  /** L'instant ou le flux a annonce ce titre. Il vit sur l'enveloppe
+   *  `NowPlaying`, PAS sur `Track` : c'est un fait de la LECTURE, pas du
+   *  morceau. `nowPlayingToTrack` etale l'objet (`{...t}`) donc la valeur
+   *  survit a l'execution — mais le type de retour est `Track`, qui l'efface.
+   *  La lire sur `normalizedTrack` compilait par accident hier et faisait
+   *  echouer `check-svelte` des que le socle a ete regenere. On la lit donc
+   *  a sa source, avec la meme garde `in` que `albumIdOf` et ses voisines. */
+  const metadataChangedAtOf = (t: Track | NowPlaying | null | undefined) =>
+    t && 'metadata_changed_at' in t ? t.metadata_changed_at : undefined;
 
 
   // Play count for the current local track (Progman, #1056). Fetched on demand;
@@ -1682,7 +1690,7 @@
             bitDepth={displayTrack.bit_depth}
             format={displayTrack.format}
           />
-          <button class="viz-toggle-btn" onclick={() => vizMode = vizMode === 'spectrum' ? 'waveform' : 'spectrum'} title={vizMode === 'spectrum' ? 'Waveform' : 'Spectrum'}>
+          <button class="viz-toggle-btn" onclick={() => vizMode = vizMode === 'spectrum' ? 'waveform' : 'spectrum'} title={vizMode === 'spectrum' ? $t('player.showWaveform') : $t('player.showSpectrum')}>
             {#if vizMode === 'spectrum'}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12c4 0 6-6 10-6s6 6 10 6" /></svg>
             {:else}
@@ -1733,11 +1741,6 @@
             </button>
           {/if}
 
-          <button class="setting-btn" class:active={crossfadeEnabled} onclick={toggleCrossfade} title="Crossfade">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-              <path d="M2 6c4 0 6 6 10 6s6-6 10-6" /><path d="M2 18c4 0 6-6 10-6s6 6 10 6" />
-            </svg>
-          </button>
           <button class="setting-btn" class:active={normEnabled} onclick={toggleNormalization} title={$t('nowplaying.normalization')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
               <line x1="2" y1="12" x2="6" y2="12" /><line x1="18" y1="12" x2="22" y2="12" /><line x1="8" y1="8" x2="8" y2="16" /><line x1="12" y1="6" x2="12" y2="18" /><line x1="16" y1="9" x2="16" y2="15" />

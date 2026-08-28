@@ -17,22 +17,8 @@ const LANGUES = {
   hu: locales.hu,
 } as Record<string, Record<string, string>>;
 
-const MARQUEUR_GLOBAL: Record<string, RegExp> = {
-  fr: /toutes les zones/i,
-  en: /all zones/i,
-  de: /alle zonen/i,
-  es: /todas las zonas/i,
-  it: /tutte le zone/i,
-  zh: /所有区域/,
-  ja: /すべてのゾーン/,
-  ko: /모든 존/,
-  ro: /toate zonele/i,
-  sv: /alla zoner/i,
-  hu: /minden zón/i,
-};
-
-describe('portée globale du verrou de volume PURE (#2425)', () => {
-  it('le panneau du chemin du signal affiche le titre et son aide', () => {
+describe('portée configurable du verrou de volume PURE (#2425, #2526)', () => {
+  it('le chemin du signal agit sur la zone courante', () => {
     const transport = readFileSync(
       resolve(__dirname, '../../components/TransportBar.svelte'),
       'utf-8',
@@ -40,20 +26,43 @@ describe('portée globale du verrou de volume PURE (#2425)', () => {
     const row = transport.indexOf('<div class="sp-audiophile sp-ap-sub-row">');
 
     expect(row).toBeGreaterThanOrEqual(0);
-    expect(transport.indexOf("$t('audiophile.lockVolume'", row)).toBeGreaterThan(
+    expect(transport.indexOf("$t('audiophile.lockVolumeZone'", row)).toBeGreaterThan(
       row,
     );
-    expect(transport.indexOf("$t('audiophile.lockVolumeHelp'", row)).toBeGreaterThan(
+    expect(transport.indexOf("$t('audiophile.lockVolumeZoneHelp'", row)).toBeGreaterThan(
       row,
     );
+    expect(transport).toContain('setZoneVolumeLock(z.id, enabled, fullVolumeConfirmed)');
+  });
+
+  it('les réglages distinguent le défaut global et les trois choix par zone', () => {
+    const settings = readFileSync(
+      resolve(__dirname, '../../components/SettingsView.svelte'),
+      'utf-8',
+    );
+
+    expect(settings).toContain("$t('audiophile.lockVolume'");
+    expect(settings).toContain("$t('audiophile.lockVolumeHelp'");
+    expect(settings).toContain('<option value="inherit">');
+    expect(settings).toContain('<option value="on">');
+    expect(settings).toContain('<option value="off">');
   });
 
   for (const [code, dictionnaire] of Object.entries(LANGUES)) {
-    it(`${code} annonce que le réglage vaut pour toutes les zones`, () => {
-      const texte = `${dictionnaire['audiophile.lockVolume']} ${
-        dictionnaire['audiophile.lockVolumeHelp']
-      }`;
-      expect(texte).toMatch(MARQUEUR_GLOBAL[code]);
+    it(`${code} distingue le défaut, la zone courante et ses trois choix`, () => {
+      const global = dictionnaire['audiophile.lockVolume'];
+      const zone = dictionnaire['audiophile.lockVolumeZone'];
+      const choix = [
+        dictionnaire['audiophile.lockInherit'],
+        dictionnaire['audiophile.lockAlways'],
+        dictionnaire['audiophile.lockNever'],
+      ];
+
+      expect(global.trim()).not.toBe('');
+      expect(zone.trim()).not.toBe('');
+      expect(global).not.toBe(zone);
+      expect(choix.every((libelle) => libelle.trim() !== '')).toBe(true);
+      expect(new Set(choix).size).toBe(3);
     });
   }
 });

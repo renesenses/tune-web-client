@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { currentZone } from '../lib/stores/zones';
   import { isBrowserZone, browserSeek } from '../lib/stores/browserAudio';
   import * as api from '../lib/api';
@@ -147,8 +148,25 @@
   // lib/ouvertureFlux, pour être vérifiable sans rendu.
   let etatOuverture = $state<EtatOuverture>(ETAT_OUVERTURE_INITIAL);
 
+  // `untrack` est ici la CORRECTION, pas une optimisation (#2555, seconde
+  // boucle).
+  //
+  // Cette fonction lit l'état précédent et écrit le suivant. Appelée depuis un
+  // `$effect`, la lecture inscrivait `etatOuverture` dans les dépendances de
+  // l'effet — qui l'écrit ensuite. L'effet invalidait donc sa propre
+  // dépendance, se replanifiait, et Svelte finissait par lever
+  // `effect_update_depth_exceeded`. Cette erreur ARRÊTE son ordonnanceur de
+  // rendu : l'interface entière cesse de se rafraîchir, alors que la musique
+  // continue et que les clics sont bien reçus. C'était « il faut faire F5 pour
+  // quitter Lecture en cours ».
+  //
+  // Rendre `suivreOuverture` idempotente (retourner le MÊME objet quand rien
+  // n'a changé) supprimait la boucle dans le cas stable, mais laissait la
+  // DÉPENDANCE en place : dès qu'une ouverture court, chaque passage produit
+  // légitimement un objet différent, et la contre-réaction revient. On coupe
+  // donc le lien à sa racine : l'état précédent est lu hors de tout suivi.
   function rafraichirOuverture() {
-    etatOuverture = suivreOuverture(etatOuverture, zone, Date.now());
+    etatOuverture = suivreOuverture(untrack(() => etatOuverture), zone, Date.now());
   }
 
   // Deux déclencheurs, et il faut les deux : la zone, pour réagir tout de
@@ -161,8 +179,14 @@
     rafraichirOuverture();
   });
 
+  // Ne dépendre que du BOOLÉEN « une ouverture court-elle ? », jamais de
+  // l'objet : sinon chaque tick du minuteur remplace `etatOuverture`, relance
+  // cet effet, et le minuteur est détruit puis recréé une fois par seconde —
+  // au mieux du gaspillage, au pire le second bord de la boucle.
+  let ouvertureEnCours = $derived(etatOuverture.depuisMs !== null);
+
   $effect(() => {
-    if (etatOuverture.depuisMs === null) return;
+    if (!ouvertureEnCours) return;
     const minuteur = setInterval(rafraichirOuverture, 1000);
     return () => clearInterval(minuteur);
   });

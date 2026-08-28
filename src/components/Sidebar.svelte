@@ -14,6 +14,7 @@
   import * as api from '../lib/api';
   import type { DiscoveredDevice, LocalAudioDevice, OutputType, Zone, ZoneGroupResponse, StreamingServiceStatus } from '../lib/types';
   import { favoritesFirst, toggleFavoriteId, type DeviceFavPrefix } from '../lib/deviceFavorites';
+  import { deviceHasBoundZone, deviceZoneActionKey, deviceZoneTargetId } from '../lib/hiddenZoneRecovery';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ProfileSelector from './ProfileSelector.svelte';
   import { notifications } from '../lib/stores/notifications';
@@ -59,6 +60,11 @@
   // infinite API-call loop that starves the main thread and blocks
   // sidebar click events (same class of bug fixed in DiagnosticsView).
   let serverVersion = $state<string | null>(null);
+  // Nom de la machine qui répond (#2110). Deux serveurs Tune donnaient deux
+  // interfaces indiscernables : Philippe et Alain ont conclu à une mise à jour
+  // ratée en regardant deux machines différentes. Le nom voyage dans la même
+  // réponse que la version, juste au-dessus.
+  let serverName = $state<string | null>(null);
   let sidebarDestroyed = false;
   onMount(() => {
     // L'état acoustique décide de l'affichage de l'entrée Ambiance.
@@ -68,7 +74,11 @@
     refreshBandcampPlugin();
     // Primary: get version from /system/health (always available)
     api.getHealth()
-      .then((r) => { if (!sidebarDestroyed && r?.version) serverVersion = r.version; })
+      .then((r) => {
+        if (sidebarDestroyed) return;
+        if (r?.version) serverVersion = r.version;
+        if (r?.server_name) serverName = r.server_name;
+      })
       .catch(() => {
         // Fallback: try checkForUpdate
         api.checkForUpdate()
@@ -340,7 +350,7 @@
 
   async function createZoneFromDevice(device: DiscoveredDevice) {
     try {
-      const zone = await api.createZone(device.name, device.type, device.id);
+      const zone = await api.createZone(device.name, device.type, deviceZoneTargetId(device));
       zones.update((zs) => [...zs, zone]);
       if (zone.id !== null) currentZoneId.set(zone.id);
     } catch (e: any) {
@@ -684,6 +694,20 @@
         <span class="health-dot" class:health-warning={$healthStatus === 'warning'} class:health-critical={$healthStatus === 'critical'} title="{$t('sidebar.serverStatus')} : {$healthStatus}"></span>
       {/if}
     </div>
+    <!--
+      À QUELLE MACHINE parle-t-on (#2110) — à ne pas confondre avec la zone.
+      La puce de zone vit en bas à droite, dans la barre de transport : verte,
+      cliquable, ornée d'une icône d'appareil, elle répond à « qu'est-ce qui
+      joue ? ». Celle-ci vit en haut à gauche : grise, inerte, sans icône, et
+      porte le mot « Serveur » en toutes lettres. Deux coins opposés, deux
+      formulations, deux traitements : rien à confondre.
+    -->
+    {#if serverName}
+      <div class="server-identity" title={$t('sidebar.serverIdentityTitle')}>
+        <span class="server-identity-label">{$t('sidebar.serverIdentityLabel')}</span>
+        <span class="server-identity-name truncate">{serverName}</span>
+      </div>
+    {/if}
   </div>
 
   <ProfileSelector />
@@ -1122,6 +1146,9 @@
           {/if}
           <span class="device-name truncate">{device.name}</span>
           {@render favoriteStar('net', device.id)}
+          {#if device.zone_hidden}
+            <span class="device-hidden-zone">{$t('zone.deletedZone')}</span>
+          {/if}
           <span class="device-type-tag">{deviceTypeIcon(device.type)}</span>
           {#if device.available}
             {#if device.type === 'airplay' && !pairedDeviceIds.has(device.id)}
@@ -1151,8 +1178,8 @@
                 </button>
               {/if}
             {/if}
-            {#if !$zones.some(z => z.output_device_id === device.id)}
-            <button class="device-add-btn" onclick={() => createZoneFromDevice(device)} title={$t('zone.createZone')}>
+            {#if !deviceHasBoundZone(device, new Set($zones.flatMap(z => z.output_device_id ? [z.output_device_id] : [])))}
+            <button class="device-add-btn" onclick={() => createZoneFromDevice(device)} title={$t(deviceZoneActionKey(device))}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </button>
             {:else}
@@ -1293,6 +1320,38 @@
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-secondary);
+  }
+
+  /*
+    Étiquette « quel serveur » (#2110). Volontairement à l'opposé de la puce de
+    zone (barre de transport, en bas à droite) : pas d'accent coloré, pas
+    d'icône, pas de survol, pas de curseur cliquable. Du texte gris, discret,
+    dans l'en-tête de la barre latérale, sous l'état de connexion.
+  */
+  .server-identity {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    margin-top: 2px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    line-height: 1.3;
+    color: var(--tune-text-muted);
+    min-width: 0;
+  }
+
+  .server-identity-label {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 9.5px;
+    opacity: 0.75;
+    flex-shrink: 0;
+  }
+
+  .server-identity-name {
+    font-weight: 500;
+    color: var(--tune-text-secondary);
+    min-width: 0;
   }
 
   .state-dot {
@@ -1855,6 +1914,14 @@
     flex-shrink: 0;
   }
 
+  .device-hidden-zone {
+    color: var(--tune-warning, #d97706);
+    font-family: var(--font-label);
+    font-size: 9px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
   .device-add-btn {
     background: none;
     border: 1px solid var(--tune-border);
@@ -2138,7 +2205,9 @@
     }
     .sidebar-header { padding: var(--space-md) 0; align-items: center; }
     .logo { justify-content: center; }
-    .logo span, .version, .connection-status .state-text { display: none; }
+    /* Barre latérale réduite aux icônes : le nom du serveur n'y tiendrait pas.
+       Il reste lisible dans Réglages → Système, comme la version. */
+    .logo span, .version, .connection-status .state-text, .server-identity { display: none; }
     .section-label { display: none; }
     .nav-item { justify-content: center; padding: 12px 0; font-size: 0; }
     .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }

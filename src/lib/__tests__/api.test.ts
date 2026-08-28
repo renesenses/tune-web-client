@@ -280,6 +280,32 @@ describe('critical endpoint URLs', () => {
     });
   });
 
+  it('setAudiophileVolumeLock distingue surcharge et héritage par zone', async () => {
+    mockFetch({ enabled: true, lock_volume: false, effective_lock_volume: false });
+    await api.setAudiophileVolumeLock(7, false);
+    expect(fetchCalls[0].url).toBe('/api/v1/zones/7/audiophile');
+    expect(fetchCalls[0].init?.method).toBe('POST');
+    expect(JSON.parse(String(fetchCalls[0].init?.body))).toEqual({
+      lock_volume: false,
+    });
+
+    fetchCalls = [];
+    mockFetch({ enabled: true, lock_volume: null, effective_lock_volume: true });
+    await api.setAudiophileVolumeLock(7, null);
+    expect(JSON.parse(String(fetchCalls[0].init?.body))).toEqual({
+      lock_volume: null,
+    });
+  });
+
+  it('setAudiophileVolumeLock ne transmet l’accord qu’après confirmation', async () => {
+    mockFetch({ enabled: true, lock_volume: true, effective_lock_volume: true });
+    await api.setAudiophileVolumeLock(7, true, true);
+    expect(JSON.parse(String(fetchCalls[0].init?.body))).toEqual({
+      lock_volume: true,
+      confirm_full_volume: true,
+    });
+  });
+
   it('getAdminHealth() calls /api/v1/system/admin/health', async () => {
     mockFetch({ cpu_percent: 5, ram_mb: 200 });
     await api.getAdminHealth();
