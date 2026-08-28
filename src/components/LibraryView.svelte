@@ -18,6 +18,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { groupCreditsByRole, uniqueInstruments } from '../lib/library/credits';
   import { bioDisplayText } from '../lib/library/bio';
+  import { sectionHeads } from '../lib/library/grouping';
 import { observeHeight, observeWidth } from '../lib/actions/observeSize';
 import { formatTime, formatDuration, formatAlbumYear, fold } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
@@ -358,7 +359,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   function handleTrackSaved(updated: Track) {
     tracks.update(list => list.map(t => t.id === updated.id ? updated : t));
-    albumTracks.update(list => list.map(t => t.id === updated.id ? updated : t));
+    // GROUPING vit dans `track_metadata`, pas dans la table `tracks` : la
+    // réponse de PATCH /metadata/tracks/{id} ne le porte donc jamais. Sans ce
+    // report, renommer une piste effacerait son en-tête de section jusqu'au
+    // prochain chargement de l'album (#2130).
+    albumTracks.update(list => list.map(t =>
+      t.id === updated.id ? { ...updated, grouping: updated.grouping ?? t.grouping } : t
+    ));
   }
 
   let zone = $derived($currentZone);
@@ -1235,6 +1242,12 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   });
 
   let hasMultipleDiscs = $derived(tracksByDisc.length > 1);
+
+  // GROUPING (#2130) — en-têtes de section À L'INTÉRIEUR d'un disque
+  // (mouvements, bonus, ensembles), là où DISCSUBTITLE nomme le disque entier.
+  // La règle, et pourquoi elle s'efface d'elle-même quand le tag n'apprend
+  // rien, sont dans `lib/library/grouping.ts` (couvert par ses tests).
+  let groupingHeads = $derived(sectionHeads(tracksByDisc.map(([, tracks]) => tracks)));
 
   function selectGenreInTab(name: string) {
     // If the user clicked on a genre name that's a parent in the tree,
@@ -2408,6 +2421,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           <div class="disc-header">{$tr('library.disc').replace('{num}', String(discNum))}{#if discSubtitle} — {discSubtitle}{/if}</div>
           <div class="track-list">
             {#each discTracks as t, index}
+              {#if t.id != null && groupingHeads.has(t.id)}
+                <div class="grouping-header">{groupingHeads.get(t.id)}</div>
+              {/if}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <!-- `t.id != null` d'abord : sans ce garde, deux pistes sans
@@ -2550,6 +2566,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       {:else}
         <div class="track-list">
           {#each $albumTracks as t, index}
+            {#if t.id != null && groupingHeads.has(t.id)}
+              <div class="grouping-header">{groupingHeads.get(t.id)}</div>
+            {/if}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <!-- Voir .track-item.playing — même garde `t.id != null`. -->
@@ -4228,6 +4247,18 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   .disc-header:first-of-type {
     border-top: none;
     margin-top: 0;
+  }
+
+  /* Section GROUPING (#2130) : subordonnée à l'en-tête de disque — pas de
+     filet, pas de capitales, décalée sur la gauche des numéros de piste, pour
+     qu'on lise « disque 2 » puis « les bonus » et jamais l'inverse. */
+  .grouping-header {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+    padding: var(--space-sm) 28px var(--space-xs);
+    letter-spacing: 0.2px;
   }
 
   .play-all-btn {
