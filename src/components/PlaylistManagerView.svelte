@@ -1,15 +1,17 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import { currentZone, zones, playAndSync } from '../lib/stores/zones';
   import { currentTrack, currentTrackId, estLaPisteEnLecture } from '../lib/stores/nowPlaying';
   import { dialogs } from '../lib/stores/dialogs';
-  import { playlists as playlistsStore } from '../lib/stores/playlists';
+  import { playlists as playlistsStore, pendingPlaylistId } from '../lib/stores/playlists';
   import { streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge, errText } from '../lib/utils';
-  import type { Playlist, Track, StreamingPlaylist, UnifiedPlaylistsResponse, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../lib/types';
+  import type { Playlist, Track, StreamingPlaylist, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './AlbumArt.svelte';
+  import ClampedText from './ClampedText.svelte';
   import HeartButton from './HeartButton.svelte';
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
@@ -506,6 +508,16 @@
       localPlaylists = localData;
       loadedCount = localData.length;
       loadingStatus = $tr('playlistManager.localPlaylistsCount').replace('{count}', String(loadedCount));
+
+      // Playlist demandee depuis un autre ecran (favori de playlist, #2442) :
+      // on l'ouvre directement au lieu de rendre la liste. Consommee une seule
+      // fois — un retour arriere doit montrer la liste, pas rouvrir la fiche.
+      const attendue = get(pendingPlaylistId);
+      if (attendue != null) {
+        pendingPlaylistId.set(null);
+        const pl = localData.find((p) => p.id === attendue);
+        if (pl) await selectLocal(pl);
+      }
 
       // Load streaming services in parallel
       const services = await api.getStreamingServices();
@@ -1143,9 +1155,20 @@
         {#if selectedService && selectedService !== 'local'}
           <span class="source-chip" style="color: {serviceColor(selectedService)}">{serviceName(selectedService)}</span>
         {/if}
-        <h2>{selectedPlaylist?.name ?? selectedStreamingPl?.name}</h2>
+        <div class="playlist-title-row">
+          <h2>{selectedPlaylist?.name ?? selectedStreamingPl?.name}</h2>
+          <!-- Mettre la PLAYLIST elle-meme en favori, pas seulement ses pistes
+               (#2442, FabienM fil 1557). Playlists LOCALES uniquement : une
+               playlist de streaming n'a pas d'id entier, elle releve du magasin
+               des favoris de streaming. -->
+          {#if selectedPlaylist?.id != null}
+            <HeartButton playlistId={selectedPlaylist.id} size={20} />
+          {/if}
+        </div>
         {#if selectedPlaylist?.description}
-          <p class="playlist-desc">{selectedPlaylist.description}</p>
+          <ClampedText lines={3} resetKey={selectedPlaylist.description}>
+            <p class="playlist-desc">{selectedPlaylist.description}</p>
+          </ClampedText>
         {/if}
         <span class="playlist-count">{detailTracks.length} {$tr('common.tracks')}</span>
       </div>
@@ -2519,6 +2542,12 @@
 
   .playlist-detail-info {
     flex: 1;
+  }
+
+  .playlist-title-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
   }
 
   .detail-actions {

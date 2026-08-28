@@ -2,7 +2,9 @@
   import { onMount, onDestroy } from 'svelte';
   import SettingHint from './SettingHint.svelte';
   import { tip } from '../lib/tooltip';
+  import { compteSupprimees, cleLibelleFinDeScan } from '../lib/bandeauFinDeScan';
   import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
+  import { doitSArreterFauteDImagesManquantes, type ModeEnrichissementImages } from '../lib/enrichissementImagesArtistes';
   import { dialogs } from '../lib/stores/dialogs';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
@@ -22,7 +24,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { copyText, errText } from '../lib/utils';
   import { activeView, settingsInitialTab, type View } from '../lib/stores/navigation';
-  import { licenseState, isPremium, loadLicense } from '../lib/stores/license';
+  import { licenseState, isPremium, loadLicense, offlineGrace } from '../lib/stores/license';
   import SmbWizard from './SmbWizard.svelte';
   import { etatPartage } from '../lib/smbMountState';
   import FolderWizard from './FolderWizard.svelte';
@@ -304,16 +306,23 @@ function setSettingsLevel(level: SettingsLevel) {
    *
    * On ne remet PAS le bouton à son état initial ensuite : la machine
    * s'arrête, et proposer de recommencer donnerait à croire que ça n'a pas
-   * marché. L'erreur du `catch` est ATTENDUE — le serveur meurt avant de
-   * répondre.
+   * marché. Une coupure réseau est attendue — le serveur peut mourir avant de
+   * répondre. Une réponse HTTP d'erreur, elle, prouve que la machine n'a pas
+   * accepté l'ordre : le bouton doit redevenir utilisable et le dire.
    */
   async function eteindreLaMachine() {
     if (!(await dialogs.confirm(get(t)('diagnostics.confirmShutdown' as any), { danger: true }))) return;
     extinctionEnCours = true;
     try {
       await api.applianceShutdown();
-    } catch {
-      /* attendu : la machine s'éteint, la réponse peut ne jamais revenir */
+    } catch (e) {
+      const msg = errText(e);
+      if (msg !== null) {
+        extinctionEnCours = false;
+        notifications.error(msg);
+      }
+      // `null` désigne la coupure de transport générique du navigateur : le
+      // serveur a pu disparaître pendant l'extinction, comportement attendu.
     }
   }
 
@@ -540,6 +549,26 @@ function setSettingsLevel(level: SettingsLevel) {
   let cloudTelemetryEnabled = $state(false);
   let cloudTelemetryLoading = $state(false);
   let cloudTelemetryInstanceId = $state<string | null>(null);
+  let cloudRateLimits = $state<Array<{
+    scope: string;
+    until_epoch: number;
+    retry_after_seconds: number;
+  }>>([]);
+
+  function longestCloudBackoffSeconds(): number {
+    return cloudRateLimits.reduce(
+      (longest, limit) => Math.max(longest, Number(limit.retry_after_seconds) || 0),
+      0,
+    );
+  }
+
+  function formatBackoffDuration(seconds: number): string {
+    const minutes = Math.max(1, Math.ceil(seconds / 60));
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const rest = minutes % 60;
+    return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
+  }
 
   /// Relit l'etat cloud jusqu'a ce que la connexion apparaisse, ou abandon.
   ///
@@ -581,7 +610,12 @@ function setSettingsLevel(level: SettingsLevel) {
       const tel = await api.apiFetch('/cloud/telemetry/status');
       cloudTelemetryEnabled = !!tel?.enabled;
       cloudTelemetryInstanceId = tel?.instance_id || tel?.server_id || null;
-    } catch { /* endpoint may not exist */ }
+      cloudRateLimits = Array.isArray(tel?.rate_limits) ? tel.rate_limits : [];
+    } catch {
+      // The endpoint may not exist on older servers. Never retain a stale
+      // warning after a failed refresh.
+      cloudRateLimits = [];
+    }
   }
 
   async function loadBridgeStatus() {
@@ -657,6 +691,26 @@ function setSettingsLevel(level: SettingsLevel) {
   }
 
   // License / Premium
+  // --- Grâce hors ligne (#1999) -------------------------------------------
+  // Tune tolère une coupure réseau prolongée avant de suspendre le Premium.
+  // Jusqu'ici cette tolérance n'existait que dans le code : ni compte à
+  // rebours, ni explication le jour où les fonctions disparaissaient. Ces
+  // quelques lignes ne changent rien à la règle — elles la rendent lisible.
+
+  /** Date courte dans la langue de l'interface, jamais figée en fr-FR. */
+  function graceDate(iso: string | null): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString($locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  /** « 1 jour » / « 3 jours » — le pluriel se choisit dans la locale. */
+  function graceDays(n: number): string {
+    return $t(n === 1 ? 'settings.licenseGraceDayOne' : 'settings.licenseGraceDayOther')
+      .replace('{days}', String(n));
+  }
+
   let licenseKeyInput = $state('');
   let licenseActivating = $state(false);
   let licenseDeactivating = $state(false);
@@ -1038,6 +1092,30 @@ function setSettingsLevel(level: SettingsLevel) {
       hqplayerStatusMessage = '';
     }
     hqplayerChecking = false;
+  }
+
+  // Nom de CE serveur (#2110) — « à quelle machine je parle ? », distinct de
+  // « quelle zone j'écoute ? ». Le serveur renvoie toujours une valeur : le nom
+  // choisi, ou à défaut le nom d'hôte de la machine.
+  let serverNameInput = $state('');
+  let serverNameSaving = $state(false);
+
+  async function saveServerName() {
+    const nom = serverNameInput.trim();
+    serverNameSaving = true;
+    try {
+      await api.updateConfig({ server_name: nom });
+      // Relire plutôt que supposer : vider le champ ne laisse pas une étiquette
+      // vide, le serveur retombe sur le nom d'hôte et c'est CE nom qu'il faut
+      // réafficher.
+      const frais = await api.getConfig();
+      config = frais;
+      serverNameInput = frais?.server_name ?? nom;
+      notifications.success(get(t)('settings.serverNameSaved' as any));
+    } catch (err: any) {
+      notifications.error(err?.message ?? 'Error');
+    }
+    serverNameSaving = false;
   }
 
   // Squeezebox / Lyrion
@@ -1871,6 +1949,9 @@ function setSettingsLevel(level: SettingsLevel) {
       musicRoots = val(rBrowse, { roots: [] as any[] }).roots;
       loadSmbMounts();
       config = val(rConfig, null);
+      // Pré-remplir le champ « nom de ce serveur » avec ce que le serveur
+      // répond — nom choisi ou nom d'hôte (#2110).
+      serverNameInput = config?.server_name ?? '';
       backups = val(rBackups, []);
       // Log individual failures for debugging
       for (const [i, r] of results.entries()) {
@@ -2450,18 +2531,34 @@ function setSettingsLevel(level: SettingsLevel) {
   // real activity, and cap total polls so a stuck job can't spin forever.
   let artistImgSawActivity = false;
   let artistImgPolls = 0;
+  // The forced pass re-fetches artists that already have an image, so
+  // `artists_without_image` is 0 for the whole run. Using it as a completion
+  // signal (as the normal pass does) would close the banner on the first poll.
+  let artistImgForced = false;
 
-  async function startEnrichArtistImages() {
+  async function startEnrichArtistImages(mode: ModeEnrichissementImages = 'manquantes') {
     if (artistImgTimer) { clearInterval(artistImgTimer); artistImgTimer = null; }
     artistImgRunning = true;
     artistImgProcessed = 0;
     artistImgTotal = 0;
     artistImgSawActivity = false;
     artistImgPolls = 0;
+    artistImgForced = mode === 'forcé';
     try {
+      if (mode === 'forcé') {
+        // The forced pass targets EVERY artist, including those the normal pass
+        // skips because they already "have" an image — so `artists_without_image`
+        // is not its measure of work, and the bail-out below must never apply.
+        const res = await api.forceRefetchArtistImages();
+        artistImgTotal = res.artists ?? 0;
+        enrichMsg = get(t)('settings.enrichArtistImagesStarted');
+        setTimeout(() => (enrichMsg = ''), 5000);
+        pollEnrichArtistImages();
+        return;
+      }
       const res = await api.enrichArtistImages();
       artistImgRemaining = res.artists_without_image ?? 0;
-      if (artistImgRemaining === 0) {
+      if (doitSArreterFauteDImagesManquantes(mode, artistImgRemaining)) {
         // Nothing missing → the job finishes instantly; don't imply work.
         artistImgRunning = false;
         notifications.info(get(t)('settings.enrichArtistImagesNoneMissing' as any));
@@ -2499,7 +2596,7 @@ function setSettingsLevel(level: SettingsLevel) {
         }
         const done =
           (artistImgSawActivity && phase === 'done') ||
-          artistImgRemaining === 0 ||
+          (!artistImgForced && artistImgRemaining === 0) ||
           artistImgPolls > 300; // ~30 min safety cap at 6s
         if (done) {
           artistImgRunning = false;
@@ -2740,13 +2837,19 @@ function setSettingsLevel(level: SettingsLevel) {
         scanProgress = null;
         scanningPath = null;
         const d = event.data ?? {};
-        // The server event uses total_files/inserted; older builds sent
-        // scanned/added — accept both so the toast never shows "?".
-        scanMessage = get(t)('settings.scanCompleted')
+        // Ce que la purge a retiré — ou `null` si le serveur ne le dit pas.
+        // On n'annonce JAMAIS « 0 supprimés » faute d'information : c'est ce
+        // que faisait `String(d.removed ?? 0)`, et le bandeau affichait donc
+        // toujours zéro, quoi que la purge ait fait
+        // (renesenses/tune-server-rust#2146).
+        const supprimees = compteSupprimees(d);
+        // Sans compte, un libellé SANS le segment « N supprimés » : une phrase
+        // à trou ne peut pas se taire, il faut une autre phrase.
+        scanMessage = get(t)(cleLibelleFinDeScan(supprimees) as any)
           .replace('{scanned}', String(d.total_files ?? d.scanned ?? '?'))
           .replace('{added}', String(d.inserted ?? d.added ?? 0))
           .replace('{updated}', String(d.updated ?? 0))
-          .replace('{removed}', String(d.removed ?? 0));
+          .replace('{removed}', String(supprimees ?? 0));
         notifications.success(scanMessage);
         if (!d.cancelled && !d.no_dirs && d.total_files != null) {
           scanReport = d;
@@ -2993,6 +3096,33 @@ function setSettingsLevel(level: SettingsLevel) {
     </section>
     {/if}
 
+    {#if settingsTab === 'system'}
+    <!--
+      Ce serveur (#2110). En tête de l'onglet Système : la première question à
+      laquelle cet écran doit répondre est « de quelle machine me parle-t-on ? »,
+      avant la version, avant la mise à jour, avant la base.
+    -->
+    <section class="settings-section">
+      <h3>{$t('settings.serverIdentity')}</h3>
+      <p class="diag-hint">{$t('settings.serverIdentityHint')}</p>
+      <div class="squeezebox-host-row">
+        <input
+          type="text"
+          class="auth-input"
+          aria-label={$t('settings.serverNameLabel')}
+          placeholder={$t('settings.serverNamePlaceholder')}
+          bind:value={serverNameInput}
+          disabled={serverNameSaving}
+          onkeydown={(e) => { if (e.key === 'Enter') saveServerName(); }}
+          style="max-width: 260px;"
+        />
+        <button class="scan-btn small" onclick={saveServerName} disabled={serverNameSaving}>
+          {serverNameSaving ? $t('settings.squeezeboxSaving' as any) : $t('common.save' as any)}
+        </button>
+      </div>
+    </section>
+    {/if}
+
     {#if settingsTab === 'system' && (config?.server_urls?.length ?? 0) > 0}
     <!-- Accès depuis un autre appareil (Android ne résout pas .local → IP) -->
     <section class="settings-section">
@@ -3121,6 +3251,17 @@ function setSettingsLevel(level: SettingsLevel) {
           <span class="update-text">
             {$t('settings.updateAvailable')} : <strong>v{updateInfo.latest_version}</strong>
             ({$t('settings.current')} : v{updateInfo.current_version})
+            <!--
+              Nommer la MACHINE mise à jour (#2110). C'est ici que l'ambiguïté
+              coûte le plus cher : Philippe a lancé la mise à jour depuis
+              l'interface qu'il avait sous les yeux en croyant viser sa Fedora,
+              et a mis à jour l'autre machine. Le bouton doit dire laquelle.
+            -->
+            {#if config?.server_name}
+              <span class="update-target">
+                {$t('settings.updateTarget').replace('{server}', config.server_name)}
+              </span>
+            {/if}
           </span>
           {#if updateDmgReady}
             <span class="update-done">{$t('settings.dmgReady')}</span>
@@ -3356,7 +3497,9 @@ function setSettingsLevel(level: SettingsLevel) {
               <input type="checkbox" checked={false} onchange={async () => {
                 lockVolumeArme = false;
                 try {
-                  await setVolumeLock(true);
+                  // Le second geste constitue l'accord explicite transmis au
+                  // serveur ; le premier n'a fait qu'afficher l'avertissement.
+                  await setVolumeLock(true, true);
                   // En PURE, verrouiller remonte aussi la zone courante à
                   // 100 % — même geste que l'interrupteur du chemin du signal.
                   if ($audiophileLockVolume && $audiophileEnabled) {
@@ -4575,8 +4718,17 @@ function setSettingsLevel(level: SettingsLevel) {
         <button class="action-btn" onclick={async () => { await api.triggerEnrich(); enrichMsg = $t('settings.enrichStarted'); setTimeout(() => enrichMsg = '', 3000); }}>
           {$t('settings.enrichNow')}
         </button>
-        <button class="action-btn" style="margin-left: 8px;" onclick={startEnrichArtistImages} disabled={artistImgRunning}>
+        <button class="action-btn" style="margin-left: 8px;" onclick={() => startEnrichArtistImages('manquantes')} disabled={artistImgRunning}>
           {$t('settings.enrichArtistImages')}
+        </button>
+        <button
+          class="action-btn"
+          style="margin-left: 8px;"
+          onclick={() => startEnrichArtistImages('forcé')}
+          disabled={artistImgRunning}
+          use:tip={'settings.forceRefetchArtistImagesHint'}
+        >
+          {$t('settings.forceRefetchArtistImages')}
         </button>
         {#if enrichMsg}<span class="action-feedback">{enrichMsg}</span>{/if}
       </div>
@@ -4586,10 +4738,12 @@ function setSettingsLevel(level: SettingsLevel) {
             <div class="enrich-progress-fill" style="width: {artistImgTotal > 0 ? Math.min(100, Math.round((artistImgProcessed / artistImgTotal) * 100)) : 8}%"></div>
           </div>
           <span class="enrich-progress-text">
+            <!-- Le passage forcé retraite TOUT le monde : « n restants » y
+                 vaudrait toujours 0 et laisserait croire à un travail fini. -->
             {#if artistImgTotal > 0}
-              {artistImgProcessed} / {artistImgTotal} · {$t('settings.enrichArtistImagesRemaining').replace('{n}', String(artistImgRemaining))}
+              {artistImgProcessed} / {artistImgTotal}{artistImgForced ? '' : ` · ${$t('settings.enrichArtistImagesRemaining').replace('{n}', String(artistImgRemaining))}`}
             {:else}
-              {$t('settings.enrichArtistImagesWorking')} · {$t('settings.enrichArtistImagesRemaining').replace('{n}', String(artistImgRemaining))}
+              {$t('settings.enrichArtistImagesWorking')}{artistImgForced ? '' : ` · ${$t('settings.enrichArtistImagesRemaining').replace('{n}', String(artistImgRemaining))}`}
             {/if}
           </span>
         </div>
@@ -5078,7 +5232,22 @@ function setSettingsLevel(level: SettingsLevel) {
       </div>
     </section>
 
-    <!-- Zone audio settings (DSD mode, gapless, fixed volume) -->
+    <!-- Réglages audio par zone : mode DSD, décalage des paroles, fréquence
+         maximale, volume fixe (+ le volet « Avancé » des rendus DLNA/OpenHome).
+         Ce commentaire annonçait « gapless », et l'intitulé affiché sous le
+         titre le répétait dans les onze langues — alors qu'aucun contrôle de
+         gapless n'a jamais existé ici (#2260). Le champ `gapless_enabled` EST
+         géré par le serveur, mais il ne vaut pas la même chose partout : la
+         sortie ne l'honore que si `supports_internal_gapless()` rend vrai —
+         DLNA, BluOS, pont, OpenHome avec service `playlist`, OAAT et la sortie
+         locale PARTAGÉE. Il est inerte sur Chromecast, SlimProto,
+         Squeezebox/LMS et sur une sortie locale en mode EXCLUSIF (ASIO /
+         WASAPI exclusif), où le poller n'arme jamais l'enchaînement. Une case
+         « Gapless » indifférenciée serait donc un nouveau réglage muet sur ces
+         zones-là — le défaut voisin de #2154. Tant que la capacité réelle
+         n'est pas exposée par zone de façon fiable (`output_capabilities` vaut
+         `null` dès que la sortie n'est pas ouverte), on ne promet pas.
+         Gardé par src/lib/__tests__/perZoneGaplessPromise.i18n.test.ts. -->
     {#if $zones.length > 0}
       <section class="settings-section" class:lv-hidden={!lvAny('services.perZoneLyricsOffset', 'services.perZoneFixedVolume', 'services.perZoneDsdMode', 'services.perZoneMaxSampleRate', 'services.zoneAdvanced')}>
         <h3>{$t('settings.perZoneSettings')}</h3>
@@ -5176,6 +5345,7 @@ function setSettingsLevel(level: SettingsLevel) {
                           const input = e.target as HTMLInputElement;
                           const enabled = input.checked;
                           if (z.id == null) return;
+                          let fullVolumeConfirmed = false;
                           // Sur une zone RÉSEAU, activer envoie 100 % à
                           // l'appareil lui-même (SetVolume au renderer) :
                           // l'ampli part à fond — vécu par Cyrille sur son
@@ -5195,10 +5365,17 @@ function setSettingsLevel(level: SettingsLevel) {
                               input.checked = false;
                               return;
                             }
+                            fullVolumeConfirmed = true;
                           }
-                          z.fixed_volume = enabled;
-                          if (enabled) z.volume = 100;
-                          await api.updateZoneFixedVolume(z.id, enabled);
+                          try {
+                            await api.updateZoneFixedVolume(z.id, enabled, fullVolumeConfirmed);
+                            z.fixed_volume = enabled;
+                            if (enabled) z.volume = 100;
+                          } catch {
+                            // Refus serveur ou réseau : ne jamais afficher le
+                            // plein volume comme armé quand rien n'a été écrit.
+                            input.checked = z.fixed_volume ?? false;
+                          }
                         }}
                       />
                       <span>{$t('settings.fixedVolume')}</span>
@@ -5645,6 +5822,15 @@ function setSettingsLevel(level: SettingsLevel) {
         {#if cloudTelemetryInstanceId}
           <div class="cloud-instance-id">{$t('settings.instance')} : <code>{cloudTelemetryInstanceId}</code></div>
         {/if}
+        {#if cloudRateLimits.length > 0}
+          <div class="cloud-rate-limit-notice" role="status">
+            <span aria-hidden="true">⏳</span>
+            <span>
+              {$t('settings.cloudRateLimitPaused')}
+              {$t('settings.cloudRetryIn')} {formatBackoffDuration(longestCloudBackoffSeconds())}.
+            </span>
+          </div>
+        {/if}
       </div>
 
       <!-- Community metadata sync (opt-in). The server-side loop (resolve
@@ -5709,6 +5895,47 @@ function setSettingsLevel(level: SettingsLevel) {
             </span>
           </div>
         </div>
+      {/if}
+
+      {#if $offlineGrace}
+        <!-- Grâce hors ligne (#1999) : dire ce qui se passe, sans alarmer. -->
+        <div
+          class="license-grace-banner"
+          class:lapsed={$offlineGrace.phase === 'expired'}
+          role="status"
+        >
+          <svg class="license-grace-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 15 14" />
+          </svg>
+          <div class="license-grace-text">
+            {#if $offlineGrace.phase === 'grace'}
+              <strong>{$t('settings.licenseGraceTitle')}</strong>
+              <span>
+                {$t('settings.licenseGraceBody')
+                  .replace('{since}', graceDate($offlineGrace.since))
+                  .replace('{until}', graceDate($offlineGrace.until))
+                  .replace('{remaining}', graceDays($offlineGrace.days_remaining))}
+              </span>
+            {:else if $offlineGrace.since}
+              <strong>{$t('settings.licenseGraceLapsedTitle')}</strong>
+              <span>
+                {$t('settings.licenseGraceLapsedBody')
+                  .replace('{since}', graceDate($offlineGrace.since))
+                  .replace('{days}', String($offlineGrace.total_days))}
+              </span>
+            {:else}
+              <strong>{$t('settings.licenseGraceNeverTitle')}</strong>
+              <span>{$t('settings.licenseGraceNeverBody')}</span>
+            {/if}
+          </div>
+        </div>
+      {/if}
+
+      {#if $licenseState.offlineGrace}
+        <!-- La règle, écrite noir sur blanc, avec le chiffre du serveur. -->
+        <p class="license-grace-rule">
+          {$t('settings.licenseOfflineRule').replace('{days}', String($licenseState.offlineGrace.total_days))}
+        </p>
       {/if}
 
       {#if $licenseState.licenseKey}
@@ -6961,6 +7188,15 @@ function setSettingsLevel(level: SettingsLevel) {
     font-size: 13px;
   }
 
+  /* La machine visée par la mise à jour (#2110), sur sa propre ligne pour
+     qu'on la lise avant d'appuyer sur le bouton. */
+  .update-target {
+    display: block;
+    margin-top: 3px;
+    font-size: 12px;
+    opacity: 0.85;
+  }
+
   .update-btn {
     background: white;
     color: var(--tune-accent);
@@ -7858,6 +8094,20 @@ function setSettingsLevel(level: SettingsLevel) {
     font-size: 10px;
   }
 
+  .cloud-rate-limit-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-xs);
+    margin-top: var(--space-sm);
+    padding: var(--space-sm);
+    border: 1px solid color-mix(in srgb, var(--tune-warning, #d89b2b) 45%, transparent);
+    border-radius: var(--radius-sm);
+    color: var(--tune-text);
+    background: color-mix(in srgb, var(--tune-warning, #d89b2b) 10%, transparent);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
   /* License / Premium section */
   .license-tier-row {
     display: flex;
@@ -7963,6 +8213,54 @@ function setSettingsLevel(level: SettingsLevel) {
     font-size: 13px;
     line-height: 1.4;
     color: var(--tune-text);
+  }
+
+  /* Grâce hors ligne (#1999). Bleu informatif tant que le Premium tient : la
+     tolérance EXISTE pour couvrir une coupure, l'annoncer en rouge serait un
+     contresens. Le ton ne passe à l'avertissement qu'une fois la fenêtre
+     écoulée, quand quelque chose a réellement changé pour l'utilisateur. */
+  .license-grace-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-md);
+    border: 1px solid var(--tune-accent, #3b82f6);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--tune-accent, #3b82f6) 10%, transparent);
+  }
+
+  .license-grace-banner.lapsed {
+    border-color: var(--tune-warning, #f59e0b);
+    background: color-mix(in srgb, var(--tune-warning, #f59e0b) 12%, transparent);
+  }
+
+  .license-grace-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--tune-accent, #3b82f6);
+  }
+
+  .license-grace-banner.lapsed .license-grace-icon {
+    color: var(--tune-warning, #f59e0b);
+  }
+
+  .license-grace-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--tune-text);
+  }
+
+  .license-grace-rule {
+    margin: 0 0 var(--space-md);
+    font-family: var(--font-body);
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--tune-text-muted, #888888);
   }
 
   .license-conflict-text strong {

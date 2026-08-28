@@ -5,8 +5,13 @@
   import { get } from 'svelte/store';
   import { t } from '../lib/i18n';
   import { PODCAST_GENRES } from '../lib/podcast-genres';
+  import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
 
   // --- State ---
+  // Conteneur de défilement (`.podcasts-view`, `overflow-y: auto`) : mémoriser
+  // la position de la liste à l'ouverture d'une fiche, la rétablir au retour
+  // (0c1f144, reperdu par la fusion f14553f).
+  let viewEl = $state<HTMLDivElement | null>(null);
   let activeTab = $state<'subscriptions' | 'discover' | 'search'>('discover');
   let errorMessage = $state<string | null>(null);
 
@@ -265,6 +270,9 @@
         published: ep.published_date,
         cover_url: ep.cover_url || show.cover_url || '',
       }));
+      // Seconde entrée liste -> fiche (émissions Radio France) : même
+      // mémorisation, même garde que `selectPodcast`.
+      if (!selectedPodcast) saveDetailScroll('podcasts', viewEl);
       selectedPodcast = { name: show.title, artist: show.station || 'Radio France', feed_url: show.rss_url || '', cover_url: show.cover_url || '', description: show.description, episode_count: rfEpisodes.length, source_id: show.id };
       episodes = rfEpisodes;
     } catch (e) {
@@ -305,6 +313,8 @@
   // --- Podcast detail ---
 
   async function selectPodcast(podcast: any) {
+    // Sous garde : appelable depuis une fiche déjà ouverte.
+    if (!selectedPodcast) saveDetailScroll('podcasts', viewEl);
     selectedPodcast = podcast;
     isLoadingEpisodes = true;
     errorMessage = null;
@@ -330,6 +340,7 @@
     selectedPodcast = null;
     episodes = [];
     errorMessage = null;
+    restoreDetailScroll('podcasts', viewEl);
   }
 
   async function playEpisode(episode: any) {
@@ -419,7 +430,7 @@
   }
 </script>
 
-<div class="podcasts-view">
+<div class="podcasts-view" bind:this={viewEl}>
   {#if errorMessage}
     <div class="error-banner">
       <span>{errorMessage}</span>

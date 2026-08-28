@@ -15,9 +15,10 @@
   import { onMount, onDestroy } from 'svelte';
   import { zones, currentZone, currentZoneId, switchZone } from '../lib/stores/zones';
   import ZoneOutputBanner from './ZoneOutputBanner.svelte';
-  import { currentTrack, playbackState, seekPositionMs, repeatMode } from '../lib/stores/nowPlaying';
+  import { currentTrack, playbackState, seekPositionMs, repeatMode, shuffleEnabled } from '../lib/stores/nowPlaying';
   import { upNextCount } from '../lib/stores/queue';
   import * as controls from '../lib/playback-controls';
+  import { suivantDesactive } from '../lib/boutonSuivant';
   import * as api from '../lib/api';
   import { connectionState } from '../lib/stores/connection';
   import { t } from '../lib/i18n';
@@ -129,8 +130,8 @@
   </div>
 
   <div class="mini-meta">
-    <span class="mini-title truncate">{track?.title ?? $t('nowplaying.noPlayback')}</span>
-    <span class="mini-artist truncate">{track?.artist_name ?? ''}</span>
+    <span class="mini-title truncate" title={track?.title ?? $t('nowplaying.noPlayback')}>{track?.title ?? $t('nowplaying.noPlayback')}</span>
+    <span class="mini-artist truncate" title={track?.artist_name ?? ''}>{track?.artist_name ?? ''}</span>
   </div>
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -155,10 +156,19 @@
       {/if}
     </button>
     <!-- Même règle que la barre de transport : rien après, pas de « suivant ».
-         Deux surfaces, une seule règle — sinon elles divergent. -->
+         Deux surfaces, une seule règle — sinon elles divergent, et elles
+         avaient commencé : cette copie ignorait l'aléatoire. Elle vit
+         désormais dans lib/boutonSuivant. -->
     <button
       class="mini-btn"
-      disabled={$upNextCount === 0 && $repeatMode === 'off'}
+      disabled={suivantDesactive({
+        playState,
+        aUnePiste: !!track,
+        ytActive: false,
+        upNextCount: $upNextCount,
+        repeat: $repeatMode,
+        shuffle: $shuffleEnabled,
+      })}
       onclick={() => controls.skipNext(zone)}
       aria-label={$t('transport.next')}
     >
@@ -179,8 +189,8 @@
         {#each results as r}
           <li>
             <button onclick={() => playResult(r)}>
-              <span class="truncate">{r.title}</span>
-              <small class="truncate">{r.artist_name ?? ''}</small>
+              <span class="truncate" title={r.title}>{r.title}</span>
+              <small class="truncate" title={r.artist_name ?? ''}>{r.artist_name ?? ''}</small>
             </button>
           </li>
         {/each}

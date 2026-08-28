@@ -222,6 +222,13 @@ describe('critical endpoint URLs', () => {
     expect(fetchCalls[0].url).toBe('/api/v1/system/diagnostics');
   });
 
+  it('rearmAsioWarmScan() calls the protected rearm endpoint', async () => {
+    mockFetch({ status: 'rearmed', retry: 'next_restart', asio_warm_scan: {} });
+    await api.rearmAsioWarmScan();
+    expect(fetchCalls[0].url).toBe('/api/v1/system/audio/asio-warm-scan/rearm');
+    expect(fetchCalls[0].init?.method).toBe('POST');
+  });
+
   it('getStats() calls /api/v1/system/stats', async () => {
     mockFetch({ tracks: 1000, albums: 100, artists: 50 });
     await api.getStats();
@@ -250,6 +257,27 @@ describe('critical endpoint URLs', () => {
     mockFetch([]);
     await api.getZones();
     expect(fetchCalls[0].url).toBe('/api/v1/zones');
+  });
+
+  it('updateZoneFixedVolume omet l’accord tant que le danger n’a pas été confirmé', async () => {
+    mockFetch({ id: 7, fixed_volume: true });
+    await api.updateZoneFixedVolume(7, true);
+
+    expect(fetchCalls[0].url).toBe('/api/v1/zones/7');
+    expect(fetchCalls[0].init?.method).toBe('PATCH');
+    expect(JSON.parse(String(fetchCalls[0].init?.body))).toEqual({
+      fixed_volume: true,
+    });
+  });
+
+  it('updateZoneFixedVolume transmet l’accord ponctuel après confirmation', async () => {
+    mockFetch({ id: 7, fixed_volume: true });
+    await api.updateZoneFixedVolume(7, true, true);
+
+    expect(JSON.parse(String(fetchCalls[0].init?.body))).toEqual({
+      fixed_volume: true,
+      confirm_full_volume: true,
+    });
   });
 
   it('getAdminHealth() calls /api/v1/system/admin/health', async () => {

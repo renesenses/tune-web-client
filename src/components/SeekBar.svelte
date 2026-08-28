@@ -1,10 +1,16 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { currentZone } from '../lib/stores/zones';
   import { isBrowserZone, browserSeek } from '../lib/stores/browserAudio';
   import * as api from '../lib/api';
   import { formatTime } from '../lib/utils';
   import { t } from '../lib/i18n';
   import { seekPositionMs, startSeekTimer, stopSeekTimer } from '../lib/stores/nowPlaying';
+  import {
+    ETAT_OUVERTURE_INITIAL,
+    suivreOuverture,
+    type EtatOuverture,
+  } from '../lib/ouvertureFlux';
 
   interface Props {
     positionMs: number;
@@ -134,11 +140,63 @@
   // en fin de piste (le pointeur avance entre deux rafraîchissements), et
   // « -0:01 » restant se lit comme un défaut.
   let remainingMs = $derived(Math.max(0, durationMs - displayPositionMs));
+
+  // ── Ouverture du flux (#2267) ────────────────────────────────────────────
+  // Tant que le serveur cherche une URL jouable, la barre n'a rien de vrai à
+  // montrer : ni position, ni durée. Elle le dit, au lieu de rester figée.
+  // Toute la décision — y compris le plafond anti-blocage — vit dans
+  // lib/ouvertureFlux, pour être vérifiable sans rendu.
+  let etatOuverture = $state<EtatOuverture>(ETAT_OUVERTURE_INITIAL);
+
+  // `untrack` est ici la CORRECTION, pas une optimisation (#2555, seconde
+  // boucle).
+  //
+  // Cette fonction lit l'état précédent et écrit le suivant. Appelée depuis un
+  // `$effect`, la lecture inscrivait `etatOuverture` dans les dépendances de
+  // l'effet — qui l'écrit ensuite. L'effet invalidait donc sa propre
+  // dépendance, se replanifiait, et Svelte finissait par lever
+  // `effect_update_depth_exceeded`. Cette erreur ARRÊTE son ordonnanceur de
+  // rendu : l'interface entière cesse de se rafraîchir, alors que la musique
+  // continue et que les clics sont bien reçus. C'était « il faut faire F5 pour
+  // quitter Lecture en cours ».
+  //
+  // Rendre `suivreOuverture` idempotente (retourner le MÊME objet quand rien
+  // n'a changé) supprimait la boucle dans le cas stable, mais laissait la
+  // DÉPENDANCE en place : dès qu'une ouverture court, chaque passage produit
+  // légitimement un objet différent, et la contre-réaction revient. On coupe
+  // donc le lien à sa racine : l'état précédent est lu hors de tout suivi.
+  function rafraichirOuverture() {
+    etatOuverture = suivreOuverture(untrack(() => etatOuverture), zone, Date.now());
+  }
+
+  // Deux déclencheurs, et il faut les deux : la zone, pour réagir tout de
+  // suite ; l'horloge, parce que le plafond doit tomber même si plus AUCUNE
+  // mise à jour n'arrive — WebSocket coupée, serveur parti. C'est justement le
+  // cas où le drapeau reste levé.
+  $effect(() => {
+    void zone?.resolving;
+    void zone?.state;
+    rafraichirOuverture();
+  });
+
+  // Ne dépendre que du BOOLÉEN « une ouverture court-elle ? », jamais de
+  // l'objet : sinon chaque tick du minuteur remplace `etatOuverture`, relance
+  // cet effet, et le minuteur est détruit puis recréé une fois par seconde —
+  // au mieux du gaspillage, au pire le second bord de la boucle.
+  let ouvertureEnCours = $derived(etatOuverture.depuisMs !== null);
+
+  $effect(() => {
+    if (!ouvertureEnCours) return;
+    const minuteur = setInterval(rafraichirOuverture, 1000);
+    return () => clearInterval(minuteur);
+  });
+
+  let ouverture = $derived(etatOuverture.visible);
 </script>
 
 <div class="seek-bar" class:disabled={!enabled}>
   <span class="time">{formatTime(displayPositionMs)}</span>
-  <div class="seek-track" bind:this={trackEl} onclick={handleClick} onmousedown={handleMouseDown} ontouchstart={handleTouchStart} role="slider" aria-valuemin={0} aria-valuemax={durationMs} aria-valuenow={displayPositionMs} aria-label="Seek" tabindex={0}>
+  <div class="seek-track" class:ouverture bind:this={trackEl} onclick={handleClick} onmousedown={handleMouseDown} ontouchstart={handleTouchStart} role="slider" aria-valuemin={0} aria-valuemax={durationMs} aria-valuenow={displayPositionMs} aria-label="Seek" aria-busy={ouverture} title={ouverture ? $t('zone.resolving') : undefined} tabindex={0}>
     <div class="seek-fill" style="width: {progress}%"></div>
     <div class="seek-thumb" style="left: {progress}%"></div>
   </div>
@@ -211,6 +269,53 @@
     background: var(--tune-accent);
     border-radius: 2px;
     transition: width 0.1s linear;
+  }
+
+  /* Ouverture du flux (#2267).
+     Un reflet qui traverse le sillon vide — la forme suggérée par DEvir
+     (« une ligne semi-transparente qui avance »), sur l'élément qui existe
+     déjà et avec la couleur d'accent du thème. Pas de composant de plus, pas
+     de deuxième teinte, aucun changement de gabarit : la barre garde ses 4 px
+     et ne pousse rien autour d'elle. C'est volontairement en retrait — Levente
+     vient d'arriver, et cette animation doit rester facile à remplacer. */
+  .seek-track.ouverture {
+    overflow: hidden;
+  }
+
+  .seek-track.ouverture::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--tune-accent) 55%, transparent) 50%,
+      transparent 100%
+    );
+    /* Le reflet part hors du cadre et le traverse : sans cette translation
+       initiale il « clignote » au premier passage au lieu d'entrer. */
+    transform: translateX(-100%);
+    animation: seek-ouverture 1.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes seek-ouverture {
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Un mouvement perpétuel est exactement ce que ce réglage système refuse.
+     On garde l'information — le sillon s'éclaircit — en retirant le balayage,
+     plutôt que de supprimer l'indicateur : quelqu'un qui coupe les animations
+     a le même besoin de savoir que le flux s'ouvre. */
+  @media (prefers-reduced-motion: reduce) {
+    .seek-track.ouverture::after {
+      animation: none;
+      transform: none;
+      background: color-mix(in srgb, var(--tune-accent) 22%, transparent);
+    }
   }
 
   .seek-thumb {

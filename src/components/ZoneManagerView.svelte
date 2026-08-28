@@ -6,6 +6,7 @@
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
+  import { deviceHasBoundZone, deviceZoneActionKey, deviceZoneSuccessKey, deviceZoneTargetId } from '../lib/hiddenZoneRecovery';
   import OaatGroupsPanel from './OaatGroupsPanel.svelte';
   import AirplayPairingModal from './AirplayPairingModal.svelte';
   import type { Zone, ZoneGroupResponse, OutputType, DiscoveredDevice, StereoPairInfo, LocalAudioDevice } from '../lib/types';
@@ -426,9 +427,9 @@
 
   async function createZoneFromDevice(device: DiscoveredDevice) {
     try {
-      const zone = await api.createZone(device.name, device.type, device.id);
+      const zone = await api.createZone(device.name, device.type, deviceZoneTargetId(device));
       if (zone.id !== null) currentZoneId.set(zone.id);
-      notifications.success($t('zone.zoneCreated'));
+      notifications.success($t(deviceZoneSuccessKey(device)));
     } catch (e: any) {
       notifications.error(e.message || 'Failed to create zone');
     }
@@ -438,7 +439,8 @@
   let unboundDevices = $derived(
     $devices.filter(dev => {
       if (!dev.available) return false;
-      return !$zones.some(z => z.output_device_id === dev.id);
+      const boundIds = new Set($zones.flatMap(z => z.output_device_id ? [z.output_device_id] : []));
+      return !deviceHasBoundZone(dev, boundIds);
     })
   );
 
@@ -507,9 +509,9 @@
   async function quickCreateZone(device: DiscoveredDevice) {
     quickCreateLoading = device.id;
     try {
-      const zone = await api.createZone(device.name, device.type, device.id);
+      const zone = await api.createZone(device.name, device.type, deviceZoneTargetId(device));
       if (zone.id !== null) currentZoneId.set(zone.id);
-      notifications.success($t('zone.zoneCreated'));
+      notifications.success($t(deviceZoneSuccessKey(device)));
     } catch (e: any) {
       notifications.error(e.message || 'Failed to create zone');
     }
@@ -1020,6 +1022,9 @@
                 {/if}
               </span>
               <span class="device-name">{device.name}</span>
+              {#if device.zone_hidden}
+                <span class="device-detail">{$t('zone.deletedZone')}</span>
+              {/if}
               {#if device.type === 'local' && device.capabilities}
                 <span class="device-detail">{device.capabilities.channels}ch {device.capabilities.sample_rate ? `${device.capabilities.sample_rate / 1000}kHz` : ''}</span>
               {/if}
@@ -1029,14 +1034,14 @@
               class="btn btn-primary quick-create-btn"
               onclick={() => quickCreateZone(device)}
               disabled={quickCreateLoading === device.id}
-              title={$t('zone.createZone')}
+              title={$t(deviceZoneActionKey(device))}
             >
               {#if quickCreateLoading === device.id}
                 <span class="spinner-sm"></span>
               {:else}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
               {/if}
-              {$t('zone.createZone')}
+              {$t(deviceZoneActionKey(device))}
             </button>
           </div>
         {/each}

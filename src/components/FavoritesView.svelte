@@ -1,12 +1,13 @@
 <script lang="ts">
-  import { currentProfileId } from '../lib/stores/profile';
+  import { currentProfileId, favoritePlaylistIds, favoriteFacetKeys, facetFavKey, favoriteStreamingKeys, streamingFavKey } from '../lib/stores/profile';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { playFromHere } from '../lib/playback';
   import { trier, clesPourOnglet, type CleDeTri } from '../lib/favoritesSort';
   import { melangee } from '../lib/shuffle';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
-  import { selectedAlbum, albumTracks, selectedArtist, artistAlbums } from '../lib/stores/library';
+  import { selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryTab } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
+  import { pendingPlaylistId } from '../lib/stores/playlists';
   import * as api from '../lib/api';
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
@@ -16,15 +17,22 @@
   import ServiceBadge from './ServiceBadge.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
-  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices } from '../lib/stores/streaming';
-  import type { Track, Album, Artist } from '../lib/types';
+  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, pendingStreamingPlaylist, streamingServices } from '../lib/stores/streaming';
+  import { fusionnerPlaylistsFavorites, type PlaylistFavorite } from '../lib/streamingFavorites';
+  import type { Track, Album, Artist, Playlist } from '../lib/types';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
   }
   let { onAddToPlaylist }: Props = $props();
 
-  type FavTab = 'tracks' | 'albums' | 'artists';
+  // Cinq onglets depuis #2442 (FabienM, fil 1557) : « il manque de pouvoir
+  // mettre en favoris une PLAYLIST et un LABEL ». Les deux nouveaux sont
+  // LOCAUX par nature — une playlist locale porte un id entier, un label est
+  // une valeur de facette — d'où l'absence de filtre par service et de tri sur
+  // ces deux onglets.
+  type FavTab = 'tracks' | 'albums' | 'artists' | 'playlists' | 'labels';
+  const ONGLETS: FavTab[] = ['tracks', 'albums', 'artists', 'playlists', 'labels'];
   let activeTab = $state<FavTab>('tracks');
   let loading = $state(false);
 
@@ -41,7 +49,7 @@
       const key: string | undefined = target?.key;
       if (!key || !key.startsWith('favorites:')) return;
       const tab = target.restore?.tab as FavTab | undefined;
-      if (tab === 'tracks' || tab === 'albums' || tab === 'artists') activeTab = tab;
+      if (tab && ONGLETS.includes(tab)) activeTab = tab;
     };
     window.addEventListener('tune:shortcut-restore', onRestore);
     return () => window.removeEventListener('tune:shortcut-restore', onRestore);
@@ -50,6 +58,11 @@
   let favTracks = $state<Track[]>([]);
   let favAlbums = $state<Album[]>([]);
   let favArtists = $state<Artist[]>([]);
+  // `PlaylistFavorite` et non `Playlist` : une playlist de service n'a pas
+  // d'`id` entier, elle porte `source` + `source_id` (#2370).
+  let favPlaylists = $state<PlaylistFavorite[]>([]);
+  /** Valeurs de label mises en favori — des CHAÎNES, un label n'a pas d'id. */
+  let favLabels = $state<string[]>([]);
 
   let zone = $derived($currentZone);
 
@@ -91,7 +104,25 @@
     ),
   );
 
-  let clesDeTri = $derived(clesPourOnglet(activeTab));
+  // Les playlists ne sont pas triables (voir plus bas), mais elles se filtrent
+  // désormais par source comme les autres : depuis #2370 l'onglet mélange les
+  // locales et celles de Qobuz/Tidal.
+  let displayPlaylists = $derived(
+    sourceFilter === 'all'
+      ? favPlaylists
+      : favPlaylists.filter((p) => srcOf(p) === sourceFilter),
+  );
+
+  // `clesPourOnglet` ne connaît que les trois onglets triables. Les playlists
+  // et les labels s'affichent dans l'ordre d'ajout rendu par le serveur.
+  let ongletTriable = $derived(
+    activeTab === 'tracks' || activeTab === 'albums' || activeTab === 'artists',
+  );
+  let clesDeTri = $derived(
+    activeTab === 'tracks' || activeTab === 'albums' || activeTab === 'artists'
+      ? clesPourOnglet(activeTab)
+      : [],
+  );
 
   // Changer d'onglet peut invalider la clé courante — « album » n'existe pas
   // sur les artistes. On retombe sur l'ordre d'ajout plutôt que de trier sur
@@ -101,7 +132,15 @@
   });
 
   let currentList = $derived(
-    activeTab === 'tracks' ? favTracks : activeTab === 'albums' ? favAlbums : favArtists,
+    activeTab === 'tracks'
+      ? favTracks
+      : activeTab === 'albums'
+        ? favAlbums
+        : activeTab === 'artists'
+          ? favArtists
+          : activeTab === 'playlists'
+            ? favPlaylists
+            : favLabels.map((value) => ({ value })),
   );
 
   // Les pastilles de filtre listent les sources dont l'utilisateur DISPOSE, pas
@@ -129,7 +168,17 @@
   );
 
   function sourcesFor(tab: FavTab): Set<string> {
-    const list = tab === 'tracks' ? favTracks : tab === 'albums' ? favAlbums : favArtists;
+    // Un label ne vient d'aucun service : le filtre par source n'a rien à y
+    // trancher. Les playlists, elles, peuvent désormais venir de Qobuz ou de
+    // Tidal (#2370) — les figer sur « local » retirerait le filtre à l'onglet
+    // qui en a le plus besoin, et renverrait une liste vide en y arrivant avec
+    // un filtre de service posé.
+    if (tab === 'labels') return new Set(['local']);
+    const list =
+      tab === 'tracks' ? favTracks
+      : tab === 'albums' ? favAlbums
+      : tab === 'artists' ? favArtists
+      : favPlaylists;
     return new Set(list.map(srcOf));
   }
 
@@ -274,10 +323,13 @@
       // Local favorites (hydrated) + Tune-hearted streaming favorites (YouTube,
       // Qobuz, …) + native service-side favorites, merged per tab. Any streaming
       // lookup failing must not blank the local list.
-      const [local, streaming, native] = await Promise.all([
+      const [local, streaming, native, facets] = await Promise.all([
         api.getFavorites(pid),
         api.getProfileStreamingFavorites(pid).catch(() => [] as api.StreamingFavorite[]),
         loadNativeServiceFavorites(),
+        // Un échec ici ne doit vider aucun autre onglet : même règle que les
+        // favoris de streaming juste au-dessus.
+        api.getFacetFavorites(pid, 'label').catch(() => [] as api.FacetFavorite[]),
       ]);
 
       const heartedTracks = streaming.filter((f) => f.item_type === 'track').map(streamToTrack);
@@ -305,6 +357,12 @@
         ...heartedArtists,
         ...native.artists.filter((a) => !seenArtists.has(key(a))),
       ];
+      // Playlists locales (hydratées par leur id) ET playlists de service
+      // mises en favori dans Tune. Ces dernières étaient écrites en base et
+      // n'étaient relues nulle part : le cœur posé sur une playlist Qobuz
+      // n'aboutissait à aucun écran (#2370, Didier fil 1541).
+      favPlaylists = fusionnerPlaylistsFavorites(local.playlists ?? [], streaming);
+      favLabels = facets.map((f) => f.value);
     } catch (e) {
       console.error('Load favorites error:', e);
     }
@@ -396,6 +454,117 @@
   // track stayed marked favorite in the Qobuz album view (bug Fabien v0.9.41).
   function notifyStreamingFavoritesChanged() {
     window.dispatchEvent(new CustomEvent('tune:streaming-favorites-changed'));
+  }
+
+  // --- Playlists et labels en favori (#2442) -------------------------------
+
+  async function removeFavPlaylist(pl: PlaylistFavorite) {
+    const pid = $currentProfileId;
+    if (!pid) return;
+
+    // Playlist de SERVICE : elle vit dans `streaming_favorites`, désignée par
+    // service + identifiant. Même forme que `removeFavTrack` juste plus bas
+    // (#2370).
+    if (pl.source_id && pl.source !== 'local') {
+      const { source, source_id } = pl;
+      favPlaylists = favPlaylists.filter(
+        (p) => !(p.source === source && p.source_id === source_id),
+      );
+      favoriteStreamingKeys.update((set) => {
+        set.delete(streamingFavKey('playlist', source, source_id));
+        return set;
+      });
+      try {
+        await api.removeProfileStreamingFavorite(pid, {
+          item_type: 'playlist', service: source, service_id: source_id,
+        });
+      } catch (e) {
+        console.error('Remove streaming playlist favorite error:', e);
+        loadFavorites();
+        return;
+      }
+      // Recopie vers le service, au mieux : Qobuz REFUSE ce type faute
+      // d'appel de souscription établi (#2474). Le favori de Tune, lui, est
+      // bien retiré — c'est la même règle qu'à la pose.
+      api.removeStreamingFavorite(source, 'playlists', source_id).catch(() => {});
+      notifyStreamingFavoritesChanged();
+      return;
+    }
+
+    if (pl.id == null) return;
+    const id = pl.id;
+    favPlaylists = favPlaylists.filter((p) => p.id !== id);
+    favoritePlaylistIds.update((set) => { set.delete(id); return set; });
+    try {
+      await api.removeFavorite(pid, { playlist_id: id });
+    } catch (e) {
+      console.error('Remove playlist favorite error:', e);
+      loadFavorites();
+    }
+  }
+
+  async function removeFavLabel(value: string) {
+    const pid = $currentProfileId;
+    if (!pid) return;
+    favLabels = favLabels.filter((l) => l !== value);
+    favoriteFacetKeys.update((set) => { set.delete(facetFavKey('label', value)); return set; });
+    try {
+      await api.removeFacetFavorite(pid, 'label', value);
+    } catch (e) {
+      console.error('Remove label favorite error:', e);
+      loadFavorites();
+    }
+  }
+
+  /** Ouvre la playlist DANS le gestionnaire, pas sa simple liste.
+   *
+   *  Une playlist de service n'y a pas sa place : elle n'est pas dans notre
+   *  base. Elle s'ouvre sur sa fiche, côté service — même plomberie que celle
+   *  d'un album Qobuz favori juste au-dessus (#2370). */
+  function openPlaylist(pl: PlaylistFavorite) {
+    if (pl.source_id && pl.source !== 'local') {
+      activeStreamingService.set(pl.source as any);
+      pendingStreamingPlaylist.set(versStreamingPlaylist(pl));
+      activeView.set('streaming');
+      return;
+    }
+    if (pl.id == null) return;
+    pendingPlaylistId.set(pl.id);
+    activeView.set('playlistmanager');
+  }
+
+  /** La forme qu'attend StreamingView. `track_count` est inconnu tant que la
+   *  fiche n'est pas chargée : elle le remplacera. */
+  function versStreamingPlaylist(pl: PlaylistFavorite) {
+    return {
+      source_id: pl.source_id!, name: pl.name, track_count: pl.track_count ?? 0,
+      duration_ms: 0, cover_path: pl.cover_path ?? null, source: pl.source,
+    } as any;
+  }
+
+  /** Renvoie sur l'onglet Labels de la Bibliothèque, seul écran qui les rend. */
+  function openLabel(_value: string) {
+    libraryTab.set('labels');
+    activeView.set('library');
+  }
+
+  async function playPlaylist(pl: PlaylistFavorite) {
+    if (!zone?.id) return;
+    try {
+      // Une playlist de service se lit par son identifiant de service, pas par
+      // un `playlist_id` local qu'elle n'a pas — sinon le bouton ne fait rien,
+      // exactement le « + » mort décrit plus haut (#2370).
+      if (pl.source_id && pl.source !== 'local') {
+        await playAndSync(zone.id, {
+          source: pl.source as any, streaming_playlist_id: pl.source_id,
+        } as any);
+        return;
+      }
+      if (pl.id == null) return;
+      await playAndSync(zone.id, { playlist_id: pl.id } as any);
+    } catch (e) {
+      console.error('Play playlist error:', e);
+    }
   }
 
   async function removeFavTrack(track: Track) {
@@ -545,10 +714,12 @@
       <button class="tab" class:active={activeTab === 'tracks'} onclick={() => setTab('tracks')}>{$tr('favorites.tracks')} ({favTracks.length})</button>
       <button class="tab" class:active={activeTab === 'albums'} onclick={() => setTab('albums')}>{$tr('favorites.albums')} ({favAlbums.length})</button>
       <button class="tab" class:active={activeTab === 'artists'} onclick={() => setTab('artists')}>{$tr('favorites.artists')} ({favArtists.length})</button>
+      <button class="tab" class:active={activeTab === 'playlists'} onclick={() => setTab('playlists')}>{$tr('favorites.playlists')} ({favPlaylists.length})</button>
+      <button class="tab" class:active={activeTab === 'labels'} onclick={() => setTab('labels')}>{$tr('favorites.labels')} ({favLabels.length})</button>
     </div>
   </div>
 
-  {#if !loading && availableSources.length > 1}
+  {#if !loading && ongletTriable && availableSources.length > 1}
     <div class="filter-bar">
       <button class="chip" class:active={sourceFilter === 'all'} onclick={() => sourceFilter = 'all'}>{$tr('common.all')}</button>
       {#each availableSources as s}
@@ -560,7 +731,7 @@
     </div>
   {/if}
 
-  {#if !loading && currentList.length > 1}
+  {#if !loading && ongletTriable && currentList.length > 1}
     <div class="filter-bar tri-bar">
       <span class="tri-label">{$tr('favorites.sortBy')}</span>
       {#each clesDeTri as cle (cle)}
@@ -696,6 +867,73 @@
         {/each}
       </div>
     {/if}
+
+  {:else if activeTab === 'playlists'}
+    {#if displayPlaylists.length === 0}
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+        <p>{$tr('favorites.empty')}</p>
+      </div>
+    {:else}
+      <div class="track-list">
+        <!-- Clé : une playlist de service n'a pas d'`id`. Garder `(pl.id)`
+             donnerait la même clé `null` à toutes les playlists Qobuz, et
+             Svelte refuserait le bloc pour clés dupliquées dès la deuxième. -->
+        {#each displayPlaylists as pl (pl.id ?? `${pl.source}:${pl.source_id}`)}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="track-item" onclick={() => openPlaylist(pl)}>
+            <span class="track-thumb playlist-thumb">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="3" y1="6" x2="16" y2="6" /><line x1="3" y1="12" x2="16" y2="12" /><line x1="3" y1="18" x2="11" y2="18" /><circle cx="19" cy="16" r="2" /><line x1="21" y1="16" x2="21" y2="8" /></svg>
+            </span>
+            <div class="track-info">
+              <span class="track-title-row">
+                <span class="track-title truncate">{pl.name}</span>
+                <ServiceBadge source={pl.source} compact />
+              </span>
+              {#if pl.track_count != null}
+                <span class="track-meta truncate">{pl.track_count} {$tr('common.tracks')}</span>
+              {/if}
+            </div>
+            <button class="action-btn" onclick={(e) => { e.stopPropagation(); playPlaylist(pl); }} title={$tr('common.play')} aria-label={$tr('common.play')}>
+              <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="14" height="14"><path d="M8 5v14l11-7z" /></svg>
+            </button>
+            <button class="remove-btn" onclick={(e) => { e.stopPropagation(); removeFavPlaylist(pl); }} title={$tr('profile.delete')}>
+              <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            </button>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
+  {:else if activeTab === 'labels'}
+    {#if favLabels.length === 0}
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+        <p>{$tr('favorites.empty')}</p>
+      </div>
+    {:else}
+      <div class="track-list">
+        {#each favLabels as value (value)}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="track-item" onclick={() => openLabel(value)}>
+            <span class="track-thumb playlist-thumb">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>
+            </span>
+            <div class="track-info">
+              <span class="track-title-row">
+                <span class="track-title truncate">{value}</span>
+                <ServiceBadge source="local" compact />
+              </span>
+            </div>
+            <button class="remove-btn" onclick={(e) => { e.stopPropagation(); removeFavLabel(value); }} title={$tr('profile.delete')}>
+              <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            </button>
+          </div>
+        {/each}
+      </div>
+    {/if}
   {/if}
 </div>
 
@@ -724,8 +962,11 @@
     letter-spacing: -0.8px;
   }
 
+  /* Cinq onglets : sur un écran étroit ils doivent passer à la ligne plutôt
+     que de pousser le titre hors du cadre (#2442). */
   .tab-bar {
     display: flex;
+    flex-wrap: wrap;
     gap: 2px;
     background: var(--tune-grey2);
     border-radius: var(--radius-md);
@@ -751,6 +992,18 @@
   .tab.active {
     background: var(--tune-surface-selected);
     color: var(--tune-text);
+  }
+
+  /* Playlists et labels n'ont pas de pochette : une vignette dessinée. */
+  .playlist-thumb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: var(--tune-grey2);
+    color: var(--tune-text-secondary);
   }
 
   /* Source filter chips (Fabien: filter favorites by service) */

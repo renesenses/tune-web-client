@@ -79,6 +79,8 @@
   let newUrl = $state('');
   let newGenre = $state('');
   let importMessage = $state('');
+  /** Refus du serveur sur le formulaire d'ajout, affiché sous les champs. */
+  let addError = $state('');
 
   // Edit modal state
   let editRadio = $state<RadioStation | null>(null);
@@ -88,6 +90,8 @@
   let editDragOver = $state(false);
   let editUploading = $state(false);
   let editCoverMsg = $state('');
+  /** Refus du serveur sur la fiche de modification. */
+  let editError = $state('');
 
   function openEdit(radio: RadioStation) {
     editRadio = radio;
@@ -95,17 +99,20 @@
     editUrl = radio.stream_url;
     editGenre = radio.genre || '';
     editCoverMsg = '';
+    editError = '';
   }
 
   function closeEdit() {
     editRadio = null;
     editCoverMsg = '';
+    editError = '';
     editUploading = false;
     editDragOver = false;
   }
 
   async function saveEdit() {
     if (!editRadio?.id) return;
+    editError = '';
     try {
       const updated = await api.updateRadio(editRadio.id, {
         name: editName.trim(),
@@ -115,7 +122,9 @@
       radios = radios.map(r => r.id === updated.id ? updated : r);
       editRadio = updated;
     } catch (e) {
+      // Même dette que l'ajout : « Appliquer » ne faisait rien de visible.
       console.error('Update radio error:', e);
+      editError = messageDErreur(e);
     }
   }
 
@@ -201,6 +210,7 @@
 
   async function addRadio() {
     if (!newName.trim() || !newUrl.trim()) return;
+    addError = '';
     try {
       const created = await api.createRadio({
         name: newName.trim(),
@@ -213,8 +223,20 @@
       newGenre = '';
       showAdd = false;
     } catch (e) {
+      // Le refus était avalé dans la console : le formulaire se contentait de
+      // ne rien faire, et l'utilisateur ne savait pas pourquoi. Le serveur
+      // renvoie désormais un message qui NOMME le défaut (« après http il
+      // faut deux-points »), déjà dans la langue de l'interface — on l'affiche
+      // tel quel plutôt que d'en fabriquer un moins précis ici (#2097).
       console.error('Add radio error:', e);
+      addError = messageDErreur(e);
     }
+  }
+
+  /** Le message du serveur, ou son défaut si la requête n'a même pas abouti. */
+  function messageDErreur(e: unknown): string {
+    const message = e instanceof Error ? e.message.trim() : String(e ?? '').trim();
+    return message || get(t)('common.error');
   }
 
   const MAX_IMPORT_MB = 25;
@@ -302,6 +324,9 @@
       <button class="btn-confirm" onclick={addRadio}>{$t('common.create')}</button>
       <button class="btn-cancel" onclick={() => showAdd = false}>{$t('common.cancel')}</button>
     </div>
+    {#if addError}
+      <div class="url-error" role="alert">{addError}</div>
+    {/if}
   {/if}
 
   <div class="filters">
@@ -469,6 +494,9 @@
               {$t('radio.genre')}
               <input type="text" bind:value={editGenre} />
             </label>
+            {#if editError}
+              <div class="url-error" role="alert">{editError}</div>
+            {/if}
           </div>
         </div>
 
@@ -615,6 +643,26 @@
 
   .add-form input:focus {
     border-color: var(--tune-accent);
+  }
+
+  /* Le refus du serveur, montré là où l'utilisateur vient de taper. Il tient
+     sur plusieurs lignes : le message NOMME le caractère fautif, il est donc
+     plus long qu'un « URL invalide » — et c'est tout son intérêt. */
+  .url-error {
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-lg);
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-error, #f87171);
+    border-radius: var(--radius-md);
+    color: var(--tune-error, #f87171);
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .edit-fields .url-error {
+    margin-bottom: 0;
   }
 
   .btn-confirm {

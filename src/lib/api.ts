@@ -5,6 +5,9 @@ import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
 import { locale, t } from './i18n';
 import { profileHeader } from './profileHeader';
+// `import type` : effacé à la compilation, donc aucun cycle à l'exécution
+// (`streamingFavorites` importe ce module-ci pour ses fonctions).
+import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -103,12 +106,14 @@ export function authHeaders(extra: Record<string, string> = {}): Record<string, 
  */
 export async function erreurDepuisReponse(resp: Response): Promise<Error> {
   let detail = '';
+  let corps: unknown = null;
   try {
     const texte = await resp.text();
     const t = texte.trim();
     if (t) {
       try {
         const j = JSON.parse(t);
+        corps = j;
         if (typeof j === 'string') detail = j;
         else detail = j?.error ?? j?.message ?? j?.detail ?? '';
       } catch {
@@ -123,7 +128,37 @@ export async function erreurDepuisReponse(resp: Response): Promise<Error> {
   detail = String(detail ?? '').trim();
   // Un stderr de mount.cifs peut etre long ; l'interface doit rester lisible.
   if (detail.length > 300) detail = detail.slice(0, 300) + '…';
-  return detail ? new Error(`${resp.status} — ${detail}`) : new Error(`${resp.status}`);
+  const err = (detail
+    ? new Error(`${resp.status} — ${detail}`)
+    : new Error(`${resp.status}`)) as ApiError;
+  // Le statut et le delai de reprise voyagent aussi en PROPRIETES : les lire
+  // dans le texte du message est fragile (un detail contenant « 403 » suffisait
+  // a detourner la traduction) et le `retry_after` d'un 429 s'y perdait
+  // entierement (#2178).
+  err.status = resp.status;
+  err.retryAfter = retryAfterDe(resp, corps);
+  return err;
+}
+
+/**
+ * Delai avant nouvelle tentative annonce sur un 429, en secondes.
+ *
+ * Deux sources, dans cet ordre : le champ `retry_after` du corps JSON — pose
+ * par le serveur Tune, qui l'a lu chez mozaiklabs — puis l'en-tete standard
+ * `Retry-After`. Le corps passe en premier parce qu'un en-tete de reponse n'est
+ * lisible en JavaScript que s'il est expose par CORS, ce qui n'est pas garanti
+ * derriere le relais.
+ *
+ * Rend `undefined` si rien n'est exploitable : l'interface dira « reessaie plus
+ * tard » plutot qu'un delai invente.
+ */
+function retryAfterDe(resp: Response, corps: unknown): number | undefined {
+  const duCorps = (corps as { retry_after?: unknown } | null)?.retry_after;
+  const secs =
+    typeof duCorps === 'number'
+      ? duCorps
+      : Number.parseInt(String(duCorps ?? resp.headers.get('Retry-After') ?? ''), 10);
+  return Number.isFinite(secs) && secs > 0 ? secs : undefined;
 }
 
 // Generic helpers for radio favorites and custom endpoints
@@ -201,6 +236,8 @@ export async function apiDelete(path: string): Promise<any> {
 export interface ApiError extends Error {
   code?: string;
   status?: number;
+  /** Secondes avant nouvelle tentative, sur un 429 qui l'annonce (#2178). */
+  retryAfter?: number;
 }
 
 async function apiError(response: Response): Promise<ApiError> {
@@ -244,12 +281,12 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       throw new Error('Session expired');
     }
     if (response.status === 402) {
-      try {
-        const body = await response.json();
-        notifications.error(body?.message || 'Tune Premium requis pour cette fonctionnalite');
-      } catch {
-        notifications.error('Tune Premium requis pour cette fonctionnalite');
-      }
+      // Ni le message du serveur ni le repli ne parlaient la langue de
+      // l'interface : `premium_guard.rs` compose le sien avec
+      // `feature.display_name()` — « Parametric EQ requires Tune Premium »,
+      // en anglais — et le repli etait du francais code en dur, montre tel
+      // quel a un anglophone. Les deux sont le meme defaut (#2419).
+      notifications.error(get(t)('premium.required'));
       throw new Error('premium_required');
     }
     const err = await apiError(response);
@@ -440,10 +477,17 @@ export function updateZoneMaxSampleRate(id: number, rate: number | null) {
 // Volume fixe (bit-perfect) : le serveur épingle aussi le volume à 100 % en
 // base quand on l'active, et la zone redémarre à 100 % au lieu du garde-fou
 // anti-réveil de 20 % (tune-server-rust#1616).
-export function updateZoneFixedVolume(id: number, enabled: boolean) {
+export function updateZoneFixedVolume(
+  id: number,
+  enabled: boolean,
+  confirmFullVolume = false,
+) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ fixed_volume: enabled }),
+    body: JSON.stringify({
+      fixed_volume: enabled,
+      ...(confirmFullVolume ? { confirm_full_volume: true } : {}),
+    }),
   });
 }
 
@@ -886,7 +930,34 @@ export function getQueue(zoneId: number) {
 // (`Option<String>`). Sans le `| null`, tout appelant qui les a FACULTATIFS —
 // une piste distante, typiquement, dont le type `Track` les déclare
 // `string | null` — devait les blanchir en `undefined` avant d'appeler.
-export function addToQueue(zoneId: number, body: { album_id?: number; track_id?: number; track_ids?: number[]; source?: Source | 'upload'; source_id?: string; file_path?: string; position?: number; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number }) {
+export interface StreamingQueueItem {
+  source: Source | 'upload';
+  source_id: string;
+  title?: string | null;
+  artist_name?: string | null;
+  album_title?: string | null;
+  cover_path?: string | null;
+  duration_ms?: number;
+}
+
+export interface AddToQueueRequest {
+  album_id?: number;
+  track_id?: number;
+  track_ids?: number[];
+  source?: Source | 'upload';
+  source_id?: string;
+  file_path?: string;
+  position?: number;
+  title?: string | null;
+  artist_name?: string | null;
+  album_title?: string | null;
+  cover_path?: string | null;
+  duration_ms?: number;
+  /** Ordered streaming rows, supported by QueueAddRequest on the server. */
+  tracks?: StreamingQueueItem[];
+}
+
+export function addToQueue(zoneId: number, body: AddToQueueRequest) {
   return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/add`, {
     method: 'POST',
     body: JSON.stringify(body),
@@ -2158,6 +2229,15 @@ export function cancelScan() {
   return fetchVoid(`${BASE}/system/scan/cancel`, { method: 'POST' });
 }
 
+/** Instantané des tâches de fond en cours (enrichissements, pochettes, images
+ *  d'artistes…). Le direct arrive par l'événement WS `system.background_tasks` ;
+ *  cet appel sert au chargement, quand une passe tourne déjà (#2227). */
+export function getBackgroundTasks() {
+  return fetchJSON<{ tasks: import('./tachesDeFond').TacheDeFond[] }>(
+    `${BASE}/system/background-tasks`
+  );
+}
+
 export function getBackups() {
   return fetchJSON<import('./types').BackupInfo[]>(`${BASE}/system/backups`);
 }
@@ -2360,11 +2440,11 @@ export function getStreamingFavorites(service: string, type: 'tracks' | 'albums'
     });
 }
 
-export function addStreamingFavorite(service: string, type: 'tracks' | 'albums' | 'artists', itemId: string) {
+export function addStreamingFavorite(service: string, type: ServiceFavType, itemId: string) {
   return fetchJSON<{ok: boolean}>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}/${encodeURIComponent(itemId)}`, { method: 'POST' });
 }
 
-export function removeStreamingFavorite(service: string, type: 'tracks' | 'albums' | 'artists', itemId: string) {
+export function removeStreamingFavorite(service: string, type: ServiceFavType, itemId: string) {
   return fetchJSON<{ok: boolean}>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}/${encodeURIComponent(itemId)}`, { method: 'DELETE' });
 }
 
@@ -2376,7 +2456,7 @@ export function removeStreamingFavorite(service: string, type: 'tracks' | 'album
 export interface StreamingFavorite {
   id: number;
   profile_id: number;
-  item_type: 'track' | 'album' | 'artist';
+  item_type: StreamingItemType;
   service: string;
   service_id: string;
   title?: string | null;
@@ -2387,7 +2467,7 @@ export interface StreamingFavorite {
 
 export function getProfileStreamingFavorites(
   profileId: number,
-  type?: 'track' | 'album' | 'artist',
+  type?: StreamingItemType,
 ): Promise<StreamingFavorite[]> {
   const q = type ? `?item_type=${type}` : '';
   return fetchJSON<StreamingFavorite[]>(`${BASE}/profiles/${profileId}/favorites/streaming${q}`);
@@ -2396,7 +2476,7 @@ export function getProfileStreamingFavorites(
 export function addProfileStreamingFavorite(
   profileId: number,
   fav: {
-    item_type: 'track' | 'album' | 'artist';
+    item_type: StreamingItemType;
     service: string;
     service_id: string;
     title?: string;
@@ -2413,7 +2493,7 @@ export function addProfileStreamingFavorite(
 
 export function removeProfileStreamingFavorite(
   profileId: number,
-  params: { item_type: 'track' | 'album' | 'artist'; service: string; service_id: string },
+  params: { item_type: StreamingItemType; service: string; service_id: string },
 ) {
   return fetchVoid(`${BASE}/profiles/${profileId}/favorites/streaming/remove`, {
     method: 'POST',
@@ -2422,10 +2502,6 @@ export function removeProfileStreamingFavorite(
 }
 
 // --- Unified Playlist Manager ---
-
-export function getAllPlaylists() {
-  return fetchJSON<import('./types').UnifiedPlaylistsResponse>(`${BASE}/playlists/all`);
-}
 
 export function importPlaylist(service: string, playlistId: string, name?: string) {
   return fetchJSON<import('./types').PlaylistImportResponse>(`${BASE}/playlists/import`, {
@@ -2755,11 +2831,26 @@ export function deleteProfile(id: number) {
 // --- Favorites ---
 
 // Server favorites API is keyed by {item_type, item_id}; the web callers pass
-// {track_id|album_id|artist_id}. Normalise here so callers stay ergonomic.
-function favItem(p: { track_id?: number; album_id?: number; artist_id?: number }): { item_type: 'track' | 'album' | 'artist'; item_id: number } | null {
+// {track_id|album_id|artist_id|playlist_id}. Normalise here so callers stay
+// ergonomic.
+//
+// `playlist_id` : une playlist LOCALE porte un id entier (`playlists.id`), elle
+// entre donc dans la même table que les titres, albums et artistes, sans
+// migration (#2442, FabienM fil 1557). Un LABEL, lui, n'a pas d'identifiant :
+// il passe par les favoris de facette, plus bas.
+export interface FavoriteRef {
+  track_id?: number;
+  album_id?: number;
+  artist_id?: number;
+  playlist_id?: number;
+}
+export type LocalFavoriteType = 'track' | 'album' | 'artist' | 'playlist';
+
+function favItem(p: FavoriteRef): { item_type: LocalFavoriteType; item_id: number } | null {
   if (p.track_id != null) return { item_type: 'track', item_id: p.track_id };
   if (p.album_id != null) return { item_type: 'album', item_id: p.album_id };
   if (p.artist_id != null) return { item_type: 'artist', item_id: p.artist_id };
+  if (p.playlist_id != null) return { item_type: 'playlist', item_id: p.playlist_id };
   return null;
 }
 
@@ -2775,11 +2866,12 @@ export function getTrack(id: number) {
 // (e.g. a favorited item since deleted) are dropped rather than breaking the set.
 export async function getFavorites(
   profileId: number,
-  type?: 'track' | 'album' | 'artist',
+  type?: LocalFavoriteType,
 ): Promise<{
   tracks: import('./types').Track[];
   albums: import('./types').Album[];
   artists: import('./types').Artist[];
+  playlists: import('./types').Playlist[];
 }> {
   const q = type ? `?item_type=${type}` : '';
   const rows = await fetchJSON<Array<{ item_type: string; item_id: number }>>(
@@ -2792,15 +2884,16 @@ export async function getFavorites(
     return res.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
   };
 
-  const [tracks, albums, artists] = await Promise.all([
+  const [tracks, albums, artists, playlists] = await Promise.all([
     settle(ids('track'), getTrack),
     settle(ids('album'), getAlbum),
     settle(ids('artist'), getArtist),
+    settle(ids('playlist'), getPlaylist),
   ]);
-  return { tracks, albums, artists };
+  return { tracks, albums, artists, playlists };
 }
 
-export function addFavorite(profileId: number, body: { track_id?: number; album_id?: number; artist_id?: number }) {
+export function addFavorite(profileId: number, body: FavoriteRef) {
   const it = favItem(body);
   if (!it) return Promise.reject(new Error('addFavorite: no item id'));
   return fetchJSON<any>(`${BASE}/profiles/${profileId}/favorites/add`, {
@@ -2809,7 +2902,7 @@ export function addFavorite(profileId: number, body: { track_id?: number; album_
   });
 }
 
-export function removeFavorite(profileId: number, params: { track_id?: number; album_id?: number; artist_id?: number }) {
+export function removeFavorite(profileId: number, params: FavoriteRef) {
   const it = favItem(params);
   if (!it) return Promise.reject(new Error('removeFavorite: no item id'));
   return fetchVoid(`${BASE}/profiles/${profileId}/favorites/remove`, {
@@ -2818,7 +2911,40 @@ export function removeFavorite(profileId: number, params: { track_id?: number; a
   });
 }
 
-export async function checkFavorite(profileId: number, params: { track_id?: number; album_id?: number; artist_id?: number }) {
+// --- Favoris de FACETTE (label, et demain genre / format / année) ----------
+//
+// Un label n'est pas un objet : il n'a ni table, ni identifiant, ni route
+// bibliothèque — l'onglet Labels lit une facette et sélectionne par CHAÎNE.
+// `favorites.item_id` étant un entier, ces favoris vivent dans leur propre
+// table côté serveur (`favorite_facets`), et sont désignés par leur VALEUR
+// (#2442, FabienM fil 1557).
+export interface FacetFavorite {
+  profile_id: number;
+  facet: string;
+  value: string;
+  created_at?: string | null;
+}
+
+export function getFacetFavorites(profileId: number, facet?: string) {
+  const q = facet ? `?facet=${encodeURIComponent(facet)}` : '';
+  return fetchJSON<FacetFavorite[]>(`${BASE}/profiles/${profileId}/favorites/facets${q}`);
+}
+
+export function addFacetFavorite(profileId: number, facet: string, value: string) {
+  return fetchJSON<any>(`${BASE}/profiles/${profileId}/favorites/facets/add`, {
+    method: 'POST',
+    body: JSON.stringify({ facet, value }),
+  });
+}
+
+export function removeFacetFavorite(profileId: number, facet: string, value: string) {
+  return fetchVoid(`${BASE}/profiles/${profileId}/favorites/facets/remove`, {
+    method: 'POST',
+    body: JSON.stringify({ facet, value }),
+  });
+}
+
+export async function checkFavorite(profileId: number, params: FavoriteRef) {
   const it = favItem(params);
   if (!it) return { is_favorite: false };
   // Server exposes a batch check (POST {item_type, item_ids}) returning an
@@ -3404,12 +3530,19 @@ export function getAudiophileMode(zoneId: number) {
  * Optionnel à dessein : un serveur antérieur ne renvoie pas le champ, et on
  * n'affirme alors rien de ce qu'il ne dit pas (même règle que `setEq`).
  */
-export function setAudiophileMode(zoneId: number, enabled: boolean) {
+export function setAudiophileMode(
+  zoneId: number,
+  enabled: boolean,
+  confirmFullVolume = false,
+) {
   return fetchJSON<{ enabled: boolean; applied_live?: boolean }>(
     `${BASE}/zones/${zoneId}/audiophile`,
     {
       method: 'POST',
-      body: JSON.stringify({ enabled }),
+      body: JSON.stringify({
+        enabled,
+        ...(confirmFullVolume ? { confirm_full_volume: true } : {}),
+      }),
     },
   );
 }
@@ -3474,6 +3607,18 @@ export function enrichArtistImages() {
   );
 }
 
+// Force re-fetch of EVERY artist's image, ignoring the "already has an image"
+// guard — for libraries where image_path points at stale entries that never
+// render, so the normal pass above skips them forever (Fabien: full scan, still
+// no artist images). Same background task and same status endpoint as the
+// normal pass, so the progress polling below covers this run too.
+export function forceRefetchArtistImages() {
+  return fetchJSON<{ status: string; message?: string; artists?: number }>(
+    `${BASE}/library/artwork/enrich-artists/force`,
+    { method: 'POST' }
+  );
+}
+
 // Progress of the (async, background) artist-image enrichment. The POST above
 // returns 202 immediately; the real work — MBID matching then image fetch —
 // runs for minutes. `result` mirrors the `artist_artwork_enrich_result` setting
@@ -3527,6 +3672,17 @@ export function setScanSchedule(time: string, enabled: boolean) {
 
 // --- Server Diagnostics Dashboard ---
 
+export interface AsioWarmScanStatus {
+  supported: boolean;
+  state: 'unsupported' | 'disabled_by_env' | 'blocked_after_crash' | 'ready';
+  blocked_after_crash: boolean;
+  disabled_by_env: boolean;
+  can_rearm: boolean;
+  retry: 'none' | 'remove_environment_override' | 'rearm_then_restart' | 'next_restart';
+  sentinel_path: string;
+  message: string;
+}
+
 export function getServerDiagnostics() {
   return fetchJSON<{
     // Server uses "server_version" — client normalises via DiagnosticsView
@@ -3541,6 +3697,9 @@ export function getServerDiagnostics() {
     connectors: string[];
     // Memory: server uses "memory_rss_mb"
     memory_rss_mb: number | null;
+    // Added by tune-server-rust #2201. Optional keeps the diagnostics screen
+    // compatible with older servers during rolling client/server updates.
+    asio_warm_scan?: AsioWarmScanStatus;
     // Scan info embedded under scan_status.*
     scan_status: {
       status: string;
@@ -3549,6 +3708,15 @@ export function getServerDiagnostics() {
       last_result: Record<string, unknown> | null;
     } | null;
   }>(`${BASE}/system/diagnostics`);
+}
+
+export function rearmAsioWarmScan() {
+  return fetchJSON<{
+    status: 'rearmed' | 'already_ready';
+    retry: 'next_restart';
+    message: string;
+    asio_warm_scan: AsioWarmScanStatus;
+  }>(`${BASE}/system/audio/asio-warm-scan/rearm`, { method: 'POST' });
 }
 
 // --- Library Import (Roon / Plex / Playlists) ---
@@ -3986,7 +4154,7 @@ export function getArtistReleases(limit = 12) {
 export interface OtherVersionGroup {
   title: string;
   artist_name: string;
-  /** L'album depuis lequel le morceau a ete ecoute aujourd'hui. */
+  /** L'album depuis lequel le morceau a ete ecoute recemment. */
   played_album: string;
   /** Versions et reprises trouvees chez les services et sur Bandcamp. */
   streaming?: {
@@ -4010,14 +4178,47 @@ export interface OtherVersionGroup {
 }
 
 /**
- * Les autres versions, DANS LA BIBLIOTHEQUE, des morceaux ecoutes aujourd'hui.
+ * Les autres versions des morceaux ecoutes RECEMMENT.
  *
- * Ni reprises par un autre interprete (il faudrait les relations d'oeuvre
- * MusicBrainz), ni versions Qobuz (un appel par morceau ecoute). Le serveur
- * fait le regroupement : l'ecran n'a qu'a dessiner.
+ * La route ne borne PAS sur la journee civile : elle part des 200 dernieres
+ * ecoutes. La borne journaliere a existe, puis a ete retiree — minuit UTC
+ * coupait la soiree, et un jour ordinaire ne remplissait pas la section. Le
+ * libelle affiche doit donc parler d'ecoutes RECENTES, jamais « du jour »
+ * (#2359).
+ *
+ * Pas de reprises par un autre interprete dans la bibliotheque : il faudrait
+ * les relations d'oeuvre MusicBrainz. Le serveur fait le regroupement :
+ * l'ecran n'a qu'a dessiner.
  */
 export function getOtherVersions(limit = 20) {
   return fetchJSON<OtherVersionGroup[]>(`${BASE}/home/other-versions?limit=${limit}`);
+}
+
+/**
+ * Les autres versions d'UNE piste, rendues par `/library/tracks/{id}/versions`.
+ *
+ * Meme forme qu'un groupe de `getOtherVersions()` — le serveur reutilise le
+ * meme rapprochement (`routes/versions.rs`) —, plus le `track_id` de depart.
+ */
+export interface TrackVersions extends OtherVersionGroup {
+  track_id: number;
+}
+
+/**
+ * Les autres versions d'une piste DESIGNEE, bibliotheque et streaming.
+ *
+ * La section d'accueil part de l'historique d'ecoute : un morceau jamais
+ * ecoute recemment n'y apparait jamais (#2372). Cette route part de la piste
+ * elle-meme.
+ *
+ * `streaming: false` rend la reponse immediate en n'interrogeant que la
+ * bibliotheque locale — les services sont interroges par defaut, avec un
+ * cache de six heures partage avec la section d'accueil.
+ */
+export function getTrackVersions(id: number, streaming = true) {
+  return fetchJSON<TrackVersions>(
+    `${BASE}/library/tracks/${id}/versions?streaming=${streaming}`,
+  );
 }
 
 export function getHomeRecommendations() {
@@ -4156,6 +4357,27 @@ export interface LicenseSessionConflict {
   active_since: string | null;
 }
 
+/**
+ * Grâce hors ligne (#1999). Tune tolère une coupure réseau prolongée avant de
+ * suspendre le Premium ; ce bloc dit à l'utilisateur qu'il est couvert, depuis
+ * quand et jusqu'à quand. Purement descriptif — le serveur n'a rien durci.
+ * `null` quand la question ne se pose pas (Free, ou abonnement réellement échu).
+ * Ne contient jamais la clé ni un identifiant d'achat.
+ */
+export interface LicenseOfflineGrace {
+  /** `ok` = vérifié récemment · `grace` = hors ligne, Premium intact · `expired` = Premium en pause. */
+  phase: 'ok' | 'grace' | 'expired';
+  source: 'key' | 'account';
+  /** Dernière vérification en ligne réussie (ISO-8601). `null` = jamais. */
+  since: string | null;
+  /** Fin de la fenêtre de tolérance (ISO-8601). */
+  until: string | null;
+  days_remaining: number;
+  /** Durée totale de la tolérance, en jours — le chiffre à afficher. */
+  total_days: number;
+  days_since_validation: number;
+}
+
 export interface LicenseStatus {
   tier: string;
   license_key: string | null;
@@ -4165,6 +4387,8 @@ export interface LicenseStatus {
   hardware_fingerprint: string | null;
   /** Null unless the licence is active on another server right now. */
   session_conflict?: LicenseSessionConflict | null;
+  /** Null unless premium entitlements are in play — see LicenseOfflineGrace. */
+  offline_grace?: LicenseOfflineGrace | null;
 }
 
 export interface LicenseActivateResponse {
@@ -4204,11 +4428,29 @@ export function ssoDisconnect(): Promise<{ status?: string }> {
 
 // --- Support Premium v2 (fil de tickets hébergé sur mozaiklabs.fr) ---
 //
-// Le suivi de conversation parle directement à mozaiklabs.fr (contrat en cours
-// de déploiement côté serveur) ; la CRÉATION de ticket, elle, passe toujours
-// par le serveur Tune local (POST /support/tickets), qui joint la licence.
-// Tant que le serveur mozaiklabs n'est pas déployé, ces appels échouent
-// (404/CORS) : les appelants doivent dégrader en douceur, jamais casser l'écran.
+// TOUT passe par le RELAIS du serveur Tune local (#2559). Le contournement
+// historique — parler en direct à mozaiklabs.fr « tant que le contrat n'est pas
+// déployé côté serveur » — n'a plus lieu d'être : `tune-server` expose les
+// routes depuis `routes/support.rs`, et la CRÉATION de ticket les empruntait
+// déjà.
+//
+// Trois raisons de ne plus jamais appeler mozaiklabs.fr depuis la page :
+//
+//  1. **CORS.** Une page servie depuis `http://192.168.1.18:8888` n'est pas de
+//     la même origine que `https://mozaiklabs.fr` : le navigateur refuse de
+//     lire la réponse. C'est l'usage NORMAL — ouvrir Tune par l'adresse de son
+//     serveur — donc le suivi des tickets ne s'affichait jamais.
+//
+//  2. **La clé de licence circulait dans l'URL** (`?license_key=…`) : barre
+//     d'adresse, historique, journaux d'accès. Le relais local n'en a pas
+//     besoin, il résout la licence depuis ses propres réglages (`auth()` dans
+//     `routes/support.rs`).
+//
+//  3. **Le compteur de débit de mozaiklabs était consommé pour rien.** CORS
+//     s'applique APRÈS la réponse : la requête atteignait Laravel et y était
+//     traitée — la console affichait `net::ERR_FAILED 200 (OK)`, donc un
+//     statut 200. Chaque client du parc rejouait cet appel à chaque changement
+//     d'écran.
 
 export const MOZAIKLABS_API = 'https://mozaiklabs.fr/api/v1';
 
@@ -4243,6 +4485,12 @@ async function mozaikFetch(path: string, options?: RequestInit): Promise<any> {
   if (!resp.ok) {
     const err = new Error(`${resp.status}`) as ApiError;
     err.status = resp.status;
+    // Appel DIRECT à mozaiklabs : `Retry-After` n'est lisible que si le site
+    // l'expose par CORS, d'où le repli sur le corps. Absent ⇒ `undefined`, et
+    // l'écran dit « réessaie plus tard » sans inventer de délai (#2178).
+    let corps: unknown = null;
+    try { corps = JSON.parse(await resp.clone().text()); } catch { /* corps non JSON */ }
+    err.retryAfter = retryAfterDe(resp, corps);
     throw err;
   }
   const text = await resp.text();
@@ -4250,24 +4498,43 @@ async function mozaikFetch(path: string, options?: RequestInit): Promise<any> {
   return JSON.parse(text);
 }
 
-export function getSupportTickets(licenseKey: string): Promise<{ tickets: SupportTicketSummary[] }> {
-  return mozaikFetch(`/support/tickets?license_key=${encodeURIComponent(licenseKey)}`);
+export function getSupportTickets(_licenseKey?: string): Promise<{ tickets: SupportTicketSummary[] }> {
+  // La clé n'est plus transmise : le relais local la résout lui-même. Le
+  // paramètre reste accepté pour ne pas casser les appelants, et ignoré.
+  return fetchJSON<{ tickets: SupportTicketSummary[] }>(`${BASE}/support/tickets`);
 }
 
 export function getSupportTicket(
   id: number,
-  licenseKey: string,
+  _licenseKey?: string,
 ): Promise<{ ticket: SupportTicketSummary; replies: SupportTicketReply[] }> {
-  return mozaikFetch(`/support/tickets/${id}?license_key=${encodeURIComponent(licenseKey)}`);
+  return fetchJSON<{ ticket: SupportTicketSummary; replies: SupportTicketReply[] }>(
+    `${BASE}/support/tickets/${id}`,
+  );
 }
 
-export function postSupportTicketReply(id: number, licenseKey: string, body: string): Promise<any> {
-  return mozaikFetch(`/support/tickets/${id}/replies`, {
+export function postSupportTicketReply(id: number, _licenseKey: string, body: string): Promise<any> {
+  // `/reply` au singulier : c'est le chemin exposé par le relais local
+  // (`routes/support.rs`). L'ancien `/replies` était celui de mozaiklabs.
+  return fetchJSON<any>(`${BASE}/support/tickets/${id}/reply`, {
     method: 'POST',
-    body: JSON.stringify({ license_key: licenseKey, body }),
+    body: JSON.stringify({ body }),
   });
 }
 
+/**
+ * ⚠️ SEUL appel encore dirigé vers mozaiklabs.fr, et donc seul à rester bloqué
+ * par CORS depuis une adresse locale (#2559).
+ *
+ * Le relais du serveur Tune n'expose PAS `/tickets/{id}/read` — vérifié dans
+ * `routes/support.rs`, qui déclare `/tickets`, `/tickets/{id}` et
+ * `/tickets/{id}/reply`, et dans `tune-core/src/cloud/support.rs`, qui n'a pas
+ * d'équivalent de `mark_read`. Le router par le relais suppose donc d'ajouter
+ * la route côté serveur : c'est un travail distinct, dans un autre dépôt.
+ *
+ * L'échec est déjà avalé par l'appelant — marquer comme lu n'est pas critique,
+ * seul le compteur de non-lus reste en retard.
+ */
 export function markSupportTicketRead(id: number, licenseKey: string): Promise<any> {
   return mozaikFetch(`/support/tickets/${id}/read`, {
     method: 'POST',
@@ -4297,12 +4564,17 @@ export async function createSupportTicketMultipart(form: FormData): Promise<any>
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
   if (!resp.ok) {
     let message = `${resp.status}`;
+    let corps: unknown = null;
     try {
-      const data = await resp.json();
+      corps = await resp.json();
+      const data = corps as { message?: string } | null;
       if (data?.message) message = data.message;
     } catch { /* pas de corps JSON exploitable */ }
     const err = new Error(message) as ApiError;
     err.status = resp.status;
+    // Limite d'envoi atteinte : le délai remonté par le serveur doit survivre
+    // jusqu'au message affiché, sinon l'écran ne sait pas quand réessayer (#2178).
+    err.retryAfter = retryAfterDe(resp, corps);
     throw err;
   }
   const text = await resp.text();

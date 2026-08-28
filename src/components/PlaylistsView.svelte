@@ -11,12 +11,20 @@
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import type { Playlist, Track, StreamingPlaylist } from '../lib/types';
   import { t as tr } from '../lib/i18n';
+  import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
   import AlbumArt from './AlbumArt.svelte';
+  import ClampedText from './ClampedText.svelte';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
   }
   let { onAddToPlaylist }: Props = $props();
+
+  // Conteneur de défilement de la vue (`.playlists-view`, `overflow-y: auto`) :
+  // ouvrir une playlist remplace la liste par la fiche DANS ce même conteneur,
+  // donc la position de la liste doit être mémorisée à l'ouverture et rétablie
+  // au retour (0c1f144, reperdu par la fusion f14553f).
+  let viewEl = $state<HTMLDivElement | null>(null);
 
   let zone = $derived($currentZone);
 
@@ -135,6 +143,11 @@
 
   async function selectPlaylist(pl: Playlist) {
     if (!pl.id) return;
+    // Sous garde : cette fonction est AUSSI appelée depuis la restauration
+    // d'un raccourci, fiche déjà ouverte. La position lue serait alors celle
+    // d'une fiche (~0) et écraserait celle de la liste — le piège relevé par
+    // la PR #615 sur `selectArtistDetail`.
+    if (!selectedPlaylist && !selectedStreamingPl) saveDetailScroll('playlists', viewEl);
     selectedPlaylist = pl;
     loading = true;
     try {
@@ -146,6 +159,7 @@
   }
 
   async function selectStreamingPlaylist(service: string, pl: StreamingPlaylist) {
+    if (!selectedPlaylist && !selectedStreamingPl) saveDetailScroll('playlists', viewEl);
     selectedStreamingPl = pl;
     selectedService = service;
     loading = true;
@@ -163,6 +177,7 @@
     playlistTracks = [];
     streamingPlTracks = [];
     selectedService = '';
+    restoreDetailScroll('playlists', viewEl);
   }
 
   // Shortcut capture/restore for a SPECIFIC playlist (Elie): expose the open
@@ -401,7 +416,7 @@
   }
 </script>
 
-<div class="playlists-view">
+<div class="playlists-view" bind:this={viewEl}>
   {#if selectedPlaylist}
     <!-- Local playlist detail -->
     <div class="detail-header">
@@ -412,7 +427,9 @@
       <div class="playlist-detail-info">
         <h2>{selectedPlaylist.name}</h2>
         {#if selectedPlaylist.description}
-          <p class="playlist-desc">{selectedPlaylist.description}</p>
+          <ClampedText lines={3} resetKey={selectedPlaylist.description}>
+            <p class="playlist-desc">{selectedPlaylist.description}</p>
+          </ClampedText>
         {/if}
         <span class="playlist-count">{playlistTracks.length} {$tr('common.tracks')}</span>
       </div>
@@ -489,7 +506,9 @@
         <span class="source-badge">{serviceName(selectedService)}</span>
         <h2>{selectedStreamingPl.name}</h2>
         {#if selectedStreamingPl.description}
-          <p class="playlist-desc">{selectedStreamingPl.description}</p>
+          <ClampedText lines={3} resetKey={selectedStreamingPl.description}>
+            <p class="playlist-desc">{selectedStreamingPl.description}</p>
+          </ClampedText>
         {/if}
         <span class="playlist-count">{selectedStreamingPl.track_count} {$tr('common.tracks')}</span>
       </div>

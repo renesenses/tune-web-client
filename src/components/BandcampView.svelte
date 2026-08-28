@@ -6,6 +6,7 @@
   import { rapprocher, type Rapprochement } from '../lib/bandcampMatch';
   import { bandcampCharge, bandcampAttendRedemarrage } from '../lib/stores/bandcamp';
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { activeView } from '../lib/stores/navigation';
 
   // L'écran ne présente PAS Bandcamp : il répond à « qu'est-ce que j'ai acheté
   // et pas encore importé ? ». Le rapprochement se fait ici, dans le
@@ -319,7 +320,20 @@
       {#if $bandcampAttendRedemarrage}
         <p>{$t('bandcamp.dormantRestart' as any)}</p>
       {:else}
-        <p>{$t('bandcamp.dormantInstall' as any)}</p>
+        <!-- Le message envoyait vers « Réglages › Plugins ». Ce chemin n'existe
+             pas : « Plugins » est une rubrique du menu latéral, pas un onglet
+             des Paramètres — le seul accès depuis les Paramètres est un bouton
+             enfoui dans Système, masqué sous le niveau d'affichage requis.
+             `{rubrique}` est interpolé depuis `nav.plugins`, la clé qui nomme
+             la rubrique : la renommer n'obligera pas à rouvrir onze locales
+             (même motif que le correctif de #2104 sur l'analyse acoustique). -->
+        <p>{$t('bandcamp.dormantInstall' as any).replace('{rubrique}', $t('nav.plugins' as any))}</p>
+        <!-- Une indication textuelle laisse chercher ; le motif du bouton qui
+             ouvre l'écran existe déjà (SettingsView « Parcourir les plugins »,
+             StreamingView « Aller aux Réglages »). -->
+        <button class="bc-vers-plugins" onclick={() => activeView.set('plugins')}>
+          {$t('settings.browsePlugins' as any)}
+        </button>
       {/if}
       <p class="bc-note">{$t('bandcamp.dormantWhy' as any)}</p>
     </section>
@@ -446,7 +460,7 @@
                   ＋
                 </button>
                 <span class="bc-num">{p.num}</span>
-                <span class="bc-p-titre">{p.title}</span>
+                <span class="bc-p-titre" title={p.title}>{p.title}</span>
                 <!-- Le débit est écrit sur CHAQUE ligne, pas seulement en tête
                      de liste : c'est la ligne qu'on clique, c'est là que
                      l'information doit être. -->
@@ -480,7 +494,7 @@
               {#each artisteOuvert.albums as d (d.url)}
                 <button class="bc-vignette" onclick={() => ouvrir_album(d.url)}>
                   {#if d.pochette}<img src={d.pochette} alt="" loading="lazy" />{/if}
-                  <span class="bc-v-titre">{d.titre}</span>
+                  <span class="bc-v-titre" title={d.titre}>{d.titre}</span>
                 </button>
               {/each}
             </div>
@@ -503,8 +517,8 @@
             {#each recherche.albums as a (a.url)}
               <button class="bc-vignette" onclick={() => ouvrir_album(a.url)}>
                 {#if a.pochette}<img src={a.pochette} alt="" loading="lazy" />{/if}
-                <span class="bc-v-titre">{a.titre}</span>
-                <span class="bc-v-artiste">{a.artiste}</span>
+                <span class="bc-v-titre" title={a.titre}>{a.titre}</span>
+                <span class="bc-v-artiste" title={a.artiste}>{a.artiste}</span>
               </button>
             {/each}
           </div>
@@ -551,8 +565,8 @@
           {#each decouvertes as a (a.url)}
             <button class="bc-vignette" onclick={() => ouvrir_album(a.url)}>
               {#if a.pochette}<img src={a.pochette} alt="" loading="lazy" />{/if}
-              <span class="bc-v-titre">{a.titre}</span>
-              <span class="bc-v-artiste">{a.artiste}</span>
+              <span class="bc-v-titre" title={a.titre}>{a.titre}</span>
+              <span class="bc-v-artiste" title={a.artiste}>{a.artiste}</span>
             </button>
           {/each}
         </div>
@@ -734,6 +748,15 @@
   }
   .bc-dormant h3 { margin: 0 0 0.5rem; }
   .bc-dormant p { margin: 0 0 0.5rem; }
+
+  /* Le raccourci vers la rubrique Plugins : l'indication ne se lit pas, elle
+     se suit d'un clic. */
+  .bc-vers-plugins {
+    margin-top: 0.35rem; padding: 0.4rem 0.85rem; border-radius: 6px;
+    border: 1px solid var(--border, #333); background: var(--surface-2, #262626);
+    color: inherit; font: inherit; cursor: pointer;
+  }
+  .bc-vers-plugins:hover { border-color: var(--accent, #4a9eff); }
 
   /* Une entree de liste cliquable : meme presentation que l'ancien texte
      inerte, mais c'est un bouton — un artiste s'ouvre, il ne se lit pas. */

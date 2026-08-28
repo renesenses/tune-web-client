@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingAlbumOrigin, streamingServices as streamingServicesStore, streamingGenreBreadcrumb } from '../lib/stores/streaming';
+  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, pendingStreamingPlaylist, streamingAlbumOrigin, streamingServices as streamingServicesStore, streamingGenreBreadcrumb } from '../lib/stores/streaming';
   import { tip } from '../lib/tooltip';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
-  import { activeView, settingsInitialTab } from '../lib/stores/navigation';
+  import { activeView, settingsInitialTab, saveViewContext, loadViewContext } from '../lib/stores/navigation';
   import * as api from '../lib/api';
   import { formatTime, formatAlbumYear } from '../lib/utils';
-  import { actionRetour } from '../lib/streamingRetour';
+  import { actionRetour, etapesDeRestauration } from '../lib/streamingRetour';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -17,6 +17,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { playVideo } from '../lib/stores/ytPlayer';
   import { currentProfileId } from '../lib/stores/profile';
+  import { playFromHere } from '../lib/playback';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -26,6 +27,11 @@
   type StreamingTab = 'search' | 'albums' | 'artists' | 'tracks';
 
   let service = $derived($activeStreamingService);
+  let selectableServices = $derived(
+    Object.entries($streamingServicesStore)
+      .filter(([, status]) => status.enabled && status.authenticated)
+      .map(([name]) => name),
+  );
   let zone = $derived($currentZone);
   let youtubeNeedsAuth = $derived(
     service === 'youtube' && !$streamingServicesStore['youtube']?.authenticated
@@ -202,10 +208,93 @@
   // Toute lecture reactive faite par l'un des sept chargeurs ci-dessous
   // deviendrait une dependance de plus. Les enfermer une bonne fois evite que
   // le prochain chargeur ajoute rouvre le meme trou en silence.
+  // Contexte de navigation persistant (#bug-bouton-retour) : forme sérialisable
+  // de la position dans Qobuz/Tidal. On y met les IDENTIFIANTS via les objets
+  // eux-mêmes (sérialisables) ; les pistes/discographies se rechargent par
+  // selectAlbum/selectArtist/… à la restauration, jamais persistées.
+  interface ContexteStreaming {
+    service: string | null;
+    tab: StreamingTab;
+    searchQuery: string;
+    selectedAlbum: Album | null;
+    selectedArtist: Artist | null;
+    selectedStreamingPlaylist: StreamingPlaylist | null;
+    genreBreadcrumb: { id: string | null; name: string }[] | null;
+  }
+
+  let ctxSauve: ContexteStreaming | undefined = loadViewContext<ContexteStreaming>('streaming');
+  let contexteRestaure = false;
+  let serviceConnu: string | null = ctxSauve?.service ?? null;
+
   $effect(() => {
     const s = service;
-    untrack(() => resetForService(s));
+    untrack(() => {
+      // Remontage de la vue avec un contexte du MÊME service : on restaure la
+      // position au lieu de repartir à la racine — c'est le correctif du
+      // « bouton retour réinitialise la navigation ».
+      if (!contexteRestaure && ctxSauve && s === ctxSauve.service) {
+        contexteRestaure = true;
+        serviceConnu = s;
+        restaurerContexte(ctxSauve);
+        ctxSauve = undefined;
+      } else if (s !== serviceConnu) {
+        // Vrai changement de service (ou premier montage sans contexte).
+        serviceConnu = s;
+        contexteRestaure = true; // un contexte d'un AUTRE service ne s'applique pas
+        resetForService(s);
+      }
+    });
   });
+
+  // Enregistre en continu un instantané de la position, pour que le prochain
+  // montage (retour) reparte d'ici. Ne persiste que des données légères et
+  // sérialisables.
+  $effect(() => {
+    const snapshot: ContexteStreaming = {
+      service,
+      tab,
+      searchQuery,
+      selectedAlbum,
+      selectedArtist,
+      selectedStreamingPlaylist,
+      genreBreadcrumb: browsingGenres ? genreBreadcrumb : null,
+    };
+    saveViewContext('streaming', snapshot);
+  });
+
+  async function restaurerContexte(ctx: ContexteStreaming) {
+    // Recharge les données de service en fond (accueil, favoris…) SANS écraser
+    // la position, puis rétablit exactement où l'utilisateur était.
+    chargerDonneesService(ctx.service);
+    tab = ctx.tab;
+    searchQuery = ctx.searchQuery;
+    // Quels niveaux rouvrir, et dans quel ordre : la décision est isolée dans
+    // `streamingRetour` pour se prouver sans monter la vue. Le point qui
+    // manquait est le cas à DEUX niveaux — album ouvert depuis la
+    // discographie : n'en rouvrir qu'un remettait `selectedArtist` à `null` et
+    // ramenait le défaut de Sandro (fil 1553) dès qu'on était sorti de la vue
+    // avant d'appuyer sur « Retour ».
+    for (const pas of etapesDeRestauration({
+      genres: (ctx.genreBreadcrumb?.length ?? 0) > 0,
+      album: ctx.selectedAlbum != null,
+      artiste: ctx.selectedArtist != null,
+      playlist: ctx.selectedStreamingPlaylist != null,
+      recherche: !!ctx.searchQuery && ctx.tab === 'search',
+    })) {
+      if (pas.etape === 'genres' && ctx.genreBreadcrumb) {
+        await restoreGenreBrowsing(ctx.genreBreadcrumb);
+      } else if (pas.etape === 'artiste' && ctx.selectedArtist) {
+        await selectArtist(ctx.selectedArtist);
+      } else if (pas.etape === 'album' && ctx.selectedAlbum) {
+        await selectAlbum(ctx.selectedAlbum, pas.depuisArtiste);
+      } else if (pas.etape === 'playlist' && ctx.selectedStreamingPlaylist) {
+        await selectStreamingPlaylist(ctx.selectedStreamingPlaylist);
+      } else if (pas.etape === 'recherche') {
+        // La recherche se rejoue pour retrouver la grille de résultats.
+        await search();
+      }
+    }
+  }
 
   function resetForService(s: string | null) {
     // Reset all navigation state on service change to prevent UI freeze
@@ -218,6 +307,23 @@
     playlistTracks = [];
     results = null;
     searchQuery = '';
+    // Reset genre browsing on service change
+    browsingGenres = false;
+    genres = [];
+    genreAlbums = [];
+    genreBreadcrumb = [];
+    // Reset YouTube browse on service change
+    ytmBrowseTab = null;
+    ytmMoodPlaylists = [];
+    ytmMoodTitle = '';
+    chargerDonneesService(s);
+  }
+
+  // Chargement des données de service (accueil, favoris, nouveautés…) SANS
+  // toucher à la position de navigation. Séparé de `resetForService` pour que
+  // la RESTAURATION d'un contexte (retour sur la vue) recharge ces données en
+  // fond sans effacer l'album/artiste/playlist que l'utilisateur regardait.
+  function chargerDonneesService(s: string | null) {
     if (s) {
       loadFeatured(s);
       loadUserPlaylists(s);
@@ -237,15 +343,6 @@
       favArtists = [];
       favTracks = [];
     }
-    // Reset genre browsing on service change
-    browsingGenres = false;
-    genres = [];
-    genreAlbums = [];
-    genreBreadcrumb = [];
-    // Reset YouTube browse on service change
-    ytmBrowseTab = null;
-    ytmMoodPlaylists = [];
-    ytmMoodTitle = '';
   }
 
   $effect(() => {
@@ -261,6 +358,16 @@
     if (artist && service) {
       pendingStreamingArtist.set(null);
       selectArtist(artist);
+    }
+  });
+
+  // Une playlist de service mise en favori s'ouvre depuis l'écran Favoris par
+  // ce même chemin : elle n'a pas d'identifiant local à passer (#2370).
+  $effect(() => {
+    const pl = $pendingStreamingPlaylist;
+    if (pl && service) {
+      pendingStreamingPlaylist.set(null);
+      selectStreamingPlaylist(pl);
     }
   });
 
@@ -584,6 +691,10 @@
     return names[s] ?? s.charAt(0).toUpperCase() + s.slice(1);
   }
 
+  function selectService(s: string) {
+    activeStreamingService.set(s);
+  }
+
   async function search() {
     if (!service || !searchQuery.trim()) return;
     searching = true;
@@ -759,8 +870,35 @@
     }
   }
 
+  // Un enfilage réussi qui ne dit rien est indiscernable d'une panne. Sandro
+  // allait vérifier dans la file après CHAQUE clic, faute de confirmation
+  // (#2079, fil forum 1493) — et la parade naturelle, recliquer, enfile la
+  // piste deux fois.
+  //
+  // Le serveur n'y était pour rien : `POST /zones/{id}/queue/add` répond déjà
+  // `201 { added, queue_length }` (playback.rs). La confirmation existait ;
+  // c'est ce gestionnaire qui la jetait. La bibliothèque locale
+  // (LibraryView.playNext) et Oxygen (OxygenView.queueNext) affichaient leur
+  // toast depuis toujours : seul le chemin des services restait muet, et pour
+  // TOUS les services — Qobuz, Tidal, Deezer, Spotify, YouTube — puisqu'ils
+  // passent tous par cette même fonction. Ce n'était pas un défaut Qobuz.
+  let enfilageSuivantEnCours = $state(false);
+
   async function playNextStreaming(track: Track) {
-    if (!zone?.id || !track.source_id) return;
+    if (!zone?.id) {
+      notifications.error($tr('library.noZoneSelectedSelectZone'));
+      return;
+    }
+    if (!track.source_id) {
+      notifications.error($tr('queue.addFailed'));
+      console.error('playNextStreaming: piste sans source_id', track);
+      return;
+    }
+    // Le toast n'arrive qu'au bout de trois allers-retours réseau. Sans ce
+    // verrou, le second clic — celui que le silence appelait — part avant lui
+    // et ajoute la piste une deuxième fois.
+    if (enfilageSuivantEnCours) return;
+    enfilageSuivantEnCours = true;
     try {
       const qs = await api.getQueue(zone.id);
       const nextPos = qs.position + 1;
@@ -773,8 +911,16 @@
       const updated = await api.getQueue(zone.id);
       queueTracks.set(updated.tracks);
       queuePosition.set(updated.position);
+      // Même formulation que la bibliothèque locale, et même clé déjà traduite
+      // dans les onze langues : rien de neuf à faire dériver.
+      notifications.success(`"${track.title}" — ${$tr('streaming.playNext').toLowerCase()}`);
     } catch (e) {
+      notifications.error(e instanceof Error ? e.message : $tr('queue.addFailed'));
       console.error('Play next streaming track error:', e);
+    } finally {
+      // Dans un `finally` : relâché ailleurs, une erreur laisserait le bouton
+      // mort jusqu'au rechargement de la page.
+      enfilageSuivantEnCours = false;
     }
   }
 
@@ -838,6 +984,10 @@
     }
   }
 
+  async function playFavoriteTrack(index: number) {
+    await playFromHere(favTracks, index, service || undefined);
+  }
+
   /// Lancer un album de streaming, eventuellement A PARTIR d'une piste.
   ///
   /// Signale par un testeur (« Lire a partir d'un morceau impossible ») :
@@ -886,8 +1036,22 @@
 
 <div class="streaming-view">
   {#if !service}
-    <div class="empty-center">
+    <div class="empty-center service-picker-empty">
       <p>{$tr('streaming.selectService')}</p>
+      {#if selectableServices.length > 0}
+        <div class="service-picker">
+          {#each selectableServices as availableService}
+            <button
+              class="service-picker-option"
+              onclick={() => selectService(availableService)}
+            >
+              {serviceName(availableService)}
+            </button>
+          {/each}
+        </div>
+      {:else}
+        <button class="scan-btn" onclick={goToSettings}>{$tr('streaming.goToSettings')}</button>
+      {/if}
     </div>
   {:else if youtubeNeedsAuth}
     <div class="empty-center youtube-auth-prompt">
@@ -994,10 +1158,29 @@
           <p class="detail-artist">{selectedStreamingPlaylist.description}</p>
         {/if}
         <p class="detail-meta">{selectedStreamingPlaylist.track_count} {$tr('home.tracks').toLowerCase()}</p>
-        <button class="play-all-btn" onclick={() => selectedStreamingPlaylist && playStreamingPlaylist(selectedStreamingPlaylist)}>
-          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
-          {$tr('common.play')}
-        </button>
+        <div class="album-detail-actions">
+          <button class="play-all-btn" onclick={() => selectedStreamingPlaylist && playStreamingPlaylist(selectedStreamingPlaylist)}>
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
+            {$tr('common.play')}
+          </button>
+          <!-- Didier (#2370, fil 1541), suite exacte du #1478 : l'album Qobuz a
+               recu son coeur en 0.9.88, la playlist Qobuz jamais. Meme mecanique,
+               meme emplacement — sur la fiche, pas sur la vignette.
+
+               Le favori vit dans `streaming_favorites` (cote profil). La recopie
+               vers Qobuz est au mieux et ECHOUERA ici : `favorite_key` refuse le
+               type `playlists`, faute d'appel de souscription etabli contre leur
+               API (#2474). Ce refus n'eteint pas le coeur de Tune — c'est la
+               regle du chemin unique, et c'est ce qui rend ce bouton utile des
+               aujourd'hui. -->
+          {#if selectedStreamingPlaylist.source_id}
+            <HeartButton
+              streaming={{ itemType: 'playlist', service, serviceId: String(selectedStreamingPlaylist.source_id),
+                           title: selectedStreamingPlaylist.name,
+                           coverUrl: selectedStreamingPlaylist.cover_path ?? undefined }}
+              size={20} />
+          {/if}
+        </div>
       </div>
     </div>
     {#if loading}
@@ -1613,7 +1796,7 @@
             {#each favTracks as track, i}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div class="track-item" ondblclick={() => playStreamingTrack(track)}>
+              <div class="track-item" ondblclick={() => playFavoriteTrack(i)}>
                 <span class="track-num">{i + 1}</span>
                 <div class="track-art-small">
                   <AlbumArt coverPath={track.cover_path} size={36} alt={track.title} />
@@ -1630,7 +1813,7 @@
                     <HeartButton streaming={{ itemType: 'track', service: track.source, serviceId: String(track.source_id), title: track.title, artist: track.artist_name ?? undefined, album: (track as any).album ?? undefined, coverUrl: track.cover_path ?? undefined }} size={14} />
                   {/if}
                 </span>
-                <button class="track-action-btn" onclick={() => playStreamingTrack(track)} title="Play">
+                <button class="track-action-btn" onclick={() => playFavoriteTrack(i)} title="Play">
                   <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M8 5v14l11-7z" /></svg>
                 </button>
               </div>
@@ -2310,6 +2493,34 @@
   .youtube-auth-prompt {
     flex-direction: column;
     gap: 16px;
+  }
+
+  .service-picker-empty {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .service-picker {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .service-picker-option {
+    min-width: 120px;
+    padding: 10px 16px;
+    border: 1px solid var(--tune-border);
+    border-radius: 10px;
+    background: var(--tune-surface);
+    color: var(--tune-text);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .service-picker-option:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
   }
 
   .youtube-auth-prompt svg {
