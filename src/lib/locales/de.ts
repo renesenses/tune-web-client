@@ -1814,6 +1814,8 @@ export default {
   "settings.learnMore": "Mehr erfahren",
   "settings.telemetry": "Telemetrie",
   "settings.telemetryHint": "Anonyme Statistiken senden, um Tune zu verbessern.",
+  "settings.cloudRateLimitPaused": "Einige Cloud-Synchronisierungen sind vorübergehend pausiert, um die Serverlimits einzuhalten.",
+  "settings.cloudRetryIn": "Automatischer neuer Versuch in",
   "report.action": "Melden",
   "report.chooseReason": "Grund der Meldung",
   "report.sentShared": "Meldung an die Community gesendet",

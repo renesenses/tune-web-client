@@ -1824,6 +1824,8 @@ export default {
   "settings.learnMore": "Află mai multe",
   "settings.telemetry": "Telemetrie",
   "settings.telemetryHint": "Trimite statistici anonime pentru a îmbunătăți Tune.",
+  "settings.cloudRateLimitPaused": "Unele sincronizări cloud sunt suspendate temporar pentru a respecta limitele serverului.",
+  "settings.cloudRetryIn": "Reîncercare automată peste",
   "report.action": "Raportează",
   "report.chooseReason": "Motivul raportării",
   "report.sentShared": "Raport trimis comunității",

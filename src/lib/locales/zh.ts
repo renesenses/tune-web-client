@@ -1814,6 +1814,8 @@ export default {
   "settings.learnMore": "了解更多",
   "settings.telemetry": "遥测",
   "settings.telemetryHint": "发送匿名统计以改进 Tune。",
+  "settings.cloudRateLimitPaused": "为遵守服务器限制，部分云同步已暂时停止。",
+  "settings.cloudRetryIn": "自动重试倒计时",
   "report.action": "举报",
   "report.chooseReason": "举报原因",
   "report.sentShared": "举报已发送至社区",

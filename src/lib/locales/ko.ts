@@ -1789,6 +1789,8 @@ export default {
   "settings.learnMore": "자세히 보기",
   "settings.telemetry": "텔레메트리",
   "settings.telemetryHint": "Tune 개선을 위해 익명 통계를 전송합니다.",
+  "settings.cloudRateLimitPaused": "서버 제한을 준수하기 위해 일부 클라우드 동기화가 일시 중지되었습니다.",
+  "settings.cloudRetryIn": "자동 재시도 예정:",
   "report.action": "신고",
   "report.chooseReason": "신고 사유",
   "report.sentShared": "커뮤니티에 신고했습니다",

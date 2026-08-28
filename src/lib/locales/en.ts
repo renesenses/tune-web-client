@@ -2110,6 +2110,8 @@ export default {
   "settings.learnMore": "Learn more",
   "settings.telemetry": "Telemetry",
   "settings.telemetryHint": "Send anonymous statistics to improve Tune.",
+  "settings.cloudRateLimitPaused": "Some cloud sync operations are temporarily paused to respect server limits.",
+  "settings.cloudRetryIn": "Automatic retry in",
   "report.action": "Report",
   "report.chooseReason": "Report reason",
   "report.sentShared": "Report sent to the community",
