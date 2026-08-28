@@ -1787,6 +1787,8 @@ export default {
   "settings.learnMore": "Läs mer",
   "settings.telemetry": "Telemetri",
   "settings.telemetryHint": "Skicka anonym statistik för att förbättra Tune.",
+  "settings.cloudRateLimitPaused": "Vissa molnsynkroniseringar är tillfälligt pausade för att respektera serverns gränser.",
+  "settings.cloudRetryIn": "Automatiskt nytt försök om",
   "report.action": "Rapportera",
   "report.chooseReason": "Orsak till rapporten",
   "report.sentShared": "Rapport skickad till communityn",

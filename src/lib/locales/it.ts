@@ -1814,6 +1814,8 @@ export default {
   "settings.learnMore": "Scopri di più",
   "settings.telemetry": "Telemetria",
   "settings.telemetryHint": "Invia statistiche anonime per migliorare Tune.",
+  "settings.cloudRateLimitPaused": "Alcune sincronizzazioni cloud sono temporaneamente sospese per rispettare i limiti del server.",
+  "settings.cloudRetryIn": "Nuovo tentativo automatico tra",
   "report.action": "Segnala",
   "report.chooseReason": "Motivo della segnalazione",
   "report.sentShared": "Segnalazione inviata alla comunità",
