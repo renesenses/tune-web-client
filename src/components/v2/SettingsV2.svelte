@@ -19,6 +19,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { formatNumber, copyText, errText } from '../../lib/utils';
+  import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { notifications } from '../../lib/stores/notifications';
@@ -998,6 +999,67 @@
     cfgBusy = false;
   }
 
+  // ── Enrichissement (lot) ──────────────────────────────────────────────
+  // Les DEUX passes sont asynchrones : le POST rend la main tout de suite et
+  // le travail dure des minutes. On lance, puis on suit — et on renvoie vers
+  // Tune Health, ou l'avancement de tous les chantiers vit au meme endroit.
+  let enrichRunning = $state(false);
+  let enrichDone = $state(0);
+  let enrichTotal = $state(0);
+  let coversMissing = $state<number | null>(null);
+  let enrichErr = $state<string | null>(null);
+
+  async function refreshEnrich() {
+    try {
+      const st = await api.getBatchEnrichStatus();
+      enrichRunning = st?.status === 'running';
+      enrichDone = st?.enriched ?? 0; enrichTotal = st?.total ?? 0;
+    } catch { /* route absente */ }
+    try {
+      const a = await api.enrichArtistImagesStatus();
+      coversMissing = a?.artists_without_image ?? null;
+    } catch { coversMissing = null; }
+  }
+  $effect(() => { refreshEnrich(); });
+  $effect(() => {
+    if (!enrichRunning) return;
+    const h = setInterval(refreshEnrich, 4000);
+    return () => clearInterval(h);
+  });
+  async function startEnrich() {
+    enrichErr = null;
+    try { await api.startBatchEnrich(); enrichRunning = true; await refreshEnrich(); }
+    catch { enrichErr = 'Lancement impossible.'; }
+  }
+  async function startCovers() {
+    enrichErr = null;
+    try { await api.enrichArtistImages(); await refreshEnrich(); }
+    catch { enrichErr = 'Lancement impossible.'; }
+  }
+
+  // ── Rangement des fichiers importes ───────────────────────────────────
+  let ingest = $state<any | null>(null);
+  let ingestErr = $state<string | null>(null);
+  $effect(() => {
+    api.getIngestSettings().then((r: any) => { ingest = r; }).catch(() => { ingest = null; });
+  });
+  async function saveIngest(patch: Record<string, unknown>) {
+    const before = ingest;
+    ingest = { ...ingest, ...patch };
+    try { const r: any = await api.updateIngestSettings(patch as any); if (r) ingest = r; }
+    catch { ingest = before; ingestErr = 'Réglage non enregistré.'; }
+  }
+
+  // ── Notifications ─────────────────────────────────────────────────────
+  // Preference purement LOCALE (ce navigateur), pas un reglage de compte :
+  // l'ecran le dit, sinon on la croit synchronisee entre appareils.
+  let pushOn = $state(false);
+  $effect(() => { try { pushOn = isPushEnabled(); } catch { pushOn = false; } });
+  function togglePush(v: boolean) {
+    pushOn = v;
+    try { setPushEnabled(v); } catch { /* stockage indisponible */ }
+  }
+
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
@@ -1174,6 +1236,172 @@
                   </label>
                 </div>
               {/if}
+
+            {:else if s.id === 'devices'}
+              <!-- Section volontairement COURTE : le v2 a un ecran Zones dedie
+                   et une section « Appareils reseau » dans Audio. Redupliquer
+                   les listes ici, c'est garantir qu'elles divergeront. -->
+              <p class="hint">
+                {#if $devices.length || $zones.length}
+                  <b>{formatNumber($devices.length)}</b> appareil{$devices.length > 1 ? 's' : ''} découvert{$devices.length > 1 ? 's' : ''}
+                  sur le réseau, <b>{formatNumber($zones.length)}</b> zone{$zones.length > 1 ? 's' : ''} configurée{$zones.length > 1 ? 's' : ''}.
+                {:else}
+                  Aucun appareil découvert, aucune zone configurée.
+                {/if}
+              </p>
+              <p class="hint">
+                Les zones se créent et se règlent dans l'écran <b>Zones</b>. La visibilité des
+                appareils réseau et des sorties locales se règle dans <b>Audio</b>.
+              </p>
+              <div class="inline" style="margin-top:12px">
+                <button class="lnk" onclick={() => activeView.set('zonemanager')}>Ouvrir les Zones</button>
+                <button class="lnk" onclick={() => (tabId = 'audio')}>Aller à Audio</button>
+              </div>
+
+            {:else if s.id === 'metadata'}
+              <p class="hint">
+                Les champs affichés dans la bibliothèque et l'ordre des colonnes se règlent
+                dans l'écran <b>Métadonnées</b> du Studio — c'est là que vivent aussi les
+                propositions de la communauté et les albums douteux.
+              </p>
+
+            {:else if s.id === 'enrichment'}
+              <div class="row">
+                <div class="lbl">
+                  <span>Enrichir les métadonnées</span>
+                  <span class="hint">Complète artistes, années, genres et identifiants depuis les bases publiques. Les tags de vos fichiers ne sont jamais écrasés.</span>
+                </div>
+                <button class="lnk" disabled={enrichRunning} onclick={startEnrich}>
+                  {enrichRunning ? 'En cours…' : 'Lancer'}
+                </button>
+              </div>
+              {#if enrichRunning && enrichTotal > 0}
+                <div class="bar2"><span style="width:{Math.min(100, Math.round((enrichDone / enrichTotal) * 100))}%"></span></div>
+                <div class="hint">{formatNumber(enrichDone)} sur {formatNumber(enrichTotal)}</div>
+              {/if}
+
+              <div class="row">
+                <div class="lbl">
+                  <span>Portraits d'artistes</span>
+                  <span class="hint">
+                    {#if coversMissing != null}{formatNumber(coversMissing)} artistes sans portrait.{:else}Recherche les portraits manquants.{/if}
+                  </span>
+                </div>
+                <button class="lnk" onclick={startCovers}>Lancer</button>
+              </div>
+              <p class="hint">Ces passes durent plusieurs minutes. Leur avancement se suit dans <b>Tune Health</b>.</p>
+              {#if enrichErr}<div class="errline">{enrichErr}</div>{/if}
+
+            {:else if s.id === 'ingest'}
+              {#if !ingest}
+                <p class="hint">Rangement indisponible sur ce serveur.</p>
+              {:else}
+                <p class="hint">
+                  Comment Tune range les fichiers que vous importez. Ne concerne PAS les
+                  dossiers déjà déclarés : ceux-là sont lus sur place, jamais déplacés.
+                </p>
+                <div class="row">
+                  <div class="lbl"><span>Action sur les fichiers source</span></div>
+                  <div class="seg4">
+                    <button class:on={ingest.mode === 'copy'} onclick={() => saveIngest({ mode: 'copy' })}>Copier</button>
+                    <button class:on={ingest.mode === 'move'} onclick={() => saveIngest({ mode: 'move' })}>Déplacer</button>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="lbl">
+                    <span>En cas de conflit</span>
+                    <span class="hint">Quand un fichier de même nom existe déjà à destination.</span>
+                  </div>
+                  <div class="seg4">
+                    <button class:on={ingest.conflict_policy === 'skip'} onclick={() => saveIngest({ conflict_policy: 'skip' })}>Ignorer</button>
+                    <button class:on={ingest.conflict_policy === 'rename'} onclick={() => saveIngest({ conflict_policy: 'rename' })}>Renommer</button>
+                    <button class:on={ingest.conflict_policy === 'overwrite'} onclick={() => saveIngest({ conflict_policy: 'overwrite' })}>Écraser</button>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="lbl">
+                    <span>Dossier de destination</span>
+                    <span class="hint">Vide = {ingest.effective_dest_root ?? 'le premier dossier de musique'}.</span>
+                  </div>
+                  <input class="txt wide" type="text" placeholder={ingest.effective_dest_root ?? ''}
+                    value={ingest.dest_root ?? ''}
+                    onchange={(e) => saveIngest({ dest_root: (e.currentTarget as HTMLInputElement).value.trim() || null })} />
+                </div>
+                <div class="row">
+                  <div class="lbl">
+                    <span>Modèle de nommage</span>
+                    <span class="hint">Défaut : <code>{ingest.default_template}</code></span>
+                  </div>
+                  <input class="txt wide" type="text" value={ingest.template ?? ''}
+                    onchange={(e) => saveIngest({ template: (e.currentTarget as HTMLInputElement).value })} />
+                </div>
+                <div class="row">
+                  <div class="lbl">
+                    <span>Écrire les tags dans les fichiers</span>
+                    <span class="hint">Modifie les fichiers importés. Décoché, la base seule est renseignée.</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={ingest.write_tags}
+                      onchange={(e) => saveIngest({ write_tags: (e.currentTarget as HTMLInputElement).checked })} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                {#if ingestErr}<div class="errline">{ingestErr}</div>{/if}
+              {/if}
+
+            {:else if s.id === 'oxygen'}
+              <div class="row">
+                <div class="lbl">
+                  <span>Vue Oxygen</span>
+                  <span class="hint">Navigation par facettes — genre, artiste, année, format… — pour explorer une grosse discothèque.</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.oxygenEnabled}
+                    onchange={(e) => preferences.update((pr) => ({ ...pr, oxygenEnabled: (e.currentTarget as HTMLInputElement).checked }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if $preferences.oxygenEnabled}
+                <div class="row">
+                  <div class="lbl">
+                    <span>Valeurs par facette</span>
+                    <span class="hint">0 = toutes. Au-delà de quelques centaines, la colonne devient illisible.</span>
+                  </div>
+                  <input class="txt time" type="number" min="0" max="2000" step="50"
+                    value={$preferences.oxygenFacetLimit}
+                    onchange={(e) => preferences.update((pr) => ({ ...pr, oxygenFacetLimit: Number((e.currentTarget as HTMLInputElement).value) || 0 }))} />
+                </div>
+              {/if}
+
+            {:else if s.id === 'push'}
+              <div class="row">
+                <div class="lbl">
+                  <span>Notifications</span>
+                  <span class="hint">
+                    Fin d'analyse, erreurs de lecture. Réglage propre à <b>ce navigateur</b> —
+                    il ne suit pas votre profil d'un appareil à l'autre.
+                  </span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={pushOn}
+                    onchange={(e) => togglePush((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+            {:else if s.id === 'cloud'}
+              <p class="hint">
+                Sauvegarde de configuration et relais d'accès distant sont gérés depuis le
+                client actuel. L'<b>accès distant</b> (Tune Bridge) se règle en revanche ici,
+                dans l'onglet <b>Audio</b>.
+              </p>
+
+            {:else if s.id === 'import'}
+              <p class="hint">
+                L'import d'une bibliothèque existante (Roon, Plex, dossiers structurés) reste
+                dans le client actuel : c'est un assistant en plusieurs étapes, et le reprendre
+                à moitié exposerait à des imports partiels difficiles à défaire.
+              </p>
 
             {:else if s.id === 'database'}
               <div class="rows">
@@ -2170,6 +2398,10 @@
   .sw input:checked + .slider::before{transform:translateX(19px)}
   .sw input:focus-visible + .slider{box-shadow:0 0 0 3px var(--v2-focus)}
 
+  .bar2{margin-top:12px; height:6px; border-radius:4px; background:var(--v2-line); overflow:hidden}
+  .bar2 span{display:block; height:100%; border-radius:4px;
+    background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2)); transition:width .4s}
+  .hint code{font:11px var(--v2-mono); color:var(--v2-acc2)}
   .urls{display:flex; flex-direction:column; gap:1px; margin-top:12px}
   .url{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:9px 10px; border-radius:8px}
   .url:hover{background:var(--v2-hover)}
