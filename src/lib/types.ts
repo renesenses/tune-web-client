@@ -489,6 +489,10 @@ export interface SystemHealth {
   // Server /system/health does not currently send a components map; keep optional
   // so the Diagnostics view degrades gracefully instead of crashing on render.
   components?: Record<string, boolean>;
+  version?: string;
+  /** Nom lisible de la machine qui répond (#2110). Optionnel : un serveur plus
+   *  ancien que le correctif ne l'envoie pas, et l'étiquette s'efface alors. */
+  server_name?: string;
 }
 
 /** Réglage booléen tel que /system/config peut réellement le renvoyer.
@@ -539,6 +543,10 @@ export interface SystemConfig {
   appliance?: boolean;
   // Access URLs from another device (IP + .local) — shown in Settings
   server_urls?: string[];
+  /** Nom lisible de CETTE machine (#2110), réglable, par défaut le nom d'hôte.
+   *  Répond à « à quel serveur je parle ? » — à ne pas confondre avec la zone,
+   *  qui répond à « quelle enceinte joue ? ». */
+  server_name?: string;
   // Database
   db_engine: string;
   db_path?: string | null;

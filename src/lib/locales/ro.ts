@@ -3075,6 +3075,15 @@ export default {
   "settings.updateBlockedPlaying": "Actualizare amânată: o zonă redă. Instalarea ar întrerupe muzica.",
   "settings.updateBlockedUnknown": "Serverul a refuzat actualizarea fără a da un motiv. Consultați jurnalele serverului.",
   "settings.updateDockerHint": "Tune ruleaza intr-un container Docker: actualizati descarcand noua imagine (docker compose pull && docker compose up -d). Datele din volumele montate sunt pastrate.",
+  // Quel serveur ? (#2110) — distinct de « quelle zone ? ».
+  "sidebar.serverIdentityLabel": "Server",
+  "sidebar.serverIdentityTitle": "Mașina la care este conectată această interfață. A nu se confunda cu zona de ascultare, din dreapta jos.",
+  "settings.serverIdentity": "Acest server",
+  "settings.serverIdentityHint": "Numele acestei mașini, afișat permanent în bara laterală. Dați-i un nume clar dacă rulați mai multe servere Tune: astfel nu porniți redarea sau actualizarea pe mașina greșită. Implicit, numele de gazdă al sistemului.",
+  "settings.serverNameLabel": "Numele acestui server",
+  "settings.serverNamePlaceholder": "De exemplu: Living, Birou, Laptop",
+  "settings.serverNameSaved": "Numele serverului a fost salvat.",
+  "settings.updateTarget": "Mașina vizată: {server}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

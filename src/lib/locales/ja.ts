@@ -3075,6 +3075,15 @@ export default {
   "settings.updateBlockedPlaying": "更新を保留しました。再生中のゾーンがあります。今入れると曲の途中で音が止まります。",
   "settings.updateBlockedUnknown": "サーバーが理由を示さずに更新を拒否しました。サーバーのログを確認してください。",
   "settings.updateDockerHint": "Tune は Docker コンテナーで動作しています。新しいイメージを取得して更新してください（docker compose pull && docker compose up -d）。マウントしたボリュームのデータは保持されます。",
+  // Quel serveur ? (#2110) — distinct de « quelle zone ? ».
+  "sidebar.serverIdentityLabel": "サーバー",
+  "sidebar.serverIdentityTitle": "この画面が接続しているマシンです。右下の再生ゾーンとは別のものです。",
+  "settings.serverIdentity": "このサーバー",
+  "settings.serverIdentityHint": "このマシンの名前で、サイドバーに常に表示されます。Tune サーバーを複数動かしている場合は分かりやすい名前を付けてください。誤ったマシンで再生や更新を始めるのを防げます。既定はシステムのホスト名です。",
+  "settings.serverNameLabel": "このサーバーの名前",
+  "settings.serverNamePlaceholder": "例：リビング、書斎、ノート PC",
+  "settings.serverNameSaved": "サーバー名を保存しました。",
+  "settings.updateTarget": "対象マシン：{server}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

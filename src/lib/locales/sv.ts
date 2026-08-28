@@ -3074,4 +3074,13 @@ export default {
   "settings.updateBlockedPlaying": "Uppdateringen sköts upp: en zon spelar. Installation skulle avbryta musiken mitt i spåret.",
   "settings.updateBlockedUnknown": "Servern nekade uppdateringen utan att ange skäl. Kontrollera serverloggarna.",
   "settings.updateDockerHint": "Tune kors i en Docker-container: uppdatera genom att hamta den nya avbildningen (docker compose pull && docker compose up -d). Dina data i monterade volymer bevaras.",
+  // Quel serveur ? (#2110) — distinct de « quelle zone ? ».
+  "sidebar.serverIdentityLabel": "Server",
+  "sidebar.serverIdentityTitle": "Datorn som det här gränssnittet är anslutet till. Ska inte förväxlas med lyssningszonen nere till höger.",
+  "settings.serverIdentity": "Den här servern",
+  "settings.serverIdentityHint": "Namnet på den här datorn, alltid synligt i sidofältet. Ge den ett tydligt namn om du kör flera Tune-servrar: det är så du undviker att starta uppspelning eller uppdatering på fel dator. Som standard systemets värdnamn.",
+  "settings.serverNameLabel": "Namn på den här servern",
+  "settings.serverNamePlaceholder": "Till exempel: Vardagsrum, Kontor, Bärbar",
+  "settings.serverNameSaved": "Serverns namn sparades.",
+  "settings.updateTarget": "Måldator: {server}",
 } as const;

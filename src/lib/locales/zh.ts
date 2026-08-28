@@ -3075,6 +3075,15 @@ export default {
   "settings.updateBlockedPlaying": "更新已推迟：有区域正在播放。现在安装会中断正在播放的音乐。",
   "settings.updateBlockedUnknown": "服务器拒绝了更新但未说明原因。请查看服务器日志。",
   "settings.updateDockerHint": "Tune 正在 Docker 容器中运行：请拉取新镜像进行更新（docker compose pull && docker compose up -d）。挂载卷中的数据会保留。",
+  // Quel serveur ? (#2110) — distinct de « quelle zone ? ».
+  "sidebar.serverIdentityLabel": "服务器",
+  "sidebar.serverIdentityTitle": "此界面所连接的计算机。请勿与右下角的播放区域混淆。",
+  "settings.serverIdentity": "此服务器",
+  "settings.serverIdentityHint": "这台计算机的名称，始终显示在侧边栏中。如果您运行多个 Tune 服务器，请为其取一个易懂的名称：这样就不会在错误的计算机上开始播放或更新。默认为系统主机名。",
+  "settings.serverNameLabel": "此服务器的名称",
+  "settings.serverNamePlaceholder": "例如：客厅、办公室、笔记本",
+  "settings.serverNameSaved": "服务器名称已保存。",
+  "settings.updateTarget": "目标计算机：{server}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

@@ -3086,6 +3086,15 @@ export default {
   "settings.updateBlockedPlaying": "Mise à jour reportée : une zone est en lecture. Installer couperait la musique en cours.",
   "settings.updateBlockedUnknown": "Le serveur a refusé la mise à jour sans en donner la raison. Consultez les journaux du serveur.",
   "settings.updateDockerHint": "Tune tourne dans un conteneur Docker : la mise a jour se fait en recuperant la nouvelle image (docker compose pull && docker compose up -d). Vos donnees montees en volume sont conservees.",
+  // Quel serveur ? (#2110) — distinct de « quelle zone ? ».
+  "sidebar.serverIdentityLabel": "Serveur",
+  "sidebar.serverIdentityTitle": "Machine à laquelle cette interface est connectée. À ne pas confondre avec la zone d'écoute, en bas à droite.",
+  "settings.serverIdentity": "Ce serveur",
+  "settings.serverIdentityHint": "Le nom de cette machine, affiché en permanence dans la barre latérale. Donnez-lui un nom parlant si vous faites tourner plusieurs serveurs Tune : c'est ce qui évite de lancer une lecture ou une mise à jour sur la mauvaise machine. Par défaut, le nom d'hôte du système.",
+  "settings.serverNameLabel": "Nom de ce serveur",
+  "settings.serverNamePlaceholder": "Par exemple : Salon, Bureau, Portable",
+  "settings.serverNameSaved": "Nom du serveur enregistré.",
+  "settings.updateTarget": "Machine visée : {server}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];
