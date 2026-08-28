@@ -1,5 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import type { DiscoveredDevice } from '../types';
+import { deviceHasBoundZone } from '../hiddenZoneRecovery';
 import { zones } from './zones';
 
 export const devices = writable<DiscoveredDevice[]>([]);
@@ -13,6 +14,6 @@ export const unboundDevices = derived(
         .filter((z) => z.output_device_id)
         .map((z) => z.output_device_id)
     );
-    return $devices.filter((d) => d.available && !boundDeviceIds.has(d.id));
+    return $devices.filter((d) => d.available && !deviceHasBoundZone(d, boundDeviceIds));
   }
 );
