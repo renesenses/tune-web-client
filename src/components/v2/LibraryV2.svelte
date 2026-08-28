@@ -640,10 +640,16 @@
   /* Frise : une barre par année, hauteur proportionnelle au nombre d'albums.
      Les années sans album restent visibles mais creuses — un trou dans la
      collection est une information, pas un défaut d'affichage. */
+  /* COTES RELEVEES AU PIXEL sur la maquette v3 de Levente (variante 3,
+     rendue a 1,5x puis ramenee a 1x) :
+       trait 2 px · ecart 2 px · pas 4 px · peigne 43 px
+       curseur ~9 px de large, debordant de ~23 px au-dessus
+       fond #071418 — exactement notre token `--v2-bg`
+     Le curseur est le seul ecart assume : porte a 12 px pour que le libelle
+     vertical « JUL 1994 » reste lisible, la ou sa maquette n'affiche qu'une
+     annee. */
   .frise{padding:8px 30px 14px; user-select:none}
-  /* Le peigne s'aligne en BAS : les traits partent d'une ligne d'axe commune,
-     ce qui donne la regle graduee plutot qu'une suite de batons flottants. */
-  .bars{position:relative; display:flex; align-items:flex-end; gap:3px; height:56px; padding-top:14px}
+  .bars{position:relative; display:flex; align-items:flex-end; gap:2px; height:43px; padding-top:23px}
   /* Graduation au DOUZIEME : chaque annee est fendue de onze filets, ce qui
      donne la regle fine. Un degrade repete plutot que douze elements — 59
      annees x 12 feraient 708 noeuds pour un trait de 2 px. */
@@ -665,9 +671,9 @@
      long des annees. `pointer-events:none` — il ne doit jamais voler le survol
      au trait qu'il recouvre, sinon il se bloquerait lui-meme. */
   .curseur{position:absolute; top:0; bottom:0; transform:translateX(-50%);
-    width:auto; min-width:16px; display:grid; place-items:center; border-radius:3px; pointer-events:none;
+    width:auto; min-width:12px; display:grid; place-items:center; border-radius:3px; pointer-events:none;
     background:linear-gradient(180deg,var(--v2-acc1),var(--v2-acc2));
-    color:var(--v2-on-acc); font:700 9px var(--v2-mono); letter-spacing:.06em;
+    color:var(--v2-on-acc); font:700 8px var(--v2-mono); letter-spacing:.04em;
     writing-mode:vertical-rl; text-orientation:mixed; padding:3px 0;
     box-shadow:0 2px 10px var(--v2-glow-strong);
     transition:left .12s ease, opacity .12s}
