@@ -2476,10 +2476,6 @@ export function removeProfileStreamingFavorite(
 
 // --- Unified Playlist Manager ---
 
-export function getAllPlaylists() {
-  return fetchJSON<import('./types').UnifiedPlaylistsResponse>(`${BASE}/playlists/all`);
-}
-
 export function importPlaylist(service: string, playlistId: string, name?: string) {
   return fetchJSON<import('./types').PlaylistImportResponse>(`${BASE}/playlists/import`, {
     method: 'POST',
