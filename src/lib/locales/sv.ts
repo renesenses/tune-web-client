@@ -121,6 +121,7 @@ export default {
   'oxygen.facet.sample_rate': 'Samplingsfrekvens',
   'oxygen.facet.bit_depth': 'Bitdjup',
   'oxygen.facetsTitle': 'Facetter',
+  'oxygen.facetClear': 'Avmarkera alla',
   'oxygen.collapseAll': 'Fäll ihop alla',
   'oxygen.expandAll': 'Fäll ut alla',
   'oxygen.facetsServer': 'Fullständiga antal (serverindex).',

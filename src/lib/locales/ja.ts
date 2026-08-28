@@ -149,6 +149,7 @@ export default {
   'oxygen.folder.home': 'ライブラリ',
   'oxygen.folder.empty': 'サブフォルダーはありません。',
   'oxygen.facetsTitle': 'ファセット',
+  'oxygen.facetClear': 'すべて解除',
   'oxygen.collapseAll': 'すべて折りたたむ',
   'oxygen.expandAll': 'すべて展開',
   'oxygen.facetsServer': '完全なカウント（サーバーインデックス）。',

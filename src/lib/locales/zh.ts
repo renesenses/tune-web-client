@@ -149,6 +149,7 @@ export default {
   'oxygen.folder.home': '音乐库',
   'oxygen.folder.empty': '此处没有子文件夹。',
   'oxygen.facetsTitle': '分面',
+  'oxygen.facetClear': '全部取消选择',
   'oxygen.collapseAll': '全部折叠',
   'oxygen.expandAll': '全部展开',
   'oxygen.facetsServer': '完整计数（服务器索引）。',
