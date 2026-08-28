@@ -285,7 +285,7 @@ export default {
   'zone.noStereoPairs': '스테레오 페어 없음',
   'zone.selected': '선택됨',
   'zone.clearSelection': '선택 취소',
-  'zone.latency': '지연 시간',
+  'zone.latency': '제어 RTT',
   'zone.measuring': '측정 중...',
   'zone.calibrate': '보정',
   'zone.calibrating': '보정 중...',

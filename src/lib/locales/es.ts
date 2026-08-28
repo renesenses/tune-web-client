@@ -285,7 +285,7 @@ export default {
   'zone.noStereoPairs': 'Sin pares estéreo',
   'zone.selected': 'seleccionada(s)',
   'zone.clearSelection': 'Cancelar selección',
-  'zone.latency': 'Latencia',
+  'zone.latency': 'RTT de control',
   'zone.measuring': 'Midiendo...',
   'zone.calibrate': 'Calibrar',
   'zone.calibrating': 'Calibrando...',

@@ -285,7 +285,7 @@ export default {
   'zone.noStereoPairs': 'ステレオペアはありません',
   'zone.selected': '選択済み',
   'zone.clearSelection': '選択を解除',
-  'zone.latency': 'レイテンシー',
+  'zone.latency': '制御 RTT',
   'zone.measuring': '測定中...',
   'zone.calibrate': 'キャリブレーション',
   'zone.calibrating': 'キャリブレーション中...',
