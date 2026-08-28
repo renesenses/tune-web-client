@@ -77,14 +77,26 @@ async function enfilerUneLigne(zoneId: number, t: PlayableRow): Promise<void> {
  * and enqueue what follows it, the same compromise `playAllTracks` already
  * makes in FavoritesView.
  */
-export async function playFromHere(tracks: PlayableRow[], index: number): Promise<void> {
+export async function playFromHere(
+  tracks: PlayableRow[],
+  index: number,
+  defaultSource?: string,
+): Promise<void> {
   const zone = get(currentZone);
   if (!zone || typeof zone.id !== 'number') {
     notifications.error(get(t)('library.noZoneSelectedSelectZone'));
     return;
   }
   const zoneId = zone.id;
-  const cliquee = tracks[index];
+  // Les réponses « favoris » connaissent leur service par la route qui les a
+  // produites et ne répètent pas toujours `source` sur chaque piste. Conserver
+  // ce contexte explicite évite de rejeter une liste Qobuz pourtant jouable.
+  const liste = defaultSource
+    ? tracks.map((track) =>
+        !track.source && track.source_id ? { ...track, source: defaultSource } : track,
+      )
+    : tracks;
+  const cliquee = liste[index];
   const jouable = (t?: PlayableRow | null) => !!t && (typeof t.id === 'number' || estStreaming(t));
   if (!jouable(cliquee)) {
     notifications.error(get(t)('library.playbackError'));
@@ -93,16 +105,31 @@ export async function playFromHere(tracks: PlayableRow[], index: number): Promis
 
   try {
     // All-local: one call, start_index — unchanged behaviour.
-    if (tracks.every(t => typeof t?.id === 'number')) {
-      const ids = tracks.map(t => t.id as number);
+    if (liste.every(t => typeof t?.id === 'number')) {
+      const ids = liste.map(t => t.id as number);
       await playAndSync(zoneId, { track_ids: ids, start_index: Math.max(0, index) });
       return;
     }
 
     // Mixed or streaming: start on the row actually clicked, then queue the rest.
     await lireUneLigne(zoneId, cliquee);
-    for (const t of tracks.slice(index + 1)) {
-      if (jouable(t)) await enfilerUneLigne(zoneId, t);
+    const suite = liste.slice(index + 1).filter(jouable);
+    if (suite.length > 0 && suite.every(estStreaming)) {
+      // Une liste de favoris est 100 % streaming : un seul appel conserve
+      // l'ordre et évite une requête HTTP par piste (#2140).
+      await api.addToQueue(zoneId, {
+        tracks: suite.map((track) => ({
+          source: track.source as any,
+          source_id: track.source_id as string,
+          title: track.title,
+          artist_name: track.artist_name,
+          album_title: track.album_title,
+          cover_path: track.cover_path,
+          duration_ms: track.duration_ms,
+        })),
+      });
+    } else {
+      for (const track of suite) await enfilerUneLigne(zoneId, track);
     }
     // The queue view follows `POST /play`'s zone, not our appends: re-read it,
     // otherwise "up next" stays empty until the next WebSocket event.

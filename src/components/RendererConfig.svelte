@@ -2,6 +2,7 @@
   import * as api from '../lib/api';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
+  import { rendererProbeErrorKey } from '../lib/rendererProbe';
   import type { Zone, RendererCapabilities } from '../lib/types';
 
   // Coherent per-renderer output config for a DLNA/OpenHome zone: a discovery
@@ -65,7 +66,7 @@
     try {
       const r = await api.probeRendererCapabilities(zone.id);
       if (r.probed) caps = r;
-      else probeError = r.message ?? $t('renderer.probeFailed');
+      else probeError = $t(rendererProbeErrorKey(r.reason));
     } catch {
       probeError = $t('renderer.probeFailed');
     } finally {

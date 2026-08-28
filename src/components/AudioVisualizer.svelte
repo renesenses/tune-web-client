@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { audioLevels, type AudioLevels } from '../lib/stores/audioLevels';
+  import { WAVE_HISTORY_SLOTS, WaveformHistory } from '../lib/waveformHistory';
 
   interface Props {
     playing: boolean;
@@ -26,9 +27,8 @@
   let animId: number | null = null;
   let visible = $state(false);
 
-  // Simulated bar values (32 bars for spectrum, 64 points for waveform)
+  // Simulated bar values (32 bars for spectrum)
   let barCount = $derived(mini ? 16 : 32);
-  const WAVE_POINTS = 64;
   let barValues: number[] = Array(32).fill(0);
   let barTargets: number[] = Array(32).fill(0);
   // Maintien de crête : la valeur haute atteinte par chaque bande, figée un
@@ -47,8 +47,10 @@
   // linéaire écrase tout (−20 dBFS ne ferait que 10 % de hauteur) alors qu'un
   // vu-mètre se lit en dB.
   const FLOOR_DB = -60;
-  let waveValues: number[] = Array(WAVE_POINTS).fill(0);
-  let waveTargets: number[] = Array(WAVE_POINTS).fill(0);
+  // Mode « forme d'onde » : l'enveloppe de crête RÉELLEMENT mesurée par le
+  // serveur, empilée trame par trame. Voir ../lib/waveformHistory.ts pour le
+  // détail et pour ce que ce mode dessinait avant #2182 (des sinusoïdes).
+  const waveHistory = new WaveformHistory();
   let lastFrame = 0;
   let lastTargetUpdate = 0;
   const TARGET_INTERVAL = 120; // ms between new random targets (~8 Hz)
@@ -56,11 +58,30 @@
 
   let realLevels: AudioLevels | null = $state(null);
   let lastRealUpdate = 0;
+  // Dernière trame EMPILÉE, par identité d'objet. Le store est `derived` : il
+  // ré-émet le même objet quand la zone courante change ou qu'une autre zone
+  // publie. Sans ce garde-fou, une même fenêtre de 40 ms serait comptée
+  // plusieurs fois et le tracé avancerait plus vite que le son.
+  let lastPushed: AudioLevels | null = null;
+  let historyZone: number | null = null;
   const unsub = audioLevels.subscribe((l) => {
     if (l.rms_left_db > -90 || l.rms_right_db > -90) {
       realLevels = l;
       lastRealUpdate = performance.now();
     }
+    // `zone_id === 0` est le placeholder du store (aucune trame reçue pour la
+    // zone choisie) : il ne décrit aucun signal, on ne l'empile pas.
+    if (l.zone_id === 0) return;
+    if (historyZone !== l.zone_id) {
+      // Changement de zone : le passé appartenait à une autre pièce.
+      waveHistory.clear();
+      historyZone = l.zone_id;
+    }
+    if (l === lastPushed) return;
+    lastPushed = l;
+    // Les trames silencieuses comptent : un blanc entre deux mouvements est
+    // une information, il doit apparaître plat et non être sauté.
+    waveHistory.push(l.peak_left_db, l.peak_right_db);
   });
 
   // Cache accent color (avoid getComputedStyle per frame)
@@ -98,10 +119,12 @@
     return Math.min(1, (db - FLOOR_DB) / -FLOOR_DB);
   }
 
+  // NOTE : ne concerne QUE le mode « spectre ». Le mode « forme d'onde » ne
+  // passe plus par des cibles fabriquées — il lit `waveHistory`, alimenté par
+  // les crêtes du serveur.
   function generateTargets() {
     if (!playing) {
       for (let i = 0; i < barCount; i++) barTargets[i] = 0;
-      for (let i = 0; i < WAVE_POINTS; i++) waveTargets[i] = 0;
       return;
     }
     const profile = getEnergyProfile();
@@ -110,7 +133,7 @@
     // Préféré quand le serveur le fournit : niveau absolu par bande.
     const hasSpectrumDb = useReal && realLevels!.spectrum_db && realLevels!.spectrum_db.length > 0;
 
-    if (mode === 'spectrum') {
+    {
       if (hasSpectrumDb) {
         // Serveur ≥ 0.9.63 : chaque bande porte son niveau ABSOLU en dBFS. Plus
         // rien à reconstituer — on mappe directement sur l'échelle d'affichage.
@@ -171,28 +194,6 @@
           barTargets[i] = Math.min(1, Math.max(0.02, energy));
         }
       }
-    } else {
-      if (useReal) {
-        const left = dbToLinear(realLevels!.rms_left_db);
-        const right = dbToLinear(realLevels!.rms_right_db);
-        const phase = performance.now() * 0.001;
-        for (let i = 0; i < WAVE_POINTS; i++) {
-          const x = i / WAVE_POINTS;
-          const side = x < 0.5 ? left : right;
-          waveTargets[i] = side * Math.sin(x * Math.PI * 4 + phase) * 0.8
-            + (Math.random() - 0.5) * side * 0.15;
-        }
-      } else {
-        const phase = performance.now() * 0.001 * profile.speed;
-        for (let i = 0; i < WAVE_POINTS; i++) {
-          const x = i / WAVE_POINTS;
-          waveTargets[i] =
-            Math.sin(x * Math.PI * 4 + phase) * profile.bass * 0.4 +
-            Math.sin(x * Math.PI * 8 + phase * 1.7) * profile.mid * 0.25 +
-            Math.sin(x * Math.PI * 16 + phase * 2.3) * profile.treble * 0.15 +
-            (Math.random() - 0.5) * 0.08;
-        }
-      }
     }
   }
 
@@ -223,6 +224,9 @@
     // When not playing, clear real levels and decay to zero
     if (!playing) {
       realLevels = null;
+      // Le signal a cessé : on efface la forme d'onde au lieu de laisser un
+      // tracé figé qui décrirait un son qu'on n'entend plus.
+      waveHistory.clear();
       generateTargets();
     }
 
@@ -258,9 +262,10 @@
       const maxVal = Math.max(
         ...barValues.slice(0, barCount),
         ...peakValues.slice(0, barCount),
-        ...waveValues,
       );
-      if (maxVal < 0.005) {
+      // La forme d'onde ne « retombe » pas : elle est vidée à l'arrêt (le
+      // signal a cessé, il n'y a plus rien de mesuré à montrer).
+      if (maxVal < 0.005 && waveHistory.length === 0) {
         return;
       }
     }
@@ -270,7 +275,7 @@
     if (mode === 'spectrum') {
       drawSpectrum(ctx, w, h, dpr, accent, decayRate, timestamp);
     } else {
-      drawWaveform(ctx, w, h, dpr, accent, smoothing, decayRate);
+      drawWaveform(ctx, w, h, dpr, accent);
     }
 
     if (visible) {
@@ -338,74 +343,61 @@
     }
   }
 
+  /**
+   * Trace l'enveloppe de crête RÉELLEMENT mesurée (#2182).
+   *
+   * Abscisse = le temps, la trame la plus récente collée au bord droit ; le
+   * tracé entre par la droite et s'écoule vers la gauche, comme la tête de
+   * lecture d'un éditeur audio. Ordonnée = la crête mesurée, voie gauche
+   * au-dessus de l'axe, voie droite en dessous : le stéréo réel, et non un
+   * miroir décoratif.
+   *
+   * Aucune valeur n'est inventée. Tant que rien n'est arrivé, on ne dessine
+   * rien — pas de repli animé.
+   */
   function drawWaveform(
     ctx: CanvasRenderingContext2D,
     w: number, h: number, dpr: number,
     accent: string,
-    smoothing: number, decayRate: number
   ) {
-    const midY = h / 2;
-    const amplitude = h * 0.4;
+    const samples = waveHistory.samples();
+    if (samples.length === 0) return;
 
-    for (let i = 0; i < WAVE_POINTS; i++) {
-      if (playing) {
-        waveValues[i] += (waveTargets[i] - waveValues[i]) * smoothing;
-      } else {
-        waveValues[i] *= decayRate;
-      }
-    }
+    const midY = h / 2;
+    const amplitude = h * 0.45;
+    // Pas fixe : une colonne = une fenêtre de 40 ms, quelle que soit la
+    // quantité déjà reçue. Sinon le tracé se dilaterait en se remplissant,
+    // et l'échelle de temps mentirait.
+    const step = w / (WAVE_HISTORY_SLOTS - 1);
+    const xAt = (i: number) => w - (samples.length - 1 - i) * step;
 
     const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, adjustAlpha(accent, 0.3));
-    grad.addColorStop(0.5, adjustAlpha(accent, 0.6));
-    grad.addColorStop(1, adjustAlpha(accent, 0.3));
+    grad.addColorStop(0, adjustAlpha(accent, 0.75));
+    grad.addColorStop(0.5, adjustAlpha(accent, 0.35));
+    grad.addColorStop(1, adjustAlpha(accent, 0.75));
 
     ctx.fillStyle = grad;
     ctx.beginPath();
-
-    // Top wave
-    for (let i = 0; i < WAVE_POINTS; i++) {
-      const x = (i / (WAVE_POINTS - 1)) * w;
-      const y = midY - waveValues[i] * amplitude;
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        const prevX = ((i - 1) / (WAVE_POINTS - 1)) * w;
-        const cpX = (prevX + x) / 2;
-        ctx.quadraticCurveTo(cpX, midY - waveValues[i - 1] * amplitude, x, y);
-      }
+    // Bord supérieur : voie gauche, de la plus ancienne à la plus récente.
+    for (let i = 0; i < samples.length; i++) {
+      const x = xAt(i);
+      const y = midY - samples[i].left * amplitude;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
-
-    // Bottom wave (mirror, slightly smaller)
-    for (let i = WAVE_POINTS - 1; i >= 0; i--) {
-      const x = (i / (WAVE_POINTS - 1)) * w;
-      const y = midY + waveValues[i] * amplitude * 0.8;
-      if (i === WAVE_POINTS - 1) {
-        ctx.lineTo(x, y);
-      } else {
-        const nextX = ((i + 1) / (WAVE_POINTS - 1)) * w;
-        const cpX = (nextX + x) / 2;
-        ctx.quadraticCurveTo(cpX, midY + waveValues[i + 1] * amplitude * 0.8, x, y);
-      }
+    // Bord inférieur : voie droite, en revenant.
+    for (let i = samples.length - 1; i >= 0; i--) {
+      ctx.lineTo(xAt(i), midY + samples[i].right * amplitude);
     }
-
     ctx.closePath();
     ctx.fill();
 
-    // Center stroke line
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = mini ? 1 * (window.devicePixelRatio || 1) : 1.5 * (window.devicePixelRatio || 1);
+    // Ligne d'axe : repère du zéro, indispensable pour lire une enveloppe.
+    ctx.strokeStyle = adjustAlpha(accent, 0.9);
+    ctx.lineWidth = Math.max(1, (mini ? 1 : 1.5) * dpr);
     ctx.beginPath();
-    for (let i = 0; i < WAVE_POINTS; i++) {
-      const x = (i / (WAVE_POINTS - 1)) * w;
-      const y = midY - waveValues[i] * amplitude;
-      if (i === 0) ctx.moveTo(x, y);
-      else {
-        const prevX = ((i - 1) / (WAVE_POINTS - 1)) * w;
-        const cpX = (prevX + x) / 2;
-        ctx.quadraticCurveTo(cpX, midY - waveValues[i - 1] * amplitude, x, y);
-      }
-    }
+    ctx.moveTo(xAt(0), midY);
+    ctx.lineTo(xAt(samples.length - 1), midY);
     ctx.stroke();
   }
 
@@ -457,8 +449,7 @@
     if (!playing) {
       const timeout = setTimeout(() => {
         const maxBar = Math.max(...barValues);
-        const maxWave = Math.max(...waveValues.map(Math.abs));
-        if (maxBar < 0.01 && maxWave < 0.01) visible = false;
+        if (maxBar < 0.01 && waveHistory.length === 0) visible = false;
       }, 2500);
       return () => clearTimeout(timeout);
     }

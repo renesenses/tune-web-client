@@ -22,6 +22,19 @@
   // Restart banner
   let showRestartBanner = $state(false);
 
+  // Hauteur RÉELLE de l'en-tête figé, mesurée (#2148).
+  //
+  // Le rail des catégories se fige sous `.plugins-header`. Son décalage était
+  // une constante `top: 150px` réglée à l'œil (#1282) : à 1280×900 l'en-tête
+  // mesure 176 px, donc 26 px du rail — dont 9 des 15 px du titre
+  // « Catégories » — passaient DERRIÈRE lui. Jean Valjean (fil forum 1421,
+  // 14/08/2026) : « on ne voit plus le mot Catégories ».
+  //
+  // La hauteur d'un en-tête titre + sous-titre + onglets dépend de la police,
+  // du zoom et du repliement des onglets : aucune constante ne peut tenir. On
+  // la mesure, comme `.batch-toolbar` de la vue Métadonnées le fait déjà.
+  let headerHeight = $state(0);
+
   async function fetchPlugins() {
     loading = true;
     try {
@@ -282,7 +295,7 @@
     </div>
   {/if}
 
-  <header class="plugins-header">
+  <header class="plugins-header" bind:clientHeight={headerHeight}>
     <h1>{$t('plugins.title')}</h1>
     <p class="plugins-subtitle">Extend Tune with community plugins</p>
     <nav class="plugins-tabs">
@@ -317,8 +330,8 @@
   {#if activeTab === 'store'}
   <div class="store-layout">
     <!-- Categories sidebar -->
-    <aside class="categories-sidebar">
-      <h3 class="sidebar-title">Categories</h3>
+    <aside class="categories-sidebar" style:top="{headerHeight}px">
+      <h3 class="sidebar-title">{$t('plugins.categoriesTitle')}</h3>
       <button
         class="category-item"
         class:category-active={selectedCategory === ''}
@@ -744,10 +757,11 @@
   /* ── Categories Sidebar ── */
   .categories-sidebar {
     position: sticky;
-    /* Offset below the tall sticky `.plugins-header` (title + subtitle + tabs)
-       so the category rail doesn't slide up behind it — #1282 extension (Jean
-       Valjean: "à bloquer comme les années dans Albums"). Tuned live. */
-    top: 150px;
+    /* Le décalage sous `.plugins-header` est POSÉ EN LIGNE, à la hauteur
+       mesurée de cet en-tête (`bind:clientHeight` → `style:top`) — #2148.
+       Il n'y a volontairement aucune valeur ici : la constante `150px`
+       réglée à l'œil (#1282) était plus courte que l'en-tête réel (176 px à
+       1280×900) et faisait passer le titre « Catégories » derrière lui. */
     z-index: 10;
     background: var(--tune-surface);
     border: 1px solid var(--tune-border);
