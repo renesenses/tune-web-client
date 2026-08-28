@@ -24,7 +24,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { copyText, errText } from '../lib/utils';
   import { activeView, settingsInitialTab, type View } from '../lib/stores/navigation';
-  import { licenseState, isPremium, loadLicense } from '../lib/stores/license';
+  import { licenseState, isPremium, loadLicense, offlineGrace } from '../lib/stores/license';
   import SmbWizard from './SmbWizard.svelte';
   import { etatPartage } from '../lib/smbMountState';
   import FolderWizard from './FolderWizard.svelte';
@@ -691,6 +691,26 @@ function setSettingsLevel(level: SettingsLevel) {
   }
 
   // License / Premium
+  // --- Grâce hors ligne (#1999) -------------------------------------------
+  // Tune tolère une coupure réseau prolongée avant de suspendre le Premium.
+  // Jusqu'ici cette tolérance n'existait que dans le code : ni compte à
+  // rebours, ni explication le jour où les fonctions disparaissaient. Ces
+  // quelques lignes ne changent rien à la règle — elles la rendent lisible.
+
+  /** Date courte dans la langue de l'interface, jamais figée en fr-FR. */
+  function graceDate(iso: string | null): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString($locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  /** « 1 jour » / « 3 jours » — le pluriel se choisit dans la locale. */
+  function graceDays(n: number): string {
+    return $t(n === 1 ? 'settings.licenseGraceDayOne' : 'settings.licenseGraceDayOther')
+      .replace('{days}', String(n));
+  }
+
   let licenseKeyInput = $state('');
   let licenseActivating = $state(false);
   let licenseDeactivating = $state(false);
@@ -5877,6 +5897,47 @@ function setSettingsLevel(level: SettingsLevel) {
         </div>
       {/if}
 
+      {#if $offlineGrace}
+        <!-- Grâce hors ligne (#1999) : dire ce qui se passe, sans alarmer. -->
+        <div
+          class="license-grace-banner"
+          class:lapsed={$offlineGrace.phase === 'expired'}
+          role="status"
+        >
+          <svg class="license-grace-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 15 14" />
+          </svg>
+          <div class="license-grace-text">
+            {#if $offlineGrace.phase === 'grace'}
+              <strong>{$t('settings.licenseGraceTitle')}</strong>
+              <span>
+                {$t('settings.licenseGraceBody')
+                  .replace('{since}', graceDate($offlineGrace.since))
+                  .replace('{until}', graceDate($offlineGrace.until))
+                  .replace('{remaining}', graceDays($offlineGrace.days_remaining))}
+              </span>
+            {:else if $offlineGrace.since}
+              <strong>{$t('settings.licenseGraceLapsedTitle')}</strong>
+              <span>
+                {$t('settings.licenseGraceLapsedBody')
+                  .replace('{since}', graceDate($offlineGrace.since))
+                  .replace('{days}', String($offlineGrace.total_days))}
+              </span>
+            {:else}
+              <strong>{$t('settings.licenseGraceNeverTitle')}</strong>
+              <span>{$t('settings.licenseGraceNeverBody')}</span>
+            {/if}
+          </div>
+        </div>
+      {/if}
+
+      {#if $licenseState.offlineGrace}
+        <!-- La règle, écrite noir sur blanc, avec le chiffre du serveur. -->
+        <p class="license-grace-rule">
+          {$t('settings.licenseOfflineRule').replace('{days}', String($licenseState.offlineGrace.total_days))}
+        </p>
+      {/if}
+
       {#if $licenseState.licenseKey}
         <!-- Active license display -->
         <div class="license-active-row">
@@ -8152,6 +8213,54 @@ function setSettingsLevel(level: SettingsLevel) {
     font-size: 13px;
     line-height: 1.4;
     color: var(--tune-text);
+  }
+
+  /* Grâce hors ligne (#1999). Bleu informatif tant que le Premium tient : la
+     tolérance EXISTE pour couvrir une coupure, l'annoncer en rouge serait un
+     contresens. Le ton ne passe à l'avertissement qu'une fois la fenêtre
+     écoulée, quand quelque chose a réellement changé pour l'utilisateur. */
+  .license-grace-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-md);
+    border: 1px solid var(--tune-accent, #3b82f6);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--tune-accent, #3b82f6) 10%, transparent);
+  }
+
+  .license-grace-banner.lapsed {
+    border-color: var(--tune-warning, #f59e0b);
+    background: color-mix(in srgb, var(--tune-warning, #f59e0b) 12%, transparent);
+  }
+
+  .license-grace-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--tune-accent, #3b82f6);
+  }
+
+  .license-grace-banner.lapsed .license-grace-icon {
+    color: var(--tune-warning, #f59e0b);
+  }
+
+  .license-grace-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--tune-text);
+  }
+
+  .license-grace-rule {
+    margin: 0 0 var(--space-md);
+    font-family: var(--font-body);
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--tune-text-muted, #888888);
   }
 
   .license-conflict-text strong {
