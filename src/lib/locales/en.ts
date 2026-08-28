@@ -241,6 +241,8 @@ export default {
   'diagnostics.upToDate': 'up to date',
   'diagnostics.behind': 'BEHIND',
   'zone.devicesCleared': '{count} devices removed',
+  'player.showWaveform': 'Show waveform',
+  'player.showSpectrum': 'Show spectrum',
   'player.showRemainingTime': 'Show remaining time',
   'player.showTotalTime': 'Show total duration',
   'queue.upNextSummary': '{count} up next · {time}',

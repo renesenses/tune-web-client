@@ -2971,6 +2971,8 @@ export default {
   "profiles.whoIsListening": "Cine ascultă?",
   "queue.autoplayFailed": "Nu s-a putut modifica AutoPlay",
   "queue.resizePanel": "Trage pentru redimensionare · dublu clic pentru resetare",
+  'player.showWaveform': 'Afișează forma de undă',
+  'player.showSpectrum': 'Afișează spectrul',
   'player.showRemainingTime': 'Afișează timpul rămas',
   'player.showTotalTime': 'Afișează durata totală',
   "queue.upNextSummary": "{count} în continuare · {time}",

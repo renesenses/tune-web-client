@@ -2968,6 +2968,8 @@ export default {
   "profiles.whoIsListening": "¿Quién escucha?",
   "queue.autoplayFailed": "No se ha podido modificar AutoPlay",
   "queue.resizePanel": "Arrastra para redimensionar · doble clic para restablecer",
+  'player.showWaveform': 'Mostrar forma de onda',
+  'player.showSpectrum': 'Mostrar espectro',
   'player.showRemainingTime': 'Mostrar tiempo restante',
   'player.showTotalTime': 'Mostrar duración total',
   "queue.upNextSummary": "{count} a continuación · {time}",

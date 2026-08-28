@@ -2968,6 +2968,8 @@ export default {
   "profiles.whoIsListening": "Vem lyssnar?",
   "queue.autoplayFailed": "Det gick inte att ändra AutoPlay",
   "queue.resizePanel": "Dra för att ändra storlek · dubbelklicka för att återställa",
+  'player.showWaveform': 'Visa vågform',
+  'player.showSpectrum': 'Visa spektrum',
   'player.showRemainingTime': 'Visa återstående tid',
   'player.showTotalTime': 'Visa total längd',
   "queue.upNextSummary": "{count} härnäst · {time}",
