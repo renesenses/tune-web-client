@@ -226,6 +226,8 @@ export default {
   "diagnostics.upToDate": "naprakész",
   "diagnostics.behind": "ELMARADT",
   "zone.devicesCleared": "{count} eszköz eltávolítva",
+  'player.showWaveform': 'Hullámforma megjelenítése',
+  'player.showSpectrum': 'Spektrum megjelenítése',
   'player.showRemainingTime': 'Hátralévő idő megjelenítése',
   'player.showTotalTime': 'Teljes hossz megjelenítése',
   "queue.upNextSummary": "{count} következik · {time}",

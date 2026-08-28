@@ -241,6 +241,8 @@ export default {
   'diagnostics.upToDate': 'à jour',
   'diagnostics.behind': 'EN RETARD',
   'zone.devicesCleared': '{count} appareils supprimés',
+  'player.showWaveform': 'Afficher la forme d\'onde',
+  'player.showSpectrum': 'Afficher le spectre',
   'player.showRemainingTime': 'Afficher le temps restant',
   'player.showTotalTime': 'Afficher la durée totale',
   'queue.upNextSummary': '{count} à suivre · {time}',

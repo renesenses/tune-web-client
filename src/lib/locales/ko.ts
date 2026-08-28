@@ -2956,6 +2956,8 @@ export default {
   "profiles.whoIsListening": "누가 듣나요?",
   "queue.autoplayFailed": "AutoPlay를 변경할 수 없습니다",
   "queue.resizePanel": "드래그하여 크기 조절 · 더블클릭하여 원래대로",
+  'player.showWaveform': '파형 표시',
+  'player.showSpectrum': '스펙트럼 표시',
   'player.showRemainingTime': '남은 시간 표시',
   'player.showTotalTime': '전체 길이 표시',
   "queue.upNextSummary": "다음 {count}곡 · {time}",

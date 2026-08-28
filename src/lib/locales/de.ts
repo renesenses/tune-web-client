@@ -2964,6 +2964,8 @@ export default {
   "profiles.whoIsListening": "Wer hört zu?",
   "queue.autoplayFailed": "AutoPlay konnte nicht geändert werden",
   "queue.resizePanel": "Ziehen zum Ändern der Größe · Doppelklick zum Zurücksetzen",
+  'player.showWaveform': 'Wellenform anzeigen',
+  'player.showSpectrum': 'Spektrum anzeigen',
   'player.showRemainingTime': 'Verbleibende Zeit anzeigen',
   'player.showTotalTime': 'Gesamtdauer anzeigen',
   "queue.upNextSummary": "{count} als Nächstes · {time}",
