@@ -146,6 +146,7 @@ export default {
   'oxygen.folder.home': 'Bibliothek',
   'oxygen.folder.empty': 'Keine Unterordner hier.',
   'oxygen.facetsTitle': 'Facetten',
+  'oxygen.facetClear': 'Alle abwählen',
   'oxygen.collapseAll': 'Alle einklappen',
   'oxygen.expandAll': 'Alle ausklappen',
   'oxygen.facetsServer': 'Vollständige Zählung (Server-Index).',

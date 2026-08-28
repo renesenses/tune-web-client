@@ -322,6 +322,7 @@ export default {
   "oxygen.folder.home": "Gyűjtemény",
   "oxygen.folder.empty": "Itt nincs almappa.",
   "oxygen.facetsTitle": "Szempontok",
+  "oxygen.facetClear": "Összes törlése",
   "oxygen.collapseAll": "Összes összecsukása",
   "oxygen.expandAll": "Összes kibontása",
   "oxygen.facetsServer": "Teljes darabszámok (szerverindex).",

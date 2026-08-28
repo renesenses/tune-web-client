@@ -146,6 +146,7 @@ export default {
   'oxygen.folder.home': 'Bibliotecă',
   'oxygen.folder.empty': 'Niciun subdosar aici.',
   'oxygen.facetsTitle': 'Fațete',
+  'oxygen.facetClear': 'Deselectează tot',
   'oxygen.collapseAll': 'Restrânge tot',
   'oxygen.expandAll': 'Extinde tot',
   'oxygen.facetsServer': 'Numărătoare completă (index server).',

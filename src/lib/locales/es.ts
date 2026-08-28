@@ -146,6 +146,7 @@ export default {
   'oxygen.folder.home': 'Biblioteca',
   'oxygen.folder.empty': 'No hay subcarpetas aquí.',
   'oxygen.facetsTitle': 'Facetas',
+  'oxygen.facetClear': 'Desmarcar todo',
   'oxygen.collapseAll': 'Contraer todo',
   'oxygen.expandAll': 'Expandir todo',
   'oxygen.facetsServer': 'Recuento completo (índice del servidor).',
