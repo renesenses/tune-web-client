@@ -27,6 +27,9 @@ export default {
   "support.errorPremiumOnly": "El soporte prioritario está reservado a Tune Premium.",
   "support.errorSessionExpired": "Sesión caducada, vuelve a iniciar sesión.",
   "support.errorGeneric": "Se ha producido un error. Inténtalo de nuevo en un momento.",
+  "support.errorRateLimited": "Se ha alcanzado el límite de envíos al soporte: demasiados mensajes en poco tiempo. Tu mensaje no se ha enviado; inténtalo más tarde.",
+  "support.errorRateLimitedRetry": "Se ha alcanzado el límite de envíos al soporte: demasiados mensajes en poco tiempo. Tu mensaje no se ha enviado; inténtalo de nuevo {delay}.",
+  "support.errorUnavailable": "El servicio de soporte no está disponible temporalmente. Tu mensaje no se ha enviado; inténtalo más tarde.",
   // Support Premium v2 (diagnostic, fil de tickets, fiche système)
   "support.tab.diagnostic": "Diagnóstico",
   "support.tab.tickets": "Tickets",

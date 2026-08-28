@@ -106,12 +106,14 @@ export function authHeaders(extra: Record<string, string> = {}): Record<string, 
  */
 export async function erreurDepuisReponse(resp: Response): Promise<Error> {
   let detail = '';
+  let corps: unknown = null;
   try {
     const texte = await resp.text();
     const t = texte.trim();
     if (t) {
       try {
         const j = JSON.parse(t);
+        corps = j;
         if (typeof j === 'string') detail = j;
         else detail = j?.error ?? j?.message ?? j?.detail ?? '';
       } catch {
@@ -126,7 +128,37 @@ export async function erreurDepuisReponse(resp: Response): Promise<Error> {
   detail = String(detail ?? '').trim();
   // Un stderr de mount.cifs peut etre long ; l'interface doit rester lisible.
   if (detail.length > 300) detail = detail.slice(0, 300) + '…';
-  return detail ? new Error(`${resp.status} — ${detail}`) : new Error(`${resp.status}`);
+  const err = (detail
+    ? new Error(`${resp.status} — ${detail}`)
+    : new Error(`${resp.status}`)) as ApiError;
+  // Le statut et le delai de reprise voyagent aussi en PROPRIETES : les lire
+  // dans le texte du message est fragile (un detail contenant « 403 » suffisait
+  // a detourner la traduction) et le `retry_after` d'un 429 s'y perdait
+  // entierement (#2178).
+  err.status = resp.status;
+  err.retryAfter = retryAfterDe(resp, corps);
+  return err;
+}
+
+/**
+ * Delai avant nouvelle tentative annonce sur un 429, en secondes.
+ *
+ * Deux sources, dans cet ordre : le champ `retry_after` du corps JSON — pose
+ * par le serveur Tune, qui l'a lu chez mozaiklabs — puis l'en-tete standard
+ * `Retry-After`. Le corps passe en premier parce qu'un en-tete de reponse n'est
+ * lisible en JavaScript que s'il est expose par CORS, ce qui n'est pas garanti
+ * derriere le relais.
+ *
+ * Rend `undefined` si rien n'est exploitable : l'interface dira « reessaie plus
+ * tard » plutot qu'un delai invente.
+ */
+function retryAfterDe(resp: Response, corps: unknown): number | undefined {
+  const duCorps = (corps as { retry_after?: unknown } | null)?.retry_after;
+  const secs =
+    typeof duCorps === 'number'
+      ? duCorps
+      : Number.parseInt(String(duCorps ?? resp.headers.get('Retry-After') ?? ''), 10);
+  return Number.isFinite(secs) && secs > 0 ? secs : undefined;
 }
 
 // Generic helpers for radio favorites and custom endpoints
@@ -204,6 +236,8 @@ export async function apiDelete(path: string): Promise<any> {
 export interface ApiError extends Error {
   code?: string;
   status?: number;
+  /** Secondes avant nouvelle tentative, sur un 429 qui l'annonce (#2178). */
+  retryAfter?: number;
 }
 
 async function apiError(response: Response): Promise<ApiError> {
@@ -4405,6 +4439,12 @@ async function mozaikFetch(path: string, options?: RequestInit): Promise<any> {
   if (!resp.ok) {
     const err = new Error(`${resp.status}`) as ApiError;
     err.status = resp.status;
+    // Appel DIRECT à mozaiklabs : `Retry-After` n'est lisible que si le site
+    // l'expose par CORS, d'où le repli sur le corps. Absent ⇒ `undefined`, et
+    // l'écran dit « réessaie plus tard » sans inventer de délai (#2178).
+    let corps: unknown = null;
+    try { corps = JSON.parse(await resp.clone().text()); } catch { /* corps non JSON */ }
+    err.retryAfter = retryAfterDe(resp, corps);
     throw err;
   }
   const text = await resp.text();
@@ -4478,12 +4518,17 @@ export async function createSupportTicketMultipart(form: FormData): Promise<any>
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
   if (!resp.ok) {
     let message = `${resp.status}`;
+    let corps: unknown = null;
     try {
-      const data = await resp.json();
+      corps = await resp.json();
+      const data = corps as { message?: string } | null;
       if (data?.message) message = data.message;
     } catch { /* pas de corps JSON exploitable */ }
     const err = new Error(message) as ApiError;
     err.status = resp.status;
+    // Limite d'envoi atteinte : le délai remonté par le serveur doit survivre
+    // jusqu'au message affiché, sinon l'écran ne sait pas quand réessayer (#2178).
+    err.retryAfter = retryAfterDe(resp, corps);
     throw err;
   }
   const text = await resp.text();

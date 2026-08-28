@@ -27,6 +27,9 @@ export default {
   "support.errorPremiumOnly": "Prioriterad support är reserverad för Tune Premium.",
   "support.errorSessionExpired": "Sessionen har gått ut, logga in igen.",
   "support.errorGeneric": "Ett fel uppstod. Försök igen om en stund.",
+  "support.errorRateLimited": "Supportens sändningsgräns är nådd: för många meddelanden på kort tid. Ditt meddelande skickades inte — försök igen senare.",
+  "support.errorRateLimitedRetry": "Supportens sändningsgräns är nådd: för många meddelanden på kort tid. Ditt meddelande skickades inte — försök igen {delay}.",
+  "support.errorUnavailable": "Supporttjänsten går tillfälligt inte att nå. Ditt meddelande skickades inte — försök igen senare.",
   // Support Premium v2 (diagnostic, fil de tickets, fiche système)
   "support.tab.diagnostic": "Diagnostik",
   "support.tab.tickets": "Ärenden",

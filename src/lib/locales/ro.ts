@@ -27,6 +27,9 @@ export default {
   "support.errorPremiumOnly": "Suportul prioritar este rezervat Tune Premium.",
   "support.errorSessionExpired": "Sesiune expirată, reconectează-te.",
   "support.errorGeneric": "A apărut o eroare. Încearcă din nou peste o clipă.",
+  "support.errorRateLimited": "Limita de trimitere către suport a fost atinsă: prea multe mesaje într-un timp scurt. Mesajul tău nu a fost trimis — încearcă din nou mai târziu.",
+  "support.errorRateLimitedRetry": "Limita de trimitere către suport a fost atinsă: prea multe mesaje într-un timp scurt. Mesajul tău nu a fost trimis — încearcă din nou {delay}.",
+  "support.errorUnavailable": "Serviciul de suport este momentan inaccesibil. Mesajul tău nu a fost trimis — încearcă din nou mai târziu.",
   // Support Premium v2 (diagnostic, fil de tickets, fiche système)
   "support.tab.diagnostic": "Diagnostic",
   "support.tab.tickets": "Tichete",

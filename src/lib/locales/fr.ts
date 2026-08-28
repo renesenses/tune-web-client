@@ -71,6 +71,9 @@ export default {
   'support.errorPremiumOnly': 'Le support prioritaire est réservé à Tune Premium.',
   'support.errorSessionExpired': 'Session expirée, reconnecte-toi.',
   'support.errorGeneric': 'Une erreur est survenue. Réessaie dans un instant.',
+  'support.errorRateLimited': "Limite d'envoi du support atteinte : trop de messages en peu de temps. Ton message n'a pas été envoyé — réessaie plus tard.",
+  'support.errorRateLimitedRetry': "Limite d'envoi du support atteinte : trop de messages en peu de temps. Ton message n'a pas été envoyé — réessaie {delay}.",
+  'support.errorUnavailable': 'Le service de support est momentanément injoignable. Ton message n\'a pas été envoyé — réessaie plus tard.',
   // Support Premium v2 (diagnostic, fil de tickets, fiche système)
   "support.tab.diagnostic": "Diagnostic",
   "support.tab.tickets": "Tickets",

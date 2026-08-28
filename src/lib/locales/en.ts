@@ -71,6 +71,9 @@ export default {
   'support.errorPremiumOnly': 'Priority support is reserved for Tune Premium.',
   'support.errorSessionExpired': 'Session expired, please sign in again.',
   'support.errorGeneric': 'Something went wrong. Try again in a moment.',
+  'support.errorRateLimited': 'Support sending limit reached: too many messages in a short time. Your message was not sent — try again later.',
+  'support.errorRateLimitedRetry': 'Support sending limit reached: too many messages in a short time. Your message was not sent — try again {delay}.',
+  'support.errorUnavailable': 'The support service is temporarily unreachable. Your message was not sent — try again later.',
   // Support Premium v2 (diagnostic, fil de tickets, fiche système)
   "support.tab.diagnostic": "Diagnostic",
   "support.tab.tickets": "Tickets",
