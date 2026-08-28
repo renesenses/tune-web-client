@@ -972,7 +972,7 @@ export default {
   'bandcamp.zoneRefused': "den här zonen tog inte emot Bandcamps MP3 på 128 kbit/s. Prova en annan zon.",
   'bandcamp.collectionEmpty': "Den här Bandcamp-samlingen är tom — inget att jämföra. Utforska katalogen.",
   'bandcamp.dormantTitle': "Bandcamp-tillägget är inte aktivt",
-  'bandcamp.dormantInstall': "Öppna Inställningar › Tillägg och installera ”bandcamp”, starta sedan om servern.",
+  'bandcamp.dormantInstall': "Öppna ”{rubrique}” i sidofältet och installera ”bandcamp”, starta sedan om servern.",
   'bandcamp.dormantRestart': "Tillägget är installerat men inte laddat än: starta om servern för att aktivera det.",
   'bandcamp.dormantWhy': "Tillägg laddas endast när servern startar. Tills den startas om har den här vyn inga data att visa.",
   'eq.profilerApplied': 'Akustikprofil tillämpad',

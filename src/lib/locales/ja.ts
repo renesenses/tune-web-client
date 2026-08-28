@@ -1015,7 +1015,7 @@ export default {
   'bandcamp.zoneRefused': "このゾーンは Bandcamp の 128 kbit/s MP3 を受け付けませんでした。別のゾーンをお試しください。",
   'bandcamp.collectionEmpty': "この Bandcamp コレクションは空です。比較するものがありません。カタログをさがしてみてください。",
   'bandcamp.dormantTitle': "Bandcamp プラグインが有効ではありません",
-  'bandcamp.dormantInstall': "設定 › プラグイン を開き「bandcamp」をインストールしてから、サーバーを再起動してください。",
+  'bandcamp.dormantInstall': "サイドバーの「{rubrique}」を開き「bandcamp」をインストールしてから、サーバーを再起動してください。",
   'bandcamp.dormantRestart': "プラグインはインストール済みですが、まだ読み込まれていません。サーバーを再起動して有効にしてください。",
   'bandcamp.dormantWhy': "プラグインはサーバー起動時にのみ読み込まれます。再起動するまで、この画面に表示できるデータはありません。",
   'eq.profilerApplied': '音響プロファイルを適用しました',

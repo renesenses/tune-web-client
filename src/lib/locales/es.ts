@@ -1014,7 +1014,7 @@ export default {
   'bandcamp.zoneRefused': "esta zona no aceptó el MP3 de 128 kbit/s de Bandcamp. Pruebe con otra zona.",
   'bandcamp.collectionEmpty': "Esta colección de Bandcamp está vacía: nada que comparar. Explore el catálogo.",
   'bandcamp.dormantTitle': "El complemento Bandcamp no está activo",
-  'bandcamp.dormantInstall': "Abra Ajustes › Complementos e instale «bandcamp», luego reinicie el servidor.",
+  'bandcamp.dormantInstall': "Abra «{rubrique}» en la barra lateral e instale «bandcamp», luego reinicie el servidor.",
   'bandcamp.dormantRestart': "El complemento está instalado pero aún no cargado: reinicie el servidor para activarlo.",
   'bandcamp.dormantWhy': "Los complementos solo se cargan al iniciar el servidor. Hasta que se reinicie, esta pantalla no tiene datos que mostrar.",
   'eq.profilerApplied': 'Perfil acústico aplicado',

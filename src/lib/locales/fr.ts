@@ -1257,7 +1257,7 @@ export default {
   'bandcamp.zoneRefused': "cette zone n'a pas accepté le MP3 128 kbit/s de Bandcamp. Essayez une autre zone.",
   'bandcamp.collectionEmpty': "Cette collection Bandcamp est vide — rien à comparer. Explorez le catalogue pour trouver quoi acheter.",
   'bandcamp.dormantTitle': "Le plugin Bandcamp n'est pas actif",
-  'bandcamp.dormantInstall': "Ouvrez Réglages › Plugins et installez « bandcamp », puis redémarrez le serveur.",
+  'bandcamp.dormantInstall': "Ouvrez « {rubrique} » dans le menu latéral et installez « bandcamp », puis redémarrez le serveur.",
   'bandcamp.dormantRestart': "Le plugin est installé mais pas encore chargé : redémarrez le serveur pour l'activer.",
   'bandcamp.dormantWhy': "Les plugins ne sont chargés qu'au démarrage du serveur. Tant qu'il n'a pas redémarré, cet écran n'a aucune donnée à afficher.",
   'eq.profilerApplied': 'Profil acoustique appliqué',
