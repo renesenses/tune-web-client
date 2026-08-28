@@ -1608,6 +1608,7 @@ export default {
   "tip.send": "Trimite mesajul",
   "tip.favorite": "Adaugă piesa la favorite",
   "tip.clearSearch": "Șterge căutarea",
+  "queue.autoplayLabel": "Piese similare",
   "queue.autoplayTip": "Când coada se termină, continuă cu piese ale unor artiști asemănători. Se aplică doar acestei zone.",
   "settings.tooltips": "Baloane de ajutor",
   "settings.tooltipsOn": "Afișate la trecerea cursorului",

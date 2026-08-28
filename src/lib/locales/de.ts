@@ -1598,6 +1598,7 @@ export default {
   "tip.send": "Nachricht senden",
   "tip.favorite": "Diesen Titel zu den Favoriten hinzufügen",
   "tip.clearSearch": "Suche leeren",
+  "queue.autoplayLabel": "Ähnliche Titel",
   "queue.autoplayTip": "Wenn die Warteschlange endet, geht es mit Titeln ähnlicher Künstler weiter. Gilt nur für diese Zone.",
   "settings.tooltips": "Hilfe-Sprechblasen",
   "settings.tooltipsOn": "Beim Überfahren anzeigen",

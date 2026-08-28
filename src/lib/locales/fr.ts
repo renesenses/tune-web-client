@@ -1852,6 +1852,7 @@ export default {
   "tip.send": "Envoyer le message",
   "tip.favorite": "Ajouter ce titre à vos favoris",
   "tip.clearSearch": "Effacer la recherche",
+  "queue.autoplayLabel": "Titres similaires",
   "queue.autoplayTip": "Quand la file d'attente se termine, poursuit la lecture avec des titres d'artistes proches. Réglage propre à cette zone.",
   "settings.tooltips": "Bulles d'aide",
   "settings.tooltipsOn": "Affichées au survol",

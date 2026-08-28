@@ -1598,6 +1598,7 @@ export default {
   "tip.send": "メッセージを送信",
   "tip.favorite": "この曲をお気に入りに追加",
   "tip.clearSearch": "検索を消去",
+  "queue.autoplayLabel": "似ている曲",
   "queue.autoplayTip": "再生待ちがなくなると、似た系統のアーティストの曲で再生を続けます。このゾーンだけに適用されます。",
   "settings.tooltips": "ヒントの吹き出し",
   "settings.tooltipsOn": "カーソルを重ねると表示",

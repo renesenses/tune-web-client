@@ -1598,6 +1598,7 @@ export default {
   "tip.send": "发送消息",
   "tip.favorite": "将此曲目加入收藏",
   "tip.clearSearch": "清除搜索",
+  "queue.autoplayLabel": "相似曲目",
   "queue.autoplayTip": "播放队列结束后，继续播放风格相近的艺人的曲目。仅对当前区域生效。",
   "settings.tooltips": "帮助气泡",
   "settings.tooltipsOn": "悬停时显示",

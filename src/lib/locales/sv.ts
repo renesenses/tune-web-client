@@ -1551,6 +1551,7 @@ export default {
   "tip.send": "Skicka meddelandet",
   "tip.favorite": "Lägg till spåret bland favoriter",
   "tip.clearSearch": "Rensa sökningen",
+  "queue.autoplayLabel": "Liknande låtar",
   "queue.autoplayTip": "När kön tar slut fortsätter uppspelningen med spår av liknande artister. Gäller bara den här zonen.",
   "settings.tooltips": "Hjälpbubblor",
   "settings.tooltipsOn": "Visas vid muspekaren",

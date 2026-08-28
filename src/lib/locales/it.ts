@@ -1598,6 +1598,7 @@ export default {
   "tip.send": "Invia il messaggio",
   "tip.favorite": "Aggiungi questo brano ai preferiti",
   "tip.clearSearch": "Cancella la ricerca",
+  "queue.autoplayLabel": "Brani simili",
   "queue.autoplayTip": "Quando la coda finisce, prosegue con brani di artisti simili. Vale solo per questa zona.",
   "settings.tooltips": "Fumetti di aiuto",
   "settings.tooltipsOn": "Mostrati al passaggio",

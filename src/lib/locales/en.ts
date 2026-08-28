@@ -1849,6 +1849,7 @@ export default {
   "tip.send": "Send the message",
   "tip.favorite": "Add this track to your favourites",
   "tip.clearSearch": "Clear the search",
+  "queue.autoplayLabel": "Similar tracks",
   "queue.autoplayTip": "When the queue runs out, keep playing with tracks by similar artists. Applies to this zone only.",
   "settings.tooltips": "Help bubbles",
   "settings.tooltipsOn": "Shown on hover",
