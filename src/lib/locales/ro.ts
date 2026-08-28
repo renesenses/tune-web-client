@@ -1330,8 +1330,6 @@ export default {
   "metadata.mergeGroupItem": "{title} ({count} piese)",
   "metadata.mergeGroupResult": "Îmbinat: {moved} piese mutate, {total} piese în total",
   "metadata.mergeIntoOne": "Îmbină într-un singur album",
-  "metadata.moveToDuplicates": "Mută în /data/duplicates",
-  "metadata.moveToDuplicatesConfirm": "Muți „{title}” ({artist}) în /data/duplicates?\n\nFișierele vor fi mutate și albumul eliminat din bibliotecă.",
   "metadata.mp3AllOk": "MP3 OK: {okFiles} fișiere sănătoase, nicio problemă detectată.",
   "metadata.mp3DiagnoseFailed": "Diagnostic MP3 eșuat",
   "metadata.mp3DiagnoseRunning": "Diagnostic MP3 în curs (mutagen + ffprobe)…",

@@ -1320,8 +1320,6 @@ export default {
   "metadata.mergeGroupItem": "{title}（{count} 首曲目）",
   "metadata.mergeGroupResult": "已合并：移动了 {moved} 首曲目，共 {total} 首曲目",
   "metadata.mergeIntoOne": "合并为单张专辑",
-  "metadata.moveToDuplicates": "移动到 /data/duplicates",
-  "metadata.moveToDuplicatesConfirm": "将“{title}”（{artist}）移动到 /data/duplicates？\n\n文件将被移动，专辑将从音乐库中移除。",
   "metadata.mp3AllOk": "MP3 正常：{okFiles} 个健康文件，未检测到问题。",
   "metadata.mp3DiagnoseFailed": "MP3 诊断失败",
   "metadata.mp3DiagnoseRunning": "MP3 诊断进行中（mutagen + ffprobe）…",

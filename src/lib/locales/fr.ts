@@ -1574,8 +1574,6 @@ export default {
   "metadata.mergeGroupItem": "{title} ({count} pistes)",
   "metadata.mergeGroupResult": "Fusionné : {moved} pistes déplacées, total {total} pistes",
   "metadata.mergeIntoOne": "Fusionner en un seul album",
-  "metadata.moveToDuplicates": "Déplacer dans /data/duplicates",
-  "metadata.moveToDuplicatesConfirm": "Déplacer \"{title}\" ({artist}) dans /data/duplicates ?\n\nLes fichiers seront déplacés et l'album supprimé de la bibliothèque.",
   "metadata.mp3AllOk": "MP3 OK : {okFiles} fichiers sains, aucun problème détecté.",
   "metadata.mp3DiagnoseFailed": "Échec diagnostic MP3",
   "metadata.mp3DiagnoseRunning": "Diagnostic MP3 en cours (mutagen + ffprobe)…",

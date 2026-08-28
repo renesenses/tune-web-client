@@ -186,21 +186,6 @@ export function resolveDuplicate(keepTrackId: number, deleteTrackId: number) {
   });
 }
 
-/** ⚠️ Sans équivalent serveur, à ce jour.
- *
- *  `/metadata/duplicates/move-album` n'existe nulle part, et aucune route
- *  voisine ne fait ce qu'elle promet : `/library/albums/merge-duplicates`
- *  FUSIONNE des albums, ce qui n'est pas « déplacer vers les doublons ».
- *
- *  Plutôt que de laisser un bouton partir en 404 silencieux, on échoue avec un
- *  message que l'appelant peut montrer. Écrire la route ou retirer le bouton
- *  est une décision produit, pas une correction (#1893). */
-export function moveAlbumToDuplicates(_albumId: number): Promise<never> {
-  return Promise.reject(
-    new Error("Déplacer un album vers les doublons n'est pas encore disponible côté serveur."),
-  );
-}
-
 /** Ne renvoie qu'un **compteur**, pas la liste : `{ pending: n }` (routes/
  *  metadata.rs list_suggestions). Les paramètres status/limit sont ignorés côté
  *  serveur. Il n'existe pas d'endpoint listant toutes les suggestions — seul

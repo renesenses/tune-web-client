@@ -1295,8 +1295,6 @@ export default {
   "metadata.mergeGroupItem": "{title} ({count}개 트랙)",
   "metadata.mergeGroupResult": "병합됨: {moved}개 트랙 이동됨, 총 {total}개 트랙",
   "metadata.mergeIntoOne": "하나의 앨범으로 병합",
-  "metadata.moveToDuplicates": "/data/duplicates로 이동",
-  "metadata.moveToDuplicatesConfirm": "\"{title}\" ({artist})을(를) /data/duplicates로 이동할까요?\n\n파일이 이동되고 앨범이 라이브러리에서 제거됩니다.",
   "metadata.mp3AllOk": "MP3 정상: 정상 파일 {okFiles}개, 문제 없음.",
   "metadata.mp3DiagnoseFailed": "MP3 진단 실패",
   "metadata.mp3DiagnoseRunning": "MP3 진단 진행 중 (mutagen + ffprobe)…",

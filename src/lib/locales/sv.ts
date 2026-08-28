@@ -1279,8 +1279,6 @@ export default {
   "metadata.mergeGroupItem": "{title} ({count} spår)",
   "metadata.mergeGroupResult": "Ihopslaget: {moved} spår flyttade, {total} spår totalt",
   "metadata.mergeIntoOne": "Slå ihop till ett enda album",
-  "metadata.moveToDuplicates": "Flytta till /data/duplicates",
-  "metadata.moveToDuplicatesConfirm": "Flytta \"{title}\" ({artist}) till /data/duplicates?\n\nFilerna flyttas och albumet tas bort från biblioteket.",
   "metadata.mp3AllOk": "MP3 OK: {okFiles} felfria filer, inga problem upptäckta.",
   "metadata.mp3DiagnoseFailed": "MP3-diagnostik misslyckades",
   "metadata.mp3DiagnoseRunning": "MP3-diagnostik pågår (mutagen + ffprobe)…",

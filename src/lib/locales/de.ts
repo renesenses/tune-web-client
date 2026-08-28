@@ -1320,8 +1320,6 @@ export default {
   "metadata.mergeGroupItem": "{title} ({count} Titel)",
   "metadata.mergeGroupResult": "Zusammengeführt: {moved} Titel verschoben, {total} Titel gesamt",
   "metadata.mergeIntoOne": "Zu einem einzigen Album zusammenführen",
-  "metadata.moveToDuplicates": "Nach /data/duplicates verschieben",
-  "metadata.moveToDuplicatesConfirm": "„{title}“ ({artist}) nach /data/duplicates verschieben?\n\nDie Dateien werden verschoben und das Album aus der Bibliothek entfernt.",
   "metadata.mp3AllOk": "MP3 OK: {okFiles} intakte Dateien, keine Probleme erkannt.",
   "metadata.mp3DiagnoseFailed": "MP3-Diagnose fehlgeschlagen",
   "metadata.mp3DiagnoseRunning": "MP3-Diagnose läuft (mutagen + ffprobe)…",
