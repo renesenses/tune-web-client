@@ -1265,47 +1265,62 @@ export async function getTracks(limit = 100, offset = 0) {
   return Array.isArray(raw) ? raw : (raw.items ?? []) as Track[];
 }
 
+/** Une valeur de facette : une seule, ou plusieurs combinées en OU (#2168). */
+export type FacetParam = string | number | (string | number)[];
+
+/** Ajoute un paramètre de facette à une requête.
+ *
+ *  ⚠️ Plusieurs valeurs = la clé RÉPÉTÉE (`format=aiff&format=flac`), jamais une
+ *  liste séparée par des virgules : un genre « Jazz, Blues », un label ou un
+ *  chemin de dossier contenant une virgule seraient coupés en deux, et le
+ *  filtre cesserait de rendre ce qu'il annonce. `append` est donc obligatoire
+ *  ici — `set` écraserait la valeur précédente et on retomberait sur le défaut
+ *  que #2168 corrige.
+ *
+ *  Une liste vide n'écrit RIEN : une facette sans valeur ne doit pas devenir un
+ *  paramètre vide, que le serveur ignorerait en rendant toute la bibliothèque.
+ */
+export function appendFacetParam(params: URLSearchParams, key: string, value: FacetParam | null | undefined): void {
+  if (value == null) return;
+  const values = Array.isArray(value) ? value : [value];
+  for (const v of values) {
+    const s = String(v);
+    if (s !== '') params.append(key, s);
+  }
+}
+
 export async function getFilteredTracks(opts: {
-  genre?: string;
-  format?: string;
-  sample_rate?: number;
-  bit_depth?: number;
-  year?: number;
-  source?: string;
-  label?: string;
-  composer?: string;
+  genre?: FacetParam;
+  format?: FacetParam;
+  sample_rate?: FacetParam;
+  bit_depth?: FacetParam;
+  year?: FacetParam;
+  source?: FacetParam;
+  label?: FacetParam;
+  composer?: FacetParam;
   q?: string;
-  artist?: string;
-  country?: string;       // release_country (track_metadata k/v)
-  mood?: string;          // mood (track_metadata k/v)
-  source_media?: string;  // source_media (track_metadata k/v)
-  folder?: string;        // Oxygen folder facet: absolute dir prefix (subtree)
-  rating?: number;        // Oxygen rating facet: album rating 1-5 (profile 1)
-  collection?: string;    // Oxygen collection facet: manual collection name
-  favorite?: string;      // Oxygen favorite facet: 'track' | 'album' (profile 1)
-  playlist?: string;      // Oxygen playlist facet: playlist name
-  untagged?: string;      // Oxygen untagged facet: 'genre'|'year'|'artist'|'album'|'cover'
-  original_year?: number; // Oxygen recording-year facet (albums.original_year)
+  artist?: FacetParam;
+  country?: FacetParam;       // release_country (track_metadata k/v)
+  mood?: FacetParam;          // mood (track_metadata k/v)
+  source_media?: FacetParam;  // source_media (track_metadata k/v)
+  folder?: string;            // Oxygen folder facet: absolute dir prefix (subtree) — MONOVALUÉ
+  rating?: FacetParam;        // Oxygen rating facet: album rating 1-5 (profile 1)
+  collection?: string;        // Oxygen collection facet: manual collection name — MONOVALUÉ
+  favorite?: FacetParam;      // Oxygen favorite facet: 'track' | 'album' (profile 1)
+  playlist?: FacetParam;      // Oxygen playlist facet: playlist name
+  untagged?: FacetParam;      // Oxygen untagged facet: 'genre'|'year'|'artist'|'album'|'cover'
+  original_year?: FacetParam; // Oxygen recording-year facet (albums.original_year)
   limit?: number;
   offset?: number;
 }): Promise<{ items: Track[]; total: number }> {
   const params = new URLSearchParams();
-  if (opts.folder) params.set('folder', opts.folder);
-  if (opts.rating != null) params.set('rating', String(opts.rating));
-  if (opts.collection) params.set('collection', opts.collection);
-  if (opts.genre) params.set('genre', opts.genre);
-  if (opts.format) params.set('format', opts.format);
-  if (opts.sample_rate != null) params.set('sample_rate', String(opts.sample_rate));
-  if (opts.bit_depth != null) params.set('bit_depth', String(opts.bit_depth));
-  if (opts.year != null) params.set('year', String(opts.year));
-  if (opts.source) params.set('source', opts.source);
-  if (opts.label) params.set('label', opts.label);
-  if (opts.composer) params.set('composer', opts.composer);
-  if (opts.artist) params.set('artist', opts.artist);
-  if (opts.country) params.set('country', opts.country);
-  if (opts.mood) params.set('mood', opts.mood);
-  if (opts.source_media) params.set('source_media', opts.source_media);
-  if (opts.q) params.set('q', opts.q);
+  for (const key of [
+    'folder', 'rating', 'collection', 'genre', 'format', 'sample_rate', 'bit_depth',
+    'year', 'source', 'label', 'composer', 'artist', 'country', 'mood', 'source_media',
+    'favorite', 'playlist', 'untagged', 'original_year', 'q',
+  ] as const) {
+    appendFacetParam(params, key, (opts as Record<string, FacetParam | undefined>)[key]);
+  }
   params.set('limit', String(opts.limit ?? 200));
   if (opts.offset) params.set('offset', String(opts.offset));
   const raw = await fetchJSON<any>(`${BASE}/library/tracks?${params}`);
@@ -1323,11 +1338,11 @@ export interface FacetValue { value: string; count: number; }
  *  alternatives stay visible. */
 export async function getLibraryFacets(
   fields: string[],
-  filters?: Record<string, string | number>,
+  filters?: Record<string, FacetParam>,
   limit?: number,
 ): Promise<Record<string, FacetValue[]>> {
   const params = new URLSearchParams({ fields: fields.join(',') });
-  if (filters) for (const [k, v] of Object.entries(filters)) params.set(k, String(v));
+  if (filters) for (const [k, v] of Object.entries(filters)) appendFacetParam(params, k, v);
   // limit=0 means "no limit" (show every value); pass it through so the server
   // drops the LIMIT clause.
   if (limit != null) params.set('limit', String(limit));
@@ -1356,12 +1371,12 @@ export interface AlbumDetailed {
 /** Albums agrégés pour la vue cartes. `filters` = les mêmes paramètres de
  *  facette que /library/tracks et /library/facets. */
 export async function getAlbumsDetailed(
-  filters?: Record<string, string | number>,
+  filters?: Record<string, FacetParam>,
   limit = 500,
   offset = 0,
 ): Promise<{ items: AlbumDetailed[]; total: number }> {
   const params = new URLSearchParams();
-  if (filters) for (const [k, v] of Object.entries(filters)) params.set(k, String(v));
+  if (filters) for (const [k, v] of Object.entries(filters)) appendFacetParam(params, k, v);
   params.set('limit', String(limit));
   params.set('offset', String(offset));
   return fetchJSON<{ items: AlbumDetailed[]; total: number }>(`${BASE}/library/albums-detailed?${params}`);
@@ -1376,12 +1391,12 @@ export interface FolderFacet { path: string | null; crumbs: FolderCrumb[]; child
  *  Selecting a child folder means filtering /library/tracks?folder=<child.path>. */
 export async function getFolderFacet(
   path?: string | null,
-  filters?: Record<string, string | number>,
+  filters?: Record<string, FacetParam>,
   folderLimit?: number,
 ): Promise<FolderFacet> {
   const params = new URLSearchParams();
   if (path) params.set('path', path);
-  if (filters) for (const [k, v] of Object.entries(filters)) params.set(k, String(v));
+  if (filters) for (const [k, v] of Object.entries(filters)) appendFacetParam(params, k, v);
   if (folderLimit != null) params.set('folder_limit', String(folderLimit));
   const raw = await fetchJSON<any>(`${BASE}/library/folder-facet?${params}`);
   return {

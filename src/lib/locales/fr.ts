@@ -338,6 +338,8 @@ export default {
   'oxygen.folder.home': 'Bibliothèque',
   'oxygen.folder.empty': 'Aucun sous-dossier ici.',
   'oxygen.facetsTitle': 'Facettes',
+  // #2168 : plusieurs valeurs cochées dans une même facette se combinent en OU.
+  'oxygen.facetClear': 'Tout décocher',
   'oxygen.collapseAll': 'Tout replier',
   'oxygen.expandAll': 'Tout déplier',
   'oxygen.facetsServer': 'Comptage complet (index serveur).',
