@@ -1636,6 +1636,7 @@ export default {
   "settings.scanAlreadyRunning": "Scanarea rulează deja",
   "settings.scanError": "Eroare la scanare",
   "settings.scanCompleted": "Scanare completă: {scanned} fișiere, {added} adăugate, {updated} actualizate, {removed} eliminate",
+  "settings.scanCompletedNoRemoved": "Scanare completă: {scanned} fișiere, {added} adăugate, {updated} actualizate",
   "settings.folderPlaylists": "Foldere → playlisturi",
   "settings.folderPlaylistsHelp": "La scanare, un folder ale cărui piese provin din mai multe albume (compilație proprie) devine un playlist local cu același nume, resincronizat la fiecare scanare.",
   "settings.importPlaylistFiles": "Importă fișierele .m3u și .pls",

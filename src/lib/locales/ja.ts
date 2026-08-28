@@ -1626,6 +1626,7 @@ export default {
   "settings.scanAlreadyRunning": "スキャンはすでに実行中です",
   "settings.scanError": "スキャンエラー",
   "settings.scanCompleted": "スキャン完了: {scanned} 件のファイル、{added} 件を追加、{updated} 件を更新、{removed} 件を削除",
+  "settings.scanCompletedNoRemoved": "スキャン完了: {scanned} 件のファイル、{added} 件を追加、{updated} 件を更新",
   "settings.folderPlaylists": "フォルダ → プレイリスト",
   "settings.folderPlaylistsHelp": "スキャン時、複数のアルバムの曲を含むフォルダ（自作コンピレーション）は同名のローカルプレイリストになり、スキャンごとに同期されます。",
   "settings.importPlaylistFiles": "M3U・PLS ファイルを取り込む",

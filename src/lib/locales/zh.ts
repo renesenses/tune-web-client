@@ -1626,6 +1626,7 @@ export default {
   "settings.scanAlreadyRunning": "扫描已在运行",
   "settings.scanError": "扫描错误",
   "settings.scanCompleted": "扫描完成：{scanned} 个文件，{added} 个已添加，{updated} 个已更新，{removed} 个已移除",
+  "settings.scanCompletedNoRemoved": "扫描完成：{scanned} 个文件，{added} 个已添加，{updated} 个已更新",
   "settings.folderPlaylists": "文件夹 → 播放列表",
   "settings.folderPlaylistsHelp": "扫描时，包含多张专辑曲目的文件夹（自制合辑）会成为同名的本地播放列表，并在每次扫描时重新同步。",
   "settings.importPlaylistFiles": "导入 .m3u 和 .pls 文件",

@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import SettingHint from './SettingHint.svelte';
   import { tip } from '../lib/tooltip';
+  import { compteSupprimees, cleLibelleFinDeScan } from '../lib/bandeauFinDeScan';
   import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
   import { doitSArreterFauteDImagesManquantes, type ModeEnrichissementImages } from '../lib/enrichissementImagesArtistes';
   import { dialogs } from '../lib/stores/dialogs';
@@ -2816,13 +2817,19 @@ function setSettingsLevel(level: SettingsLevel) {
         scanProgress = null;
         scanningPath = null;
         const d = event.data ?? {};
-        // The server event uses total_files/inserted; older builds sent
-        // scanned/added — accept both so the toast never shows "?".
-        scanMessage = get(t)('settings.scanCompleted')
+        // Ce que la purge a retiré — ou `null` si le serveur ne le dit pas.
+        // On n'annonce JAMAIS « 0 supprimés » faute d'information : c'est ce
+        // que faisait `String(d.removed ?? 0)`, et le bandeau affichait donc
+        // toujours zéro, quoi que la purge ait fait
+        // (renesenses/tune-server-rust#2146).
+        const supprimees = compteSupprimees(d);
+        // Sans compte, un libellé SANS le segment « N supprimés » : une phrase
+        // à trou ne peut pas se taire, il faut une autre phrase.
+        scanMessage = get(t)(cleLibelleFinDeScan(supprimees) as any)
           .replace('{scanned}', String(d.total_files ?? d.scanned ?? '?'))
           .replace('{added}', String(d.inserted ?? d.added ?? 0))
           .replace('{updated}', String(d.updated ?? 0))
-          .replace('{removed}', String(d.removed ?? 0));
+          .replace('{removed}', String(supprimees ?? 0));
         notifications.success(scanMessage);
         if (!d.cancelled && !d.no_dirs && d.total_files != null) {
           scanReport = d;
