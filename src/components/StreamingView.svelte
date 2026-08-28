@@ -845,8 +845,35 @@
     }
   }
 
+  // Un enfilage réussi qui ne dit rien est indiscernable d'une panne. Sandro
+  // allait vérifier dans la file après CHAQUE clic, faute de confirmation
+  // (#2079, fil forum 1493) — et la parade naturelle, recliquer, enfile la
+  // piste deux fois.
+  //
+  // Le serveur n'y était pour rien : `POST /zones/{id}/queue/add` répond déjà
+  // `201 { added, queue_length }` (playback.rs). La confirmation existait ;
+  // c'est ce gestionnaire qui la jetait. La bibliothèque locale
+  // (LibraryView.playNext) et Oxygen (OxygenView.queueNext) affichaient leur
+  // toast depuis toujours : seul le chemin des services restait muet, et pour
+  // TOUS les services — Qobuz, Tidal, Deezer, Spotify, YouTube — puisqu'ils
+  // passent tous par cette même fonction. Ce n'était pas un défaut Qobuz.
+  let enfilageSuivantEnCours = $state(false);
+
   async function playNextStreaming(track: Track) {
-    if (!zone?.id || !track.source_id) return;
+    if (!zone?.id) {
+      notifications.error($tr('library.noZoneSelectedSelectZone'));
+      return;
+    }
+    if (!track.source_id) {
+      notifications.error($tr('queue.addFailed'));
+      console.error('playNextStreaming: piste sans source_id', track);
+      return;
+    }
+    // Le toast n'arrive qu'au bout de trois allers-retours réseau. Sans ce
+    // verrou, le second clic — celui que le silence appelait — part avant lui
+    // et ajoute la piste une deuxième fois.
+    if (enfilageSuivantEnCours) return;
+    enfilageSuivantEnCours = true;
     try {
       const qs = await api.getQueue(zone.id);
       const nextPos = qs.position + 1;
@@ -859,8 +886,16 @@
       const updated = await api.getQueue(zone.id);
       queueTracks.set(updated.tracks);
       queuePosition.set(updated.position);
+      // Même formulation que la bibliothèque locale, et même clé déjà traduite
+      // dans les onze langues : rien de neuf à faire dériver.
+      notifications.success(`"${track.title}" — ${$tr('streaming.playNext').toLowerCase()}`);
     } catch (e) {
+      notifications.error(e instanceof Error ? e.message : $tr('queue.addFailed'));
       console.error('Play next streaming track error:', e);
+    } finally {
+      // Dans un `finally` : relâché ailleurs, une erreur laisserait le bouton
+      // mort jusqu'au rechargement de la page.
+      enfilageSuivantEnCours = false;
     }
   }
 
