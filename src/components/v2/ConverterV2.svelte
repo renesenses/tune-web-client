@@ -192,7 +192,7 @@
           <div class="grid">
             {#each shown as a (a.id)}
               <button class="card" class:sel={a.id != null && picked.has(a.id)} onclick={() => toggle(a.id)}>
-                <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={160} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
+                <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
                 <span class="ct">{a.title}</span>
                 <span class="ca">{a.artist_name ?? ''}</span>
                 {#if a.id != null && picked.has(a.id)}

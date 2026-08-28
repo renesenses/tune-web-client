@@ -70,7 +70,7 @@
   </button>
 
   <div class="head">
-    <div class="art"><AlbumArt coverPath={album.cover_path} albumId={album.id} size={400} alt={album.title} source={album.source} fallbackInitials={album.title?.slice(0,1)} /></div>
+    <div class="art"><AlbumArt coverPath={album.cover_path} albumId={album.id} size={0} alt={album.title} source={album.source} fallbackInitials={album.title?.slice(0,1)} /></div>
     <div class="meta">
       <div class="qbadge">{qLabel}</div>
       <h1>{album.title}</h1>

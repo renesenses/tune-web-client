@@ -157,7 +157,7 @@
   <div class="st" class:live={playingId === r.id}>
     <button class="open" onclick={() => play(r)} aria-label={`Écouter ${r.name}`}></button>
     <span class="cv">
-      <AlbumArt coverPath={r.logo_url ?? null} albumId={null} size={160} alt={r.name} fallbackInitials={r.name?.slice(0,1)} />
+      <AlbumArt coverPath={r.logo_url ?? null} albumId={null} size={0} alt={r.name} fallbackInitials={r.name?.slice(0,1)} />
       {#if playingId === r.id}<span class="onair">EN DIRECT</span>{/if}
     </span>
     <span class="nm">{r.name}</span>

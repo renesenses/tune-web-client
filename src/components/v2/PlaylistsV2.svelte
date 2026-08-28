@@ -122,7 +122,7 @@
               {#each list as pl (pl.source_id)}
                 <div class="card">
                   <span class="cv img">
-                    <AlbumArt coverPath={pl.cover_path} albumId={null} size={220} alt={pl.name} fallbackInitials={pl.name?.slice(0,1)} />
+                    <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} alt={pl.name} fallbackInitials={pl.name?.slice(0,1)} />
                   </span>
                   <span class="ct">{pl.name}</span>
                   <span class="ca">{pl.track_count} titres{pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}</span>

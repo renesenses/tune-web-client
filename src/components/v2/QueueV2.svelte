@@ -105,7 +105,7 @@
         <section class="sec">
           <h2>En cours</h2>
           <div class="now">
-            <span class="ncv"><AlbumArt coverPath={current.cover_path} albumId={current.album_id ?? null} size={140} alt={current.title} source={current.source} fallbackInitials={current.title?.slice(0,1)} /></span>
+            <span class="ncv"><AlbumArt coverPath={current.cover_path} albumId={current.album_id ?? null} size={0} alt={current.title} source={current.source} fallbackInitials={current.title?.slice(0,1)} /></span>
             <div class="nmeta">
               <div class="nt">{current.title}</div>
               <div class="na">{current.artist_name ?? ''}{current.album_title ? ' · ' + current.album_title : ''}</div>
@@ -124,7 +124,7 @@
             <div class="row" class:np={t.id != null && t.id === $currentTrackId}>
               <button class="play" onclick={() => jump(idx)} disabled={busy} aria-label={`Lire ${t.title}`}>
                 <span class="n">{i + 1}</span>
-                <span class="cv"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={80} alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
+                <span class="cv"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
                 <span class="ti">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
               </button>
               {#if showExpert && tech(t)}<span class="tk">{tech(t)}</span>{/if}

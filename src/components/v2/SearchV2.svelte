@@ -140,7 +140,7 @@
           <div class="list">
             {#each acoustic.tracks as t, i (t.id ?? i)}
               <button class="trk" class:np={t.id != null && t.id === $currentTrackId} onclick={() => playTrack(t)}>
-                <span class="cvsm"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={80} alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
+                <span class="cvsm"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
                 <span class="ti">{t.title}<em>{t.artist_name ?? ''}</em></span>
                 {#if t.similarity != null}<span class="sim">{Math.round(t.similarity * 100)}%</span>{/if}
                 <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
@@ -156,7 +156,7 @@
           <div class="arow">
             {#each localArtists.slice(0, 12) as ar (ar.id ?? ar.name)}
               <button class="artile" onclick={() => (q = ar.name)}>
-                <span class="acv"><AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={140} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} /></span>
+                <span class="acv"><AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} /></span>
                 <span class="an">{ar.name}</span>
               </button>
             {/each}
@@ -170,7 +170,7 @@
           <div class="grid">
             {#each localAlbums as a (a.id)}
               <button class="card" onclick={() => (opened = a)}>
-                <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={220} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
+                <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
                 <span class="ct">{a.title}</span>
                 <span class="ca">{a.artist_name ?? ''}</span>
               </button>
@@ -185,7 +185,7 @@
           <div class="list">
             {#each localTracks.slice(0, 30) as t, i (t.id ?? i)}
               <button class="trk" class:np={t.id != null && t.id === $currentTrackId} onclick={() => playTrack(t)}>
-                <span class="cvsm"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={80} alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
+                <span class="cvsm"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
                 <span class="ti">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
                 {#if showExpert && trackRate(t)}<span class="tk">{trackRate(t)}</span>{/if}
                 <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
@@ -204,7 +204,7 @@
               <div class="grid">
                 {#each r.albums.slice(0, 12) as a (a.source_id ?? a.id)}
                   <div class="card static">
-                    <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={null} size={220} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
+                    <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={null} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
                     <span class="ct">{a.title}</span>
                     <span class="ca">{a.artist_name ?? ''}</span>
                   </div>

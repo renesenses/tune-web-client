@@ -205,7 +205,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>
       </button>
       <div class="dhead">
-        <span class="dart"><AlbumArt coverPath={cover(opened)} albumId={null} size={240} alt={title(opened)} fallbackInitials={title(opened).slice(0,1)} /></span>
+        <span class="dart"><AlbumArt coverPath={cover(opened)} albumId={null} size={0} alt={title(opened)} fallbackInitials={title(opened).slice(0,1)} /></span>
         <div class="dmeta">
           <h1>{title(opened)}</h1>
           {#if author(opened)}<div class="dau">{author(opened)}</div>{/if}
@@ -242,7 +242,7 @@
 {#snippet tile(p: any, sub: boolean)}
   <div class="pc">
     <button class="open" onclick={() => openPodcast(p)} aria-label={`Ouvrir ${title(p)}`}></button>
-    <span class="cv"><AlbumArt coverPath={cover(p)} albumId={null} size={200} alt={title(p)} fallbackInitials={title(p).slice(0,1)} /></span>
+    <span class="cv"><AlbumArt coverPath={cover(p)} albumId={null} size={0} alt={title(p)} fallbackInitials={title(p).slice(0,1)} /></span>
     <span class="nm">{title(p)}</span>
     {#if author(p)}<span class="au">{author(p)}</span>{/if}
     <button class="sub" class:on={sub || isSubscribed(p)} onclick={(e) => toggleSub(p, e)}

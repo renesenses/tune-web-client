@@ -143,7 +143,7 @@
       <div class="dgrid">
         {#each doubtful as a (a.id)}
           <article class="dcard">
-            <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={160} alt={a.title} fallbackInitials={a.title?.slice(0,1)} /></span>
+            <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} fallbackInitials={a.title?.slice(0,1)} /></span>
             <div class="dm">
               <div class="dt">{a.title}</div>
               <div class="da">{a.artist_resolved ?? a.artist_name ?? 'Artiste inconnu'}</div>

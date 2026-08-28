@@ -47,7 +47,7 @@
         <div class="ar">Choisissez un album ou une station</div>
       </div>
     {:else}
-      <div class="cv"><AlbumArt coverPath={(t as any)?.cover_path ?? null} albumId={(t as any)?.album_id ?? null} size={112} alt={t?.title ?? ''} /></div>
+      <div class="cv"><AlbumArt coverPath={(t as any)?.cover_path ?? null} albumId={(t as any)?.album_id ?? null} size={0} alt={t?.title ?? ''} /></div>
       <div class="meta">
         <div class="ti">{t.title}
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.35-9.5-8.5C.5 9 2.5 5.5 6 5.5c2 0 3.2 1.1 4 2 .8-.9 2-2 4-2 3.5 0 5.5 3.5 3.5 7C19 16.65 12 21 12 21z"/></svg>

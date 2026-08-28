@@ -139,7 +139,7 @@
           {#each vAlbums as a (a.id)}
             <div class="card">
               <button class="open" onclick={() => (opened = a)} aria-label={`Ouvrir ${a.title}`}></button>
-              <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={220} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
+              <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
               <span class="ct">{a.title}</span>
               <span class="ca">{a.artist_name ?? ''}</span>
               <span class="acts">
@@ -166,7 +166,7 @@
           {#each vTracks as t, i (t.id ?? i)}
             <div class="row" class:np={t.id != null && t.id === $currentTrackId}>
               <button class="play" onclick={() => playTrack(t)}>
-                <span class="cv sm"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={80} alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
+                <span class="cv sm"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
                 <span class="ti">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
               </button>
               {#if showExpert && tech(t)}<span class="tk">{tech(t)}</span>{/if}
@@ -186,7 +186,7 @@
         <div class="arow">
           {#each vArtists as a (a.id ?? a.name)}
             <div class="art">
-              <span class="acv"><AlbumArt coverPath={a.image_path ?? null} albumId={null} size={160} alt={a.name} fallbackInitials={a.name?.slice(0,1)} /></span>
+              <span class="acv"><AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name} fallbackInitials={a.name?.slice(0,1)} /></span>
               <span class="an">{a.name}</span>
               <button class="hot round" onclick={(e) => unfav({ artist_id: a.id ?? undefined }, e)} disabled={busy} aria-label="Retirer des favoris">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z"/></svg>

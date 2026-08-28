@@ -575,7 +575,7 @@
                 {#each g.albums as a (a.id)}
                   <button class="card" onclick={() => opened = a}>
                     <div class="cover">
-                      <AlbumArt coverPath={a.cover_path} albumId={a.id} size={220} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                      <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                       {#if showBadges}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/if}
                     </div>
                     <div class="ct">{a.title}</div>
@@ -593,7 +593,7 @@
         <div class="rows" bind:this={gridEl}>
           {#each sorted as a (a.id)}
             <button class="lrow" class:dim={!matches(a)} data-letter={firstLetter(a)} onclick={() => opened = a}>
-              <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={96} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
+              <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
               <span class="lt">{a.title}</span>
               <span class="la">{a.artist_name ?? ''}</span>
               <span class="ly">{albumYear(a) ?? ''}</span>
@@ -608,7 +608,7 @@
           {#each sorted as a (a.id)}
             <button class="card" class:dim={!matches(a)} data-letter={firstLetter(a)} onclick={() => opened = a}>
               <div class="cover">
-                <AlbumArt coverPath={a.cover_path} albumId={a.id} size={220} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                 {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
               </div>
               <div class="ct">{a.title}</div>

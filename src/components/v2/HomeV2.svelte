@@ -131,7 +131,7 @@
       <section class="hero">
         <span class="hart">
           {#if h.cover_path}
-            <AlbumArt coverPath={h.cover_path} albumId={h.album_id ?? h.id ?? null} size={420} alt={h.title ?? ''} source={h.source} />
+            <AlbumArt coverPath={h.cover_path} albumId={h.album_id ?? h.id ?? null} size={0} alt={h.title ?? ''} source={h.source} />
           {:else}
             {@render blank(h.title ?? '', 84)}
           {/if}
@@ -166,7 +166,7 @@
                   <div class="tile small">
                     <span class="cv">
                       {#if r.cover_path}
-                        <AlbumArt coverPath={r.cover_path} albumId={null} size={200} alt={r.title} source={r.service as any} />
+                        <AlbumArt coverPath={r.cover_path} albumId={null} size={0} alt={r.title} source={r.service as any} />
                       {:else}{@render blank(r.title ?? '', 30)}{/if}
                     </span>
                     <span class="tt">{r.title}</span>
@@ -219,7 +219,7 @@
           <button class="tile" onclick={() => playAlbum(it.album_id ?? it.id)}>
             <span class="cv">
               {#if it.cover_path}
-                <AlbumArt coverPath={it.cover_path} albumId={it.album_id ?? it.id ?? null} size={280} alt={it.title ?? ''} source={it.source} />
+                <AlbumArt coverPath={it.cover_path} albumId={it.album_id ?? it.id ?? null} size={0} alt={it.title ?? ''} source={it.source} />
               {:else}{@render blank(it.title ?? it.album_title ?? '', 34)}{/if}
               <span class="pbtn">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>

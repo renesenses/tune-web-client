@@ -307,7 +307,7 @@
             <div class="arow">
               {#each results.artists.slice(0, 14) as ar (ar.source_id ?? ar.name)}
                 <div class="art">
-                  <span class="acv"><AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={140} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} /></span>
+                  <span class="acv"><AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} /></span>
                   <span class="an">{ar.name}</span>
                 </div>
               {/each}
@@ -395,7 +395,7 @@
           <div class="arow">
             {#each favArtists as ar, i ((ar.source_id ?? ar.name ?? i))}
               <div class="art">
-                <span class="acv"><AlbumArt coverPath={ar.image_path ?? ar.picture ?? null} albumId={null} size={140} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} /></span>
+                <span class="acv"><AlbumArt coverPath={ar.image_path ?? ar.picture ?? null} albumId={null} size={0} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} /></span>
                 <span class="an">{ar.name}</span>
               </div>
             {/each}
@@ -417,7 +417,7 @@
 {#snippet tile(p: any, onPlay: () => void)}
   <div class="card">
     <button class="open" onclick={onPlay} aria-label={`Lire ${pTitle(p)}`}></button>
-    <span class="cv"><AlbumArt coverPath={pCover(p)} albumId={null} size={220} alt={pTitle(p)} source={p?.source} fallbackInitials={pTitle(p).slice(0,1)} /></span>
+    <span class="cv"><AlbumArt coverPath={pCover(p)} albumId={null} size={0} alt={pTitle(p)} source={p?.source} fallbackInitials={pTitle(p).slice(0,1)} /></span>
     <span class="ct">{pTitle(p)}</span>
     {#if pSub(p)}<span class="ca">{pSub(p)}</span>{/if}
   </div>
