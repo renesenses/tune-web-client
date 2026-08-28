@@ -11,6 +11,15 @@
    *     - Essentiel : grille nue, pas de filtres, pas de badges.
    *     - Avancé    : filtres Qualité + Fréquence, badges hi-res/DSD.
    *     - Expert    : + filtres Format & Profondeur, + ligne technique par carte.
+   *
+   * DEUX SOURCES, UN SEUL ECRAN (Bertrand, 28/08 : « une vue iso library Tune
+   * native » pour chaque serveur multimedia). Sans `depot`, cet ecran est la
+   * bibliotheque LOCALE, exactement comme avant. Avec `depot`, c'est la
+   * bibliotheque d'un AUTRE serveur Tune : meme grille, memes filtres, meme
+   * frise, meme fiche album — le catalogue vient de son API REST, la lecture
+   * passe par son URL de flux jouee en `source: upnp` par le serveur local.
+   * Voir `lib/tuneRemote` pour pourquoi c'est possible chez Tune et pas chez
+   * un serveur UPnP tiers.
    */
   import { albums, libraryLoading } from '../../lib/stores/library';
   import { activeView, type View } from '../../lib/stores/navigation';
@@ -22,7 +31,35 @@
   import { currentZoneId } from '../../lib/stores/zones';
   import AlbumArt from '../AlbumArt.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import {
+    albumsDistants, corpsLecture, pistesAlbumDistant, pistesDistantes, type DepotDistant,
+  } from '../../lib/tuneRemote';
   import '../../styles/tune-v2.css';
+
+  let { depot = null }: { depot?: DepotDistant | null } = $props();
+
+  // Catalogue distant. Le premier lot s'affiche des son arrivee : sur une
+  // discotheque de plusieurs milliers d'albums, attendre le tout laisserait un
+  // ecran vide plusieurs secondes.
+  let albumsD = $state<Album[]>([]);
+  let chargementD = $state(false);
+  let erreurD = $state<string | null>(null);
+  $effect(() => {
+    const d = depot;
+    if (!d) { albumsD = []; erreurD = null; chargementD = false; return; }
+    const ctrl = new AbortController();
+    albumsD = []; erreurD = null; chargementD = true;
+    albumsDistants(d, (partiel) => { if (!ctrl.signal.aborted) albumsD = partiel; }, ctrl.signal)
+      .then((tout) => { if (!ctrl.signal.aborted) albumsD = tout; })
+      .catch((e) => { if (!ctrl.signal.aborted && e?.name !== 'AbortError') erreurD = `${d.nom} n’a pas répondu.`; })
+      .finally(() => { if (!ctrl.signal.aborted) chargementD = false; });
+    return () => ctrl.abort();
+  });
+
+  /** LA source d'albums de l'ecran. Tout le reste lit `src`, jamais `$albums`
+   *  ni `albumsD` : c'est ce qui rend la vue identique des deux cotes. */
+  const src = $derived<Album[]>(depot ? albumsD : $albums);
+  const enCharge = $derived(depot ? chargementD : $libraryLoading);
 
   const level = $derived($preferences.settingsLevel);
   // FILTRER FAIT PARTIE DU GESTE DE BASE (Bertrand, 28/08 : « ou sont passes
@@ -59,7 +96,7 @@
    *  renvoie rien passe pour un bug. */
   const formats = $derived.by(() => {
     const m = new Map<string, number>();
-    for (const a of $albums) {
+    for (const a of src) {
       const f = a.format?.trim().toUpperCase();
       if (f) m.set(f, (m.get(f) ?? 0) + 1);
     }
@@ -67,7 +104,7 @@
   });
   const depths = $derived.by(() => {
     const m = new Map<number, number>();
-    for (const a of $albums) {
+    for (const a of src) {
       const d = a.bit_depth ?? 0;
       if (d > 0) m.set(d, (m.get(d) ?? 0) + 1);
     }
@@ -91,7 +128,7 @@
   }
 
   const sorted = $derived.by(() => {
-    const list = [...$albums];
+    const list = [...src];
     const byTitle = (a: Album, b: Album) => fold(a.title).localeCompare(fold(b.title));
     switch (sortKey) {
       case 'artist':
@@ -177,7 +214,7 @@
     { k: 'year', l: 'Année' }, { k: 'added', l: 'Ajout récent' },
   ];
   let sortKey = $state<SortKey>('title');
-  const hasAddedAt = $derived($albums.some((a) => (a.added_at ?? 0) > 0));
+  const hasAddedAt = $derived(src.some((a) => (a.added_at ?? 0) > 0));
   const availableSorts = $derived(SORTS.filter((s2) => s2.k !== 'added' || hasAddedAt));
 
   // ── Affichage grille / liste ──────────────────────────────────────────
@@ -189,7 +226,7 @@
    *  chez quelqu'un dont la collection commence en 1985. */
   const histogram = $derived.by(() => {
     const counts = new Map<number, number>();
-    for (const a of $albums) {
+    for (const a of src) {
       const y = albumYear(a);
       if (y != null) counts.set(y, (counts.get(y) ?? 0) + 1);
     }
@@ -212,7 +249,7 @@
     return out;
   });
 
-  const yearCount = $derived(fYear == null ? 0 : $albums.filter((a) => albumYear(a) === fYear).length);
+  const yearCount = $derived(fYear == null ? 0 : src.filter((a) => albumYear(a) === fYear).length);
 
   /** Position du curseur. Il est TOUJOURS pose sur l'axe — c'est un repere de
    *  parcours, pas un marqueur de filtre. Par defaut il se cale sur l'annee la
@@ -333,10 +370,11 @@
   let tracksLoading = $state(false);
   let tracksLoaded = false;
   $effect(() => {
+    const d = depot;
     if (tab !== 'tracks' || tracksLoaded) return;
     tracksLoaded = true;
     tracksLoading = true;
-    api.getAllTracks()
+    (d ? pistesDistantes(d) : api.getAllTracks())
       .then((t) => { tracks = t ?? []; })
       .catch(() => { tracks = []; })
       .finally(() => { tracksLoading = false; });
@@ -350,7 +388,10 @@
   function playTrack(t: Track) {
     const zid = $currentZoneId;
     if (zid == null || t.id == null) return;
-    api.play(zid, { track_id: t.id }).catch(() => {});
+    // Un `track_id` n'a de sens que pour le serveur LOCAL : celui d'un serveur
+    // distant designerait un tout autre morceau ici. On passe donc par son URL
+    // de flux, jouee en `source: upnp`.
+    api.play(zid, depot ? (corpsLecture(depot, t) as any) : { track_id: t.id }).catch(() => {});
   }
   let opened = $state<Album | null>(null);
   function reset() { fQuality = null; fRate = null; q = ''; fYear = null; fFormat = null; fDepth = null; }
@@ -363,9 +404,41 @@
     const zid = $currentZoneId;
     if (zid == null) return;
     shuffling = true;
-    try { await api.shuffleAll(zid, q.trim() ? { search_query: q.trim() } : undefined); }
+    try {
+      if (depot) await aleatoireDistant(zid);
+      else await api.shuffleAll(zid, q.trim() ? { search_query: q.trim() } : undefined);
+    }
     catch { /* le serveur signale déjà l'échec */ }
     shuffling = false;
+  }
+
+  /**
+   * L'aléatoire d'un serveur distant : un ALBUM au hasard, joué en entier.
+   *
+   * `api.shuffleAll` est une opération du serveur LOCAL sur SA base — elle n'a
+   * aucun équivalent à distance. Deux issues possibles : griser le bouton, ou
+   * en changer le sens. Griser aurait retiré de la vue « iso » une commande
+   * qui y figure ; alors on change le sens, ET on le dit dans l'infobulle —
+   * un bouton qui fait autre chose sans le dire est pire que pas de bouton.
+   *
+   * Un aléatoire sur les TITRES supposerait de rapatrier toute la discothèque
+   * pour n'en jouer que quelques-uns, et d'empiler les pistes une par une :
+   * cher pour le réseau, et lent à démarrer. Un album, c'est une requête.
+   */
+  async function aleatoireDistant(zid: number) {
+    const d = depot!;
+    // Le hasard porte sur ce qu'on REGARDE : filtres et recherche compris.
+    // Sinon « aleatoire » apres avoir tape « jazz » lancerait autre chose.
+    const filtres = sorted.filter(matches);
+    const pool = filtres.length ? filtres : src;
+    const choix = pool[Math.floor(Math.random() * pool.length)];
+    if (!choix?.id) return;
+    const pistes = (await pistesAlbumDistant(d, choix.id)).filter((t) => t.id != null);
+    if (!pistes.length) return;
+    await api.play(zid, corpsLecture(d, pistes[0]) as any);
+    for (let i = 1; i < pistes.length; i++) {
+      await api.addToQueue(zid, corpsLecture(d, pistes[i]) as any);
+    }
   }
   // « Ajouter » — les dossiers de musique se déclarent dans les Réglages.
   // On y emmène directement plutôt que d'ouvrir un dialogue natif, bannis
@@ -375,14 +448,21 @@
 
 <section class="v2-lib tune-v2">
   <header class="top">
-    <h1>Bibliothèque</h1>
+    <h1>{depot ? depot.nom : 'Bibliothèque'}</h1>
+    {#if depot}<span class="dist">{depot.hote}</span>{/if}
     <button class="btn" onclick={shuffleAll} disabled={shuffling || $currentZoneId == null}
-      title={$currentZoneId == null ? 'Aucune zone active' : 'Lire toute la bibliothèque au hasard'}>
+      title={$currentZoneId == null ? 'Aucune zone active'
+        : depot ? `Lire un album au hasard de ${depot.nom}` : 'Lire toute la bibliothèque au hasard'}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20 20 4M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>{shuffling ? 'Lancement…' : 'Aléatoire'}
     </button>
-    <button class="btn" onclick={addContent} title="Ajouter des dossiers de musique">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Ajouter
-    </button>
+    {#if !depot}
+      <!-- Declarer un dossier de musique est un reglage du serveur LOCAL :
+           le proposer sur la bibliotheque d'une autre machine promettrait
+           d'agir sur elle, ce qu'on ne fait pas. -->
+      <button class="btn" onclick={addContent} title="Ajouter des dossiers de musique">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Ajouter
+      </button>
+    {/if}
     <nav class="tabs">
       {#each TABS as t (t.id)}
         {#if !t.adv || atLeast(level, 'intermediate')}
@@ -396,6 +476,8 @@
        de recherche vit dans la page, a cote des filtres, et c'est le seul
        moyen de chercher en Essentiel depuis que la Recherche a quitte la
        barre laterale. Seules les PUCES de filtrage sont reservees a Avance. -->
+  {#if erreurD}<div class="derr">{erreurD}</div>{/if}
+
   <div class="filters">
     {#if showFilters}
       <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null} onclick={reset}>Tout ({matchCount})</button>
@@ -534,10 +616,13 @@
   {/if}
 
   <div class="body">
-    {#if $libraryLoading && sorted.length === 0}
+    {#if enCharge && sorted.length === 0}
       <div class="state">Chargement de la bibliothèque…</div>
     {:else if sorted.length === 0}
-      <div class="state">Votre bibliothèque est vide.</div>
+      <!-- « Votre » serait faux sur la bibliotheque d'une autre machine : on
+           nomme le serveur, sinon un catalogue distant vide se lirait comme
+           un defaut de la sienne. Mesure : 192.168.1.16 rend `[]`. -->
+      <div class="state">{depot ? `${depot.nom} (${depot.hote}) n’expose aucun album.` : 'Votre bibliothèque est vide.'}</div>
     {:else}
       {#if navMode === 'alpha' && tab === 'albums'}
         <div class="rail">
@@ -575,7 +660,7 @@
                 {#each g.albums as a (a.id)}
                   <button class="card" onclick={() => opened = a}>
                     <div class="cover">
-                      <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                      <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                       {#if showBadges}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/if}
                     </div>
                     <div class="ct">{a.title}</div>
@@ -593,7 +678,7 @@
         <div class="rows" bind:this={gridEl}>
           {#each sorted as a (a.id)}
             <button class="lrow" class:dim={!matches(a)} data-letter={firstLetter(a)} onclick={() => opened = a}>
-              <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
+              <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
               <span class="lt">{a.title}</span>
               <span class="la">{a.artist_name ?? ''}</span>
               <span class="ly">{albumYear(a) ?? ''}</span>
@@ -608,7 +693,7 @@
           {#each sorted as a (a.id)}
             <button class="card" class:dim={!matches(a)} data-letter={firstLetter(a)} onclick={() => opened = a}>
               <div class="cover">
-                <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                 {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
               </div>
               <div class="ct">{a.title}</div>
@@ -622,11 +707,14 @@
   </div>
 
   {#if opened}
-    <AlbumDetailV2 album={opened} onClose={() => (opened = null)} />
+    <AlbumDetailV2 album={opened} {depot} onClose={() => (opened = null)} />
   {/if}
 </section>
 
 <style>
+  .dist{font:11px var(--v2-mono); color:var(--v2-txt3); align-self:center; margin-left:-6px}
+  .derr{margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:13px;
+    color:var(--v2-danger); border:1px solid var(--v2-danger); background:var(--v2-danger-soft)}
   .v2-lib{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden; box-sizing:border-box}
   /* padding-right élargi : l'avatar de la coquille est pincé à droite. */

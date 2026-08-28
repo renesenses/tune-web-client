@@ -12,8 +12,13 @@
   import { getQualityTier, formatDuration, formatAlbumYear, errText } from '../../lib/utils';
   import type { Album, Track } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
+  import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
 
-  let { album, onClose }: { album: Album; onClose: () => void } = $props();
+  // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
+  // identifiants n'y sont pas les notres — pistes et lecture doivent passer
+  // par lui, sans quoi on jouerait un tout autre morceau du meme numero.
+  let { album, depot = null, onClose }:
+    { album: Album; depot?: DepotDistant | null; onClose: () => void } = $props();
 
   let tracks = $state<Track[]>([]);
   let loading = $state(true);
@@ -21,10 +26,10 @@
   const showExpert = $derived(atLeast($preferences.settingsLevel, 'expert'));
 
   $effect(() => {
-    const id = album.id;
+    const id = album.id, d = depot;
     if (id == null) return;
     loading = true; error = null;
-    api.getAlbumTracks(id)
+    (d ? pistesAlbumDistant(d, id) : api.getAlbumTracks(id))
       .then((t) => { tracks = t; })
       .catch((e) => { error = errText(e) ?? 'Chargement impossible'; })
       .finally(() => { loading = false; });
@@ -40,21 +45,46 @@
     return album.format?.toUpperCase() ?? 'CD';
   });
 
+  /** Enchaine une suite de pistes distantes : la premiere joue, les autres
+   *  s'empilent. Le serveur local ne connait pas l'album distant — il n'y a
+   *  pas de `album_id` a lui donner, seulement des URL de flux. */
+  async function enchainerDistant(liste: Track[], depuis = 0) {
+    const zid = $currentZoneId, d = depot;
+    if (zid == null || !d) return;
+    const suite = liste.slice(depuis).filter((t) => t.id != null);
+    if (!suite.length) return;
+    await api.play(zid, corpsLecture(d, suite[0]) as any);
+    for (let i = 1; i < suite.length; i++) await api.addToQueue(zid, corpsLecture(d, suite[i]) as any);
+  }
+
   function playAlbum(startIndex = 0) {
     const zid = $currentZoneId;
     if (zid == null || album.id == null) return;
+    if (depot) { enchainerDistant(tracks, startIndex).catch(() => {}); return; }
     api.play(zid, { album_id: album.id, start_index: startIndex }).catch(() => {});
   }
   function shuffle() {
     const zid = $currentZoneId;
     if (zid == null || album.id == null) return;
+    if (depot) {
+      const l = [...tracks];
+      for (let i = l.length - 1; i > 0; i--) { const j = (i * 7 + 3) % (i + 1); [l[i], l[j]] = [l[j], l[i]]; }
+      enchainerDistant(l).catch(() => {});
+      return;
+    }
     const ids = tracks.map((t) => t.id).filter((x): x is number => x != null);
     for (let i = ids.length - 1; i > 0; i--) { const j = (i * 7 + 3) % (i + 1); [ids[i], ids[j]] = [ids[j], ids[i]]; }
     api.play(zid, { track_ids: ids }).catch(() => {});
   }
   function addQueue() {
-    const zid = $currentZoneId;
+    const zid = $currentZoneId, d = depot;
     if (zid == null || album.id == null) return;
+    if (d) {
+      (async () => {
+        for (const t of tracks) if (t.id != null) await api.addToQueue(zid, corpsLecture(d, t) as any);
+      })().catch(() => {});
+      return;
+    }
     api.addToQueue(zid, { album_id: album.id }).catch(() => {});
   }
   function trackTech(t: Track): string {
@@ -70,7 +100,7 @@
   </button>
 
   <div class="head">
-    <div class="art"><AlbumArt coverPath={album.cover_path} albumId={album.id} size={0} alt={album.title} source={album.source} fallbackInitials={album.title?.slice(0,1)} /></div>
+    <div class="art"><AlbumArt coverPath={album.cover_path} albumId={depot ? null : album.id} size={0} alt={album.title} source={album.source} fallbackInitials={album.title?.slice(0,1)} /></div>
     <div class="meta">
       <div class="qbadge">{qLabel}</div>
       <h1>{album.title}</h1>

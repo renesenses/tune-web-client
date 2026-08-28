@@ -20,7 +20,16 @@
    *     puces, au lieu de faire redécouvrir la même racine à chaque visite.
    *     Pour un serveur tiers, on ne présume rien : racine, et c'est tout.
    *
-   *  3. LA RECHERCHE PEUT NE PAS ÊTRE SUPPORTÉE PAR LE SERVEUR DISTANT. La
+   *  3. UN ONGLET PAR SERVEUR, ET POUR UN SERVEUR TUNE C'EST LA BIBLIOTHÈQUE
+   *     ENTIÈRE (Bertrand, 28/08 : « une vue iso library Tune native »). Un
+   *     serveur Tune n'expose pas que de l'UPnP : il sert aussi son API REST,
+   *     en CORS ouvert, avec la forme `Album` complète — année, fréquence,
+   *     profondeur, format. On monte donc `LibraryV2` sur son catalogue :
+   *     même grille, mêmes filtres, même frise, même fiche album. Un serveur
+   *     TIERS garde l'explorateur UPnP, parce que le DIDL-Lite ne transporte
+   *     rien de tout cela et qu'on ne peut pas le lui inventer.
+   *
+   *  4. LA RECHERCHE PEUT NE PAS ÊTRE SUPPORTÉE PAR LE SERVEUR DISTANT. La
    *     route rend alors `supported: false` ; on filtre le dossier affiché et
    *     ON LE DIT. Laisser croire à une recherche complète sur un repli local
    *     ferait conclure à une absence là où il n'y a qu'un serveur muet.
@@ -28,6 +37,8 @@
   import * as api from '../../lib/api';
   import { currentZoneId } from '../../lib/stores/zones';
   import { estUnServeurTune, ouvertureParDefaut, RAYONS_TUNE } from '../../lib/mediaServerHome';
+  import { depotDistant } from '../../lib/tuneRemote';
+  import LibraryV2 from './LibraryV2.svelte';
   import { filtrerLocalement } from '../../lib/rechercheServeurMedia';
   import { decoderEntitesXml, formatDuration } from '../../lib/utils';
   import type {
@@ -49,7 +60,9 @@
   let loadingServers = $state(true);
   let error = $state<string | null>(null);
 
-  let open = $state<MediaServer | null>(null);
+  // L'onglet actif porte un IDENTIFIANT, pas l'objet : la liste des serveurs
+  // se rafraichit, et garder l'objet ferait pointer sur une copie perimee.
+  let actif = $state<string | null>(null);
   let browse = $state<MediaServerBrowseResult | null>(null);
   let pile = $state<{ objectId: string; titre: string }[]>([]);
   let busy = $state(false);
@@ -68,6 +81,7 @@
   };
 
   const objetCourant = $derived(pile.length ? pile[pile.length - 1].objectId : '0');
+  const open = $derived(servers.find((s) => s.id === actif) ?? null);
   const estTune = $derived(!!open && estUnServeurTune(open));
 
   /** Ce qu'on affiche : les résultats s'il y en a, sinon le dossier courant. */
@@ -89,8 +103,8 @@
 
   const fil = $derived.by(() => {
     if (!open) return [];
+    // Plus d'entree « Serveurs » : ce niveau est desormais la barre d'onglets.
     const out: { titre: string; objectId: string | null }[] = [
-      { titre: 'Serveurs', objectId: null },
       { titre: open.name, objectId: '0' },
     ];
     for (const e of pile) out.push({ titre: e.titre, objectId: e.objectId });
@@ -99,9 +113,24 @@
 
   $effect(() => {
     api.getMediaServers()
-      .then((s) => { servers = s ?? []; })
+      .then((s) => {
+        servers = s ?? [];
+        // Un ecran d'onglets sans onglet ouvert n'affiche rien : on entre sur
+        // le premier serveur, comme l'ecran Streaming entre sur le premier
+        // service connecte.
+        if (actif == null && servers.length) actif = servers[0].id;
+      })
       .catch(() => { error = 'Découverte réseau indisponible.'; })
       .finally(() => { loadingServers = false; });
+  });
+
+  /** Ouverture d'un onglet UPnP. Un serveur Tune n'y passe pas : sa vue est
+   *  `LibraryV2`, qui charge son propre catalogue par le REST distant. */
+  $effect(() => {
+    const s = open;
+    if (!s || estUnServeurTune(s)) { return; }
+    pile = []; browse = null; viderRecherche();
+    ouvrirUpnp(s);
   });
 
   // Recherche différée. Relancée aussi quand la portée change : « ce dossier »
@@ -143,8 +172,7 @@
     busy = false;
   }
 
-  async function ouvrir(s: MediaServer) {
-    open = s; pile = []; browse = null; viderRecherche();
+  async function ouvrirUpnp(s: MediaServer) {
     await allerA('0');
     // Un serveur Tune s'ouvre sur ses albums, comme la Bibliotheque locale.
     // Mais SEULEMENT si le rayon repond : un dossier ouvert d'autorite et
@@ -164,7 +192,6 @@
     }
   }
 
-  function fermer() { open = null; browse = null; pile = []; viderRecherche(); }
 
   /** Remonter et sauter dans le fil sont le meme geste : on TRONQUE la pile a
    *  la position visee, puis on recharge. `allerA` n'empile que si on lui
@@ -176,13 +203,14 @@
   }
 
   function remonter() {
-    if (!pile.length) { fermer(); return; }
+    // A la racine il n'y a plus de « dessus » : on y est deja, et l'onglet est
+    // le seul moyen de changer de serveur.
+    if (!pile.length) return;
     versNiveau(pile.slice(0, -1));
   }
 
   function auFil(objectId: string | null) {
-    if (objectId === null) { fermer(); return; }
-    if (objectId === '0') { versNiveau([]); return; }
+    if (objectId === null || objectId === '0') { versNiveau([]); return; }
     const i = pile.findIndex((e) => e.objectId === objectId);
     if (i >= 0) versNiveau(pile.slice(0, i + 1));
   }
@@ -260,7 +288,6 @@
     for (let i = 0; i < (s ?? '').length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
     return h;
   }
-  const sousTitre = (s: MediaServer) => [s.manufacturer, s.model].filter(Boolean).join(' · ');
   /** Les titres UPnP arrivent avec une couche d'echappement XML de trop :
    *  « King Gizzard &amp; The Lizard Wizard » s'affichait mot pour mot. */
   const txt = decoderEntitesXml;
@@ -272,7 +299,10 @@
       <div class="eyebrow">Réseau</div>
       <h1>Serveurs multimédia</h1>
     </div>
-    {#if open}
+    {#if open && !estTune}
+      <!-- Un serveur Tune a le champ de recherche de la Bibliotheque, dans la
+           page, a cote de ses filtres : en ajouter un second ici poserait deux
+           recherches concurrentes sur le meme ecran. -->
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         <input placeholder={`Rechercher dans ${open.name}`} bind:value={q} />
@@ -282,9 +312,23 @@
     {/if}
   </header>
 
+  {#if servers.length}
+    <!-- UN ONGLET PAR SERVEUR. L'etiquette est l'ADRESSE, pas le nom : sur ce
+         reseau les cinq serveurs s'appellent tous « Tune Server » et une barre
+         de cinq onglets identiques ne designerait rien. -->
+    <nav class="svcs">
+      {#each servers as s (s.id)}
+        <button class:on={actif === s.id} onclick={() => (actif = s.id)}>
+          {s.host}
+          {#if estUnServeurTune(s)}<span class="tag">Tune</span>{/if}
+        </button>
+      {/each}
+    </nav>
+  {/if}
+
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
 
-  {#if open}
+  {#if open && !estTune}
     <nav class="fil">
       <button class="back" onclick={remonter} aria-label="Retour">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>
@@ -308,6 +352,12 @@
     {/if}
   {/if}
 
+  {#if estTune && open}
+    <!-- LA VUE ISO BIBLIOTHEQUE. Ce n'est pas un ecran qui lui ressemble :
+         c'est le MEME composant, monte sur le catalogue REST du serveur
+         distant. Tout correctif de la Bibliotheque profite donc aux deux. -->
+    <LibraryV2 depot={depotDistant(open)} />
+  {:else}
   <div class="scroll">
     {#if !open}
       {#if loadingServers}
@@ -321,32 +371,7 @@
           </p>
         </div>
       {:else}
-        <p class="lead">
-          {servers.length} serveur{servers.length > 1 ? 's' : ''} détecté{servers.length > 1 ? 's' : ''}
-          sur le réseau local. Ouvrez-en un pour parcourir sa bibliothèque et l'écouter
-          dans la zone courante.
-        </p>
-        <div class="srvs">
-          {#each servers as s (s.id)}
-            <button class="srv" onclick={() => ouvrir(s)}>
-              <span class="ico" style="--hh:{hue(s.host ?? s.name)}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                  <rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/>
-                  <path d="M7 7.5h.01M7 16.5h.01"/>
-                </svg>
-              </span>
-              <span class="txt">
-                <span class="nom">
-                  {s.name}
-                  {#if estUnServeurTune(s)}<span class="tag">Tune</span>{/if}
-                </span>
-                <span class="adr">{s.host}:{s.port}</span>
-                {#if sousTitre(s)}<span class="mk">{sousTitre(s)}</span>{/if}
-              </span>
-              <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
-            </button>
-          {/each}
-        </div>
+        <div class="state">Choisissez un serveur dans les onglets ci-dessus.</div>
       {/if}
 
     {:else}
@@ -445,6 +470,7 @@
       {/if}
     {/if}
   </div>
+  {/if}
 </section>
 
 <style>
@@ -496,22 +522,20 @@
 
   /* Liste des serveurs. Le NOM ne suffit pas a distinguer (ils s'appellent
      tous « Tune Server ») : l'adresse est au meme rang, pas en mention. */
-  .lead{max-width:640px; padding:2px 0 18px; color:var(--v2-txt3); font-size:13px; line-height:1.6}
-  .srvs{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:14px; max-width:1000px}
-  .srv{display:flex; align-items:center; gap:14px; text-align:left; cursor:pointer; padding:14px 16px;
-    border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); color:var(--v2-txt)}
-  .srv:hover{border-color:var(--v2-acc2); box-shadow:0 8px 20px var(--v2-glow)}
-  .srv .ico{width:44px; height:44px; flex:0 0 auto; border-radius:11px; display:grid; place-items:center;
-    color:hsl(var(--hh) 45% 78%); background:linear-gradient(145deg, hsl(var(--hh) 34% 26%), hsl(var(--hh) 30% 16%))}
-  .srv .ico svg{width:22px; height:22px}
-  .srv .txt{display:flex; flex-direction:column; gap:2px; min-width:0}
-  .nom{display:flex; align-items:center; gap:8px; font:700 14px var(--v2-sans);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .tag{font:700 9px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; padding:2px 6px; border-radius:5px;
-    color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
-  .adr{font:12px var(--v2-mono); color:var(--v2-txt2)}
-  .mk{font:11px var(--v2-sans); color:var(--v2-txt3)}
-  .srv .go{width:16px; height:16px; margin-left:auto; flex:0 0 auto; color:var(--v2-txt3)}
+  /* Onglets de serveurs — memes formes que les onglets de services de l'ecran
+     Streaming : c'est le meme geste, choisir une source. */
+  .svcs{display:flex; gap:8px; flex-wrap:wrap; padding:2px 30px 12px}
+  .svcs button{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--v2-line2);
+    background:transparent; color:var(--v2-txt2); cursor:pointer; border-radius:var(--v2-r-pill);
+    padding:8px 16px; font:600 13px var(--v2-mono)}
+  .svcs button:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
+  .svcs button.on{color:var(--v2-on-acc); border-color:transparent;
+    background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .svcs .tag{font:700 9px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; padding:2px 6px;
+    border-radius:5px; border:1px solid currentColor; opacity:.75}
+  /* La Bibliotheque montee ici est un composant plein ecran : sans cette
+     regle elle se dimensionne a son contenu et laisse la coquille vide. */
+  .v2-ms > :global(.v2-lib){flex:1; min-height:0}
 
   .warn{margin:2px 0 14px; padding:9px 14px; border-radius:10px; font-size:12.5px;
     color:var(--v2-txt2); border:1px solid var(--v2-line2); background:var(--v2-surface2)}
