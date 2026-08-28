@@ -35,14 +35,27 @@
 
 <div class="v2-player tune-v2">
   <div class="np">
-    <div class="cv"><AlbumArt coverPath={(t as any)?.cover_path ?? null} albumId={(t as any)?.album_id ?? null} size={112} alt={t?.title ?? ''} /></div>
-    <div class="meta">
-      <div class="ti">{t?.title ?? '—'}
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.35-9.5-8.5C.5 9 2.5 5.5 6 5.5c2 0 3.2 1.1 4 2 .8-.9 2-2 4-2 3.5 0 5.5 3.5 3.5 7C19 16.65 12 21 12 21z"/></svg>
+    <!-- Rien en lecture : une pochette vide et un tiret se lisent comme un
+         lecteur casse. On dit explicitement qu'il n'y a rien, et le coeur
+         (qui n'a rien a aimer) disparait. -->
+    {#if !t}
+      <div class="cv empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
       </div>
-      <div class="ar">{(t as any)?.artist_name ?? ''}</div>
-    </div>
-    {#if playing}<div class="wave">{#each WAVE as h}<i style="height:{h}px"></i>{/each}</div>{/if}
+      <div class="meta">
+        <div class="ti idle">Rien en lecture</div>
+        <div class="ar">Choisissez un album ou une station</div>
+      </div>
+    {:else}
+      <div class="cv"><AlbumArt coverPath={(t as any)?.cover_path ?? null} albumId={(t as any)?.album_id ?? null} size={112} alt={t?.title ?? ''} /></div>
+      <div class="meta">
+        <div class="ti">{t.title}
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.35-9.5-8.5C.5 9 2.5 5.5 6 5.5c2 0 3.2 1.1 4 2 .8-.9 2-2 4-2 3.5 0 5.5 3.5 3.5 7C19 16.65 12 21 12 21z"/></svg>
+        </div>
+        <div class="ar">{(t as any)?.artist_name ?? ''}</div>
+      </div>
+      {#if playing}<div class="wave">{#each WAVE as h}<i style="height:{h}px"></i>{/each}</div>{/if}
+    {/if}
   </div>
 
   <div class="center">
@@ -79,6 +92,9 @@
     font-family:var(--v2-sans); color:var(--v2-txt); box-sizing:border-box}
   .np{display:flex; align-items:center; gap:14px; min-width:0}
   .cv{width:56px; height:56px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:0 4px 12px var(--v2-sh-sm)}
+  .cv.empty{display:grid; place-items:center; color:var(--v2-txt3); border:1px dashed var(--v2-line2); box-shadow:none}
+  .cv.empty svg{width:22px; height:22px}
+  .ti.idle{font-weight:600; font-size:14px; color:var(--v2-txt2)}
   .ti{display:flex; align-items:center; gap:9px; font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ti svg{width:16px; height:16px; color:var(--v2-acc1); flex:0 0 auto}
   .ar{font:12px var(--v2-mono); color:var(--v2-txt2); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}

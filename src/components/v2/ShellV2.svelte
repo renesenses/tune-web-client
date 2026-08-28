@@ -126,7 +126,13 @@
      generique dans une app a CSS partage est un piege — on le retire au lieu
      de gagner une bataille de specificite avec `gap:0`. */
   .v2-row{flex:1; min-height:0; display:grid; grid-template-columns:auto 1fr; gap:0}
+  /* `.main` est un conteneur flex ; sans `flex:1` ses enfants se dimensionnent
+     a leur CONTENU et laissent le reste vide. Mesure avant correction sur
+     1990 px : zone principale 1754 px, ecran Bibliotheque 1139 px — 615 px
+     perdus a droite. `:global` parce que l'ecran est un composant enfant :
+     le style scope de la coquille ne l'atteindrait pas. */
   .main{min-width:0; overflow:hidden; display:flex}
+  .main > :global(*){flex:1 1 auto; min-width:0}
   .soon{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
     text-align:center; color:var(--v2-txt); font-family:var(--v2-sans); padding:40px}
   .soon .badge{font:700 10px var(--v2-mono); letter-spacing:.16em; text-transform:uppercase; color:var(--v2-on-acc);

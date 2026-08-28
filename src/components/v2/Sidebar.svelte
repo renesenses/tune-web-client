@@ -85,7 +85,7 @@
     <button class="collapse" onclick={toggleCollapse}
       aria-label={collapsed ? 'Déplier la barre latérale' : 'Replier la barre latérale'}
       title={collapsed ? 'Déplier' : 'Replier'}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7"/><path d="M4 4v16"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
     </button>
   </div>
 

@@ -542,11 +542,18 @@
 
   .body{flex:1; min-height:0; display:flex; padding-left:18px}
   .state{flex:1; display:grid; place-items:center; color:var(--v2-txt3); font-size:15px}
-  .rail{display:flex; flex-direction:column; gap:1px; padding:10px 8px 0 0; position:sticky; top:0}
-  .rl{border:0; background:transparent; font:11px var(--v2-mono); color:var(--v2-txt3); cursor:pointer;
-    padding:1px 4px; border-radius:3px; transition:.12s}
-  .rl:disabled{opacity:.35; cursor:default}
-  .rl.hot:hover{color:var(--v2-acc-tint); background:var(--v2-hover)}
+  /* Rail A-Z : c'est un REPERE, il doit se lire d'un coup d'oeil et se viser
+     au doigt. Auparavant 11 px colles a 1 px d'intervalle contre la grille —
+     illisible et impossible a cliquer juste. */
+  .rail{display:flex; flex-direction:column; justify-content:center; gap:2px;
+    padding:10px 12px 10px 4px; margin-right:6px; position:sticky; top:0;
+    border-right:1px solid var(--v2-line)}
+  .rl{width:22px; height:20px; display:grid; place-items:center; border:0; background:transparent;
+    font:600 11px var(--v2-mono); color:var(--v2-txt3); cursor:pointer; border-radius:5px; transition:.12s}
+  .rl:disabled{opacity:.22; cursor:default}
+  .rl.hot{color:var(--v2-txt2)}
+  .rl.hot:hover{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .rl:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px}
   /* Bascule entre les deux repères de navigation : alphabet ou époque. */
   .navmode{display:flex; align-items:center; gap:4px; padding:2px 30px 10px}
   .navmode > button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
