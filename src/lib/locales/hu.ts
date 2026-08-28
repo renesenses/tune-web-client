@@ -1784,6 +1784,7 @@ export default {
   "tip.send": "Az üzenet elküldése",
   "tip.favorite": "A szám hozzáadása a kedvencekhez",
   "tip.clearSearch": "A keresés törlése",
+  "queue.autoplayLabel": "Hasonló számok",
   "queue.autoplayTip": "Amikor a várólista kiürül, hasonló előadók számaival folytatja a lejátszást. Csak erre a zónára vonatkozik.",
   "settings.tooltips": "Súgóbuborékok",
   "settings.tooltipsOn": "Megjelenik rámutatáskor",

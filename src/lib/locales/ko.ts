@@ -1575,6 +1575,7 @@ export default {
   "tip.send": "메시지 보내기",
   "tip.favorite": "이 곡을 즐겨찾기에 추가",
   "tip.clearSearch": "검색어 지우기",
+  "queue.autoplayLabel": "비슷한 곡",
   "queue.autoplayTip": "재생 목록이 끝나면 비슷한 아티스트의 곡으로 재생을 이어갑니다. 이 구역에만 적용됩니다.",
   "settings.tooltips": "도움말 풍선",
   "settings.tooltipsOn": "마우스를 올리면 표시",

@@ -1600,6 +1600,7 @@ export default {
   "tip.send": "Enviar el mensaje",
   "tip.favorite": "Añadir esta pista a tus favoritos",
   "tip.clearSearch": "Borrar la búsqueda",
+  "queue.autoplayLabel": "Temas similares",
   "queue.autoplayTip": "Cuando la cola termina, sigue con temas de artistas parecidos. Solo afecta a esta zona.",
   "settings.tooltips": "Globos de ayuda",
   "settings.tooltipsOn": "Mostrar al pasar el ratón",
