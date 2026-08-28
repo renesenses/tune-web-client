@@ -1315,8 +1315,6 @@ export default {
   "metadata.mergeGroupItem": "{title}（{count} 曲）",
   "metadata.mergeGroupResult": "統合完了: {moved} 曲を移動、合計 {total} 曲",
   "metadata.mergeIntoOne": "1つのアルバムに統合",
-  "metadata.moveToDuplicates": "/data/duplicates に移動",
-  "metadata.moveToDuplicatesConfirm": "「{title}」（{artist}）を /data/duplicates に移動しますか？\n\nファイルは移動され、アルバムはライブラリから削除されます。",
   "metadata.mp3AllOk": "MP3 OK: {okFiles} 件の正常なファイル、問題は検出されませんでした。",
   "metadata.mp3DiagnoseFailed": "MP3 診断に失敗",
   "metadata.mp3DiagnoseRunning": "MP3 診断を実行中（mutagen + ffprobe）…",

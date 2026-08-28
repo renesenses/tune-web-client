@@ -1558,8 +1558,6 @@ export default {
   "metadata.mergeGroupItem": "{title} ({count} tracks)",
   "metadata.mergeGroupResult": "Merged: {moved} tracks moved, {total} tracks total",
   "metadata.mergeIntoOne": "Merge into a single album",
-  "metadata.moveToDuplicates": "Move to /data/duplicates",
-  "metadata.moveToDuplicatesConfirm": "Move \"{title}\" ({artist}) to /data/duplicates?\n\nThe files will be moved and the album removed from the library.",
   "metadata.mp3AllOk": "MP3 OK: {okFiles} healthy files, no issues detected.",
   "metadata.mp3DiagnoseFailed": "MP3 diagnostic failed",
   "metadata.mp3DiagnoseRunning": "MP3 diagnostic in progress (mutagen + ffprobe)…",

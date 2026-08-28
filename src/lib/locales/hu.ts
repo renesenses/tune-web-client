@@ -1499,8 +1499,6 @@ export default {
   "metadata.mergeGroupItem": "{title} ({count} szám)",
   "metadata.mergeGroupResult": "Összevonva: {moved} szám áthelyezve, összesen {total} szám",
   "metadata.mergeIntoOne": "Összevonás egyetlen albummá",
-  "metadata.moveToDuplicates": "Áthelyezés ide: /data/duplicates",
-  "metadata.moveToDuplicatesConfirm": "Áthelyezed a(z) „{title}” ({artist}) albumot ide: /data/duplicates?\n\nA fájlok áthelyeződnek, az album pedig kikerül a gyűjteményből.",
   "metadata.mp3AllOk": "MP3 rendben: {okFiles} ép fájl, nem található probléma.",
   "metadata.mp3DiagnoseFailed": "Az MP3-diagnosztika sikertelen",
   "metadata.mp3DiagnoseRunning": "MP3-diagnosztika folyamatban (mutagen + ffprobe)…",
