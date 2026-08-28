@@ -6,7 +6,7 @@
   import { activeView, settingsInitialTab, saveViewContext, loadViewContext } from '../lib/stores/navigation';
   import * as api from '../lib/api';
   import { formatTime, formatAlbumYear } from '../lib/utils';
-  import { actionRetour } from '../lib/streamingRetour';
+  import { actionRetour, etapesDeRestauration } from '../lib/streamingRetour';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -267,17 +267,31 @@
     chargerDonneesService(ctx.service);
     tab = ctx.tab;
     searchQuery = ctx.searchQuery;
-    if (ctx.genreBreadcrumb && ctx.genreBreadcrumb.length > 0) {
-      await restoreGenreBrowsing(ctx.genreBreadcrumb);
-    } else if (ctx.selectedAlbum) {
-      await selectAlbum(ctx.selectedAlbum);
-    } else if (ctx.selectedArtist) {
-      await selectArtist(ctx.selectedArtist);
-    } else if (ctx.selectedStreamingPlaylist) {
-      await selectStreamingPlaylist(ctx.selectedStreamingPlaylist);
-    } else if (searchQuery && tab === 'search') {
-      // La recherche se rejoue pour retrouver la grille de résultats.
-      await search();
+    // Quels niveaux rouvrir, et dans quel ordre : la décision est isolée dans
+    // `streamingRetour` pour se prouver sans monter la vue. Le point qui
+    // manquait est le cas à DEUX niveaux — album ouvert depuis la
+    // discographie : n'en rouvrir qu'un remettait `selectedArtist` à `null` et
+    // ramenait le défaut de Sandro (fil 1553) dès qu'on était sorti de la vue
+    // avant d'appuyer sur « Retour ».
+    for (const pas of etapesDeRestauration({
+      genres: (ctx.genreBreadcrumb?.length ?? 0) > 0,
+      album: ctx.selectedAlbum != null,
+      artiste: ctx.selectedArtist != null,
+      playlist: ctx.selectedStreamingPlaylist != null,
+      recherche: !!ctx.searchQuery && ctx.tab === 'search',
+    })) {
+      if (pas.etape === 'genres' && ctx.genreBreadcrumb) {
+        await restoreGenreBrowsing(ctx.genreBreadcrumb);
+      } else if (pas.etape === 'artiste' && ctx.selectedArtist) {
+        await selectArtist(ctx.selectedArtist);
+      } else if (pas.etape === 'album' && ctx.selectedAlbum) {
+        await selectAlbum(ctx.selectedAlbum, pas.depuisArtiste);
+      } else if (pas.etape === 'playlist' && ctx.selectedStreamingPlaylist) {
+        await selectStreamingPlaylist(ctx.selectedStreamingPlaylist);
+      } else if (pas.etape === 'recherche') {
+        // La recherche se rejoue pour retrouver la grille de résultats.
+        await search();
+      }
     }
   }
 
