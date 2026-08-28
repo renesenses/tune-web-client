@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { Album, Artist, StreamingServiceStatus } from '../types';
+import type { Album, Artist, StreamingPlaylist, StreamingServiceStatus } from '../types';
 
 export const activeStreamingService = writable<string | null>(null);
 
@@ -64,6 +64,14 @@ export const pendingStreamingAlbum = writable<Album | null>(null);
 /// service) efface la provenance.
 export const streamingAlbumOrigin = writable<string | null>(null);
 export const pendingStreamingArtist = writable<Artist | null>(null);
+
+/// Playlist de service à rouvrir en arrivant sur StreamingView (#2370).
+///
+/// Même plomberie que `pendingStreamingAlbum` : l'écran Favoris ne peut pas
+/// ouvrir une playlist Qobuz par `playlists.id` — elle n'existe pas dans notre
+/// base — il la désigne donc par son identifiant de service et laisse
+/// StreamingView la charger.
+export const pendingStreamingPlaylist = writable<StreamingPlaylist | null>(null);
 
 export interface GenreBreadcrumbItem {
   id: string | null;

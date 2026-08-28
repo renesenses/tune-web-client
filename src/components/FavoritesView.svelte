@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { currentProfileId, favoritePlaylistIds, favoriteFacetKeys, facetFavKey } from '../lib/stores/profile';
+  import { currentProfileId, favoritePlaylistIds, favoriteFacetKeys, facetFavKey, favoriteStreamingKeys, streamingFavKey } from '../lib/stores/profile';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { playFromHere } from '../lib/playback';
   import { trier, clesPourOnglet, type CleDeTri } from '../lib/favoritesSort';
@@ -17,7 +17,8 @@
   import ServiceBadge from './ServiceBadge.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
-  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices } from '../lib/stores/streaming';
+  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, pendingStreamingPlaylist, streamingServices } from '../lib/stores/streaming';
+  import { fusionnerPlaylistsFavorites, type PlaylistFavorite } from '../lib/streamingFavorites';
   import type { Track, Album, Artist, Playlist } from '../lib/types';
 
   interface Props {
@@ -58,7 +59,9 @@
   let favTracks = $state<Track[]>([]);
   let favAlbums = $state<Album[]>([]);
   let favArtists = $state<Artist[]>([]);
-  let favPlaylists = $state<Playlist[]>([]);
+  // `PlaylistFavorite` et non `Playlist` : une playlist de service n'a pas
+  // d'`id` entier, elle porte `source` + `source_id` (#2370).
+  let favPlaylists = $state<PlaylistFavorite[]>([]);
   /**
    * Labels mis en favori — désignés par leur VALEUR, une chaîne : un label n'a
    * pas d'id.
@@ -116,14 +119,38 @@
   // Une playlist locale porte un `name`, un label une `value` — d'où la seule
   // clé alphabétique « titre » sur ces deux onglets. Les deux acceptent en
   // revanche la date d'ajout : tout favori a été posé un jour.
-  let displayPlaylists = $derived(trier(favPlaylists, tri, triDescendant));
+  //
+  // FUSION #2001 + #2370 : les playlists se FILTRENT par source (elles mêlent
+  // le local et Qobuz/Tidal depuis #2370) PUIS se trient. L'ordre compte —
+  // trier d'abord puis filtrer donnerait le même résultat ici, mais filtrer
+  // d'abord épargne le tri des lignes qu'on ne montrera pas.
+  //
+  // ⚠️ Le tri « date d'ajout » est un NO-OP sur les playlists :
+  // `fusionnerPlaylistsFavorites` ne reporte ni `created_at` ni
+  // `favorite_added_at` dans `PlaylistFavorite`. Sans date, `trier` rend la
+  // liste inchangée. Rien n'est cassé, mais l'option ne fait rien tant que la
+  // date ne traverse pas cette fonction — hors périmètre de cette fusion.
+  let displayPlaylists = $derived(
+    trier(
+      sourceFilter === 'all'
+        ? favPlaylists
+        : favPlaylists.filter((p) => srcOf(p) === sourceFilter),
+      tri,
+      triDescendant,
+    ),
+  );
   let displayLabels = $derived(trier(favLabels, tri, triDescendant));
 
-  // Le filtre par SOURCE reste réservé aux trois onglets d'origine : une
-  // playlist locale et un label sont locaux par nature, la pastille n'aurait
-  // qu'une valeur.
+  // Le filtre par SOURCE couvre les trois onglets d'origine ET les playlists :
+  // depuis #2370 cet onglet mêle le local et les services, la pastille y a donc
+  // plus d'une valeur. Un label, lui, reste local par nature.
+  //
+  // `ongletTriable` de main disparaît : il disait que seuls trois onglets se
+  // trient, ce que #2001 rend faux — `clesPourOnglet` a un cas `default` qui
+  // rend `['defaut','titre','ajout']` pour les playlists et les labels.
   let ongletAvecSources = $derived(
-    activeTab === 'tracks' || activeTab === 'albums' || activeTab === 'artists',
+    activeTab === 'tracks' || activeTab === 'albums' || activeTab === 'artists'
+      || activeTab === 'playlists',
   );
   let clesDeTri = $derived(clesPourOnglet(activeTab));
 
@@ -171,10 +198,17 @@
   );
 
   function sourcesFor(tab: FavTab): Set<string> {
-    // Playlists locales et labels ne viennent d'aucun service : le filtre par
-    // source n'a rien à y trancher.
-    if (tab === 'playlists' || tab === 'labels') return new Set(['local']);
-    const list = tab === 'tracks' ? favTracks : tab === 'albums' ? favAlbums : favArtists;
+    // Un label ne vient d'aucun service : le filtre par source n'a rien à y
+    // trancher. Les playlists, elles, peuvent désormais venir de Qobuz ou de
+    // Tidal (#2370) — les figer sur « local » retirerait le filtre à l'onglet
+    // qui en a le plus besoin, et renverrait une liste vide en y arrivant avec
+    // un filtre de service posé.
+    if (tab === 'labels') return new Set(['local']);
+    const list =
+      tab === 'tracks' ? favTracks
+      : tab === 'albums' ? favAlbums
+      : tab === 'artists' ? favArtists
+      : favPlaylists;
     return new Set(list.map(srcOf));
   }
 
@@ -353,8 +387,11 @@
         ...heartedArtists,
         ...native.artists.filter((a) => !seenArtists.has(key(a))),
       ];
-      // Playlists LOCALES : `getFavorites` les hydrate déjà par leur id.
-      favPlaylists = local.playlists ?? [];
+      // Playlists locales (hydratées par leur id) ET playlists de service
+      // mises en favori dans Tune. Ces dernières étaient écrites en base et
+      // n'étaient relues nulle part : le cœur posé sur une playlist Qobuz
+      // n'aboutissait à aucun écran (#2370, Didier fil 1541).
+      favPlaylists = fusionnerPlaylistsFavorites(local.playlists ?? [], streaming);
       // La ligne de facette entière, sa date comprise : sans elle, l'onglet
       // Labels ne saurait pas se trier par date d'ajout (#2001).
       favLabels = facets;
@@ -453,9 +490,40 @@
 
   // --- Playlists et labels en favori (#2442) -------------------------------
 
-  async function removeFavPlaylist(pl: Playlist) {
+  async function removeFavPlaylist(pl: PlaylistFavorite) {
     const pid = $currentProfileId;
-    if (!pid || pl.id == null) return;
+    if (!pid) return;
+
+    // Playlist de SERVICE : elle vit dans `streaming_favorites`, désignée par
+    // service + identifiant. Même forme que `removeFavTrack` juste plus bas
+    // (#2370).
+    if (pl.source_id && pl.source !== 'local') {
+      const { source, source_id } = pl;
+      favPlaylists = favPlaylists.filter(
+        (p) => !(p.source === source && p.source_id === source_id),
+      );
+      favoriteStreamingKeys.update((set) => {
+        set.delete(streamingFavKey('playlist', source, source_id));
+        return set;
+      });
+      try {
+        await api.removeProfileStreamingFavorite(pid, {
+          item_type: 'playlist', service: source, service_id: source_id,
+        });
+      } catch (e) {
+        console.error('Remove streaming playlist favorite error:', e);
+        loadFavorites();
+        return;
+      }
+      // Recopie vers le service, au mieux : Qobuz REFUSE ce type faute
+      // d'appel de souscription établi (#2474). Le favori de Tune, lui, est
+      // bien retiré — c'est la même règle qu'à la pose.
+      api.removeStreamingFavorite(source, 'playlists', source_id).catch(() => {});
+      notifyStreamingFavoritesChanged();
+      return;
+    }
+
+    if (pl.id == null) return;
     const id = pl.id;
     favPlaylists = favPlaylists.filter((p) => p.id !== id);
     favoritePlaylistIds.update((set) => { set.delete(id); return set; });
@@ -480,11 +548,30 @@
     }
   }
 
-  /** Ouvre la playlist DANS le gestionnaire, pas sa simple liste. */
-  function openPlaylist(pl: Playlist) {
+  /** Ouvre la playlist DANS le gestionnaire, pas sa simple liste.
+   *
+   *  Une playlist de service n'y a pas sa place : elle n'est pas dans notre
+   *  base. Elle s'ouvre sur sa fiche, côté service — même plomberie que celle
+   *  d'un album Qobuz favori juste au-dessus (#2370). */
+  function openPlaylist(pl: PlaylistFavorite) {
+    if (pl.source_id && pl.source !== 'local') {
+      activeStreamingService.set(pl.source as any);
+      pendingStreamingPlaylist.set(versStreamingPlaylist(pl));
+      activeView.set('streaming');
+      return;
+    }
     if (pl.id == null) return;
     pendingPlaylistId.set(pl.id);
     activeView.set('playlistmanager');
+  }
+
+  /** La forme qu'attend StreamingView. `track_count` est inconnu tant que la
+   *  fiche n'est pas chargée : elle le remplacera. */
+  function versStreamingPlaylist(pl: PlaylistFavorite) {
+    return {
+      source_id: pl.source_id!, name: pl.name, track_count: pl.track_count ?? 0,
+      duration_ms: 0, cover_path: pl.cover_path ?? null, source: pl.source,
+    } as any;
   }
 
   /** Renvoie sur l'onglet Labels de la Bibliothèque, seul écran qui les rend. */
@@ -493,9 +580,19 @@
     activeView.set('library');
   }
 
-  async function playPlaylist(pl: Playlist) {
-    if (!zone?.id || pl.id == null) return;
+  async function playPlaylist(pl: PlaylistFavorite) {
+    if (!zone?.id) return;
     try {
+      // Une playlist de service se lit par son identifiant de service, pas par
+      // un `playlist_id` local qu'elle n'a pas — sinon le bouton ne fait rien,
+      // exactement le « + » mort décrit plus haut (#2370).
+      if (pl.source_id && pl.source !== 'local') {
+        await playAndSync(zone.id, {
+          source: pl.source as any, streaming_playlist_id: pl.source_id,
+        } as any);
+        return;
+      }
+      if (pl.id == null) return;
       await playAndSync(zone.id, { playlist_id: pl.id } as any);
     } catch (e) {
       console.error('Play playlist error:', e);
@@ -813,14 +910,17 @@
     {/if}
 
   {:else if activeTab === 'playlists'}
-    {#if favPlaylists.length === 0}
+    {#if displayPlaylists.length === 0}
       <div class="empty-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
         <p>{$tr('favorites.empty')}</p>
       </div>
     {:else}
       <div class="track-list">
-        {#each displayPlaylists as pl (pl.id)}
+        <!-- Clé : une playlist de service n'a pas d'`id`. Garder `(pl.id)`
+             donnerait la même clé `null` à toutes les playlists Qobuz, et
+             Svelte refuserait le bloc pour clés dupliquées dès la deuxième. -->
+        {#each displayPlaylists as pl (pl.id ?? `${pl.source}:${pl.source_id}`)}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="track-item" onclick={() => openPlaylist(pl)}>
@@ -830,7 +930,7 @@
             <div class="track-info">
               <span class="track-title-row">
                 <span class="track-title truncate">{pl.name}</span>
-                <ServiceBadge source="local" compact />
+                <ServiceBadge source={pl.source} compact />
               </span>
               {#if pl.track_count != null}
                 <span class="track-meta truncate">{pl.track_count} {$tr('common.tracks')}</span>
