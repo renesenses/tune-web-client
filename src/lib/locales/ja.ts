@@ -27,6 +27,9 @@ export default {
   "support.errorPremiumOnly": "優先サポートは Tune Premium 限定です。",
   "support.errorSessionExpired": "セッションの有効期限が切れました。再度ログインしてください。",
   "support.errorGeneric": "エラーが発生しました。しばらくしてからもう一度お試しください。",
+  "support.errorRateLimited": "サポートへの送信上限に達しました。短時間に送信しすぎています。メッセージは送信されていません。しばらくしてからお試しください。",
+  "support.errorRateLimitedRetry": "サポートへの送信上限に達しました。短時間に送信しすぎています。メッセージは送信されていません。{delay}にもう一度お試しください。",
+  "support.errorUnavailable": "サポートサービスに一時的に接続できません。メッセージは送信されていません。しばらくしてからお試しください。",
   // Support Premium v2 (diagnostic, fil de tickets, fiche système)
   "support.tab.diagnostic": "診断",
   "support.tab.tickets": "チケット",

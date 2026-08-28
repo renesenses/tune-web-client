@@ -27,6 +27,9 @@ export default {
   "support.errorPremiumOnly": "Der Priority-Support ist Tune Premium vorbehalten.",
   "support.errorSessionExpired": "Sitzung abgelaufen, bitte melde dich erneut an.",
   "support.errorGeneric": "Ein Fehler ist aufgetreten. Versuche es gleich noch einmal.",
+  "support.errorRateLimited": "Sendelimit des Supports erreicht: zu viele Nachrichten in kurzer Zeit. Deine Nachricht wurde nicht gesendet — versuche es später erneut.",
+  "support.errorRateLimitedRetry": "Sendelimit des Supports erreicht: zu viele Nachrichten in kurzer Zeit. Deine Nachricht wurde nicht gesendet — versuche es {delay} erneut.",
+  "support.errorUnavailable": "Der Support-Dienst ist vorübergehend nicht erreichbar. Deine Nachricht wurde nicht gesendet — versuche es später erneut.",
   // Support Premium v2 (diagnostic, fil de tickets, fiche système)
   "support.tab.diagnostic": "Diagnose",
   "support.tab.tickets": "Tickets",

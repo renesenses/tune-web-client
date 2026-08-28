@@ -27,6 +27,9 @@ export default {
   "support.errorPremiumOnly": "우선 지원은 Tune Premium 전용입니다.",
   "support.errorSessionExpired": "세션이 만료되었습니다. 다시 로그인하세요.",
   "support.errorGeneric": "오류가 발생했습니다. 잠시 후 다시 시도하세요.",
+  "support.errorRateLimited": "지원 문의 전송 한도에 도달했습니다. 짧은 시간에 너무 많은 메시지를 보냈습니다. 메시지가 전송되지 않았습니다. 나중에 다시 시도하세요.",
+  "support.errorRateLimitedRetry": "지원 문의 전송 한도에 도달했습니다. 짧은 시간에 너무 많은 메시지를 보냈습니다. 메시지가 전송되지 않았습니다. {delay} 다시 시도하세요.",
+  "support.errorUnavailable": "지원 서비스에 일시적으로 연결할 수 없습니다. 메시지가 전송되지 않았습니다. 나중에 다시 시도하세요.",
   // Support Premium v2 (diagnostic, fil de tickets, fiche système)
   "support.tab.diagnostic": "진단",
   "support.tab.tickets": "티켓",

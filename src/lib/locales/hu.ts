@@ -71,6 +71,9 @@ export default {
   "support.errorPremiumOnly": "A soron kívüli támogatás a Tune Premium előfizetőké.",
   "support.errorSessionExpired": "A munkamenet lejárt, jelentkezz be újra.",
   "support.errorGeneric": "Valami hiba történt. Próbáld újra egy pillanat múlva.",
+  "support.errorRateLimited": "Elérted a támogatásnak küldhető üzenetek korlátját: túl sok üzenet rövid idő alatt. Az üzeneted nem lett elküldve — próbáld újra később.",
+  "support.errorRateLimitedRetry": "Elérted a támogatásnak küldhető üzenetek korlátját: túl sok üzenet rövid idő alatt. Az üzeneted nem lett elküldve — próbáld újra {delay}.",
+  "support.errorUnavailable": "A támogatási szolgáltatás átmenetileg nem érhető el. Az üzeneted nem lett elküldve — próbáld újra később.",
   // Prémium támogatás v2 (diagnosztika, hibajegyszál, rendszerlap)
   "support.tab.diagnostic": "Diagnosztika",
   "support.tab.tickets": "Hibajegyek",

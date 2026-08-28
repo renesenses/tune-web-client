@@ -27,6 +27,9 @@ export default {
   "support.errorPremiumOnly": "优先支持仅面向 Tune Premium 用户。",
   "support.errorSessionExpired": "会话已过期，请重新登录。",
   "support.errorGeneric": "发生错误，请稍后重试。",
+  "support.errorRateLimited": "已达到支持工单的发送上限：短时间内发送了过多消息。你的消息未发送，请稍后再试。",
+  "support.errorRateLimitedRetry": "已达到支持工单的发送上限：短时间内发送了过多消息。你的消息未发送，请{delay}再试。",
+  "support.errorUnavailable": "支持服务暂时无法访问。你的消息未发送，请稍后再试。",
   // Support Premium v2 (diagnostic, fil de tickets, fiche système)
   "support.tab.diagnostic": "诊断",
   "support.tab.tickets": "工单",
