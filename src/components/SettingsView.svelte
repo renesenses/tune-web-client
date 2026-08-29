@@ -2368,25 +2368,36 @@ function setSettingsLevel(level: SettingsLevel) {
   }
 
   // --- Streaming Quality ---
-  let streamingQuality = $state<string>('max');
+  let streamingQuality = $state<api.StreamingQuality>('max');
   let qualityLoading = $state(false);
 
+  function qualityZoneId(): number | undefined {
+    const selected = get(currentZoneId);
+    return selected ?? get(zones)[0]?.id ?? undefined;
+  }
+
   async function loadStreamingQuality() {
-    const zoneId = get(zones)[0]?.id;
+    const zoneId = qualityZoneId();
     if (zoneId == null) return;
     try {
       const res = await api.getStreamingQuality(zoneId);
-      streamingQuality = res.quality ?? 'max';
-    } catch {}
+      streamingQuality = res.quality;
+    } catch (error) {
+      notifications.error(error instanceof Error ? error.message : String(error));
+    }
   }
 
   async function applyStreamingQuality() {
-    const zoneId = get(zones)[0]?.id;
+    const zoneId = qualityZoneId();
     if (zoneId == null) return;
     qualityLoading = true;
     try {
-      await api.setStreamingQuality(zoneId, streamingQuality);
-    } catch {}
+      const saved = await api.setStreamingQuality(zoneId, streamingQuality);
+      streamingQuality = saved.quality;
+    } catch (error) {
+      notifications.error(error instanceof Error ? error.message : String(error));
+      await loadStreamingQuality();
+    }
     qualityLoading = false;
   }
 
