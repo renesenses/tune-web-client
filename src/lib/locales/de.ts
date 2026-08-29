@@ -1552,6 +1552,8 @@ export default {
   "library.scanProgress": "{scanned} Dateien gescannt, {added} hinzugefügt",
   "library.stopScan": "Scan stoppen",
   "library.duplicates": "Duplikate",
+  "library.createTag": "Neuer Tag",
+  "library.createTagPrompt": "Name des neuen Tags:",
   "library.manageTags": "Tags verwalten",
   "library.renameTag": "Umbenennen",
   "library.deleteTag": "Löschen",

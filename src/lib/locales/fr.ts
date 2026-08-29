@@ -1808,6 +1808,8 @@ export default {
   "library.scanProgress": "{scanned} fichiers scannés, {added} ajoutés",
   "library.stopScan": "Arrêter le scan",
   "library.duplicates": "Doublons",
+  "library.createTag": "Nouvelle étiquette",
+  "library.createTagPrompt": "Nom de la nouvelle étiquette :",
   "library.manageTags": "Gérer les étiquettes",
   "library.renameTag": "Renommer",
   "library.deleteTag": "Supprimer",

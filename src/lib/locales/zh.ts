@@ -1552,6 +1552,8 @@ export default {
   "library.scanProgress": "已扫描 {scanned} 个文件，已添加 {added} 个",
   "library.stopScan": "停止扫描",
   "library.duplicates": "重复项",
+  "library.createTag": "新建标签",
+  "library.createTagPrompt": "新标签的名称：",
   "library.manageTags": "管理标签",
   "library.renameTag": "重命名",
   "library.deleteTag": "删除",

@@ -1805,6 +1805,8 @@ export default {
   "library.scanProgress": "{scanned} files scanned, {added} added",
   "library.stopScan": "Stop scan",
   "library.duplicates": "Duplicates",
+  "library.createTag": "New tag",
+  "library.createTagPrompt": "Name of the new tag:",
   "library.manageTags": "Manage tags",
   "library.renameTag": "Rename",
   "library.deleteTag": "Delete",

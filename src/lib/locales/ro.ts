@@ -1562,6 +1562,8 @@ export default {
   "library.scanProgress": "{scanned} fișiere scanate, {added} adăugate",
   "library.stopScan": "Oprește scanarea",
   "library.duplicates": "Duplicate",
+  "library.createTag": "Etichetă nouă",
+  "library.createTagPrompt": "Numele noii etichete:",
   "library.manageTags": "Gestionează etichetele",
   "library.renameTag": "Redenumește",
   "library.deleteTag": "Șterge",
