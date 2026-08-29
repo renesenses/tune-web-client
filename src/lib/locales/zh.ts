@@ -2786,6 +2786,8 @@ export default {
   "app.enrichmentRunning": "正在补充信息…",
   "app.syncing": "正在同步音乐库…",
   "app.syncingAdded": " · 已添加 {count} 个",
+  "app.scanArtistImagesPremiumSkipped": "扫描完成 · 未自动获取艺术家图片（Premium 功能）。你可以在“设置 > 媒体库”中手动运行“补充艺术家图片”。",
+  "app.scanArtistImagesDisabled": "扫描完成 · 由于“设置 > 媒体库”中的自动补充功能已关闭，因此未获取艺术家图片。",
   "app.syncingProgress": "正在同步音乐库… {count} 个文件{added}",
   "app.updateAvailable": "Tune v{version} 可用——点击更新",
   "bottomTabBar.more": "更多",

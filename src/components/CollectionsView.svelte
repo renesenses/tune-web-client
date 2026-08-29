@@ -9,8 +9,11 @@
   import { activeView, listResetNonce, saveDetailScroll, restoreDetailScroll, stashViewState, takeViewState } from '../lib/stores/navigation';
   import AlbumArt from './AlbumArt.svelte';
   import AlphaIndex from './AlphaIndex.svelte';
-  import type { Album } from '../lib/types';
   import SmartCollectionsView from './SmartCollectionsView.svelte';
+  import {
+    collectionAlbumLetters,
+    firstAlbumIndexForLetter,
+  } from '../lib/collectionAlbumIndex';
 
   // First letter of a collection name, bucketed into A-Z or '#' for anything
   // non-alphabetic (digits, symbols, accents that don't fold to A-Z).
@@ -34,6 +37,7 @@
   function backToCollectionsList() {
     selectedCollection = null;
     collectionAlbums = [];
+    activeAlbumLetter = '';
     restoreDetailScroll('collections', manualTabEl);
   }
 
@@ -79,6 +83,21 @@
     const idx = sortedCollections.findIndex((c) => collectionLetter(c?.name) === letter);
     if (idx < 0) return;
     const cards = manualTabEl?.querySelectorAll('.collection-card');
+    const card = cards?.[idx] as HTMLElement | undefined;
+    card?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+
+  // Le serveur rend les albums d'une Collection par artiste, puis année et
+  // titre (#2700 / #2675). Le rail indexe donc l'artiste — jamais le titre de
+  // l'album — et conserve le même repli d'accents que ce tri.
+  let albumLetters = $derived(collectionAlbumLetters(collectionAlbums));
+  let activeAlbumLetter = $state('');
+
+  function scrollToAlbumLetter(letter: string) {
+    activeAlbumLetter = letter;
+    const idx = firstAlbumIndexForLetter(collectionAlbums, letter);
+    if (idx < 0) return;
+    const cards = manualTabEl?.querySelectorAll('.album-card');
     const card = cards?.[idx] as HTMLElement | undefined;
     card?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
@@ -134,9 +153,12 @@
     // Remember the list scroll so Back returns to the same position.
     saveDetailScroll('collections', manualTabEl);
     selectedCollection = col;
+    activeAlbumLetter = '';
     detailLoading = true;
     try {
-      collectionAlbums = await api.getCollectionAlbums(col.id);
+      // Le rail ci-dessous indexe l'artiste : demander ce contrat plutôt que
+      // dépendre silencieusement du tri par défaut de l'endpoint (#2675).
+      collectionAlbums = await api.getCollectionAlbums(col.id, 'artist');
     } catch (e) {
       console.error('Load collection albums error:', e);
       collectionAlbums = [];
@@ -278,19 +300,29 @@
           {:else if collectionAlbums.length === 0}
             <p class="empty-msg">{$t('collections.emptyCollection')}</p>
           {:else}
-            <div class="albums-grid">
-              {#each collectionAlbums as album}
-                <div class="album-card">
-                  <button class="album-cover" onclick={() => navigateToAlbum(album)}>
-                    <AlbumArt coverPath={album.cover_path} albumId={album.id} size={160} alt={album.title} />
-                  </button>
-                  <span class="album-title truncate">{album.title}</span>
-                  <span class="album-artist truncate">{album.artist_name ?? ''}</span>
-                  <button class="remove-btn" onclick={() => removeAlbum(album.id)} title={$t('collections.remove')}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                  </button>
-                </div>
-              {/each}
+            <div class="collection-albums-section">
+              {#if albumLetters.length > 5}
+                <AlphaIndex
+                  letters={albumLetters}
+                  activeLetter={activeAlbumLetter}
+                  onSelect={scrollToAlbumLetter}
+                  sticky
+                />
+              {/if}
+              <div class="albums-grid">
+                {#each collectionAlbums as album}
+                  <div class="album-card">
+                    <button class="album-cover" onclick={() => navigateToAlbum(album)}>
+                      <AlbumArt coverPath={album.cover_path} albumId={album.id} size={160} alt={album.title} />
+                    </button>
+                    <span class="album-title truncate">{album.title}</span>
+                    <span class="album-artist truncate">{album.artist_name ?? ''}</span>
+                    <button class="remove-btn" onclick={() => removeAlbum(album.id)} title={$t('collections.remove')}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    </button>
+                  </div>
+                {/each}
+              </div>
             </div>
           {/if}
         </div>
@@ -621,9 +653,19 @@
   }
 
   .albums-grid {
+    flex: 1;
+    min-width: 0;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: var(--space-md);
+  }
+
+  /* Rail à gauche de la grille d'albums, sur le même modèle que la
+     Bibliothèque. `.tab-content` reste l'unique conteneur de défilement. */
+  .collection-albums-section {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
   }
 
   .album-card {

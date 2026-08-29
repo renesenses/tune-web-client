@@ -2786,6 +2786,8 @@ export default {
   "app.enrichmentRunning": "Enriquecimiento en curso…",
   "app.syncing": "Sincronizando la biblioteca…",
   "app.syncingAdded": " · {count} añadidos",
+  "app.scanArtistImagesPremiumSkipped": "Escaneo completado · las imágenes de artistas no se buscaron automáticamente (función Premium). Puedes ejecutar «Enriquecer imágenes de artistas» manualmente en Ajustes > Biblioteca.",
+  "app.scanArtistImagesDisabled": "Escaneo completado · las imágenes de artistas no se buscaron porque el enriquecimiento automático está desactivado en Ajustes > Biblioteca.",
   "app.syncingProgress": "Sincronizando la biblioteca… {count} archivos{added}",
   "app.updateAvailable": "Tune v{version} disponible: haz clic para actualizar",
   "bottomTabBar.more": "Más",

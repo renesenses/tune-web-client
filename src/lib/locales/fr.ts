@@ -5,6 +5,8 @@ export default {
   'app.syncing': 'Synchronisation de la bibliothèque…',
   'app.syncingProgress': 'Synchronisation de la bibliothèque… {count} fichiers{added}',
   'app.syncingAdded': ' · {count} ajoutés',
+  'app.scanArtistImagesPremiumSkipped': "Scan terminé · les images d’artistes n’ont pas été recherchées automatiquement (fonction Premium). Vous pouvez lancer « Enrichir les images d’artistes » dans Réglages > Bibliothèque.",
+  'app.scanArtistImagesDisabled': 'Scan terminé · les images d’artistes n’ont pas été recherchées car l’enrichissement automatique est désactivé dans Réglages > Bibliothèque.',
   'app.connecting': 'Connexion à {label}…',
   'app.updateAvailable': 'Tune v{version} disponible — cliquez pour mettre à jour',
   'app.dismiss': 'Masquer',
