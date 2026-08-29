@@ -2796,6 +2796,8 @@ export default {
   "app.enrichmentRunning": "Îmbogățire în curs…",
   "app.syncing": "Se sincronizează biblioteca…",
   "app.syncingAdded": " · {count} adăugate",
+  "app.scanArtistImagesPremiumSkipped": "Scanare finalizată · imaginile artiștilor nu au fost căutate automat (funcție Premium). Poți porni manual „Îmbogățește imaginile artiștilor” din Setări > Bibliotecă.",
+  "app.scanArtistImagesDisabled": "Scanare finalizată · imaginile artiștilor nu au fost căutate deoarece îmbogățirea automată este dezactivată în Setări > Bibliotecă.",
   "app.syncingProgress": "Se sincronizează biblioteca… {count} fișiere{added}",
   "app.updateAvailable": "Tune v{version} disponibil — clic pentru actualizare",
   "bottomTabBar.more": "Mai mult",

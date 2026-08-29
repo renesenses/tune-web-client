@@ -2786,6 +2786,8 @@ export default {
   "app.enrichmentRunning": "Anreicherung läuft…",
   "app.syncing": "Bibliothek wird synchronisiert…",
   "app.syncingAdded": " · {count} hinzugefügt",
+  "app.scanArtistImagesPremiumSkipped": "Scan abgeschlossen · Künstlerbilder wurden nicht automatisch abgerufen (Premium-Funktion). Du kannst „Künstlerbilder anreichern“ unter Einstellungen > Bibliothek manuell starten.",
+  "app.scanArtistImagesDisabled": "Scan abgeschlossen · Künstlerbilder wurden nicht abgerufen, weil die automatische Anreicherung unter Einstellungen > Bibliothek deaktiviert ist.",
   "app.syncingProgress": "Bibliothek wird synchronisiert… {count} Dateien{added}",
   "app.updateAvailable": "Tune v{version} verfügbar — zum Aktualisieren klicken",
   "bottomTabBar.more": "Mehr",

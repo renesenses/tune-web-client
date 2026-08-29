@@ -5,6 +5,8 @@ export default {
   "app.syncing": "Gyűjtemény szinkronizálása…",
   "app.syncingProgress": "Gyűjtemény szinkronizálása… {count} fájl{added}",
   "app.syncingAdded": " · {count} hozzáadva",
+  "app.scanArtistImagesPremiumSkipped": "A vizsgálat befejeződött · az előadók képei nem lettek automatikusan lekérve (Premium funkció). Az „Előadói képek gazdagítása” kézzel elindítható a Beállítások > Könyvtár menüben.",
+  "app.scanArtistImagesDisabled": "A vizsgálat befejeződött · az előadók képei nem lettek lekérve, mert az automatikus gazdagítás ki van kapcsolva a Beállítások > Könyvtár menüben.",
   "app.connecting": "Csatlakozás ide: {label}…",
   "app.updateAvailable": "Elérhető a Tune v{version} — kattints a frissítéshez",
   "app.dismiss": "Elvetés",

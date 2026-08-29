@@ -5,6 +5,8 @@ export default {
   'app.syncing': 'Syncing library…',
   'app.syncingProgress': 'Syncing library… {count} files{added}',
   'app.syncingAdded': ' · {count} added',
+  'app.scanArtistImagesPremiumSkipped': 'Scan complete · artist images were not fetched automatically (Premium feature). You can run “Enrich artist images” manually in Settings > Library.',
+  'app.scanArtistImagesDisabled': 'Scan complete · artist images were not fetched because automatic enrichment is disabled in Settings > Library.',
   'app.connecting': 'Connecting to {label}…',
   'app.updateAvailable': 'Tune v{version} available — click to update',
   'app.dismiss': 'Dismiss',
