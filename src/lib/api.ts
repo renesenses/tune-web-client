@@ -3606,12 +3606,14 @@ export function setAudiophileVolumeLock(
 
 // --- Streaming Quality ---
 
+export type StreamingQuality = 'max' | 'hires' | 'cd' | 'low';
+
 export function getStreamingQuality(zoneId: number) {
-  return fetchJSON<{ quality: string }>(`${BASE}/zones/${zoneId}/quality`);
+  return fetchJSON<{ quality: StreamingQuality }>(`${BASE}/zones/${zoneId}/quality`);
 }
 
-export function setStreamingQuality(zoneId: number, quality: string) {
-  return fetchJSON<{ quality: string }>(`${BASE}/zones/${zoneId}/quality`, {
+export function setStreamingQuality(zoneId: number, quality: StreamingQuality) {
+  return fetchJSON<{ quality: StreamingQuality }>(`${BASE}/zones/${zoneId}/quality`, {
     method: 'POST',
     body: JSON.stringify({ quality }),
   });
