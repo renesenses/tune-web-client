@@ -482,6 +482,11 @@ export default {
   "transport.previous": "Előző",
   "transport.next": "Következő",
   "transport.repeat": "Ismétlés",
+  "transport.shuffleOn": "Véletlenszerű: be",
+  "transport.shuffleOff": "Véletlenszerű: ki",
+  "transport.repeatOff": "Ismétlés: ki",
+  "transport.repeatAll": "Ismétlés: teljes lista",
+  "transport.repeatOne": "Ismétlés: aktuális szám",
   // Most szól
   'nowplaying.eqDisabled': 'Hangszínszabályzó kikapcsolva',
   'nowplaying.eqFlat': 'Egyenes — nincs korrekció',

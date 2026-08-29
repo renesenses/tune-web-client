@@ -310,6 +310,11 @@ export default {
   'transport.previous': 'Anterioară',
   'transport.next': 'Următoarea',
   'transport.repeat': 'Repetă',
+  'transport.shuffleOn': 'Amestecă: activat',
+  'transport.shuffleOff': 'Amestecă: dezactivat',
+  'transport.repeatOff': 'Repetă: dezactivat',
+  'transport.repeatAll': 'Repetă: toată coada',
+  'transport.repeatOne': 'Repetă: piesa curentă',
 
   // Now Playing
   'nowplaying.eqDisabled': 'Egalizator dezactivat',

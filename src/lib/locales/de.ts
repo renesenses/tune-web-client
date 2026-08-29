@@ -304,6 +304,11 @@ export default {
   'transport.previous': 'Zurück',
   'transport.next': 'Weiter',
   'transport.repeat': 'Wiederholen',
+  'transport.shuffleOn': 'Zufallswiedergabe: ein',
+  'transport.shuffleOff': 'Zufallswiedergabe: aus',
+  'transport.repeatOff': 'Wiederholen: aus',
+  'transport.repeatAll': 'Wiederholen: ganze Warteschlange',
+  'transport.repeatOne': 'Wiederholen: aktueller Titel',
 
   // Now Playing
   'nowplaying.eqDisabled': 'Equalizer aus',

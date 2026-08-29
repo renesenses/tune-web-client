@@ -304,6 +304,11 @@ export default {
   'transport.previous': '前へ',
   'transport.next': '次へ',
   'transport.repeat': 'リピート',
+  'transport.shuffleOn': 'シャッフル：オン',
+  'transport.shuffleOff': 'シャッフル：オフ',
+  'transport.repeatOff': 'リピート：オフ',
+  'transport.repeatAll': 'リピート：キュー全体',
+  'transport.repeatOne': 'リピート：現在の曲',
 
   // Now Playing
   'nowplaying.eqDisabled': 'イコライザー オフ',
