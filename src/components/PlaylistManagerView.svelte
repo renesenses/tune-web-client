@@ -2550,9 +2550,13 @@
     gap: var(--space-sm);
   }
 
+  /* Meme oubli que sur la fiche album (#2510) : cinq boutons libelles
+     (importer, recuperer, transferer, comparer, tout lire) sur une rangee qui
+     ne passait jamais a la ligne, dans un conteneur qui rogne l'horizontale. */
   .detail-actions {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: var(--space-sm);
   }
 

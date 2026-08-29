@@ -4068,9 +4068,19 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     text-decoration: underline;
   }
 
+  /* La rangee d'actions doit passer a la ligne. Elle porte jusqu'a sept
+     boutons (lecture, file, edition, gravure des tags, re-identification,
+     signalement, Collection) dont les libelles sont plus longs en francais
+     qu'en anglais. Sans `flex-wrap`, elle restait sur une seule ligne : sur un
+     portable 1366x768 le dernier bouton — « Collection » — depassait de 53 px
+     le bord de `.library-scroller`, qui est en `overflow-x: hidden` et le
+     rognait sans laisser aucun defilement horizontal pour aller le chercher
+     (#2510, releve par Lulu sur un Asus 15,6"). Le bouton n'etait donc pas
+     seulement malcommode : il etait inatteignable. */
   .detail-actions {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: var(--space-sm);
     margin-top: var(--space-md);
   }
