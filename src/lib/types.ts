@@ -233,6 +233,10 @@ export interface Zone {
    *  `playback.track_changed` : il évite de retélécharger la file entière à
    *  chaque avance de piste (#1096). Absent des serveurs plus anciens. */
   queue_position?: number;
+  /** Décision autoritaire de l'endpoint « suivant ». Elle suit la permutation
+   *  réelle sous aléatoire, contrairement à `queue_position` et à l'ordre brut
+   *  de la file. Absente avec un serveur antérieur à #2337. */
+  can_skip_next?: boolean;
   signal_path?: SignalPath | null;
   stereo_pair_id?: string | null;
   stereo_channel?: 'left' | 'right' | null;
