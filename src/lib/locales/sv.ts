@@ -2739,6 +2739,8 @@ export default {
   "app.enrichmentRunning": "Berikning pågår…",
   "app.syncing": "Synkroniserar biblioteket…",
   "app.syncingAdded": " · {count} tillagda",
+  "app.scanArtistImagesPremiumSkipped": "Skanningen är klar · artistbilder hämtades inte automatiskt (Premium-funktion). Du kan köra ”Berika artistbilder” manuellt under Inställningar > Bibliotek.",
+  "app.scanArtistImagesDisabled": "Skanningen är klar · artistbilder hämtades inte eftersom automatisk berikning är avstängd under Inställningar > Bibliotek.",
   "app.syncingProgress": "Synkroniserar biblioteket… {count} filer{added}",
   "app.updateAvailable": "Tune v{version} tillgänglig – klicka för att uppdatera",
   "bottomTabBar.more": "Mer",
