@@ -2180,34 +2180,24 @@ export function stopServer() {
 
 // Peer discovery
 export interface TunePeer {
+  id: string;
   name: string;
   host: string;
   port: number;
+  available: boolean;
   version: string;
-  tracks: number;
-  zones: number;
-  server_id?: string;
-  /** false = the peer was added but is not currently reachable. */
-  online?: boolean;
 }
 
-export function getTunePeers() {
-  return fetchJSON<TunePeer[]>(`${BASE}/system/peers`);
+interface TunePeersDiscovery {
+  items: TunePeer[];
+  total: number;
+  discovery: string;
 }
 
-/** Add another Tune server by IP:port (validated server-side; persisted). */
-export function addTunePeer(host: string, port: number = 8888) {
-  return fetchJSON<TunePeer>(`${BASE}/system/peers`, {
-    method: 'POST',
-    body: JSON.stringify({ host, port }),
-  });
-}
-
-export function removeTunePeer(host: string, port: number = 8888) {
-  return fetchJSON<{ ok: boolean }>(`${BASE}/system/peers`, {
-    method: 'DELETE',
-    body: JSON.stringify({ host, port }),
-  });
+/** Serveurs Tune découverts automatiquement sur le réseau local par mDNS. */
+export async function getTunePeers(): Promise<TunePeer[]> {
+  const response = await fetchJSON<TunePeersDiscovery>(`${BASE}/peers`);
+  return response.items;
 }
 
 export function browsePeer(ip: string, port: number = 8888) {

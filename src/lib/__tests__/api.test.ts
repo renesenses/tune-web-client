@@ -318,6 +318,22 @@ describe('critical endpoint URLs', () => {
     expect(fetchCalls[0].url).toBe('/api/v1/system/diagnostics/network');
   });
 
+  it('getTunePeers() lit et déballe la découverte automatique', async () => {
+    const peer = {
+      id: 'tune-salon',
+      name: 'Tune Salon',
+      host: '192.0.2.10',
+      port: 8888,
+      available: true,
+      version: '0.9.123',
+    };
+    mockFetch({ items: [peer], total: 1, discovery: '_tune-server._tcp' });
+
+    await expect(api.getTunePeers()).resolves.toEqual([peer]);
+    expect(fetchCalls[0].url).toBe('/api/v1/peers');
+    expect(fetchCalls[0].init?.method).toBeUndefined();
+  });
+
   it('no endpoint calls fetch(\'/\') — all must use /api/v1/ prefix', async () => {
     mockFetch({ ok: true });
 
