@@ -708,13 +708,6 @@ export function invokeZonePin(zoneId: number, index: number) {
   return fetchJSON<any>(`${BASE}/zones/${zoneId}/pins/${index}/invoke`, { method: 'POST' });
 }
 
-export function saveQueueAsPin(zoneId: number, title: string, index?: number) {
-  return fetchJSON<any>(`${BASE}/zones/${zoneId}/pins/from-queue`, {
-    method: 'POST',
-    body: JSON.stringify({ title, index }),
-  });
-}
-
 // --- Zone Manager ---
 
 export function getZoneOverview() {

@@ -49,8 +49,6 @@
   let pinsLoading = $state(false);
   let pins = $state<any[]>([]);
   let maxPinSlots = $state(0);
-  let saveQueueTitle = $state('');
-  let savingQueuePin = $state(false);
 
   let confirmDelete = $state(false);
   let loading = $state(false);
@@ -276,19 +274,6 @@
     }
   }
 
-  async function handleSaveQueueAsPin() {
-    if (zone.id === null || !saveQueueTitle.trim()) return;
-    savingQueuePin = true;
-    try {
-      await api.saveQueueAsPin(zone.id, saveQueueTitle.trim());
-      saveQueueTitle = '';
-      await loadPins();
-    } catch (e: any) {
-      error = e.message || 'Failed to save queue as pin';
-    }
-    savingQueuePin = false;
-  }
-
   $effect(() => {
     if (zone.output_type === 'openhome') {
       loadPins();
@@ -445,23 +430,6 @@
           </div>
         {/if}
 
-        <div class="save-queue-row">
-          <input
-            class="sync-input save-queue-input"
-            type="text"
-            placeholder="Save queue as pin..."
-            bind:value={saveQueueTitle}
-            onkeydown={(e) => { if (e.key === 'Enter') handleSaveQueueAsPin(); }}
-            disabled={savingQueuePin}
-          />
-          <button
-            class="btn btn-primary btn-sm"
-            onclick={handleSaveQueueAsPin}
-            disabled={!saveQueueTitle.trim() || savingQueuePin}
-          >
-            {savingQueuePin ? '...' : 'Save'}
-          </button>
-        </div>
       </div>
     {/if}
 
@@ -846,17 +814,6 @@
     display: flex;
     gap: 4px;
     flex-shrink: 0;
-  }
-
-  .save-queue-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-  }
-
-  .save-queue-input {
-    flex: 1;
   }
 
   .ir-status {
