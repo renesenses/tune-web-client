@@ -1295,6 +1295,57 @@ function setSettingsLevel(level: SettingsLevel) {
     pairingMessage = null;
   }
 
+  // Vrai crossfade : capacité par zone, et non préférence globale. Le serveur
+  // tranche sur la sortie réellement attachée (local PCM partagé uniquement).
+  let crossfadeEnabled = $state(false);
+  let crossfadeDuration = $state(3);
+  let crossfadeAvailable = $state(false);
+  let crossfadeLoading = $state(false);
+  let crossfadeLoadedZone: number | null = $state(null);
+
+  async function loadCrossfade(zoneId: number) {
+    crossfadeLoading = true;
+    try {
+      const contract = await api.getCrossfade(zoneId);
+      if ($currentZoneId !== zoneId) return;
+      crossfadeAvailable = contract.available;
+      crossfadeEnabled = contract.enabled;
+      crossfadeDuration = contract.duration;
+      crossfadeLoadedZone = zoneId;
+    } catch {
+      crossfadeAvailable = false;
+      crossfadeEnabled = false;
+    } finally {
+      if ($currentZoneId === zoneId) crossfadeLoading = false;
+    }
+  }
+
+  async function applyCrossfade(enabled = crossfadeEnabled) {
+    const zoneId = $currentZoneId;
+    if (zoneId == null || !crossfadeAvailable) return;
+    const previous = crossfadeEnabled;
+    crossfadeEnabled = enabled;
+    crossfadeLoading = true;
+    try {
+      const result = await api.setCrossfade(zoneId, enabled, crossfadeDuration);
+      crossfadeEnabled = result.crossfade_enabled;
+      crossfadeDuration = result.crossfade_duration;
+      notifications.success(enabled
+        ? `Crossfade local ${crossfadeDuration}s — à partir de la prochaine piste`
+        : 'Crossfade local désactivé');
+    } catch (error) {
+      crossfadeEnabled = previous;
+      notifications.error(error instanceof Error ? error.message : 'Crossfade indisponible');
+    } finally {
+      crossfadeLoading = false;
+    }
+  }
+
+  $effect(() => {
+    const zoneId = $currentZoneId;
+    if (zoneId != null && zoneId !== crossfadeLoadedZone) void loadCrossfade(zoneId);
+  });
+
   // Streaming auth state
   let qobuzUsername = $state('');
   let qobuzPassword = $state('');
@@ -2920,6 +2971,8 @@ function setSettingsLevel(level: SettingsLevel) {
 
   const settingModified = $derived.by((): Partial<Record<SettingKey, boolean>> => ({
     'general.lockVolume': $audiophileGlobalLockVolume,
+    'general.crossfade': crossfadeEnabled,
+    'general.crossfadeDuration': crossfadeDuration !== 3,
     'general.volumeDisplay': $preferences.volumeDisplay !== 'percent',
     'general.voiceCommand': (() => { try { return localStorage.getItem('tune_voice_ai_enabled') === 'true'; } catch { return false; } })(),
     'library.folderPlaylists': config?.scan_folder_playlists === true || config?.scan_folder_playlists === 'true',
@@ -3566,6 +3619,43 @@ function setSettingsLevel(level: SettingsLevel) {
             </div>
           {/if}
         {/each}
+      {/if}
+      <div class="setting-row" class:lv-hidden={!lvOk('general.crossfade')}>
+        <div class="setting-label">
+          <span>Crossfade local</span>
+          <span class="setting-hint">
+            {#if crossfadeAvailable}
+              Recouvrement equal-power de deux flux PCM. Désactive le bit-perfect pendant la transition.
+            {:else}
+              Indisponible sur cette zone : les sorties réseau, navigateur, PURE et exclusives gardent une transition séquentielle.
+            {/if}
+          </span>
+        </div>
+        <label class="toggle">
+          <input
+            type="checkbox"
+            checked={crossfadeEnabled}
+            disabled={!crossfadeAvailable || crossfadeLoading}
+            onchange={(event) => applyCrossfade((event.target as HTMLInputElement).checked)}
+          />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      {#if crossfadeEnabled && crossfadeAvailable}
+        <div class="setting-row" class:lv-hidden={!lvOk('general.crossfadeDuration')}>
+          <div class="setting-label">
+            <span>Durée du recouvrement : {crossfadeDuration}s</span>
+            <span class="setting-hint">{$t('eq.effectNextTrack' as any)}</span>
+          </div>
+          <input
+            type="range"
+            min="1" max="12" step="1"
+            bind:value={crossfadeDuration}
+            disabled={crossfadeLoading}
+            onchange={() => applyCrossfade(true)}
+            style="flex: 1; max-width: 200px; accent-color: var(--tune-accent, #007AFF);"
+          />
+        </div>
       {/if}
       <div class="setting-row">
         <div class="setting-label">

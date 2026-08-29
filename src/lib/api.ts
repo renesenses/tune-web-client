@@ -3268,6 +3268,35 @@ export function saveQueueAsPlaylist(zoneId: number, name?: string) {
   return fetchJSON<any>(`${BASE}/zones/${zoneId}/queue/save-as-playlist`, { method: 'POST', body: JSON.stringify({ name }) });
 }
 
+// --- Crossfade local PCM ---
+
+export interface CrossfadeContract {
+  available: boolean;
+  enabled: boolean;
+  requested_enabled: boolean;
+  duration: number;
+  scope: 'local_pcm';
+  other_outputs: 'sequential_track_transition';
+}
+
+export function getCrossfade(zoneId: number) {
+  return fetchJSON<CrossfadeContract>(`${BASE}/zones/${zoneId}/crossfade`);
+}
+
+export function setCrossfade(zoneId: number, enabled: boolean, duration = 3.0) {
+  return fetchJSON<{
+    zone_id: number;
+    available: boolean;
+    crossfade_enabled: boolean;
+    crossfade_duration: number;
+    scope: 'local_pcm';
+    applies_from: 'next_track';
+  }>(`${BASE}/zones/${zoneId}/crossfade`, {
+    method: 'POST',
+    body: JSON.stringify({ enabled, duration }),
+  });
+}
+
 // --- Volume Normalization ---
 
 export function setNormalization(zoneId: number, enabled: boolean, targetLufs = -14.0) {
