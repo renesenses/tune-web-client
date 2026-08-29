@@ -304,6 +304,11 @@ export default {
   'transport.previous': '上一首',
   'transport.next': '下一首',
   'transport.repeat': '重复',
+  'transport.shuffleOn': '随机播放：开',
+  'transport.shuffleOff': '随机播放：关',
+  'transport.repeatOff': '重复：关',
+  'transport.repeatAll': '重复：整个队列',
+  'transport.repeatOne': '重复：当前曲目',
 
   // Now Playing
   'nowplaying.eqDisabled': '均衡器已关闭',

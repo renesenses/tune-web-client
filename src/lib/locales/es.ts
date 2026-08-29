@@ -304,6 +304,11 @@ export default {
   'transport.previous': 'Anterior',
   'transport.next': 'Siguiente',
   'transport.repeat': 'Repetir',
+  'transport.shuffleOn': 'Aleatorio: activado',
+  'transport.shuffleOff': 'Aleatorio: desactivado',
+  'transport.repeatOff': 'Repetir: desactivado',
+  'transport.repeatAll': 'Repetir: toda la cola',
+  'transport.repeatOne': 'Repetir: pista actual',
 
   // Now Playing
   'nowplaying.eqDisabled': 'Ecualizador desactivado',

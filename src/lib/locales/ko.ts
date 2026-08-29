@@ -304,6 +304,11 @@ export default {
   'transport.previous': '이전',
   'transport.next': '다음',
   'transport.repeat': '반복',
+  'transport.shuffleOn': '셔플: 켜짐',
+  'transport.shuffleOff': '셔플: 꺼짐',
+  'transport.repeatOff': '반복: 꺼짐',
+  'transport.repeatAll': '반복: 전체 대기열',
+  'transport.repeatOne': '반복: 현재 트랙',
 
   // Now Playing
   'nowplaying.eqDisabled': '이퀄라이저 꺼짐',

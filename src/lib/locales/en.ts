@@ -506,6 +506,11 @@ export default {
   'transport.previous': 'Previous',
   'transport.next': 'Next',
   'transport.repeat': 'Repeat',
+  'transport.shuffleOn': 'Shuffle: on',
+  'transport.shuffleOff': 'Shuffle: off',
+  'transport.repeatOff': 'Repeat: off',
+  'transport.repeatAll': 'Repeat: whole queue',
+  'transport.repeatOne': 'Repeat: current track',
 
   // Now Playing
   'nowplaying.eqDisabled': 'Equalizer off',

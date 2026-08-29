@@ -278,6 +278,11 @@ export default {
   'transport.previous': 'Föregående',
   'transport.next': 'Nästa',
   'transport.repeat': 'Upprepa',
+  'transport.shuffleOn': 'Blanda: på',
+  'transport.shuffleOff': 'Blanda: av',
+  'transport.repeatOff': 'Upprepa: av',
+  'transport.repeatAll': 'Upprepa: hela kön',
+  'transport.repeatOne': 'Upprepa: aktuellt spår',
 
   // Now Playing
   'nowplaying.eqDisabled': 'Equalizer av',

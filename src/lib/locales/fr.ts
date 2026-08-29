@@ -506,6 +506,11 @@ export default {
   'transport.previous': 'Précédent',
   'transport.next': 'Suivant',
   'transport.repeat': 'Répéter',
+  'transport.shuffleOn': 'Aléatoire : activé',
+  'transport.shuffleOff': 'Aléatoire : désactivé',
+  'transport.repeatOff': 'Répéter : désactivé',
+  'transport.repeatAll': 'Répéter : toute la file',
+  'transport.repeatOne': 'Répéter : la piste en cours',
 
   // Now Playing
   'nowplaying.eqDisabled': 'Égaliseur désactivé',
