@@ -9,6 +9,7 @@
   import { isPremium } from '../lib/stores/license';
   import { ambianceUsable, refreshAcousticStatus } from '../lib/stores/acoustic';
   import { bandcampUsable, refreshBandcampPlugin } from '../lib/stores/bandcamp';
+  import { concertsUtilisable, refreshConcertsPlugin } from '../lib/stores/concerts';
   import { preferences } from '../lib/stores/preferences';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
@@ -72,6 +73,9 @@
     // Idem pour Bandcamp : l'entrée n'a de sens que si le binaire embarque le
     // plugin. Sans cet appel, l'écran existait mais rien n'y menait (#1768).
     refreshBandcampPlugin();
+    // Idem pour Concerts, et pour la même raison : une vue déclarée et
+    // aiguillée sans bouton pour l'atteindre compile parfaitement.
+    refreshConcertsPlugin();
     // Primary: get version from /system/health (always available)
     api.getHealth()
       .then((r) => {
@@ -870,6 +874,19 @@
       <button class="nav-item" class:active={$activeView === 'bandcamp'} onclick={() => navigate('bandcamp')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"></rect><line x1="7" y1="12" x2="17" y2="12"></line></svg>
         {$t('nav.bandcamp')}
+      </button>
+    {/if}
+    <!-- « Concerts » suit Bandcamp : ce sont les deux entrées apportées par un
+         greffon, et l'utilisateur les cherche au même endroit.
+
+         Masquée quand le binaire n'embarque pas le greffon : une porte fermée
+         est pire que rien. Visible dès qu'il est présent, même non installé —
+         l'écran explique alors le geste. Le portillon Premium, lui, ne se joue
+         PAS ici : l'écran le dit, avec ce qu'il refuse et pourquoi. -->
+    {#if $concertsUtilisable}
+      <button class="nav-item" class:active={$activeView === 'concerts'} onclick={() => navigate('concerts')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2"></path><path d="M4 8a2 2 0 0 1 0 4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4a2 2 0 0 1 0-4"></path><line x1="12" y1="4" x2="12" y2="18" stroke-dasharray="2 3"></line></svg>
+        {$t('nav.concerts')}
       </button>
     {/if}
     <button class="nav-item" class:active={$activeView === 'radios'} onclick={() => navigate('radios')}>

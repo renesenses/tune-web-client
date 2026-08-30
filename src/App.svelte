@@ -66,6 +66,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import SmartAIView from './components/SmartAIView.svelte';
   import AmbianceView from './components/AmbianceView.svelte';
   import BandcampView from './components/BandcampView.svelte';
+  import ConcertsView from './components/ConcertsView.svelte';
   import CollectionsView from './components/CollectionsView.svelte';
   import SmartCollectionsView from './components/SmartCollectionsView.svelte';
   import DashboardView from './components/DashboardView.svelte';
@@ -1510,6 +1511,8 @@ import AlarmsView from './components/AlarmsView.svelte';
       <AmbianceView />
     {:else if $activeView === 'bandcamp'}
       <BandcampView />
+    {:else if $activeView === 'concerts'}
+      <ConcertsView />
     {:else if $activeView === 'browse'}
       <BrowseView onAddToPlaylist={openPlaylistModal} />
     {:else if $activeView === 'search'}
