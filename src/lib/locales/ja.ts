@@ -1557,6 +1557,8 @@ export default {
   "library.scanProgress": "{scanned} 件のファイルをスキャン、{added} 件を追加",
   "library.stopScan": "スキャンを停止",
   "library.duplicates": "重複",
+  "library.createTag": "新しいタグ",
+  "library.createTagPrompt": "新しいタグの名前:",
   "library.manageTags": "タグを管理",
   "library.renameTag": "名前を変更",
   "library.deleteTag": "削除",

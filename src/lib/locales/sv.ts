@@ -1510,6 +1510,8 @@ export default {
   "library.scanProgress": "{scanned} filer skannade, {added} tillagda",
   "library.stopScan": "Stoppa skanning",
   "library.duplicates": "Dubbletter",
+  "library.createTag": "Ny tagg",
+  "library.createTagPrompt": "Namn på den nya taggen:",
   "library.manageTags": "Hantera taggar",
   "library.renameTag": "Byt namn",
   "library.deleteTag": "Ta bort",
