@@ -1282,6 +1282,11 @@
   .logo-img {
     height: 28px;
     width: auto;
+    /* Le logo ne se laisse pas écraser quand la ligne se resserre : c'est le
+       texte de version, à côté, qui doit céder en premier. Sans cela, l'image
+       est un élément flexible comme un autre et se réduit sous sa taille
+       intrinsèque. */
+    flex-shrink: 0;
   }
 
   .version {
@@ -2213,6 +2218,26 @@
     .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
     /* Hide text badges in icon-only mode to prevent overflow */
     .badge-update { display: none; }
+    /*
+      Le logo était rogné à gauche (#1394). Mesuré sur la vue réelle, à 1024px :
+      la barre fait 64px, moins 1px de bordure et 11px de barre de défilement
+      (`scrollbar-width: thin`), il reste 52px de contenu. La ligne du logo en
+      réclamait 56 — image 29,3 + espace 8 + bouton 18. `justify-content: center`
+      répartit ce débordement des DEUX côtés, et `overflow-x: hidden` rend les
+      3,6px de gauche définitivement inatteignables : on ne peut pas défiler
+      vers eux.
+
+      Ce n'est pas une divergence de moteur : Firefox 154 et Chrome rendent des
+      chiffres IDENTIQUES (débordement 4px, image à -3,6px). Le rapport disait
+      « firefox ? » avec un point d'interrogation ; c'est bien ce palier-ci, pas
+      le navigateur. Un écran Windows 1366×768 à 150 % d'échelle vaut 911px CSS
+      et tombe donc dedans.
+
+      « Quoi de neuf » reste atteignable dans Réglages → Système, où vit déjà
+      son second point d'entrée — comme la version et le nom du serveur, cachés
+      juste au-dessus pour la même raison.
+    */
+    .whatsnew-btn { display: none; }
     /* Icon-only : la pastille support devient un point discret superposable */
     .support-unread-badge { min-width: 8px; width: 8px; height: 8px; padding: 0; font-size: 0; margin-left: -4px; }
     .connected-dot { display: none; }
