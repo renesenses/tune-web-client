@@ -553,7 +553,9 @@
 </div>
 
 {#if editingTrackId !== null}
-  <TrackTagsDrawer trackId={editingTrackId} onClose={() => editingTrackId = null} />
+  {#key editingTrackId}
+    <TrackTagsDrawer trackId={editingTrackId} onClose={() => editingTrackId = null} />
+  {/key}
 {/if}
 
 <style>
