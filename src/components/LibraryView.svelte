@@ -37,6 +37,8 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   import { streamingServices, activeStreamingService, pendingStreamingAlbum } from '../lib/stores/streaming';
   import { get } from 'svelte/store';
   import { activeView, pendingSearchQuery, pendingLibraryFolder } from '../lib/stores/navigation';
+  import { CANDIDATS_DEFILEMENT, conteneurDefilant } from '../lib/defilementReel';
+  import { reculerAvecIntention } from '../lib/historiqueNavigation';
   import ServiceBadge from './ServiceBadge.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import ImportWizard from './ImportWizard.svelte';
@@ -1497,7 +1499,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     if (!album.id) return;
     savedAlbumScrollTop = albumScrollTop;
     if ($libraryTab === 'genres') {
-      const scrollEl = document.querySelector('.library-scroller');
+      const scrollEl = conteneurDefilant(CANDIDATS_DEFILEMENT);
       savedGenreScrollTop = scrollEl ? scrollEl.scrollTop : 0;
     }
     // NE PAS vider selectedArtist ici : le garder permet à goBack() de revenir à
@@ -1600,7 +1602,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // renesenses/tune-server-rust#2253). La grille d'albums avait déjà sa garde
     // (`if (!$selectedAlbum)` ci-dessus) ; l'artiste ne l'avait jamais eue.
     if (doitMemoriserPositionListe({ albumOuvert: $selectedAlbum != null, artisteOuvert: $selectedArtist != null })) {
-      const scrollEl = document.querySelector('.library-scroller');
+      const scrollEl = conteneurDefilant(CANDIDATS_DEFILEMENT);
       if (scrollEl) savedArtistScrollTop = scrollEl.scrollTop;
       if ($libraryTab === 'genres' && scrollEl) savedGenreScrollTop = scrollEl.scrollTop;
     }
@@ -1817,9 +1819,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     if (target <= 0) return;
     let attempts = 0;
     const tick = () => {
-      // Restore on the real scroll container `.library-scroller` (see the capture
-      // in selectArtistDetail) — not `.main-content`, which never scrolls.
-      const el = document.querySelector('.library-scroller') as HTMLElement | null;
+      // Meme regle qu'a la capture : on vise le conteneur qui defile pour de
+      // bon, pas un nom fige (`lib/defilementReel.ts`).
+      const el = conteneurDefilant(CANDIDATS_DEFILEMENT);
       const ready = el && el.scrollHeight >= target + el.clientHeight;
       if (ready || attempts >= 30) {
         if (el) el.scrollTop = target;
@@ -1844,24 +1846,29 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // pas à la grille complète des artistes (bug Fabien-1). selectedArtist est
     // conservé par selectAlbumDetail exactement pour ça.
     if ($selectedAlbum != null && $selectedArtist != null) {
-      selectedAlbum.set(null);
-      albumTracks.set([]);
-      window.history.back();
+      // Les `set(null)` tournent DANS la fenetre d'intention : ce sont eux qui
+      // reveillent les souscriptions d'App.svelte, lesquelles reecrivaient
+      // l'entree de la fiche juste avant de reculer.
+      reculerAvecIntention(() => {
+        selectedAlbum.set(null);
+        albumTracks.set([]);
+      });
       return;
     }
     const restoreAlbumScroll = savedAlbumScrollTop;
     const restoreArtistScroll = savedArtistScrollTop;
     const wasArtistTab = $libraryTab === 'artists';
     restoringScroll = restoreAlbumScroll > 0;
-    selectedAlbum.set(null);
-    selectedArtist.set(null);
-    albumTracks.set([]);
-    artistAlbums.set([]);
-    streamingArtistAlbums = [];
-    artistMetadata = null;
-    artistMetadataError = false;
-    artistMetadataLoading = false;
-    window.history.back();
+    reculerAvecIntention(() => {
+      selectedAlbum.set(null);
+      selectedArtist.set(null);
+      albumTracks.set([]);
+      artistAlbums.set([]);
+      streamingArtistAlbums = [];
+      artistMetadata = null;
+      artistMetadataError = false;
+      artistMetadataLoading = false;
+    });
     // Poll until the re-rendered grid/list is tall enough before restoring
     // scroll — a fixed 2-frame wait clamped to 0 on large libraries (#1024).
     // Running the album restore here sets restoringScroll first, so the
