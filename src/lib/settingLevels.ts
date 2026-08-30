@@ -67,7 +67,18 @@ export const SETTING_LEVELS = {
   'library.scanSchedule': { tab: 'library', level: 'intermediate' },
   'library.scanScheduleTime': { tab: 'library', level: 'intermediate', sub: true },
   'library.enrichOnScan': { tab: 'library', level: 'intermediate' },
-  'library.lyricsLrclib': { tab: 'library', level: 'intermediate' },
+  // Débutant, et non intermédiaire (arbitrage Bertrand, 30/08, #2859).
+  //
+  // La récupération en ligne est la SEULE source de paroles qu'un utilisateur
+  // puisse obtenir sans poser lui-même un `.lrc` à côté de chaque morceau, et
+  // le serveur la garde désactivée par défaut (`lyrics_lrclib_enabled`). Tant
+  // que cette entrée valait `intermediate`, le seul interrupteur qui l'allume
+  // était invisible au niveau par défaut : l'option existait, personne ne
+  // pouvait l'atteindre sans savoir qu'il fallait d'abord changer de niveau
+  // d'affichage. Pierre M l'a vécu comme une panne (fil forum 1617) — et une
+  // fonction qu'on ne peut pas trouver ne se distingue pas d'une fonction
+  // absente.
+  'library.lyricsLrclib': { tab: 'library', level: 'beginner' },
   'library.replaygainAnalysis': { tab: 'library', level: 'intermediate' },
   'library.oxygenEnable': { tab: 'library', level: 'intermediate' },
   'library.oxygenView': { tab: 'library', level: 'intermediate' },
