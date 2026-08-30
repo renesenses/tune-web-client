@@ -1593,6 +1593,7 @@ export default {
   "settings.restartServerNeeded": "Reinicia el servidor.",
   "settings.audioBackend": "Motor de audio",
   "settings.audioBackendError": "No se pudo cambiar el motor de audio",
+  "settings.wasapiMode": "Modo WASAPI",
   "tip.oxygenTrackRow": "Haz clic para ver los detalles, doble clic para reproducir.",
   "tip.writeTags": "Guarda y luego escribe esta información en los propios archivos de audio, en el disco.",
   "tip.clearLibrary": "Vacía la base de datos: pistas, álbumes, artistas. Se conservan zonas, listas y radios.",

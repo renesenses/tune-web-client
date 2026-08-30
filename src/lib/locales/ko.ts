@@ -1568,6 +1568,7 @@ export default {
   "settings.restartServerNeeded": "서버를 다시 시작하세요.",
   "settings.audioBackend": "오디오 백엔드",
   "settings.audioBackendError": "오디오 백엔드 변경 실패",
+  "settings.wasapiMode": "WASAPI 모드",
   "tip.oxygenTrackRow": "클릭하면 상세 정보, 두 번 클릭하면 재생을 시작합니다.",
   "tip.writeTags": "저장한 뒤, 이 정보를 디스크의 오디오 파일 자체에 기록합니다.",
   "tip.clearLibrary": "데이터베이스를 비웁니다(트랙·앨범·아티스트). 구역, 재생목록, 라디오는 유지됩니다.",

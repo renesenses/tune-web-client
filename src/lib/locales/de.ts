@@ -1593,6 +1593,7 @@ export default {
   "settings.restartServerNeeded": "Starte den Server neu.",
   "settings.audioBackend": "Audio-Backend",
   "settings.audioBackendError": "Audio-Backend konnte nicht geändert werden",
+  "settings.wasapiMode": "WASAPI-Modus",
   "tip.oxygenTrackRow": "Klicken für die Details, doppelklicken zum Abspielen.",
   "tip.writeTags": "Speichert und schreibt diese Angaben anschließend in die Audiodateien selbst, auf die Festplatte.",
   "tip.clearLibrary": "Leert die Datenbank: Titel, Alben, Interpreten. Zonen, Playlists und Radios bleiben erhalten.",

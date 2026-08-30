@@ -1603,6 +1603,7 @@ export default {
   "settings.restartServerNeeded": "Repornește serverul.",
   "settings.audioBackend": "Backend audio",
   "settings.audioBackendError": "Schimbarea backendului audio a eșuat",
+  "settings.wasapiMode": "Mod WASAPI",
   "tip.oxygenTrackRow": "Clic pentru detalii, dublu clic pentru a porni redarea.",
   "tip.writeTags": "Salvează, apoi scrie aceste informații chiar în fișierele audio, pe disc.",
   "tip.clearLibrary": "Golește baza de date: piese, albume, artiști. Zonele, playlisturile și radiourile se păstrează.",
