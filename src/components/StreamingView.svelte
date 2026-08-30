@@ -4,6 +4,8 @@
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { activeView, settingsInitialTab, saveViewContext, loadViewContext } from '../lib/stores/navigation';
+  import { declarerPorteeDeVue, niveauDeVue, ouvrirNiveau, reculerDansLaVue } from '../lib/historiqueNavigation';
+  import { auNiveauZero, cleDeNiveau } from '../lib/niveauStreaming';
   import * as api from '../lib/api';
   import { formatTime, formatAlbumYear } from '../lib/utils';
   import { actionRetour, etapesDeRestauration } from '../lib/streamingRetour';
@@ -260,7 +262,49 @@
       genreBreadcrumb: browsingGenres ? genreBreadcrumb : null,
     };
     saveViewContext('streaming', snapshot);
+    publierLeNiveau(snapshot);
   });
+
+  /**
+   * L'instantane ci-dessus suit TOUT, y compris la frappe dans la recherche.
+   * L'historique, lui, ne doit retenir que les NIVEAUX : service, artiste,
+   * album, playlist, fil de genres. Sans ce filtre, chaque lettre tapee
+   * empilerait une entree et le bouton retour deviendrait inutilisable.
+   */
+  let derniereCleDeNiveau: string | null = null;
+  let restaurationEnCours = false;
+
+  function publierLeNiveau(ctx: ContexteStreaming) {
+    if (restaurationEnCours) return;
+    const cle = cleDeNiveau(ctx);
+    if (cle === derniereCleDeNiveau) return;
+    const premierPassage = derniereCleDeNiveau === null;
+    derniereCleDeNiveau = cle;
+    // Le montage de la vue n'est pas une descente : ne rien ecrire tant qu'on
+    // est a la racine du service.
+    if (auNiveauZero(ctx)) {
+      if (!premierPassage) niveauDeVue.set(null);
+      return;
+    }
+    ouvrirNiveau('streaming', ctx);
+  }
+
+  $effect(() => declarerPorteeDeVue('streaming', {
+    retablir(etat: any) {
+      restaurationEnCours = true;
+      // Entree SANS niveau = racine du service. On referme les niveaux ouverts,
+      // mais on NE remet PAS la vue a zero : la recherche et son onglet doivent
+      // rester en place, sinon un retour depuis une fiche effacerait les
+      // resultats -- ce que l'ancien `goBack()` prenait soin de preserver.
+      const reprise = etat
+        ? restaurerContexte(etat as ContexteStreaming)
+        : Promise.resolve(fermerLesNiveaux());
+      void Promise.resolve(reprise).finally(() => {
+        restaurationEnCours = false;
+        derniereCleDeNiveau = etat ? cleDeNiveau(etat as ContexteStreaming) : null;
+      });
+    },
+  }));
 
   async function restaurerContexte(ctx: ContexteStreaming) {
     // Recharge les données de service en fond (accueil, favoris…) SANS écraser
@@ -924,6 +968,16 @@
     }
   }
 
+  /** Referme album / artiste / playlist / genres, sans toucher a la recherche. */
+  function fermerLesNiveaux() {
+    selectedAlbum = null;
+    selectedArtist = null;
+    selectedStreamingPlaylist = null;
+    albumTracks = [];
+    artistAlbums = [];
+    playlistTracks = [];
+  }
+
   function goBack() {
     const suite = actionRetour({
       provenance: $streamingAlbumOrigin,
@@ -936,8 +990,12 @@
       // et la fiche de l'artiste réapparaît — un seul niveau à la fois. Un
       // second « Retour » ramènera alors à la racine du service, où la liste
       // de résultats de la recherche est toujours en place.
-      selectedAlbum = null;
-      albumTracks = [];
+      // Le niveau album ayant sa propre entree d'historique, on recule d'un
+      // cran : le bouton du navigateur fait alors exactement la meme chose.
+      reculerDansLaVue(() => {
+        selectedAlbum = null;
+        albumTracks = [];
+      });
       return;
     }
 
@@ -946,7 +1004,17 @@
     if (suite.action === 'quitter-la-vue') {
       streamingAlbumOrigin.set(null);
       activeView.set(suite.vers as any);
+      selectedAlbum = null;
+      selectedArtist = null;
+      selectedStreamingPlaylist = null;
+      albumTracks = [];
+      artistAlbums = [];
+      playlistTracks = [];
+      if (browsingGenres) browsingGenres = true;
+      return;
     }
+
+    reculerDansLaVue(() => {
     selectedAlbum = null;
     selectedArtist = null;
     selectedStreamingPlaylist = null;
@@ -959,6 +1027,7 @@
     }
     // Keep YouTube browse tab open when navigating back from detail
     // ytmBrowseTab is preserved intentionally
+    });
   }
 
   async function playStreamingTrack(track: Track) {
