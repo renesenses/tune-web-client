@@ -8,6 +8,7 @@ import { profileHeader } from './profileHeader';
 // `import type` : effacé à la compilation, donc aucun cycle à l'exécution
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
 import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
+import type { RetraitDossier } from './purgeOrphelines';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -2131,10 +2132,26 @@ export function addMusicDir(path: string) {
   });
 }
 
-export function removeMusicDir(path: string) {
-  return fetchJSON<{ music_dirs: string[] }>(`${BASE}/system/music-dirs/remove`, {
+/**
+ * Retire une racine de musique — et, si `confirmPurge` est donné, retire
+ * aussi les pistes devenues orphelines (#2149).
+ *
+ * Le type de retour disait `{ music_dirs }` : le serveur rend `dirs`. Personne
+ * ne s'en apercevait, l'appelant jetait la réponse — et jetait avec elle
+ * `orphan_tracks` et `confirm_purge_required`, sans lesquels aucun écran ne
+ * pouvait proposer la purge.
+ *
+ * `confirmPurge` est un NOMBRE, pas un booléen : il doit couvrir le nombre
+ * exact annoncé au premier appel, sinon le plafond de #1943 refuse tout. Le
+ * refus se lit dans `purge_refused`, jamais dans le code HTTP — le retrait,
+ * lui, a toujours réussi.
+ */
+export function removeMusicDir(path: string, confirmPurge?: number) {
+  const body: Record<string, unknown> = { path };
+  if (typeof confirmPurge === 'number') body.confirm_purge = confirmPurge;
+  return fetchJSON<RetraitDossier>(`${BASE}/system/music-dirs/remove`, {
     method: 'POST',
-    body: JSON.stringify({ path }),
+    body: JSON.stringify(body),
   });
 }
 
