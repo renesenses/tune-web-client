@@ -16,6 +16,13 @@
   import MetadataSuggestionsPanel from './MetadataSuggestionsPanel.svelte';
   import MetadataDuplicatesPanel from './MetadataDuplicatesPanel.svelte';
   import MetadataProposalsPanel from './MetadataProposalsPanel.svelte';
+  import {
+    copiesEnTrop,
+    ensembleDistinct,
+    groupesRetenus,
+    pairesDuGroupe,
+    type PaireDistincte,
+  } from '../lib/albumsDistincts';
 
   let toolsMenuOpen = $state(false);
   /* Hauteur réelle de `.meta-filters` (elle varie : les onglets peuvent passer
@@ -696,27 +703,36 @@
     filterYearTo = null;
   }
 
-  // Count duplicate albums (same title, multiple entries)
-  let duplicateCount = $derived.by(() => {
-    // Exact same title + same artist + same quality = real duplicate
-    // Different editions, remasters, CD1/CD2 are NOT duplicates
-    const groups = new Map<string, number>();
-    for (const a of allAlbums) {
-      const title = (a.title ?? '').toLowerCase().trim();
-      const artist = (a.artist_name ?? '').toLowerCase().trim();
-      const sr = a.sample_rate ?? 0;
-      const bd = a.bit_depth ?? 0;
-      const key = `${title}||${artist}||${sr}||${bd}`;
-      groups.set(key, (groups.get(key) ?? 0) + 1);
-    }
-    let count = 0;
-    for (const c of groups.values()) {
-      if (c > 1) count += c - 1;
-    }
-    return count;
-  });
+  /* --- « Ces albums ne sont pas des doublons » (#1276) ---------------------
+   *
+   * L'arbitrage vit sur le serveur (`album_distinct_pairs`, sans clé
+   * étrangère, instantané d'identité figé) : il survit au rescan, au
+   * déplacement de racine et à la mort/renaissance d'une ligne `albums`.
+   * C'était tout l'enjeu du correctif serveur.
+   *
+   * MAIS cet écran ne lit pas `GET /library/albums/grouped` : il regroupe
+   * lui-même `allAlbums`. Un arbitrage posé sans filtrer ICI n'aurait rien
+   * changé à ce qui s'affiche — la paire écartée serait revenue à la ligne
+   * suivante, et le bouton aurait eu l'air mort. On applique donc la règle
+   * du serveur (`variantes_retenues`) sur nos propres groupes.
+   */
+  let pairesDistinctes = $state<PaireDistincte[]>([]);
+  let arbitrageEnCours = $state(false);
+  let ensembleDistinctes = $derived(ensembleDistinct(pairesDistinctes));
 
-  let duplicateGroups = $derived.by(() => {
+  async function chargerPairesDistinctes() {
+    try {
+      const r = await api.listDistinctAlbumPairs();
+      pairesDistinctes = r.items ?? [];
+    } catch {
+      // Serveur plus ancien que la route, ou hors ligne : l'onglet reste ce
+      // qu'il était. Bloquer le rapprochement sur un échec de lecture
+      // transformerait une panne en fonctionnalité muette.
+      pairesDistinctes = [];
+    }
+  }
+
+  let duplicateGroupsBruts = $derived.by(() => {
     const groups = new Map<string, Album[]>();
     for (const a of allAlbums) {
       const title = (a.title ?? '').toLowerCase().trim();
@@ -729,6 +745,54 @@
     }
     return [...groups.values()].filter(g => g.length > 1);
   });
+
+  // Exact same title + same artist + same quality = real duplicate.
+  // Different editions, remasters, CD1/CD2 are NOT duplicates — et, depuis
+  // #1276, ce que l'utilisateur a lui-même déclaré distinct ne l'est pas non
+  // plus. Le compteur de l'onglet et la liste comptent la MÊME chose.
+  let duplicateGroups = $derived(groupesRetenus(duplicateGroupsBruts, ensembleDistinctes));
+  let duplicateCount = $derived(copiesEnTrop(duplicateGroups));
+
+  /** Écarter tout un groupe : l'original contre chaque variante, une paire à
+   *  la fois — c'est la forme que le serveur persiste, et chacune reste
+   *  révocable séparément. */
+  async function declarerGroupeDistinct(groupIndex: number) {
+    const group = duplicateGroups[groupIndex];
+    if (!group) return;
+    const paires = pairesDuGroupe(group);
+    if (paires.length === 0) return;
+    arbitrageEnCours = true;
+    try {
+      for (const [a, b] of paires) await api.declareAlbumsDistinct(a, b);
+      await chargerPairesDistinctes();
+      notifications.success(
+        $t('metadata.notDuplicatesDone').replace('{count}', String(paires.length)),
+      );
+    } catch (e: any) {
+      notifications.error(
+        $t('metadata.notDuplicatesFailed').replace('{error}', errText(e) ?? $t('common.serverUnreachable')),
+      );
+    } finally {
+      arbitrageEnCours = false;
+    }
+  }
+
+  /** Revenir sur un arbitrage posé par erreur : la paire redevient candidate
+   *  au rapprochement. Sans ce chemin, l'utilisateur se piégerait lui-même. */
+  async function revoquerPaireDistincte(p: PaireDistincte) {
+    arbitrageEnCours = true;
+    try {
+      await api.revokeAlbumsDistinct(p.album_a_id, p.album_b_id);
+      await chargerPairesDistinctes();
+      notifications.success($t('metadata.notDuplicatesRevoked'));
+    } catch (e: any) {
+      notifications.error(
+        $t('metadata.notDuplicatesFailed').replace('{error}', errText(e) ?? $t('common.serverUnreachable')),
+      );
+    } finally {
+      arbitrageEnCours = false;
+    }
+  }
 
   function dupGroupType(group: Album[]): { type: 'album' | 'track'; trackCounts: number[] } {
     const counts = group.map(a => a.track_count ?? 0);
@@ -1239,6 +1303,10 @@
     // Le compteur seul, pour que le menu dise s'il y a quelque chose a
     // regarder. La liste n'est chargee qu'a l'ouverture du panneau.
     loadProposals();
+    // #1276 : les paires arbitrées sont chargées d'emblée, parce que le
+    // COMPTEUR de l'onglet « Doublons » les déduit — attendre l'ouverture de
+    // l'onglet ferait afficher un chiffre qui se corrige tout seul en cliquant.
+    chargerPairesDistinctes();
   });
 
   // WS subscription: refresh stats + albums when enrichment completes
@@ -1655,6 +1723,18 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
                 {$t('metadata.merge')}
               </button>
+              <!-- #1276 : l'arbitrage vit ICI, à côté de « Fusionner », parce
+                   que c'est ici que l'utilisateur rencontre le faux doublon —
+                   pas dans un écran de réglages qu'il n'ouvrira jamais. -->
+              <button
+                class="btn-not-duplicate"
+                disabled={arbitrageEnCours}
+                onclick={() => declarerGroupeDistinct(gi)}
+                title={$t('metadata.notDuplicatesHint')}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                {$t('metadata.notDuplicates')}
+              </button>
               </div>
               <div class="dup-group-items">
                 {#each group as album, ai}
@@ -1688,6 +1768,43 @@
             </div>
           {/each}
         </div>
+      {/if}
+
+      <!-- Revenir sur un arbitrage (#1276). Sans cette liste, un « ce ne sont
+           pas des doublons » posé par erreur serait définitif du point de vue
+           de l'utilisateur : la paire ayant disparu de l'onglet, il n'aurait
+           plus AUCUN endroit où la retrouver. -->
+      {#if pairesDistinctes.length > 0}
+        <details class="distinct-pairs">
+          <summary>
+            {$t('metadata.notDuplicatesListTitle').replace('{count}', String(pairesDistinctes.length))}
+          </summary>
+          <p class="distinct-intro">{$t('metadata.notDuplicatesListIntro')}</p>
+          <ul class="distinct-list">
+            {#each pairesDistinctes as p (p.album_a_id + ':' + p.album_b_id)}
+              <li class="distinct-row">
+                <div class="distinct-pair">
+                  <span class="distinct-side">{p.a_title}{#if p.a_artist} — {p.a_artist}{/if}</span>
+                  <span class="distinct-sep">/</span>
+                  <span class="distinct-side">{p.b_title}{#if p.b_artist} — {p.b_artist}{/if}</span>
+                </div>
+                {#if !p.resolved}
+                  <!-- `resolved: false` = un des deux albums ne vit plus (racine
+                       démontée) ; le serveur garde l'instantané pour que la
+                       paire reste lisible, donc révocable. -->
+                  <span class="distinct-orphan">{$t('metadata.notDuplicatesOrphan')}</span>
+                {/if}
+                <button
+                  class="distinct-revoke"
+                  disabled={arbitrageEnCours}
+                  onclick={() => revoquerPaireDistincte(p)}
+                >
+                  {$t('metadata.notDuplicatesRevoke')}
+                </button>
+              </li>
+            {/each}
+          </ul>
+        </details>
       {/if}
     {:else if filter === 'doubtful'}
       {#if doubtfulAlbums.length === 0}
@@ -2943,6 +3060,106 @@
   .btn-merge:hover {
     background: rgba(87, 198, 185, 0.25);
     border-color: var(--tune-accent);
+  }
+
+  /* « Ces albums ne sont pas des doublons » (#1276). Volontairement plus
+     discret que « Fusionner » : c'est une mise à l'écart, pas la destruction
+     d'une ligne, et les deux ne doivent pas peser pareil dans l'œil. */
+  .btn-not-duplicate {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--tune-border);
+    background: transparent;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.12s;
+  }
+  .btn-not-duplicate:hover:not(:disabled) {
+    color: var(--tune-text);
+    border-color: var(--tune-text-muted);
+  }
+  .btn-not-duplicate:disabled {
+    opacity: 0.5;
+    cursor: progress;
+  }
+
+  /* La liste de révision des arbitrages. */
+  .distinct-pairs {
+    margin-top: 14px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    background: var(--tune-surface);
+    padding: 10px 14px;
+  }
+  .distinct-pairs summary {
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tune-text-muted);
+  }
+  .distinct-intro {
+    margin: 8px 0 4px;
+    font-size: 12px;
+    color: var(--tune-text-muted);
+  }
+  .distinct-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .distinct-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-top: 1px solid var(--tune-border);
+    font-size: 12px;
+  }
+  .distinct-pair {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    color: var(--tune-text);
+  }
+  .distinct-sep {
+    color: var(--tune-text-muted);
+  }
+  .distinct-side {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .distinct-orphan {
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    white-space: nowrap;
+  }
+  .distinct-revoke {
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--tune-border);
+    background: transparent;
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .distinct-revoke:hover:not(:disabled) {
+    color: var(--tune-text);
+    border-color: var(--tune-text-muted);
+  }
+  .distinct-revoke:disabled {
+    opacity: 0.5;
+    cursor: progress;
   }
 
   /* Doubtful cards */

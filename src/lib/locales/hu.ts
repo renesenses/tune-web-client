@@ -3090,6 +3090,15 @@ export default {
   "settings.serverNamePlaceholder": "Például: Nappali, Iroda, Laptop",
   "settings.serverNameSaved": "A kiszolgáló neve elmentve.",
   "settings.updateTarget": "Célgép: {server}",
+  "metadata.notDuplicates": "Ezek nem duplikátumok",
+  "metadata.notDuplicatesHint": "Tartsa külön ezeket az albumokat. A döntés megmarad, és túléli az újraolvasásokat.",
+  "metadata.notDuplicatesDone": "Döntés mentve: {count} pár külön tartva.",
+  "metadata.notDuplicatesFailed": "A döntés nem lett mentve: {error}",
+  "metadata.notDuplicatesRevoked": "Döntés visszavonva: a pár ismét lehetséges duplikátum.",
+  "metadata.notDuplicatesListTitle": "Külön tartott albumok ({count})",
+  "metadata.notDuplicatesListIntro": "Ezeket a párokat többé nem jelzi és nem vonja össze a rendszer. Bármelyik visszavonható.",
+  "metadata.notDuplicatesRevoke": "Visszavonás",
+  "metadata.notDuplicatesOrphan": "az album jelenleg hiányzik",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

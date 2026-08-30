@@ -3132,6 +3132,15 @@ export default {
   "settings.serverNamePlaceholder": "例：リビング、書斎、ノート PC",
   "settings.serverNameSaved": "サーバー名を保存しました。",
   "settings.updateTarget": "対象マシン：{server}",
+  "metadata.notDuplicates": "これらは重複ではありません",
+  "metadata.notDuplicatesHint": "これらのアルバムを別々に保ちます。この判断は保存され、再スキャンしても残ります。",
+  "metadata.notDuplicatesDone": "判断を保存しました：{count} 組を別々に保ちます。",
+  "metadata.notDuplicatesFailed": "判断を保存できませんでした：{error}",
+  "metadata.notDuplicatesRevoked": "判断を取り消しました。この組は再び重複候補になります。",
+  "metadata.notDuplicatesListTitle": "別々に保っているアルバム（{count}）",
+  "metadata.notDuplicatesListIntro": "これらの組は報告も統合もされません。いつでも取り消せます。",
+  "metadata.notDuplicatesRevoke": "取り消す",
+  "metadata.notDuplicatesOrphan": "現在アルバムが見つかりません",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

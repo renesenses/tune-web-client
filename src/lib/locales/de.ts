@@ -3132,6 +3132,15 @@ export default {
   "settings.serverNamePlaceholder": "Zum Beispiel: Wohnzimmer, Büro, Laptop",
   "settings.serverNameSaved": "Servername gespeichert.",
   "settings.updateTarget": "Zielrechner: {server}",
+  "metadata.notDuplicates": "Das sind keine Duplikate",
+  "metadata.notDuplicatesHint": "Diese Alben getrennt halten. Die Entscheidung bleibt erhalten und übersteht erneute Scans.",
+  "metadata.notDuplicatesDone": "Entscheidung gespeichert: {count} Paar(e) getrennt gehalten.",
+  "metadata.notDuplicatesFailed": "Entscheidung nicht gespeichert: {error}",
+  "metadata.notDuplicatesRevoked": "Entscheidung rückgängig gemacht: das Paar gilt wieder als mögliches Duplikat.",
+  "metadata.notDuplicatesListTitle": "Getrennt gehaltene Alben ({count})",
+  "metadata.notDuplicatesListIntro": "Diese Paare werden nicht mehr gemeldet oder zusammengeführt. Jede Entscheidung lässt sich rückgängig machen.",
+  "metadata.notDuplicatesRevoke": "Rückgängig",
+  "metadata.notDuplicatesOrphan": "Album derzeit nicht vorhanden",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

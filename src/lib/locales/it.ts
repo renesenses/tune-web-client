@@ -3132,6 +3132,15 @@ export default {
   "settings.serverNamePlaceholder": "Per esempio: Salotto, Ufficio, Portatile",
   "settings.serverNameSaved": "Nome del server salvato.",
   "settings.updateTarget": "Macchina di destinazione: {server}",
+  "metadata.notDuplicates": "Non sono duplicati",
+  "metadata.notDuplicatesHint": "Mantieni questi album separati. La scelta viene conservata e sopravvive alle nuove scansioni.",
+  "metadata.notDuplicatesDone": "Scelta salvata: {count} coppia/e mantenuta/e separata/e.",
+  "metadata.notDuplicatesFailed": "Scelta non salvata: {error}",
+  "metadata.notDuplicatesRevoked": "Scelta annullata: la coppia torna a essere un possibile duplicato.",
+  "metadata.notDuplicatesListTitle": "Album mantenuti separati ({count})",
+  "metadata.notDuplicatesListIntro": "Queste coppie non saranno più segnalate né unite. Puoi annullare ciascuna.",
+  "metadata.notDuplicatesRevoke": "Annulla",
+  "metadata.notDuplicatesOrphan": "album al momento assente",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

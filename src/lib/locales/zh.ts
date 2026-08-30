@@ -3132,6 +3132,15 @@ export default {
   "settings.serverNamePlaceholder": "例如：客厅、办公室、笔记本",
   "settings.serverNameSaved": "服务器名称已保存。",
   "settings.updateTarget": "目标计算机：{server}",
+  "metadata.notDuplicates": "这些不是重复项",
+  "metadata.notDuplicatesHint": "让这些专辑保持独立。该选择会被保存，重新扫描后依然有效。",
+  "metadata.notDuplicatesDone": "已保存选择：{count} 组保持独立。",
+  "metadata.notDuplicatesFailed": "未能保存选择：{error}",
+  "metadata.notDuplicatesRevoked": "已撤销选择：该组重新成为可能的重复项。",
+  "metadata.notDuplicatesListTitle": "保持独立的专辑（{count}）",
+  "metadata.notDuplicatesListIntro": "这些组将不再被提示，也不会被合并。您可以撤销其中任意一组。",
+  "metadata.notDuplicatesRevoke": "撤销",
+  "metadata.notDuplicatesOrphan": "专辑暂时不存在",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

@@ -3132,6 +3132,15 @@ export default {
   "settings.serverNamePlaceholder": "De exemplu: Living, Birou, Laptop",
   "settings.serverNameSaved": "Numele serverului a fost salvat.",
   "settings.updateTarget": "Mașina vizată: {server}",
+  "metadata.notDuplicates": "Nu sunt duplicate",
+  "metadata.notDuplicatesHint": "Păstrează aceste albume separate. Alegerea este păstrată și supraviețuiește rescanărilor.",
+  "metadata.notDuplicatesDone": "Alegere salvată: {count} perechi păstrate separat.",
+  "metadata.notDuplicatesFailed": "Alegerea nu a fost salvată: {error}",
+  "metadata.notDuplicatesRevoked": "Alegere anulată: perechea redevine un posibil duplicat.",
+  "metadata.notDuplicatesListTitle": "Albume păstrate separat ({count})",
+  "metadata.notDuplicatesListIntro": "Aceste perechi nu vor mai fi semnalate sau îmbinate. Poți anula oricare dintre ele.",
+  "metadata.notDuplicatesRevoke": "Anulează",
+  "metadata.notDuplicatesOrphan": "album absent deocamdată",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

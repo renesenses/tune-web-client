@@ -3144,6 +3144,15 @@ export default {
   "settings.serverNamePlaceholder": "Par exemple : Salon, Bureau, Portable",
   "settings.serverNameSaved": "Nom du serveur enregistré.",
   "settings.updateTarget": "Machine visée : {server}",
+  "metadata.notDuplicates": "Ce ne sont pas des doublons",
+  "metadata.notDuplicatesHint": "Garder ces albums séparés. Le choix est conservé et survit aux rescans.",
+  "metadata.notDuplicatesDone": "Choix enregistré : {count} paire(s) gardée(s) séparée(s).",
+  "metadata.notDuplicatesFailed": "Choix non enregistré : {error}",
+  "metadata.notDuplicatesRevoked": "Choix annulé : la paire redevient un doublon possible.",
+  "metadata.notDuplicatesListTitle": "Albums gardés séparés ({count})",
+  "metadata.notDuplicatesListIntro": "Ces paires ne seront plus signalées ni fusionnées. Vous pouvez revenir sur chacune.",
+  "metadata.notDuplicatesRevoke": "Annuler",
+  "metadata.notDuplicatesOrphan": "album absent pour le moment",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

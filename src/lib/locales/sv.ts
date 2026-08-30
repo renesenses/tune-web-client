@@ -3131,4 +3131,13 @@ export default {
   "settings.serverNamePlaceholder": "Till exempel: Vardagsrum, Kontor, Bärbar",
   "settings.serverNameSaved": "Serverns namn sparades.",
   "settings.updateTarget": "Måldator: {server}",
+  "metadata.notDuplicates": "Detta är inte dubbletter",
+  "metadata.notDuplicatesHint": "Håll dessa album åtskilda. Valet sparas och överlever omskanningar.",
+  "metadata.notDuplicatesDone": "Valet sparat: {count} par hålls åtskilda.",
+  "metadata.notDuplicatesFailed": "Valet sparades inte: {error}",
+  "metadata.notDuplicatesRevoked": "Valet ångrat: paret är åter en möjlig dubblett.",
+  "metadata.notDuplicatesListTitle": "Album som hålls åtskilda ({count})",
+  "metadata.notDuplicatesListIntro": "Dessa par rapporteras eller sammanfogas inte längre. Du kan ångra vilket som helst.",
+  "metadata.notDuplicatesRevoke": "Ångra",
+  "metadata.notDuplicatesOrphan": "albumet saknas för tillfället",
 } as const;

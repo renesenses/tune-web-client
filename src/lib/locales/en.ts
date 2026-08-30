@@ -3142,6 +3142,15 @@ export default {
   "settings.serverNamePlaceholder": "For example: Living room, Office, Laptop",
   "settings.serverNameSaved": "Server name saved.",
   "settings.updateTarget": "Target machine: {server}",
+  "metadata.notDuplicates": "These are not duplicates",
+  "metadata.notDuplicatesHint": "Keep these albums apart. The choice is stored and survives rescans.",
+  "metadata.notDuplicatesDone": "Choice saved: {count} pair(s) kept apart.",
+  "metadata.notDuplicatesFailed": "Choice not saved: {error}",
+  "metadata.notDuplicatesRevoked": "Choice undone: the pair is a possible duplicate again.",
+  "metadata.notDuplicatesListTitle": "Albums kept apart ({count})",
+  "metadata.notDuplicatesListIntro": "These pairs will no longer be reported or merged. You can undo any of them.",
+  "metadata.notDuplicatesRevoke": "Undo",
+  "metadata.notDuplicatesOrphan": "album missing for now",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
