@@ -4,6 +4,7 @@
   import { tip } from '../lib/tooltip';
   import { compteSupprimees, cleLibelleFinDeScan } from '../lib/bandeauFinDeScan';
   import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
+  import { purgeAProposer, questionDePurge, verdictDePurge, verdictDeRefus } from '../lib/purgeOrphelines';
   import { doitSArreterFauteDImagesManquantes, type ModeEnrichissementImages } from '../lib/enrichissementImagesArtistes';
   import { dialogs } from '../lib/stores/dialogs';
   import { get } from 'svelte/store';
@@ -2267,15 +2268,45 @@ function setSettingsLevel(level: SettingsLevel) {
     addingMusicDir = false;
   }
 
+  /**
+   * Retire une racine, puis propose de retirer ce qu'elle contenait (#2149).
+   *
+   * La réponse du retrait était JETÉE. Elle porte pourtant `orphan_tracks` et
+   * `confirm_purge_required` : sans écran pour les lire, ces pistes restaient
+   * dans la base pour toujours — plus sous aucune racine, donc jamais
+   * revisitées par le scan, donc jamais purgées (#1943).
+   *
+   * Deux appels sur la même route : le premier retire et annonce, le second
+   * — seulement si l'utilisateur dit oui — purge avec le nombre EXACT.
+   */
   async function handleRemoveMusicDir(path: string) {
     if (!(await dialogs.confirm(get(t)('settings.removeMusicDirConfirm'), { danger: true }))) return;
     removingMusicDir = path;
     try {
-      await api.removeMusicDir(path);
+      const retrait = await api.removeMusicDir(path);
+      const aPurger = purgeAProposer(retrait);
+      if (aPurger > 0) {
+        if (await dialogs.confirm(questionDePurge(retrait, get(t)), { danger: true })) {
+          // Le retrait est idempotent : le dossier n'est déjà plus dans la
+          // liste, seul l'ensemble orphelin est recalculé — à l'identique.
+          const purge = await api.removeMusicDir(path, aPurger);
+          const v = verdictDePurge(purge, get(t));
+          notifications[v.ton](v.message);
+          // Les compteurs de la page viennent de tomber : on les relit, sans
+          // repasser par `loadAll()` qui ferait clignoter tout l'écran.
+          if (!purge.purge_refused) stats = await api.getStats().catch(() => stats);
+        } else {
+          const v = verdictDeRefus(retrait, get(t));
+          notifications[v.ton](v.message);
+        }
+      }
       const br = await api.getBrowseRoots().catch(() => ({ roots: [] }));
       musicRoots = br.roots;
     } catch (e: any) {
+      // Le retrait n'a pas abouti : on le DIT. L'échec mourait dans la
+      // console, l'écran laissait le dossier affiché sans un mot.
       console.error('Remove music dir error:', e);
+      notifications.error(`${get(t)('settings.removeMusicDirError')} ${errText(e) ?? ''}`.trim());
     }
     removingMusicDir = null;
   }
