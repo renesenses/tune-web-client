@@ -3090,6 +3090,13 @@ export default {
   "settings.serverNamePlaceholder": "Például: Nappali, Iroda, Laptop",
   "settings.serverNameSaved": "A kiszolgáló neve elmentve.",
   "settings.updateTarget": "Célgép: {server}",
+  "settings.ignoreDevice": "Eszköz mellőzése (a keresés után sem jelenik meg többé)",
+  "settings.deviceIgnored": "{name} mellőzve. Többé nem lesz felajánlva.",
+  "settings.deviceUnignored": "{name} már nincs mellőzve. A következő felderítéskor újra megjelenik.",
+  "settings.ignoredDevices": "Mellőzött eszközök",
+  "settings.ignoredDevicesIntro": "Ezeket az eszközöket sehol nem ajánlja fel a rendszer. A hálózaton továbbra is észlelhetők, csak itt és a zóna létrehozásakor láthatatlanok.",
+  "settings.unignoreDevice": "Mellőzés feloldása",
+  "settings.noIgnoredDevices": "Nincs mellőzött eszköz.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

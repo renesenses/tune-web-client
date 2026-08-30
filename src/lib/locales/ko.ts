@@ -3132,6 +3132,13 @@ export default {
   "settings.serverNamePlaceholder": "예: 거실, 사무실, 노트북",
   "settings.serverNameSaved": "서버 이름을 저장했습니다.",
   "settings.updateTarget": "대상 컴퓨터: {server}",
+  "settings.ignoreDevice": "이 기기 무시 (검색 후에도 더 이상 표시되지 않습니다)",
+  "settings.deviceIgnored": "{name}을(를) 무시합니다. 더 이상 표시되지 않습니다.",
+  "settings.deviceUnignored": "{name}의 무시를 해제했습니다. 다음 검색 시 다시 나타납니다.",
+  "settings.ignoredDevices": "무시한 기기",
+  "settings.ignoredDevicesIntro": "이 기기들은 어디에도 표시되지 않습니다. 네트워크에서는 계속 감지되지만 여기와 존 생성 화면에서는 보이지 않습니다.",
+  "settings.unignoreDevice": "무시 해제",
+  "settings.noIgnoredDevices": "무시한 기기가 없습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

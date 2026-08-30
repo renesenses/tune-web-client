@@ -3131,4 +3131,11 @@ export default {
   "settings.serverNamePlaceholder": "Till exempel: Vardagsrum, Kontor, Bärbar",
   "settings.serverNameSaved": "Serverns namn sparades.",
   "settings.updateTarget": "Måldator: {server}",
+  "settings.ignoreDevice": "Ignorera den här enheten (den föreslås inte längre, inte ens efter en sökning)",
+  "settings.deviceIgnored": "{name} ignoreras. Den föreslås inte längre.",
+  "settings.deviceUnignored": "{name} ignoreras inte längre. Den dyker upp igen vid nästa sökning.",
+  "settings.ignoredDevices": "Ignorerade enheter",
+  "settings.ignoredDevicesIntro": "Dessa enheter föreslås inte längre någonstans. De upptäcks fortfarande i nätverket, men är osynliga här och när du skapar en zon.",
+  "settings.unignoreDevice": "Sluta ignorera",
+  "settings.noIgnoredDevices": "Inga ignorerade enheter.",
 } as const;

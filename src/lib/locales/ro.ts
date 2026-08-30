@@ -3132,6 +3132,13 @@ export default {
   "settings.serverNamePlaceholder": "De exemplu: Living, Birou, Laptop",
   "settings.serverNameSaved": "Numele serverului a fost salvat.",
   "settings.updateTarget": "Mașina vizată: {server}",
+  "settings.ignoreDevice": "Ignoră acest dispozitiv (nu va mai fi propus, nici după o scanare)",
+  "settings.deviceIgnored": "{name} este ignorat. Nu va mai fi propus.",
+  "settings.deviceUnignored": "{name} nu mai este ignorat. Va reapărea la următoarea descoperire.",
+  "settings.ignoredDevices": "Dispozitive ignorate",
+  "settings.ignoredDevicesIntro": "Aceste dispozitive nu mai sunt propuse nicăieri. Rămân detectate în rețea, doar că sunt invizibile aici și la crearea unei zone.",
+  "settings.unignoreDevice": "Nu mai ignora",
+  "settings.noIgnoredDevices": "Niciun dispozitiv ignorat.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

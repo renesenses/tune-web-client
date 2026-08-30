@@ -3132,6 +3132,13 @@ export default {
   "settings.serverNamePlaceholder": "Zum Beispiel: Wohnzimmer, Büro, Laptop",
   "settings.serverNameSaved": "Servername gespeichert.",
   "settings.updateTarget": "Zielrechner: {server}",
+  "settings.ignoreDevice": "Dieses Gerät ignorieren (es wird auch nach einem Scan nicht mehr angeboten)",
+  "settings.deviceIgnored": "{name} wird ignoriert und nicht mehr angeboten.",
+  "settings.deviceUnignored": "{name} wird nicht mehr ignoriert. Es erscheint beim nächsten Suchlauf wieder.",
+  "settings.ignoredDevices": "Ignorierte Geräte",
+  "settings.ignoredDevicesIntro": "Diese Geräte werden nirgends mehr angeboten. Sie werden im Netzwerk weiterhin erkannt, sind hier und bei der Zonenerstellung aber unsichtbar.",
+  "settings.unignoreDevice": "Nicht mehr ignorieren",
+  "settings.noIgnoredDevices": "Keine ignorierten Geräte.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

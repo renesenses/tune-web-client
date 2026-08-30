@@ -3132,6 +3132,13 @@ export default {
   "settings.serverNamePlaceholder": "例如：客厅、办公室、笔记本",
   "settings.serverNameSaved": "服务器名称已保存。",
   "settings.updateTarget": "目标计算机：{server}",
+  "settings.ignoreDevice": "忽略此设备（即使重新扫描也不再出现）",
+  "settings.deviceIgnored": "已忽略 {name}，它将不再出现。",
+  "settings.deviceUnignored": "已取消忽略 {name}，它将在下次发现时重新出现。",
+  "settings.ignoredDevices": "已忽略的设备",
+  "settings.ignoredDevicesIntro": "这些设备不会再出现在任何位置。它们仍会在网络上被检测到，只是在此处和创建区域时不可见。",
+  "settings.unignoreDevice": "取消忽略",
+  "settings.noIgnoredDevices": "没有已忽略的设备。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

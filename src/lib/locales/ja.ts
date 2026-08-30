@@ -3132,6 +3132,13 @@ export default {
   "settings.serverNamePlaceholder": "例：リビング、書斎、ノート PC",
   "settings.serverNameSaved": "サーバー名を保存しました。",
   "settings.updateTarget": "対象マシン：{server}",
+  "settings.ignoreDevice": "このデバイスを無視する（スキャン後も候補に出ません）",
+  "settings.deviceIgnored": "{name} を無視しました。今後は候補に出ません。",
+  "settings.deviceUnignored": "{name} の無視を解除しました。次回の検出時に再表示されます。",
+  "settings.ignoredDevices": "無視しているデバイス",
+  "settings.ignoredDevicesIntro": "これらのデバイスはどこにも表示されません。ネットワーク上では引き続き検出されますが、ここでもゾーン作成時にも表示されません。",
+  "settings.unignoreDevice": "無視を解除",
+  "settings.noIgnoredDevices": "無視しているデバイスはありません。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
