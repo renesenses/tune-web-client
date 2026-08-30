@@ -2,3 +2,5 @@ node_modules
 dist/
 *.tar.gz
 .DS_Store
+__pycache__/
+*.py[cod]
