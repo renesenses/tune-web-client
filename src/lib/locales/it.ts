@@ -1557,6 +1557,8 @@ export default {
   "library.scanProgress": "{scanned} file analizzati, {added} aggiunti",
   "library.stopScan": "Interrompi la scansione",
   "library.duplicates": "Duplicati",
+  "library.createTag": "Nuova etichetta",
+  "library.createTagPrompt": "Nome della nuova etichetta:",
   "library.manageTags": "Gestisci etichette",
   "library.renameTag": "Rinomina",
   "library.deleteTag": "Elimina",
