@@ -9,6 +9,7 @@ import {
   niveauDeVue,
   opPourFiche,
   ouvrirNiveau,
+  instantaneSerialisable,
   ouvrirNiveauDepuisEntree,
   reculerDansLaVue,
   refermerNiveau,
@@ -271,5 +272,55 @@ describe('les vues sont câblées sur le mécanisme', () => {
     expect(vue).toMatch(/declarerPorteeDeVue\('playlists'/);
     expect(vue).toMatch(/ouvrirNiveau\('playlists'/);
     expect(vue).toMatch(/reculerDansLaVue/);
+  });
+});
+
+describe('l’instantané doit survivre à `history.pushState`', () => {
+  /**
+   * 🔴 Défaut attrapé dans le NAVIGATEUR, pas par les tests : publier
+   * directement l'état d'une vue Svelte 5 fait jeter `pushState` avec
+   * `DataCloneError: #<Object> could not be cloned` — les `$state` sont des
+   * proxies, que l'algorithme de clonage structuré refuse. L'entrée n'était
+   * jamais écrite, et le niveau ne survivait pas au retour, en silence.
+   *
+   * La pile jouable des tests précédents gardait l'objet tel quel : elle ne
+   * pouvait pas voir ce défaut. Ici on passe par le vrai `structuredClone`,
+   * qui est ce que fait le navigateur.
+   */
+  beforeEach(() => { niveauDeVue.set(null); });
+
+  /** Ce que Svelte 5 donne à lire : un proxy autour d'un objet nu. */
+  const commeDuState = <T extends object>(objet: T): T =>
+    new Proxy(objet, { get: (c, p) => (c as any)[p] });
+
+  it('contre-épreuve : un état de vue Svelte tel quel fait jeter le navigateur', () => {
+    const etat = { podcast: commeDuState({ name: 'Le Masque', feed_url: 'https://…' }) };
+    expect(() => structuredClone(etat)).toThrow(/clone/i);
+  });
+
+  it('le niveau publié, lui, passe le clonage structuré', () => {
+    ouvrirNiveau('podcasts', { podcast: commeDuState({ name: 'Le Masque', feed_url: 'https://…' }) });
+    const niveau = get(niveauDeVue);
+    expect(() => structuredClone(niveau)).not.toThrow();
+    // Et il transporte bien la même information.
+    expect(niveau).toMatchObject({ vue: 'podcasts', etat: { podcast: { name: 'Le Masque' } } });
+  });
+
+  it('un objet déjà nu traverse sans être abîmé', () => {
+    ouvrirNiveau('playlists', { playlist: { id: 7, name: 'Nuit' } });
+    expect(get(niveauDeVue)!.etat).toEqual({ playlist: { id: 7, name: 'Nuit' } });
+  });
+
+  it('les valeurs simples ne sont pas touchées', () => {
+    expect(instantaneSerialisable(42)).toBe(42);
+    expect(instantaneSerialisable(null)).toBeNull();
+    expect(instantaneSerialisable('texte')).toBe('texte');
+  });
+
+  it('un cycle ne fait pas exploser l’ouverture d’un niveau', () => {
+    const cycle: any = { nom: 'boucle' };
+    cycle.moi = cycle;
+    expect(() => ouvrirNiveau('podcasts', cycle)).not.toThrow();
+    expect(get(niveauDeVue)!.etat).toBeNull();
   });
 });

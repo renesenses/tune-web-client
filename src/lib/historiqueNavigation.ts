@@ -158,11 +158,36 @@ export function refermerNiveau(vue: string): void {
 }
 
 /**
+ * Rend un instantané que `history.pushState` accepte.
+ *
+ * 🔴 Mesuré dans Chrome : passer directement l'état d'une vue Svelte 5 fait
+ * jeter `pushState` avec
+ * `DataCloneError: #<Object> could not be cloned` — les `$state` sont des
+ * PROXIES, et l'algorithme de clonage structuré les refuse. L'entrée n'était
+ * alors jamais écrite : le niveau ne survivait pas au retour, sans la moindre
+ * erreur visible côté vue.
+ *
+ * Le tour par JSON traverse le proxy en LISANT ses propriétés, et rend un objet
+ * nu. Il perd `undefined`, les fonctions et les dates — ce qu'une entrée
+ * d'historique ne doit de toute façon pas transporter.
+ */
+export function instantaneSerialisable<T>(valeur: T): T {
+  if (valeur === null || typeof valeur !== 'object') return valeur;
+  try {
+    return JSON.parse(JSON.stringify(valeur)) as T;
+  } catch {
+    // Cycle ou valeur non sérialisable : mieux vaut une entrée sans instantané
+    // qu'une entrée jamais écrite.
+    return null as unknown as T;
+  }
+}
+
+/**
  * Une vue ouvre un niveau : l'entrée d'historique qui suit le portera, et le
  * bouton du navigateur le refermera au lieu de quitter la vue.
  */
 export function ouvrirNiveau(vue: string, etat: unknown, adresse?: string): void {
-  niveauDeVue.set({ vue, etat, adresse });
+  niveauDeVue.set({ vue, etat: instantaneSerialisable(etat), adresse });
 }
 
 /**
