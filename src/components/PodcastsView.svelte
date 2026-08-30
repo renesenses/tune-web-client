@@ -6,6 +6,7 @@
   import { t } from '../lib/i18n';
   import { PODCAST_GENRES } from '../lib/podcast-genres';
   import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
+  import { declarerPorteeDeVue, ouvrirNiveau, reculerDansLaVue } from '../lib/historiqueNavigation';
 
   // --- State ---
   // Conteneur de défilement (`.podcasts-view`, `overflow-y: auto`) : mémoriser
@@ -274,6 +275,8 @@
       // mémorisation, même garde que `selectPodcast`.
       if (!selectedPodcast) saveDetailScroll('podcasts', viewEl);
       selectedPodcast = { name: show.title, artist: show.station || 'Radio France', feed_url: show.rss_url || '', cover_url: show.cover_url || '', description: show.description, episode_count: rfEpisodes.length, source_id: show.id };
+      // Meme niveau, meme entree d'historique que par `selectPodcast`.
+      ouvrirNiveau('podcasts', { podcast: selectedPodcast });
       episodes = rfEpisodes;
     } catch (e) {
       console.error('Load RF episodes error:', e);
@@ -312,10 +315,15 @@
 
   // --- Podcast detail ---
 
-  async function selectPodcast(podcast: any) {
+  async function selectPodcast(podcast: any, options: { historique?: boolean } = {}) {
     // Sous garde : appelable depuis une fiche déjà ouverte.
     if (!selectedPodcast) saveDetailScroll('podcasts', viewEl);
     selectedPodcast = podcast;
+    // Le niveau ouvert entre dans l'historique : le bouton du NAVIGATEUR
+    // referme la fiche au lieu de quitter la vue. `historique: false` quand
+    // c'est justement l'historique qui repose la fiche — sinon on empilerait
+    // une entree a chaque retour.
+    if (options.historique !== false) ouvrirNiveau('podcasts', { podcast });
     isLoadingEpisodes = true;
     errorMessage = null;
     episodes = [];
@@ -337,11 +345,29 @@
   }
 
   function goBack() {
+    // Un seul chemin de retour : celui du navigateur. La vue ne remet plus son
+    // etat a zero dans son coin — elle recule d'un cran, et l'entree atteinte
+    // dit ce qu'il faut reposer.
+    reculerDansLaVue(() => {
+      fermerLaFiche();
+    });
+  }
+
+  /** Remet la vue a sa racine, sans toucher a l'historique. */
+  function fermerLaFiche() {
     selectedPodcast = null;
     episodes = [];
     errorMessage = null;
     restoreDetailScroll('podcasts', viewEl);
   }
+
+  // La vue se declare : l'entree d'historique lui rend son instantane.
+  $effect(() => declarerPorteeDeVue('podcasts', {
+    retablir(etat: any) {
+      if (etat?.podcast) void selectPodcast(etat.podcast, { historique: false });
+      else fermerLaFiche();
+    },
+  }));
 
   async function playEpisode(episode: any) {
     const zoneId = get(currentZoneId);
