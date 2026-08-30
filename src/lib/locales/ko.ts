@@ -3132,6 +3132,10 @@ export default {
   "settings.serverNamePlaceholder": "예: 거실, 사무실, 노트북",
   "settings.serverNameSaved": "서버 이름을 저장했습니다.",
   "settings.updateTarget": "대상 컴퓨터: {server}",
+  "volume.dbEntry": "데시벨 단위 음량",
+  "volume.dbEntryHint": "원하는 값을 입력하세요. 예: -20.5. 0 dB가 최대 레벨입니다.",
+  "volume.dbAboveFullScale": "0 dB가 최대 레벨입니다. 그 위로는 음량이 더 없습니다.",
+  "volume.dbUnreadable": "읽을 수 없는 값입니다. dB 단위의 숫자를 입력하세요. 예: -20.5",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

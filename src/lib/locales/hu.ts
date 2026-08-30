@@ -3090,6 +3090,10 @@ export default {
   "settings.serverNamePlaceholder": "Például: Nappali, Iroda, Laptop",
   "settings.serverNameSaved": "A kiszolgáló neve elmentve.",
   "settings.updateTarget": "Célgép: {server}",
+  "volume.dbEntry": "Hangerő decibelben",
+  "volume.dbEntryHint": "Írja be a kívánt értéket, például -20,5. 0 dB = teljes kivezérlés.",
+  "volume.dbAboveFullScale": "A 0 dB a teljes kivezérlés: fölötte nincs több hangerő.",
+  "volume.dbUnreadable": "Olvashatatlan érték. dB-ben megadott szám szükséges, például -20,5.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

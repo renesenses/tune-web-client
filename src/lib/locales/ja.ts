@@ -3132,6 +3132,10 @@ export default {
   "settings.serverNamePlaceholder": "例：リビング、書斎、ノート PC",
   "settings.serverNameSaved": "サーバー名を保存しました。",
   "settings.updateTarget": "対象マシン：{server}",
+  "volume.dbEntry": "音量（デシベル）",
+  "volume.dbEntryHint": "希望する値を入力してください（例: -20.5）。0 dB がフルスケールです。",
+  "volume.dbAboveFullScale": "0 dB がフルスケールです。それより上に音量はありません。",
+  "volume.dbUnreadable": "読み取れない値です。dB の数値を入力してください（例: -20.5）。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

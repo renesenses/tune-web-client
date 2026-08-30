@@ -3142,6 +3142,10 @@ export default {
   "settings.serverNamePlaceholder": "For example: Living room, Office, Laptop",
   "settings.serverNameSaved": "Server name saved.",
   "settings.updateTarget": "Target machine: {server}",
+  "volume.dbEntry": "Volume in decibels",
+  "volume.dbEntryHint": "Type the value you want, for example -20.5. 0 dB = full scale.",
+  "volume.dbAboveFullScale": "0 dB is full scale: there is no volume above it.",
+  "volume.dbUnreadable": "Unreadable value. Expected a number in dB, for example -20.5.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

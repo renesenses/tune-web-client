@@ -3132,6 +3132,10 @@ export default {
   "settings.serverNamePlaceholder": "De exemplu: Living, Birou, Laptop",
   "settings.serverNameSaved": "Numele serverului a fost salvat.",
   "settings.updateTarget": "Mașina vizată: {server}",
+  "volume.dbEntry": "Volum în decibeli",
+  "volume.dbEntryHint": "Introduceți valoarea dorită, de exemplu -20,5. 0 dB = scala completă.",
+  "volume.dbAboveFullScale": "0 dB este scala completă: deasupra nu mai există volum.",
+  "volume.dbUnreadable": "Valoare ilizibilă. Se așteaptă un număr în dB, de exemplu -20,5.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
