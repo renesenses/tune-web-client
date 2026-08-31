@@ -2736,9 +2736,12 @@
 
   /* Le coeur d'album vit sur la meme ligne que « Lire » : c'est la que se
      prennent les decisions sur un album (Didier, #1478). */
+  /* Idem #2510 : la fiche album d'un service de diffusion porte la meme
+     rangee non secable. */
   .album-detail-actions {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 12px;
   }
 </style>

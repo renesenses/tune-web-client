@@ -31,6 +31,7 @@
   import { t } from './lib/i18n';
   import * as api from './lib/api';
   import { libelleBanniereEnrichissement, enrichissementImagesTermine, type TacheDeFond } from './lib/tachesDeFond';
+  import { cleBanniereEnrichissementApresScan } from './lib/enrichissementApresScan';
   import { urlFlux } from './lib/bridge';
   import Sidebar from './components/Sidebar.svelte';
   import NowPlaying from './components/NowPlaying.svelte';
@@ -118,7 +119,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   let showWhatsNew = $state(false);
 
   // Status banner state
-  type BannerStatus = 'idle' | 'scan' | 'streaming' | 'ready' | 'enrichment';
+  type BannerStatus = 'idle' | 'scan' | 'streaming' | 'ready' | 'enrichment' | 'notice';
   let bannerStatus = $state<BannerStatus>('idle');
   let bannerMessage = $state('');
   let bannerFadeout = $state(false);
@@ -144,6 +145,33 @@ import AlarmsView from './components/AlarmsView.svelte';
         bannerFadeTimer = null;
       }, 600);
     }, 1500);
+  }
+
+  function showScanCompletedBanner(autoEnrichment: unknown) {
+    const key = cleBanniereEnrichissementApresScan(
+      autoEnrichment && typeof autoEnrichment === 'object'
+        ? autoEnrichment as { started?: boolean; skipped_reason?: string | null }
+        : undefined,
+    );
+    if (key === null) {
+      showReadyBanner();
+      return;
+    }
+
+    if (bannerFadeTimer) clearTimeout(bannerFadeTimer);
+    bannerStatus = 'notice';
+    bannerMessage = get(t)(key);
+    bannerFadeout = false;
+    // Le motif et le geste manuel doivent rester lisibles, contrairement au
+    // bref « Prêt » de fin de scan.
+    bannerFadeTimer = setTimeout(() => {
+      bannerFadeout = true;
+      bannerFadeTimer = setTimeout(() => {
+        bannerStatus = 'idle';
+        bannerFadeout = false;
+        bannerFadeTimer = null;
+      }, 600);
+    }, 8000);
   }
 
   /**
@@ -1262,7 +1290,7 @@ import AlarmsView from './components/AlarmsView.svelte';
           }
         } else if (type === 'library.scan.completed') {
           scanIndicator = false;
-          showReadyBanner();
+          showScanCompletedBanner(event.data?.auto_enrichment);
         }
         return;
       }
@@ -1420,11 +1448,13 @@ import AlarmsView from './components/AlarmsView.svelte';
     {/if}
 
     {#if bannerStatus !== 'idle'}
-      <div class="status-banner" class:status-banner--scan={bannerStatus === 'scan'} class:status-banner--streaming={bannerStatus === 'streaming'} class:status-banner--enrichment={bannerStatus === 'enrichment'} class:status-banner--ready={bannerStatus === 'ready'} class:status-banner--fadeout={bannerFadeout}>
+      <div class="status-banner" class:status-banner--scan={bannerStatus === 'scan'} class:status-banner--streaming={bannerStatus === 'streaming'} class:status-banner--enrichment={bannerStatus === 'enrichment'} class:status-banner--ready={bannerStatus === 'ready'} class:status-banner--notice={bannerStatus === 'notice'} class:status-banner--fadeout={bannerFadeout}>
         {#if bannerStatus === 'scan' || bannerStatus === 'streaming' || bannerStatus === 'enrichment'}
           <span class="status-banner-spinner"></span>
         {:else if bannerStatus === 'ready'}
           <svg class="status-banner-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
+        {:else if bannerStatus === 'notice'}
+          <svg class="status-banner-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
         {/if}
         <span class="status-banner-text">{bannerMessage}</span>
       </div>
@@ -1734,6 +1764,19 @@ import AlarmsView from './components/AlarmsView.svelte';
     background: rgba(34, 197, 94, 0.08);
     color: #4ade80;
     border-bottom-color: rgba(34, 197, 94, 0.15);
+  }
+
+  .status-banner--notice {
+    background: rgba(245, 158, 11, 0.1);
+    color: #fbbf24;
+    border-bottom-color: rgba(245, 158, 11, 0.22);
+  }
+
+  .status-banner--notice .status-banner-text {
+    white-space: normal;
+    max-width: 90vw;
+    text-align: center;
+    line-height: 1.35;
   }
 
   .status-banner--fadeout {

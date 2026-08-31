@@ -321,8 +321,112 @@ export interface TrackAllTags {
   audio_info: Record<string, any>;
 }
 
-export function getTrackAllTags(trackId: number): Promise<TrackAllTags> {
-  return fetchJSON(`${BASE}/library/tracks/${trackId}/all-tags`);
+const ALL_TAGS_NESTED = new Set([
+  'db_fields', 'db_credits', 'file_tags', 'audio_info', 'track_id', 'file_exists',
+]);
+
+const ALL_TAGS_AUDIO = [
+  'format', 'sample_rate', 'bit_depth', 'channels', 'duration_ms', 'file_size',
+] as const;
+
+function formatTagLeaf(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+/** The Rust `/all-tags` handler returns the Track row plus `file_tags` as
+ *  `[{tag_type, items: string[]}]`. The drawer expects `db_fields` +
+ *  `file_tags: Record<string, string[]>`. Rendering the raw array with
+ *  `vals.join()` threw and Svelte kept the first "Chargement…" frame. */
+export function normalizeTrackAllTags(raw: unknown, trackId: number): TrackAllTags {
+  const src = raw && typeof raw === 'object' ? raw as Record<string, any> : {};
+
+  const nestedDb = src.db_fields && typeof src.db_fields === 'object' && !Array.isArray(src.db_fields)
+    ? { ...src.db_fields }
+    : null;
+
+  const db_fields: Record<string, any> = nestedDb ?? {};
+  if (!nestedDb) {
+    for (const [key, value] of Object.entries(src)) {
+      if (ALL_TAGS_NESTED.has(key)) continue;
+      db_fields[key] = value;
+    }
+  }
+
+  if (db_fields.comment == null && db_fields.comments != null) {
+    db_fields.comment = db_fields.comments;
+  }
+  if (db_fields.mtime == null && db_fields.file_mtime != null) {
+    db_fields.mtime = db_fields.file_mtime;
+  }
+  if (db_fields.mb_recording_id == null && db_fields.musicbrainz_recording_id != null) {
+    db_fields.mb_recording_id = db_fields.musicbrainz_recording_id;
+  }
+
+  let audio_info: Record<string, any> =
+    src.audio_info && typeof src.audio_info === 'object' && !Array.isArray(src.audio_info)
+      ? { ...src.audio_info }
+      : {};
+  if (Object.keys(audio_info).length === 0) {
+    for (const key of ALL_TAGS_AUDIO) {
+      if (src[key] != null) audio_info[key] = src[key];
+    }
+  }
+
+  return {
+    track_id: src.track_id ?? src.id ?? db_fields.id ?? trackId,
+    file_path: src.file_path ?? db_fields.file_path ?? null,
+    file_exists: typeof src.file_exists === 'boolean' ? src.file_exists : src.file_exists !== false,
+    db_fields,
+    db_credits: Array.isArray(src.db_credits) ? src.db_credits : [],
+    file_tags: normalizeFileTags(src.file_tags),
+    audio_info,
+  };
+}
+
+export function normalizeFileTags(raw: unknown): Record<string, string[]> {
+  if (!raw) return {};
+  if (Array.isArray(raw)) {
+    const out: Record<string, string[]> = {};
+    for (const entry of raw) {
+      if (!entry || typeof entry !== 'object') {
+        const leaf = formatTagLeaf(entry);
+        if (leaf) (out['tag'] ??= []).push(leaf);
+        continue;
+      }
+      const rec = entry as Record<string, unknown>;
+      const tagType = String(rec.tag_type ?? rec.tagType ?? 'tag');
+      const items = rec.items;
+      const vals = Array.isArray(items)
+        ? items.map(formatTagLeaf).filter(Boolean)
+        : [formatTagLeaf(entry)].filter(Boolean);
+      if (vals.length) out[tagType] = [...(out[tagType] ?? []), ...vals];
+    }
+    return out;
+  }
+  if (typeof raw === 'object') {
+    const out: Record<string, string[]> = {};
+    for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+      if (Array.isArray(value)) out[key] = value.map(formatTagLeaf).filter(Boolean);
+      else {
+        const leaf = formatTagLeaf(value);
+        if (leaf) out[key] = [leaf];
+      }
+    }
+    return out;
+  }
+  return {};
+}
+
+export async function getTrackAllTags(trackId: number): Promise<TrackAllTags> {
+  const raw = await fetchJSON<unknown>(`${BASE}/library/tracks/${trackId}/all-tags`);
+  return normalizeTrackAllTags(raw, trackId);
 }
 
 // --- Service tokens (Discogs/Last.fm/etc.) ---

@@ -20,6 +20,7 @@
   import { estRefusPremium } from '../lib/premiumRefus';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
+  import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
   import { notifications } from '../lib/stores/notifications';
   import { selectedArtist, selectedAlbum, albumTracks, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
   import { activeView, previousView, pendingSearchQuery } from '../lib/stores/navigation';
@@ -1711,12 +1712,17 @@
 
         <!-- Settings row: shuffle, repeat -->
         <div class="settings-row" class:center={!isWide}>
-          <button class="setting-btn" class:active={$shuffleEnabled} onclick={toggleShuffle} title={$t('transport.shuffle')}>
+          <!-- Même règle d'affichage que la barre de lecture (#2733) : le
+               libellé porte le nom ET l'état, et il vient de lib/etatTransport
+               pour que les deux points d'entrée ne divergent pas. -->
+          <button class="setting-btn" class:active={$shuffleEnabled} onclick={toggleShuffle} aria-pressed={$shuffleEnabled} aria-label={libelleAleatoire($t, $shuffleEnabled)} title={libelleAleatoire($t, $shuffleEnabled)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
               <polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" />
             </svg>
           </button>
-          <button class="setting-btn" class:active={$repeatMode !== 'off'} onclick={cycleRepeat} title={$t('transport.repeat')}>
+          <!-- Trois états : pas d'`aria-pressed`, le nom accessible porte
+               l'état. Justification dans lib/etatTransport. -->
+          <button class="setting-btn" class:active={$repeatMode !== 'off'} onclick={cycleRepeat} aria-label={libelleRepetition($t, $repeatMode)} title={libelleRepetition($t, $repeatMode)}>
             {#if $repeatMode === 'one'}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                 <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
