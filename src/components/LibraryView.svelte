@@ -1919,6 +1919,16 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   let shuffleAllLoading = $state(false);
 
+  // Le bouton doit DIRE ce qu'il va faire. `scopedFolder` manquait de cette
+  // liste : pastille de répertoire active, le bouton continuait d'annoncer
+  // « Tout lire en aléatoire » — ce que la capture de Marco Polo montre, et ce
+  // qui rendait le défaut invisible (#2801). La condition était par ailleurs
+  // recopiée à l'identique dans le libellé ET dans l'infobulle : une seule
+  // expression, pour qu'elles ne puissent plus diverger.
+  let shuffleEstPorte = $derived(
+    !!(scopedFolder || searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre),
+  );
+
   async function shuffleAllLibrary() {
     if (!zone?.id) {
       notifications.error($tr('library.noZoneSelected'));
@@ -1933,7 +1943,14 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       // and the "no genre" bucket have no single server-side genre string. For
       // those, gather the visible albums' tracks and shuffle them client-side
       // (same pattern as SmartCollectionsView) so only the chosen genre plays.
-      if (!searchQuery.trim() && (selectedParent || selectedNoGenre) && !selectedGenre) {
+      //
+      // `!scopedFolder` : quand la pastille de répertoire est active, les trois
+      // onglets ne chargent QUE le sous-arbre (`loadScopedAlbums/Artists/Tracks`)
+      // et `genreAlbums` n'est plus ce qui est à l'écran. Sans cette garde, ce
+      // retour anticipé DÉSARMERAIT la portée de répertoire ajoutée six lignes
+      // plus bas : la lecture partirait des albums d'un genre qui n'est plus
+      // affiché.
+      if (!scopedFolder && !searchQuery.trim() && (selectedParent || selectedNoGenre) && !selectedGenre) {
         const albumIds = genreAlbums.map((a) => a.id).filter((id): id is number => id != null);
         // Bounded-concurrency fetch with one retry per album (getAlbumTracksBatch)
         // instead of a single Promise.all burst that silently dropped albums whose
@@ -1959,9 +1976,21 @@ import CollapsibleSection from './CollapsibleSection.svelte';
         return;
       }
       // Pass current search/filter context so shuffle applies to visible results
-      const opts: { search_query?: string; genre?: string } = {};
+      //
+      // `folder` (#2801) : la pastille de répertoire est la portée EXTÉRIEURE
+      // de cet écran — elle remplace le contenu des trois onglets par le seul
+      // sous-arbre, et la zone de recherche ne fait ensuite que le restreindre.
+      // Les deux partent donc ENSEMBLE, et le serveur les intersecte ; le genre
+      // ne l'accompagne pas, parce qu'il vit dans l'onglet Genres, qui n'a pas
+      // de pastille.
+      //
+      // Sans ce champ, `opts` restait VIDE dans le cas de Marco Polo (un
+      // répertoire, ni recherche ni genre) : l'appel partait avec `undefined`
+      // et le serveur tirait dans toute la bibliothèque.
+      const opts: { search_query?: string; genre?: string; folder?: string } = {};
+      if (scopedFolder) opts.folder = scopedFolder;
       if (searchQuery.trim()) opts.search_query = searchQuery.trim();
-      else if (selectedGenre) opts.genre = selectedGenre;
+      else if (selectedGenre && !scopedFolder) opts.genre = selectedGenre;
       const result = await api.shuffleAll(zone.id, Object.keys(opts).length ? opts : undefined);
       notifications.success($tr('library.shufflePlaying').replace('{count}', String(result.track_count)));
     } catch (e) {
@@ -2301,7 +2330,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <span class="folder-scope-x">×</span>
           </button>
         {/if}
-        <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title={searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffleResults') : $tr('library.shuffleAll')}>
+        <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title={shuffleEstPorte ? $tr('library.shuffleResults') : $tr('library.shuffleAll')}>
           <!-- Ce bouton DECLENCHE une lecture ; la bascule de la barre de transport
                ACTIVE un mode. Les deux portaient le meme glyphe de fleches croisees,
                et un testeur a cliqué ici en croyant eteindre le mode aleatoire
@@ -2309,7 +2338,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                ce qui distingue « demarrer » de « activer » : ne pas le retirer, et
                ne pas l'ajouter a la bascule de TransportBar.svelte. -->
           <svg viewBox="0 0 36 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="16" aria-hidden="true"><polygon class="shuffle-all-play" points="1 5 1 19 10 12" fill="currentColor" stroke="none"/><g transform="translate(13,0)"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></g></svg>
-          {shuffleAllLoading ? $tr('common.loading') : (searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffle') : $tr('library.shuffleAll'))}
+          {shuffleAllLoading ? $tr('common.loading') : (shuffleEstPorte ? $tr('library.shuffle') : $tr('library.shuffleAll'))}
         </button>
         <button class="add-content-btn" onclick={() => (showImportWizard = true)} title={$tr('library.addContent')}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>

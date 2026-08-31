@@ -897,15 +897,23 @@ export function setRepeat(zoneId: number, mode: RepeatMode) {
   });
 }
 
+// `folder` est la portée de RÉPERTOIRE — le même `folder=<chemin absolu>` que
+// `/library/tracks`, appliqué au sous-arbre entier. Il manquait, et c'était tout
+// le défaut de #2801 : la pastille de répertoire de la Bibliothèque n'avait
+// aucun champ où se transmettre, l'appel partait donc SANS filtre, et le
+// serveur tirait au hasard dans toute la table `tracks` (Marco Polo : « il
+// semble s'alimenter de toute la bibliothèque, pas seulement de la sélection à
+// l'écran »).
 export function shuffleAll(
   zoneId: number,
-  opts?: { search_query?: string; album_id?: number; artist_id?: number; genre?: string },
+  opts?: { search_query?: string; album_id?: number; artist_id?: number; genre?: string; folder?: string },
 ) {
   const params = new URLSearchParams({ zone_id: String(zoneId) });
   if (opts?.search_query) params.set('search_query', opts.search_query);
   if (opts?.album_id != null) params.set('album_id', String(opts.album_id));
   if (opts?.artist_id != null) params.set('artist_id', String(opts.artist_id));
   if (opts?.genre) params.set('genre', opts.genre);
+  if (opts?.folder) params.set('folder', opts.folder);
   return fetchJSON<{ status: string; track_count: number }>(`${BASE}/playback/shuffle-all?${params}`, {
     method: 'POST',
   });
