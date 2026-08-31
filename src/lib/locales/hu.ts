@@ -1744,6 +1744,8 @@ export default {
   "library.scanProgress": "{scanned} fájl beolvasva, {added} hozzáadva",
   "library.stopScan": "Beolvasás leállítása",
   "library.duplicates": "Duplikátumok",
+  "library.createTag": "Új címke",
+  "library.createTagPrompt": "Az új címke neve:",
   "library.manageTags": "Címkék kezelése",
   "library.renameTag": "Átnevezés",
   "library.deleteTag": "Törlés",
