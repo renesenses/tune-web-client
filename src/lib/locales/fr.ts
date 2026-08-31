@@ -1853,6 +1853,7 @@ export default {
   "settings.restartServerNeeded": "Redémarrez le serveur.",
   "settings.audioBackend": "Backend audio",
   "settings.audioBackendError": "Erreur changement backend audio",
+  "settings.wasapiMode": "Mode WASAPI",
   "tip.oxygenTrackRow": "Cliquez pour voir les détails, double-cliquez pour lancer la lecture.",
   "tip.writeTags": "Enregistre, puis écrit ces informations dans les fichiers audio eux-mêmes, sur le disque.",
   "tip.clearLibrary": "Vide la base : pistes, albums, artistes. Zones, playlists et radios sont conservées.",

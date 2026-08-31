@@ -1782,6 +1782,7 @@ export default {
   "settings.restartServerNeeded": "Indítsd újra a szervert.",
   "settings.audioBackend": "Hangrendszer",
   "settings.audioBackendError": "A hangrendszer módosítása nem sikerült",
+  "settings.wasapiMode": "WASAPI mód",
   "tip.oxygenTrackRow": "Kattints a részletekért, dupla kattintással indul a lejátszás.",
   "tip.writeTags": "Ment, majd beírja ezeket az adatokat magukba a hangfájlokba, a lemezen.",
   "tip.clearLibrary": "Kiüríti az adatbázist: számok, albumok, előadók. A zónák, a lejátszási listák és a rádiók megmaradnak.",
