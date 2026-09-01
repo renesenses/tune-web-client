@@ -10,6 +10,7 @@
   import type { Playlist, Track, StreamingPlaylist, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
+  import { declarerPorteeDeVue, ouvrirNiveau, reculerDansLaVue } from '../lib/historiqueNavigation';
   import AlbumArt from './AlbumArt.svelte';
   import ClampedText from './ClampedText.svelte';
   import HeartButton from './HeartButton.svelte';
@@ -633,11 +634,14 @@
     return items;
   });
 
-  async function selectLocal(pl: Playlist) {
+  async function selectLocal(pl: Playlist, options: { historique?: boolean } = {}) {
     if (!pl.id) return;
     selectedPlaylist = pl;
     selectedStreamingPl = null;
     selectedService = 'local';
+    // Le niveau ouvert entre dans l'historique : le bouton du navigateur
+    // referme la fiche au lieu de quitter la vue.
+    if (options.historique !== false) ouvrirNiveau('playlistmanager', { playlist: pl });
     detailLoading = true;
     try {
       detailTracks = await api.getPlaylistTracks(pl.id);
@@ -647,10 +651,11 @@
     detailLoading = false;
   }
 
-  async function selectStreaming(service: string, pl: StreamingPlaylist) {
+  async function selectStreaming(service: string, pl: StreamingPlaylist, options: { historique?: boolean } = {}) {
     selectedStreamingPl = pl;
     selectedPlaylist = null;
     selectedService = service;
+    if (options.historique !== false) ouvrirNiveau('playlistmanager', { service, streamingPlaylist: pl });
     detailLoading = true;
     try {
       detailTracks = await api.getStreamingPlaylistTracks(service, pl.source_id);
@@ -669,11 +674,31 @@
   }
 
   function goBack() {
+    reculerDansLaVue(() => {
+      fermerLaFiche();
+    });
+  }
+
+  /** Remet la vue a sa racine, sans toucher a l'historique. */
+  function fermerLaFiche() {
     selectedPlaylist = null;
     selectedStreamingPl = null;
     detailTracks = [];
     selectedService = '';
   }
+
+  // La vue se declare : l'entree d'historique lui rend son instantane.
+  $effect(() => declarerPorteeDeVue('playlistmanager', {
+    retablir(etat: any) {
+      if (etat?.streamingPlaylist) {
+        void selectStreaming(etat.service, etat.streamingPlaylist, { historique: false });
+      } else if (etat?.playlist) {
+        void selectLocal(etat.playlist, { historique: false });
+      } else {
+        fermerLaFiche();
+      }
+    },
+  }));
 
   // Import flow
   function openImport(service: string, pl: StreamingPlaylist) {

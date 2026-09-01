@@ -14,6 +14,7 @@
     MediaServerSearchResult,
   } from '../lib/types';
   import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
+  import { declarerPorteeDeVue, ouvrirNiveau, reculerDansLaVue, niveauDeVue } from '../lib/historiqueNavigation';
 
   let zone = $derived($currentZone);
   let loading = $state(false);
@@ -176,6 +177,7 @@
       if (vide) {
         navigationStack = [];
         browseResult = avant;
+        publierLeNiveau();
       }
     }
   }
@@ -195,7 +197,49 @@
     }
     loading = false;
     restoreDetailScroll(msKey(objectId), msEl);
+    publierLeNiveau();
   }
+
+  /**
+   * Le niveau de cette vue, c'est le serveur ouvert PLUS le chemin parcouru
+   * dedans. Chaque descente devient une entree d'historique : le bouton du
+   * navigateur remonte d'un cran dans l'arborescence au lieu de quitter la vue
+   * -- ce que faisait deja le bouton de l'ecran, mais lui seul.
+   */
+  function publierLeNiveau() {
+    if (restaurationEnCours) return;
+    if (!selectedServer) { niveauDeVue.set(null); return; }
+    ouvrirNiveau('mediaservers', { server: selectedServer, stack: navigationStack });
+  }
+
+  let restaurationEnCours = false;
+
+  /** Repose un niveau atteint par l'historique, sans re-empiler. */
+  async function reprendreLeNiveau(etat: any) {
+    restaurationEnCours = true;
+    try {
+      if (!etat?.server) { goToServers(); return; }
+      selectedServer = etat.server;
+      navigationStack = etat.stack ?? [];
+      const cible = navigationStack.length
+        ? navigationStack[navigationStack.length - 1].objectId
+        : '0';
+      loading = true;
+      try {
+        browseResult = await api.browseMediaServer(etat.server.id, cible);
+      } catch (e) {
+        console.error('Browse error:', e);
+      }
+      loading = false;
+      restoreDetailScroll(msKey(cible), msEl);
+    } finally {
+      restaurationEnCours = false;
+    }
+  }
+
+  $effect(() => declarerPorteeDeVue('mediaservers', {
+    retablir(etat: any) { void reprendreLeNiveau(etat); },
+  }));
 
   function navigateToBreadcrumb(objectId: string | null) {
     if (objectId === null) {
@@ -224,34 +268,11 @@
   }
 
   function goBack() {
+    // Un seul chemin de retour : l'historique. La pile parallele
+    // `navigationStack` reste la structure de la vue, mais ce n'est plus ELLE
+    // qui decide du retour -- l'entree atteinte porte le chemin a reposer.
     saveDetailScroll(msKey(currentObjectId()), msEl);
-    if (navigationStack.length > 1) {
-      // Go to parent container
-      const newStack = navigationStack.slice(0, -1);
-      const parent = newStack[newStack.length - 1];
-      navigationStack = newStack;
-      if (selectedServer) {
-        loading = true;
-        api.browseMediaServer(selectedServer.id, parent.objectId).then(res => {
-          browseResult = res;
-          loading = false;
-          restoreDetailScroll(msKey(parent.objectId), msEl);
-        }).catch(() => { loading = false; });
-      }
-    } else if (navigationStack.length === 1) {
-      // Go back to root
-      navigationStack = [];
-      if (selectedServer) {
-        loading = true;
-        api.browseMediaServer(selectedServer.id, '0').then(res => {
-          browseResult = res;
-          loading = false;
-          restoreDetailScroll(msKey('0'), msEl);
-        }).catch(() => { loading = false; });
-      }
-    } else {
-      goToServers();
-    }
+    reculerDansLaVue();
   }
 
   function goToServers() {

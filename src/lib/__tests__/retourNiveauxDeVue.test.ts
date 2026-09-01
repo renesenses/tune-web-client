@@ -324,3 +324,46 @@ describe('l’instantané doit survivre à `history.pushState`', () => {
     expect(get(niveauDeVue)!.etat).toBeNull();
   });
 });
+
+describe('pendant un retour, la vue peut republier sans rien empiler', () => {
+  /**
+   * 🔴 Défaut attrapé dans le NAVIGATEUR. Refermer l'album d'une discographie
+   * fait de l'ARTISTE le niveau courant : la vue le republie, et c'est un
+   * niveau NON NUL. La règle d'origine (« non nul ⇒ push ») insérait donc une
+   * entrée entre le `back()` et le `popstate` :
+   *
+   *   back(), push #streaming, POP  ← un cran de trop à chaque retour
+   *
+   * Tant que le retour n'est pas consommé, on n'écrit rien : l'entrée atteinte
+   * porte déjà l'état exact.
+   */
+  beforeEach(() => { finDuRetourProgrammatique(); niveauDeVue.set(null); });
+
+  it('republier un niveau intermédiaire pendant le retour n’empile pas', () => {
+    const h = historiqueJouable();
+    const app = appSvelte(h, 'streaming');
+
+    ouvrirNiveau('streaming', { artiste: 'Genesis' });
+    ouvrirNiveau('streaming', { artiste: 'Genesis', album: 'Invisible Touch' });
+    expect(h.ops).toEqual(['push #streaming', 'push #streaming']);
+
+    // goBack() : l'album se referme, la vue republie le niveau ARTISTE.
+    reculerDansLaVue(() => {
+      ouvrirNiveau('streaming', { artiste: 'Genesis' });
+    }, { historique: h, programmerFilet: () => {} });
+    h.livrerPopstate();
+
+    expect(h.ops).toEqual(['push #streaming', 'push #streaming', 'back()', 'POP #streaming']);
+    app.desabonner();
+  });
+
+  it('une fois le retour consommé, ouvrir un niveau empile de nouveau', () => {
+    const h = historiqueJouable();
+    const app = appSvelte(h, 'streaming');
+    reculerDansLaVue(() => {}, { historique: h, programmerFilet: () => {} });
+    h.livrerPopstate();
+    ouvrirNiveau('streaming', { artiste: 'Genesis' });
+    expect(h.ops.slice(-1)).toEqual(['push #streaming']);
+    app.desabonner();
+  });
+});

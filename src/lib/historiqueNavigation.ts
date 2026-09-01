@@ -39,8 +39,15 @@ export function retourProgrammatiqueEnCours(): boolean {
  * - fiche fermée par un retour → `aucune` : ne PAS détruire l'entrée quittée.
  */
 export function opPourFiche(ficheOuverte: boolean): OpHistorique {
-  if (ficheOuverte) return 'push';
-  return retourEnCours ? 'aucune' : 'replace';
+  // 🔴 Mesuré dans Chrome : pendant un retour, la vue REPUBLIE le niveau
+  // intermédiaire qu'elle rouvre (album refermé → l'artiste redevient le
+  // niveau courant). Ne regarder que « une fiche est ouverte » faisait alors
+  // empiler une entrée ENTRE le `back()` et le `popstate` :
+  //   back(), push #streaming, POP — un cran de plus à chaque retour, et
+  // « suivant » détruit. Tant que le retour n'est pas consommé, on n'écrit
+  // rien : l'entrée atteinte porte déjà l'état exact.
+  if (retourEnCours) return 'aucune';
+  return ficheOuverte ? 'push' : 'replace';
 }
 
 /**
