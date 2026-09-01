@@ -16,6 +16,7 @@
   import { formatDuration } from '../../lib/utils';
   import type { Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
+  import MosaiquePochettes from './MosaiquePochettes.svelte';
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
   import '../../styles/tune-v2.css';
 
@@ -32,10 +33,56 @@
     | null
   >(null);
 
+  /**
+   * Pochettes de mosaïque, par playlist locale.
+   *
+   * Le serveur ne rend AUCUNE pochette pour une playlist locale : `/playlists`
+   * ne porte que `description, id, name, track_count`. Mesuré le 01/09/2026 —
+   * le composant lisait `pl.cover_path`, toujours vide. Les pochettes se
+   * trouvent donc dans les PISTES, une requête par playlist.
+   */
+  let mosaiques = $state<Record<number, string[]>>({});
+
+  /**
+   * Charge les pochettes APRÈS que la liste est affichée, jamais avant.
+   *
+   * ⚠️ C'est une requête PAR PLAYLIST. Treize sur le serveur de test, en
+   * réseau local, à 8 ms — invisible. Chez un testeur avec cent playlists et un
+   * serveur distant, ce sera cent requêtes. Elles ne bloquent donc rien : la
+   * grille s'affiche avec ses pictogrammes, les mosaïques la rejoignent au fil
+   * de l'eau, et un échec ne coûte que sa propre vignette.
+   *
+   * La vraie réponse est côté serveur — rendre les quatre pochettes avec la
+   * playlist. Tant qu'elle n'existe pas, ceci reste correct mais ne passera pas
+   * à l'échelle sans chargement à la demande.
+   */
+  async function chargerMosaiques(liste: Playlist[]): Promise<void> {
+    await Promise.allSettled(
+      liste.map(async (pl) => {
+        if (pl.id == null) return;
+        const pistes = await api.getPlaylistTracks(pl.id);
+        // DISTINCTES et dans l'ordre de la playlist : deux titres du même album
+        // ne doivent pas occuper deux cases.
+        const vues: string[] = [];
+        for (const t of pistes ?? []) {
+          const c = (t as any)?.cover_path;
+          if (c && !vues.includes(c)) vues.push(c);
+          if (vues.length === 4) break;
+        }
+        if (vues.length) mosaiques = { ...mosaiques, [pl.id]: vues };
+      }),
+    );
+  }
+
   function load() {
     loading = true;
+    mosaiques = {};
     api.getAllPlaylists()
-      .then((r) => { local = r.local ?? []; services = r.services ?? {}; })
+      .then((r) => {
+        local = r.local ?? [];
+        services = r.services ?? {};
+        void chargerMosaiques(local);
+      })
       .catch(() => { local = []; services = {}; })
       .finally(() => { loading = false; });
   }
@@ -96,9 +143,18 @@
         {#if local.length}
           <div class="grid">
             {#each local as pl (pl.id)}
+              <!-- `pl.id` est nullable dans le type : on résout la mosaïque UNE
+                   fois ici, plutôt que d'indexer trois fois avec un garde. -->
+              {@const mos = pl.id != null ? mosaiques[pl.id] : undefined}
               <div class="card local">
-                <span class="cv">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h11M4 12h11M4 17h7M17 17V7l4 2"/></svg>
+                <span class="cv" class:img={!!mos}>
+                  {#if mos}
+                    <MosaiquePochettes pochettes={mos} initiales={pl.name?.slice(0, 1)} alt={pl.name} />
+                  {:else}
+                    <!-- Tant que les pochettes ne sont pas revenues — ou si la
+                         playlist n'en a aucune — le pictogramme d'origine. -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h11M4 12h11M4 17h7M17 17V7l4 2"/></svg>
+                  {/if}
                 </span>
                 <span class="ct">{pl.name}</span>
                 <span class="ca">{pl.track_count ?? 0} titre{(pl.track_count ?? 0) > 1 ? 's' : ''}</span>
