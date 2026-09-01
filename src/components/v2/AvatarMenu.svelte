@@ -8,13 +8,14 @@
    * synchronisé que la vue Réglages, donc un seul curseur pour toute l'app.
    * Défaut : Essential (débutant) pour tous.
    */
+  import { onMount } from 'svelte';
   import { activeView } from '../../lib/stores/navigation';
   import { preferences } from '../../lib/stores/preferences';
-  import { LEVEL_LABELS, type SettingsLevel } from '../../lib/uiLevel';
+  import { LEVEL_LABEL_KEYS, type SettingsLevel } from '../../lib/uiLevel';
   import { V2_THEMES, type V2Theme } from '../../lib/v2Theme';
   import { t } from '../../lib/i18n';
   import { get } from 'svelte/store';
-  import { searchSettings, type V2SettingsHit } from '../../lib/v2Settings';
+  import { searchSettings, tabLabel, type V2SettingsHit } from '../../lib/v2Settings';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import * as api from '../../lib/api';
   import { notifications } from '../../lib/stores/notifications';
@@ -59,10 +60,13 @@
     ssoAvatar = '';
   }
 
-  // Relu à CHAQUE ouverture, et non une fois au montage : la session peut
-  // avoir été fermée ailleurs (autre onglet, écran Réglages v1, expiration)
-  // pendant que le menu restait monté. L'en-tête n'est visible qu'ouvert, donc
-  // rien ne justifie de sonder le serveur avant.
+  // Une fois au montage — la PASTILLE de l'avatar dit l'état du compte même
+  // menu fermé, elle a donc besoin du statut tout de suite — puis relu à CHAQUE
+  // ouverture : la session peut avoir été fermée ailleurs (autre onglet, écran
+  // Réglages v1, expiration) pendant que le menu restait monté.
+  onMount(() => {
+    void loadSso();
+  });
   $effect(() => {
     if (open) void loadSso();
   });
@@ -111,7 +115,7 @@
 <svelte:window onclick={onDocClick} />
 
 <div class="avwrap tune-v2">
-  <button class="avatar" onclick={toggle} aria-label="Profil" aria-haspopup="menu" aria-expanded={open}></button>
+  <button class="avatar" class:linked={ssoConnected} onclick={toggle} aria-label={$t('settings.accountMenu' as any)} aria-haspopup="menu" aria-expanded={open}></button>
 
   {#if open}
     <div class="avmenu">
@@ -136,7 +140,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         <input
           type="search"
-          placeholder="Rechercher un réglage…"
+          placeholder={$t('settings.searchSetting' as any)}
           bind:value={q}
           onkeydown={(e) => { if (e.key === 'Enter' && hits.length) openSetting(hits[0]); if (e.key === 'Escape') q = ''; }}
         />
@@ -148,27 +152,27 @@
             {#each hits as h (h.tab.id + '/' + h.section.id)}
               <button class="hit" onclick={() => openSetting(h)}>
                 <span class="hl">{h.label}</span>
-                <span class="ht">{h.tab.label}</span>
+                <span class="ht">{tabLabel(h.tab, (k) => $t(k as any))}</span>
               </button>
             {/each}
           {:else}
-            <div class="nohit">Aucun réglage pour « {q.trim()} ».</div>
+            <div class="nohit">{$t('settings.noSettingFound' as any).replace('{query}', q.trim())}</div>
           {/if}
         </div>
         <div class="sep"></div>
       {/if}
 
-      <div class="sec">Interface</div>
+      <div class="sec">{$t('settings.interface' as any)}</div>
       <div class="seg">
         {#each LEVELS as l (l)}
-          <button class:on={level === l} onclick={() => setLevel(l)}>{LEVEL_LABELS[l]}</button>
+          <button class:on={level === l} onclick={() => setLevel(l)}>{$t(LEVEL_LABEL_KEYS[l] as any)}</button>
         {/each}
       </div>
-      <div class="hint">Ce que Tune vous montre. Indépendant de votre offre.</div>
+      <div class="hint">{$t('settings.levelScopeHint' as any)}</div>
 
       <div class="sep"></div>
 
-      <div class="sec">Thèmes</div>
+      <div class="sec">{$t('settings.themes' as any)}</div>
       <div class="themes">
         {#each V2_THEMES as t (t.id)}
           <button
@@ -183,11 +187,15 @@
         {/each}
       </div>
       <div class="hint">{V2_THEMES.find((t) => t.id === theme)?.label ?? ''}</div>
+      <!-- Même avertissement que l'écran Réglages (décision Bertrand du
+           01/09/2026) : depuis ce menu, on changeait le thème sans savoir qu'il
+           ne s'applique qu'au nouveau client. -->
+      <div class="hint">{$t('settings.themeScopeHint' as any)}</div>
 
       <div class="sep"></div>
       <button class="item" onclick={() => { activeView.set('settings'); close(); }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 2.6V1a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 17 2.6a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H23a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
-        Réglages
+        {$t('settings.titleV2' as any)}
       </button>
       {#if ssoConnected}
         <button class="item" onclick={signOut} disabled={signingOut}>
@@ -203,8 +211,13 @@
   .avwrap{position:relative; font-family:var(--v2-sans)}
   .avatar{width:44px; height:44px; border-radius:50%; border:2px solid var(--v2-line2); cursor:pointer;
     position:relative; background:linear-gradient(135deg,var(--v2-av1),var(--v2-av2)); padding:0}
+  /* Pastille de compte. Elle etait DECORATIVE — couleur fixe, aucun etat — et
+     une pastille qui ne statue sur rien finit par etre lue comme un etat.
+     Elle dit desormais le compte cloud : accent quand la session SSO est
+     ouverte, gris eteint sinon (decision Bertrand du 01/09/2026). */
   .avatar::after{content:""; position:absolute; right:1px; bottom:1px; width:10px; height:10px;
-    border-radius:50%; background:var(--v2-acc1); border:2px solid var(--v2-bg)}
+    border-radius:50%; background:var(--v2-line2); border:2px solid var(--v2-bg)}
+  .avatar.linked::after{background:var(--v2-acc1)}
   .avatar.sm{width:38px; height:38px}
 
   .avmenu{position:absolute; right:0; top:52px; width:250px; z-index:60;

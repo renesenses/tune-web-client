@@ -26,9 +26,22 @@ export function atLeast(current: SettingsLevel, min: SettingsLevel): boolean {
   return levelRank(current) >= levelRank(min);
 }
 
-/** Libellés produit affichés dans le sélecteur (menu avatar). */
-export const LEVEL_LABELS: Record<SettingsLevel, string> = {
-  beginner: 'Essential',
-  intermediate: 'Advanced',
-  expert: 'Expert',
+/**
+ * Clés i18n des libellés produit affichés dans le sélecteur (menu avatar).
+ *
+ * C'étaient des chaînes ANGLAISES figées — `Essential` / `Advanced` / `Expert`
+ * — dans une interface par ailleurs traduite en onze langues. L'utilisateur
+ * lisait donc « Advanced » dans le menu et « Avancé » deux clics plus loin, sur
+ * l'écran Réglages qui, lui, parlait français. Décision de Bertrand du
+ * 01/09/2026 : les niveaux se traduisent PARTOUT.
+ *
+ * Vocabulaire volontairement distinct de `settings.levelBeginner/…`, qui porte
+ * celui du client actuel (« Débutant / Intermédiaire »). Ici c'est celui de la
+ * maquette Levente : Essentiel / Avancé / Expert. Un seul mot est commun aux
+ * deux, « Expert », et sa clé est donc réutilisée telle quelle.
+ */
+export const LEVEL_LABEL_KEYS: Record<SettingsLevel, string> = {
+  beginner: 'settings.levelEssential',
+  intermediate: 'settings.levelAdvanced',
+  expert: 'settings.levelExpert',
 };

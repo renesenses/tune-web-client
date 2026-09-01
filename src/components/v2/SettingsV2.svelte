@@ -34,7 +34,7 @@
   import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
-  import { V2_SETTINGS, type V2SettingsTabId } from '../../lib/v2Settings';
+  import { V2_SETTINGS, type V2SettingsTabId, tabLabel } from '../../lib/v2Settings';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -1078,7 +1078,7 @@
     {#each tabs as x (x.id)}
       <button class="tab" class:on={x.id === tabId} onclick={() => go(x.id)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d={x.icon} /></svg>
-        <span>{x.label}</span>
+        <span>{tabLabel(x, (k) => $t(k as any))}</span>
       </button>
     {/each}
   </nav>

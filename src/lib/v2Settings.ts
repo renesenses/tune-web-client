@@ -48,7 +48,15 @@ export interface V2SettingsSection {
 
 export interface V2SettingsTab {
   id: V2SettingsTabId;
-  label: string;
+  /**
+   * Clé i18n du libellé d'onglet. Les libellés étaient des chaînes FRANÇAISES
+   * en dur alors que les sections, elles, portaient déjà `titleKey` : passer
+   * l'interface en anglais laissait donc les sept onglets en français — la
+   * moitié de la navigation ignorait la langue.
+   */
+  labelKey?: string;
+  /** Libellé littéral, réservé aux noms produit qui ne se traduisent pas. */
+  label?: string;
   icon: string;
   min: SettingsLevel;
   sections: V2SettingsSection[];
@@ -56,7 +64,7 @@ export interface V2SettingsTab {
 
 export const V2_SETTINGS: V2SettingsTab[] = [
   {
-    id: 'general', label: 'Général', min: 'beginner',
+    id: 'general', labelKey: 'settings.tabGeneral', min: 'beginner',
     icon: 'M4 6h16M4 12h10M4 18h13',
     sections: [
       { id: 'playback',   titleKey: 'settings.playback',  from: 'general', min: 'beginner', keywords: ['lecture', 'volume'] },
@@ -65,7 +73,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     ],
   },
   {
-    id: 'audio', label: 'Audio', min: 'beginner',
+    id: 'audio', labelKey: 'settings.tabAudio', min: 'beginner',
     icon: 'M4 15a8 8 0 0 1 16 0M7.5 15a4.5 4.5 0 0 1 9 0',
     sections: [
       { id: 'localAudio',    titleKey: 'settings.localAudio',          from: 'network', min: 'beginner', keywords: ['sortie', 'carte son', 'dac'] },
@@ -82,7 +90,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     ],
   },
   {
-    id: 'library', label: 'Bibliothèque', min: 'beginner',
+    id: 'library', labelKey: 'settings.tabLibrary', min: 'beginner',
     icon: 'M4 5v14M9 5v14M14 6l5 13',
     sections: [
       { id: 'library',    titleKey: 'settings.library',      from: 'library', min: 'beginner' },
@@ -96,7 +104,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     ],
   },
   {
-    id: 'zones', label: 'Zones', min: 'beginner',
+    id: 'zones', labelKey: 'settings.tabZones', min: 'beginner',
     icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01',
     sections: [
       { id: 'zoneAutoCreate', titleKey: 'settings.zoneAutoCreate', from: 'services', min: 'beginner', keywords: ['zones de lecture', 'création automatique'] },
@@ -104,7 +112,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     ],
   },
   {
-    id: 'devices', label: 'Appareils', min: 'intermediate',
+    id: 'devices', labelKey: 'settings.tabDevices', min: 'intermediate',
     icon: 'M4 2h16v20H4zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
     sections: [
       { id: 'devices',    titleKey: 'settings.tabDevices',       from: 'devices',  min: 'intermediate' },
@@ -112,7 +120,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     ],
   },
   {
-    id: 'access', label: 'Accès et jetons', min: 'intermediate',
+    id: 'access', labelKey: 'settings.tabAccess', min: 'intermediate',
     icon: 'M12 2a5 5 0 0 0-5 5v3H5v12h14V10h-2V7a5 5 0 0 0-5-5M9 10V7a3 3 0 1 1 6 0v3',
     sections: [
       { id: 'streaming',   titleKey: 'settings.streaming', from: 'services', min: 'intermediate', keywords: ['qobuz', 'tidal', 'deezer'] },
@@ -122,7 +130,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     ],
   },
   {
-    id: 'system', label: 'Système', min: 'beginner',
+    id: 'system', labelKey: 'settings.tabSystem', min: 'beginner',
     icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1',
     sections: [
       { id: 'about',      titleKey: 'settings.about',             from: 'system', min: 'beginner', keywords: ['version', 'à propos'] },
@@ -154,6 +162,15 @@ export interface V2SettingsHit {
 }
 
 /**
+ * Libellé affiché d'un onglet. Point de résolution UNIQUE : la recherche et les
+ * deux écrans qui affichent un onglet passent par ici, sinon trois endroits
+ * décideraient chacun quoi faire d'un `labelKey` absent.
+ */
+export function tabLabel(tab: V2SettingsTab, resolve: (key: string) => string): string {
+  return tab.labelKey ? resolve(tab.labelKey) : (tab.label ?? tab.id);
+}
+
+/**
  * Recherche un réglage. `resolve` traduit une clé i18n — passé par l'appelant
  * pour que la recherche porte sur les libellés RÉELLEMENT affichés, et pas sur
  * les clés techniques.
@@ -169,7 +186,7 @@ export function searchSettings(
   for (const tab of V2_SETTINGS) {
     for (const section of tab.sections) {
       const label = section.titleKey ? resolve(section.titleKey) : (section.title ?? section.id);
-      const hay = [label, tab.label, ...(section.keywords ?? [])].map(fold);
+      const hay = [label, tabLabel(tab, resolve), ...(section.keywords ?? [])].map(fold);
       let score = -1;
       for (let i = 0; i < hay.length; i++) {
         const h = hay[i];
