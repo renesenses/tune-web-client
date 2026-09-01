@@ -724,6 +724,34 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     } catch (e) { console.error('deleteTag error:', e); }
   }
 
+  /**
+   * Création d'une étiquette SANS passer par la fiche d'un album (#2256,
+   * point 1/3).
+   *
+   * Le défaut vécu, signalé par bluevelvet (Pascal) le 06/07/2026 : « Je n'ai
+   * pas retrouvé la manière de créer une troisième étiquette. » Il avait
+   * raison de ne pas la trouver — jusqu'ici `api.createTag` n'avait qu'un seul
+   * appelant, `handleCreateAndAssignTag`, lui-même déclenché depuis le seul
+   * champ ouvert par le bouton « + Tag » de la fiche d'un album. La barre de
+   * filtres, elle, savait filtrer, renommer et supprimer une étiquette, mais
+   * jamais en créer : la gestion était là, la création ailleurs.
+   *
+   * Cette fonction complète l'affordance existante au même endroit que le
+   * renommage, avec le même dialogue. Elle ne crée QUE l'étiquette : aucun
+   * album n'est assigné, puisqu'aucun n'est sélectionné ici.
+   */
+  async function handleCreateTag() {
+    const saisi = await dialogs.prompt($tr('library.createTagPrompt' as any), '');
+    if (saisi === null) return;
+    const name = saisi.trim();
+    if (!name) return;
+    const color = TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
+    try {
+      await api.createTag(name, color);
+      await loadUserTags();
+    } catch (e) { console.error('createTag error:', e); }
+  }
+
   async function applyTagFilter(tagId: number | null) {
     albumTagFilter = tagId;
     if (tagId) {
@@ -2451,7 +2479,16 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                 <button class="tag-add-btn" onclick={() => showTagPicker = !showTagPicker}>+ Tag</button>
                 {#if showTagPicker}
                   <div class="tag-picker">
-                    <input class="tag-picker-input" type="text" placeholder={$tr('library.newTagPlaceholder')} bind:value={newTagName} onkeydown={(e) => { if (e.key === 'Enter' && newTagName.trim()) handleCreateAndAssignTag(albumId); }} />
+                    <!-- La touche Entrée était le SEUL moyen de valider : un
+                         nom saisi puis un clic ailleurs, et la saisie
+                         disparaissait sans un mot. Le bouton rend la
+                         validation visible ; Entrée continue de marcher. -->
+                    <div class="tag-picker-create">
+                      <input class="tag-picker-input" type="text" placeholder={$tr('library.newTagPlaceholder')} bind:value={newTagName} onkeydown={(e) => { if (e.key === 'Enter' && newTagName.trim()) handleCreateAndAssignTag(albumId); }} />
+                      <button class="tag-picker-submit" disabled={!newTagName.trim()} title={$tr('library.createTag' as any)} aria-label={$tr('library.createTag' as any)} onclick={() => handleCreateAndAssignTag(albumId)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg>
+                      </button>
+                    </div>
                     {#each userTags as tag}
                       <button class="tag-picker-option" onclick={async () => { await api.tagItem(tag.id!, 'album', albumId); showTagPicker = false; await loadUserTags(); albumTagsKey++; }}>
                         <span class="tag-dot" style="background:{tag.color}"></span>
@@ -3175,9 +3212,21 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             {$tr('library.duplicates')} ({duplicateAlbumCount})
           </button>
         {/if}
+        <!-- #2256, point 1/3 : le point d'entrée de création. Cette section
+             n'était montée que `{#if userTags.length > 0}` et n'offrait que
+             filtrer / renommer / supprimer — jamais créer. Une bibliothèque
+             sans aucune étiquette n'affichait donc RIEN ici, et la seule
+             création possible se cachait derrière « + Tag » sur la fiche d'un
+             album. C'est ce que Pascal n'a pas retrouvé. La barre est
+             désormais montée en permanence et porte la création à côté de la
+             gestion. -->
+        <span class="filter-sep">|</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="opacity:0.5;flex-shrink:0"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        <button class="quality-chip tag-create" title={$tr('library.createTag' as any)} onclick={handleCreateTag}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          {$tr('library.createTag' as any)}
+        </button>
         {#if userTags.length > 0}
-          <span class="filter-sep">|</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="opacity:0.5;flex-shrink:0"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
           {#each userTags as tag}
             <span class="user-tag-wrap">
               <button
@@ -4465,6 +4514,16 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   .quality-chip.user-tag {
     gap: 4px;
   }
+  /* La création (#2256) : même puce que ses voisines, en pointillé, pour se
+     lire comme une action et non comme un filtre de plus. */
+  .quality-chip.tag-create {
+    gap: 4px;
+    border-style: dashed;
+  }
+  .quality-chip.tag-create:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
   .quality-chip.user-tag.active {
     background: var(--tag-color, #808080);
     border-color: var(--tag-color, #808080);
@@ -4580,6 +4639,36 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     margin-bottom: 4px;
   }
   .tag-picker-input:focus { border-color: var(--tune-accent); }
+  /* Champ + bouton de validation sur une seule ligne (#2256) : sans le
+     bouton, Entrée était la seule issue et un clic ailleurs perdait la
+     saisie sans message. */
+  .tag-picker-create {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+  .tag-picker-create .tag-picker-input { margin-bottom: 0; }
+  .tag-picker-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 5px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: var(--tune-bg);
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+  }
+  .tag-picker-submit:hover:not(:disabled) {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+  .tag-picker-submit:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
   .tag-picker-option {
     display: flex;
     align-items: center;
