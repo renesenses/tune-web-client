@@ -32,6 +32,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fusionnerPlaylistsFavorites } from '../streamingFavorites';
+import { dateDeTri, trier } from '../favoritesSort';
 
 const qobuzPlaylist = {
   item_type: 'playlist' as const,
@@ -120,6 +121,77 @@ describe('fusionnerPlaylistsFavorites', () => {
   it("n'affiche qu'une fois la même playlist du même service", () => {
     const out = fusionnerPlaylistsFavorites([], [qobuzPlaylist, { ...qobuzPlaylist }]);
     expect(out).toHaveLength(1);
+  });
+});
+
+/**
+ * La DATE d'ajout traverse la fusion — #2715.
+ *
+ * Le tri « date d'ajout » (#2001) était inerte sur le seul onglet Playlists.
+ * Rien n'y affichait de valeur fausse, rien n'y plantait : `trier` recevait
+ * une liste dont AUCUN élément ne portait de date, toutes ses comparaisons
+ * rendaient `0`, et un tri stable rend alors la liste inchangée. On croyait
+ * donc voir l'ordre d'ajout — c'était l'ordre du serveur.
+ *
+ * La date n'a jamais manqué en amont : le serveur la rend des deux côtés
+ * (`favorites.created_at` reporté en `favorite_added_at` par `getFavorites`,
+ * `streaming_favorites.created_at` rendu tel quel). Elle se perdait ICI, dans
+ * la fusion — et des DEUX côtés à la fois, ce qui explique qu'aucun cas ne
+ * survivait pour trahir le défaut.
+ */
+describe('fusionnerPlaylistsFavorites : la date d\'ajout survit à la fusion', () => {
+  it('reporte `favorite_added_at` d\'une playlist locale', () => {
+    const out = fusionnerPlaylistsFavorites(
+      [{ id: 42, name: 'Dimanche matin', favorite_added_at: '2026-03-05T09:00:00Z' }],
+      [],
+    );
+    expect(dateDeTri(out[0])).toBe('2026-03-05T09:00:00Z');
+  });
+
+  it('reporte `created_at` d\'une playlist de service', () => {
+    const out = fusionnerPlaylistsFavorites(
+      [],
+      [{ ...qobuzPlaylist, created_at: '2026-01-09T09:00:00Z' }],
+    );
+    expect(dateDeTri(out[0])).toBe('2026-01-09T09:00:00Z');
+  });
+
+  /** Une playlist prise chez le service n'a aucune date connue de Tune : elle
+   *  doit rendre '' — pas `undefined` maquillé en date — pour que `trier` la
+   *  renvoie en fin de liste au lieu de l'ouvrir. */
+  it('laisse la date vide quand le serveur n\'en donne aucune', () => {
+    const out = fusionnerPlaylistsFavorites([{ id: 7, name: 'sans date' }], [qobuzPlaylist]);
+    expect(dateDeTri(out[0])).toBe('');
+    expect(dateDeTri(out[1])).toBe('');
+  });
+
+  /** LE test du ticket : le tri de l'onglet Playlists ordonne réellement. */
+  it('rend le tri « date d\'ajout » effectif sur l\'onglet Playlists', () => {
+    const fusion = fusionnerPlaylistsFavorites(
+      [
+        { id: 1, name: 'Locale récente', favorite_added_at: '2026-06-01T00:00:00Z' },
+        { id: 2, name: 'Locale ancienne', favorite_added_at: '2026-01-01T00:00:00Z' },
+      ],
+      [
+        { ...qobuzPlaylist, service_id: '77', title: 'Qobuz milieu', created_at: '2026-03-01T00:00:00Z' },
+        { ...qobuzPlaylist, service_id: '88', title: 'Qobuz sans date' },
+      ],
+    );
+
+    // Croissant = le plus ANCIEN d'abord ; la playlist sans date ferme la
+    // marche, quel que soit le sens.
+    expect(trier(fusion, 'ajout').map((p) => p.name)).toEqual([
+      'Locale ancienne',
+      'Qobuz milieu',
+      'Locale récente',
+      'Qobuz sans date',
+    ]);
+    expect(trier(fusion, 'ajout', true).map((p) => p.name)).toEqual([
+      'Locale récente',
+      'Qobuz milieu',
+      'Locale ancienne',
+      'Qobuz sans date',
+    ]);
   });
 });
 

@@ -89,6 +89,21 @@ export interface PlaylistFavorite {
   source: string;
   /** Identifiant chez le service ; absent pour une playlist locale. */
   source_id?: string;
+  /**
+   * Date de la mise en favori — la clé du tri « date d'ajout » (#2001).
+   *
+   * Deux noms parce que deux origines, exactement comme pour les quatre autres
+   * onglets : `favorite_added_at` pour une playlist LOCALE (le `created_at` de
+   * la ligne de favori, reporté par `getFavorites`), `created_at` pour une
+   * playlist de SERVICE, qui arrive telle quelle. `dateDeTri` lit l'un puis
+   * l'autre ; les fondre en un seul champ ici ferait perdre au lecteur
+   * l'origine de la valeur, et rien ne l'imposerait au tri.
+   *
+   * Absentes toutes deux pour une playlist prise chez le service : Tune ne sait
+   * pas quand elle y a été mise en favori. `trier` la renvoie en fin de liste.
+   */
+  favorite_added_at?: string | null;
+  created_at?: string | null;
 }
 
 /** Forme minimale d'une ligne de `streaming_favorites`, tous types confondus. */
@@ -98,6 +113,10 @@ interface FavoriDeService {
   service_id: string;
   title?: string | null;
   cover_url?: string | null;
+  /** #2715 : la date manquait à cette forme étroite. `StreamingFavorite` la
+   *  déclare depuis #2001 et le serveur la rend — elle se perdait au passage
+   *  de type, avant même d'atteindre la fusion. */
+  created_at?: string | null;
 }
 
 /**
@@ -112,9 +131,20 @@ interface FavoriDeService {
  *
  * Une entrée sans service ou sans identifiant est écartée : la ligne
  * s'afficherait, et ne s'ouvrirait sur rien.
+ *
+ * ⚠️ Cette fonction RECOPIE champ par champ, elle ne propage pas l'objet
+ * d'entrée. Tout champ oublié ici est silencieusement perdu : c'est ainsi que
+ * la date d'ajout a disparu des deux côtés à la fois (#2715), rendant le tri
+ * « date d'ajout » inerte sur le seul onglet Playlists — sans erreur, sans
+ * valeur fausse, donc sans rien pour l'annoncer.
  */
 export function fusionnerPlaylistsFavorites(
-  locales: ReadonlyArray<{ id: number | null; name: string; track_count?: number }>,
+  locales: ReadonlyArray<{
+    id: number | null;
+    name: string;
+    track_count?: number;
+    favorite_added_at?: string | null;
+  }>,
   streaming: ReadonlyArray<FavoriDeService>,
 ): PlaylistFavorite[] {
   const out: PlaylistFavorite[] = locales.map((p) => ({
@@ -122,6 +152,7 @@ export function fusionnerPlaylistsFavorites(
     name: p.name,
     track_count: p.track_count,
     source: 'local',
+    favorite_added_at: p.favorite_added_at ?? null,
   }));
 
   // Deux services numérotent leurs playlists chacun de leur côté : la clé de
@@ -141,6 +172,7 @@ export function fusionnerPlaylistsFavorites(
       cover_path: f.cover_url ?? null,
       source: service,
       source_id: serviceId,
+      created_at: f.created_at ?? null,
     });
   }
   return out;
