@@ -35,6 +35,7 @@
   // « Se déconnecter » disparaît — proposer de quitter une session qui n'existe
   // pas est exactement le genre de bouton qui ment.
   let ssoConnected = $state(false);
+  let ssoConfigured = $state(false);
   let ssoName = $state('');
   let ssoEmail = $state('');
   let ssoAvatar = $state('');
@@ -43,6 +44,7 @@
   async function loadSso() {
     try {
       const sso: any = await api.apiFetch('/cloud/sso/status');
+      ssoConfigured = !!sso?.configured;
       if (sso?.connected && sso?.user) {
         ssoConnected = true;
         ssoName = sso.user.display_name || sso.user.email || '';
@@ -52,7 +54,10 @@
       }
     } catch {
       // Serveur muet ou hors ligne : on reste sur l'état « non connecté »
-      // plutôt que d'afficher une identité qu'on ne tient de personne.
+      // plutôt que d'afficher une identité qu'on ne tient de personne. Et on
+      // ne propose pas de se connecter — on ne sait même pas si le nuage
+      // existe sur ce serveur.
+      ssoConfigured = false;
     }
     ssoConnected = false;
     ssoName = '';
@@ -70,6 +75,25 @@
   $effect(() => {
     if (open) void loadSso();
   });
+
+  /**
+   * Ouvrir la session cloud.
+   *
+   * Le menu savait dire « non connecté » et retirer « Se déconnecter » — mais
+   * n'offrait AUCUN moyen d'entrer. Un état sans issue : l'utilisateur lit son
+   * statut et ne peut rien en faire.
+   *
+   * Même chemin que le client actuel : le serveur redirige vers « / » sans
+   * indicateur, donc on pose un drapeau AVANT de partir. `localStorage` avec
+   * horodatage, parce que `sessionStorage` ne survit pas de façon fiable à une
+   * chaîne de redirections inter-origines (ITP de Safari, navigateurs mobiles) ;
+   * les deux sont posés, l'un rattrape l'autre.
+   */
+  function signIn() {
+    try { localStorage.setItem('tune_sso_pending', Date.now().toString()); } catch {}
+    try { sessionStorage.setItem('tune_sso_pending', '1'); } catch {}
+    window.location.href = '/api/v1/cloud/sso/authorize';
+  }
 
   async function signOut() {
     signingOut = true;
@@ -197,6 +221,14 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 2.6V1a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 17 2.6a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H23a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
         {$t('settings.titleV2' as any)}
       </button>
+      {#if !ssoConnected && ssoConfigured}
+        <button class="item" onclick={signIn}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5M15 12H3M11 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-8" /></svg>
+          {$t('settings.signIn')}
+        </button>
+      {:else if !ssoConnected}
+        <div class="hint">{$t('settings.cloudComingSoon')}</div>
+      {/if}
       {#if ssoConnected}
         <button class="item" onclick={signOut} disabled={signingOut}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 17l5-5-5-5M21 12H9M13 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8" /></svg>

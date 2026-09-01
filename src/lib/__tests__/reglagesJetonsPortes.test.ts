@@ -115,3 +115,65 @@ describe('Réglages — section Services & Jetons', () => {
     ).toBe(true);
   });
 });
+
+/**
+ * Le menu avatar ne doit jamais être un état sans issue.
+ *
+ * Il savait dire « non connecté » et retirait « Se déconnecter » — proposer de
+ * quitter une session inexistante aurait menti. Mais il n'offrait AUCUN moyen
+ * d'entrer : l'utilisateur lisait son statut et ne pouvait rien en faire.
+ *
+ * Relevé par Bertrand en regardant l'écran tourner — « où se trouve le bouton
+ * se connecter ? ». Aucun test ne pouvait le voir : rien n'était cassé, il
+ * manquait simplement une porte.
+ */
+describe('Menu avatar — entrer et sortir', () => {
+  const AVATAR = fileURLToPath(
+    new URL('../../components/v2/AvatarMenu.svelte', import.meta.url),
+  );
+  const menu = () =>
+    readFileSync(AVATAR, 'utf8')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '');
+
+  it('offre les DEUX chemins : se connecter et se déconnecter', () => {
+    const src = menu();
+    expect(src.includes("$t('settings.signIn')"), 'aucun moyen de se connecter').toBe(true);
+    expect(src.includes("$t('settings.signOut')"), 'aucun moyen de se déconnecter').toBe(true);
+  });
+
+  it('chaque chemin ne s’affiche que quand il a un sens', () => {
+    const src = menu();
+    expect(
+      src.includes('{#if !ssoConnected && ssoConfigured}'),
+      "« Se connecter » n'est plus conditionné : il apparaîtrait alors qu'une session " +
+        "est ouverte, ou sur un serveur où le nuage n'existe pas.",
+    ).toBe(true);
+    expect(
+      src.includes('{#if ssoConnected}'),
+      '« Se déconnecter » n\'est plus conditionné : il proposerait de quitter une ' +
+        'session inexistante.',
+    ).toBe(true);
+  });
+
+  it('le drapeau de retour est posé AVANT la redirection', () => {
+    // Le serveur redirige vers « / » sans indicateur : sans drapeau posé avant
+    // le départ, l'application ne sait pas d'où l'utilisateur revient.
+    const src = menu();
+    const drapeau = src.indexOf("localStorage.setItem('tune_sso_pending'");
+    const depart = src.indexOf("window.location.href = '/api/v1/cloud/sso/authorize'");
+    expect(drapeau, 'le drapeau de retour a disparu').toBeGreaterThan(-1);
+    expect(drapeau, 'le drapeau est posé APRÈS le départ : il ne sera jamais écrit').toBeLessThan(depart);
+  });
+
+  it('serveur injoignable : on ne propose pas d’entrer', () => {
+    // Statut illisible = on ignore si le nuage existe. Proposer « Se connecter »
+    // mènerait à une page d'autorisation inexistante.
+    expect(
+      /catch \{[\s\S]*?ssoConfigured = false;/.test(menu()),
+      "l'échec de lecture ne remet plus `ssoConfigured` à false : le menu proposerait " +
+        "de se connecter à un nuage dont il ne sait rien.",
+    ).toBe(true);
+  });
+});
