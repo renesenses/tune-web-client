@@ -20,22 +20,43 @@
 
   let zone = $derived($currentZone);
 
+  // `id` est la valeur ENVOYÉE au serveur (`POST /smart-ai/mood`, filtrée par un
+  // `match` sur ces sept chaînes dans routes/smart_ai.rs) : elle ne se traduit
+  // pas. Seul `labelKey` est vu par l'utilisateur.
   const moods = [
-    { id: 'happy', emoji: '\u{1F60A}', label: 'Happy', color: '#FF9800' },
-    { id: 'sad', emoji: '\u{1F622}', label: 'Sad', color: '#2196F3' },
-    { id: 'energetic', emoji: '\u{26A1}', label: 'Energetic', color: '#F44336' },
-    { id: 'calm', emoji: '\u{1F9D8}', label: 'Calm', color: '#4CAF50' },
-    { id: 'focus', emoji: '\u{1F3AF}', label: 'Focus', color: '#9C27B0' },
-    { id: 'romantic', emoji: '\u{1F495}', label: 'Romantic', color: '#E91E63' },
+    { id: 'happy', emoji: '\u{1F60A}', labelKey: 'smartai.moodHappy', color: '#FF9800' },
+    { id: 'sad', emoji: '\u{1F622}', labelKey: 'smartai.moodSad', color: '#2196F3' },
+    { id: 'energetic', emoji: '\u{26A1}', labelKey: 'smartai.moodEnergetic', color: '#F44336' },
+    { id: 'calm', emoji: '\u{1F9D8}', labelKey: 'smartai.moodCalm', color: '#4CAF50' },
+    { id: 'focus', emoji: '\u{1F3AF}', labelKey: 'smartai.moodFocus', color: '#9C27B0' },
+    { id: 'romantic', emoji: '\u{1F495}', labelKey: 'smartai.moodRomantic', color: '#E91E63' },
   ];
 
+  /**
+   * Le VOCABULAIRE du moteur, pas de la prose (#1360).
+   *
+   * `generate_smart_playlist` ne comprend pas de phrase : il teste
+   * `prompt.contains(...)` contre une liste FIGÉE — 22 genres, cinq familles
+   * d'ambiance, quatre décennies, « hi-res », plus le nom d'artiste le plus long
+   * trouvé dans la chaîne. Tout le reste est ignoré en silence, et un texte dont
+   * aucun mot n'est reconnu retombe sur `ORDER BY RANDOM()`.
+   *
+   * Les exemples précédents le laissaient croire l'inverse : « upbeat funk
+   * 120bpm » (aucune lecture de BPM ici — c'est Tempo qui la fait) et « piano
+   * music for studying » (« piano » n'est pas un genre connu) promettaient une
+   * compréhension qui n'existe pas.
+   *
+   * Ces jetons ne sont donc PAS traduits : ce sont les mots que le moteur
+   * connaît réellement, tels qu'il les compare. Le libellé qui les introduit,
+   * lui, l'est.
+   */
   const examplePrompts = [
-    'relaxing jazz for evening',
-    'upbeat funk 120bpm',
-    '90s rock classics',
-    'piano music for studying',
-    'french chanson',
-    'electronic ambient',
+    'jazz',
+    'calm',
+    'funk 80s',
+    'rock 90s',
+    'electronic',
+    'hi-res',
   ];
 
   async function generateMood(mood: typeof moods[0]) {
@@ -46,9 +67,9 @@
     try {
       const data = await api.smartAIMood({ mood: mood.id, limit: 25 });
       tracks = data.tracks || [];
-      playlistName = `${mood.label} Mix`;
+      playlistName = $t('smartai.nameMoodMix').replace('{mood}', $t(mood.labelKey));
     } catch (e: any) {
-      error = e.message || 'Generation failed';
+      error = e.message || $t('smartai.generateFailed');
       tracks = [];
     }
     loading = false;
@@ -64,7 +85,7 @@
       tracks = data.tracks || [];
       playlistName = prompt;
     } catch (e: any) {
-      error = e.message || 'Generation failed';
+      error = e.message || $t('smartai.generateFailed');
       tracks = [];
     }
     loading = false;
@@ -77,9 +98,9 @@
     try {
       const data = await api.smartAIHistoryBased({ limit: 25, days: 30 });
       tracks = data.tracks || [];
-      playlistName = 'Your Mix';
+      playlistName = $t('smartai.nameMyMix');
     } catch (e: any) {
-      error = e.message || 'Generation failed';
+      error = e.message || $t('smartai.generateFailed');
       tracks = [];
     }
     loading = false;
@@ -92,9 +113,9 @@
     try {
       const data = await api.smartAIDiscovery({ limit: 25 });
       tracks = data.tracks || [];
-      playlistName = 'Discovery Mix';
+      playlistName = $t('smartai.nameDiscoveryMix');
     } catch (e: any) {
-      error = e.message || 'Generation failed';
+      error = e.message || $t('smartai.generateFailed');
       tracks = [];
     }
     loading = false;
@@ -107,9 +128,9 @@
     try {
       const data = await api.smartAITempoMatch({ target_bpm: bpmTarget, tolerance: 15, limit: 25 });
       tracks = data.tracks || [];
-      playlistName = `${bpmTarget} BPM Mix`;
+      playlistName = $t('smartai.nameTempoMix').replace('{bpm}', String(bpmTarget));
     } catch (e: any) {
-      error = e.message || 'Generation failed';
+      error = e.message || $t('smartai.generateFailed');
       tracks = [];
     }
     loading = false;
@@ -128,7 +149,7 @@
         await playAndSync(zone.id, { source: track.source, source_id: track.source_id });
       }
     } catch (e) {
-      notifications.error('Erreur de lecture');
+      notifications.error($t('smartai.playError'));
     }
     playingIndex = null;
   }
@@ -142,9 +163,9 @@
     if (ids.length > 0) {
       try {
         await playAndSync(zone.id, { track_ids: ids });
-        notifications.success(`Lecture de ${ids.length} titres`);
+        notifications.success($t('smartai.playingCount').replace('{count}', String(ids.length)));
       } catch {
-        notifications.error('Erreur de lecture');
+        notifications.error($t('smartai.playError'));
       }
     }
   }
@@ -157,10 +178,14 @@
       const created = await api.createPlaylist(playlistName);
       if (created.id) {
         await api.addPlaylistTracks(created.id, ids);
-        notifications.success(`Playlist "${playlistName}" sauvegardee (${ids.length} titres)`);
+        notifications.success(
+          $t('smartai.savedPlaylist')
+            .replace('{name}', playlistName)
+            .replace('{count}', String(ids.length)),
+        );
       }
     } catch (e: any) {
-      notifications.error(e.message || 'Erreur de sauvegarde');
+      notifications.error(e.message || $t('smartai.saveError'));
     }
   }
 
@@ -185,7 +210,7 @@
   <section class="section">
     <h3 class="section-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" /></svg>
-      Mood
+      {$t('smartai.sectionMood')}
     </h3>
     <div class="mood-grid">
       {#each moods as mood}
@@ -198,7 +223,7 @@
           disabled={loading}
         >
           <span class="mood-emoji">{mood.emoji}</span>
-          <span class="mood-label">{mood.label}</span>
+          <span class="mood-label">{$t(mood.labelKey)}</span>
           {#if loading && selectedMood === mood.id && activeSection === 'mood'}
             <div class="mood-spinner"></div>
           {/if}
@@ -211,7 +236,7 @@
   <section class="section">
     <h3 class="section-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
-      Actions rapides
+      {$t('smartai.sectionQuick')}
     </h3>
     <div class="quick-actions">
       <button
@@ -224,7 +249,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
         </div>
         <div class="action-text">
-          <span class="action-title">My Mix</span>
+          <span class="action-title">{$t('smartai.actionHistory')}</span>
           <span class="action-desc">{$t('smartai.basedOnHistory')}</span>
         </div>
       </button>
@@ -239,8 +264,8 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
         </div>
         <div class="action-text">
-          <span class="action-title">Discover</span>
-          <span class="action-desc">Titres non ecoutes de vos genres</span>
+          <span class="action-title">{$t('smartai.actionDiscovery')}</span>
+          <span class="action-desc">{$t('smartai.discoveryDesc')}</span>
         </div>
       </button>
 
@@ -249,7 +274,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.07-5.07l-2.83 2.83M9.76 14.24l-2.83 2.83m11.14 0l-2.83-2.83M9.76 9.76L6.93 6.93" /></svg>
         </div>
         <div class="action-text">
-          <span class="action-title">Tempo Match</span>
+          <span class="action-title">{$t('smartai.actionTempo')}</span>
           <span class="action-desc">{bpmTarget} BPM</span>
         </div>
         <div class="tempo-controls">
@@ -265,17 +290,25 @@
             class="tempo-go"
             onclick={generateTempo}
             disabled={loading}
-          >Go</button>
+          >{$t('smartai.go')}</button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Section 3: Natural Language Prompt -->
+  <!--
+    Section 3 : MOTS-CLÉS, et non « prompt » (#1360).
+
+    Ce champ n'est pas une invite adressée à un modèle : le serveur y cherche des
+    mots d'une liste figée et en tire des conditions SQL. L'appeler « Prompt »,
+    juste à côté d'un bouton « Tune AI » qui appelle vraiment Claude, promettait
+    une compréhension du langage naturel qui n'existe nulle part dans
+    `routes/smart_ai.rs`.
+  -->
   <section class="section">
     <h3 class="section-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-      Prompt
+      {$t('smartai.sectionKeywords')}
     </h3>
     <div class="prompt-box">
       <div class="prompt-input-row">
@@ -283,7 +316,7 @@
           type="text"
           bind:value={prompt}
           onkeydown={handlePromptKey}
-          placeholder="Describe your ideal playlist..."
+          placeholder={$t('smartai.keywordsPlaceholder')}
           class="prompt-input"
           disabled={loading}
         />
@@ -295,10 +328,11 @@
           {#if loading && activeSection === 'prompt'}
             <div class="spinner-sm"></div>
           {:else}
-            Generate
+            {$t('smartai.generate')}
           {/if}
         </button>
       </div>
+      <p class="keywords-help">{$t('smartai.keywordsHelp')}</p>
       <div class="example-chips">
         {#each examplePrompts as ex}
           <button class="chip" onclick={() => useExample(ex)} disabled={loading}>{ex}</button>
@@ -318,7 +352,7 @@
   {#if loading && tracks.length === 0}
     <div class="loading-state">
       <div class="loading-spinner"></div>
-      <p>Generation en cours...</p>
+      <p>{$t('smartai.generating')}</p>
     </div>
   {/if}
 
@@ -329,15 +363,15 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
           {playlistName}
         </h3>
-        <span class="track-count">{tracks.length} titres</span>
+        <span class="track-count">{$t('smartai.trackCount').replace('{count}', String(tracks.length))}</span>
         <div class="results-actions">
           <button class="action-btn play-all-btn" onclick={playAll}>
             <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5,3 19,12 5,21" /></svg>
-            Tout lire
+            {$t('smartai.playAll')}
           </button>
           <button class="action-btn save-btn" onclick={saveAsPlaylist}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
-            Sauvegarder
+            {$t('smartai.save')}
           </button>
         </div>
       </div>
@@ -669,6 +703,14 @@
   .prompt-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .keywords-help {
+    font-family: var(--font-body);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--tune-text-muted);
+    margin: 0;
   }
 
   .example-chips {
