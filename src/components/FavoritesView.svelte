@@ -125,11 +125,10 @@
   // trier d'abord puis filtrer donnerait le même résultat ici, mais filtrer
   // d'abord épargne le tri des lignes qu'on ne montrera pas.
   //
-  // ⚠️ Le tri « date d'ajout » est un NO-OP sur les playlists :
-  // `fusionnerPlaylistsFavorites` ne reporte ni `created_at` ni
-  // `favorite_added_at` dans `PlaylistFavorite`. Sans date, `trier` rend la
-  // liste inchangée. Rien n'est cassé, mais l'option ne fait rien tant que la
-  // date ne traverse pas cette fonction — hors périmètre de cette fusion.
+  // La réserve posée ici lors de la fusion #2001 + #2370 est LEVÉE (#2715) :
+  // `fusionnerPlaylistsFavorites` reporte désormais `favorite_added_at` (côté
+  // local) et `created_at` (côté service), les deux noms que lit `dateDeTri`.
+  // Le tri « date d'ajout » n'est donc plus inerte sur cet onglet.
   let displayPlaylists = $derived(
     trier(
       sourceFilter === 'all'
