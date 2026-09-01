@@ -4,6 +4,7 @@
   import { tip } from '../lib/tooltip';
   import { compteSupprimees, cleLibelleFinDeScan } from '../lib/bandeauFinDeScan';
   import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
+  import { backendSelectionne, choixDeBackend, libelleBackend, modeWasapiPertinent, type ChoixBackend } from '../lib/audioBackends';
   import { doitSArreterFauteDImagesManquantes, type ModeEnrichissementImages } from '../lib/enrichissementImagesArtistes';
   import { dialogs } from '../lib/stores/dialogs';
   import { get } from 'svelte/store';
@@ -866,8 +867,13 @@ function setSettingsLevel(level: SettingsLevel) {
   // Diagnostics bundle download
   let diagDownloading = $state(false);
 
-  // Audio backend
-  let audioBackend = $state('wasapi');
+  // Audio backend — la liste des choix vient du SERVEUR, jamais d'ici (#1268).
+  // Elle était écrite en dur (Auto/WASAPI/ASIO) et proposait donc deux
+  // technologies Windows sur Debian et Fedora ; `supported_audio_backends` de
+  // `GET /system/config` dit ce que la plateforme du serveur sait vraiment
+  // faire. Vide = pas de sortie locale : on masque le réglage.
+  let choixBackends = $state<ChoixBackend[]>([]);
+  let audioBackend = $state('auto');
   let exclusiveMode = $state(false);
   // DSD → network renderer: stream the transcode instead of a blocking temp
   // file (fixes DSD 256/512 timeouts/silence on some DLNA renderers).
@@ -892,7 +898,8 @@ function setSettingsLevel(level: SettingsLevel) {
     try {
       const resp = await fetch('/api/v1/system/config');
       const data = await resp.json();
-      audioBackend = data.audio_backend ?? data.local_audio_backend ?? 'wasapi';
+      choixBackends = choixDeBackend(data);
+      audioBackend = backendSelectionne(data, choixBackends);
       exclusiveMode = data.local_exclusive_mode ?? false;
       dsdLpcmStream = data.dsd_lpcm_stream ?? false;
       replayGainMode = data.replaygain_mode ?? 'off';
@@ -937,6 +944,10 @@ function setSettingsLevel(level: SettingsLevel) {
   async function changeAudioBackend(backend: string) {
     audioBackend = backend;
     const newExclusive = backend === 'asio' ? true : exclusiveMode;
+    // Le nom annoncé est le LIBELLÉ du serveur : `backend.toUpperCase()`
+    // annonçait « AUTO », un mot que le sélecteur n'affiche nulle part.
+    const choisi = choixBackends.find((c) => c.value === backend);
+    const nom = choisi ? libelleBackend(choisi, get(t)) : backend.toUpperCase();
     try {
       await fetch('/api/v1/system/config', {
         method: 'PATCH',
@@ -944,7 +955,7 @@ function setSettingsLevel(level: SettingsLevel) {
         body: JSON.stringify({ local_audio_backend: backend, local_exclusive_mode: newExclusive }),
       });
       exclusiveMode = newExclusive;
-      notifications.success(`${get(t)('settings.audioBackend')}: ${backend.toUpperCase()}. ${get(t)('settings.restartServerNeeded')}`);
+      notifications.success(`${get(t)('settings.audioBackend')}: ${nom}. ${get(t)('settings.restartServerNeeded')}`);
     } catch {
       notifications.error(get(t)('settings.audioBackendError'));
     }
@@ -2940,11 +2951,6 @@ function setSettingsLevel(level: SettingsLevel) {
     'services.spotifyConnect': !!spotifyConnect?.enabled,
     'services.zoneAutoCreate': config?.zone_auto_create === false,
     'services.followMe': $followMe,
-    'services.perZoneLyricsOffset': $zones.some((z) => (z.lyrics_offset_ms ?? 0) !== 0),
-    'services.perZoneFixedVolume': $zones.some((z) => !!z.fixed_volume),
-    'services.perZoneDsdMode': $zones.some((z) => (z.dsd_mode ?? 'auto') !== 'auto'),
-    'services.perZoneMaxSampleRate': $zones.some((z) => (z.max_sample_rate ?? 0) > 0),
-    'services.zoneAdvanced': $zones.some((z) => !!z.alac_passthrough || !!z.aac_passthrough || !!z.dlna_lpcm),
     'services.squeezebox': !!config?.squeezebox_enabled,
     'services.hqplayer': hqplayerEnabled,
     'network.tuneServers': tunePeers.length > 0,
@@ -2957,6 +2963,11 @@ function setSettingsLevel(level: SettingsLevel) {
     'network.dsdNetwork': dsdLpcmStream,
     'network.eqBands': eqExpertBands !== 10,
     'network.tuneBridge': bridgeEnabled,
+    'network.perZoneLyricsOffset': $zones.some((z) => (z.lyrics_offset_ms ?? 0) !== 0),
+    'network.perZoneFixedVolume': $zones.some((z) => !!z.fixed_volume),
+    'network.perZoneDsdMode': $zones.some((z) => (z.dsd_mode ?? 'auto') !== 'auto'),
+    'network.perZoneMaxSampleRate': $zones.some((z) => (z.max_sample_rate ?? 0) > 0),
+    'network.zoneAdvanced': $zones.some((z) => !!z.alac_passthrough || !!z.aac_passthrough || !!z.dlna_lpcm),
     'system.telemetry': cloudTelemetryEnabled,
     'system.communitySync': config?.community_sync_enabled === true || config?.community_sync_enabled === 'true',
     'system.logLevel': logLevel !== 'info',
@@ -2968,11 +2979,11 @@ function setSettingsLevel(level: SettingsLevel) {
     'system.dataLocation': !!config?.appliance,
     'network.applianceWifi': !!config?.appliance,
     'services.spotifyConnect': !!spotifyConnect,
-    'services.perZoneLyricsOffset': $zones.length > 0,
-    'services.perZoneFixedVolume': $zones.length > 0,
-    'services.perZoneDsdMode': $zones.length > 0,
-    'services.perZoneMaxSampleRate': $zones.length > 0,
-    'services.zoneAdvanced': $zones.length > 0,
+    'network.perZoneLyricsOffset': $zones.length > 0,
+    'network.perZoneFixedVolume': $zones.length > 0,
+    'network.perZoneDsdMode': $zones.length > 0,
+    'network.perZoneMaxSampleRate': $zones.length > 0,
+    'network.zoneAdvanced': $zones.length > 0,
   }));
 
   /** Visibilité d'un réglage : niveau ≤ niveau choisi, OU valeur ≠ défaut. */
@@ -4436,17 +4447,21 @@ function setSettingsLevel(level: SettingsLevel) {
     <!-- Local Audio Outputs -->
     <section class="settings-section">
       <h3>{$t('settings.localAudio')}</h3>
+      <!-- Les options viennent de `supported_audio_backends` (#1268). Une
+           liste vide = build sans sortie locale : pas de réglage à proposer. -->
+      {#if choixBackends.length > 0}
       <div class="about-row" style="margin-bottom: 0.75rem" class:lv-hidden={!lvOk('network.audioBackend')}>
         <span class="about-label">{$t('settings.audioBackend')}</span>
         <select class="log-level-select" value={audioBackend} onchange={(e) => changeAudioBackend((e.target as HTMLSelectElement).value)}>
-          <option value="auto">{$t('settings.autoDefault')}</option>
-          <option value="wasapi">WASAPI</option>
-          <option value="asio">ASIO (bit-perfect)</option>
+          {#each choixBackends as choix (choix.value)}
+            <option value={choix.value}>{libelleBackend(choix, $t)}</option>
+          {/each}
         </select>
       </div>
-      {#if audioBackend === 'wasapi'}
+      {/if}
+      {#if modeWasapiPertinent(choixBackends, audioBackend)}
       <div class="about-row" style="margin-bottom: 0.75rem" class:lv-hidden={!lvOk('network.wasapiMode')}>
-        <span class="about-label">Mode WASAPI</span>
+        <span class="about-label">{$t('settings.wasapiMode')}</span>
         <select class="log-level-select" value={exclusiveMode ? 'exclusive' : 'shared'} onchange={(e) => { const v = (e.target as HTMLSelectElement).value; if ((v === 'exclusive') !== exclusiveMode) toggleExclusiveMode(); }}>
           <option value="shared">{$t('settings.sharedDefault')}</option>
           <option value="exclusive">{$t('settings.exclusiveBitPerfect')}</option>
@@ -4532,6 +4547,228 @@ function setSettingsLevel(level: SettingsLevel) {
         </button>
       </div>
     </section>
+
+    <!-- #2171 — ce bloc vivait dans l'onglet « Services ». Un réglage PAR
+         ZONE qui agit sur la restitution (mode DSD, décalage des paroles,
+         fréquence maximale, volume fixe) n'a rien à faire avec les comptes et
+         les connexions extérieures : il appartient à « Réseau / Audio », aux
+         côtés d'« Audio local ». Bilou l'avait demandé pour le seul décalage
+         des paroles (forum #1376) ; couper la carte de zone en deux onglets
+         aurait été pire que le mal, donc la carte entière déménage. Les clés
+         de niveau suivent : `network.perZone*` / `network.zoneAdvanced` —
+         c'est le champ `tab` du registre qui alimente le compteur « n
+         réglages masqués » de l'onglet.
+         Gardé par src/lib/__tests__/reglagesParZoneOngletAudio.test.ts. -->
+    <!-- Réglages audio par zone : mode DSD, décalage des paroles, fréquence
+         maximale, volume fixe (+ le volet « Avancé » des rendus DLNA/OpenHome).
+         Ce commentaire annonçait « gapless », et l'intitulé affiché sous le
+         titre le répétait dans les onze langues — alors qu'aucun contrôle de
+         gapless n'a jamais existé ici (#2260). Le champ `gapless_enabled` EST
+         géré par le serveur, mais il ne vaut pas la même chose partout : la
+         sortie ne l'honore que si `supports_internal_gapless()` rend vrai —
+         DLNA, BluOS, pont, OpenHome avec service `playlist`, OAAT et la sortie
+         locale PARTAGÉE. Il est inerte sur Chromecast, SlimProto,
+         Squeezebox/LMS et sur une sortie locale en mode EXCLUSIF (ASIO /
+         WASAPI exclusif), où le poller n'arme jamais l'enchaînement. Une case
+         « Gapless » indifférenciée serait donc un nouveau réglage muet sur ces
+         zones-là — le défaut voisin de #2154. Tant que la capacité réelle
+         n'est pas exposée par zone de façon fiable (`output_capabilities` vaut
+         `null` dès que la sortie n'est pas ouverte), on ne promet pas.
+         Gardé par src/lib/__tests__/perZoneGaplessPromise.i18n.test.ts. -->
+    {#if $zones.length > 0}
+      <section class="settings-section" class:lv-hidden={!lvAny('network.perZoneLyricsOffset', 'network.perZoneFixedVolume', 'network.perZoneDsdMode', 'network.perZoneMaxSampleRate', 'network.zoneAdvanced')}>
+        <h3>{$t('settings.perZoneSettings')}</h3>
+        <p class="section-hint">{$t('settings.perZoneHint')}</p>
+        <div class="zone-settings-list">
+          {#each [{ key: 'local', label: $t('settings.zoneGroupLocal') }, { key: 'network', label: $t('settings.zoneGroupNetwork') }] as grp (grp.key)}
+            {@const groupZones = $zones.filter((z) => (grp.key === 'local' ? isLocalZone(z) : !isLocalZone(z)))}
+            {#if groupZones.length}
+              <div class="zone-group-header">{grp.label}</div>
+              {#each groupZones as z (z.id)}
+                {@const badge = zoneBadge(z.output_type)}
+                {@const hint = zoneDeviceHint(z)}
+                <div class="zone-card">
+                  <div class="zone-card-head">
+                    <span class="zone-card-name">{z.name}</span>
+                    <span class="zone-badge zone-badge-{badge.cls}">{badge.label}</span>
+                    {#if hint}<span class="zone-card-dev">{hint}</span>{/if}
+                    {#if !isLocalZone(z)}
+                      <span class="zone-online" class:offline={z.online === false}>
+                        <span class="zone-online-dot"></span>{z.online === false ? $t('settings.zoneOffline') : $t('settings.zoneOnline')}
+                      </span>
+                    {/if}
+                  </div>
+                  <div class="zone-card-row">
+                    <label class="zone-setting-label" class:lv-hidden={!lvOk('network.perZoneDsdMode')}>
+                      <span>DSD</span>
+                      <select
+                        class="zone-select"
+                        value={z.dsd_mode ?? 'auto'}
+                        onchange={async (e) => {
+                          const mode = (e.target as HTMLSelectElement).value;
+                          if (z.id == null) return;
+                          await api.updateZoneDsdMode(z.id, mode);
+                        }}
+                      >
+                        <option value="auto">Auto</option>
+                        <option value="native">{$t('settings.dsdNative')}</option>
+                        <option value="dop">DoP</option>
+                        <option value="pcm">{$t('settings.dsdPcm')}</option>
+                      </select>
+                    </label>
+                    <label class="zone-setting-label" class:lv-hidden={!lvOk('network.perZoneLyricsOffset')} title={$t('settings.lyricsOffsetHint' as any)}>
+                      <span>{$t('settings.lyricsOffset' as any)}</span>
+                      <select
+                        class="zone-select"
+                        value={String(z.lyrics_offset_ms ?? 0)}
+                        onchange={async (e) => {
+                          const ms = Number((e.target as HTMLSelectElement).value);
+                          if (z.id == null) return;
+                          z.lyrics_offset_ms = ms;
+                          await api.updateZoneLyricsOffset(z.id, ms);
+                        }}
+                      >
+                        {#each [0, 1000, 2000, 3000, 4000, 5000, 7000, 10000, 15000, 20000] as ms}
+                          <option value={String(ms)}>{ms === 0 ? $t('settings.lyricsOffsetNone' as any) : `+${ms / 1000} s`}</option>
+                        {/each}
+                      </select>
+                    </label>
+                    <label class="zone-setting-label" class:lv-hidden={!lvOk('network.perZoneMaxSampleRate')} title={$t('settings.maxSampleRateHint')}>
+                      <span>{$t('settings.maxSampleRate')}</span>
+                      <select
+                        class="zone-select"
+                        value={String(z.max_sample_rate ?? 0)}
+                        onchange={async (e) => {
+                          const v = Number((e.target as HTMLSelectElement).value);
+                          if (z.id == null) return;
+                          await api.updateZoneMaxSampleRate(z.id, v > 0 ? v : null);
+                        }}
+                      >
+                        <option value="0">{$t('settings.maxSampleRateNone')}</option>
+                        <option value="48000">48 kHz</option>
+                        <option value="88200">88.2 kHz</option>
+                        <option value="96000">96 kHz</option>
+                        <option value="176400">176.4 kHz</option>
+                        <option value="192000">192 kHz</option>
+                        <option value="352800">352.8 kHz</option>
+                        <option value="384000">384 kHz</option>
+                        <option value="705600">705.6 kHz</option>
+                        <option value="1411200">1411.2 kHz</option>
+                      </select>
+                    </label>
+                    <!-- Le serveur gérait ce réglage depuis toujours, mais
+                         aucun écran ne l'exposait : le commentaire du bloc le
+                         promettait, le contrôle n'existait pas. Or c'est LA
+                         condition du DoP qui survit — sans lui, un volume à
+                         100 % est rabaissé à 20 % à chaque redémarrage par le
+                         garde-fou anti-réveil (tune-server-rust#1616, Cyrille
+                         forum 1320). Activer épingle aussi le volume à 100 %
+                         en base : on le reflète localement sans attendre. -->
+                    <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.fixedVolumeHint')}>
+                      <input
+                        type="checkbox"
+                        checked={z.fixed_volume ?? false}
+                        onchange={async (e) => {
+                          const input = e.target as HTMLInputElement;
+                          const enabled = input.checked;
+                          if (z.id == null) return;
+                          let fullVolumeConfirmed = false;
+                          // Sur une zone RÉSEAU, activer envoie 100 % à
+                          // l'appareil lui-même (SetVolume au renderer) :
+                          // l'ampli part à fond — vécu par Cyrille sur son
+                          // Yamaha (forum 1320, réponse #21), très
+                          // désagréable et risqué pour les enceintes. On
+                          // demande confirmation AVANT, en nommant la
+                          // conséquence. Sur une zone locale, rien à
+                          // confirmer : 100 % logiciel est justement le but.
+                          if (enabled && !isLocalZone(z)) {
+                            // Même sécurité que l'installation Tune OS sur un
+                            // disque : un simple « OK » se clique sans lire.
+                            // Ici l'ampli part à fond — on exige de TAPER 100,
+                            // comme on exige de taper EFFACER avant d'écraser
+                            // un disque (Bertrand, 25/08).
+                            const typed = await dialogs.prompt($t('settings.fixedVolumeNetConfirm'));
+                            if (typed !== '100') {
+                              input.checked = false;
+                              return;
+                            }
+                            fullVolumeConfirmed = true;
+                          }
+                          try {
+                            await api.updateZoneFixedVolume(z.id, enabled, fullVolumeConfirmed);
+                            z.fixed_volume = enabled;
+                            if (enabled) z.volume = 100;
+                          } catch {
+                            // Refus serveur ou réseau : ne jamais afficher le
+                            // plein volume comme armé quand rien n'a été écrit.
+                            input.checked = z.fixed_volume ?? false;
+                          }
+                        }}
+                      />
+                      <span>{$t('settings.fixedVolume')}</span>
+                    </label>
+                  </div>
+                  {#if dopCappedToPcm(z)}
+                    <p class="zone-warn">{$t('settings.maxSampleRateDsdCap')}</p>
+                  {/if}
+                  {#if dsdVolumeInerte(z)}
+                    <p class="zone-note">{$t('settings.dsdVolumeNeutralised')}</p>
+                  {/if}
+                  {#if zoneHasAdvanced(z)}
+                    <details class="zone-adv" class:lv-hidden={!lvOk('network.zoneAdvanced')}>
+                      <summary class="zone-adv-summary">{$t('settings.zoneAdvanced')}</summary>
+                      <div class="zone-adv-body">
+                        {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
+                          <!-- Coherent per-renderer panel: discovery check + format
+                               overrides (FLAC/WAV/LPCM/16-bit) with the server's
+                               precedence. Owns LPCM + 16-bit, so no standalone
+                               duplicate checkboxes here. -->
+                          <RendererConfig zone={z} />
+                        {:else}
+                          <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
+                            <input
+                              type="checkbox"
+                              checked={z.alac_passthrough ?? false}
+                              onchange={async (e) => {
+                                if (z.id == null) return;
+                                await api.updateZoneAlacPassthrough(z.id, (e.target as HTMLInputElement).checked);
+                              }}
+                            />
+                            <span>{$t('settings.alacPassthrough')}</span>
+                          </label>
+                          <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.aacPassthroughHint')}>
+                            <input
+                              type="checkbox"
+                              checked={z.aac_passthrough ?? false}
+                              onchange={async (e) => {
+                                if (z.id == null) return;
+                                await api.updateZoneAacPassthrough(z.id, (e.target as HTMLInputElement).checked);
+                              }}
+                            />
+                            <span>{$t('settings.aacPassthrough')}</span>
+                          </label>
+                          <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaLpcmHint')}>
+                            <input
+                              type="checkbox"
+                              checked={z.dlna_lpcm ?? false}
+                              onchange={async (e) => {
+                                if (z.id == null) return;
+                                await api.updateZoneDlnaLpcm(z.id, (e.target as HTMLInputElement).checked);
+                              }}
+                            />
+                            <span>{$t('settings.dlnaLpcm')}</span>
+                          </label>
+                        {/if}
+                      </div>
+                    </details>
+                  {/if}
+                </div>
+              {/each}
+            {/if}
+          {/each}
+        </div>
+      </section>
+    {/if}
 
     <!-- DSD streaming to network (DLNA) renderers -->
     <section class="settings-section" class:lv-hidden={!lvOk('network.dsdNetwork')}>
@@ -4639,14 +4876,22 @@ function setSettingsLevel(level: SettingsLevel) {
           <span class="toggle-slider"></span>
         </label>
 
-        <label class="pref-label">{$t('settings.enrichOnScan')}<SettingHint k="settings.enrichOnScanHelp" labelKey="settings.enrichOnScan" /></label>
-        <label class="toggle-switch">
+        <!-- Chaque ligne porte DÉSORMAIS sa propre garde de niveau. Elles n'en
+             avaient pas : seule la section en portait une, et `lvAny` la rend
+             visible dès qu'UN de ses réglages l'est. Tant que les trois lignes
+             partageaient le même niveau, l'omission ne se voyait pas ; le jour
+             où « Paroles en ligne » descend au niveau débutant (#2859), elle
+             ouvrirait « Enrichir pendant le scan » — un réglage intermédiaire —
+             à tous les débutants. La garde par ligne est ce qui rend le
+             registre des niveaux réellement souverain. -->
+        <label class="pref-label" class:lv-hidden={!lvOk('library.enrichOnScan')}>{$t('settings.enrichOnScan')}<SettingHint k="settings.enrichOnScanHelp" labelKey="settings.enrichOnScan" /></label>
+        <label class="toggle-switch" class:lv-hidden={!lvOk('library.enrichOnScan')}>
           <input type="checkbox" checked={config.enrich_on_scan !== false && config.enrich_on_scan !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.enrich_on_scan = val; await api.updateConfig({ enrich_on_scan: val }); }} />
           <span class="toggle-slider"></span>
         </label>
 
-        <label class="pref-label">{$t('settings.lyricsLrclib')}<SettingHint k="settings.lyricsLrclibHelp" labelKey="settings.lyricsLrclib" /></label>
-        <label class="toggle-switch">
+        <label class="pref-label" class:lv-hidden={!lvOk('library.lyricsLrclib')}>{$t('settings.lyricsLrclib')}<SettingHint k="settings.lyricsLrclibHelp" labelKey="settings.lyricsLrclib" /></label>
+        <label class="toggle-switch" class:lv-hidden={!lvOk('library.lyricsLrclib')}>
           <input type="checkbox" checked={config.lyrics_lrclib_enabled === true || config.lyrics_lrclib_enabled === 'true'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.lyrics_lrclib_enabled = val; await api.updateConfig({ lyrics_lrclib_enabled: val }); }} />
           <span class="toggle-slider"></span>
         </label>
@@ -5260,217 +5505,6 @@ function setSettingsLevel(level: SettingsLevel) {
         </label>
       </div>
     </section>
-
-    <!-- Réglages audio par zone : mode DSD, décalage des paroles, fréquence
-         maximale, volume fixe (+ le volet « Avancé » des rendus DLNA/OpenHome).
-         Ce commentaire annonçait « gapless », et l'intitulé affiché sous le
-         titre le répétait dans les onze langues — alors qu'aucun contrôle de
-         gapless n'a jamais existé ici (#2260). Le champ `gapless_enabled` EST
-         géré par le serveur, mais il ne vaut pas la même chose partout : la
-         sortie ne l'honore que si `supports_internal_gapless()` rend vrai —
-         DLNA, BluOS, pont, OpenHome avec service `playlist`, OAAT et la sortie
-         locale PARTAGÉE. Il est inerte sur Chromecast, SlimProto,
-         Squeezebox/LMS et sur une sortie locale en mode EXCLUSIF (ASIO /
-         WASAPI exclusif), où le poller n'arme jamais l'enchaînement. Une case
-         « Gapless » indifférenciée serait donc un nouveau réglage muet sur ces
-         zones-là — le défaut voisin de #2154. Tant que la capacité réelle
-         n'est pas exposée par zone de façon fiable (`output_capabilities` vaut
-         `null` dès que la sortie n'est pas ouverte), on ne promet pas.
-         Gardé par src/lib/__tests__/perZoneGaplessPromise.i18n.test.ts. -->
-    {#if $zones.length > 0}
-      <section class="settings-section" class:lv-hidden={!lvAny('services.perZoneLyricsOffset', 'services.perZoneFixedVolume', 'services.perZoneDsdMode', 'services.perZoneMaxSampleRate', 'services.zoneAdvanced')}>
-        <h3>{$t('settings.perZoneSettings')}</h3>
-        <p class="section-hint">{$t('settings.perZoneHint')}</p>
-        <div class="zone-settings-list">
-          {#each [{ key: 'local', label: $t('settings.zoneGroupLocal') }, { key: 'network', label: $t('settings.zoneGroupNetwork') }] as grp (grp.key)}
-            {@const groupZones = $zones.filter((z) => (grp.key === 'local' ? isLocalZone(z) : !isLocalZone(z)))}
-            {#if groupZones.length}
-              <div class="zone-group-header">{grp.label}</div>
-              {#each groupZones as z (z.id)}
-                {@const badge = zoneBadge(z.output_type)}
-                {@const hint = zoneDeviceHint(z)}
-                <div class="zone-card">
-                  <div class="zone-card-head">
-                    <span class="zone-card-name">{z.name}</span>
-                    <span class="zone-badge zone-badge-{badge.cls}">{badge.label}</span>
-                    {#if hint}<span class="zone-card-dev">{hint}</span>{/if}
-                    {#if !isLocalZone(z)}
-                      <span class="zone-online" class:offline={z.online === false}>
-                        <span class="zone-online-dot"></span>{z.online === false ? $t('settings.zoneOffline') : $t('settings.zoneOnline')}
-                      </span>
-                    {/if}
-                  </div>
-                  <div class="zone-card-row">
-                    <label class="zone-setting-label" class:lv-hidden={!lvOk('services.perZoneDsdMode')}>
-                      <span>DSD</span>
-                      <select
-                        class="zone-select"
-                        value={z.dsd_mode ?? 'auto'}
-                        onchange={async (e) => {
-                          const mode = (e.target as HTMLSelectElement).value;
-                          if (z.id == null) return;
-                          await api.updateZoneDsdMode(z.id, mode);
-                        }}
-                      >
-                        <option value="auto">Auto</option>
-                        <option value="native">{$t('settings.dsdNative')}</option>
-                        <option value="dop">DoP</option>
-                        <option value="pcm">{$t('settings.dsdPcm')}</option>
-                      </select>
-                    </label>
-                    <label class="zone-setting-label" class:lv-hidden={!lvOk('services.perZoneLyricsOffset')} title={$t('settings.lyricsOffsetHint' as any)}>
-                      <span>{$t('settings.lyricsOffset' as any)}</span>
-                      <select
-                        class="zone-select"
-                        value={String(z.lyrics_offset_ms ?? 0)}
-                        onchange={async (e) => {
-                          const ms = Number((e.target as HTMLSelectElement).value);
-                          if (z.id == null) return;
-                          z.lyrics_offset_ms = ms;
-                          await api.updateZoneLyricsOffset(z.id, ms);
-                        }}
-                      >
-                        {#each [0, 1000, 2000, 3000, 4000, 5000, 7000, 10000, 15000, 20000] as ms}
-                          <option value={String(ms)}>{ms === 0 ? $t('settings.lyricsOffsetNone' as any) : `+${ms / 1000} s`}</option>
-                        {/each}
-                      </select>
-                    </label>
-                    <label class="zone-setting-label" class:lv-hidden={!lvOk('services.perZoneMaxSampleRate')} title={$t('settings.maxSampleRateHint')}>
-                      <span>{$t('settings.maxSampleRate')}</span>
-                      <select
-                        class="zone-select"
-                        value={String(z.max_sample_rate ?? 0)}
-                        onchange={async (e) => {
-                          const v = Number((e.target as HTMLSelectElement).value);
-                          if (z.id == null) return;
-                          await api.updateZoneMaxSampleRate(z.id, v > 0 ? v : null);
-                        }}
-                      >
-                        <option value="0">{$t('settings.maxSampleRateNone')}</option>
-                        <option value="48000">48 kHz</option>
-                        <option value="88200">88.2 kHz</option>
-                        <option value="96000">96 kHz</option>
-                        <option value="176400">176.4 kHz</option>
-                        <option value="192000">192 kHz</option>
-                        <option value="352800">352.8 kHz</option>
-                        <option value="384000">384 kHz</option>
-                        <option value="705600">705.6 kHz</option>
-                        <option value="1411200">1411.2 kHz</option>
-                      </select>
-                    </label>
-                    <!-- Le serveur gérait ce réglage depuis toujours, mais
-                         aucun écran ne l'exposait : le commentaire du bloc le
-                         promettait, le contrôle n'existait pas. Or c'est LA
-                         condition du DoP qui survit — sans lui, un volume à
-                         100 % est rabaissé à 20 % à chaque redémarrage par le
-                         garde-fou anti-réveil (tune-server-rust#1616, Cyrille
-                         forum 1320). Activer épingle aussi le volume à 100 %
-                         en base : on le reflète localement sans attendre. -->
-                    <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.fixedVolumeHint')}>
-                      <input
-                        type="checkbox"
-                        checked={z.fixed_volume ?? false}
-                        onchange={async (e) => {
-                          const input = e.target as HTMLInputElement;
-                          const enabled = input.checked;
-                          if (z.id == null) return;
-                          let fullVolumeConfirmed = false;
-                          // Sur une zone RÉSEAU, activer envoie 100 % à
-                          // l'appareil lui-même (SetVolume au renderer) :
-                          // l'ampli part à fond — vécu par Cyrille sur son
-                          // Yamaha (forum 1320, réponse #21), très
-                          // désagréable et risqué pour les enceintes. On
-                          // demande confirmation AVANT, en nommant la
-                          // conséquence. Sur une zone locale, rien à
-                          // confirmer : 100 % logiciel est justement le but.
-                          if (enabled && !isLocalZone(z)) {
-                            // Même sécurité que l'installation Tune OS sur un
-                            // disque : un simple « OK » se clique sans lire.
-                            // Ici l'ampli part à fond — on exige de TAPER 100,
-                            // comme on exige de taper EFFACER avant d'écraser
-                            // un disque (Bertrand, 25/08).
-                            const typed = await dialogs.prompt($t('settings.fixedVolumeNetConfirm'));
-                            if (typed !== '100') {
-                              input.checked = false;
-                              return;
-                            }
-                            fullVolumeConfirmed = true;
-                          }
-                          try {
-                            await api.updateZoneFixedVolume(z.id, enabled, fullVolumeConfirmed);
-                            z.fixed_volume = enabled;
-                            if (enabled) z.volume = 100;
-                          } catch {
-                            // Refus serveur ou réseau : ne jamais afficher le
-                            // plein volume comme armé quand rien n'a été écrit.
-                            input.checked = z.fixed_volume ?? false;
-                          }
-                        }}
-                      />
-                      <span>{$t('settings.fixedVolume')}</span>
-                    </label>
-                  </div>
-                  {#if dopCappedToPcm(z)}
-                    <p class="zone-warn">{$t('settings.maxSampleRateDsdCap')}</p>
-                  {/if}
-                  {#if dsdVolumeInerte(z)}
-                    <p class="zone-note">{$t('settings.dsdVolumeNeutralised')}</p>
-                  {/if}
-                  {#if zoneHasAdvanced(z)}
-                    <details class="zone-adv" class:lv-hidden={!lvOk('services.zoneAdvanced')}>
-                      <summary class="zone-adv-summary">{$t('settings.zoneAdvanced')}</summary>
-                      <div class="zone-adv-body">
-                        {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
-                          <!-- Coherent per-renderer panel: discovery check + format
-                               overrides (FLAC/WAV/LPCM/16-bit) with the server's
-                               precedence. Owns LPCM + 16-bit, so no standalone
-                               duplicate checkboxes here. -->
-                          <RendererConfig zone={z} />
-                        {:else}
-                          <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
-                            <input
-                              type="checkbox"
-                              checked={z.alac_passthrough ?? false}
-                              onchange={async (e) => {
-                                if (z.id == null) return;
-                                await api.updateZoneAlacPassthrough(z.id, (e.target as HTMLInputElement).checked);
-                              }}
-                            />
-                            <span>{$t('settings.alacPassthrough')}</span>
-                          </label>
-                          <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.aacPassthroughHint')}>
-                            <input
-                              type="checkbox"
-                              checked={z.aac_passthrough ?? false}
-                              onchange={async (e) => {
-                                if (z.id == null) return;
-                                await api.updateZoneAacPassthrough(z.id, (e.target as HTMLInputElement).checked);
-                              }}
-                            />
-                            <span>{$t('settings.aacPassthrough')}</span>
-                          </label>
-                          <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaLpcmHint')}>
-                            <input
-                              type="checkbox"
-                              checked={z.dlna_lpcm ?? false}
-                              onchange={async (e) => {
-                                if (z.id == null) return;
-                                await api.updateZoneDlnaLpcm(z.id, (e.target as HTMLInputElement).checked);
-                              }}
-                            />
-                            <span>{$t('settings.dlnaLpcm')}</span>
-                          </label>
-                        {/if}
-                      </div>
-                    </details>
-                  {/if}
-                </div>
-              {/each}
-            {/if}
-          {/each}
-        </div>
-      </section>
-    {/if}
 
     <!-- Squeezebox / Lyrion Music Server -->
     {#if config}
