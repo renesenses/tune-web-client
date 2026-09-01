@@ -47,7 +47,7 @@ describe('registre des niveaux', () => {
     expect(SETTING_LEVELS['library.discogsToken'].level).toBe('expert');
     expect(SETTING_LEVELS['network.audioBackend'].level).toBe('expert');
     expect(SETTING_LEVELS['network.eqBands'].level).toBe('intermediate');
-    expect(SETTING_LEVELS['services.perZoneDsdMode'].level).toBe('expert');
+    expect(SETTING_LEVELS['network.perZoneDsdMode'].level).toBe('expert');
     expect(SETTING_LEVELS['system.databaseMigration'].level).toBe('expert');
     expect(SETTING_LEVELS['system.premiumLicense'].level).toBe('beginner');
   });
@@ -81,7 +81,7 @@ describe('règle d\'or : valeur ≠ défaut ⇒ toujours visible', () => {
     // Le cas d'école du ticket : un mode DSD par zone forcé en natif ne doit
     // jamais disparaître de l'écran, même chez un « débutant ».
     expect(isSettingVisible('expert', 'beginner', true)).toBe(true);
-    expect(isKeyVisible('services.perZoneDsdMode', 'beginner', true)).toBe(true);
+    expect(isKeyVisible('network.perZoneDsdMode', 'beginner', true)).toBe(true);
   });
 
   it('un réglage intermédiaire MODIFIÉ reste visible au niveau débutant', () => {
@@ -89,8 +89,8 @@ describe('règle d\'or : valeur ≠ défaut ⇒ toujours visible', () => {
   });
 
   it('le même réglage NON modifié est bien masqué sous son niveau', () => {
-    expect(isKeyVisible('services.perZoneDsdMode', 'beginner', false)).toBe(false);
-    expect(isKeyVisible('services.perZoneDsdMode', 'intermediate', false)).toBe(false);
+    expect(isKeyVisible('network.perZoneDsdMode', 'beginner', false)).toBe(false);
+    expect(isKeyVisible('network.perZoneDsdMode', 'intermediate', false)).toBe(false);
     expect(isKeyVisible('general.volumeDisplay', 'beginner', false)).toBe(false);
   });
 
