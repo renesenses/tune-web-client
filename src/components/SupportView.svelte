@@ -190,7 +190,7 @@
     }
 
     // Espace disque — uniquement si l'API existante y donne accès.
-    if (adminHealth && adminHealth.disk_total_gb > 0) {
+    if (adminHealth?.disk_free_gb != null && adminHealth.disk_total_gb != null && adminHealth.disk_total_gb > 0) {
       const free = adminHealth.disk_free_gb;
       const total = adminHealth.disk_total_gb;
       const ratio = free / total;

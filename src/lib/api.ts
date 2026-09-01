@@ -55,6 +55,7 @@ import type {
   LocalAudioDevice,
   CompletenessStats,
   ArtworkRescanResult,
+  ReidentifyResult,
   Source,
   RepeatMode,
   OutputType,
@@ -1325,47 +1326,62 @@ export async function getTracks(limit = 100, offset = 0) {
   return Array.isArray(raw) ? raw : (raw.items ?? []) as Track[];
 }
 
+/** Une valeur de facette : une seule, ou plusieurs combinées en OU (#2168). */
+export type FacetParam = string | number | (string | number)[];
+
+/** Ajoute un paramètre de facette à une requête.
+ *
+ *  ⚠️ Plusieurs valeurs = la clé RÉPÉTÉE (`format=aiff&format=flac`), jamais une
+ *  liste séparée par des virgules : un genre « Jazz, Blues », un label ou un
+ *  chemin de dossier contenant une virgule seraient coupés en deux, et le
+ *  filtre cesserait de rendre ce qu'il annonce. `append` est donc obligatoire
+ *  ici — `set` écraserait la valeur précédente et on retomberait sur le défaut
+ *  que #2168 corrige.
+ *
+ *  Une liste vide n'écrit RIEN : une facette sans valeur ne doit pas devenir un
+ *  paramètre vide, que le serveur ignorerait en rendant toute la bibliothèque.
+ */
+export function appendFacetParam(params: URLSearchParams, key: string, value: FacetParam | null | undefined): void {
+  if (value == null) return;
+  const values = Array.isArray(value) ? value : [value];
+  for (const v of values) {
+    const s = String(v);
+    if (s !== '') params.append(key, s);
+  }
+}
+
 export async function getFilteredTracks(opts: {
-  genre?: string;
-  format?: string;
-  sample_rate?: number;
-  bit_depth?: number;
-  year?: number;
-  source?: string;
-  label?: string;
-  composer?: string;
+  genre?: FacetParam;
+  format?: FacetParam;
+  sample_rate?: FacetParam;
+  bit_depth?: FacetParam;
+  year?: FacetParam;
+  source?: FacetParam;
+  label?: FacetParam;
+  composer?: FacetParam;
   q?: string;
-  artist?: string;
-  country?: string;       // release_country (track_metadata k/v)
-  mood?: string;          // mood (track_metadata k/v)
-  source_media?: string;  // source_media (track_metadata k/v)
-  folder?: string;        // Oxygen folder facet: absolute dir prefix (subtree)
-  rating?: number;        // Oxygen rating facet: album rating 1-5 (profile 1)
-  collection?: string;    // Oxygen collection facet: manual collection name
-  favorite?: string;      // Oxygen favorite facet: 'track' | 'album' (profile 1)
-  playlist?: string;      // Oxygen playlist facet: playlist name
-  untagged?: string;      // Oxygen untagged facet: 'genre'|'year'|'artist'|'album'|'cover'
-  original_year?: number; // Oxygen recording-year facet (albums.original_year)
+  artist?: FacetParam;
+  country?: FacetParam;       // release_country (track_metadata k/v)
+  mood?: FacetParam;          // mood (track_metadata k/v)
+  source_media?: FacetParam;  // source_media (track_metadata k/v)
+  folder?: string;            // Oxygen folder facet: absolute dir prefix (subtree) — MONOVALUÉ
+  rating?: FacetParam;        // Oxygen rating facet: album rating 1-5 (profile 1)
+  collection?: string;        // Oxygen collection facet: manual collection name — MONOVALUÉ
+  favorite?: FacetParam;      // Oxygen favorite facet: 'track' | 'album' (profile 1)
+  playlist?: FacetParam;      // Oxygen playlist facet: playlist name
+  untagged?: FacetParam;      // Oxygen untagged facet: 'genre'|'year'|'artist'|'album'|'cover'
+  original_year?: FacetParam; // Oxygen recording-year facet (albums.original_year)
   limit?: number;
   offset?: number;
 }): Promise<{ items: Track[]; total: number }> {
   const params = new URLSearchParams();
-  if (opts.folder) params.set('folder', opts.folder);
-  if (opts.rating != null) params.set('rating', String(opts.rating));
-  if (opts.collection) params.set('collection', opts.collection);
-  if (opts.genre) params.set('genre', opts.genre);
-  if (opts.format) params.set('format', opts.format);
-  if (opts.sample_rate != null) params.set('sample_rate', String(opts.sample_rate));
-  if (opts.bit_depth != null) params.set('bit_depth', String(opts.bit_depth));
-  if (opts.year != null) params.set('year', String(opts.year));
-  if (opts.source) params.set('source', opts.source);
-  if (opts.label) params.set('label', opts.label);
-  if (opts.composer) params.set('composer', opts.composer);
-  if (opts.artist) params.set('artist', opts.artist);
-  if (opts.country) params.set('country', opts.country);
-  if (opts.mood) params.set('mood', opts.mood);
-  if (opts.source_media) params.set('source_media', opts.source_media);
-  if (opts.q) params.set('q', opts.q);
+  for (const key of [
+    'folder', 'rating', 'collection', 'genre', 'format', 'sample_rate', 'bit_depth',
+    'year', 'source', 'label', 'composer', 'artist', 'country', 'mood', 'source_media',
+    'favorite', 'playlist', 'untagged', 'original_year', 'q',
+  ] as const) {
+    appendFacetParam(params, key, (opts as Record<string, FacetParam | undefined>)[key]);
+  }
   params.set('limit', String(opts.limit ?? 200));
   if (opts.offset) params.set('offset', String(opts.offset));
   const raw = await fetchJSON<any>(`${BASE}/library/tracks?${params}`);
@@ -1383,11 +1399,11 @@ export interface FacetValue { value: string; count: number; }
  *  alternatives stay visible. */
 export async function getLibraryFacets(
   fields: string[],
-  filters?: Record<string, string | number>,
+  filters?: Record<string, FacetParam>,
   limit?: number,
 ): Promise<Record<string, FacetValue[]>> {
   const params = new URLSearchParams({ fields: fields.join(',') });
-  if (filters) for (const [k, v] of Object.entries(filters)) params.set(k, String(v));
+  if (filters) for (const [k, v] of Object.entries(filters)) appendFacetParam(params, k, v);
   // limit=0 means "no limit" (show every value); pass it through so the server
   // drops the LIMIT clause.
   if (limit != null) params.set('limit', String(limit));
@@ -1416,12 +1432,12 @@ export interface AlbumDetailed {
 /** Albums agrégés pour la vue cartes. `filters` = les mêmes paramètres de
  *  facette que /library/tracks et /library/facets. */
 export async function getAlbumsDetailed(
-  filters?: Record<string, string | number>,
+  filters?: Record<string, FacetParam>,
   limit = 500,
   offset = 0,
 ): Promise<{ items: AlbumDetailed[]; total: number }> {
   const params = new URLSearchParams();
-  if (filters) for (const [k, v] of Object.entries(filters)) params.set(k, String(v));
+  if (filters) for (const [k, v] of Object.entries(filters)) appendFacetParam(params, k, v);
   params.set('limit', String(limit));
   params.set('offset', String(offset));
   return fetchJSON<{ items: AlbumDetailed[]; total: number }>(`${BASE}/library/albums-detailed?${params}`);
@@ -1436,12 +1452,12 @@ export interface FolderFacet { path: string | null; crumbs: FolderCrumb[]; child
  *  Selecting a child folder means filtering /library/tracks?folder=<child.path>. */
 export async function getFolderFacet(
   path?: string | null,
-  filters?: Record<string, string | number>,
+  filters?: Record<string, FacetParam>,
   folderLimit?: number,
 ): Promise<FolderFacet> {
   const params = new URLSearchParams();
   if (path) params.set('path', path);
-  if (filters) for (const [k, v] of Object.entries(filters)) params.set(k, String(v));
+  if (filters) for (const [k, v] of Object.entries(filters)) appendFacetParam(params, k, v);
   if (folderLimit != null) params.set('folder_limit', String(folderLimit));
   const raw = await fetchJSON<any>(`${BASE}/library/folder-facet?${params}`);
   return {
@@ -1590,6 +1606,19 @@ export async function uploadAlbumArtwork(albumId: number, file: File): Promise<A
 
 export function rescanAlbumArtwork(albumId: number) {
   return fetchJSON<ArtworkRescanResult>(`${BASE}/library/albums/${albumId}/artwork/rescan`, {
+    method: 'POST',
+  });
+}
+
+/** Refait l'identification d'UN album : efface ses clés MusicBrainz et
+ *  relance la correspondance pour cet album seul (#2128).
+ *
+ *  Aucun scan n'est déclenché, aucune passe de bibliothèque : l'effet est borné
+ *  à cet album, et rien de ce que l'utilisateur a saisi n'est écrasé. Compter
+ *  quelques secondes — deux allers-retours MusicBrainz, dont un délai de
+ *  courtoisie imposé par leur limite de débit. */
+export function reidentifyAlbum(albumId: number) {
+  return fetchJSON<ReidentifyResult>(`${BASE}/library/albums/${albumId}/reidentify`, {
     method: 'POST',
   });
 }
@@ -2080,10 +2109,6 @@ export function getConfig() {
   return fetchJSON<any>(`${BASE}/system/config`);
 }
 
-export function audioCheck() {
-  return fetchJSON<import('./types').AudioCheckResult>(`${BASE}/system/audio-check`);
-}
-
 export function getDatabaseStatus() {
   return fetchJSON<any>(`${BASE}/system/database/status`);
 }
@@ -2294,13 +2319,12 @@ export function getStreamingServiceStatus(service: string) {
 
 export interface SpotifyConnectStatus {
   enabled: boolean;
-  available: boolean;
   device_name: string | null;
   zone_id: number | null;
   binary_available: boolean;
-  stream_url: string | null;
   active: boolean;
   reason?: string;
+  error?: string;
 }
 
 export async function downloadDiagnosticsBundle(): Promise<{ blob: Blob; filename: string }> {
@@ -2459,6 +2483,8 @@ export interface StreamingFavorite {
   artist?: string | null;
   album?: string | null;
   cover_url?: string | null;
+  /** Date de la mise en favori — le serveur la rend déjà (#2001). */
+  created_at?: string | null;
 }
 
 export function getProfileStreamingFavorites(
@@ -2860,6 +2886,13 @@ export function getTrack(id: number) {
 // `{ tracks: Track[], albums: Album[], artists: Artist[] }`. Adapt here: group
 // the ids by type, then expand each via its by-id endpoint. Failed lookups
 // (e.g. a favorited item since deleted) are dropped rather than breaking the set.
+//
+// ⚠️ La ligne de favori porte un `created_at` que la ré-hydratation laissait
+// tomber : l'écran ne recevait que l'objet de bibliothèque, dont le
+// `created_at` — quand il en a un — est la date d'IMPORT du morceau, pas celle
+// de la mise en favori. Impossible, dans ces conditions, de trier par date
+// d'ajout (#2001). Elle est donc reportée sur chaque objet sous le nom
+// `favorite_added_at`, qui ne peut se confondre avec rien.
 export async function getFavorites(
   profileId: number,
   type?: LocalFavoriteType,
@@ -2870,21 +2903,32 @@ export async function getFavorites(
   playlists: import('./types').Playlist[];
 }> {
   const q = type ? `?item_type=${type}` : '';
-  const rows = await fetchJSON<Array<{ item_type: string; item_id: number }>>(
-    `${BASE}/profiles/${profileId}/favorites${q}`,
-  );
+  const rows = await fetchJSON<
+    Array<{ item_type: string; item_id: number; created_at?: string | null }>
+  >(`${BASE}/profiles/${profileId}/favorites${q}`);
 
-  const ids = (t: string) => rows.filter((r) => r.item_type === t).map((r) => r.item_id);
-  const settle = async <T>(vals: number[], fetchOne: (id: number) => Promise<T>): Promise<T[]> => {
-    const res = await Promise.allSettled(vals.map(fetchOne));
-    return res.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
+  const lignes = (t: string) => rows.filter((r) => r.item_type === t);
+  // La date est prélevée sur la ligne d'INDEX i, celle-là même dont la
+  // relecture vient d'aboutir. Un `map` sur deux listes parallèles aurait
+  // décalé toutes les dates d'un cran dès la première relecture en échec — un
+  // favori supprimé suffit, et rien ne l'aurait signalé.
+  const settle = async <T>(
+    rs: Array<{ item_id: number; created_at?: string | null }>,
+    fetchOne: (id: number) => Promise<T>,
+  ): Promise<T[]> => {
+    const res = await Promise.allSettled(rs.map((r) => fetchOne(r.item_id)));
+    return res.flatMap((r, i) =>
+      r.status === 'fulfilled'
+        ? [{ ...r.value, favorite_added_at: rs[i].created_at ?? null }]
+        : [],
+    );
   };
 
   const [tracks, albums, artists, playlists] = await Promise.all([
-    settle(ids('track'), getTrack),
-    settle(ids('album'), getAlbum),
-    settle(ids('artist'), getArtist),
-    settle(ids('playlist'), getPlaylist),
+    settle(lignes('track'), getTrack),
+    settle(lignes('album'), getAlbum),
+    settle(lignes('artist'), getArtist),
+    settle(lignes('playlist'), getPlaylist),
   ]);
   return { tracks, albums, artists, playlists };
 }
@@ -3299,7 +3343,9 @@ export function createCollection(name: string, description?: string, icon?: stri
 }
 export function updateCollection(id: number, data: any) { return fetchJSON<any>(`${BASE}/library/collections/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
 export function deleteCollection(id: number) { return fetchJSON<any>(`${BASE}/library/collections/${id}`, { method: 'DELETE' }); }
-export function getCollectionAlbums(id: number) { return fetchJSON<any[]>(`${BASE}/library/collections/${id}/albums`); }
+export function getCollectionAlbums(id: number, sort: 'artist' | 'title' | 'year' | 'added' = 'artist') {
+  return fetchJSON<any[]>(`${BASE}/library/collections/${id}/albums?sort=${sort}`);
+}
 export function addAlbumToCollection(collectionId: number, albumId: number) {
   // Server route is POST /collections/{id}/albums/{album_id} (album_id in the
   // path, like the DELETE below). POSTing to /albums with the id in the body
@@ -3501,8 +3547,17 @@ export function exportArtistsCsv() { return downloadCsv('/export/artists.csv', '
 
 // --- Audiophile Mode ---
 
+export interface AudiophileModeState {
+  enabled: boolean;
+  /** null = héritage du réglage global, booléen = surcharge de cette zone. */
+  lock_volume?: boolean | null;
+  /** Valeur réellement appliquée après héritage. */
+  effective_lock_volume?: boolean;
+  applied_live?: boolean;
+}
+
 export function getAudiophileMode(zoneId: number) {
-  return fetchJSON<{ enabled: boolean }>(`${BASE}/zones/${zoneId}/audiophile`);
+  return fetchJSON<AudiophileModeState>(`${BASE}/zones/${zoneId}/audiophile`);
 }
 
 /**
@@ -3521,7 +3576,7 @@ export function setAudiophileMode(
   enabled: boolean,
   confirmFullVolume = false,
 ) {
-  return fetchJSON<{ enabled: boolean; applied_live?: boolean }>(
+  return fetchJSON<AudiophileModeState>(
     `${BASE}/zones/${zoneId}/audiophile`,
     {
       method: 'POST',
@@ -3531,6 +3586,24 @@ export function setAudiophileMode(
       }),
     },
   );
+}
+
+/**
+ * Surcharger le verrou PURE pour une zone. `null` retire la surcharge et
+ * rétablit l'héritage du réglage global (#2526).
+ */
+export function setAudiophileVolumeLock(
+  zoneId: number,
+  lockVolume: boolean | null,
+  confirmFullVolume = false,
+) {
+  return fetchJSON<AudiophileModeState>(`${BASE}/zones/${zoneId}/audiophile`, {
+    method: 'POST',
+    body: JSON.stringify({
+      lock_volume: lockVolume,
+      ...(confirmFullVolume ? { confirm_full_volume: true } : {}),
+    }),
+  });
 }
 
 // --- Streaming Quality ---
@@ -3973,16 +4046,17 @@ export function getHealthAlerts(): Promise<HealthAlert[]> {
 // --- Admin Dashboard ---
 
 export interface AdminHealth {
-  cpu_percent: number;
-  ram_mb: number;
-  ram_total_mb: number;
-  disk_free_gb: number;
-  disk_total_gb: number;
+  status: string;
   uptime_seconds: number;
-  uptime_formatted: string;
-  open_fds: number;
-  pid: number;
-  python_threads: number;
+  engine: string;
+  version: string;
+  database: { tracks: number; albums: number; engine: string };
+  playback: { zones_total: number; zones_playing: number };
+  outputs: number;
+  streaming_services: number;
+  scan_status: string;
+  disk_free_gb: number | null;
+  disk_total_gb: number | null;
 }
 
 export interface AdminZone {
@@ -4008,7 +4082,8 @@ export interface AdminError {
 
 export interface AdminConnections {
   websocket_connections: number;
-  http_streamer_sessions: number;
+  active_streams: number;
+  registered_outputs: number;
 }
 
 export interface AdminDiscoveryDevice {
@@ -4016,14 +4091,10 @@ export interface AdminDiscoveryDevice {
   name: string;
   type: string;
   host: string;
-  port: number;
-  available: boolean;
-  capabilities: Record<string, unknown>;
 }
 
 export interface AdminDiscovery {
   devices: AdminDiscoveryDevice[];
-  protocols: Record<string, boolean>;
   device_count: number;
 }
 

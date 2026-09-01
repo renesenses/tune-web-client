@@ -9,6 +9,7 @@
   import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
   import { isMiddlePressWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
+  import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
   import { CF_PRESETS, presetActif, reglagesCrossfeed } from '../lib/crossfeed';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -19,6 +20,7 @@
   import { estRefusPremium } from '../lib/premiumRefus';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
+  import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
   import { notifications } from '../lib/stores/notifications';
   import { selectedArtist, selectedAlbum, albumTracks, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
   import { activeView, previousView, pendingSearchQuery } from '../lib/stores/navigation';
@@ -710,11 +712,13 @@
           const favs = await api.apiFetch('/radio-favorites?limit=500');
           const match = favs.find((f: any) => f.title === tr.title && f.artist === tr.artist_name);
           if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
+          forgetRadioFavListenAt(tr.title, tr.artist_name);
           isFavorite = false;
         } else {
           const zid = zone?.id;
           if (zid != null) {
             await api.apiPost('/radio-favorites/save-current', { zone_id: zid });
+            rememberRadioFavListenAt(tr.title, tr.artist_name, isoFromMetadataChangedAt(metadataChangedAtOf(displayTrack)));
             isFavorite = true;
           }
         }
@@ -778,6 +782,15 @@
     t && 'channels' in t ? t.channels : undefined;
   const filePathOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'file_path' in t ? (t.file_path ?? null) : null;
+  /** L'instant ou le flux a annonce ce titre. Il vit sur l'enveloppe
+   *  `NowPlaying`, PAS sur `Track` : c'est un fait de la LECTURE, pas du
+   *  morceau. `nowPlayingToTrack` etale l'objet (`{...t}`) donc la valeur
+   *  survit a l'execution — mais le type de retour est `Track`, qui l'efface.
+   *  La lire sur `normalizedTrack` compilait par accident hier et faisait
+   *  echouer `check-svelte` des que le socle a ete regenere. On la lit donc
+   *  a sa source, avec la meme garde `in` que `albumIdOf` et ses voisines. */
+  const metadataChangedAtOf = (t: Track | NowPlaying | null | undefined) =>
+    t && 'metadata_changed_at' in t ? t.metadata_changed_at : undefined;
 
 
   // Play count for the current local track (Progman, #1056). Fetched on demand;
@@ -1699,12 +1712,17 @@
 
         <!-- Settings row: shuffle, repeat -->
         <div class="settings-row" class:center={!isWide}>
-          <button class="setting-btn" class:active={$shuffleEnabled} onclick={toggleShuffle} title={$t('transport.shuffle')}>
+          <!-- Même règle d'affichage que la barre de lecture (#2733) : le
+               libellé porte le nom ET l'état, et il vient de lib/etatTransport
+               pour que les deux points d'entrée ne divergent pas. -->
+          <button class="setting-btn" class:active={$shuffleEnabled} onclick={toggleShuffle} aria-pressed={$shuffleEnabled} aria-label={libelleAleatoire($t, $shuffleEnabled)} title={libelleAleatoire($t, $shuffleEnabled)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
               <polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" />
             </svg>
           </button>
-          <button class="setting-btn" class:active={$repeatMode !== 'off'} onclick={cycleRepeat} title={$t('transport.repeat')}>
+          <!-- Trois états : pas d'`aria-pressed`, le nom accessible porte
+               l'état. Justification dans lib/etatTransport. -->
+          <button class="setting-btn" class:active={$repeatMode !== 'off'} onclick={cycleRepeat} aria-label={libelleRepetition($t, $repeatMode)} title={libelleRepetition($t, $repeatMode)}>
             {#if $repeatMode === 'one'}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                 <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />

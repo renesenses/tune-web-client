@@ -4,6 +4,7 @@
   import { tip } from '../lib/tooltip';
   import { compteSupprimees, cleLibelleFinDeScan } from '../lib/bandeauFinDeScan';
   import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
+  import { backendSelectionne, choixDeBackend, libelleBackend, modeWasapiPertinent, type ChoixBackend } from '../lib/audioBackends';
   import { doitSArreterFauteDImagesManquantes, type ModeEnrichissementImages } from '../lib/enrichissementImagesArtistes';
   import { dialogs } from '../lib/stores/dialogs';
   import { get } from 'svelte/store';
@@ -12,7 +13,7 @@
   import AcousticProgress from './AcousticProgress.svelte';
   import { tuneWS } from '../lib/websocket';
   import { zones, currentZoneId, followMe } from '../lib/stores/zones';
-  import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../lib/stores/audiophile';
+  import { audiophileEnabled, audiophileGlobalLockVolume, audiophileLockVolume, setVolumeLock, refreshAudiophile, refreshVolumeLock } from '../lib/stores/audiophile';
   import { loopByDefault } from '../lib/stores/loopByDefault';
   import { devices } from '../lib/stores/devices';
   import { preferences, applyTheme, OXYGEN_FACETS_ALL, type ThemeMode, type VolumeDisplay, type StartupView, type OxygenViewMode } from '../lib/stores/preferences';
@@ -866,8 +867,13 @@ function setSettingsLevel(level: SettingsLevel) {
   // Diagnostics bundle download
   let diagDownloading = $state(false);
 
-  // Audio backend
-  let audioBackend = $state('wasapi');
+  // Audio backend — la liste des choix vient du SERVEUR, jamais d'ici (#1268).
+  // Elle était écrite en dur (Auto/WASAPI/ASIO) et proposait donc deux
+  // technologies Windows sur Debian et Fedora ; `supported_audio_backends` de
+  // `GET /system/config` dit ce que la plateforme du serveur sait vraiment
+  // faire. Vide = pas de sortie locale : on masque le réglage.
+  let choixBackends = $state<ChoixBackend[]>([]);
+  let audioBackend = $state('auto');
   let exclusiveMode = $state(false);
   // DSD → network renderer: stream the transcode instead of a blocking temp
   // file (fixes DSD 256/512 timeouts/silence on some DLNA renderers).
@@ -892,7 +898,8 @@ function setSettingsLevel(level: SettingsLevel) {
     try {
       const resp = await fetch('/api/v1/system/config');
       const data = await resp.json();
-      audioBackend = data.audio_backend ?? data.local_audio_backend ?? 'wasapi';
+      choixBackends = choixDeBackend(data);
+      audioBackend = backendSelectionne(data, choixBackends);
       exclusiveMode = data.local_exclusive_mode ?? false;
       dsdLpcmStream = data.dsd_lpcm_stream ?? false;
       replayGainMode = data.replaygain_mode ?? 'off';
@@ -937,6 +944,10 @@ function setSettingsLevel(level: SettingsLevel) {
   async function changeAudioBackend(backend: string) {
     audioBackend = backend;
     const newExclusive = backend === 'asio' ? true : exclusiveMode;
+    // Le nom annoncé est le LIBELLÉ du serveur : `backend.toUpperCase()`
+    // annonçait « AUTO », un mot que le sélecteur n'affiche nulle part.
+    const choisi = choixBackends.find((c) => c.value === backend);
+    const nom = choisi ? libelleBackend(choisi, get(t)) : backend.toUpperCase();
     try {
       await fetch('/api/v1/system/config', {
         method: 'PATCH',
@@ -944,7 +955,7 @@ function setSettingsLevel(level: SettingsLevel) {
         body: JSON.stringify({ local_audio_backend: backend, local_exclusive_mode: newExclusive }),
       });
       exclusiveMode = newExclusive;
-      notifications.success(`${get(t)('settings.audioBackend')}: ${backend.toUpperCase()}. ${get(t)('settings.restartServerNeeded')}`);
+      notifications.success(`${get(t)('settings.audioBackend')}: ${nom}. ${get(t)('settings.restartServerNeeded')}`);
     } catch {
       notifications.error(get(t)('settings.audioBackendError'));
     }
@@ -2863,9 +2874,63 @@ function setSettingsLevel(level: SettingsLevel) {
   // Volume 100 % : le premier geste arme, le second applique (double
   // bascule). L'armement ne survit pas à la page — c'est voulu.
   let lockVolumeArme = $state(false);
+  type ZoneLockChoice = 'inherit' | 'on' | 'off';
+  let zoneLockChoices = $state<Record<number, ZoneLockChoice>>({});
+  const zoneLocksRequested = new Set<number>();
+
+  // Le mode PURE vit hors de la ligne `zones`; on charge donc sa petite
+  // surcharge par zone une seule fois quand une zone apparaît (#2526).
+  $effect(() => {
+    for (const zone of $zones) {
+      if (zone.id == null || zoneLocksRequested.has(zone.id)) continue;
+      zoneLocksRequested.add(zone.id);
+      void api.getAudiophileMode(zone.id).then((state) => {
+        zoneLockChoices = {
+          ...zoneLockChoices,
+          [zone.id!]: state.lock_volume == null
+            ? 'inherit'
+            : (state.lock_volume ? 'on' : 'off'),
+        };
+      }).catch(() => {
+        zoneLocksRequested.delete(zone.id!);
+      });
+    }
+  });
+
+  async function saveZoneLock(
+    zone: { id?: number | null },
+    choice: ZoneLockChoice,
+    select: HTMLSelectElement,
+  ) {
+    if (zone.id == null) return;
+    const previous = zoneLockChoices[zone.id] ?? 'inherit';
+    let confirmed = false;
+    if (choice === 'on') {
+      confirmed = await dialogs.confirm($t('audiophile.lockVolumeWarn' as any), {
+        danger: true,
+      });
+      if (!confirmed) {
+        select.value = previous;
+        return;
+      }
+    }
+    try {
+      const requested = choice === 'inherit' ? null : choice === 'on';
+      const state = await api.setAudiophileVolumeLock(zone.id, requested, confirmed);
+      zoneLockChoices = {
+        ...zoneLockChoices,
+        [zone.id]: state.lock_volume == null
+          ? 'inherit'
+          : (state.lock_volume ? 'on' : 'off'),
+      };
+      if (zone.id === $currentZoneId) await refreshAudiophile(zone.id);
+    } catch {
+      select.value = previous;
+    }
+  }
 
   const settingModified = $derived.by((): Partial<Record<SettingKey, boolean>> => ({
-    'general.lockVolume': $audiophileLockVolume,
+    'general.lockVolume': $audiophileGlobalLockVolume,
     'general.volumeDisplay': $preferences.volumeDisplay !== 'percent',
     'general.voiceCommand': (() => { try { return localStorage.getItem('tune_voice_ai_enabled') === 'true'; } catch { return false; } })(),
     'library.folderPlaylists': config?.scan_folder_playlists === true || config?.scan_folder_playlists === 'true',
@@ -3448,8 +3513,8 @@ function setSettingsLevel(level: SettingsLevel) {
              volume part à 100 % sur l'ampli — un seul clic ne suffit pas.
              Désactiver, lui, est immédiat : couper n'a rien de dangereux. -->
         <label class="toggle">
-          <input type="checkbox" checked={$audiophileLockVolume || lockVolumeArme} onchange={async () => {
-            if ($audiophileLockVolume) {
+          <input type="checkbox" checked={$audiophileGlobalLockVolume || lockVolumeArme} onchange={async () => {
+            if ($audiophileGlobalLockVolume) {
               lockVolumeArme = false;
               try { await setVolumeLock(false); } catch { /* store restauré */ }
               return;
@@ -3459,7 +3524,7 @@ function setSettingsLevel(level: SettingsLevel) {
           <span class="toggle-slider"></span>
         </label>
       </div>
-      {#if lockVolumeArme && !$audiophileLockVolume}
+      {#if lockVolumeArme && !$audiophileGlobalLockVolume}
         <div class="setting-warn-rouge" class:lv-hidden={!lvOk('general.lockVolume')}>
           <p>{$t('audiophile.lockVolumeWarn' as any)}</p>
           <label class="toggle-confirm">
@@ -3483,6 +3548,35 @@ function setSettingsLevel(level: SettingsLevel) {
             <span>{$t('audiophile.lockVolumeConfirm' as any)}</span>
           </label>
         </div>
+      {/if}
+      {#if $zones.length > 0}
+        <div class="setting-label" style="margin-top: 12px;">
+          <span>{$t('audiophile.zoneOverrides' as any)}</span>
+          <span class="setting-hint">{$t('audiophile.zoneOverridesHelp' as any)}</span>
+        </div>
+        {#each $zones as zone (zone.id)}
+          {#if zone.id != null}
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>{zone.name}</span>
+                <span class="setting-hint">{zoneDeviceHint(zone)}</span>
+              </div>
+              <select
+                class="pref-select"
+                value={zoneLockChoices[zone.id] ?? 'inherit'}
+                onchange={(e) => saveZoneLock(
+                  zone,
+                  (e.target as HTMLSelectElement).value as ZoneLockChoice,
+                  e.target as HTMLSelectElement,
+                )}
+              >
+                <option value="inherit">{$t('audiophile.lockInherit' as any)}</option>
+                <option value="on">{$t('audiophile.lockAlways' as any)}</option>
+                <option value="off">{$t('audiophile.lockNever' as any)}</option>
+              </select>
+            </div>
+          {/if}
+        {/each}
       {/if}
       <div class="setting-row">
         <div class="setting-label">
@@ -4353,17 +4447,21 @@ function setSettingsLevel(level: SettingsLevel) {
     <!-- Local Audio Outputs -->
     <section class="settings-section">
       <h3>{$t('settings.localAudio')}</h3>
+      <!-- Les options viennent de `supported_audio_backends` (#1268). Une
+           liste vide = build sans sortie locale : pas de réglage à proposer. -->
+      {#if choixBackends.length > 0}
       <div class="about-row" style="margin-bottom: 0.75rem" class:lv-hidden={!lvOk('network.audioBackend')}>
         <span class="about-label">{$t('settings.audioBackend')}</span>
         <select class="log-level-select" value={audioBackend} onchange={(e) => changeAudioBackend((e.target as HTMLSelectElement).value)}>
-          <option value="auto">{$t('settings.autoDefault')}</option>
-          <option value="wasapi">WASAPI</option>
-          <option value="asio">ASIO (bit-perfect)</option>
+          {#each choixBackends as choix (choix.value)}
+            <option value={choix.value}>{libelleBackend(choix, $t)}</option>
+          {/each}
         </select>
       </div>
-      {#if audioBackend === 'wasapi'}
+      {/if}
+      {#if modeWasapiPertinent(choixBackends, audioBackend)}
       <div class="about-row" style="margin-bottom: 0.75rem" class:lv-hidden={!lvOk('network.wasapiMode')}>
-        <span class="about-label">Mode WASAPI</span>
+        <span class="about-label">{$t('settings.wasapiMode')}</span>
         <select class="log-level-select" value={exclusiveMode ? 'exclusive' : 'shared'} onchange={(e) => { const v = (e.target as HTMLSelectElement).value; if ((v === 'exclusive') !== exclusiveMode) toggleExclusiveMode(); }}>
           <option value="shared">{$t('settings.sharedDefault')}</option>
           <option value="exclusive">{$t('settings.exclusiveBitPerfect')}</option>
