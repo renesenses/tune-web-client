@@ -972,6 +972,60 @@
   // L'avertissement de coupure AFFIRME que de la musique joue : l'afficher
   // toujours serait faux. Même dérivé que le client actuel.
   const zonesEnLecture = $derived($zones.filter((z: any) => z.state === 'playing').length);
+
+  // ── Restauration de configuration ─────────────────────────────────────────
+  //
+  // `api.importConfig()` existait, mais l'écran s'en tenait à distance, et le
+  // commentaire disait pourquoi : « un écran qui le propose sans le flux de
+  // confirmation complet inviterait à une fausse manœuvre ». La prudence était
+  // juste — la réponse n'était pas de renvoyer ailleurs, c'était d'écrire le
+  // flux.
+  //
+  // 🔴 Le client actuel importe SANS AUCUNE confirmation : fichier choisi,
+  // fichier appliqué. On ne reprend donc pas son geste tel quel, on ajoute ce
+  // qui lui manque — la restauration ÉCRASE dossiers, zones et réglages audio,
+  // et rien ne la défait.
+  //
+  // Confirmation par SAISIE, comme le volume fixe de cet écran : un mot à taper
+  // ne se clique pas par réflexe. Le fichier est lu et analysé AVANT de
+  // demander confirmation — inutile de faire taper un mot pour un fichier
+  // illisible.
+  let rstFile: HTMLInputElement | null = $state(null);
+  let rstData = $state<any | null>(null);
+  let rstName = $state('');
+  let rstTyped = $state('');
+  let rstBusy = $state(false);
+
+  async function rstChoisi(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const f = input.files?.[0];
+    input.value = '';
+    if (!f) return;
+    sysErr = null; rstTyped = '';
+    try {
+      rstData = JSON.parse(await f.text());
+      rstName = f.name;
+    } catch {
+      rstData = null; rstName = '';
+      sysErr = get(t)('settings.restoreConfigBadFile');
+    }
+  }
+
+  function rstAnnuler() { rstData = null; rstName = ''; rstTyped = ''; }
+
+  async function rstConfirmer() {
+    if (!rstData) return;
+    rstBusy = true; sysErr = null;
+    try {
+      await api.importConfig(rstData);
+      notifications.success(get(t)('settings.importConfigSuccess'));
+      rstAnnuler();
+    } catch (e: any) {
+      sysErr = `${get(t)('settings.importConfigError')} : ${e?.message ?? e}`;
+    }
+    rstBusy = false;
+  }
+
   let updBusy = $state(false);
   let updRefus = $state('');
   let updDone = $state(false);
@@ -1685,16 +1739,33 @@
               <p class="hint">{#each emphaseParts($t('settings.configBackupHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               <div class="inline" style="margin-top:12px">
                 <button class="lnk" disabled={cfgBusy} onclick={doExportConfig}>
-                  {cfgBusy ? 'Export…' : 'Exporter la configuration'}
+                  {cfgBusy ? $t('common.loading' as any) : $t('settings.exportConfig' as any)}
                 </button>
+                <button class="lnk" disabled={rstBusy} onclick={() => rstFile?.click()}>
+                  {$t('settings.restoreConfig' as any)}
+                </button>
+                <input class="hidden-file" type="file" accept="application/json,.json"
+                  bind:this={rstFile} onchange={rstChoisi} />
               </div>
-              <!-- L'IMPORT n'est pas repris : il ecrase la configuration en
-                   place, et un ecran qui le propose sans le flux de
-                   confirmation complet inviterait a une fausse manoeuvre. -->
-              <p class="hint">
-                La <b>restauration</b> n'est pas reprise dans ce client : elle écrase la
-                configuration en place, et reste dans le client actuel.
-              </p>
+
+              {#if rstData}
+                <div class="fvbox">
+                  <p>{#each emphaseParts($t('settings.restoreConfigWarning' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+                  <p class="hint"><b class="mono">{rstName}</b></p>
+                  <p class="hint">{#each emphaseParts($t('settings.restoreConfigType' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+                  <div class="inline">
+                    <input class="txt" type="text" bind:value={rstTyped}
+                      placeholder={$t('settings.restoreConfigWord' as any)}
+                      onkeydown={(e) => { if (e.key === 'Escape') rstAnnuler(); }} />
+                    <button class="lnk danger"
+                      disabled={rstBusy || rstTyped.trim() !== $t('settings.restoreConfigWord' as any)}
+                      onclick={rstConfirmer}>
+                      {rstBusy ? $t('common.loading' as any) : $t('settings.confirm' as any)}
+                    </button>
+                    <button class="lnk" disabled={rstBusy} onclick={rstAnnuler}>{$t('common.cancel' as any)}</button>
+                  </div>
+                </div>
+              {/if}
               {#if sysErr}<div class="errline">{sysErr}</div>{/if}
 
             {:else if s.id === 'accessFrom'}
@@ -2850,4 +2921,5 @@
   .svcsub{margin-top:12px; padding-top:10px; border-top:1px solid var(--v2-line2);
     display:flex; align-items:center; gap:12px; flex-wrap:wrap}
   .bad{color:var(--v2-bad, #ef4444)}
+  .hidden-file{display:none}
 </style>
