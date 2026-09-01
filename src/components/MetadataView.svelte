@@ -492,10 +492,17 @@
       },
       success: ({ result, d }) => {
         duplicates = d as any[];
+        audioDupFetchStarted = true;
         if ((d as any[]).length === 0 && result.duplicates_found === 0) {
           return $t('metadata.scanNoDuplicates').replace('{scanned}', String(result.total_scanned));
         }
         filter = 'duplicates';
+        queueMicrotask(() =>
+          document.querySelector('.duplicates-panel')?.scrollIntoView({ block: 'nearest' }),
+        );
+        void api.refineDuplicatePairs(d).then((exactes) => {
+          if (exactes.length) duplicates = exactes as any[];
+        });
         return $t('metadata.scanDuplicatesResult').replace('{found}', String(result.duplicates_found)).replace('{scanned}', String(result.total_scanned));
       },
     });
@@ -751,7 +758,23 @@
   // #1276, ce que l'utilisateur a lui-même déclaré distinct ne l'est pas non
   // plus. Le compteur de l'onglet et la liste comptent la MÊME chose.
   let duplicateGroups = $derived(groupesRetenus(duplicateGroupsBruts, ensembleDistinctes));
-  let duplicateCount = $derived(copiesEnTrop(duplicateGroups));
+
+  /* Pastille de l'onglet. Deux sources, dans cet ordre (#670 puis #1276) :
+   *
+   * 1. Les paires AUDIO — celles que le scan a trouvées par empreinte, ou que
+   *    `GET /library/duplicates` rend. Quand elles sont là, c'est ce
+   *    compteur-là que le scan annonce (9), et c'est ce que le panneau
+   *    affiche : la pastille et la liste comptent la même chose. C'est le
+   *    correctif de #670, qu'on garde intact.
+   * 2. À défaut, les groupes d'albums au même nom — desquels #1276 retire ce
+   *    que l'utilisateur a lui-même déclaré distinct.
+   *
+   * Les deux règles ne se contredisent pas : l'arbitrage de #1276 porte sur
+   * des ALBUMS rapprochés par titre/artiste/qualité, jamais sur les paires de
+   * PISTES par empreinte audio — il n'y aurait rien à en retirer. */
+  let duplicateCount = $derived(
+    duplicates.length > 0 ? duplicates.length : copiesEnTrop(duplicateGroups),
+  );
 
   /** Écarter tout un groupe : l'original contre chaque variante, une paire à
    *  la fois — c'est la forme que le serveur persiste, et chacune reste
@@ -801,6 +824,22 @@
   }
 
   let dupAlbumPaths = $state<Record<number, string>>({});
+  let audioDupFetchStarted = $state(false);
+  let audioDupsLoading = $state(false);
+
+  async function ensureAudioDuplicatesLoaded() {
+    if (duplicates.length > 0 || audioDupFetchStarted) return;
+    audioDupFetchStarted = true;
+    audioDupsLoading = true;
+    try {
+      const d = await api.listDuplicates();
+      if (d.length) duplicates = d as any[];
+    } catch {
+      audioDupFetchStarted = false;
+    } finally {
+      audioDupsLoading = false;
+    }
+  }
 
   async function mergeGroup(groupIndex: number) {
     const group = duplicateGroups[groupIndex];
@@ -1434,6 +1473,7 @@
       }
       if (f === 'duplicates') {
         loadDupPaths();
+        void ensureAudioDuplicatesLoaded();
       }
       if (f === 'doubtful') {
         loadDoubtful();
@@ -1693,19 +1733,20 @@
       />
     {/if}
 
-    <!-- Duplicates Panel -->
-    {#if duplicates.length > 0}
-      <MetadataDuplicatesPanel
-        {duplicates}
-        onResolve={resolveDuplicate}
-        onClose={() => duplicates = []}
-      />
-    {/if}
-
-    <!-- Content -->
+    <!-- Duplicates : paires audio dans l'onglet, pas un panneau séparé
+         au-dessus de « Aucun doublon » (albums au même nom). -->
     {#if filter === 'duplicates'}
+      {#if duplicates.length > 0}
+        <MetadataDuplicatesPanel
+          {duplicates}
+          onResolve={resolveDuplicate}
+          onClose={() => duplicates = []}
+        />
+      {/if}
       {#if duplicateGroups.length === 0}
-        <div class="empty">{$t('metadata.noDuplicates')}</div>
+        {#if duplicates.length === 0}
+          <div class="empty">{audioDupsLoading ? $t('common.loading') : $t('metadata.noDuplicates')}</div>
+        {/if}
       {:else}
         <div class="dup-groups">
           {#each duplicateGroups as group, gi}

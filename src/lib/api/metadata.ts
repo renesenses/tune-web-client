@@ -8,6 +8,13 @@
 
 import { BASE, fetchJSON } from './_client';
 import type { PaireDistincte } from '../albumsDistincts';
+import {
+  flattenLibraryDuplicates,
+  pairesAudioDabord,
+  type PaireDoublon,
+} from './duplicate-pairs';
+
+export type { PaireDoublon } from './duplicate-pairs';
 
 // --- Update single album/track ---
 
@@ -99,20 +106,6 @@ export function getAutoFixStatus() {
   return fetchJSON<AutoFixStatus>(`${BASE}/metadata/auto-fix/status`);
 }
 
-/** Une paire de doublons, telle que le PANNEAU l'attend : deux copies `a` et
- *  `b`, chacune portant son `track_id`.
- *
- *  Le serveur, lui, rend `{track_a, track_b}` sous `/library/`. L'écart n'était
- *  pas qu'un préfixe : c'est un modèle différent, et c'est pour ça qu'aucune
- *  correction d'URL seule n'aurait suffi. L'adaptation vit ici plutôt que dans
- *  le panneau — l'interface n'a pas à connaître la forme du serveur. */
-export interface PaireDoublon {
-  id: number;
-  a: Record<string, unknown> & { track_id: number };
-  b: Record<string, unknown> & { track_id: number };
-  type: 'track';
-}
-
 /** Le chemin réel des doublons.
  *
  *  Tout l'écran appelait `/metadata/duplicates…` — quatre routes qui n'ont
@@ -122,27 +115,21 @@ export interface PaireDoublon {
  *  l'adresse qui était fausse. */
 const DUP = `${BASE}/library/duplicates`;
 
-/** `duplicates/smart` compare par empreinte (durée, titre, artiste) là où
- *  `duplicates` ne trouve que les exacts — sur une bibliothèque réelle, le
- *  premier rend des résultats quand le second rend une liste vide. */
+/** `duplicates/smart` compare titre + artiste + durée (±3 s). Rapide.
+ *  Ce n'est pas le même compteur que le scan (empreinte audio). */
 async function paires(limit = 200): Promise<PaireDoublon[]> {
   const r = await fetchJSON<{ count?: number; duplicates?: unknown[] }>(
     `${DUP}/smart?limit=${limit}`,
   );
-  return (r.duplicates ?? []).map((d) => {
-    const p = d as { track_a?: Record<string, unknown>; track_b?: Record<string, unknown> };
-    const a = (p.track_a ?? {}) as Record<string, unknown>;
-    const b = (p.track_b ?? {}) as Record<string, unknown>;
-    return {
-      // Pas d'identité de PAIRE côté serveur : celle de la copie `a` la
-      // désigne sans ambiguïté, deux paires ne partageant pas leur première
-      // copie dans un même lot.
-      id: Number(a.id ?? 0),
-      a: { ...a, track_id: Number(a.id ?? 0) },
-      b: { ...b, track_id: Number(b.id ?? 0) },
-      type: 'track' as const,
-    };
-  });
+  return flattenLibraryDuplicates(r);
+}
+
+/** `GET /library/duplicates` — hash / métadonnées / fingerprint.
+ *  Le scan écrit `audio_hash` ; cette liste est celle des 9 « trouvés ».
+ *  Lent : chaque paire hash est relue sur disque (octet à octet). */
+export async function listExactDuplicatePairs(limit = 200): Promise<PaireDoublon[]> {
+  const r = await fetchJSON<unknown>(`${DUP}?limit=${limit}`);
+  return flattenLibraryDuplicates(r);
 }
 
 /** Le scan est désormais une VRAIE opération serveur.
@@ -172,6 +159,18 @@ export async function scanDuplicates(): Promise<DuplicateScanResult> {
 
 export function listDuplicates(): Promise<PaireDoublon[]> {
   return paires();
+}
+
+/** Après le toast du scan : montrer tout de suite les paires `smart`, puis
+ *  remplacer par les empreintes audio si `GET /library/duplicates` en trouve
+ *  (c'est ce compteur-là que le scan annonce — 9, pas les 300 homonymes). */
+export async function refineDuplicatePairs(smart: PaireDoublon[]): Promise<PaireDoublon[]> {
+  try {
+    const exact = await listExactDuplicatePairs(500);
+    return pairesAudioDabord(exact, smart);
+  } catch {
+    return smart;
+  }
 }
 
 /** Résoudre : garder une copie, supprimer l'autre.
