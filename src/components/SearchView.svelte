@@ -3,10 +3,11 @@
   import { tip } from '../lib/tooltip';
   import { playFromHere } from '../lib/playback';
   import { notifications } from '../lib/stores/notifications';
-  import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
+  import { activeView, pendingSearchQuery, saveViewContext, loadViewContext } from '../lib/stores/navigation';
+  import { requeteAuMontage } from '../lib/rechercheContexte';
   import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading, albums, artists, tracks as libraryTracks, genres as libraryGenres } from '../lib/stores/library';
   import { get } from 'svelte/store';
-  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingServices } from '../lib/stores/streaming';
+  import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingAlbumOrigin, streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
   import { formatTime } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
@@ -191,13 +192,39 @@
     };
   });
 
+  // Contexte de navigation PERSISTANT (#2420).
+  //
+  // `App.svelte` monte les vues dans une chaîne `{#if $activeView === …}` :
+  // ouvrir un résultat Qobuz bascule la vue et DÉTRUIT ce composant. La
+  // requête et la grille de résultats sont du `$state` local, elles meurent
+  // avec lui, et le retour remonte une vue vierge — « les résultats de la
+  // recherche globale ont complètement disparu » (Sandro, fil 1553).
+  //
+  // On ne conserve que la REQUÊTE, pas les résultats : l'effet anti-rebond
+  // ci-dessus rejoue la recherche dès qu'elle est reposée, et une grille
+  // reconstruite à l'instant vaut mieux qu'une grille d'il y a dix minutes.
+  interface ContexteRecherche {
+    searchQuery: string;
+  }
+
+  // `let` nu, et non `$state` : lu dans un effet, il n'en devient pas une
+  // dépendance — le consommer ne doit pas rejouer l'effet.
+  let ctxRechercheSauve: ContexteRecherche | undefined = loadViewContext<ContexteRecherche>('search');
+
   // Handle pending search from other views
   $effect(() => {
     const pending = $pendingSearchQuery;
-    if (pending) {
-      searchQuery = pending;
-      pendingSearchQuery.set('');
-    }
+    // La demande d'un autre écran prime sur la reprise, et la CONSOMME : sans
+    // ça, la recherche précédente reviendrait par-dessus celle qu'on demande.
+    const requete = requeteAuMontage(pending, ctxRechercheSauve?.searchQuery);
+    ctxRechercheSauve = undefined;
+    if (pending) pendingSearchQuery.set('');
+    if (requete) searchQuery = requete;
+  });
+
+  // Instantané de la position, relu au montage suivant.
+  $effect(() => {
+    saveViewContext('search', { searchQuery } satisfies ContexteRecherche);
   });
 
   // Source filtering
@@ -415,6 +442,10 @@
     if (src && src !== 'local') {
       activeStreamingService.set(src);
       pendingStreamingAlbum.set(album);
+      // D'où vient la fiche — comme le fait déjà l'accueil. Sans cette
+      // annonce, `actionRetour` voit une provenance nulle et ne peut pas
+      // ramener ici : le Retour reste enfermé dans le service (fil 1553).
+      streamingAlbumOrigin.set('search');
       activeView.set('streaming');
     } else if (album.id) {
       selectedAlbum.set(album);
@@ -428,6 +459,9 @@
     if (src && src !== 'local') {
       activeStreamingService.set(src);
       pendingStreamingArtist.set(artist);
+      // Le chemin exact de Sandro : il choisit l'ARTISTE dans les résultats
+      // mixtes, pas l'album.
+      streamingAlbumOrigin.set('search');
       activeView.set('streaming');
     } else if (artist.id) {
       selectedArtist.set(artist);
