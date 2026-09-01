@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # CLAUDE.md — Tune Web Client
 
 ## Project
