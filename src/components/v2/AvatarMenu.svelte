@@ -13,12 +13,72 @@
   import { LEVEL_LABELS, type SettingsLevel } from '../../lib/uiLevel';
   import { V2_THEMES, type V2Theme } from '../../lib/v2Theme';
   import { t } from '../../lib/i18n';
+  import { get } from 'svelte/store';
   import { searchSettings, type V2SettingsHit } from '../../lib/v2Settings';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
+  import * as api from '../../lib/api';
+  import { notifications } from '../../lib/stores/notifications';
 
   const LEVELS: SettingsLevel[] = ['beginner', 'intermediate', 'expert'];
   let open = $state(false);
   const level = $derived($preferences.settingsLevel);
+
+  // ── Identité du compte cloud ──────────────────────────────────────────────
+  //
+  // L'en-tête du menu affichait « Bertrand » / « MozaikLabs » EN DUR. Chez tout
+  // autre utilisateur, le menu nommait donc Bertrand. On lit le MÊME contrat
+  // que la vue Réglages v1 (`loadCloudStatus`) : `GET /cloud/sso/status` rend
+  // `{ configured, connected, user: { email, display_name, avatar_url } }`.
+  //
+  // Non connecté, on n'invente aucun nom : l'en-tête le dit, et l'entrée
+  // « Se déconnecter » disparaît — proposer de quitter une session qui n'existe
+  // pas est exactement le genre de bouton qui ment.
+  let ssoConnected = $state(false);
+  let ssoName = $state('');
+  let ssoEmail = $state('');
+  let ssoAvatar = $state('');
+  let signingOut = $state(false);
+
+  async function loadSso() {
+    try {
+      const sso: any = await api.apiFetch('/cloud/sso/status');
+      if (sso?.connected && sso?.user) {
+        ssoConnected = true;
+        ssoName = sso.user.display_name || sso.user.email || '';
+        ssoEmail = sso.user.email || '';
+        ssoAvatar = sso.user.avatar_url || '';
+        return;
+      }
+    } catch {
+      // Serveur muet ou hors ligne : on reste sur l'état « non connecté »
+      // plutôt que d'afficher une identité qu'on ne tient de personne.
+    }
+    ssoConnected = false;
+    ssoName = '';
+    ssoEmail = '';
+    ssoAvatar = '';
+  }
+
+  // Relu à CHAQUE ouverture, et non une fois au montage : la session peut
+  // avoir été fermée ailleurs (autre onglet, écran Réglages v1, expiration)
+  // pendant que le menu restait monté. L'en-tête n'est visible qu'ouvert, donc
+  // rien ne justifie de sonder le serveur avant.
+  $effect(() => {
+    if (open) void loadSso();
+  });
+
+  async function signOut() {
+    signingOut = true;
+    try {
+      await api.ssoDisconnect();
+      await loadSso();
+      notifications.success(get(t)('settings.cloudDisconnected'));
+      close();
+    } catch (e: any) {
+      notifications.error(e?.message ?? get(t)('common.error'));
+    }
+    signingOut = false;
+  }
 
   function setLevel(l: SettingsLevel) {
     preferences.update((p) => ({ ...p, settingsLevel: l }));
@@ -56,10 +116,18 @@
   {#if open}
     <div class="avmenu">
       <div class="avhead">
-        <div class="avatar sm"></div>
-        <div>
-          <div class="avname">Bertrand</div>
-          <div class="avmail">MozaikLabs</div>
+        {#if ssoAvatar}
+          <img class="avatar sm" src={ssoAvatar} alt="" />
+        {:else}
+          <div class="avatar sm"></div>
+        {/if}
+        <div class="avid">
+          {#if ssoConnected}
+            <div class="avname">{ssoName}</div>
+            {#if ssoEmail && ssoEmail !== ssoName}<div class="avmail">{ssoEmail}</div>{/if}
+          {:else}
+            <div class="avname">{$t('settings.notConnected')}</div>
+          {/if}
         </div>
       </div>
       <div class="sep"></div>
@@ -121,10 +189,12 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 2.6V1a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 17 2.6a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H23a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
         Réglages
       </button>
-      <button class="item" onclick={close}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 17l5-5-5-5M21 12H9M13 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8" /></svg>
-        Se déconnecter
-      </button>
+      {#if ssoConnected}
+        <button class="item" onclick={signOut} disabled={signingOut}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 17l5-5-5-5M21 12H9M13 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8" /></svg>
+          {signingOut ? $t('common.loading') : $t('settings.signOut')}
+        </button>
+      {/if}
     </div>
   {/if}
 </div>
@@ -141,8 +211,14 @@
     background:var(--v2-surface); border:1px solid var(--v2-line2); border-radius:16px; padding:12px;
     box-shadow:var(--v2-sh-menu); color:var(--v2-txt)}
   .avhead{display:flex; align-items:center; gap:11px; padding:6px 6px 10px}
-  .avname{font-weight:700; font-size:14px}
-  .avmail{font-family:var(--v2-mono); font-size:10px; letter-spacing:.12em; color:var(--v2-txt2); margin-top:2px}
+  /* Le bloc d'identité doit pouvoir RÉTRÉCIR : sans `min-width:0`, une adresse
+     longue pousse la largeur du menu au lieu de s'élider. */
+  .avid{min-width:0}
+  .avname{font-weight:700; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .avmail{font-family:var(--v2-mono); font-size:10px; letter-spacing:.12em; color:var(--v2-txt2); margin-top:2px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  /* Avatar distant : même gabarit que la pastille dégradée qu'il remplace. */
+  img.avatar.sm{object-fit:cover; background:var(--v2-line2)}
   .sep{height:1px; background:var(--v2-line); margin:6px 0}
   .sec{font-family:var(--v2-mono); font-size:9.5px; letter-spacing:.16em; color:var(--v2-txt3);
     text-transform:uppercase; padding:6px 6px 8px}
@@ -178,5 +254,9 @@
   .item{display:flex; align-items:center; gap:11px; width:100%; padding:9px 8px; border:0; cursor:pointer;
     border-radius:9px; background:transparent; color:var(--v2-txt2); font-family:inherit; font-size:13.5px; font-weight:500; text-align:left}
   .item:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  /* Déconnexion en cours : plus de survol, plus de curseur cliquable — sinon
+     rien ne distingue un bouton qui travaille d'un bouton qui n'a rien fait. */
+  .item:disabled{opacity:.55; cursor:default}
+  .item:disabled:hover{background:transparent; color:var(--v2-txt2)}
   .item svg{width:17px; height:17px}
 </style>
