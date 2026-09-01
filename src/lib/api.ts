@@ -8,6 +8,7 @@ import { profileHeader } from './profileHeader';
 // `import type` : effacé à la compilation, donc aucun cycle à l'exécution
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
 import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
+import type { AppareilIgnore } from './appareilsIgnores';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -595,9 +596,64 @@ export function clearDevices() {
   return fetchJSON<{ cleared: number }>(`${BASE}/devices/clear`, { method: 'POST' });
 }
 
+/**
+ * Oubli **non durable** : la sortie quitte le registre en mémoire et la liste
+ * des appareils manuels persistés, rien de plus.
+ *
+ * L'appareil REVIENT au scan suivant, parce que rien n'empêche la découverte
+ * de le ré-enregistrer — c'est exactement le « ils disparaissent bien sur le
+ * coup mais réapparaissent rapidement » du ticket #1280. Pour faire taire
+ * durablement un appareil, c'est [`ignoreDevice`] qu'il faut appeler.
+ */
 export function deleteDevice(deviceId: string) {
   // Server returns 204 No Content, use fetchVoid to avoid JSON parse error on empty body
   return fetchVoid(`${BASE}/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
+}
+
+// --- Appareils ignorés (#1280) --------------------------------------------
+//
+// Le serveur porte une table `ignored_devices` SANS clé étrangère, avec un
+// instantané d'identité figé à l'insertion (device_id, MAC, hôte + nom
+// annoncé). Le blocage porte sur la PROPOSITION — enregistrement de sortie,
+// création de zone, liste d'appareils — jamais sur l'écoute SSDP/mDNS
+// elle-même, et il survit à la purge des zones comme à la bascule
+// SQLite → PostgreSQL.
+
+/**
+ * `POST /devices/{id}/ignore` — faire taire un appareil, **durablement**.
+ *
+ * Trois effets côté serveur, et les trois comptent : l'identité est figée
+ * (l'appareil ne revient à aucun scan, sous aucune de ses identités
+ * jumelles), sa sortie quitte le registre TOUT DE SUITE, et sa zone est
+ * masquée si elle existe. Rend l'instantané figé et les zones masquées.
+ */
+export function ignoreDevice(deviceId: string) {
+  return fetchJSON<{ ignored: AppareilIgnore; hidden_zone_ids: number[] }>(
+    `${BASE}/devices/${encodeURIComponent(deviceId)}/ignore`,
+    { method: 'POST' },
+  );
+}
+
+/**
+ * `DELETE /devices/{id}/ignore` — débloquer.
+ *
+ * Libère TOUTES les identités du même appareil : sans cela, qui a fait taire
+ * son Sonos devrait deviner l'UUID jumeau pour le récupérer. Idempotent —
+ * débloquer ce qui ne l'était pas rend `released: []`. L'appareil ne
+ * réapparaît qu'au prochain passage de découverte.
+ */
+export function unignoreDevice(deviceId: string) {
+  return fetchJSON<{ released: string[] }>(
+    `${BASE}/devices/${encodeURIComponent(deviceId)}/ignore`,
+    { method: 'DELETE' },
+  );
+}
+
+/** `GET /devices/ignored` — la liste de révision. C'est la SEULE vue depuis
+ *  laquelle un appareil ignoré peut être débloqué : il n'est plus annoncé
+ *  ailleurs. */
+export function listIgnoredDevices() {
+  return fetchJSON<{ total: number; items: AppareilIgnore[] }>(`${BASE}/devices/ignored`);
 }
 
 export function getDevice(id: string) {

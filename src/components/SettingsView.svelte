@@ -16,6 +16,13 @@
   import { audiophileEnabled, audiophileGlobalLockVolume, audiophileLockVolume, setVolumeLock, refreshAudiophile, refreshVolumeLock } from '../lib/stores/audiophile';
   import { loopByDefault } from '../lib/stores/loopByDefault';
   import { devices } from '../lib/stores/devices';
+  import {
+    detailAppareilIgnore,
+    libelleAppareilIgnore,
+    sansAppareils,
+    transportAppareilIgnore,
+    type AppareilIgnore,
+  } from '../lib/appareilsIgnores';
   import { preferences, applyTheme, OXYGEN_FACETS_ALL, type ThemeMode, type VolumeDisplay, type StartupView, type OxygenViewMode } from '../lib/stores/preferences';
   import { SETTING_LEVELS, SETTINGS_LEVELS, isSettingVisible, hiddenCountByTab, nextLevel, type SettingKey, type SettingsLevel } from '../lib/settingLevels';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
@@ -2078,6 +2085,17 @@ function setSettingsLevel(level: SettingsLevel) {
     }
   });
 
+  // #1280 — la liste des appareils ignorés est chargée à l'ouverture de
+  // l'onglet Réseau, une seule fois : c'est le seul endroit d'où un appareil
+  // ignoré peut être retrouvé, puisqu'il n'est plus annoncé nulle part.
+  let ignoredLoaded = $state(false);
+  $effect(() => {
+    if (settingsTab === 'network' && !ignoredLoaded) {
+      ignoredLoaded = true;
+      loadIgnoredDevices();
+    }
+  });
+
   // --- Appliance (Tune OS): data relocation (docs/DATA-RELOCATION.md) ---
   let dataStatus = $state<api.ApplianceDataStatus | null>(null);
   let dataVolumes = $state<api.ApplianceVolume[]>([]);
@@ -2229,13 +2247,60 @@ function setSettingsLevel(level: SettingsLevel) {
     }));
   }
 
-  async function handleDeleteDevice(deviceId: string, deviceName: string) {
+  /* --- Ignorer un appareil, DURABLEMENT (#1280) ---------------------------
+   *
+   * Cette croix appelait `DELETE /devices/{id}` : la sortie quittait le
+   * registre en mémoire, et rien de plus. La découverte la ré-enregistrait au
+   * passage suivant — « ils disparaissent bien sur le coup mais réapparaissent
+   * rapidement » (Patatorz). La route durable est `POST /devices/{id}/ignore` :
+   * elle fige l'identité (l'appareil ne revient sous AUCUNE de ses identités
+   * jumelles), retire la sortie tout de suite, et masque sa zone s'il en a une.
+   */
+  let ignoredDevices = $state<AppareilIgnore[]>([]);
+  let ignoreBusy = $state(false);
+
+  async function loadIgnoredDevices() {
     try {
-      await api.deleteDevice(deviceId);
-      devices.update(list => list.filter(d => d.id !== deviceId));
-      notifications.success(get(t)('settings.deviceDeleted').replace('{name}', deviceName));
+      const r = await api.listIgnoredDevices();
+      ignoredDevices = r.items ?? [];
+    } catch {
+      // Serveur plus ancien que la route, ou hors ligne : pas de liste, pas
+      // d'erreur — la section reste simplement vide.
+      ignoredDevices = [];
+    }
+  }
+
+  async function handleIgnoreDevice(deviceId: string, deviceName: string) {
+    ignoreBusy = true;
+    try {
+      const r = await api.ignoreDevice(deviceId);
+      // Le serveur a déjà retiré l'appareil de `GET /devices` ; la liste
+      // affichée, elle, a été chargée AVANT le geste. Sans ce retrait local la
+      // ligne resterait à l'écran et le clic aurait l'air sans effet.
+      devices.update(list => sansAppareils(list, [deviceId, r.ignored?.device_id ?? '']));
+      await loadIgnoredDevices();
+      notifications.success(get(t)('settings.deviceIgnored').replace('{name}', deviceName));
     } catch (e: any) {
       notifications.error(e?.message || get(t)('common.error'));
+    } finally {
+      ignoreBusy = false;
+    }
+  }
+
+  async function handleUnignoreDevice(d: AppareilIgnore) {
+    ignoreBusy = true;
+    try {
+      await api.unignoreDevice(d.device_id);
+      await loadIgnoredDevices();
+      // L'appareil ne revient qu'au prochain passage de découverte : on le dit,
+      // plutôt que de laisser croire à un échec devant une liste inchangée.
+      notifications.success(
+        get(t)('settings.deviceUnignored').replace('{name}', libelleAppareilIgnore(d)),
+      );
+    } catch (e: any) {
+      notifications.error(e?.message || get(t)('common.error'));
+    } finally {
+      ignoreBusy = false;
     }
   }
 
@@ -4433,13 +4498,46 @@ function setSettingsLevel(level: SettingsLevel) {
                 </button>
               {/if}
             {/if}
-            <button class="device-delete-btn" onclick={() => handleDeleteDevice(device.id, device.name)} title={$t('settings.deleteDevice')}>
+            <button class="device-delete-btn" disabled={ignoreBusy} onclick={() => handleIgnoreDevice(device.id, device.name)} title={$t('settings.ignoreDevice')} aria-label={$t('settings.ignoreDevice')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </label>
         {/each}
         {#if $devices.length === 0}
           <p class="muted">{$t('settings.noNetworkDevices')}</p>
+        {/if}
+      </div>
+    </section>
+
+    <!-- Appareils ignorés (#1280). Sans cet écran, l'utilisateur se piège
+         lui-même : un appareil ignoré n'est plus annoncé NULLE PART — ni dans
+         la liste ci-dessus, ni dans le sélecteur de création de zone — et il
+         n'aurait plus aucun moyen de le retrouver. C'est la seule vue depuis
+         laquelle le geste est réversible. -->
+    <section class="settings-section">
+      <h3>{$t('settings.ignoredDevices')}</h3>
+      <p class="muted">{$t('settings.ignoredDevicesIntro')}</p>
+      <div class="ignored-device-list">
+        {#each ignoredDevices as d (d.device_id)}
+          <div class="ignored-device-item">
+            <span class="ignored-device-name">{libelleAppareilIgnore(d)}</span>
+            {#if transportAppareilIgnore(d)}
+              <span class="ignored-device-tag">{transportAppareilIgnore(d)}</span>
+            {/if}
+            {#if detailAppareilIgnore(d)}
+              <span class="ignored-device-detail">{detailAppareilIgnore(d)}</span>
+            {/if}
+            <button
+              class="scan-btn small"
+              disabled={ignoreBusy}
+              onclick={() => handleUnignoreDevice(d)}
+            >
+              {$t('settings.unignoreDevice')}
+            </button>
+          </div>
+        {/each}
+        {#if ignoredDevices.length === 0}
+          <p class="muted">{$t('settings.noIgnoredDevices')}</p>
         {/if}
       </div>
     </section>
@@ -7010,6 +7108,54 @@ function setSettingsLevel(level: SettingsLevel) {
     font-size: 10px;
     color: var(--tune-text-muted);
     opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  /* Appareils ignorés (#1280) — même grammaire que la liste au-dessus, sans
+     la case à cocher : ces appareils ne sont plus proposés du tout, il n'y a
+     rien à afficher/masquer, seulement à débloquer. */
+  .ignored-device-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .ignored-device-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) 0;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text);
+  }
+
+  .ignored-device-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ignored-device-tag {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tune-text-muted);
+    background: var(--tune-bg);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+  }
+
+  .ignored-device-detail {
+    font-family: var(--font-label);
+    font-size: 10px;
+    color: var(--tune-text-muted);
+    opacity: 0.6;
     flex-shrink: 0;
   }
 
