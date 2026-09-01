@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../../lib/i18n';
   /**
    * Streaming — nouveau client (direction Levente).
    *
@@ -32,6 +33,21 @@
   import '../../styles/tune-v2.css';
 
   const BANDCAMP = '__bandcamp__';
+  /**
+   * Services dont la navigation par genre fonctionne DE BOUT EN BOUT.
+   *
+   * Mesuré contre un serveur réel (192.168.1.18, v0.9.130) le 01/09/2026 :
+   *   qobuz   -> 13 genres, et les albums d'un genre remontent ;
+   *   tidal   -> 20 genres, et les albums d'un genre remontent ;
+   *   deezer  -> 26 genres, mais ZÉRO album (le premier genre porte l'id « 0 »,
+   *              qui sent le « Tous » que l'API ne sait pas décliner) ;
+   *   youtube -> aucun genre.
+   *
+   * Les deux derniers auraient donné un onglet qui s'ouvre sur du vide. Le jour
+   * où le serveur les sert, ajouter le nom ici suffit — c'est la seule ligne à
+   * toucher.
+   */
+  const GENRES_SERVIS = ['qobuz', 'tidal'];
 
   let services = $state<Record<string, StreamingServiceStatus>>({});
   let bandcampLive = $state(false);
@@ -43,7 +59,7 @@
   // sur Qobuz. Deux gestes differents, deux onglets (Bertrand, 28/08).
   // Bandcamp garde deux entrees seulement : il n'a pas de playlists, sa
   // « collection » EST l'ensemble de ce qu'on y possede.
-  type Sub = 'editorial' | 'playlists' | 'favorites' | 'mine';
+  type Sub = 'editorial' | 'genres' | 'playlists' | 'favorites' | 'mine';
   let sub = $state<Sub>('editorial');
 
   let q = $state('');
@@ -110,7 +126,12 @@
       ? [{ id: 'editorial', label: 'Découvrir' }, { id: 'mine', label: 'Ma collection' }]
       : [{ id: 'editorial', label: 'Éditorial' },
          { id: 'playlists', label: 'Playlists' },
-         { id: 'favorites', label: 'Favoris' }]
+         { id: 'favorites', label: 'Favoris' },
+         // QUATRIÈME onglet, et seulement là où le serveur sert vraiment des
+         // genres. Les genres avaient une section tout EN BAS de l'éditorial :
+         // il fallait dérouler la page entière pour tomber dessus. C'est une
+         // navigation, pas un complément de fin de page (Bertrand, 01/09/2026).
+         ...(GENRES_SERVIS.includes(active ?? '') ? [{ id: 'genres' as Sub, label: 'Genres' }] : [])]
   );
   const label = (k: string) => (k === BANDCAMP ? 'Bandcamp' : k.charAt(0).toUpperCase() + k.slice(1));
 
@@ -170,7 +191,7 @@
       return;
     }
 
-    if (view === 'editorial') {
+    if (view === 'editorial' || view === 'genres') {
       // Les trois sources partent ensemble et echouent separement : une route
       // morte ne doit plus vider tout l'ecran, seulement sa propre section.
       genreId = ''; genreAlbums = [];
@@ -209,7 +230,7 @@
    *  changement de puce. */
   $effect(() => {
     const svc = active, gid = genreId;
-    if (!svc || svc === BANDCAMP || sub !== 'editorial' || !gid) { genreAlbums = []; return; }
+    if (!svc || svc === BANDCAMP || (sub !== 'editorial' && sub !== 'genres') || !gid) { genreAlbums = []; return; }
     genreLoading = true;
     api.getStreamingGenreAlbums(svc, gid, 40)
       .then((a: any) => { if (genreId === gid) genreAlbums = a ?? []; })
@@ -404,25 +425,7 @@
             <div class="grid">{#each newRel.slice(0, 30) as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
           </section>
         {/if}
-        {#if genres.length}
-          <section class="sec"><h2>Explorer par genre</h2>
-            <div class="chips">
-              {#each genres as g (g.id)}
-                <button class="chip" class:active={genreId === g.id}
-                  onclick={() => (genreId = genreId === g.id ? '' : g.id)}>{g.name}</button>
-              {/each}
-            </div>
-            {#if genreId}
-              {#if genreLoading}
-                <div class="state">Chargement…</div>
-              {:else if genreAlbums.length}
-                <div class="grid">{#each genreAlbums as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
-              {:else}
-                <div class="state">Aucun album dans ce genre.</div>
-              {/if}
-            {/if}
-          </section>
-        {/if}
+
       {:else}
         <div class="state">{label(active ?? '')} ne propose aucune sélection éditoriale pour l'instant. Utilisez la recherche.</div>
       {/if}
@@ -449,6 +452,30 @@
         <div class="grid">{#each bcCollection as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
       {:else}
         <div class="state">Votre collection Bandcamp est vide.</div>
+      {/if}
+
+    {:else if sub === 'genres'}
+      <!-- Volet GENRES : la liste, puis les albums du genre choisi. Rien
+           d'autre — c'est ce qui le distingue de la section de fin de page
+           qu'il remplace, noyée sous l'éditorial. -->
+      {#if !genres.length}
+        <div class="state">{$t('v2.stream.noGenre' as any)}</div>
+      {:else}
+        <div class="chips">
+          {#each genres as g (g.id)}
+            <button class="chip" class:active={genreId === g.id}
+              onclick={() => (genreId = genreId === g.id ? '' : g.id)}>{g.name}</button>
+          {/each}
+        </div>
+        {#if !genreId}
+          <div class="state">{$t('v2.stream.pickGenre' as any)}</div>
+        {:else if genreLoading}
+          <div class="state">{$t('common.loading' as any)}</div>
+        {:else if genreAlbums.length}
+          <div class="grid">{#each genreAlbums as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+        {:else}
+          <div class="state">{$t('v2.stream.noAlbumInGenre' as any)}</div>
+        {/if}
       {/if}
 
     {:else if sub === 'playlists'}
