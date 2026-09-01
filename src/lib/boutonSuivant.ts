@@ -29,6 +29,8 @@ export type EtatSuivant = {
   repeat: string;
   /** Lecture aléatoire active sur la zone. */
   shuffle: boolean;
+  /** Décision de `next_position_manual` calculée par le serveur. */
+  canSkipNext?: boolean;
 };
 
 export function suivantDesactive(e: EtatSuivant): boolean {
@@ -36,6 +38,12 @@ export function suivantDesactive(e: EtatSuivant): boolean {
   // décrit pas, on ne se permet donc rien à sa place.
   if (e.ytActive) return false;
 
+  // Dès qu'un serveur récent porte sa propre décision, elle fait foi. C'est la
+  // seule source qui connaît `shuffle_order` et `shuffle_index`, donc la seule
+  // qui distingue la dernière position BRUTE de la fin RÉELLE du tirage.
+  if (typeof e.canSkipNext === 'boolean') return !e.canSkipNext;
+
+  // Repli de compatibilité pour les serveurs antérieurs à #2337.
   // Rien de chargé, rien à quitter.
   if (e.playState === 'stopped' && !e.aUnePiste) return true;
 

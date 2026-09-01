@@ -774,6 +774,7 @@
           upNextCount: $upNextCount,
           repeat: $repeatMode,
           shuffle: $shuffleEnabled,
+          canSkipNext: zone?.can_skip_next,
         })}
         onclick={handleNext}
         title={$t('transport.next')}

@@ -195,6 +195,7 @@
         upNextCount: $upNextCount,
         repeat: $repeatMode,
         shuffle: $shuffleEnabled,
+        canSkipNext: zone?.can_skip_next,
       })}
       onclick={() => controls.skipNext(zone)}
       aria-label={$t('transport.next')}

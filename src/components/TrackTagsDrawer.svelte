@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { onMount } from 'svelte';
   import * as api from '../lib/api';
   import type { TrackAllTags } from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
@@ -22,10 +22,13 @@
   async function load() {
     loading = true;
     try {
-      data = await api.getTrackAllTags(trackId);
+      // Bound: a hung lofty read of a NAS file used to leave this drawer on
+      // "Chargement…" until F5 (same family as TrackEditModal #1079).
+      data = await api.withTimeout(api.getTrackAllTags(trackId), 12000, 'track-all-tags');
       originalDb = { ...(data.db_fields ?? {}) };
       dbEdits = { ...originalDb };
     } catch (e: any) {
+      data = null;
       notifications.error(`${$t('trackTags.loadError')} : ${e?.message || e}`);
     }
     loading = false;
@@ -82,7 +85,20 @@
     if (e.key === 'Escape') onClose();
   }
 
-  $effect(() => { untrack(() => load()); });
+  // Use onMount (not $effect+untrack). That empty-dependency pattern can
+  // re-trigger on Svelte 5 batch flushes and freeze the UI until F5
+  // (DiagnosticsView / Sidebar / MetadataView).
+  onMount(() => {
+    void load();
+  });
+
+  function formatTagVals(vals: unknown): string {
+    if (Array.isArray(vals)) return vals.map((v) => (v == null ? '' : String(v))).filter(Boolean).join(' / ');
+    if (vals && typeof vals === 'object' && Array.isArray((vals as { items?: unknown }).items)) {
+      return formatTagVals((vals as { items: unknown[] }).items);
+    }
+    return vals == null || vals === '' ? '—' : String(vals);
+  }
 
   // Group DB fields for nicer rendering: Identification / Classique / Audio / Système.
   const FIELD_GROUPS: Record<string, string[]> = {
@@ -202,7 +218,7 @@
               {#each Object.entries(data.file_tags) as [k, vals]}
                 <div class="row">
                   <span class="key key-tag">{k}</span>
-                  <span class="val val-readonly">{vals.join(' / ')}</span>
+                  <span class="val val-readonly">{formatTagVals(vals)}</span>
                 </div>
               {/each}
             </div>
