@@ -18,6 +18,8 @@
   import { activeView, focusMode, settingsInitialTab, saveScrollPosition, getScrollPosition } from './lib/stores/navigation';
   import { selectedAlbum, selectedArtist, albumTracks, artistAlbums, libraryTab } from './lib/stores/library';
   import { reconcilierFiche } from './lib/reconciliationFiche';
+  import { CANDIDATS_DEFILEMENT, conteneurDefilant, restaurerQuandPret } from './lib/defilementReel';
+  import { finDuRetourProgrammatique, opPourFiche } from './lib/historiqueNavigation';
   import { preferences, applyTheme, syncPreferencesFromServer } from './lib/stores/preferences';
   import { syncDisplayFieldsFromServer } from './lib/stores/displayFields';
   import { locale } from './lib/i18n';
@@ -668,7 +670,10 @@ import AlarmsView from './components/AlarmsView.svelte';
       if (!_pushingState && typeof window !== 'undefined') {
         // Save scroll position of the view we're leaving
         if (_previousViewForScroll && _previousViewForScroll !== view) {
-          const mainEl = document.querySelector('.view-scroller');
+          // Le conteneur qui defile n'est PAS `.view-scroller` : mesure faite
+          // dans Chrome sur .18, il a scrollHeight === clientHeight === 745 et
+          // rendait donc 0 a chaque fois. Voir `lib/defilementReel.ts`.
+          const mainEl = conteneurDefilant(CANDIDATS_DEFILEMENT);
           if (mainEl) saveScrollPosition(_previousViewForScroll, mainEl.scrollTop);
         }
         _previousViewForScroll = view;
@@ -687,10 +692,13 @@ import AlarmsView from './components/AlarmsView.svelte';
         }
 
         // Restore scroll position of the view we're entering
-        requestAnimationFrame(() => {
-          const mainEl = document.querySelector('.view-scroller');
-          if (mainEl) mainEl.scrollTop = getScrollPosition(view);
-        });
+        // Une seule frame ne suffit pas quand la liste est virtualisee : sa
+        // hauteur totale n'est connue qu'apres plusieurs frames, et un
+        // scrollTop trop grand est ramene a 0 par le navigateur (#1024).
+        restaurerQuandPret(
+          getScrollPosition(view),
+          () => conteneurDefilant(CANDIDATS_DEFILEMENT),
+        );
       }
     });
 
@@ -707,7 +715,8 @@ import AlarmsView from './components/AlarmsView.svelte';
             artistId: $selectedArtist?.id ?? null,
             tab: $libraryTab ?? null,
           };
-          if (album !== null) {
+          const op = opPourFiche(album !== null);
+          if (album !== null && op === 'push') {
             // Entering detail: push so back returns to grid. La fiche reçoit sa
             // PROPRE adresse (`#album/{id}`) au lieu de réutiliser `#library`,
             // pour que la barre d'adresse reflète la vue et que précédent /
@@ -716,8 +725,11 @@ import AlarmsView from './components/AlarmsView.svelte';
             // démarrage — le seul lu est `#tv` (voir `isTvHash` plus haut), et
             // l'aiguillage se fait sur `history.state`, inchangé.
             window.history.pushState(ctx, '', `#album/${album.id}`);
-          } else {
-            // Returning to grid (programmatic, not via popstate): update current entry
+          } else if (op === 'replace') {
+            // Fermeture a la main (clic ailleurs, changement d'onglet) : l'entree
+            // courante suit l'etat. Sur un RETOUR, `opPourFiche` rend 'aucune' :
+            // reecrire ici detruisait l'entree `#album/{id}` juste avant de
+            // reculer, et « suivant » ne pouvait plus y revenir.
             window.history.replaceState(ctx, '', `#${view}`);
           }
         }
@@ -735,11 +747,12 @@ import AlarmsView from './components/AlarmsView.svelte';
             artistId: artist?.id ?? null,
             tab: $libraryTab ?? null,
           };
-          if (artist !== null) {
+          const op = opPourFiche(artist !== null);
+          if (artist !== null && op === 'push') {
             // Adresse propre à la fiche artiste (`#artist/{id}`) ; voir le cas
             // album ci-dessus.
             window.history.pushState(ctx, '', `#artist/${artist.id}`);
-          } else {
+          } else if (op === 'replace') {
             window.history.replaceState(ctx, '', `#${view}`);
           }
         }
@@ -797,6 +810,9 @@ import AlarmsView from './components/AlarmsView.svelte';
 
     window.addEventListener('popstate', (e) => {
       const ctx = e.state;
+      // Le retour annonce par `reculerAvecIntention` est consomme : les
+      // fermetures de fiche suivantes redeviennent des `replace`.
+      finDuRetourProgrammatique();
       _pushingState = true;
       if (ctx?.view) {
         activeView.set(ctx.view);
