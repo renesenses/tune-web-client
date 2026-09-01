@@ -110,6 +110,31 @@
     }
     return [...m.entries()].sort((x, z) => x[0] - z[0]);
   });
+  // ── Menus de filtres ──────────────────────────────────────────────────────
+  //
+  // Ils s'ouvraient au SURVOL SEUL, et étaient donc inatteignables : le chip
+  // fait 36 px de haut, `.drop` l'épouse, mais le menu était posé à `top:44px`.
+  // Huit pixels morts entre les deux — en descendant vers le menu, le pointeur
+  // quittait `.drop`, `:hover` tombait, le menu disparaissait avant d'être
+  // atteint. « Les filtres ne sont pas sélectionnables » (Bertrand, 01/09/2026),
+  // sur la Bibliothèque comme sur les Serveurs multimédia, qui montent le même
+  // composant.
+  //
+  // Deux corrections, et il faut les deux :
+  //  - un PONT transparent comble les 8 px, pour que le survol reste continu ;
+  //  - le chip devient un vrai bouton qui ouvre au CLIC. Un menu au survol seul
+  //    n'existe ni au clavier ni au toucher : sur tablette, aucun de ces
+  //    filtres n'était atteignable, quelle que soit la géométrie.
+  let ddOpen = $state<string | null>(null);
+  function ddToggle(id: string) { ddOpen = ddOpen === id ? null : id; }
+  function ddClose() { ddOpen = null; }
+  // Un menu ouvert au clic doit se refermer au clic AILLEURS, sinon il reste
+  // planté par-dessus la grille. `.drop` couvre le chip ET son menu.
+  function ddDehors(e: MouseEvent) {
+    if (ddOpen && !(e.target as HTMLElement)?.closest('.drop')) ddClose();
+  }
+  function ddEchap(e: KeyboardEvent) { if (e.key === 'Escape') ddClose(); }
+
   let q = $state('');
 
   function tierMatches(a: Album, key: string): boolean {
@@ -446,6 +471,8 @@
   function addContent() { activeView.set('settings'); }
 </script>
 
+
+<svelte:window onclick={ddDehors} onkeydown={ddEchap} />
 <section class="v2-lib tune-v2">
   <header class="top">
     <h1>{depot ? depot.nom : 'Bibliothèque'}</h1>
@@ -481,21 +508,21 @@
   <div class="filters">
     {#if showFilters}
       <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null} onclick={reset}>Tout ({matchCount})</button>
-      <div class="drop">
-        <button class="chip" class:active={fQuality !== null}>Qualité{#if fQuality}&nbsp;· {QUALITIES.find(x => x.key === fQuality)?.label}{/if}
+      <div class="drop" class:open={ddOpen === 'quality'}>
+        <button class="chip" class:active={fQuality !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>Qualité{#if fQuality}&nbsp;· {QUALITIES.find(x => x.key === fQuality)?.label}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
           {#each QUALITIES as it (it.key)}
-            <button class:on={fQuality === it.key} onclick={() => fQuality = fQuality === it.key ? null : it.key as string}>{it.label}</button>
+            <button class:on={fQuality === it.key} onclick={() => { fQuality = fQuality === it.key ? null : (it.key as string); ddClose(); }}>{it.label}</button>
           {/each}
         </div>
       </div>
-      <div class="drop">
-        <button class="chip" class:active={fRate !== null}>Fréquence{#if fRate}&nbsp;· {RATES.find(r => r.v === fRate)?.l} kHz{/if}
+      <div class="drop" class:open={ddOpen === 'rate'}>
+        <button class="chip" class:active={fRate !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'rate'} onclick={() => ddToggle('rate')}>Fréquence{#if fRate}&nbsp;· {RATES.find(r => r.v === fRate)?.l} kHz{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
           {#each RATES as r (r.v)}
-            <button class:on={fRate === r.v} onclick={() => fRate = fRate === r.v ? null : r.v}>{r.l} kHz</button>
+            <button class:on={fRate === r.v} onclick={() => { fRate = fRate === r.v ? null : r.v; ddClose(); }}>{r.l} kHz</button>
           {/each}
         </div>
       </div>
@@ -503,23 +530,23 @@
            base dans une discotheque mixte, et la maquette v3 de Levente le
            place aussi au premier niveau. -->
       {#if formats.length > 1}
-        <div class="drop">
-          <button class="chip" class:active={fFormat !== null}>Format{#if fFormat}&nbsp;· {fFormat}{/if}
+        <div class="drop" class:open={ddOpen === 'format'}>
+          <button class="chip" class:active={fFormat !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'format'} onclick={() => ddToggle('format')}>Format{#if fFormat}&nbsp;· {fFormat}{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
           <div class="menu">
             {#each formats as [f, n] (f)}
-              <button class:on={fFormat === f} onclick={() => fFormat = fFormat === f ? null : f}>{f} <em>{n}</em></button>
+              <button class:on={fFormat === f} onclick={() => { fFormat = fFormat === f ? null : f; ddClose(); }}>{f} <em>{n}</em></button>
             {/each}
           </div>
         </div>
       {/if}
       {#if showExpert && depths.length > 1}
-        <div class="drop">
-          <button class="chip" class:active={fDepth !== null}>Profondeur{#if fDepth}&nbsp;· {fDepth}-bit{/if}
+        <div class="drop" class:open={ddOpen === 'depth'}>
+          <button class="chip" class:active={fDepth !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'depth'} onclick={() => ddToggle('depth')}>Profondeur{#if fDepth}&nbsp;· {fDepth}-bit{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
           <div class="menu">
             {#each depths as [d, n] (d)}
-              <button class:on={fDepth === d} onclick={() => fDepth = fDepth === d ? null : d}>{d}-bit <em>{n}</em></button>
+              <button class:on={fDepth === d} onclick={() => { fDepth = fDepth === d ? null : d; ddClose(); }}>{d}-bit <em>{n}</em></button>
             {/each}
           </div>
         </div>
@@ -741,7 +768,11 @@
   .drop .menu{position:absolute; top:44px; left:0; z-index:20; min-width:150px; padding:6px;
     background:var(--v2-surface); border:1px solid var(--v2-line2); border-radius:12px; box-shadow:var(--v2-sh-lg);
     display:none; flex-direction:column; gap:2px}
-  .drop:hover .menu{display:flex}
+  .drop:hover .menu, .drop.open .menu{display:flex}
+  /* PONT des 8 px entre le chip (36 px) et le menu (top:44px). Sans lui, le
+     pointeur quitte `.drop` avant d'atteindre le menu et `:hover` tombe : le
+     menu est visible mais inatteignable. Transparent, donc invisible. */
+  .drop::after{content:""; position:absolute; left:0; right:0; top:36px; height:8px}
   .drop .menu button{text-align:left; border:0; background:transparent; color:var(--v2-txt2); font:600 13px var(--v2-mono);
     padding:8px 10px; border-radius:8px; cursor:pointer}
   .drop .menu button:hover{background:var(--v2-hover); color:var(--v2-txt)}
