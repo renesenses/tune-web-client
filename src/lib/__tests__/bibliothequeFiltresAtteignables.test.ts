@@ -103,3 +103,113 @@ describe('Bibliothèque — les menus de filtres sont atteignables', () => {
     }
   });
 });
+
+/**
+ * Un filtre doit RETIRER, pas atténuer.
+ *
+ * La maquette atténuait les albums non conformes (opacité 0,22) au lieu de les
+ * retirer, pour la stabilité spatiale — un album ne sautait jamais de place.
+ * Bertrand, 01/09/2026 : « les filtres doivent renvoyer les albums
+ * correspondants aux critères et pas seulement les mettre en surbrillance ».
+ *
+ * Le changement met aussi fin à une INCOHÉRENCE : la vue groupée retirait déjà
+ * (`if (!matches(a)) continue`). Le même filtre se comportait donc de deux
+ * façons selon l'onglet.
+ */
+describe('Bibliothèque — les filtres retirent, ils n’atténuent pas', () => {
+  it('la grille et la liste itèrent sur les albums FILTRÉS', () => {
+    const src = source();
+    expect(
+      src.includes('const affiches = $derived(sorted.filter(matches))'),
+      'la liste filtrée a disparu.',
+    ).toBe(true);
+    expect(
+      /\{#each sorted as a \(a\.id\)\}/.test(src),
+      'une vue itère de nouveau sur TOUS les albums : le filtre ne filtrerait plus.',
+    ).toBe(false);
+  });
+
+  it('plus aucune atténuation des non-conformes', () => {
+    const src = source();
+    expect(
+      src.includes('class:dim={!matches(a)}'),
+      "l'atténuation est revenue : l'album non conforme resterait affiché.",
+    ).toBe(false);
+    // Et son style ne doit pas survivre en code mort.
+    expect(/\.(lrow|card)\.dim\{/.test(src), 'le style d’atténuation subsiste').toBe(false);
+  });
+
+  it('le rail A–Z suit ce qui est AFFICHÉ', () => {
+    // Sinon il propose des lettres qui ne mènent nulle part : on clique « M »
+    // et la vue ne bouge pas, parce qu'aucun album filtré ne commence par M.
+    expect(
+      source().includes('const present = $derived(new Set(affiches.map(firstLetter)))'),
+      'le rail A–Z est recalculé sur la liste complète : il proposerait des lettres vides.',
+    ).toBe(true);
+  });
+
+  it('un filtre sans résultat le DIT, au lieu d’une page blanche', () => {
+    const src = source();
+    expect(src.includes('{#if !affiches.length}'), "l'état vide a disparu").toBe(true);
+    expect(
+      src.includes('library.noAlbumMatchesFilters'),
+      'le message d’absence de résultat a disparu : la grille serait vide et muette.',
+    ).toBe(true);
+  });
+});
+
+/**
+ * La ligne technique sous les pochettes est un CHOIX, pas une conséquence du
+ * niveau d'interface.
+ *
+ * Elle suivait `showExpert` seul : tout utilisateur au niveau Expert la voyait
+ * sous chaque vignette, sans pouvoir l'enlever. Or « Expert » dit ce qu'on sait
+ * faire, pas ce qu'on veut voir. Bertrand, 01/09/2026 : un toggle dans les
+ * réglages, et par défaut OFF.
+ */
+describe('Bibliothèque — ligne technique sous les vignettes', () => {
+  it('elle dépend du réglage, pas seulement du niveau', () => {
+    const src = source();
+    expect(
+      src.includes("const showTech = $derived(showExpert && $preferences.v2AlbumTechLine)"),
+      'la ligne technique ne dépend plus du réglage : elle redevient imposée à tout Expert.',
+    ).toBe(true);
+    expect(
+      /\{#if showExpert\}<(span class="lq"|div class="cq")>\{tech\(a\)\}/.test(src),
+      'une vue affiche encore la ligne technique sur le seul niveau Expert.',
+    ).toBe(false);
+  });
+
+  it('elle reste conditionnée au niveau Expert', () => {
+    // Le réglage ne doit pas la faire apparaître à un niveau où elle n'existe
+    // pas : `showTech` exige les DEUX.
+    expect(source().includes('showExpert && $preferences.v2AlbumTechLine'), 'le niveau n’est plus exigé').toBe(true);
+  });
+});
+
+describe('Réglages — le toggle de la ligne technique', () => {
+  const REGLAGES = fileURLToPath(
+    new URL('../../components/v2/SettingsV2.svelte', import.meta.url),
+  );
+  const prefs = fileURLToPath(new URL('../stores/preferences.ts', import.meta.url));
+
+  it('le défaut est OFF', () => {
+    expect(
+      /v2AlbumTechLine:\s*false/.test(readFileSync(prefs, 'utf8')),
+      'le défaut n’est plus OFF : la ligne technique reviendrait imposée.',
+    ).toBe(true);
+  });
+
+  it('le toggle existe et n’est offert qu’au niveau Expert', () => {
+    const src = readFileSync(REGLAGES, 'utf8');
+    const i = src.indexOf('settings.albumTechLine');
+    expect(i, 'le toggle a disparu des Réglages').toBeGreaterThan(-1);
+    const avant = src.slice(Math.max(0, i - 400), i);
+    expect(
+      avant.includes("atLeast(level, 'expert')"),
+      "le toggle est proposé sous le niveau Expert : il n'aurait aucun effet.",
+    ).toBe(true);
+    expect(src.includes('v2AlbumTechLine: (e.currentTarget as HTMLInputElement).checked'),
+      'le toggle n’écrit plus la préférence').toBe(true);
+  });
+});

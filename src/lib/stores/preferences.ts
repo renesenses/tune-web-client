@@ -96,6 +96,14 @@ export interface Preferences {
    *  `theme` ci-dessus, qui reste celui de l'app historique : les deux
    *  clients cohabitent derrière le drapeau `?v2`, chacun garde le sien. */
   v2Theme: V2Theme;
+  /** Ligne technique (format · fréquence · profondeur) sous chaque pochette de
+   *  la Bibliothèque. Niveau Expert uniquement — en dessous, elle n'est pas
+   *  proposée et ne s'affiche pas.
+   *
+   *  Défaut OFF (Bertrand, 01/09/2026) : elle était liée au seul niveau
+   *  d'interface, donc imposée à tout utilisateur Expert. Or « Expert » dit
+   *  ce qu'on sait faire, pas ce qu'on veut voir sous chaque vignette. */
+  v2AlbumTechLine: boolean;
   settingsLevel: SettingsLevel;
 }
 
@@ -119,6 +127,7 @@ const defaults: Preferences = {
   albumGridDensity: 'detail',
   tooltipsEnabled: true,
   v2Theme: V2_THEME_DEFAULT,
+  v2AlbumTechLine: false,
   // EXPERT par defaut (Bertrand, 27/08) — inverse la decision du 14/08.
   // Ne s'applique qu'aux installations SANS niveau enregistre : un choix
   // explicite fait toujours foi, et la migration `legacySettingsLevel()`

@@ -1,12 +1,22 @@
 <script lang="ts">
+  // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
+  // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
+  import { t as tr } from '../../lib/i18n';
   /**
    * Bibliothèque — grille d'albums du nouveau client (direction Levente).
    *
    * Deux principes de la maquette :
-   *  1. Les filtres ATTÉNUENT les albums non conformes au lieu de les retirer
-   *     (stabilité spatiale : un album ne saute jamais de place). Le filtre de
-   *     fréquence compare la valeur EXACTE — 176,4 kHz ≠ 192 kHz (bug Patatorz,
-   *     tune-server-rust#2343).
+   *  1. Les filtres RETIRENT les albums non conformes (Bertrand, 01/09/2026 :
+   *     « les filtres doivent renvoyer les albums correspondants aux critères
+   *     et pas seulement les mettre en surbrillance »). La maquette les
+   *     atténuait pour la stabilité spatiale — un album ne sautait jamais de
+   *     place — mais un filtre qui ne filtre pas oblige à chercher à l'œil ce
+   *     qu'on venait justement de demander à la machine.
+   *     Au passage, cela met fin à une INCOHÉRENCE : la vue groupée, elle,
+   *     retirait déjà (`if (!matches(a)) continue`). Le même filtre se
+   *     comportait donc de deux façons selon l'onglet.
+   *     Le filtre de fréquence compare la valeur EXACTE — 176,4 kHz ≠ 192 kHz
+   *     (bug Patatorz, tune-server-rust#2343).
    *  2. La densité suit le niveau d'interface (`preferences.settingsLevel`) :
    *     - Essentiel : grille nue, pas de filtres, pas de badges.
    *     - Avancé    : filtres Qualité + Fréquence, badges hi-res/DSD.
@@ -72,6 +82,10 @@
   const showFilters = $derived(true);
   const showBadges = $derived(atLeast(level, 'intermediate'));
   const showExpert = $derived(atLeast(level, 'expert'));
+  /** Ligne technique sous les pochettes : niveau Expert ET réglage activé.
+   *  Elle suivait le seul niveau, donc elle était imposée à tout Expert —
+   *  or « Expert » dit ce qu'on sait faire, pas ce qu'on veut voir. Défaut OFF. */
+  const showTech = $derived(showExpert && $preferences.v2AlbumTechLine);
   /** Tri et bascule grille/liste : outils de confort, pas de recherche. */
   const showTools = $derived(atLeast(level, 'intermediate'));
 
@@ -174,7 +188,11 @@
         return list.sort(byTitle);
     }
   });
-  const matchCount = $derived(sorted.filter(matches).length);
+  /** Les albums réellement affichés : `sorted` filtré par les critères. Une
+   *  seule source pour la grille, la liste, le rail A–Z et le compteur — sinon
+   *  ils divergent et le rail propose des lettres qui ne mènent nulle part. */
+  const affiches = $derived(sorted.filter(matches));
+  const matchCount = $derived(affiches.length);
 
   // Rail A–Z : première lettre d'un album (non-alpha → « # »).
   // ── Frise chronologique (direction Levente, brouillon v3 du 26/08) ────
@@ -311,7 +329,7 @@
     const c = fold(a.title).charAt(0).toUpperCase();
     return c >= 'A' && c <= 'Z' ? c : '#';
   }
-  const present = $derived(new Set(sorted.map(firstLetter)));
+  const present = $derived(new Set(affiches.map(firstLetter)));
   let gridEl: HTMLDivElement | undefined = $state();
   function jump(L: string) {
     gridEl?.querySelector<HTMLElement>(`[data-letter="${L}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -702,33 +720,41 @@
         </div>
 
       {:else if display === 'list'}
+        {#if !affiches.length}
+          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
+        {:else}
         <div class="rows" bind:this={gridEl}>
-          {#each sorted as a (a.id)}
-            <button class="lrow" class:dim={!matches(a)} data-letter={firstLetter(a)} onclick={() => opened = a}>
+          {#each affiches as a (a.id)}
+            <button class="lrow" data-letter={firstLetter(a)} onclick={() => opened = a}>
               <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
               <span class="lt">{a.title}</span>
               <span class="la">{a.artist_name ?? ''}</span>
               <span class="ly">{albumYear(a) ?? ''}</span>
               {#if showBadges && badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}
-              {#if showExpert}<span class="lq">{tech(a)}</span>{/if}
+              {#if showTech}<span class="lq">{tech(a)}</span>{/if}
             </button>
           {/each}
         </div>
+        {/if}
 
       {:else}
+        {#if !affiches.length}
+          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
+        {:else}
         <div class="grid" class:expert={showExpert} bind:this={gridEl}>
-          {#each sorted as a (a.id)}
-            <button class="card" class:dim={!matches(a)} data-letter={firstLetter(a)} onclick={() => opened = a}>
+          {#each affiches as a (a.id)}
+            <button class="card" data-letter={firstLetter(a)} onclick={() => opened = a}>
               <div class="cover">
                 <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                 {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
               </div>
               <div class="ct">{a.title}</div>
               <div class="ca">{a.artist_name ?? ''}</div>
-              {#if showExpert}<div class="cq">{tech(a)}</div>{/if}
+              {#if showTech}<div class="cq">{tech(a)}</div>{/if}
             </button>
           {/each}
         </div>
+        {/if}
       {/if}
     {/if}
   </div>
@@ -887,7 +913,6 @@
     gap:14px; width:100%; padding:6px 10px; border:0; border-radius:9px; background:transparent;
     color:var(--v2-txt2); cursor:pointer; text-align:left; transition:.12s}
   .lrow:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  .lrow.dim{opacity:.22}
   .lcv{width:44px; height:44px; border-radius:6px; overflow:hidden}
   .lrow .lt{font-size:13.5px; font-weight:600; color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .lrow .la{font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
@@ -912,7 +937,6 @@
     gap:22px 18px; align-content:start; padding:8px 30px 40px}
   .grid::-webkit-scrollbar{width:9px}.grid::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .card{border:0; background:transparent; text-align:left; cursor:pointer; padding:0; transition:.18s; opacity:1; color:inherit}
-  .card.dim{opacity:.22; filter:saturate(.4)}
   .cover{position:relative; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
   .bdg{position:absolute; left:6px; top:6px; font:700 8px var(--v2-mono); letter-spacing:.06em; padding:2px 5px;
     border-radius:3px; background:var(--v2-scrim); color:var(--v2-acc-tint)}

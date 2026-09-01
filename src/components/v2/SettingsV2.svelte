@@ -1515,6 +1515,21 @@
                       onclick={() => preferences.update((pr) => ({ ...pr, volumeDisplay: 'dB' as VolumeDisplay }))}>{$t('settings.decibels' as any)}</button>
                   </div>
                 </div>
+                <!-- Niveau EXPERT seulement : la ligne technique n'existe pas
+                     en dessous, proposer de l'afficher n'aurait aucun effet. -->
+                {#if atLeast(level, 'expert')}
+                  <div class="row">
+                    <div class="lbl">
+                      <span>{$t('settings.albumTechLine' as any)}</span>
+                      <span class="hint">{$t('settings.albumTechLineHint' as any)}</span>
+                    </div>
+                    <label class="sw">
+                      <input type="checkbox" checked={$preferences.v2AlbumTechLine}
+                        onchange={(e) => preferences.update((pr) => ({ ...pr, v2AlbumTechLine: (e.currentTarget as HTMLInputElement).checked }))} />
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                {/if}
                 <div class="row">
                   <div class="lbl">
                     <span>{$t('settings.tooltips' as any)}</span>
