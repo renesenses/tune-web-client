@@ -233,6 +233,10 @@ export interface Zone {
    *  `playback.track_changed` : il évite de retélécharger la file entière à
    *  chaque avance de piste (#1096). Absent des serveurs plus anciens. */
   queue_position?: number;
+  /** Décision autoritaire de l'endpoint « suivant ». Elle suit la permutation
+   *  réelle sous aléatoire, contrairement à `queue_position` et à l'ordre brut
+   *  de la file. Absente avec un serveur antérieur à #2337. */
+  can_skip_next?: boolean;
   signal_path?: SignalPath | null;
   stereo_pair_id?: string | null;
   stereo_channel?: 'left' | 'right' | null;
@@ -574,21 +578,6 @@ export interface SystemStats {
   devices: number;
 }
 
-export interface AudioCheckIssue {
-  code: string;
-  message: string;
-  severity: 'error' | 'warning';
-}
-
-export interface AudioCheckResult {
-  zones: number;
-  zones_with_output: number;
-  local_outputs: { id: number; name: string; channels: number; default: boolean }[];
-  network_renderers: { id: string; name: string; type: string }[];
-  has_audio: boolean;
-  issues: AudioCheckIssue[];
-}
-
 export interface ZoneGroupResponse {
   group_id: string;
   leader_id: number;
@@ -626,6 +615,37 @@ export interface CompletenessStats {
 export interface ArtworkRescanResult {
   status: 'found' | 'not_found';
   cover_path: string | null;
+}
+
+/** Résultat d'une ré-identification d'album (`POST /library/albums/{id}/reidentify`).
+ *
+ *  Le `verdict` est délibérément explicite : « retomber sur le même pressage »
+ *  n'est pas un échec mais ce n'est pas non plus une correction, et l'utilisateur
+ *  doit pouvoir faire la différence — sans quoi il recommence indéfiniment. */
+export interface ReidentifyResult {
+  album_id: number;
+  /** `reidentified` : nouveau pressage. `unchanged` : le même qu'avant, la
+   *  source en ligne confirme. `not_found` : rien trouvé, l'identification
+   *  précédente a été reposée. `no_tracks` : rien à ré-identifier. */
+  verdict: 'reidentified' | 'unchanged' | 'not_found' | 'no_tracks';
+  tracks_total: number;
+  tracks_matched?: number;
+  tracks_unmatched?: number;
+  was_identified_before?: boolean;
+  previous_release_id?: string | null;
+  release_id?: string;
+  release_group_id?: string | null;
+  release_title?: string;
+  release_artist?: string;
+  release_date?: string | null;
+  release_country?: string | null;
+  release_disambiguation?: string | null;
+  match_score?: number;
+  /** Champs que Tune a refusé d'écraser parce qu'ils portaient déjà une valeur. */
+  fields_left_as_is?: string[];
+  previous_identification_restored?: boolean;
+  searched_title?: string;
+  searched_artist?: string;
 }
 
 export interface BrowseRootEntry {
@@ -671,7 +691,12 @@ export interface MediaServer {
   port: number;
   manufacturer: string;
   model: string;
-  available: boolean;
+  /** État publié par `/network/media-servers` depuis Tune Server 0.9.118.
+   *  Optionnel pour rester compatible avec un serveur plus ancien : une
+   *  absence est un état inconnu, jamais la preuve d'une indisponibilité. */
+  reachable?: boolean;
+  /** Secondes depuis la dernière annonce SSDP reçue. */
+  last_seen_secs?: number;
 }
 
 export interface MediaServerContainer {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t } from '../lib/i18n';
+  import { freqLabel } from '../lib/spectrumScale';
   import {
     choixDepuisBande,
     canalDepuisChoix,
@@ -140,10 +141,6 @@
   let asymetrique = $derived(reglageAsymetrique(bands));
 
   const GRID_FREQS = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
-
-  function freqLabel(f: number): string {
-    return f >= 1000 ? `${f / 1000}k` : `${f}`;
-  }
 
   function notify() {
     bands = [...bands];

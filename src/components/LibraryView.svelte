@@ -140,6 +140,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   let editingTrack = $state<Track | null>(null);
   let writingAlbumTags = $state(false);
   let writeTagsMessage = $state<string | null>(null);
+  let reidentifyingAlbum = $state(false);
 
   // Track context menu ("...")
   let trackMenuOpenId = $state<number | null>(null);
@@ -340,6 +341,57 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       writeTagsMessage = `${$tr('common.error')} : ${e?.message || e}`;
     }
     writingAlbumTags = false;
+  }
+
+  /** Refait l'identification de l'album affiché (#2128).
+   *
+   *  Le verdict est rendu tel quel à l'utilisateur, y compris quand il est
+   *  décevant : « même pressage » et « rien trouvé » sont des réponses, pas des
+   *  échecs à masquer. Sans elles, on renvoie l'utilisateur enquêter à
+   *  l'aveugle — c'est précisément ce que décrivait le fil forum #1455. */
+  async function handleReidentifyAlbum(albumId: number) {
+    reidentifyingAlbum = true;
+    const tid = notifications.info($tr('library.reidentifying'), 0);
+    try {
+      const r = await api.reidentifyAlbum(albumId);
+      notifications.dismiss(tid);
+
+      if (r.verdict === 'no_tracks') {
+        notifications.error($tr('library.reidentifyNoTracks'));
+        return;
+      }
+      if (r.verdict === 'not_found') {
+        notifications.error(
+          $tr('library.reidentifyNotFound').replace('{title}', r.searched_title ?? '')
+        );
+        return;
+      }
+      if (r.verdict === 'unchanged') {
+        // Le cas le plus instructif : la source en ligne confirme, donc
+        // l'erreur est ailleurs. Le dire évite de recommencer pour rien.
+        notifications.info($tr('library.reidentifyUnchanged'), 9000);
+        return;
+      }
+
+      let msg = $tr('library.reidentifySuccess')
+        .replace('{title}', r.release_title ?? '')
+        .replace('{matched}', String(r.tracks_matched ?? 0))
+        .replace('{total}', String(r.tracks_total ?? 0));
+      if (r.fields_left_as_is?.length) {
+        msg += ` — ${$tr('library.reidentifyKept').replace('{fields}', r.fields_left_as_is.join(', '))}`;
+      }
+      notifications.success(msg, 9000);
+      // Relire la fiche pour que l'écran montre ce qui vient d'être écrit. On
+      // ne rappelle pas `selectAlbumDetail`, qui remettrait la navigation et le
+      // défilement à zéro : seule la fiche a changé, pas la liste des pistes.
+      const full = await api.getAlbum(albumId);
+      selectedAlbum.set(full);
+    } catch (e: any) {
+      notifications.dismiss(tid);
+      notifications.error(`${$tr('library.reidentifyFailed')} : ${e?.message || e}`);
+    } finally {
+      reidentifyingAlbum = false;
+    }
   }
 
   function openAlbumEdit(e: MouseEvent, album: Album) {
@@ -670,6 +722,34 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       if (albumTagFilter === tag.id) applyTagFilter(null);
       await loadUserTags();
     } catch (e) { console.error('deleteTag error:', e); }
+  }
+
+  /**
+   * Création d'une étiquette SANS passer par la fiche d'un album (#2256,
+   * point 1/3).
+   *
+   * Le défaut vécu, signalé par bluevelvet (Pascal) le 06/07/2026 : « Je n'ai
+   * pas retrouvé la manière de créer une troisième étiquette. » Il avait
+   * raison de ne pas la trouver — jusqu'ici `api.createTag` n'avait qu'un seul
+   * appelant, `handleCreateAndAssignTag`, lui-même déclenché depuis le seul
+   * champ ouvert par le bouton « + Tag » de la fiche d'un album. La barre de
+   * filtres, elle, savait filtrer, renommer et supprimer une étiquette, mais
+   * jamais en créer : la gestion était là, la création ailleurs.
+   *
+   * Cette fonction complète l'affordance existante au même endroit que le
+   * renommage, avec le même dialogue. Elle ne crée QUE l'étiquette : aucun
+   * album n'est assigné, puisqu'aucun n'est sélectionné ici.
+   */
+  async function handleCreateTag() {
+    const saisi = await dialogs.prompt($tr('library.createTagPrompt' as any), '');
+    if (saisi === null) return;
+    const name = saisi.trim();
+    if (!name) return;
+    const color = TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
+    try {
+      await api.createTag(name, color);
+      await loadUserTags();
+    } catch (e) { console.error('createTag error:', e); }
   }
 
   async function applyTagFilter(tagId: number | null) {
@@ -2326,6 +2406,17 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                 {writingAlbumTags ? $tr('library.writingTags') : $tr('library.writeTags')}
               </button>
             {/if}
+            {#if !$selectedAlbum.source || $selectedAlbum.source === 'local'}
+              <button
+                class="edit-btn"
+                onclick={() => $selectedAlbum?.id && handleReidentifyAlbum($selectedAlbum.id)}
+                disabled={reidentifyingAlbum}
+                title={$tr('library.reidentifyTip')}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+                {reidentifyingAlbum ? $tr('library.reidentifying') : $tr('library.reidentify')}
+              </button>
+            {/if}
             {#if $selectedAlbum.cover_path && $selectedAlbum.id}
               <ReportButton
                 entity="cover"
@@ -2388,7 +2479,16 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                 <button class="tag-add-btn" onclick={() => showTagPicker = !showTagPicker}>+ Tag</button>
                 {#if showTagPicker}
                   <div class="tag-picker">
-                    <input class="tag-picker-input" type="text" placeholder={$tr('library.newTagPlaceholder')} bind:value={newTagName} onkeydown={(e) => { if (e.key === 'Enter' && newTagName.trim()) handleCreateAndAssignTag(albumId); }} />
+                    <!-- La touche Entrée était le SEUL moyen de valider : un
+                         nom saisi puis un clic ailleurs, et la saisie
+                         disparaissait sans un mot. Le bouton rend la
+                         validation visible ; Entrée continue de marcher. -->
+                    <div class="tag-picker-create">
+                      <input class="tag-picker-input" type="text" placeholder={$tr('library.newTagPlaceholder')} bind:value={newTagName} onkeydown={(e) => { if (e.key === 'Enter' && newTagName.trim()) handleCreateAndAssignTag(albumId); }} />
+                      <button class="tag-picker-submit" disabled={!newTagName.trim()} title={$tr('library.createTag' as any)} aria-label={$tr('library.createTag' as any)} onclick={() => handleCreateAndAssignTag(albumId)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg>
+                      </button>
+                    </div>
                     {#each userTags as tag}
                       <button class="tag-picker-option" onclick={async () => { await api.tagItem(tag.id!, 'album', albumId); showTagPicker = false; await loadUserTags(); albumTagsKey++; }}>
                         <span class="tag-dot" style="background:{tag.color}"></span>
@@ -3111,9 +3211,21 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             {$tr('library.duplicates')} ({duplicateAlbumCount})
           </button>
         {/if}
+        <!-- #2256, point 1/3 : le point d'entrée de création. Cette section
+             n'était montée que `{#if userTags.length > 0}` et n'offrait que
+             filtrer / renommer / supprimer — jamais créer. Une bibliothèque
+             sans aucune étiquette n'affichait donc RIEN ici, et la seule
+             création possible se cachait derrière « + Tag » sur la fiche d'un
+             album. C'est ce que Pascal n'a pas retrouvé. La barre est
+             désormais montée en permanence et porte la création à côté de la
+             gestion. -->
+        <span class="filter-sep">|</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="opacity:0.5;flex-shrink:0"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        <button class="quality-chip tag-create" title={$tr('library.createTag' as any)} onclick={handleCreateTag}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          {$tr('library.createTag' as any)}
+        </button>
         {#if userTags.length > 0}
-          <span class="filter-sep">|</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="opacity:0.5;flex-shrink:0"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
           {#each userTags as tag}
             <span class="user-tag-wrap">
               <button
@@ -4030,9 +4142,19 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     text-decoration: underline;
   }
 
+  /* La rangee d'actions doit passer a la ligne. Elle porte jusqu'a sept
+     boutons (lecture, file, edition, gravure des tags, re-identification,
+     signalement, Collection) dont les libelles sont plus longs en francais
+     qu'en anglais. Sans `flex-wrap`, elle restait sur une seule ligne : sur un
+     portable 1366x768 le dernier bouton — « Collection » — depassait de 53 px
+     le bord de `.library-scroller`, qui est en `overflow-x: hidden` et le
+     rognait sans laisser aucun defilement horizontal pour aller le chercher
+     (#2510, releve par Lulu sur un Asus 15,6"). Le bouton n'etait donc pas
+     seulement malcommode : il etait inatteignable. */
   .detail-actions {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: var(--space-sm);
     margin-top: var(--space-md);
   }
@@ -4417,6 +4539,16 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   .quality-chip.user-tag {
     gap: 4px;
   }
+  /* La création (#2256) : même puce que ses voisines, en pointillé, pour se
+     lire comme une action et non comme un filtre de plus. */
+  .quality-chip.tag-create {
+    gap: 4px;
+    border-style: dashed;
+  }
+  .quality-chip.tag-create:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
   .quality-chip.user-tag.active {
     background: var(--tag-color, #808080);
     border-color: var(--tag-color, #808080);
@@ -4532,6 +4664,36 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     margin-bottom: 4px;
   }
   .tag-picker-input:focus { border-color: var(--tune-accent); }
+  /* Champ + bouton de validation sur une seule ligne (#2256) : sans le
+     bouton, Entrée était la seule issue et un clic ailleurs perdait la
+     saisie sans message. */
+  .tag-picker-create {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+  .tag-picker-create .tag-picker-input { margin-bottom: 0; }
+  .tag-picker-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 5px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: var(--tune-bg);
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+  }
+  .tag-picker-submit:hover:not(:disabled) {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+  .tag-picker-submit:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
   .tag-picker-option {
     display: flex;
     align-items: center;

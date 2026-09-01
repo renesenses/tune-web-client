@@ -485,10 +485,17 @@
       },
       success: ({ result, d }) => {
         duplicates = d as any[];
+        audioDupFetchStarted = true;
         if ((d as any[]).length === 0 && result.duplicates_found === 0) {
           return $t('metadata.scanNoDuplicates').replace('{scanned}', String(result.total_scanned));
         }
         filter = 'duplicates';
+        queueMicrotask(() =>
+          document.querySelector('.duplicates-panel')?.scrollIntoView({ block: 'nearest' }),
+        );
+        void api.refineDuplicatePairs(d).then((exactes) => {
+          if (exactes.length) duplicates = exactes as any[];
+        });
         return $t('metadata.scanDuplicatesResult').replace('{found}', String(result.duplicates_found)).replace('{scanned}', String(result.total_scanned));
       },
     });
@@ -696,10 +703,9 @@
     filterYearTo = null;
   }
 
-  // Count duplicate albums (same title, multiple entries)
+  // Pastille : paires audio du scan / liste, sinon albums au même nom.
   let duplicateCount = $derived.by(() => {
-    // Exact same title + same artist + same quality = real duplicate
-    // Different editions, remasters, CD1/CD2 are NOT duplicates
+    if (duplicates.length > 0) return duplicates.length;
     const groups = new Map<string, number>();
     for (const a of allAlbums) {
       const title = (a.title ?? '').toLowerCase().trim();
@@ -737,22 +743,20 @@
   }
 
   let dupAlbumPaths = $state<Record<number, string>>({});
+  let audioDupFetchStarted = $state(false);
+  let audioDupsLoading = $state(false);
 
-  async function moveToDuplicates(album: Album, groupIndex: number) {
-    if (!album.id) return;
-    if (!(await dialogs.confirm($t('metadata.moveToDuplicatesConfirm').replace('{title}', String(album.title)).replace('{artist}', String(album.artist_name)), { danger: true }))) return;
+  async function ensureAudioDuplicatesLoaded() {
+    if (duplicates.length > 0 || audioDupFetchStarted) return;
+    audioDupFetchStarted = true;
+    audioDupsLoading = true;
     try {
-      const result = await api.moveAlbumToDuplicates(album.id);
-      // Remove from allAlbums — triggers recompute of duplicateGroups
-      allAlbums = allAlbums.filter(a => a.id !== album.id);
-      // Refresh stats
-      api.getCompletenessStats().then(s => stats = s);
-      // Clean up paths cache
-      delete dupAlbumPaths[album.id];
-      dupAlbumPaths = { ...dupAlbumPaths };
-    } catch (e: any) {
-      console.error('Move to duplicates error:', e);
-      notifications.error($t('metadata.failurePrefix').replace('{error}', errText(e) ?? $t('common.serverUnreachable')));
+      const d = await api.listDuplicates();
+      if (d.length) duplicates = d as any[];
+    } catch {
+      audioDupFetchStarted = false;
+    } finally {
+      audioDupsLoading = false;
     }
   }
 
@@ -1384,6 +1388,7 @@
       }
       if (f === 'duplicates') {
         loadDupPaths();
+        void ensureAudioDuplicatesLoaded();
       }
       if (f === 'doubtful') {
         loadDoubtful();
@@ -1643,19 +1648,20 @@
       />
     {/if}
 
-    <!-- Duplicates Panel -->
-    {#if duplicates.length > 0}
-      <MetadataDuplicatesPanel
-        {duplicates}
-        onResolve={resolveDuplicate}
-        onClose={() => duplicates = []}
-      />
-    {/if}
-
-    <!-- Content -->
+    <!-- Duplicates : paires audio dans l'onglet, pas un panneau séparé
+         au-dessus de « Aucun doublon » (albums au même nom). -->
     {#if filter === 'duplicates'}
+      {#if duplicates.length > 0}
+        <MetadataDuplicatesPanel
+          {duplicates}
+          onResolve={resolveDuplicate}
+          onClose={() => duplicates = []}
+        />
+      {/if}
       {#if duplicateGroups.length === 0}
-        <div class="empty">{$t('metadata.noDuplicates')}</div>
+        {#if duplicates.length === 0}
+          <div class="empty">{audioDupsLoading ? $t('common.loading') : $t('metadata.noDuplicates')}</div>
+        {/if}
       {:else}
         <div class="dup-groups">
           {#each duplicateGroups as group, gi}
@@ -1699,11 +1705,6 @@
                       <button class="btn-doubtful-edit" title={$t('metadata.edit')} onclick={() => editAlbum = { ...album, source: (album.source ?? undefined) as Source | undefined }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                       </button>
-                      {#if group.length > 1}
-                        <button class="btn-dup-move" title={$t('metadata.moveToDuplicates')} onclick={() => moveToDuplicates(album, gi)}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-                        </button>
-                      {/if}
                     </div>
                   </div>
                 {/each}
@@ -2947,26 +2948,6 @@
 
   .dup-group-item-info { flex: 1; min-width: 0; }
   .dup-group-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
-
-  .btn-dup-move {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    border: 1px solid rgba(239, 68, 68, 0.25);
-    background: rgba(239, 68, 68, 0.08);
-    color: #ef4444;
-    cursor: pointer;
-    transition: all 0.12s;
-    padding: 0;
-  }
-
-  .btn-dup-move:hover {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: #ef4444;
-  }
 
   .btn-merge {
     display: flex;

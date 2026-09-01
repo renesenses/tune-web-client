@@ -5,7 +5,7 @@
   import { devices } from './lib/stores/devices';
   import { isBrowserZone, browserPlay, browserPause, browserResume, browserStop } from './lib/stores/browserAudio';
   import { seekPositionMs, startSeekTimer, stopSeekTimer, shuffleEnabled, repeatMode, nowPlayingToTrack } from './lib/stores/nowPlaying';
-  import { mergeTransport, type TransportState } from './lib/transportSync';
+  import { mergeTransport, transportDeLEvenement, type TransportState } from './lib/transportSync';
   import {
     positionFileAnnoncee,
     doitRechargerLaFileEntiere,
@@ -31,6 +31,7 @@
   import { t } from './lib/i18n';
   import * as api from './lib/api';
   import { libelleBanniereEnrichissement, enrichissementImagesTermine, type TacheDeFond } from './lib/tachesDeFond';
+  import { cleBanniereEnrichissementApresScan } from './lib/enrichissementApresScan';
   import { urlFlux } from './lib/bridge';
   import Sidebar from './components/Sidebar.svelte';
   import NowPlaying from './components/NowPlaying.svelte';
@@ -118,7 +119,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   let showWhatsNew = $state(false);
 
   // Status banner state
-  type BannerStatus = 'idle' | 'scan' | 'streaming' | 'ready' | 'enrichment';
+  type BannerStatus = 'idle' | 'scan' | 'streaming' | 'ready' | 'enrichment' | 'notice';
   let bannerStatus = $state<BannerStatus>('idle');
   let bannerMessage = $state('');
   let bannerFadeout = $state(false);
@@ -144,6 +145,33 @@ import AlarmsView from './components/AlarmsView.svelte';
         bannerFadeTimer = null;
       }, 600);
     }, 1500);
+  }
+
+  function showScanCompletedBanner(autoEnrichment: unknown) {
+    const key = cleBanniereEnrichissementApresScan(
+      autoEnrichment && typeof autoEnrichment === 'object'
+        ? autoEnrichment as { started?: boolean; skipped_reason?: string | null }
+        : undefined,
+    );
+    if (key === null) {
+      showReadyBanner();
+      return;
+    }
+
+    if (bannerFadeTimer) clearTimeout(bannerFadeTimer);
+    bannerStatus = 'notice';
+    bannerMessage = get(t)(key);
+    bannerFadeout = false;
+    // Le motif et le geste manuel doivent rester lisibles, contrairement au
+    // bref « Prêt » de fin de scan.
+    bannerFadeTimer = setTimeout(() => {
+      bannerFadeout = true;
+      bannerFadeTimer = setTimeout(() => {
+        bannerStatus = 'idle';
+        bannerFadeout = false;
+        bannerFadeTimer = null;
+      }, 600);
+    }, 8000);
   }
 
   /**
@@ -295,6 +323,17 @@ import AlarmsView from './components/AlarmsView.svelte';
         if (target?.id != null) currentZoneId.set(target.id);
       }
 
+      // Recaler l'aléatoire et la répétition sur ce que le serveur vient de
+      // dire (#2092). APRÈS la sélection de zone, sinon `syncTransportFromZone`
+      // comparerait à une zone courante qui n'est pas encore la bonne et ne
+      // poserait rien à l'écran.
+      //
+      // `fetchZones` est le chemin du CHARGEMENT DE PAGE et de la REPRISE DE
+      // CONNEXION : c'est ici que se joue « un aléatoire allumé la semaine
+      // dernière doit se voir dès l'ouverture ». Il couvre aussi le repli par
+      // sondage, où aucun instantané WebSocket n'arrive jamais.
+      for (const z of zoneList) syncTransportFromZone(z);
+
       // Restore seek state for the selected zone from the already-fetched data.
       // Only on initial load or WS reconnect — not on zone.* events, which would
       // reset the seek position and break the seek timer on every volume change etc.
@@ -381,10 +420,10 @@ import AlarmsView from './components/AlarmsView.svelte';
   /**
    * Dernière répétition / lecture aléatoire connues du serveur, par zone.
    *
-   * Ces deux champs ne voyagent que dans les instantanés WebSocket ; la liste
-   * REST des zones ne les porte pas. On les retient donc au passage, pour
-   * pouvoir recaler les commandes de transport au moment où l'on change de
-   * zone, sans requête supplémentaire.
+   * On retient au passage tout ce qui les porte — instantané WebSocket, liste
+   * REST des zones, zone REST isolée, annonce en direct — pour pouvoir recaler
+   * les commandes de transport au moment où l'on change de zone, sans requête
+   * supplémentaire. Voir `lib/transportSync.ts` pour le détail du contrat.
    */
   const transportByZone = new Map<number, TransportState>();
 
@@ -418,6 +457,11 @@ import AlarmsView from './components/AlarmsView.svelte';
   async function syncZoneState(zoneId: number) {
     try {
       const zone = await api.getZone(zoneId);
+      // `GET /zones/{id}` porte le transport depuis #2153 — et c'est la charge
+      // utile relue après CHAQUE événement de lecture. La lire ici, c'est la
+      // dernière chance de rattraper un écart avant que l'utilisateur ne le
+      // voie (#2092).
+      syncTransportFromZone(zone);
       zones.update((zs) =>
         zs.map((z) => {
           if (z.id !== zoneId) return z;
@@ -844,13 +888,30 @@ import AlarmsView from './components/AlarmsView.svelte';
       }
 
       // Instantané d'ouverture de connexion. Le serveur l'envoie pour que le
-      // client « ait la vérité tout de suite » (routes/ws.rs), et il est le
-      // seul endroit d'où la répétition et la lecture aléatoire arrivent :
-      // ni /zones ni /zones/{id} ne les portent. On ne s'en sert que pour
-      // cela — la liste des zones reste servie par fetchZones, inchangée.
+      // client « ait la vérité tout de suite » (routes/ws.rs). On ne s'en sert
+      // que pour le transport — la liste des zones reste servie par
+      // fetchZones, inchangée.
       if (type === 'snapshot' && Array.isArray(event.data?.zones)) {
         for (const z of event.data.zones) syncTransportFromZone(z);
         return;
+      }
+
+      // Bascule d'aléatoire ou de répétition annoncée EN DIRECT (#2092).
+      //
+      // C'est le seul chemin par lequel un changement fait AILLEURS —
+      // application mobile, seconde fenêtre, Siri, widget, appel d'API —
+      // atteint cet écran sans rechargement. Sans lui, deux télécommandes
+      // ouvertes côte à côte affichent deux vérités différentes, et celle qui
+      // n'a pas cliqué a tort.
+      //
+      // Placé AVANT le bloc générique `playback.*`, et sans `return` : c'est un
+      // AJOUT, pas un détournement. Le bloc générique continue de faire ce
+      // qu'il faisait pour ces deux événements (un `syncZoneState` de
+      // rattrapage) ; le court-circuiter aurait échangé un défaut contre le
+      // risque d'un autre.
+      {
+        const direct = transportDeLEvenement(type, event.data);
+        if (direct) syncTransportFromZone({ id: direct.zoneId, ...direct.transport });
       }
 
       // Polling bulk zone update — replace all zones at once
@@ -1229,7 +1290,7 @@ import AlarmsView from './components/AlarmsView.svelte';
           }
         } else if (type === 'library.scan.completed') {
           scanIndicator = false;
-          showReadyBanner();
+          showScanCompletedBanner(event.data?.auto_enrichment);
         }
         return;
       }
@@ -1387,11 +1448,13 @@ import AlarmsView from './components/AlarmsView.svelte';
     {/if}
 
     {#if bannerStatus !== 'idle'}
-      <div class="status-banner" class:status-banner--scan={bannerStatus === 'scan'} class:status-banner--streaming={bannerStatus === 'streaming'} class:status-banner--enrichment={bannerStatus === 'enrichment'} class:status-banner--ready={bannerStatus === 'ready'} class:status-banner--fadeout={bannerFadeout}>
+      <div class="status-banner" class:status-banner--scan={bannerStatus === 'scan'} class:status-banner--streaming={bannerStatus === 'streaming'} class:status-banner--enrichment={bannerStatus === 'enrichment'} class:status-banner--ready={bannerStatus === 'ready'} class:status-banner--notice={bannerStatus === 'notice'} class:status-banner--fadeout={bannerFadeout}>
         {#if bannerStatus === 'scan' || bannerStatus === 'streaming' || bannerStatus === 'enrichment'}
           <span class="status-banner-spinner"></span>
         {:else if bannerStatus === 'ready'}
           <svg class="status-banner-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
+        {:else if bannerStatus === 'notice'}
+          <svg class="status-banner-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
         {/if}
         <span class="status-banner-text">{bannerMessage}</span>
       </div>
@@ -1701,6 +1764,19 @@ import AlarmsView from './components/AlarmsView.svelte';
     background: rgba(34, 197, 94, 0.08);
     color: #4ade80;
     border-bottom-color: rgba(34, 197, 94, 0.15);
+  }
+
+  .status-banner--notice {
+    background: rgba(245, 158, 11, 0.1);
+    color: #fbbf24;
+    border-bottom-color: rgba(245, 158, 11, 0.22);
+  }
+
+  .status-banner--notice .status-banner-text {
+    white-space: normal;
+    max-width: 90vw;
+    text-align: center;
+    line-height: 1.35;
   }
 
   .status-banner--fadeout {

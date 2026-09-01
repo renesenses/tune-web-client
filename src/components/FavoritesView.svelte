@@ -29,8 +29,9 @@
   // Cinq onglets depuis #2442 (FabienM, fil 1557) : « il manque de pouvoir
   // mettre en favoris une PLAYLIST et un LABEL ». Les deux nouveaux sont
   // LOCAUX par nature — une playlist locale porte un id entier, un label est
-  // une valeur de facette — d'où l'absence de filtre par service et de tri sur
-  // ces deux onglets.
+  // une valeur de facette — d'où l'absence de filtre par service sur ces deux
+  // onglets. Ils se TRIENT en revanche comme les trois autres depuis #2001 :
+  // la table est polymorphe, le tri doit l'être aussi.
   type FavTab = 'tracks' | 'albums' | 'artists' | 'playlists' | 'labels';
   const ONGLETS: FavTab[] = ['tracks', 'albums', 'artists', 'playlists', 'labels'];
   let activeTab = $state<FavTab>('tracks');
@@ -61,8 +62,15 @@
   // `PlaylistFavorite` et non `Playlist` : une playlist de service n'a pas
   // d'`id` entier, elle porte `source` + `source_id` (#2370).
   let favPlaylists = $state<PlaylistFavorite[]>([]);
-  /** Valeurs de label mises en favori — des CHAÎNES, un label n'a pas d'id. */
-  let favLabels = $state<string[]>([]);
+  /**
+   * Labels mis en favori — désignés par leur VALEUR, une chaîne : un label n'a
+   * pas d'id.
+   *
+   * On garde la ligne de facette entière (`{ facet, value, created_at }`) et
+   * non la seule chaîne : sans sa date, l'onglet Labels ne pourrait pas se
+   * trier par date d'ajout comme les quatre autres (#2001).
+   */
+  let favLabels = $state<api.FacetFavorite[]>([]);
 
   let zone = $derived($currentZone);
 
@@ -104,25 +112,46 @@
     ),
   );
 
-  // Les playlists ne sont pas triables (voir plus bas), mais elles se filtrent
-  // désormais par source comme les autres : depuis #2370 l'onglet mélange les
-  // locales et celles de Qobuz/Tidal.
+  // Les deux onglets venus de #2442 se trient eux aussi (#2001) : la table des
+  // favoris est POLYMORPHE, et un tri qui ne vaudrait que pour les pistes
+  // laisserait deux listes sur cinq dans l'état que ce ticket dénonce.
+  //
+  // Une playlist locale porte un `name`, un label une `value` — d'où la seule
+  // clé alphabétique « titre » sur ces deux onglets. Les deux acceptent en
+  // revanche la date d'ajout : tout favori a été posé un jour.
+  //
+  // FUSION #2001 + #2370 : les playlists se FILTRENT par source (elles mêlent
+  // le local et Qobuz/Tidal depuis #2370) PUIS se trient. L'ordre compte —
+  // trier d'abord puis filtrer donnerait le même résultat ici, mais filtrer
+  // d'abord épargne le tri des lignes qu'on ne montrera pas.
+  //
+  // La réserve posée ici lors de la fusion #2001 + #2370 est LEVÉE (#2715) :
+  // `fusionnerPlaylistsFavorites` reporte désormais `favorite_added_at` (côté
+  // local) et `created_at` (côté service), les deux noms que lit `dateDeTri`.
+  // Le tri « date d'ajout » n'est donc plus inerte sur cet onglet.
   let displayPlaylists = $derived(
-    sourceFilter === 'all'
-      ? favPlaylists
-      : favPlaylists.filter((p) => srcOf(p) === sourceFilter),
+    trier(
+      sourceFilter === 'all'
+        ? favPlaylists
+        : favPlaylists.filter((p) => srcOf(p) === sourceFilter),
+      tri,
+      triDescendant,
+    ),
   );
+  let displayLabels = $derived(trier(favLabels, tri, triDescendant));
 
-  // `clesPourOnglet` ne connaît que les trois onglets triables. Les playlists
-  // et les labels s'affichent dans l'ordre d'ajout rendu par le serveur.
-  let ongletTriable = $derived(
-    activeTab === 'tracks' || activeTab === 'albums' || activeTab === 'artists',
-  );
-  let clesDeTri = $derived(
+  // Le filtre par SOURCE couvre les trois onglets d'origine ET les playlists :
+  // depuis #2370 cet onglet mêle le local et les services, la pastille y a donc
+  // plus d'une valeur. Un label, lui, reste local par nature.
+  //
+  // `ongletTriable` de main disparaît : il disait que seuls trois onglets se
+  // trient, ce que #2001 rend faux — `clesPourOnglet` a un cas `default` qui
+  // rend `['defaut','titre','ajout']` pour les playlists et les labels.
+  let ongletAvecSources = $derived(
     activeTab === 'tracks' || activeTab === 'albums' || activeTab === 'artists'
-      ? clesPourOnglet(activeTab)
-      : [],
+      || activeTab === 'playlists',
   );
+  let clesDeTri = $derived(clesPourOnglet(activeTab));
 
   // Changer d'onglet peut invalider la clé courante — « album » n'existe pas
   // sur les artistes. On retombe sur l'ordre d'ajout plutôt que de trier sur
@@ -140,7 +169,7 @@
           ? favArtists
           : activeTab === 'playlists'
             ? favPlaylists
-            : favLabels.map((value) => ({ value })),
+            : favLabels,
   );
 
   // Les pastilles de filtre listent les sources dont l'utilisateur DISPOSE, pas
@@ -362,7 +391,9 @@
       // n'étaient relues nulle part : le cœur posé sur une playlist Qobuz
       // n'aboutissait à aucun écran (#2370, Didier fil 1541).
       favPlaylists = fusionnerPlaylistsFavorites(local.playlists ?? [], streaming);
-      favLabels = facets.map((f) => f.value);
+      // La ligne de facette entière, sa date comprise : sans elle, l'onglet
+      // Labels ne saurait pas se trier par date d'ajout (#2001).
+      favLabels = facets;
     } catch (e) {
       console.error('Load favorites error:', e);
     }
@@ -506,7 +537,7 @@
   async function removeFavLabel(value: string) {
     const pid = $currentProfileId;
     if (!pid) return;
-    favLabels = favLabels.filter((l) => l !== value);
+    favLabels = favLabels.filter((l) => l.value !== value);
     favoriteFacetKeys.update((set) => { set.delete(facetFavKey('label', value)); return set; });
     try {
       await api.removeFacetFavorite(pid, 'label', value);
@@ -719,7 +750,7 @@
     </div>
   </div>
 
-  {#if !loading && ongletTriable && availableSources.length > 1}
+  {#if !loading && ongletAvecSources && availableSources.length > 1}
     <div class="filter-bar">
       <button class="chip" class:active={sourceFilter === 'all'} onclick={() => sourceFilter = 'all'}>{$tr('common.all')}</button>
       {#each availableSources as s}
@@ -731,22 +762,31 @@
     </div>
   {/if}
 
-  {#if !loading && ongletTriable && currentList.length > 1}
+  {#if !loading && currentList.length > 1}
     <div class="filter-bar tri-bar">
       <span class="tri-label">{$tr('favorites.sortBy')}</span>
       {#each clesDeTri as cle (cle)}
         <button class="chip" class:active={tri === cle} onclick={() => (tri = cle)}>
+          <!-- `defaut` ne trie RIEN : il rend la liste telle que le serveur
+               l'a donnée. L'appeler « Date d'ajout » était le nœud du
+               malentendu — la pastille promettait une date, et le bouton de
+               sens restait masqué. « Date d'ajout » désigne maintenant la clé
+               qui trie vraiment, sur la date elle-même. -->
           {cle === 'defaut'
-            ? $tr('library.sortAddedDate')
+            ? $tr('favorites.sortDefault')
             : cle === 'titre'
               ? $tr('library.sortTitle')
               : cle === 'artiste'
                 ? $tr('library.sortArtist')
-                : $tr('common.album')}
+                : cle === 'ajout'
+                  ? $tr('library.sortAddedDate')
+                  : $tr('common.album')}
         </button>
       {/each}
-      <!-- Le sens n'a aucun sens sur l'ordre d'ajout : on ne l'affiche pas
-           plutôt que de le griser, un bouton grisé faisant croire à un défaut. -->
+      <!-- Le sens n'a aucun sens sur « tel quel » : on ne l'affiche pas
+           plutôt que de le griser, un bouton grisé faisant croire à un défaut.
+           Sur « Date d'ajout », il est là — et ↑ donne le plus ancien d'abord,
+           l'ordre séquentiel que Tades cherchait. -->
       {#if tri !== 'defaut'}
         <button
           class="chip"
@@ -914,7 +954,7 @@
       </div>
     {:else}
       <div class="track-list">
-        {#each favLabels as value (value)}
+        {#each displayLabels as { value } (value)}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="track-item" onclick={() => openLabel(value)}>
