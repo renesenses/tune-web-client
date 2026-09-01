@@ -2743,7 +2743,6 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                     onGoToArtist={t.artist_name
                       ? () => { const a = $artists.find(ar => ar.id === t.artist_id) ?? $artists.find(ar => ar.name === t.artist_name) ?? (t.artist_id != null ? { id: t.artist_id, name: t.artist_name ?? '' } as Artist : undefined); if (a?.id != null) selectArtistDetail(a as Artist); }
                       : undefined}
-                    onGoToAlbum={() => selectAlbumDetail($selectedAlbum!)}
                   />
                 {/if}
               </div>
@@ -3485,6 +3484,32 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
                 </button>
               {/if}
+              <!-- Le même menu que la fiche d'album (#2574). Sans lui, cet
+                   onglet n'offrait RIEN au doigt : les règles @media
+                   (max-width:640px) et (hover:none) plus bas mettent en
+                   `display:none` tous les boutons de la ligne et renvoient sur
+                   le « ··· » — qui n'existait pas ici.
+                   « Autres versions » reste volontairement absente : son
+                   résultat s'affiche dans `track-versions-row`, qui n'est
+                   rendue que dans la fiche d'album. -->
+              <div class="track-more-wrap">
+                <button class="track-more-btn" onclick={(e) => openTrackMenu(e, t.id)} title={$tr('library.moreOptions')}>···</button>
+                {#if trackMenuOpenId === t.id}
+                  <TrackContextMenu
+                    onClose={closeTrackMenu}
+                    onPlay={() => t.id && playTrack(t.id)}
+                    onAddToQueue={() => addTrackToQueue(t)}
+                    onPlaySimilar={() => playSimilar(t)}
+                    onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
+                    onGoToArtist={t.artist_id != null && t.artist_name
+                      ? () => selectArtistDetail({ id: t.artist_id!, name: t.artist_name! })
+                      : undefined}
+                    onGoToAlbum={t.album_id != null && t.album_title
+                      ? () => selectAlbumDetail({ id: t.album_id!, title: t.album_title!, artist_name: t.artist_name } as Album)
+                      : undefined}
+                  />
+                {/if}
+              </div>
             </div>
           {/each}
         </div>

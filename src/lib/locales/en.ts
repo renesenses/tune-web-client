@@ -3055,7 +3055,7 @@ export default {
   "smartai.subtitle": "Playlists built from your criteria",
   "smartai.basedOnHistory": "Based on your listening history",
   "search.topArtists": "Most played artists",
-  "search.addToQueue": "Add to queue",
+  "search.addToQueue": "Add to Queue",
   "login.createAccount": "Create an account",
   "tv.stereoVuMeters": "Stereo VU meters",
   "oxygen.description": "A faceted library in the style of a collection manager: dense table, quality badges and a metadata inspector. The table columns follow the visible fields you set above.",
