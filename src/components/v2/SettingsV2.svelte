@@ -1101,7 +1101,6 @@
           <section class="card" class:hl={highlight === s.id}>
             <div class="cardhead">
               <h3>{title(s)}</h3>
-              {#if s.from !== tab.id}<span class="moved">déplacé depuis « {s.from} »</span>{/if}
             </div>
 
             {#if s.id === 'playback'}
@@ -1426,10 +1425,7 @@
               <div class="rows">
                 <div class="kv"><span>{$t('settings.dataLocation' as any)}</span><b class="mono">{dataLoc ?? '—'}</b></div>
               </div>
-              <p class="hint">
-                Base, pochettes en cache et journaux vivent ici. Déplacer ce dossier se fait
-                serveur arrêté, depuis le client actuel.
-              </p>
+              <p class="hint">{$t('settings.dataLocationHint' as any)}</p>
 
             {:else if s.id === 'exportCsv'}
               <p class="hint">
@@ -2323,11 +2319,6 @@
                   <span class="slider"></span>
                 </label>
               </div>
-            {:else}
-              <div class="todo">
-                <span>{$t('settings.followMeNotPortedYet' as any)}</span>
-                <button class="lnk" onclick={() => activeView.set('settings')}>{$t('settings.openInCurrentScreen' as any)}</button>
-              </div>
             {/if}
           </section>
         {/each}
@@ -2374,8 +2365,6 @@
   .card.hl{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .cardhead{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
   .cardhead h3{font-size:15px; font-weight:700}
-  .moved{font:10px var(--v2-mono); letter-spacing:.06em; color:var(--v2-txt3);
-    border:1px solid var(--v2-line2); border-radius:999px; padding:2px 8px}
 
   .row{display:flex; align-items:center; justify-content:space-between; gap:20px; margin-top:12px}
   .lbl{display:flex; flex-direction:column; gap:4px; min-width:0}
@@ -2535,8 +2524,6 @@
   .foot{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:14px;
     padding-top:12px; border-top:1px solid var(--v2-line)}
   .foot .hint{flex:1; min-width:200px}
-  .todo{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:10px;
-    font-size:12px; color:var(--v2-txt3)}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     border-radius:999px; padding:6px 13px; font:600 11.5px var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
