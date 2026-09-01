@@ -7,6 +7,7 @@
 // Importé via la barrel `lib/api`.
 
 import { BASE, fetchJSON } from './_client';
+import type { PaireDistincte } from '../albumsDistincts';
 import {
   flattenLibraryDuplicates,
   pairesAudioDabord,
@@ -256,6 +257,42 @@ export function reclassifyGenresByPath(dryRun: boolean = false) {
 
 export function mergeDuplicateAlbums() {
   return fetchJSON<MetadataFixResult>(`${BASE}/library/albums/merge-duplicates`, { method: 'POST' });
+}
+
+// --- « Ces albums ne sont pas des doublons » (#1276) -----------------------
+//
+// L'arbitrage est PERSISTÉ par identité (titre + artiste des deux côtés) dans
+// une table sans clé étrangère : il survit au rescan, au déplacement de racine
+// et à la mort/renaissance d'une ligne `albums`. Il vaut pour les DEUX chemins
+// qui rapprochent des albums : `GET /library/albums/grouped` cesse de signaler
+// la paire, et `POST /library/albums/merge-duplicates` refuse de la fusionner
+// (elle est comptée dans `protected`).
+//
+// Les deux écritures sont idempotentes et insensibles à l'ordre des deux ids.
+/** `GET /library/albums/distinct` — la liste de révision, instantanés compris,
+ *  donc y compris les paires momentanément orphelines. C'est de là qu'un
+ *  arbitrage posé par erreur se retrouve et se révoque. */
+export function listDistinctAlbumPairs() {
+  return fetchJSON<{ total: number; items: PaireDistincte[] }>(`${BASE}/library/albums/distinct`);
+}
+
+/** `POST /library/albums/{id}/distinct/{other}` — « ce ne sont pas des
+ *  doublons ». 400 si les deux ids sont identiques, 404 si l'un des albums
+ *  n'existe pas. */
+export function declareAlbumsDistinct(albumId: number, otherId: number) {
+  return fetchJSON<{ album_a_id: number; album_b_id: number; distinct: boolean }>(
+    `${BASE}/library/albums/${albumId}/distinct/${otherId}`,
+    { method: 'POST' },
+  );
+}
+
+/** `DELETE …/distinct/…` — revenir sur l'arbitrage : la paire redevient
+ *  candidate au rapprochement. Idempotent. */
+export function revokeAlbumsDistinct(albumId: number, otherId: number) {
+  return fetchJSON<{ album_a_id: number; album_b_id: number; distinct: boolean }>(
+    `${BASE}/library/albums/${albumId}/distinct/${otherId}`,
+    { method: 'DELETE' },
+  );
 }
 
 export function fixGenresByArtist(minCoherence = 0.7) {
