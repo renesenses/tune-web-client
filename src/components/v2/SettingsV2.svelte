@@ -16,6 +16,7 @@
    * absent.
    */
   import { t } from '../../lib/i18n';
+  import { get } from 'svelte/store';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { formatNumber, copyText, errText } from '../../lib/utils';
@@ -678,11 +679,11 @@
         deviceFlow = { ...deviceFlow, [name]: { url, code: res.user_code ?? null } };
         startPoll(name);   // svcBusy reste pose : l'attente fait partie du flux
       } else {
-        svcErr = { ...svcErr, [name]: usesPassword(name) ? 'Identifiants refusés.' : "Le service n'a pas renvoyé de lien." };
+        svcErr = { ...svcErr, [name]: usesPassword(name) ? get(t)('settings.errCredentialsRejected') : get(t)('settings.errNoAuthLink') };
         svcBusy = null;
       }
     } catch {
-      svcErr = { ...svcErr, [name]: 'Connexion impossible.' };
+      svcErr = { ...svcErr, [name]: get(t)('settings.errConnectFailed') };
       svcBusy = null;
     }
   }
@@ -692,7 +693,7 @@
     try {
       await api.disconnectStreaming(name);
       svcs = { ...svcs, [name]: { ...svcs[name], authenticated: false, username: null } };
-    } catch { svcErr = { ...svcErr, [name]: 'Déconnexion impossible.' }; }
+    } catch { svcErr = { ...svcErr, [name]: get(t)('settings.errDisconnectFailed') }; }
   }
   function cancelFlow(name: string) {
     stopPoll(name);
@@ -744,7 +745,7 @@
       licKey = '';
       await loadLicense();
     } catch (e: any) {
-      licErr = e?.message ?? 'Activation refusée.';
+      licErr = e?.message ?? get(t)('settings.errActivationRejected');
     }
     licBusy = false;
   }
@@ -752,7 +753,7 @@
     if (licBusy) return;
     licBusy = true; licErr = null;
     try { await api.deactivateLicense(); await loadLicense(); }
-    catch { licErr = 'Désactivation impossible.'; }
+    catch { licErr = get(t)('settings.errDeactivateFailed'); }
     licBusy = false;
   }
 
@@ -776,7 +777,7 @@
       // chaine ('false') aussi bien qu'en booleen.
       qualitySplit = !(c?.quality_split === false || c?.quality_split === 'false'
         || c?.quality_split === 0 || c?.quality_split === '0');
-    } catch { libErr = 'Configuration indisponible.'; }
+    } catch { libErr = get(t)('settings.errConfigUnavailable'); }
     try {
       const sch: any = await api.getScanSchedule();
       schedOn = !!sch?.enabled; schedTime = sch?.time ?? '03:00';
@@ -808,7 +809,7 @@
       const r = await api.addMusicDir(path);
       musicDirs = r?.music_dirs ?? musicDirs;
       newDir = '';
-    } catch (e: any) { libErr = e?.message ?? "Dossier refusé — vérifiez le chemin et les droits."; }
+    } catch (e: any) { libErr = e?.message ?? get(t)('settings.errFolderRejected'); }
     dirBusy = false;
   }
   /** Retirer un dossier ne SUPPRIME aucun fichier : on le dit dans l'ecran,
@@ -819,27 +820,27 @@
     try {
       const r = await api.removeMusicDir(path);
       musicDirs = r?.music_dirs ?? musicDirs.filter((d) => d !== path);
-    } catch { libErr = 'Retrait impossible.'; }
+    } catch { libErr = get(t)('settings.errRemoveFailed'); }
     dirBusy = false;
   }
   async function scan(full: boolean) {
     try { await api.triggerScan(undefined, full); scanning = true; scanReport = null; }
-    catch { libErr = 'Analyse impossible à lancer.'; }
+    catch { libErr = get(t)('settings.errScanStartFailed'); }
   }
   async function stopScan() {
     try { await api.cancelScan(); scanning = false; } catch { /* deja finie */ }
   }
   async function setQualitySplit(v: boolean) {
     const before = qualitySplit; qualitySplit = v;
-    try { await api.updateConfig({ quality_split: v }); notifications.success('Enregistré — une analyse complète est nécessaire.'); }
-    catch { qualitySplit = before; libErr = 'Enregistrement impossible.'; }
+    try { await api.updateConfig({ quality_split: v }); notifications.success(get(t)('settings.savedNeedsFullScan')); }
+    catch { qualitySplit = before; libErr = get(t)('settings.errSaveFailed'); }
   }
   async function saveSchedule() {
     schedBusy = true;
     try {
       const r: any = await api.setScanSchedule(schedTime, schedOn);
       schedOn = !!r?.enabled; schedTime = r?.time ?? schedTime;
-    } catch { libErr = 'Planification non enregistrée.'; }
+    } catch { libErr = get(t)('settings.errScheduleNotSaved'); }
     schedBusy = false;
   }
 
@@ -869,7 +870,7 @@
     try {
       const up = await api.updateZoneFixedVolume(z.id, enabled, confirmed);
       zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...up } : x)));
-    } catch { zoneErr = 'Réglage refusé par le serveur.'; }
+    } catch { zoneErr = get(t)('settings.errSettingRejected'); }
   }
   function askFixedVolume(z: any, enabled: boolean) {
     zoneErr = null;
@@ -887,7 +888,7 @@
   async function setZoneField(z: any, fn: () => Promise<any>) {
     if (z?.id == null) return;
     try { const up = await fn(); zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...up } : x))); }
-    catch { zoneErr = 'Réglage non enregistré.'; }
+    catch { zoneErr = get(t)('settings.errSettingNotSaved'); }
   }
 
   // ── CLAP (analyse acoustique) ─────────────────────────────────────────
@@ -928,7 +929,7 @@
   });
   async function copyUrl(u: string) {
     if (await copyText(u)) { copied = u; setTimeout(() => { if (copied === u) copied = null; }, 2000); }
-    else notifications.error('Copie impossible.');
+    else notifications.error(get(t)('settings.errCopyFailed'));
   }
 
   // ── Spotify Connect (recepteur) ───────────────────────────────────────
@@ -953,13 +954,13 @@
     spcBusy = true; spcErr = null;
     try {
       if (on) {
-        if (spcZone == null) { spcErr = 'Choisissez une zone à exposer.'; spcBusy = false; return; }
+        if (spcZone == null) { spcErr = get(t)('settings.errPickZoneToExpose'); spcBusy = false; return; }
         await api.enableSpotifyConnect(spcZone, spcName.trim() || null);
       } else {
         await api.disableSpotifyConnect();
       }
       spc = await api.getSpotifyConnectStatus();
-    } catch (e: any) { spcErr = e?.message ?? 'Action impossible.'; }
+    } catch (e: any) { spcErr = e?.message ?? get(t)('settings.errActionFailed'); }
     spcBusy = false;
   }
 
@@ -995,7 +996,7 @@
   async function doExportConfig() {
     cfgBusy = true; sysErr = null;
     try { await api.exportConfig(); }
-    catch { sysErr = 'Export de configuration impossible.'; }
+    catch { sysErr = get(t)('settings.errConfigExportFailed'); }
     cfgBusy = false;
   }
 
@@ -1029,12 +1030,12 @@
   async function startEnrich() {
     enrichErr = null;
     try { await api.startBatchEnrich(); enrichRunning = true; await refreshEnrich(); }
-    catch { enrichErr = 'Lancement impossible.'; }
+    catch { enrichErr = get(t)('settings.errStartFailed'); }
   }
   async function startCovers() {
     enrichErr = null;
     try { await api.enrichArtistImages(); await refreshEnrich(); }
-    catch { enrichErr = 'Lancement impossible.'; }
+    catch { enrichErr = get(t)('settings.errStartFailed'); }
   }
 
   // ── Rangement des fichiers importes ───────────────────────────────────
@@ -1047,7 +1048,7 @@
     const before = ingest;
     ingest = { ...ingest, ...patch };
     try { const r: any = await api.updateIngestSettings(patch as any); if (r) ingest = r; }
-    catch { ingest = before; ingestErr = 'Réglage non enregistré.'; }
+    catch { ingest = before; ingestErr = get(t)('settings.errSettingNotSaved'); }
   }
 
   // ── Notifications ─────────────────────────────────────────────────────
