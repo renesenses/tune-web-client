@@ -11,15 +11,37 @@
   import { tuneWS } from '../lib/websocket';
   import { onMount } from 'svelte';
   import type { RadioStation } from '../lib/types';
+  import { radioGenreShelf, radioGenreShelves, radioGenreLabel } from '../lib/radioGenres';
 
   type Tab = 'stations' | 'saved';
   let activeTab = $state<Tab>('stations');
 
   let radios = $state<RadioStation[]>([]);
   let loading = $state(true);
+  /**
+   * Le filtre porte sur la CLÉ de rayon, jamais sur le libellé affiché.
+   *
+   * Il portait sur la chaîne brute, et c'est ce qui fabriquait les rayons en
+   * double : `eclectic` et `Éclectique` sont le même genre, mais deux chaînes,
+   * donc deux boutons, donc la moitié des stations manquante à chaque clic.
+   * Une clé de rayon est stable — même casse, même accents, même langue
+   * d'affichage.
+   */
   let filterGenre = $state<string | null>(null);
   let filterFavorite = $state(false);
-  let genres = $derived([...new Set(radios.map(r => r.genre).filter(Boolean))].sort());
+  /**
+   * Les rayons présents, triés sur le LIBELLÉ traduit : un lecteur japonais
+   * doit voir ses genres dans l'ordre du japonais, pas dans l'ordre
+   * alphabétique de clés anglaises. Le tri dépend donc de `$t`, ce qui le
+   * garde ici et hors du module de vocabulaire.
+   */
+  let genres = $derived(
+    radioGenreShelves(radios).sort((a, b) =>
+      radioGenreLabel(a, $t).localeCompare(radioGenreLabel(b, $t), undefined, {
+        sensitivity: 'base',
+      }),
+    ),
+  );
 
   // Radio favorites (saved tracks)
   interface RadioFav { id: number; title: string; artist: string; station_name: string; cover_url?: string; stream_url?: string; saved_at: string; }
@@ -70,7 +92,10 @@
   let filtered = $derived.by(() => {
     let list = radios;
     if (filterFavorite) list = list.filter(r => r.favorite);
-    if (filterGenre) list = list.filter(r => r.genre === filterGenre);
+    // Comparaison sur la clé de rayon. L'égalité stricte des chaînes brutes
+    // laissait dehors toutes les stations dont l'orthographe différait d'un
+    // accent ou d'une majuscule.
+    if (filterGenre) list = list.filter(r => radioGenreShelf(r.genre)?.key === filterGenre);
     return list;
   });
 
@@ -337,9 +362,9 @@
       <svg viewBox="0 0 24 24" fill={filterFavorite ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
       {$t('radio.favorites')}
     </button>
-    {#each genres as g}
-      <button class="filter-chip" class:active={filterGenre === g} onclick={() => { filterGenre = filterGenre === g ? null : g; filterFavorite = false; }}>
-        {g}
+    {#each genres as rayon (rayon.key)}
+      <button class="filter-chip" class:active={filterGenre === rayon.key} onclick={() => { filterGenre = filterGenre === rayon.key ? null : rayon.key; filterFavorite = false; }}>
+        {radioGenreLabel(rayon, $t)}
       </button>
     {/each}
   </div>
@@ -351,6 +376,7 @@
   {:else}
     <div class="radios-grid">
       {#each filtered as radio}
+        {@const rayon = radioGenreShelf(radio.genre)}
         <div class="radio-card">
           <button class="radio-icon" onclick={() => playRadio(radio)} title={$t('radio.play')} disabled={!$currentZoneId}>
             {#if coverUrl(radio)}
@@ -361,8 +387,12 @@
           </button>
           <div class="radio-info">
             <button class="radio-name-btn" onclick={() => playRadio(radio)} disabled={!$currentZoneId}>{radio.name}</button>
-            {#if radio.genre}
-              <button class="radio-genre radio-genre-btn" onclick={() => { filterGenre = filterGenre === radio.genre ? null : radio.genre!; filterFavorite = false; }}>{radio.genre}</button>
+            {#if rayon}
+              <!-- La pastille affiche le libellé traduit et filtre sur la clé
+                   du rayon. Elle affichait la chaîne brute et filtrait dessus :
+                   cliquer sur « jazz » n'ouvrait donc pas le même rayon que
+                   cliquer sur « Jazz ». -->
+              <button class="radio-genre radio-genre-btn" onclick={() => { filterGenre = filterGenre === rayon.key ? null : rayon.key; filterFavorite = false; }}>{radioGenreLabel(rayon, $t)}</button>
             {/if}
             <button class="radio-url radio-url-btn" onclick={() => playRadio(radio)} disabled={!$currentZoneId}>{radio.stream_url}</button>
           </div>
