@@ -52,7 +52,7 @@
             <div class="dup-field"><span class="dup-key">{$t('duplicates.genre')}</span> <span class:dup-diff={d.differences?.includes('genre')}>{c?.genre ?? '—'}</span></div>
             <div class="dup-field"><span class="dup-key">{$t('duplicates.year')}</span> <span class:dup-diff={d.differences?.includes('year')}>{c?.year ?? '—'}</span></div>
             <div class="dup-field"><span class="dup-key">{$t('duplicates.format')}</span> <span>{fmtFormat(c)}</span></div>
-            <div class="dup-field dup-path">{c?.path ?? fallbackPath ?? ''}</div>
+            <div class="dup-field dup-path">{c?.path ?? c?.file_path ?? fallbackPath ?? ''}</div>
             {#if c?.size}<div class="dup-field"><span class="dup-key">{$t('duplicates.size')}</span> {fmtSize(c.size)}</div>{/if}
             <button class="btn-keep" onclick={() => onResolve(d.id, c?.track_id)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><polyline points="20 6 9 17 4 12" /></svg>

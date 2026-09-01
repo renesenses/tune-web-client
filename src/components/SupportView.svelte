@@ -264,7 +264,8 @@
       replies = data?.replies ?? [];
       // Marquer lu (silencieux) et rafraîchir la pastille sidebar.
       if (currentTicket && currentTicket.unread_count > 0) {
-        api.markSupportTicketRead(id, key).then(() => refreshSupportUnread()).catch(() => {});
+        // Sans la clé : le relais local la résout depuis ses réglages (#2559).
+        api.markSupportTicketRead(id).then(() => refreshSupportUnread()).catch(() => {});
         tickets = tickets.map((tk) => (tk.id === id ? { ...tk, unread_count: 0 } : tk));
       }
     } catch {

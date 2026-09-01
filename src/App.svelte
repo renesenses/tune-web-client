@@ -18,6 +18,8 @@
   import { activeView, focusMode, settingsInitialTab, saveScrollPosition, getScrollPosition } from './lib/stores/navigation';
   import { selectedAlbum, selectedArtist, albumTracks, artistAlbums, libraryTab } from './lib/stores/library';
   import { reconcilierFiche } from './lib/reconciliationFiche';
+  import { CANDIDATS_DEFILEMENT, conteneurDefilant, restaurerQuandPret } from './lib/defilementReel';
+  import { finDuRetourProgrammatique, opPourFiche } from './lib/historiqueNavigation';
   import { preferences, applyTheme, syncPreferencesFromServer } from './lib/stores/preferences';
   import { syncDisplayFieldsFromServer } from './lib/stores/displayFields';
   import { locale } from './lib/i18n';
@@ -31,6 +33,7 @@
   import { t } from './lib/i18n';
   import * as api from './lib/api';
   import { libelleBanniereEnrichissement, enrichissementImagesTermine, type TacheDeFond } from './lib/tachesDeFond';
+  import { cleBanniereEnrichissementApresScan } from './lib/enrichissementApresScan';
   import { urlFlux } from './lib/bridge';
   import Sidebar from './components/Sidebar.svelte';
   import NowPlaying from './components/NowPlaying.svelte';
@@ -118,7 +121,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   let showWhatsNew = $state(false);
 
   // Status banner state
-  type BannerStatus = 'idle' | 'scan' | 'streaming' | 'ready' | 'enrichment';
+  type BannerStatus = 'idle' | 'scan' | 'streaming' | 'ready' | 'enrichment' | 'notice';
   let bannerStatus = $state<BannerStatus>('idle');
   let bannerMessage = $state('');
   let bannerFadeout = $state(false);
@@ -144,6 +147,33 @@ import AlarmsView from './components/AlarmsView.svelte';
         bannerFadeTimer = null;
       }, 600);
     }, 1500);
+  }
+
+  function showScanCompletedBanner(autoEnrichment: unknown) {
+    const key = cleBanniereEnrichissementApresScan(
+      autoEnrichment && typeof autoEnrichment === 'object'
+        ? autoEnrichment as { started?: boolean; skipped_reason?: string | null }
+        : undefined,
+    );
+    if (key === null) {
+      showReadyBanner();
+      return;
+    }
+
+    if (bannerFadeTimer) clearTimeout(bannerFadeTimer);
+    bannerStatus = 'notice';
+    bannerMessage = get(t)(key);
+    bannerFadeout = false;
+    // Le motif et le geste manuel doivent rester lisibles, contrairement au
+    // bref « Prêt » de fin de scan.
+    bannerFadeTimer = setTimeout(() => {
+      bannerFadeout = true;
+      bannerFadeTimer = setTimeout(() => {
+        bannerStatus = 'idle';
+        bannerFadeout = false;
+        bannerFadeTimer = null;
+      }, 600);
+    }, 8000);
   }
 
   /**
@@ -640,7 +670,10 @@ import AlarmsView from './components/AlarmsView.svelte';
       if (!_pushingState && typeof window !== 'undefined') {
         // Save scroll position of the view we're leaving
         if (_previousViewForScroll && _previousViewForScroll !== view) {
-          const mainEl = document.querySelector('.view-scroller');
+          // Le conteneur qui defile n'est PAS `.view-scroller` : mesure faite
+          // dans Chrome sur .18, il a scrollHeight === clientHeight === 745 et
+          // rendait donc 0 a chaque fois. Voir `lib/defilementReel.ts`.
+          const mainEl = conteneurDefilant(CANDIDATS_DEFILEMENT);
           if (mainEl) saveScrollPosition(_previousViewForScroll, mainEl.scrollTop);
         }
         _previousViewForScroll = view;
@@ -659,10 +692,13 @@ import AlarmsView from './components/AlarmsView.svelte';
         }
 
         // Restore scroll position of the view we're entering
-        requestAnimationFrame(() => {
-          const mainEl = document.querySelector('.view-scroller');
-          if (mainEl) mainEl.scrollTop = getScrollPosition(view);
-        });
+        // Une seule frame ne suffit pas quand la liste est virtualisee : sa
+        // hauteur totale n'est connue qu'apres plusieurs frames, et un
+        // scrollTop trop grand est ramene a 0 par le navigateur (#1024).
+        restaurerQuandPret(
+          getScrollPosition(view),
+          () => conteneurDefilant(CANDIDATS_DEFILEMENT),
+        );
       }
     });
 
@@ -679,7 +715,8 @@ import AlarmsView from './components/AlarmsView.svelte';
             artistId: $selectedArtist?.id ?? null,
             tab: $libraryTab ?? null,
           };
-          if (album !== null) {
+          const op = opPourFiche(album !== null);
+          if (album !== null && op === 'push') {
             // Entering detail: push so back returns to grid. La fiche reçoit sa
             // PROPRE adresse (`#album/{id}`) au lieu de réutiliser `#library`,
             // pour que la barre d'adresse reflète la vue et que précédent /
@@ -688,8 +725,11 @@ import AlarmsView from './components/AlarmsView.svelte';
             // démarrage — le seul lu est `#tv` (voir `isTvHash` plus haut), et
             // l'aiguillage se fait sur `history.state`, inchangé.
             window.history.pushState(ctx, '', `#album/${album.id}`);
-          } else {
-            // Returning to grid (programmatic, not via popstate): update current entry
+          } else if (op === 'replace') {
+            // Fermeture a la main (clic ailleurs, changement d'onglet) : l'entree
+            // courante suit l'etat. Sur un RETOUR, `opPourFiche` rend 'aucune' :
+            // reecrire ici detruisait l'entree `#album/{id}` juste avant de
+            // reculer, et « suivant » ne pouvait plus y revenir.
             window.history.replaceState(ctx, '', `#${view}`);
           }
         }
@@ -707,11 +747,12 @@ import AlarmsView from './components/AlarmsView.svelte';
             artistId: artist?.id ?? null,
             tab: $libraryTab ?? null,
           };
-          if (artist !== null) {
+          const op = opPourFiche(artist !== null);
+          if (artist !== null && op === 'push') {
             // Adresse propre à la fiche artiste (`#artist/{id}`) ; voir le cas
             // album ci-dessus.
             window.history.pushState(ctx, '', `#artist/${artist.id}`);
-          } else {
+          } else if (op === 'replace') {
             window.history.replaceState(ctx, '', `#${view}`);
           }
         }
@@ -769,6 +810,9 @@ import AlarmsView from './components/AlarmsView.svelte';
 
     window.addEventListener('popstate', (e) => {
       const ctx = e.state;
+      // Le retour annonce par `reculerAvecIntention` est consomme : les
+      // fermetures de fiche suivantes redeviennent des `replace`.
+      finDuRetourProgrammatique();
       _pushingState = true;
       if (ctx?.view) {
         activeView.set(ctx.view);
@@ -1262,7 +1306,7 @@ import AlarmsView from './components/AlarmsView.svelte';
           }
         } else if (type === 'library.scan.completed') {
           scanIndicator = false;
-          showReadyBanner();
+          showScanCompletedBanner(event.data?.auto_enrichment);
         }
         return;
       }
@@ -1420,11 +1464,13 @@ import AlarmsView from './components/AlarmsView.svelte';
     {/if}
 
     {#if bannerStatus !== 'idle'}
-      <div class="status-banner" class:status-banner--scan={bannerStatus === 'scan'} class:status-banner--streaming={bannerStatus === 'streaming'} class:status-banner--enrichment={bannerStatus === 'enrichment'} class:status-banner--ready={bannerStatus === 'ready'} class:status-banner--fadeout={bannerFadeout}>
+      <div class="status-banner" class:status-banner--scan={bannerStatus === 'scan'} class:status-banner--streaming={bannerStatus === 'streaming'} class:status-banner--enrichment={bannerStatus === 'enrichment'} class:status-banner--ready={bannerStatus === 'ready'} class:status-banner--notice={bannerStatus === 'notice'} class:status-banner--fadeout={bannerFadeout}>
         {#if bannerStatus === 'scan' || bannerStatus === 'streaming' || bannerStatus === 'enrichment'}
           <span class="status-banner-spinner"></span>
         {:else if bannerStatus === 'ready'}
           <svg class="status-banner-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
+        {:else if bannerStatus === 'notice'}
+          <svg class="status-banner-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
         {/if}
         <span class="status-banner-text">{bannerMessage}</span>
       </div>
@@ -1734,6 +1780,19 @@ import AlarmsView from './components/AlarmsView.svelte';
     background: rgba(34, 197, 94, 0.08);
     color: #4ade80;
     border-bottom-color: rgba(34, 197, 94, 0.15);
+  }
+
+  .status-banner--notice {
+    background: rgba(245, 158, 11, 0.1);
+    color: #fbbf24;
+    border-bottom-color: rgba(245, 158, 11, 0.22);
+  }
+
+  .status-banner--notice .status-banner-text {
+    white-space: normal;
+    max-width: 90vw;
+    text-align: center;
+    line-height: 1.35;
   }
 
   .status-banner--fadeout {
