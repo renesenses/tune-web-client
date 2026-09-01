@@ -36,6 +36,13 @@
   // elle se pose ici sans adaptateur. Ses couleurs suivent le thème v2 par le
   // pont de variables de `tune-v2.css`.
   import TransportBar from '../TransportBar.svelte';
+  // « Lecture en cours » : l'écran du client actuel, monté ici. Il n'a jamais
+  // existé dans le shell v2 — mais depuis que la barre historique y vit, elle
+  // PROPOSE de l'ouvrir (clic sur la piste, et `mobileNowPlayingOpen` en
+  // mobile). Sans ces deux montages, le clic tombait dans le repli « À venir » :
+  // l'écran n'avait pas disparu, il n'avait jamais été branché.
+  import NowPlaying from '../NowPlaying.svelte';
+  import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import AvatarMenu from './AvatarMenu.svelte';
   import { preferences } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
@@ -114,6 +121,11 @@
         <MetadataV2 />
       {:else if $activeView === 'support'}
         <SupportV2 />
+      {:else if $activeView === 'nowplaying'}
+        <!-- `onAddToPlaylist` non fournie : le bouton « ajouter à une playlist »
+             de cet écran reste masqué tant que la coquille v2 n'a pas sa propre
+             fenêtre de playlists. Mieux vaut un bouton absent qu'un bouton mort. -->
+        <NowPlaying />
       {:else}
         <div class="soon">
           <div class="badge">À venir</div>
@@ -124,6 +136,17 @@
     </main>
   </div>
   <TransportBar />
+
+  <!-- Voie MOBILE : la barre pose ce drapeau au lieu de changer de vue.
+       Personne ne l'écoutait ici. -->
+  {#if $mobileNowPlayingOpen}
+    <div class="np-overlay">
+      <button class="np-close" onclick={() => mobileNowPlayingOpen.set(false)} aria-label="Fermer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
+      </button>
+      <NowPlaying />
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -165,4 +188,8 @@
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); padding:5px 12px; border-radius:999px}
   .soon h2{font-size:28px; font-weight:800}
   .soon p{max-width:420px; color:var(--v2-txt2); font-size:14px; line-height:1.5}
+  .np-overlay{position:fixed; inset:0; z-index:120; background:var(--v2-bg); display:flex; flex-direction:column}
+  .np-close{position:absolute; top:12px; left:12px; z-index:1; width:40px; height:40px; border:0; border-radius:50%;
+    background:var(--v2-surface); color:var(--v2-txt2); cursor:pointer; display:grid; place-items:center}
+  .np-close svg{width:22px; height:22px}
 </style>

@@ -94,3 +94,40 @@ describe('Nouveau client — le transport est alimenté', () => {
     ).toBe(false);
   });
 });
+
+/**
+ * « Lecture en cours » doit être atteignable depuis la coquille v2.
+ *
+ * L'écran n'y avait jamais été monté. Tant que le shell portait `PlayerV2`,
+ * cela ne se voyait pas : cette barre-là ne proposait pas de l'ouvrir. Mais la
+ * barre historique, elle, offre DEUX chemins — clic sur la piste
+ * (`activeView.set('nowplaying')`) et, en mobile, `mobileNowPlayingOpen`.
+ *
+ * Résultat, signalé par Bertrand : « où est passée la vue Lecture en cours ? ».
+ * Elle n'avait pas disparu — le clic tombait dans le repli « À venir ».
+ *
+ * Le garde tient les deux voies : en corriger une seule laisserait un chemin
+ * mort, et c'est précisément le genre de moitié qu'on ne remarque pas.
+ */
+describe('Nouveau client — la vue « Lecture en cours »', () => {
+  it('la vue plein écran est montée', () => {
+    const src = shell();
+    expect(src.includes("$activeView === 'nowplaying'"), 'la vue n’est plus routée').toBe(true);
+    expect(src.includes('<NowPlaying />'), 'le composant n’est plus monté').toBe(true);
+  });
+
+  it('la voie mobile est écoutée', () => {
+    // La barre pose ce drapeau au lieu de changer de vue. Sans écoute, le
+    // geste ne produit rien du tout.
+    expect(
+      shell().includes('{#if $mobileNowPlayingOpen}'),
+      'le drapeau mobile n’est plus écouté : le geste tactile ne mènerait nulle part.',
+    ).toBe(true);
+  });
+
+  it('l’ouverture mobile offre une sortie', () => {
+    // Une surcouche plein écran sans fermeture piège l'utilisateur.
+    const src = shell();
+    expect(src.includes('mobileNowPlayingOpen.set(false)'), 'aucun moyen de refermer la surcouche').toBe(true);
+  });
+});
