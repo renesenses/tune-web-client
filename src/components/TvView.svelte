@@ -22,6 +22,22 @@
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import TvVuMeters from './TvVuMeters.svelte';
+  import TvVuBars from './TvVuBars.svelte';
+  import {
+    readVuInstrument,
+    vuInstrumentLegacyFlag,
+    VU_INSTRUMENTS,
+    VU_INSTRUMENT_DEFAULT,
+    type VuInstrument,
+  } from '../lib/tvVuMode';
+  import {
+    BAR_SCALES,
+    BAR_SCALE_IDS,
+    BAR_SCALE_DEFAULT,
+    barScaleLabel,
+    readBarScale,
+    type BarScaleId,
+  } from '../lib/tvBarScale';
   import { t } from '../lib/i18n';
 
   let track = $derived($currentTrack);
@@ -36,7 +52,15 @@
 
   // ─── Réglages persistés (P2) ────────────────────────────────────────────
   type TvSize = 'S' | 'M' | 'L';
-  interface TvSettings { lyrics: boolean; size: TvSize; theme: 'dark' | 'light'; vuMeters: boolean }
+  interface TvSettings {
+    lyrics: boolean;
+    size: TvSize;
+    theme: 'dark' | 'light';
+    /** Instrument de niveau : rien, aiguille, ou bargraphe (#2514). */
+    vuMeter: VuInstrument;
+    /** Plage du bargraphe. Sans effet sur le cadran, qui a la sienne. */
+    vuBarScale: BarScaleId;
+  }
   const TV_SETTINGS_KEY = 'tune_tv_settings';
   function loadTvSettings(): TvSettings {
     try {
@@ -47,17 +71,34 @@
           lyrics: p.lyrics !== false,
           size: p.size === 'S' || p.size === 'L' ? p.size : 'M',
           theme: p.theme === 'light' ? 'light' : 'dark',
-          // Affichés par défaut, comme avant : on ajoute le choix, on ne
-          // change pas le comportement de ceux qui les apprécient.
-          vuMeters: p.vuMeters !== false,
+          // Le booléen `vuMeters` devient un choix d'instrument : la migration
+          // est dans lib/tvVuMode.ts, testée cas par cas. Personne ne perd son
+          // réglage, et personne n'atterrit sur le bargraphe sans l'avoir
+          // demandé.
+          vuMeter: readVuInstrument(p),
+          vuBarScale: readBarScale(p),
         };
       }
     } catch {}
-    return { lyrics: true, size: 'M', theme: 'dark', vuMeters: true };
+    return {
+      lyrics: true,
+      size: 'M',
+      theme: 'dark',
+      vuMeter: VU_INSTRUMENT_DEFAULT,
+      vuBarScale: BAR_SCALE_DEFAULT,
+    };
   }
   let settings = $state<TvSettings>(loadTvSettings());
   $effect(() => {
-    try { localStorage.setItem(TV_SETTINGS_KEY, JSON.stringify(settings)); } catch {}
+    try {
+      // Le miroir `vuMeters` est écrit à côté du nouveau choix : une version
+      // antérieure relit ce booléen, et celui qui avait masqué les instruments
+      // ne les voit pas revenir après un retour arrière.
+      localStorage.setItem(
+        TV_SETTINGS_KEY,
+        JSON.stringify({ ...settings, vuMeters: vuInstrumentLegacyFlag(settings.vuMeter) }),
+      );
+    } catch {}
   });
   const SIZE_SCALE: Record<TvSize, number> = { S: 0.85, M: 1, L: 1.2 };
   const TV_SIZES: TvSize[] = ['S', 'M', 'L'];
@@ -324,11 +365,16 @@
               <span class="tv-time">{formatTime(durationMs)}</span>
             </div>
           {/if}
-          <!-- Deux VU-mètres analogiques à aiguille (façon appli tvOS),
-               nourris par les événements audio_levels du serveur. -->
-          {#if settings.vuMeters}
+          <!-- Instrument de niveau (#2514) : cadrans à aiguille, ou bargraphe
+               dBFS. Les deux lisent les mêmes événements audio_levels du
+               serveur — crêtes et moyennes gauche/droite. -->
+          {#if settings.vuMeter === 'needle'}
             <div class="tv-visualizer">
               <TvVuMeters playing={isPlaying} width={560} />
+            </div>
+          {:else if settings.vuMeter === 'bars'}
+            <div class="tv-visualizer">
+              <TvVuBars playing={isPlaying} scale={settings.vuBarScale} width={560} />
             </div>
           {/if}
         </div>
@@ -379,10 +425,31 @@
         <input type="checkbox" checked={settings.lyrics} onchange={(e) => { settings = { ...settings, lyrics: (e.target as HTMLInputElement).checked }; }} />
         {$t('tv.lyrics')}
       </label>
-      <label class="tv-panel-item">
-        <input type="checkbox" checked={settings.vuMeters} onchange={(e) => { settings = { ...settings, vuMeters: (e.target as HTMLInputElement).checked }; }} />
-        {$t('tv.vuMeters')}
-      </label>
+      <!-- Choix d'instrument (#2514) : la case à cocher devient trois choix,
+           dans le même panneau et au même endroit qu'avant. -->
+      <div class="tv-panel-item tv-panel-vu" role="group" aria-label={$t('tv.vuInstrument' as any)}>
+        {#each VU_INSTRUMENTS as inst}
+          <button
+            class="tv-size-btn"
+            class:active={settings.vuMeter === inst}
+            onclick={() => { settings = { ...settings, vuMeter: inst }; }}
+          >{$t(`tv.vuInstrument.${inst}` as any)}</button>
+        {/each}
+      </div>
+      <!-- Échelle du bargraphe : l'une des fonctions demandées. Le libellé est
+           DÉRIVÉ de la plage réellement dessinée, pas écrit à la main — il ne
+           peut donc pas annoncer une échelle que l'instrument ne trace pas. -->
+      {#if settings.vuMeter === 'bars'}
+        <div class="tv-panel-item tv-panel-vu" role="group" aria-label={$t('tv.vuBarScale' as any)}>
+          {#each BAR_SCALE_IDS as id}
+            <button
+              class="tv-size-btn"
+              class:active={settings.vuBarScale === id}
+              onclick={() => { settings = { ...settings, vuBarScale: id }; }}
+            >{barScaleLabel(BAR_SCALES[id])}</button>
+          {/each}
+        </div>
+      {/if}
       <div class="tv-panel-item tv-panel-sizes" role="group" aria-label={$t('tv.size')}>
         {#each TV_SIZES as s}
           <button class="tv-size-btn" class:active={settings.size === s} onclick={() => { settings = { ...settings, size: s }; }}>{s}</button>
@@ -694,6 +761,11 @@
     white-space: nowrap;
   }
   .tv-panel-sizes {
+    gap: 4px;
+  }
+  /* Même segmenté que les tailles : trois choix d'instrument, puis la plage
+     du bargraphe quand il est retenu. */
+  .tv-panel-vu {
     gap: 4px;
   }
   .tv-size-btn,

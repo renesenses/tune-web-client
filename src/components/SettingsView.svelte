@@ -4876,14 +4876,22 @@ function setSettingsLevel(level: SettingsLevel) {
           <span class="toggle-slider"></span>
         </label>
 
-        <label class="pref-label">{$t('settings.enrichOnScan')}<SettingHint k="settings.enrichOnScanHelp" labelKey="settings.enrichOnScan" /></label>
-        <label class="toggle-switch">
+        <!-- Chaque ligne porte DÉSORMAIS sa propre garde de niveau. Elles n'en
+             avaient pas : seule la section en portait une, et `lvAny` la rend
+             visible dès qu'UN de ses réglages l'est. Tant que les trois lignes
+             partageaient le même niveau, l'omission ne se voyait pas ; le jour
+             où « Paroles en ligne » descend au niveau débutant (#2859), elle
+             ouvrirait « Enrichir pendant le scan » — un réglage intermédiaire —
+             à tous les débutants. La garde par ligne est ce qui rend le
+             registre des niveaux réellement souverain. -->
+        <label class="pref-label" class:lv-hidden={!lvOk('library.enrichOnScan')}>{$t('settings.enrichOnScan')}<SettingHint k="settings.enrichOnScanHelp" labelKey="settings.enrichOnScan" /></label>
+        <label class="toggle-switch" class:lv-hidden={!lvOk('library.enrichOnScan')}>
           <input type="checkbox" checked={config.enrich_on_scan !== false && config.enrich_on_scan !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.enrich_on_scan = val; await api.updateConfig({ enrich_on_scan: val }); }} />
           <span class="toggle-slider"></span>
         </label>
 
-        <label class="pref-label">{$t('settings.lyricsLrclib')}<SettingHint k="settings.lyricsLrclibHelp" labelKey="settings.lyricsLrclib" /></label>
-        <label class="toggle-switch">
+        <label class="pref-label" class:lv-hidden={!lvOk('library.lyricsLrclib')}>{$t('settings.lyricsLrclib')}<SettingHint k="settings.lyricsLrclibHelp" labelKey="settings.lyricsLrclib" /></label>
+        <label class="toggle-switch" class:lv-hidden={!lvOk('library.lyricsLrclib')}>
           <input type="checkbox" checked={config.lyrics_lrclib_enabled === true || config.lyrics_lrclib_enabled === 'true'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.lyrics_lrclib_enabled = val; await api.updateConfig({ lyrics_lrclib_enabled: val }); }} />
           <span class="toggle-slider"></span>
         </label>
