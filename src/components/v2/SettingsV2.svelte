@@ -956,6 +956,82 @@
   // valeur en clair : un formulaire pré-rempli réécrirait la version masquée et
   // DÉTRUIRAIT le jeton, sans qu'aucune erreur ne le signale. Le placeholder dit
   // « déjà configuré », l'envoi ne porte que ce qui a été tapé.
+
+  // ── Installation de la mise à jour ────────────────────────────────────────
+  //
+  // L'écran annonçait la version disponible et renvoyait ailleurs pour
+  // l'installer. `POST /system/update/install` existe ; le travail n'est pas de
+  // poser un bouton, c'est de rendre le REFUS lisible.
+  //
+  // Le serveur répond 409 avec un motif — drapeau `.no-auto-update`, zone en
+  // lecture, scan en cours, installation déjà lancée — et `fetch` ne lève pas
+  // sur un 409. Sans ce traitement, l'interface entrait dans trois minutes
+  // d'attente d'un redémarrage qui n'arriverait jamais, et jetait l'explication
+  // que le serveur venait de donner (#412, vécu sur une machine portant le
+  // drapeau).
+  // L'avertissement de coupure AFFIRME que de la musique joue : l'afficher
+  // toujours serait faux. Même dérivé que le client actuel.
+  const zonesEnLecture = $derived($zones.filter((z: any) => z.state === 'playing').length);
+  let updBusy = $state(false);
+  let updRefus = $state('');
+  let updDone = $state(false);
+  let updDmg = $state<string | null>(null);
+
+  /** Traduit le refus du serveur. Repris tel quel du client actuel. */
+  function updMotifRefus(res: any): string {
+    const brut = String(res?.message ?? res?.status ?? '');
+    if (brut.includes('.no-auto-update')) return get(t)('settings.updateBlockedFlag');
+    if (res?.status === 'already_in_progress') return get(t)('settings.updateAlreadyRunning');
+    if (brut.toLowerCase().includes('scan')) return get(t)('settings.updateBlockedScan');
+    if (brut.toLowerCase().includes('playing') || brut.toLowerCase().includes('zone'))
+      return get(t)('settings.updateBlockedPlaying');
+    return brut || get(t)('settings.updateBlockedUnknown');
+  }
+
+  async function installerMaj() {
+    updBusy = true; updRefus = ''; updDone = false; updDmg = null;
+    const versionAvant = updateInfo?.current_version ?? serverVersion;
+    try {
+      // `force` : le bouton est cliqué juste sous l'avertissement de coupure,
+      // donc la garde serveur ne doit pas re-refuser ce que l'utilisateur vient
+      // d'accepter.
+      const res: any = await api.installUpdate(true);
+      if (res && res.ok === false) { updBusy = false; updRefus = updMotifRefus(res); return; }
+      // Docker : le serveur répond 200 — ce n'est pas une erreur, c'est une
+      // consigne. Le binaire vit dans une couche d'image en lecture seule :
+      // aucune installation n'a démarré, aucun redémarrage ne viendra. Sans ce
+      // test, `ok === true` laissait passer et le bouton restait mort trois
+      // minutes (Alex Campbell, Tune en conteneur).
+      if (res && res.status === 'docker') {
+        updBusy = false; updRefus = res.message || get(t)('settings.updateDockerHint'); return;
+      }
+    } catch {
+      // Un vieux serveur bloquait la requête pendant tout le téléchargement et
+      // le navigateur rendait « Failed to fetch » alors que l'installation
+      // aboutissait. On enchaîne donc sur la surveillance.
+    }
+
+    // Surveillance jusqu'au redémarrage sur la nouvelle version.
+    let vuHorsService = false;
+    const limite = Date.now() + 180_000;
+    while (Date.now() < limite) {
+      await new Promise((r) => setTimeout(r, 3000));
+      let st: any = null;
+      try { st = await api.getUpdateStatus(); } catch { vuHorsService = true; continue; }
+      if (st?.phase === 'dmg_ready') { updDmg = st.dmg_path || '~/Downloads'; updBusy = false; return; }
+      if (st?.phase === 'failed') { updBusy = false; updRefus = get(t)('settings.updateBlockedUnknown'); return; }
+      // Deux détections, chacune suffisante : la version a bougé, ou le serveur
+      // est retombé puis revenu sans mise à jour en cours.
+      const courante: string | undefined = st?.current_version;
+      if ((courante && versionAvant && courante !== versionAvant) || (vuHorsService && !st?.update_in_progress)) {
+        updDone = true; updBusy = false;
+        setTimeout(() => window.location.reload(), 1500);
+        return;
+      }
+    }
+    updBusy = false;
+  }
+
   let stk = $state<any[]>([]);
   let stkLoading = $state(true);
   let stkBusy = $state<string | null>(null);
@@ -1964,10 +2040,20 @@
               {/if}
               {#if updateInfo?.latest_version}
                 <div class="okbox">
-                  Mise à jour disponible : <b>v{updateInfo.latest_version}</b>
-                  (actuelle : v{updateInfo.current_version ?? serverVersion}).
-                  L'installation se fait depuis le client actuel.
+                  {$t('settings.updateAvailable' as any)} : <b>v{updateInfo.latest_version}</b>
+                  (v{updateInfo.current_version ?? serverVersion})
                 </div>
+                {#if zonesEnLecture > 0 && !updDone && !updBusy}
+                  <p class="hint">{$t('settings.updateStopsPlayback' as any)}</p>
+                {/if}
+                <div class="inline">
+                  <button class="lnk" disabled={updBusy} onclick={installerMaj}>
+                    {updBusy ? $t('common.loading' as any) : $t('settings.updateButton' as any)}
+                  </button>
+                </div>
+                {#if updRefus}<div class="warnbox">{updRefus}</div>{/if}
+                {#if updDmg}<div class="okbox">{updDmg}</div>{/if}
+                {#if updDone}<div class="okbox">{$t('settings.updateDoneReloading' as any)}</div>{/if}
               {/if}
 
             {:else if s.id === 'license'}

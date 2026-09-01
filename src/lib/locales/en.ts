@@ -1896,6 +1896,7 @@ export default {
   "settings.levelBeginner": "Beginner",
   "settings.levelIntermediate": "Intermediate",
   "settings.levelExpert": "Expert",
+  "settings.updateDoneReloading": "Update installed — reloading the page…",
   "settings.dataLocationHint": "Database, cached artwork and logs live here. Moving this folder is done with the server stopped.",
   "settings.enrichMetadataHint": "Fills in artists, years, genres and identifiers from public databases. Your file tags are never overwritten.",
   "settings.facetsNavHint": "Faceted browsing — genre, artist, year, format… — to explore a large collection.",

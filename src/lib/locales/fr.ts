@@ -1899,6 +1899,7 @@ export default {
   "settings.levelBeginner": "Débutant",
   "settings.levelIntermediate": "Intermédiaire",
   "settings.levelExpert": "Expert",
+  "settings.updateDoneReloading": "Mise à jour installée — rechargement de la page…",
   "settings.dataLocationHint": "Base, pochettes en cache et journaux vivent ici. Déplacer ce dossier se fait serveur arrêté.",
   "settings.enrichMetadataHint": "Complète artistes, années, genres et identifiants depuis les bases publiques. Les tags de vos fichiers ne sont jamais écrasés.",
   "settings.facetsNavHint": "Navigation par facettes — genre, artiste, année, format… — pour explorer une grosse discothèque.",
