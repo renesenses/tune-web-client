@@ -4,7 +4,8 @@
   import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
   import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, stopSeekTimer, nowPlayingToTrack } from '../lib/stores/nowPlaying';
-  import { upNextTracks, queueTracks, queuePosition, queueLength, upNextCount, upNextMs } from '../lib/stores/queue';
+  import { upNextTracks, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../lib/stores/queue';
+  import type { QueueSheetState } from '../lib/stores/queue';
   import { currentZoneId, zones } from '../lib/stores/zones';
   import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
   import { isMiddlePressWheel } from '../lib/npWheelGesture';
@@ -887,7 +888,6 @@
   }
 
   // ─── Queue Bottom Sheet ──────────────────────────────────────────────
-  type QueueSheetState = 'collapsed' | 'peek' | 'expanded';
   let queueSheetState = $state<QueueSheetState>('collapsed');
   let sheetDragStartY = $state(0);
   let sheetDragCurrentY = $state(0);
@@ -1002,14 +1002,11 @@
     }
   });
 
+  // #2191 — le cycle vit dans `lib/stores/queue.ts` : en colonne large, `peek`
+  // et `expanded` se ressemblent trop pour mériter un appui (voir la note sur
+  // `nextQueueSheetState`).
   function toggleQueueSheet() {
-    if (queueSheetState === 'collapsed') {
-      queueSheetState = 'peek';
-    } else if (queueSheetState === 'peek') {
-      queueSheetState = 'expanded';
-    } else {
-      queueSheetState = 'collapsed';
-    }
+    queueSheetState = nextQueueSheetState(queueSheetState, isWide);
   }
 
   function closeQueueSheet() {
