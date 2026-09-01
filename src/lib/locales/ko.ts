@@ -886,6 +886,9 @@ export default {
 
   // Signal Path
   'signal.title': '신호 경로',
+  'signal.outputDevice': '출력 장치',
+  'signal.outputDeviceRequested': '요청됨',
+  'signal.outputDeviceMismatch': '이 존에 설정된 장치로 소리가 나오지 않습니다.',
   'signal.lossless': '무손실',
   'signal.lossy': '손실',
   'signal.bitPerfect': 'Bit-Perfect',

@@ -169,6 +169,45 @@ export interface SignalPath {
   checksum_verified?: boolean | null;
 }
 
+/** Le PÉRIPHÉRIQUE que la sortie locale a réellement ouvert, face à celui que
+ *  la zone demandait (#2207).
+ *
+ *  Le serveur savait déjà l'un et l'autre — `opened_device_name()` existe
+ *  depuis le correctif WASAPI — mais sa seule lecture était une ligne de
+ *  journal. Sur Windows, le chemin exclusif appelle `GetDefaultAudioEndpoint`
+ *  dès que la résolution par nom échoue, et le chemin partagé retombe sur le
+ *  périphérique système : une zone réglée sur un DAC peut jouer sur les
+ *  haut-parleurs. La zone doit dire la vérité, pas la consigne. */
+export interface AudioDeviceStatus {
+  /** Backend qui a ouvert ce périphérique : `WASAPI`, `ASIO`, `CoreAudio`, `ALSA`. */
+  backend: string;
+  /** Le nom demandé au moment de l'ouverture. `default` = périphérique système. */
+  requested: string;
+  /** Le nom réellement ouvert, tel que le pilote le rend. */
+  opened: string;
+  /** Identifiant d'endpoint quand le backend en expose un. `null` pour ASIO et
+   *  CoreAudio exclusif : ils n'en ont pas — champ absent plutôt qu'inventé. */
+  opened_id?: string | null;
+  /** `true` dès que les deux noms diffèrent. C'est LE fait à montrer. */
+  differs: boolean;
+}
+
+/** Ce que la sortie locale fait, à côté de ce qu'on lui a demandé.
+ *
+ *  ⚠️ `fell_back` parle du BACKEND (ASIO → WASAPI, #1395) ; `device.differs`
+ *  parle du PÉRIPHÉRIQUE (#2207). Les deux replis sont indépendants : le
+ *  backend demandé peut jouer et le DAC demandé être introuvable. */
+export interface AudioBackendStatus {
+  active: string;
+  requested: string;
+  fell_back: boolean;
+  fallback_reason?: string | null;
+  fallback_detail?: string | null;
+  /** `null` quand rien n'a encore joué en local, ou quand le backend ne sait
+   *  pas dire ce qu'il a ouvert. Absent est honnête ; faux ne l'est pas. */
+  device?: AudioDeviceStatus | null;
+}
+
 /** Piste en lecture telle que le serveur la renvoie — ce n'est PAS un `Track`.
  *
  *  Le serveur sérialise sa structure `NowPlaying` (tune-core playback/mod.rs) :
@@ -257,6 +296,15 @@ export interface Zone {
    * Absent des serveurs < 0.9.70 : traiter l'absence comme `ok`.
    */
   output_reach?: 'ok' | 'no_output' | 'browser_unattended';
+  /**
+   * Ce que la sortie LOCALE fait vraiment, à côté de ce qu'on lui a demandé
+   * (#1395 pour le backend, #2207 pour le périphérique).
+   *
+   * Absent des zones non locales (DLNA, Chromecast, navigateur…) et des
+   * serveurs qui ne l'envoient pas : pas de champ, rien à afficher. On ne
+   * devine rien.
+   */
+  audio_backend_status?: AudioBackendStatus | null;
   /** Seconds since recovery started (null = not recovering) */
   recovery_started_at?: number | null;
   /** Number of consecutive failed poll attempts during recovery */

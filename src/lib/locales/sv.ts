@@ -869,6 +869,9 @@ export default {
 
   // Signal Path
   'signal.title': 'Signalväg',
+  'signal.outputDevice': 'Utgångsenhet',
+  'signal.outputDeviceRequested': 'Begärd',
+  'signal.outputDeviceMismatch': 'Ljudet spelas inte upp via enheten som är inställd för den här zonen.',
   'signal.lossless': 'Förlustfri',
   'signal.lossy': 'Förlustbehäftad',
   'signal.bitPerfect': 'Bit-perfect',

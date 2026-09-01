@@ -895,6 +895,9 @@ export default {
 
   // Signal Path
   'signal.title': 'Cale semnal',
+  'signal.outputDevice': 'Dispozitiv de ieșire',
+  'signal.outputDeviceRequested': 'Solicitat',
+  'signal.outputDeviceMismatch': 'Sunetul nu iese prin dispozitivul configurat pentru această zonă.',
   'signal.lossless': 'Fără pierderi',
   'signal.lossy': 'Cu pierderi',
   'signal.bitPerfect': 'Bit-Perfect',

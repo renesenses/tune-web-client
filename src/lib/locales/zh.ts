@@ -886,6 +886,9 @@ export default {
 
   // Signal Path
   'signal.title': '信号路径',
+  'signal.outputDevice': '输出设备',
+  'signal.outputDeviceRequested': '请求的设备',
+  'signal.outputDeviceMismatch': '声音没有通过该区域配置的设备输出。',
   'signal.lossless': '无损',
   'signal.lossy': '有损',
   'signal.bitPerfect': 'Bit-Perfect',

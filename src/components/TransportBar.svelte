@@ -18,6 +18,7 @@
   import AudioVisualizer from './AudioVisualizer.svelte';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ZoneTypeIcon from './ZoneTypeIcon.svelte';
+  import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte';
   import { zoneTypeLabel, zoneDeviceName, zoneChipLabel, zoneFullLabel } from '../lib/zoneIdentity';
   import { t } from '../lib/i18n';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
@@ -1015,6 +1016,13 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>
+
+      <!-- #2207 — le périphérique RÉELLEMENT ouvert, avant toute description
+           du signal : savoir sur quoi le son sort passe avant de savoir
+           comment il y arrive. Hors du bloc `{#if zone?.signal_path}` : une
+           zone à l'arrêt n'a plus de chemin de signal, mais la dernière
+           ouverture reste ce qu'il y a de plus utile à lire. -->
+      <ZoneOutputDeviceNotice {zone} />
 
       <!-- Audiophile on/off lives here (merged from the old separate bar icon). -->
       <div class="sp-audiophile">

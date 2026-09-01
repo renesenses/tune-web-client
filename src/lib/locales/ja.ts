@@ -886,6 +886,9 @@ export default {
 
   // Signal Path
   'signal.title': 'シグナルパス',
+  'signal.outputDevice': '出力デバイス',
+  'signal.outputDeviceRequested': '要求',
+  'signal.outputDeviceMismatch': 'このゾーンに設定されたデバイスから音が出ていません。',
   'signal.lossless': 'ロスレス',
   'signal.lossy': 'ロッシー',
   'signal.bitPerfect': 'Bit-Perfect',
