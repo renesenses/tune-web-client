@@ -328,7 +328,11 @@
       if (pas.etape === 'genres' && ctx.genreBreadcrumb) {
         await restoreGenreBrowsing(ctx.genreBreadcrumb);
       } else if (pas.etape === 'artiste' && ctx.selectedArtist) {
-        await selectArtist(ctx.selectedArtist);
+        // On REMONTE la position, on ne descend pas : `streamingAlbumOrigin` a
+        // survécu au démontage et vaut toujours pour cette fiche. L'effacer
+        // ferait reperdre les résultats de la recherche globale au premier
+        // aller-retour par la file d'attente ou le lecteur.
+        await selectArtist(ctx.selectedArtist, true);
       } else if (pas.etape === 'album' && ctx.selectedAlbum) {
         await selectAlbum(ctx.selectedAlbum, pas.depuisArtiste);
       } else if (pas.etape === 'playlist' && ctx.selectedStreamingPlaylist) {
@@ -401,7 +405,9 @@
     const artist = $pendingStreamingArtist;
     if (artist && service) {
       pendingStreamingArtist.set(null);
-      selectArtist(artist);
+      // Entrée depuis un autre écran : il vient d'annoncer sa provenance pour
+      // CETTE fiche, on ne l'écrase pas.
+      selectArtist(artist, true);
     }
   });
 
@@ -802,11 +808,23 @@
     loading = false;
   }
 
-  async function selectArtist(artist: Artist) {
+  /**
+   * Ouvre la discographie d'un artiste du service.
+   *
+   * `conserverProvenance` distingue les deux façons d'arriver ici :
+   *  - un clic DANS la vue (nom d'artiste sur une fiche d'album, résultat de la
+   *    recherche du service, favori) : on descend, la provenance d'origine ne
+   *    vaut plus, on l'efface — comportement d'origine ;
+   *  - une fiche ouverte DEPUIS un autre écran, par `pendingStreamingArtist` :
+   *    la provenance vient précisément d'être posée par cet écran POUR cette
+   *    fiche. L'effacer ici la rendait inopérante à la seconde où elle
+   *    arrivait, et c'est ce qui privait la recherche globale de tout retour
+   *    (Sandro, fil 1553, second parcours).
+   */
+  async function selectArtist(artist: Artist, conserverProvenance = false) {
     const artistId = String(artist.source_id ?? artist.id ?? artist.musicbrainz_id ?? artist.discogs_id ?? '');
     if (!service || !artistId) return;
-    // On descend dans le service : la provenance (accueil) ne vaut plus.
-    streamingAlbumOrigin.set(null);
+    if (!conserverProvenance) streamingAlbumOrigin.set(null);
     selectedArtist = artist;
     selectedAlbum = null;
     loading = true;
