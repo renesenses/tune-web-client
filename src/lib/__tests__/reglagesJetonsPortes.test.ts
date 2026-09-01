@@ -177,3 +177,63 @@ describe('Menu avatar — entrer et sortir', () => {
     ).toBe(true);
   });
 });
+
+/**
+ * La photo du compte doit être SUR le bouton, pas seulement dans le menu ouvert.
+ *
+ * Premier jet : je l'affichais dans l'en-tête du menu, donc uniquement une fois
+ * le menu déplié. Le bouton rond — la seule chose visible en permanence —
+ * restait un dégradé. Relevé par Bertrand : « je veux voir ma photo dans la
+ * zone avatar ». C'est le second manque que seul le regard a trouvé, après le
+ * bouton « Se connecter ».
+ */
+describe('Menu avatar — la photo du compte', () => {
+  const AVATAR = fileURLToPath(
+    new URL('../../components/v2/AvatarMenu.svelte', import.meta.url),
+  );
+  const menu = () =>
+    readFileSync(AVATAR, 'utf8')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '');
+
+  it('la photo est portée par le BOUTON, visible menu fermé', () => {
+    const src = menu();
+    const bouton = src.indexOf('<button class="avatar"');
+    const finBouton = src.indexOf('</button>', bouton);
+    expect(bouton, 'le bouton avatar a disparu').toBeGreaterThan(-1);
+    expect(
+      src.slice(bouton, finBouton).includes('ssoAvatar'),
+      'la photo n’est plus sur le bouton : elle ne se verrait qu’une fois le menu ouvert, ' +
+        'alors que le bouton est la seule chose visible en permanence.',
+    ).toBe(true);
+  });
+
+  it('le statut est lu au MONTAGE, sinon le bouton n’a rien à afficher', () => {
+    // La photo doit être connue avant toute ouverture du menu.
+    expect(
+      /onMount\(\(\) => \{\s*void loadSso\(\);/.test(menu()),
+      'le statut n’est plus lu au montage : le bouton resterait un dégradé jusqu’à ' +
+        'la première ouverture du menu.',
+    ).toBe(true);
+  });
+
+  it('une photo injoignable retombe sur le dégradé', () => {
+    // Hébergeur muet, fichier supprimé : sans ce repli, il resterait un rond
+    // vide — pire que pas de photo.
+    expect(
+      menu().includes("onerror={() => (ssoAvatar = '')}"),
+      'le repli sur échec de chargement a disparu : une photo morte laisserait un rond vide.',
+    ).toBe(true);
+  });
+
+  it('l’URL du serveur ne passe pas par du CSS', () => {
+    // Elle vient du serveur. Dans `background-image:url(…)`, une valeur mal
+    // formée s’échappe hors de la parenthèse ; un `<img src>` ne peut porter
+    // qu’une source.
+    expect(
+      /background-image[^;]*ssoAvatar/.test(menu()),
+      'l’URL de la photo est injectée dans du CSS : passer par `<img src>`.',
+    ).toBe(false);
+  });
+});

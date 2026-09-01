@@ -139,7 +139,18 @@
 <svelte:window onclick={onDocClick} />
 
 <div class="avwrap tune-v2">
-  <button class="avatar" class:linked={ssoConnected} onclick={toggle} aria-label={$t('settings.accountMenu' as any)} aria-haspopup="menu" aria-expanded={open}></button>
+  <button class="avatar" class:linked={ssoConnected} onclick={toggle} aria-label={$t('settings.accountMenu' as any)} aria-haspopup="menu" aria-expanded={open}>
+    <!-- La photo du compte, quand il y en a une. En `<img>` et non en
+         `background-image` : l'URL vient du serveur, la coller dans du CSS
+         l'exposerait à une échappée hors de `url(…)`. Un `<img>` ne peut porter
+         qu'une source.
+         `onerror` remet le dégradé : une photo injoignable — hébergeur muet,
+         fichier supprimé — laisserait sinon un rond vide, pire que pas de
+         photo du tout. -->
+    {#if ssoAvatar}
+      <img class="avimg" src={ssoAvatar} alt="" onerror={() => (ssoAvatar = '')} />
+    {/if}
+  </button>
 
   {#if open}
     <div class="avmenu">
@@ -251,6 +262,8 @@
     border-radius:50%; background:var(--v2-line2); border:2px solid var(--v2-bg)}
   .avatar.linked::after{background:var(--v2-acc1)}
   .avatar.sm{width:38px; height:38px}
+  /* L'image remplit le bouton ; la pastille d'état lui passe par-dessus. */
+  .avimg{width:100%; height:100%; border-radius:50%; object-fit:cover; display:block}
 
   .avmenu{position:absolute; right:0; top:52px; width:250px; z-index:60;
     background:var(--v2-surface); border:1px solid var(--v2-line2); border-radius:16px; padding:12px;
