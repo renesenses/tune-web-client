@@ -40,6 +40,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
   import { bootstrapV2 } from '../../lib/v2Bootstrap';
+  import { demarrerTransportV2 } from '../../lib/v2Live';
   import '../../styles/tune-v2.css';
 
   const LABELS: Partial<Record<View, string>> = {
@@ -60,6 +61,11 @@
   // jamais : sans cet appel, zones/albums/appareils restent vides et toute
   // la coquille affiche des écrans vides trompeurs. Voir lib/v2Bootstrap.
   $effect(() => { bootstrapV2(); });
+  // Le VIVANT, que `bootstrapV2` ne fait pas : WebSocket, rafraîchissement des
+  // zones, minuteur de progression, répétition et aléatoire. Sans lui, la barre
+  // de transport reste figée sur l'état du montage — elle n'est pas mal
+  // branchée, personne ne l'alimente. Le retour arrête tout au démontage.
+  $effect(() => demarrerTransportV2());
 </script>
 
 <div class="v2-shell tune-v2">
