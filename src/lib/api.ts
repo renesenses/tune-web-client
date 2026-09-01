@@ -941,6 +941,22 @@ export function setVolume(zoneId: number, volume: number) {
   });
 }
 
+/**
+ * Le volume demandé en dB, pas en pour-cent (#1274).
+ *
+ * `PUT /zones/{id}/volume` accepte `volume_db` depuis la v0.9.127, et les deux
+ * champs y sont EXCLUSIFS : envoyer les deux fait répondre 400
+ * `invalid_volume`. On n'envoie donc que celui-là. Le serveur refuse aussi
+ * tout dB strictement positif — `analyserDb` l'écarte déjà côté saisie.
+ * Réponse : 204, comme `setVolume`.
+ */
+export function setVolumeDb(zoneId: number, volumeDb: number) {
+  return fetchVoid(`${BASE}/zones/${zoneId}/volume`, {
+    method: 'PUT',
+    body: JSON.stringify({ volume_db: volumeDb }),
+  });
+}
+
 export function setShuffle(zoneId: number, enabled: boolean) {
   return fetchJSON<{ shuffle: boolean }>(`${BASE}/zones/${zoneId}/shuffle?enabled=${enabled}`, {
     method: 'POST',
@@ -953,15 +969,23 @@ export function setRepeat(zoneId: number, mode: RepeatMode) {
   });
 }
 
+// `folder` est la portée de RÉPERTOIRE — le même `folder=<chemin absolu>` que
+// `/library/tracks`, appliqué au sous-arbre entier. Il manquait, et c'était tout
+// le défaut de #2801 : la pastille de répertoire de la Bibliothèque n'avait
+// aucun champ où se transmettre, l'appel partait donc SANS filtre, et le
+// serveur tirait au hasard dans toute la table `tracks` (Marco Polo : « il
+// semble s'alimenter de toute la bibliothèque, pas seulement de la sélection à
+// l'écran »).
 export function shuffleAll(
   zoneId: number,
-  opts?: { search_query?: string; album_id?: number; artist_id?: number; genre?: string },
+  opts?: { search_query?: string; album_id?: number; artist_id?: number; genre?: string; folder?: string },
 ) {
   const params = new URLSearchParams({ zone_id: String(zoneId) });
   if (opts?.search_query) params.set('search_query', opts.search_query);
   if (opts?.album_id != null) params.set('album_id', String(opts.album_id));
   if (opts?.artist_id != null) params.set('artist_id', String(opts.artist_id));
   if (opts?.genre) params.set('genre', opts.genre);
+  if (opts?.folder) params.set('folder', opts.folder);
   return fetchJSON<{ status: string; track_count: number }>(`${BASE}/playback/shuffle-all?${params}`, {
     method: 'POST',
   });
@@ -4541,11 +4565,12 @@ export function ssoDisconnect(): Promise<{ status?: string }> {
 
 // --- Support Premium v2 (fil de tickets hébergé sur mozaiklabs.fr) ---
 //
-// TOUT passe par le RELAIS du serveur Tune local (#2559). Le contournement
-// historique — parler en direct à mozaiklabs.fr « tant que le contrat n'est pas
-// déployé côté serveur » — n'a plus lieu d'être : `tune-server` expose les
-// routes depuis `routes/support.rs`, et la CRÉATION de ticket les empruntait
-// déjà.
+// TOUT passe par le RELAIS du serveur Tune local (#2559) — y compris, depuis
+// ce correctif, le « marquer lu », qui était le dernier appel encore adressé
+// en direct au site. Le contournement historique — parler en direct à
+// mozaiklabs.fr « tant que le contrat n'est pas déployé côté serveur » — n'a
+// plus lieu d'être : `tune-server` expose les routes depuis
+// `routes/support.rs`, et la CRÉATION de ticket les empruntait déjà.
 //
 // Trois raisons de ne plus jamais appeler mozaiklabs.fr depuis la page :
 //
@@ -4565,8 +4590,6 @@ export function ssoDisconnect(): Promise<{ status?: string }> {
 //     statut 200. Chaque client du parc rejouait cet appel à chaque changement
 //     d'écran.
 
-export const MOZAIKLABS_API = 'https://mozaiklabs.fr/api/v1';
-
 export type SupportTicketStatus = 'open' | 'answered' | 'resolved';
 
 export interface SupportTicketSummary {
@@ -4585,30 +4608,6 @@ export interface SupportTicketReply {
   author: 'user' | 'team';
   body: string;
   created_at: string;
-}
-
-async function mozaikFetch(path: string, options?: RequestInit): Promise<any> {
-  const resp = await fetch(`${MOZAIKLABS_API}${path}`, {
-    headers: {
-      Accept: 'application/json',
-      ...(options?.body ? { 'Content-Type': 'application/json' } : {}),
-    },
-    ...options,
-  });
-  if (!resp.ok) {
-    const err = new Error(`${resp.status}`) as ApiError;
-    err.status = resp.status;
-    // Appel DIRECT à mozaiklabs : `Retry-After` n'est lisible que si le site
-    // l'expose par CORS, d'où le repli sur le corps. Absent ⇒ `undefined`, et
-    // l'écran dit « réessaie plus tard » sans inventer de délai (#2178).
-    let corps: unknown = null;
-    try { corps = JSON.parse(await resp.clone().text()); } catch { /* corps non JSON */ }
-    err.retryAfter = retryAfterDe(resp, corps);
-    throw err;
-  }
-  const text = await resp.text();
-  if (!text.trim()) return null;
-  return JSON.parse(text);
 }
 
 export function getSupportTickets(_licenseKey?: string): Promise<{ tickets: SupportTicketSummary[] }> {
@@ -4636,23 +4635,26 @@ export function postSupportTicketReply(id: number, _licenseKey: string, body: st
 }
 
 /**
- * ⚠️ SEUL appel encore dirigé vers mozaiklabs.fr, et donc seul à rester bloqué
- * par CORS depuis une adresse locale (#2559).
+ * Marque un fil comme lu — dernier appel du support qui partait encore en
+ * direct vers mozaiklabs.fr, la clé de licence dans le corps (#2559).
  *
- * Le relais du serveur Tune n'expose PAS `/tickets/{id}/read` — vérifié dans
- * `routes/support.rs`, qui déclare `/tickets`, `/tickets/{id}` et
- * `/tickets/{id}/reply`, et dans `tune-core/src/cloud/support.rs`, qui n'a pas
- * d'équivalent de `mark_read`. Le router par le relais suppose donc d'ajouter
- * la route côté serveur : c'est un travail distinct, dans un autre dépôt.
+ * Il ne pouvait pas aboutir : depuis une page servie par le serveur Tune —
+ * `http://192.168.1.18:8888`, `http://localhost:8888` — l'origine n'est jamais
+ * `https://mozaiklabs.fr`, et `localhost` ne bénéficie d'aucune exception CORS.
+ * Trois testeurs sur deux moteurs de navigateur ont produit le même refus.
+ * L'échec étant avalé par l'appelant, le seul symptôme était une pastille de
+ * non-lus qui ne redescendait jamais.
  *
- * L'échec est déjà avalé par l'appelant — marquer comme lu n'est pas critique,
- * seul le compteur de non-lus reste en retard.
+ * Le relais expose désormais `POST /support/tickets/{id}/read`
+ * (`tune-server/src/routes/support.rs`) : même origine, et la clé ne quitte
+ * plus le serveur. Le paramètre reste accepté pour ne pas casser les
+ * appelants, et il est ignoré.
+ *
+ * Serveur antérieur au relais : 404, avalé comme l'était le refus CORS — aucun
+ * comportement ne se dégrade par rapport à l'existant.
  */
-export function markSupportTicketRead(id: number, licenseKey: string): Promise<any> {
-  return mozaikFetch(`/support/tickets/${id}/read`, {
-    method: 'POST',
-    body: JSON.stringify({ license_key: licenseKey }),
-  });
+export function markSupportTicketRead(id: number, _licenseKey?: string): Promise<any> {
+  return fetchJSON<any>(`${BASE}/support/tickets/${id}/read`, { method: 'POST' });
 }
 
 /** Crée un ticket support en `multipart/form-data` (avec pièces jointes). Poste
