@@ -1071,11 +1071,11 @@
   <header class="top">
     <div>
       <div class="eyebrow">Configuration</div>
-      <h1>Réglages</h1>
+      <h1>{$t('settings.titleV2' as any)}</h1>
     </div>
   </header>
 
-  <nav class="tabs" aria-label="Sections des réglages">
+  <nav class="tabs" aria-label="{$t('settings.sectionsNav' as any)}">
     {#each tabs as x (x.id)}
       <button class="tab" class:on={x.id === tabId} onclick={() => go(x.id)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d={x.icon} /></svg>
@@ -1171,7 +1171,7 @@
             {:else if s.id === 'interface'}
               <div class="row">
                 <div class="lbl">
-                  <span>Thème</span>
+                  <span>{$t('settings.theme' as any)}</span>
                   <span class="hint">Six palettes. Réglage propre au nouveau client — le thème de l'interface actuelle reste séparé.</span>
                 </div>
                 <div class="themerow">
@@ -1255,21 +1255,21 @@
                 appareils réseau et des sorties locales se règle dans <b>Audio</b>.
               </p>
               <div class="inline" style="margin-top:12px">
-                <button class="lnk" onclick={() => activeView.set('zonemanager')}>Ouvrir les Zones</button>
-                <button class="lnk" onclick={() => (tabId = 'audio')}>Aller à Audio</button>
+                <button class="lnk" onclick={() => activeView.set('zonemanager')}>{$t('settings.openZones' as any)}</button>
+                <button class="lnk" onclick={() => (tabId = 'audio')}>{$t('settings.goToAudio' as any)}</button>
               </div>
 
             {:else if s.id === 'metadata'}
               <p class="hint">
                 Les champs affichés dans la bibliothèque et l'ordre des colonnes se règlent
-                dans l'écran <b>Métadonnées</b> du Studio — c'est là que vivent aussi les
+                dans l'écran <b>{$t('metadata.title' as any)}</b> du Studio — c'est là que vivent aussi les
                 propositions de la communauté et les albums douteux.
               </p>
 
             {:else if s.id === 'enrichment'}
               <div class="row">
                 <div class="lbl">
-                  <span>Enrichir les métadonnées</span>
+                  <span>{$t('settings.enrichMetadata' as any)}</span>
                   <span class="hint">Complète artistes, années, genres et identifiants depuis les bases publiques. Les tags de vos fichiers ne sont jamais écrasés.</span>
                 </div>
                 <button class="lnk" disabled={enrichRunning} onclick={startEnrich}>
@@ -1295,17 +1295,17 @@
 
             {:else if s.id === 'ingest'}
               {#if !ingest}
-                <p class="hint">Rangement indisponible sur ce serveur.</p>
+                <p class="hint">{$t('settings.ingestUnavailable' as any)}</p>
               {:else}
                 <p class="hint">
                   Comment Tune range les fichiers que vous importez. Ne concerne PAS les
                   dossiers déjà déclarés : ceux-là sont lus sur place, jamais déplacés.
                 </p>
                 <div class="row">
-                  <div class="lbl"><span>Action sur les fichiers source</span></div>
+                  <div class="lbl"><span>{$t('settings.ingestMode' as any)}</span></div>
                   <div class="seg4">
                     <button class:on={ingest.mode === 'copy'} onclick={() => saveIngest({ mode: 'copy' })}>Copier</button>
-                    <button class:on={ingest.mode === 'move'} onclick={() => saveIngest({ mode: 'move' })}>Déplacer</button>
+                    <button class:on={ingest.mode === 'move'} onclick={() => saveIngest({ mode: 'move' })}>{$t('ingest.move' as any)}</button>
                   </div>
                 </div>
                 <div class="row">
@@ -1316,7 +1316,7 @@
                   <div class="seg4">
                     <button class:on={ingest.conflict_policy === 'skip'} onclick={() => saveIngest({ conflict_policy: 'skip' })}>Ignorer</button>
                     <button class:on={ingest.conflict_policy === 'rename'} onclick={() => saveIngest({ conflict_policy: 'rename' })}>Renommer</button>
-                    <button class:on={ingest.conflict_policy === 'overwrite'} onclick={() => saveIngest({ conflict_policy: 'overwrite' })}>Écraser</button>
+                    <button class:on={ingest.conflict_policy === 'overwrite'} onclick={() => saveIngest({ conflict_policy: 'overwrite' })}>{$t('settings.ingestOverwrite' as any)}</button>
                   </div>
                 </div>
                 <div class="row">
@@ -1330,15 +1330,15 @@
                 </div>
                 <div class="row">
                   <div class="lbl">
-                    <span>Modèle de nommage</span>
-                    <span class="hint">Défaut : <code>{ingest.default_template}</code></span>
+                    <span>{$t('ingest.template' as any)}</span>
+                    <span class="hint">{$t('settings.defaultValueColon' as any)} <code>{ingest.default_template}</code></span>
                   </div>
                   <input class="txt wide" type="text" value={ingest.template ?? ''}
                     onchange={(e) => saveIngest({ template: (e.currentTarget as HTMLInputElement).value })} />
                 </div>
                 <div class="row">
                   <div class="lbl">
-                    <span>Écrire les tags dans les fichiers</span>
+                    <span>{$t('settings.writeTags' as any)}</span>
                     <span class="hint">Modifie les fichiers importés. Décoché, la base seule est renseignée.</span>
                   </div>
                   <label class="sw">
@@ -1365,7 +1365,7 @@
               {#if $preferences.oxygenEnabled}
                 <div class="row">
                   <div class="lbl">
-                    <span>Valeurs par facette</span>
+                    <span>{$t('oxygen.facetValues' as any)}</span>
                     <span class="hint">0 = toutes. Au-delà de quelques centaines, la colonne devient illisible.</span>
                   </div>
                   <input class="txt time" type="number" min="0" max="2000" step="50"
@@ -1427,7 +1427,7 @@
 
             {:else if s.id === 'dataLoc'}
               <div class="rows">
-                <div class="kv"><span>Emplacement des données</span><b class="mono">{dataLoc ?? '—'}</b></div>
+                <div class="kv"><span>{$t('settings.dataLocation' as any)}</span><b class="mono">{dataLoc ?? '—'}</b></div>
               </div>
               <p class="hint">
                 Base, pochettes en cache et journaux vivent ici. Déplacer ce dossier se fait
@@ -1477,7 +1477,7 @@
                 tablette, autre ordinateur. Elles ne sortent pas de votre réseau local.
               </p>
               {#if !serverUrls.length}
-                <p class="hint">Aucune adresse publiée par le serveur.</p>
+                <p class="hint">{$t('settings.noPublishedAddress' as any)}</p>
               {:else}
                 <div class="urls">
                   {#each serverUrls as u (u)}
@@ -1514,7 +1514,7 @@
                 </p>
                 <div class="row">
                   <div class="lbl">
-                    <span>Activer le récepteur</span>
+                    <span>{$t('settings.enableReceiver' as any)}</span>
                     {#if spc?.active}<span class="hint">Actif{#if spc.device_name} sous le nom « {spc.device_name} »{/if}.</span>{/if}
                   </div>
                   <label class="sw">
@@ -1525,17 +1525,17 @@
                 </div>
                 {#if !spc?.enabled}
                   <div class="row">
-                    <div class="lbl"><span>Zone exposée</span>
+                    <div class="lbl"><span>{$t('settings.exposedZone' as any)}</span>
                       <span class="hint">Le récepteur transforme UNE zone en enceinte Spotify.</span></div>
                     <select class="sel" value={String(spcZone ?? '')}
                       onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value; spcZone = v ? Number(v) : null; }}>
-                      <option value="">Choisir une zone…</option>
+                      <option value="">{$t('settings.pickZone' as any)}</option>
                       {#each $zones as z (z.id)}<option value={String(z.id)}>{z.name}</option>{/each}
                     </select>
                   </div>
                   <div class="row">
                     <div class="lbl"><span>Nom affiché</span>
-                      <span class="hint">Laissez vide pour le nom par défaut.</span></div>
+                      <span class="hint">{$t('settings.blankForDefaultName' as any)}</span></div>
                     <input class="txt" type="text" placeholder="Tune — Salon" bind:value={spcName} />
                   </div>
                 {/if}
@@ -1564,7 +1564,7 @@
                           </select>
                         </label>
                         <label class="zf">
-                          <span>Fréquence max</span>
+                          <span>{$t('settings.maxSampleRate' as any)}</span>
                           <select class="sel sm" value={String(z.max_sample_rate ?? 0)}
                             onchange={(e) => { const v = Number((e.currentTarget as HTMLSelectElement).value);
                               setZoneField(z, () => api.updateZoneMaxSampleRate(z.id as number, v > 0 ? v : null)); }}>
@@ -1572,7 +1572,7 @@
                           </select>
                         </label>
                         <label class="zf">
-                          <span>Décalage paroles</span>
+                          <span>{$t('settings.lyricsOffset' as any)}</span>
                           <select class="sel sm" value={String(z.lyrics_offset_ms ?? 0)}
                             onchange={(e) => { const ms = Number((e.currentTarget as HTMLSelectElement).value);
                               setZoneField(z, () => api.updateZoneLyricsOffset(z.id as number, ms)); }}>
@@ -1643,7 +1643,7 @@
             {:else if s.id === 'library'}
               <div class="row">
                 <div class="lbl">
-                  <span>Analyser la bibliothèque</span>
+                  <span>{$t('settings.scanLibraryV2' as any)}</span>
                   <span class="hint">
                     L'analyse rapide ne relit que ce qui a changé. L'analyse complète relit
                     tout — nécessaire après un changement d'option de découpage.
@@ -1652,10 +1652,10 @@
                 <div class="inline">
                   {#if scanning}
                     <span class="badge up">analyse en cours</span>
-                    <button class="lnk danger" onclick={stopScan}>Arrêter</button>
+                    <button class="lnk danger" onclick={stopScan}>{$t('common.stop' as any)}</button>
                   {:else}
                     <button class="lnk" onclick={() => scan(false)}>Analyse rapide</button>
-                    <button class="lnk" onclick={() => scan(true)}>Analyse complète</button>
+                    <button class="lnk" onclick={() => scan(true)}>{$t('settings.fullScanV2' as any)}</button>
                   {/if}
                 </div>
               </div>
@@ -1674,7 +1674,7 @@
             {:else if s.id === 'musicDirs'}
               <div class="row">
                 <div class="lbl">
-                  <span>Ajouter un dossier</span>
+                  <span>{$t('settings.addFolder' as any)}</span>
                   <span class="hint">Chemin absolu vu par le SERVEUR, pas par ce navigateur.</span>
                 </div>
                 <div class="inline">
@@ -1738,8 +1738,8 @@
 
             {:else if s.id === 'about'}
               <div class="rows">
-                <div class="kv"><span>Version du client</span><b>{CLIENT_VERSION || '—'}</b></div>
-                <div class="kv"><span>Version du serveur</span><b>{serverVersion ?? '…'}</b></div>
+                <div class="kv"><span>{$t('settings.clientVersionV2' as any)}</span><b>{CLIENT_VERSION || '—'}</b></div>
+                <div class="kv"><span>{$t('settings.serverVersionV2' as any)}</span><b>{serverVersion ?? '…'}</b></div>
               </div>
               {#if clientStale}
                 <!-- Le client web est embarque dans la release du serveur :
@@ -1768,9 +1768,9 @@
                   <div class="kv"><span>Clé</span><b class="mono">{maskKey(lic.licenseKey)}</b></div>
                 {/if}
                 {#if lic.expiresAt}
-                  <div class="kv"><span>Expire le</span><b>{new Date(lic.expiresAt).toLocaleDateString('fr-FR')}</b></div>
+                  <div class="kv"><span>{$t('settings.expiresOn' as any)}</span><b>{new Date(lic.expiresAt).toLocaleDateString('fr-FR')}</b></div>
                 {/if}
-                <div class="kv"><span>Zones autorisées</span><b>{lic.zoneLimit}</b></div>
+                <div class="kv"><span>{$t('settings.allowedZones' as any)}</span><b>{lic.zoneLimit}</b></div>
               </div>
 
               {#if lic.sessionConflict}
@@ -1785,13 +1785,13 @@
 
               {#if lic.licenseKey}
                 <div class="row">
-                  <div class="lbl"><span>Libérer la licence</span>
+                  <div class="lbl"><span>{$t('settings.releaseLicense' as any)}</span>
                     <span class="hint">Nécessaire avant de l'activer sur un autre serveur.</span></div>
-                  <button class="lnk danger" disabled={licBusy} onclick={deactivateLic}>Désactiver</button>
+                  <button class="lnk danger" disabled={licBusy} onclick={deactivateLic}>{$t('settings.disable' as any)}</button>
                 </div>
               {:else}
                 <div class="row">
-                  <div class="lbl"><span>Activer une licence</span>
+                  <div class="lbl"><span>{$t('settings.activateLicense' as any)}</span>
                     <span class="hint">La clé vous a été envoyée par courriel à l'achat.</span></div>
                   <div class="inline">
                     <input class="txt" type="text" placeholder="XXXX-XXXX-XXXX" bind:value={licKey}
@@ -1807,7 +1807,7 @@
             {:else if s.id === 'health'}
               <div class="rows">
                 <div class="kv">
-                  <span>État</span>
+                  <span>{$t('settings.status' as any)}</span>
                   <b class="hs" class:ok={health?.status === 'ok' || health?.status === 'healthy'}>{health?.status ?? 'inconnu'}</b>
                 </div>
                 {#if stats}
@@ -1829,7 +1829,7 @@
 
             {:else if s.id === 'streaming'}
               {#if !Object.keys(svcs).length}
-                <p class="hint">Aucun service configuré sur ce serveur.</p>
+                <p class="hint">{$t('settings.noServiceConfigured' as any)}</p>
               {:else}
                 <div class="svclist">
                   {#each Object.entries(svcs) as [name, st] (name)}
@@ -1845,14 +1845,14 @@
                       </div>
 
                       {#if st.authenticated}
-                        <button class="lnk danger" onclick={() => disconnectSvc(name)}>Se déconnecter</button>
+                        <button class="lnk danger" onclick={() => disconnectSvc(name)}>{$t('settings.signOut' as any)}</button>
 
                       {:else if flow}
                         <!-- Code d'appareil : on affiche le code et le lien, et on
                              sonde en fond jusqu'à ce que le service confirme. -->
                         <div class="flow">
                           {#if flow.code}<code class="ucode">{flow.code}</code>{/if}
-                          <a class="lnk" href={flow.url} target="_blank" rel="noopener">Ouvrir la page de connexion</a>
+                          <a class="lnk" href={flow.url} target="_blank" rel="noopener">{$t('settings.openSignInPage' as any)}</a>
                           <span class="waiting">En attente de confirmation…</span>
                           <button class="lnk" onclick={() => cancelFlow(name)}>Annuler</button>
                         </div>
@@ -1936,7 +1936,7 @@
             {:else if s.id === 'bridge'}
               <div class="row">
                 <div class="lbl">
-                  <span>Accès distant</span>
+                  <span>{$t('settings.remoteAccess' as any)}</span>
                   <span class="hint">Joindre votre serveur Tune depuis n'importe où — sans VPN ni ouverture de port.</span>
                 </div>
                 <button class="lnk" class:danger={brEnabled} onclick={toggleBridge} disabled={brBusy}>
@@ -1945,16 +1945,16 @@
               </div>
               {#if brEnabled}
                 <div class="row">
-                  <div class="lbl"><span>État</span></div>
+                  <div class="lbl"><span>{$t('settings.status' as any)}</span></div>
                   <span class="badge" class:up={brConnected}>{brConnected ? 'Connecté' : 'Déconnecté'}</span>
                 </div>
                 <div class="row">
-                  <div class="lbl"><span>Identifiant du serveur</span></div>
+                  <div class="lbl"><span>{$t('settings.serverIdLabel' as any)}</span></div>
                   <span class="mono">{brServerId}</span>
                 </div>
                 {#if brUrl}
                   <div class="row">
-                    <div class="lbl"><span>Adresse d'accès</span></div>
+                    <div class="lbl"><span>{$t('settings.accessAddress' as any)}</span></div>
                     <a class="mono link" href={brUrl} target="_blank" rel="noopener">{brUrl}</a>
                   </div>
                 {/if}
@@ -2335,7 +2335,7 @@
             {:else}
               <div class="todo">
                 <span>Contenu repris depuis l'écran actuel — pas encore porté ici.</span>
-                <button class="lnk" onclick={() => activeView.set('settings')}>Ouvrir dans l'écran actuel</button>
+                <button class="lnk" onclick={() => activeView.set('settings')}>{$t('settings.openInCurrentScreen' as any)}</button>
               </div>
             {/if}
           </section>
