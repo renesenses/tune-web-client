@@ -30,7 +30,12 @@
   import PluginsV2 from './PluginsV2.svelte';
   import MetadataV2 from './MetadataV2.svelte';
   import SupportV2 from './SupportV2.svelte';
-  import PlayerV2 from './PlayerV2.svelte';
+  // Barre de transport : celle du client actuel, telle quelle. On ne la FORKE
+  // pas — 2715 lignes qui divergeraient aussitôt et qu'il faudrait corriger
+  // deux fois. Elle ne prend aucune prop et lit tout depuis les stores, donc
+  // elle se pose ici sans adaptateur. Ses couleurs suivent le thème v2 par le
+  // pont de variables de `tune-v2.css`.
+  import TransportBar from '../TransportBar.svelte';
   import AvatarMenu from './AvatarMenu.svelte';
   import { preferences } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
@@ -112,7 +117,7 @@
       {/if}
     </main>
   </div>
-  <PlayerV2 />
+  <TransportBar />
 </div>
 
 <style>

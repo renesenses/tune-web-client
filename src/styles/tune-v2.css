@@ -112,3 +112,33 @@
 :root[data-v2-theme="clear-white"]{ --v2-body-bg:#FFFFFF; }
 :root[data-v2-theme="clear-grey"]{ --v2-body-bg:#EDEFF2; }
 :root[data-v2-theme] body{ background:var(--v2-body-bg); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   PONT DE THÈME — composants du client actuel rendus DANS le shell v2.
+
+   La barre de transport (`TransportBar.svelte`, 2715 lignes) est reprise telle
+   quelle plutôt que dupliquée : un fork divergerait dès la première correction,
+   et il faudrait la corriger deux fois. Elle s'habille en `--tune-*`, définies
+   sur `:root` par `tune-theme.css` que `main.ts` charge toujours.
+
+   On redéfinit donc ces variables SOUS `.tune-v2`, où elles l'emportent par
+   spécificité. La barre prend alors les couleurs du thème v2 courant — et
+   change avec lui — sans qu'une seule de ses lignes soit touchée.
+
+   Ce qui n'est PAS ponté, délibérément : `--tune-warning`, `--tune-success` et
+   `--tune-danger` portent un SENS (avertissement, ok, erreur), pas une identité
+   visuelle. Les repeindre aux couleurs du thème effacerait l'information.
+   Elles gardent donc leur valeur de `tune-theme.css`.
+   ───────────────────────────────────────────────────────────────────────── */
+.tune-v2{
+  --tune-bg: var(--v2-bg);
+  --tune-surface: var(--v2-surface);
+  --tune-surface-hover: var(--v2-hover);
+  --tune-footer: var(--v2-surface2);
+  --tune-text: var(--v2-txt);
+  --tune-text-secondary: var(--v2-txt2);
+  --tune-text-muted: var(--v2-txt3);
+  --tune-border: var(--v2-line);
+  --tune-accent: var(--v2-acc1);
+  --tune-accent-hover: var(--v2-acc2);
+}
