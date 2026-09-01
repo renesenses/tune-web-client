@@ -485,10 +485,17 @@
       },
       success: ({ result, d }) => {
         duplicates = d as any[];
+        audioDupFetchStarted = true;
         if ((d as any[]).length === 0 && result.duplicates_found === 0) {
           return $t('metadata.scanNoDuplicates').replace('{scanned}', String(result.total_scanned));
         }
         filter = 'duplicates';
+        queueMicrotask(() =>
+          document.querySelector('.duplicates-panel')?.scrollIntoView({ block: 'nearest' }),
+        );
+        void api.refineDuplicatePairs(d).then((exactes) => {
+          if (exactes.length) duplicates = exactes as any[];
+        });
         return $t('metadata.scanDuplicatesResult').replace('{found}', String(result.duplicates_found)).replace('{scanned}', String(result.total_scanned));
       },
     });
@@ -696,10 +703,9 @@
     filterYearTo = null;
   }
 
-  // Count duplicate albums (same title, multiple entries)
+  // Pastille : paires audio du scan / liste, sinon albums au même nom.
   let duplicateCount = $derived.by(() => {
-    // Exact same title + same artist + same quality = real duplicate
-    // Different editions, remasters, CD1/CD2 are NOT duplicates
+    if (duplicates.length > 0) return duplicates.length;
     const groups = new Map<string, number>();
     for (const a of allAlbums) {
       const title = (a.title ?? '').toLowerCase().trim();
@@ -737,6 +743,22 @@
   }
 
   let dupAlbumPaths = $state<Record<number, string>>({});
+  let audioDupFetchStarted = $state(false);
+  let audioDupsLoading = $state(false);
+
+  async function ensureAudioDuplicatesLoaded() {
+    if (duplicates.length > 0 || audioDupFetchStarted) return;
+    audioDupFetchStarted = true;
+    audioDupsLoading = true;
+    try {
+      const d = await api.listDuplicates();
+      if (d.length) duplicates = d as any[];
+    } catch {
+      audioDupFetchStarted = false;
+    } finally {
+      audioDupsLoading = false;
+    }
+  }
 
   async function mergeGroup(groupIndex: number) {
     const group = duplicateGroups[groupIndex];
@@ -1366,6 +1388,7 @@
       }
       if (f === 'duplicates') {
         loadDupPaths();
+        void ensureAudioDuplicatesLoaded();
       }
       if (f === 'doubtful') {
         loadDoubtful();
@@ -1625,19 +1648,20 @@
       />
     {/if}
 
-    <!-- Duplicates Panel -->
-    {#if duplicates.length > 0}
-      <MetadataDuplicatesPanel
-        {duplicates}
-        onResolve={resolveDuplicate}
-        onClose={() => duplicates = []}
-      />
-    {/if}
-
-    <!-- Content -->
+    <!-- Duplicates : paires audio dans l'onglet, pas un panneau séparé
+         au-dessus de « Aucun doublon » (albums au même nom). -->
     {#if filter === 'duplicates'}
+      {#if duplicates.length > 0}
+        <MetadataDuplicatesPanel
+          {duplicates}
+          onResolve={resolveDuplicate}
+          onClose={() => duplicates = []}
+        />
+      {/if}
       {#if duplicateGroups.length === 0}
-        <div class="empty">{$t('metadata.noDuplicates')}</div>
+        {#if duplicates.length === 0}
+          <div class="empty">{audioDupsLoading ? $t('common.loading') : $t('metadata.noDuplicates')}</div>
+        {/if}
       {:else}
         <div class="dup-groups">
           {#each duplicateGroups as group, gi}

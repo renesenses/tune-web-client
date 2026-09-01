@@ -4,6 +4,7 @@
   import { tip } from '../lib/tooltip';
   import { compteSupprimees, cleLibelleFinDeScan } from '../lib/bandeauFinDeScan';
   import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
+  import { backendSelectionne, choixDeBackend, libelleBackend, modeWasapiPertinent, type ChoixBackend } from '../lib/audioBackends';
   import { doitSArreterFauteDImagesManquantes, type ModeEnrichissementImages } from '../lib/enrichissementImagesArtistes';
   import { dialogs } from '../lib/stores/dialogs';
   import { get } from 'svelte/store';
@@ -866,8 +867,13 @@ function setSettingsLevel(level: SettingsLevel) {
   // Diagnostics bundle download
   let diagDownloading = $state(false);
 
-  // Audio backend
-  let audioBackend = $state('wasapi');
+  // Audio backend — la liste des choix vient du SERVEUR, jamais d'ici (#1268).
+  // Elle était écrite en dur (Auto/WASAPI/ASIO) et proposait donc deux
+  // technologies Windows sur Debian et Fedora ; `supported_audio_backends` de
+  // `GET /system/config` dit ce que la plateforme du serveur sait vraiment
+  // faire. Vide = pas de sortie locale : on masque le réglage.
+  let choixBackends = $state<ChoixBackend[]>([]);
+  let audioBackend = $state('auto');
   let exclusiveMode = $state(false);
   // DSD → network renderer: stream the transcode instead of a blocking temp
   // file (fixes DSD 256/512 timeouts/silence on some DLNA renderers).
@@ -892,7 +898,8 @@ function setSettingsLevel(level: SettingsLevel) {
     try {
       const resp = await fetch('/api/v1/system/config');
       const data = await resp.json();
-      audioBackend = data.audio_backend ?? data.local_audio_backend ?? 'wasapi';
+      choixBackends = choixDeBackend(data);
+      audioBackend = backendSelectionne(data, choixBackends);
       exclusiveMode = data.local_exclusive_mode ?? false;
       dsdLpcmStream = data.dsd_lpcm_stream ?? false;
       replayGainMode = data.replaygain_mode ?? 'off';
@@ -937,6 +944,10 @@ function setSettingsLevel(level: SettingsLevel) {
   async function changeAudioBackend(backend: string) {
     audioBackend = backend;
     const newExclusive = backend === 'asio' ? true : exclusiveMode;
+    // Le nom annoncé est le LIBELLÉ du serveur : `backend.toUpperCase()`
+    // annonçait « AUTO », un mot que le sélecteur n'affiche nulle part.
+    const choisi = choixBackends.find((c) => c.value === backend);
+    const nom = choisi ? libelleBackend(choisi, get(t)) : backend.toUpperCase();
     try {
       await fetch('/api/v1/system/config', {
         method: 'PATCH',
@@ -944,7 +955,7 @@ function setSettingsLevel(level: SettingsLevel) {
         body: JSON.stringify({ local_audio_backend: backend, local_exclusive_mode: newExclusive }),
       });
       exclusiveMode = newExclusive;
-      notifications.success(`${get(t)('settings.audioBackend')}: ${backend.toUpperCase()}. ${get(t)('settings.restartServerNeeded')}`);
+      notifications.success(`${get(t)('settings.audioBackend')}: ${nom}. ${get(t)('settings.restartServerNeeded')}`);
     } catch {
       notifications.error(get(t)('settings.audioBackendError'));
     }
@@ -4436,17 +4447,21 @@ function setSettingsLevel(level: SettingsLevel) {
     <!-- Local Audio Outputs -->
     <section class="settings-section">
       <h3>{$t('settings.localAudio')}</h3>
+      <!-- Les options viennent de `supported_audio_backends` (#1268). Une
+           liste vide = build sans sortie locale : pas de réglage à proposer. -->
+      {#if choixBackends.length > 0}
       <div class="about-row" style="margin-bottom: 0.75rem" class:lv-hidden={!lvOk('network.audioBackend')}>
         <span class="about-label">{$t('settings.audioBackend')}</span>
         <select class="log-level-select" value={audioBackend} onchange={(e) => changeAudioBackend((e.target as HTMLSelectElement).value)}>
-          <option value="auto">{$t('settings.autoDefault')}</option>
-          <option value="wasapi">WASAPI</option>
-          <option value="asio">ASIO (bit-perfect)</option>
+          {#each choixBackends as choix (choix.value)}
+            <option value={choix.value}>{libelleBackend(choix, $t)}</option>
+          {/each}
         </select>
       </div>
-      {#if audioBackend === 'wasapi'}
+      {/if}
+      {#if modeWasapiPertinent(choixBackends, audioBackend)}
       <div class="about-row" style="margin-bottom: 0.75rem" class:lv-hidden={!lvOk('network.wasapiMode')}>
-        <span class="about-label">Mode WASAPI</span>
+        <span class="about-label">{$t('settings.wasapiMode')}</span>
         <select class="log-level-select" value={exclusiveMode ? 'exclusive' : 'shared'} onchange={(e) => { const v = (e.target as HTMLSelectElement).value; if ((v === 'exclusive') !== exclusiveMode) toggleExclusiveMode(); }}>
           <option value="shared">{$t('settings.sharedDefault')}</option>
           <option value="exclusive">{$t('settings.exclusiveBitPerfect')}</option>
