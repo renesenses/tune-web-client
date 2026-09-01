@@ -17,6 +17,7 @@
    */
   import { t } from '../../lib/i18n';
   import { get } from 'svelte/store';
+  import { dialogs } from '../../lib/stores/dialogs';
   import { emphaseParts } from '../../lib/i18nEmphase';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -937,6 +938,165 @@
   // Le recepteur transforme une ZONE en enceinte visible depuis l'appli
   // Spotify. Il lui faut donc une zone cible : sans zone, l'activer n'a
   // aucun sens et l'ecran le dit plutot que d'echouer a l'appel.
+
+  // ── Jetons de services ────────────────────────────────────────────────────
+  //
+  // Portage de `ServiceTokensView` (client actuel) dans la section « Services &
+  // Jetons ». L'écran v2 se contentait de renvoyer vers l'ancien client ; c'est
+  // vrai, cet écran existe — mais l'utilisateur n'a pas à changer de client pour
+  // poser un jeton.
+  //
+  // Rien n'est réinventé : `listServiceTokens` / `saveServiceToken` /
+  // `testServiceToken` / `deleteServiceToken` existent déjà, et la liste des
+  // services comme leurs champs viennent du SERVEUR. Ajouter un service demain
+  // ne demandera donc aucune ligne ici.
+  //
+  // 🔴 Les champs restent VIDES à l'affichage, toujours. `get_config` caviarde
+  // les secrets (`tune_core::secrets`), donc le client ne détient jamais la
+  // valeur en clair : un formulaire pré-rempli réécrirait la version masquée et
+  // DÉTRUIRAIT le jeton, sans qu'aucune erreur ne le signale. Le placeholder dit
+  // « déjà configuré », l'envoi ne porte que ce qui a été tapé.
+  let stk = $state<any[]>([]);
+  let stkLoading = $state(true);
+  let stkBusy = $state<string | null>(null);
+  let stkEdit = $state<Record<string, Record<string, string>>>({});
+  let lfmToken = $state<string | null>(null);
+
+  async function loadTokens() {
+    stkLoading = true;
+    try {
+      stk = await api.listServiceTokens();
+      const buf: Record<string, Record<string, string>> = {};
+      for (const s of stk) {
+        buf[s.id] = {};
+        for (const f of s.fields ?? []) buf[s.id][f.key] = '';
+      }
+      stkEdit = buf;
+    } catch (e: any) {
+      notifications.error(`${get(t)('serviceTokens.loadError')} : ${e?.message ?? e}`);
+      stk = [];
+    }
+    stkLoading = false;
+  }
+  $effect(() => { void loadTokens(); });
+
+  /** Pastille d'état — reprise telle quelle du client actuel. */
+  function stkDot(s: any): { color: string; label: string } {
+    if (s.kind === 'no_auth') return { color: '#22c55e', label: get(t)('serviceTokens.statusAvailable') };
+    if (!s.configured) return { color: 'transparent', label: get(t)('serviceTokens.statusNotConfigured') };
+    if (s.valid === true) return { color: '#22c55e', label: get(t)('serviceTokens.statusValid') };
+    if (s.valid === false) return { color: '#ef4444', label: get(t)('serviceTokens.statusInvalid') };
+    if (s.source === 'env') return { color: '#eab308', label: get(t)('serviceTokens.statusEnv') };
+    return { color: '#eab308', label: get(t)('serviceTokens.statusUntested') };
+  }
+
+  async function stkSave(s: any) {
+    const data = stkEdit[s.id];
+    // Un envoi vide effacerait le jeton en place : on refuse plutôt que d'agir.
+    if (!data || Object.values(data).every((v) => !v?.trim())) {
+      notifications.error(get(t)('serviceTokens.noValueEntered'));
+      return;
+    }
+    stkBusy = s.id;
+    try {
+      const r: any = await api.saveServiceToken(s.id, data);
+      if (r?.valid === true) notifications.success(`${s.name} : ${r.validation_message ?? get(t)('serviceTokens.tokenValid')}`);
+      else if (r?.valid === false) notifications.error(`${s.name} : ${r.validation_message ?? get(t)('serviceTokens.validationFailed')}`);
+      else notifications.success(`${s.name} : ${get(t)('serviceTokens.savedNoValidation')}`);
+      await loadTokens();
+    } catch (e: any) {
+      notifications.error(`${get(t)('serviceTokens.error')} : ${e?.message ?? e}`);
+    }
+    stkBusy = null;
+  }
+
+  async function stkTest(s: any) {
+    stkBusy = s.id;
+    try {
+      const r: any = await api.testServiceToken(s.id);
+      if (r?.valid === true) notifications.success(`${s.name} : ${r.validation_message ?? 'OK'}`);
+      else if (r?.valid === false) notifications.error(`${s.name} : ${r.validation_message ?? get(t)('serviceTokens.failed')}`);
+      else notifications.info(r?.validation_message ?? get(t)('serviceTokens.noValidationAvailable'));
+      await loadTokens();
+    } catch (e: any) {
+      notifications.error(`${get(t)('serviceTokens.testError')} : ${e?.message ?? e}`);
+    }
+    stkBusy = null;
+  }
+
+  async function stkRemove(s: any) {
+    // Geste destructif : confirmation EN PAGE. `window.confirm` est interdit
+    // par scripts/check-native-dialogs.mjs.
+    const ok = await dialogs.confirm(
+      get(t)('serviceTokens.confirmRemove').replace('{name}', s.name),
+      { danger: true },
+    );
+    if (!ok) return;
+    stkBusy = s.id;
+    try {
+      await api.deleteServiceToken(s.id);
+      notifications.success(`${s.name} : ${get(t)('serviceTokens.tokenDeleted')}`);
+      await loadTokens();
+    } catch (e: any) {
+      notifications.error(`${get(t)('serviceTokens.error')} : ${e?.message ?? e}`);
+    }
+    stkBusy = null;
+  }
+
+  // Last.fm s'authentifie en OAuth : on ouvre la page d'autorisation, puis
+  // l'utilisateur revient valider. Le jeton intermédiaire ne vit qu'ici.
+  async function lfmStart() {
+    stkBusy = 'lastfm';
+    lfmToken = null;
+    try {
+      const r: any = await api.lastfmGetAuthToken();
+      lfmToken = r.token;
+      window.open(r.auth_url, '_blank', 'noopener');
+    } catch (e: any) {
+      notifications.error(`Last.fm : ${e?.message ?? e}`);
+    }
+    stkBusy = null;
+  }
+
+  async function lfmFinish() {
+    if (!lfmToken) return;
+    stkBusy = 'lastfm';
+    try {
+      const r: any = await api.lastfmGetSession(lfmToken);
+      notifications.success(`Last.fm : ${get(t)('serviceTokens.lastfmConnected')}${r?.username ? ` (${r.username})` : ''}`);
+      lfmToken = null;
+      await loadTokens();
+    } catch (e: any) {
+      notifications.error(`Last.fm : ${e?.message ?? e}`);
+    }
+    stkBusy = null;
+  }
+
+  async function lfmScrobble(on: boolean) {
+    stkBusy = 'lastfm';
+    try {
+      await api.lastfmToggleScrobble(on);
+      await loadTokens();
+    } catch (e: any) {
+      notifications.error(`Last.fm : ${e?.message ?? e}`);
+    }
+    stkBusy = null;
+  }
+
+  async function lfmDisconnect() {
+    const ok = await dialogs.confirm(get(t)('serviceTokens.confirmDisconnect'), { danger: true });
+    if (!ok) return;
+    stkBusy = 'lastfm';
+    try {
+      await api.lastfmDisconnect();
+      notifications.success(`Last.fm : ${get(t)('serviceTokens.accountDisconnected')}`);
+      await loadTokens();
+    } catch (e: any) {
+      notifications.error(`Last.fm : ${e?.message ?? e}`);
+    }
+    stkBusy = null;
+  }
+
   let spc = $state<any | null>(null);
   let spcZone = $state<number | null>(null);
   let spcName = $state('');
@@ -1484,12 +1644,77 @@
                 Les jetons <b>MusicBrainz</b>, <b>Discogs</b>, <b>Last.fm</b>, <b>Genius</b> et
                 <b>ListenBrainz</b> servent à l'enrichissement des métadonnées et au scrobbling.
               </p>
-              <!-- L'ecran « Services & Jetons » n'est pas repris dans ce client :
-                   on le DIT plutot que d'offrir un bouton qui ne mene nulle part. -->
-              <p class="hint">
-                Leur saisie n'est pas encore reprise dans ce client : elle reste dans
-                l'écran <b>Services &amp; Jetons</b> du client actuel.
-              </p>
+
+              {#if stkLoading}
+                <div class="state">{$t('common.loading' as any)}</div>
+              {:else if !stk.length}
+                <p class="hint">{$t('serviceTokens.loadError' as any)}</p>
+              {:else}
+                {#each stk as sv (sv.id)}
+                  {@const d = stkDot(sv)}
+                  <div class="svc">
+                    <div class="svchead">
+                      <span class="svcdot" style:background={d.color}></span>
+                      <span class="svcname">{sv.name}</span>
+                      <span class="svcstate">{d.label}</span>
+                    </div>
+                    {#if sv.purpose}<p class="hint">{sv.purpose}</p>{/if}
+                    {#if sv.validation_message}
+                      <p class="hint" class:bad={sv.valid === false}>{sv.validation_message}</p>
+                    {/if}
+
+                    {#if sv.fields?.length}
+                      <div class="svcfields">
+                        {#each sv.fields as f (f.key)}
+                          <label class="svcfield">
+                            <span>{f.label}</span>
+                            <input
+                              type={f.type}
+                              bind:value={stkEdit[sv.id][f.key]}
+                              placeholder={sv.configured ? $t('serviceTokens.configuredPlaceholder' as any) : ''}
+                              autocomplete="off" />
+                          </label>
+                        {/each}
+                      </div>
+                      <div class="inline">
+                        <button class="lnk" disabled={stkBusy === sv.id} onclick={() => stkSave(sv)}>
+                          {stkBusy === sv.id ? $t('common.loading' as any) : $t('serviceTokens.saveValidate' as any)}
+                        </button>
+                        {#if sv.configured && sv.source === 'db'}
+                          <button class="lnk" disabled={stkBusy === sv.id} onclick={() => stkTest(sv)}>{$t('serviceTokens.test' as any)}</button>
+                          <button class="lnk danger" disabled={stkBusy === sv.id} onclick={() => stkRemove(sv)}>{$t('common.delete' as any)}</button>
+                        {/if}
+                      </div>
+                    {/if}
+
+                    {#if sv.help_url}
+                      <a class="lnk" href={sv.help_url} target="_blank" rel="noopener noreferrer">{$t('serviceTokens.howToGetToken' as any)}</a>
+                    {/if}
+
+                    {#if sv.id === 'lastfm' && sv.configured}
+                      <div class="svcsub">
+                        {#if sv.scrobble_authenticated}
+                          <div class="kv">
+                            <span>{sv.lastfm_username ? `${$t('serviceTokens.connected' as any)} : ${sv.lastfm_username}` : $t('serviceTokens.accountConnected' as any)}</span>
+                          </div>
+                          <label class="sw">
+                            <input type="checkbox" checked={sv.scrobble_enabled}
+                              disabled={stkBusy === 'lastfm'}
+                              onchange={(e) => lfmScrobble((e.currentTarget as HTMLInputElement).checked)} />
+                            <span class="slider"></span>
+                          </label>
+                          <button class="lnk danger" disabled={stkBusy === 'lastfm'} onclick={lfmDisconnect}>{$t('serviceTokens.disconnectLastfm' as any)}</button>
+                        {:else if lfmToken}
+                          <p class="hint">{$t('serviceTokens.pendingText' as any)}</p>
+                          <button class="lnk" disabled={stkBusy === 'lastfm'} onclick={lfmFinish}>{$t('serviceTokens.authorizedContinue' as any)}</button>
+                        {:else}
+                          <button class="lnk" disabled={stkBusy === 'lastfm'} onclick={lfmStart}>{$t('serviceTokens.connectLastfm' as any)}</button>
+                        {/if}
+                      </div>
+                    {/if}
+                  </div>
+                {/each}
+              {/if}
 
             {:else if s.id === 'spotify'}
               {#if spc && spc.available === false}
@@ -2528,4 +2753,15 @@
     border-radius:999px; padding:6px 13px; font:600 11.5px var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .empty{padding:30px 4px; color:var(--v2-txt3); font-size:14px}
+  .svc{border:1px solid var(--v2-line2); border-radius:12px; padding:14px; margin-top:12px}
+  .svchead{display:flex; align-items:center; gap:9px}
+  .svcdot{width:9px; height:9px; border-radius:50%; border:1px solid var(--v2-line2); flex:none}
+  .svcname{font-weight:700}
+  .svcstate{margin-left:auto; font:10px var(--v2-mono); letter-spacing:.06em; color:var(--v2-txt3)}
+  .svcfields{display:flex; flex-direction:column; gap:8px; margin-top:10px}
+  .svcfield{display:flex; flex-direction:column; gap:4px; font-size:12.5px; color:var(--v2-txt2)}
+  .svcfield input{width:100%}
+  .svcsub{margin-top:12px; padding-top:10px; border-top:1px solid var(--v2-line2);
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+  .bad{color:var(--v2-bad, #ef4444)}
 </style>
