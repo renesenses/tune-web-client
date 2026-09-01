@@ -3179,6 +3179,10 @@ export default {
   "settings.serverNamePlaceholder": "例如：客厅、办公室、笔记本",
   "settings.serverNameSaved": "服务器名称已保存。",
   "settings.updateTarget": "目标计算机：{server}",
+  "volume.dbEntry": "音量（分贝）",
+  "volume.dbEntryHint": "输入所需数值，例如 -20.5。0 dB 为满刻度。",
+  "volume.dbAboveFullScale": "0 dB 即满刻度：再往上没有更大的音量。",
+  "volume.dbUnreadable": "无法识别的数值。请输入以 dB 为单位的数字，例如 -20.5。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

@@ -3179,6 +3179,10 @@ export default {
   "settings.serverNamePlaceholder": "Zum Beispiel: Wohnzimmer, Büro, Laptop",
   "settings.serverNameSaved": "Servername gespeichert.",
   "settings.updateTarget": "Zielrechner: {server}",
+  "volume.dbEntry": "Lautstärke in Dezibel",
+  "volume.dbEntryHint": "Gewünschten Wert eingeben, zum Beispiel -20,5. 0 dB = Vollaussteuerung.",
+  "volume.dbAboveFullScale": "0 dB ist die Vollaussteuerung: darüber gibt es keine zusätzliche Lautstärke.",
+  "volume.dbUnreadable": "Unlesbarer Wert. Erwartet wird eine Zahl in dB, zum Beispiel -20,5.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

@@ -3178,4 +3178,8 @@ export default {
   "settings.serverNamePlaceholder": "Till exempel: Vardagsrum, Kontor, Bärbar",
   "settings.serverNameSaved": "Serverns namn sparades.",
   "settings.updateTarget": "Måldator: {server}",
+  "volume.dbEntry": "Volym i decibel",
+  "volume.dbEntryHint": "Skriv önskat värde, till exempel -20,5. 0 dB = full skala.",
+  "volume.dbAboveFullScale": "0 dB är full skala: ovanför den finns ingen mer volym.",
+  "volume.dbUnreadable": "Oläsligt värde. Ett tal i dB förväntas, till exempel -20,5.",
 } as const;

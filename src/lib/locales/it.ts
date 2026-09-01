@@ -3179,6 +3179,10 @@ export default {
   "settings.serverNamePlaceholder": "Per esempio: Salotto, Ufficio, Portatile",
   "settings.serverNameSaved": "Nome del server salvato.",
   "settings.updateTarget": "Macchina di destinazione: {server}",
+  "volume.dbEntry": "Volume in decibel",
+  "volume.dbEntryHint": "Digita il valore desiderato, ad esempio -20,5. 0 dB = fondo scala.",
+  "volume.dbAboveFullScale": "0 dB è il fondo scala: al di sopra non c'è altro volume.",
+  "volume.dbUnreadable": "Valore illeggibile. Atteso un numero in dB, ad esempio -20,5.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

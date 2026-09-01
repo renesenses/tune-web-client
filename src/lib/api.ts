@@ -885,6 +885,22 @@ export function setVolume(zoneId: number, volume: number) {
   });
 }
 
+/**
+ * Le volume demandé en dB, pas en pour-cent (#1274).
+ *
+ * `PUT /zones/{id}/volume` accepte `volume_db` depuis la v0.9.127, et les deux
+ * champs y sont EXCLUSIFS : envoyer les deux fait répondre 400
+ * `invalid_volume`. On n'envoie donc que celui-là. Le serveur refuse aussi
+ * tout dB strictement positif — `analyserDb` l'écarte déjà côté saisie.
+ * Réponse : 204, comme `setVolume`.
+ */
+export function setVolumeDb(zoneId: number, volumeDb: number) {
+  return fetchVoid(`${BASE}/zones/${zoneId}/volume`, {
+    method: 'PUT',
+    body: JSON.stringify({ volume_db: volumeDb }),
+  });
+}
+
 export function setShuffle(zoneId: number, enabled: boolean) {
   return fetchJSON<{ shuffle: boolean }>(`${BASE}/zones/${zoneId}/shuffle?enabled=${enabled}`, {
     method: 'POST',
