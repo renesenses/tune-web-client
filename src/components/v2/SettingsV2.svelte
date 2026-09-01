@@ -17,6 +17,7 @@
    */
   import { t } from '../../lib/i18n';
   import { get } from 'svelte/store';
+  import { emphaseParts } from '../../lib/i18nEmphase';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { formatNumber, copyText, errText } from '../../lib/utils';
@@ -1092,7 +1093,7 @@
             <span class="masked">{hiddenCount} section{hiddenCount > 1 ? 's' : ''} de plus à un niveau supérieur</span>
           {/if}
           {#if !atLeast(level, 'expert')}
-            <span class="masked">Les niveaux Avancé et Expert ouvrent d'autres onglets.</span>
+            <span class="masked">{$t('settings.levelsOpenMoreTabs' as any)}</span>
           {/if}
         </div>
 
@@ -1172,7 +1173,7 @@
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.theme' as any)}</span>
-                  <span class="hint">Six palettes. Réglage propre au nouveau client — le thème de l'interface actuelle reste séparé.</span>
+                  <span class="hint">{$t('settings.themePalettesHint' as any)}</span>
                 </div>
                 <div class="themerow">
                   {#each V2_THEMES as th (th.id)}
@@ -1270,7 +1271,7 @@
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.enrichMetadata' as any)}</span>
-                  <span class="hint">Complète artistes, années, genres et identifiants depuis les bases publiques. Les tags de vos fichiers ne sont jamais écrasés.</span>
+                  <span class="hint">{$t('settings.enrichMetadataHint' as any)}</span>
                 </div>
                 <button class="lnk" disabled={enrichRunning} onclick={startEnrich}>
                   {enrichRunning ? 'En cours…' : 'Lancer'}
@@ -1290,7 +1291,7 @@
                 </div>
                 <button class="lnk" onclick={startCovers}>Lancer</button>
               </div>
-              <p class="hint">Ces passes durent plusieurs minutes. Leur avancement se suit dans <b>Tune Health</b>.</p>
+              <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {#if enrichErr}<div class="errline">{enrichErr}</div>{/if}
 
             {:else if s.id === 'ingest'}
@@ -1311,7 +1312,7 @@
                 <div class="row">
                   <div class="lbl">
                     <span>En cas de conflit</span>
-                    <span class="hint">Quand un fichier de même nom existe déjà à destination.</span>
+                    <span class="hint">{$t('settings.ingestConflictHint' as any)}</span>
                   </div>
                   <div class="seg4">
                     <button class:on={ingest.conflict_policy === 'skip'} onclick={() => saveIngest({ conflict_policy: 'skip' })}>Ignorer</button>
@@ -1339,7 +1340,7 @@
                 <div class="row">
                   <div class="lbl">
                     <span>{$t('settings.writeTags' as any)}</span>
-                    <span class="hint">Modifie les fichiers importés. Décoché, la base seule est renseignée.</span>
+                    <span class="hint">{$t('settings.writeTagsHint' as any)}</span>
                   </div>
                   <label class="sw">
                     <input type="checkbox" checked={ingest.write_tags}
@@ -1354,7 +1355,7 @@
               <div class="row">
                 <div class="lbl">
                   <span>Vue Oxygen</span>
-                  <span class="hint">Navigation par facettes — genre, artiste, année, format… — pour explorer une grosse discothèque.</span>
+                  <span class="hint">{$t('settings.facetsNavHint' as any)}</span>
                 </div>
                 <label class="sw">
                   <input type="checkbox" checked={$preferences.oxygenEnabled}
@@ -1366,7 +1367,7 @@
                 <div class="row">
                   <div class="lbl">
                     <span>{$t('oxygen.facetValues' as any)}</span>
-                    <span class="hint">0 = toutes. Au-delà de quelques centaines, la colonne devient illisible.</span>
+                    <span class="hint">{$t('settings.facetValuesHint' as any)}</span>
                   </div>
                   <input class="txt time" type="number" min="0" max="2000" step="50"
                     value={$preferences.oxygenFacetLimit}
@@ -1391,11 +1392,7 @@
               </div>
 
             {:else if s.id === 'cloud'}
-              <p class="hint">
-                Sauvegarde de configuration et relais d'accès distant sont gérés depuis le
-                client actuel. L'<b>accès distant</b> (Tune Bridge) se règle en revanche ici,
-                dans l'onglet <b>Audio</b>.
-              </p>
+              <p class="hint">{#each emphaseParts($t('settings.cloudScopeHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
 
             {:else if s.id === 'import'}
               <p class="hint">
@@ -1453,10 +1450,7 @@
               {#if sysErr}<div class="errline">{sysErr}</div>{/if}
 
             {:else if s.id === 'config'}
-              <p class="hint">
-                Sauvegarde de la configuration du serveur — dossiers, zones, réglages audio.
-                Ne contient <b>aucun fichier de musique</b> et <b>aucun mot de passe de service</b>.
-              </p>
+              <p class="hint">{#each emphaseParts($t('settings.configBackupHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               <div class="inline" style="margin-top:12px">
                 <button class="lnk" disabled={cfgBusy} onclick={doExportConfig}>
                   {cfgBusy ? 'Export…' : 'Exporter la configuration'}
@@ -1526,7 +1520,7 @@
                 {#if !spc?.enabled}
                   <div class="row">
                     <div class="lbl"><span>{$t('settings.exposedZone' as any)}</span>
-                      <span class="hint">Le récepteur transforme UNE zone en enceinte Spotify.</span></div>
+                      <span class="hint">{$t('settings.spotifyReceiverHint' as any)}</span></div>
                     <select class="sel" value={String(spcZone ?? '')}
                       onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value; spcZone = v ? Number(v) : null; }}>
                       <option value="">{$t('settings.pickZone' as any)}</option>
@@ -1544,9 +1538,9 @@
 
             {:else if s.id === 'perZone'}
               {#if !$zones.length}
-                <p class="hint">Aucune zone. Créez-en une dans l'écran Zones.</p>
+                <p class="hint">{$t('settings.noZoneCreateOne' as any)}</p>
               {:else}
-                <p class="hint">Ces réglages sont propres à CHAQUE zone : ils suivent la sortie, pas l'écoute.</p>
+                <p class="hint">{$t('settings.perZoneScopeHint' as any)}</p>
                 <div class="zlist">
                   {#each $zones as z (z.id)}
                     <div class="zc">
@@ -1588,10 +1582,7 @@
 
                       {#if fvAsk === z.id}
                         <div class="fvbox">
-                          <p>
-                            Activer le volume fixe sur cette zone <b>réseau</b> envoie <b>100 %</b> à
-                            l'appareil : l'ampli part à fond. Tapez <b>100</b> pour confirmer.
-                          </p>
+                          <p>{#each emphaseParts($t('settings.fixedVolumeWarning' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
                           <div class="inline">
                             <input class="txt time" type="text" placeholder="100" bind:value={fvTyped}
                               onkeydown={(e) => { if (e.key === 'Enter') confirmFixedVolume(z); if (e.key === 'Escape') fvAsk = null; }} />
@@ -1608,7 +1599,7 @@
 
             {:else if s.id === 'clap'}
               {#if clapAvailable === false}
-                <p class="hint">Ce serveur n'embarque pas la brique acoustique.</p>
+                <p class="hint">{$t('settings.noAcousticModule' as any)}</p>
               {:else}
                 <div class="row">
                   <div class="lbl">
@@ -1675,7 +1666,7 @@
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.addFolder' as any)}</span>
-                  <span class="hint">Chemin absolu vu par le SERVEUR, pas par ce navigateur.</span>
+                  <span class="hint">{$t('settings.serverPathHint' as any)}</span>
                 </div>
                 <div class="inline">
                   <input class="txt wide" type="text" placeholder="/Volumes/Musique" bind:value={newDir}
@@ -1695,9 +1686,9 @@
                     </div>
                   {/each}
                 </div>
-                <p class="hint">Retirer un dossier ne supprime <b>aucun fichier</b> : il sort simplement de la bibliothèque.</p>
+                <p class="hint">{#each emphaseParts($t('settings.removeFolderHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {:else}
-                <p class="hint">Aucun dossier déclaré — la bibliothèque restera vide.</p>
+                <p class="hint">{$t('settings.noFolderDeclared' as any)}</p>
               {/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
 
@@ -1713,13 +1704,13 @@
                   <span class="slider"></span>
                 </label>
               </div>
-              <p class="hint">Ce réglage ne s'applique qu'après une <b>analyse complète</b>.</p>
+              <p class="hint">{#each emphaseParts($t('settings.needsFullScanHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
 
             {:else if s.id === 'scanSched'}
               <div class="row">
                 <div class="lbl">
                   <span>Analyse automatique</span>
-                  <span class="hint">Une passe rapide, chaque jour, à l'heure choisie.</span>
+                  <span class="hint">{$t('settings.scanScheduleHint' as any)}</span>
                 </div>
                 <label class="sw">
                   <input type="checkbox" bind:checked={schedOn} onchange={saveSchedule} disabled={schedBusy} />
@@ -1733,7 +1724,7 @@
                 </div>
                 <p class="hint">Prochaine analyse à <b>{schedTime}</b>.</p>
               {:else}
-                <p class="hint">Aucune analyse automatique n'est programmée.</p>
+                <p class="hint">{$t('settings.noScanScheduled' as any)}</p>
               {/if}
 
             {:else if s.id === 'about'}
@@ -1786,13 +1777,13 @@
               {#if lic.licenseKey}
                 <div class="row">
                   <div class="lbl"><span>{$t('settings.releaseLicense' as any)}</span>
-                    <span class="hint">Nécessaire avant de l'activer sur un autre serveur.</span></div>
+                    <span class="hint">{$t('settings.releaseLicenseHint' as any)}</span></div>
                   <button class="lnk danger" disabled={licBusy} onclick={deactivateLic}>{$t('settings.disable' as any)}</button>
                 </div>
               {:else}
                 <div class="row">
                   <div class="lbl"><span>{$t('settings.activateLicense' as any)}</span>
-                    <span class="hint">La clé vous a été envoyée par courriel à l'achat.</span></div>
+                    <span class="hint">{$t('settings.licenceKeyByEmail' as any)}</span></div>
                   <div class="inline">
                     <input class="txt" type="text" placeholder="XXXX-XXXX-XXXX" bind:value={licKey}
                       disabled={licBusy} onkeydown={(e) => { if (e.key === 'Enter') activateLic(); }} />
@@ -1825,7 +1816,7 @@
                   {/each}
                 </div>
               {/if}
-              <p class="hint">Les traitements de fond se suivent dans <b>Tune Health</b>.</p>
+              <p class="hint">{#each emphaseParts($t('settings.backgroundTasksHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
 
             {:else if s.id === 'streaming'}
               {#if !Object.keys(svcs).length}
@@ -1881,7 +1872,7 @@
 
             {:else if s.id === 'wifi'}
               {#if isAppliance === false}
-                <p class="hint">Réservé aux appliances Tune OS — ici, le réseau est géré par le système hôte.</p>
+                <p class="hint">{$t('settings.wifiApplianceOnly' as any)}</p>
               {:else if isAppliance === null}
                 <p class="hint">Serveur injoignable.</p>
               {:else}
@@ -1937,7 +1928,7 @@
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.remoteAccess' as any)}</span>
-                  <span class="hint">Joindre votre serveur Tune depuis n'importe où — sans VPN ni ouverture de port.</span>
+                  <span class="hint">{$t('settings.remoteAccessHint' as any)}</span>
                 </div>
                 <button class="lnk" class:danger={brEnabled} onclick={toggleBridge} disabled={brBusy}>
                   {brBusy ? '…' : brEnabled ? 'Désactiver' : 'Activer'}
@@ -1962,11 +1953,11 @@
                   <div class="tok">
                     <span class="tlab">Jeton</span>
                     <code>{brToken}</code>
-                    <span class="warnline">Copiez-le maintenant : il ne sera plus jamais affiché. Redémarrez le serveur pour l'activer.</span>
+                    <span class="warnline">{$t('settings.copyTokenNowWarning' as any)}</span>
                   </div>
                 {/if}
                 {#if !brConnected}
-                  <p class="warn">Redémarrez le serveur pour qu'il se connecte au relais.</p>
+                  <p class="warn">{$t('settings.restartToReachRelay' as any)}</p>
                 {/if}
               {/if}
 
@@ -2334,7 +2325,7 @@
               </div>
             {:else}
               <div class="todo">
-                <span>Contenu repris depuis l'écran actuel — pas encore porté ici.</span>
+                <span>{$t('settings.followMeNotPortedYet' as any)}</span>
                 <button class="lnk" onclick={() => activeView.set('settings')}>{$t('settings.openInCurrentScreen' as any)}</button>
               </div>
             {/if}
@@ -2342,7 +2333,7 @@
         {/each}
 
         {#if !sections.length}
-          <div class="empty">Rien à ce niveau d'interface. Passez en Avancé ou Expert depuis le menu avatar.</div>
+          <div class="empty">{$t('settings.nothingAtThisLevel' as any)}</div>
         {/if}
       {/if}
     </div>
