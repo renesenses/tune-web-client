@@ -30,7 +30,7 @@ import type { SettingsLevel } from './uiLevel';
 import { fold } from './utils';
 
 export type V2SettingsTabId =
-  | 'general' | 'audio' | 'library' | 'zones' | 'devices' | 'access' | 'system' | 'clap';
+  | 'general' | 'audio' | 'library' | 'zones' | 'devices' | 'extensions' | 'access' | 'system' | 'clap';
 
 export interface V2SettingsSection {
   /** Identifiant stable, utilisé pour l'ancrage et la navigation. */
@@ -117,6 +117,16 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'devices',    titleKey: 'settings.tabDevices',       from: 'devices',  min: 'intermediate' },
       { id: 'perZone',    titleKey: 'settings.perZoneSettings',  from: 'services', min: 'intermediate', keywords: ['par zone', 'gapless', 'volume fixe'] },
+    ],
+  },
+  {
+    // Extensions : elles vivaient dans la barre latérale, section Studio. Elles
+    // rejoignent les Réglages (Bertrand, 01/09/2026) et QUITTENT la barre — un
+    // réglage à deux endroits finit par diverger, et la barre s'allège d'autant.
+    id: 'extensions', labelKey: 'settings.tabExtensions', min: 'expert',
+    icon: 'M9 3v4M15 3v4M8 7h8v5a4 4 0 0 1-8 0zM12 16v5',
+    sections: [
+      { id: 'plugins', titleKey: 'settings.tabExtensions', from: 'services', min: 'expert', keywords: ['extensions', 'plugins', 'greffons', 'modules'] },
     ],
   },
   {

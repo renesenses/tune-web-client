@@ -6,7 +6,8 @@
    * (`preferences.settingsLevel`, partagé avec la vue Réglages) :
    *   - Essentiel  : le noyau seul (Accueil, Bibliothèque, Radio, Playlists, Recherche)
    *   - Avancé     : + File, Favoris, Zones, Serveurs multimédia
-   *   - Expert     : + section « Studio » (EQ, Convertisseur, Métadonnées, Extensions, Diagnostics)
+   *   - Expert     : + section « Studio » (EQ, Convertisseur, Métadonnées, Diagnostics)
+   *     Les Extensions ont rejoint les Réglages (onglet dédié) le 01/09/2026.
    *
    * Principe de stabilité spatiale : le noyau ne bouge JAMAIS d'un niveau à
    * l'autre — les groupes se révèlent en place, jamais de réorganisation.
@@ -64,7 +65,6 @@
     { view: 'converter', label: 'Convertisseur', icon: 'M4 8h13l-3-3M20 16H7l3 3' },
     { view: 'declick', label: 'Dé-ploc', icon: 'M3 12h4l3-8 4 16 3-8h4' },
     { view: 'metadata', label: 'Métadonnées', icon: 'M20 12l-8 8-9-9V4h7zM8 8h.01' },
-    { view: 'plugins', label: 'Extensions', icon: 'M9 3v4M15 3v4M8 7h8v5a4 4 0 0 1-8 0zM12 16v5' },
     { view: 'diagnostics', label: 'Tune Health', icon: 'M3 12h4l2 6 4-14 2 8h6' },
   ];
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../../lib/i18n';
   /**
    * Extensions — nouveau client (direction Levente). Niveau Expert.
    *
@@ -74,7 +75,7 @@
       <h1>Extensions</h1>
     </div>
     <nav class="tabs">
-      <button class:on={tab === 'installed'} onclick={() => (tab = 'installed')}>Installées<span>{installedCount}</span></button>
+      <button class:on={tab === 'installed'} onclick={() => (tab = 'installed')}>{$t('v2.plug.installedTab' as any)}<span>{installedCount}</span></button>
       <button class:on={tab === 'all'} onclick={() => (tab = 'all')}>Catalogue<span>{plugins.length}</span></button>
     </nav>
     <div class="search">
@@ -85,7 +86,7 @@
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
   {#if restartNeeded}
-    <div class="restart">Redémarrez le serveur pour que les changements prennent effet.</div>
+    <div class="restart">{$t('v2.plug.restartNeeded' as any)}</div>
   {/if}
 
   <div class="scroll">
@@ -102,7 +103,7 @@
                 <h2>{p.display_name || p.name}</h2>
                 <span class="ver">v{p.installed_version ?? p.version}</span>
                 {#if p.category}<span class="cat">{p.category}</span>{/if}
-                {#if p.update_available}<span class="upd">mise à jour</span>{/if}
+                {#if p.update_available}<span class="upd">{$t('v2.plug.updateAvailable' as any)}</span>{/if}
                 {#if !p.compatible}<span class="ko">incompatible</span>{/if}
               </div>
               <p class="pd">{p.description}</p>
@@ -119,14 +120,14 @@
 
             <div class="pact">
               {#if p.installed}
-                <label class="sw" title={isActive(p) ? 'Désactiver' : 'Activer'}>
+                <label class="sw" title={isActive(p) ? $t('settings.disable' as any) : $t('plugins.enable' as any)}>
                   <input type="checkbox" checked={isActive(p)} disabled={busy === key(p)} onchange={() => toggle(p)} />
                   <span class="slider"></span>
                 </label>
-                <button class="lnk danger" disabled={busy === key(p)} onclick={() => uninstall(p)}>Désinstaller</button>
+                <button class="lnk danger" disabled={busy === key(p)} onclick={() => uninstall(p)}>{$t('plugins.uninstall' as any)}</button>
               {:else}
                 <button class="go" disabled={!p.compatible || busy === key(p)} onclick={() => install(p)}
-                  title={p.compatible ? '' : 'Incompatible avec cette version de Tune'}>
+                  title={p.compatible ? '' : $t('v2.plug.incompatible' as any)}>
                   {busy === key(p) ? '…' : 'Installer'}
                 </button>
               {/if}

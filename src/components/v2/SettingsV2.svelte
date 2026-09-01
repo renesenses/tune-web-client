@@ -38,6 +38,7 @@
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel } from '../../lib/v2Settings';
+  import PluginsV2 from './PluginsV2.svelte';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -1800,6 +1801,12 @@
                   {/each}
                 </div>
               {/if}
+
+            {:else if s.id === 'plugins'}
+              <!-- L'écran des Extensions, monté ICI. Même geste que la
+                   Bibliothèque dans les Serveurs multimédia : on rend le
+                   composant, on ne le recopie pas. -->
+              <PluginsV2 />
 
             {:else if s.id === 'tokens'}
               <p class="hint">
