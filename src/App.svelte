@@ -19,7 +19,13 @@
   import { selectedAlbum, selectedArtist, albumTracks, artistAlbums, libraryTab } from './lib/stores/library';
   import { reconcilierFiche } from './lib/reconciliationFiche';
   import { CANDIDATS_DEFILEMENT, conteneurDefilant, restaurerQuandPret } from './lib/defilementReel';
-  import { finDuRetourProgrammatique, opPourFiche } from './lib/historiqueNavigation';
+  import {
+    finDuRetourProgrammatique,
+    niveauDeVue,
+    opPourFiche,
+    ouvrirNiveauDepuisEntree,
+    refermerNiveau,
+  } from './lib/historiqueNavigation';
   import { preferences, applyTheme, syncPreferencesFromServer } from './lib/stores/preferences';
   import { syncDisplayFieldsFromServer } from './lib/stores/displayFields';
   import { locale } from './lib/i18n';
@@ -759,6 +765,41 @@ import AlarmsView from './components/AlarmsView.svelte';
       }
     });
 
+    // Les vues autres que la Bibliotheque (Podcasts, Playlists...) publient ici
+    // le niveau qu'elles ouvrent. App reste la SEULE a ecrire dans l'historique
+    // (5c420af) : la vue ne connait ni `pushState` ni l'ordre des entrees, elle
+    // dit seulement « j'ai ouvert ceci ». Meme decision que pour une fiche album,
+    // donc meme protection : sur un retour, on n'ecrase pas l'entree quittee.
+    niveauDeVue.subscribe(niveau => {
+      if (_pushingState || !_viewInitialized || typeof window === 'undefined') return;
+      let view = '';
+      activeView.subscribe(v => (view = v))();
+      const ctx = {
+        view,
+        albumId: $selectedAlbum?.id ?? null,
+        artistId: $selectedArtist?.id ?? null,
+        tab: $libraryTab ?? null,
+        niveau,
+      };
+      const op = opPourFiche(niveau !== null);
+      if (niveau !== null && op === 'push') {
+        window.history.pushState(ctx, '', `#${niveau.adresse ?? view}`);
+      } else if (op === 'replace') {
+        window.history.replaceState(ctx, '', `#${view}`);
+      }
+    });
+
+    /**
+     * Repose l'instantané que porte l'entrée atteinte, en attendant que la vue
+     * soit montée : changer de vue la remonte, et elle ne se déclare qu'à la
+     * frame suivante. Bornée, pour ne pas tourner indéfiniment si la vue a
+     * disparu entre-temps.
+     */
+    function reposerLeNiveau(niveau: any, essais = 0) {
+      if (ouvrirNiveauDepuisEntree(niveau) || essais >= 30) return;
+      requestAnimationFrame(() => reposerLeNiveau(niveau, essais + 1));
+    }
+
     /**
      * Rouvre la fiche que portait l'entrée d'historique atteinte.
      *
@@ -836,6 +877,13 @@ import AlarmsView from './components/AlarmsView.svelte';
       });
       if (plan.album === 'vider') selectedAlbum.set(null);
       if (plan.artiste === 'vider') selectedArtist.set(null);
+      // Le niveau des autres vues suit le meme chemin que la fiche : l'entree
+      // le porte, on le rend a la vue. Sans instantane, la vue revient a sa
+      // racine — c'est ce que veut dire « reculer d'un cran » ici.
+      const niveau = ctx?.niveau ?? null;
+      niveauDeVue.set(niveau);
+      if (niveau) reposerLeNiveau(niveau);
+      else if (ctx?.view) refermerNiveau(ctx.view);
       _pushingState = false;
       if (typeof plan.album === 'number' || typeof plan.artiste === 'number') {
         void rechargerFicheDepuisHistorique(

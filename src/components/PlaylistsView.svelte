@@ -12,6 +12,7 @@
   import type { Playlist, Track, StreamingPlaylist } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
+  import { declarerPorteeDeVue, ouvrirNiveau, reculerDansLaVue } from '../lib/historiqueNavigation';
   import AlbumArt from './AlbumArt.svelte';
   import ClampedText from './ClampedText.svelte';
 
@@ -141,7 +142,7 @@
     }
   }
 
-  async function selectPlaylist(pl: Playlist) {
+  async function selectPlaylist(pl: Playlist, options: { historique?: boolean } = {}) {
     if (!pl.id) return;
     // Sous garde : cette fonction est AUSSI appelée depuis la restauration
     // d'un raccourci, fiche déjà ouverte. La position lue serait alors celle
@@ -149,6 +150,9 @@
     // la PR #615 sur `selectArtistDetail`.
     if (!selectedPlaylist && !selectedStreamingPl) saveDetailScroll('playlists', viewEl);
     selectedPlaylist = pl;
+    // Le niveau entre dans l'historique (cf. PodcastsView) : le bouton du
+    // navigateur referme la fiche au lieu de quitter la vue.
+    if (options.historique !== false) ouvrirNiveau('playlists', { playlist: pl });
     loading = true;
     try {
       playlistTracks = await api.getPlaylistTracks(pl.id);
@@ -158,10 +162,11 @@
     loading = false;
   }
 
-  async function selectStreamingPlaylist(service: string, pl: StreamingPlaylist) {
+  async function selectStreamingPlaylist(service: string, pl: StreamingPlaylist, options: { historique?: boolean } = {}) {
     if (!selectedPlaylist && !selectedStreamingPl) saveDetailScroll('playlists', viewEl);
     selectedStreamingPl = pl;
     selectedService = service;
+    if (options.historique !== false) ouvrirNiveau('playlists', { service, streamingPlaylist: pl });
     loading = true;
     try {
       streamingPlTracks = await api.getStreamingPlaylistTracks(service, pl.source_id);
@@ -172,6 +177,13 @@
   }
 
   function goBack() {
+    reculerDansLaVue(() => {
+      fermerLaFiche();
+    });
+  }
+
+  /** Remet la vue a sa racine, sans toucher a l'historique. */
+  function fermerLaFiche() {
     selectedPlaylist = null;
     selectedStreamingPl = null;
     playlistTracks = [];
@@ -179,6 +191,19 @@
     selectedService = '';
     restoreDetailScroll('playlists', viewEl);
   }
+
+  // La vue se declare : l'entree d'historique lui rend son instantane.
+  $effect(() => declarerPorteeDeVue('playlists', {
+    retablir(etat: any) {
+      if (etat?.streamingPlaylist) {
+        void selectStreamingPlaylist(etat.service, etat.streamingPlaylist, { historique: false });
+      } else if (etat?.playlist) {
+        void selectPlaylist(etat.playlist, { historique: false });
+      } else {
+        fermerLaFiche();
+      }
+    },
+  }));
 
   // Shortcut capture/restore for a SPECIFIC playlist (Elie): expose the open
   // playlist so a shortcut records its id, and re-open it when that shortcut
