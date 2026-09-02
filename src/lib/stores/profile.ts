@@ -54,6 +54,15 @@ export const profileReady = writable<boolean>(false);
 export const favoriteTrackIds = writable<Set<number>>(new Set());
 export const favoriteAlbumIds = writable<Set<number>>(new Set());
 export const favoriteArtistIds = writable<Set<number>>(new Set());
+/**
+ * Playlists en favori.
+ *
+ * Le serveur sait déjà les stocker : `LOCAL_ITEM_TYPES` inclut `playlist`, et
+ * l'instantané d'identité est figé à l'ajout — sans quoi le cœur s'éteindrait
+ * dès que l'id change (import M3U rejoué, playlist recréée, bascule
+ * SQLite→PostgreSQL). Seul le client ne les lisait pas.
+ */
+export const favoritePlaylistIds = writable<Set<number>>(new Set());
 
 // Streaming favorites (Qobuz/Tidal/… items hearted in Tune, stored per-profile
 // with metadata). Keyed by `${item_type}:${service}:${service_id}` so a shared
@@ -74,6 +83,7 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoriteTrackIds.set(new Set());
     favoriteAlbumIds.set(new Set());
     favoriteArtistIds.set(new Set());
+    favoritePlaylistIds.set(new Set());
     favoriteStreamingKeys.set(new Set());
     return;
   }
@@ -82,6 +92,7 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoriteTrackIds.set(new Set((favs.tracks ?? []).map((t: any) => t.id)));
     favoriteAlbumIds.set(new Set((favs.albums ?? []).map((a: any) => a.id)));
     favoriteArtistIds.set(new Set((favs.artists ?? []).map((a: any) => a.id)));
+    favoritePlaylistIds.set(new Set((favs.playlists ?? []).map((p: any) => p.id)));
   } catch (e) {
     console.error('Load favorite ids error:', e);
   }

@@ -43,7 +43,12 @@
    *    que `HeartButton` avait déjà eu à corriger.
    */
   import { t } from '../../lib/i18n';
-  import { favoriteTrackIds, favoriteAlbumIds, favoriteArtistIds } from '../../lib/stores/profile';
+  import {
+    favoriteTrackIds,
+    favoriteAlbumIds,
+    favoriteArtistIds,
+    favoritePlaylistIds,
+  } from '../../lib/stores/profile';
   import { basculerFavoriLocal, estFavoriLocal, type RefLocale } from '../../lib/favorisLocaux';
   import type { Snippet } from 'svelte';
 
@@ -81,7 +86,13 @@
 
   const estFavori = $derived(
     favori
-      ? estFavoriLocal(favori, $favoriteTrackIds, $favoriteAlbumIds, $favoriteArtistIds)
+      ? estFavoriLocal(
+          favori,
+          $favoriteTrackIds,
+          $favoriteAlbumIds,
+          $favoriteArtistIds,
+          $favoritePlaylistIds,
+        )
       : false,
   );
 

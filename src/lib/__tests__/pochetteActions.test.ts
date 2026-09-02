@@ -204,3 +204,70 @@ describe('Étiquettes — le panneau sort de la vignette', () => {
     expect(biblio().includes('content-visibility:auto'), 'le rendu hors écran a disparu').toBe(true);
   });
 });
+
+/**
+ * Les playlists reçoivent les mêmes gestes que les albums.
+ *
+ * Le serveur n'avait RIEN à apprendre : `LOCAL_ITEM_TYPES` contient déjà
+ * `playlist` — donc l'identité du favori est figée à l'ajout, comme pour un
+ * album — et `TAGGABLE_ITEM_TYPES` vaut `album, artist, playlist, track`. Seul
+ * le client ne les proposait pas.
+ *
+ * L'édition s'y limite au nom et à la description : ce sont les deux seuls
+ * champs que `PUT /playlists/{id}` accepte. Une modale qui en offrirait
+ * davantage mentirait sur ce qu'elle sait faire.
+ */
+describe('Playlists — les cinq actions', () => {
+  const ecran = () => lire('../../components/v2/PlaylistsV2.svelte');
+
+  it('le favori et les étiquettes visent la PLAYLIST', () => {
+    const src = ecran();
+    expect(src.includes('{ playlistId: pl.id }'), 'le favori de playlist a disparu').toBe(true);
+    expect(
+      src.includes("{ itemType: 'playlist', itemId: pl.id }"),
+      'les étiquettes ne visent plus la playlist.',
+    ).toBe(true);
+  });
+
+  it('le favori de playlist traverse jusqu’à l’API', () => {
+    // Trois maillons : le magasin, la bascule partagée, la traduction en
+    // `item_type`. En casser un laisse un cœur qui s'allume et ne persiste pas.
+    expect(
+      lire('../stores/profile.ts').includes('favoritePlaylistIds'),
+      'le magasin des playlists favorites a disparu.',
+    ).toBe(true);
+    expect(
+      lire('../favorisLocaux.ts').includes("champ: 'playlist_id' as const"),
+      'la bascule ne sait plus traduire une playlist.',
+    ).toBe(true);
+    expect(
+      lire('../api.ts').includes("if (p.playlist_id != null) return { item_type: 'playlist'"),
+      'l’API ne convertit plus `playlist_id` en `item_type`.',
+    ).toBe(true);
+  });
+
+  it('les favoris rechargés incluent les playlists', () => {
+    // Sans ce seau, le cœur repart éteint à chaque changement de profil :
+    // écrit côté serveur, jamais relu.
+    const src = lire('../api.ts');
+    expect(src.includes("settle(ids('playlist'), getPlaylist)"), 'les playlists ne sont plus relues').toBe(true);
+    expect(
+      lire('../stores/profile.ts').includes('favoritePlaylistIds.set(new Set((favs.playlists'),
+      'le magasin n’est plus rempli au chargement du profil.',
+    ).toBe(true);
+  });
+
+  it('la modale d’édition ne promet que ce que le serveur accepte', () => {
+    const src = lire('../../components/v2/RenommerModale.svelte');
+    expect(src.includes('v2.edit.name') && src.includes('v2.edit.description'), 'les deux champs ont disparu').toBe(true);
+    // Fermer sur échec ferait croire à un enregistrement.
+    const i = src.indexOf('} catch (err: any) {');
+    expect(i, 'l’échec n’est plus rattrapé').toBeGreaterThan(-1);
+    expect(
+      src.slice(i, i + 260).includes('onClose()'),
+      'la modale se ferme sur échec : l’utilisateur croirait avoir enregistré.',
+    ).toBe(false);
+    // Et elle sort de la vignette, comme le panneau d'étiquettes.
+    expect(src.includes('use:portail'), 'la modale se rognerait dans la vignette').toBe(true);
+  });
+});

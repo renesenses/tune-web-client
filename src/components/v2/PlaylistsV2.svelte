@@ -17,6 +17,9 @@
   import type { Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
+  import { t } from '../../lib/i18n';
+  import PochetteActions from './PochetteActions.svelte';
+  import RenommerModale from './RenommerModale.svelte';
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
   import '../../styles/tune-v2.css';
 
@@ -90,12 +93,17 @@
 
   const svcEntries = $derived(Object.entries(services).filter(([, l]) => l.length));
 
-  function playLocal(pl: Playlist, e: MouseEvent) {
-    e.stopPropagation();
+  // `e` optionnel : appelée depuis les cartes historiques (qui propagent) et
+  // depuis `PochetteActions`, qui a déjà arrêté le geste.
+  function playLocal(pl: Playlist, e?: MouseEvent) {
+    e?.stopPropagation();
     const zid = $currentZoneId;
     if (zid == null || pl.id == null) return;
     api.play(zid, { playlist_id: pl.id }).catch(() => {});
   }
+  /** Playlist en cours de renommage — le bouton haut-droit de la pochette. */
+  let enEdition = $state<Playlist | null>(null);
+
   function playStreaming(service: string, pl: StreamingPlaylist, e: MouseEvent) {
     e.stopPropagation();
     const zid = $currentZoneId;
@@ -148,19 +156,32 @@
               {@const mos = pl.id != null ? mosaiques[pl.id] : undefined}
               <div class="card local">
                 <span class="cv" class:img={!!mos}>
-                  {#if mos}
-                    <MosaiquePochettes pochettes={mos} initiales={pl.name?.slice(0, 1)} alt={pl.name} />
-                  {:else}
-                    <!-- Tant que les pochettes ne sont pas revenues — ou si la
-                         playlist n'en a aucune — le pictogramme d'origine. -->
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h11M4 12h11M4 17h7M17 17V7l4 2"/></svg>
-                  {/if}
+                  <!-- Les cinq actions de la maquette. Le favori et les
+                       étiquettes s'appliquent : le serveur traite déjà la
+                       playlist comme les deux, `LOCAL_ITEM_TYPES` et
+                       `TAGGABLE_ITEM_TYPES` l'incluent l'un et l'autre.
+                       L'édition s'y limite au nom et à la description, seuls
+                       champs que `PUT /playlists/{id}` accepte. -->
+                  <PochetteActions
+                    favori={pl.id != null ? { playlistId: pl.id } : null}
+                    etiquettes={pl.id != null ? { itemType: 'playlist', itemId: pl.id } : null}
+                    onEditer={pl.id != null ? () => (enEdition = pl) : null}
+                    onLire={() => playLocal(pl)}
+                    onOuvrir={() => (opened = { kind: 'local', pl })}
+                    nom={pl.name}
+                  >
+                    {#if mos}
+                      <MosaiquePochettes pochettes={mos} initiales={pl.name?.slice(0, 1)} alt={pl.name} />
+                    {:else}
+                      <!-- Tant que les pochettes ne sont pas revenues — ou si la
+                           playlist n'en a aucune — le pictogramme d'origine. -->
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h11M4 12h11M4 17h7M17 17V7l4 2"/></svg>
+                    {/if}
+                  </PochetteActions>
                 </span>
-                <span class="ct">{pl.name}</span>
-                <span class="ca">{pl.track_count ?? 0} titre{(pl.track_count ?? 0) > 1 ? 's' : ''}</span>
-                <button class="open" onclick={() => (opened = { kind: 'local', pl })} aria-label={`Ouvrir ${pl.name}`}></button>
-                <button class="pbtn" onclick={(e) => playLocal(pl, e)} aria-label="Lire">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>
+                <button class="meta" onclick={() => (opened = { kind: 'local', pl })}>
+                  <span class="ct">{pl.name}</span>
+                  <span class="ca">{pl.track_count ?? 0} titre{(pl.track_count ?? 0) > 1 ? 's' : ''}</span>
                 </button>
               </div>
             {/each}
@@ -197,6 +218,18 @@
 
   {#if opened}
     <PlaylistDetailV2 item={opened} onClose={() => (opened = null)} onChanged={load} />
+  {/if}
+
+  {#if enEdition}
+    {@const cible = enEdition}
+    <RenommerModale
+      titre={$t('v2.edit.playlist' as any)}
+      nom={cible.name}
+      description={cible.description}
+      enregistrer={(v) => api.updatePlaylist(cible.id!, v)}
+      onClose={() => (enEdition = null)}
+      onSaved={load}
+    />
   {/if}
 </section>
 
@@ -238,6 +271,11 @@
   .card:hover .pbtn{opacity:1; transform:none}
   .pbtn svg{width:18px; height:18px; margin-left:2px}
   .pbtn:hover{background:var(--v2-acc-tint)}
+  /* Le bloc de texte porte le clic : la carte ne peut plus être un bouton,
+     elle contient désormais les cinq boutons d'action de la pochette. */
+  .meta{display:block; width:100%; border:0; background:transparent; text-align:left;
+    padding:0; color:inherit; font:inherit; cursor:pointer}
+  .meta .ct, .meta .ca{display:block}
   .ct{margin-top:10px; font:600 14px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ca{margin-top:2px; font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 </style>

@@ -30,6 +30,7 @@ import {
   favoriteTrackIds,
   favoriteAlbumIds,
   favoriteArtistIds,
+  favoritePlaylistIds,
   loadProfiles,
 } from './stores/profile';
 
@@ -38,6 +39,12 @@ export interface RefLocale {
   trackId?: number | null;
   albumId?: number | null;
   artistId?: number | null;
+  /**
+   * Le serveur traite la playlist comme un favori de plein droit : elle figure
+   * dans `LOCAL_ITEM_TYPES`, donc son identité est figée à l'ajout. Seul le
+   * client ne la proposait pas.
+   */
+  playlistId?: number | null;
 }
 
 /** Le magasin concerné, ou `null` si la référence est vide. */
@@ -46,6 +53,8 @@ function magasin(ref: RefLocale) {
   if (ref.albumId) return { store: favoriteAlbumIds, id: ref.albumId, champ: 'album_id' as const };
   if (ref.artistId)
     return { store: favoriteArtistIds, id: ref.artistId, champ: 'artist_id' as const };
+  if (ref.playlistId)
+    return { store: favoritePlaylistIds, id: ref.playlistId, champ: 'playlist_id' as const };
   return null;
 }
 
@@ -61,10 +70,12 @@ export function estFavoriLocal(
   pistes: Set<number>,
   albums: Set<number>,
   artistes: Set<number>,
+  playlists: Set<number> = new Set(),
 ): boolean {
   if (ref.trackId) return pistes.has(ref.trackId);
   if (ref.albumId) return albums.has(ref.albumId);
   if (ref.artistId) return artistes.has(ref.artistId);
+  if (ref.playlistId) return playlists.has(ref.playlistId);
   return false;
 }
 
@@ -100,11 +111,7 @@ export async function basculerFavoriLocal(ref: RefLocale): Promise<boolean | nul
 
   bascule(!avant);
   try {
-    const params = { [m.champ]: m.id } as {
-      track_id?: number;
-      album_id?: number;
-      artist_id?: number;
-    };
+    const params = { [m.champ]: m.id } as api.FavItem;
     if (avant) await api.removeFavorite(pid, params);
     else await api.addFavorite(pid, params);
     return !avant;

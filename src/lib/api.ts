@@ -2763,10 +2763,20 @@ export function deleteProfile(id: number) {
 
 // Server favorites API is keyed by {item_type, item_id}; the web callers pass
 // {track_id|album_id|artist_id}. Normalise here so callers stay ergonomic.
-function favItem(p: { track_id?: number; album_id?: number; artist_id?: number }): { item_type: 'track' | 'album' | 'artist'; item_id: number } | null {
+/**
+ * `playlist` est un type de favori de plein droit côté serveur : il figure
+ * dans `LOCAL_ITEM_TYPES`, donc son identité est figée à l'ajout comme celle
+ * d'un album. Sans cet instantané, le cœur s'éteindrait au premier changement
+ * d'id — import M3U rejoué, playlist recréée, bascule SQLite→PostgreSQL.
+ * Seul le client ne le proposait pas.
+ */
+export type FavItem = { track_id?: number; album_id?: number; artist_id?: number; playlist_id?: number };
+
+function favItem(p: FavItem): { item_type: 'track' | 'album' | 'artist' | 'playlist'; item_id: number } | null {
   if (p.track_id != null) return { item_type: 'track', item_id: p.track_id };
   if (p.album_id != null) return { item_type: 'album', item_id: p.album_id };
   if (p.artist_id != null) return { item_type: 'artist', item_id: p.artist_id };
+  if (p.playlist_id != null) return { item_type: 'playlist', item_id: p.playlist_id };
   return null;
 }
 
@@ -2782,11 +2792,12 @@ export function getTrack(id: number) {
 // (e.g. a favorited item since deleted) are dropped rather than breaking the set.
 export async function getFavorites(
   profileId: number,
-  type?: 'track' | 'album' | 'artist',
+  type?: 'track' | 'album' | 'artist' | 'playlist',
 ): Promise<{
   tracks: import('./types').Track[];
   albums: import('./types').Album[];
   artists: import('./types').Artist[];
+  playlists: import('./types').Playlist[];
 }> {
   const q = type ? `?item_type=${type}` : '';
   const rows = await fetchJSON<Array<{ item_type: string; item_id: number }>>(
@@ -2799,15 +2810,16 @@ export async function getFavorites(
     return res.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
   };
 
-  const [tracks, albums, artists] = await Promise.all([
+  const [tracks, albums, artists, playlists] = await Promise.all([
     settle(ids('track'), getTrack),
     settle(ids('album'), getAlbum),
     settle(ids('artist'), getArtist),
+    settle(ids('playlist'), getPlaylist),
   ]);
-  return { tracks, albums, artists };
+  return { tracks, albums, artists, playlists };
 }
 
-export function addFavorite(profileId: number, body: { track_id?: number; album_id?: number; artist_id?: number }) {
+export function addFavorite(profileId: number, body: FavItem) {
   const it = favItem(body);
   if (!it) return Promise.reject(new Error('addFavorite: no item id'));
   return fetchJSON<any>(`${BASE}/profiles/${profileId}/favorites/add`, {
@@ -2816,7 +2828,7 @@ export function addFavorite(profileId: number, body: { track_id?: number; album_
   });
 }
 
-export function removeFavorite(profileId: number, params: { track_id?: number; album_id?: number; artist_id?: number }) {
+export function removeFavorite(profileId: number, params: FavItem) {
   const it = favItem(params);
   if (!it) return Promise.reject(new Error('removeFavorite: no item id'));
   return fetchVoid(`${BASE}/profiles/${profileId}/favorites/remove`, {
@@ -2825,7 +2837,7 @@ export function removeFavorite(profileId: number, params: { track_id?: number; a
   });
 }
 
-export async function checkFavorite(profileId: number, params: { track_id?: number; album_id?: number; artist_id?: number }) {
+export async function checkFavorite(profileId: number, params: FavItem) {
   const it = favItem(params);
   if (!it) return { is_favorite: false };
   // Server exposes a batch check (POST {item_type, item_ids}) returning an
