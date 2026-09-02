@@ -3414,8 +3414,19 @@ export async function getTopPodcasts(genreId?: number | null, limit = 50, countr
   return data.items || data;
 }
 
-export async function getDiscoverPodcasts(): Promise<{ curated: any[]; top: any[]; genres: any[] }> {
-  const res = await fetch(`${BASE}/podcasts/discover`, { headers: authHeaders() });
+/**
+ * Sélection éditoriale et palmarès du PAYS demandé.
+ *
+ * 🔴 Le pays était absent de cet appel, et la route l'ignorait de toute façon :
+ * son palmarès était figé sur `"us"`. Changer de pays dans l'interface ne
+ * pouvait donc rien changer — « quand je sélectionne USA : rien » (Bertrand,
+ * 02/09/2026) — et un utilisateur français voyait « Crime Junkie » sous
+ * l'intitulé « Populaires » sans savoir qu'il regardait le classement
+ * américain. Corrigé des deux côtés le même jour.
+ */
+export async function getDiscoverPodcasts(country?: string): Promise<{ curated: any[]; top: any[]; genres: any[] }> {
+  const cc = country || podcastCountry();
+  const res = await fetch(`${BASE}/podcasts/discover?country=${encodeURIComponent(cc)}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`Discover podcasts failed: ${res.status} ${res.statusText}`);
   return res.json();
 }

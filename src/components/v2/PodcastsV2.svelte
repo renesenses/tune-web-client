@@ -20,7 +20,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { fold, formatDuration } from '../../lib/utils';
   import AlbumArt from '../AlbumArt.svelte';
-  import { PODCAST_GENRES } from '../../lib/podcast-genres';
+  import { PODCAST_GENRES, sousCategories } from '../../lib/podcast-genres';
   import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
@@ -42,7 +42,8 @@
   let subsLoading = $state(true);
   let discover = $state<{ curated: any[]; top: any[] } | null>(null);
   let discoverLoading = $state(false);
-  let discoverLoaded = false;
+  /** Pays pour lequel la découverte est déjà chargée. */
+  let discoverCharge: string | null = null;
   let error = $state<string | null>(null);
 
   // Émission ouverte + ses épisodes.
@@ -106,6 +107,30 @@
 
   let genre = $state<number | null>(null);
   /**
+   * Sous-catégorie — le SECOND niveau, demandé par Bertrand le 02/09/2026.
+   *
+   * `null` = tout le genre. Elle prime sur le genre quand elle est posée :
+   * Apple ne connaît qu'un identifiant à la fois, et une sous-catégorie EST un
+   * genre de son point de vue.
+   */
+  let sousGenre = $state<number | null>(null);
+
+  /**
+   * SECOND NIVEAU d'onglets dans « Découvrir » — demandé par Bertrand le
+   * 02/09/2026 : « Sélection (défaut), Populaires, Tous… ».
+   *
+   * Les quatre sections étaient empilées dans un seul défilement : il fallait
+   * descendre pour savoir ce qu'il y avait plus bas, et rien n'annonçait ce
+   * que l'onglet contenait. Même remède que sur l'écran Playlists le même
+   * jour, et même disposition que sur Streaming.
+   *
+   * « Sélection » par défaut : c'est le contenu choisi, celui qui a le plus de
+   * chances de tomber juste — les palmarès viennent après.
+   */
+  type Section = 'selection' | 'populaires' | 'tous' | 'radiofrance';
+  let section = $state<Section>('selection');
+  const sousGenres = $derived(sousCategories(genre));
+  /**
    * Titre du palmarès : le nom du genre choisi, « Tendances » sinon.
    *
    * Calculé ICI et non dans le balisage : `{@const}` n'est légal qu'en enfant
@@ -116,6 +141,10 @@
    * chose que ce qu'on voit.
    */
   const titrePalmares = $derived.by(() => {
+    // La SOUS-catégorie d'abord : afficher « Musique » au-dessus des interviews
+    // annoncerait plus large que ce qu'on montre.
+    const sous = sousGenres.find((g) => g.id === sousGenre)?.key;
+    if (sous) return $t(sous as any);
     const cle = PODCAST_GENRES.find((g) => g.id === genre)?.key;
     return cle ? $t(cle as any) : $t('v2.pod.trends' as any);
   });
@@ -166,7 +195,8 @@
   /** Palmarès : rechargé à chaque changement de genre OU de pays. */
   $effect(() => {
     if (tab !== 'discover') return;
-    const g = genre;
+    // La sous-catégorie prime : pour Apple, c'est un genre comme un autre.
+    const g = sousGenre ?? genre;
     const c = pays;
     topLoading = true;
     topErreur = null;
@@ -225,10 +255,15 @@
 
   // Découverte : chargée à la PREMIÈRE ouverture de l'onglet seulement.
   $effect(() => {
-    if (tab !== 'discover' || discoverLoaded) return;
-    discoverLoaded = true;
+    if (tab !== 'discover') return;
+    // Le PAYS fait partie de la requête : changer de pays doit relancer, sinon
+    // « Sélection » et « Populaires » restent sur le pays précédent alors que
+    // « Tous » a changé — trois sections, deux pays, sans que rien le dise.
+    const c = pays;
+    if (discoverCharge === c) return;
+    discoverCharge = c;
     discoverLoading = true;
-    avecDelai(api.getDiscoverPodcasts())
+    avecDelai(api.getDiscoverPodcasts(c))
       .then((d) => { discover = { curated: d?.curated ?? [], top: d?.top ?? [] }; })
       .catch(() => { discover = { curated: [], top: [] }; })
       .finally(() => { discoverLoading = false; });
@@ -407,19 +442,43 @@
            sections qui, elles, avaient leurs données. Constaté par Bertrand le
            02/09/2026 : « Découvrir podcasts : vide ». -->
       <svelte:boundary>
-      {#if discoverLoading && !discover}
-        <div class="state">Chargement de la sélection…</div>
-      {/if}
-      {#if discover?.curated.length}
-        <section class="sec"><h2>Sélection</h2>
+      <!-- SECOND NIVEAU : les quatre sections deviennent des onglets. Empilées,
+           il fallait défiler pour savoir ce qu'il y avait plus bas. -->
+      <nav class="sections" role="tablist">
+        <button class:on={section === 'selection'} role="tab" aria-selected={section === 'selection'}
+          onclick={() => (section = 'selection')}>{$t('v2.pod.secSelection' as any)}</button>
+        <button class:on={section === 'populaires'} role="tab" aria-selected={section === 'populaires'}
+          onclick={() => (section = 'populaires')}>{$t('v2.pod.secPopular' as any)}</button>
+        <button class:on={section === 'tous'} role="tab" aria-selected={section === 'tous'}
+          onclick={() => (section = 'tous')}>{$t('v2.pod.secAll' as any)}</button>
+        {#if radioFrance.length}
+          <button class:on={section === 'radiofrance'} role="tab" aria-selected={section === 'radiofrance'}
+            onclick={() => (section = 'radiofrance')}>Radio France</button>
+        {/if}
+      </nav>
+
+      {#if section === 'selection'}
+        {#if discoverLoading && !discover}
+          <div class="state">Chargement de la sélection…</div>
+        {:else if !discover?.curated.length}
+          <div class="state">{$t('v2.pod.noSelection' as any)}</div>
+        {:else}
           <div class="grid">{#each discover.curated.filter(match) as p, i (feedOf(p) ?? `c${i}`)}{@render tile(p, false)}{/each}</div>
-        </section>
-      {/if}
-      {#if discover?.top.length}
-        <section class="sec"><h2>Populaires</h2>
+        {/if}
+
+      {:else if section === 'populaires'}
+        {#if discoverLoading && !discover}
+          <div class="state">Chargement de la sélection…</div>
+        {:else if !discover?.top.length}
+          <div class="state">{$t('v2.pod.noSelection' as any)}</div>
+        {:else}
           <div class="grid">{#each discover.top.filter(match) as p, i (feedOf(p) ?? `d${i}`)}{@render tile(p, false)}{/each}</div>
-        </section>
-      {/if}
+        {/if}
+
+      {:else if section === 'radiofrance'}
+        <div class="grid">{#each radioFrance.filter(match) as p, i (feedOf(p) ?? `r${i}`)}{@render tile(p, false)}{/each}</div>
+
+      {:else}
       <!-- PALMARÈS par genre. Les puces commandent `getTopPodcasts`, qui
            interroge l'iTunes Store du pays choisi. -->
       <section class="sec">
@@ -432,9 +491,19 @@
                déjà par `{ id: null, key: 'podcasts.genre.all' }`. En ajouter un
                en donnait DEUX, côte à côte et tous deux actifs. -->
           {#each PODCAST_GENRES as g (g.id)}
-            <button class:on={genre === g.id} onclick={() => (genre = g.id)}>{$t(g.key as any)}</button>
+            <button class:on={genre === g.id} onclick={() => { genre = g.id; sousGenre = null; }}>{$t(g.key as any)}</button>
           {/each}
         </div>
+        <!-- SECOND NIVEAU. Il n'apparaît que si le genre choisi en a — tous
+             n'en ont pas, et une barre vide serait un choix sans choix. -->
+        {#if sousGenres.length}
+          <div class="puces sous">
+            <button class:on={sousGenre === null} onclick={() => (sousGenre = null)}>{$t('podcasts.sub.all' as any)}</button>
+            {#each sousGenres as sg (sg.id)}
+              <button class:on={sousGenre === sg.id} onclick={() => (sousGenre = sg.id)}>{$t(sg.key as any)}</button>
+            {/each}
+          </div>
+        {/if}
         {#if topLoading}
           <div class="state">{$t('v2.pod.topLoading' as any)}</div>
         {:else if topErreur}
@@ -463,10 +532,6 @@
         {/if}
       </section>
 
-      {#if radioFrance.length}
-        <section class="sec"><h2>Radio France</h2>
-          <div class="grid">{#each radioFrance.filter(match) as p, i (feedOf(p) ?? `r${i}`)}{@render tile(p, false)}{/each}</div>
-        </section>
       {/if}
 
       {#if !discoverLoading && !topLoading && !discover?.curated.length && !discover?.top.length && !top.length && !radioFrance.length}
@@ -578,6 +643,18 @@
     background:rgba(18,18,20,.82); color:#fff; font:700 11px var(--v2-mono)}
   .suite{margin-top:4px}
   .sub:disabled{opacity:.35; cursor:default}
+  /* Le second niveau se distingue du premier : plus discret, il se lit comme
+     un affinage et non comme un choix concurrent. */
+  .sections{display:flex; gap:2px; padding:0 0 10px; border-bottom:1px solid var(--v2-line); margin-bottom:16px}
+  .sections button{position:relative; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer;
+    font:600 13px var(--v2-sans); padding:8px 14px 12px}
+  .sections button:hover{color:var(--v2-txt)}
+  .sections button.on{color:var(--v2-txt)}
+  .sections button.on::after{content:""; position:absolute; left:10px; right:10px; bottom:-1px; height:2px;
+    border-radius:2px; background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2))}
+  .puces.sous{margin-top:-6px}
+  .puces.sous button{font-size:11.5px; padding:5px 10px; border-style:dashed}
+  .puces.sous button.on{border-style:solid}
   .err-inline{display:flex; align-items:center; gap:12px; color:var(--v2-danger)}
   .relancer{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
     border-radius:var(--v2-r-pill); font:600 12px var(--v2-sans); padding:5px 12px; cursor:pointer}

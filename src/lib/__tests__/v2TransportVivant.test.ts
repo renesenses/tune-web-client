@@ -279,7 +279,7 @@ describe('Podcasts — l’attente ne peut plus être éternelle', () => {
     const s = src();
     expect(/DELAI_MS\s*=\s*15000/.test(s), 'le délai a disparu').toBe(true);
     expect(s.includes('avecDelai(api.getTopPodcasts('), 'le palmarès attend sans limite').toBe(true);
-    expect(s.includes('avecDelai(api.getDiscoverPodcasts())'), 'la sélection attend sans limite').toBe(true);
+    expect(s.includes('avecDelai(api.getDiscoverPodcasts('), 'la sélection attend sans limite').toBe(true);
     // Et il le DIT : un « aucun podcast » sur une panne se lit comme un
     // catalogue vide, et on cherche au mauvais endroit.
     expect(s.includes('v2.pod.topTimeout'), 'l’échec ne se distingue plus d’un catalogue vide').toBe(true);
@@ -337,5 +337,70 @@ describe('Podcasts — les clés de liste', () => {
   it('on ne propose pas de s’abonner sans flux', () => {
     // `toggleSub` sortait silencieusement : le bouton était là et sans effet.
     expect(src().includes('disabled={!feedOf(p)}'), 'le bouton d’abonnement ment de nouveau').toBe(true);
+  });
+});
+
+/**
+ * Podcasts — le SECOND niveau de catégories.
+ *
+ * Demandé par Bertrand le 02/09/2026. Il avait un prérequis serveur : le point
+ * d'entrée « marketing tools » d'Apple IGNORE le paramètre `genre`, si bien que
+ * le premier niveau lui-même était décoratif dans les deux clients. Musique,
+ * Actualités, Tech et Fiction rendaient le classement identique.
+ *
+ * 🔴 Les identifiants ont été MESURÉS, pas repris de mémoire. Plusieurs de
+ * ceux que je croyais bons pointaient ailleurs — 1413 vers « Actualités »,
+ * 1502 vers « Jeux », 1503 vers « Automobile », 1545 à 1548 vers du SPORT.
+ * Un identifiant faux ne rate pas : il rend un classement plausible d'une tout
+ * autre catégorie, et personne ne s'en aperçoit.
+ */
+describe('Podcasts — sous-catégories', () => {
+  const src = () => lire('../../components/v2/PodcastsV2.svelte');
+  const table = () => lire('../podcast-genres.ts');
+
+  it('la sous-catégorie prime sur le genre dans la requête', () => {
+    // Apple ne connaît qu'un identifiant à la fois : une sous-catégorie EST un
+    // genre de son point de vue.
+    expect(
+      src().includes('const g = sousGenre ?? genre;'),
+      'la sous-catégorie n’est plus envoyée : le second niveau serait décoratif.',
+    ).toBe(true);
+  });
+
+  it('changer de genre remet la sous-catégorie à zéro', () => {
+    // Sinon on garde « Stand-up » en passant sur Musique, et la requête part
+    // sur un identifiant qui n'appartient plus au genre affiché.
+    expect(
+      src().includes('genre = g.id; sousGenre = null;'),
+      'la sous-catégorie survit au changement de genre.',
+    ).toBe(true);
+  });
+
+  it('le second niveau n’apparaît que s’il existe', () => {
+    // Tous les genres n'ont pas de sous-catégorie connue : une barre vide
+    // serait un choix sans choix.
+    expect(src().includes('{#if sousGenres.length}'), 'la barre s’affiche même vide').toBe(true);
+  });
+
+  it('le titre annonce la sous-catégorie, pas le genre', () => {
+    // « Musique » au-dessus des seules interviews annoncerait plus large que
+    // ce qu'on montre.
+    expect(src().includes('const sous = sousGenres.find'), 'le titre ignore la sous-catégorie').toBe(true);
+  });
+
+  it('aucun identifiant écarté n’est revenu dans la table', () => {
+    // Ceux-là ont été mesurés et pointent AILLEURS que ce que leur nom laisse
+    // croire. Les réintroduire donnerait des classements silencieusement faux.
+    const t = table();
+    for (const faux of ['1413', '1502', '1503', '1545', '1546', '1547', '1548']) {
+      expect(
+        new RegExp(`id: ${faux}\\b`).test(t),
+        `l’identifiant ${faux} est revenu : il rend une autre catégorie que son nom.`,
+      ).toBe(false);
+    }
+  });
+
+  it('un genre sans sous-catégorie rend une liste vide', () => {
+    expect(table().includes('return genre == null ? [] : (PODCAST_SUBGENRES[genre] ?? []);'), 'le repli a disparu').toBe(true);
   });
 });

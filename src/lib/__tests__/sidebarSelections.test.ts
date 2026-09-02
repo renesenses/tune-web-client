@@ -34,13 +34,24 @@ describe('Barre latérale — les raccourcis', () => {
     ).toBe(true);
   });
 
-  it('l’écran complet n’apparaît QUE s’il y en a plus de cinq', () => {
+  it('l’écran de gestion est atteignable dès le PREMIER raccourci', () => {
+    // Il ne sert pas qu'à voir les surnuméraires : c'est là qu'on renomme,
+    // qu'on change d'icône et qu'on épingle. Le réserver au dépassement de
+    // cinq rendait la gestion inatteignable tant qu'on en avait peu — c'est ce
+    // que faisait ma première version.
     const src = barre();
-    expect(src.includes('raccourcisEnTrop'), 'la condition a disparu').toBe(true);
+    expect(src.includes('{#if $shortcuts.length}'), 'l’entrée de gestion a disparu').toBe(true);
     expect(
-      /raccourcisEnTrop = \$derived\(\$shortcuts\.length > RACCOURCIS_BARRE\)/.test(src),
-      'l’entrée « voir tout » ne dépend plus du dépassement : elle serait un clic pour rien.',
-    ).toBe(true);
+      src.includes('raccourcisEnTrop'),
+      'la condition « plus de cinq » est revenue : la gestion redeviendrait inatteignable en dessous.',
+    ).toBe(false);
+  });
+
+  it('on peut CRÉER un raccourci depuis la barre', () => {
+    // Elle les affichait sans qu'aucun geste ne permette d'en poser un.
+    const src = barre();
+    expect(src.includes('addShortcut(n,'), 'la création a disparu').toBe(true);
+    expect(src.includes('class="plus"'), 'le bouton « + » a disparu').toBe(true);
   });
 
   it('les raccourcis sont CHARGÉS', () => {
