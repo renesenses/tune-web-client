@@ -300,6 +300,24 @@ export interface Zone {
    *  device uniquement — l'affichage garde le volume utilisateur. 0 = neutre.
    *  Sans effet sur une zone fixed_volume. */
   gain_trim_db?: number;
+  /**
+   * Sortie mono (#2362) : le serveur somme `M = (L + R) / 2` et émet `M` sur
+   * les DEUX voies de la zone.
+   *
+   * C'est un réglage de CÂBLAGE, pas d'agrément. Pour qui n'a qu'une enceinte
+   * raccordée sur un canal, la moitié de la musique est aujourd'hui inaudible
+   * — Nicolas Tardif, fil forum 1532 : « je perds toute la musique qui passe
+   * par le canal droit ». Il n'est donc pas derrière la barrière Premium.
+   *
+   * ⚠️ N'agit que sur une sortie **locale** : le serveur persiste le réglage
+   * sur n'importe quelle zone, mais la chaîne DSP qui l'applique n'existe
+   * qu'en local. Ce que le signal subit RÉELLEMENT est dit par `signal_path`,
+   * qui applique en plus la règle PURE — ne jamais déduire l'un de l'autre.
+   *
+   * Rendu par `GET /zones` **et** `GET /zones/{id}` (mesuré sur .18 : la clé
+   * est présente à `false` sur les 18 zones). Défaut off.
+   */
+  mono_downmix?: boolean;
   /** Marque choisie par l'utilisateur au catalogue (override). null si non défini. */
   brand?: string | null;
   /** Modèle choisi par l'utilisateur (override). null si non défini. */
