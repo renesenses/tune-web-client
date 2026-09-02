@@ -162,12 +162,29 @@ describe('Accueil — le mode édition', () => {
       'un effet relance les chargements : la boucle de dépendance revient.',
     ).toBe(false);
     // Et l'ajout au tableau ne le RELIT pas.
-    expect(src.includes('etats.push(e);'), 'la mutation sans relecture a disparu').toBe(true);
+    expect(src.includes('etats.push({ id,'), 'la mutation sans relecture a disparu').toBe(true);
     expect(
       // Avec le point-virgule : la forme du CODE. Sans lui, la mention dans
       // le commentaire d'explication ferait rougir le garde pour rien.
       src.includes('etats = [...etats, e];'),
       'l’affectation qui relit le tableau est revenue.',
+    ).toBe(false);
+  });
+
+  it('on n’écrit JAMAIS dans la référence poussée', () => {
+    // 🔴 `$state` enveloppe le tableau dans un proxy : `etats.push(objet)` y
+    // range une version SUIVIE, tandis que la variable locale pointe encore
+    // l'objet BRUT. Muter cette variable ne déclenche aucun rendu — l'écran
+    // reste sur « Chargement… » pendant que l'état, lui, a changé.
+    //
+    // C'est la vraie cause des « Chargement… x4 », après trois correctifs qui
+    // visaient ailleurs (02/09/2026).
+    const src = ecran();
+    expect(src.includes('function majEtat(id: string'), 'l’écriture centralisée a disparu').toBe(true);
+    expect(src.includes('majEtat(id, {'), 'l’échec n’écrit plus par `majEtat`').toBe(true);
+    expect(
+      /\be\.phase\s*=/.test(src),
+      'une référence gardée de côté est de nouveau mutée : le rendu ne suivrait pas.',
     ).toBe(false);
   });
 

@@ -75,6 +75,15 @@
   const etatDe = (id: string) => etats.find((e) => e.id === id);
 
   /**
+   * Écrit dans l'entrée du tableau — la version SUIVIE, jamais une référence
+   * gardée de côté. C'est la seule écriture d'état de ce composant.
+   */
+  function majEtat(id: string, patch: Partial<Etat>) {
+    const e = etats.find((x) => x.id === id);
+    if (e) Object.assign(e, patch);
+  }
+
+  /**
    * 🔴 Garde NON RÉACTIF des widgets déjà demandés.
    *
    * `chargerWidget` est appelée depuis un `$effect`. Si son garde lisait
@@ -147,10 +156,19 @@
     demandes.add(id);
     const w = widgetParId(id);
     if (!w) return;
-    const e: Etat = { id, phase: 'attente', elements: [], chiffres: [] };
-    // `push` sur le tableau `$state` : pas de relecture du tableau entier,
-    // et la réactivité en profondeur suit la mutation.
-    etats.push(e);
+    /**
+     * 🔴 On ne garde PAS la référence qu'on vient de pousser.
+     *
+     * `$state` enveloppe le tableau dans un proxy : `etats.push(objet)` y range
+     * une version SUIVIE, tandis que la variable locale pointe encore l'objet
+     * BRUT. Muter cette variable ne déclenche donc aucun rendu — l'écran reste
+     * sur « Chargement… » pendant que l'état, lui, a bien changé.
+     *
+     * C'est la vraie cause des « Chargement… x4 » de Bertrand (02/09/2026),
+     * après trois correctifs qui visaient ailleurs. On passe donc par `majEtat`,
+     * qui retrouve l'entrée DANS le tableau à chaque écriture.
+     */
+    etats.push({ id, phase: 'attente', elements: [], chiffres: [] });
 
     // `get()` et non `$store` : lus avec `$`, ces deux magasins deviendraient
     // des DÉPENDANCES de l'effet appelant, et la bibliothèque arrive en deux
@@ -160,15 +178,17 @@
 
     avecDelai(Promise.resolve(p))
       .then((r: any) => {
-        if (w.forme === 'chiffres') e.chiffres = r ?? [];
-        else e.elements = r ?? [];
-        e.phase = 'charge';
+        majEtat(id, w.forme === 'chiffres'
+          ? { phase: 'charge', chiffres: r ?? [] }
+          : { phase: 'charge', elements: r ?? [] });
       })
       .catch((err: any) => {
         // On DIT ce qui a échoué, et POURQUOI : une bande vide se lit comme
         // « rien à montrer », et on cherche alors un défaut de bibliothèque.
-        e.phase = 'echec';
-        e.raison = err?.message === 'delai' ? 'delai' : (err?.message ?? 'erreur');
+        majEtat(id, {
+          phase: 'echec',
+          raison: err?.message === 'delai' ? 'delai' : (err?.message ?? 'erreur'),
+        });
         console.warn('[accueil] widget en échec', id, err);
       });
   }
