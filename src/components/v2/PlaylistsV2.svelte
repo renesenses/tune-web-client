@@ -159,6 +159,35 @@
   type Onglet = 'listes' | 'smart';
   let onglet = $state<Onglet>('listes');
 
+  /**
+   * DEUX NIVEAUX d'onglets, comme l'écran Streaming.
+   *
+   * Bertrand, 02/09/2026 : les groupes empilés — locales, puis Qobuz, puis
+   * Tidal — n'étaient « pas lisibles ». Sur un compte fourni, il fallait
+   * défiler pour savoir ce qu'il y avait plus bas, et rien n'annonçait les
+   * sources disponibles.
+   *
+   * Premier niveau, en PASTILLES : la source. Second niveau, SOULIGNÉ : le
+   * type. Exactement la disposition de `StreamingV2` — service en pastilles,
+   * rubrique en dessous.
+   *
+   * Le second niveau n'existe que pour « cet appareil » : une playlist
+   * intelligente est une règle locale, un service n'en a pas.
+   */
+  const LOCAL = '__local__';
+  let source = $state<string>(LOCAL);
+
+  /** Les sources offertes : cet appareil, puis chaque service qui a des
+   *  playlists. Un service authentifié mais sans playlist n'ouvre pas une
+   *  pastille vide. */
+  const sources = $derived([LOCAL, ...svcEntries.map(([n]) => n)]);
+
+  // La source choisie peut disparaître — service déconnecté, playlists vidées.
+  // Sans ce repli l'écran resterait sur une pastille qui n'existe plus.
+  $effect(() => {
+    if (!sources.includes(source)) source = LOCAL;
+  });
+
   let smart = $state<any[]>([]);
   let smartCharge = false;
   let smartMosaiques = $state<Record<number, string[]>>({});
@@ -351,12 +380,29 @@
     {/if}
   </header>
 
-  <nav class="onglets" role="tablist">
-    <button class="onglet" class:actif={onglet === 'listes'} role="tab"
-      aria-selected={onglet === 'listes'} onclick={() => (onglet = 'listes')}>{$t('v2.pl.tabLists' as any)}</button>
-    <button class="onglet" class:actif={onglet === 'smart'} role="tab"
-      aria-selected={onglet === 'smart'} onclick={() => (onglet = 'smart')}>{$t('v2.pl.tabSmart' as any)}</button>
-  </nav>
+  <!-- Premier niveau : la SOURCE, en pastilles. Une seule source ne justifie
+       pas une barre de choix — on ne montre les pastilles qu'à partir de deux. -->
+  {#if sources.length > 1}
+    <nav class="srcs">
+      {#each sources as sc (sc)}
+        <button class:on={source === sc} onclick={() => { source = sc; onglet = 'listes'; }}>
+          {sc === LOCAL ? $t('v2.pl.here' as any) : sc}
+          <span class="cpt">{sc === LOCAL ? local.length : (services[sc]?.length ?? 0)}</span>
+        </button>
+      {/each}
+    </nav>
+  {/if}
+
+  <!-- Second niveau : le TYPE. Réservé à « cet appareil » — une playlist
+       intelligente est une règle locale, un service n'en a pas. -->
+  {#if source === LOCAL}
+    <nav class="onglets" role="tablist">
+      <button class="onglet" class:actif={onglet === 'listes'} role="tab"
+        aria-selected={onglet === 'listes'} onclick={() => (onglet = 'listes')}>{$t('v2.pl.tabLists' as any)}</button>
+      <button class="onglet" class:actif={onglet === 'smart'} role="tab"
+        aria-selected={onglet === 'smart'} onclick={() => (onglet = 'smart')}>{$t('v2.pl.tabSmart' as any)}</button>
+    </nav>
+  {/if}
 
   {#if panneauSauvegardes}
     <section class="sauv">
@@ -385,7 +431,30 @@
   {/if}
 
   <div class="scroll">
-    {#if onglet === 'smart'}
+    {#if source !== LOCAL}
+      <!-- Un service : ses playlists seules, sans en-tête de groupe — la
+           pastille active dit déjà de qui il s'agit. -->
+      {@const liste = services[source] ?? []}
+      {#if !liste.length}
+        <div class="state">{$t('v2.pl.noneHere' as any)}</div>
+      {:else}
+        <div class="grid">
+          {#each liste as pl (pl.source_id)}
+            <div class="card">
+              <span class="cv img">
+                <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} alt={pl.name} fallbackInitials={pl.name?.slice(0,1)} />
+              </span>
+              <span class="ct">{pl.name}</span>
+              <span class="ca">{pl.track_count} titres{pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}</span>
+              <button class="open" onclick={() => (opened = { kind: 'streaming', service: source, pl })} aria-label={`Ouvrir ${pl.name}`}></button>
+              <button class="pbtn" onclick={(e) => playStreaming(source, pl, e)} aria-label="Lire">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>
+              </button>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    {:else if onglet === 'smart'}
       <!-- Les intelligentes : une grille, comme tout le reste de cet écran
            (« playlists en vue grille par défaut », Bertrand, 02/09/2026). -->
       {#if !smart.length}
@@ -420,7 +489,6 @@
       <div class="state">Chargement des playlists…</div>
     {:else}
       <section class="grp">
-        {#if showAdvanced && svcEntries.length}<h2>Sur cet appareil</h2>{/if}
         {#if local.length}
           <div class="grid">
             {#each local as pl (pl.id)}
@@ -467,28 +535,6 @@
         {/if}
       </section>
 
-      {#if showAdvanced}
-        {#each svcEntries as [svc, list] (svc)}
-          <section class="grp">
-            <h2>{svc}</h2>
-            <div class="grid">
-              {#each list as pl (pl.source_id)}
-                <div class="card">
-                  <span class="cv img">
-                    <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} alt={pl.name} fallbackInitials={pl.name?.slice(0,1)} />
-                  </span>
-                  <span class="ct">{pl.name}</span>
-                  <span class="ca">{pl.track_count} titres{pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}</span>
-                  <button class="open" onclick={() => (opened = { kind: 'streaming', service: svc, pl })} aria-label={`Ouvrir ${pl.name}`}></button>
-                  <button class="pbtn" onclick={(e) => playStreaming(svc, pl, e)} aria-label="Lire">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>
-                  </button>
-                </div>
-              {/each}
-            </div>
-          </section>
-        {/each}
-      {/if}
     {/if}
   </div>
 
@@ -546,6 +592,18 @@
   .ghost input[type=file]{position:absolute; inset:0; opacity:0; cursor:pointer; width:100%}
   .ghost.sm{padding:5px 11px; font-size:12px}
 
+  /* Premier niveau : PASTILLES, comme les services de l'écran Streaming. */
+  .srcs{display:flex; gap:6px; flex-wrap:wrap; padding:4px 30px 0}
+  .srcs button{display:inline-flex; align-items:baseline; gap:8px; border:1px solid var(--v2-line2);
+    background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 13px var(--v2-sans);
+    padding:9px 16px; border-radius:var(--v2-r-pill); transition:.15s}
+  .srcs button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .srcs button.on{color:var(--v2-on-acc); border-color:transparent;
+    background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .srcs .cpt{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
+  .srcs button.on .cpt{color:var(--v2-on-acc); opacity:.75}
+
+  /* Second niveau : SOULIGNÉ, comme les rubriques de l'écran Streaming. */
   .onglets{display:flex; gap:4px; padding:4px 30px 0}
   .onglet{background:transparent; border:0; border-bottom:2px solid transparent; cursor:pointer;
     color:var(--v2-txt3); font:600 13.5px var(--v2-sans); padding:10px 12px}

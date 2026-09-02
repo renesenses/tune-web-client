@@ -1932,6 +1932,8 @@ export default {
   "v2.pl.restoreDone": "Sauvegarde restaurée",
   "v2.pl.share": "Partager (lien public)",
   "v2.pl.shared": "Lien public copié — quiconque l’a peut lire cette playlist",
+  "v2.pl.here": "Sur cet appareil",
+  "v2.pl.noneHere": "Aucune playlist pour cette source.",
   "v2.cover.favorite": "Ajouter aux favoris",
   "v2.cover.unfavorite": "Retirer des favoris",
   "v2.cover.edit": "Modifier",

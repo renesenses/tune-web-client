@@ -560,3 +560,62 @@ describe('Playlists — l’écran affiche enfin quelque chose', () => {
     expect(src.slice(i, i + 200).includes('catch'), 'aucun rattrapage par service').toBe(true);
   });
 });
+
+/**
+ * Deux NIVEAUX d'onglets, comme l'écran Streaming.
+ *
+ * Bertrand, 02/09/2026 : les groupes empilés — locales, puis Qobuz, puis
+ * Tidal — n'étaient « pas lisibles ». Sur un compte fourni il fallait défiler
+ * pour savoir ce qu'il y avait plus bas, et rien n'annonçait les sources.
+ *
+ * Premier niveau en pastilles : la SOURCE. Second niveau souligné : le TYPE.
+ */
+describe('Playlists — deux niveaux d’onglets', () => {
+  const ecran = () => lire('../../components/v2/PlaylistsV2.svelte');
+
+  it('la source est le premier niveau, en pastilles', () => {
+    const src = ecran();
+    expect(src.includes('<nav class="srcs">'), 'le premier niveau a disparu').toBe(true);
+    expect(
+      src.includes('{#each sources as sc (sc)}'),
+      'les sources ne sont plus énumérées : les services redeviendraient invisibles.',
+    ).toBe(true);
+  });
+
+  it('plus aucun groupe empilé', () => {
+    // C'est ce que Bertrand jugeait illisible : tout à la suite dans un seul
+    // défilement.
+    expect(
+      ecran().includes('{#each svcEntries as [svc, list] (svc)}'),
+      'les groupes de services sont revenus empilés sous les locales.',
+    ).toBe(false);
+  });
+
+  it('le second niveau n’existe que pour cet appareil', () => {
+    // Une playlist intelligente est une RÈGLE locale : un service n'en a pas,
+    // et l'onglet mènerait à une grille vide.
+    const src = ecran();
+    const i = src.indexOf('<nav class="onglets"');
+    expect(i, 'le second niveau a disparu').toBeGreaterThan(-1);
+    expect(
+      src.slice(Math.max(0, i - 260), i).includes('source === LOCAL'),
+      'les onglets Playlists/Intelligentes sont proposés sur un service.',
+    ).toBe(true);
+  });
+
+  it('une source disparue ramène sur cet appareil', () => {
+    // Service déconnecté ou playlists vidées : sans repli, l'écran resterait
+    // sur une pastille qui n'existe plus, donc sur une grille vide et muette.
+    expect(
+      ecran().includes('if (!sources.includes(source)) source = LOCAL;'),
+      'le repli a disparu : l’écran pourrait rester sur une source absente.',
+    ).toBe(true);
+  });
+
+  it('une seule source ne fait pas de barre de choix', () => {
+    expect(
+      ecran().includes('{#if sources.length > 1}'),
+      'les pastilles s’affichent même avec une seule source : un choix sans choix.',
+    ).toBe(true);
+  });
+});

@@ -1929,6 +1929,8 @@ export default {
   "v2.pl.restoreDone": "Backup restored",
   "v2.pl.share": "Share (public link)",
   "v2.pl.shared": "Public link copied — anyone with it can read this playlist",
+  "v2.pl.here": "On this device",
+  "v2.pl.noneHere": "No playlist for this source.",
   "v2.cover.favorite": "Add to favourites",
   "v2.cover.unfavorite": "Remove from favourites",
   "v2.cover.edit": "Edit",
