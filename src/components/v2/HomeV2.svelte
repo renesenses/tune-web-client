@@ -50,12 +50,44 @@
   let edition = $state(false);
   let ajoutOuvert = $state(false);
 
-  /** Contenu de chaque widget, par identifiant. */
-  let contenu = $state<Record<string, Element[]>>({});
-  let chiffres = $state<Record<string, { cle: string; valeur: string }[]>>({});
-  let enCours = $state<Record<string, boolean>>({});
-  let echecs = $state<Record<string, boolean>>({});
-  const demandes = new Set<string>();
+  /**
+   * L'état de chaque widget, dans UN SEUL tableau réactif.
+   *
+   * 🔴 Quatre dictionnaires séparés indexés par identifiant — `contenu`,
+   * `chiffres`, `enCours`, `echecs` — laissaient trop de place au doute :
+   * d'abord parce que les recopies `{ ...objet, [id]: … }` se perdaient entre
+   * elles quand deux widgets répondaient dans la même trame, ensuite parce que
+   * même corrigées en écriture directe, Bertrand voyait encore des widgets
+   * figés sur « Chargement… » (02/09/2026).
+   *
+   * Une entrée par widget, mutée sur place dans un tableau `$state` : la
+   * réactivité en profondeur de Svelte 5 s'y applique sans ambiguïté, et il n'y
+   * a plus qu'un seul endroit où l'état d'un widget peut changer.
+   */
+  interface Etat {
+    id: string;
+    phase: 'attente' | 'charge' | 'echec';
+    elements: Element[];
+    chiffres: { cle: string; valeur: string }[];
+    raison?: string;
+  }
+  let etats = $state<Etat[]>([]);
+  const etatDe = (id: string) => etats.find((e) => e.id === id);
+
+  /**
+   * Délai au-delà duquel on cesse d'attendre.
+   *
+   * Une attente sans limite ne se distingue pas d'un widget lent : il faut
+   * qu'elle finisse par DIRE quelque chose. Même valeur que sur l'écran
+   * Podcasts, où le même défaut s'était produit.
+   */
+  const DELAI_MS = 15000;
+  function avecDelai<T>(p: Promise<T>): Promise<T> {
+    return Promise.race([
+      p,
+      new Promise<T>((_, rejeter) => setTimeout(() => rejeter(new Error('delai')), DELAI_MS)),
+    ]);
+  }
 
   const disponibles = $derived(WIDGETS.filter((w) => !disposition.includes(w.id)));
 
@@ -92,44 +124,30 @@
 
   /** Charge un widget, une seule fois, et sans retenir les autres. */
   function chargerWidget(id: string) {
-    if (demandes.has(id)) return;
-    demandes.add(id);
+    if (etatDe(id)) return;
     const w = widgetParId(id);
     if (!w) return;
-    // 🔴 Écriture DIRECTE de la propriété, jamais `{ ...objet, [id]: … }`.
-    //
-    // Les widgets se chargent en PARALLÈLE. Avec une recopie, deux réponses qui
-    // arrivent dans la même trame lisent le même instantané et la seconde
-    // écrase la première : le drapeau de l'une repasse à `true`, et son widget
-    // reste sur « Chargement… » pour toujours.
-    //
-    // Vécu sur la capture de Bertrand du 02/09/2026 : « Reprendre l'écoute » et
-    // « Nouveautés de vos artistes » figés, pendant que « Récemment ajoutés »
-    // s'affichait. Les objets `$state` de Svelte 5 sont réactifs en
-    // PROFONDEUR : l'écriture directe suffit, et elle ne perd rien.
-    enCours[id] = true;
-    // 🔴 `get()` et non `$store`. Lus avec `$`, ces deux magasins deviendraient
-    // des DÉPENDANCES de l'effet qui appelle cette fonction — et la
-    // bibliothèque arrive en DEUX temps (`bootstrapV2` pose d'abord un premier
-    // lot, puis le reste). L'effet repartait donc à chaque fois, et le profil
-    // en ajoutait un tour : quatre passages pour un seul affichage.
-    //
-    // Le garde `demandes` empêchait bien de refaire les appels, mais les tours
-    // à vide restaient — et « au hasard » tirait dans une bibliothèque encore
-    // partielle. Signalé par Bertrand le 02/09/2026 : « 4x chargements ».
+    const e: Etat = { id, phase: 'attente', elements: [], chiffres: [] };
+    etats = [...etats, e];
+
+    // `get()` et non `$store` : lus avec `$`, ces deux magasins deviendraient
+    // des DÉPENDANCES de l'effet appelant, et la bibliothèque arrive en deux
+    // temps — l'effet repartait à chaque étape.
     const ctx = { profileId: get(currentProfileId), albums: get(albums) };
     const p = w.forme === 'chiffres' && w.chiffres ? w.chiffres(ctx) : w.charger(ctx);
-    p.then((r: any) => {
-      if (w.forme === 'chiffres') chiffres[id] = r ?? [];
-      else contenu[id] = r ?? [];
-    })
-      .catch(() => {
-        // On DIT que le widget a échoué : une bande vide se lit comme « rien à
-        // montrer », et on cherche alors un défaut de bibliothèque.
-        echecs[id] = true;
+
+    avecDelai(Promise.resolve(p))
+      .then((r: any) => {
+        if (w.forme === 'chiffres') e.chiffres = r ?? [];
+        else e.elements = r ?? [];
+        e.phase = 'charge';
       })
-      .finally(() => {
-        enCours[id] = false;
+      .catch((err: any) => {
+        // On DIT ce qui a échoué, et POURQUOI : une bande vide se lit comme
+        // « rien à montrer », et on cherche alors un défaut de bibliothèque.
+        e.phase = 'echec';
+        e.raison = err?.message === 'delai' ? 'delai' : (err?.message ?? 'erreur');
+        console.warn('[accueil] widget en échec', id, err);
       });
   }
 
@@ -147,6 +165,9 @@
   // ── Édition ──────────────────────────────────────────────────────────────
   function retirer(id: string) {
     disposition = disposition.filter((x) => x !== id);
+    // Sans cela, le remettre plus tard n'entraînerait aucun chargement : son
+    // état serait toujours là, figé sur ce qu'il contenait.
+    etats = etats.filter((e) => e.id !== id);
     void enregistrer();
   }
 
@@ -240,6 +261,9 @@
     {:else}
       {#each disposition as id, i (id)}
         {@const w = widgetParId(id)}
+        <!-- Les DEUX `{@const}` ici : ils ne sont légaux qu'en enfant direct
+             d'un bloc, et sous la `<section>` ils ne compilent pas. -->
+        {@const et = etatDe(id)}
         {#if w}
           <section
             class="bloc"
@@ -271,21 +295,23 @@
               {/if}
             </div>
 
-            {#if enCours[id]}
+            {#if !et || et.phase === 'attente'}
               <div class="state mince">{$t('common.loading' as any)}</div>
-            {:else if echecs[id]}
-              <div class="state mince err">{$t('v2.home.widgetFailed' as any)}</div>
+            {:else if et.phase === 'echec'}
+              <div class="state mince err">
+                {$t('v2.home.widgetFailed' as any)}{et.raison ? ` (${et.raison})` : ''}
+              </div>
             {:else if w.forme === 'chiffres'}
               <div class="chiffres">
-                {#each chiffres[id] ?? [] as c (c.cle)}
+                {#each et.chiffres as c (c.cle)}
                   <div class="stat"><span class="v">{c.valeur}</span><span class="l">{$t(c.cle as any)}</span></div>
                 {/each}
               </div>
-            {:else if !(contenu[id] ?? []).length}
+            {:else if !et.elements.length}
               <div class="state mince">{$t('v2.home.widgetEmpty' as any)}</div>
             {:else}
               <div class="bande">
-                {#each contenu[id] ?? [] as el (el.id)}
+                {#each et.elements as el (el.id)}
                   <button class="carte" onclick={() => jouer(el)} disabled={!el.jouer}>
                     <span class="cv"><AlbumArt coverPath={el.cover} albumId={null} size={0} alt={el.titre} fallbackInitials={el.titre?.slice(0, 1)} /></span>
                     <span class="ct">{el.titre}</span>

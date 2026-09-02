@@ -127,21 +127,42 @@ describe('Accueil — le mode édition', () => {
     expect(/\.bloc\.cible\{[^}]*border-top-color/.test(ecran()), 'la cible de dépôt n’est plus signalée').toBe(true);
   });
 
-  it('chaque widget se charge SEUL', () => {
+  it('chaque widget se charge SEUL, et son état vit dans UN endroit', () => {
     // Quatorze widgets, jusqu'à quatorze appels : un widget lent ou en panne ne
     // doit pas retenir les autres, et son échec ne doit pas vider la page.
+    //
+    // 🔴 UN SEUL tableau d'états, muté sur place. Quatre dictionnaires séparés
+    // indexés par identifiant laissaient trop de place au doute : les recopies
+    // se perdaient entre elles, et même corrigées en écriture directe des
+    // widgets restaient figés sur « Chargement… ».
     const src = ecran();
     expect(src.includes('function chargerWidget(id: string)'), 'le chargement par widget a disparu').toBe(true);
-    expect(src.includes('echecs[id] = true;'), 'un échec ne se dit plus').toBe(true);
-    // 🔴 Écriture DIRECTE, jamais par recopie : les widgets se chargent en
-    // parallèle, et deux recopies dans la même trame se perdent l'une l'autre —
-    // le drapeau repasse à `true` et le widget reste sur « Chargement… » pour
-    // toujours. Vécu le 02/09/2026 sur deux des quatre widgets par défaut.
+    expect(src.includes('let etats = $state<Etat[]>([])'), 'l’état unique a disparu').toBe(true);
     expect(
-      /enCours = \{ \.\.\.enCours/.test(src),
-      'la mise à jour par recopie est revenue : deux widgets qui répondent ensemble se perdraient l’un l’autre.',
+      /let (contenu|enCours|echecs) = \$state<Record</.test(src),
+      'les dictionnaires par identifiant sont revenus : l’état d’un widget peut de nouveau se perdre.',
     ).toBe(false);
     expect(src.includes('v2.home.widgetFailed'), 'l’échec ne se distingue plus d’un widget vide').toBe(true);
+  });
+
+  it('une attente ne peut pas être éternelle', () => {
+    // Sans limite, une attente ne se distingue pas d'un widget lent. Même
+    // remède que sur l'écran Podcasts, où le défaut s'était déjà produit.
+    const src = ecran();
+    expect(/DELAI_MS\s*=\s*15000/.test(src), 'le délai a disparu').toBe(true);
+    expect(src.includes('avecDelai(Promise.resolve(p))'), 'le chargement attend sans limite').toBe(true);
+    // Et la RAISON est affichée : « ça a échoué » sans dire pourquoi ne se
+    // diagnostique pas.
+    expect(src.includes('et.raison'), 'la raison de l’échec n’est plus affichée').toBe(true);
+  });
+
+  it('retirer un widget efface son état', () => {
+    // Sinon le remettre plus tard n'entraînerait aucun chargement : son état
+    // serait toujours là, figé sur ce qu'il contenait.
+    expect(
+      ecran().includes('etats = etats.filter((e) => e.id !== id);'),
+      'l’état survit au retrait : le widget reviendrait figé.',
+    ).toBe(true);
   });
 
   it('une page vidée DIT comment la remplir', () => {
