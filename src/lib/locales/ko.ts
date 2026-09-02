@@ -120,6 +120,7 @@ export default {
   'oxygen.facet.format': '포맷',
   'oxygen.facet.sample_rate': '샘플레이트',
   'oxygen.facet.bit_depth': '비트 심도',
+  'oxygen.facet.dr': '다이내믹 레인지',
   'oxygen.facet.folder': '폴더',
 
   'oxygen.facet.rating': '평점',

@@ -120,6 +120,7 @@ export default {
   'oxygen.facet.format': '格式',
   'oxygen.facet.sample_rate': '采样率',
   'oxygen.facet.bit_depth': '位深度',
+  'oxygen.facet.dr': '动态范围',
   'oxygen.facet.folder': '文件夹',
 
   'oxygen.facet.rating': '评分',

@@ -120,6 +120,7 @@ export default {
   'oxygen.facet.format': 'Format',
   'oxygen.facet.sample_rate': 'Frecvență',
   'oxygen.facet.bit_depth': 'Rezoluție',
+  'oxygen.facet.dr': 'Gamă dinamică',
   'oxygen.facet.folder': 'Dosar',
 
   'oxygen.facet.rating': 'Notă',

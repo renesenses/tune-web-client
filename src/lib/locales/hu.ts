@@ -301,6 +301,7 @@ export default {
   "oxygen.facet.format": "Formátum",
   "oxygen.facet.sample_rate": "Mintavételi frekvencia",
   "oxygen.facet.bit_depth": "Bitmélység",
+  "oxygen.facet.dr": "Dinamikatartomány",
   "oxygen.facet.folder": "Mappa",
   "oxygen.facet.rating": "Értékelés",
   "oxygen.facet.collection": "Gyűjtemények",

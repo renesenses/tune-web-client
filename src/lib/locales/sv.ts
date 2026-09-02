@@ -120,6 +120,7 @@ export default {
   'oxygen.facet.format': 'Format',
   'oxygen.facet.sample_rate': 'Samplingsfrekvens',
   'oxygen.facet.bit_depth': 'Bitdjup',
+  'oxygen.facet.dr': 'Dynamikomfång',
   'oxygen.facetsTitle': 'Facetter',
   'oxygen.facetClear': 'Avmarkera alla',
   'oxygen.collapseAll': 'Fäll ihop alla',

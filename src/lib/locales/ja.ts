@@ -120,6 +120,7 @@ export default {
   'oxygen.facet.format': 'フォーマット',
   'oxygen.facet.sample_rate': 'サンプルレート',
   'oxygen.facet.bit_depth': 'ビット深度',
+  'oxygen.facet.dr': 'ダイナミックレンジ',
   'oxygen.facet.folder': 'フォルダー',
 
   'oxygen.facet.rating': '評価',

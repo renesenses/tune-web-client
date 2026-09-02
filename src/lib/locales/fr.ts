@@ -316,6 +316,7 @@ export default {
   'oxygen.facet.format': 'Format',
   'oxygen.facet.sample_rate': 'Fréquence',
   'oxygen.facet.bit_depth': 'Résolution',
+  'oxygen.facet.dr': 'Dynamique',
   'oxygen.facet.folder': 'Répertoire',
 
   'oxygen.facet.rating': 'Note',

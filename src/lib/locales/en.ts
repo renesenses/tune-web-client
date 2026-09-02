@@ -316,6 +316,7 @@ export default {
   'oxygen.facet.format': 'Format',
   'oxygen.facet.sample_rate': 'Sample rate',
   'oxygen.facet.bit_depth': 'Bit depth',
+  'oxygen.facet.dr': 'Dynamic range',
   'oxygen.facet.folder': 'Folder',
 
   'oxygen.facet.rating': 'Rating',

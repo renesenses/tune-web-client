@@ -120,6 +120,7 @@ export default {
   'oxygen.facet.format': 'Format',
   'oxygen.facet.sample_rate': 'Abtastrate',
   'oxygen.facet.bit_depth': 'Bittiefe',
+  'oxygen.facet.dr': 'Dynamikumfang',
   'oxygen.facet.folder': 'Ordner',
 
   'oxygen.facet.rating': 'Bewertung',

@@ -120,6 +120,7 @@ export default {
   'oxygen.facet.format': 'Formato',
   'oxygen.facet.sample_rate': 'Frequenza',
   'oxygen.facet.bit_depth': 'Risoluzione',
+  'oxygen.facet.dr': 'Gamma dinamica',
   'oxygen.facet.folder': 'Cartella',
 
   'oxygen.facet.rating': 'Valutazione',
