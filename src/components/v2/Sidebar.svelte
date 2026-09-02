@@ -33,6 +33,7 @@
   const CORE: Item[] = [
     { view: 'home', label: 'Accueil', icon: 'M3 11l9-8 9 8M5 10v10h14V10' },
     { view: 'library', label: 'Bibliothèque', icon: 'M4 5v14M9 5v14M14 6l5 13' },
+    { view: 'collections', label: 'Collections', icon: 'M4 6h7v7H4zM13 6h7v7h-7zM4 15h7v3H4zM13 15h7v3h-7z' },
     { view: 'radios', label: 'Radio en direct', icon: 'M12 12h.01M7.5 7.5a6 6 0 0 0 0 9M16.5 7.5a6 6 0 0 1 0 9M4.5 4.5a10 10 0 0 0 0 15M19.5 4.5a10 10 0 0 1 0 15' },
     { view: 'playlists', label: 'Playlists', icon: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6' },
     { view: 'podcasts', label: 'Podcasts', icon: 'M12 4a7 7 0 0 0 0 14M12 4a7 7 0 0 1 0 14M9 20h6' },

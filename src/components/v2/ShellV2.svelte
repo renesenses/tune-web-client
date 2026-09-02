@@ -28,6 +28,7 @@
   import ConverterV2 from './ConverterV2.svelte';
   import DeclickV2 from './DeclickV2.svelte';
   import PluginsV2 from './PluginsV2.svelte';
+  import CollectionsV2 from './CollectionsV2.svelte';
   import MetadataV2 from './MetadataV2.svelte';
   import SupportV2 from './SupportV2.svelte';
   // Barre de transport : celle du client actuel, telle quelle. On ne la FORKE
@@ -121,6 +122,8 @@
         <MetadataV2 />
       {:else if $activeView === 'support'}
         <SupportV2 />
+      {:else if $activeView === 'collections'}
+        <CollectionsV2 />
       {:else if $activeView === 'nowplaying'}
         <!-- `onAddToPlaylist` non fournie : le bouton « ajouter à une playlist »
              de cet écran reste masqué tant que la coquille v2 n'a pas sa propre
