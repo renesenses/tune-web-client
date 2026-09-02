@@ -1494,6 +1494,8 @@ export default {
   "library.sortOriginalYear": "Originalår",
   "library.sortAddedDate": "Datum tillagt",
   "library.sortDynamicRange": "Dynamikomfång",
+  "library.sortRandom": "Slumpmässig",
+  "library.reshuffle": "Blanda om",
   "library.drRange": "DR",
   "library.drMin": "Lägsta DR",
   "library.drMax": "Högsta DR",

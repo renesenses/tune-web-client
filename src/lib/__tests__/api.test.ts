@@ -581,3 +581,72 @@ describe('tranche de Dynamic Range', () => {
     expect(await api.getAlbumDynamicRanges()).toEqual([14, 11, 8]);
   });
 });
+
+// =========================================================================
+// Tri aléatoire et sa graine (#3074)
+// =========================================================================
+
+/**
+ * Le contrat serveur : `sort=random` sans `seed` en fait tirer une et la
+ * renvoie ; l'appelant DOIT la repasser sur les pages suivantes. La vue
+ * Bibliothèque charge ses albums en plusieurs requêtes — sans graine
+ * partagée, chaque `offset` re-tire, et la grille montre des albums en double
+ * tout en en cachant d'autres. C'est la panne que ces tests interdisent.
+ */
+describe('tri aléatoire : la graine', () => {
+  it('ne pose aucune graine quand on n\'en fournit pas', async () => {
+    mockFetch({ items: [], total: 0, seed: 4242 });
+    await api.getAllAlbumsSeeded(100, 'random', 'asc', 1, 100);
+
+    expect(fetchCalls[0].url).toContain('sort=random');
+    expect(fetchCalls[0].url).not.toContain('seed=');
+  });
+
+  it('rend la graine que le serveur a tirée', async () => {
+    mockFetch({ items: [], total: 0, seed: 4242 });
+    const draw = await api.getAllAlbumsSeeded(100, 'random', 'asc', 1, 100);
+    expect(draw.seed).toBe(4242);
+  });
+
+  it('repasse la graine fournie', async () => {
+    mockFetch({ items: [], total: 0, seed: 4242 });
+    await api.getAllAlbumsSeeded(100, 'random', 'asc', 1, 100, undefined, 777);
+    expect(fetchCalls[0].url).toContain('seed=777');
+  });
+
+  it('réutilise sur les lots suivants la graine apprise au premier', async () => {
+    // Deux lots : le premier plein (donc suivi d'un second), le second court.
+    let appel = 0;
+    const fn = vi.fn(async (url: string, init?: RequestInit) => {
+      fetchCalls.push({ url, init });
+      const items = appel++ === 0 ? [{ id: 1 }, { id: 2 }] : [{ id: 3 }];
+      // `fetchJSON` lit `text()` puis `JSON.parse` — jamais `json()`.
+      const corps = JSON.stringify({ items, total: 3, seed: 99 });
+      return {
+        ok: true, status: 200, statusText: 'OK',
+        headers: new Map([['content-type', 'application/json']]),
+        json: async () => JSON.parse(corps),
+        text: async () => corps,
+        blob: async () => new Blob([corps]),
+      } as unknown as Response;
+    });
+    vi.stubGlobal('fetch', fn);
+
+    const draw = await api.getAllAlbumsSeeded(2, 'random', 'asc');
+
+    expect(fetchCalls.length).toBe(2);
+    expect(fetchCalls[0].url).not.toContain('seed=');
+    // Le point du test : le SECOND lot lit le même tirage que le premier.
+    expect(fetchCalls[1].url).toContain('seed=99');
+    expect(draw.seed).toBe(99);
+    expect(draw.albums.length).toBe(3);
+  });
+
+  it('getAllAlbums reste inchangée pour ses autres appelants', async () => {
+    mockFetch({ items: [{ id: 1 }], total: 1 });
+    const albums = await api.getAllAlbums(100, 'title', 'asc', 1, 100);
+
+    expect(Array.isArray(albums)).toBe(true);
+    expect(fetchCalls[0].url).not.toContain('seed=');
+  });
+});
