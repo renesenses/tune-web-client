@@ -293,3 +293,49 @@ describe('Podcasts — l’attente ne peut plus être éternelle', () => {
     ).toBe(false);
   });
 });
+
+/**
+ * Une clé de `{#each}` ne se déduit pas de `??` sur une chaîne.
+ *
+ * Le palmarès des podcasts rend `feed_url: ''` — une chaîne VIDE, pas `null` —
+ * sur ses cinquante entrées. `feedOf(p) ?? i` laissait donc passer la valeur
+ * vide, et les cinquante partageaient la clé `''` : Svelte s'arrête sur
+ * `each_key_duplicate` dès les deux premiers, et l'écran devient blanc.
+ *
+ * Il a fallu poser une frontière d'erreur pour seulement LIRE la cause : le
+ * plantage ne disait rien, et « Découvrir » paraissait simplement vide.
+ * Mesuré sur le serveur de Bertrand le 02/09/2026, les 50 entrées du palmarès.
+ */
+describe('Podcasts — les clés de liste', () => {
+  const src = () => lire('../../components/v2/PodcastsV2.svelte');
+
+  it('un flux VIDE ne devient pas une clé', () => {
+    const s = src();
+    expect(
+      s.includes('p?.feed_url || p?.feedUrl || null'),
+      '`??` est revenu : une chaîne vide passerait et cinquante podcasts partageraient la même clé.',
+    ).toBe(true);
+  });
+
+  it('aucun bloc ne garde une clé d’index nue', () => {
+    // Deux blocs voisins tirés de la même liste doivent avoir des espaces de
+    // clés distincts, sinon un remaniement les confond.
+    expect(
+      src().includes('(feedOf(p) ?? i)'),
+      'une clé d’index nue est revenue.',
+    ).toBe(false);
+  });
+
+  it('l’écran a une frontière d’erreur', () => {
+    // Sans elle, une exception de rendu vide l'écran sans message, et rien ne
+    // distingue un plantage d'un catalogue absent.
+    const s = src();
+    expect(s.includes('<svelte:boundary>'), 'la frontière a disparu').toBe(true);
+    expect(s.includes('{#snippet failed('), 'le message d’échec a disparu').toBe(true);
+  });
+
+  it('on ne propose pas de s’abonner sans flux', () => {
+    // `toggleSub` sortait silencieusement : le bouton était là et sans effet.
+    expect(src().includes('disabled={!feedOf(p)}'), 'le bouton d’abonnement ment de nouveau').toBe(true);
+  });
+});

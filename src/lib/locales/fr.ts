@@ -1945,6 +1945,7 @@ export default {
   "v2.pod.topTimeout": "Le palmarès n’a pas répondu à temps.",
   "v2.pod.topFailed": "Le palmarès n’a pas pu être chargé.",
   "v2.pod.retry": "Réessayer",
+  "v2.pod.noFeed": "Ce classement ne fournit pas le flux : abonnement impossible d’ici.",
   "v2.cover.favorite": "Ajouter aux favoris",
   "v2.cover.unfavorite": "Retirer des favoris",
   "v2.cover.edit": "Modifier",

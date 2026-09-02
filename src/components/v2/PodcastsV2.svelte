@@ -243,8 +243,19 @@
   function author(p: any): string {
     return p?.author ?? p?.artistName ?? '';
   }
+  /**
+   * Flux d'un podcast — sa seule identité stable.
+   *
+   * 🔴 `||` et non `??`. Le palmarès rend `feed_url: ''` — une chaîne VIDE, pas
+   * `null` — sur ses cinquante entrées. Avec `??`, la valeur vide passait et
+   * devenait la clé du `{#each}` : cinquante podcasts sous la même clé, et
+   * Svelte s'arrête sur `each_key_duplicate` dès les deux premiers.
+   *
+   * L'écran entier devenait blanc, sans message. Il a fallu poser une
+   * frontière d'erreur pour lire la cause (02/09/2026).
+   */
   function feedOf(p: any): string | null {
-    return p?.feed_url ?? p?.feedUrl ?? null;
+    return p?.feed_url || p?.feedUrl || null;
   }
 
   function match(p: any): boolean {
@@ -386,7 +397,7 @@
       {:else if !resultats.length}
         <div class="state">Aucun résultat.</div>
       {:else}
-        <div class="grid">{#each resultats as p, i (feedOf(p) ?? i)}{@render tile(p, false)}{/each}</div>
+        <div class="grid">{#each resultats as p, i (feedOf(p) ?? `q${i}`)}{@render tile(p, false)}{/each}</div>
       {/if}
 
     {:else}
@@ -401,12 +412,12 @@
       {/if}
       {#if discover?.curated.length}
         <section class="sec"><h2>Sélection</h2>
-          <div class="grid">{#each discover.curated.filter(match) as p, i (feedOf(p) ?? i)}{@render tile(p, false)}{/each}</div>
+          <div class="grid">{#each discover.curated.filter(match) as p, i (feedOf(p) ?? `c${i}`)}{@render tile(p, false)}{/each}</div>
         </section>
       {/if}
       {#if discover?.top.length}
         <section class="sec"><h2>Populaires</h2>
-          <div class="grid">{#each discover.top.filter(match) as p, i (feedOf(p) ?? i)}{@render tile(p, false)}{/each}</div>
+          <div class="grid">{#each discover.top.filter(match) as p, i (feedOf(p) ?? `d${i}`)}{@render tile(p, false)}{/each}</div>
         </section>
       {/if}
       <!-- PALMARÈS par genre. Les puces commandent `getTopPodcasts`, qui
@@ -439,7 +450,7 @@
           <!-- Les DIX premiers en bandeau, numérotés. Un classement dont on ne
                voit pas le rang n'est plus un classement. -->
           <div class="tete">
-            {#each tete as p, i (feedOf(p) ?? i)}
+            {#each tete as p, i (feedOf(p) ?? `t${i}`)}
               <div class="rangee">
                 <span class="rang">#{i + 1}</span>
                 {@render tile(p, false)}
@@ -447,14 +458,14 @@
             {/each}
           </div>
           {#if suite.length}
-            <div class="grid suite">{#each suite.filter(match) as p, i (feedOf(p) ?? i)}{@render tile(p, false)}{/each}</div>
+            <div class="grid suite">{#each suite.filter(match) as p, i (feedOf(p) ?? `s${i}`)}{@render tile(p, false)}{/each}</div>
           {/if}
         {/if}
       </section>
 
       {#if radioFrance.length}
         <section class="sec"><h2>Radio France</h2>
-          <div class="grid">{#each radioFrance.filter(match) as p, i (feedOf(p) ?? i)}{@render tile(p, false)}{/each}</div>
+          <div class="grid">{#each radioFrance.filter(match) as p, i (feedOf(p) ?? `r${i}`)}{@render tile(p, false)}{/each}</div>
         </section>
       {/if}
 
@@ -530,7 +541,13 @@
     <span class="cv"><AlbumArt coverPath={cover(p)} albumId={null} size={0} alt={title(p)} fallbackInitials={title(p).slice(0,1)} /></span>
     <span class="nm">{title(p)}</span>
     {#if author(p)}<span class="au">{author(p)}</span>{/if}
-    <button class="sub" class:on={sub || isSubscribed(p)} onclick={(e) => toggleSub(p, e)}
+    <!-- Sans FLUX, il n'y a rien à quoi s'abonner : `toggleSub` sortait
+         silencieusement, et le bouton mentait. Le palmarès rend `feed_url: ''`
+         sur ses cinquante entrées — le même défaut rend l'abonnement inerte
+         sur l'écran ACTUEL, où le bouton est simplement là et sans effet. -->
+    <button class="sub" class:on={sub || isSubscribed(p)} disabled={!feedOf(p)}
+      onclick={(e) => toggleSub(p, e)}
+      title={!feedOf(p) ? $t('v2.pod.noFeed' as any) : undefined}
       aria-label={isSubscribed(p) ? 'Se désabonner' : "S'abonner"}>
       {#if isSubscribed(p)}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
@@ -560,6 +577,7 @@
   .rang{position:absolute; top:8px; left:8px; z-index:2; padding:2px 7px; border-radius:var(--v2-r-pill);
     background:rgba(18,18,20,.82); color:#fff; font:700 11px var(--v2-mono)}
   .suite{margin-top:4px}
+  .sub:disabled{opacity:.35; cursor:default}
   .err-inline{display:flex; align-items:center; gap:12px; color:var(--v2-danger)}
   .relancer{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
     border-radius:var(--v2-r-pill); font:600 12px var(--v2-sans); padding:5px 12px; cursor:pointer}

@@ -1942,6 +1942,7 @@ export default {
   "v2.pod.topTimeout": "The chart did not answer in time.",
   "v2.pod.topFailed": "The chart could not be loaded.",
   "v2.pod.retry": "Retry",
+  "v2.pod.noFeed": "This chart provides no feed URL: cannot subscribe from here.",
   "v2.cover.favorite": "Add to favourites",
   "v2.cover.unfavorite": "Remove from favourites",
   "v2.cover.edit": "Edit",
