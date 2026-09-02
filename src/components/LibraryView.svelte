@@ -537,6 +537,10 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       .catch(() => {})
       .finally(() => genreTreeLoaded = true);
     loadUserTags();
+    // Les DR réellement présents (#2144). Un échec ou un serveur antérieur à
+    // la v0.9.130 rend une liste vide : la commande n'est simplement pas
+    // dessinée, aucune erreur à l'écran.
+    api.getAlbumDynamicRanges().then(v => drValues = v).catch(() => {});
   });
   let formatFilter = $state<string | null>(null);
   let qualityFilter = $state<string | null>(null);
@@ -624,13 +628,18 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   });
 
   // Sort options
-  type AlbumSortKey = 'title' | 'artist' | 'release_date' | 'original_year' | 'added_date';
+  type AlbumSortKey = 'title' | 'artist' | 'release_date' | 'original_year' | 'added_date' | 'dynamic_range';
   const ALBUM_SORT_OPTIONS: { key: AlbumSortKey; label: string; defaultOrder: 'asc' | 'desc' }[] = [
     { key: 'title', label: 'library.sortTitle', defaultOrder: 'asc' },
     { key: 'artist', label: 'library.sortArtist', defaultOrder: 'asc' },
     { key: 'release_date', label: 'library.sortReleaseDate', defaultOrder: 'desc' },
     { key: 'original_year', label: 'library.sortOriginalYear', defaultOrder: 'desc' },
     { key: 'added_date', label: 'library.sortAddedDate', defaultOrder: 'desc' },
+    // Dynamic Range (#2144). Décroissant par défaut : on trie par DR pour
+    // remonter ses disques les PLUS dynamiques, pas les plus écrasés. Les
+    // albums sans tag sortent en dernier (`NULLS LAST` côté serveur) — les
+    // annoncer à DR0 serait un mensonge.
+    { key: 'dynamic_range', label: 'library.sortDynamicRange', defaultOrder: 'desc' },
   ];
   // Album sort lives in the server-synced preferences store (#1134) so the
   // chosen order follows the user across sessions/devices, not just this browser.
@@ -665,6 +674,32 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // Persist through the preferences store (localStorage + server ui_preferences),
     // so the order is remembered per profile across devices (#1134).
     preferences.update(p => ({ ...p, albumSort: key, albumSortOrder: order }));
+    albumsLoaded = false;
+    loadAlbums();
+  }
+
+  // Tranche de Dynamic Range (#2144), bornes INCLUSES et indépendantes.
+  //
+  // Le filtre part au SERVEUR (`dr_min`/`dr_max`) et non au client : la liste
+  // d'albums ne porte pas la valeur de DR, un filtrage local ne verrait donc
+  // rien. `drValues` liste ce qui existe réellement — vide sur une
+  // bibliothèque non taguée, et la commande n'est alors pas dessinée du tout
+  // plutôt que d'offrir un menu qui ne filtrerait rien.
+  let albumDrMin = $state<number | null>(null);
+  let albumDrMax = $state<number | null>(null);
+  let drValues = $state<number[]>([]);
+  let drRange = $derived(
+    albumDrMin == null && albumDrMax == null ? undefined : { min: albumDrMin, max: albumDrMax },
+  );
+  function setAlbumDr(borne: 'min' | 'max', valeur: string) {
+    const n = valeur === '' ? null : Number(valeur);
+    if (borne === 'min') albumDrMin = n; else albumDrMax = n;
+    albumsLoaded = false;
+    loadAlbums();
+  }
+  function clearAlbumDr() {
+    if (albumDrMin == null && albumDrMax == null) return;
+    albumDrMin = null; albumDrMax = null;
     albumsLoaded = false;
     loadAlbums();
   }
@@ -1081,6 +1116,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   // Alpha index for albums (years + months when sorted by date, letters otherwise)
   let albumIndexEntries = $derived.by(() => {
+    // Trié par DR, une bande de lettres A→Z ne désigne plus rien : elle
+    // sauterait à un titre au hasard dans une grille ordonnée par dynamique.
+    // Pas de repère plutôt qu'un faux repère — la liste d'albums ne porte pas
+    // la valeur de DR, on ne peut donc pas en dessiner un vrai ici.
+    if (albumSort === 'dynamic_range') return [];
     if (albumSort === 'release_date' || albumSort === 'original_year' || albumSort === 'added_date') {
       const keys = [...new Set(filteredAlbums.map(albumDateKey))];
       return albumSortOrder === 'desc' ? keys.sort((a, b) => b.localeCompare(a)) : keys.sort();
@@ -1480,12 +1520,12 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     if (scopedFolder) { await loadScopedAlbums(); return; }
     libraryLoading.set(true);
     try {
-      const first = await api.getAllAlbums(100, albumSort, albumSortOrder, 1, 100);
+      const first = await api.getAllAlbums(100, albumSort, albumSortOrder, 1, 100, drRange);
       albums.set(first);
       albumsLoaded = true;
       libraryLoading.set(false);
       if (first.length >= 100) {
-        const rest = await api.getAllAlbums(2000, albumSort, albumSortOrder);
+        const rest = await api.getAllAlbums(2000, albumSort, albumSortOrder, undefined, undefined, drRange);
         albums.set(rest);
       }
     } catch (e) {
@@ -3307,6 +3347,34 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             {/if}
           </button>
         {/if}
+        <!-- Tranche de Dynamic Range (#2144). Dessinée SEULEMENT si la
+             bibliothèque porte des tags DR : ailleurs, ce serait une commande
+             qui ne filtre rien. Deux bornes indépendantes — « DR12 et
+             au-dessus » se règle en ne touchant qu'au minimum. -->
+        {#if drValues.length > 0}
+          <span class="filter-sep">|</span>
+          <span class="dr-range" class:active={albumDrMin != null || albumDrMax != null}>
+            <span class="dr-label">{$tr('library.drRange')}</span>
+            <select class="dr-select" aria-label={$tr('library.drMin')} title={$tr('library.drMin')}
+              value={albumDrMin == null ? '' : String(albumDrMin)}
+              onchange={(e) => setAlbumDr('min', (e.currentTarget as HTMLSelectElement).value)}>
+              <option value="">{$tr('library.drAny')}</option>
+              {#each drValues as v}<option value={String(v)}>{v}</option>{/each}
+            </select>
+            <span class="dr-dash">–</span>
+            <select class="dr-select" aria-label={$tr('library.drMax')} title={$tr('library.drMax')}
+              value={albumDrMax == null ? '' : String(albumDrMax)}
+              onchange={(e) => setAlbumDr('max', (e.currentTarget as HTMLSelectElement).value)}>
+              <option value="">{$tr('library.drAny')}</option>
+              {#each drValues as v}<option value={String(v)}>{v}</option>{/each}
+            </select>
+            {#if albumDrMin != null || albumDrMax != null}
+              <button class="dr-clear" onclick={clearAlbumDr} title={$tr('library.drClear')} aria-label={$tr('library.drClear')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            {/if}
+          </span>
+        {/if}
         <span class="filter-sep">|</span>
         <span class="sort-control">
           <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M3 6h18M3 12h12M3 18h6" /></svg>
@@ -4770,6 +4838,48 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     color: var(--tune-text-muted);
     flex-shrink: 0;
   }
+
+  /* Tranche de Dynamic Range (#2144). Mêmes jetons que le tri voisin : la
+     commande appartient à la même barre, elle ne doit pas s'en distinguer. */
+  .dr-range {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .dr-label {
+    color: var(--tune-text-muted);
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .dr-range.active .dr-label { color: var(--tune-accent, #6c5ce7); }
+  .dr-select {
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.12s;
+  }
+  .dr-select:focus { border-color: var(--tune-accent); }
+  .dr-range.active .dr-select { border-color: var(--tune-accent, #6c5ce7); }
+  .dr-dash {
+    color: var(--tune-text-muted);
+    font-size: 12px;
+  }
+  .dr-clear {
+    display: inline-flex;
+    align-items: center;
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    padding: 2px;
+    cursor: pointer;
+  }
+  .dr-clear:hover { color: var(--tune-text, #e8e8ea); }
 
   .wall-toggle {
     display: inline-flex;

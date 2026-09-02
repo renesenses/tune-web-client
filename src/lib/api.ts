@@ -1077,25 +1077,58 @@ export function getRecentAlbums(limit = 50) {
   return fetchJSON<Album[]>(`${BASE}/library/albums/recent?limit=${limit}`);
 }
 
-export async function getAllAlbums(pageSize = 2000, sort = 'title', order = 'asc', page?: number, perPage?: number): Promise<Album[]> {
+/** Tranche de Dynamic Range, bornes INCLUSES (#2144). Les deux sont
+ *  facultatives et indépendantes, exactement comme côté serveur :
+ *  `{ min: 14 }` = « DR14 et au-dessus », `{ max: 7 }` = « DR7 et en dessous ».
+ *  Une borne nulle ou absente ne produit AUCUN paramètre — la réponse est
+ *  alors identique à celle d'avant. */
+export interface DrRange { min?: number | null; max?: number | null }
+
+/** Les bornes en paramètres d'URL, ou la chaîne vide. Le filtre est appliqué
+ *  par le SERVEUR : la liste d'albums ne porte pas la valeur de DR, un tri ou
+ *  un filtre côté client ne pourrait donc pas la voir. */
+function drParams(dr?: DrRange): string {
+  let out = '';
+  if (dr?.min != null) out += `&dr_min=${dr.min}`;
+  if (dr?.max != null) out += `&dr_max=${dr.max}`;
+  return out;
+}
+
+export async function getAllAlbums(pageSize = 2000, sort = 'title', order = 'asc', page?: number, perPage?: number, dr?: DrRange): Promise<Album[]> {
+  const drq = drParams(dr);
   // When page is specified, fetch a single page (for future pagination support)
   if (page !== undefined) {
     const limit = perPage ?? 100;
     const offset = (page - 1) * limit;
-    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${limit}&offset=${offset}&sort=${sort}&order=${order}`);
+    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${limit}&offset=${offset}&sort=${sort}&order=${order}${drq}`);
     return Array.isArray(raw) ? raw : (raw.items ?? []);
   }
   // Default: fetch all albums in batches
   const all: Album[] = [];
   let offset = 0;
   while (true) {
-    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}&sort=${sort}&order=${order}`);
+    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}&sort=${sort}&order=${order}${drq}`);
     const batch: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
     all.push(...batch);
     if (batch.length < pageSize) break;
     offset += pageSize;
   }
   return all;
+}
+
+/** Les valeurs de Dynamic Range RÉELLEMENT présentes dans la bibliothèque,
+ *  décroissantes. Vide sur une bibliothèque non taguée — et le client ne doit
+ *  alors dessiner AUCUNE commande, plutôt qu'une commande sans effet. */
+export async function getAlbumDynamicRanges(): Promise<number[]> {
+  try {
+    const raw = await fetchJSON<any>(`${BASE}/library/albums/filters`);
+    const vals = Array.isArray(raw?.dynamic_ranges) ? raw.dynamic_ranges : [];
+    return vals.map(Number).filter((n: number) => Number.isFinite(n)).sort((a: number, b: number) => b - a);
+  } catch {
+    // Un serveur antérieur à la v0.9.130 ne connaît pas la clé : pas de
+    // commande, pas d'erreur à l'écran.
+    return [];
+  }
 }
 
 export function getAlbum(id: number) {
