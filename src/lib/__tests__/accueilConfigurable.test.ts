@@ -145,19 +145,29 @@ describe('Accueil — le mode édition', () => {
     expect(src.includes('v2.home.widgetFailed'), 'l’échec ne se distingue plus d’un widget vide').toBe(true);
   });
 
-  it('le garde des widgets déjà demandés est NON réactif', () => {
-    // 🔴 `chargerWidget` est appelée depuis un `$effect` et ÉCRIT `etats`. Si
-    // son garde lisait `etats`, l'effet dépendrait de ce qu'il modifie :
-    // boucle de dépendance, Svelte interrompt, et plus AUCUN widget ne se
-    // charge. Vécu le 02/09/2026 — « rien ne charge » — en remplaçant les
-    // quatre dictionnaires par un tableau unique sans voir que le `Set`
-    // servait à couper ce cycle.
+  it('AUCUN effet ne lance les chargements', () => {
+    // 🔴 C'était la cause de tout : `chargerWidget` ÉCRIT `etats`, et
+    // l'affectation `etats = [...etats, e]` le RELISAIT au passage. L'effet qui
+    // l'appelait dépendait donc de ce qu'il modifie — Svelte interrompt la
+    // boucle, et plus rien ne se charge.
+    //
+    // J'ai d'abord cru couper le cycle avec un `Set` non réactif pour le garde.
+    // Ça ne suffisait pas : la lecture restait dans l'affectation. Trois tours
+    // perdus le 02/09/2026.
     const src = ecran();
-    expect(src.includes('const demandes = new Set<string>();'), 'le garde non réactif a disparu').toBe(true);
-    expect(src.includes('if (demandes.has(id)) return;'), 'le garde n’est plus consulté').toBe(true);
+    // Le chargement suit les GESTES : montage et ajout d'un widget.
+    expect(src.includes('function chargerTout()'), 'le lancement explicite a disparu').toBe(true);
     expect(
-      src.includes('if (etatDe(id)) return;'),
-      'le garde relit l’état réactif : l’effet dépendrait de ce qu’il écrit, et plus rien ne se chargerait.',
+      /\$effect\(\(\) => \{[^}]*chargerWidget/.test(src),
+      'un effet relance les chargements : la boucle de dépendance revient.',
+    ).toBe(false);
+    // Et l'ajout au tableau ne le RELIT pas.
+    expect(src.includes('etats.push(e);'), 'la mutation sans relecture a disparu').toBe(true);
+    expect(
+      // Avec le point-virgule : la forme du CODE. Sans lui, la mention dans
+      // le commentaire d'explication ferait rougir le garde pour rien.
+      src.includes('etats = [...etats, e];'),
+      'l’affectation qui relit le tableau est revenue.',
     ).toBe(false);
   });
 
@@ -165,7 +175,7 @@ describe('Accueil — le mode édition', () => {
     // Sans limite, une attente ne se distingue pas d'un widget lent. Même
     // remède que sur l'écran Podcasts, où le défaut s'était déjà produit.
     const src = ecran();
-    expect(/DELAI_MS\s*=\s*15000/.test(src), 'le délai a disparu').toBe(true);
+    expect(/DELAI_MS\s*=\s*8000/.test(src), 'le délai a disparu ou rallongé').toBe(true);
     expect(src.includes('avecDelai(Promise.resolve(p))'), 'le chargement attend sans limite').toBe(true);
     // Et la RAISON est affichée : « ça a échoué » sans dire pourquoi ne se
     // diagnostique pas.

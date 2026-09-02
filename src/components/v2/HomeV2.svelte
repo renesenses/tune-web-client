@@ -94,10 +94,12 @@
    * Délai au-delà duquel on cesse d'attendre.
    *
    * Une attente sans limite ne se distingue pas d'un widget lent : il faut
-   * qu'elle finisse par DIRE quelque chose. Même valeur que sur l'écran
-   * Podcasts, où le même défaut s'était produit.
+   * qu'elle finisse par DIRE quelque chose. Huit secondes : les quatorze
+   * sources répondent en quelques dizaines de millisecondes sur le serveur de
+   * Bertrand, et attendre quinze secondes pour apprendre qu'on a échoué se
+   * ressent comme une lenteur — c'est ce qu'il a signalé.
    */
-  const DELAI_MS = 15000;
+  const DELAI_MS = 8000;
   function avecDelai<T>(p: Promise<T>): Promise<T> {
     return Promise.race([
       p,
@@ -126,6 +128,7 @@
       // d'afficher une page vide.
     }
     charge = true;
+    chargerTout();
   }
 
   async function enregistrer() {
@@ -145,7 +148,9 @@
     const w = widgetParId(id);
     if (!w) return;
     const e: Etat = { id, phase: 'attente', elements: [], chiffres: [] };
-    etats = [...etats, e];
+    // `push` sur le tableau `$state` : pas de relecture du tableau entier,
+    // et la réactivité en profondeur suit la mutation.
+    etats.push(e);
 
     // `get()` et non `$store` : lus avec `$`, ces deux magasins deviendraient
     // des DÉPENDANCES de l'effet appelant, et la bibliothèque arrive en deux
@@ -168,10 +173,25 @@
       });
   }
 
-  $effect(() => {
-    if (!charge) return;
+  /**
+   * 🔴 AUCUN `$effect` pour lancer les chargements.
+   *
+   * Il y en avait un — `for (const id of disposition) chargerWidget(id)` — et
+   * il était la cause de tout : `chargerWidget` ÉCRIT `etats`, et l'écriture
+   * `etats = [...etats, e]` le RELIT au passage. L'effet dépendait donc de ce
+   * qu'il modifie. Svelte interrompt la boucle, et plus rien ne se charge.
+   *
+   * J'ai d'abord cru couper le cycle avec un `Set` non réactif pour le garde —
+   * ça ne suffisait pas, la lecture restait dans l'affectation. Trois tours
+   * perdus (Bertrand : « rien ne charge », puis « trop lent et ne marche
+   * pas »).
+   *
+   * Le chargement suit désormais les GESTES : au montage, à l'ajout d'un
+   * widget. C'est déterministe, et rien ne peut plus boucler.
+   */
+  function chargerTout() {
     for (const id of disposition) chargerWidget(id);
-  });
+  }
 
   function jouer(e: Element) {
     const z = $currentZoneId;
