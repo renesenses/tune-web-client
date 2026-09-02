@@ -132,7 +132,15 @@ describe('Accueil — le mode édition', () => {
     // doit pas retenir les autres, et son échec ne doit pas vider la page.
     const src = ecran();
     expect(src.includes('function chargerWidget(id: string)'), 'le chargement par widget a disparu').toBe(true);
-    expect(src.includes('echecs = { ...echecs, [id]: true }'), 'un échec ne se dit plus').toBe(true);
+    expect(src.includes('echecs[id] = true;'), 'un échec ne se dit plus').toBe(true);
+    // 🔴 Écriture DIRECTE, jamais par recopie : les widgets se chargent en
+    // parallèle, et deux recopies dans la même trame se perdent l'une l'autre —
+    // le drapeau repasse à `true` et le widget reste sur « Chargement… » pour
+    // toujours. Vécu le 02/09/2026 sur deux des quatre widgets par défaut.
+    expect(
+      /enCours = \{ \.\.\.enCours/.test(src),
+      'la mise à jour par recopie est revenue : deux widgets qui répondent ensemble se perdraient l’un l’autre.',
+    ).toBe(false);
     expect(src.includes('v2.home.widgetFailed'), 'l’échec ne se distingue plus d’un widget vide').toBe(true);
   });
 

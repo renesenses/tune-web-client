@@ -95,20 +95,31 @@
     demandes.add(id);
     const w = widgetParId(id);
     if (!w) return;
-    enCours = { ...enCours, [id]: true };
+    // 🔴 Écriture DIRECTE de la propriété, jamais `{ ...objet, [id]: … }`.
+    //
+    // Les widgets se chargent en PARALLÈLE. Avec une recopie, deux réponses qui
+    // arrivent dans la même trame lisent le même instantané et la seconde
+    // écrase la première : le drapeau de l'une repasse à `true`, et son widget
+    // reste sur « Chargement… » pour toujours.
+    //
+    // Vécu sur la capture de Bertrand du 02/09/2026 : « Reprendre l'écoute » et
+    // « Nouveautés de vos artistes » figés, pendant que « Récemment ajoutés »
+    // s'affichait. Les objets `$state` de Svelte 5 sont réactifs en
+    // PROFONDEUR : l'écriture directe suffit, et elle ne perd rien.
+    enCours[id] = true;
     const ctx = { profileId: $currentProfileId, albums: $albums };
     const p = w.forme === 'chiffres' && w.chiffres ? w.chiffres(ctx) : w.charger(ctx);
     p.then((r: any) => {
-      if (w.forme === 'chiffres') chiffres = { ...chiffres, [id]: r ?? [] };
-      else contenu = { ...contenu, [id]: r ?? [] };
+      if (w.forme === 'chiffres') chiffres[id] = r ?? [];
+      else contenu[id] = r ?? [];
     })
       .catch(() => {
         // On DIT que le widget a échoué : une bande vide se lit comme « rien à
         // montrer », et on cherche alors un défaut de bibliothèque.
-        echecs = { ...echecs, [id]: true };
+        echecs[id] = true;
       })
       .finally(() => {
-        enCours = { ...enCours, [id]: false };
+        enCours[id] = false;
       });
   }
 
@@ -281,7 +292,7 @@
 </section>
 
 <style>
-  .v2-home{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
+  .v2-home{display:flex; flex-direction:column; height:100%; min-width:0; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .top{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:24px 30px 12px; padding-right:130px}
   .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
@@ -301,7 +312,11 @@
   .puce:hover{color:var(--v2-txt); border-color:var(--v2-acc2); border-style:solid}
   .vide{color:var(--v2-txt3); font-size:13px}
 
-  .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
+  /* `min-width: 0` : sans lui, une bande large POUSSE la colonne au lieu de
+     défiler dans son cadre, et c'est la page entière qui prend une barre de
+     défilement horizontale — visible sur la capture du 02/09/2026. */
+  .scroll{flex:1; min-width:0; overflow-y:auto; overflow-x:hidden; padding:4px 0 40px}
+  .bloc{min-width:0}
   .state{padding:26px 30px; color:var(--v2-txt3); font-size:13.5px}
   .state.mince{padding:8px 30px 18px}
   .state.err{color:var(--v2-danger)}
