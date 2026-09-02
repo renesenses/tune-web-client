@@ -42,9 +42,7 @@
     // cours ».
     { view: 'nowplaying', label: 'Lecture en cours', icon: 'M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0m12-3a3 3 0 1 1-6 0 3 3 0 0 1 6 0' },
     { view: 'library', label: 'Bibliothèque', icon: 'M4 5v14M9 5v14M14 6l5 13' },
-    { view: 'collections', label: 'Collections', icon: 'M4 6h7v7H4zM13 6h7v7h-7zM4 15h7v3H4zM13 15h7v3h-7z' },
     { view: 'radios', label: 'Radio en direct', icon: 'M12 12h.01M7.5 7.5a6 6 0 0 0 0 9M16.5 7.5a6 6 0 0 1 0 9M4.5 4.5a10 10 0 0 0 0 15M19.5 4.5a10 10 0 0 1 0 15' },
-    { view: 'playlists', label: 'Playlists', icon: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6' },
     { view: 'podcasts', label: 'Podcasts', icon: 'M12 4a7 7 0 0 0 0 14M12 4a7 7 0 0 1 0 14M9 20h6' },
     // STREAMING dans le noyau (Bertrand, 28/08) : pour qui ecoute surtout en
     // ligne, c'est la porte d'entree principale — la reserver a l'Avance
@@ -78,6 +76,12 @@
   // Les deux nouveaux groupes sont TRADUITS, là où le reste de la barre porte
   // encore ses libellés en dur (dette connue) : on n'en ajoute pas.
   const SELECTIONS: { view: View; labelKey: string; icon: string }[] = [
+    // COLLECTIONS et PLAYLISTS rejoignent le groupe (Bertrand, 02/09/2026) :
+    // ce sont des sélections que l'utilisateur a constituées lui-même, au même
+    // titre que les étiquettes et les favoris. Dans le noyau, elles voisinaient
+    // avec Bibliothèque et Radio — des SOURCES, pas des choix.
+    { view: 'collections', labelKey: 'v2.nav.collections', icon: 'M4 6h7v7H4zM13 6h7v7h-7zM4 15h7v3H4zM13 15h7v3h-7z' },
+    { view: 'playlists', labelKey: 'v2.nav.playlists', icon: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6' },
     { view: 'tags', labelKey: 'v2.nav.tags', icon: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42zM6.5 6.5h.01' },
     { view: 'favorites', labelKey: 'v2.nav.favorites', icon: 'M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z' },
   ];

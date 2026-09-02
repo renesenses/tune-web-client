@@ -21,6 +21,8 @@
   import { fold } from '../../lib/utils';
   import type { RadioStation } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
+  import PochetteActions from './PochetteActions.svelte';
+  import RadioEditModale from './RadioEditModale.svelte';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -65,6 +67,9 @@
   const favorites = $derived(shown.filter((r) => r.favorite));
   const others = $derived(shown.filter((r) => !r.favorite));
 
+  /** Station en cours d'édition — le bouton haut-droit de la pochette. */
+  let enEdition = $state<RadioStation | null>(null);
+
   async function play(r: RadioStation) {
     const zid = $currentZoneId;
     if (r.id == null || zid == null) return;
@@ -79,8 +84,8 @@
     }
   }
 
-  async function toggleFav(r: RadioStation, e: MouseEvent) {
-    e.stopPropagation();
+  // `e` n'est plus nécessaire : `PochetteActions` arrête déjà le geste.
+  async function toggleFav(r: RadioStation) {
     if (r.id == null) return;
     try {
       const up = await api.updateRadio(r.id, { favorite: !r.favorite });
@@ -151,24 +156,45 @@
       {/if}
     {/if}
   </div>
+
+  {#if enEdition}
+    {@const cible = enEdition}
+    <RadioEditModale
+      radio={cible}
+      onClose={() => (enEdition = null)}
+      onSaved={(maj) => {
+        radios = radios.map((x) => (x.id === maj.id ? { ...x, ...maj } : x));
+        enEdition = null;
+      }}
+    />
+  {/if}
 </section>
 
 {#snippet tile(r: RadioStation)}
   <div class="st" class:live={playingId === r.id}>
-    <button class="open" onclick={() => play(r)} aria-label={`Écouter ${r.name}`}></button>
     <span class="cv">
-      <AlbumArt coverPath={r.logo_url ?? null} albumId={null} size={0} alt={r.name} fallbackInitials={r.name?.slice(0,1)} />
+      <!-- Le MÊME composant que les pochettes d'album : une seule apparence de
+           cœur dans toute l'interface. La radio avait le sien — rond, en haut à
+           droite, d'une autre couleur — et deux cœurs différents se lisent
+           comme deux choses différentes (Bertrand, 02/09/2026).
+           Son favori ne vit pas dans `favorites` mais dans sa propre table,
+           d'où `favoriExterne` : même apparence, bascule propre. -->
+      <PochetteActions
+        favoriExterne={r.id != null
+          ? { actif: !!r.favorite, basculer: () => toggleFav(r) }
+          : null}
+        onEditer={r.id != null ? () => (enEdition = r) : null}
+        onLire={() => play(r)}
+        onOuvrir={() => play(r)}
+        nom={r.name}
+      >
+        <AlbumArt coverPath={r.logo_url ?? null} albumId={null} size={0} alt={r.name} fallbackInitials={r.name?.slice(0,1)} />
+      </PochetteActions>
       {#if playingId === r.id}<span class="onair">EN DIRECT</span>{/if}
     </span>
     <span class="nm">{r.name}</span>
     {#if r.genre}<span class="gn">{r.genre}</span>{/if}
     {#if showExpert && tech(r)}<span class="tk">{tech(r)}</span>{/if}
-    <button class="fav" class:on={r.favorite} onclick={(e) => toggleFav(r, e)}
-      aria-label={r.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}>
-      <svg viewBox="0 0 24 24" fill={r.favorite ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2">
-        <path d="M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z"/>
-      </svg>
-    </button>
   </div>
 {/snippet}
 

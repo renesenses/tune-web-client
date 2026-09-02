@@ -1247,7 +1247,17 @@
        jouait. Les autres modes (paroles, crédits, EQ) sont déjà à l'intérieur. -->
   {#if displayTrack}
     <button class="np-tv-btn" onclick={enterTvMode} title={$t('nowplaying.tvMode')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+      <!--
+        Un ÉCRAN, pas quatre flèches.
+
+        L'icône était le pictogramme universel du « plein écran » : dans un coin
+        d'interface il se lit comme « agrandir la fenêtre », et rien n'indiquait
+        qu'on basculait vers un mode d'affichage distinct. Bertrand l'a demandée
+        remplacée le 02/09/2026, capture à l'appui.
+
+        Un téléviseur — cadre posé sur un pied — dit ce que le mode est.
+      -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
     </button>
   {/if}
   {#if resolvedCoverUrl}

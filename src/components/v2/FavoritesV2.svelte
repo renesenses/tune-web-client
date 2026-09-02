@@ -21,12 +21,23 @@
   import type { Album, Track, Artist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
   const showExpert = $derived(atLeast(level, 'expert'));
 
-  type Tab = 'albums' | 'tracks' | 'artists';
+  /**
+   * RADIO rejoint les Favoris — demandé par Bertrand le 02/09/2026.
+   *
+   * Ce sont les titres CAPTÉS pendant l'écoute d'une radio : on aime un
+   * morceau qui passe, il se range là. C'est une sélection de l'utilisateur au
+   * même titre que les albums et les artistes, et son écran séparé du client
+   * actuel n'était atteignable que par une entrée de barre latérale qui
+   * n'existe pas en v2 — donc invisible.
+   */
+  type Tab = 'albums' | 'tracks' | 'artists' | 'radio';
   let tab = $state<Tab>('albums');
   let q = $state('');
 
@@ -61,11 +72,81 @@
   const vTracks = $derived(tracks.filter((t) => match(t.title) || match(t.artist_name)));
   const vArtists = $derived(artists.filter((a) => match(a.name)));
 
+  // ── Favoris RADIO : les titres captés à l'antenne ────────────────────────
+  let radio = $state<any[]>([]);
+  let radioCharge = false;
+  let radioLoading = $state(false);
+  let creationPlaylist = $state(false);
+  let nomPlaylist = $state('');
+  let creation = $state(false);
+
+  const vRadio = $derived(radio.filter((f) => match(f.title) || match(f.artist)));
+
+  $effect(() => {
+    if (tab !== 'radio' || radioCharge) return;
+    radioCharge = true;
+    radioLoading = true;
+    api
+      .apiFetch('/radio-favorites?limit=500')
+      .then((r: any) => {
+        radio = r?.items ?? r ?? [];
+      })
+      .catch(() => {
+        error = 'Favoris radio indisponibles.';
+        radio = [];
+      })
+      .finally(() => {
+        radioLoading = false;
+      });
+  });
+
+  async function retirerRadio(fav: any) {
+    try {
+      await api.apiDelete(`/radio-favorites/${fav.id}`);
+      radio = radio.filter((x) => x.id !== fav.id);
+    } catch {
+      error = 'Suppression impossible.';
+    }
+  }
+
+  async function viderRadio() {
+    // ⚠️ Irréversible, et sur une liste qu'on a mise des mois à constituer :
+    // on DEMANDE. Pas de `window.confirm` — les dialogues natifs sont bannis
+    // dans les vues embarquées.
+    if (!(await dialogs.confirm($t('v2.fav.radioClearAsk' as any), { danger: true }))) return;
+    try {
+      await api.apiDelete('/radio-favorites');
+      radio = [];
+    } catch {
+      error = 'Suppression impossible.';
+    }
+  }
+
+  async function creerPlaylistRadio() {
+    const n = nomPlaylist.trim();
+    if (!n || creation) return;
+    creation = true;
+    try {
+      // `local` : la playlist se crée sur le serveur, pas chez un service.
+      // Les titres captés sont rapprochés de la bibliothèque, et ceux qui n'y
+      // sont pas ne peuvent pas entrer — c'est le serveur qui en décide.
+      await api.createPlaylistFromRadioFavorites('local', n, radio.length);
+      nomPlaylist = '';
+      creationPlaylist = false;
+    } catch (e: any) {
+      error = e?.message ?? 'Création impossible.';
+    }
+    creation = false;
+  }
+
   const TABS: { id: Tab; label: string; n: number }[] = $derived([
     { id: 'albums', label: 'Albums', n: vAlbums.length },
     { id: 'tracks', label: 'Titres', n: vTracks.length },
     { id: 'artists', label: 'Artistes', n: vArtists.length },
+    { id: 'radio', label: 'Radio', n: vRadio.length },
   ]);
+
+
 
   function playAlbum(id: number | null | undefined) {
     const zid = $currentZoneId;
@@ -179,7 +260,7 @@
         </div>
       {/if}
 
-    {:else}
+    {:else if tab === 'artists'}
       {#if !vArtists.length}
         <div class="state">{artists.length ? 'Aucun artiste ne correspond.' : 'Aucun artiste en favori.'}</div>
       {:else}
@@ -195,8 +276,75 @@
           {/each}
         </div>
       {/if}
+
+    {:else}
+      <!-- FAVORIS RADIO : les titres captés à l'antenne. Les quatre gestes de
+           l'écran actuel — créer une playlist, exporter en CSV, tout effacer,
+           retirer un titre. -->
+      {#if radioLoading}
+        <div class="state">{$t('v2.fav.radioLoading' as any)}</div>
+      {:else if !radio.length}
+        <div class="state">
+          {$t('v2.fav.radioEmpty' as any)}
+        </div>
+      {:else}
+        <div class="rf-actions">
+          <span class="rf-cpt">{radio.length} titre{radio.length > 1 ? 's' : ''}</span>
+          <button class="rf-btn accent" onclick={() => (creationPlaylist = true)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            {$t('v2.fav.radioMakePlaylist' as any)}
+          </button>
+          <!-- Un lien, pas un bouton : c'est le navigateur qui télécharge, et
+               le serveur rend déjà le CSV tout fait. -->
+          <a class="rf-btn" href="/api/v1/radio-favorites/export" download="radio_favorites.csv">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            {$t('v2.fav.radioExport' as any)}
+          </a>
+          <button class="rf-btn danger" onclick={viderRadio}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            {$t('v2.fav.radioClear' as any)}
+          </button>
+        </div>
+
+        {#if !vRadio.length}
+          <div class="state">{$t('v2.fav.radioNoMatch' as any)}</div>
+        {:else}
+          <div class="rows">
+            {#each vRadio as f (f.id)}
+              <div class="lrow">
+                <span class="lcv"><AlbumArt coverPath={f.cover_url ?? null} albumId={null} size={0} alt={f.title} fallbackInitials={f.title?.slice(0,1)} /></span>
+                <span class="lt">{f.title}</span>
+                <span class="la">{f.artist ?? ''}</span>
+                <span class="lst">{f.station ?? ''}</span>
+                <button class="hot round" onclick={() => retirerRadio(f)} aria-label="Retirer">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z"/></svg>
+                </button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      {/if}
     {/if}
   </div>
+
+  {#if creationPlaylist}
+    <div class="rf-fond" role="presentation" onclick={() => (creationPlaylist = false)}>
+      <form class="rf-modale" onclick={(e) => e.stopPropagation()}
+        onsubmit={(e) => { e.preventDefault(); void creerPlaylistRadio(); }}>
+        <h2>{$t('v2.fav.radioMakePlaylist' as any)}</h2>
+        <p class="rf-sub">{$t('v2.fav.radioPlaylistHint' as any)}</p>
+        <!-- svelte-ignore a11y_autofocus -->
+        <input bind:value={nomPlaylist} placeholder={$t('v2.fav.radioPlaylistName' as any)} autofocus
+          onkeydown={(e) => { if (e.key === 'Escape') creationPlaylist = false; }} />
+        <div class="rf-pied">
+          <button type="button" class="rf-btn" onclick={() => (creationPlaylist = false)}>{$t('common.cancel' as any)}</button>
+          <button type="submit" class="rf-btn accent" disabled={creation || !nomPlaylist.trim()}>
+            {creation ? $t('common.loading' as any) : $t('v2.fav.radioCreate' as any)}
+          </button>
+        </div>
+      </form>
+    </div>
+  {/if}
 
   {#if opened}
     <AlbumDetailV2 album={opened} onClose={() => (opened = null)} />
@@ -204,6 +352,25 @@
 </section>
 
 <style>
+  .rf-actions{display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:0 0 14px}
+  .rf-cpt{font:11px var(--v2-mono); color:var(--v2-txt3); margin-right:4px}
+  .rf-btn{display:inline-flex; align-items:center; gap:7px; text-decoration:none; cursor:pointer;
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:transparent;
+    color:var(--v2-txt2); font:600 12.5px var(--v2-sans); padding:7px 13px}
+  .rf-btn:hover{color:var(--v2-txt); background:var(--v2-hover)}
+  .rf-btn svg{width:14px; height:14px}
+  .rf-btn.accent{border-color:transparent; background:var(--v2-acc1); color:var(--v2-on-acc)}
+  .rf-btn.danger{color:var(--v2-danger); border-color:var(--v2-danger)}
+  .rf-btn:disabled{opacity:.5; cursor:default}
+  .lst{font:10.5px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .rf-fond{position:fixed; inset:0; z-index:900; background:rgba(0,0,0,.55); display:grid; place-items:center; padding:20px}
+  .rf-modale{display:flex; flex-direction:column; gap:10px; width:min(400px,100%); padding:20px;
+    background:var(--v2-surface); border:1px solid var(--v2-line2); border-radius:var(--v2-r-card)}
+  .rf-modale h2{font-size:16px; font-weight:700}
+  .rf-sub{color:var(--v2-txt2); font-size:12.5px}
+  .rf-modale input{background:var(--v2-bg); border:1px solid var(--v2-line2); border-radius:8px;
+    color:var(--v2-txt); font:inherit; font-size:13.5px; padding:9px 11px}
+  .rf-pied{display:flex; justify-content:flex-end; gap:8px}
   .v2-fav{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg);
     color:var(--v2-txt); font-family:var(--v2-sans); overflow:hidden}
   .top{display:flex; align-items:flex-end; gap:22px; padding:24px 30px 14px; padding-right:96px}

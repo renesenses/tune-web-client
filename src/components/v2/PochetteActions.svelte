@@ -59,6 +59,18 @@
     children: Snippet;
     /** Objet favorisable. Laisser vide masque le cœur (collection, playlist). */
     favori?: RefLocale | null;
+    /**
+     * Cœur d'un objet dont le favori NE vit PAS dans `favorites`.
+     *
+     * Une radio en est un : son favori est une colonne de sa propre table,
+     * basculée par `PUT /radios/{id}`. Elle avait donc son cœur à elle —
+     * rond, en haut à droite, d'une autre couleur — et deux cœurs différents
+     * dans la même interface se lisent comme deux choses différentes.
+     * Bertrand, 02/09/2026 : « harmonise avec celui des covers ».
+     *
+     * On partage l'APPARENCE et la position ; seule la bascule diffère.
+     */
+    favoriExterne?: { actif: boolean; basculer: () => void | Promise<void> } | null;
     /** Cible des étiquettes. Absent = pas de bouton d'étiquettes. */
     etiquettes?: { itemType: string; itemId: number } | null;
     /** Ouvre l'édition. Absent = pas de bouton d'édition. */
@@ -89,6 +101,7 @@
   let {
     children,
     favori = null,
+    favoriExterne = null,
     etiquettes = null,
     onEditer = null,
     onLire = null,
@@ -97,8 +110,11 @@
     nom = '',
   }: Props = $props();
 
+  const montreCoeur = $derived(!!favori || !!favoriExterne);
   const estFavori = $derived(
-    favori
+    favoriExterne
+      ? favoriExterne.actif
+      : favori
       ? estFavoriLocal(
           favori,
           $favoriteTrackIds,
@@ -127,7 +143,8 @@
   async function basculerFavori() {
     if (bascule) return;
     bascule = true;
-    await basculerFavoriLocal(favori!);
+    if (favoriExterne) await favoriExterne.basculer();
+    else await basculerFavoriLocal(favori!);
     bascule = false;
   }
 
@@ -158,7 +175,7 @@
 
   <div class="voile" aria-hidden="true"></div>
 
-  {#if favori}
+  {#if montreCoeur}
     <button
       class="coin tl"
       class:actif={estFavori}

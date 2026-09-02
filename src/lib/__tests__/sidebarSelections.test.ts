@@ -183,3 +183,90 @@ describe('Raccourcis — poser depuis n’importe où', () => {
     expect(pose, 'les critères sont reposés après le changement de vue').toBeLessThan(vue);
   });
 });
+
+/**
+ * Sélections : ce que l'utilisateur a constitué lui-même.
+ *
+ * Collections et Playlists ont rejoint le groupe le 02/09/2026, sur demande de
+ * Bertrand. Dans le noyau elles voisinaient avec Bibliothèque et Radio — des
+ * SOURCES, pas des choix.
+ */
+describe('Barre latérale — Collections et Playlists dans Sélections', () => {
+  it('elles ont quitté le noyau', () => {
+    const src = barre();
+    const noyau = src.slice(src.indexOf('const CORE'), src.indexOf('const ADVANCED'));
+    for (const v of ['collections', 'playlists']) {
+      expect(
+        noyau.includes(`view: '${v}'`),
+        `« ${v} » est resté dans le noyau : il y serait en double avec Sélections.`,
+      ).toBe(false);
+    }
+  });
+
+  it('elles sont dans Sélections, avant les étiquettes', () => {
+    const src = barre();
+    const sel = src.slice(src.indexOf('const SELECTIONS'), src.indexOf('const STUDIO'));
+    expect(sel.includes("view: 'collections'"), 'Collections a disparu').toBe(true);
+    expect(sel.includes("view: 'playlists'"), 'Playlists a disparu').toBe(true);
+  });
+});
+
+/**
+ * Radio : un seul cœur dans toute l'interface, et un bouton d'édition.
+ *
+ * La station avait son propre cœur — rond, en haut à droite, d'une autre
+ * couleur — parce que son favori ne vit pas dans `favorites` mais dans sa
+ * propre table. Deux cœurs différents se lisent comme deux choses différentes
+ * (Bertrand, 02/09/2026).
+ */
+describe('Radio — cœur harmonisé et édition', () => {
+  const radios = () => lire('../../components/v2/RadiosV2.svelte');
+
+  it('la station porte le composant des pochettes', () => {
+    const src = radios();
+    expect(src.includes('<PochetteActions'), 'la station n’utilise plus le composant commun').toBe(true);
+    expect(src.includes('favoriExterne={'), 'le cœur externe a disparu').toBe(true);
+    // Et plus son cœur à elle.
+    expect(/<button class="fav"/.test(src), 'le cœur propre à la radio est revenu').toBe(false);
+  });
+
+  it('le cœur externe partage l’apparence, pas la bascule', () => {
+    // Une radio ne s'écrit pas dans `favorites` : c'est `PUT /radios/{id}`.
+    const pa = lire('../../components/v2/PochetteActions.svelte');
+    expect(pa.includes('if (favoriExterne) await favoriExterne.basculer();'), 'la bascule externe a disparu').toBe(true);
+    expect(pa.includes('const montreCoeur = $derived(!!favori || !!favoriExterne);'), 'le cœur ne s’affiche plus pour un favori externe').toBe(true);
+  });
+
+  it('l’édition n’offre que ce que le serveur accepte', () => {
+    const m = lire('../../components/v2/RadioEditModale.svelte');
+    for (const champ of ['name:', 'stream_url:', 'logo_url:', 'genre:', 'country:', 'homepage_url:']) {
+      expect(m.includes(champ), `le champ ${champ} a disparu`).toBe(true);
+    }
+    // Le FLUX fait la station : sans lui il n'y a rien à écouter.
+    expect(m.includes('bind:value={flux} required'), 'le flux n’est plus obligatoire').toBe(true);
+    // Fermer sur échec ferait croire à un enregistrement.
+    const i = m.indexOf('} catch (err: any) {');
+    expect(m.slice(i, i + 240).includes('onClose()'), 'la modale se ferme sur échec').toBe(false);
+  });
+});
+
+/**
+ * « Lecture en cours » : l'icône du mode TV.
+ *
+ * C'était le pictogramme universel du plein écran — quatre flèches en biais.
+ * Dans un coin d'interface il se lit comme « agrandir la fenêtre », et rien
+ * n'indiquait qu'on basculait vers un mode d'affichage distinct.
+ */
+describe('Lecture en cours — le bouton TV', () => {
+  it('l’icône est un téléviseur, plus des flèches de plein écran', () => {
+    const src = lire('../../components/NowPlaying.svelte');
+    const i = src.indexOf('class="np-tv-btn"');
+    expect(i, 'le bouton TV a disparu').toBeGreaterThan(-1);
+    const bloc = src.slice(i, i + 1400);
+    expect(bloc.includes('<rect x="2" y="4" width="20" height="13"'), 'l’écran a disparu de l’icône').toBe(true);
+    expect(
+      bloc.includes('polyline points="15 3 21 3 21 9"'),
+      'les flèches de plein écran sont revenues : elles se lisent « agrandir la fenêtre ».',
+    ).toBe(false);
+  });
+});

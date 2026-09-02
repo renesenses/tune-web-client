@@ -379,15 +379,17 @@
     {#if showDiscover && tab !== 'subs'}
       <!-- Le PAYS commande les palmarès ET la recherche : les deux
            interrogent l'iTunes Store d'un pays donné. -->
-      {#if tab === 'search'}
-        <!-- La langue ne concerne QUE la recherche : l'afficher au-dessus d'un
-             palmarès qu'elle ne filtre pas promettrait un effet inexistant. -->
-        <select class="pays" bind:value={langue} aria-label="Langue">
-          {#each LANGUES as l (l.code)}
-            <option value={l.code}>{l.nom}</option>
-          {/each}
-        </select>
-      {/if}
+      <!-- La langue reste VISIBLE en permanence, comme sur l'écran actuel :
+           Bertrand l'a redemandée après que je l'eus réservée à l'onglet
+           Recherche. Mais elle n'agit QUE là — le palmarès vient du magasin
+           d'un PAYS, pas d'une langue — et l'infobulle le dit, plutôt que de
+           laisser croire qu'elle filtre le classement. -->
+      <select class="pays" bind:value={langue} aria-label={$t('v2.pod.language' as any)}
+        title={$t('v2.pod.languageHint' as any)}>
+        {#each LANGUES as l (l.code)}
+          <option value={l.code}>{l.nom}</option>
+        {/each}
+      </select>
       <select class="pays" bind:value={pays} aria-label="Pays">
         {#each PAYS as c (c.code)}
           <option value={c.code}>{c.drapeau} {c.nom}</option>
