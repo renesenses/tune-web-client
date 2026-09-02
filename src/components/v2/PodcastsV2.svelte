@@ -102,24 +102,49 @@
   let top = $state<any[]>([]);
   let topLoading = $state(false);
 
+  /**
+   * Délai au-delà duquel on cesse d'attendre.
+   *
+   * Un appel qui ne revient JAMAIS laissait « Chargement… » à l'écran pour
+   * toujours, sans rien dire — et rien ne distinguait ce cas d'un serveur
+   * lent. Le palmarès met environ deux secondes sur le serveur de Bertrand ;
+   * quinze laissent une marge large tout en garantissant qu'on finit par
+   * afficher quelque chose.
+   */
+  const DELAI_MS = 15000;
+
+  /** Attend `p`, ou renonce au bout de `DELAI_MS`. */
+  function avecDelai<T>(p: Promise<T>): Promise<T> {
+    return Promise.race([
+      p,
+      new Promise<T>((_, rejeter) =>
+        setTimeout(() => rejeter(new Error('delai depasse')), DELAI_MS),
+      ),
+    ]);
+  }
+
   /** Palmarès : rechargé à chaque changement de genre OU de pays. */
   $effect(() => {
     if (tab !== 'discover') return;
     const g = genre;
     const c = pays;
     topLoading = true;
-    api
-      .getTopPodcasts(g, 50, c)
+    topErreur = null;
+    avecDelai(api.getTopPodcasts(g, 50, c))
       .then((r) => {
         top = r ?? [];
       })
-      .catch(() => {
+      .catch((e) => {
         top = [];
+        // On DIT que ça a échoué : un « aucun podcast » sur une panne réseau
+        // se lit comme un catalogue vide, et on cherche au mauvais endroit.
+        topErreur = e?.message === 'delai depasse' ? 'delai' : 'erreur';
       })
       .finally(() => {
         topLoading = false;
       });
   });
+  let topErreur = $state<string | null>(null);
 
   // ── Radio France ─────────────────────────────────────────────────────────
   let radioFrance = $state<any[]>([]);
@@ -164,7 +189,7 @@
     if (tab !== 'discover' || discoverLoaded) return;
     discoverLoaded = true;
     discoverLoading = true;
-    api.getDiscoverPodcasts()
+    avecDelai(api.getDiscoverPodcasts())
       .then((d) => { discover = { curated: d?.curated ?? [], top: d?.top ?? [] }; })
       .catch(() => { discover = { curated: [], top: [] }; })
       .finally(() => { discoverLoading = false; });
@@ -343,13 +368,22 @@
           <span class="sec-pays">{PAYS.find((c) => c.code === pays)?.nom ?? pays.toUpperCase()}</span>
         </div>
         <div class="puces">
-          <button class:on={genre === null} onclick={() => (genre = null)}>{$t('podcasts.genre.all' as any)}</button>
+          <!-- PAS de bouton « Tous » ajouté ici : `PODCAST_GENRES` commence
+               déjà par `{ id: null, key: 'podcasts.genre.all' }`. En ajouter un
+               en donnait DEUX, côte à côte et tous deux actifs. -->
           {#each PODCAST_GENRES as g (g.id)}
             <button class:on={genre === g.id} onclick={() => (genre = g.id)}>{$t(g.key as any)}</button>
           {/each}
         </div>
         {#if topLoading}
           <div class="state">{$t('v2.pod.topLoading' as any)}</div>
+        {:else if topErreur}
+          <div class="state err-inline">
+            {topErreur === 'delai'
+              ? $t('v2.pod.topTimeout' as any)
+              : $t('v2.pod.topFailed' as any)}
+            <button class="relancer" onclick={() => (pays = pays)}>{$t('v2.pod.retry' as any)}</button>
+          </div>
         {:else if !top.length}
           <div class="state">{$t('v2.pod.noneInGenre' as any)}</div>
         {:else}
@@ -438,6 +472,10 @@
   .puces button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .puces button.on{color:var(--v2-on-acc); border-color:transparent;
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .err-inline{display:flex; align-items:center; gap:12px; color:var(--v2-danger)}
+  .relancer{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
+    border-radius:var(--v2-r-pill); font:600 12px var(--v2-sans); padding:5px 12px; cursor:pointer}
+  .relancer:hover{color:var(--v2-txt)}
   .rech{display:flex; gap:8px; margin-bottom:16px}
   .rech input{flex:1; min-width:0; background:var(--v2-surface2); border:1px solid var(--v2-line2);
     border-radius:10px; color:var(--v2-txt); font:inherit; font-size:13.5px; padding:9px 12px}
