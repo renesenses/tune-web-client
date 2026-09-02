@@ -47,6 +47,9 @@
   import NowPlaying from '../NowPlaying.svelte';
   import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import AvatarMenu from './AvatarMenu.svelte';
+  import { addShortcut } from '../../lib/stores/shortcuts';
+  import { notifications } from '../../lib/stores/notifications';
+  import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
   import { bootstrapV2 } from '../../lib/v2Bootstrap';
@@ -76,10 +79,61 @@
   // de transport reste figée sur l'état du montage — elle n'est pas mal
   // branchée, personne ne l'alimente. Le retour arrête tout au démontage.
   $effect(() => demarrerTransportV2());
+
+  /** Pose d'un raccourci sur la vue COURANTE, depuis n'importe quel écran. */
+  let poseRaccourci = $state(false);
+  let nomRaccourci = $state('');
+  let pose = $state(false);
+  async function poser() {
+    const n = nomRaccourci.trim();
+    if (!n || pose) return;
+    pose = true;
+    try {
+      await addShortcut(n, '⭐');
+      nomRaccourci = '';
+      poseRaccourci = false;
+    } catch (e: any) {
+      notifications.error(e?.message ?? 'Raccourci impossible.');
+    }
+    pose = false;
+  }
 </script>
 
 <div class="v2-shell tune-v2">
-  <div class="av-tr"><AvatarMenu /></div>
+  <!--
+    Le raccourci se pose depuis N'IMPORTE QUEL écran.
+
+    Il vivait dans l'en-tête du groupe « Raccourcis » de la barre latérale :
+    utile, mais on ne pense pas à aller à l'autre bout de l'écran pour marquer
+    ce qu'on a sous les yeux. Bertrand, 02/09/2026 : « il manque l'icône pour
+    créer un raccourci sur chaque écran ».
+
+    Posé ICI, à côté de l'avatar, plutôt que dans chacun des vingt-cinq écrans :
+    un seul endroit à tenir, et l'icône ne bouge pas d'un écran à l'autre.
+    `captureCurrentView` fige la vue courante quelle qu'elle soit.
+  -->
+  <div class="av-tr">
+    <button class="raccourci" onclick={() => (poseRaccourci = !poseRaccourci)}
+      aria-label={$t('v2.nav.addShortcut' as any)} title={$t('v2.nav.addShortcut' as any)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><!-- Le SIGNET de l'ecran actuel, et non une etoile : c'est le pictogramme
+           que Bertrand associe deja au raccourci. -->
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    </button>
+    <AvatarMenu />
+  </div>
+
+  {#if poseRaccourci}
+    <div class="rc-fond" role="presentation" onclick={() => (poseRaccourci = false)}>
+      <form class="rc" onclick={(e) => e.stopPropagation()}
+        onsubmit={(e) => { e.preventDefault(); void poser(); }}>
+        <label for="rc-nom">{$t('v2.nav.addShortcut' as any)}</label>
+        <!-- svelte-ignore a11y_autofocus -->
+        <input id="rc-nom" bind:value={nomRaccourci} placeholder={$t('v2.nav.shortcutName' as any)} autofocus
+          onkeydown={(e) => { if (e.key === 'Escape') poseRaccourci = false; }} />
+        <button type="submit" disabled={pose || !nomRaccourci.trim()}>{$t('common.save' as any)}</button>
+      </form>
+    </div>
+  {/if}
 
   <div class="v2-row">
     <Sidebar />
@@ -166,7 +220,20 @@
   .v2-shell{position:relative; display:flex; flex-direction:column; height:100vh; background:var(--v2-bg); overflow:hidden}
   /* Avatar unique de l'application : pincé en haut à droite de l'écran, au-dessus
      de toutes les vues (y compris les overlays de fiche). */
-  .av-tr{position:absolute; top:20px; right:30px; z-index:80}
+  .av-tr{position:absolute; top:20px; right:30px; z-index:80; display:flex; align-items:center; gap:10px}
+  .raccourci{width:32px; height:32px; border:0; border-radius:50%; background:var(--v2-surface2);
+    color:var(--v2-txt3); display:grid; place-items:center; cursor:pointer; transition:.15s}
+  .raccourci:hover{color:var(--v2-acc1); background:var(--v2-hover)}
+  .raccourci svg{width:16px; height:16px}
+  .rc-fond{position:fixed; inset:0; z-index:90; background:rgba(0,0,0,.45); display:grid; place-items:center; padding:20px}
+  .rc{display:flex; flex-direction:column; gap:10px; width:min(360px,100%); padding:20px;
+    background:var(--v2-surface); border:1px solid var(--v2-line2); border-radius:var(--v2-r-card)}
+  .rc label{font:600 11px var(--v2-mono); letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt3)}
+  .rc input{background:var(--v2-bg); border:1px solid var(--v2-line2); border-radius:8px; color:var(--v2-txt);
+    font:inherit; font-size:13.5px; padding:9px 11px}
+  .rc button{border:0; border-radius:8px; background:var(--v2-acc1); color:var(--v2-on-acc);
+    font:600 13px var(--v2-sans); padding:9px 14px; cursor:pointer}
+  .rc button:disabled{opacity:.5; cursor:default}
   /* `auto` et non une largeur fixe : la barre laterale se replie (72 px) et
      la colonne doit suivre, sinon le repli laisse une bande vide. C'est la
      barre qui porte sa largeur, pas la grille.

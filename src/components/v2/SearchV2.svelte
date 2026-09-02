@@ -13,6 +13,8 @@
    * nom — tout reste dans cet écran, sans navigation cassée.
    */
   import * as api from '../../lib/api';
+  import { get } from 'svelte/store';
+  import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
   import type { AcousticSearchResult } from '../../lib/api';
   import { currentZoneId } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
@@ -28,6 +30,21 @@
   const showExpert = $derived(atLeast($preferences.settingsLevel, 'expert'));
 
   let q = $state('');
+
+  /**
+   * Publier ce qu'on cherche, et repartir de ce qu'un raccourci a figé.
+   *
+   * Un raccourci sur une recherche doit RETENIR ses critères (Bertrand,
+   * 02/09/2026) : sans cela il ramenait sur un écran vide et il fallait
+   * retaper.
+   */
+  $effect(() => {
+    const fige = get(currentSearchCriteria);
+    if (fige?.q && !q) q = fige.q;
+  });
+  $effect(() => {
+    setSearchCriteria(q.trim() ? { q } : null);
+  });
   let local = $state<SearchResult | null>(null);
   let fed = $state<Record<string, SearchResult>>({});
   let acoustic = $state<AcousticSearchResult | null>(null);

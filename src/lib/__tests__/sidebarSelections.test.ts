@@ -139,3 +139,47 @@ describe('Barre latérale — Lecture en cours', () => {
     expect(src.includes('<NowPlaying />'), 'le composant n’est plus monté').toBe(true);
   });
 });
+
+/**
+ * Un raccourci se pose depuis N'IMPORTE QUEL écran, et retient ce qu'il voit.
+ *
+ * Bertrand, 02/09/2026 : « il manque l'icône pour créer un raccourci sur chaque
+ * écran », puis « un raccourci sur une recherche doit retenir les critères ».
+ */
+describe('Raccourcis — poser depuis n’importe où', () => {
+  const coquille = () => lire('../../components/v2/ShellV2.svelte');
+  const magasin = () => lire('../stores/shortcuts.ts');
+
+  it('l’icône est dans la coquille, donc sur tous les écrans', () => {
+    // Posée là plutôt que dans chacun des vingt-cinq écrans : un seul endroit
+    // à tenir, et elle ne bouge pas d'un écran à l'autre.
+    const src = coquille();
+    expect(src.includes('class="raccourci"'), 'l’icône a disparu de la coquille').toBe(true);
+    expect(src.includes('addShortcut(n,'), 'la pose n’enregistre plus rien').toBe(true);
+  });
+
+  it('l’icône est le SIGNET de l’écran actuel', () => {
+    // Une étoile ne dit pas la même chose : c'est le pictogramme du favori.
+    expect(
+      coquille().includes('M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z'),
+      'le pictogramme n’est plus celui de l’écran actuel.',
+    ).toBe(true);
+  });
+
+  it('une recherche retient ses critères', () => {
+    const m = magasin();
+    expect(m.includes('export const currentSearchCriteria'), 'le magasin des critères a disparu').toBe(true);
+    expect(m.includes("if (view === 'search')"), 'la capture ignore la recherche').toBe(true);
+    expect(m.includes('state.search = c;'), 'les critères ne sont plus figés').toBe(true);
+  });
+
+  it('les critères sont reposés AVANT le changement de vue', () => {
+    // L'écran de recherche lit le magasin à son montage : le remplir après le
+    // laisserait vide une trame, assez pour qu'il cherche à blanc.
+    const m = magasin();
+    const pose = m.indexOf('currentSearchCriteria.set(shortcut.state.search)');
+    const vue = m.indexOf('activeView.set(shortcut.view);');
+    expect(pose, 'la restauration a disparu').toBeGreaterThan(-1);
+    expect(pose, 'les critères sont reposés après le changement de vue').toBeLessThan(vue);
+  });
+});
