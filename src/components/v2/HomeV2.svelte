@@ -432,10 +432,24 @@
   /* TOUS les widgets sont des bandes horizontales — décision de Bertrand.
      Mêler grilles et bandes rendrait la hauteur de la page imprévisible. */
   .bande{display:flex; gap:16px; overflow-x:auto; padding:0 30px 10px; scrollbar-width:thin}
-  .carte{flex:0 0 148px; display:flex; flex-direction:column; gap:6px; border:0; background:transparent;
-    padding:0; text-align:left; color:inherit; cursor:pointer}
+  /*
+    `min-width: 0` — sans lui, la vignette DÉBORDE.
+
+    Un élément de conteneur flexible a `min-width: auto` par défaut : il ne peut
+    pas devenir plus étroit que son contenu. Une pochette de 600 px poussait
+    donc la carte à 600 px malgré `flex-basis: 148px`, et la bande se retrouvait
+    avec des vignettes de tailles toutes différentes — visible sur la capture de
+    Bertrand du 02/09/2026, où Charlie Parker faisait quatre fois la largeur de
+    ses voisines.
+
+    C'est le même piège que sur la page elle-même, où l'absence de `min-width`
+    lui donnait une barre de défilement horizontale.
+  */
+  .carte{flex:0 0 148px; min-width:0; max-width:148px; display:flex; flex-direction:column; gap:6px;
+    border:0; background:transparent; padding:0; text-align:left; color:inherit; cursor:pointer}
   .carte:disabled{cursor:default}
-  .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; background:var(--v2-surface)}
+  .cv{display:block; width:100%; min-width:0; aspect-ratio:1; border-radius:var(--v2-r-card);
+    overflow:hidden; background:var(--v2-surface)}
   .cv :global(img){width:100%; height:100%; object-fit:cover; display:block}
   .ct{font:600 12.5px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ca{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}

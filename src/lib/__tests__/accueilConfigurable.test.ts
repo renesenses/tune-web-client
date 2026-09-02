@@ -213,3 +213,33 @@ describe('Accueil — le mode édition', () => {
     expect(ecran().includes('v2.home.emptyHint'), 'l’invitation a disparu').toBe(true);
   });
 });
+
+/**
+ * Les vignettes d'une bande ont toutes la MÊME taille.
+ *
+ * Un élément de conteneur flexible a `min-width: auto` par défaut : il ne peut
+ * pas devenir plus étroit que son contenu. Une pochette de 600 px poussait donc
+ * la carte à 600 px malgré `flex-basis: 148px`, et la bande se retrouvait avec
+ * des vignettes de tailles toutes différentes — visible sur la capture de
+ * Bertrand du 02/09/2026, où Charlie Parker faisait quatre fois la largeur de
+ * ses voisines.
+ */
+describe('Accueil — la taille des vignettes', () => {
+  const ecran = () => lire('../../components/v2/HomeV2.svelte');
+
+  it('la carte ne peut pas déborder de sa base', () => {
+    const src = ecran();
+    const m = /\.carte\{([^}]*)\}/.exec(src);
+    expect(m, 'la règle de la carte a disparu').not.toBeNull();
+    expect(m![1].includes('min-width:0'), '`min-width: auto` laisserait la pochette pousser la carte').toBe(true);
+    expect(m![1].includes('flex:0 0 148px'), 'la base de la carte a changé').toBe(true);
+  });
+
+  it('la page ne défile pas horizontalement', () => {
+    // Ce sont les BANDES qui défilent, pas l'écran.
+    const src = ecran();
+    const m = /\.scroll\{([^}]*)\}/.exec(src);
+    expect(m![1].includes('min-width:0'), 'la colonne peut de nouveau être poussée').toBe(true);
+    expect(m![1].includes('overflow-x:hidden'), 'la page peut de nouveau défiler de travers').toBe(true);
+  });
+});
