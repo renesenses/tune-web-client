@@ -82,15 +82,12 @@
   // l'Essentiel. Ne restent en profondeur que ce qui demande de savoir ce
   // qu'on cherche : format et profondeur de bits (Expert), tri et bascule
   // d'affichage (Avance).
-  const showFilters = $derived(true);
   const showBadges = $derived(atLeast(level, 'intermediate'));
   const showExpert = $derived(atLeast(level, 'expert'));
   /** Ligne technique sous les pochettes : niveau Expert ET réglage activé.
    *  Elle suivait le seul niveau, donc elle était imposée à tout Expert —
    *  or « Expert » dit ce qu'on sait faire, pas ce qu'on veut voir. Défaut OFF. */
   const showTech = $derived(showExpert && $preferences.v2AlbumTechLine);
-  /** Tri et bascule grille/liste : outils de confort, pas de recherche. */
-  const showTools = $derived(atLeast(level, 'intermediate'));
 
   // Fréquences en VALEURS EXACTES (jamais un seuil « ≥ »).
   const RATES: { v: number; l: string }[] = [
@@ -214,7 +211,6 @@
   let navMode = $state<NavMode>('alpha');
   /** La frise est un second repere de navigation : elle vient s'ajouter au
    *  rail A-Z, elle ne le remplace pas. On la propose des l'Avance. */
-  const showTimeline = $derived(atLeast(level, 'intermediate'));
 
   /** Année retenue pour un album : l'année d'ORIGINE prime sur celle de
    *  réédition — sur du jazz ou du classique, l'écart se compte en décennies
@@ -372,6 +368,28 @@
     { id: 'labels', label: 'Labels', adv: true },
   ];
   let tab = $state<Tab>('albums');
+
+  /**
+   * Les filtres portent sur les ALBUMS — qualité, fréquence, format,
+   * profondeur, année. L'onglet Artistes n'en affiche aucun : les laisser
+   * promettait un filtrage qui ne pouvait pas agir, et le compteur
+   * « Tout (4255) » annonçait des albums au-dessus d'une grille d'artistes
+   * (signalé par Bertrand, capture à l'appui, 02/09/2026).
+   *
+   * La RECHERCHE, elle, reste : elle filtre bien les artistes.
+   */
+  const showFilters = $derived(tab !== 'artists');
+
+  /** Tri et bascule grille/liste : outils de confort, pas de recherche. */
+  /** Tri et bascule grille/liste : outils de confort, pas de recherche.
+   *  Sans objet sur les artistes — le tri porte sur des champs d'album, et il
+   *  n'y a qu'une seule façon d'afficher une grille d'artistes. */
+  const showTools = $derived(atLeast(level, 'intermediate') && tab !== 'artists');
+
+  /** A–Z / Années : une navigation dans les ALBUMS. La vue Artistes a son
+   *  propre rail A–Z, et « Années » n'a aucun sens sur un artiste. */
+  const showTimeline = $derived(atLeast(level, 'intermediate') && tab !== 'artists');
+
 
   /** Facette d'un album pour l'onglet courant. `null` = non renseigne, et on
    *  le dit (« Sans label ») plutot que de faire disparaitre l'album : une

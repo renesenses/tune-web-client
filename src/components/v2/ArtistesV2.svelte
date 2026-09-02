@@ -142,11 +142,19 @@
     api.play(zid, { album_id: al.id }).catch(() => {});
   }
 
+  /**
+   * Une à deux initiales, LETTRES ET CHIFFRES seulement.
+   *
+   * Sans le filtre, « Accentus - Laurence E. » donnait « A- » : le tiret est
+   * un mot pour `split`, sa première lettre est le tiret lui-même. Constaté
+   * sur capture le 02/09/2026, avec « A- » débordant de son cercle.
+   */
   const initiales = (n: string | null | undefined) =>
     (n ?? '')
       .split(/\s+/)
+      .map((m) => m.replace(/[^\p{L}\p{N}]/gu, '').charAt(0))
+      .filter(Boolean)
       .slice(0, 2)
-      .map((m) => m.charAt(0))
       .join('')
       .toUpperCase();
 
@@ -300,6 +308,20 @@
      carte d'artiste d'une carte d'album au premier coup d'œil. */
   .cv.rond { border-radius: 50%; }
   .cv :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /*
+    Les initiales sont CENTRÉES dans leur cercle et ne le débordent pas.
+    `AlbumArt` les dimensionne à 32 % de la largeur du conteneur, ce qui
+    convient à une seule lettre : à deux, plus l'interlettrage, le mot dépassait
+    et le rognage du cercle en montrait un morceau décalé — c'est ce que
+    montrait la capture de Bertrand. On resserre, et on interdit le retour à la
+    ligne, qui décentrerait verticalement.
+  */
+  .cv :global(.placeholder-initials) {
+    font-size: 26cqw;
+    letter-spacing: 0;
+    white-space: nowrap;
+    text-align: center;
+  }
   .meta {
     display: block; width: 100%; border: 0; background: transparent; padding: 0;
     text-align: left; color: inherit; font: inherit; cursor: pointer;

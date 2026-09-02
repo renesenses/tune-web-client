@@ -131,3 +131,119 @@ describe('Nouveau client — la vue « Lecture en cours »', () => {
     expect(src.includes('mobileNowPlayingOpen.set(false)'), 'aucun moyen de refermer la surcouche').toBe(true);
   });
 });
+
+/**
+ * Le curseur de progression doit RESTER où on le pose.
+ *
+ * Bertrand, 02/09/2026 : « le slider ne marche pas ».
+ *
+ * ## La cause
+ *
+ * Tout `playback.*` déclenchait un rechargement complet de `/zones`. Après un
+ * déplacement, la réponse arrivait avec l'ANCIENNE position ; l'écart dépassait
+ * le seuil de dérive, et la barre revenait en arrière. On glissait le curseur,
+ * il sautait à sa place d'avant.
+ *
+ * ## Trois branches manquaient, et chacune coûtait autre chose
+ *
+ *  1. `playback.seek` — le saut confirmé par le serveur, à appliquer tel quel ;
+ *  2. `playback.position` — arrive en continu ; la relire par `/zones` faisait
+ *     une requête par point ;
+ *  3. `playback.audio_levels` — plusieurs trames par SECONDE, chacune
+ *     déclenchant une requête complète. C'est le premier poste de dépense de
+ *     l'écran, et il ne servait à rien : l'événement porte déjà tout.
+ */
+describe('Nouveau client — le curseur de progression', () => {
+  it('un déplacement confirmé s’applique, sans relire les zones', () => {
+    const src = live();
+    const i = src.indexOf("type === 'playback.seek'");
+    expect(i, 'la branche du déplacement a disparu').toBeGreaterThan(-1);
+    const bloc = src.slice(i, i + 420);
+    expect(bloc.includes('seekPositionMs.set'), 'la position n’est plus posée').toBe(true);
+    expect(
+      bloc.includes('rechargerZones'),
+      'le déplacement relit les zones : la réponse arriverait avec l’ancienne position et la barre reviendrait en arrière.',
+    ).toBe(false);
+  });
+
+  it('les niveaux audio ne déclenchent AUCUNE requête', () => {
+    const src = live();
+    const i = src.indexOf("type === 'playback.audio_levels'");
+    expect(i, 'les niveaux audio ne sont plus traités').toBeGreaterThan(-1);
+    // Ils doivent être traités AVANT la branche générique, sinon la requête
+    // part quand même.
+    expect(i, 'les niveaux sont traités après une branche qui recharge').toBeLessThan(
+      src.indexOf("type.startsWith('playback.')"),
+    );
+    const bloc = src.slice(i, i + 240);
+    expect(bloc.includes('handleAudioLevelsEvent'), 'l’analyseur n’est plus alimenté').toBe(true);
+    expect(bloc.includes('return'), 'la branche ne coupe plus : la requête partirait quand même').toBe(true);
+  });
+
+  it('la position en continu est filtrée, pas rechargée', () => {
+    const src = live();
+    const i = src.indexOf("type === 'playback.position'");
+    expect(i, 'la branche de position a disparu').toBeGreaterThan(-1);
+    const bloc = src.slice(i, i + 400);
+    expect(bloc.includes('DERIVE_MAX_MS'), 'le filtre de dérive a disparu').toBe(true);
+    expect(bloc.includes('rechargerZones'), 'chaque point serveur déclenche une requête complète').toBe(false);
+  });
+
+  it('un événement de zone GROUPÉE est reconnu', () => {
+    // Une zone groupée reçoit les événements sous l'identifiant de la meneuse.
+    // Ne comparer que les identifiants la laisserait sans progression.
+    expect(
+      live().includes('function concerneLaZoneCourante'),
+      'la reconnaissance de zone a disparu : une zone groupée n’avancerait plus.',
+    ).toBe(true);
+    expect(live().includes('courante.group_id'), 'le groupe n’est plus pris en compte').toBe(true);
+  });
+});
+
+/**
+ * La file d'attente n'était JAMAIS chargée sous `?v2`.
+ *
+ * Seul `App` appelait `fetchQueue`. `upNextCount` valait donc éternellement
+ * zéro : la barre annonçait « rien à venir » sur une file pleine, et le bouton
+ * « suivant » s'en sert pour se désactiver.
+ */
+describe('Nouveau client — la file d’attente', () => {
+  it('elle est chargée, et rechargée au changement de zone', () => {
+    const src = live();
+    expect(src.includes('api.getQueue('), 'la file n’est plus lue').toBe(true);
+    expect(src.includes('queueTracks.set('), 'les pistes ne sont plus écrites').toBe(true);
+    const i = src.indexOf('currentZoneId.subscribe');
+    expect(
+      src.slice(i, i + 400).includes('rechargerFile()'),
+      'changer de zone garderait le « à venir » de la zone précédente.',
+    ).toBe(true);
+  });
+
+  it('une file illisible ne s’annonce pas vide', () => {
+    // Vider la file éteindrait le bouton « suivant » sur une simple coupure.
+    const src = live();
+    const i = src.indexOf('async function rechargerFile');
+    const bloc = src.slice(i, src.indexOf('\n}', i));
+    expect(bloc.includes('catch'), 'l’échec n’est plus rattrapé').toBe(true);
+    expect(/catch\s*\{[^}]*queueTracks\.set/.test(bloc), 'l’échec vide la file').toBe(false);
+  });
+});
+
+/**
+ * Le volume peut changer AILLEURS — depuis l'appareil, ou un autre client.
+ */
+describe('Nouveau client — le volume', () => {
+  it('un changement venu d’ailleurs est répercuté', () => {
+    expect(
+      live().includes("type === 'zone.volume_changed'"),
+      'le curseur de volume resterait sur la dernière valeur posée ici.',
+    ).toBe(true);
+  });
+
+  it('une zone qui apparaît ou disparaît rafraîchit la liste', () => {
+    const src = live();
+    for (const e of ['zone.created', 'zone.deleted', 'zone.offline', 'zone.recovered']) {
+      expect(src.includes(`type === '${e}'`), `l’événement ${e} n’est plus traité`).toBe(true);
+    }
+  });
+});

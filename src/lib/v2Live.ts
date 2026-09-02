@@ -46,7 +46,9 @@
 import { get } from 'svelte/store';
 import * as api from './api';
 import { tuneWS } from './websocket';
-import { zones, currentZoneId } from './stores/zones';
+import { zones, currentZone, currentZoneId } from './stores/zones';
+import { queueTracks, queuePosition, queueLength } from './stores/queue';
+import { handleAudioLevelsEvent } from './stores/audioLevels';
 import {
   seekPositionMs,
   startSeekTimer,
@@ -103,6 +105,23 @@ function aplatirQualite(zoneList: any[]): void {
   }
 }
 
+/**
+ * L'événement concerne-t-il la zone qu'on regarde ?
+ *
+ * Le GROUPE compte : une zone groupée reçoit les événements de la zone
+ * meneuse, sous l'identifiant de celle-ci. Ne comparer que les identifiants
+ * laisserait une zone groupée sans progression — même règle qu'`App`.
+ */
+function concerneLaZoneCourante(event: any): boolean {
+  const id = event?.data?.zone_id ?? event?.zone_id;
+  const courante = get(currentZone) as { id?: number; group_id?: number | null } | null;
+  if (!courante) return false;
+  if (courante.id === id) return true;
+  if (courante.group_id == null) return false;
+  const emettrice = (get(zones) as any[]).find((z) => z?.id === id);
+  return emettrice?.group_id === courante.group_id;
+}
+
 /** Minuteur et position, pour la zone courante uniquement. */
 function suivreProgression(zoneList: any[]): void {
   const id = get(currentZoneId);
@@ -117,6 +136,28 @@ function suivreProgression(zoneList: any[]): void {
   } else {
     stopSeekTimer();
     seekPositionMs.set(zone.position_ms ?? 0);
+  }
+}
+
+/**
+ * Recharge la file d'attente de la zone courante.
+ *
+ * Elle n'était JAMAIS chargée sous `?v2` : `App` seul appelait `fetchQueue`.
+ * Résultat, `upNextCount` valait éternellement zéro — la barre de transport
+ * annonçait « rien à venir » sur une file pleine, et le bouton « suivant »
+ * s'en servait pour se désactiver.
+ */
+async function rechargerFile(): Promise<void> {
+  const zone = get(currentZone) as { id?: number } | null;
+  if (!zone?.id) return;
+  try {
+    const q = await api.getQueue(zone.id);
+    queuePosition.set(q.position);
+    queueTracks.set(q.tracks);
+    queueLength.set(q.length);
+  } catch {
+    // File momentanément illisible : on garde la précédente plutôt que
+    // d'annoncer une file vide, ce qui éteindrait le bouton « suivant ».
   }
 }
 
@@ -142,7 +183,12 @@ export function demarrerTransportV2(): () => void {
   tuneWS.connect();
 
   // Le poller doit savoir quelle zone suivre, sinon il ne remonte pas sa file.
-  const desabonnerZone = currentZoneId.subscribe((id) => tuneWS.setCurrentZoneId(id));
+  const desabonnerZone = currentZoneId.subscribe((id) => {
+    tuneWS.setCurrentZoneId(id);
+    // Changer de zone change de file : sans cela, la barre garderait le
+    // « à venir » de la zone précédente.
+    void rechargerFile();
+  });
 
   const desabonnerEvents = tuneWS.onEvent((event: any) => {
     const type = event?.type as string | undefined;
@@ -164,10 +210,77 @@ export function demarrerTransportV2(): () => void {
       return;
     }
 
-    // Les événements de lecture ne portent ni la piste complète ni la position :
-    // on relit les zones plutôt que de deviner.
+    // 🔴 Les NIVEAUX audio arrivent en continu — plusieurs trames par seconde.
+    //
+    // Ils tombaient dans la branche générique `playback.*`, qui recharge
+    // `/zones` : une requête complète par trame de vumètre. C'est le premier
+    // poste de dépense de cet écran, et il ne servait à rien — l'événement
+    // porte déjà tout ce que l'analyseur affiche.
+    //
+    // Traité EN PREMIER et suivi d'un `return`, comme dans `App` : toute
+    // branche placée avant lui paierait le même prix.
+    if (type === 'playback.audio_levels') {
+      handleAudioLevelsEvent(event.data);
+      return;
+    }
+
+    // Le volume peut changer AILLEURS — depuis l'appareil lui-même, ou depuis
+    // un autre client. Sans cela, le curseur de la barre reste sur la dernière
+    // valeur qu'on lui a donnée soi-même.
+    if (type === 'zone.volume_changed' && event.data?.zone_id !== undefined) {
+      const { zone_id, volume } = event.data;
+      zones.update((liste: any[]) =>
+        liste.map((z) => (z?.id === zone_id ? { ...z, volume } : z)),
+      );
+      return;
+    }
+
+    // Une zone qui apparaît, disparaît ou revient change la LISTE : la relire
+    // est le seul moyen d'en connaître l'état complet.
+    if (
+      type === 'zone.created' ||
+      type === 'zone.deleted' ||
+      type === 'zone.offline' ||
+      type === 'zone.recovered'
+    ) {
+      void rechargerZones();
+      return;
+    }
+
+    // 🔴 Le DÉPLACEMENT est confirmé par le serveur : on saute, sans relire.
+    //
+    // C'est ici que le curseur de progression était cassé. Tout `playback.*`
+    // déclenchait un rechargement complet de `/zones` ; la réponse arrivait
+    // avec l'ANCIENNE position, l'écart dépassait le seuil de dérive, et la
+    // barre revenait en arrière. On glissait le curseur et il sautait à sa
+    // place d'avant — « le slider ne marche pas » (Bertrand, 02/09/2026).
+    if (type === 'playback.seek' && event.data?.position_ms !== undefined) {
+      if (concerneLaZoneCourante(event)) {
+        seekPositionMs.set(event.data.position_ms);
+        startSeekTimer();
+      }
+      return;
+    }
+
+    // La position courante arrive en continu. La relire par `/zones` faisait
+    // une requête par point — une tempête d'appels pour une valeur que
+    // l'événement porte déjà.
+    if (type === 'playback.position' && event.data?.position_ms !== undefined) {
+      if (
+        concerneLaZoneCourante(event) &&
+        Math.abs(get(seekPositionMs) - event.data.position_ms) > DERIVE_MAX_MS
+      ) {
+        seekPositionMs.set(event.data.position_ms);
+        startSeekTimer();
+      }
+      return;
+    }
+
+    // Les autres événements de lecture changent la PISTE ou la file : eux
+    // demandent bien une relecture, l'événement ne la porte pas.
     if (type.startsWith('playback.')) {
       void rechargerZones();
+      void rechargerFile();
     }
   });
 
