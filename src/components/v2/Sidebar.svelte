@@ -15,6 +15,8 @@
   import { activeView, type View } from '../../lib/stores/navigation';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
+  import { t } from '../../lib/i18n';
+  import { shortcuts, loadShortcuts, navigateToShortcut } from '../../lib/stores/shortcuts';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
 
@@ -49,7 +51,6 @@
   ];
   const ADVANCED: Item[] = [
     { view: 'queue', label: "File d'attente", icon: 'M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z' },
-    { view: 'favorites', label: 'Favoris', icon: 'M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z' },
     { view: 'zonemanager', label: 'Zones', icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01' },
     // SERVEURS MULTIMEDIA en Avance (Bertrand, 28/08). Parcourir la
     // bibliotheque d'une AUTRE machine suppose de savoir qu'il y a un reseau
@@ -57,6 +58,23 @@
     // on y ECOUTE de la musique : ce n'est pas non plus du reglage d'expert.
     { view: 'mediaservers', label: 'Serveurs multimédia', icon: 'M4 5h16v5H4zM4 14h16v5H4zM7.5 7.5h.01M7.5 16.5h.01' },
   ] as unknown as Item[];
+  /**
+   * SÉLECTIONS — ce que l'utilisateur a mis de côté lui-même.
+   *
+   * Demandé par Bertrand le 02/09/2026. Les deux entrées répondent à la même
+   * question — « ce que j'ai marqué » — et les séparer les rendait toutes deux
+   * difficiles à retrouver : les Favoris vivaient dans « Avancé », au milieu de
+   * la File et des Zones, qui sont des outils et non des sélections.
+   *
+   * Les Favoris ne sont pas DUPLIQUÉS : ils ont quitté « Avancé ».
+   */
+  // Les deux nouveaux groupes sont TRADUITS, là où le reste de la barre porte
+  // encore ses libellés en dur (dette connue) : on n'en ajoute pas.
+  const SELECTIONS: { view: View; labelKey: string; icon: string }[] = [
+    { view: 'tags', labelKey: 'v2.nav.tags', icon: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42zM6.5 6.5h.01' },
+    { view: 'favorites', labelKey: 'v2.nav.favorites', icon: 'M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z' },
+  ];
+
   const STUDIO: Item[] = [
     { view: 'equalizer', label: 'Égaliseur', icon: 'M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3' },
     // Crossfeed sorti de l'Egaliseur (Bertrand, 27/08) : c'est un reglage de
@@ -69,11 +87,35 @@
     { view: 'diagnostics', label: 'Tune Health', icon: 'M3 12h4l2 6 4-14 2 8h6' },
   ];
 
+  /**
+   * RACCOURCIS — cinq au plus dans la barre, un écran au-delà.
+   *
+   * Règle posée par Bertrand le 02/09/2026. Les cinq tiennent dans la barre
+   * sans la faire grossir ; passé ce nombre, la liste complète part sur son
+   * propre écran plutôt que de repousser « Studio » hors de l'écran.
+   *
+   * Les ÉPINGLÉS d'abord : c'est le sens même de l'épingle, et sans ce tri le
+   * cinquième raccourci ajouté chasserait un raccourci épinglé de la barre.
+   */
+  const RACCOURCIS_BARRE = 5;
+  const raccourcisVisibles = $derived(
+    [...$shortcuts]
+      .sort((a, b) => Number(b.pinned !== false) - Number(a.pinned !== false))
+      .slice(0, RACCOURCIS_BARRE),
+  );
+  const raccourcisEnTrop = $derived($shortcuts.length > RACCOURCIS_BARRE);
+
   const level = $derived($preferences.settingsLevel);
   const showAdvanced = $derived(atLeast(level, 'intermediate'));
   const showStudio = $derived(atLeast(level, 'expert'));
 
   function go(v: View) { activeView.set(v); }
+
+  // Les raccourcis vivent dans la configuration serveur : sans ce chargement,
+  // la barre en montrerait zéro pour toujours.
+  $effect(() => {
+    void loadShortcuts();
+  });
 
   // Repli de la barre (bouton ⟵ du brouillon v3) : la barre se reduit aux
   // icones. Le choix persiste par navigateur — c'est une preference de
@@ -121,6 +163,38 @@
       {/each}
     </nav>
 
+    {#if raccourcisVisibles.length}
+      <nav class="grp">
+        <div class="grp-label">{$t('v2.nav.shortcuts' as any)}</div>
+        {#each raccourcisVisibles as sc (sc.id)}
+          <button class="nav" onclick={() => navigateToShortcut(sc)} title={collapsed ? sc.name : undefined}>
+            <span class="emo" aria-hidden="true">{sc.icon}</span>
+            <span>{sc.name}</span>
+          </button>
+        {/each}
+        {#if raccourcisEnTrop}
+          <!-- L'écran complet n'apparaît QUE s'il y a plus de cinq raccourcis :
+               une entrée « voir tout » devant une liste déjà entière serait un
+               clic pour rien. -->
+          <button class="nav tous" class:active={$activeView === 'shortcuts'}
+            onclick={() => go('shortcuts')} title={collapsed ? $t('v2.nav.allShortcuts' as any) : undefined}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            <span>{$t('v2.nav.allShortcuts' as any)}</span>
+          </button>
+        {/if}
+      </nav>
+    {/if}
+
+    <nav class="grp">
+      <div class="grp-label">{$t('v2.nav.selections' as any)}</div>
+      {#each SELECTIONS as it (it.view)}
+        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} title={collapsed ? $t(it.labelKey as any) : undefined}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
+          <span>{$t(it.labelKey as any)}</span>
+        </button>
+      {/each}
+    </nav>
+
     <nav class="grp reveal" class:show={showStudio} aria-hidden={!showStudio}>
       <div class="grp-label">Studio</div>
       {#each STUDIO as it (it.view)}
@@ -153,6 +227,10 @@
   .v2-sidebar.collapsed .nav{justify-content:center; padding-left:0; padding-right:0}
   .v2-sidebar.collapsed .collapse{position:absolute; top:8px; right:8px; transform:rotate(180deg)}
 
+  /* L'icône d'un raccourci est un EMOJI choisi par l'utilisateur, pas un
+     tracé : il occupe la même case que les pictogrammes pour que la colonne
+     reste alignée. */
+  .emo{width:17px; height:17px; display:grid; place-items:center; font-size:14px; line-height:1; flex:none}
   .brand{position:relative; display:flex; align-items:center; gap:11px; padding:4px 8px 22px}
   .collapse{margin-left:auto; width:26px; height:26px; border-radius:8px; border:0; cursor:pointer;
     background:transparent; color:var(--v2-txt3); display:grid; place-items:center; transition:.15s}

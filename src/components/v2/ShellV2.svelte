@@ -36,6 +36,8 @@
   // deux fois. Elle ne prend aucune prop et lit tout depuis les stores, donc
   // elle se pose ici sans adaptateur. Ses couleurs suivent le thème v2 par le
   // pont de variables de `tune-v2.css`.
+  import EtiquettesV2 from './EtiquettesV2.svelte';
+  import ShortcutsView from '../ShortcutsView.svelte';
   import TransportBar from '../TransportBar.svelte';
   // « Lecture en cours » : l'écran du client actuel, monté ici. Il n'a jamais
   // existé dans le shell v2 — mais depuis que la barre historique y vit, elle
@@ -98,6 +100,14 @@
         <PodcastsV2 />
       {:else if $activeView === 'queue'}
         <QueueV2 />
+      {:else if $activeView === 'tags'}
+        <EtiquettesV2 />
+      {:else if $activeView === 'shortcuts'}
+        <!-- L'écran des raccourcis est celui du client actuel, réutilisé tel
+             quel : il gère déjà l'épinglage, le renommage et le choix d'icône.
+             En écrire un second donnerait deux gestions à maintenir, qui
+             divergeraient. Son habillage n'est pas encore au thème v2. -->
+        <ShortcutsView />
       {:else if $activeView === 'favorites'}
         <FavoritesV2 />
       {:else if $activeView === 'zonemanager'}
