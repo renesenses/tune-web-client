@@ -4,12 +4,16 @@
  * Il n'existait PAS : la barre latérale n'y menait pas, aucun composant ne les
  * rendait. Le client actuel a `CollectionsView` ; le nouveau n'avait rien.
  *
- * ## Deux sortes, un seul écran
+ * ## Deux sortes, DEUX ONGLETS
  *
- * NORMALE (liste d'albums choisis, `album_ids`) et SMART (une règle, évaluée à
- * la demande) sont mêlées : la distinction est de MÉCANIQUE, pas d'usage — on
- * cherche « ma sélection jazz », pas « ma collection à règles ». Une étiquette
- * la signale, elle ne sépare pas.
+ * « Smart Collections » puis « Collections », dans cet ordre et sous ces
+ * libellés — ceux du client actuel, que Bertrand a désignés comme référence le
+ * 02/09/2026.
+ *
+ * J'avais d'abord mêlé les deux dans une liste unique avec une étiquette par
+ * carte, en jugeant que la distinction était de mécanique et non d'usage. Il a
+ * tranché l'inverse. Le chargement, lui, reste COMMUN : les deux listes partent
+ * ensemble, sinon changer d'onglet relancerait tout.
  *
  * ## Le repli, et pourquoi il est temporaire
  *
@@ -72,6 +76,31 @@ describe('Collections — l’écran', () => {
     expect(barre().includes("view: 'collections'"), 'l’entrée a disparu de la barre').toBe(true);
     expect(shell().includes("$activeView === 'collections'"), 'la route a disparu du shell').toBe(true);
     expect(shell().includes('<CollectionsV2 />'), 'le composant n’est plus monté').toBe(true);
+  });
+
+  it('sépare les deux sortes en DEUX onglets, smart en premier', () => {
+    const src = ecran();
+    expect(src.includes("let onglet = $state<Onglet>('smart')"), 'l’onglet par défaut n’est plus smart').toBe(true);
+    const iSmart = src.indexOf('v2.col.tabSmart');
+    const iManuel = src.indexOf('v2.col.tabManual');
+    expect(iSmart, 'l’onglet Smart a disparu').toBeGreaterThan(-1);
+    expect(iManuel, 'l’onglet Collections a disparu').toBeGreaterThan(-1);
+    expect(iSmart, 'Smart n’est plus le premier onglet').toBeLessThan(iManuel);
+  });
+
+  it('le chargement reste COMMUN aux deux onglets', () => {
+    // Charger par onglet relancerait tout a chaque bascule, pour des donnees
+    // deja en main.
+    const src = ecran();
+    expect(
+      src.includes('const visibles = $derived(entrees.filter('),
+      'l’onglet filtre une liste déjà chargée : ne pas le remplacer par un chargement par onglet.',
+    ).toBe(true);
+  });
+
+  it('un onglet vide ne dit pas « aucune collection » tout court', () => {
+    // L'autre onglet peut fort bien etre plein.
+    expect(ecran().includes('v2.col.noneInTab'), 'le message d’onglet vide a disparu').toBe(true);
   });
 
   it('lit les DEUX sortes', () => {

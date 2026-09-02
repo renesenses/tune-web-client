@@ -3,10 +3,13 @@
    * Collections — nouveau client.
    *
    * Écran ABSENT du client v2 jusqu'ici : la barre latérale n'y menait pas, et
-   * aucun composant ne les rendait. Le client actuel a `CollectionsView`, et
-   * mêle les deux sortes dans un seul écran ; on garde ce parti, parce que la
-   * distinction est de MÉCANIQUE, pas d'usage — on cherche « ma sélection
-   * jazz », pas « ma collection à règles ».
+   * aucun composant ne les rendait.
+   *
+   * DEUX ONGLETS, comme le client actuel (`CollectionsView`) : « Smart
+   * Collections » puis « Collections ». J'avais d'abord mêlé les deux sortes
+   * dans une liste unique, en jugeant que la distinction était de mécanique et
+   * non d'usage ; Bertrand a tranché l'inverse le 02/09/2026, et l'ordre comme
+   * les libellés sont ceux de l'écran actuel.
    *
    * ## Deux sortes, deux origines
    *
@@ -44,7 +47,12 @@
     covers: string[];
   }
 
+  type Onglet = 'smart' | 'manuelle';
+  let onglet = $state<Onglet>('smart');
   let entrees = $state<Entree[]>([]);
+  /** Ce que l'onglet courant montre. Le chargement, lui, reste COMMUN : les
+   *  deux listes partent ensemble, sinon changer d'onglet relancerait tout. */
+  const visibles = $derived(entrees.filter((e) => (onglet === 'smart' ? e.sorte === 'smart' : e.sorte === 'normale')));
   let chargement = $state(true);
   let ouverte = $state<Entree | null>(null);
   let albums = $state<any[]>([]);
@@ -185,20 +193,30 @@
       <h1>{$t('v2.col.title' as any)}</h1>
     </header>
 
+    <nav class="tabs" role="tablist">
+      <button class="tab" class:active={onglet === 'smart'} role="tab"
+        aria-selected={onglet === 'smart'} onclick={() => (onglet = 'smart')}>{$t('v2.col.tabSmart' as any)}</button>
+      <button class="tab" class:active={onglet === 'manuelle'} role="tab"
+        aria-selected={onglet === 'manuelle'} onclick={() => (onglet = 'manuelle')}>{$t('v2.col.tabManual' as any)}</button>
+    </nav>
+
     {#if chargement}
       <div class="state">{$t('common.loading' as any)}</div>
-    {:else if !entrees.length}
-      <div class="state">{$t('v2.col.none' as any)}</div>
+    {:else if !visibles.length}
+      <!-- Vide de CET onglet : l'autre peut fort bien être plein, la phrase ne
+           doit donc pas dire « aucune collection » tout court. -->
+      <div class="state">{$t('v2.col.noneInTab' as any)}</div>
     {:else}
       <div class="grid">
-        {#each entrees as e (e.sorte + ':' + e.id)}
+        {#each visibles as e (e.sorte + ':' + e.id)}
           <button class="card" onclick={() => ouvrir(e)}>
             <span class="cv">
               <MosaiquePochettes pochettes={e.covers} initiales={e.nom?.slice(0, 1)} alt={e.nom} />
             </span>
             <span class="ct">{e.nom}</span>
             <span class="ca">
-              {#if e.sorte === 'smart'}<em class="tag">{$t('v2.col.smart' as any)}</em>{/if}
+              <!-- Plus d'étiquette « Intelligente » par carte : l'onglet le dit
+                   déjà, et la répéter sur chaque vignette serait du bruit. -->
               {e.albums ?? 0}
             </span>
           </button>
@@ -216,6 +234,11 @@
   .sub{color:var(--v2-txt2); font-size:13.5px; margin-top:6px; max-width:60ch}
   .back{background:transparent; border:0; color:var(--v2-txt2); cursor:pointer; font:600 13px var(--v2-sans); padding:0 0 8px}
   .back:hover{color:var(--v2-txt)}
+  .tabs{display:flex; gap:4px; padding:4px 30px 0}
+  .tab{background:transparent; border:0; border-bottom:2px solid transparent; cursor:pointer;
+    color:var(--v2-txt3); font:600 13.5px var(--v2-sans); padding:10px 12px}
+  .tab:hover{color:var(--v2-txt2)}
+  .tab.active{color:var(--v2-txt); border-bottom-color:var(--v2-acc1)}
   .state{padding:30px; color:var(--v2-txt3); font-size:13.5px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:18px; padding:12px 30px 30px}
   .card{display:flex; flex-direction:column; gap:6px; background:transparent; border:0; padding:0; cursor:pointer; text-align:left; color:inherit}
