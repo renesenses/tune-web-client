@@ -73,6 +73,16 @@
      * un bouton, c'est du HTML invalide, et les navigateurs le défont.
      */
     onOuvrir?: (() => void) | null;
+    /**
+     * Entrées du menu d'actions (coin bas-gauche).
+     *
+     * VIDE, le bouton reste inerte — c'était son état d'origine, en attendant
+     * la modale de Levente. Dès qu'une entrée existe, il ouvre un menu.
+     *
+     * `danger` teinte l'entrée : partager pose un jeton PUBLIC, ce n'est pas
+     * un geste anodin qu'on veut au milieu des autres sans le dire.
+     */
+    menu?: { libelle: string; danger?: boolean; faire: () => void }[];
     /** Nom de l'objet, pour les libellés d'accessibilité. */
     nom?: string;
   }
@@ -83,6 +93,7 @@
     onEditer = null,
     onLire = null,
     onOuvrir = null,
+    menu = [],
     nom = '',
   }: Props = $props();
 
@@ -122,7 +133,20 @@
 
   /** Panneau d'étiquettes, ouvert au clic sur le bouton du bas-droit. */
   let panneauOuvert = $state(false);
+  /** Menu d'actions, ouvert au clic sur le bouton du bas-gauche. */
+  let menuOuvert = $state(false);
+
+  /** Un clic ailleurs, ou Échap, referme le menu — sinon il reste posé sur la
+   *  grille pendant qu'on fait autre chose. */
+  function fermerAilleurs(e: MouseEvent) {
+    if (!(e.target as HTMLElement)?.closest?.('.menu-actions')) menuOuvert = false;
+  }
+  function fermerEchap(e: KeyboardEvent) {
+    if (e.key === 'Escape') menuOuvert = false;
+  }
 </script>
+
+<svelte:window onclick={fermerAilleurs} onkeydown={fermerEchap} />
 
 <div class="pa">
   {@render children()}
@@ -162,17 +186,31 @@
     </button>
   {/if}
 
-  <!-- Menu d'actions : PRÉSENT et inerte, sur décision de Bertrand. La modale
-       reste à définir par Levente. `disabled` plutôt qu'un clic sans effet —
-       un bouton qui ne répond pas se lit comme une panne. -->
-  <button
-    class="coin bl"
-    disabled
-    aria-label={$t('v2.cover.moreSoon' as any)}
-    title={$t('v2.cover.moreSoon' as any)}
-  >
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M15 3h4a2 2 0 0 1 2 2v4"/><path d="M21 15v4a2 2 0 0 1-2 2h-4"/><path d="M3 15v4a2 2 0 0 0 2 2h4"/></svg>
-  </button>
+  <!-- Menu d'actions. Sans entrée il reste INERTE — son état d'origine, en
+       attendant la modale de Levente : `disabled` plutôt qu'un clic sans
+       effet, un bouton qui ne répond pas se lit comme une panne. -->
+  <div class="menu-actions">
+    <button
+      class="coin bl"
+      class:ouvert={menuOuvert}
+      disabled={!menu.length}
+      aria-haspopup={menu.length ? 'menu' : undefined}
+      aria-expanded={menu.length ? menuOuvert : undefined}
+      aria-label={menu.length ? $t('v2.cover.more' as any) : $t('v2.cover.moreSoon' as any)}
+      title={menu.length ? $t('v2.cover.more' as any) : $t('v2.cover.moreSoon' as any)}
+      onclick={menu.length ? (e) => seul(e, () => (menuOuvert = !menuOuvert)) : undefined}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M15 3h4a2 2 0 0 1 2 2v4"/><path d="M21 15v4a2 2 0 0 1-2 2h-4"/><path d="M3 15v4a2 2 0 0 0 2 2h4"/></svg>
+    </button>
+    {#if menuOuvert && menu.length}
+      <div class="menu" role="menu">
+        {#each menu as e (e.libelle)}
+          <button role="menuitem" class:danger={e.danger}
+            onclick={(ev) => seul(ev, () => { menuOuvert = false; e.faire(); })}>{e.libelle}</button>
+        {/each}
+      </div>
+    {/if}
+  </div>
 
   {#if etiquettes}
     <button
@@ -365,6 +403,40 @@
     outline-offset: 2px;
     opacity: 1;
   }
+
+  /* Le menu sort du cadre de la pochette : `.pa` porte `overflow: hidden`, il
+     s'ancre donc au conteneur du bouton, hors du flux de la vignette. */
+  .menu-actions { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+  .menu-actions > .coin { pointer-events: auto; }
+  .menu {
+    position: absolute;
+    bottom: 42px;
+    left: 8px;
+    z-index: 3;
+    pointer-events: auto;
+    min-width: 148px;
+    padding: 5px;
+    border-radius: 10px;
+    background: var(--v2-surface);
+    border: 1px solid var(--v2-line2);
+    box-shadow: var(--v2-sh-menu);
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .menu button {
+    border: 0;
+    background: transparent;
+    color: var(--v2-txt);
+    cursor: pointer;
+    font: 500 12.5px var(--v2-sans);
+    padding: 7px 10px;
+    border-radius: 7px;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .menu button:hover { background: var(--v2-hover); }
+  .menu button.danger { color: var(--v2-danger); }
 
   /* Inerte : visible, mais il ne prétend rien. */
   .coin:disabled {

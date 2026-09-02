@@ -18,6 +18,8 @@
   import AlbumArt from '../AlbumArt.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import { t } from '../../lib/i18n';
+  import { quatreDistinctes } from '../../lib/mosaique';
+  import { notifications } from '../../lib/stores/notifications';
   import PochetteActions from './PochetteActions.svelte';
   import RenommerModale from './RenommerModale.svelte';
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
@@ -101,6 +103,156 @@
     if (zid == null || pl.id == null) return;
     api.play(zid, { playlist_id: pl.id }).catch(() => {});
   }
+  /**
+   * DEUX ONGLETS, comme les collections.
+   *
+   * Choix de Bertrand du 02/09/2026, le même qu'il avait fait pour les
+   * collections : les playlists intelligentes sont une RÈGLE évaluée à la
+   * demande, pas une liste qu'on remplit. Les mêler aux autres mettrait deux
+   * mécaniques dans la même grille.
+   *
+   * Elles n'apparaissaient NULLE PART dans le nouveau client — quatre existent
+   * sur son serveur (« 50 Random Tracks », « Most Played », « Never Played »,
+   * « Recently Added »).
+   */
+  type Onglet = 'listes' | 'smart';
+  let onglet = $state<Onglet>('listes');
+
+  let smart = $state<any[]>([]);
+  let smartCharge = false;
+  let smartMosaiques = $state<Record<number, string[]>>({});
+
+  async function chargerSmart() {
+    if (smartCharge) return;
+    smartCharge = true;
+    try {
+      smart = (await api.getSmartPlaylists()) ?? [];
+    } catch {
+      smart = [];
+    }
+    // Les pochettes APRÈS la grille : les cadres sont déjà à l'écran, les
+    // mosaïques les rejoignent. Une règle peut viser des milliers de pistes,
+    // on n'en lit donc que le début.
+    for (const sp of smart) {
+      if (sp?.id == null) continue;
+      try {
+        const pistes = (await api.getSmartPlaylistTracks(sp.id)) ?? [];
+        const covers = quatreDistinctes(pistes.slice(0, 60) as any[]);
+        if (covers.length) smartMosaiques = { ...smartMosaiques, [sp.id]: covers };
+      } catch {
+        /* une règle illisible ne doit pas vider la grille */
+      }
+    }
+  }
+
+  $effect(() => {
+    if (onglet === 'smart') void chargerSmart();
+  });
+
+  function lireSmart(sp: any) {
+    const zid = $currentZoneId;
+    if (zid == null || sp?.id == null) return;
+    // Pas de route « lire la playlist intelligente » : on lit ses pistes et on
+    // enfile la liste. Une règle n'a pas d'identité de file côté serveur.
+    api
+      .getSmartPlaylistTracks(sp.id)
+      .then((pistes) => {
+        const ids = (pistes ?? []).map((t: any) => t.id).filter((x: any) => x != null);
+        if (ids.length) return api.play(zid, { track_ids: ids.slice(0, 500) });
+      })
+      .catch(() => {});
+  }
+
+  // ── Sauvegardes ──────────────────────────────────────────────────────────
+  //
+  // Bertrand les garde SUR cet écran (02/09/2026) : c'est ici qu'on risque de
+  // perdre une playlist, donc ici que le filet doit se voir.
+  let panneauSauvegardes = $state(false);
+  let instantanes = $state<any[]>([]);
+  let sauvegardeEnCours = $state(false);
+  let restauration = $state<number | null>(null);
+
+  async function chargerInstantanes() {
+    try {
+      instantanes = (await api.listPlaylistSnapshots()) ?? [];
+    } catch {
+      instantanes = [];
+    }
+  }
+
+  async function sauvegarder() {
+    if (sauvegardeEnCours) return;
+    sauvegardeEnCours = true;
+    try {
+      await api.backupPlaylists();
+      await chargerInstantanes();
+      notifications.success($t('v2.pl.backupDone' as any));
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+    sauvegardeEnCours = false;
+  }
+
+  async function restaurer(snap: any) {
+    if (restauration != null) return;
+    restauration = snap.id;
+    try {
+      await api.restorePlaylistSnapshot(snap.id);
+      notifications.success($t('v2.pl.restoreDone' as any));
+      load();
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+    restauration = null;
+  }
+
+  // ── Import M3U ───────────────────────────────────────────────────────────
+  let importEnCours = $state(false);
+  async function importer(ev: Event) {
+    const input = ev.currentTarget as HTMLInputElement;
+    const f = input.files?.[0];
+    input.value = ''; // sinon le même fichier ne peut pas être rechoisi
+    if (!f || importEnCours) return;
+    importEnCours = true;
+    try {
+      const r = await api.importPlaylistFile(f);
+      // On annonce ce qui est RAPPROCHÉ, pas « importé » : une ligne du M3U
+      // qui ne correspond à aucun fichier de la bibliothèque n'entre pas.
+      notifications.success(
+        `${$t('v2.pl.importDone' as any)} — ${r.matched ?? 0}/${(r.matched ?? 0) + (r.missing ?? 0)}`,
+      );
+      load();
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+    importEnCours = false;
+  }
+
+  /**
+   * Partage d'une playlist — première entrée du menu d'actions.
+   *
+   * `POST /playlists/{id}/share` pose un jeton PUBLIC et rend son URL. Le
+   * jeton n'est pas devinable — UUID v4, après un correctif d'audit : l'ancien
+   * dérivait de l'horloge et de l'identifiant, donc se retrouvait par force
+   * brute. Mais quiconque a l'URL lit la playlist, sans compte.
+   *
+   * On le DIT dans la notification plutôt que de copier un lien en silence.
+   */
+  async function partager(pl: Playlist) {
+    if (pl.id == null) return;
+    try {
+      const r = await api.sharePlaylist(pl.id);
+      const url = new URL(
+        r.url ?? `/api/v1/playlists/shared/${r.token}`,
+        window.location.origin,
+      ).toString();
+      await navigator.clipboard.writeText(url);
+      notifications.success($t('v2.pl.shared' as any));
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+  }
+
   /** Playlist en cours de renommage — le bouton haut-droit de la pochette. */
   let enEdition = $state<Playlist | null>(null);
 
@@ -134,16 +286,96 @@
           <button class="mk" onclick={create}>Créer</button>
         </div>
       {:else}
-        <button class="add" onclick={() => (creating = true)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-          Nouvelle playlist
-        </button>
+        <div class="outils">
+          <button class="add" onclick={() => (creating = true)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            Nouvelle playlist
+          </button>
+          <!-- Import M3U. Le bouton pointe vers `POST /playlists/import/m3u`,
+               la route qui lit vraiment un fichier — l'ancienne fonction du
+               client visait `/playlist-manager/import`, qui attend du JSON et
+               ne pouvait répondre que 415. -->
+          <label class="ghost" class:occupe={importEnCours}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M8 8l4-4 4 4M4 18v2h16v-2"/></svg>
+            {importEnCours ? $t('common.loading' as any) : $t('v2.pl.import' as any)}
+            <input type="file" accept=".m3u,.m3u8" onchange={importer} disabled={importEnCours} />
+          </label>
+          <button class="ghost" class:on={panneauSauvegardes}
+            onclick={() => { panneauSauvegardes = !panneauSauvegardes; if (panneauSauvegardes) void chargerInstantanes(); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6M4 6l2-3h12l2 3M4 6h16M9 11h6"/></svg>
+            {$t('v2.pl.backups' as any)}
+          </button>
+        </div>
       {/if}
     {/if}
   </header>
 
+  <nav class="onglets" role="tablist">
+    <button class="onglet" class:actif={onglet === 'listes'} role="tab"
+      aria-selected={onglet === 'listes'} onclick={() => (onglet = 'listes')}>{$t('v2.pl.tabLists' as any)}</button>
+    <button class="onglet" class:actif={onglet === 'smart'} role="tab"
+      aria-selected={onglet === 'smart'} onclick={() => (onglet = 'smart')}>{$t('v2.pl.tabSmart' as any)}</button>
+  </nav>
+
+  {#if panneauSauvegardes}
+    <section class="sauv">
+      <div class="sauv-tete">
+        <h2>{$t('v2.pl.backups' as any)}</h2>
+        <button class="mk" disabled={sauvegardeEnCours} onclick={sauvegarder}>
+          {sauvegardeEnCours ? $t('common.loading' as any) : $t('v2.pl.backupNow' as any)}
+        </button>
+      </div>
+      {#if !instantanes.length}
+        <p class="sauv-vide">{$t('v2.pl.noBackup' as any)}</p>
+      {:else}
+        <ul class="sauv-liste">
+          {#each instantanes as snap (snap.id)}
+            <li>
+              <span class="sn">{snap.name ?? snap.playlist_name ?? `#${snap.id}`}</span>
+              <span class="sd">{snap.created_at ?? ''}</span>
+              <button class="ghost sm" disabled={restauration != null} onclick={() => restaurer(snap)}>
+                {restauration === snap.id ? $t('common.loading' as any) : $t('v2.pl.restore' as any)}
+              </button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </section>
+  {/if}
+
   <div class="scroll">
-    {#if loading}
+    {#if onglet === 'smart'}
+      <!-- Les intelligentes : une grille, comme tout le reste de cet écran
+           (« playlists en vue grille par défaut », Bertrand, 02/09/2026). -->
+      {#if !smart.length}
+        <div class="state">{$t('v2.pl.noSmart' as any)}</div>
+      {:else}
+        <section class="grp">
+          <div class="grid">
+            {#each smart as sp (sp.id)}
+              {@const mos = sp.id != null ? smartMosaiques[sp.id] : undefined}
+              <div class="card local">
+                <span class="cv" class:img={!!mos}>
+                  <!-- Ni favori ni étiquette : une playlist intelligente est
+                       une RÈGLE, elle n'a pas d'identité dans `favorites` ni
+                       dans `item_tags`. Un cœur qui ne s'allume pas serait
+                       pire que pas de cœur. -->
+                  <PochetteActions onLire={() => lireSmart(sp)} nom={sp.name}>
+                    {#if mos}
+                      <MosaiquePochettes pochettes={mos} initiales={sp.name?.slice(0, 1)} alt={sp.name} />
+                    {:else}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h11M4 12h11M4 17h7M17 17V7l4 2"/></svg>
+                    {/if}
+                  </PochetteActions>
+                </span>
+                <span class="ct">{sp.name}</span>
+                <span class="ca">{$t('v2.pl.rule' as any)}</span>
+              </div>
+            {/each}
+          </div>
+        </section>
+      {/if}
+    {:else if loading}
       <div class="state">Chargement des playlists…</div>
     {:else}
       <section class="grp">
@@ -168,6 +400,9 @@
                     onEditer={pl.id != null ? () => (enEdition = pl) : null}
                     onLire={() => playLocal(pl)}
                     onOuvrir={() => (opened = { kind: 'local', pl })}
+                    menu={pl.id != null
+                      ? [{ libelle: $t('v2.pl.share' as any), danger: true, faire: () => partager(pl) }]
+                      : []}
                     nom={pl.name}
                   >
                     {#if mos}
@@ -257,6 +492,35 @@
   .grp{padding:14px 30px 8px}
   .grp h2{font-size:18px; font-weight:700; padding-bottom:14px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:22px}
+  .outils{display:flex; align-items:center; gap:8px}
+  .ghost{position:relative; display:inline-flex; align-items:center; gap:7px; cursor:pointer;
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:transparent;
+    color:var(--v2-txt2); font:600 13px var(--v2-sans); padding:8px 14px}
+  .ghost:hover{color:var(--v2-txt); background:var(--v2-hover)}
+  .ghost.on{color:var(--v2-on-acc); background:var(--v2-acc1); border-color:var(--v2-acc1)}
+  .ghost.occupe{opacity:.6; cursor:default}
+  .ghost svg{width:15px; height:15px}
+  /* Le champ de fichier est invisible mais RESTE cliquable : c'est lui qui
+     ouvre le sélecteur, un bouton ne peut pas le faire à sa place. */
+  .ghost input[type=file]{position:absolute; inset:0; opacity:0; cursor:pointer; width:100%}
+  .ghost.sm{padding:5px 11px; font-size:12px}
+
+  .onglets{display:flex; gap:4px; padding:4px 30px 0}
+  .onglet{background:transparent; border:0; border-bottom:2px solid transparent; cursor:pointer;
+    color:var(--v2-txt3); font:600 13.5px var(--v2-sans); padding:10px 12px}
+  .onglet:hover{color:var(--v2-txt2)}
+  .onglet.actif{color:var(--v2-txt); border-bottom-color:var(--v2-acc1)}
+
+  .sauv{margin:10px 30px 0; padding:14px 16px; border:1px solid var(--v2-line2);
+    border-radius:var(--v2-r-card); background:var(--v2-surface)}
+  .sauv-tete{display:flex; align-items:center; justify-content:space-between; gap:12px}
+  .sauv-tete h2{font-size:14px; font-weight:700}
+  .sauv-vide{margin-top:8px; color:var(--v2-txt3); font-size:13px}
+  .sauv-liste{margin-top:10px; list-style:none; display:flex; flex-direction:column; gap:6px}
+  .sauv-liste li{display:flex; align-items:center; gap:10px; font-size:13px}
+  .sn{font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .sd{font:11px var(--v2-mono); color:var(--v2-txt3)}
+
   .card{position:relative; border:0; background:transparent; color:inherit; text-align:left; padding:0; display:flex; flex-direction:column}
   .open{position:absolute; inset:0; z-index:1; border:0; background:transparent; cursor:pointer; border-radius:var(--v2-r-card)}
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}

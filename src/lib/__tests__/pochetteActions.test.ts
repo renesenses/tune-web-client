@@ -43,16 +43,34 @@ describe('Pochette — les cinq emplacements de la maquette', () => {
     expect(/class="centre"[\s\S]{0,400}?onLire/.test(src), 'la lecture n’est plus au centre').toBe(true);
   });
 
-  it('le menu d’actions est INERTE, et se dit tel', () => {
-    // Décision de Bertrand : le bouton existe, la modale reste à définir par
-    // Levente. `disabled` plutôt qu'un clic sans effet — un bouton qui ne
-    // répond pas se lit comme une panne.
+  it('le menu d’actions reste inerte tant qu’il n’a rien à offrir', () => {
+    // État d'origine : le bouton existe, la modale de Levente reste à définir.
+    // `disabled` plutôt qu'un clic sans effet — un bouton qui ne répond pas se
+    // lit comme une panne.
+    //
+    // Bertrand y a fait entrer le PARTAGE le 02/09/2026 : le menu s'ouvre dès
+    // qu'une entrée existe, et reste inerte sinon. Les deux états comptent.
     const src = actions();
-    expect(/class="coin bl"[\s\S]{0,300}?disabled/.test(src), 'le menu n’est plus déclaré inerte').toBe(true);
+    expect(src.includes('disabled={!menu.length}'), 'le bouton ne redevient plus inerte sans entrée').toBe(true);
     expect(
-      /class="coin bl"[\s\S]{0,400}?onclick=/.test(src),
-      'le menu d’actions a reçu un `onclick` : il n’est plus inerte, alors que la modale n’existe pas.',
-    ).toBe(false);
+      src.includes('onclick={menu.length ? (e) => seul(e, () => (menuOuvert = !menuOuvert)) : undefined}'),
+      'le menu ne s’ouvre plus, ou s’ouvre même vide.',
+    ).toBe(true);
+  });
+
+  it('le menu se referme : choix, clic ailleurs, Échap', () => {
+    // Sans cela il resterait posé sur la grille pendant qu'on fait autre chose.
+    const src = actions();
+    expect(src.includes('menuOuvert = false; e.faire();'), 'le menu ne se referme plus après un choix').toBe(true);
+    expect(src.includes("closest?.('.menu-actions')"), 'le clic ailleurs ne referme plus').toBe(true);
+    expect(src.includes("e.key === 'Escape'"), 'Échap ne referme plus').toBe(true);
+  });
+
+  it('le menu SORT du cadre de la pochette', () => {
+    // `.pa` porte `overflow: hidden` : ancré dedans, le menu serait rogné.
+    const src = actions();
+    expect(/\.menu-actions\s*\{[^}]*position:\s*absolute/.test(src), 'l’ancrage du menu a disparu').toBe(true);
+    expect(/\.menu\s*\{[^}]*z-index:\s*3/.test(src), 'le menu passerait sous les icônes').toBe(true);
   });
 });
 
@@ -423,5 +441,78 @@ describe('Artistes — la vue est celle des artistes, pas des albums', () => {
       src.includes('bio: v.description'),
       'la modale envoie `description` à une route qui attend `bio`.',
     ).toBe(true);
+  });
+});
+
+/**
+ * Écran Playlists — la simplification demandée par Bertrand (02/09/2026).
+ *
+ * Il retire Merge, Transferts, Générateur et Sync « pour le moment », garde
+ * les Sauvegardes SUR cet écran, et met les intelligentes dans un second
+ * onglet — le même choix qu'il avait fait pour les collections.
+ *
+ * Collaborative sort de l'écran mais RESTE côté serveur : il la réserve au
+ * social (« les amis de Tune »).
+ */
+describe('Playlists — l’écran simplifié', () => {
+  const ecran = () => lire('../../components/v2/PlaylistsV2.svelte');
+
+  it('deux onglets, listes puis intelligentes', () => {
+    const src = ecran();
+    expect(src.includes("v2.pl.tabLists") && src.includes('v2.pl.tabSmart'), 'les onglets ont disparu').toBe(true);
+    expect(src.includes('api.getSmartPlaylists()'), 'les playlists intelligentes ne sont plus lues').toBe(true);
+  });
+
+  it('une playlist intelligente n’a ni cœur ni étiquette', () => {
+    // C'est une RÈGLE : elle n'a d'identité ni dans `favorites` ni dans
+    // `item_tags`. Un cœur qui ne s'allume pas serait pire que pas de cœur.
+    const src = ecran();
+    const i = src.indexOf('onLire={() => lireSmart(sp)}');
+    expect(i, 'la carte des intelligentes a disparu').toBeGreaterThan(-1);
+    const bloc = src.slice(Math.max(0, i - 400), i + 200);
+    expect(bloc.includes('favori='), 'un favori est proposé sur une règle').toBe(false);
+    expect(bloc.includes('etiquettes='), 'des étiquettes sont proposées sur une règle').toBe(false);
+  });
+
+  it('les quatre écartés ne sont PAS dans l’écran v2', () => {
+    // Merge, transferts, générateur, sync : retirés de la v2 seulement.
+    // L'écran actuel et les routes serveur restent intacts.
+    const src = ecran();
+    for (const mot of ['merge', 'transfer', 'syncLink', 'generator']) {
+      expect(
+        new RegExp(mot, 'i').test(src),
+        `« ${mot} » est revenu dans l’écran v2, alors qu’il devait en sortir.`,
+      ).toBe(false);
+    }
+  });
+
+  it('les sauvegardes restent sur cet écran', () => {
+    // Décision explicite de Bertrand : c'est ici qu'on risque de perdre une
+    // playlist, donc ici que le filet doit se voir.
+    const src = ecran();
+    expect(src.includes('api.backupPlaylists()'), 'la sauvegarde a disparu').toBe(true);
+    expect(src.includes('api.restorePlaylistSnapshot('), 'la restauration a disparu').toBe(true);
+  });
+
+  it('l’import vise la route qui lit vraiment un fichier', () => {
+    // `POST /playlist-manager/import` attend du JSON et ne lit aucun fichier :
+    // le client lui envoyait un FormData, donc 415, et l'import n'a jamais
+    // fonctionné. La bonne route existait depuis le début.
+    const api = lire('../api.ts');
+    expect(api.includes('${BASE}/playlists/import/m3u'), 'l’import ne vise plus la route multipart').toBe(true);
+    const i = api.indexOf('export async function importPlaylistFile');
+    expect(
+      api.slice(i, i + 700).includes('playlist-manager/import'),
+      'l’import est revenu sur la route JSON : elle répondrait 415.',
+    ).toBe(false);
+  });
+
+  it('le partage part en POST, et se dit public', () => {
+    // La route est déclarée `post` : un GET répondait 405.
+    const api = lire('../api.ts');
+    const i = api.indexOf('export function sharePlaylist');
+    expect(api.slice(i, i + 400).includes("method: 'POST'"), 'le partage repasse en GET : 405').toBe(true);
+    // Et l'utilisateur doit savoir ce qu'il publie.
+    expect(ecran().includes('v2.pl.shared'), 'le partage ne dit plus qu’il est public').toBe(true);
   });
 });

@@ -2623,11 +2623,36 @@ export function exportPlaylistFile(service: string, playlistId: string, format: 
   });
 }
 
-export async function importPlaylistFile(file: File, format: string) {
+/**
+ * Importe une playlist depuis un fichier M3U.
+ *
+ * 🔴 Cette fonction visait `POST /playlist-manager/import`, qui attend un
+ * corps **JSON** (`{ name, format, tracks: [{title, artist, album}] }`) et ne
+ * lit AUCUN fichier. Elle lui envoyait un `FormData` : le serveur ne pouvait
+ * répondre que 415, et l'import de playlist par fichier n'a donc jamais
+ * fonctionné. Même défaut que l'import Roon/Plex, à un second endroit.
+ *
+ * La bonne route existait depuis le début : `POST /playlists/import/m3u`
+ * prend le fichier en multipart, l'analyse avec `m3u_parser`, crée la playlist
+ * et rapproche chaque ligne de la bibliothèque.
+ *
+ * ⚠️ Le M3U est le SEUL format que cette route lit. `/playlist-manager/export`
+ * en produit trois — csv, xspf, json — mais aucun ne revient par ici.
+ */
+export async function importPlaylistFile(file: File, name?: string) {
   const form = new FormData();
   form.append('file', file);
-  const resp = await fetch(`${BASE}/playlist-manager/import?format=${format}`, { method: 'POST', headers: authHeaders(), body: form });
-  return resp.json();
+  if (name) form.append('name', name);
+  const resp = await fetch(`${BASE}/playlists/import/m3u`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: form,
+  });
+  if (!resp.ok) {
+    const detail = await resp.text().catch(() => '');
+    throw new Error(detail || `import: HTTP ${resp.status}`);
+  }
+  return resp.json() as Promise<{ playlist_id?: number; matched?: number; missing?: number }>;
 }
 
 export function getPlaylistLinks() {
@@ -3261,7 +3286,24 @@ export function getSmartDuplicates(limit = 50) { return fetchJSON<any>(`${BASE}/
 export function getActivityFeed(limit = 30) { return fetchJSON<any[]>(`${BASE}/library/activity?limit=${limit}`); }
 
 // --- Share Playlist ---
-export function sharePlaylist(playlistId: number) { return fetchJSON<any>(`${BASE}/playlists/${playlistId}/share`); }
+/**
+ * Publie une playlist sous un jeton public et rend son URL.
+ *
+ * 🔴 Cette fonction faisait un **GET** sur une route déclarée en **POST**
+ * (`playlists.rs:86`) : elle ne pouvait répondre que 405. Troisième décalage
+ * client/serveur du même genre trouvé le 02/09/2026, après l'import de
+ * playlist et l'import Roon/Plex.
+ *
+ * ⚠️ Le jeton est PUBLIC. Il n'est pas devinable — UUID v4, 128 bits de
+ * hasard, après un correctif d'audit : l'ancien dérivait de l'horloge et de
+ * l'identifiant, donc se retrouvait par force brute. Mais quiconque a l'URL
+ * lit la playlist, sans compte ni mot de passe.
+ */
+export function sharePlaylist(playlistId: number) {
+  return fetchJSON<{ token: string; url: string }>(`${BASE}/playlists/${playlistId}/share`, {
+    method: 'POST',
+  });
+}
 
 // --- Now Listening ---
 export function getNowListening() { return fetchJSON<any[]>(`${BASE}/zones/now-listening`); }

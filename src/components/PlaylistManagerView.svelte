@@ -22,7 +22,12 @@
   async function handleSharePlaylist(playlistId: number) {
     try {
       const result = await api.sharePlaylist(playlistId);
-      const text = result.text ?? result.share_url ?? JSON.stringify(result);
+      // `url` et `token` : les DEUX seuls champs que le serveur rend
+      // (`playlists.rs`, `share_playlist`). L'ancien code lisait `text` puis
+      // `share_url`, qui n'ont jamais existé — il retombait donc sur le JSON
+      // brut, et c'est lui qu'on collait dans le presse-papiers.
+      const chemin = result.url ?? (result.token ? `/api/v1/playlists/shared/${result.token}` : null);
+      const text = chemin ? new URL(chemin, window.location.origin).toString() : JSON.stringify(result);
       await navigator.clipboard.writeText(text);
       notifications.success($tr('playlistManager.linkCopied'));
     } catch (e) {
