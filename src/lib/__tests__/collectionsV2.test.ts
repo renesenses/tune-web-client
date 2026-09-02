@@ -36,11 +36,18 @@ const shell = () => lire('../../components/v2/ShellV2.svelte');
 const barre = () => lire('../../components/v2/Sidebar.svelte');
 
 /** La règle des quatre pochettes distinctes, telle que l'écran l'applique. */
-function quatreDistinctes(source: { cover_path?: string | null }[]): string[] {
+function quatreDistinctes(
+  source: { cover_path?: string | null; title?: string | null; artist_name?: string | null }[],
+): string[] {
   const vues: string[] = [];
+  const cles: string[] = [];
   for (const a of source) {
     const c = a?.cover_path;
-    if (c && !vues.includes(c)) vues.push(c);
+    if (!c) continue;
+    const cle = `${(a.artist_name ?? '').toLowerCase()}\u001f${(a.title ?? c).toLowerCase()}`;
+    if (cles.includes(cle) || vues.includes(c)) continue;
+    cles.push(cle);
+    vues.push(c);
     if (vues.length === 4) break;
   }
   return vues;
@@ -64,6 +71,40 @@ describe('Collections — la sélection des pochettes', () => {
     expect(
       quatreDistinctes([{ cover_path: null }, { cover_path: 'A' }, { cover_path: '' }, { cover_path: 'B' }]),
     ).toEqual(['A', 'B']);
+  });
+
+  it('un COFFRET ne prend qu’une case', () => {
+    // Quatre disques d'un même coffret = quatre albums, quatre fichiers de
+    // pochette en cache, une seule image. Vécu sur la collection « Classique »
+    // de Bertrand — le coffret Górecki « A Nonesuch Retrospective » remplissait
+    // la mosaïque à lui seul (02/09/2026).
+    const coffret = [
+      { cover_path: 'C1', title: 'A Nonesuch Retrospective', artist_name: 'Górecki' },
+      { cover_path: 'C2', title: 'A Nonesuch Retrospective', artist_name: 'Górecki' },
+      { cover_path: 'C3', title: 'a nonesuch retrospective', artist_name: 'górecki' },
+      { cover_path: 'C4', title: 'A Nonesuch Retrospective', artist_name: 'Górecki' },
+      { cover_path: 'D', title: 'Autre', artist_name: 'Quelqu’un' },
+    ];
+    expect(quatreDistinctes(coffret)).toEqual(['C1', 'D']);
+  });
+
+  it('deux albums HOMONYMES d’artistes différents restent distincts', () => {
+    // C'est pourquoi la clé porte l'artiste ET le titre : le titre seul les
+    // confondrait.
+    expect(
+      quatreDistinctes([
+        { cover_path: 'A', title: 'Greatest Hits', artist_name: 'Un' },
+        { cover_path: 'B', title: 'Greatest Hits', artist_name: 'Deux' },
+      ]),
+    ).toEqual(['A', 'B']);
+  });
+
+  it('sans titre ni artiste, la clé retombe sur le chemin', () => {
+    // Sinon tous les albums anonymes se regrouperaient sous la même clé vide
+    // et n'offriraient qu'une seule case.
+    expect(
+      quatreDistinctes([{ cover_path: 'A' }, { cover_path: 'B' }, { cover_path: 'C' }]),
+    ).toEqual(['A', 'B', 'C']);
   });
 
   it('aucune pochette : liste vide, la mosaïque retombera sur l’initiale', () => {

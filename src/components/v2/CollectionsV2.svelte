@@ -58,12 +58,37 @@
   let albums = $state<any[]>([]);
   let albumsChargement = $state(false);
 
-  /** Jusqu'à quatre pochettes distinctes, comme la mosaïque en attend. */
-  function quatreDistinctes(source: { cover_path?: string | null }[]): string[] {
+  /**
+   * Jusqu'à quatre pochettes distinctes, comme la mosaïque en attend.
+   *
+   * Dédoublonnage sur l'ALBUM d'abord — artiste + titre, insensibles à la
+   * casse — et non sur le seul chemin de pochette.
+   *
+   * Un coffret est stocké comme PLUSIEURS albums, chacun avec son propre
+   * fichier de pochette en cache : quatre chemins différents, une seule image.
+   * Vécu sur la collection « Classique » de Bertrand, où les quatre disques du
+   * coffret Górecki « A Nonesuch Retrospective » remplissaient la mosaïque à
+   * eux seuls (02/09/2026).
+   *
+   * Puis sur le CHEMIN : deux albums distincts peuvent malgré tout partager une
+   * pochette — une compilation et sa réédition, par exemple.
+   *
+   * Sans album identifiable, la clé retombe sur le chemin : des albums sans
+   * titre ni artiste se regrouperaient sinon tous ensemble, et n'offriraient
+   * qu'une seule case.
+   */
+  function quatreDistinctes(
+    source: { cover_path?: string | null; title?: string | null; artist_name?: string | null }[],
+  ): string[] {
     const vues: string[] = [];
+    const cles: string[] = [];
     for (const a of source) {
       const c = a?.cover_path;
-      if (c && !vues.includes(c)) vues.push(c);
+      if (!c) continue;
+      const cle = `${(a.artist_name ?? '').toLowerCase()}\u001f${(a.title ?? c).toLowerCase()}`;
+      if (cles.includes(cle) || vues.includes(c)) continue;
+      cles.push(cle);
+      vues.push(c);
       if (vues.length === 4) break;
     }
     return vues;
