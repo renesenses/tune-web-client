@@ -1005,7 +1005,28 @@
   .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
     gap:22px 18px; align-content:start; padding:8px 30px 40px}
   .grid::-webkit-scrollbar{width:9px}.grid::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
-  .card{border:0; background:transparent; text-align:left; padding:0; transition:.18s; opacity:1; color:inherit}
+  .card{border:0; background:transparent; text-align:left; padding:0; transition:.18s; opacity:1; color:inherit;
+    /*
+      Les vignettes hors écran ne sont plus rendues.
+
+      Depuis que la pochette porte cinq boutons, une vignette est passée
+      d'environ six nœuds à près de trente — SVG et tracés compris. Sur la
+      collection Pop de Bertrand, 838 albums, cela fait quelque vingt mille
+      éléments de plus à styler et à disposer, et le défilement est devenu
+      pâteux (constaté le 02/09/2026, après un premier correctif qui n'avait
+      visé que le coût de PEINTURE et n'a rien changé).
+
+      `content-visibility` fait sauter style, disposition et peinture de tout
+      ce qui sort du cadre. Les nœuds existent toujours — la recherche par
+      lettre du rail A–Z les trouve donc encore —, ils ne coûtent plus rien
+      tant qu'on ne les regarde pas.
+
+      Le mot-clé `auto` de `contain-intrinsic-size` fait retenir au navigateur
+      la taille RÉELLE une fois la vignette rendue une première fois. Sans lui,
+      l'estimation fixe fausserait la hauteur totale, et le saut au « M » du
+      rail atterrirait à côté.
+    */
+    content-visibility:auto; contain-intrinsic-size:auto 210px}
   /* La carte n'est plus un `<button>` : elle porte cinq boutons d'action sur sa
      pochette, et des boutons imbriqués sont du HTML invalide que les
      navigateurs défont. Le bloc de texte reprend donc le rôle cliquable. */
