@@ -31,6 +31,8 @@ import {
   favoriteAlbumIds,
   favoriteArtistIds,
   favoritePlaylistIds,
+  favoriteCollectionIds,
+  favoriteSmartCollectionIds,
   loadProfiles,
 } from './stores/profile';
 
@@ -45,6 +47,12 @@ export interface RefLocale {
    * client ne la proposait pas.
    */
   playlistId?: number | null;
+  /**
+   * DEUX champs, parce que les deux sortes de collection ont des espaces
+   * d'identifiants indépendants qui se recouvrent.
+   */
+  collectionId?: number | null;
+  smartCollectionId?: number | null;
 }
 
 /** Le magasin concerné, ou `null` si la référence est vide. */
@@ -55,6 +63,14 @@ function magasin(ref: RefLocale) {
     return { store: favoriteArtistIds, id: ref.artistId, champ: 'artist_id' as const };
   if (ref.playlistId)
     return { store: favoritePlaylistIds, id: ref.playlistId, champ: 'playlist_id' as const };
+  if (ref.collectionId)
+    return { store: favoriteCollectionIds, id: ref.collectionId, champ: 'collection_id' as const };
+  if (ref.smartCollectionId)
+    return {
+      store: favoriteSmartCollectionIds,
+      id: ref.smartCollectionId,
+      champ: 'smart_collection_id' as const,
+    };
   return null;
 }
 
@@ -71,11 +87,15 @@ export function estFavoriLocal(
   albums: Set<number>,
   artistes: Set<number>,
   playlists: Set<number> = new Set(),
+  collections: Set<number> = new Set(),
+  collectionsSmart: Set<number> = new Set(),
 ): boolean {
   if (ref.trackId) return pistes.has(ref.trackId);
   if (ref.albumId) return albums.has(ref.albumId);
   if (ref.artistId) return artistes.has(ref.artistId);
   if (ref.playlistId) return playlists.has(ref.playlistId);
+  if (ref.collectionId) return collections.has(ref.collectionId);
+  if (ref.smartCollectionId) return collectionsSmart.has(ref.smartCollectionId);
   return false;
 }
 

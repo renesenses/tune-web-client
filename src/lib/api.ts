@@ -2770,13 +2770,33 @@ export function deleteProfile(id: number) {
  * d'id — import M3U rejoué, playlist recréée, bascule SQLite→PostgreSQL.
  * Seul le client ne le proposait pas.
  */
-export type FavItem = { track_id?: number; album_id?: number; artist_id?: number; playlist_id?: number };
+export type FavItem = {
+  track_id?: number;
+  album_id?: number;
+  artist_id?: number;
+  playlist_id?: number;
+  /**
+   * DEUX champs pour les collections : leurs espaces d'identifiants sont
+   * indépendants et se recouvrent (id 1 = « favorites » ET « Audiophile » sur
+   * le serveur de Bertrand). Le serveur les distingue par `item_type`.
+   */
+  collection_id?: number;
+  smart_collection_id?: number;
+};
 
-function favItem(p: FavItem): { item_type: 'track' | 'album' | 'artist' | 'playlist'; item_id: number } | null {
+function favItem(
+  p: FavItem,
+): {
+  item_type: 'track' | 'album' | 'artist' | 'playlist' | 'collection' | 'smart_collection';
+  item_id: number;
+} | null {
   if (p.track_id != null) return { item_type: 'track', item_id: p.track_id };
   if (p.album_id != null) return { item_type: 'album', item_id: p.album_id };
   if (p.artist_id != null) return { item_type: 'artist', item_id: p.artist_id };
   if (p.playlist_id != null) return { item_type: 'playlist', item_id: p.playlist_id };
+  if (p.collection_id != null) return { item_type: 'collection', item_id: p.collection_id };
+  if (p.smart_collection_id != null)
+    return { item_type: 'smart_collection', item_id: p.smart_collection_id };
   return null;
 }
 
@@ -2798,6 +2818,16 @@ export async function getFavorites(
   albums: import('./types').Album[];
   artists: import('./types').Artist[];
   playlists: import('./types').Playlist[];
+  /**
+   * Les collections sortent en IDENTIFIANTS, pas en objets développés.
+   *
+   * Les autres seaux vont chercher chaque objet un par un pour que l'écran
+   * Favoris puisse les afficher. Les collections n'ont pas d'écran de favoris,
+   * et l'unique usage est le cœur sur leur vignette : une requête par
+   * collection ne servirait à rien.
+   */
+  collectionIds: number[];
+  smartCollectionIds: number[];
 }> {
   const q = type ? `?item_type=${type}` : '';
   const rows = await fetchJSON<Array<{ item_type: string; item_id: number }>>(
@@ -2816,7 +2846,14 @@ export async function getFavorites(
     settle(ids('artist'), getArtist),
     settle(ids('playlist'), getPlaylist),
   ]);
-  return { tracks, albums, artists, playlists };
+  return {
+    tracks,
+    albums,
+    artists,
+    playlists,
+    collectionIds: ids('collection'),
+    smartCollectionIds: ids('smart_collection'),
+  };
 }
 
 export function addFavorite(profileId: number, body: FavItem) {

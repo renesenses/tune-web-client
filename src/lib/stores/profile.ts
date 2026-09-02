@@ -63,6 +63,16 @@ export const favoriteArtistIds = writable<Set<number>>(new Set());
  * SQLite→PostgreSQL). Seul le client ne les lisait pas.
  */
 export const favoritePlaylistIds = writable<Set<number>>(new Set());
+/**
+ * Collections en favori — DEUX ensembles, et non un seul.
+ *
+ * Les deux sortes ont des espaces d'identifiants indépendants qui se
+ * recouvrent : sur le serveur de Bertrand, l'id 1 est à la fois la collection
+ * normale « favorites » et l'intelligente « 💎 Audiophile » (02/09/2026). Un
+ * ensemble unique allumerait le cœur de l'une en mettant l'autre en favori.
+ */
+export const favoriteCollectionIds = writable<Set<number>>(new Set());
+export const favoriteSmartCollectionIds = writable<Set<number>>(new Set());
 
 // Streaming favorites (Qobuz/Tidal/… items hearted in Tune, stored per-profile
 // with metadata). Keyed by `${item_type}:${service}:${service_id}` so a shared
@@ -84,6 +94,8 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoriteAlbumIds.set(new Set());
     favoriteArtistIds.set(new Set());
     favoritePlaylistIds.set(new Set());
+    favoriteCollectionIds.set(new Set());
+    favoriteSmartCollectionIds.set(new Set());
     favoriteStreamingKeys.set(new Set());
     return;
   }
@@ -93,6 +105,8 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoriteAlbumIds.set(new Set((favs.albums ?? []).map((a: any) => a.id)));
     favoriteArtistIds.set(new Set((favs.artists ?? []).map((a: any) => a.id)));
     favoritePlaylistIds.set(new Set((favs.playlists ?? []).map((p: any) => p.id)));
+    favoriteCollectionIds.set(new Set(favs.collectionIds ?? []));
+    favoriteSmartCollectionIds.set(new Set(favs.smartCollectionIds ?? []));
   } catch (e) {
     console.error('Load favorite ids error:', e);
   }

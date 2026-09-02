@@ -1898,6 +1898,7 @@ export default {
   "settings.levelExpert": "Expert",
   "v2.col.noneInTab": "No collection of this kind.",
   "common.open": "Open",
+  "v2.edit.collection": "Edit collection",
   "v2.edit.name": "Name",
   "v2.edit.description": "Description",
   "v2.edit.playlist": "Edit playlist",

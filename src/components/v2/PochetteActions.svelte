@@ -48,6 +48,8 @@
     favoriteAlbumIds,
     favoriteArtistIds,
     favoritePlaylistIds,
+    favoriteCollectionIds,
+    favoriteSmartCollectionIds,
   } from '../../lib/stores/profile';
   import { basculerFavoriLocal, estFavoriLocal, type RefLocale } from '../../lib/favorisLocaux';
   import type { Snippet } from 'svelte';
@@ -92,6 +94,8 @@
           $favoriteAlbumIds,
           $favoriteArtistIds,
           $favoritePlaylistIds,
+          $favoriteCollectionIds,
+          $favoriteSmartCollectionIds,
         )
       : false,
   );

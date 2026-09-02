@@ -271,3 +271,68 @@ describe('Playlists — les cinq actions', () => {
     expect(src.includes('use:portail'), 'la modale se rognerait dans la vignette').toBe(true);
   });
 });
+
+/**
+ * Les deux sortes de collection ne se confondent PAS.
+ *
+ * Leurs espaces d'identifiants sont indépendants et se RECOUVRENT. Mesuré sur
+ * le serveur de Bertrand le 02/09/2026 : l'id 1 est à la fois la collection
+ * normale « favorites » et l'intelligente « 💎 Audiophile ».
+ *
+ * Un `item_type` unique — ou un ensemble de favoris unique — désignerait les
+ * deux à la fois : mettre « Audiophile » en favori allumerait le cœur de
+ * « favorites », et personne ne verrait pourquoi. D'où DEUX types partout,
+ * du composant jusqu'à l'API.
+ */
+describe('Collections — deux sortes, deux identités', () => {
+  const ecran = () => lire('../../components/v2/CollectionsV2.svelte');
+
+  it('le favori et les étiquettes portent la SORTE', () => {
+    const src = ecran();
+    expect(src.includes('{ smartCollectionId: e.id }'), 'le favori des smart a disparu').toBe(true);
+    expect(src.includes('{ collectionId: e.id }'), 'le favori des normales a disparu').toBe(true);
+    expect(
+      src.includes("e.sorte === 'smart' ? 'smart_collection' : 'collection'"),
+      'les étiquettes ne distinguent plus les deux sortes : l’id 1 en désignerait deux.',
+    ).toBe(true);
+  });
+
+  it('les deux sortes ont des ENSEMBLES de favoris distincts', () => {
+    const src = lire('../stores/profile.ts');
+    for (const m of ['favoriteCollectionIds', 'favoriteSmartCollectionIds']) {
+      expect(src.includes(m), `le magasin ${m} a disparu`).toBe(true);
+    }
+    // Un seul magasin pour les deux allumerait le cœur de l'une pour l'autre.
+    expect(
+      lire('../favorisLocaux.ts').includes("champ: 'smart_collection_id' as const"),
+      'la bascule confond les deux sortes.',
+    ).toBe(true);
+  });
+
+  it('l’API traduit chaque sorte en son propre `item_type`', () => {
+    const src = lire('../api.ts');
+    expect(src.includes("item_type: 'collection', item_id: p.collection_id"), 'type normale perdu').toBe(true);
+    expect(src.includes("item_type: 'smart_collection'"), 'type smart perdu').toBe(true);
+  });
+
+  it('les collections sortent en IDENTIFIANTS, pas en objets développés', () => {
+    // Les autres seaux vont chercher chaque objet un par un, pour l'écran
+    // Favoris. Les collections n'y figurent pas : une requête par collection
+    // ne servirait à rien.
+    const src = lire('../api.ts');
+    expect(src.includes("collectionIds: ids('collection')"), 'les ids ne sont plus rendus').toBe(true);
+    expect(
+      src.includes("smartCollectionIds: ids('smart_collection')"),
+      'les ids des smart ne sont plus rendus.',
+    ).toBe(true);
+  });
+
+  it('seule la collection NORMALE s’édite', () => {
+    // `PUT /library/collections/{id}` n'existe que pour elles. Une
+    // intelligente est une RÈGLE : la renommer ne se fait pas par là.
+    expect(
+      ecran().includes("onEditer={e.sorte === 'normale' ? () => (enEdition = e) : null}"),
+      'le crayon est proposé sur une collection intelligente, où il n’a pas de route.',
+    ).toBe(true);
+  });
+});

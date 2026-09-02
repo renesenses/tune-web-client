@@ -36,6 +36,8 @@
   import { notifications } from '../../lib/stores/notifications';
   import { quatreDistinctes } from '../../lib/mosaique';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
+  import PochetteActions from './PochetteActions.svelte';
+  import RenommerModale from './RenommerModale.svelte';
   import AlbumArt from '../AlbumArt.svelte';
 
   type Sorte = 'normale' | 'smart';
@@ -56,6 +58,37 @@
   const visibles = $derived(entrees.filter((e) => (onglet === 'smart' ? e.sorte === 'smart' : e.sorte === 'normale')));
   let chargement = $state(true);
   let ouverte = $state<Entree | null>(null);
+  /** Collection en cours de renommage — le bouton haut-droit de la pochette. */
+  let enEdition = $state<Entree | null>(null);
+
+  /**
+   * Lecture d'une collection entière.
+   *
+   * Il n'existe pas de route « lire la collection » : on lit ses albums, puis
+   * on enchaîne le premier. C'est un aller-retour de plus, mais il n'y a pas
+   * moyen de faire autrement sans une route serveur, et une pochette sans
+   * bouton de lecture serait la seule de l'écran à ne pas en avoir.
+   */
+  async function lireCollection(e: Entree) {
+    const zid = $currentZoneId;
+    if (zid == null) {
+      notifications.error($t('v2.col.noZone' as any));
+      return;
+    }
+    try {
+      const liste = ((e.sorte === 'smart'
+        ? await api.getSmartCollectionAlbums(e.id)
+        : await api.getCollectionAlbums(e.id)) as any[]) ?? [];
+      const premier = liste.find((a) => a?.id != null);
+      if (!premier) {
+        notifications.error($t('v2.col.emptyCollection' as any));
+        return;
+      }
+      await api.play(zid, { album_id: premier.id });
+    } catch (err: any) {
+      notifications.error(err?.message ?? $t('common.error' as any));
+    }
+  }
   let albums = $state<any[]>([]);
   let albumsChargement = $state(false);
 
@@ -199,20 +232,48 @@
     {:else}
       <div class="grid">
         {#each visibles as e (e.sorte + ':' + e.id)}
-          <button class="card" onclick={() => ouvrir(e)}>
+          <div class="card">
             <span class="cv">
-              <MosaiquePochettes pochettes={e.covers} initiales={e.nom?.slice(0, 1)} alt={e.nom} />
+              <!-- Les deux sortes portent des `item_type` DISTINCTS : leurs
+                   identifiants se recouvrent (l'id 1 est à la fois la
+                   collection « favorites » et l'intelligente « Audiophile »
+                   sur le serveur de Bertrand). Un type unique mettrait l'une
+                   en favori en croyant viser l'autre. -->
+              <PochetteActions
+                favori={e.sorte === 'smart' ? { smartCollectionId: e.id } : { collectionId: e.id }}
+                etiquettes={{ itemType: e.sorte === 'smart' ? 'smart_collection' : 'collection', itemId: e.id }}
+                onEditer={e.sorte === 'normale' ? () => (enEdition = e) : null}
+                onLire={() => lireCollection(e)}
+                onOuvrir={() => ouvrir(e)}
+                nom={e.nom}
+              >
+                <MosaiquePochettes pochettes={e.covers} initiales={e.nom?.slice(0, 1)} alt={e.nom} />
+              </PochetteActions>
             </span>
-            <span class="ct">{e.nom}</span>
-            <span class="ca">
-              <!-- Plus d'étiquette « Intelligente » par carte : l'onglet le dit
-                   déjà, et la répéter sur chaque vignette serait du bruit. -->
-              {e.albums ?? 0}
-            </span>
-          </button>
+            <button class="meta" onclick={() => ouvrir(e)}>
+              <span class="ct">{e.nom}</span>
+              <span class="ca">
+                <!-- Plus d'étiquette « Intelligente » par carte : l'onglet le dit
+                     déjà, et la répéter sur chaque vignette serait du bruit. -->
+                {e.albums ?? 0}
+              </span>
+            </button>
+          </div>
         {/each}
       </div>
     {/if}
+  {/if}
+
+  {#if enEdition}
+    {@const cible = enEdition}
+    <RenommerModale
+      titre={$t('v2.edit.collection' as any)}
+      nom={cible.nom}
+      description={cible.description}
+      enregistrer={(v) => api.updateCollection(cible.id, v)}
+      onClose={() => (enEdition = null)}
+      onSaved={charger}
+    />
   {/if}
 </section>
 
@@ -231,7 +292,11 @@
   .tab.active{color:var(--v2-txt); border-bottom-color:var(--v2-acc1)}
   .state{padding:30px; color:var(--v2-txt3); font-size:13.5px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:18px; padding:12px 30px 30px}
-  .card{display:flex; flex-direction:column; gap:6px; background:transparent; border:0; padding:0; cursor:pointer; text-align:left; color:inherit}
+  .card{display:flex; flex-direction:column; gap:6px; background:transparent; border:0; padding:0; text-align:left; color:inherit}
+  /* La carte n'est plus un `<button>` : elle contient les cinq boutons
+     d'action de la pochette, et des boutons imbriqués sont du HTML invalide. */
+  .meta{display:flex; flex-direction:column; gap:6px; width:100%; border:0; background:transparent;
+    padding:0; text-align:left; color:inherit; font:inherit; cursor:pointer}
   /* Le cadre porte le carré : la mosaïque le remplit, une pochette seule aussi. */
   .cv{display:block; aspect-ratio:1; width:100%; border-radius:var(--v2-r-card); overflow:hidden; background:var(--v2-surface)}
   .cv :global(img){width:100%; height:100%; object-fit:cover; display:block}
