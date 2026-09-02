@@ -247,3 +247,49 @@ describe('Nouveau client — le volume', () => {
     }
   });
 });
+
+/**
+ * Un état écrit dans un `$effect` doit être DÉCLARÉ AVANT lui.
+ *
+ * Vécu le 02/09/2026 sur l'écran Podcasts : `topErreur` était écrit dans un
+ * effet qui s'exécute au montage, et déclaré vingt lignes plus bas. L'effet
+ * touchait une variable pas encore initialisée, levait une `ReferenceError`
+ * AVANT de lancer la requête, et `topLoading` restait à `true` pour toujours —
+ * « Chargement du palmarès… » éternel, sans erreur visible à l'écran.
+ *
+ * Le piège est propre aux runes : rien dans le typage ne l'attrape, et
+ * `svelte-check` ne l'a pas vu non plus.
+ */
+describe('Podcasts — l’attente ne peut plus être éternelle', () => {
+  const src = () => lire('../../components/v2/PodcastsV2.svelte');
+
+  it('l’état d’erreur est déclaré avant l’effet qui l’écrit', () => {
+    const s = src();
+    const decl = s.indexOf('let topErreur = $state');
+    const ecrit = s.indexOf('topErreur = null;');
+    expect(decl, 'l’état d’erreur a disparu').toBeGreaterThan(-1);
+    expect(ecrit, 'l’effet ne réinitialise plus l’erreur').toBeGreaterThan(-1);
+    expect(
+      decl,
+      'la déclaration est passée APRÈS son écriture : l’effet lèverait au montage et l’attente serait éternelle.',
+    ).toBeLessThan(ecrit);
+  });
+
+  it('un appel qui ne revient pas finit par le dire', () => {
+    const s = src();
+    expect(/DELAI_MS\s*=\s*15000/.test(s), 'le délai a disparu').toBe(true);
+    expect(s.includes('avecDelai(api.getTopPodcasts('), 'le palmarès attend sans limite').toBe(true);
+    expect(s.includes('avecDelai(api.getDiscoverPodcasts())'), 'la sélection attend sans limite').toBe(true);
+    // Et il le DIT : un « aucun podcast » sur une panne se lit comme un
+    // catalogue vide, et on cherche au mauvais endroit.
+    expect(s.includes('v2.pod.topTimeout'), 'l’échec ne se distingue plus d’un catalogue vide').toBe(true);
+  });
+
+  it('un seul « Tous » dans les genres', () => {
+    // `PODCAST_GENRES` commence déjà par `{ id: null, key: 'podcasts.genre.all' }`.
+    expect(
+      src().includes("$t('podcasts.genre.all' as any)}</button>"),
+      'un second bouton « Tous » est revenu à côté de celui de la liste.',
+    ).toBe(false);
+  });
+});

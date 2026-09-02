@@ -123,6 +123,17 @@
     ]);
   }
 
+  /**
+   * Pourquoi le palmarès a échoué, s'il a échoué.
+   *
+   * 🔴 Déclaré ICI, AVANT l'effet qui l'écrit. Il vivait après : l'effet
+   * s'exécute au montage, touchait une variable pas encore initialisée, et
+   * levait une `ReferenceError` AVANT même de lancer la requête. `topLoading`
+   * restait donc à `true` pour toujours — c'est le « Chargement du palmarès… »
+   * éternel que Bertrand voyait (02/09/2026).
+   */
+  let topErreur = $state<string | null>(null);
+
   /** Palmarès : rechargé à chaque changement de genre OU de pays. */
   $effect(() => {
     if (tab !== 'discover') return;
@@ -144,7 +155,6 @@
         topLoading = false;
       });
   });
-  let topErreur = $state<string | null>(null);
 
   // ── Radio France ─────────────────────────────────────────────────────────
   let radioFrance = $state<any[]>([]);
