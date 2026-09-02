@@ -370,11 +370,38 @@
             {:else}
               <div class="bande">
                 {#each et.elements as el (el.id)}
-                  <button class="carte" onclick={() => jouer(el)} disabled={!el.jouer}>
-                    <span class="cv"><AlbumArt coverPath={el.cover} albumId={null} size={0} alt={el.titre} fallbackInitials={el.titre?.slice(0, 1)} /></span>
-                    <span class="ct">{el.titre}</span>
-                    {#if el.sous}<span class="ca">{el.sous}</span>{/if}
-                  </button>
+                  <!--
+                    La carte n'est PLUS un seul bouton.
+
+                    Elle en portait un unique, englobant, et un bouton Play
+                    centre a l'interieur aurait ete un bouton DANS un bouton :
+                    balisage invalide, et Svelte le refuse. La pochette et le
+                    texte sont donc deux boutons FRERES, meme geste, sous un
+                    conteneur neutre.
+                  -->
+                  <div class="carte">
+                    <button
+                      class="cv"
+                      onclick={() => jouer(el)}
+                      disabled={!el.jouer}
+                      aria-label={`${$t('common.play' as any)} — ${el.titre}`}
+                    >
+                      <AlbumArt coverPath={el.cover} albumId={null} size={0} alt={el.titre}
+                        source={el.source} fallbackInitials={el.titre?.slice(0, 1)} />
+                      {#if el.jouer}
+                        <!-- Meme disque que `PochetteActions` : accent du theme,
+                             triangle en `--v2-on-acc`, 52 px, decale de 2 px
+                             pour compenser son decentrage optique. -->
+                        <span class="centre" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8 5.5v13l11-6.5z"/></svg>
+                        </span>
+                      {/if}
+                    </button>
+                    <button class="meta" onclick={() => jouer(el)} disabled={!el.jouer}>
+                      <span class="ct">{el.titre}</span>
+                      {#if el.sous}<span class="ca">{el.sous}</span>{/if}
+                    </button>
+                  </div>
                 {/each}
               </div>
             {/if}
@@ -446,15 +473,32 @@
     lui donnait une barre de défilement horizontale.
   */
   .carte{flex:0 0 148px; min-width:0; max-width:148px; display:flex; flex-direction:column; gap:6px;
-    border:0; background:transparent; padding:0; text-align:left; color:inherit; cursor:pointer;
     /* Cinquante vignettes par bande, et jusqu'à vingt et une bandes : ce qui
        sort du cadre n'est ni stylé, ni disposé, ni peint. Sans cela, dérouler
-       la page coûterait plusieurs milliers de vignettes rendues pour rien. */
+       la page coûterait plusieurs milliers de vignettes rendues pour rien.
+
+       ⚠️ `content-visibility` implique `contain: layout style paint`, qui
+       CONTIENT un descendant `position: fixed`. Le disque de lecture est en
+       `absolute` dans la carte : il reste dedans, rien à craindre ici. */
     content-visibility:auto; contain-intrinsic-size:auto 200px}
-  .carte:disabled{cursor:default}
-  .cv{display:block; width:100%; min-width:0; aspect-ratio:1; border-radius:var(--v2-r-card);
-    overflow:hidden; background:var(--v2-surface)}
+  .meta{display:flex; flex-direction:column; gap:2px; min-width:0;
+    border:0; background:transparent; padding:0; text-align:left; color:inherit; cursor:pointer}
+  .meta:disabled{cursor:default}
+  .cv{position:relative; display:block; width:100%; min-width:0; aspect-ratio:1;
+    border-radius:var(--v2-r-card); overflow:hidden; background:var(--v2-surface);
+    border:0; padding:0; cursor:pointer}
+  .cv:disabled{cursor:default}
   .cv :global(img){width:100%; height:100%; object-fit:cover; display:block}
+  /* Le disque de lecture, centré. Révélé au survol ET au clavier : sans
+     `focus-within` on tabulerait jusqu'à un bouton invisible. */
+  .centre{position:absolute; top:50%; left:50%; width:52px; height:52px; margin:-26px 0 0 -26px;
+    border-radius:50%; display:grid; place-items:center; pointer-events:none;
+    background:var(--v2-acc1); color:var(--v2-on-acc); box-shadow:0 2px 12px rgba(0,0,0,.35);
+    opacity:0; transition:opacity .16s ease}
+  .centre svg{width:24px; height:24px; fill:currentColor; margin-left:2px}
+  .carte:hover .centre, .cv:focus-visible .centre{opacity:1; transition-duration:0s}
+  /* Sur tactile il n'y a pas de survol : le disque reste visible. */
+  @media (hover: none){ .centre{opacity:1} }
   .ct{font:600 12.5px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ca{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 

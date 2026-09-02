@@ -222,7 +222,7 @@
         <!-- `onAddToPlaylist` non fournie : le bouton « ajouter à une playlist »
              de cet écran reste masqué tant que la coquille v2 n'a pas sa propre
              fenêtre de playlists. Mieux vaut un bouton absent qu'un bouton mort. -->
-        <NowPlaying />
+        <NowPlaying tvDansLaCoquille />
       {:else}
         <div class="soon">
           <div class="badge">À venir</div>

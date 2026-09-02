@@ -723,8 +723,20 @@
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
+    /**
+     * La coquille pose-t-elle deja un bouton « mode TV » en haut a droite ?
+     *
+     * Le client v2 en peint un dans la grappe avatar + signet, exactement ou
+     * cet ecran pose le sien (`.np-tv-btn`, top 16 / right 16) : les deux se
+     * superposaient, le notre passant DERRIERE l'avatar. Bertrand, 02/09/2026 :
+     * « une icone en haut a droite en doublon [...] derriere l'avatar ».
+     *
+     * Un booleen plutot qu'un retrait pur et simple : en v1 il n'y a pas de
+     * grappe avatar, et c'est le seul acces au mode TV de cet ecran.
+     */
+    tvDansLaCoquille?: boolean;
   }
-  let { onAddToPlaylist }: Props = $props();
+  let { onAddToPlaylist, tvDansLaCoquille = false }: Props = $props();
 
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
@@ -1245,7 +1257,7 @@
   <!-- Seul bouton de l'écran rendu hors de la garde `displayTrack` : il passait
        en plein écran sur une vue TV qui n'avait rien à afficher quand rien ne
        jouait. Les autres modes (paroles, crédits, EQ) sont déjà à l'intérieur. -->
-  {#if displayTrack}
+  {#if displayTrack && !tvDansLaCoquille}
     <button class="np-tv-btn" onclick={enterTvMode} title={$t('nowplaying.tvMode')}>
       <!--
         Un ÉCRAN, pas quatre flèches.

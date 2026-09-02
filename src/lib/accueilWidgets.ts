@@ -35,6 +35,16 @@ export interface Element {
   cover?: string | null;
   /** Ce que fait un clic. Absent = l'élément n'est pas actionnable. */
   jouer?: (zoneId: number) => Promise<unknown> | void;
+  /**
+   * Service d'origine, pour la pastille sur la pochette (`ServiceBadge`).
+   *
+   * Les albums éditoriaux de Qobuz ne portent AUCUN champ de source — mesuré
+   * sur le serveur de Bertrand le 02/09/2026 : `{artist_id, artist_name,
+   * cover_path, quality, source_id, title, track_count, year}`. La source vient
+   * donc du WIDGET, qui sait à quel service il s'adresse, et non de l'objet.
+   * `local` et `radio` sont filtrés par `AlbumArt` : pas de pastille pour eux.
+   */
+  source?: string | null;
 }
 
 export type Forme = 'bande' | 'chiffres';
@@ -88,7 +98,7 @@ function champ(o: any, ...noms: string[]): string | undefined {
  * une chaîne vide : `feed_url: ''` du palmarès des podcasts avait mis cinquante
  * entrées sous la même clé et vidé l'écran (02/09/2026).
  */
-function versElement(o: any, i: number, prefixe: string): Element {
+function versElement(o: any, i: number, prefixe: string, service?: string): Element {
   const id = champ(o, 'id', 'album_id', 'track_id', 'source_id', 'feed_url', 'uri') ?? '';
   return {
     // 🔴 L'INDEX fait toujours partie de la clé.
@@ -107,6 +117,9 @@ function versElement(o: any, i: number, prefixe: string): Element {
     titre: champ(o, 'title', 'name', 'album_title', 'album') ?? '—',
     sous: champ(o, 'artist_name', 'artist', 'author', 'artistName', 'station'),
     cover: champ(o, 'cover_path', 'cover_url', 'image_url', 'image_path', 'logo_url') ?? null,
+    // La source de l'objet PRIME sur celle du widget : une bande locale peut
+    // rendre un album importé d'un service, la déclaration ne le sait pas.
+    source: champ(o, 'source', 'service', 'provider') ?? service ?? null,
     jouer: o?.album_id != null || (o?.id != null && prefixe.startsWith('alb'))
       ? (z: number) => api.play(z, { album_id: o.album_id ?? o.id })
       : o?.track_id != null
@@ -308,7 +321,7 @@ export const WIDGETS: Widget[] = [
     cleTitre: 'v2.home.wQobuz',
     forme: 'bande',
     charger: async () =>
-      utiles(liste(await api.getStreamingFeaturedPlaylists('qobuz')).slice(0, LIMITE).map((o, i) => versElement(o, i, 'qob'))),
+      utiles(liste(await api.getStreamingFeaturedPlaylists('qobuz')).slice(0, LIMITE).map((o, i) => versElement(o, i, 'qob', 'qobuz'))),
   },
   // ── ÉDITORIAL QOBUZ ──────────────────────────────────────────────────────
   //
@@ -337,7 +350,7 @@ export const WIDGETS: Widget[] = [
     charger: async () =>
       utiles(
         liste(await api.getStreamingFeatured('qobuz', section, LIMITE)).map((o, i) =>
-          versElement(o, i, id),
+          versElement(o, i, id, 'qobuz'),
         ),
       ),
   })),
