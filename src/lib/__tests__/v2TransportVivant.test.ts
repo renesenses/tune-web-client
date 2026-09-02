@@ -404,3 +404,40 @@ describe('Podcasts — sous-catégories', () => {
     expect(table().includes('return genre == null ? [] : (PODCAST_SUBGENRES[genre] ?? []);'), 'le repli a disparu').toBe(true);
   });
 });
+
+/**
+ * « Populaires » doit suivre le PAYS choisi.
+ *
+ * L'onglet lisait `discover.top`, que le serveur remplit avec un classement
+ * figé sur `"us"` EN DUR. Sur un sélecteur réglé sur France, il affichait donc
+ * Crime Junkie, The Daily et Pod Save America — constaté par Bertrand, capture
+ * à l'appui, le 02/09/2026.
+ *
+ * La PR serveur #3207 corrige la route ; ce garde tient le CLIENT, qui ne doit
+ * plus dépendre d'elle pour être juste.
+ */
+describe('Podcasts — « Populaires » suit le pays', () => {
+  const src = () => lire('../../components/v2/PodcastsV2.svelte');
+
+  it('l’onglet ne lit plus le classement de `discover`', () => {
+    expect(
+      src().includes('discover.top.filter(match)'),
+      '« Populaires » relit `discover.top`, figé sur les États-Unis côté serveur.',
+    ).toBe(false);
+  });
+
+  it('il demande le palmarès du pays, sans genre', () => {
+    const s = src();
+    expect(s.includes('avecDelai(api.getTopPodcasts(null, 50, c))'), 'la source du pays a disparu').toBe(true);
+    // Et il se recharge quand le pays change, sinon il resterait sur le
+    // précédent pendant que le reste de l'écran a changé.
+    expect(s.includes('if (populairesCharge === c) return;'), 'le rechargement au changement de pays a disparu').toBe(true);
+  });
+
+  it('le pays est NOMMÉ au-dessus de la liste', () => {
+    // C'est ce qui manquait : rien n'indiquait qu'on regardait un autre pays
+    // que celui du sélecteur.
+    const i = src().indexOf("{:else if section === 'populaires'}");
+    expect(src().slice(i, i + 700).includes('sec-pays'), 'le pays n’est plus annoncé').toBe(true);
+  });
+});

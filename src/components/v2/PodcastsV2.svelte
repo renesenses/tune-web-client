@@ -215,6 +215,43 @@
       });
   });
 
+  /**
+   * « Populaires » — le classement du PAYS choisi.
+   *
+   * 🔴 Il venait de `discover.top`, que le serveur remplit avec un classement
+   * figé sur `"us"` EN DUR. Sur un sélecteur réglé sur France, l'onglet
+   * affichait donc Crime Junkie, The Daily et Pod Save America — constaté par
+   * Bertrand, capture à l'appui, le 02/09/2026.
+   *
+   * La PR serveur #3207 corrige la route, mais elle n'est pas déployée. On
+   * demande donc le palmarès directement, sans genre : même donnée, par la
+   * route qui a toujours respecté le pays.
+   *
+   * Ce n'est pas un contournement à retirer : `/podcasts/top` EST la source du
+   * classement, `discover` n'en portait qu'une copie.
+   */
+  let populaires = $state<any[]>([]);
+  let populairesLoading = $state(false);
+  let populairesCharge: string | null = null;
+
+  $effect(() => {
+    if (tab !== 'discover' || section !== 'populaires') return;
+    const c = pays;
+    if (populairesCharge === c) return;
+    populairesCharge = c;
+    populairesLoading = true;
+    avecDelai(api.getTopPodcasts(null, 50, c))
+      .then((r) => {
+        populaires = r ?? [];
+      })
+      .catch(() => {
+        populaires = [];
+      })
+      .finally(() => {
+        populairesLoading = false;
+      });
+  });
+
   // ── Radio France ─────────────────────────────────────────────────────────
   let radioFrance = $state<any[]>([]);
   let rfLoaded = false;
@@ -469,12 +506,18 @@
         {/if}
 
       {:else if section === 'populaires'}
-        {#if discoverLoading && !discover}
-          <div class="state">Chargement de la sélection…</div>
-        {:else if !discover?.top.length}
+        <div class="sec-tete">
+          <!-- On NOMME le pays : c'est exactement ce qui manquait quand
+               l'onglet servait le classement americain sous un selecteur
+               regle sur France. -->
+          <span class="sec-pays">{PAYS.find((c) => c.code === pays)?.nom ?? pays.toUpperCase()}</span>
+        </div>
+        {#if populairesLoading}
+          <div class="state">{$t('v2.pod.topLoading' as any)}</div>
+        {:else if !populaires.length}
           <div class="state">{$t('v2.pod.noSelection' as any)}</div>
         {:else}
-          <div class="grid">{#each discover.top.filter(match) as p, i (feedOf(p) ?? `d${i}`)}{@render tile(p, false)}{/each}</div>
+          <div class="grid">{#each populaires.filter(match) as p, i (feedOf(p) ?? `d${i}`)}{@render tile(p, false)}{/each}</div>
         {/if}
 
       {:else if section === 'radiofrance'}
@@ -536,7 +579,7 @@
 
       {/if}
 
-      {#if !discoverLoading && !topLoading && !discover?.curated.length && !discover?.top.length && !top.length && !radioFrance.length}
+      {#if !discoverLoading && !topLoading && !discover?.curated.length && !populaires.length && !top.length && !radioFrance.length}
         <div class="state">Découverte indisponible sur ce serveur.</div>
       {/if}
 

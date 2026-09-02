@@ -221,6 +221,15 @@
   /* Avatar unique de l'application : pincé en haut à droite de l'écran, au-dessus
      de toutes les vues (y compris les overlays de fiche). */
   .av-tr{position:absolute; top:20px; right:30px; z-index:80; display:flex; align-items:center; gap:10px}
+  /*
+    Le bouton « mode TV » de « Lecture en cours » est ancré en haut à droite de
+    SON écran — `top:16px; right:16px`. Depuis que la coquille pose l'avatar et
+    le raccourci au même endroit, les trois se chevauchaient : sur la capture de
+    Bertrand, l'icône TV mordait sur sa photo.
+    On la décale vers la gauche de la largeur de la grappe, et seulement sous le
+    nouveau client — l'écran actuel n'a rien à cet endroit.
+  */
+  :global(.np-tv-btn) { right: 108px !important; top: 18px !important; }
   .raccourci{width:32px; height:32px; border:0; border-radius:50%; background:var(--v2-surface2);
     color:var(--v2-txt3); display:grid; place-items:center; cursor:pointer; transition:.15s}
   .raccourci:hover{color:var(--v2-acc1); background:var(--v2-hover)}
