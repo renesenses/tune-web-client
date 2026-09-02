@@ -42,6 +42,7 @@
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
+  import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import {
     albumsDistants, corpsLecture, pistesAlbumDistant, pistesDistantes, type DepotDistant,
@@ -389,7 +390,11 @@
   /** Regroupement pour les onglets facettes : une entree par valeur, avec ses
    *  albums, triee par nom — sauf les annees, triees chronologiquement. */
   const groups = $derived.by(() => {
-    if (tab === 'albums' || tab === 'tracks') return [] as { key: string; albums: Album[] }[];
+    // `artists` n'en fait plus partie : cet onglet a sa propre vue, qui lit la
+    // table des artistes. Le laisser ici calculerait un regroupement que plus
+    // personne n'affiche, sur chaque frappe de la recherche.
+    if (tab === 'albums' || tab === 'tracks' || tab === 'artists')
+      return [] as { key: string; albums: Album[] }[];
     const m = new Map<string, Album[]>();
     for (const a of sorted) {
       if (!matches(a)) continue;
@@ -693,7 +698,13 @@
   {/if}
 
   <div class="body">
-    {#if enCharge && sorted.length === 0}
+    {#if tab === 'artists'}
+      <!-- Les artistes ont leur PROPRE source, `/library/artists`, et non une
+           déduction depuis les albums chargés. Ils ne passent donc pas par les
+           gardes « bibliothèque vide » ci-dessous : une bibliothèque dont les
+           albums ne sont pas encore arrivés a déjà ses artistes. -->
+      <ArtistesV2 {q} />
+    {:else if enCharge && sorted.length === 0}
       <div class="state">Chargement de la bibliothèque…</div>
     {:else if sorted.length === 0}
       <!-- « Votre » serait faux sur la bibliotheque d'une autre machine : on

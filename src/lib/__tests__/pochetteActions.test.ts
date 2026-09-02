@@ -336,3 +336,92 @@ describe('Collections — deux sortes, deux identités', () => {
     ).toBe(true);
   });
 });
+
+/**
+ * L'onglet « Artistes » de la Bibliothèque.
+ *
+ * ## Ce qu'il était
+ *
+ * Une FACETTE des albums : une section par artiste, avec ses albums dessous.
+ * Ce n'est pas une vue d'artistes, c'est la vue Albums rangée autrement — et
+ * elle ne montrait que les artistes portés par un album DÉJÀ CHARGÉ. Un
+ * artiste dont les albums n'étaient pas encore arrivés n'existait pas.
+ *
+ * Bertrand, capture à l'appui le 02/09/2026 : « il faut déjà refaire la vue
+ * artistes comparable à celle d'aujourd'hui ».
+ *
+ * ## Ce qu'il doit être
+ *
+ * La vue de l'écran actuel : une grille d'artistes lus dans LEUR table,
+ * avatar rond, nom, rail A–Z.
+ */
+describe('Artistes — la vue est celle des artistes, pas des albums', () => {
+  const vue = () => lire('../../components/v2/ArtistesV2.svelte');
+  const bib = () => lire('../../components/v2/LibraryV2.svelte');
+
+  it('les artistes viennent de leur table, pas des albums', () => {
+    const src = vue();
+    expect(src.includes('api.getAllArtists()'), 'la source des artistes a disparu').toBe(true);
+    // `getArtists` plafonne à 100 : une vue tronquée se lit comme une
+    // bibliothèque incomplète.
+    expect(
+      /api\.getArtists\(/.test(src),
+      'la vue appelle `getArtists`, plafonné à 100 artistes, au lieu de la liste entière.',
+    ).toBe(false);
+  });
+
+  it('l’onglet ne repasse plus par le regroupement par facette', () => {
+    const src = bib();
+    expect(src.includes('<ArtistesV2 {q} />'), 'la vue n’est plus montée').toBe(true);
+    expect(
+      src.includes("tab === 'albums' || tab === 'tracks' || tab === 'artists'"),
+      'le regroupement par facette est recalculé pour un onglet qui ne l’affiche plus.',
+    ).toBe(true);
+  });
+
+  it('les artistes ne dépendent pas du chargement des albums', () => {
+    // Le garde « bibliothèque vide » porte sur les ALBUMS. Le laisser devant
+    // les artistes afficherait « votre bibliothèque est vide » alors que les
+    // artistes, eux, sont là.
+    const src = bib();
+    const i = src.indexOf("{#if tab === 'artists'}");
+    const j = src.indexOf('enCharge && sorted.length === 0');
+    expect(i, 'la branche artistes a disparu').toBeGreaterThan(-1);
+    expect(i, 'le garde « bibliothèque vide » passe AVANT les artistes').toBeLessThan(j);
+  });
+
+  it('l’avatar est rond — c’est ce qui distingue un artiste d’un album', () => {
+    expect(/\.cv\.rond\s*\{[^}]*border-radius:\s*50%/.test(vue()), 'l’avatar est redevenu carré').toBe(true);
+  });
+
+  it('le rail A–Z vise la PREMIÈRE carte de chaque lettre', () => {
+    // Poser l'ancre sur toutes ferait viser la dernière : on clique « M » et
+    // on atterrit à la fin des M.
+    const src = vue();
+    expect(
+      src.includes("lettre(affiches[i - 1]) !== lettre(a)"),
+      'l’ancre du rail est posée sur toutes les cartes : le saut atterrirait à la fin de la lettre.',
+    ).toBe(true);
+  });
+
+  it('aucun nombre d’albums n’est affiché', () => {
+    // `/library/artists` ne le rend pas — vérifié sur le .18 le 02/09/2026.
+    // L'afficher demanderait une requête par artiste ; l'inventer serait pire.
+    expect(
+      vue().includes('album_count'),
+      'un nombre d’albums est affiché alors que la route ne le rend pas.',
+    ).toBe(false);
+  });
+
+  it('les cinq actions s’appliquent à l’artiste', () => {
+    const src = vue();
+    expect(src.includes('{ artistId: a.id }'), 'le favori d’artiste a disparu').toBe(true);
+    expect(src.includes("{ itemType: 'artist', itemId: a.id }"), 'les étiquettes ont disparu').toBe(true);
+    // `PUT /library/artists/{id}` prend `bio`, pas `description` : la modale
+    // est générique, la traduction se fait à l'appel.
+    expect(
+      src.includes('bio: v.description'),
+      'la modale envoie `description` à une route qui attend `bio`.',
+    ).toBe(true);
+  });
+});
