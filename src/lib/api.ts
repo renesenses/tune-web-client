@@ -3922,6 +3922,21 @@ export function getServerDiagnostics() {
     // Added by tune-server-rust #2201. Optional keeps the diagnostics screen
     // compatible with older servers during rolling client/server updates.
     asio_warm_scan?: AsioWarmScanStatus;
+    // Added by tune-server-rust #2392 (`discovery_setup::provider_status_snapshot`).
+    // Pourquoi un fournisseur de sortie hors-arbre est inerte : absent de la
+    // liste = non compilé ; présent avec un `refusal` = droit manquant, et le
+    // refus dit lequel et quoi faire ; présent sans refus et `devices: 0` = il
+    // cherche vraiment et ne trouve rien. Ces trois cas donnaient le même écran
+    // vide, et un bêta-testeur Diretta a réinstallé son OS pour rien.
+    //
+    // `unknown` est délibéré. Déclarer la forme ici ne la vérifierait pas —
+    // `SmartCollection.max_albums` et `TrackAllTags.db_fields` étaient déclarés
+    // et absents du JSON servi, et l'écran gelait sur « Chargement ». Le seul
+    // lecteur est `lib/refusModuleSortie.ts`, qui sonde tout à l'exécution.
+    // Optionnel ET nullable : un serveur antérieur à #2392 n'envoie rien, et le
+    // serveur écrit `null` tant qu'aucune passe de découverte n'a eu lieu —
+    // y compris quand le binaire n'embarque aucun fournisseur hors-arbre.
+    output_providers?: unknown;
     // Scan info embedded under scan_status.*
     scan_status: {
       status: string;

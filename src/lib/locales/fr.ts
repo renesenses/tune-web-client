@@ -3235,6 +3235,18 @@ export default {
   "volume.dbEntryHint": "Tapez la valeur voulue, par exemple -20,5. 0 dB = pleine échelle.",
   "volume.dbAboveFullScale": "0 dB est la pleine échelle : au-dessus, il n'y a pas de volume en plus.",
   "volume.dbUnreadable": "Valeur illisible. Attendu : un nombre en dB, par exemple -20,5.",
+
+  // Modules de sortie payants inertes (#2392) — le refus que le serveur
+  // nomme depuis `premium_guard::ModuleRefusal` et que personne ne lisait.
+  "outputModule.notLinkedTitle": "Le module {module} est bien installé, mais il reste inactif.",
+  "outputModule.notLinkedBody": "Ce n'est ni un problème d'installation ni un problème de clé de licence. Les droits sur les modules payants voyagent avec votre compte Mozaiklabs, jamais avec la clé de licence : tant qu'aucun compte n'est relié à ce serveur, le module ne peut pas recevoir son droit et n'affichera aucun appareil. Reliez votre compte dans Réglages ▸ Système ▸ Cloud.",
+  "outputModule.notLinkedAction": "Relier mon compte Mozaiklabs",
+  "outputModule.notOwnedTitle": "Le module {module} ne figure pas dans les droits de votre compte Mozaiklabs.",
+  "outputModule.notOwnedBody": "Votre compte est bien relié et ce serveur a pu lire vos droits : celui-ci n'en fait pas partie. Il s'agit d'un module payant à ajouter à votre compte — l'installation de votre serveur, elle, n'est pas en cause.",
+  "outputModule.notOwnedAction": "Voir les modules",
+  "outputModule.unknownTitle": "Le module {module} est inactif.",
+  "outputModule.unknownBody": "Le serveur refuse d'activer ce module pour une raison que cette version de l'interface ne sait pas encore nommer. Le rapport de diagnostic en donne le détail.",
+  "outputModule.genericName": "de sortie",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

@@ -3223,6 +3223,18 @@ export default {
   "volume.dbEntryHint": "希望する値を入力してください（例: -20.5）。0 dB がフルスケールです。",
   "volume.dbAboveFullScale": "0 dB がフルスケールです。それより上に音量はありません。",
   "volume.dbUnreadable": "読み取れない値です。dB の数値を入力してください（例: -20.5）。",
+
+  // Modules de sortie payants inertes (#2392) — le refus que le serveur
+  // nomme depuis `premium_guard::ModuleRefusal` et que personne ne lisait.
+  "outputModule.notLinkedTitle": "{module} モジュールはインストールされていますが、無効です。",
+  "outputModule.notLinkedBody": "インストールの問題でも、ライセンスキーの問題でもありません。有料モジュールの権利はライセンスキーではなく Mozaiklabs アカウントに紐づいています。このサーバーにアカウントが接続されていない限り、モジュールは権利を受け取れず、デバイスは一切表示されません。設定 ▸ システム ▸ Cloud でアカウントを接続してください。",
+  "outputModule.notLinkedAction": "Mozaiklabs アカウントを接続",
+  "outputModule.notOwnedTitle": "{module} モジュールは Mozaiklabs アカウントの権利に含まれていません。",
+  "outputModule.notOwnedBody": "アカウントは接続されており、このサーバーは権利を読み取れました。その中にこのモジュールはありません。アカウントに追加できる有料モジュールです。サーバーのインストールに問題はありません。",
+  "outputModule.notOwnedAction": "モジュールを見る",
+  "outputModule.unknownTitle": "{module} モジュールは無効です。",
+  "outputModule.unknownBody": "このバージョンのインターフェースがまだ表現できない理由で、サーバーがこのモジュールの有効化を拒否しています。詳細は診断レポートに記載されています。",
+  "outputModule.genericName": "出力",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

@@ -3233,6 +3233,18 @@ export default {
   "volume.dbEntryHint": "Type the value you want, for example -20.5. 0 dB = full scale.",
   "volume.dbAboveFullScale": "0 dB is full scale: there is no volume above it.",
   "volume.dbUnreadable": "Unreadable value. Expected a number in dB, for example -20.5.",
+
+  // Modules de sortie payants inertes (#2392) — le refus que le serveur
+  // nomme depuis `premium_guard::ModuleRefusal` et que personne ne lisait.
+  "outputModule.notLinkedTitle": "The {module} module is installed, but inactive.",
+  "outputModule.notLinkedBody": "This is not an installation problem, and your licence key is not at fault. Entitlements for paid modules travel with your Mozaiklabs account, never with the licence key: until an account is linked to this server, the module cannot receive its entitlement and will show no devices. Link your account under Settings ▸ System ▸ Cloud.",
+  "outputModule.notLinkedAction": "Link my Mozaiklabs account",
+  "outputModule.notOwnedTitle": "The {module} module is not among the entitlements of your Mozaiklabs account.",
+  "outputModule.notOwnedBody": "Your account is linked and this server was able to read your entitlements: this one is not among them. It is a paid module to add to your account — your server installation is not at fault.",
+  "outputModule.notOwnedAction": "See the modules",
+  "outputModule.unknownTitle": "The {module} module is inactive.",
+  "outputModule.unknownBody": "The server is refusing to activate this module for a reason this version of the interface cannot name yet. The diagnostics report has the details.",
+  "outputModule.genericName": "output",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

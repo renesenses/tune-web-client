@@ -3181,6 +3181,18 @@ export default {
   "volume.dbEntryHint": "Írja be a kívánt értéket, például -20,5. 0 dB = teljes kivezérlés.",
   "volume.dbAboveFullScale": "A 0 dB a teljes kivezérlés: fölötte nincs több hangerő.",
   "volume.dbUnreadable": "Olvashatatlan érték. dB-ben megadott szám szükséges, például -20,5.",
+
+  // Modules de sortie payants inertes (#2392) — le refus que le serveur
+  // nomme depuis `premium_guard::ModuleRefusal` et que personne ne lisait.
+  "outputModule.notLinkedTitle": "A(z) {module} modul telepítve van, de inaktív.",
+  "outputModule.notLinkedBody": "Ez nem telepítési hiba, és nem is a licenckulcs okozza. A fizetős modulok jogosultságai a Mozaiklabs-fiókjához kötődnek, soha nem a licenckulcshoz: amíg nincs fiók összekapcsolva ezzel a kiszolgálóval, a modul nem kaphatja meg a jogosultságát, és egyetlen eszközt sem jelenít meg. Kapcsolja össze fiókját a Beállítások ▸ Rendszer ▸ Cloud menüben.",
+  "outputModule.notLinkedAction": "Mozaiklabs-fiók összekapcsolása",
+  "outputModule.notOwnedTitle": "A(z) {module} modul nem szerepel a Mozaiklabs-fiókja jogosultságai között.",
+  "outputModule.notOwnedBody": "A fiókja össze van kapcsolva, és a kiszolgáló be tudta olvasni a jogosultságait: ez a modul nincs köztük. Fizetős modul, amelyet hozzáadhat a fiókjához – a kiszolgáló telepítése nem hibás.",
+  "outputModule.notOwnedAction": "Modulok megtekintése",
+  "outputModule.unknownTitle": "A(z) {module} modul inaktív.",
+  "outputModule.unknownBody": "A kiszolgáló olyan okból tagadja meg a modul aktiválását, amelyet a felület jelenlegi verziója még nem tud megnevezni. A diagnosztikai jelentés tartalmazza a részleteket.",
+  "outputModule.genericName": "kimeneti",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

@@ -12,6 +12,7 @@
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
 
   import { t } from '../lib/i18n';
+  import OutputModuleBanner from './OutputModuleBanner.svelte';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus } from '../lib/types';
 
   // « Services actifs » affichait `serverDiag.connectors`, c'est-a-dire la
@@ -61,6 +62,10 @@
     connectors: string[];
     memory_rss_mb: number | null;
     asio_warm_scan?: api.AsioWarmScanStatus;
+    // #2392 — pourquoi un module de sortie payant n'affiche aucun appareil.
+    // `unknown` : la forme est sondée à l'exécution par `refusModuleSortie.ts`,
+    // jamais tenue pour acquise. Voir le commentaire dans `api.ts`.
+    output_providers?: unknown;
     scan_status: {
       status: string;
       tracks: number;
@@ -578,6 +583,13 @@
         </button>
       </section>
     {/if}
+
+    <!-- #2392 — le même bandeau qu'à l'écran des Zones, au même endroit du
+         raisonnement : en haut, avant les compteurs. Diagnostics n'est pas là
+         où l'utilisateur va quand aucun appareil n'apparaît (le bêta-testeur
+         Diretta n'y a jamais mis les pieds), mais c'est là qu'il est envoyé
+         quand il demande de l'aide — et la donnée y est déjà chargée. -->
+    <OutputModuleBanner instantane={serverDiag?.output_providers} />
 
     <!-- Server Stats Dashboard -->
     {#if serverDiag}
