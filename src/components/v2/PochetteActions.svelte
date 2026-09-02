@@ -246,15 +246,34 @@
     cursor: pointer;
     padding: 0;
     opacity: 0;
-    transition: opacity 0.14s ease, transform 0.14s ease, background 0.14s ease;
+    /*
+      La SORTIE est adoucie, l'ENTRÉE est immédiate (voir la règle de
+      révélation plus bas, qui met la durée à zéro). Une apparition en fondu,
+      même courte, se lit comme un temps de réponse : on croit que l'écran
+      hésite. Une disparition instantanée, elle, fait sursauter.
+    */
+    transition: opacity 0.16s ease, transform 0.1s ease, background 0.1s ease;
+    /*
+      PAS de `will-change`. Il promeut une couche de composition par élément —
+      cinq par vignette, plusieurs milliers sur une grille de 838 albums. Le
+      remède coûterait plus cher que le mal qu'il prétend soigner.
+    */
   }
 
   .coin {
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    background: rgba(18, 18, 20, 0.62);
-    backdrop-filter: blur(6px);
+    /*
+      PAS de `backdrop-filter`.
+
+      Il y en avait un — `blur(6px)` — et il coûtait quatre floutages par
+      vignette. Sur une grille de plusieurs centaines d'albums, le navigateur
+      compose autant de couches, et le survol devenait pâteux : Bertrand l'a
+      senti immédiatement (02/09/2026). Un fond opaque à 82 % donne le même
+      contraste pour rien.
+    */
+    background: rgba(18, 18, 20, 0.82);
     color: #fff;
   }
   .coin svg {
@@ -273,8 +292,15 @@
     height: 52px;
     margin: -26px 0 0 -26px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.94);
-    color: #16161a;
+    /*
+      La couleur PRIMAIRE du thème, pas le blanc de la maquette : demandé par
+      Bertrand le 02/09/2026. `--v2-on-acc` va avec — chaque thème déclare la
+      teinte lisible SUR son accent, et le triangle passerait sinon du noir sur
+      un accent sombre au blanc sur un accent clair sans qu'on s'en aperçoive.
+    */
+    background: var(--v2-acc1);
+    color: var(--v2-on-acc);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
   }
   .centre svg {
     width: 24px;
@@ -294,6 +320,8 @@
   .pa:hover .voile,
   .pa:focus-within .voile {
     opacity: 1;
+    /* Zéro à l'apparition : le geste doit être suivi, pas commenté. */
+    transition-duration: 0s;
   }
 
   /* Le cœur ACTIF ne se cache pas : sans cela, on ne peut plus lire quels
@@ -308,13 +336,13 @@
     opacity: 1;
   }
 
-  .coin:hover:not(:disabled),
-  .centre:hover {
+  .coin:hover:not(:disabled) {
     transform: scale(1.08);
-    background: rgba(18, 18, 20, 0.82);
+    background: rgba(38, 38, 42, 0.92);
   }
   .centre:hover {
-    background: #fff;
+    transform: scale(1.08);
+    background: var(--v2-acc2);
   }
   .coin:focus-visible,
   .centre:focus-visible {
