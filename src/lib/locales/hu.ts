@@ -1728,6 +1728,8 @@ export default {
   "library.sortOriginalYear": "Eredeti év",
   "library.sortAddedDate": "Hozzáadás dátuma",
   "library.sortDynamicRange": "Dinamikatartomány",
+  "library.sortRandom": "Véletlenszerű",
+  "library.reshuffle": "Újrakeverés",
   "library.drRange": "DR",
   "library.drMin": "Minimális DR",
   "library.drMax": "Maximális DR",

@@ -1094,26 +1094,54 @@ function drParams(dr?: DrRange): string {
   return out;
 }
 
-export async function getAllAlbums(pageSize = 2000, sort = 'title', order = 'asc', page?: number, perPage?: number, dr?: DrRange): Promise<Album[]> {
+/** Un tirage d'albums : les albums, et la graine qui les a ordonnés (#3074).
+ *  `seed` n'est renseignée qu'en tri aléatoire. */
+export interface AlbumsDraw { albums: Album[]; seed?: number }
+
+/** Comme [`getAllAlbums`], mais rend AUSSI la graine du tri aléatoire.
+ *
+ *  Le contrat serveur (#3074) : `sort=random` sans `seed` en fait tirer une et
+ *  la renvoie dans la réponse ; l'appelant DOIT la repasser sur les pages
+ *  suivantes. Sans ça, chaque `offset` re-tire — la grille montre des albums
+ *  en double tout en en cachant d'autres, et la vue Bibliothèque charge ses
+ *  albums en plusieurs requêtes.
+ *
+ *  Le bouton de re-tirage n'est donc rien d'autre que « redemander sans
+ *  graine ».
+ */
+export async function getAllAlbumsSeeded(pageSize = 2000, sort = 'title', order = 'asc', page?: number, perPage?: number, dr?: DrRange, seed?: number | null): Promise<AlbumsDraw> {
   const drq = drParams(dr);
+  // Une graine absente ne produit AUCUN paramètre : la réponse est alors
+  // exactement celle d'avant #3074 pour tous les autres tris.
+  const seedq = (g?: number | null) => (g == null ? '' : `&seed=${g}`);
   // When page is specified, fetch a single page (for future pagination support)
   if (page !== undefined) {
     const limit = perPage ?? 100;
     const offset = (page - 1) * limit;
-    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${limit}&offset=${offset}&sort=${sort}&order=${order}${drq}`);
-    return Array.isArray(raw) ? raw : (raw.items ?? []);
+    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${limit}&offset=${offset}&sort=${sort}&order=${order}${drq}${seedq(seed)}`);
+    const albums: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
+    return { albums, seed: typeof raw?.seed === 'number' ? raw.seed : (seed ?? undefined) };
   }
   // Default: fetch all albums in batches
   const all: Album[] = [];
   let offset = 0;
+  // La graine du LOT : celle qu'on nous a passée, sinon celle que la première
+  // réponse nous apprend. Les lots suivants la repassent, sinon ils tirent
+  // chacun leur propre ordre et le résultat n'est plus une liste.
+  let graine: number | null | undefined = seed;
   while (true) {
-    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}&sort=${sort}&order=${order}${drq}`);
+    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}&sort=${sort}&order=${order}${drq}${seedq(graine)}`);
+    if (graine == null && typeof raw?.seed === 'number') graine = raw.seed;
     const batch: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
     all.push(...batch);
     if (batch.length < pageSize) break;
     offset += pageSize;
   }
-  return all;
+  return { albums: all, seed: graine ?? undefined };
+}
+
+export async function getAllAlbums(pageSize = 2000, sort = 'title', order = 'asc', page?: number, perPage?: number, dr?: DrRange): Promise<Album[]> {
+  return (await getAllAlbumsSeeded(pageSize, sort, order, page, perPage, dr)).albums;
 }
 
 /** Les valeurs de Dynamic Range RÉELLEMENT présentes dans la bibliothèque,

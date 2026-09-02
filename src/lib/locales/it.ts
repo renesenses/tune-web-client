@@ -1541,6 +1541,8 @@ export default {
   "library.sortOriginalYear": "Anno originale",
   "library.sortAddedDate": "Data di aggiunta",
   "library.sortDynamicRange": "Gamma dinamica",
+  "library.sortRandom": "Casuale",
+  "library.reshuffle": "Rimescola",
   "library.drRange": "DR",
   "library.drMin": "DR minima",
   "library.drMax": "DR massima",

@@ -628,7 +628,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   });
 
   // Sort options
-  type AlbumSortKey = 'title' | 'artist' | 'release_date' | 'original_year' | 'added_date' | 'dynamic_range';
+  type AlbumSortKey = 'title' | 'artist' | 'release_date' | 'original_year' | 'added_date' | 'dynamic_range' | 'random';
   const ALBUM_SORT_OPTIONS: { key: AlbumSortKey; label: string; defaultOrder: 'asc' | 'desc' }[] = [
     { key: 'title', label: 'library.sortTitle', defaultOrder: 'asc' },
     { key: 'artist', label: 'library.sortArtist', defaultOrder: 'asc' },
@@ -640,6 +640,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // albums sans tag sortent en dernier (`NULLS LAST` côté serveur) — les
     // annoncer à DR0 serait un mensonge.
     { key: 'dynamic_range', label: 'library.sortDynamicRange', defaultOrder: 'desc' },
+    // Tri aléatoire (#3074, Steve Taylor, fil 1635) : « sort by random and have
+    // something I have not played for years come out on top ». Redécouvrir sa
+    // propre bibliothèque, pas écouter — d'où un TRI, distinct du bouton
+    // « Play all shuffled » qui, lui, lance la lecture.
+    { key: 'random', label: 'library.sortRandom', defaultOrder: 'asc' },
   ];
   // Album sort lives in the server-synced preferences store (#1134) so the
   // chosen order follows the user across sessions/devices, not just this browser.
@@ -674,6 +679,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // Persist through the preferences store (localStorage + server ui_preferences),
     // so the order is remembered per profile across devices (#1134).
     preferences.update(p => ({ ...p, albumSort: key, albumSortOrder: order }));
+    // Chaque passage AU tri aléatoire est un nouveau tirage : garder l'ancienne
+    // graine rendrait exactement la même grille, et le tri paraîtrait cassé.
+    if (key === 'random') albumRandomSeed = null;
     albumsLoaded = false;
     loadAlbums();
   }
@@ -685,6 +693,18 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   // rien. `drValues` liste ce qui existe réellement — vide sur une
   // bibliothèque non taguée, et la commande n'est alors pas dessinée du tout
   // plutôt que d'offrir un menu qui ne filtrerait rien.
+  // Graine du tri aléatoire (#3074). `null` = « tire-m'en une » : le serveur
+  // en fabrique une, la renvoie, et on la garde pour les pages suivantes —
+  // sinon chaque requête re-tire et la grille montre des albums en double tout
+  // en en cachant d'autres. Le bouton de re-tirage la remet simplement à
+  // `null`.
+  let albumRandomSeed = $state<number | null>(null);
+  function retirerAleatoire() {
+    albumRandomSeed = null;
+    albumsLoaded = false;
+    loadAlbums();
+  }
+
   let albumDrMin = $state<number | null>(null);
   let albumDrMax = $state<number | null>(null);
   let drValues = $state<number[]>([]);
@@ -1120,7 +1140,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // sauterait à un titre au hasard dans une grille ordonnée par dynamique.
     // Pas de repère plutôt qu'un faux repère — la liste d'albums ne porte pas
     // la valeur de DR, on ne peut donc pas en dessiner un vrai ici.
-    if (albumSort === 'dynamic_range') return [];
+    if (albumSort === 'dynamic_range' || albumSort === 'random') return [];
     if (albumSort === 'release_date' || albumSort === 'original_year' || albumSort === 'added_date') {
       const keys = [...new Set(filteredAlbums.map(albumDateKey))];
       return albumSortOrder === 'desc' ? keys.sort((a, b) => b.localeCompare(a)) : keys.sort();
@@ -1520,13 +1540,16 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     if (scopedFolder) { await loadScopedAlbums(); return; }
     libraryLoading.set(true);
     try {
-      const first = await api.getAllAlbums(100, albumSort, albumSortOrder, 1, 100, drRange);
-      albums.set(first);
+      const premier = await api.getAllAlbumsSeeded(100, albumSort, albumSortOrder, 1, 100, drRange, albumRandomSeed);
+      // La graine du premier tirage vaut pour TOUTE la grille : on la retient
+      // avant la seconde requête, qui doit lire le même ordre.
+      if (albumSort === 'random' && premier.seed != null) albumRandomSeed = premier.seed;
+      albums.set(premier.albums);
       albumsLoaded = true;
       libraryLoading.set(false);
-      if (first.length >= 100) {
-        const rest = await api.getAllAlbums(2000, albumSort, albumSortOrder, undefined, undefined, drRange);
-        albums.set(rest);
+      if (premier.albums.length >= 100) {
+        const reste = await api.getAllAlbumsSeeded(2000, albumSort, albumSortOrder, undefined, undefined, drRange, albumRandomSeed);
+        albums.set(reste.albums);
       }
     } catch (e) {
       console.error('Load albums error:', e);
@@ -3383,13 +3406,23 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               <option value={opt.key}>{$tr(opt.label)}</option>
             {/each}
           </select>
-          <button class="sort-order-btn" onclick={() => { albumSortOrder = albumSortOrder === 'asc' ? 'desc' : 'asc'; localStorage.setItem('tune_album_sort_order', albumSortOrder); loadAlbums(); }} title={albumSortOrder === 'asc' ? $tr('library.ascending') : $tr('library.descending')}>
-            {#if albumSortOrder === 'asc'}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="18 15 12 9 6 15" /></svg>
-            {:else}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9" /></svg>
-            {/if}
-          </button>
+          <!-- Tri aléatoire : croissant/décroissant ne veut plus rien dire, et
+               retourner un tirage n'est pas le re-tirer. La flèche cède donc la
+               place au bouton de re-tirage demandé au fil 1635 — qui n'est rien
+               d'autre que « redemander sans graine ». -->
+          {#if albumSort === 'random'}
+            <button class="sort-order-btn" onclick={retirerAleatoire} title={$tr('library.reshuffle')} aria-label={$tr('library.reshuffle')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+            </button>
+          {:else}
+            <button class="sort-order-btn" onclick={() => { albumSortOrder = albumSortOrder === 'asc' ? 'desc' : 'asc'; localStorage.setItem('tune_album_sort_order', albumSortOrder); loadAlbums(); }} title={albumSortOrder === 'asc' ? $tr('library.ascending') : $tr('library.descending')}>
+              {#if albumSortOrder === 'asc'}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="18 15 12 9 6 15" /></svg>
+              {:else}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9" /></svg>
+              {/if}
+            </button>
+          {/if}
           <!-- Mur de pochettes : pochettes seules, grille plus dense. On choisit
                un album de mémoire visuelle, et le texte court-circuite ce
                mécanisme (demande Alex Campbell). -->

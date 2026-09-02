@@ -1551,6 +1551,8 @@ export default {
   "library.sortOriginalYear": "An original",
   "library.sortAddedDate": "Data adăugării",
   "library.sortDynamicRange": "Gamă dinamică",
+  "library.sortRandom": "Aleatoriu",
+  "library.reshuffle": "Amestecă din nou",
   "library.drRange": "DR",
   "library.drMin": "DR minim",
   "library.drMax": "DR maxim",

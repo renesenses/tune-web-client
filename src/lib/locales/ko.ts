@@ -1516,6 +1516,8 @@ export default {
   "library.sortOriginalYear": "원년",
   "library.sortAddedDate": "추가된 날짜",
   "library.sortDynamicRange": "다이내믹 레인지",
+  "library.sortRandom": "무작위",
+  "library.reshuffle": "다시 섞기",
   "library.drRange": "DR",
   "library.drMin": "최소 DR",
   "library.drMax": "최대 DR",

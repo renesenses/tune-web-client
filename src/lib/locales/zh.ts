@@ -1541,6 +1541,8 @@ export default {
   "library.sortOriginalYear": "原始年份",
   "library.sortAddedDate": "添加日期",
   "library.sortDynamicRange": "动态范围",
+  "library.sortRandom": "随机",
+  "library.reshuffle": "重新随机",
   "library.drRange": "DR",
   "library.drMin": "最小 DR",
   "library.drMax": "最大 DR",

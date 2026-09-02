@@ -1541,6 +1541,8 @@ export default {
   "library.sortOriginalYear": "オリジナル年",
   "library.sortAddedDate": "追加日",
   "library.sortDynamicRange": "ダイナミックレンジ",
+  "library.sortRandom": "ランダム",
+  "library.reshuffle": "シャッフルし直す",
   "library.drRange": "DR",
   "library.drMin": "最小DR",
   "library.drMax": "最大DR",
