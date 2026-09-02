@@ -21,6 +21,7 @@
    * un choix ; on le SIGNALE plutôt que de le taire.
    */
   import { onMount } from 'svelte';
+  import { portail } from '../../lib/portail';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
@@ -111,7 +112,7 @@
 
 <!-- Le fond ferme au clic. `role="presentation"` : ce n'est pas un contrôle,
      c'est la zone morte autour du panneau. -->
-<div class="fond tune-v2" role="presentation" onclick={onClose}>
+<div class="fond tune-v2" role="presentation" use:portail onclick={onClose}>
   <div
     class="panneau"
     role="dialog"

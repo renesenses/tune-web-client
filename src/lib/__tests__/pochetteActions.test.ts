@@ -155,3 +155,52 @@ describe('Favoris — un seul chemin', () => {
     ).toBe(true);
   });
 });
+
+/**
+ * Une surcouche doit sortir de la vignette.
+ *
+ * Vécu le 02/09/2026 : le panneau d'étiquettes s'affichait DANS la vignette
+ * d'album, rogné aux trois quarts. Une `position: fixed` se place par rapport à
+ * la fenêtre — sauf si un ancêtre porte `transform`, `filter`, `will-change` ou
+ * `contain`, auquel cas il devient le bloc conteneur.
+ *
+ * DEUX ancêtres le faisaient, et corriger l'un seul n'aurait rien donné :
+ * `.pa` porte `overflow: hidden` (c'est lui qui arrondit la pochette), et
+ * `.card` a reçu `content-visibility: auto` — laquelle implique
+ * `contain: layout style paint`.
+ *
+ * Le garde tient le déplacement à la racine, pas les deux causes : n'importe
+ * quel ancêtre futur pourrait recréer le problème, et personne ne ferait le
+ * rapprochement.
+ */
+describe('Étiquettes — le panneau sort de la vignette', () => {
+  const panneau = () => lire('../../components/v2/EtiquettesPanneau.svelte');
+
+  it('le panneau est déplacé à la racine du document', () => {
+    const src = panneau();
+    expect(
+      src.includes('use:portail'),
+      'le panneau n’est plus déplacé : il se rognerait dans la vignette qui l’ouvre.',
+    ).toBe(true);
+    // Et il reste `fixed` : déplacé mais en flux, il pousserait la page.
+    expect(/\.fond\s*\{[^}]*position:\s*fixed/.test(src), 'la surcouche n’est plus fixe').toBe(true);
+  });
+
+  it('le déplacement se défait au démontage', () => {
+    // Sans cela, le panneau survivrait à l'écran qui l'a ouvert — il est
+    // désormais enfant de <body>, plus de la vignette.
+    const src = lire('../portail.ts');
+    expect(src.includes('destroy()'), 'le nettoyage a disparu').toBe(true);
+    expect(
+      src.includes('node.parentNode === cible'),
+      'le retrait ne vérifie plus le parent : `removeChild` lèverait sur un nœud déjà détaché.',
+    ).toBe(true);
+  });
+
+  it('la vignette garde ce qui l’oblige au déplacement', () => {
+    // Si ces deux-là disparaissent un jour, le portail devient inutile — mais
+    // le retirer AVANT eux ramène le défaut. Le test dit lequel vient d'abord.
+    expect(actions().includes('overflow: hidden'), '`.pa` ne rogne plus').toBe(true);
+    expect(biblio().includes('content-visibility:auto'), 'le rendu hors écran a disparu').toBe(true);
+  });
+});
