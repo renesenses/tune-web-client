@@ -395,6 +395,7 @@
            discover` échouait, l'onglet entier restait vide — y compris les
            sections qui, elles, avaient leurs données. Constaté par Bertrand le
            02/09/2026 : « Découvrir podcasts : vide ». -->
+      <svelte:boundary>
       {#if discoverLoading && !discover}
         <div class="state">Chargement de la sélection…</div>
       {/if}
@@ -457,9 +458,28 @@
         </section>
       {/if}
 
-      {#if !discoverLoading && !discover?.curated.length && !discover?.top.length && !top.length && !radioFrance.length}
+      {#if !discoverLoading && !topLoading && !discover?.curated.length && !discover?.top.length && !top.length && !radioFrance.length}
         <div class="state">Découverte indisponible sur ce serveur.</div>
       {/if}
+
+      <!--
+        FRONTIÈRE d'erreur.
+
+        Sans elle, une exception pendant le rendu vide l'écran ENTIER sans rien
+        dire : ni message, ni trace visible, et « Découvrir » paraît simplement
+        vide. C'est exactement ce que Bertrand a vu deux fois le 02/09/2026,
+        sans qu'on puisse distinguer un plantage d'un catalogue absent.
+
+        La frontière ne corrige rien — elle rend le défaut LISIBLE, et donne
+        son message, qui est la seule chose qui manquait pour le diagnostiquer.
+      -->
+      {#snippet failed(erreur: unknown, reessayer: () => void)}
+        <div class="state err-inline">
+          <span>Cet écran a échoué : {(erreur as Error)?.message ?? String(erreur)}</span>
+          <button class="relancer" onclick={reessayer}>{$t('v2.pod.retry' as any)}</button>
+        </div>
+      {/snippet}
+      </svelte:boundary>
 
     {/if}
   </div>
