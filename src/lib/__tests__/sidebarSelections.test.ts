@@ -61,10 +61,34 @@ describe('Barre latérale — les raccourcis', () => {
     expect(barre().includes('navigateToShortcut(sc)'), 'un raccourci ne mène plus nulle part').toBe(true);
   });
 
-  it('l’écran des raccourcis est celui du client actuel', () => {
-    // En écrire un second donnerait deux gestions d'épinglage à maintenir.
-    expect(shell().includes('<ShortcutsView />'), 'l’écran n’est plus monté').toBe(true);
+  it('l’écran des raccourcis est celui du NOUVEAU client', () => {
+    // Il montait `ShortcutsView`, l'écran du client actuel : il fonctionnait,
+    // mais détonnait — palette, typographie et formes de l'ancienne interface
+    // au milieu de la nouvelle. C'était la DERNIÈRE vue dans ce cas.
+    expect(shell().includes('<RaccourcisV2 />'), 'l’écran n’est plus monté').toBe(true);
     expect(shell().includes("$activeView === 'shortcuts'"), 'la route a disparu').toBe(true);
+    expect(
+      shell().includes('<ShortcutsView />'),
+      'l’écran du client actuel est revenu : deux habillages dans la même coquille.',
+    ).toBe(false);
+  });
+
+  it('l’écran couvre les cinq gestes, pas seulement la liste', () => {
+    // La barre n'en montre que cinq : c'est ICI qu'on décide lesquels. Sans ces
+    // gestes, un sixième raccourci serait invisible et inatteignable.
+    const src = lire('../../components/v2/RaccourcisV2.svelte');
+    for (const [quoi, motif] of [
+      ['épingler', 'togglePin(sc.id)'],
+      ['renommer', 'updateShortcut(edite'],
+      ['supprimer', 'removeShortcut(sc.id)'],
+      ['réordonner', 'reorderShortcuts(copie)'],
+      ['ouvrir', 'navigateToShortcut(sc)'],
+    ] as const) {
+      expect(src.includes(motif), `le geste « ${quoi} » a disparu`).toBe(true);
+    }
+    // `reorderShortcuts` attend les OBJETS, pas leurs identifiants : elle
+    // remplace le magasin tel quel.
+    expect(src.includes('reorderShortcuts(copie.map'), 'des identifiants sont passés à la place des objets').toBe(false);
   });
 });
 

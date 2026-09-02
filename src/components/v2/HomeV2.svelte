@@ -26,6 +26,7 @@
    * défiler à la souris, qui est son geste principal.
    */
   import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { albums } from '../../lib/stores/library';
@@ -107,7 +108,16 @@
     // s'affichait. Les objets `$state` de Svelte 5 sont réactifs en
     // PROFONDEUR : l'écriture directe suffit, et elle ne perd rien.
     enCours[id] = true;
-    const ctx = { profileId: $currentProfileId, albums: $albums };
+    // 🔴 `get()` et non `$store`. Lus avec `$`, ces deux magasins deviendraient
+    // des DÉPENDANCES de l'effet qui appelle cette fonction — et la
+    // bibliothèque arrive en DEUX temps (`bootstrapV2` pose d'abord un premier
+    // lot, puis le reste). L'effet repartait donc à chaque fois, et le profil
+    // en ajoutait un tour : quatre passages pour un seul affichage.
+    //
+    // Le garde `demandes` empêchait bien de refaire les appels, mais les tours
+    // à vide restaient — et « au hasard » tirait dans une bibliothèque encore
+    // partielle. Signalé par Bertrand le 02/09/2026 : « 4x chargements ».
+    const ctx = { profileId: get(currentProfileId), albums: get(albums) };
     const p = w.forme === 'chiffres' && w.chiffres ? w.chiffres(ctx) : w.charger(ctx);
     p.then((r: any) => {
       if (w.forme === 'chiffres') chiffres[id] = r ?? [];
