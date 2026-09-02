@@ -40,6 +40,8 @@
   import * as api from '../../lib/api';
   import { currentZoneId } from '../../lib/stores/zones';
   import AlbumArt from '../AlbumArt.svelte';
+  import PochetteActions from './PochetteActions.svelte';
+  import AlbumEditModal from '../AlbumEditModal.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import {
     albumsDistants, corpsLecture, pistesAlbumDistant, pistesDistantes, type DepotDistant,
@@ -437,6 +439,36 @@
     api.play(zid, depot ? (corpsLecture(depot, t) as any) : { track_id: t.id }).catch(() => {});
   }
   let opened = $state<Album | null>(null);
+
+  /**
+   * Album en cours d'édition — le bouton haut-droit de la pochette.
+   *
+   * `AlbumEditModal` vient du client actuel : c'est la MÊME modale, pas une
+   * réécriture. Elle sait déjà éditer titre, artiste, année, genre, label et
+   * pochette, et son enregistrement passe par les routes que le serveur
+   * attend. En refaire une pour le nouveau client donnerait deux écrans
+   * d'édition à maintenir, qui divergeraient.
+   */
+  let enEdition = $state<Album | null>(null);
+
+  /**
+   * Lecture depuis la pochette — le bouton central.
+   *
+   * Sur un serveur DISTANT, un `album_id` désignerait un tout autre album ici :
+   * on ouvre alors le détail plutôt que de lancer la mauvaise chose. Même
+   * raisonnement que `playTrack` juste au-dessus, où c'est le `track_id` qui
+   * n'a de sens qu'en local.
+   */
+  function lireAlbum(a: Album) {
+    if (depot) {
+      opened = a;
+      return;
+    }
+    const zid = $currentZoneId;
+    if (zid == null || a.id == null) return;
+    api.play(zid, { album_id: a.id }).catch(() => {});
+  }
+
   function reset() { fQuality = null; fRate = null; q = ''; fYear = null; fFormat = null; fDepth = null; }
 
   // « Aléatoire » — lecture au hasard de toute la bibliothèque, en respectant
@@ -703,14 +735,25 @@
               <h2>{g.key}<span class="fc">{g.albums.length}</span></h2>
               <div class="grid facetgrid" class:expert={showExpert}>
                 {#each g.albums as a (a.id)}
-                  <button class="card" onclick={() => opened = a}>
+                  <div class="card">
                     <div class="cover">
-                      <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                      <PochetteActions
+                        favori={depot || a.id == null ? null : { albumId: a.id }}
+                        etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
+                        onEditer={depot ? null : () => (enEdition = a)}
+                        onLire={() => lireAlbum(a)}
+                        onOuvrir={() => (opened = a)}
+                        nom={a.title}
+                      >
+                        <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                      </PochetteActions>
                       {#if showBadges}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/if}
                     </div>
-                    <div class="ct">{a.title}</div>
-                    <div class="ca">{a.artist_name ?? ''}</div>
-                  </button>
+                    <button class="meta" onclick={() => opened = a}>
+                      <div class="ct">{a.title}</div>
+                      <div class="ca">{a.artist_name ?? ''}</div>
+                    </button>
+                  </div>
                 {/each}
               </div>
             </section>
@@ -743,15 +786,26 @@
         {:else}
         <div class="grid" class:expert={showExpert} bind:this={gridEl}>
           {#each affiches as a (a.id)}
-            <button class="card" data-letter={firstLetter(a)} onclick={() => opened = a}>
+            <div class="card" data-letter={firstLetter(a)}>
               <div class="cover">
-                <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                <PochetteActions
+                  favori={depot || a.id == null ? null : { albumId: a.id }}
+                  etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
+                  onEditer={depot ? null : () => (enEdition = a)}
+                  onLire={() => lireAlbum(a)}
+                  onOuvrir={() => (opened = a)}
+                  nom={a.title}
+                >
+                  <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                </PochetteActions>
                 {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
               </div>
-              <div class="ct">{a.title}</div>
-              <div class="ca">{a.artist_name ?? ''}</div>
-              {#if showTech}<div class="cq">{tech(a)}</div>{/if}
-            </button>
+              <button class="meta" onclick={() => opened = a}>
+                <div class="ct">{a.title}</div>
+                <div class="ca">{a.artist_name ?? ''}</div>
+                {#if showTech}<div class="cq">{tech(a)}</div>{/if}
+              </button>
+            </div>
           {/each}
         </div>
         {/if}
@@ -761,6 +815,21 @@
 
   {#if opened}
     <AlbumDetailV2 album={opened} {depot} onClose={() => (opened = null)} />
+  {/if}
+
+  {#if enEdition}
+    <AlbumEditModal
+      album={enEdition}
+      onClose={() => (enEdition = null)}
+      onSaved={(maj) => {
+        // Report dans le MAGASIN, d'où la grille tire ses albums : sans lui,
+        // le titre corrigé ne réapparaîtrait qu'au prochain chargement de
+        // l'écran. Édition impossible sur un dépôt distant, donc `albums` est
+        // bien la source ici.
+        albums.update((liste) => liste.map((x) => (x.id === maj.id ? { ...x, ...maj } : x)));
+        enEdition = null;
+      }}
+    />
   {/if}
 </section>
 
@@ -936,7 +1005,11 @@
   .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
     gap:22px 18px; align-content:start; padding:8px 30px 40px}
   .grid::-webkit-scrollbar{width:9px}.grid::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
-  .card{border:0; background:transparent; text-align:left; cursor:pointer; padding:0; transition:.18s; opacity:1; color:inherit}
+  .card{border:0; background:transparent; text-align:left; padding:0; transition:.18s; opacity:1; color:inherit}
+  /* La carte n'est plus un `<button>` : elle porte cinq boutons d'action sur sa
+     pochette, et des boutons imbriqués sont du HTML invalide que les
+     navigateurs défont. Le bloc de texte reprend donc le rôle cliquable. */
+  .meta{display:block; width:100%; border:0; background:transparent; text-align:left; cursor:pointer; padding:0; color:inherit; font:inherit}
   .cover{position:relative; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
   .bdg{position:absolute; left:6px; top:6px; font:700 8px var(--v2-mono); letter-spacing:.06em; padding:2px 5px;
     border-radius:3px; background:var(--v2-scrim); color:var(--v2-acc-tint)}

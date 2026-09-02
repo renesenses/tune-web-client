@@ -9,8 +9,8 @@
     streamingFavKey,
     loadProfiles,
   } from '../lib/stores/profile';
-  import * as api from '../lib/api';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../lib/streamingFavorites';
+  import { basculerFavoriLocal } from '../lib/favorisLocaux';
 
   /** A streaming item (Qobuz/Tidal/…) to favorite, instead of a local id. */
   interface StreamingItem {
@@ -63,7 +63,6 @@
     }
     if (!pid) { toggling = false; return; }
 
-    const wasFav = isFavorite;
 
     // Streaming item: profile-scoped streaming favorites (keyed by service/id),
     // a separate store/API from the local numeric-id favorites below.
@@ -76,30 +75,11 @@
       return;
     }
 
-    // Optimistic update of the store so UI flips instantly.
-    const params: { track_id?: number; album_id?: number; artist_id?: number } = {};
-    if (trackId) params.track_id = trackId;
-    else if (albumId) params.album_id = albumId;
-    else if (artistId) params.artist_id = artistId;
-
-    const flip = (add: boolean) => {
-      if (trackId) favoriteTrackIds.update((s) => { add ? s.add(trackId!) : s.delete(trackId!); return s; });
-      else if (albumId) favoriteAlbumIds.update((s) => { add ? s.add(albumId!) : s.delete(albumId!); return s; });
-      else if (artistId) favoriteArtistIds.update((s) => { add ? s.add(artistId!) : s.delete(artistId!); return s; });
-    };
-
-    flip(!wasFav);
-
-    try {
-      if (wasFav) {
-        await api.removeFavorite(pid, params);
-      } else {
-        await api.addFavorite(pid, params);
-      }
-    } catch (e) {
-      flip(wasFav);  // revert
-      console.error('Toggle favorite error:', e);
-    }
+    // Chemin unique, partagé avec les icônes de pochette du nouveau client
+    // (`lib/favorisLocaux`). Il vivait ICI en propre ; toute autre surface
+    // voulant un cœur devait le réécrire — c'est ainsi qu'était née la
+    // divergence #1478 côté streaming, deux boutons et deux vérités.
+    await basculerFavoriLocal({ trackId, albumId, artistId });
     toggling = false;
   }
 </script>

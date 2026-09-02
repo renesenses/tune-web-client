@@ -6,7 +6,6 @@
   "src/components/EqualizerView.svelte :: Object literal may only specify known properties, and '\\\"orient\\\"' does not exist in type 'HTMLProps<\\\"input\\\", HTMLAttributes<any>>'.",
   "src/components/HomeView.svelte :: Property 'title' does not exist on type '{ zone_id: any; zone_name: any; track_title: any; artist_name: any; cover_path: any; album_id: any; state: any; }'.",
   "src/components/HomeView.svelte :: Type 'string' is not assignable to type 'Source | undefined'.",
-  "src/components/LibraryView.svelte :: 'albumSampleRateFilter' is possibly 'null'.",
   "src/components/LibraryView.svelte :: Block-scoped variable 'filteredAlbums' used before its declaration.",
   "src/components/LibraryView.svelte :: Type 'string' is not assignable to type 'Source | undefined'.",
   "src/components/LibraryView.svelte :: Variable 'filteredAlbums' is used before being assigned.",
