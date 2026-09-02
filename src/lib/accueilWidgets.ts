@@ -56,7 +56,20 @@ export interface Contexte {
   albums: any[];
 }
 
-const LIMITE = 20;
+/**
+ * Combien d'éléments par bande.
+ *
+ * 🔴 Bertrand, 02/09/2026 : « ne borne pas la homepage comme Roon le fait ».
+ * Roon impose des sections courtes et fermées ; ici la bande DÉFILE, et rien
+ * n'oblige à la couper court — le coût d'une vignette de plus est celui d'une
+ * ligne de DOM qu'on ne rend même pas tant qu'elle est hors du cadre.
+ *
+ * Cinquante, parce que c'est ce que rendent la plupart des sources : on montre
+ * ce qu'elles donnent, on ne le rogne pas. Les rares qui rendent davantage
+ * (500 playlists Qobuz) restent bornées, mais par le bon sens et non par une
+ * règle d'affichage.
+ */
+const LIMITE = 50;
 
 /** Première valeur non vide parmi les noms donnés. */
 function champ(o: any, ...noms: string[]): string | undefined {
@@ -297,6 +310,38 @@ export const WIDGETS: Widget[] = [
     charger: async () =>
       utiles(liste(await api.getStreamingFeaturedPlaylists('qobuz')).slice(0, LIMITE).map((o, i) => versElement(o, i, 'qob'))),
   },
+  // ── ÉDITORIAL QOBUZ ──────────────────────────────────────────────────────
+  //
+  // Sept sections, mesurées le 02/09/2026 : chacune rend cinquante albums.
+  // C'est le contenu que Bertrand jugeait « plus étoffé sur la version
+  // actuelle » — il existait côté serveur, aucun écran du nouveau client ne le
+  // montrait.
+  //
+  // Elles sont déclarées d'un bloc plutôt qu'une par une : même route, même
+  // forme, seul l'identifiant de section change. En ajouter une le jour où
+  // Qobuz en ouvre une nouvelle tient sur une ligne.
+  ...(
+    [
+      ['qobuz-nouveautes', 'new-releases', 'v2.home.wQobuzNew'],
+      ['qobuz-ventes', 'best-sellers', 'v2.home.wQobuzBest'],
+      ['qobuz-presse', 'press-awards', 'v2.home.wQobuzPress'],
+      ['qobuz-choix', 'editor-picks', 'v2.home.wQobuzPicks'],
+      ['qobuz-ecoutes', 'most-streamed', 'v2.home.wQobuzStreamed'],
+      ['qobuz-discotheque', 'ideal-discography', 'v2.home.wQobuzIdeal'],
+      ['qobuz-qobuzissimes', 'qobuzissims', 'v2.home.wQobuzissimes'],
+    ] as const
+  ).map(([id, section, cleTitre]): Widget => ({
+    id,
+    cleTitre,
+    forme: 'bande',
+    charger: async () =>
+      utiles(
+        liste(await api.getStreamingFeatured('qobuz', section, LIMITE)).map((o, i) =>
+          versElement(o, i, id),
+        ),
+      ),
+  })),
+
   {
     id: 'statistiques',
     cleTitre: 'v2.home.wStats',

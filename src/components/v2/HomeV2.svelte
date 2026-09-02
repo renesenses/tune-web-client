@@ -446,7 +446,11 @@
     lui donnait une barre de défilement horizontale.
   */
   .carte{flex:0 0 148px; min-width:0; max-width:148px; display:flex; flex-direction:column; gap:6px;
-    border:0; background:transparent; padding:0; text-align:left; color:inherit; cursor:pointer}
+    border:0; background:transparent; padding:0; text-align:left; color:inherit; cursor:pointer;
+    /* Cinquante vignettes par bande, et jusqu'à vingt et une bandes : ce qui
+       sort du cadre n'est ni stylé, ni disposé, ni peint. Sans cela, dérouler
+       la page coûterait plusieurs milliers de vignettes rendues pour rien. */
+    content-visibility:auto; contain-intrinsic-size:auto 200px}
   .carte:disabled{cursor:default}
   .cv{display:block; width:100%; min-width:0; aspect-ratio:1; border-radius:var(--v2-r-card);
     overflow:hidden; background:var(--v2-surface)}

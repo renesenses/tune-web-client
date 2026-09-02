@@ -18,13 +18,19 @@ const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.met
 const ecran = () => lire('../../components/v2/HomeV2.svelte');
 
 describe('Accueil — le registre', () => {
-  it('les quatorze widgets demandés sont là', () => {
+  it('les vingt et un widgets sont là', () => {
     // La liste vient mot pour mot de la demande de Bertrand.
     for (const id of [
       'zones', 'reprendre', 'recemment-ajoutes', 'recemment-ecoutes', 'hasard',
       'statistiques', 'nouveautes-artistes', 'nouveau-bibliotheque',
       'autres-versions', 'favoris', 'recommandations', 'radios-artistes',
       'podcasts-abonnements', 'qobuz-selection',
+      // Les sept sections ÉDITORIALES de Qobuz, ajoutées le 02/09/2026 :
+      // c'est le contenu que Bertrand jugeait « plus étoffé sur la version
+      // actuelle ». Il existait côté serveur ; aucun écran du nouveau client
+      // ne le montrait.
+      'qobuz-nouveautes', 'qobuz-ventes', 'qobuz-presse', 'qobuz-choix',
+      'qobuz-ecoutes', 'qobuz-discotheque', 'qobuz-qobuzissimes',
     ]) {
       expect(widgetParId(id), `le widget « ${id} » a disparu du registre`).toBeTruthy();
     }
@@ -334,5 +340,35 @@ describe('Accueil — les formes propres à certaines sources', () => {
       bloc('autres-versions').includes('(o?.versions ?? [])[0]'),
       'on ne descend plus dans les versions.',
     ).toBe(true);
+  });
+});
+
+/**
+ * La page n'est pas BORNÉE.
+ *
+ * Bertrand, 02/09/2026 : « ne borne pas la homepage comme Roon le fait ».
+ * Roon impose des sections courtes et fermées. Ici la bande DÉFILE : rien
+ * n'oblige à la couper court, et ce qui sort du cadre ne coûte rien.
+ */
+describe('Accueil — pas de bornage', () => {
+  it('une bande montre ce que la source donne', () => {
+    // Cinquante, parce que c'est ce que rendent la plupart des sources.
+    expect(/const LIMITE = 50;/.test(lire('../accueilWidgets.ts')), 'la limite par bande a été resserrée').toBe(true);
+  });
+
+  it('les vignettes hors cadre ne coûtent rien', () => {
+    // Cinquante par bande et jusqu'à vingt et une bandes : sans cela, dérouler
+    // la page rendrait plusieurs milliers de vignettes pour rien.
+    const m = /\.carte\{([^}]*)\}/.exec(lire('../../components/v2/HomeV2.svelte'));
+    expect(m![1].includes('content-visibility:auto'), 'le rendu hors cadre est revenu').toBe(true);
+  });
+
+  it('aucun plafond sur le NOMBRE de widgets', () => {
+    // La page se compose librement : rien ne limite combien on en pose.
+    const src = lire('../../components/v2/HomeV2.svelte');
+    expect(
+      /disposition\.length\s*[<>]=?\s*\d/.test(src),
+      'un plafond sur le nombre de widgets est apparu.',
+    ).toBe(false);
   });
 });
