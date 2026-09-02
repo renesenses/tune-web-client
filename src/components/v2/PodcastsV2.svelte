@@ -84,6 +84,26 @@
   // de podcasts américains était le défaut corrigé côté client actuel.
   let pays = $state(api.podcastCountry());
 
+  /**
+   * La LANGUE — distincte du pays, et elle ne sert QU'À LA RECHERCHE.
+   *
+   * L'écran actuel les sépare, et c'est juste : le palmarès vient du magasin
+   * d'un PAYS, tandis que la recherche filtre par langue de publication. Les
+   * confondre ferait chercher en français dans le magasin américain sans
+   * qu'on comprenne pourquoi les résultats manquent.
+   */
+  const LANGUES = [
+    { code: 'fr', nom: 'Français' },
+    { code: 'en', nom: 'English' },
+    { code: 'de', nom: 'Deutsch' },
+    { code: 'es', nom: 'Español' },
+    { code: 'it', nom: 'Italiano' },
+    { code: 'pt', nom: 'Português' },
+    { code: 'nl', nom: 'Nederlands' },
+  ];
+  let langue = $state(navigator.language?.split('-')[0] || 'fr');
+
+
   let genre = $state<number | null>(null);
   /**
    * Titre du palmarès : le nom du genre choisi, « Tendances » sinon.
@@ -101,6 +121,15 @@
   });
   let top = $state<any[]>([]);
   let topLoading = $state(false);
+  /**
+   * Le palmarès se lit en DEUX temps, comme l'écran actuel.
+   *
+   * Les dix premiers en bandeau, numérotés : un classement dont on ne voit pas
+   * le rang n'est plus un classement, c'est une grille dans un ordre
+   * arbitraire. Le reste suit en grille.
+   */
+  const tete = $derived(top.slice(0, 10));
+  const suite = $derived(top.slice(10, 50));
 
   /**
    * Délai au-delà duquel on cesse d'attendre.
@@ -187,7 +216,7 @@
     }
     rechercheEnCours = true;
     try {
-      resultats = (await api.searchPodcasts(requete, 30, pays)) ?? [];
+      resultats = (await api.searchPodcasts(requete, 30, pays, langue)) ?? [];
     } catch {
       resultats = [];
     }
@@ -304,6 +333,15 @@
     {#if showDiscover && tab !== 'subs'}
       <!-- Le PAYS commande les palmarès ET la recherche : les deux
            interrogent l'iTunes Store d'un pays donné. -->
+      {#if tab === 'search'}
+        <!-- La langue ne concerne QUE la recherche : l'afficher au-dessus d'un
+             palmarès qu'elle ne filtre pas promettrait un effet inexistant. -->
+        <select class="pays" bind:value={langue} aria-label="Langue">
+          {#each LANGUES as l (l.code)}
+            <option value={l.code}>{l.nom}</option>
+          {/each}
+        </select>
+      {/if}
       <select class="pays" bind:value={pays} aria-label="Pays">
         {#each PAYS as c (c.code)}
           <option value={c.code}>{c.drapeau} {c.nom}</option>
@@ -397,7 +435,19 @@
         {:else if !top.length}
           <div class="state">{$t('v2.pod.noneInGenre' as any)}</div>
         {:else}
-          <div class="grid">{#each top.filter(match) as p, i (feedOf(p) ?? i)}{@render tile(p, false)}{/each}</div>
+          <!-- Les DIX premiers en bandeau, numérotés. Un classement dont on ne
+               voit pas le rang n'est plus un classement. -->
+          <div class="tete">
+            {#each tete as p, i (feedOf(p) ?? i)}
+              <div class="rangee">
+                <span class="rang">#{i + 1}</span>
+                {@render tile(p, false)}
+              </div>
+            {/each}
+          </div>
+          {#if suite.length}
+            <div class="grid suite">{#each suite.filter(match) as p, i (feedOf(p) ?? i)}{@render tile(p, false)}{/each}</div>
+          {/if}
         {/if}
       </section>
 
@@ -482,6 +532,14 @@
   .puces button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .puces button.on{color:var(--v2-on-acc); border-color:transparent;
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  /* Bandeau horizontal : les dix premiers défilent, ils ne repoussent pas le
+     reste de la page sous la ligne de flottaison. */
+  .tete{display:flex; gap:16px; overflow-x:auto; padding-bottom:8px; margin-bottom:22px;
+    scrollbar-width:thin}
+  .rangee{position:relative; flex:0 0 176px}
+  .rang{position:absolute; top:8px; left:8px; z-index:2; padding:2px 7px; border-radius:var(--v2-r-pill);
+    background:rgba(18,18,20,.82); color:#fff; font:700 11px var(--v2-mono)}
+  .suite{margin-top:4px}
   .err-inline{display:flex; align-items:center; gap:12px; color:var(--v2-danger)}
   .relancer{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
     border-radius:var(--v2-r-pill); font:600 12px var(--v2-sans); padding:5px 12px; cursor:pointer}
