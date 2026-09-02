@@ -79,17 +79,58 @@
     );
   }
 
+  /**
+   * Charge les playlists LOCALES et celles de chaque service authentifié.
+   *
+   * 🔴 Cet écran n'a JAMAIS rien affiché. Il appelait `getAllPlaylists()`,
+   * c'est-à-dire `GET /playlists/all`, et lisait `r.local` / `r.services` sur
+   * la réponse. Or cette route rend un TABLEAU PLAT des playlists locales :
+   * les deux champs valaient `undefined`, donc la liste locale était vide et
+   * les groupes de services n'existaient pas.
+   *
+   * Constaté par Bertrand le 02/09/2026 — « il manque Qobuz et Tidal » — sur
+   * un serveur qui porte 13 playlists locales et un compte Qobuz authentifié.
+   *
+   * Le chargement suit celui du hub du client actuel, le seul correct : les
+   * playlists locales d'un côté, et de l'autre UN appel par service
+   * authentifié. Il n'existe pas de route qui rende les deux d'un coup.
+   */
   function load() {
     loading = true;
     mosaiques = {};
-    api.getAllPlaylists()
-      .then((r) => {
-        local = r.local ?? [];
-        services = r.services ?? {};
+    Promise.all([
+      api.getPlaylists().catch(() => [] as Playlist[]),
+      api.getStreamingServices().catch(() => ({}) as Record<string, any>),
+    ])
+      .then(async ([locales, svc]) => {
+        local = locales ?? [];
         void chargerMosaiques(local);
+
+        // Seuls les services AUTHENTIFIÉS : interroger les autres rendrait une
+        // erreur par service, et ferait apparaître des groupes vides.
+        const noms = Object.entries(svc ?? {})
+          .filter(([, s]: [string, any]) => s?.authenticated)
+          .map(([n]) => n);
+        const par: Record<string, StreamingPlaylist[]> = {};
+        await Promise.all(
+          noms.map(async (n) => {
+            try {
+              par[n] = (await api.getStreamingPlaylists(n)) ?? [];
+            } catch {
+              // Un service qui ne répond pas ne doit pas emporter les autres.
+              par[n] = [];
+            }
+          }),
+        );
+        services = par;
       })
-      .catch(() => { local = []; services = {}; })
-      .finally(() => { loading = false; });
+      .catch(() => {
+        local = [];
+        services = {};
+      })
+      .finally(() => {
+        loading = false;
+      });
   }
   $effect(() => { load(); });
 

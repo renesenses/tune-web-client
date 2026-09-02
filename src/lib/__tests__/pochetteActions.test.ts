@@ -516,3 +516,47 @@ describe('Playlists — l’écran simplifié', () => {
     expect(ecran().includes('v2.pl.shared'), 'le partage ne dit plus qu’il est public').toBe(true);
   });
 });
+
+/**
+ * L'écran Playlists n'affichait RIEN, et depuis toujours.
+ *
+ * Il appelait `getAllPlaylists()` — `GET /playlists/all` — et lisait
+ * `r.local` / `r.services` sur la réponse. Or cette route rend un TABLEAU PLAT
+ * des playlists locales : les deux champs valaient `undefined`, donc la liste
+ * locale restait vide et les groupes de services n'existaient pas.
+ *
+ * Constaté par Bertrand le 02/09/2026 — « il manque Qobuz et Tidal » — sur un
+ * serveur qui porte 13 playlists locales et un compte Qobuz authentifié.
+ */
+describe('Playlists — l’écran affiche enfin quelque chose', () => {
+  const ecran = () => lire('../../components/v2/PlaylistsV2.svelte');
+
+  it('les locales viennent de la route qui les rend', () => {
+    const src = ecran();
+    expect(src.includes('api.getPlaylists()'), 'les playlists locales ne sont plus lues').toBe(true);
+    expect(
+      src.includes('api.getAllPlaylists()'),
+      '`/playlists/all` est revenu : il rend un tableau plat, `r.local` vaudrait `undefined`.',
+    ).toBe(false);
+  });
+
+  it('chaque service AUTHENTIFIÉ est interrogé', () => {
+    // Il n'existe aucune route qui rende locales et services d'un coup : c'est
+    // un appel par service, comme dans le hub du client actuel.
+    const src = ecran();
+    expect(src.includes('api.getStreamingServices()'), 'les services ne sont plus listés').toBe(true);
+    expect(src.includes('api.getStreamingPlaylists(n)'), 'les playlists de service ne sont plus lues').toBe(true);
+    expect(
+      src.includes('s?.authenticated'),
+      'les services non authentifiés sont interrogés : autant de groupes vides et d’erreurs.',
+    ).toBe(true);
+  });
+
+  it('un service muet n’emporte pas les autres', () => {
+    // Un `Promise.all` sans rattrapage par service ferait tout tomber sur une
+    // seule panne de service.
+    const src = ecran();
+    const i = src.indexOf('api.getStreamingPlaylists(n)');
+    expect(src.slice(i, i + 200).includes('catch'), 'aucun rattrapage par service').toBe(true);
+  });
+});
