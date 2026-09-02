@@ -1,313 +1,338 @@
 <script lang="ts">
   /**
-   * Accueil du nouveau client (direction Levente).
+   * Page d'accueil CONFIGURABLE.
    *
-   * REFONTE (Bertrand, 28/08 — « laid, et je pèse mes mots »). Les defauts
-   * constates sur capture, et ce qui y repond :
+   * Chantier ouvert par Bertrand le 02/09/2026. L'accueil affichait quatre
+   * sections figées dans son balisage ; il en veut une page composée par
+   * l'utilisateur : ajouter, retirer, réordonner.
    *
-   *  - la page s'ouvrait sur quatre carres gris portant une lettre geante :
-   *    la premiere chose vue etait une pochette MANQUANTE. Un HERO ancre
-   *    desormais la page sur un album qui a une pochette, et le repli n'est
-   *    plus une lettre sur aplat mais une vignette dessinee, teintee d'apres
-   *    le titre — deux albums differents n'ont jamais la meme.
-   *  - les rangees debordaient a droite, coupees en plein milieu, sans rien
-   *    indiquer qu'on pouvait defiler : fondu de bord + fleches.
-   *  - un tiers de la page restait vide : deux rangees de plus, tirees des
-   *    donnees DEJA chargees (aucun appel supplementaire).
-   *  - les statistiques trainaient en bas, orphelines : remontees en tete.
+   * ## Ce que ce composant sait
+   *
+   * Presque rien. Il lit une liste d'identifiants de widgets, demande au
+   * registre (`lib/accueilWidgets`) de charger chacun, et rend une bande
+   * horizontale. Aucun widget n'est écrit ici — en ajouter un se fait dans le
+   * registre, sans toucher à cet écran.
+   *
+   * ## Chargement PARESSEUX, widget par widget
+   *
+   * Quatorze widgets, c'est jusqu'à quatorze appels. On ne charge que ce qui
+   * est réellement affiché, et chacun indépendamment : un widget lent ou en
+   * panne ne retient pas les autres, et son échec ne vide pas la page.
+   *
+   * ## Le mode édition
+   *
+   * Glisser-déposer, choix de Bertrand. La poignée porte `draggable` — et non
+   * la carte entière : rendre toute la bande déplaçable empêcherait de la faire
+   * défiler à la souris, qui est son geste principal.
    */
+  import { onMount } from 'svelte';
   import * as api from '../../lib/api';
-  import type { ArtistReleaseGroup } from '../../lib/api';
+  import { t } from '../../lib/i18n';
   import { albums } from '../../lib/stores/library';
   import { currentZoneId } from '../../lib/stores/zones';
-  import { activeView } from '../../lib/stores/navigation';
-  import { pendingStreamingArtist } from '../../lib/stores/streaming';
-  import { preferences } from '../../lib/stores/preferences';
-  import { atLeast } from '../../lib/uiLevel';
-  import { formatNumber, getQualityTier } from '../../lib/utils';
-  import type { Album } from '../../lib/types';
+  import { currentProfileId } from '../../lib/stores/profile';
+  import { notifications } from '../../lib/stores/notifications';
+  import {
+    WIDGETS,
+    DISPOSITION_DEFAUT,
+    widgetParId,
+    type Element,
+  } from '../../lib/accueilWidgets';
   import AlbumArt from '../AlbumArt.svelte';
   import '../../styles/tune-v2.css';
 
-  const showMore = $derived(atLeast($preferences.settingsLevel, 'intermediate'));
+  /** Clé sous laquelle la disposition est rangée dans les préférences. */
+  const CLE = 'home_widgets';
 
-  let cont = $state<any[]>([]);
-  let recent = $state<Album[]>([]);
-  let groups = $state<ArtistReleaseGroup[]>([]);
-  let stats = $state<{ tracks: number; albums: number; artists: number } | null>(null);
+  let disposition = $state<string[]>([...DISPOSITION_DEFAUT]);
+  let charge = $state(false);
+  let edition = $state(false);
+  let ajoutOuvert = $state(false);
+
+  /** Contenu de chaque widget, par identifiant. */
+  let contenu = $state<Record<string, Element[]>>({});
+  let chiffres = $state<Record<string, { cle: string; valeur: string }[]>>({});
+  let enCours = $state<Record<string, boolean>>({});
+  let echecs = $state<Record<string, boolean>>({});
+  const demandes = new Set<string>();
+
+  const disponibles = $derived(WIDGETS.filter((w) => !disposition.includes(w.id)));
+
+  async function charger() {
+    const pid = $currentProfileId;
+    if (pid == null) {
+      charge = true;
+      return;
+    }
+    try {
+      const prefs = await api.getProfilePreferences(pid);
+      const d = prefs?.[CLE];
+      // On ne garde que les identifiants CONNUS : un widget retiré du registre
+      // laisserait sinon un trou muet dans la page de qui l'avait choisi.
+      if (Array.isArray(d) && d.length) {
+        disposition = d.filter((id: any) => typeof id === 'string' && widgetParId(id));
+      }
+    } catch {
+      // Préférences illisibles : on garde la disposition par défaut plutôt que
+      // d'afficher une page vide.
+    }
+    charge = true;
+  }
+
+  async function enregistrer() {
+    const pid = $currentProfileId;
+    if (pid == null) return;
+    try {
+      await api.setProfilePreferences(pid, { [CLE]: disposition });
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+  }
+
+  /** Charge un widget, une seule fois, et sans retenir les autres. */
+  function chargerWidget(id: string) {
+    if (demandes.has(id)) return;
+    demandes.add(id);
+    const w = widgetParId(id);
+    if (!w) return;
+    enCours = { ...enCours, [id]: true };
+    const ctx = { profileId: $currentProfileId, albums: $albums };
+    const p = w.forme === 'chiffres' && w.chiffres ? w.chiffres(ctx) : w.charger(ctx);
+    p.then((r: any) => {
+      if (w.forme === 'chiffres') chiffres = { ...chiffres, [id]: r ?? [] };
+      else contenu = { ...contenu, [id]: r ?? [] };
+    })
+      .catch(() => {
+        // On DIT que le widget a échoué : une bande vide se lit comme « rien à
+        // montrer », et on cherche alors un défaut de bibliothèque.
+        echecs = { ...echecs, [id]: true };
+      })
+      .finally(() => {
+        enCours = { ...enCours, [id]: false };
+      });
+  }
 
   $effect(() => {
-    api.getContinueListening(12).then((r) => (cont = r ?? [])).catch(() => {});
-    api.getRecentAlbums(24).then((r) => (recent = r ?? [])).catch(() => {});
-    api.getArtistReleases(12).then((r) => (groups = r ?? [])).catch(() => {});
-    api.getLibraryStats().then((r) => (stats = r)).catch(() => {});
+    if (!charge) return;
+    for (const id of disposition) chargerWidget(id);
   });
 
-  const hour = new Date().getHours();
-  const hello = hour < 6 ? 'Bonne nuit' : hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
+  function jouer(e: Element) {
+    const z = $currentZoneId;
+    if (z == null || !e.jouer) return;
+    Promise.resolve(e.jouer(z)).catch(() => {});
+  }
 
-  /** Le HERO privilegie un album qui a une POCHETTE : ouvrir sur un carre
-   *  gris donne l'impression d'une bibliotheque cassee. On garde l'ordre de
-   *  pertinence (reprise > recent) et on descend jusqu'au premier illustre. */
-  const hero = $derived.by(() => {
-    const pool = [...cont, ...recent, ...$albums];
-    return pool.find((a: any) => a?.cover_path) ?? pool[0] ?? null;
+  // ── Édition ──────────────────────────────────────────────────────────────
+  function retirer(id: string) {
+    disposition = disposition.filter((x) => x !== id);
+    void enregistrer();
+  }
+
+  function ajouter(id: string) {
+    if (disposition.includes(id)) return;
+    disposition = [...disposition, id];
+    ajoutOuvert = false;
+    chargerWidget(id);
+    void enregistrer();
+  }
+
+  /** Index du widget saisi, `null` quand rien n'est en cours de déplacement. */
+  let saisi = $state<number | null>(null);
+  let survole = $state<number | null>(null);
+
+  function deposer(cible: number) {
+    const src = saisi;
+    saisi = null;
+    survole = null;
+    if (src == null || src === cible) return;
+    const copie = [...disposition];
+    const [w] = copie.splice(src, 1);
+    copie.splice(cible, 0, w);
+    disposition = copie;
+    void enregistrer();
+  }
+
+  /**
+   * Déplacement au CLAVIER.
+   *
+   * Le glisser-déposer n'existe pas au clavier : sans ces raccourcis, un
+   * utilisateur qui ne se sert pas d'une souris ne pourrait jamais réordonner
+   * sa page. La poignée est focalisable, et les flèches la déplacent.
+   */
+  function auClavier(e: KeyboardEvent, i: number) {
+    const d = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+    if (!d) return;
+    e.preventDefault();
+    const cible = i + d;
+    if (cible < 0 || cible >= disposition.length) return;
+    const copie = [...disposition];
+    [copie[i], copie[cible]] = [copie[cible], copie[i]];
+    disposition = copie;
+    void enregistrer();
+  }
+
+  onMount(() => {
+    void charger();
   });
-
-  /** Ajouts recents : tire des albums DEJA en memoire, sans appel reseau.
-   *  N'apparait que si `added_at` est reellement renseigne — un classement
-   *  qui ne classe rien vaut moins que pas de rangee du tout. */
-  const added = $derived(
-    $albums.some((a) => (a.added_at ?? 0) > 0)
-      ? [...$albums].sort((a, b) => (b.added_at ?? 0) - (a.added_at ?? 0)).slice(0, 18)
-      : []
-  );
-
-  /** Une poignee d'albums au hasard, illustres de preference. Le tirage est
-   *  STABLE tant que la bibliotheque ne change pas : une rangee qui se
-   *  reordonne a chaque rendu est illisible. */
-  const surprise = $derived.by(() => {
-    const withArt = $albums.filter((a) => a.cover_path);
-    const pool = withArt.length >= 8 ? withArt : $albums;
-    if (!pool.length) return [];
-    const out: Album[] = [];
-    const step = Math.max(1, Math.floor(pool.length / 18));
-    for (let i = 0; i < pool.length && out.length < 18; i += step) out.push(pool[i]);
-    return out;
-  });
-
-  /** Teinte deterministe tiree du titre : deux albums sans pochette n'ont
-   *  jamais la meme vignette, et la meme revient a chaque affichage. */
-  function hue(s: string): number {
-    let h = 0;
-    for (let i = 0; i < (s ?? '').length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
-    return h;
-  }
-
-  function playAlbum(id: number | null | undefined) {
-    const zid = $currentZoneId;
-    if (zid == null || id == null) return;
-    api.play(zid, { album_id: id }).catch(() => {});
-  }
-  function openArtist(name: string) {
-    pendingStreamingArtist.set({ id: null, source_id: null, name } as any);
-    activeView.set('streaming');
-  }
-  function qLabel(a: any): string {
-    const tier = getQualityTier(a);
-    if (tier === 'dsd') return 'DSD';
-    const r = a?.sample_rate ? `${Math.round(a.sample_rate / 100) / 10} kHz` : '';
-    const d = a?.bit_depth ? `${a.bit_depth}-bit` : '';
-    return [a?.format?.toUpperCase(), r, d].filter(Boolean).join(' · ');
-  }
-
-  /** Defilement d'une rangee, d'environ une page. */
-  function scrollRow(e: MouseEvent, dir: -1 | 1) {
-    const row = (e.currentTarget as HTMLElement).closest('.rowwrap')?.querySelector('.row') as HTMLElement | null;
-    if (row) row.scrollBy({ left: dir * Math.max(320, row.clientWidth * 0.8), behavior: 'smooth' });
-  }
 </script>
 
 <section class="v2-home tune-v2">
   <header class="top">
-    <div class="ttl">
-      <div class="hello">{hello}</div>
-      <h1>Votre musique</h1>
+    <div>
+      <div class="eyebrow">{$t('v2.home.eyebrow' as any)}</div>
+      <h1>{$t('v2.home.title' as any)}</h1>
     </div>
-    {#if showMore && stats}
-      <!-- Les statistiques etaient orphelines en bas de page ; elles disent
-           l'ampleur de la collection, leur place est en tete. -->
-      <div class="stats">
-        <span><b>{formatNumber(stats.tracks)}</b> titres</span>
-        <span><b>{formatNumber(stats.albums)}</b> albums</span>
-        <span><b>{formatNumber(stats.artists)}</b> artistes</span>
-      </div>
-    {/if}
+    <div class="outils">
+      {#if edition}
+        <button class="ghost" onclick={() => (ajoutOuvert = !ajoutOuvert)} disabled={!disponibles.length}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          {$t('v2.home.add' as any)}
+        </button>
+      {/if}
+      <button class="ghost" class:on={edition} onclick={() => { edition = !edition; ajoutOuvert = false; }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l4 4"/></svg>
+        {edition ? $t('v2.home.done' as any) : $t('v2.home.edit' as any)}
+      </button>
+    </div>
   </header>
 
+  {#if edition && ajoutOuvert}
+    <div class="ajout">
+      {#if !disponibles.length}
+        <p class="vide">{$t('v2.home.allAdded' as any)}</p>
+      {:else}
+        {#each disponibles as w (w.id)}
+          <button class="puce" onclick={() => ajouter(w.id)}>+ {$t(w.cleTitre as any)}</button>
+        {/each}
+      {/if}
+    </div>
+  {/if}
+
   <div class="scroll">
-    {#if hero}
-      {@const h = hero as any}
-      <section class="hero">
-        <span class="hart">
-          {#if h.cover_path}
-            <AlbumArt coverPath={h.cover_path} albumId={h.album_id ?? h.id ?? null} size={0} alt={h.title ?? ''} source={h.source} />
-          {:else}
-            {@render blank(h.title ?? '', 84)}
-          {/if}
-        </span>
-        <div class="hmeta">
-          <div class="hkicker">{cont.length ? 'Reprendre l’écoute' : 'La dernière fois'}</div>
-          <h2>{h.title ?? h.album_title ?? ''}</h2>
-          <div class="hart2">{h.artist_name ?? ''}</div>
-          {#if qLabel(h)}<div class="hq">{qLabel(h)}</div>{/if}
-          <button class="play" onclick={() => playAlbum(h.album_id ?? h.id)}>
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>
-            Lire
-          </button>
-        </div>
-      </section>
-    {/if}
+    {#if !charge}
+      <div class="state">{$t('common.loading' as any)}</div>
+    {:else if !disposition.length}
+      <!-- Page vidée par l'utilisateur : on le DIT et on montre le chemin,
+           sinon elle se lit comme une panne. -->
+      <div class="state">{$t('v2.home.emptyHint' as any)}</div>
+    {:else}
+      {#each disposition as id, i (id)}
+        {@const w = widgetParId(id)}
+        {#if w}
+          <section
+            class="bloc"
+            class:cible={survole === i && saisi !== null && saisi !== i}
+            ondragover={(e) => { if (saisi !== null) { e.preventDefault(); survole = i; } }}
+            ondrop={(e) => { e.preventDefault(); deposer(i); }}
+          >
+            <div class="tete">
+              {#if edition}
+                <!-- La POIGNÉE seule est déplaçable. Rendre la bande entière
+                     `draggable` empêcherait de la faire défiler à la souris,
+                     qui est son geste principal. -->
+                <span
+                  class="poignee"
+                  role="button"
+                  tabindex="0"
+                  draggable="true"
+                  aria-label={$t('v2.home.move' as any)}
+                  ondragstart={() => (saisi = i)}
+                  ondragend={() => { saisi = null; survole = null; }}
+                  onkeydown={(e) => auClavier(e, i)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg>
+                </span>
+              {/if}
+              <h2>{$t(w.cleTitre as any)}</h2>
+              {#if edition}
+                <button class="retirer" onclick={() => retirer(id)} aria-label={$t('v2.home.remove' as any)}>×</button>
+              {/if}
+            </div>
 
-    {#if cont.length}{@render band('Reprendre l’écoute', cont)}{/if}
-    {#if recent.length}{@render band('Récemment joué', recent)}{/if}
-    {#if added.length}{@render band('Ajoutés récemment', added)}{/if}
-    {#if surprise.length}{@render band('Au hasard dans votre bibliothèque', surprise)}{/if}
-
-    {#if showMore && groups.length}
-      <section class="rowsec">
-        <h2>Nouveautés de vos artistes</h2>
-        {#each groups as g (g.artist_name)}
-          <div class="artist-line">
-            <button class="artist-name" onclick={() => openArtist(g.artist_name)}>{g.artist_name}</button>
-            <div class="rowwrap">
-              <div class="row">
-                {#each g.releases as r (r.source_id)}
-                  <div class="tile small">
-                    <span class="cv">
-                      {#if r.cover_path}
-                        <AlbumArt coverPath={r.cover_path} albumId={null} size={0} alt={r.title} source={r.service as any} />
-                      {:else}{@render blank(r.title ?? '', 30)}{/if}
-                    </span>
-                    <span class="tt">{r.title}</span>
-                    {#if r.year}<span class="ta">{r.year}</span>{/if}
-                  </div>
+            {#if enCours[id]}
+              <div class="state mince">{$t('common.loading' as any)}</div>
+            {:else if echecs[id]}
+              <div class="state mince err">{$t('v2.home.widgetFailed' as any)}</div>
+            {:else if w.forme === 'chiffres'}
+              <div class="chiffres">
+                {#each chiffres[id] ?? [] as c (c.cle)}
+                  <div class="stat"><span class="v">{c.valeur}</span><span class="l">{$t(c.cle as any)}</span></div>
                 {/each}
               </div>
-            </div>
-          </div>
-        {/each}
-      </section>
-    {/if}
-
-    {#if !hero && !recent.length}
-      <div class="empty">
-        <p>Votre bibliothèque est vide.</p>
-        <button class="lnk" onclick={() => activeView.set('settings')}>Déclarer un dossier de musique</button>
-      </div>
+            {:else if !(contenu[id] ?? []).length}
+              <div class="state mince">{$t('v2.home.widgetEmpty' as any)}</div>
+            {:else}
+              <div class="bande">
+                {#each contenu[id] ?? [] as el (el.id)}
+                  <button class="carte" onclick={() => jouer(el)} disabled={!el.jouer}>
+                    <span class="cv"><AlbumArt coverPath={el.cover} albumId={null} size={0} alt={el.titre} fallbackInitials={el.titre?.slice(0, 1)} /></span>
+                    <span class="ct">{el.titre}</span>
+                    {#if el.sous}<span class="ca">{el.sous}</span>{/if}
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </section>
+        {/if}
+      {/each}
     {/if}
   </div>
 </section>
 
-<!-- Vignette de repli : teinte deduite du titre + note. Remplace la lettre
-     geante sur aplat gris, qui donnait a la page un air de bibliotheque
-     cassee des la premiere rangee. -->
-{#snippet blank(title: string, glyph: number)}
-  <span class="blank" style="--hh:{hue(title)}">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="width:{glyph}px;height:{glyph}px">
-      <path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>
-    </svg>
-  </span>
-{/snippet}
-
-{#snippet band(titre: string, items: any[])}
-  <section class="rowsec">
-    <div class="rhead">
-      <h2>{titre}</h2>
-      <div class="arrows">
-        <button onclick={(e) => scrollRow(e, -1)} aria-label="Précédent">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 6l-6 6 6 6"/></svg>
-        </button>
-        <button onclick={(e) => scrollRow(e, 1)} aria-label="Suivant">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"/></svg>
-        </button>
-      </div>
-    </div>
-    <div class="rowwrap">
-      <div class="row">
-        {#each items as it, i ((it.album_id ?? it.id ?? i) + '@' + i)}
-          <button class="tile" onclick={() => playAlbum(it.album_id ?? it.id)}>
-            <span class="cv">
-              {#if it.cover_path}
-                <AlbumArt coverPath={it.cover_path} albumId={it.album_id ?? it.id ?? null} size={0} alt={it.title ?? ''} source={it.source} />
-              {:else}{@render blank(it.title ?? it.album_title ?? '', 34)}{/if}
-              <span class="pbtn">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>
-              </span>
-            </span>
-            <span class="tt">{it.title ?? it.album_title ?? ''}</span>
-            <span class="ta">{it.artist_name ?? ''}</span>
-          </button>
-        {/each}
-      </div>
-    </div>
-  </section>
-{/snippet}
-
 <style>
   .v2-home{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; justify-content:space-between; gap:24px; padding:22px 30px 8px; padding-right:96px}
-  .hello{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
+  .top{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:24px 30px 12px; padding-right:130px}
+  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
   .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
-  .stats{display:flex; gap:20px; padding-bottom:6px}
-  .stats span{font:11.5px var(--v2-mono); color:var(--v2-txt3)}
-  .stats b{font:700 13px var(--v2-sans); color:var(--v2-txt2); margin-right:5px}
+  .outils{display:flex; gap:8px}
+  .ghost{display:inline-flex; align-items:center; gap:7px; cursor:pointer; border:1px solid var(--v2-line2);
+    border-radius:var(--v2-r-pill); background:transparent; color:var(--v2-txt2);
+    font:600 12.5px var(--v2-sans); padding:8px 14px}
+  .ghost:hover{color:var(--v2-txt); background:var(--v2-hover)}
+  .ghost.on{color:var(--v2-on-acc); background:var(--v2-acc1); border-color:transparent}
+  .ghost:disabled{opacity:.45; cursor:default}
+  .ghost svg{width:14px; height:14px}
 
-  .scroll{flex:1; overflow-y:auto; padding:10px 0 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .ajout{display:flex; flex-wrap:wrap; gap:6px; padding:6px 30px 10px}
+  .puce{border:1px dashed var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    font:600 12px var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
+  .puce:hover{color:var(--v2-txt); border-color:var(--v2-acc2); border-style:solid}
+  .vide{color:var(--v2-txt3); font-size:13px}
 
-  /* HERO : le point d'ancrage de la page. */
-  .hero{display:flex; align-items:center; gap:28px; margin:4px 30px 26px; padding:22px 26px;
-    border-radius:18px; border:1px solid var(--v2-line);
-    background:linear-gradient(120deg, var(--v2-surface2), var(--v2-bg) 70%)}
-  .hart{width:168px; height:168px; flex:0 0 auto; border-radius:10px; overflow:hidden; box-shadow:var(--v2-sh-lg)}
-  .hmeta{min-width:0; display:flex; flex-direction:column; gap:7px}
-  .hkicker{font:600 10.5px var(--v2-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--v2-acc1)}
-  .hmeta h2{font-size:34px; font-weight:800; line-height:1.1; letter-spacing:-.015em;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .hart2{font-size:16px; color:var(--v2-txt2)}
-  .hq{font:11px var(--v2-mono); color:var(--v2-acc2)}
-  .play{display:inline-flex; align-items:center; gap:9px; align-self:flex-start; margin-top:10px;
-    height:44px; padding:0 22px; border:0; border-radius:var(--v2-r-pill); cursor:pointer;
-    font:700 14px var(--v2-sans); color:var(--v2-on-acc);
-    background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 6px 18px var(--v2-glow-strong)}
-  .play svg{width:16px; height:16px}
+  .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
+  .state{padding:26px 30px; color:var(--v2-txt3); font-size:13.5px}
+  .state.mince{padding:8px 30px 18px}
+  .state.err{color:var(--v2-danger)}
 
-  .rowsec{padding:6px 0 18px}
-  .rhead{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:0 30px 12px}
-  .rowsec h2{font-size:18px; font-weight:700}
-  .arrows{display:flex; gap:5px}
-  .arrows button{width:30px; height:30px; border-radius:9px; cursor:pointer; display:grid; place-items:center;
-    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2)}
-  .arrows button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
-  .arrows svg{width:15px; height:15px}
+  .bloc{padding:10px 0 6px; border-top:1px solid transparent}
+  /* La cible de dépôt se voit : sans repère, on lâche à l'aveugle. */
+  .bloc.cible{border-top-color:var(--v2-acc1)}
+  .tete{display:flex; align-items:center; gap:9px; padding:0 30px 10px}
+  .tete h2{font-size:15px; font-weight:700; flex:1}
+  .poignee{display:grid; place-items:center; width:24px; height:24px; border-radius:6px; cursor:grab;
+    color:var(--v2-txt3); background:var(--v2-surface2)}
+  .poignee:hover{color:var(--v2-txt)}
+  .poignee:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .poignee svg{width:14px; height:14px}
+  .retirer{width:24px; height:24px; border:0; border-radius:6px; background:transparent; color:var(--v2-txt3);
+    font-size:17px; line-height:1; cursor:pointer}
+  .retirer:hover{color:var(--v2-danger); background:var(--v2-hover)}
 
-  /* Fondu de bord : dit qu'il reste du contenu a droite, la ou la rangee
-     etait auparavant tranchee net au milieu d'une pochette. */
-  .rowwrap{position:relative}
-  .rowwrap::after{content:""; position:absolute; top:0; bottom:0; right:0; width:64px; pointer-events:none;
-    background:linear-gradient(90deg, transparent, var(--v2-bg))}
-  .row{display:flex; gap:18px; overflow-x:auto; padding:2px 30px 10px; scrollbar-width:none; scroll-behavior:smooth}
-  .row::-webkit-scrollbar{display:none}
+  /* TOUS les widgets sont des bandes horizontales — décision de Bertrand.
+     Mêler grilles et bandes rendrait la hauteur de la page imprévisible. */
+  .bande{display:flex; gap:16px; overflow-x:auto; padding:0 30px 10px; scrollbar-width:thin}
+  .carte{flex:0 0 148px; display:flex; flex-direction:column; gap:6px; border:0; background:transparent;
+    padding:0; text-align:left; color:inherit; cursor:pointer}
+  .carte:disabled{cursor:default}
+  .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; background:var(--v2-surface)}
+  .cv :global(img){width:100%; height:100%; object-fit:cover; display:block}
+  .ct{font:600 12.5px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
-  .tile{flex:0 0 158px; width:158px; border:0; background:transparent; color:inherit; cursor:pointer;
-    text-align:left; padding:0; display:flex; flex-direction:column}
-  .tile.small{flex-basis:128px; width:128px}
-  .cv{position:relative; display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden;
-    box-shadow:var(--v2-sh-card); transition:.18s}
-  .tile:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
-  .pbtn{position:absolute; right:8px; bottom:8px; width:36px; height:36px; border-radius:50%;
-    display:grid; place-items:center; color:var(--v2-on-acc);
-    background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 4px 12px rgba(0,0,0,.45);
-    opacity:0; transform:translateY(6px); transition:.16s}
-  .tile:hover .pbtn{opacity:1; transform:none}
-  .pbtn svg{width:15px; height:15px; margin-left:2px}
-  .tt{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ta{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden;
-    text-overflow:ellipsis; min-height:14px}
-
-  .blank{display:grid; place-items:center; width:100%; height:100%;
-    color:hsl(var(--hh) 42% 78% / .65);
-    background:linear-gradient(145deg, hsl(var(--hh) 34% 26%), hsl(var(--hh) 30% 15%))}
-
-  .artist-line{padding:2px 0 12px}
-  .artist-name{border:0; background:transparent; color:var(--v2-txt); font:700 15px var(--v2-sans); cursor:pointer;
-    padding:0 30px 8px}
-  .artist-name:hover{color:var(--v2-acc-tint)}
-
-  .empty{display:flex; flex-direction:column; align-items:flex-start; gap:14px; padding:50px 30px; color:var(--v2-txt2)}
-  .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:9px 17px; font:600 12.5px var(--v2-sans)}
-  .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .chiffres{display:flex; flex-wrap:wrap; gap:22px; padding:0 30px 12px}
+  .stat{display:flex; flex-direction:column}
+  .stat .v{font:800 22px var(--v2-sans); letter-spacing:-.01em}
+  .stat .l{font:10.5px var(--v2-mono); color:var(--v2-txt3); text-transform:uppercase; letter-spacing:.06em}
 </style>

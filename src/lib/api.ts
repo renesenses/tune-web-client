@@ -2881,6 +2881,28 @@ export async function getFavorites(
   };
 }
 
+/**
+ * Préférences d'interface d'un PROFIL.
+ *
+ * Elles vivent côté serveur, pas dans le navigateur : la disposition de
+ * l'accueil doit suivre d'un appareil à l'autre et survivre à un vidage de
+ * cache. Choix de Bertrand du 02/09/2026, qui les a voulues par profil plutôt
+ * que globales — chacun sa page d'accueil.
+ *
+ * L'écriture FUSIONNE : un écran qui n'envoie que sa clé n'efface pas celles
+ * des autres. Envoyer `null` pour une clé la supprime.
+ */
+export function getProfilePreferences(profileId: number) {
+  return fetchJSON<Record<string, any>>(`${BASE}/profiles/${profileId}/preferences`);
+}
+
+export function setProfilePreferences(profileId: number, patch: Record<string, any>) {
+  return fetchJSON<Record<string, any>>(`${BASE}/profiles/${profileId}/preferences`, {
+    method: 'PUT',
+    body: JSON.stringify(patch),
+  });
+}
+
 export function addFavorite(profileId: number, body: FavItem) {
   const it = favItem(body);
   if (!it) return Promise.reject(new Error('addFavorite: no item id'));
