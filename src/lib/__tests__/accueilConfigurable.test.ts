@@ -243,3 +243,42 @@ describe('Accueil — la taille des vignettes', () => {
     expect(m![1].includes('overflow-x:hidden'), 'la page peut de nouveau défiler de travers').toBe(true);
   });
 });
+
+/**
+ * Les clés de liste des widgets.
+ *
+ * 🔴 Deux plantages le 02/09/2026, dans deux écrans différents, pour la même
+ * raison : une clé tirée de l'identifiant de la SOURCE.
+ *
+ *  - podcasts : `feed_url: ''` sur les cinquante entrées du palmarès ;
+ *  - accueil  : `id: 0` sur deux entrées de « Reprendre l'écoute », que
+ *    `champ()` rendait fidèlement comme « 0 » — d'où `rep0` en double aux
+ *    index 0 et 2, et l'écran entier qui disparaît sur `each_key_duplicate`.
+ *
+ * Quatorze sources, quatorze occasions de se tromper. L'index, lui, est unique
+ * par construction.
+ */
+describe('Accueil — les clés de liste', () => {
+  const reg = () => lire('../accueilWidgets.ts');
+
+  it('l’index fait TOUJOURS partie de la clé', () => {
+    expect(
+      reg().includes('id: `${prefixe}${i}-${id}`'),
+      'la clé ne porte plus l’index : deux objets de même identifiant la partageraient.',
+    ).toBe(true);
+  });
+
+  it('une entrée sans titre ni pochette est écartée', () => {
+    // `/home/continue-listening` en rend deux sur cinq. Affichées, ce sont des
+    // cases grises marquées « — » au milieu des vraies.
+    const src = reg();
+    expect(src.includes('const utiles = (els: Element[])'), 'le filtre a disparu').toBe(true);
+    // Et il s'applique à TOUS les chargeurs de bande, pas à quelques-uns.
+    const bandes = (src.match(/forme: 'bande'/g) ?? []).length;
+    // Pas de `-1` : la définition s'écrit `const utiles = (`, qui ne
+    // correspond pas au motif `utiles(`. Ma première version la retranchait
+    // quand même, et le garde rougissait sur un décompte juste.
+    const filtres = (src.match(/utiles\(/g) ?? []).length;
+    expect(filtres, `${bandes} bandes, ${filtres} filtrées`).toBeGreaterThanOrEqual(bandes);
+  });
+});

@@ -76,10 +76,21 @@ function champ(o: any, ...noms: string[]): string | undefined {
  * entrées sous la même clé et vidé l'écran (02/09/2026).
  */
 function versElement(o: any, i: number, prefixe: string): Element {
-  const id =
-    champ(o, 'id', 'album_id', 'track_id', 'source_id', 'feed_url', 'uri') ?? `${prefixe}${i}`;
+  const id = champ(o, 'id', 'album_id', 'track_id', 'source_id', 'feed_url', 'uri') ?? '';
   return {
-    id: `${prefixe}${id}`,
+    // 🔴 L'INDEX fait toujours partie de la clé.
+    //
+    // Sans lui, deux objets portant le même identifiant donnent la même clé, et
+    // Svelte s'arrête sur `each_key_duplicate` — l'écran entier disparaît.
+    //
+    // Vécu deux fois le 02/09/2026 : `feed_url: ''` sur les cinquante entrées
+    // du palmarès des podcasts, puis `id: 0` sur deux entrées de
+    // « Reprendre l'écoute » que `champ()` rendait fidèlement comme « 0 ».
+    //
+    // Se fier à l'identifiant de la source, c'est parier qu'elle en fournit un
+    // qui soit unique. Quatorze sources, quatorze occasions de se tromper :
+    // l'index, lui, est unique par construction.
+    id: `${prefixe}${i}-${id}`,
     titre: champ(o, 'title', 'name', 'album_title', 'album') ?? '—',
     sous: champ(o, 'artist_name', 'artist', 'author', 'artistName', 'station'),
     cover: champ(o, 'cover_path', 'cover_url', 'image_url', 'image_path', 'logo_url') ?? null,
@@ -94,39 +105,55 @@ function versElement(o: any, i: number, prefixe: string): Element {
 const liste = (r: any): any[] =>
   Array.isArray(r) ? r : (r?.items ?? r?.albums ?? r?.tracks ?? r?.results ?? []);
 
+/**
+ * Écarte ce qui n'a rien à montrer.
+ *
+ * `/home/continue-listening` rend des entrées `{id: 0, album_id: null}` sans
+ * titre ni pochette — mesuré sur le serveur de Bertrand le 02/09/2026, deux sur
+ * cinq. Affichées, elles donnent des cases grises marquées « — » au milieu des
+ * vraies, et on cherche une pochette manquante là où il n'y a pas d'objet.
+ */
+const utiles = (els: Element[]): Element[] => els.filter((e) => e.titre !== '—' || e.cover);
+
 export const WIDGETS: Widget[] = [
   {
     id: 'zones',
     cleTitre: 'v2.home.wZones',
     forme: 'bande',
+    // Construit à la main : une zone n'a pas la forme d'un album. Mais elle
+    // passe par les MÊMES garde-fous — l'index dans la clé, et le filtre des
+    // entrées vides. C'est le seul chargeur qui y échappait, et rien ne
+    // justifiait l'exception.
     charger: async () =>
-      liste(await api.getNowListening()).map((z: any, i: number) => ({
-        id: `zone${z?.zone_id ?? z?.id ?? i}`,
-        titre: champ(z, 'title', 'track_title') ?? champ(z, 'zone_name', 'name') ?? '—',
-        sous: champ(z, 'artist_name', 'artist') ?? champ(z, 'zone_name', 'name'),
-        cover: champ(z, 'cover_path', 'cover_url') ?? null,
-      })),
+      utiles(
+        liste(await api.getNowListening()).map((z: any, i: number) => ({
+          id: `zone${i}-${z?.zone_id ?? z?.id ?? ''}`,
+          titre: champ(z, 'title', 'track_title') ?? champ(z, 'zone_name', 'name') ?? '—',
+          sous: champ(z, 'artist_name', 'artist') ?? champ(z, 'zone_name', 'name'),
+          cover: champ(z, 'cover_path', 'cover_url') ?? null,
+        })),
+      ),
   },
   {
     id: 'reprendre',
     cleTitre: 'v2.home.wResume',
     forme: 'bande',
     charger: async () =>
-      liste(await api.getContinueListening(LIMITE)).map((o, i) => versElement(o, i, 'rep')),
+      utiles(liste(await api.getContinueListening(LIMITE)).map((o, i) => versElement(o, i, 'rep'))),
   },
   {
     id: 'recemment-ajoutes',
     cleTitre: 'v2.home.wRecentlyAdded',
     forme: 'bande',
     charger: async () =>
-      liste(await api.getRecentAlbums(LIMITE)).map((o, i) => versElement(o, i, 'alb')),
+      utiles(liste(await api.getRecentAlbums(LIMITE)).map((o, i) => versElement(o, i, 'alb'))),
   },
   {
     id: 'recemment-ecoutes',
     cleTitre: 'v2.home.wRecentlyPlayed',
     forme: 'bande',
     charger: async () =>
-      liste(await api.getPlaybackHistory(LIMITE)).map((o, i) => versElement(o, i, 'hist')),
+      utiles(liste(await api.getPlaybackHistory(LIMITE)).map((o, i) => versElement(o, i, 'hist'))),
   },
   {
     id: 'hasard',
@@ -143,7 +170,7 @@ export const WIDGETS: Widget[] = [
       for (let n = 0; n < LIMITE && src.length; n++) {
         tire.push(src.splice(Math.floor(Math.random() * src.length), 1)[0]);
       }
-      return tire.map((o, i) => versElement(o, i, 'alb'));
+      return utiles(tire.map((o, i) => versElement(o, i, 'alb')));
     },
   },
   {
@@ -151,21 +178,21 @@ export const WIDGETS: Widget[] = [
     cleTitre: 'v2.home.wArtistReleases',
     forme: 'bande',
     charger: async () =>
-      liste(await api.getArtistReleases(LIMITE)).map((o, i) => versElement(o, i, 'nar')),
+      utiles(liste(await api.getArtistReleases(LIMITE)).map((o, i) => versElement(o, i, 'nar'))),
   },
   {
     id: 'nouveau-bibliotheque',
     cleTitre: 'v2.home.wNewInLibrary',
     forme: 'bande',
     charger: async () =>
-      liste(await api.getNewInLibrary()).slice(0, LIMITE).map((o, i) => versElement(o, i, 'alb')),
+      utiles(liste(await api.getNewInLibrary()).slice(0, LIMITE).map((o, i) => versElement(o, i, 'alb'))),
   },
   {
     id: 'autres-versions',
     cleTitre: 'v2.home.wOtherVersions',
     forme: 'bande',
     charger: async () =>
-      liste(await api.getOtherVersions(LIMITE)).map((o, i) => versElement(o, i, 'ver')),
+      utiles(liste(await api.getOtherVersions(LIMITE)).map((o, i) => versElement(o, i, 'ver'))),
   },
   {
     id: 'favoris',
@@ -174,7 +201,7 @@ export const WIDGETS: Widget[] = [
     charger: async (ctx) => {
       if (ctx.profileId == null) return [];
       const f = await api.getFavorites(ctx.profileId);
-      return (f?.albums ?? []).slice(0, LIMITE).map((o: any, i: number) => versElement(o, i, 'alb'));
+      return utiles((f?.albums ?? []).slice(0, LIMITE).map((o: any, i: number) => versElement(o, i, 'alb')));
     },
   },
   {
@@ -182,28 +209,28 @@ export const WIDGETS: Widget[] = [
     cleTitre: 'v2.home.wRecommendations',
     forme: 'bande',
     charger: async () =>
-      liste(await api.getHomeRecommendations()).slice(0, LIMITE).map((o, i) => versElement(o, i, 'rec')),
+      utiles(liste(await api.getHomeRecommendations()).slice(0, LIMITE).map((o, i) => versElement(o, i, 'rec'))),
   },
   {
     id: 'radios-artistes',
     cleTitre: 'v2.home.wArtistRadios',
     forme: 'bande',
     charger: async () =>
-      liste(await api.getRadioPicks()).slice(0, LIMITE).map((o, i) => versElement(o, i, 'rad')),
+      utiles(liste(await api.getRadioPicks()).slice(0, LIMITE).map((o, i) => versElement(o, i, 'rad'))),
   },
   {
     id: 'podcasts-abonnements',
     cleTitre: 'v2.home.wPodcasts',
     forme: 'bande',
     charger: async () =>
-      liste(await api.getPodcastSubscriptions()).slice(0, LIMITE).map((o, i) => versElement(o, i, 'pod')),
+      utiles(liste(await api.getPodcastSubscriptions()).slice(0, LIMITE).map((o, i) => versElement(o, i, 'pod'))),
   },
   {
     id: 'qobuz-selection',
     cleTitre: 'v2.home.wQobuz',
     forme: 'bande',
     charger: async () =>
-      liste(await api.getStreamingFeaturedPlaylists('qobuz')).slice(0, LIMITE).map((o, i) => versElement(o, i, 'qob')),
+      utiles(liste(await api.getStreamingFeaturedPlaylists('qobuz')).slice(0, LIMITE).map((o, i) => versElement(o, i, 'qob'))),
   },
   {
     id: 'statistiques',
