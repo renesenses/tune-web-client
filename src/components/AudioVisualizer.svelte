@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { audioLevels, type AudioLevels } from '../lib/stores/audioLevels';
+  import { audioLevels, levelsForZone, type AudioLevels } from '../lib/stores/audioLevels';
 
   interface Props {
     playing: boolean;
@@ -10,6 +10,14 @@
     sampleRate?: number | null;
     bitDepth?: number | null;
     format?: string | null;
+    /**
+     * Zone à suivre. Absent = la zone SÉLECTIONNÉE, comportement d'origine de
+     * la barre de transport et de « Lecture en cours ».
+     *
+     * Nommée, on suit CETTE zone : la bande « Zones d'écoute actives » en
+     * affiche plusieurs côte à côte, et elles ne jouent pas la même chose.
+     */
+    zoneId?: number | null;
   }
 
   let {
@@ -20,6 +28,7 @@
     sampleRate = null,
     bitDepth = null,
     format = null,
+    zoneId = null,
   }: Props = $props();
 
   let canvas: HTMLCanvasElement | undefined = $state();
@@ -56,7 +65,8 @@
 
   let realLevels: AudioLevels | null = $state(null);
   let lastRealUpdate = 0;
-  const unsub = audioLevels.subscribe((l) => {
+  const source = zoneId != null ? levelsForZone(zoneId) : audioLevels;
+  const unsub = source.subscribe((l) => {
     if (l.rms_left_db > -90 || l.rms_right_db > -90) {
       realLevels = l;
       lastRealUpdate = performance.now();

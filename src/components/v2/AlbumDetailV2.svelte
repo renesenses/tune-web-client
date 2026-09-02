@@ -17,8 +17,15 @@
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
   // identifiants n'y sont pas les notres — pistes et lecture doivent passer
   // par lui, sans quoi on jouerait un tout autre morceau du meme numero.
-  let { album, depot = null, onClose }:
-    { album: Album; depot?: DepotDistant | null; onClose: () => void } = $props();
+  // `service` : la fiche d'un album de STREAMING (Qobuz, Tidal…). Il n'a pas
+  // d'identifiant local — son identite est `source_id` AVEC le service, et le
+  // serveur n'apparie que la paire. Meme forme que `depot` : une origine qui
+  // change ou l'on va chercher les pistes et comment on les joue.
+  let { album, depot = null, service = null, onClose }:
+    { album: Album; depot?: DepotDistant | null; service?: string | null; onClose: () => void } = $props();
+
+  /** Identifiant distant de l'album, quand il vient d'un service. */
+  const sidDistant = $derived(service ? ((album as any).source_id ?? null) : null);
 
   let tracks = $state<Track[]>([]);
   let loading = $state(true);
@@ -26,11 +33,17 @@
   const showExpert = $derived(atLeast($preferences.settingsLevel, 'expert'));
 
   $effect(() => {
-    const id = album.id, d = depot;
-    if (id == null) return;
+    const id = album.id, d = depot, svc = service, sid = sidDistant;
+    // Un album de service n'a pas d'`id` local : sans cette branche, la garde
+    // sortait aussitot et la fiche restait sur « Chargement… » pour toujours.
+    if (id == null && !(svc && sid)) return;
     loading = true; error = null;
-    (d ? pistesAlbumDistant(d, id) : api.getAlbumTracks(id))
-      .then((t) => { tracks = t; })
+    const p = svc && sid
+      ? api.getStreamingAlbumTracks(svc, String(sid))
+      : d
+        ? pistesAlbumDistant(d, id as number)
+        : api.getAlbumTracks(id as number);
+    p.then((t) => { tracks = t; })
       .catch((e) => { error = errText(e) ?? 'Chargement impossible'; })
       .finally(() => { loading = false; });
   });
@@ -59,7 +72,15 @@
 
   function playAlbum(startIndex = 0) {
     const zid = $currentZoneId;
-    if (zid == null || album.id == null) return;
+    if (zid == null) return;
+    // 🔴 `source` va TOUJOURS avec `streaming_album_id`. Seul, l'identifiant
+    // ne designe rien pour le serveur, qui retombe alors sur « reprendre la
+    // lecture en cours » — le defaut releve sur les playlists Qobuz.
+    if (service && sidDistant) {
+      api.play(zid, { streaming_album_id: String(sidDistant), source: service as any, start_index: startIndex }).catch(() => {});
+      return;
+    }
+    if (album.id == null) return;
     if (depot) { enchainerDistant(tracks, startIndex).catch(() => {}); return; }
     api.play(zid, { album_id: album.id, start_index: startIndex }).catch(() => {});
   }
@@ -114,12 +135,18 @@
         <button class="play" onclick={() => playAlbum(0)}>
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>Lire
         </button>
-        <button class="ghost" onclick={shuffle}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3"/></svg>Aléatoire
-        </button>
-        <button class="ghost" onclick={addQueue}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>Ajouter à la file
-        </button>
+        <!-- Aléatoire et « ajouter à la file » travaillent sur des identifiants
+             de pistes LOCALES ; un album de service n'en a pas. Masqués plutôt
+             que morts : un bouton qui ne fait rien est pire qu'un bouton
+             absent. -->
+        {#if !service}
+          <button class="ghost" onclick={shuffle}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3"/></svg>Aléatoire
+          </button>
+          <button class="ghost" onclick={addQueue}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>Ajouter à la file
+          </button>
+        {/if}
       </div>
     </div>
   </div>

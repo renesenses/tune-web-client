@@ -9,10 +9,11 @@
  * ⚠️ Ces tests lisent la SOURCE. Ils tiennent des décisions précises ; ils ne
  * remplacent pas un essai à la souris.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { WIDGETS, DISPOSITION_DEFAUT, widgetParId } from '../accueilWidgets';
+import { WIDGETS, DISPOSITION_DEFAUT, widgetParId, geste } from '../accueilWidgets';
+import * as api from '../api';
 
 const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 const ecran = () => lire('../../components/v2/HomeV2.svelte');
@@ -370,5 +371,76 @@ describe('Accueil — pas de bornage', () => {
       /disposition\.length\s*[<>]=?\s*\d/.test(src),
       'un plafond sur le nombre de widgets est apparu.',
     ).toBe(false);
+  });
+});
+
+/**
+ * Le GESTE d'une vignette.
+ *
+ * Bertrand, 02/09/2026 : « pas de bouton play sur toutes les covers, exemple :
+ * Nouveautés de vos artistes ». La carte n'affiche le disque que si l'élément
+ * porte un `jouer` — et huit bandes Qobuz plus les parutions d'artistes n'en
+ * avaient aucun, faute de reconnaître un contenant de STREAMING.
+ *
+ * Ces tests-là ne lisent pas la source : ils appellent la fonction.
+ */
+describe('Accueil — ce que fait un clic', () => {
+  const corps = (o: any, service: string | null, genre: any = 'album') => {
+    const f = geste(o, service, genre);
+    if (!f) return null;
+    const vus: any[] = [];
+    // On intercepte l'appel plutôt que de partir sur le réseau. `spyOn` et non
+    // une affectation : les exports d'un module ES sont en lecture seule.
+    const espion = vi.spyOn(api, 'play').mockImplementation((_z: number, b: any) => {
+      vus.push(b);
+      return Promise.resolve({} as any);
+    });
+    try { f(1); } finally { espion.mockRestore(); }
+    return vus[0] ?? null;
+  };
+
+  it('un album local part par son identifiant local', () => {
+    expect(corps({ album_id: 42 }, null)).toEqual({ album_id: 42 });
+    expect(corps({ id: 42 }, null)).toEqual({ album_id: 42 });
+  });
+
+  it('une piste part par la sienne', () => {
+    expect(corps({ track_id: 7 }, null)).toEqual({ track_id: 7 });
+  });
+
+  /**
+   * 🔴 Le cœur du défaut. Un album éditorial Qobuz vaut
+   * `{artist_id, artist_name, cover_path, quality, source_id, title,
+   * track_count, year}` : aucun identifiant local, donc aucun geste avant.
+   */
+  it('un album de streaming part par sa paire service + identifiant', () => {
+    expect(corps({ source_id: 'kxend2k5wdg06' }, 'qobuz')).toEqual({
+      streaming_album_id: 'kxend2k5wdg06',
+      source: 'qobuz',
+    });
+  });
+
+  it('une playlist de streaming aussi, sous son propre nom de champ', () => {
+    expect(corps({ source_id: '69230603' }, 'qobuz', 'playlist')).toEqual({
+      streaming_playlist_id: '69230603',
+      source: 'qobuz',
+    });
+  });
+
+  /**
+   * 🔴 `source` n'est jamais facultatif à côté d'un `streaming_*_id` : le
+   * serveur n'apparie que la PAIRE, et un identifiant seul le fait retomber
+   * sur « reprendre la lecture en cours ». C'est le bug des playlists Qobuz.
+   */
+  it('sans service, un identifiant de streaming ne déclenche RIEN', () => {
+    expect(geste({ source_id: 'kxend2k5wdg06' }, null, 'album')).toBeUndefined();
+  });
+
+  it('un identifiant nu ne devient pas un album quand on ne l’a pas dit', () => {
+    expect(geste({ id: 30 }, null, 'aucun')).toBeUndefined();
+  });
+
+  it('rien à jouer ne rend rien — la carte n’affichera pas de disque', () => {
+    expect(geste({ titre: 'x' }, null, 'album')).toBeUndefined();
   });
 });

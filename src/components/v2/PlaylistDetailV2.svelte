@@ -50,7 +50,18 @@
     if (item.kind === 'local') {
       api.play(zid, { playlist_id: item.pl.id as number, start_index: startIndex }).catch(() => {});
     } else {
-      api.play(zid, { streaming_playlist_id: item.pl.source_id, source: item.pl.source, start_index: startIndex }).catch(() => {});
+      // `item.service`, PAS `item.pl.source` : les playlists rendues par
+      // `/streaming/{service}/playlists` ne portent aucun champ `source` —
+      // mesure sur le .18 le 02/09/2026, les clefs sont exactement
+      // `cover_path, description, name, owner, source_id, track_count`.
+      //
+      // `JSON.stringify` supprime la clef valant `undefined` : le corps partait
+      // avec le seul `streaming_playlist_id`, que le serveur n'apparie qu'AVEC
+      // `source`. Aucune source reconnue, il retombait sur « reprendre la
+      // lecture en cours » — cliquer Lire relançait le morceau du moment.
+      // Bertrand, 02/09/2026. Le service est deja celui avec lequel on a
+      // charge les pistes deux lignes plus haut.
+      api.play(zid, { streaming_playlist_id: item.pl.source_id, source: item.service as any, start_index: startIndex }).catch(() => {});
     }
   }
   function addQueue() {

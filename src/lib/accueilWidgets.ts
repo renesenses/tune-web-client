@@ -45,6 +45,21 @@ export interface Element {
    * `local` et `radio` sont filtrés par `AlbumArt` : pas de pastille pour eux.
    */
   source?: string | null;
+  /**
+   * Ce qu'ouvre un clic AILLEURS que sur le disque de lecture.
+   *
+   * Bertrand, 02/09/2026 : « quand je clique sur le nom de l'album ou sur la
+   * cover hors bouton, cela m'ouvre l'album en local ou dans le service de
+   * streaming », et « quand je clique sur la zone d'écoute active cela
+   * m'ouvre l'écran Now playing ».
+   */
+  ouvrir?: 'album' | 'zone' | null;
+  /** Album normalisé pour la fiche, quand `ouvrir` vaut `album`. */
+  fiche?: any;
+  /** Zone suivie par la vignette — bande « Zones d'écoute actives ». */
+  zoneId?: number | null;
+  /** Cette zone joue-t-elle ? Pilote le mini-analyseur sous la vignette. */
+  enLecture?: boolean;
 }
 
 export type Forme = 'bande' | 'chiffres';
@@ -64,6 +79,17 @@ export interface Contexte {
   profileId: number | null;
   /** Albums déjà chargés par la coquille — évite un appel pour « au hasard ». */
   albums: any[];
+  /**
+   * Zones déjà chargées par la coquille.
+   *
+   * `/zones/now-listening` ne rend PAS le nom de la zone — ses clefs sont
+   * `{dop_active, metadata_changed_at_ms, muted, now_playing, play_seq,
+   * position_ms, queue_length, queue_position, repeat, resolving,
+   * session_context_*, shuffle, state, track_generation, volume, zone_id}`,
+   * mesuré sur le .18 le 02/09/2026. Le nom se retrouve par `zone_id` dans la
+   * liste des zones, que la coquille tient déjà.
+   */
+  zones: any[];
 }
 
 /**
@@ -98,8 +124,25 @@ function champ(o: any, ...noms: string[]): string | undefined {
  * une chaîne vide : `feed_url: ''` du palmarès des podcasts avait mis cinquante
  * entrées sous la même clé et vidé l'écran (02/09/2026).
  */
-function versElement(o: any, i: number, prefixe: string, service?: string): Element {
+export interface OptsElement {
+  /** Service d'origine quand l'objet ne le porte pas (cas de tout Qobuz). */
+  service?: string;
+  /**
+   * Ce que DÉSIGNE l'identifiant de l'objet, quand ce n'est pas un album.
+   *
+   * Sans cette indication la fonction devait deviner, et devinait au prefixe
+   * de clé (`prefixe.startsWith('alb')`) — un detail d'affichage promu en
+   * regle metier. « Recommandations » portait le prefixe `rec` et ses vingt
+   * albums locaux n'etaient donc pas jouables.
+   */
+  genre?: 'album' | 'playlist' | 'aucun';
+}
+
+function versElement(o: any, i: number, prefixe: string, opts: OptsElement = {}): Element {
   const id = champ(o, 'id', 'album_id', 'track_id', 'source_id', 'feed_url', 'uri') ?? '';
+  // La source de l'OBJET prime sur celle du widget : une bande locale peut
+  // rendre un album importé d'un service, la déclaration ne le sait pas.
+  const service = champ(o, 'source', 'service', 'provider') ?? opts.service ?? null;
   return {
     // 🔴 L'INDEX fait toujours partie de la clé.
     //
@@ -119,13 +162,74 @@ function versElement(o: any, i: number, prefixe: string, service?: string): Elem
     cover: champ(o, 'cover_path', 'cover_url', 'image_url', 'image_path', 'logo_url') ?? null,
     // La source de l'objet PRIME sur celle du widget : une bande locale peut
     // rendre un album importé d'un service, la déclaration ne le sait pas.
-    source: champ(o, 'source', 'service', 'provider') ?? service ?? null,
-    jouer: o?.album_id != null || (o?.id != null && prefixe.startsWith('alb'))
-      ? (z: number) => api.play(z, { album_id: o.album_id ?? o.id })
-      : o?.track_id != null
-        ? (z: number) => api.play(z, { track_id: o.track_id })
-        : undefined,
+    source: service,
+    jouer: geste(o, service, opts.genre ?? 'album'),
+    ...ficheDe(o, service, opts.genre ?? 'album'),
   };
+}
+
+/**
+ * L'album à ouvrir derrière une vignette, normalisé pour `AlbumDetailV2`.
+ *
+ * ⚠️ L'`id` de l'objet n'est PAS toujours celui de l'album. Une ligne
+ * d'historique vaut `{id: 661, album_id: 3198, album_title: …}` — mesuré sur
+ * le .18 : `id` y désigne l'écoute, pas le disque. Ouvrir sur `id` afficherait
+ * un album au hasard.
+ */
+function ficheDe(o: any, service: string | null, genre: 'album' | 'playlist' | 'aucun') {
+  if (genre !== 'album') return {};
+  const sid = champ(o, 'source_id');
+  const idLocal = o?.album_id ?? (sid ? null : o?.id);
+  if (idLocal == null && !(service && sid)) return {};
+  return {
+    ouvrir: 'album' as const,
+    fiche: {
+      id: idLocal ?? null,
+      source_id: sid ?? null,
+      source: service,
+      title: champ(o, 'album_title', 'title') ?? '',
+      artist_name: champ(o, 'artist_name', 'artist') ?? '',
+      cover_path: champ(o, 'cover_path', 'cover_url', 'image_url') ?? null,
+      year: o?.year ?? null,
+      format: o?.format ?? o?.quality?.codec ?? null,
+      sample_rate: o?.sample_rate ?? o?.quality?.sample_rate ?? null,
+      bit_depth: o?.bit_depth ?? o?.quality?.bit_depth ?? null,
+    },
+  };
+}
+
+/**
+ * Ce que fait un clic sur une vignette. `undefined` = rien à jouer, et la
+ * carte n'affiche alors aucun bouton.
+ *
+ * ⚠️ Un contenant de STREAMING n'a PAS d'identifiant local. Les albums
+ * éditoriaux de Qobuz valent `{artist_id, artist_name, cover_path, quality,
+ * source_id, title, track_count, year}` et les parutions d'artistes
+ * `{cover_path, service, source_id, title, year}` — mesuré sur le .18 le
+ * 02/09/2026. Faute de reconnaître `source_id`, aucune des huit bandes Qobuz
+ * ni « Nouveautés de vos artistes » n'avait de bouton Lire. Bertrand :
+ * « pas de bouton play sur toutes les covers ».
+ *
+ * 🔴 `source` est OBLIGATOIRE avec un `streaming_*_id` : le serveur n'apparie
+ * les deux qu'ensemble, et un identifiant seul le fait retomber sur
+ * « reprendre la lecture en cours » — le même défaut que sur les playlists.
+ */
+export function geste(o: any, service: string | null, genre: 'album' | 'playlist' | 'aucun') {
+  if (genre === 'aucun') return undefined;
+  if (o?.album_id != null) return (z: number) => api.play(z, { album_id: o.album_id });
+  if (o?.track_id != null) return (z: number) => api.play(z, { track_id: o.track_id });
+  const sid = champ(o, 'source_id');
+  if (service && sid) {
+    return genre === 'playlist'
+      ? (z: number) => api.play(z, { streaming_playlist_id: sid, source: service as any })
+      : (z: number) => api.play(z, { streaming_album_id: sid, source: service as any });
+  }
+  // Un identifiant NU n'est un album que si l'appelant le dit. Sinon on ne
+  // prétend pas savoir ce qu'il désigne.
+  if (o?.id != null && genre === 'album' && !sid) {
+    return (z: number) => api.play(z, { album_id: o.id });
+  }
+  return undefined;
 }
 
 const liste = (r: any): any[] =>
@@ -161,19 +265,32 @@ export const WIDGETS: Widget[] = [
      * « Nouveautés de vos artistes » eut échoué pour la même raison
      * (02/09/2026) — plutôt que d'attendre le prochain widget vide.
      */
-    charger: async () =>
-      utiles(
+    charger: async (ctx) => {
+      const noms = new Map<any, string>();
+      for (const z of ctx.zones ?? []) if (z?.id != null && z?.name) noms.set(z.id, z.name);
+      return utiles(
         liste(await api.getNowListening()).map((z: any, i: number) => {
           const np = z?.now_playing ?? {};
           return {
             id: `zone${i}-${z?.zone_id ?? ''}`,
             titre: champ(np, 'title', 'album_title') ?? '—',
-            sous: champ(np, 'artist_name') ?? champ(z, 'zone_name', 'name'),
+            // 🔴 Le nom de la ZONE, et rien d'autre. C'est ce que la bande
+            // annonce, et la charge utile ne le porte pas : il se retrouve par
+            // `zone_id`. On affichait l'artiste à la place — Bertrand,
+            // 02/09/2026 : « le nom de la zone n'apparait pas ».
+            sous: noms.get(z?.zone_id) ?? champ(z, 'zone_name', 'name'),
             cover: champ(np, 'cover_path', 'cover_url') ?? null,
+            source: champ(np, 'source') ?? null,
             jouer: np?.album_id != null ? (zid: number) => api.play(zid, { album_id: np.album_id }) : undefined,
+            // Un clic sur la vignette bascule sur CETTE zone et ouvre
+            // « Lecture en cours ». L'écran est déjà là ; la bande y mène.
+            ouvrir: 'zone' as const,
+            zoneId: z?.zone_id ?? null,
+            enLecture: z?.state === 'playing',
           };
         }),
-      ),
+      );
+    },
   },
   {
     id: 'reprendre',
@@ -245,8 +362,13 @@ export const WIDGETS: Widget[] = [
             titre: champ(r, 'title') ?? '—',
             sous: champ(a, 'artist_name') ?? champ(r, 'service'),
             cover: champ(r, 'cover_path', 'cover_url') ?? null,
-            // Une parution de service n'a pas d'`album_id` local : elle n'est
-            // pas jouable d'un clic. On ne prétend pas le contraire.
+            // Une parution porte `service` + `source_id` — mesure sur le .18 :
+            // `{cover_path, service, source_id, title, year}`. C'est un album
+            // de STREAMING : jouable, a condition d'envoyer le service AVEC
+            // l'identifiant (le serveur n'apparie que la paire).
+            source: champ(r, 'service') ?? null,
+            jouer: geste(r, champ(r, 'service') ?? null, 'album'),
+            ...ficheDe(r, champ(r, 'service') ?? null, 'album'),
           });
         }
       }
@@ -307,21 +429,34 @@ export const WIDGETS: Widget[] = [
     cleTitre: 'v2.home.wArtistRadios',
     forme: 'bande',
     charger: async () =>
-      utiles(liste(await api.getRadioPicks()).slice(0, LIMITE).map((o, i) => versElement(o, i, 'rad'))),
+      utiles(
+        liste(await api.getRadioPicks())
+          .slice(0, LIMITE)
+          .map((o, i) => {
+            // Une station n'est ni un album ni une playlist : son `id` designe
+            // une RADIO, et la lecture passe par sa propre route. Passe au
+            // convertisseur commun, cet `id` serait parti en `album_id` et
+            // aurait joue un album au hasard.
+            const el = versElement(o, i, 'rad', { genre: 'aucun' });
+            return o?.id != null
+              ? { ...el, jouer: (z: number) => api.playRadio(o.id, z) }
+              : el;
+          }),
+      ),
   },
   {
     id: 'podcasts-abonnements',
     cleTitre: 'v2.home.wPodcasts',
     forme: 'bande',
     charger: async () =>
-      utiles(liste(await api.getPodcastSubscriptions()).slice(0, LIMITE).map((o, i) => versElement(o, i, 'pod'))),
+      utiles(liste(await api.getPodcastSubscriptions()).slice(0, LIMITE).map((o, i) => versElement(o, i, 'pod', { genre: 'aucun' }))),
   },
   {
     id: 'qobuz-selection',
     cleTitre: 'v2.home.wQobuz',
     forme: 'bande',
     charger: async () =>
-      utiles(liste(await api.getStreamingFeaturedPlaylists('qobuz')).slice(0, LIMITE).map((o, i) => versElement(o, i, 'qob', 'qobuz'))),
+      utiles(liste(await api.getStreamingFeaturedPlaylists('qobuz')).slice(0, LIMITE).map((o, i) => versElement(o, i, 'qob', { service: 'qobuz', genre: 'playlist' }))),
   },
   // ── ÉDITORIAL QOBUZ ──────────────────────────────────────────────────────
   //
@@ -350,7 +485,7 @@ export const WIDGETS: Widget[] = [
     charger: async () =>
       utiles(
         liste(await api.getStreamingFeatured('qobuz', section, LIMITE)).map((o, i) =>
-          versElement(o, i, id, 'qobuz'),
+          versElement(o, i, id, { service: 'qobuz' }),
         ),
       ),
   })),

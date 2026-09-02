@@ -330,7 +330,10 @@
     e.stopPropagation();
     const zid = $currentZoneId;
     if (zid == null) return;
-    api.play(zid, { streaming_playlist_id: pl.source_id, source: pl.source }).catch(() => {});
+    // `service`, PAS `pl.source` : voir `PlaylistDetailV2`. Le champ n'existe
+    // pas sur ces objets, et son absence faisait reprendre la lecture en cours
+    // au lieu de lancer la playlist.
+    api.play(zid, { streaming_playlist_id: pl.source_id, source: service as any }).catch(() => {});
   }
   function create() {
     const name = newName.trim();
@@ -442,7 +445,7 @@
           {#each liste as pl (pl.source_id)}
             <div class="card">
               <span class="cv img">
-                <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} alt={pl.name} fallbackInitials={pl.name?.slice(0,1)} />
+                <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} alt={pl.name} source={source} fallbackInitials={pl.name?.slice(0,1)} />
               </span>
               <span class="ct">{pl.name}</span>
               <span class="ca">{pl.track_count} titres{pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}</span>

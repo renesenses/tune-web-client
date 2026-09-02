@@ -30,7 +30,8 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { albums } from '../../lib/stores/library';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, zones } from '../../lib/stores/zones';
+  import { activeView } from '../../lib/stores/navigation';
   import { currentProfileId } from '../../lib/stores/profile';
   import { notifications } from '../../lib/stores/notifications';
   import {
@@ -40,6 +41,8 @@
     type Element,
   } from '../../lib/accueilWidgets';
   import AlbumArt from '../AlbumArt.svelte';
+  import AudioVisualizer from '../AudioVisualizer.svelte';
+  import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import '../../styles/tune-v2.css';
 
   /** Clé sous laquelle la disposition est rangée dans les préférences. */
@@ -173,7 +176,7 @@
     // `get()` et non `$store` : lus avec `$`, ces deux magasins deviendraient
     // des DÉPENDANCES de l'effet appelant, et la bibliothèque arrive en deux
     // temps — l'effet repartait à chaque étape.
-    const ctx = { profileId: get(currentProfileId), albums: get(albums) };
+    const ctx = { profileId: get(currentProfileId), albums: get(albums), zones: get(zones) };
     const p = w.forme === 'chiffres' && w.chiffres ? w.chiffres(ctx) : w.charger(ctx);
 
     avecDelai(Promise.resolve(p))
@@ -213,10 +216,72 @@
     for (const id of disposition) chargerWidget(id);
   }
 
+  /**
+   * Recharge un widget DÉJÀ chargé, sans repasser par le garde.
+   *
+   * `chargerWidget` refuse la seconde demande — c'est ce qui empêche les
+   * « chargements x4 ». Ici on veut explicitement rejouer la source.
+   */
+  function rechargerWidget(id: string) {
+    const w = widgetParId(id);
+    if (!w || !etats.some((e) => e.id === id)) return;
+    const ctx = { profileId: get(currentProfileId), albums: get(albums), zones: get(zones) };
+    Promise.resolve(w.charger(ctx))
+      .then((r: any) => majEtat(id, { phase: 'charge', elements: r ?? [] }))
+      .catch(() => {});
+  }
+
+  /**
+   * 🔴 Une souscription IMPÉRATIVE, jamais un `$effect`.
+   *
+   * « Zones d'écoute actives » montrait l'état du montage et n'en bougeait
+   * plus : la page charge une fois, par construction — c'est ce qui a cassé le
+   * cycle de dépendances qui figeait tout (voir `chargerTout`).
+   *
+   * Un `$effect` qui lirait le magasin rouvrirait ce cycle : `rechargerWidget`
+   * écrit `etats`, et `majEtat`/`etats.some` le RELISENT. `store.subscribe()`
+   * n'est pas suivi par Svelte — la boucle est impossible par construction.
+   *
+   * On se raccroche aux zones plutôt qu'à un minuteur : la bande suit la
+   * lecture au lieu de la sonder.
+   */
+  onMount(() => {
+    let premier = true;
+    return zones.subscribe(() => {
+      // La première émission est l'état déjà servi par le chargement initial.
+      if (premier) { premier = false; return; }
+      rechargerWidget('zones');
+    });
+  });
+
   function jouer(e: Element) {
     const z = $currentZoneId;
     if (z == null || !e.jouer) return;
     Promise.resolve(e.jouer(z)).catch(() => {});
+  }
+
+  /** Fiche album ouverte par-dessus la page, comme sur les autres écrans. */
+  let ficheOuverte = $state<any | null>(null);
+  let serviceOuvert = $state<string | null>(null);
+
+  /**
+   * Un clic AILLEURS que sur le disque. Ouvre, ne joue pas.
+   *
+   * Une zone mène à « Lecture en cours », après y avoir bascule la selection :
+   * sans cela on ouvrirait l'ecran sur une AUTRE zone que celle cliquee.
+   */
+  function ouvrirElement(e: Element) {
+    if (e.ouvrir === 'zone') {
+      if (e.zoneId != null) currentZoneId.set(e.zoneId);
+      activeView.set('nowplaying');
+      return;
+    }
+    if (e.ouvrir === 'album' && e.fiche) {
+      ficheOuverte = e.fiche;
+      // La fiche distingue local et service par CE drapeau : avec lui elle va
+      // chercher les pistes chez le service, sans lui dans la bibliotheque.
+      serviceOuvert = e.fiche.id == null ? (e.source ?? null) : null;
+    }
   }
 
   // ── Édition ──────────────────────────────────────────────────────────────
@@ -379,28 +444,50 @@
                     texte sont donc deux boutons FRERES, meme geste, sous un
                     conteneur neutre.
                   -->
+                  <!--
+                    TROIS boutons FRERES, jamais imbriques.
+
+                    La pochette et le texte OUVRENT ; seul le disque central
+                    LIT. Bertrand, 02/09/2026 : « quand je clique sur le nom de
+                    l'album ou sur la cover hors bouton, cela m'ouvre l'album ».
+                    Le disque est donc pose en `absolute` DANS la carte, a cote
+                    du bouton de pochette et non dedans : un bouton dans un
+                    bouton est du balisage invalide, que Svelte refuse.
+                  -->
                   <div class="carte">
                     <button
                       class="cv"
-                      onclick={() => jouer(el)}
-                      disabled={!el.jouer}
-                      aria-label={`${$t('common.play' as any)} — ${el.titre}`}
+                      onclick={() => ouvrirElement(el)}
+                      disabled={!el.ouvrir}
+                      aria-label={el.ouvrir ? `${$t('common.open' as any)} — ${el.titre}` : el.titre}
                     >
                       <AlbumArt coverPath={el.cover} albumId={null} size={0} alt={el.titre}
                         source={el.source} fallbackInitials={el.titre?.slice(0, 1)} />
-                      {#if el.jouer}
-                        <!-- Meme disque que `PochetteActions` : accent du theme,
-                             triangle en `--v2-on-acc`, 52 px, decale de 2 px
-                             pour compenser son decentrage optique. -->
-                        <span class="centre" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8 5.5v13l11-6.5z"/></svg>
-                        </span>
-                      {/if}
                     </button>
-                    <button class="meta" onclick={() => jouer(el)} disabled={!el.jouer}>
+                    {#if el.jouer}
+                      <!-- Meme disque que `PochetteActions` : accent du theme,
+                           triangle en `--v2-on-acc`, 52 px, decale de 2 px
+                           pour compenser son decentrage optique. -->
+                      <button
+                        class="centre"
+                        onclick={() => jouer(el)}
+                        aria-label={`${$t('common.play' as any)} — ${el.titre}`}
+                        title={$t('common.play' as any)}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8 5.5v13l11-6.5z"/></svg>
+                      </button>
+                    {/if}
+                    <button class="meta" onclick={() => ouvrirElement(el)} disabled={!el.ouvrir}>
                       <span class="ct">{el.titre}</span>
                       {#if el.sous}<span class="ca">{el.sous}</span>{/if}
                     </button>
+                    {#if el.zoneId != null}
+                      <!-- Le mini-analyseur de la version actuelle, sous la
+                           zone. `zoneId` nomme la zone A SUIVRE : la bande en
+                           montre plusieurs, et sans lui elles porteraient
+                           toutes le meme trace. -->
+                      <div class="viz"><AudioVisualizer playing={!!el.enLecture} mode="spectrum" height={20} mini zoneId={el.zoneId} /></div>
+                    {/if}
                   </div>
                 {/each}
               </div>
@@ -411,6 +498,10 @@
     {/if}
   </div>
 </section>
+
+{#if ficheOuverte}
+  <AlbumDetailV2 album={ficheOuverte} service={serviceOuvert} onClose={() => { ficheOuverte = null; serviceOuvert = null; }} />
+{/if}
 
 <style>
   .v2-home{display:flex; flex-direction:column; height:100%; min-width:0; background:var(--v2-bg); color:var(--v2-txt);
@@ -472,7 +563,7 @@
     C'est le même piège que sur la page elle-même, où l'absence de `min-width`
     lui donnait une barre de défilement horizontale.
   */
-  .carte{flex:0 0 148px; min-width:0; max-width:148px; display:flex; flex-direction:column; gap:6px;
+  .carte{position:relative; flex:0 0 148px; min-width:0; max-width:148px; display:flex; flex-direction:column; gap:6px;
     /* Cinquante vignettes par bande, et jusqu'à vingt et une bandes : ce qui
        sort du cadre n'est ni stylé, ni disposé, ni peint. Sans cela, dérouler
        la page coûterait plusieurs milliers de vignettes rendues pour rien.
@@ -491,12 +582,18 @@
   .cv :global(img){width:100%; height:100%; object-fit:cover; display:block}
   /* Le disque de lecture, centré. Révélé au survol ET au clavier : sans
      `focus-within` on tabulerait jusqu'à un bouton invisible. */
-  .centre{position:absolute; top:50%; left:50%; width:52px; height:52px; margin:-26px 0 0 -26px;
-    border-radius:50%; display:grid; place-items:center; pointer-events:none;
+  /* Ancre sur la POCHETTE, pas sur la carte : celle-ci porte aussi le texte et
+     l'analyseur, et un centrage sur sa hauteur totale poserait le disque a
+     cheval sur le titre. La pochette est carree, d'ou `top: 74px` — la moitie
+     de 148. */
+  .centre{position:absolute; top:74px; left:50%; width:52px; height:52px; margin:-26px 0 0 -26px;
+    border:0; padding:0; cursor:pointer;
+    border-radius:50%; display:grid; place-items:center;
     background:var(--v2-acc1); color:var(--v2-on-acc); box-shadow:0 2px 12px rgba(0,0,0,.35);
     opacity:0; transition:opacity .16s ease}
   .centre svg{width:24px; height:24px; fill:currentColor; margin-left:2px}
-  .carte:hover .centre, .cv:focus-visible .centre{opacity:1; transition-duration:0s}
+  .carte:hover .centre, .carte:focus-within .centre{opacity:1; transition-duration:0s}
+  .viz{height:20px; opacity:.85}
   /* Sur tactile il n'y a pas de survol : le disque reste visible. */
   @media (hover: none){ .centre{opacity:1} }
   .ct{font:600 12.5px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
