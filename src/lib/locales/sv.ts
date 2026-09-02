@@ -3218,4 +3218,16 @@ export default {
   "volume.dbEntryHint": "Skriv önskat värde, till exempel -20,5. 0 dB = full skala.",
   "volume.dbAboveFullScale": "0 dB är full skala: ovanför den finns ingen mer volym.",
   "volume.dbUnreadable": "Oläsligt värde. Ett tal i dB förväntas, till exempel -20,5.",
+
+  // Modules de sortie payants inertes (#2392) — le refus que le serveur
+  // nomme depuis `premium_guard::ModuleRefusal` et que personne ne lisait.
+  "outputModule.notLinkedTitle": "Modulen {module} är installerad men inaktiv.",
+  "outputModule.notLinkedBody": "Det är varken ett installationsproblem eller ett problem med licensnyckeln. Rättigheter till betalmoduler följer ditt Mozaiklabs-konto, aldrig licensnyckeln: så länge inget konto är kopplat till den här servern kan modulen inte få sin rättighet och visar inga enheter. Koppla ditt konto under Inställningar ▸ System ▸ Cloud.",
+  "outputModule.notLinkedAction": "Koppla mitt Mozaiklabs-konto",
+  "outputModule.notOwnedTitle": "Modulen {module} finns inte bland rättigheterna på ditt Mozaiklabs-konto.",
+  "outputModule.notOwnedBody": "Ditt konto är kopplat och servern kunde läsa dina rättigheter: den här modulen finns inte bland dem. Det är en betalmodul att lägga till på kontot – serverinstallationen är inte orsaken.",
+  "outputModule.notOwnedAction": "Visa modulerna",
+  "outputModule.unknownTitle": "Modulen {module} är inaktiv.",
+  "outputModule.unknownBody": "Servern vägrar aktivera modulen av ett skäl som den här versionen av gränssnittet ännu inte kan namnge. Diagnostikrapporten innehåller detaljerna.",
+  "outputModule.genericName": "för utgång",
 } as const;

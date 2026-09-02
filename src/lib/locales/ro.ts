@@ -3219,6 +3219,18 @@ export default {
   "volume.dbEntryHint": "Introduceți valoarea dorită, de exemplu -20,5. 0 dB = scala completă.",
   "volume.dbAboveFullScale": "0 dB este scala completă: deasupra nu mai există volum.",
   "volume.dbUnreadable": "Valoare ilizibilă. Se așteaptă un număr în dB, de exemplu -20,5.",
+
+  // Modules de sortie payants inertes (#2392) — le refus que le serveur
+  // nomme depuis `premium_guard::ModuleRefusal` et que personne ne lisait.
+  "outputModule.notLinkedTitle": "Modulul {module} este instalat, dar inactiv.",
+  "outputModule.notLinkedBody": "Nu este o problemă de instalare și nici de cheie de licență. Drepturile pentru modulele cu plată sunt legate de contul dumneavoastră Mozaiklabs, niciodată de cheia de licență: câtă vreme niciun cont nu este conectat la acest server, modulul nu își poate primi dreptul și nu va afișa niciun dispozitiv. Conectați-vă contul în Setări ▸ Sistem ▸ Cloud.",
+  "outputModule.notLinkedAction": "Conectează contul meu Mozaiklabs",
+  "outputModule.notOwnedTitle": "Modulul {module} nu figurează printre drepturile contului dumneavoastră Mozaiklabs.",
+  "outputModule.notOwnedBody": "Contul este conectat, iar acest server a putut citi drepturile: acesta nu se află printre ele. Este un modul cu plată de adăugat în cont – instalarea serverului nu este de vină.",
+  "outputModule.notOwnedAction": "Vezi modulele",
+  "outputModule.unknownTitle": "Modulul {module} este inactiv.",
+  "outputModule.unknownBody": "Serverul refuză activarea acestui modul dintr-un motiv pe care această versiune a interfeței nu îl poate numi încă. Raportul de diagnosticare oferă detaliile.",
+  "outputModule.genericName": "de ieșire",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

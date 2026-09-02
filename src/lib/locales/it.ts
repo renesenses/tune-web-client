@@ -3219,6 +3219,18 @@ export default {
   "volume.dbEntryHint": "Digita il valore desiderato, ad esempio -20,5. 0 dB = fondo scala.",
   "volume.dbAboveFullScale": "0 dB è il fondo scala: al di sopra non c'è altro volume.",
   "volume.dbUnreadable": "Valore illeggibile. Atteso un numero in dB, ad esempio -20,5.",
+
+  // Modules de sortie payants inertes (#2392) — le refus que le serveur
+  // nomme depuis `premium_guard::ModuleRefusal` et que personne ne lisait.
+  "outputModule.notLinkedTitle": "Il modulo {module} è installato, ma inattivo.",
+  "outputModule.notLinkedBody": "Non è un problema di installazione né di chiave di licenza. I diritti sui moduli a pagamento viaggiano con il tuo account Mozaiklabs, mai con la chiave di licenza: finché nessun account è collegato a questo server, il modulo non può ricevere il proprio diritto e non mostrerà alcun dispositivo. Collega il tuo account in Impostazioni ▸ Sistema ▸ Cloud.",
+  "outputModule.notLinkedAction": "Collega il mio account Mozaiklabs",
+  "outputModule.notOwnedTitle": "Il modulo {module} non figura tra i diritti del tuo account Mozaiklabs.",
+  "outputModule.notOwnedBody": "Il tuo account è collegato e questo server ha potuto leggere i tuoi diritti: questo non è tra quelli. È un modulo a pagamento da aggiungere al tuo account; l'installazione del server non è in causa.",
+  "outputModule.notOwnedAction": "Vedi i moduli",
+  "outputModule.unknownTitle": "Il modulo {module} è inattivo.",
+  "outputModule.unknownBody": "Il server rifiuta di attivare questo modulo per un motivo che questa versione dell'interfaccia non sa ancora nominare. Il rapporto di diagnostica ne dà il dettaglio.",
+  "outputModule.genericName": "di uscita",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

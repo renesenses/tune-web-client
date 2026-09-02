@@ -3219,6 +3219,18 @@ export default {
   "volume.dbEntryHint": "원하는 값을 입력하세요. 예: -20.5. 0 dB가 최대 레벨입니다.",
   "volume.dbAboveFullScale": "0 dB가 최대 레벨입니다. 그 위로는 음량이 더 없습니다.",
   "volume.dbUnreadable": "읽을 수 없는 값입니다. dB 단위의 숫자를 입력하세요. 예: -20.5",
+
+  // Modules de sortie payants inertes (#2392) — le refus que le serveur
+  // nomme depuis `premium_guard::ModuleRefusal` et que personne ne lisait.
+  "outputModule.notLinkedTitle": "{module} 모듈이 설치되어 있지만 비활성 상태입니다.",
+  "outputModule.notLinkedBody": "설치 문제도, 라이선스 키 문제도 아닙니다. 유료 모듈의 권한은 라이선스 키가 아니라 Mozaiklabs 계정에 연결되어 있습니다. 이 서버에 계정이 연결되지 않는 한 모듈은 권한을 받을 수 없고 장치도 표시되지 않습니다. 설정 ▸ 시스템 ▸ Cloud에서 계정을 연결하세요.",
+  "outputModule.notLinkedAction": "Mozaiklabs 계정 연결",
+  "outputModule.notOwnedTitle": "{module} 모듈이 Mozaiklabs 계정 권한에 포함되어 있지 않습니다.",
+  "outputModule.notOwnedBody": "계정이 연결되어 있고 이 서버가 권한을 읽을 수 있었습니다. 그중에 이 모듈은 없습니다. 계정에 추가할 수 있는 유료 모듈이며, 서버 설치에는 문제가 없습니다.",
+  "outputModule.notOwnedAction": "모듈 보기",
+  "outputModule.unknownTitle": "{module} 모듈이 비활성 상태입니다.",
+  "outputModule.unknownBody": "이 버전의 인터페이스가 아직 표현할 수 없는 이유로 서버가 이 모듈의 활성화를 거부하고 있습니다. 자세한 내용은 진단 보고서에 있습니다.",
+  "outputModule.genericName": "출력",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

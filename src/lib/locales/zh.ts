@@ -3219,6 +3219,18 @@ export default {
   "volume.dbEntryHint": "输入所需数值，例如 -20.5。0 dB 为满刻度。",
   "volume.dbAboveFullScale": "0 dB 即满刻度：再往上没有更大的音量。",
   "volume.dbUnreadable": "无法识别的数值。请输入以 dB 为单位的数字，例如 -20.5。",
+
+  // Modules de sortie payants inertes (#2392) — le refus que le serveur
+  // nomme depuis `premium_guard::ModuleRefusal` et que personne ne lisait.
+  "outputModule.notLinkedTitle": "{module} 模块已安装，但未启用。",
+  "outputModule.notLinkedBody": "这既不是安装问题，也不是许可证密钥的问题。付费模块的权限绑定的是您的 Mozaiklabs 账户，而非许可证密钥：只要没有账户连接到此服务器，模块就无法获得权限，也不会显示任何设备。请在 设置 ▸ 系统 ▸ Cloud 中连接您的账户。",
+  "outputModule.notLinkedAction": "连接我的 Mozaiklabs 账户",
+  "outputModule.notOwnedTitle": "{module} 模块不在您 Mozaiklabs 账户的权限之列。",
+  "outputModule.notOwnedBody": "您的账户已连接，此服务器也读取到了您的权限，其中没有该模块。这是一个可以添加到账户的付费模块，服务器安装本身没有问题。",
+  "outputModule.notOwnedAction": "查看模块",
+  "outputModule.unknownTitle": "{module} 模块未启用。",
+  "outputModule.unknownBody": "服务器拒绝启用该模块，原因是当前版本的界面尚无法说明。详情请查看诊断报告。",
+  "outputModule.genericName": "输出",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

@@ -3219,6 +3219,18 @@ export default {
   "volume.dbEntryHint": "Gewünschten Wert eingeben, zum Beispiel -20,5. 0 dB = Vollaussteuerung.",
   "volume.dbAboveFullScale": "0 dB ist die Vollaussteuerung: darüber gibt es keine zusätzliche Lautstärke.",
   "volume.dbUnreadable": "Unlesbarer Wert. Erwartet wird eine Zahl in dB, zum Beispiel -20,5.",
+
+  // Modules de sortie payants inertes (#2392) — le refus que le serveur
+  // nomme depuis `premium_guard::ModuleRefusal` et que personne ne lisait.
+  "outputModule.notLinkedTitle": "Das Modul {module} ist installiert, aber inaktiv.",
+  "outputModule.notLinkedBody": "Das ist kein Installationsproblem, und Ihr Lizenzschlüssel ist nicht die Ursache. Berechtigungen für kostenpflichtige Module sind an Ihr Mozaiklabs-Konto gebunden, nie an den Lizenzschlüssel: Solange kein Konto mit diesem Server verknüpft ist, kann das Modul seine Berechtigung nicht erhalten und zeigt keine Geräte an. Verknüpfen Sie Ihr Konto unter Einstellungen ▸ System ▸ Cloud.",
+  "outputModule.notLinkedAction": "Mozaiklabs-Konto verknüpfen",
+  "outputModule.notOwnedTitle": "Das Modul {module} gehört nicht zu den Berechtigungen Ihres Mozaiklabs-Kontos.",
+  "outputModule.notOwnedBody": "Ihr Konto ist verknüpft und dieser Server konnte Ihre Berechtigungen lesen: Dieses Modul ist nicht darunter. Es ist ein kostenpflichtiges Modul, das Sie Ihrem Konto hinzufügen können — an Ihrer Server-Installation liegt es nicht.",
+  "outputModule.notOwnedAction": "Module ansehen",
+  "outputModule.unknownTitle": "Das Modul {module} ist inaktiv.",
+  "outputModule.unknownBody": "Der Server verweigert die Aktivierung dieses Moduls aus einem Grund, den diese Version der Oberfläche noch nicht benennen kann. Der Diagnosebericht enthält die Einzelheiten.",
+  "outputModule.genericName": "für die Ausgabe",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];
