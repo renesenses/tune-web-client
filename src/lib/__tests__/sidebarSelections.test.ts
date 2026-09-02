@@ -99,3 +99,32 @@ describe('Barre latérale — les sélections', () => {
     ).toBe(true);
   });
 });
+
+/**
+ * « Lecture en cours » doit être ATTEIGNABLE depuis la barre.
+ *
+ * L'écran était monté et routé depuis le 01/09/2026, mais rien dans la barre
+ * n'y menait : on ne l'atteignait qu'en cliquant la piste dans la barre de
+ * transport — un geste que personne ne devine. Bertrand, 02/09/2026 : « il
+ * manque l'écran Lecture en cours ».
+ */
+describe('Barre latérale — Lecture en cours', () => {
+  it('l’entrée existe dans le noyau', () => {
+    const src = barre();
+    expect(src.includes("view: 'nowplaying'"), 'l’entrée a disparu de la barre').toBe(true);
+    // Dans le NOYAU : reléguée en « Avancé », elle resterait cachée aux
+    // utilisateurs qui n'ont jamais changé de niveau d'interface.
+    const i = src.indexOf('const CORE');
+    const j = src.indexOf('const ADVANCED');
+    expect(
+      src.slice(i, j).includes("view: 'nowplaying'"),
+      'l’entrée est sortie du noyau : elle redeviendrait invisible par défaut.',
+    ).toBe(true);
+  });
+
+  it('l’écran reste monté et routé', () => {
+    const src = shell();
+    expect(src.includes("$activeView === 'nowplaying'"), 'la route a disparu').toBe(true);
+    expect(src.includes('<NowPlaying />'), 'le composant n’est plus monté').toBe(true);
+  });
+});

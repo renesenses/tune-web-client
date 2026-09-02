@@ -34,6 +34,12 @@
   //    plus que filtrer une grille, et son cout d'attention le justifie.
   const CORE: Item[] = [
     { view: 'home', label: 'Accueil', icon: 'M3 11l9-8 9 8M5 10v10h14V10' },
+    // LECTURE EN COURS dans le noyau. L'écran existait et était monté, mais
+    // rien dans la barre n'y menait : on ne l'atteignait qu'en cliquant la
+    // piste dans la barre de transport — un geste que personne ne devine.
+    // Signalé par Bertrand le 02/09/2026 : « il manque l'écran Lecture en
+    // cours ».
+    { view: 'nowplaying', label: 'Lecture en cours', icon: 'M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0m12-3a3 3 0 1 1-6 0 3 3 0 0 1 6 0' },
     { view: 'library', label: 'Bibliothèque', icon: 'M4 5v14M9 5v14M14 6l5 13' },
     { view: 'collections', label: 'Collections', icon: 'M4 6h7v7H4zM13 6h7v7h-7zM4 15h7v3H4zM13 15h7v3h-7z' },
     { view: 'radios', label: 'Radio en direct', icon: 'M12 12h.01M7.5 7.5a6 6 0 0 0 0 9M16.5 7.5a6 6 0 0 1 0 9M4.5 4.5a10 10 0 0 0 0 15M19.5 4.5a10 10 0 0 1 0 15' },

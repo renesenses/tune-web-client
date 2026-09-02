@@ -20,14 +20,22 @@
   import { atLeast } from '../../lib/uiLevel';
   import { fold, formatDuration } from '../../lib/utils';
   import AlbumArt from '../AlbumArt.svelte';
+  import { PODCAST_GENRES } from '../../lib/podcast-genres';
+  import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
   const showDiscover = $derived(atLeast(level, 'intermediate'));
   const showExpert = $derived(atLeast(level, 'expert'));
 
-  type Tab = 'subs' | 'discover';
-  let tab = $state<Tab>('subs');
+  type Tab = 'subs' | 'discover' | 'search';
+  /**
+   * DÉCOUVRIR en premier — décision de Bertrand du 02/09/2026, et c'est aussi
+   * l'onglet par défaut de l'écran actuel. Ouvrir sur des abonnements vides ne
+   * propose rien ; ouvrir sur la découverte propose tout de suite quelque
+   * chose à écouter.
+   */
+  let tab = $state<Tab>('discover');
   let q = $state('');
 
   let subs = $state<any[]>([]);
@@ -49,6 +57,107 @@
       .catch(() => { error = 'Abonnements indisponibles.'; })
       .finally(() => { subsLoading = false; });
   });
+
+  /**
+   * PARITÉ avec l'écran actuel — demandé par Bertrand le 02/09/2026.
+   *
+   * Trois choses manquaient au nouveau client, et chacune est un usage entier :
+   *
+   *  - la RECHERCHE de podcasts (`searchPodcasts`), qui n'existait pas ;
+   *  - le PALMARÈS par genre et par PAYS (`getTopPodcasts`) : la découverte se
+   *    limitait à une sélection figée ;
+   *  - RADIO FRANCE (`getRadioFrancePodcasts`), une source à part entière.
+   */
+  const PAYS = [
+    { code: 'fr', drapeau: '🇫🇷', nom: 'France' },
+    { code: 'us', drapeau: '🇺🇸', nom: 'USA' },
+    { code: 'gb', drapeau: '🇬🇧', nom: 'UK' },
+    { code: 'de', drapeau: '🇩🇪', nom: 'Deutschland' },
+    { code: 'es', drapeau: '🇪🇸', nom: 'España' },
+    { code: 'it', drapeau: '🇮🇹', nom: 'Italia' },
+    { code: 'be', drapeau: '🇧🇪', nom: 'Belgique' },
+    { code: 'ch', drapeau: '🇨🇭', nom: 'Suisse' },
+    { code: 'ca', drapeau: '🇨🇦', nom: 'Canada' },
+  ];
+  // Le pays vient de la préférence, pas d'un « fr » en dur : les palmarès
+  // sortent de l'iTunes Store du pays choisi, et annoncer « France » au-dessus
+  // de podcasts américains était le défaut corrigé côté client actuel.
+  let pays = $state(api.podcastCountry());
+
+  let genre = $state<number | null>(null);
+  /**
+   * Titre du palmarès : le nom du genre choisi, « Tendances » sinon.
+   *
+   * Calculé ICI et non dans le balisage : `{@const}` n'est légal qu'en enfant
+   * direct d'un bloc, et l'y glisser sous une `<div>` casse la compilation —
+   * vécu à l'instant, l'écran ne s'affichait plus du tout.
+   *
+   * « Tendances » au-dessus d'une liste filtrée par genre annoncerait autre
+   * chose que ce qu'on voit.
+   */
+  const titrePalmares = $derived.by(() => {
+    const cle = PODCAST_GENRES.find((g) => g.id === genre)?.key;
+    return cle ? $t(cle as any) : $t('v2.pod.trends' as any);
+  });
+  let top = $state<any[]>([]);
+  let topLoading = $state(false);
+
+  /** Palmarès : rechargé à chaque changement de genre OU de pays. */
+  $effect(() => {
+    if (tab !== 'discover') return;
+    const g = genre;
+    const c = pays;
+    topLoading = true;
+    api
+      .getTopPodcasts(g, 50, c)
+      .then((r) => {
+        top = r ?? [];
+      })
+      .catch(() => {
+        top = [];
+      })
+      .finally(() => {
+        topLoading = false;
+      });
+  });
+
+  // ── Radio France ─────────────────────────────────────────────────────────
+  let radioFrance = $state<any[]>([]);
+  let rfLoaded = false;
+  $effect(() => {
+    if (tab !== 'discover' || rfLoaded) return;
+    rfLoaded = true;
+    api
+      .getRadioFrancePodcasts()
+      .then((r) => {
+        radioFrance = r ?? [];
+      })
+      .catch(() => {
+        // Radio France indisponible : la section disparaît, le reste de la
+        // découverte n'en souffre pas.
+        radioFrance = [];
+      });
+  });
+
+  // ── Recherche ────────────────────────────────────────────────────────────
+  let recherche = $state('');
+  let resultats = $state<any[] | null>(null);
+  let rechercheEnCours = $state(false);
+
+  async function chercher() {
+    const requete = recherche.trim();
+    if (!requete) {
+      resultats = null;
+      return;
+    }
+    rechercheEnCours = true;
+    try {
+      resultats = (await api.searchPodcasts(requete, 30, pays)) ?? [];
+    } catch {
+      resultats = [];
+    }
+    rechercheEnCours = false;
+  }
 
   // Découverte : chargée à la PREMIÈRE ouverture de l'onglet seulement.
   $effect(() => {
@@ -152,9 +261,19 @@
     </div>
     {#if showDiscover}
       <nav class="tabs">
-        <button class:on={tab === 'subs'} onclick={() => (tab = 'subs')}>Mes abonnements</button>
         <button class:on={tab === 'discover'} onclick={() => (tab = 'discover')}>Découvrir</button>
+        <button class:on={tab === 'subs'} onclick={() => (tab = 'subs')}>Mes abonnements</button>
+        <button class:on={tab === 'search'} onclick={() => (tab = 'search')}>{$t('v2.pod.search' as any)}</button>
       </nav>
+    {/if}
+    {#if showDiscover && tab !== 'subs'}
+      <!-- Le PAYS commande les palmarès ET la recherche : les deux
+           interrogent l'iTunes Store d'un pays donné. -->
+      <select class="pays" bind:value={pays} aria-label="Pays">
+        {#each PAYS as c (c.code)}
+          <option value={c.code}>{c.drapeau} {c.nom}</option>
+        {/each}
+      </select>
     {/if}
     <div class="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -180,22 +299,74 @@
         </div>
       {/if}
 
-    {:else if discoverLoading}
-      <div class="state">Chargement de la sélection…</div>
-    {:else if discover}
-      {#if discover.curated.length}
+    {:else if tab === 'search'}
+      <form class="rech" onsubmit={(e) => { e.preventDefault(); void chercher(); }}>
+        <input bind:value={recherche} placeholder={$t('v2.pod.searchPlaceholder' as any)} aria-label={$t('v2.pod.searchPlaceholder' as any)} />
+        <button type="submit" disabled={rechercheEnCours || !recherche.trim()}>
+          {rechercheEnCours ? $t('v2.pod.searching' as any) : $t('v2.pod.searchAction' as any)}
+        </button>
+      </form>
+      {#if resultats == null}
+        <!-- On DIT ce que la recherche interroge : un résultat vide sur un
+             pays qui n'est pas celui qu'on croit se lit comme une panne. -->
+        <div class="state">{$t('v2.pod.searchHint' as any)} {PAYS.find((c) => c.code === pays)?.nom ?? pays.toUpperCase()}.</div>
+      {:else if !resultats.length}
+        <div class="state">Aucun résultat.</div>
+      {:else}
+        <div class="grid">{#each resultats as p, i (feedOf(p) ?? i)}{@render tile(p, false)}{/each}</div>
+      {/if}
+
+    {:else}
+      <!-- 🔴 Le palmarès, Radio France et la recherche ne dépendent PLUS de
+           `discover`. Tout pendait de `{:else if discover}` : si `/podcasts/
+           discover` échouait, l'onglet entier restait vide — y compris les
+           sections qui, elles, avaient leurs données. Constaté par Bertrand le
+           02/09/2026 : « Découvrir podcasts : vide ». -->
+      {#if discoverLoading && !discover}
+        <div class="state">Chargement de la sélection…</div>
+      {/if}
+      {#if discover?.curated.length}
         <section class="sec"><h2>Sélection</h2>
           <div class="grid">{#each discover.curated.filter(match) as p, i (feedOf(p) ?? i)}{@render tile(p, false)}{/each}</div>
         </section>
       {/if}
-      {#if discover.top.length}
+      {#if discover?.top.length}
         <section class="sec"><h2>Populaires</h2>
           <div class="grid">{#each discover.top.filter(match) as p, i (feedOf(p) ?? i)}{@render tile(p, false)}{/each}</div>
         </section>
       {/if}
-      {#if !discover.curated.length && !discover.top.length}
+      <!-- PALMARÈS par genre. Les puces commandent `getTopPodcasts`, qui
+           interroge l'iTunes Store du pays choisi. -->
+      <section class="sec">
+        <div class="sec-tete">
+          <h2>{titrePalmares}</h2>
+          <span class="sec-pays">{PAYS.find((c) => c.code === pays)?.nom ?? pays.toUpperCase()}</span>
+        </div>
+        <div class="puces">
+          <button class:on={genre === null} onclick={() => (genre = null)}>{$t('podcasts.genre.all' as any)}</button>
+          {#each PODCAST_GENRES as g (g.id)}
+            <button class:on={genre === g.id} onclick={() => (genre = g.id)}>{$t(g.key as any)}</button>
+          {/each}
+        </div>
+        {#if topLoading}
+          <div class="state">{$t('v2.pod.topLoading' as any)}</div>
+        {:else if !top.length}
+          <div class="state">{$t('v2.pod.noneInGenre' as any)}</div>
+        {:else}
+          <div class="grid">{#each top.filter(match) as p, i (feedOf(p) ?? i)}{@render tile(p, false)}{/each}</div>
+        {/if}
+      </section>
+
+      {#if radioFrance.length}
+        <section class="sec"><h2>Radio France</h2>
+          <div class="grid">{#each radioFrance.filter(match) as p, i (feedOf(p) ?? i)}{@render tile(p, false)}{/each}</div>
+        </section>
+      {/if}
+
+      {#if !discoverLoading && !discover?.curated.length && !discover?.top.length && !top.length && !radioFrance.length}
         <div class="state">Découverte indisponible sur ce serveur.</div>
       {/if}
+
     {/if}
   </div>
 
@@ -257,6 +428,23 @@
 {/snippet}
 
 <style>
+  .pays{background:var(--v2-surface2); border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
+    color:var(--v2-txt2); font:600 12.5px var(--v2-sans); padding:8px 12px; cursor:pointer}
+  .sec-tete{display:flex; align-items:baseline; gap:10px}
+  .sec-pays{font:10px var(--v2-mono); color:var(--v2-txt3)}
+  .puces{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 14px}
+  .puces button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
+    cursor:pointer; font:600 12px var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
+  .puces button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .puces button.on{color:var(--v2-on-acc); border-color:transparent;
+    background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .rech{display:flex; gap:8px; margin-bottom:16px}
+  .rech input{flex:1; min-width:0; background:var(--v2-surface2); border:1px solid var(--v2-line2);
+    border-radius:10px; color:var(--v2-txt); font:inherit; font-size:13.5px; padding:9px 12px}
+  .rech button{border:0; border-radius:10px; background:var(--v2-acc1); color:var(--v2-on-acc);
+    font:600 13px var(--v2-sans); padding:9px 16px; cursor:pointer}
+  .rech button:disabled{opacity:.5; cursor:default}
+
   .v2-pod{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg);
     color:var(--v2-txt); font-family:var(--v2-sans); overflow:hidden}
   .top{display:flex; align-items:flex-end; gap:22px; padding:24px 30px 14px; padding-right:96px}
