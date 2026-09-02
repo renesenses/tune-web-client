@@ -530,3 +530,54 @@ describe('withTimeout', () => {
     await expect(api.withTimeout(slow, 10, 'test')).rejects.toThrow(/timed out/);
   });
 });
+
+// =========================================================================
+// Tranche de Dynamic Range (#2144)
+// =========================================================================
+
+/**
+ * Le filtre par DR est appliqué par le SERVEUR : la liste d'albums ne porte
+ * pas la valeur de DR, un filtrage local ne verrait donc rien. Si les bornes
+ * n'atteignent pas l'URL, la commande se règle à l'écran et la grille ne
+ * change pas — le mode de panne exact de la facette DR, restée un an côté
+ * serveur sans qu'aucun client ne la demande (#3196).
+ */
+describe('tranche de Dynamic Range', () => {
+  it('pose dr_min et dr_max dans l\'URL quand la tranche est réglée', async () => {
+    mockFetch({ items: [], total: 0 });
+    await api.getAllAlbums(100, 'dynamic_range', 'desc', 1, 100, { min: 12, max: 20 });
+
+    expect(fetchCalls.length).toBe(1);
+    expect(fetchCalls[0].url).toContain('dr_min=12');
+    expect(fetchCalls[0].url).toContain('dr_max=20');
+    expect(fetchCalls[0].url).toContain('sort=dynamic_range');
+  });
+
+  it('ne pose QUE la borne réglée — les deux sont indépendantes', async () => {
+    mockFetch({ items: [], total: 0 });
+    await api.getAllAlbums(100, 'title', 'asc', 1, 100, { min: 14, max: null });
+
+    expect(fetchCalls[0].url).toContain('dr_min=14');
+    expect(fetchCalls[0].url).not.toContain('dr_max');
+  });
+
+  it('sans tranche, l\'URL est EXACTEMENT celle d\'avant', async () => {
+    mockFetch({ items: [], total: 0 });
+    await api.getAllAlbums(100, 'title', 'asc', 1, 100);
+
+    expect(fetchCalls[0].url).not.toContain('dr_min');
+    expect(fetchCalls[0].url).not.toContain('dr_max');
+  });
+
+  it('ne rend aucune valeur de DR quand le serveur ne connaît pas la clé', async () => {
+    // Serveur antérieur à la v0.9.130 : `filters` répond sans
+    // `dynamic_ranges`. Le client ne doit alors dessiner aucune commande.
+    mockFetch({ formats: ['flac'], sample_rates: [44100] });
+    expect(await api.getAlbumDynamicRanges()).toEqual([]);
+  });
+
+  it('rend les valeurs de DR décroissantes', async () => {
+    mockFetch({ formats: [], sample_rates: [], dynamic_ranges: [8, 14, 11] });
+    expect(await api.getAlbumDynamicRanges()).toEqual([14, 11, 8]);
+  });
+});

@@ -100,7 +100,7 @@
   let extLoading = $state(false);
   let categories = $state<MetadataCategory[]>([]);
   let serverFacets = $state<Record<string, FacetValue[]>>({});
-  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'composer', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year'];
+  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'composer', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year'];
   // Facettes cumulatives, DANS un champ et ENTRE les champs (#2168, fil forum
   // 1513, Cyrille Moutia : « je sélectionne aiff + flac »).
   //
@@ -199,13 +199,13 @@
   const FACET_PARAM: Record<string, string> = {
     genre: 'genre', label: 'label', year: 'year', original_year: 'original_year',
     artist: 'artist', composer: 'composer', format: 'format',
-    sample_rate: 'sample_rate', bit_depth: 'bit_depth', country: 'country',
+    sample_rate: 'sample_rate', bit_depth: 'bit_depth', dr: 'dr', country: 'country',
     mood: 'mood', source: 'source_media', rating: 'rating',
     collection: 'collection', favorite: 'favorite', playlist: 'playlist',
     untagged: 'untagged', folder: 'folder',
   };
   /** Facettes dont la valeur part en NOMBRE (le serveur les lit typées). */
-  const NUMERIC_FACETS = new Set(['year', 'original_year', 'sample_rate', 'bit_depth', 'rating']);
+  const NUMERIC_FACETS = new Set(['year', 'original_year', 'sample_rate', 'bit_depth', 'rating', 'dr']);
   /** Traduit la sélection en paramètres serveur. Chaque valeur d'une facette
    *  part en clé RÉPÉTÉE (`format=aiff&format=flac`) : voir `appendFacetParam`.
    *  Une facette vide ne produit AUCUN paramètre. */

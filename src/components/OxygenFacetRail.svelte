@@ -58,6 +58,10 @@
       return Number.isFinite(n) && n > 0 ? `${(n / 1000).toLocaleString('fr')} kHz` : value;
     }
     if (field === 'bit_depth') return `${value} bit`;
+    // Le serveur rend le DR brut (« 14 ») : la pastille l'écrit comme
+    // l'écrivent les analyseurs et MinimServer, DR14, sans quoi une
+    // colonne de nombres nus ne se rattache à rien.
+    if (field === 'dr') return `DR${value}`;
     if (field === 'rating') {
       const n = Math.max(0, Math.min(5, Number(value) || 0));
       return '★'.repeat(n) + '☆'.repeat(5 - n);
@@ -137,7 +141,7 @@
     if (modeOf(field) === 'alpha') {
       return out.sort((a, b) => a.value.localeCompare(b.value, 'fr', { numeric: true }));
     }
-    if (field === 'year' || field === 'sample_rate' || field === 'bit_depth' || field === 'rating')
+    if (field === 'year' || field === 'sample_rate' || field === 'bit_depth' || field === 'rating' || field === 'dr')
       return out.sort((a, b) => Number(b.value) - Number(a.value));
     return out.sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'fr'));
   }
