@@ -270,3 +270,37 @@ describe('Lecture en cours — le bouton TV', () => {
     ).toBe(false);
   });
 });
+
+/**
+ * Le mode TV : une icône alignée, et une route qui existe.
+ *
+ * Deux défauts successifs le 02/09/2026 :
+ *
+ *  1. le bouton d'origine est ancré en haut à droite de « Lecture en cours »,
+ *     donc SOUS l'avatar et le signet que la coquille pose au même endroit —
+ *     l'icône mordait sur la photo de Bertrand. Je l'ai d'abord décalé de
+ *     108 px : ça ne se chevauchait plus, mais un nombre magique ne s'aligne
+ *     sur rien et casse au premier bouton ajouté ;
+ *  2. la vue `tv` n'était pas routée dans la coquille : le bouton posait
+ *     `activeView` sur une vue inconnue, et on tombait sur le repli.
+ */
+describe('Mode TV — dans la grappe, et routé', () => {
+  const coquille = () => lire('../../components/v2/ShellV2.svelte');
+
+  it('le bouton vit dans la grappe, pas décalé au pixel', () => {
+    const src = coquille();
+    expect(src.includes("$activeView === 'nowplaying'}\n      <button class=\"raccourci\" onclick={modeTv}"), 'le bouton a quitté la grappe').toBe(true);
+    expect(
+      /right:\s*108px/.test(src),
+      'le décalage au pixel est revenu : il ne s’aligne sur rien et casse au premier bouton ajouté.',
+    ).toBe(false);
+    // Et celui de l'écran est masqué, sinon il y en aurait deux.
+    expect(src.includes(':global(.np-tv-btn) { display: none; }'), 'le bouton d’origine réapparaît en double').toBe(true);
+  });
+
+  it('la vue TV est routée', () => {
+    const src = coquille();
+    expect(src.includes("$activeView === 'tv'"), 'la route a disparu : le bouton ne mènerait nulle part').toBe(true);
+    expect(src.includes('<TvView />'), 'l’écran TV n’est plus monté').toBe(true);
+  });
+});

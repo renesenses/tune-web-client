@@ -45,6 +45,7 @@
   // mobile). Sans ces deux montages, le clic tombait dans le repli « À venir » :
   // l'écran n'avait pas disparu, il n'avait jamais été branché.
   import NowPlaying from '../NowPlaying.svelte';
+  import TvView from '../TvView.svelte';
   import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import AvatarMenu from './AvatarMenu.svelte';
   import { addShortcut } from '../../lib/stores/shortcuts';
@@ -80,6 +81,16 @@
   // branchée, personne ne l'alimente. Le retour arrête tout au démontage.
   $effect(() => demarrerTransportV2());
 
+  /** Bascule vers le mode TV — plein écran puis vue dédiée, comme l'écran actuel. */
+  function modeTv() {
+    try {
+      document.documentElement.requestFullscreen?.()?.catch(() => {});
+    } catch {
+      /* le plein écran peut être refusé : la vue s'ouvre quand même */
+    }
+    activeView.set('tv');
+  }
+
   /** Pose d'un raccourci sur la vue COURANTE, depuis n'importe quel écran. */
   let poseRaccourci = $state(false);
   let nomRaccourci = $state('');
@@ -113,6 +124,22 @@
     `captureCurrentView` fige la vue courante quelle qu'elle soit.
   -->
   <div class="av-tr">
+    <!--
+      Le mode TV entre DANS la grappe.
+
+      Il était ancré en haut à droite de « Lecture en cours », donc sous
+      l'avatar et le signet que la coquille pose au même endroit. Je l'avais
+      décalé de 108 px : ça ne se chevauchait plus, mais un nombre magique ne
+      s'aligne sur rien et casse au premier bouton ajouté.
+      Ici, les trois sont sur la même ligne, à la même taille, espacés par la
+      même règle.
+    -->
+    {#if $activeView === 'nowplaying'}
+      <button class="raccourci" onclick={modeTv}
+        aria-label={$t('nowplaying.tvMode' as any)} title={$t('nowplaying.tvMode' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </button>
+    {/if}
     <button class="raccourci" onclick={() => (poseRaccourci = !poseRaccourci)}
       aria-label={$t('v2.nav.addShortcut' as any)} title={$t('v2.nav.addShortcut' as any)}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><!-- Le SIGNET de l'ecran actuel, et non une etoile : c'est le pictogramme
@@ -154,6 +181,13 @@
         <PodcastsV2 />
       {:else if $activeView === 'queue'}
         <QueueV2 />
+      {:else if $activeView === 'tv'}
+        <!-- Le mode TV est un ÉCRAN à part entière : sans cette route, le
+             bouton posait `activeView` sur une vue que la coquille ne connaît
+             pas, et on tombait sur le repli « À venir ». `TvView` est autonome
+             — il lit les magasins et ressort de lui-même vers la vue
+             précédente. -->
+        <TvView />
       {:else if $activeView === 'tags'}
         <EtiquettesV2 />
       {:else if $activeView === 'shortcuts'}
@@ -221,15 +255,10 @@
   /* Avatar unique de l'application : pincé en haut à droite de l'écran, au-dessus
      de toutes les vues (y compris les overlays de fiche). */
   .av-tr{position:absolute; top:20px; right:30px; z-index:80; display:flex; align-items:center; gap:10px}
-  /*
-    Le bouton « mode TV » de « Lecture en cours » est ancré en haut à droite de
-    SON écran — `top:16px; right:16px`. Depuis que la coquille pose l'avatar et
-    le raccourci au même endroit, les trois se chevauchaient : sur la capture de
-    Bertrand, l'icône TV mordait sur sa photo.
-    On la décale vers la gauche de la largeur de la grappe, et seulement sous le
-    nouveau client — l'écran actuel n'a rien à cet endroit.
-  */
-  :global(.np-tv-btn) { right: 108px !important; top: 18px !important; }
+  /* Le bouton d'origine de « Lecture en cours » est MASQUÉ ici : la grappe
+     ci-dessus le porte, aligné avec le signet et l'avatar. L'écran actuel, lui,
+     garde le sien — il n'a rien à cet endroit. */
+  :global(.np-tv-btn) { display: none; }
   .raccourci{width:32px; height:32px; border:0; border-radius:50%; background:var(--v2-surface2);
     color:var(--v2-txt3); display:grid; place-items:center; cursor:pointer; transition:.15s}
   .raccourci:hover{color:var(--v2-acc1); background:var(--v2-hover)}
