@@ -145,6 +145,22 @@ describe('Accueil — le mode édition', () => {
     expect(src.includes('v2.home.widgetFailed'), 'l’échec ne se distingue plus d’un widget vide').toBe(true);
   });
 
+  it('le garde des widgets déjà demandés est NON réactif', () => {
+    // 🔴 `chargerWidget` est appelée depuis un `$effect` et ÉCRIT `etats`. Si
+    // son garde lisait `etats`, l'effet dépendrait de ce qu'il modifie :
+    // boucle de dépendance, Svelte interrompt, et plus AUCUN widget ne se
+    // charge. Vécu le 02/09/2026 — « rien ne charge » — en remplaçant les
+    // quatre dictionnaires par un tableau unique sans voir que le `Set`
+    // servait à couper ce cycle.
+    const src = ecran();
+    expect(src.includes('const demandes = new Set<string>();'), 'le garde non réactif a disparu').toBe(true);
+    expect(src.includes('if (demandes.has(id)) return;'), 'le garde n’est plus consulté').toBe(true);
+    expect(
+      src.includes('if (etatDe(id)) return;'),
+      'le garde relit l’état réactif : l’effet dépendrait de ce qu’il écrit, et plus rien ne se chargerait.',
+    ).toBe(false);
+  });
+
   it('une attente ne peut pas être éternelle', () => {
     // Sans limite, une attente ne se distingue pas d'un widget lent. Même
     // remède que sur l'écran Podcasts, où le défaut s'était déjà produit.

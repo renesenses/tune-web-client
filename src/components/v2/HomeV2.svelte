@@ -75,6 +75,22 @@
   const etatDe = (id: string) => etats.find((e) => e.id === id);
 
   /**
+   * 🔴 Garde NON RÉACTIF des widgets déjà demandés.
+   *
+   * `chargerWidget` est appelée depuis un `$effect`. Si son garde lisait
+   * `etats` — un `$state` qu'elle ÉCRIT juste après — l'effet dépendrait de ce
+   * qu'il modifie : boucle de dépendance, Svelte l'interrompt, et plus AUCUN
+   * widget ne se charge.
+   *
+   * C'est exactement ce qui est arrivé le 02/09/2026 en remplaçant les quatre
+   * dictionnaires par un tableau unique : j'avais supprimé ce `Set` sans voir
+   * qu'il servait à ça. Bertrand : « rien ne charge ».
+   *
+   * Un `Set` ordinaire n'est pas suivi par la réactivité : il coupe le cycle.
+   */
+  const demandes = new Set<string>();
+
+  /**
    * Délai au-delà duquel on cesse d'attendre.
    *
    * Une attente sans limite ne se distingue pas d'un widget lent : il faut
@@ -124,7 +140,8 @@
 
   /** Charge un widget, une seule fois, et sans retenir les autres. */
   function chargerWidget(id: string) {
-    if (etatDe(id)) return;
+    if (demandes.has(id)) return;
+    demandes.add(id);
     const w = widgetParId(id);
     if (!w) return;
     const e: Etat = { id, phase: 'attente', elements: [], chiffres: [] };
@@ -168,6 +185,7 @@
     // Sans cela, le remettre plus tard n'entraînerait aucun chargement : son
     // état serait toujours là, figé sur ce qu'il contenait.
     etats = etats.filter((e) => e.id !== id);
+    demandes.delete(id);
     void enregistrer();
   }
 
