@@ -282,3 +282,57 @@ describe('Accueil — les clés de liste', () => {
     expect(filtres, `${bandes} bandes, ${filtres} filtrées`).toBeGreaterThanOrEqual(bandes);
   });
 });
+
+/**
+ * Chaque source a SA forme — et trois d'entre elles ne sont pas des albums.
+ *
+ * Vérifiées une par une sur le serveur de Bertrand le 02/09/2026, après que
+ * « Nouveautés de vos artistes » se fut affiché vide :
+ *
+ *  - `/home/artist-releases` rend des ARTISTES portant `releases[]` ;
+ *  - `/zones/now-listening` cache la piste dans `now_playing` ;
+ *  - `/home/other-versions` porte la pochette sur `versions[0]`.
+ *
+ * Passées au convertisseur commun, ces trois-là n'avaient ni titre ni pochette :
+ * le filtre des entrées vides les retirait TOUTES, et le widget annonçait
+ * « rien à montrer » sur des données bien présentes.
+ */
+describe('Accueil — les formes propres à certaines sources', () => {
+  const reg = () => lire('../accueilWidgets.ts');
+
+  /**
+   * Le bloc d'UN widget, borné au suivant.
+   *
+   * Une fenêtre de taille fixe débordait sur le widget d'après, et le garde
+   * voyait le `versElement` du voisin — il rougissait sur du code correct.
+   */
+  function bloc(id: string): string {
+    const src = reg();
+    const i = src.indexOf(`id: '${id}'`);
+    const j = src.indexOf("\n  {\n    id: '", i + 1);
+    return src.slice(i, j > i ? j : undefined);
+  }
+
+  it('les parutions d’artistes sont DÉPLIÉES', () => {
+    const bloc_ = bloc('nouveautes-artistes');
+    expect(bloc_.includes('a?.releases ?? []'), 'les parutions ne sont plus dépliées').toBe(true);
+    expect(
+      bloc_.includes('versElement('),
+      'le convertisseur commun est revenu : ces entrées n’ont ni titre ni pochette à leur niveau.',
+    ).toBe(false);
+  });
+
+  it('la piste d’une zone est lue dans `now_playing`', () => {
+    expect(
+      bloc('zones').includes('z?.now_playing ?? {}'),
+      'la piste est de nouveau cherchée au premier niveau.',
+    ).toBe(true);
+  });
+
+  it('la pochette d’une autre version vient de la VERSION', () => {
+    expect(
+      bloc('autres-versions').includes('(o?.versions ?? [])[0]'),
+      'on ne descend plus dans les versions.',
+    ).toBe(true);
+  });
+});

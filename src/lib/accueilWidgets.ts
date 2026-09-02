@@ -124,14 +124,29 @@ export const WIDGETS: Widget[] = [
     // passe par les MÊMES garde-fous — l'index dans la clé, et le filtre des
     // entrées vides. C'est le seul chargeur qui y échappait, et rien ne
     // justifiait l'exception.
+    /**
+     * 🔴 La piste est dans `now_playing`, pas au premier niveau.
+     *
+     * Une zone rend `{zone_id, state, volume, …, now_playing: {title,
+     * artist_name, album_id, cover_path, …}}`. Lus au premier niveau, titre et
+     * pochette étaient introuvables : le widget se vidait entièrement.
+     *
+     * Trouvé en vérifiant les quatorze sources d'un coup après que
+     * « Nouveautés de vos artistes » eut échoué pour la même raison
+     * (02/09/2026) — plutôt que d'attendre le prochain widget vide.
+     */
     charger: async () =>
       utiles(
-        liste(await api.getNowListening()).map((z: any, i: number) => ({
-          id: `zone${i}-${z?.zone_id ?? z?.id ?? ''}`,
-          titre: champ(z, 'title', 'track_title') ?? champ(z, 'zone_name', 'name') ?? '—',
-          sous: champ(z, 'artist_name', 'artist') ?? champ(z, 'zone_name', 'name'),
-          cover: champ(z, 'cover_path', 'cover_url') ?? null,
-        })),
+        liste(await api.getNowListening()).map((z: any, i: number) => {
+          const np = z?.now_playing ?? {};
+          return {
+            id: `zone${i}-${z?.zone_id ?? ''}`,
+            titre: champ(np, 'title', 'album_title') ?? '—',
+            sous: champ(np, 'artist_name') ?? champ(z, 'zone_name', 'name'),
+            cover: champ(np, 'cover_path', 'cover_url') ?? null,
+            jouer: np?.album_id != null ? (zid: number) => api.play(zid, { album_id: np.album_id }) : undefined,
+          };
+        }),
       ),
   },
   {
@@ -177,8 +192,40 @@ export const WIDGETS: Widget[] = [
     id: 'nouveautes-artistes',
     cleTitre: 'v2.home.wArtistReleases',
     forme: 'bande',
-    charger: async () =>
-      utiles(liste(await api.getArtistReleases(LIMITE)).map((o, i) => versElement(o, i, 'nar'))),
+    /**
+     * 🔴 Cette source ne rend PAS des albums.
+     *
+     * Elle rend des ARTISTES, chacun portant ses parutions :
+     * `{artist_name, is_favorite, key, library_albums, releases[]}`. Une
+     * parution vaut `{title, year, cover_path, service, source_id}` — la
+     * pochette est une URL distante (Tidal, Qobuz), pas un chemin de cache.
+     *
+     * Passée au convertisseur commun, chaque entrée n'avait ni titre ni
+     * pochette : le filtre des entrées vides les retirait TOUTES, et le widget
+     * annonçait « rien à montrer » sur vingt artistes. Mesuré sur le serveur de
+     * Bertrand le 02/09/2026.
+     *
+     * On DÉPLIE donc, et l'artiste devient le sous-titre — c'est lui qui donne
+     * son sens à la nouveauté.
+     */
+    charger: async () => {
+      const artistes = liste(await api.getArtistReleases(LIMITE));
+      const out: Element[] = [];
+      for (const a of artistes) {
+        for (const r of a?.releases ?? []) {
+          if (out.length >= LIMITE) break;
+          out.push({
+            id: `nar${out.length}-${r?.source_id ?? ''}`,
+            titre: champ(r, 'title') ?? '—',
+            sous: champ(a, 'artist_name') ?? champ(r, 'service'),
+            cover: champ(r, 'cover_path', 'cover_url') ?? null,
+            // Une parution de service n'a pas d'`album_id` local : elle n'est
+            // pas jouable d'un clic. On ne prétend pas le contraire.
+          });
+        }
+      }
+      return utiles(out);
+    },
   },
   {
     id: 'nouveau-bibliotheque',
@@ -191,8 +238,26 @@ export const WIDGETS: Widget[] = [
     id: 'autres-versions',
     cleTitre: 'v2.home.wOtherVersions',
     forme: 'bande',
+    /**
+     * La pochette est portée par la VERSION, pas par l'entrée.
+     *
+     * Une entrée vaut `{title, artist_name, played_album, versions[]}`, et
+     * chaque version `{album_id, album_title, cover_path, track_id}`. Sans
+     * descendre d'un cran, la bande s'affichait sans aucune image.
+     */
     charger: async () =>
-      utiles(liste(await api.getOtherVersions(LIMITE)).map((o, i) => versElement(o, i, 'ver'))),
+      utiles(
+        liste(await api.getOtherVersions(LIMITE)).map((o: any, i: number) => {
+          const v = (o?.versions ?? [])[0] ?? {};
+          return {
+            id: `ver${i}-${v?.album_id ?? ''}`,
+            titre: champ(v, 'album_title') ?? champ(o, 'title') ?? '—',
+            sous: champ(o, 'artist_name'),
+            cover: champ(v, 'cover_path') ?? null,
+            jouer: v?.album_id != null ? (z: number) => api.play(z, { album_id: v.album_id }) : undefined,
+          };
+        }),
+      ),
   },
   {
     id: 'favoris',
