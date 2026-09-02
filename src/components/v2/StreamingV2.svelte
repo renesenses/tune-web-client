@@ -30,6 +30,9 @@
   import { activeView } from '../../lib/stores/navigation';
   import type { StreamingServiceStatus, StreamingPlaylist, SearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
+  import PageWidgets from './PageWidgets.svelte';
+  import { catalogueService, dispositionDefautService, cleService, titreService } from '../../lib/widgetsService';
+  import type { Widget } from '../../lib/accueilWidgets';
   import '../../styles/tune-v2.css';
 
   const BANDCAMP = '__bandcamp__';
@@ -161,6 +164,30 @@
       const first = Object.entries(services).find(([, v]) => v.enabled && v.authenticated)?.[0];
       active = first ?? (bandcampLive ? BANDCAMP : null);
     }).finally(() => { loading = false; });
+  });
+
+  /**
+   * Le catalogue de widgets du service courant, construit UNE fois.
+   *
+   * 🔴 Le garde est une variable ORDINAIRE, pas un `$state`. Un effet dont le
+   * garde lit ce qu'il écrit dépend de sa propre écriture : Svelte interrompt
+   * la boucle, et plus rien ne se charge. C'est ce qui avait figé l'accueil le
+   * 02/09/2026, trois tours durant.
+   */
+  let catalogue = $state<Widget[]>([]);
+  let catalogueEnCours = $state(false);
+  let catalogueDemande: string | null = null;
+  $effect(() => {
+    const svc = active;
+    if (!svc || svc === BANDCAMP) return;
+    if (catalogueDemande === svc) return;
+    catalogueDemande = svc;
+    catalogueEnCours = true;
+    catalogue = [];
+    catalogueService(svc)
+      .then((w) => { if (catalogueDemande === svc) catalogue = w; })
+      .catch(() => { if (catalogueDemande === svc) catalogue = []; })
+      .finally(() => { if (catalogueDemande === svc) catalogueEnCours = false; });
   });
 
   /** Charge la vue courante. Rien ne part pour un onglet qu'on ne regarde pas. */
@@ -414,18 +441,31 @@
         {:else}
           <div class="state">Rien à découvrir pour ce genre.</div>
         {/if}
-      {:else if featured.length || newRel.length || genres.length}
-        {#if featured.length}
-          <section class="sec"><h2>Mis en avant par {label(active ?? '')}</h2>
-            <div class="grid">{#each featured.slice(0, 40) as p, i ((p.source_id ?? p.id ?? i))}{@render tile(p, () => playPlaylist(p))}{/each}</div>
-          </section>
-        {/if}
-        {#if newRel.length}
-          <section class="sec"><h2>Nouveautés</h2>
-            <div class="grid">{#each newRel.slice(0, 30) as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
-          </section>
-        {/if}
+      {:else if catalogue?.length}
+        <!--
+          L'écran éditorial est CONFIGURABLE, comme l'accueil.
 
+          Bertrand, 02/09/2026 : « je voudrais que les écrans éditorial Qobuz et
+          Tidal soient paramétrables avec des widgets Qobuz et Tidal ». Il
+          affichait deux sections figées — « Mis en avant » et « Nouveautés » —
+          alors que Qobuz sert sept sections éditoriales de plus, et que Tidal,
+          qui n'en sert aucune, a vingt genres dont l'écran ne montrait rien.
+
+          Même composant que l'accueil, avec un autre catalogue et sa propre
+          clé de rangement : composer Qobuz ne défait ni Tidal ni l'accueil.
+        -->
+        {#key active}
+          <PageWidgets
+            {catalogue}
+            dispositionDefaut={dispositionDefautService(catalogue)}
+            cle={cleService(active ?? '')}
+            cleEyebrow="v2.svc.eyebrow"
+            cleTitre={titreService(active ?? '')}
+          />
+        {/key}
+
+      {:else if catalogueEnCours}
+        <div class="state">Chargement…</div>
       {:else}
         <div class="state">{label(active ?? '')} ne propose aucune sélection éditoriale pour l'instant. Utilisez la recherche.</div>
       {/if}

@@ -16,7 +16,10 @@ import { WIDGETS, DISPOSITION_DEFAUT, widgetParId, geste } from '../accueilWidge
 import * as api from '../api';
 
 const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
-const ecran = () => lire('../../components/v2/HomeV2.svelte');
+// La page a widgets est desormais GENERIQUE : l'accueil et les ecrans
+// editoriaux Qobuz/Tidal l'instancient avec leur propre catalogue. Ces gardes
+// tiennent le MECANISME, donc elles lisent le composant generique.
+const ecran = () => lire('../../components/v2/PageWidgets.svelte');
 
 describe('Accueil — le registre', () => {
   it('les vingt et un widgets sont là', () => {
@@ -81,7 +84,13 @@ describe('Accueil — la configuration', () => {
     const src = ecran();
     expect(src.includes('api.getProfilePreferences('), 'la lecture des préférences a disparu').toBe(true);
     expect(src.includes('api.setProfilePreferences('), 'l’écriture a disparu').toBe(true);
-    expect(src.includes("const CLE = 'home_widgets'"), 'la clé de rangement a changé').toBe(true);
+    // La clé est désormais un PARAMÈTRE — une par page, sans quoi composer
+    // l'écran Qobuz déferait l'accueil. Celle de l'accueil reste le défaut.
+    expect(src.includes("cle: CLE = 'home_widgets'"), 'la clé de rangement a changé').toBe(true);
+    expect(
+      lire('../../components/v2/HomeV2.svelte').includes('<PageWidgets />'),
+      'l’accueil n’instancie plus la page générique avec ses défauts',
+    ).toBe(true);
   });
 
   it('l’écriture FUSIONNE, elle n’écrase pas', () => {
@@ -95,7 +104,7 @@ describe('Accueil — la configuration', () => {
     // Un widget retiré du registre laisserait sinon un trou muet dans la page
     // de qui l'avait choisi.
     expect(
-      ecran().includes("d.filter((id: any) => typeof id === 'string' && widgetParId(id))"),
+      ecran().includes("d.filter((id: any) => typeof id === 'string' && parId(id))"),
       'les identifiants inconnus ne sont plus filtrés.',
     ).toBe(true);
   });
@@ -232,7 +241,7 @@ describe('Accueil — le mode édition', () => {
  * ses voisines.
  */
 describe('Accueil — la taille des vignettes', () => {
-  const ecran = () => lire('../../components/v2/HomeV2.svelte');
+  const ecran = () => lire('../../components/v2/PageWidgets.svelte');
 
   it('la carte ne peut pas déborder de sa base', () => {
     const src = ecran();
@@ -360,13 +369,13 @@ describe('Accueil — pas de bornage', () => {
   it('les vignettes hors cadre ne coûtent rien', () => {
     // Cinquante par bande et jusqu'à vingt et une bandes : sans cela, dérouler
     // la page rendrait plusieurs milliers de vignettes pour rien.
-    const m = /\.carte\{([^}]*)\}/.exec(lire('../../components/v2/HomeV2.svelte'));
+    const m = /\.carte\{([^}]*)\}/.exec(lire('../../components/v2/PageWidgets.svelte'));
     expect(m![1].includes('content-visibility:auto'), 'le rendu hors cadre est revenu').toBe(true);
   });
 
   it('aucun plafond sur le NOMBRE de widgets', () => {
     // La page se compose librement : rien ne limite combien on en pose.
-    const src = lire('../../components/v2/HomeV2.svelte');
+    const src = lire('../../components/v2/PageWidgets.svelte');
     expect(
       /disposition\.length\s*[<>]=?\s*\d/.test(src),
       'un plafond sur le nombre de widgets est apparu.',
