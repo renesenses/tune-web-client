@@ -440,4 +440,40 @@
     border-radius:50%; border:0; background:rgba(0,0,0,.55); cursor:pointer; display:grid; place-items:center; opacity:0; transition:.16s}
   .art:hover .hot.round{opacity:1}
   .hot.round svg{width:14px; height:14px}
+
+  /*
+    Favoris RADIO — une liste de lignes.
+
+    🔴 Ces règles manquaient entièrement : le balisage avait été écrit sans
+    elles. `AlbumArt` en `size={0}` adopte la boîte de son parent — et un
+    `<span>` sans largeur n'en impose aucune, alors la pochette prenait TOUTE
+    la largeur du volet. Quatre favoris, une seule image plein cadre : c'est ce
+    que Bertrand a capturé le 03/09/2026.
+
+    La largeur de la pochette est donc posée ICI, comme pour `.acv`.
+  */
+  .rows{display:flex; flex-direction:column; gap:2px}
+  .lrow{display:grid; grid-template-columns:44px minmax(0,2fr) minmax(0,1.4fr) minmax(0,1fr) 32px;
+    align-items:center; gap:14px; padding:7px 10px; border-radius:var(--v2-r-card)}
+  .lrow:hover{background:var(--v2-hover)}
+  .lcv{display:block; width:44px; height:44px; border-radius:8px; overflow:hidden;
+    background:var(--v2-surface); flex-shrink:0}
+  .lcv :global(img){width:100%; height:100%; object-fit:cover; display:block}
+  /* `min-width: 0` sur chaque cellule : sans lui, `minmax(0,…)` ne suffit pas
+     à autoriser la coupure — le contenu impose sa largeur et la ligne déborde. */
+  .lt{min-width:0; font:600 13px var(--v2-sans); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .la{min-width:0; font:12.5px var(--v2-sans); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lst{min-width:0; font:11px var(--v2-mono); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  /* Le bouton de retrait de la LIGNE : `.hot.round` est positionné pour la
+     vignette d'artiste (absolu, décalé de 58 px) et se serait posé de travers. */
+  .lrow .hot.round{position:static; transform:none; opacity:0; width:28px; height:28px;
+    background:transparent; color:var(--v2-acc1)}
+  .lrow:hover .hot.round, .lrow .hot.round:focus-visible{opacity:1}
+  .lrow .hot.round:hover{background:var(--v2-danger-bd); color:#fff}
+
+  @media (max-width: 720px){
+    /* La station passe à la ligne plutôt que d'écraser le titre. */
+    .lrow{grid-template-columns:44px minmax(0,1fr) 32px}
+    .la, .lst{display:none}
+  }
 </style>
