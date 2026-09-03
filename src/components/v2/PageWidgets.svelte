@@ -39,7 +39,8 @@
   import { albums } from '../../lib/stores/library';
   import { currentZoneId, zones } from '../../lib/stores/zones';
   import { activeView } from '../../lib/stores/navigation';
-  import { currentProfileId } from '../../lib/stores/profile';
+  import { currentProfileId, profiles } from '../../lib/stores/profile';
+  import { salutation } from '../../lib/salutation';
   import { notifications } from '../../lib/stores/notifications';
   import {
     WIDGETS,
@@ -51,6 +52,8 @@
   import AudioVisualizer from '../AudioVisualizer.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { favoriExterneService } from '../../lib/streamingFavorites';
+  import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import '../../styles/tune-v2.css';
 
   interface Props {
@@ -66,6 +69,14 @@
     cle?: string;
     cleEyebrow?: string;
     cleTitre?: string;
+    /**
+     * Saluer la personne au lieu de nommer la page.
+     *
+     * Reserve a l'ACCUEIL. Les ecrans editoriaux Qobuz et Tidal instancient la
+     * meme page ; « Bonsoir Bertrand ! » au-dessus de « Editorial » saluerait
+     * deux fois dans la meme session, et ne dirait plus ou l'on est.
+     */
+    salut?: boolean;
   }
   let {
     catalogue = WIDGETS,
@@ -73,6 +84,7 @@
     cle: CLE = 'home_widgets',
     cleEyebrow = 'v2.home.eyebrow',
     cleTitre = 'v2.home.title',
+    salut = false,
   }: Props = $props();
 
   /** Recherche DANS le catalogue de cette page, jamais dans le registre global. */
@@ -367,15 +379,44 @@
     void enregistrer();
   }
 
+  // ── Le bandeau qui salue ──────────────────────────────────────────────────
+  //
+  // L'HEURE est relue toutes les dix minutes. Un ecran d'accueil reste ouvert
+  // des heures — sur une tablette posee dans le salon, il ne se recharge
+  // jamais — et fige sinon « Bonjour » jusqu'a la nuit.
+  //
+  // Le nom du compte nuage n'est demande QUE si le profil n'en donne pas :
+  // c'est un aller-retour reseau, et dans le cas courant (un profil nomme) il
+  // n'apprendrait rien.
+  let heure = $state(new Date().getHours());
+  let nomNuage = $state<string | null>(null);
+  const profil = $derived($profiles.find((p) => p.id === $currentProfileId) ?? null);
+  const banniere = $derived(salutation($t, profil, nomNuage, heure));
+
   onMount(() => {
     void charger();
+    if (!salut) return;
+    const horloge = setInterval(() => (heure = new Date().getHours()), 600_000);
+    void (async () => {
+      const p = get(profiles).find((x) => x.id === get(currentProfileId));
+      const nom = (p?.display_name ?? '').trim();
+      if (nom && (p?.name ?? '').trim().toLowerCase() !== 'default') return;
+      try {
+        const sso: any = await api.apiFetch('/cloud/sso/status');
+        if (sso?.connected && sso?.user) nomNuage = sso.user.display_name || sso.user.email || null;
+      } catch {
+        // Serveur muet, hors ligne, ou sans nuage : on salue sans nom plutot
+        // que d'en inventer un.
+      }
+    })();
+    return () => clearInterval(horloge);
   });
 </script>
 
 <section class="v2-home tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">{$t(cleEyebrow as any)}</div>
+      <div class="eyebrow">{salut ? banniere : $t(cleEyebrow as any)}</div>
       <h1>{$t(cleTitre as any)}</h1>
     </div>
     <div class="outils">
@@ -488,16 +529,40 @@
                     cadre SOUS ses icones : la vignette ne peut donc plus etre
                     un `<button>`, sinon on imbrique six boutons dans un.
 
-                    Coeur et etiquettes n'apparaissent que sur un objet LOCAL :
-                    les deux s'appuient sur un identifiant de la bibliotheque,
-                    et un album de service n'en a pas. Mieux vaut une icone
-                    absente qu'une icone morte.
+                    LE COEUR VAUT AUSSI POUR UN ALBUM DE SERVICE (Bertrand,
+                    03/09/2026 : « et de mise en favoris ! sur la homepage »,
+                    « idem Tidal »). Il en avait ete ecarte avec les etiquettes,
+                    au motif commun qu'un album distant n'a pas d'identifiant de
+                    bibliotheque. Le motif tenait pour les etiquettes, pas pour
+                    le favori : celui-ci a sa propre table cote serveur,
+                    `streaming_favorites`, dont la clef est `service` +
+                    `service_id` en TEXTE. Deux chemins, donc, et un seul coeur
+                    a l'ecran : `favori` pour un disque de la bibliotheque,
+                    `favoriExterne` pour un disque de service.
+
+                    Les ETIQUETTES, elles, restent absentes des vignettes de
+                    service, et ce n'est pas un oubli : la route serveur prend
+                    `item_id: i64` et la table SQLite un `INTEGER`, quand un
+                    album Qobuz s'identifie « kxend2k5wdg06 » (mesure sur le
+                    .18, 03/09/2026). Les brancher demande une evolution du
+                    SERVEUR. Mieux vaut une icone absente qu'une icone morte.
                   -->
                   {@const idLocal = el.fiche?.id ?? null}
+                  {@const sidDistant = idLocal == null ? (el.fiche?.source_id ?? null) : null}
                   <div class="carte">
                     <div class="pochette">
                       <PochetteActions
                         favori={idLocal != null ? { albumId: idLocal } : null}
+                        favoriExterne={sidDistant
+                          ? favoriExterneService($favoriteStreamingKeys, {
+                              itemType: 'album',
+                              service: el.fiche?.source ?? el.source ?? '',
+                              serviceId: String(sidDistant),
+                              title: el.titre,
+                              artist: el.sous ?? undefined,
+                              coverUrl: el.cover ?? undefined,
+                            })
+                          : null}
                         etiquettes={idLocal != null ? { itemType: 'album', itemId: idLocal } : null}
                         onLire={el.jouer ? () => jouer(el) : null}
                         onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}

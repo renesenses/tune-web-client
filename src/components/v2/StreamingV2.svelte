@@ -31,7 +31,10 @@
   import type { StreamingServiceStatus, StreamingPlaylist, SearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { favoriExterneService } from '../../lib/streamingFavorites';
+  import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import PageWidgets from './PageWidgets.svelte';
+  import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { catalogueService, dispositionDefautService, cleService, titreService } from '../../lib/widgetsService';
   import type { Widget } from '../../lib/accueilWidgets';
   import '../../styles/tune-v2.css';
@@ -286,6 +289,44 @@
     return () => clearTimeout(t);
   });
 
+  /**
+   * La FICHE d'un album de service — ses metadonnees, en lecture.
+   *
+   * Bertrand, 04/09/2026 : « si si bouton edit permettait juste d'afficher les
+   * metadata de l'album ». Il n'y avait ici aucun moyen de les voir : cliquer
+   * une pochette LANÇAIT la lecture (`onOuvrir` valait `onPlay`), au motif ecrit
+   * dans le code que « cet ecran n'a pas de fiche distante a ouvrir ». C'etait
+   * faux : `AlbumDetailV2` prend un `service` depuis le debut, et l'accueil
+   * l'ouvre deja ainsi. Titre, artiste, annee, format, frequence, profondeur et
+   * la liste des pistes du service y sont — c'est-a-dire les metadonnees, sans
+   * champ modifiable, ce qui est exactement ce qu'on peut offrir d'un disque
+   * qu'on ne possede pas.
+   *
+   * Le crayon d'edition, lui, reste ABSENT : `AlbumEditModal` ecrit par
+   * `updateAlbum(album.id, …)`, et un album distant n'a pas d'`id`.
+   */
+  let fiche = $state<any | null>(null);
+  let ficheService = $state<string | null>(null);
+
+  /** `null` quand l'objet n'a pas de fiche : une playlist, un objet Bandcamp
+   *  (identifie par une URL, pas par un `source_id`), une piste. */
+  function ouvrirFiche(p: any, type: 'track' | 'album' | 'artist' | null) {
+    const svc = p?.source ?? active;
+    const sid = p?.source_id;
+    if (type !== 'album' || !sid || !svc || svc === BANDCAMP) return null;
+    return () => {
+      fiche = {
+        id: null, source_id: String(sid), source: svc,
+        title: pTitle(p), artist_name: p?.artist_name ?? p?.artist ?? '',
+        cover_path: pCover(p), year: p?.year ?? null,
+        format: p?.quality?.codec ?? p?.format ?? null,
+        sample_rate: p?.quality?.sample_rate ?? p?.sample_rate ?? null,
+        bit_depth: p?.quality?.bit_depth ?? p?.bit_depth ?? null,
+      };
+      ficheService = svc;
+    };
+  }
+
   function playAlbum(a: any) {
     const zid = $currentZoneId;
     if (zid == null || !active || active === BANDCAMP) return;
@@ -387,7 +428,7 @@
         {/if}
         {#if bcSearch.pistes?.length}
           <section class="sec"><h2>Titres</h2>
-            <div class="grid">{#each bcSearch.pistes as a, i (a.url ?? i)}{@render tile(a, () => playBc(a))}{/each}</div>
+            <div class="grid">{#each bcSearch.pistes as a, i (a.url ?? i)}{@render tile(a, () => playBc(a), 'track')}{/each}</div>
           </section>
         {/if}
         {#if !bcSearch.albums?.length && !bcSearch.pistes?.length}
@@ -403,10 +444,7 @@
           <section class="sec"><h2>Artistes</h2>
             <div class="arow">
               {#each results.artists.slice(0, 14) as ar (ar.source_id ?? ar.name)}
-                <div class="art">
-                  <span class="acv"><AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name} source={active} fallbackInitials={ar.name?.slice(0,1)} /></span>
-                  <span class="an">{ar.name}</span>
-                </div>
+                {@render artiste(ar)}
               {/each}
             </div>
           </section>
@@ -521,7 +559,7 @@
 
     {:else if sub === 'playlists'}
       {#if myPlaylists.length}
-        <div class="grid">{#each myPlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p))}{/each}</div>
+        <div class="grid">{#each myPlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), null)}{/each}</div>
       {:else}
         <div class="state">Aucune playlist dans votre compte {label(active ?? '')}.</div>
       {/if}
@@ -536,17 +574,14 @@
         <section class="sec"><h2>Artistes</h2>
           <div class="arow">
             {#each favArtists as ar, i ((ar.source_id ?? ar.name ?? i))}
-              <div class="art">
-                <span class="acv"><AlbumArt coverPath={ar.image_path ?? ar.picture ?? null} albumId={null} size={0} alt={ar.name} source={active} fallbackInitials={ar.name?.slice(0,1)} /></span>
-                <span class="an">{ar.name}</span>
-              </div>
+              {@render artiste(ar)}
             {/each}
           </div>
         </section>
       {/if}
       {#if favTracks.length}
         <section class="sec"><h2>Titres</h2>
-          <div class="grid">{#each favTracks as tr, i ((tr.source_id ?? tr.id ?? i))}{@render tile(tr, () => playAlbum(tr))}{/each}</div>
+          <div class="grid">{#each favTracks as tr, i ((tr.source_id ?? tr.id ?? i))}{@render tile(tr, () => playAlbum(tr), 'track')}{/each}</div>
         </section>
       {/if}
       {#if !favAlbums.length && !favArtists.length && !favTracks.length}
@@ -557,21 +592,82 @@
 </section>
 
 <!--
+  La vignette d'un ARTISTE de service. Deux rangees la rendaient a l'identique
+  — resultats de recherche, et artistes favoris du compte — a une retombee de
+  cover pres ; elles n'en font plus qu'une, qui prend les deux.
+
+  Elle ne portait AUCUNE action : ni lecture, ni ouverture, ni coeur. La
+  lecture et l'ouverture manquent toujours, faute d'un geste a leur donner sur
+  cet ecran ; le coeur, lui, existe pour un artiste distant comme pour un
+  album, et sans lui on ne pouvait pas retirer de sa rangee un artiste qu'on y
+  voyait justement parce qu'il etait en favori.
+-->
+{#snippet artiste(ar: any)}
+  <div class="art">
+    <span class="acv">
+      <PochetteActions
+        nom={ar.name}
+        favoriExterne={favoriExterneService($favoriteStreamingKeys, {
+          itemType: 'artist',
+          service: ar?.source ?? active ?? '',
+          serviceId: String(ar?.source_id ?? ''),
+          title: ar?.name ?? undefined,
+          coverUrl: ar?.image_path ?? ar?.picture ?? undefined,
+        })}
+      >
+        <AlbumArt coverPath={ar.image_path ?? ar.picture ?? null} albumId={null} size={0} alt={ar.name}
+          source={ar?.source ?? active} fallbackInitials={ar.name?.slice(0,1)} />
+      </PochetteActions>
+    </span>
+    <span class="an">{ar.name}</span>
+  </div>
+{/snippet}
+
+<!--
   La vignette de TOUS les rayons de cet ecran — recherche, editorial, genres,
   favoris. Un seul endroit a tenir.
 
   La surcouche commune y remplace le bouton d'ouverture plein cadre qu'elle
   portait (Bertrand, 03/09/2026).
 
-  Ni coeur ni etiquettes : les deux s'adossent a un identifiant de la
-  bibliotheque, qu'un objet de service n'a pas. `onOuvrir` LIT, comme avant —
-  cliquer la pochette lancait deja la lecture, et cet ecran n'a pas de fiche
-  distante a ouvrir.
+  LE COEUR EST BRANCHE (Bertrand, 03/09/2026 : « seul le bouton edit devrait
+  etre invisible »). Il l'avait ete ecarte avec les etiquettes, au motif que
+  les deux s'adossent a un identifiant de la bibliotheque qu'un objet de
+  service n'a pas. C'etait vrai des etiquettes, faux du favori : il a sa table
+  a lui, `streaming_favorites`, dont la clef est `service` + `service_id` en
+  TEXTE — l'identifiant distant tel quel. Le meme chemin que `HeartButton` de
+  la version actuelle, via l'unique `toggleStreamingFavorite`.
+
+  `type` dit CE QU'ON MET en favori : la table ne connait que piste, album et
+  artiste. Une playlist de service passe donc `null`, et n'a pas de coeur —
+  une icone absente plutot qu'une icone morte.
+
+  Les etiquettes, elles, restent absentes, et ce n'est pas un oubli : la route
+  serveur prend `item_id: i64` et la table SQLite un `INTEGER`, quand un album
+  Qobuz s'identifie « kxend2k5wdg06 » (mesure sur le .18, 03/09/2026). Les
+  brancher demande une evolution du SERVEUR, pas du client.
+
+  `onOuvrir` LIT, comme avant — cliquer la pochette lancait deja la lecture, et
+  cet ecran n'a pas de fiche distante a ouvrir.
 -->
-{#snippet tile(p: any, onPlay: () => void)}
+{#snippet tile(p: any, onPlay: () => void, type: 'track' | 'album' | 'artist' | null = 'album')}
   <div class="card">
     <span class="cv">
-      <PochetteActions onLire={onPlay} onOuvrir={onPlay} nom={pTitle(p)}>
+      <PochetteActions
+        onLire={onPlay}
+        onOuvrir={ouvrirFiche(p, type) ?? onPlay}
+        nom={pTitle(p)}
+        favoriExterne={type
+          ? favoriExterneService($favoriteStreamingKeys, {
+              itemType: type,
+              service: p?.source ?? active ?? '',
+              serviceId: String(p?.source_id ?? ''),
+              title: pTitle(p),
+              artist: p?.artist_name ?? p?.artist ?? undefined,
+              coverUrl: pCover(p) ?? undefined,
+            })
+          : null}
+      >
         <AlbumArt coverPath={pCover(p)} albumId={null} size={0} alt={pTitle(p)} source={p?.source ?? active} fallbackInitials={pTitle(p).slice(0,1)} />
       </PochetteActions>
     </span>
@@ -579,6 +675,10 @@
     {#if pSub(p)}<span class="ca">{pSub(p)}</span>{/if}
   </div>
 {/snippet}
+
+{#if fiche}
+  <AlbumDetailV2 album={fiche} service={ficheService} onClose={() => { fiche = null; ficheService = null; }} />
+{/if}
 
 <style>
   .v2-str{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);

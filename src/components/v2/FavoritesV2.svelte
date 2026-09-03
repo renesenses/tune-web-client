@@ -14,7 +14,8 @@
   import * as api from '../../lib/api';
   import { currentZoneId } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
-  import { currentProfileId, loadFavoriteIds } from '../../lib/stores/profile';
+  import { currentProfileId, loadFavoriteIds, favoriteStreamingKeys } from '../../lib/stores/profile';
+  import { favoriExterneService } from '../../lib/streamingFavorites';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { fold, formatDuration, getQualityTier } from '../../lib/utils';
@@ -50,13 +51,69 @@
   let busy = $state(false);
   let opened = $state<Album | null>(null);
 
+  /**
+   * Un favori de SERVICE, dans la forme que rendent déjà les trois onglets.
+   *
+   * Bertrand, 03/09/2026 : « Sidebar Favoris et ceux des services de
+   * streaming ?? ». L'écran n'appelait que `getFavorites`, c'est-à-dire les
+   * favoris de la BIBLIOTHÈQUE. Les cœurs posés sur une pochette Qobuz ou
+   * Tidal partent, eux, dans `streaming_favorites` — une autre table, un autre
+   * appel. Ils s'enregistraient donc bien et ne réapparaissaient nulle part :
+   * mesure sur le .18 le 03/09/2026, deux favoris de service rangés (un Qobuz,
+   * un Tidal) et zéro affiché ici.
+   *
+   * Pas de deuxième grille ni de quatrième onglet : un album aimé est un album
+   * aimé. On le convertit dans la forme locale, `id` à `null` et `source` /
+   * `source_id` renseignés — c'est ce couple que la lecture et la fiche
+   * savent déjà suivre, et la pastille du service se dessine toute seule.
+   */
+  const versAlbum = (f: api.StreamingFavorite) => ({
+    id: null, title: f.title ?? '', artist_name: f.artist ?? '',
+    cover_path: f.cover_url ?? null, source: f.service, source_id: f.service_id,
+  }) as unknown as Album;
+  const versPiste = (f: api.StreamingFavorite) => ({
+    id: null, title: f.title ?? '', artist_name: f.artist ?? '', album_title: f.album ?? '',
+    cover_path: f.cover_url ?? null, source: f.service, source_id: f.service_id, duration_ms: 0,
+  }) as unknown as Track;
+  const versArtiste = (f: api.StreamingFavorite) => ({
+    id: null, name: f.title ?? f.artist ?? '', image_path: f.cover_url ?? null,
+    source: f.service, source_id: f.service_id,
+  }) as unknown as Artist;
+
+  /** Clé de liste : `id` est NUL sur tout objet de service, et deux `null` se
+   *  disputeraient la même clé — Svelte s'arrête sur `each_key_duplicate` et
+   *  l'écran entier disparaît. */
+  const clef = (o: any, i: number) =>
+    o?.id ?? (o?.source && o?.source_id ? `${o.source}:${o.source_id}` : `#${i}`);
+
+  /** Le cœur d'un objet de service, ou `null` s'il est de la bibliothèque. */
+  const coeurService = (o: any, itemType: 'track' | 'album' | 'artist') =>
+    o?.id != null
+      ? null
+      : favoriExterneService($favoriteStreamingKeys, {
+          itemType,
+          service: o?.source ?? '',
+          serviceId: String(o?.source_id ?? ''),
+          title: o?.title ?? o?.name ?? undefined,
+          artist: o?.artist_name ?? undefined,
+          coverUrl: o?.cover_path ?? o?.image_path ?? undefined,
+        });
+
   async function reload() {
     const pid = $currentProfileId;
     if (pid == null) { loading = false; return; }
     loading = true;
     try {
-      const f = await api.getFavorites(pid);
-      albums = f.albums ?? []; tracks = f.tracks ?? []; artists = f.artists ?? [];
+      // Les deux sources en PARALLÈLE, et celle des services au mieux : un
+      // serveur plus ancien ne sert pas la route, et cela ne doit pas vider
+      // les favoris de la bibliothèque.
+      const [f, s] = await Promise.all([
+        api.getFavorites(pid),
+        api.getProfileStreamingFavorites(pid).catch(() => [] as api.StreamingFavorite[]),
+      ]);
+      albums = [...(f.albums ?? []), ...s.filter((x) => x.item_type === 'album').map(versAlbum)];
+      tracks = [...(f.tracks ?? []), ...s.filter((x) => x.item_type === 'track').map(versPiste)];
+      artists = [...(f.artists ?? []), ...s.filter((x) => x.item_type === 'artist').map(versArtiste)];
       error = null;
     } catch {
       error = 'Favoris indisponibles.';
@@ -149,15 +206,34 @@
 
 
 
-  function playAlbum(id: number | null | undefined) {
+  /**
+   * Lecture d'un album, de la bibliothèque OU d'un service.
+   *
+   * 🔴 `source` va TOUJOURS avec `streaming_album_id` : le serveur n'apparie
+   * les deux qu'ensemble, et un identifiant seul le fait retomber sur
+   * « reprendre la lecture en cours ».
+   */
+  function playAlbum(a: any) {
     const zid = $currentZoneId;
-    if (zid == null || id == null) return;
-    api.play(zid, { album_id: id }).catch(() => { error = 'Lecture impossible.'; });
+    if (zid == null) return;
+    const corps = a?.id != null
+      ? { album_id: a.id }
+      : a?.source && a?.source_id
+      ? { streaming_album_id: String(a.source_id), source: a.source as any }
+      : null;
+    if (!corps) return;
+    api.play(zid, corps).catch(() => { error = 'Lecture impossible.'; });
   }
-  function playTrack(t: Track) {
+  function playTrack(t: any) {
     const zid = $currentZoneId;
-    if (zid == null || t.id == null) return;
-    api.play(zid, { track_id: t.id }).catch(() => { error = 'Lecture impossible.'; });
+    if (zid == null) return;
+    const corps = t?.id != null
+      ? { track_id: t.id }
+      : t?.source && t?.source_id
+      ? { source: t.source as any, source_id: String(t.source_id) }
+      : null;
+    if (!corps) return;
+    api.play(zid, corps).catch(() => { error = 'Lecture impossible.'; });
   }
   // `e` optionnel : appelee depuis la carte historique (qui propage) ET depuis
   // le menu de `PochetteActions`, qui a deja arrete le geste.
@@ -171,6 +247,23 @@
   /** Retrait d'un favori. On recharge aussi les ENSEMBLES d'identifiants du
    *  store : sans ça, les boutons cœur des autres écrans continueraient
    *  d'afficher l'élément comme favori jusqu'au prochain rechargement. */
+  /**
+   * Retrait d'un titre, quelle que soit la table qui le porte.
+   *
+   * Une piste de service n'a pas d'`id` local : `removeFavorite({track_id:
+   * undefined})` ne retirerait rien et n'en dirait rien. Le cœur passe donc
+   * par l'unique `toggleStreamingFavorite`, celui-là même qui l'avait posé.
+   */
+  async function retirerPiste(t: any, e: MouseEvent) {
+    if (t?.id != null) { await unfav({ track_id: t.id }, e); return; }
+    e.stopPropagation();
+    const c = coeurService(t, 'track');
+    if (!c || busy) return;
+    busy = true;
+    try { await c.basculer(); await reload(); } catch { error = 'Retrait impossible.'; }
+    busy = false;
+  }
+
   async function unfav(body: { track_id?: number; album_id?: number; artist_id?: number }, e: MouseEvent) {
     e.stopPropagation();
     const pid = $currentProfileId;
@@ -220,7 +313,7 @@
         <div class="state">{albums.length ? 'Aucun album ne correspond.' : 'Aucun album en favori.'}</div>
       {:else}
         <div class="grid">
-          {#each vAlbums as a (a.id)}
+          {#each vAlbums as a, i (clef(a, i))}
             <!--
               La MEME surcouche que partout ailleurs (Bertrand, 03/09/2026).
 
@@ -239,8 +332,9 @@
               <span class="cv">
                 <PochetteActions
                   favori={a.id != null ? { albumId: a.id } : null}
+                  favoriExterne={coeurService(a, 'album')}
                   etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
-                  onLire={() => playAlbum(a.id)}
+                  onLire={() => playAlbum(a)}
                   onOuvrir={() => (opened = a)}
                   menu={a.id != null ? [{ libelle: $t('queue.addToQueue' as any), faire: () => queueAlbum(a.id) }] : []}
                   nom={a.title}
@@ -260,7 +354,7 @@
         <div class="state">{tracks.length ? 'Aucun titre ne correspond.' : 'Aucun titre en favori.'}</div>
       {:else}
         <div class="list">
-          {#each vTracks as t, i (t.id ?? i)}
+          {#each vTracks as t, i (clef(t, i))}
             <div class="row" class:np={t.id != null && t.id === $currentTrackId}>
               <button class="play" onclick={() => playTrack(t)}>
                 <span class="cv sm"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
@@ -268,7 +362,13 @@
               </button>
               {#if showExpert && tech(t)}<span class="tk">{tech(t)}</span>{/if}
               <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
-              <button class="hot flat" onclick={(e) => unfav({ track_id: t.id ?? undefined }, e)} disabled={busy} aria-label="Retirer des favoris">
+              <!--
+                Le retrait passe par la table qui PORTE le favori : une piste
+                de la bibliothèque par `removeFavorite`, une piste de service
+                par le chemin unique de `toggleStreamingFavorite`. Le premier
+                sur la seconde ne retirerait rien, en silence.
+              -->
+              <button class="hot flat" onclick={(e) => retirerPiste(t, e)} disabled={busy} aria-label="Retirer des favoris">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z"/></svg>
               </button>
             </div>
@@ -281,15 +381,17 @@
         <div class="state">{artists.length ? 'Aucun artiste ne correspond.' : 'Aucun artiste en favori.'}</div>
       {:else}
         <div class="arow">
-          {#each vArtists as a (a.id ?? a.name)}
+          {#each vArtists as a, i (clef(a, i))}
             <div class="art">
               <span class="acv">
                 <PochetteActions
                   favori={a.id != null ? { artistId: a.id } : null}
+                  favoriExterne={coeurService(a, 'artist')}
                   etiquettes={a.id != null ? { itemType: 'artist', itemId: a.id } : null}
                   nom={a.name}
                 >
-                  <AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name} fallbackInitials={a.name?.slice(0,1)} />
+                  <AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name}
+                    source={(a as any).source} fallbackInitials={a.name?.slice(0,1)} />
                 </PochetteActions>
               </span>
               <span class="an">{a.name}</span>
@@ -368,7 +470,10 @@
   {/if}
 
   {#if opened}
-    <AlbumDetailV2 album={opened} onClose={() => (opened = null)} />
+    <!-- La fiche distingue local et service par CE drapeau : sans lui, elle
+         chercherait les pistes d'un album distant par un `id` qui n'existe pas. -->
+    <AlbumDetailV2 album={opened} service={opened.id == null ? ((opened as any).source ?? null) : null}
+      onClose={() => (opened = null)} />
   {/if}
 </section>
 

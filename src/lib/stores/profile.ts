@@ -3,7 +3,16 @@ import * as api from '../api';
 
 export interface Profile {
   id: number;
+  /**
+   * L'IDENTIFIANT de connexion, pas le nom affichable.
+   *
+   * Mesure sur le .18 le 03/09/2026 : le serveur rend
+   * `{"display_name":"Bertrand","name":"bertrand@mozaiklabs.fr"}`. `name` est
+   * l'adresse ; le prenom est dans `display_name`, que ce type ignorait.
+   */
   name: string;
+  /** Le nom tel qu'on l'ecrit. Absent des serveurs qui ne le servent pas. */
+  display_name?: string | null;
   avatar_color: string;
 }
 

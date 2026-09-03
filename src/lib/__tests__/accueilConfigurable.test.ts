@@ -87,10 +87,16 @@ describe('Accueil — la configuration', () => {
     // La clé est désormais un PARAMÈTRE — une par page, sans quoi composer
     // l'écran Qobuz déferait l'accueil. Celle de l'accueil reste le défaut.
     expect(src.includes("cle: CLE = 'home_widgets'"), 'la clé de rangement a changé').toBe(true);
+    // L'accueil n'ajoute AUCUN catalogue, AUCUNE disposition, AUCUNE clé : il
+    // prend les défauts de la page générique. `salut` est la seule exception,
+    // et elle ne touche pas au rangement — c'est le bandeau qui salue.
+    const home = lire('../../components/v2/HomeV2.svelte');
+    const balise = /<PageWidgets([^>]*)\/>/.exec(home);
+    expect(balise, 'l’accueil n’instancie plus la page générique').not.toBeNull();
     expect(
-      lire('../../components/v2/HomeV2.svelte').includes('<PageWidgets />'),
-      'l’accueil n’instancie plus la page générique avec ses défauts',
-    ).toBe(true);
+      balise![1].trim().replace(/\bsalut\b/, '').trim(),
+      'l’accueil passe des réglages au lieu de prendre les défauts',
+    ).toBe('');
   });
 
   it('l’écriture FUSIONNE, elle n’écrase pas', () => {
