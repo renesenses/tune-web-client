@@ -2105,16 +2105,26 @@
   /* Owns the vertical scroll for the now-playing CONTENT (artwork + controls)
      on short viewports, so the root can stay overflow:hidden. The queue sheet
      is a sibling of this wrapper, so scrolling here never reveals it. */
+  /*
+    `align-items: center` sur un conteneur qui defile est un piege connu :
+    quand le contenu est plus haut que le cadre, il deborde des DEUX cotes et
+    le haut devient INATTEIGNABLE au defilement. On centre donc par `margin`
+    sur l'enfant — meme rendu quand il y a de la place, entierement defilable
+    quand il n'y en a pas.
+  */
   .np-scroll {
     flex: 1 1 auto;
     align-self: stretch;
     width: 100%;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     overflow-y: auto;
     position: relative;
     z-index: 1;
+  }
+  .np-scroll > .content-layout {
+    margin-block: auto;
   }
 
   .np-back-btn {
@@ -2193,33 +2203,47 @@
     }
   }
 
+  /*
+    La pochette etait dimensionnee UNIQUEMENT par sa largeur : `width: 100%`
+    plafonne par `max-width`, et `aspect-ratio: 1` en deduisait la hauteur.
+    Rien ne la bornait verticalement. Dans une fenetre plus basse que large, le
+    carre depassait donc l'espace disponible — la pochette perdait environ un
+    tiers de sa hauteur, et les badges qualite places juste en dessous etaient
+    pousses hors cadre et rognes a leur tour. Deux symptomes, une seule cause.
+    Signale par Gilles Olive le 19/08/2026.
+
+    Le remede : le cote du carre est desormais le PLUS PETIT des deux — la
+    largeur voulue, ou une part de la hauteur de fenetre. `aspect-ratio` fait
+    le reste, la pochette reste carree, et elle ne peut plus deborder.
+
+    `--np-art` porte la largeur voulue pour que les paliers ci-dessous n'aient
+    qu'elle a changer : redefinir `max-width` dans chaque media query aurait
+    fait sauter la borne de hauteur a chaque palier.
+  */
   .artwork-container {
+    --np-art: 400px;
     width: 100%;
-    max-width: 400px;
+    max-width: min(var(--np-art), 62vh);
     aspect-ratio: 1;
     flex-shrink: 0;
     position: relative;
   }
 
   .content-layout.wide .artwork-container {
-    max-width: 360px;
+    --np-art: 360px;
   }
 
   @media (min-width: 1400px) {
-    .artwork-container {
-      max-width: 520px;
-    }
+    .artwork-container,
     .content-layout.wide .artwork-container {
-      max-width: 520px;
+      --np-art: 520px;
     }
   }
 
   @media (min-width: 1800px) {
-    .artwork-container {
-      max-width: 640px;
-    }
+    .artwork-container,
     .content-layout.wide .artwork-container {
-      max-width: 640px;
+      --np-art: 640px;
     }
   }
 
@@ -2916,7 +2940,10 @@
     }
 
     .artwork-container {
-      max-width: 280px;
+      /* `--np-art` et non `max-width` : ecraser `max-width` ici ferait sauter
+         la borne de hauteur, et le defaut reviendrait sur telephone — ou les
+         fenetres sont justement les plus basses en paysage. */
+      --np-art: 280px;
       flex-shrink: 1;
       min-height: 120px;
     }
