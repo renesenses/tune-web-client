@@ -16,8 +16,9 @@
    *
    * ## Ce qu'il est
    *
-   * La vue de l'écran actuel : une grille d'ARTISTES, avatar rond, nom, nombre
-   * d'albums, et un rail A–Z. Les artistes viennent de `/library/artists`,
+   * La vue de l'écran actuel : une grille d'ARTISTES — pochette carrée, au
+   * même format que celle d'un album —, nom, nombre d'albums, et un rail A–Z.
+   * Les artistes viennent de `/library/artists`,
    * leur propre table — pas d'une déduction depuis les albums.
    *
    * On ouvre un artiste pour voir ses albums, comme aujourd'hui.
@@ -169,7 +170,7 @@
     <button class="retour" onclick={() => (ouvert = null)}>← {$t('common.back' as any)}</button>
     <div class="ident">
       <span class="av">
-        <AlbumArt coverPath={artiste.image_path} size={0} alt={artiste.name} round
+        <AlbumArt coverPath={artiste.image_path} size={0} alt={artiste.name}
           fallbackInitials={initiales(artiste.name)} />
       </span>
       <div>
@@ -227,7 +228,7 @@
              dernière au lieu de la première. -->
         {@const premiere = i === 0 || lettre(affiches[i - 1]) !== lettre(a)}
         <div class="carte" data-lettre={premiere ? lettre(a) : undefined}>
-          <div class="cv rond">
+          <div class="cv">
             <PochetteActions
               favori={a.id != null ? { artistId: a.id } : null}
               etiquettes={a.id != null ? { itemType: 'artist', itemId: a.id } : null}
@@ -236,7 +237,7 @@
               onOuvrir={() => ouvrir(a)}
               nom={a.name}
             >
-              <AlbumArt coverPath={a.image_path} size={0} alt={a.name} round
+              <AlbumArt coverPath={a.image_path} size={0} alt={a.name}
                 fallbackInitials={initiales(a.name)} />
             </PochetteActions>
           </div>
@@ -319,16 +320,22 @@
 
     Ce qui distingue encore une carte d'artiste d'une carte d'album, c'est le
     nom CENTRÉ — les albums alignent le leur à gauche.
+
+    La forme se décide à DEUX endroits, et c'est le piège : ce rayon-ci, et le
+    drapeau `round` d'`AlbumArt`, qui pose un `border-radius: 50%` sur l'image
+    elle-même. Le 03/09/2026 seul le premier avait été changé — le cadre était
+    carré, le disque à l'intérieur restait rond, et c'est ce que Bertrand
+    voyait encore. Les deux appels à `AlbumArt` de cet écran (vignette de
+    grille et en-tête de fiche) ne passent donc plus `round`.
   */
-  .cv.rond { border-radius: var(--v2-r-card); }
   .cv :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
   /*
-    Les initiales sont CENTRÉES dans leur cercle et ne le débordent pas.
+    Les initiales sont CENTRÉES dans leur vignette et ne la débordent pas.
     `AlbumArt` les dimensionne à 32 % de la largeur du conteneur, ce qui
     convient à une seule lettre : à deux, plus l'interlettrage, le mot dépassait
-    et le rognage du cercle en montrait un morceau décalé — c'est ce que
-    montrait la capture de Bertrand. On resserre, et on interdit le retour à la
-    ligne, qui décentrerait verticalement.
+    et le rognage en montrait un morceau décalé — c'est ce que montrait la
+    capture de Bertrand. On resserre, et on interdit le retour à la ligne, qui
+    décentrerait verticalement.
   */
   .cv :global(.placeholder-initials) {
     font-size: 26cqw;

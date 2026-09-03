@@ -417,16 +417,40 @@ describe('Artistes — la vue est celle des artistes, pas des albums', () => {
    * (550×550 chez Qobuz, dont un cercle jetait 21 % pris sur les bords), et un
    * cadre `PochetteActions` carré dont les quatre icônes de coin tombaient
    * dans le vide autour du disque.
+   *
+   * ## Pourquoi cette garde a été RÉÉCRITE le 03/09/2026
+   *
+   * Sa première version ne regardait que la feuille de style de l'écran, et
+   * elle est restée VERTE pendant que Bertrand voyait toujours des disques.
+   * La forme se décide à deux endroits : le rayon du cadre `.cv`, et le
+   * drapeau `round` passé à `AlbumArt`, qui pose un `border-radius: 50%` sur
+   * l'image elle-même. Seul le premier avait été changé. Une garde qui
+   * n'observe qu'un des deux leviers ne garde rien : celle-ci observe le
+   * levier qui a effectivement échappé, le drapeau.
    */
   it('la pochette d’artiste est CARRÉE, comme un album', () => {
     const src = vue();
-    expect(/\.cv\.rond\s*\{[^}]*border-radius:\s*50%/.test(src), 'le cercle est revenu').toBe(false);
+
+    // 1. Le levier qui avait échappé : AUCUN `AlbumArt` de cet écran ne
+    //    demande la forme ronde. On lit les balises entières, attributs
+    //    éventuellement répartis sur plusieurs lignes.
+    const pochettes = src.match(/<AlbumArt\b[^>]*>/g) ?? [];
+    expect(pochettes.length, 'l’écran artistes n’affiche plus aucune pochette').toBeGreaterThan(0);
+    const rondes = pochettes.filter((b) => /(?:^|\s)round(?:\s|=|\/|>)/.test(b));
     expect(
-      /\.cv\.rond\s*\{[^}]*border-radius:\s*var\(--v2-r-card\)/.test(src),
+      rondes,
+      'une pochette de cet écran redemande la forme ronde à AlbumArt',
+    ).toEqual([]);
+
+    // 2. Le cadre lui-même garde le rayon des albums, et pas un cercle.
+    expect(/\.cv\s*\{[^}]*border-radius:\s*50%/.test(src), 'le cercle est revenu sur la vignette').toBe(false);
+    expect(
+      /\.cv\s*\{[^}]*border-radius:\s*var\(--v2-r-card\)/.test(src),
       'la vignette d’artiste ne porte plus le rayon des albums',
     ).toBe(true);
-    // L'en-tête de fiche suit la même règle : un rond là et un carré ici
-    // ferait deux conventions pour le même objet.
+
+    // 3. L'en-tête de fiche suit la même règle : un rond là et un carré ici
+    //    ferait deux conventions pour le même objet.
     expect(
       /\.av\s*\{[^}]*border-radius:\s*var\(--v2-r-card\)/.test(src),
       'l’en-tête de fiche est resté rond',
