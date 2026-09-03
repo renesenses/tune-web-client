@@ -408,8 +408,29 @@ describe('Artistes — la vue est celle des artistes, pas des albums', () => {
     expect(i, 'le garde « bibliothèque vide » passe AVANT les artistes').toBeLessThan(j);
   });
 
-  it('l’avatar est rond — c’est ce qui distingue un artiste d’un album', () => {
-    expect(/\.cv\.rond\s*\{[^}]*border-radius:\s*50%/.test(vue()), 'l’avatar est redevenu carré').toBe(true);
+  /**
+   * Les pochettes d'artiste sont CARRÉES depuis le 03/09/2026, décision de
+   * Bertrand. Ce qui distingue une carte d'artiste, c'est le nom CENTRÉ.
+   *
+   * Trois mesures l'ont emporté : zéro image sur ses 1651 artistes (la forme
+   * ne portait qu'une initiale), des images de service déjà carrées
+   * (550×550 chez Qobuz, dont un cercle jetait 21 % pris sur les bords), et un
+   * cadre `PochetteActions` carré dont les quatre icônes de coin tombaient
+   * dans le vide autour du disque.
+   */
+  it('la pochette d’artiste est CARRÉE, comme un album', () => {
+    const src = vue();
+    expect(/\.cv\.rond\s*\{[^}]*border-radius:\s*50%/.test(src), 'le cercle est revenu').toBe(false);
+    expect(
+      /\.cv\.rond\s*\{[^}]*border-radius:\s*var\(--v2-r-card\)/.test(src),
+      'la vignette d’artiste ne porte plus le rayon des albums',
+    ).toBe(true);
+    // L'en-tête de fiche suit la même règle : un rond là et un carré ici
+    // ferait deux conventions pour le même objet.
+    expect(
+      /\.av\s*\{[^}]*border-radius:\s*var\(--v2-r-card\)/.test(src),
+      'l’en-tête de fiche est resté rond',
+    ).toBe(true);
   });
 
   it('le rail A–Z vise la PREMIÈRE carte de chaque lettre', () => {

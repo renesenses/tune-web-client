@@ -47,11 +47,22 @@ describe('Barre latérale — les raccourcis', () => {
     ).toBe(false);
   });
 
-  it('on peut CRÉER un raccourci depuis la barre', () => {
-    // Elle les affichait sans qu'aucun geste ne permette d'en poser un.
-    const src = barre();
-    expect(src.includes('addShortcut(n,'), 'la création a disparu').toBe(true);
-    expect(src.includes('class="plus"'), 'le bouton « + » a disparu').toBe(true);
+  /**
+   * Le « + » de la barre a été retiré le 03/09/2026, à la demande de Bertrand.
+   *
+   * Il datait du moment où la barre affichait des raccourcis sans qu'on puisse
+   * en créer. Depuis, le SIGNET de l'en-tête en pose un sur N'IMPORTE QUEL
+   * écran, en capturant la vue courante. Ce qui compte, c'est donc que le
+   * geste existe QUELQUE PART — pas qu'il soit à deux endroits.
+   */
+  it('poser un raccourci reste possible — depuis l’en-tête, plus depuis la barre', () => {
+    expect(barre().includes('class="plus"'), 'le « + » est revenu dans la barre').toBe(false);
+    const coquille = lire('../../components/v2/ShellV2.svelte');
+    expect(coquille.includes('addShortcut(n,'), 'plus aucun geste ne pose de raccourci').toBe(true);
+    expect(
+      coquille.includes("v2.nav.addShortcut"),
+      'le signet de l’en-tête a perdu son intitulé',
+    ).toBe(true);
   });
 
   it('les raccourcis sont CHARGÉS', () => {
