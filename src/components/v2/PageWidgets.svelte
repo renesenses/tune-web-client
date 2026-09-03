@@ -50,6 +50,7 @@
   import AlbumArt from '../AlbumArt.svelte';
   import AudioVisualizer from '../AudioVisualizer.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import PochetteActions from './PochetteActions.svelte';
   import '../../styles/tune-v2.css';
 
   interface Props {
@@ -474,44 +475,37 @@
                     conteneur neutre.
                   -->
                   <!--
-                    TROIS boutons FRERES, jamais imbriques.
+                    La MEME surcouche que partout ailleurs.
 
-                    La pochette et le texte OUVRENT ; seul le disque central
-                    LIT. Bertrand, 02/09/2026 : « quand je clique sur le nom de
-                    l'album ou sur la cover hors bouton, cela m'ouvre l'album ».
-                    Le disque est donc pose en `absolute` DANS la carte, a cote
-                    du bouton de pochette et non dedans : un bouton dans un
-                    bouton est du balisage invalide, que Svelte refuse.
+                    Bertrand, 03/09/2026 : « etend la surcouche avec les 5
+                    boutons a toutes les covers ». Ces bandes portaient une
+                    carte a elles — pochette qui ouvre, disque qui lit — et donc
+                    deux gestes sur cinq. Les trois autres (favori, etiquettes,
+                    edition) n'existaient nulle part sur l'accueil ni sur les
+                    ecrans editoriaux.
+
+                    `PochetteActions` rend lui-meme le bouton d'ouverture plein
+                    cadre SOUS ses icones : la vignette ne peut donc plus etre
+                    un `<button>`, sinon on imbrique six boutons dans un.
+
+                    Coeur et etiquettes n'apparaissent que sur un objet LOCAL :
+                    les deux s'appuient sur un identifiant de la bibliotheque,
+                    et un album de service n'en a pas. Mieux vaut une icone
+                    absente qu'une icone morte.
                   -->
+                  {@const idLocal = el.fiche?.id ?? null}
                   <div class="carte">
-                    <!-- Le disque s'ancre sur la POCHETTE, dans cette boite-ci.
-                         Il etait centre a `top: 74px` — la moitie de 148, la
-                         largeur de carte du moment : un nombre magique, qui ne
-                         s'aligne sur rien et casse a la premiere carte d'une
-                         autre taille. La boite est carree, `top: 50%` suffit. -->
                     <div class="pochette">
-                    <button
-                      class="cv"
-                      onclick={() => ouvrirElement(el)}
-                      disabled={!el.ouvrir}
-                      aria-label={el.ouvrir ? `${$t('common.open' as any)} — ${el.titre}` : el.titre}
-                    >
-                      <AlbumArt coverPath={el.cover} albumId={null} size={0} alt={el.titre}
-                        source={el.source} fallbackInitials={el.titre?.slice(0, 1)} />
-                    </button>
-                    {#if el.jouer}
-                      <!-- Meme disque que `PochetteActions` : accent du theme,
-                           triangle en `--v2-on-acc`, 52 px, decale de 2 px
-                           pour compenser son decentrage optique. -->
-                      <button
-                        class="centre"
-                        onclick={() => jouer(el)}
-                        aria-label={`${$t('common.play' as any)} — ${el.titre}`}
-                        title={$t('common.play' as any)}
+                      <PochetteActions
+                        favori={idLocal != null ? { albumId: idLocal } : null}
+                        etiquettes={idLocal != null ? { itemType: 'album', itemId: idLocal } : null}
+                        onLire={el.jouer ? () => jouer(el) : null}
+                        onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}
+                        nom={el.titre}
                       >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8 5.5v13l11-6.5z"/></svg>
-                      </button>
-                    {/if}
+                        <AlbumArt coverPath={el.cover} albumId={null} size={0} alt={el.titre}
+                          source={el.source} fallbackInitials={el.titre?.slice(0, 1)} />
+                      </PochetteActions>
                     </div>
                     <button class="meta" onclick={() => ouvrirElement(el)} disabled={!el.ouvrir}>
                       <span class="ct">{el.titre}</span>
@@ -608,30 +602,17 @@
        CONTIENT un descendant `position: fixed`. Le disque de lecture est en
        `absolute` dans la carte : il reste dedans, rien à craindre ici. */
     content-visibility:auto; contain-intrinsic-size:auto 200px}
+  /* Conteneur de la pochette : `PochetteActions` pose son propre repere, mais
+     `min-width: 0` reste indispensable — sans lui, `min-width: auto` laisse la
+     pochette imposer sa largeur intrinseque et pousser la carte hors de sa
+     base flex. C'est le piege deja rencontre sur la carte elle-meme. */
+  .pochette{min-width:0}
   .meta{display:flex; flex-direction:column; gap:2px; min-width:0;
     border:0; background:transparent; padding:0; text-align:left; color:inherit; cursor:pointer}
   .meta:disabled{cursor:default}
-  .cv{position:relative; display:block; width:100%; min-width:0; aspect-ratio:1;
-    border-radius:var(--v2-r-card); overflow:hidden; background:var(--v2-surface);
-    border:0; padding:0; cursor:pointer}
-  .cv:disabled{cursor:default}
-  .cv :global(img){width:100%; height:100%; object-fit:cover; display:block}
   /* Le disque de lecture, centré. Révélé au survol ET au clavier : sans
      `focus-within` on tabulerait jusqu'à un bouton invisible. */
-  /* Boite d'ancrage du disque : la POCHETTE seule. La carte porte aussi le
-     texte et l'analyseur — s'y ancrer poserait le disque a cheval sur le
-     titre, et a une hauteur qui depend de ce que la vignette affiche. */
-  .pochette{position:relative; min-width:0}
-  .centre{position:absolute; top:50%; left:50%; width:52px; height:52px; margin:-26px 0 0 -26px;
-    border:0; padding:0; cursor:pointer;
-    border-radius:50%; display:grid; place-items:center;
-    background:var(--v2-acc1); color:var(--v2-on-acc); box-shadow:0 2px 12px rgba(0,0,0,.35);
-    opacity:0; transition:opacity .16s ease}
-  .centre svg{width:24px; height:24px; fill:currentColor; margin-left:2px}
-  .carte:hover .centre, .carte:focus-within .centre{opacity:1; transition-duration:0s}
   .viz{height:20px; opacity:.85}
-  /* Sur tactile il n'y a pas de survol : le disque reste visible. */
-  @media (hover: none){ .centre{opacity:1} }
   .ct{font:600 12.5px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ca{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 

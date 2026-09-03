@@ -23,6 +23,7 @@
   import { formatDuration, getQualityTier } from '../../lib/utils';
   import type { Album, Track, SearchResult, FederatedSearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
+  import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import '../../styles/tune-v2.css';
 
@@ -94,6 +95,23 @@
       .then((r) => { if (mine === seq) acoustic = r; })
       .catch(() => { if (mine === seq) acoustic = null; })
       .finally(() => { if (mine === seq) busy = false; });
+  }
+
+  function lireAlbum(id: number) {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    api.play(zid, { album_id: id }).catch(() => {});
+  }
+
+  /**
+   * 🔴 `source` va TOUJOURS avec `streaming_album_id` : le serveur n'apparie que
+   * la paire, et un identifiant seul le fait retomber sur « reprendre la
+   * lecture en cours ».
+   */
+  function lireDistant(a: any) {
+    const zid = $currentZoneId;
+    if (zid == null || !a?.source || !a?.source_id) return;
+    api.play(zid, { streaming_album_id: String(a.source_id), source: a.source }).catch(() => {});
   }
 
   function playTrack(t: Track) {
@@ -172,10 +190,19 @@
           <h2>Artistes</h2>
           <div class="arow">
             {#each localArtists.slice(0, 12) as ar (ar.id ?? ar.name)}
-              <button class="artile" onclick={() => (q = ar.name)}>
-                <span class="acv"><AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} /></span>
-                <span class="an">{ar.name}</span>
-              </button>
+              <div class="artile">
+                <span class="acv">
+                  <PochetteActions
+                    favori={ar.id != null ? { artistId: ar.id } : null}
+                    etiquettes={ar.id != null ? { itemType: 'artist', itemId: ar.id } : null}
+                    onOuvrir={() => (q = ar.name)}
+                    nom={ar.name}
+                  >
+                    <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} />
+                  </PochetteActions>
+                </span>
+                <button class="meta" onclick={() => (q = ar.name)}><span class="an">{ar.name}</span></button>
+              </div>
             {/each}
           </div>
         </section>
@@ -186,11 +213,26 @@
           <h2>Albums</h2>
           <div class="grid">
             {#each localAlbums as a (a.id)}
-              <button class="card" onclick={() => (opened = a)}>
-                <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
-                <span class="ct">{a.title}</span>
-                <span class="ca">{a.artist_name ?? ''}</span>
-              </button>
+              <!-- La carte etait UN bouton englobant. `PochetteActions` en pose
+                   cinq : elle devient un conteneur neutre, et le texte garde
+                   son propre bouton d'ouverture. -->
+              <div class="card">
+                <span class="cv">
+                  <PochetteActions
+                    favori={a.id != null ? { albumId: a.id } : null}
+                    etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
+                    onLire={a.id != null ? () => lireAlbum(a.id!) : null}
+                    onOuvrir={() => (opened = a)}
+                    nom={a.title}
+                  >
+                    <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                  </PochetteActions>
+                </span>
+                <button class="meta" onclick={() => (opened = a)}>
+                  <span class="ct">{a.title}</span>
+                  <span class="ca">{a.artist_name ?? ''}</span>
+                </button>
+              </div>
             {/each}
           </div>
         </section>
@@ -221,7 +263,17 @@
               <div class="grid">
                 {#each r.albums.slice(0, 12) as a (a.source_id ?? a.id)}
                   <div class="card static">
-                    <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={null} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
+                    <span class="cv">
+                      <!-- Album de SERVICE : ni coeur ni etiquettes, tous deux
+                           adosses a un identifiant de la bibliotheque qu'il n'a
+                           pas. Lire exige la paire service + identifiant. -->
+                      <PochetteActions
+                        onLire={a.source && a.source_id ? () => lireDistant(a) : null}
+                        nom={a.title}
+                      >
+                        <AlbumArt coverPath={a.cover_path} albumId={null} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                      </PochetteActions>
+                    </span>
                     <span class="ct">{a.title}</span>
                     <span class="ca">{a.artist_name ?? ''}</span>
                   </div>
@@ -288,6 +340,12 @@
 
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}
   .card{border:0; background:transparent; color:inherit; cursor:pointer; text-align:left; padding:0; display:flex; flex-direction:column}
+  /* Le TEXTE garde son bouton : la carte n'en est plus un depuis que la
+     surcouche en pose cinq sur la pochette (un bouton dans un bouton est du
+     balisage invalide). Il herite du style de la carte pour que rien ne
+     bouge a l'ecran. */
+  .card .meta, .artile .meta{border:0; background:transparent; color:inherit; cursor:pointer;
+    padding:0; display:flex; flex-direction:column; text-align:inherit; width:100%; min-width:0}
   .card.static{cursor:default}
   .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.18s}
   .card:not(.static):hover .cv{box-shadow:0 10px 24px var(--v2-glow)}

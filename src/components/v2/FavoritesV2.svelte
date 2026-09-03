@@ -20,6 +20,7 @@
   import { fold, formatDuration, getQualityTier } from '../../lib/utils';
   import type { Album, Track, Artist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
+  import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { dialogs } from '../../lib/stores/dialogs';
   import { t } from '../../lib/i18n';
@@ -158,8 +159,10 @@
     if (zid == null || t.id == null) return;
     api.play(zid, { track_id: t.id }).catch(() => { error = 'Lecture impossible.'; });
   }
-  function queueAlbum(id: number | null | undefined, e: MouseEvent) {
-    e.stopPropagation();
+  // `e` optionnel : appelee depuis la carte historique (qui propage) ET depuis
+  // le menu de `PochetteActions`, qui a deja arrete le geste.
+  function queueAlbum(id: number | null | undefined, e?: MouseEvent) {
+    e?.stopPropagation();
     const zid = $currentZoneId;
     if (zid == null || id == null) return;
     api.addToQueue(zid, { album_id: id }).catch(() => { error = 'Mise en file impossible.'; });
@@ -218,22 +221,35 @@
       {:else}
         <div class="grid">
           {#each vAlbums as a (a.id)}
+            <!--
+              La MEME surcouche que partout ailleurs (Bertrand, 03/09/2026).
+
+              Cette carte avait la sienne : un bouton d'ouverture plein cadre,
+              puis lire / mettre en file / retirer des favoris dans un coin.
+              Trois gestes sur cinq, dessines autrement, avec un coeur qui ne
+              RETIRAIT que — il ne disait meme pas l'etat, puisqu'on est deja
+              dans les favoris.
+
+              `PochetteActions` porte le coeur (qui bascule dans les deux
+              sens), les etiquettes, l'edition, le menu et la lecture. « Ajouter
+              a la file » passe dans le MENU : c'est une action secondaire, et
+              elle n'a pas d'icone dediee dans la maquette.
+            -->
             <div class="card">
-              <button class="open" onclick={() => (opened = a)} aria-label={`Ouvrir ${a.title}`}></button>
-              <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
+              <span class="cv">
+                <PochetteActions
+                  favori={a.id != null ? { albumId: a.id } : null}
+                  etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
+                  onLire={() => playAlbum(a.id)}
+                  onOuvrir={() => (opened = a)}
+                  menu={a.id != null ? [{ libelle: $t('queue.addToQueue' as any), faire: () => queueAlbum(a.id) }] : []}
+                  nom={a.title}
+                >
+                  <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                </PochetteActions>
+              </span>
               <span class="ct">{a.title}</span>
               <span class="ca">{a.artist_name ?? ''}</span>
-              <span class="acts">
-                <button onclick={(e) => { e.stopPropagation(); playAlbum(a.id); }} aria-label="Lire">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>
-                </button>
-                <button onclick={(e) => queueAlbum(a.id, e)} aria-label="Ajouter à la file">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>
-                </button>
-                <button class="hot" onclick={(e) => unfav({ album_id: a.id ?? undefined }, e)} disabled={busy} aria-label="Retirer des favoris">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z"/></svg>
-                </button>
-              </span>
             </div>
           {/each}
         </div>
@@ -267,11 +283,16 @@
         <div class="arow">
           {#each vArtists as a (a.id ?? a.name)}
             <div class="art">
-              <span class="acv"><AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name} fallbackInitials={a.name?.slice(0,1)} /></span>
+              <span class="acv">
+                <PochetteActions
+                  favori={a.id != null ? { artistId: a.id } : null}
+                  etiquettes={a.id != null ? { itemType: 'artist', itemId: a.id } : null}
+                  nom={a.name}
+                >
+                  <AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name} fallbackInitials={a.name?.slice(0,1)} />
+                </PochetteActions>
+              </span>
               <span class="an">{a.name}</span>
-              <button class="hot round" onclick={(e) => unfav({ artist_id: a.id ?? undefined }, e)} disabled={busy} aria-label="Retirer des favoris">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z"/></svg>
-              </button>
             </div>
           {/each}
         </div>
@@ -399,18 +420,11 @@
 
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:22px}
   .card{position:relative; display:flex; flex-direction:column}
-  .open{position:absolute; inset:0; z-index:1; border:0; background:transparent; cursor:pointer; border-radius:var(--v2-r-card)}
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.18s}
   .card:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
   .ct{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .acts{position:absolute; right:8px; bottom:64px; z-index:2; display:flex; gap:5px; opacity:0; transition:.16s}
-  .card:hover .acts{opacity:1}
-  .acts button{width:30px; height:30px; border-radius:50%; border:0; cursor:pointer; display:grid; place-items:center;
-    background:rgba(0,0,0,.55); color:#fff}
-  .acts button:hover{background:var(--v2-acc1); color:var(--v2-on-acc)}
-  .acts svg{width:14px; height:14px}
   .hot{color:var(--v2-acc1)}
   .hot:hover{background:var(--v2-danger-bd); color:#fff}
   .hot:disabled{opacity:.5; cursor:default}

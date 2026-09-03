@@ -326,8 +326,10 @@
   /** Playlist en cours de renommage — le bouton haut-droit de la pochette. */
   let enEdition = $state<Playlist | null>(null);
 
-  function playStreaming(service: string, pl: StreamingPlaylist, e: MouseEvent) {
-    e.stopPropagation();
+  // `e` optionnel : appelee depuis la carte historique (qui propage) ET depuis
+  // `PochetteActions`, qui a deja arrete le geste.
+  function playStreaming(service: string, pl: StreamingPlaylist, e?: MouseEvent) {
+    e?.stopPropagation();
     const zid = $currentZoneId;
     if (zid == null) return;
     // `service`, PAS `pl.source` : voir `PlaylistDetailV2`. Le champ n'existe
@@ -443,16 +445,21 @@
       {:else}
         <div class="grid">
           {#each liste as pl (pl.source_id)}
+            <!-- La surcouche commune, comme les playlists locales de cet ecran
+                 (Bertrand, 03/09/2026). Ni coeur ni etiquettes : une playlist
+                 de service n'a pas de ligne dans la bibliotheque. -->
             <div class="card">
               <span class="cv img">
-                <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} alt={pl.name} source={source} fallbackInitials={pl.name?.slice(0,1)} />
+                <PochetteActions
+                  onLire={() => playStreaming(source, pl)}
+                  onOuvrir={() => (opened = { kind: 'streaming', service: source, pl })}
+                  nom={pl.name}
+                >
+                  <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} alt={pl.name} source={source} fallbackInitials={pl.name?.slice(0,1)} />
+                </PochetteActions>
               </span>
               <span class="ct">{pl.name}</span>
               <span class="ca">{pl.track_count} titres{pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}</span>
-              <button class="open" onclick={() => (opened = { kind: 'streaming', service: source, pl })} aria-label={`Ouvrir ${pl.name}`}></button>
-              <button class="pbtn" onclick={(e) => playStreaming(source, pl, e)} aria-label="Lire">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>
-              </button>
             </div>
           {/each}
         </div>
@@ -582,6 +589,7 @@
   .grp{padding:14px 30px 8px}
   .grp h2{font-size:18px; font-weight:700; padding-bottom:14px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:22px}
+  .card{position:relative; border:0; background:transparent; color:inherit; text-align:left; padding:0; display:flex; flex-direction:column}
   .outils{display:flex; align-items:center; gap:8px}
   .ghost{position:relative; display:inline-flex; align-items:center; gap:7px; cursor:pointer;
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:transparent;
@@ -623,8 +631,6 @@
   .sn{font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .sd{font:11px var(--v2-mono); color:var(--v2-txt3)}
 
-  .card{position:relative; border:0; background:transparent; color:inherit; text-align:left; padding:0; display:flex; flex-direction:column}
-  .open{position:absolute; inset:0; z-index:1; border:0; background:transparent; cursor:pointer; border-radius:var(--v2-r-card)}
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .cv{position:relative; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card);
     transition:.18s; display:grid; place-items:center; color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}

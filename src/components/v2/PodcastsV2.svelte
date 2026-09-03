@@ -20,6 +20,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { fold, formatDuration } from '../../lib/utils';
   import AlbumArt from '../AlbumArt.svelte';
+  import PochetteActions from './PochetteActions.svelte';
   import { PODCAST_GENRES, sousCategories } from '../../lib/podcast-genres';
   import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
@@ -647,8 +648,19 @@
 
 {#snippet tile(p: any, sub: boolean)}
   <div class="pc">
-    <button class="open" onclick={() => openPodcast(p)} aria-label={`Ouvrir ${title(p)}`}></button>
-    <span class="cv"><AlbumArt coverPath={cover(p)} albumId={null} size={0} alt={title(p)} fallbackInitials={title(p).slice(0,1)} /></span>
+    <!--
+      La surcouche commune, en remplacement du bouton d'ouverture plein cadre
+      (Bertrand, 03/09/2026).
+
+      Ni coeur ni etiquettes : un podcast n'est pas une ligne de la
+      bibliotheque. Le bouton d'ABONNEMENT reste a part — c'est le geste propre
+      a cet ecran, il porte deux etats, et il doit rester visible sans survol.
+    -->
+    <span class="cv">
+      <PochetteActions onOuvrir={() => openPodcast(p)} nom={title(p)}>
+        <AlbumArt coverPath={cover(p)} albumId={null} size={0} alt={title(p)} fallbackInitials={title(p).slice(0,1)} />
+      </PochetteActions>
+    </span>
     <span class="nm">{title(p)}</span>
     {#if author(p)}<span class="au">{author(p)}</span>{/if}
     <!-- Sans FLUX, il n'y a rien à quoi s'abonner : `toggleSub` sortait
@@ -737,10 +749,9 @@
   .sec{padding:6px 30px 20px}
   .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px; padding:0 30px}
+  .pc{position:relative; display:flex; flex-direction:column}
   .sec .grid{padding:0}
 
-  .pc{position:relative; display:flex; flex-direction:column}
-  .open{position:absolute; inset:0; z-index:1; border:0; background:transparent; cursor:pointer; border-radius:var(--v2-r-card)}
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.18s}
   .pc:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}

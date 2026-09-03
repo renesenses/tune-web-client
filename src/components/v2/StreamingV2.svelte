@@ -30,6 +30,7 @@
   import { activeView } from '../../lib/stores/navigation';
   import type { StreamingServiceStatus, StreamingPlaylist, SearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
+  import PochetteActions from './PochetteActions.svelte';
   import PageWidgets from './PageWidgets.svelte';
   import { catalogueService, dispositionDefautService, cleService, titreService } from '../../lib/widgetsService';
   import type { Widget } from '../../lib/accueilWidgets';
@@ -555,10 +556,25 @@
   </div>
 </section>
 
+<!--
+  La vignette de TOUS les rayons de cet ecran — recherche, editorial, genres,
+  favoris. Un seul endroit a tenir.
+
+  La surcouche commune y remplace le bouton d'ouverture plein cadre qu'elle
+  portait (Bertrand, 03/09/2026).
+
+  Ni coeur ni etiquettes : les deux s'adossent a un identifiant de la
+  bibliotheque, qu'un objet de service n'a pas. `onOuvrir` LIT, comme avant —
+  cliquer la pochette lancait deja la lecture, et cet ecran n'a pas de fiche
+  distante a ouvrir.
+-->
 {#snippet tile(p: any, onPlay: () => void)}
   <div class="card">
-    <button class="open" onclick={onPlay} aria-label={`Lire ${pTitle(p)}`}></button>
-    <span class="cv"><AlbumArt coverPath={pCover(p)} albumId={null} size={0} alt={pTitle(p)} source={p?.source ?? active} fallbackInitials={pTitle(p).slice(0,1)} /></span>
+    <span class="cv">
+      <PochetteActions onLire={onPlay} onOuvrir={onPlay} nom={pTitle(p)}>
+        <AlbumArt coverPath={pCover(p)} albumId={null} size={0} alt={pTitle(p)} source={p?.source ?? active} fallbackInitials={pTitle(p).slice(0,1)} />
+      </PochetteActions>
+    </span>
     <span class="ct">{pTitle(p)}</span>
     {#if pSub(p)}<span class="ca">{pSub(p)}</span>{/if}
   </div>
@@ -629,7 +645,6 @@
   .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}
   .card{position:relative; display:flex; flex-direction:column}
-  .open{position:absolute; inset:0; z-index:1; border:0; background:transparent; cursor:pointer; border-radius:var(--v2-r-card)}
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.18s}
   .card:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
