@@ -162,7 +162,7 @@
     <p class="foot">
       L'édition champ par champ et l'enrichissement par lot ne sont pas repris ici :
       ils restent dans le client actuel, hors du drapeau <code>?v2</code>.
-      L'avancement de l'enrichissement se suit dans <b>Tune Health</b>.
+      L'avancement de l'enrichissement se suit dans <b>Processing</b>.
     </p>
   </div>
 </section>

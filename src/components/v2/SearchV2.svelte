@@ -281,7 +281,8 @@
   .arow{display:flex; gap:22px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none}
   .arow::-webkit-scrollbar{display:none}
   .artile{flex:0 0 auto; width:112px; border:0; background:transparent; color:inherit; cursor:pointer; text-align:center; padding:0}
-  .acv{display:block; width:112px; height:112px; border-radius:50%; overflow:hidden; box-shadow:var(--v2-sh-card)}
+  /* Carrée comme un album — voir `ArtistesV2`. */
+  .acv{display:block; width:112px; height:112px; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
   .artile .an{display:block; margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .artile:hover .an{color:var(--v2-acc-tint)}
 

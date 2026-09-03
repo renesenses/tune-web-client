@@ -16,8 +16,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { t } from '../../lib/i18n';
-  import { shortcuts, loadShortcuts, navigateToShortcut, addShortcut } from '../../lib/stores/shortcuts';
-  import { notifications } from '../../lib/stores/notifications';
+  import { shortcuts, loadShortcuts, navigateToShortcut } from '../../lib/stores/shortcuts';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
 
@@ -95,7 +94,7 @@
     { view: 'converter', label: 'Convertisseur', icon: 'M4 8h13l-3-3M20 16H7l3 3' },
     { view: 'declick', label: 'Dé-ploc', icon: 'M3 12h4l3-8 4 16 3-8h4' },
     { view: 'metadata', label: 'Métadonnées', icon: 'M20 12l-8 8-9-9V4h7zM8 8h.01' },
-    { view: 'diagnostics', label: 'Tune Health', icon: 'M3 12h4l2 6 4-14 2 8h6' },
+    { view: 'diagnostics', label: 'Processing', icon: 'M3 12h4l2 6 4-14 2 8h6' },
   ];
 
   /**
@@ -114,31 +113,6 @@
       .sort((a, b) => Number(b.pinned !== false) - Number(a.pinned !== false))
       .slice(0, RACCOURCIS_BARRE),
   );
-
-  /**
-   * Créer un raccourci sur la vue COURANTE.
-   *
-   * Il manquait entièrement : la barre montrait les raccourcis et menait à leur
-   * écran, mais rien ne permettait d'en poser un. `addShortcut` fige l'écran
-   * affiché — sa vue, son onglet, l'objet ouvert — via `captureCurrentView`.
-   */
-  let creation = $state(false);
-  let nomRaccourci = $state('');
-  let enregistrement = $state(false);
-
-  async function creerRaccourci() {
-    const n = nomRaccourci.trim();
-    if (!n || enregistrement) return;
-    enregistrement = true;
-    try {
-      await addShortcut(n, '⭐');
-      nomRaccourci = '';
-      creation = false;
-    } catch (e: any) {
-      notifications.error(e?.message ?? 'Raccourci impossible.');
-    }
-    enregistrement = false;
-  }
 
   const level = $derived($preferences.settingsLevel);
   const showAdvanced = $derived(atLeast(level, 'intermediate'));
@@ -199,22 +173,16 @@
     </nav>
 
     <nav class="grp">
-      <div class="grp-label ligne">
-        <span>{$t('v2.nav.shortcuts' as any)}</span>
-        <!-- Poser un raccourci sur la vue COURANTE. Sans ce bouton, la barre
-             les affichait sans qu'on puisse jamais en créer. -->
-        <button class="plus" onclick={() => (creation = !creation)}
-          aria-label={$t('v2.nav.addShortcut' as any)} title={$t('v2.nav.addShortcut' as any)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
-      </div>
-      {#if creation}
-        <form class="nouveau" onsubmit={(e) => { e.preventDefault(); void creerRaccourci(); }}>
-          <!-- svelte-ignore a11y_autofocus -->
-          <input bind:value={nomRaccourci} placeholder={$t('v2.nav.shortcutName' as any)} autofocus
-            onkeydown={(e) => { if (e.key === 'Escape') { creation = false; nomRaccourci = ''; } }} />
-        </form>
-      {/if}
+      <!--
+        PLUS de bouton « + » ici. Retiré à la demande de Bertrand le
+        03/09/2026.
+
+        Il datait du moment où la barre affichait des raccourcis sans qu'on
+        puisse jamais en créer. Depuis, le SIGNET de l'en-tête pose un
+        raccourci sur n'importe quel écran, en capturant la vue courante — un
+        seul endroit à connaître, au lieu de deux gestes pour le même geste.
+      -->
+      <div class="grp-label"><span>{$t('v2.nav.shortcuts' as any)}</span></div>
         {#each raccourcisVisibles as sc (sc.id)}
           <button class="nav" onclick={() => navigateToShortcut(sc)} title={collapsed ? sc.name : undefined}>
             <span class="emo" aria-hidden="true">{sc.icon}</span>
@@ -279,15 +247,6 @@
   /* L'icône d'un raccourci est un EMOJI choisi par l'utilisateur, pas un
      tracé : il occupe la même case que les pictogrammes pour que la colonne
      reste alignée. */
-  .grp-label.ligne{display:flex; align-items:center; justify-content:space-between; gap:6px}
-  .plus{width:20px; height:20px; border:0; border-radius:6px; background:transparent; color:var(--v2-txt3);
-    display:grid; place-items:center; cursor:pointer}
-  .plus:hover{color:var(--v2-txt); background:var(--v2-hover)}
-  .plus svg{width:13px; height:13px}
-  .nouveau input{width:100%; box-sizing:border-box; margin:4px 0 6px; background:var(--v2-bg);
-    border:1px solid var(--v2-line2); border-radius:8px; color:var(--v2-txt); font:inherit;
-    font-size:12.5px; padding:6px 8px}
-  .v2-sidebar.collapsed .nouveau{display:none}
   .emo{width:17px; height:17px; display:grid; place-items:center; font-size:14px; line-height:1; flex:none}
   .brand{position:relative; display:flex; align-items:center; gap:11px; padding:4px 8px 22px}
   .collapse{margin-left:auto; width:26px; height:26px; border-radius:8px; border:0; cursor:pointer;

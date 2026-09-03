@@ -304,9 +304,23 @@
     contain-intrinsic-size: auto 210px;
   }
   .cv { position: relative; aspect-ratio: 1; border-radius: var(--v2-r-card); overflow: hidden; }
-  /* L'avatar est ROND, comme dans l'écran actuel — c'est ce qui distingue une
-     carte d'artiste d'une carte d'album au premier coup d'œil. */
-  .cv.rond { border-radius: 50%; }
+  /*
+    Pochettes d'artiste CARRÉES, comme les albums — décision de Bertrand du
+    03/09/2026, sur trois mesures :
+
+     1. 1651 artistes sur son serveur, ZÉRO image. La forme ne portait donc
+        qu'une pastille d'initiales, jamais un portrait.
+     2. Les images d'artistes des services sont déjà carrées — celle de John
+        Coltrane chez Qobuz fait 550×550. Un cercle en jetait 21 % (1 − π/4),
+        pris sur les bords, là où se trouvent les visages d'un groupe.
+     3. Les vignettes d'artiste sont enveloppées dans `PochetteActions`, dont
+        le cadre est CARRÉ : les quatre icônes de coin tombaient dans le vide
+        autour du disque, sur du fond plutôt que sur l'image.
+
+    Ce qui distingue encore une carte d'artiste d'une carte d'album, c'est le
+    nom CENTRÉ — les albums alignent le leur à gauche.
+  */
+  .cv.rond { border-radius: var(--v2-r-card); }
   .cv :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
   /*
     Les initiales sont CENTRÉES dans leur cercle et ne le débordent pas.
@@ -361,7 +375,7 @@
   }
   .retour:hover { color: var(--v2-txt); }
   .ident { display: flex; align-items: center; gap: 16px; }
-  .av { display: block; width: 84px; height: 84px; border-radius: 50%; overflow: hidden; flex: none; }
+  .av { display: block; width: 84px; height: 84px; border-radius: var(--v2-r-card); overflow: hidden; flex: none; }
   .av :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
   .fiche h1 { font-size: 26px; font-weight: 800; letter-spacing: -.01em; }
   .cpt { font: 11px var(--v2-mono); color: var(--v2-txt3); margin-top: 4px; }

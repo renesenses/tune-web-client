@@ -2017,7 +2017,7 @@
                       <button class:on={clapThrottle === 'rapide'} onclick={() => setThrottle('rapide')}>{$t('acoustic.throttleFast' as any)}</button>
                     </div>
                   </div>
-                  <p class="hint">{formatNumber(clapAnalysed)} titres analysés. L'avancement se suit dans <b>Tune Health</b>.</p>
+                  <p class="hint">{formatNumber(clapAnalysed)} titres analysés. L'avancement se suit dans <b>Processing</b>.</p>
                 {/if}
               {/if}
 

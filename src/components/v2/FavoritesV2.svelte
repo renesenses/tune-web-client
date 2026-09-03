@@ -434,7 +434,8 @@
 
   .arow{display:grid; grid-template-columns:repeat(auto-fill,minmax(128px,1fr)); gap:24px}
   .art{position:relative; display:flex; flex-direction:column; align-items:center; text-align:center}
-  .acv{display:block; width:112px; height:112px; border-radius:50%; overflow:hidden; box-shadow:var(--v2-sh-card)}
+  /* Carrée comme un album — voir `ArtistesV2`. */
+  .acv{display:block; width:112px; height:112px; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
   .an{margin-top:10px; font:600 13px var(--v2-sans); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .hot.round{position:absolute; top:2px; right:50%; transform:translateX(58px); width:28px; height:28px;
     border-radius:50%; border:0; background:rgba(0,0,0,.55); cursor:pointer; display:grid; place-items:center; opacity:0; transition:.16s}

@@ -639,6 +639,7 @@
   .arow{display:flex; gap:22px; overflow-x:auto; padding-bottom:6px; scrollbar-width:none}
   .arow::-webkit-scrollbar{display:none}
   .art{flex:0 0 auto; width:110px; text-align:center}
-  .acv{display:block; width:110px; height:110px; border-radius:50%; overflow:hidden; box-shadow:var(--v2-sh-card)}
+  /* Carrée comme un album — voir `ArtistesV2`. */
+  .acv{display:block; width:110px; height:110px; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
   .an{display:block; margin-top:9px; font:600 12.5px var(--v2-sans); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 </style>

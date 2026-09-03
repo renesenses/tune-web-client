@@ -186,7 +186,7 @@
   <header class="top">
     <div>
       <div class="eyebrow">État du serveur</div>
-      <h1>Tune Health</h1>
+      <h1>Processing</h1>
     </div>
     <div class="meta">
       {#if lastAt}<span>relevé à {lastAt}</span>{/if}

@@ -63,7 +63,7 @@
     zonemanager: 'Zones', mediaservers: 'Serveurs multimédia',
     equalizer: 'Égaliseur', crossfeed: 'Crossfeed', converter: 'Convertisseur',
     declick: 'Dé-ploc', metadata: 'Métadonnées', plugins: 'Extensions',
-    diagnostics: 'Tune Health', settings: 'Réglages', support: 'Support', genres: 'Genres',
+    diagnostics: 'Processing', settings: 'Réglages', support: 'Support', genres: 'Genres',
   };
   const label = $derived(LABELS[$activeView] ?? $activeView);
 
