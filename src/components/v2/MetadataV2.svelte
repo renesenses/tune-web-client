@@ -15,9 +15,14 @@
   import type { MetadataProposal, DoubtfulAlbum } from '../../lib/api';
   import { formatNumber } from '../../lib/utils';
   import AlbumArt from '../AlbumArt.svelte';
+  // L'arbre des genres du client actuel, REPRIS tel quel plutôt que réécrit :
+  // 426 lignes qui savent charger, renommer, fusionner et enregistrer. Le
+  // dupliquer en style v2 aurait été quatre cents lignes de risque pour un
+  // habillage. Il est habillé par le conteneur, voir `.gt-v2`.
+  import GenreTreeView from '../GenreTreeView.svelte';
   import '../../styles/tune-v2.css';
 
-  type Tab = 'proposals' | 'doubtful';
+  type Tab = 'proposals' | 'doubtful' | 'genres';
   let tab = $state<Tab>('proposals');
 
   let proposals = $state<MetadataProposal[]>([]);
@@ -87,6 +92,7 @@
     <nav class="tabs">
       <button class:on={tab === 'proposals'} onclick={() => (tab = 'proposals')}>Propositions<span>{formatNumber(pending)}</span></button>
       <button class:on={tab === 'doubtful'} onclick={() => (tab = 'doubtful')}>Albums douteux{#if dLoaded}<span>{formatNumber(doubtful.length)}</span>{/if}</button>
+      <button class:on={tab === 'genres'} onclick={() => (tab = 'genres')}>Arbre des genres</button>
     </nav>
   </header>
 
@@ -135,6 +141,21 @@
         </div>
       {/if}
 
+    {:else if tab === 'genres'}
+      <!--
+        L'arbre des genres, demandé par Bertrand le 03/09/2026 en troisième
+        onglet.
+
+        Il vient du client actuel, sans modification. Le conteneur redéfinit les
+        sept variables `--tune-*` qu'il utilise à partir de la palette `--v2-*` :
+        c'est ce qui l'accorde à cet écran sans toucher une ligne du composant,
+        ni le figer dans une seule apparence. Sans cela, il aurait été un îlot
+        à l'ancien thème au milieu du nouveau.
+      -->
+      <div class="gt-v2">
+        <GenreTreeView />
+      </div>
+
     {:else if dLoading}
       <div class="state">Chargement…</div>
     {:else if !doubtful.length}
@@ -159,15 +180,39 @@
     <!-- Pas de bouton « ouvrir l'éditeur » : la vue `metadata` est CET écran
          désormais, un lien y renverrait sur lui-même. On dit où c'est, sans
          promettre un raccourci qui tourne en rond. -->
-    <p class="foot">
-      L'édition champ par champ et l'enrichissement par lot ne sont pas repris ici :
-      ils restent dans le client actuel, hors du drapeau <code>?v2</code>.
-      L'avancement de l'enrichissement se suit dans <b>Processing</b>.
-    </p>
+    {#if tab !== 'genres'}
+      <p class="foot">
+        L'édition champ par champ et l'enrichissement par lot ne sont pas repris ici :
+        ils restent dans le client actuel, hors du drapeau <code>?v2</code>.
+        L'avancement de l'enrichissement se suit dans <b>Processing</b>.
+      </p>
+    {/if}
   </div>
 </section>
 
 <style>
+  /*
+    Habillage de l'arbre des genres repris du client actuel.
+
+    Il n'utilise que SEPT variables `--tune-*` — je les ai comptées. Les
+    redéfinir ici depuis la palette `--v2-*` l'accorde à cet écran sans
+    modifier une ligne du composant : il reste utilisable tel quel dans le
+    client actuel, où ces variables gardent leurs valeurs d'origine.
+
+    `--tune-accent-rgb` est un TRIPLET, pas une couleur : il sert dans des
+    `rgba(var(...), .15)`. La palette v2 n'en publie aucun ; on garde donc la
+    valeur de repli du composant plutôt que d'inventer une conversion qui
+    casserait au premier changement de thème.
+  */
+  .gt-v2{
+    --tune-bg: var(--v2-bg);
+    --tune-surface: var(--v2-surface);
+    --tune-text: var(--v2-txt);
+    --tune-text-muted: var(--v2-txt3);
+    --tune-border: var(--v2-line2);
+    --tune-accent: var(--v2-acc1);
+    font-family: var(--v2-sans);
+  }
   .v2-meta{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .top{display:flex; align-items:flex-end; gap:22px; padding:24px 30px 14px; padding-right:96px}
