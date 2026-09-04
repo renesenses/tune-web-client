@@ -13,10 +13,11 @@
    * avec ces six chargements indépendants.
    */
   import { onMount } from 'svelte';
+  import { formatNombre } from '../lib/formats';
   import { activeView } from '../lib/stores/navigation';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { playFromHere } from '../lib/playback';
-  import { formatNumber } from '../lib/utils';
+  import { } from '../lib/utils';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
@@ -26,8 +27,7 @@
     ouvrirAlbum as navigateToAlbum,
     ouvrirArtiste as navigateToArtist,
     ouvrirArtisteParNom as navigateArtistByName,
-    ouvrirBibliotheque as goToLibrary,
-  } from '../lib/libraryNavigation';
+    ouvrirBibliotheque as goToLibrary } from '../lib/libraryNavigation';
 
   let zone = $derived($currentZone);
 
@@ -103,8 +103,7 @@
         new_artists: raw.totals?.unique_artists ?? 0,
         peak_hour: raw.hourly?.length ? raw.hourly.reduce((a: any, b: any) => a.plays > b.plays ? a : b).hour : null,
         daily: ((raw as any).daily || raw.trend || []).map((d: any) => ({ ...d, date: d.day, count: d.plays })),
-        genres: ((raw as any).genres || (raw as any).by_genre || []).map((g: any) => ({ ...g, name: g.genre, count: g.plays })),
-      };
+        genres: ((raw as any).genres || (raw as any).by_genre || []).map((g: any) => ({ ...g, name: g.genre, count: g.plays })) };
       dashboardLoaded = true;
     } catch (e) {
       console.error('Load dashboard error:', e);
@@ -279,15 +278,15 @@
           <span class="dash-empty-label">{$t('home.emptyState.libraryStats')}</span>
           <div class="dash-empty-stats">
             <button class="dash-big-stat clickable" onclick={() => goToLibrary('albums')}>
-              <span class="dash-big-number">{formatNumber(stats.albums)}</span>
+              <span class="dash-big-number">{$formatNombre(stats.albums)}</span>
               <span class="dash-big-label">{$t('common.albums')}</span>
             </button>
             <button class="dash-big-stat clickable" onclick={() => goToLibrary('artists')}>
-              <span class="dash-big-number">{formatNumber(stats.artists)}</span>
+              <span class="dash-big-number">{$formatNombre(stats.artists)}</span>
               <span class="dash-big-label">{$t('common.artists')}</span>
             </button>
             <button class="dash-big-stat clickable" onclick={() => goToLibrary('tracks')}>
-              <span class="dash-big-number">{formatNumber(stats.tracks)}</span>
+              <span class="dash-big-number">{$formatNombre(stats.tracks)}</span>
               <span class="dash-big-label">{$t('home.tracks').toLowerCase()}</span>
             </button>
           </div>
@@ -303,7 +302,7 @@
       <div class="dash-stats">
         {#if dashboard.total_plays != null}
           <button class="dash-big-stat clickable" onclick={() => activeView.set('history')}>
-            <span class="dash-big-number">{formatNumber(dashboard.total_plays)}</span>
+            <span class="dash-big-number">{$formatNombre(dashboard.total_plays)}</span>
             <span class="dash-big-label">{$t('home.playbacks')}</span>
           </button>
         {/if}

@@ -65,6 +65,27 @@ export function couvertureAnnees(albums: readonly Album[], mode: ModeAnnee): num
 }
 
 /**
+ * Combien d'albums CHANGENT d'année selon le mode retenu.
+ *
+ * La couverture ne suffit pas à distinguer les modes : sur cette
+ * bibliothèque, « origine sinon édition » et « année d'édition » datent tous
+ * deux 3049 albums — les 90 qui portent une année d'origine portent aussi une
+ * année d'édition. Deux chiffres identiques donnent l'impression de deux
+ * options interchangeables.
+ *
+ * Ce nombre-ci répond à l'autre question, celle qu'on se pose vraiment :
+ * qu'est-ce que ça change ? Mesure du 04/09/2026 sur le .18 : **28 albums**,
+ * dont « Wish You Were Here » — édition 1994, origine 1975.
+ */
+export function albumsQuiChangent(albums: readonly Album[]): number {
+  return albums.reduce((n, a) => {
+    const e = anneeAlbum(a, 'edition');
+    const o = anneeAlbum(a, 'origine');
+    return n + (e != null && o != null && e !== o ? 1 : 0);
+  }, 0);
+}
+
+/**
  * Compare deux années pour un tri, sens compris.
  *
  * Un album SANS année part en dernier dans les DEUX sens : en ordre croissant,

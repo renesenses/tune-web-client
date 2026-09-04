@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { formatAnneeAlbum } from '../lib/formats';
   import { dialogs } from '../lib/stores/dialogs';
-  import { formatAlbumYear } from '../lib/utils';
+  import { } from '../lib/utils';
   import * as api from '../lib/api';
   import type { SmartCollection } from '../lib/types';
   import SmartCollectionEditor from './SmartCollectionEditor.svelte';
@@ -128,8 +129,7 @@
     setShortcutTarget({
       key: `smartcollections:${col.id}`,
       restore: { id: col.id, name: col.name },
-      label: col.name,
-    });
+      label: col.name });
     albumsLoading = true;
     try {
       selectedAlbums = await api.getSmartCollectionAlbums(col.id);
@@ -282,7 +282,7 @@
               {#if alb.artist_name}
                 <span class="album-card-artist truncate" title={alb.artist_name}>{alb.artist_name}</span>
               {/if}
-              {#if alb.year || alb.original_year}<span class="album-card-year">{formatAlbumYear(alb)}</span>{/if}
+              {#if alb.year || alb.original_year}<span class="album-card-year">{$formatAnneeAlbum(alb)}</span>{/if}
             </div>
           {/each}
         </div>

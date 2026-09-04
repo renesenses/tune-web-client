@@ -12,8 +12,9 @@
    * qu'on possède déjà. L'écran le dit, sinon on croit jeter l'information.
    */
   import * as api from '../../lib/api';
+  import { formatNombre } from '../../lib/formats';
   import type { MetadataProposal, DoubtfulAlbum } from '../../lib/api';
-  import { formatNumber } from '../../lib/utils';
+  import { } from '../../lib/utils';
   import AlbumArt from '../AlbumArt.svelte';
   // L'arbre des genres du client actuel, REPRIS tel quel plutôt que réécrit :
   // 426 lignes qui savent charger, renommer, fusionner et enregistrer. Le
@@ -76,12 +77,10 @@
 
   const FIELDS: Record<string, string> = {
     title: 'Titre', artist: 'Artiste', album: 'Album', genre: 'Genre',
-    year: 'Année', label: 'Label', composer: 'Compositeur',
-  };
+    year: 'Année', label: 'Label', composer: 'Compositeur' };
   const REASONS: Record<string, string> = {
     no_year: 'Année manquante', no_genre: 'Genre manquant', no_cover: 'Pochette manquante',
-    no_artist: 'Artiste manquant', unknown_artist: 'Artiste inconnu',
-  };
+    no_artist: 'Artiste manquant', unknown_artist: 'Artiste inconnu' };
 </script>
 
 <section class="v2-meta tune-v2">
@@ -91,8 +90,8 @@
       <h1>{$t('v2.meta.title' as any)}</h1>
     </div>
     <nav class="tabs">
-      <button class:on={tab === 'proposals'} onclick={() => (tab = 'proposals')}>{$t('v2.meta.tabProposals' as any)}<span>{formatNumber(pending)}</span></button>
-      <button class:on={tab === 'doubtful'} onclick={() => (tab = 'doubtful')}>{$t('v2.meta.tabDoubtful' as any)}{#if dLoaded}<span>{formatNumber(doubtful.length)}</span>{/if}</button>
+      <button class:on={tab === 'proposals'} onclick={() => (tab = 'proposals')}>{$t('v2.meta.tabProposals' as any)}<span>{$formatNombre(pending)}</span></button>
+      <button class:on={tab === 'doubtful'} onclick={() => (tab = 'doubtful')}>{$t('v2.meta.tabDoubtful' as any)}{#if dLoaded}<span>{$formatNombre(doubtful.length)}</span>{/if}</button>
       <button class:on={tab === 'genres'} onclick={() => (tab = 'genres')}>{$t('v2.meta.tabGenres' as any)}</button>
     </nav>
   </header>
@@ -131,7 +130,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                   <span class="new">{p.proposed ?? '—'}</span>
                 </div>
-                <div class="src">{formatNumber(p.servers_count)} bibliothèque{p.servers_count > 1 ? 's' : ''} portent cette valeur</div>
+                <div class="src">{$formatNombre(p.servers_count)} bibliothèque{p.servers_count > 1 ? 's' : ''} portent cette valeur</div>
               </div>
               <div class="pa">
                 <button class="go" disabled={busy === p.id} onclick={() => decide(p, true)}>{$t('v2.meta.accept' as any)}</button>

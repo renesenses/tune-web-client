@@ -45,18 +45,61 @@ describe('les formateurs suivent la langue', () => {
   });
 });
 
-describe('plus aucun écran v2 ne fige la langue des dates', () => {
-  it('aucun toLocale*String(\'fr-FR\') dans src/components/v2', () => {
-    const dossier = join(process.cwd(), 'src/components/v2');
+/** Retire commentaires de bloc et de ligne : une doc qui CITE le defaut ne
+ *  doit pas passer pour le defaut. */
+function sansCommentaires(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+}
+
+/** Tous les `.svelte` et `.ts` sous une racine, sauf les tests. */
+function fichiers(racine: string): string[] {
+  const out: string[] = [];
+  for (const e of readdirSync(racine, { withFileTypes: true })) {
+    const p = join(racine, e.name);
+    if (e.isDirectory()) { if (e.name !== '__tests__') out.push(...fichiers(p)); }
+    else if (/\.(svelte|ts)$/.test(e.name)) out.push(p);
+  }
+  return out;
+}
+
+describe('plus aucun écran ne fige la langue des dates ni des nombres', () => {
+  /*
+   * Périmètre élargi le 04/09/2026 : il ne couvrait que `src/components/v2`.
+   * Or `formatNumber` et `formatAlbumYear` figeaient `fr-FR` dans
+   * `src/lib/utils.ts`, hors de portée — 50 et 12 appelants respectivement.
+   * Une garde qui ne regarde qu'un dossier laisse le défaut vivre à côté.
+   *
+   * `AiChat.svelte` est la seule exception, et elle est légitime : il y tient
+   * une TABLE de correspondance langue → BCP-47 (`fr: 'fr-FR', en: 'en-US'…`),
+   * qui est justement le contraire d'un code figé.
+   */
+  const EXCEPTIONS = ['AiChat.svelte'];
+
+  it('aucun code de langue figé dans src/components ni src/lib', () => {
     const fautifs: string[] = [];
-    for (const f of readdirSync(dossier).filter((x) => x.endsWith('.svelte'))) {
-      const src = readFileSync(join(dossier, f), 'utf8');
-      // On vise le CODE DE LANGUE fige, quel qu'il soit : 'fr-FR' comme
-      // 'en-US'. Passer de l'un a l'autre ne corrigerait rien.
-      for (const m of src.matchAll(/toLocale\w*String\(\s*['"]([a-z]{2}-[A-Z]{2})['"]/g)) {
-        fautifs.push(`${f} → ${m[1]}`);
+    for (const racine of ['src/components', 'src/lib']) {
+      for (const f of fichiers(join(process.cwd(), racine))) {
+        if (EXCEPTIONS.some((e) => f.endsWith(e))) continue;
+        const src = sansCommentaires(readFileSync(f, 'utf8'));
+        // On vise le CODE DE LANGUE figé, quel qu'il soit : 'fr-FR' comme
+        // 'en-US'. Passer de l'un à l'autre ne corrigerait rien.
+        for (const m of src.matchAll(/toLocale\w*String\(\s*['"]([a-z]{2}-[A-Z]{2})['"]/g)) {
+          fautifs.push(`${f.slice(f.indexOf('src/'))} → ${m[1]}`);
+        }
       }
     }
-    expect(fautifs, 'ces dates ignoreront la langue choisie').toEqual([]);
+    expect(fautifs, 'ces valeurs ignoreront la langue choisie').toEqual([]);
+  });
+
+  it('le balayage voit bien des fichiers (sinon il ne garde rien)', () => {
+    expect(fichiers(join(process.cwd(), 'src/components')).length).toBeGreaterThan(50);
+    expect(fichiers(join(process.cwd(), 'src/lib')).length).toBeGreaterThan(10);
+  });
+
+  it('utils.ts n’expose plus de formateur figé', () => {
+    // Les laisser en place, même inutilisés, inviterait à les réutiliser.
+    const utils = readFileSync(join(process.cwd(), 'src/lib/utils.ts'), 'utf8');
+    expect(utils.includes('export function formatNumber'), 'formatNumber est revenu').toBe(false);
+    expect(utils.includes('export function formatAlbumYear'), 'formatAlbumYear est revenu').toBe(false);
   });
 });

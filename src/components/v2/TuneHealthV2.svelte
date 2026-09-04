@@ -17,8 +17,9 @@
    * en cours : un écran de santé ne doit pas être lui-même une charge.
    */
   import * as api from '../../lib/api';
+  import { formatNombre } from '../../lib/formats';
   import { activeView } from '../../lib/stores/navigation';
-  import { formatNumber } from '../../lib/utils';
+  import { } from '../../lib/utils';
   import { heureSeule } from '../../lib/dates';
   import '../../styles/tune-v2.css';
 
@@ -55,9 +56,9 @@
       const scanning = !!scan.value?.scanning;
       const r = report.status === 'fulfilled' ? report.value : null;
       const bits: string[] = [];
-      if (r?.inserted != null) bits.push(`${formatNumber(r.inserted)} ajoutés`);
-      if (r?.updated != null) bits.push(`${formatNumber(r.updated)} mis à jour`);
-      if (r?.skipped != null) bits.push(`${formatNumber(r.skipped)} ignorés`);
+      if (r?.inserted != null) bits.push(`${$formatNombre(r.inserted)} ajoutés`);
+      if (r?.updated != null) bits.push(`${$formatNombre(r.updated)} mis à jour`);
+      if (r?.skipped != null) bits.push(`${$formatNombre(r.skipped)} ignorés`);
       const failures = (r?.failed_paths?.length ?? 0) + (r?.error_dirs?.length ?? 0);
       out.push({
         id: 'scan', titre: 'Analyse de la bibliothèque',
@@ -82,16 +83,15 @@
           etat: 'off', ligne: "Ce serveur n'embarque pas la brique acoustique." });
       } else if (!s.enabled) {
         out.push({ id: 'clap', titre: 'Analyse acoustique', sous: 'Recherche par ambiance (CLAP)',
-          etat: 'off', ligne: 'Désactivée sur ce serveur.', detail: `${formatNumber(done)} titres déjà analysés` });
+          etat: 'off', ligne: 'Désactivée sur ce serveur.', detail: `${$formatNombre(done)} titres déjà analysés` });
       } else {
         out.push({
           id: 'clap', titre: 'Analyse acoustique', sous: 'Recherche par ambiance (CLAP)',
           etat: totalTracks && done >= totalTracks ? 'done' : done > 0 ? 'running' : 'idle',
           ligne: totalTracks
-            ? `${formatNumber(done)} titres analysés sur ${formatNumber(totalTracks)}`
-            : `${formatNumber(done)} titres analysés`,
-          fait: done, total: totalTracks || undefined,
-        });
+            ? `${$formatNombre(done)} titres analysés sur ${$formatNombre(totalTracks)}`
+            : `${$formatNombre(done)} titres analysés`,
+          fait: done, total: totalTracks || undefined });
       }
     } else {
       out.push({ id: 'clap', titre: 'Analyse acoustique', sous: 'Recherche par ambiance (CLAP)',
@@ -112,8 +112,7 @@
         etat: mode === 'off' ? 'off' : 'idle',
         ligne: `${modeLabel} — source : ${analysis ? 'tags des fichiers + analyse' : 'tags des fichiers seuls'}`,
         detail: "Le serveur n'expose pas l'avancement du calcul.",
-        sansJauge: true,
-      });
+        sansJauge: true });
     } else {
       out.push({ id: 'rg', titre: 'ReplayGain', sous: 'Normalisation du niveau',
         etat: 'inconnu', ligne: 'État indisponible', sansJauge: true });
@@ -127,10 +126,9 @@
       out.push({
         id: 'enrich', titre: 'Enrichissement des métadonnées', sous: 'Complément depuis les bases publiques',
         etat: s?.status === 'running' ? 'running' : s?.status === 'done' ? 'done' : 'idle',
-        ligne: total ? `${formatNumber(done)} sur ${formatNumber(total)}` : `${formatNumber(done)} enrichis`,
+        ligne: total ? `${$formatNombre(done)} sur ${$formatNombre(total)}` : `${$formatNombre(done)} enrichis`,
         fait: done, total: total || undefined,
-        detail: s?.errors ? `${formatNumber(s.errors)} en échec` : undefined,
-      });
+        detail: s?.errors ? `${$formatNombre(s.errors)} en échec` : undefined });
     } else {
       out.push({ id: 'enrich', titre: 'Enrichissement des métadonnées', sous: 'Complément depuis les bases publiques',
         etat: 'inconnu', ligne: 'État indisponible' });
@@ -146,11 +144,10 @@
         id: 'covers', titre: "Pochettes d'artistes", sous: 'Recherche des portraits manquants',
         etat: r?.phase && r.phase !== 'done' ? 'running' : r ? 'done' : 'idle',
         ligne: r?.total
-          ? `${formatNumber(r.processed ?? 0)} traités sur ${formatNumber(r.total)} — ${formatNumber(r.enriched ?? 0)} trouvés`
+          ? `${$formatNombre(r.processed ?? 0)} traités sur ${$formatNombre(r.total)} — ${$formatNombre(r.enriched ?? 0)} trouvés`
           : 'Aucune passe enregistrée',
         fait: r?.processed, total: r?.total,
-        detail: manquantes ? `${formatNumber(manquantes)} artistes encore sans portrait` : undefined,
-      });
+        detail: manquantes ? `${$formatNombre(manquantes)} artistes encore sans portrait` : undefined });
     } else {
       out.push({ id: 'covers', titre: "Pochettes d'artistes", sous: 'Recherche des portraits manquants',
         etat: 'inconnu', ligne: 'État indisponible' });
@@ -178,8 +175,7 @@
     done: { txt: 'terminé', cls: 'ok' },
     idle: { txt: 'au repos', cls: 'idle' },
     off: { txt: 'inactif', cls: 'off' },
-    inconnu: { txt: 'inconnu', cls: 'unk' },
-  };
+    inconnu: { txt: 'inconnu', cls: 'unk' } };
   const pct = (c: Card) => (c.total && c.fait != null ? Math.min(100, Math.round((c.fait / c.total) * 100)) : null);
 </script>
 

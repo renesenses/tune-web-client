@@ -11,9 +11,10 @@
    * barre de progression figée à zéro.
    */
   import * as api from '../../lib/api';
+  import { formatNombre } from '../../lib/formats';
   import type { DeclickOptions } from '../../lib/api';
   import { albums } from '../../lib/stores/library';
-  import { fold, formatNumber } from '../../lib/utils';
+  import { fold } from '../../lib/utils';
   import { t } from '../../lib/i18n';
   import AlbumArt from '../AlbumArt.svelte';
   import '../../styles/tune-v2.css';
@@ -52,8 +53,7 @@
     starting = true; error = null; downloadUrl = null;
     const options: DeclickOptions = {
       threshold_db: thresholdDb, trim_lead: trimLead, trim_tail: trimTail,
-      zero_cross: zeroCross, output_format: outputFormat,
-    };
+      zero_cross: zeroCross, output_format: outputFormat };
     try {
       const res = await api.startDeclick([...picked].map((album_id) => ({ album_id })), options);
       jobId = res.job_id; job = null;
@@ -150,7 +150,7 @@
         {#if job}
           <div class="bar"><span style="width:{pct}%"></span></div>
           <div class="jl">
-            {$t('v2.tool.count' as any).replace('{done}', formatNumber(job.completed ?? 0)).replace('{total}', formatNumber(job.total ?? 0))}
+            {$t('v2.tool.count' as any).replace('{done}', $formatNombre(job.completed ?? 0)).replace('{total}', $formatNombre(job.total ?? 0))}
             {#if job.current_file}<em>{job.current_file}</em>{/if}
           </div>
           {#if job.status === 'completed'}

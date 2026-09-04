@@ -8,7 +8,7 @@
  * dont ces tests garantissent qu'elle compte ce qu'elle pretend compter.
  */
 import { describe, it, expect } from 'vitest';
-import { anneeAlbum, couvertureAnnees, comparerAnnees } from '../anneeAlbum';
+import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees } from '../anneeAlbum';
 import type { Album } from '../types';
 
 const alb = (o: Partial<Album>): Album => ({ id: 1, title: 't', ...o }) as Album;
@@ -51,6 +51,23 @@ describe('anneeAlbum', () => {
   it('rend null sur un album absent', () => {
     expect(anneeAlbum(null)).toBeNull();
     expect(anneeAlbum(undefined)).toBeNull();
+  });
+});
+
+describe('albumsQuiChangent', () => {
+  it('compte les albums dont l’origine diffère de l’édition', () => {
+    // La couverture ne distingue PAS les deux premiers modes : ils datent
+    // autant d'albums. C'est ce nombre-ci qui dit ce que le choix change.
+    expect(albumsQuiChangent([REEDITE, SIMPLE, SANS])).toBe(1);
+  });
+
+  it('ne compte pas un album dont une seule année est connue', () => {
+    expect(albumsQuiChangent([SIMPLE])).toBe(0);
+    expect(albumsQuiChangent([alb({ id: 4, original_year: 1975 })])).toBe(0);
+  });
+
+  it('ne compte pas deux années identiques', () => {
+    expect(albumsQuiChangent([alb({ id: 5, year: 1975, original_year: 1975 })])).toBe(0);
   });
 });
 

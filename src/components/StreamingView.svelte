@@ -1,11 +1,12 @@
 <script lang="ts">
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingAlbumOrigin, streamingServices as streamingServicesStore, streamingGenreBreadcrumb } from '../lib/stores/streaming';
+  import { formatAnneeAlbum } from '../lib/formats';
   import { tip } from '../lib/tooltip';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { activeView, settingsInitialTab, saveViewContext, loadViewContext } from '../lib/stores/navigation';
   import * as api from '../lib/api';
-  import { formatTime, formatAlbumYear } from '../lib/utils';
+  import { formatTime } from '../lib/utils';
   import { actionRetour } from '../lib/streamingRetour';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
@@ -67,8 +68,7 @@
     'editor-picks': 'streaming.section.editorPicks',
     'most-streamed': 'streaming.section.mostStreamed',
     'ideal-discography': 'streaming.section.idealDiscography',
-    qobuzissims: 'streaming.section.qobuzissimes',
-  };
+    qobuzissims: 'streaming.section.qobuzissimes' };
   const sectionTitle = (sec: FeaturedSection) =>
     SECTION_KEYS[sec.id] ? $tr(SECTION_KEYS[sec.id]) : sec.name;
 
@@ -89,8 +89,7 @@
     speakers: 'streaming.tag.speakers',
     danslecasque: 'streaming.tag.headphones',
     qobuzdigs: 'streaming.tag.qobuzdigs',
-    auditoriums: 'streaming.tag.auditoriums',
-  };
+    auditoriums: 'streaming.tag.auditoriums' };
   const tagTitle = (group: api.PlaylistTagGroup) =>
     TAG_KEYS[group.id] ? $tr(TAG_KEYS[group.id]) : group.name;
 
@@ -251,8 +250,7 @@
       selectedAlbum,
       selectedArtist,
       selectedStreamingPlaylist,
-      genreBreadcrumb: browsingGenres ? genreBreadcrumb : null,
-    };
+      genreBreadcrumb: browsingGenres ? genreBreadcrumb : null };
     saveViewContext('streaming', snapshot);
   });
 
@@ -422,8 +420,7 @@
           title: it.title ?? it.name,
           artist: it.artist_name,
           album: it.album_title,
-          cover_url: it.cover_url ?? it.cover_path,
-        }).catch(() => {});
+          cover_url: it.cover_url ?? it.cover_path }).catch(() => {});
         await api.addStreamingFavorite(service, type, itemId).catch(() => {});
       }
       await Promise.all([loadFavorites(service), loadLocalFavorites(service)]);
@@ -636,8 +633,7 @@
       track_count: 0,
       duration_ms: 0,
       cover_path: item.cover_path || null,
-      source: 'youtube' as any,
-    };
+      source: 'youtube' as any };
     selectedAlbum = null;
     selectedArtist = null;
     loading = true;
@@ -656,8 +652,7 @@
       tidal: 'TIDAL',
       qobuz: 'Qobuz',
       youtube: 'YouTube Music',
-      amazon: 'Amazon Music',
-    };
+      amazon: 'Amazon Music' };
     return names[s] ?? s.charAt(0).toUpperCase() + s.slice(1);
   }
 
@@ -859,8 +854,7 @@
     const suite = actionRetour({
       provenance: $streamingAlbumOrigin,
       album: selectedAlbum != null,
-      artiste: selectedArtist != null,
-    });
+      artiste: selectedArtist != null });
 
     if (suite.action === 'remonter-a-l-artiste') {
       // L'album a été ouvert DEPUIS la discographie : on ne referme que lui,
@@ -992,7 +986,7 @@
           <p class="detail-artist">{selectedAlbum.artist_name}</p>
         {/if}
         {#if selectedAlbum.year || selectedAlbum.original_year}
-          <p class="detail-meta">{formatAlbumYear(selectedAlbum)}</p>
+          <p class="detail-meta">{$formatAnneeAlbum(selectedAlbum)}</p>
         {/if}
         <div class="album-detail-actions">
           <button class="play-all-btn" onclick={() => selectedAlbum && playStreamingAlbum(selectedAlbum)}>
@@ -1145,7 +1139,7 @@
             </div>
             <span class="album-card-title truncate" title={album.title}>{album.title}</span>
             {#if album.year || album.original_year}
-              <span class="album-card-year">{formatAlbumYear(album)}</span>
+              <span class="album-card-year">{$formatAnneeAlbum(album)}</span>
             {/if}
           </div>
         {/each}

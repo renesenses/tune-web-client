@@ -3535,6 +3535,8 @@ export default {
   "v2.sup.resolved": "Ce ticket est résolu.",
   "v2.stream.allSubgenres": "Tout",
   "v2.lib.trackCount": "{count} titres",
+  "album.yearReissue": "{origine} (rééd. {edition})",
+  "v2.lib.yearDiffer": "{count} albums changent d'année selon le mode retenu.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

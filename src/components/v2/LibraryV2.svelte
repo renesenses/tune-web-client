@@ -2,6 +2,7 @@
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
   import { t as tr } from '../../lib/i18n';
+  import { formatNombre } from '../../lib/formats';
   /**
    * Bibliothèque — grille d'albums du nouveau client (direction Levente).
    *
@@ -35,9 +36,9 @@
   import { activeView, type View } from '../../lib/stores/navigation';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
-  import { getQualityTier, fold, formatDuration, formatNumber, type QualityTier } from '../../lib/utils';
+  import { getQualityTier, fold, formatDuration,  type QualityTier } from '../../lib/utils';
   import type { Album, Track } from '../../lib/types';
-  import { anneeAlbum, couvertureAnnees, comparerAnnees, type ModeAnnee } from '../../lib/anneeAlbum';
+  import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, type ModeAnnee } from '../../lib/anneeAlbum';
   import * as api from '../../lib/api';
   import { currentZoneId } from '../../lib/stores/zones';
   import AlbumArt from '../AlbumArt.svelte';
@@ -46,8 +47,7 @@
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import {
-    albumsDistants, corpsLecture, pistesAlbumDistant, pistesDistantes, type DepotDistant,
-  } from '../../lib/tuneRemote';
+    albumsDistants, corpsLecture, pistesAlbumDistant, pistesDistantes, type DepotDistant } from '../../lib/tuneRemote';
   import '../../styles/tune-v2.css';
 
   let { depot = null }: { depot?: DepotDistant | null } = $props();
@@ -228,6 +228,7 @@
   let modeAnnee = $state<ModeAnnee>('auto');
   let ordreAnnee = $state<'asc' | 'desc'>('desc');
   const albumYear = $derived((a: Album) => anneeAlbum(a, modeAnnee));
+  const changeants = $derived(albumsQuiChangent(src));
 
   /**
    * Changer de mode retire le filtre d'annee.
@@ -449,8 +450,7 @@
     return null;
   }
   const FACET_EMPTY: Record<string, string> = {
-    artists: 'Artiste inconnu', genres: 'Sans genre', labels: 'Sans label', years: 'Année inconnue',
-  };
+    artists: 'Artiste inconnu', genres: 'Sans genre', labels: 'Sans label', years: 'Année inconnue' };
 
   /** Regroupement pour les onglets facettes : une entree par valeur, avec ses
    *  albums, triee par nom — sauf les annees, triees chronologiquement. */
@@ -629,7 +629,7 @@
     {#if tab === 'tracks'}
       <!-- Un compteur qui compte CE QU'ON REGARDE. La recherche, elle, agit
            bien sur les titres : c'est le seul filtre qu'on garde ici. -->
-      <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', formatNumber(tracks.length))}</span>
+      <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', $formatNombre(tracks.length))}</span>
     {/if}
     {#if showFilters}
       <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null} onclick={reset}>Tout ({matchCount})</button>
@@ -756,6 +756,17 @@
         {ordreAnnee === 'desc' ? $tr('v2.lib.yearNewestFirst' as any) : $tr('v2.lib.yearOldestFirst' as any)}
       </button>
     </div>
+    <!--
+      Le nombre qui DISTINGUE les modes.
+
+      Les deux premiers affichent la meme couverture — 3049 chacun — parce que
+      les albums qui portent une annee d'origine portent aussi une annee
+      d'edition. Deux chiffres identiques laissent croire a deux options
+      interchangeables. Celui-ci repond a « qu'est-ce que ca change ? ».
+    -->
+    {#if changeants > 0}
+      <p class="andelta">{$tr('v2.lib.yearDiffer' as any).replace('{count}', $formatNombre(changeants))}</p>
+    {/if}
   {/if}
 
   {#if showTimeline && navMode === 'years' && histogram.bars.length}
@@ -961,6 +972,7 @@
      un mode qui ne date presque rien sans l'avoir vu. */
   .anc{margin-left:7px; font:10.5px var(--v2-mono); color:var(--v2-txt3)}
   .anord{margin-left:auto}
+  .andelta{padding:0 30px 12px; margin-top:-6px; font-size:12px; color:var(--v2-txt3)}
   .dist{font:11px var(--v2-mono); color:var(--v2-txt3); align-self:center; margin-left:-6px}
   .derr{margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:13px;
     color:var(--v2-danger); border:1px solid var(--v2-danger); background:var(--v2-danger-soft)}

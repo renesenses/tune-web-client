@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { formatNombre } from '../lib/formats';
   import { activeView } from '../lib/stores/navigation';
   import { libraryTab, selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryLoading } from '../lib/stores/library';
   import { playbackHistory } from '../lib/stores/history';
@@ -9,13 +10,12 @@
   import { activeStreamingService, pendingStreamingAlbum, streamingServices as streamingServicesStore, streamingAlbumOrigin } from '../lib/stores/streaming';
   import { currentProfileId } from '../lib/stores/profile';
   import { get } from 'svelte/store';
-  import { formatDuration, formatNumber } from '../lib/utils';
+  import { formatDuration } from '../lib/utils';
   import {
     ouvrirAlbum as navigateToAlbum,
     ouvrirArtiste as navigateToArtist,
     ouvrirArtisteParNom as navigateArtistByName,
-    ouvrirBibliotheque as goToLibrary,
-  } from '../lib/libraryNavigation';
+    ouvrirBibliotheque as goToLibrary } from '../lib/libraryNavigation';
   import { t } from '../lib/i18n';
   import { deriveRecentlyPlayed, type RecentAlbumEntry } from '../lib/home/recentlyPlayed';
   // Utilisé plus bas (relance de station, piste introuvable) sans jamais avoir
@@ -57,8 +57,7 @@
           artist_name: np.artist_name ?? '',
           cover_path: np.cover_path ?? null,
           album_id: np.album_id ?? null,
-          state: z.state ?? 'playing',
-        };
+          state: z.state ?? 'playing' };
       })
   );
   let recentAlbums: Album[] = $state([]);
@@ -589,8 +588,7 @@
             artist_name: piste.artist || v.artist_name || '',
             album_title: d?.title ?? '',
             cover_path: d?.pochette ?? v.cover_path ?? null,
-            duration_ms: Math.round((piste.duration_s || 0) * 1000),
-          } as any);
+            duration_ms: Math.round((piste.duration_s || 0) * 1000) } as any);
           notifications.success(`${piste.title} · ${$t('bandcamp.qualityBadge' as any)}`);
         } catch {
           window.open(v.url!, '_blank', 'noopener');
@@ -607,8 +605,7 @@
       source: v.service,
       title: v.album_title ?? v.title,
       artist_name: v.artist_name ?? null,
-      cover_path: v.cover_path ?? null,
-    } as any);
+      cover_path: v.cover_path ?? null } as any);
     streamingAlbumOrigin.set('home');
     activeView.set('streaming');
   }
@@ -623,8 +620,7 @@
       title: parution.title,
       artist_name: groupe?.artist_name ?? null,
       cover_path: parution.cover_path ?? null,
-      year: parution.year ?? null,
-    } as any);
+      year: parution.year ?? null } as any);
     streamingAlbumOrigin.set('home');
     activeView.set('streaming');
   }
@@ -823,20 +819,20 @@
   {#if stats}
     <div class="stats-cards">
       <button class="stat-card" onclick={() => goToLibrary('albums')}>
-        <span class="stat-number">{formatNumber(stats.albums)}</span>
+        <span class="stat-number">{$formatNombre(stats.albums)}</span>
         <span class="stat-name">{$t('common.albums')}</span>
       </button>
       <button class="stat-card" onclick={() => goToLibrary('artists')}>
-        <span class="stat-number">{formatNumber(stats.artists)}</span>
+        <span class="stat-number">{$formatNombre(stats.artists)}</span>
         <span class="stat-name">{$t('common.artists')}</span>
       </button>
       <button class="stat-card" onclick={() => goToLibrary('tracks')}>
-        <span class="stat-number">{formatNumber(stats.tracks)}</span>
+        <span class="stat-number">{$formatNombre(stats.tracks)}</span>
         <span class="stat-name">{$t('home.tracks')}</span>
       </button>
       {#if (stats as any).listens > 0}
         <button class="stat-card" onclick={() => activeView.set('dashboard')}>
-          <span class="stat-number">{formatNumber((stats as any).listens)}</span>
+          <span class="stat-number">{$formatNombre((stats as any).listens)}</span>
           <span class="stat-name">{$t('home.listens')}</span>
         </button>
       {/if}
@@ -918,11 +914,11 @@
           </div>
           {#if stats}
             <div class="empty-state-stats">
-              <span class="empty-stat"><strong>{formatNumber(stats.albums)}</strong> {$t('common.albums')}</span>
+              <span class="empty-stat"><strong>{$formatNombre(stats.albums)}</strong> {$t('common.albums')}</span>
               <span class="empty-stat-sep">·</span>
-              <span class="empty-stat"><strong>{formatNumber(stats.artists)}</strong> {$t('common.artists')}</span>
+              <span class="empty-stat"><strong>{$formatNombre(stats.artists)}</strong> {$t('common.artists')}</span>
               <span class="empty-stat-sep">·</span>
-              <span class="empty-stat"><strong>{formatNumber(stats.tracks)}</strong> {$t('home.tracks').toLowerCase()}</span>
+              <span class="empty-stat"><strong>{$formatNombre(stats.tracks)}</strong> {$t('home.tracks').toLowerCase()}</span>
             </div>
           {/if}
         </div>

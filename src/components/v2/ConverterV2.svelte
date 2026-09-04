@@ -11,9 +11,10 @@
    * échouera à l'exécution.
    */
   import * as api from '../../lib/api';
+  import { formatNombre } from '../../lib/formats';
   import { albums } from '../../lib/stores/library';
   import { preferences } from '../../lib/stores/preferences';
-  import { fold, formatNumber } from '../../lib/utils';
+  import { fold } from '../../lib/utils';
   import { t } from '../../lib/i18n';
   import type { Album } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
@@ -155,7 +156,7 @@
           {#if job}
             <div class="bar"><span style="width:{Math.min(100, Math.round(job.progress ?? 0))}%"></span></div>
             <div class="jl">
-              {$t('v2.tool.count' as any).replace('{done}', formatNumber(job.converted ?? 0)).replace('{total}', formatNumber(job.total ?? 0))}
+              {$t('v2.tool.count' as any).replace('{done}', $formatNombre(job.converted ?? 0)).replace('{total}', $formatNombre(job.total ?? 0))}
               {#if job.current_file}<em>{job.current_file}</em>{/if}
             </div>
             {#if job.state === 'done'}
@@ -203,7 +204,7 @@
             {/each}
           </div>
           {#if $albums.length > shown.length}
-            <div class="more">{$t('v2.tool.shownOf' as any).replace('{shown}', String(shown.length)).replace('{total}', formatNumber($albums.length))}</div>
+            <div class="more">{$t('v2.tool.shownOf' as any).replace('{shown}', String(shown.length)).replace('{total}', $formatNombre($albums.length))}</div>
           {/if}
         {/if}
       </div>

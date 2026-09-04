@@ -16,12 +16,13 @@
    * absent.
    */
   import { t } from '../../lib/i18n';
+  import { formatNombre } from '../../lib/formats';
   import { get } from 'svelte/store';
   import { dialogs } from '../../lib/stores/dialogs';
   import { emphaseParts } from '../../lib/i18nEmphase';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
-  import { formatNumber, copyText, errText } from '../../lib/utils';
+  import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
@@ -279,8 +280,7 @@
     const netIds = $devices.map((d) => `net:${d.id}`);
     preferences.update((pr) => ({
       ...pr,
-      hiddenDeviceIds: [...pr.hiddenDeviceIds.filter((i) => i.startsWith('audio:')), ...netIds],
-    }));
+      hiddenDeviceIds: [...pr.hiddenDeviceIds.filter((i) => i.startsWith('audio:')), ...netIds] }));
   }
   async function deleteDevice(deviceId: string, name: string) {
     try {
@@ -1589,8 +1589,8 @@
                    les listes ici, c'est garantir qu'elles divergeront. -->
               <p class="hint">
                 {#if $devices.length || $zones.length}
-                  <b>{formatNumber($devices.length)}</b> appareil{$devices.length > 1 ? 's' : ''} découvert{$devices.length > 1 ? 's' : ''}
-                  sur le réseau, <b>{formatNumber($zones.length)}</b> zone{$zones.length > 1 ? 's' : ''} configurée{$zones.length > 1 ? 's' : ''}.
+                  <b>{$formatNombre($devices.length)}</b> appareil{$devices.length > 1 ? 's' : ''} découvert{$devices.length > 1 ? 's' : ''}
+                  sur le réseau, <b>{$formatNombre($zones.length)}</b> zone{$zones.length > 1 ? 's' : ''} configurée{$zones.length > 1 ? 's' : ''}.
                 {:else}
                   Aucun appareil découvert, aucune zone configurée.
                 {/if}
@@ -1623,14 +1623,14 @@
               </div>
               {#if enrichRunning && enrichTotal > 0}
                 <div class="bar2"><span style="width:{Math.min(100, Math.round((enrichDone / enrichTotal) * 100))}%"></span></div>
-                <div class="hint">{formatNumber(enrichDone)} sur {formatNumber(enrichTotal)}</div>
+                <div class="hint">{$formatNombre(enrichDone)} sur {$formatNombre(enrichTotal)}</div>
               {/if}
 
               <div class="row">
                 <div class="lbl">
                   <span>Portraits d'artistes</span>
                   <span class="hint">
-                    {#if coversMissing != null}{formatNumber(coversMissing)} artistes sans portrait.{:else}Recherche les portraits manquants.{/if}
+                    {#if coversMissing != null}{$formatNombre(coversMissing)} artistes sans portrait.{:else}Recherche les portraits manquants.{/if}
                   </span>
                 </div>
                 <button class="lnk" onclick={startCovers}>Lancer</button>
@@ -2112,7 +2112,7 @@
                       <button class:on={clapThrottle === 'rapide'} onclick={() => setThrottle('rapide')}>{$t('acoustic.throttleFast' as any)}</button>
                     </div>
                   </div>
-                  <p class="hint">{formatNumber(clapAnalysed)} titres analysés. L'avancement se suit dans <b>Processing</b>.</p>
+                  <p class="hint">{$formatNombre(clapAnalysed)} titres analysés. L'avancement se suit dans <b>Processing</b>.</p>
                 {/if}
               {/if}
 
@@ -2137,9 +2137,9 @@
               </div>
               {#if scanReport}
                 <div class="okbox">
-                  Dernière passe — {formatNumber(scanReport.inserted ?? 0)} ajoutés,
-                  {formatNumber(scanReport.updated ?? 0)} mis à jour,
-                  {formatNumber(scanReport.skipped ?? 0)} ignorés.
+                  Dernière passe — {$formatNombre(scanReport.inserted ?? 0)} ajoutés,
+                  {$formatNombre(scanReport.updated ?? 0)} mis à jour,
+                  {$formatNombre(scanReport.skipped ?? 0)} ignorés.
                   {#if scanReport.failed_paths?.length}
                     <b>{scanReport.failed_paths.length} chemin(s) en échec.</b>
                   {/if}
@@ -2297,11 +2297,11 @@
                   <b class="hs" class:ok={health?.status === 'ok' || health?.status === 'healthy'}>{health?.status ?? 'inconnu'}</b>
                 </div>
                 {#if stats}
-                  <div class="kv"><span>Titres</span><b>{formatNumber(stats.tracks)}</b></div>
-                  <div class="kv"><span>Albums</span><b>{formatNumber(stats.albums)}</b></div>
-                  <div class="kv"><span>Artistes</span><b>{formatNumber(stats.artists)}</b></div>
-                  <div class="kv"><span>Zones</span><b>{formatNumber(stats.zones)}</b></div>
-                  <div class="kv"><span>Appareils</span><b>{formatNumber(stats.devices)}</b></div>
+                  <div class="kv"><span>Titres</span><b>{$formatNombre(stats.tracks)}</b></div>
+                  <div class="kv"><span>Albums</span><b>{$formatNombre(stats.albums)}</b></div>
+                  <div class="kv"><span>Artistes</span><b>{$formatNombre(stats.artists)}</b></div>
+                  <div class="kv"><span>Zones</span><b>{$formatNombre(stats.zones)}</b></div>
+                  <div class="kv"><span>Appareils</span><b>{$formatNombre(stats.devices)}</b></div>
                 {/if}
               </div>
               {#if health?.components && Object.keys(health.components).length}

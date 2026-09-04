@@ -5,11 +5,12 @@
    * technique (fréquence/profondeur) à l'Expert, comme partout ailleurs.
    */
   import * as api from '../../lib/api';
+  import { formatAnneeAlbum } from '../../lib/formats';
   import { currentZoneId } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
-  import { getQualityTier, formatDuration, formatAlbumYear, errText } from '../../lib/utils';
+  import { getQualityTier, formatDuration,  errText } from '../../lib/utils';
   import type { Album, Track } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
@@ -127,7 +128,7 @@
       <h1>{album.title}</h1>
       <div class="artist">{album.artist_name ?? ''}</div>
       <div class="facts">
-        {#if formatAlbumYear(album)}<span>{formatAlbumYear(album)}</span>{/if}
+        {#if $formatAnneeAlbum(album)}<span>{$formatAnneeAlbum(album)}</span>{/if}
         <span>{tracks.length} titre{tracks.length > 1 ? 's' : ''}</span>
         {#if totalMs}<span>{formatDuration(totalMs)}</span>{/if}
       </div>

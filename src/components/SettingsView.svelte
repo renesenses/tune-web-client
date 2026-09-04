@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import SettingHint from './SettingHint.svelte';
+  import { dateSimple } from '../lib/dates';
   import { tip } from '../lib/tooltip';
   import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
   import { dialogs } from '../lib/stores/dialogs';
@@ -5700,7 +5701,7 @@ function setSettingsLevel(level: SettingsLevel) {
           <span class="license-badge free">Free</span>
         {/if}
         {#if $licenseState.expiresAt}
-          <span class="license-expires">{$t('settings.expiresOn')} {new Date($licenseState.expiresAt).toLocaleDateString('fr-FR')}</span>
+          <span class="license-expires">{$t('settings.expiresOn')} {$dateSimple($licenseState.expiresAt)}</span>
         {/if}
       </div>
 
