@@ -3470,6 +3470,13 @@ export default {
   "v2.fav.sortOldest": "Ajout ancien",
   "v2.fav.sortAlpha": "A → Z",
   "v2.fav.sortAlphaDesc": "Z → A",
+  // v2 — Bibliothèque : quelle année, dans quel sens
+  "v2.lib.yearBasis": "Année retenue",
+  "v2.lib.yearAuto": "Origine sinon édition",
+  "v2.lib.yearEdition": "Année d'édition",
+  "v2.lib.yearOrigin": "Année d'origine",
+  "v2.lib.yearNewestFirst": "Plus récent d'abord",
+  "v2.lib.yearOldestFirst": "Plus ancien d'abord",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

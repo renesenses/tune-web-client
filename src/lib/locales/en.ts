@@ -3468,6 +3468,13 @@ export default {
   "v2.fav.sortOldest": "Added long ago",
   "v2.fav.sortAlpha": "A → Z",
   "v2.fav.sortAlphaDesc": "Z → A",
+  // v2 — Library: which year, in which order
+  "v2.lib.yearBasis": "Year used",
+  "v2.lib.yearAuto": "Original, else edition",
+  "v2.lib.yearEdition": "Edition year",
+  "v2.lib.yearOrigin": "Original year",
+  "v2.lib.yearNewestFirst": "Newest first",
+  "v2.lib.yearOldestFirst": "Oldest first",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

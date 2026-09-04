@@ -37,6 +37,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, fold, formatDuration, type QualityTier } from '../../lib/utils';
   import type { Album, Track } from '../../lib/types';
+  import { anneeAlbum, couvertureAnnees, comparerAnnees, type ModeAnnee } from '../../lib/anneeAlbum';
   import * as api from '../../lib/api';
   import { currentZoneId } from '../../lib/stores/zones';
   import AlbumArt from '../AlbumArt.svelte';
@@ -175,13 +176,9 @@
       case 'year':
         // Sans annee en DERNIER quel que soit le sens : un album non date ne
         // doit pas squatter la tete de liste.
-        return list.sort((a, b) => {
-          const ya = albumYear(a), yb = albumYear(b);
-          if (ya == null && yb == null) return byTitle(a, b);
-          if (ya == null) return 1;
-          if (yb == null) return -1;
-          return yb - ya || byTitle(a, b);
-        });
+        return list.sort((a, b) =>
+          comparerAnnees(albumYear(a), albumYear(b), ordreAnnee) || byTitle(a, b),
+        );
       case 'added':
         return list.sort((a, b) => (b.added_at ?? 0) - (a.added_at ?? 0) || byTitle(a, b));
       default:
@@ -215,10 +212,44 @@
   /** Année retenue pour un album : l'année d'ORIGINE prime sur celle de
    *  réédition — sur du jazz ou du classique, l'écart se compte en décennies
    *  et c'est l'enregistrement qui situe l'œuvre. */
-  function albumYear(a: Album): number | null {
-    const y = a.original_year ?? a.year ?? null;
-    return typeof y === 'number' && y > 1800 && y < 2200 ? y : null;
-  }
+  /**
+   * Quelle annee lire, et dans quel sens — demande de Bertrand le 04/09/2026.
+   *
+   * L'ecran appliquait « origine si connue, sinon edition » en dur, sans le
+   * dire. Le choix est desormais explicite, et l'ecran ANNONCE la couverture
+   * de chaque mode : mesure sur le .18, `original_year` n'est rempli que sur
+   * 90 albums des 4255 (2 %), contre 3049 pour `year`. Choisir « origine »
+   * sans le savoir ferait tomber la frise a 90 albums, ce qui se lit comme une
+   * panne.
+   *
+   * `release_date` n'est pas propose : mesure a 0 rempli. Un choix qui ne
+   * trierait rien n'est pas un choix.
+   */
+  let modeAnnee = $state<ModeAnnee>('auto');
+  let ordreAnnee = $state<'asc' | 'desc'>('desc');
+  const albumYear = $derived((a: Album) => anneeAlbum(a, modeAnnee));
+
+  /**
+   * Changer de mode retire le filtre d'annee.
+   *
+   * « 1975 » choisi en mode origine ne designe plus rien en mode edition —
+   * l'album est range a 1994. La grille se viderait sans qu'aucune puce ne
+   * paraisse fautive, et le premier reflexe serait de croire la bibliotheque
+   * cassee.
+   *
+   * `dernierMode` est un `let` ordinaire, pas un `$state` : l'effet ne doit
+   * dependre que de `modeAnnee`. Suivre `fYear` ici le ferait se relancer sur
+   * sa propre ecriture.
+   */
+  let dernierMode: ModeAnnee = modeAnnee;
+  $effect(() => {
+    if (modeAnnee !== dernierMode) { dernierMode = modeAnnee; fYear = null; }
+  });
+  const MODES_ANNEE: { k: ModeAnnee; cle: string }[] = [
+    { k: 'auto', cle: 'v2.lib.yearAuto' },
+    { k: 'edition', cle: 'v2.lib.yearEdition' },
+    { k: 'origine', cle: 'v2.lib.yearOrigin' },
+  ];
 
   let fYear = $state<number | null>(null);
 
@@ -422,10 +453,10 @@
     const out = [...m.entries()].map(([key, albums]) => ({ key, albums }));
     if (tab === 'years') {
       out.sort((x, z) => {
+        // « Annee inconnue » n'est pas un nombre : il part en dernier quel que
+        // soit le sens, comme les albums sans annee dans la grille.
         const nx = Number(x.key), nz = Number(z.key);
-        if (Number.isNaN(nx)) return 1;
-        if (Number.isNaN(nz)) return -1;
-        return nz - nx;   // du plus recent au plus ancien
+        return comparerAnnees(Number.isNaN(nx) ? null : nx, Number.isNaN(nz) ? null : nz, ordreAnnee);
       });
     } else {
       out.sort((x, z) => fold(x.key).localeCompare(fold(z.key)));
@@ -758,6 +789,28 @@
         </div>
 
       {:else if tab !== 'albums'}
+        <!--
+          Quelle annee, et dans quel sens. La couverture est ANNONCEE a cote de
+          chaque mode : « origine » ne concerne que 90 albums sur 4255 ici, et
+          basculer dessus sans le savoir donne une frise presque vide qui se
+          lit comme une panne.
+        -->
+        {#if tab === 'years'}
+          <div class="anbar">
+            <span class="ancl">{$tr('v2.lib.yearBasis' as any)}</span>
+            <div class="anmodes">
+              {#each MODES_ANNEE as m (m.k)}
+                {@const n = couvertureAnnees(src, m.k)}
+                <button class:on={modeAnnee === m.k} onclick={() => (modeAnnee = m.k)}>
+                  {$tr(m.cle as any)}<span class="anc">{n}</span>
+                </button>
+              {/each}
+            </div>
+            <button class="anord" onclick={() => (ordreAnnee = ordreAnnee === 'desc' ? 'asc' : 'desc')}>
+              {ordreAnnee === 'desc' ? $tr('v2.lib.yearNewestFirst' as any) : $tr('v2.lib.yearOldestFirst' as any)}
+            </button>
+          </div>
+        {/if}
         <div class="facets">
           {#each groups as g (g.key)}
             <section class="facet">
@@ -863,6 +916,17 @@
 </section>
 
 <style>
+  .anbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:0 0 16px}
+  .ancl{font:600 10.5px var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
+  .anmodes{display:flex; gap:7px; flex-wrap:wrap}
+  .anmodes button, .anord{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
+    cursor:pointer; border-radius:999px; padding:5px 13px; font:600 11.5px var(--v2-sans)}
+  .anmodes button:hover, .anord:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .anmodes button.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
+  /* La couverture est posee DANS la puce : c'est ce qui evite de basculer sur
+     un mode qui ne date presque rien sans l'avoir vu. */
+  .anc{margin-left:7px; font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  .anord{margin-left:auto}
   .dist{font:11px var(--v2-mono); color:var(--v2-txt3); align-self:center; margin-left:-6px}
   .derr{margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:13px;
     color:var(--v2-danger); border:1px solid var(--v2-danger); background:var(--v2-danger-soft)}
