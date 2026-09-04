@@ -3766,6 +3766,10 @@ export default {
   "v2.sup.send": "发送",
   "v2.sup.errSend": "发送失败。",
   "v2.sup.errRateLimited": "发送过于频繁：请在 {delay} 秒后重试。",
+  "streaming.allGenres": '全部风格',
+  "streaming.pickGenre": '选择一个风格以查看其专辑。',
+  "streaming.genreNoAlbums": '该风格下没有专辑。',
+  "streaming.genresEmpty": '该服务未提供风格分类。',
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

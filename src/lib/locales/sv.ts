@@ -3765,4 +3765,8 @@ export default {
   "v2.sup.send": "Skicka",
   "v2.sup.errSend": "Sändningen misslyckades.",
   "v2.sup.errRateLimited": "För många meddelanden: försök igen om {delay} sekunder.",
+  "streaming.allGenres": 'Alla genrer',
+  "streaming.pickGenre": 'Välj en genre för att se dess album.',
+  "streaming.genreNoAlbums": 'Inga album i den här genren.',
+  "streaming.genresEmpty": 'Den här tjänsten erbjuder inga genrer.',
 } as const;

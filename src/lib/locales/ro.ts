@@ -3766,6 +3766,10 @@ export default {
   "v2.sup.send": "Trimite",
   "v2.sup.errSend": "Trimiterea a eșuat.",
   "v2.sup.errRateLimited": "Prea multe trimiteri: reîncercați peste {delay} secunde.",
+  "streaming.allGenres": 'Toate genurile',
+  "streaming.pickGenre": 'Alege un gen pentru a-i vedea albumele.',
+  "streaming.genreNoAlbums": 'Niciun album în acest gen.',
+  "streaming.genresEmpty": 'Acest serviciu nu oferă genuri.',
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

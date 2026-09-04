@@ -3724,6 +3724,10 @@ export default {
   "v2.sup.send": "Küldés",
   "v2.sup.errSend": "A küldés nem sikerült.",
   "v2.sup.errRateLimited": "Túl sok üzenet: próbálja újra {delay} másodperc múlva.",
+  "streaming.allGenres": "Összes műfaj",
+  "streaming.pickGenre": "Válassz egy műfajt az albumok megtekintéséhez.",
+  "streaming.genreNoAlbums": "Nincs album ebben a műfajban.",
+  "streaming.genresEmpty": "Ez a szolgáltatás nem kínál műfajokat.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

@@ -3766,6 +3766,10 @@ export default {
   "v2.sup.send": "Enviar",
   "v2.sup.errSend": "El envío ha fallado.",
   "v2.sup.errRateLimited": "Demasiados envíos: inténtelo de nuevo en {delay} segundos.",
+  "streaming.allGenres": 'Todos los géneros',
+  "streaming.pickGenre": 'Elige un género para ver sus álbumes.',
+  "streaming.genreNoAlbums": 'Ningún álbum en este género.',
+  "streaming.genresEmpty": 'Este servicio no ofrece ningún género.',
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

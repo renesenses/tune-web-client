@@ -3788,6 +3788,10 @@ export default {
   "v2.sup.send": "Envoyer",
   "v2.sup.errSend": "L'envoi a échoué.",
   "v2.sup.errRateLimited": "Trop d'envois : réessayez dans {delay} secondes.",
+  "streaming.allGenres": 'Tous les genres',
+  "streaming.pickGenre": 'Choisissez un genre pour voir ses albums.',
+  "streaming.genreNoAlbums": 'Aucun album dans ce genre.',
+  "streaming.genresEmpty": 'Ce service ne propose aucun genre.',
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

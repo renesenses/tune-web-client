@@ -37,25 +37,11 @@
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { catalogueService, dispositionDefautService, cleService, titreService } from '../../lib/widgetsService';
   import type { Widget } from '../../lib/accueilWidgets';
+  import { aUnOngletGenres, normaliserGenres, ouvertureGenre, sousGenresUtiles } from '../../lib/streamingGenres';
+  import type { StreamingGenre } from '../../lib/types';
   import '../../styles/tune-v2.css';
 
   const BANDCAMP = '__bandcamp__';
-  /**
-   * Services dont la navigation par genre fonctionne DE BOUT EN BOUT.
-   *
-   * Mesuré contre un serveur réel (192.168.1.18, v0.9.130) le 01/09/2026 :
-   *   qobuz   -> 13 genres, et les albums d'un genre remontent ;
-   *   tidal   -> 20 genres, et les albums d'un genre remontent ;
-   *   deezer  -> 26 genres, mais ZÉRO album (le premier genre porte l'id « 0 »,
-   *              qui sent le « Tous » que l'API ne sait pas décliner) ;
-   *   youtube -> aucun genre.
-   *
-   * Les deux derniers auraient donné un onglet qui s'ouvre sur du vide. Le jour
-   * où le serveur les sert, ajouter le nom ici suffit — c'est la seule ligne à
-   * toucher.
-   */
-  const GENRES_SERVIS = ['qobuz', 'tidal'];
-
   let services = $state<Record<string, StreamingServiceStatus>>({});
   let bandcampLive = $state(false);
   let loading = $state(true);
@@ -98,10 +84,83 @@
   // la section reviendra d'elle-même.
   let featured = $state<any[]>([]);
   let newRel = $state<any[]>([]);
-  let genres = $state<any[]>([]);
+  /**
+   * La liste des genres du service, chargee UNE fois par service.
+   *
+   * C'est ELLE qui decide si l'onglet Genres existe : il faut donc la connaitre
+   * avant que l'utilisateur ouvre l'onglet, et ne pas la perdre quand il passe
+   * sur Playlists. Rangee dans l'effet du volet, elle etait remise a zero a
+   * chaque changement de vue et l'onglet clignotait.
+   */
+  let svcGenres = $state<StreamingGenre[]>([]);
+  /** Fil d'Ariane : vide (racine) ou un genre. Deux niveaux — c'est tout ce que
+   *  le serveur sert. */
+  let genrePath = $state<StreamingGenre[]>([]);
+  let subGenres = $state<StreamingGenre[]>([]);
   let genreId = $state<string>('');
   let genreAlbums = $state<any[]>([]);
   let genreLoading = $state(false);
+
+  /** Liste des genres du service : UN seul appel par service, HORS de l'effet
+   * du volet.
+   *
+   * C'est elle qui decide si l'onglet Genres existe : il faut donc la connaitre
+   * AVANT que l'utilisateur ouvre l'onglet, et ne pas la perdre quand il passe
+   * sur Playlists — rangee dans l'effet du volet, l'onglet clignotait puis
+   * disparaissait au changement de vue.
+   */
+  $effect(() => {
+    const svc = active;
+    svcGenres = []; genrePath = []; subGenres = []; genreId = ''; genreAlbums = [];
+    // Bandcamp ne passe pas par /streaming : l'interroger la serait un 404.
+    if (!svc || svc === BANDCAMP) return;
+    let vivant = true;
+    api.getStreamingGenres(svc)
+      .then((g) => { if (vivant) svcGenres = normaliserGenres(g); })
+      .catch(() => { if (vivant) svcGenres = []; });
+    return () => { vivant = false; };
+  });
+
+  /**
+   * Clic sur un genre de premier niveau.
+   *
+   * `has_children` decide, et rien d'autre : la ou le serveur annonce un second
+   * niveau (Qobuz sert `/genre/list?parent_id=…`), on l'ouvre ; partout
+   * ailleurs, le clic mene DIRECTEMENT aux albums. Aucune liste de services en
+   * dur — le jour ou un service se met a annoncer des enfants, l'ecran suit.
+   */
+  let sousSeq = 0;
+  async function ouvrirGenre(g: StreamingGenre) {
+    const svc = active;
+    if (!svc || svc === BANDCAMP) return;
+    genrePath = [g]; subGenres = []; genreAlbums = [];
+    if (ouvertureGenre(g) === 'albums') { genreId = g.id; return; }
+    genreId = '';
+    const mien = ++sousSeq;
+    genreLoading = true;
+    try {
+      const rendus = normaliserGenres(await api.getStreamingGenres(svc, g.id));
+      if (mien !== sousSeq) return;
+      // Tidal ignore `parent_id` et re-sert la RACINE : sans ce filtre, derouler
+      // un genre y affichait toute la liste de depart comme ses propres enfants.
+      const sous = sousGenresUtiles(g, svcGenres, rendus);
+      subGenres = sous;
+      // Un parent qui ANNONCE des enfants et n'en sert aucun est le « 200 pour
+      // rien » deplace d'un cran : plutot qu'un ecran vide, on retombe sur ses
+      // propres albums, ce que le clic promettait de toute facon.
+      if (!sous.length) genreId = g.id;
+    } catch {
+      if (mien !== sousSeq) return;
+      subGenres = []; genreId = g.id;
+    } finally {
+      if (mien === sousSeq) genreLoading = false;
+    }
+  }
+
+  function retourGenres() {
+    sousSeq++;
+    genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; genreLoading = false;
+  }
   // Genres Bandcamp : le serveur rend `genres` (libelle + sous-genres) ET
   // `tags` (liste plate) — on prend le premier, on retombe sur le second pour
   // les serveurs qui ne servent que lui.
@@ -128,14 +187,29 @@
   );
   const tabs = $derived([...connected, ...(bandcampLive ? [BANDCAMP] : [])]);
   const isBc = $derived(active === BANDCAMP);
+
+  /**
+   * Pas de genres, pas d'onglet — et c'est la DONNEE qui tranche, pas un nom
+   * de service.
+   *
+   * Une liste `GENRES_SERVIS = ['qobuz', 'tidal']` figeait deux mesures du
+   * 01/09/2026 : Deezer rendait 26 genres et zero album, YouTube aucun genre.
+   * Le jour ou l'un des deux se met a servir, l'ecran devait etre modifie pour
+   * s'en apercevoir. Desormais il suit la reponse (#709).
+   *
+   * Bandcamp est HORS SUJET ici : sa decouverte par genre passe par
+   * `/ext/bandcamp/tags`, pas par `/streaming/…`, et elle a son propre onglet.
+   */
+  const ongletGenres = $derived(!isBc && aUnOngletGenres(svcGenres));
   const SUBS = $derived<{ id: Sub; label: string }[]>(
     isBc
       // BANDCAMP A SON ONGLET GENRES, par une AUTRE route (Bertrand, 04/09/2026).
       //
-      // Il n'entre pas dans `GENRES_SERVIS` : ce tableau commande l'appel a
-      // `/streaming/{svc}/genres`, qui repond 404 « unknown service » pour
-      // Bandcamp — mesure sur le .18 le 04/09. Ses genres viennent de
-      // `/ext/bandcamp/tags`, deja charge au montage de l'ecran.
+      // Il ne passe PAS par `/streaming/{svc}/genres`, qui repond 404 « unknown
+      // service » pour lui — mesure sur le .18 le 04/09. Ses genres viennent de
+      // `/ext/bandcamp/tags`, deja charge au montage de l'ecran. C'est aussi
+      // pourquoi `ongletGenres` l'exclut : les deux onglets Genres existent,
+      // mais ils ne lisent pas la meme source.
       //
       // Et il en sert PLUS que les autres : 27 genres et 237 sous-genres
       // (mesure, meme jour), contre 13 pour Qobuz et 20 pour Tidal. Tout cela
@@ -150,7 +224,7 @@
          // genres. Les genres avaient une section tout EN BAS de l'éditorial :
          // il fallait dérouler la page entière pour tomber dessus. C'est une
          // navigation, pas un complément de fin de page (Bertrand, 01/09/2026).
-         ...(GENRES_SERVIS.includes(active ?? '') ? [{ id: 'genres' as Sub, label: 'Genres' }] : [])]
+         ...(ongletGenres ? [{ id: 'genres' as Sub, label: $t('common.genres' as any) }] : [])]
   );
   const label = (k: string) => (k === BANDCAMP ? 'Bandcamp' : k.charAt(0).toUpperCase() + k.slice(1));
 
@@ -211,7 +285,7 @@
     const svc = active, view = sub, tag = bcTag, sg = bcSub;
     if (!svc) return;
     paneLoading = true;
-    featured = []; newRel = []; genres = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcCollection = [];
+    featured = []; newRel = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcCollection = [];
     const done = () => { paneLoading = false; };
 
     if (svc === BANDCAMP) {
@@ -238,18 +312,20 @@
       return;
     }
 
-    if (view === 'editorial' || view === 'genres') {
-      // Les trois sources partent ensemble et echouent separement : une route
+    // L'onglet Genres n'a RIEN a charger ici : sa liste est deja la, chargee
+    // par son propre effet, et ses niveaux inferieurs partent au clic. Sans ce
+    // retour, le volet resterait sur « Chargement… » indefiniment.
+    if (view === 'genres') { done(); return; }
+
+    if (view === 'editorial') {
+      // Les deux sources partent ensemble et echouent separement : une route
       // morte ne doit plus vider tout l'ecran, seulement sa propre section.
-      genreId = ''; genreAlbums = [];
       Promise.allSettled([
         api.getStreamingFeaturedPlaylists(svc),
         api.getStreamingNewReleases(svc, 30),
-        api.getStreamingGenres(svc),
-      ]).then(([f, n, g]) => {
+      ]).then(([f, n]) => {
         featured = f.status === 'fulfilled' ? ((f.value as any) ?? []) : [];
         newRel = n.status === 'fulfilled' ? ((n.value as any) ?? []) : [];
-        genres = g.status === 'fulfilled' ? ((g.value as any) ?? []) : [];
       }).finally(done);
 
     } else if (view === 'playlists') {
@@ -277,7 +353,10 @@
    *  changement de puce. */
   $effect(() => {
     const svc = active, gid = genreId;
-    if (!svc || svc === BANDCAMP || (sub !== 'editorial' && sub !== 'genres') || !gid) { genreAlbums = []; return; }
+    // Les genres ont QUITTE l'editorial : ils n'y sont plus une section de fin
+    // de page (#709). L'y laisser aussi aurait fait deux chemins pour un seul
+    // geste, et l'effet editorial rechargeait la liste a chaque puce.
+    if (!svc || svc === BANDCAMP || sub !== 'genres' || !gid) { genreAlbums = []; return; }
     genreLoading = true;
     api.getStreamingGenreAlbums(svc, gid, 40)
       .then((a: any) => { if (genreId === gid) genreAlbums = a ?? []; })
@@ -622,26 +701,40 @@
       {/if}
 
     {:else if sub === 'genres'}
-      <!-- Volet GENRES : la liste, puis les albums du genre choisi. Rien
-           d'autre — c'est ce qui le distingue de la section de fin de page
-           qu'il remplace, noyée sous l'éditorial. -->
-      {#if !genres.length}
-        <div class="state">{$t('v2.stream.noGenre' as any)}</div>
-      {:else}
+      <!-- Volet GENRES a DEUX niveaux, la ou le service en a deux (#709).
+           L'onglet n'existe que si la liste est pleine ; ce garde-fou couvre le
+           seul cas restant — la liste videe sous les pieds de l'ecran. -->
+      {#if !svcGenres.length}
+        <div class="state">{$t('streaming.genresEmpty')}</div>
+      {:else if !genrePath.length}
         <div class="chips">
-          {#each genres as g (g.id)}
-            <button class="chip" class:active={genreId === g.id}
-              onclick={() => (genreId = genreId === g.id ? '' : g.id)}>{g.name}</button>
+          {#each svcGenres as g (g.id)}
+            <button class="chip" onclick={() => ouvrirGenre(g)}>{g.name}</button>
           {/each}
         </div>
-        {#if !genreId}
-          <div class="state">{$t('v2.stream.pickGenre' as any)}</div>
-        {:else if genreLoading}
+        <div class="state">{$t('streaming.pickGenre')}</div>
+      {:else}
+        <div class="crumb">
+          <button class="lnk" onclick={retourGenres}>← {$t('streaming.allGenres')}</button>
+          <span class="cur">{genrePath[0].name}</span>
+        </div>
+        {#if subGenres.length}
+          <!-- Second niveau : affiche LA OU IL EXISTE, jamais ailleurs. -->
+          <div class="chips sous">
+            {#each subGenres as sg2 (sg2.id)}
+              <button class="chip" class:active={genreId === sg2.id}
+                onclick={() => (genreId = sg2.id)}>{sg2.name}</button>
+            {/each}
+          </div>
+        {/if}
+        {#if genreLoading}
           <div class="state">{$t('common.loading' as any)}</div>
         {:else if genreAlbums.length}
           <div class="grid">{#each genreAlbums as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+        {:else if genreId}
+          <div class="state">{$t('streaming.genreNoAlbums')}</div>
         {:else}
-          <div class="state">{$t('v2.stream.noAlbumInGenre' as any)}</div>
+          <div class="state">{$t('streaming.pickGenre')}</div>
         {/if}
       {/if}
 
@@ -832,6 +925,10 @@
     font:600 11.5px var(--v2-sans); padding:6px 13px; border-radius:var(--v2-r-pill); text-transform:capitalize}
   .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .chip.active{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  /* Fil d'Ariane des genres a deux niveaux (#709) : il dit OU l'on est et
+     comment remonter — sans lui, le second niveau est un cul-de-sac. */
+  .crumb{display:flex; align-items:center; gap:10px; padding:0 0 14px}
+  .crumb .cur{font-size:13px; font-weight:600; color:var(--v2-txt)}
   .chips.sous{padding-top:0; margin-top:-8px}
   .chips.sous .chip{font-size:11px; padding:5px 11px; opacity:.9}
   .inline{display:flex; align-items:center; gap:9px; flex-wrap:wrap}

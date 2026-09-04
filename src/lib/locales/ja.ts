@@ -3766,6 +3766,10 @@ export default {
   "v2.sup.send": "送信",
   "v2.sup.errSend": "送信に失敗しました。",
   "v2.sup.errRateLimited": "送信が多すぎます。{delay} 秒後に再試行してください。",
+  "streaming.allGenres": 'すべてのジャンル',
+  "streaming.pickGenre": 'ジャンルを選ぶとアルバムが表示されます。',
+  "streaming.genreNoAlbums": 'このジャンルにアルバムはありません。',
+  "streaming.genresEmpty": 'このサービスはジャンルを提供していません。',
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

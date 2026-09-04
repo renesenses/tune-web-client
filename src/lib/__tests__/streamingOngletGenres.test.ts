@@ -6,20 +6,21 @@
  * playlists mises en avant et les nouveautés. Il fallait dérouler la page
  * entière pour tomber dessus. Bertrand, 01/09/2026 : « ajoute une navigation
  * par genre pour chaque service », puis « dans un 4ᵉ onglet pour Qobuz et
- * Tidal ».
+ * Tidal », puis, le 04/09 : « ajoute un onglet Genres à bandcamp ! ».
  *
- * ## Pourquoi ces deux services, et pas tous
+ * ## Ce que ce fichier garde, et ce qu'il ne garde plus
  *
- * Mesuré contre un serveur réel (192.168.1.18, v0.9.130) AVANT d'écrire :
+ * Il affirmait jusqu'au 04/09/2026 une liste de services EN DUR
+ * (`GENRES_SERVIS = ['qobuz', 'tidal']`), établie par mesure contre le .18 :
+ * Deezer rendait 26 genres et zéro album, YouTube aucun genre. La mesure était
+ * juste, la forme non — elle figeait dans l'écran une propriété du serveur.
+ * L'écran interroge désormais la DONNÉE (`aUnOngletGenres`), ce qui couvre les
+ * mêmes services aujourd'hui et suit le serveur demain.
  *
- *   qobuz    13 genres, albums d'un genre : OK
- *   tidal    20 genres, albums d'un genre : OK
- *   deezer   26 genres, albums : ZÉRO
- *   youtube  aucun genre
- *
- * Un onglet pour Deezer ou YouTube se serait ouvert sur du vide. La liste est
- * donc explicite et documentée, pas devinée — et le jour où le serveur les
- * sert, un nom à ajouter suffit.
+ * Ce que ce fichier garde encore, et que `streamingGenresEcran.test.ts` (venu
+ * de #709) ne couvre pas : la PLACE de l'onglet — quatrième chez les services
+ * de streaming, deuxième chez Bandcamp — et le fait que la section de fin de
+ * page ne revienne pas doubler la navigation.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -61,6 +62,12 @@ describe('Streaming — onglet Genres', () => {
       source().includes('<h2>Explorer par genre</h2>'),
       'la section de fin de page est revenue : les genres seraient à deux endroits.',
     ).toBe(false);
+    // Et les albums d'un genre ne se chargent QUE depuis l'onglet : les tirer
+    // aussi sous l'éditorial y ramènerait la section par la bande.
+    expect(
+      /sub !== 'genres' \|\| !gid/.test(source()),
+      'le chargement des albums de genre est reparti sur l’éditorial',
+    ).toBe(true);
   });
 
   it('il arrive en QUATRIÈME position sur les services de streaming', () => {
@@ -80,25 +87,33 @@ describe('Streaming — onglet Genres', () => {
 
   it('il n’apparaît que sur les services qui servent vraiment des genres', () => {
     const src = source();
+    // La DONNÉE tranche, pas un nom de service : un onglet ouvert sur du vide
+    // promet du contenu et livre une page blanche (Deezer : 26 genres, 0 album
+    // — mesuré le 01/09/2026 sur le .18).
     expect(
-      /const GENRES_SERVIS = \['qobuz', 'tidal'\]/.test(src),
-      'la liste des services a changé : vérifier au préalable que le serveur rend bien ' +
-        'des genres ET les albums de ces genres — sinon l’onglet s’ouvre sur du vide.',
+      src.includes('aUnOngletGenres(svcGenres)'),
+      'l’onglet n’est plus conditionné à la liste réellement servie.',
     ).toBe(true);
     expect(
-      src.includes("GENRES_SERVIS.includes(active ?? '')"),
-      'l’onglet n’est plus conditionné : il apparaîtrait sur Deezer (0 album) et YouTube (0 genre).',
+      /ongletGenres \? \[\{ id: 'genres'/.test(src),
+      'l’onglet n’est plus commandé par `ongletGenres`.',
     ).toBe(true);
+    // Le retour en arrière le plus tentant : re-figer une liste de services.
+    const { autres } = branchesSubs();
+    expect(
+      /'qobuz'|'tidal'|'deezer'|'youtube'/.test(autres),
+      'une liste de services en dur est revenue commander l’onglet.',
+    ).toBe(false);
   });
 
   it('le volet charge ses genres, et le dit quand il n’y en a pas', () => {
     const src = source();
     expect(
-      src.includes("if (view === 'editorial' || view === 'genres')"),
-      'le volet Genres ne déclenche plus le chargement : il s’ouvrirait toujours vide.',
+      src.includes('svcGenres = normaliserGenres(g)'),
+      'le volet Genres ne charge plus rien : il s’ouvrirait toujours vide.',
     ).toBe(true);
-    expect(src.includes('v2.stream.noGenre'), 'l’absence de genre n’est plus dite').toBe(true);
-    expect(src.includes('v2.stream.pickGenre'), 'l’invite à choisir un genre a disparu').toBe(true);
+    expect(src.includes("$t('streaming.genresEmpty')"), 'l’absence de genre n’est plus dite').toBe(true);
+    expect(src.includes("$t('streaming.pickGenre')"), 'l’invite à choisir un genre a disparu').toBe(true);
   });
 
   it('Bandcamp a SON onglet Genres, servi par une autre route', () => {
@@ -122,24 +137,33 @@ describe('Streaming — onglet Genres', () => {
     ).toBe(true);
   });
 
-  it('Bandcamp n’entre PAS dans GENRES_SERVIS', () => {
-    // Ce tableau commande l'appel à `/streaming/{svc}/genres`, qui répond 404
-    // pour Bandcamp. L'y ajouter remplacerait un onglet qui marche par un
+  it('Bandcamp n’est PAS branché sur la condition des services de streaming', () => {
+    // `ongletGenres` commande l'appel à `/streaming/{svc}/genres`, qui répond
+    // 404 pour Bandcamp. L'y brancher remplacerait un onglet qui marche par un
     // onglet en erreur — la confusion la plus facile à commettre ici.
-    // On vise l'APPEL, pas le mot : le commentaire de la branche Bandcamp cite
-    // `GENRES_SERVIS` justement pour expliquer qu'il n'y entre pas.
     const { bandcamp, autres } = branchesSubs();
     expect(
-      bandcamp.includes('GENRES_SERVIS.includes('),
+      bandcamp.includes('ongletGenres ?'),
       'Bandcamp passerait par la route qui le refuse',
     ).toBe(false);
     expect(
-      autres.includes('GENRES_SERVIS.includes('),
+      autres.includes('ongletGenres ?'),
       'la condition a quitté la branche des services de streaming',
     ).toBe(true);
     expect(
-      /const GENRES_SERVIS = \['qobuz', 'tidal'\]/.test(source()),
-      'GENRES_SERVIS a changé',
+      source().includes('!isBc && aUnOngletGenres(svcGenres)'),
+      'la garde qui tient Bandcamp hors de cette route a sauté',
     ).toBe(true);
+  });
+
+  it('les deux volets Genres restent distincts', () => {
+    // Un seul `{:else if sub === 'genres'}` couvrirait les deux services avec
+    // la même route : celui de Bandcamp est gardé par `isBc` et vient AVANT.
+    const src = source();
+    const bc = src.indexOf("{:else if sub === 'genres' && isBc}");
+    const autres = src.indexOf("{:else if sub === 'genres'}");
+    expect(bc, 'le volet Genres de Bandcamp a disparu').toBeGreaterThan(-1);
+    expect(autres, 'le volet Genres des services de streaming a disparu').toBeGreaterThan(-1);
+    expect(bc < autres, 'le volet générique passe avant celui de Bandcamp : il l’avalerait').toBe(true);
   });
 });

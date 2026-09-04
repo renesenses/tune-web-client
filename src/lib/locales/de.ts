@@ -3766,6 +3766,10 @@ export default {
   "v2.sup.send": "Senden",
   "v2.sup.errSend": "Das Senden ist fehlgeschlagen.",
   "v2.sup.errRateLimited": "Zu viele Nachrichten: versuchen Sie es in {delay} Sekunden erneut.",
+  "streaming.allGenres": 'Alle Genres',
+  "streaming.pickGenre": 'Wählen Sie ein Genre, um dessen Alben zu sehen.',
+  "streaming.genreNoAlbums": 'Keine Alben in diesem Genre.',
+  "streaming.genresEmpty": 'Dieser Dienst bietet keine Genres an.',
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

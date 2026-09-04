@@ -3766,6 +3766,10 @@ export default {
   "v2.sup.send": "보내기",
   "v2.sup.errSend": "보내지 못했습니다.",
   "v2.sup.errRateLimited": "요청이 너무 많습니다. {delay}초 후에 다시 시도하세요.",
+  "streaming.allGenres": '모든 장르',
+  "streaming.pickGenre": '장르를 선택하면 해당 앨범이 표시됩니다.',
+  "streaming.genreNoAlbums": '이 장르에는 앨범이 없습니다.',
+  "streaming.genresEmpty": '이 서비스는 장르를 제공하지 않습니다.',
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

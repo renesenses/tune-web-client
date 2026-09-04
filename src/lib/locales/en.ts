@@ -3786,6 +3786,10 @@ export default {
   "v2.sup.send": "Send",
   "v2.sup.errSend": "Sending failed.",
   "v2.sup.errRateLimited": "Too many messages: try again in {delay} seconds.",
+  "streaming.allGenres": 'All genres',
+  "streaming.pickGenre": 'Pick a genre to see its albums.',
+  "streaming.genreNoAlbums": 'No albums in this genre.',
+  "streaming.genresEmpty": 'This service offers no genres.',
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
