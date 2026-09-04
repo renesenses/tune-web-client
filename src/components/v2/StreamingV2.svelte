@@ -130,7 +130,19 @@
   const isBc = $derived(active === BANDCAMP);
   const SUBS = $derived<{ id: Sub; label: string }[]>(
     isBc
-      ? [{ id: 'editorial', label: 'Découvrir' }, { id: 'mine', label: 'Ma collection' }]
+      // BANDCAMP A SON ONGLET GENRES, par une AUTRE route (Bertrand, 04/09/2026).
+      //
+      // Il n'entre pas dans `GENRES_SERVIS` : ce tableau commande l'appel a
+      // `/streaming/{svc}/genres`, qui repond 404 « unknown service » pour
+      // Bandcamp — mesure sur le .18 le 04/09. Ses genres viennent de
+      // `/ext/bandcamp/tags`, deja charge au montage de l'ecran.
+      //
+      // Et il en sert PLUS que les autres : 27 genres et 237 sous-genres
+      // (mesure, meme jour), contre 13 pour Qobuz et 20 pour Tidal. Tout cela
+      // tenait dans une rangee de puces au-dessus des albums.
+      ? [{ id: 'editorial', label: 'Découvrir' },
+         { id: 'genres', label: 'Genres' },
+         { id: 'mine', label: 'Ma collection' }]
       : [{ id: 'editorial', label: 'Éditorial' },
          { id: 'playlists', label: 'Playlists' },
          { id: 'favorites', label: 'Favoris' },
@@ -203,7 +215,11 @@
     const done = () => { paneLoading = false; };
 
     if (svc === BANDCAMP) {
-      if (view === 'editorial') {
+      // Les deux volets lisent la MEME source : « Decouvrir » montre les albums
+      // du genre courant, « Genres » ajoute l'arbre pour en changer. Un seul
+      // etat (`bcTag` / `bcSub`), deux surfaces — choisir un genre dans l'un
+      // se voit dans l'autre.
+      if (view === 'editorial' || view === 'genres') {
         if (!tag) { done(); return; }
         api.bandcampDiscover(tag, 'top', 0, sg || undefined)
           .then((d: any) => { bcItems = d?.items ?? []; }).catch(() => { bcItems = []; }).finally(done);
@@ -498,7 +514,7 @@
           </div>
           {#if currentSous.length}
             <div class="chips sous">
-              <button class="chip" class:active={!bcSub} onclick={() => (bcSub = '')}>Tout</button>
+              <button class="chip" class:active={!bcSub} onclick={() => (bcSub = '')}>{$t('v2.stream.allSubgenres' as any)}</button>
               {#each currentSous as sg2 (sg2.slug)}
                 <button class="chip" class:active={bcSub === sg2.slug} onclick={() => (bcSub = sg2.slug)}>{sg2.label}</button>
               {/each}
@@ -561,6 +577,48 @@
         <div class="grid">{#each bcCollection as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
       {:else}
         <div class="state">{$t('v2.stream.bcEmpty' as any)}</div>
+      {/if}
+
+    {:else if sub === 'genres' && isBc}
+      <!--
+        L'arbre des genres Bandcamp : 27 familles, 237 sous-genres.
+
+        Ils existaient deja, mais uniquement en rangee de puces au-dessus des
+        albums de « Decouvrir » — 27 puces sur une ligne, et les sous-genres
+        seulement une fois la famille choisie. C'est une NAVIGATION, pas un
+        filtre de haut de page : elle merite la place d'un onglet, comme sur
+        Qobuz et Tidal (Bertrand, 01/09 puis 04/09/2026).
+
+        Le compte de sous-genres est affiche : il dit ou il y a matiere a
+        descendre, sans avoir a cliquer pour le decouvrir.
+      -->
+      {#if !bcGenres.length}
+        <div class="state">{$t('v2.stream.noGenre' as any)}</div>
+      {:else}
+        <div class="gtree">
+          {#each bcGenres as g (g.slug)}
+            <button class="gfam" class:on={bcTag === g.slug}
+              onclick={() => { bcTag = g.slug; bcSub = ''; }}>
+              <span class="gn">{g.label}</span>
+              {#if g.sous.length}<span class="gc">{g.sous.length}</span>{/if}
+            </button>
+          {/each}
+        </div>
+        {#if currentSous.length}
+          <div class="chips sous">
+            <button class="chip" class:active={!bcSub} onclick={() => (bcSub = '')}>{$t('v2.stream.allSubgenres' as any)}</button>
+            {#each currentSous as sg2 (sg2.slug)}
+              <button class="chip" class:active={bcSub === sg2.slug} onclick={() => (bcSub = sg2.slug)}>{sg2.label}</button>
+            {/each}
+          </div>
+        {/if}
+        {#if paneLoading}
+          <div class="state">{$t('common.loading' as any)}</div>
+        {:else if bcItems.length}
+          <div class="grid">{#each bcItems as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
+        {:else}
+          <div class="state">{$t('v2.stream.nothingForGenre' as any)}</div>
+        {/if}
       {/if}
 
     {:else if sub === 'genres'}
@@ -737,6 +795,17 @@
   .svcs button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .svcs .who{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
   .svcs button.on .who{color:var(--v2-on-acc); opacity:.75}
+
+  /* L'arbre des genres : des familles lisibles, pas 27 puces sur une ligne. */
+  .gtree{display:grid; grid-template-columns:repeat(auto-fill,minmax(168px,1fr)); gap:8px; margin:4px 0 18px}
+  .gfam{display:flex; align-items:center; justify-content:space-between; gap:10px;
+    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
+    border-radius:10px; padding:11px 14px; cursor:pointer; font:600 13px var(--v2-sans);
+    text-align:left; text-transform:capitalize}
+  .gfam:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
+  .gfam.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
+  .gfam .gc{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  .gfam.on .gc{color:var(--v2-acc1)}
 
   .subs{display:flex; gap:2px; padding:14px 30px 10px; border-bottom:1px solid var(--v2-line); margin:0 0 4px}
   .subs button{position:relative; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer;

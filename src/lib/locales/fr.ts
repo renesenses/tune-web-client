@@ -3533,6 +3533,7 @@ export default {
   "v2.sup.sending": "Envoi…",
   "v2.sup.reply": "Répondre",
   "v2.sup.resolved": "Ce ticket est résolu.",
+  "v2.stream.allSubgenres": "Tout",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

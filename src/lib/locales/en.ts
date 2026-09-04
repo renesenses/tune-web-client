@@ -3531,6 +3531,7 @@ export default {
   "v2.sup.sending": "Sending…",
   "v2.sup.reply": "Reply",
   "v2.sup.resolved": "This ticket is resolved.",
+  "v2.stream.allSubgenres": "All",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
