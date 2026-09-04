@@ -91,6 +91,33 @@ describe('v2 — le crayon reste branché sur les pochettes locales', () => {
   });
 });
 
+describe('v2 — la sortie mono reste atteignable, et dit quand elle n’agit pas', () => {
+  const settings = lire('SettingsV2.svelte');
+
+  it('la carte par zone expose le réglage', () => {
+    // Le serveur l'accepte depuis #2362 ; aucun ecran v2 ne l'atteignait.
+    expect(settings).toContain('api.updateZoneMonoDownmix');
+    expect(settings).toContain("z.mono_downmix");
+  });
+
+  it('il est proposé sur TOUTES les zones, pas seulement les locales', () => {
+    // Le cacher hors sortie locale le rendrait introuvable : sur une
+    // installation ou tout sort par le reseau, il ne s'afficherait jamais.
+    const bloc = settings.slice(0, settings.indexOf('api.updateZoneMonoDownmix'));
+    const dernieres = bloc.slice(-600);
+    expect(
+      /\{#if[^}]*output_type[^}]*\}[^]*$/.test(dernieres),
+      'le réglage est enfermé dans une garde sur le type de sortie',
+    ).toBe(false);
+  });
+
+  it('l’écran dit pourquoi il n’agira pas hors sortie locale', () => {
+    // Sans cette phrase, l'interrupteur MENT : accepte, persiste, sans effet.
+    expect(settings).toContain("zoneConfig.monoLocalOnly");
+    expect(settings).toMatch(/output_type \?\? ''\) !== 'local'/);
+  });
+});
+
 describe('v2 — le bloc « Avancé · renderer » reste monté', () => {
   const settings = lire('SettingsV2.svelte');
 

@@ -407,6 +407,28 @@ export function updateZoneGainTrim(id: number, gainTrimDb: number) {
   });
 }
 
+/** Sortie mono (#2362) : le serveur somme `M = (L + R) / 2` et émet `M` sur
+ *  les DEUX voies de la zone.
+ *
+ *  Réglage de CÂBLAGE, pas d'agrément : pour qui n'a qu'une enceinte raccordée
+ *  sur un canal, la moitié de la musique est sinon inaudible (Nicolas Tardif,
+ *  fil forum 1532 : « je perds toute la musique qui passe par le canal
+ *  droit »). Le serveur savait le faire depuis `channels.rs` et l'exposait en
+ *  PATCH ; AUCUN écran ne l'atteignait — c'est exactement le défaut qu'avait
+ *  déjà `aac_passthrough` juste au-dessus.
+ *
+ *  Le serveur écrit le setting `zone_{id}_mono_downmix` à l'activation et le
+ *  SUPPRIME à la désactivation : absence de clé et défaut désarmé sont un seul
+ *  et même état. Relu à chaud (`refresh_zone_mono_downmix`), donc l'effet
+ *  s'entend musique en cours — ce qui compte pour un réglage qui se vérifie à
+ *  l'oreille. N'agit que sur une sortie LOCALE. */
+export function updateZoneMonoDownmix(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ mono_downmix: enabled }),
+  });
+}
+
 export function updateZoneSyncDelay(id: number, syncDelayMs: number) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',

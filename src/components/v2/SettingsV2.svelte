@@ -1983,7 +1983,33 @@
                             onchange={(e) => askFixedVolume(z, (e.currentTarget as HTMLInputElement).checked)} />
                           <span>Volume fixe</span>
                         </label>
+                        <label class="zf chk">
+                          <input type="checkbox" checked={z.mono_downmix ?? false}
+                            onchange={(e) => setZoneField(z, () => api.updateZoneMonoDownmix(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
+                          <span>{$t('zoneConfig.monoTitle' as any)}</span>
+                        </label>
                       </div>
+
+                      <!--
+                        Sortie mono : VISIBLE sur toutes les zones, et l'écran dit
+                        quand elle n'agira pas (Bertrand, 04/09/2026).
+
+                        Le serveur accepte, persiste et republie `mono_downmix`
+                        pour n'importe quelle zone, mais ne l'applique que sur une
+                        sortie locale. Le taire là où il est inerte le rendrait
+                        introuvable : sur cette installation, une seule zone est
+                        locale et c'est un puits. Le montrer sans rien dire serait
+                        pire — c'est le defaut que le serveur a lui-même corrigé
+                        avec #3254, en publiant des codes de raison.
+
+                        La règle reprise est celle du client actuel :
+                        `output_type !== 'local'`. Le serveur en pose une seconde,
+                        le mode PURE, que la fiche de zone ne publie pas — on ne
+                        l'affirme donc pas ici plutôt que de la deviner.
+                      -->
+                      {#if (z.output_type ?? '') !== 'local'}
+                        <p class="monote">{$t('zoneConfig.monoLocalOnly' as any)}</p>
+                      {/if}
 
                       <!-- Renderers réseau SEULEMENT : ces réglages décrivent ce
                            qu'on envoie sur le fil (protocole, conteneur, profondeur).
@@ -2831,6 +2857,7 @@
   .sel.sm{min-width:130px; height:32px; font-size:12.5px}
   /* Repliable, comme dans le client actuel : sept réglages de plus déployés
      en permanence sur chacune des 14 zones noieraient les quatre courants. */
+  .monote{margin-top:9px; font-size:12px; line-height:1.55; color:var(--v2-txt3)}
   .radv{margin-top:13px; border-top:1px solid var(--v2-line); padding-top:11px}
   .radv summary{cursor:pointer; font:600 12px var(--v2-mono); letter-spacing:.05em;
     color:var(--v2-acc1); list-style:none}
