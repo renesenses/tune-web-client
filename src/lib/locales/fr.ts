@@ -3448,6 +3448,20 @@ export default {
   "v2.pod.noEpisode": "Aucun épisode.",
   "v2.pod.subscribe": "S'abonner",
   "v2.pod.unsubscribe": "Se désabonner",
+  // v2 — Zones et paires stéréo
+  "v2.zone.default": "par défaut",
+  "v2.zone.create": "Créer",
+  "v2.zone.cancel": "Annuler",
+  "v2.zone.namePlaceholder": "Nom de la zone",
+  "v2.zone.none": "Aucune zone. Créez-en une, ou déclarez une sortie dans Réglages → Audio.",
+  "v2.zone.stereoPairs": "Paires stéréo",
+  "v2.zone.pairHint": "Deux renderers DLNA jouent une voie chacun, comme une paire d'enceintes. Chaque zone appairée devient mono ; la paire se pilote comme une seule destination.",
+  "v2.zone.pairCreate": "Appairer deux zones",
+  "v2.zone.pairName": "Nom de la paire",
+  "v2.zone.pairDissolve": "Défaire",
+  "v2.zone.pickZone": "Choisir une zone…",
+  "v2.zone.leftChannel": "voie gauche",
+  "v2.zone.rightChannel": "voie droite",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

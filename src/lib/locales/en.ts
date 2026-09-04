@@ -3446,6 +3446,20 @@ export default {
   "v2.pod.noEpisode": "No episodes.",
   "v2.pod.subscribe": "Subscribe",
   "v2.pod.unsubscribe": "Unsubscribe",
+  // v2 — Zones and stereo pairs
+  "v2.zone.default": "default",
+  "v2.zone.create": "Create",
+  "v2.zone.cancel": "Cancel",
+  "v2.zone.namePlaceholder": "Zone name",
+  "v2.zone.none": "No zones. Create one, or declare an output under Settings → Audio.",
+  "v2.zone.stereoPairs": "Stereo pairs",
+  "v2.zone.pairHint": "Two DLNA renderers each play one channel, like a pair of speakers. Each paired zone becomes mono; the pair is driven as a single destination.",
+  "v2.zone.pairCreate": "Pair two zones",
+  "v2.zone.pairName": "Pair name",
+  "v2.zone.pairDissolve": "Dissolve",
+  "v2.zone.pickZone": "Pick a zone…",
+  "v2.zone.leftChannel": "left channel",
+  "v2.zone.rightChannel": "right channel",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
