@@ -39,6 +39,10 @@
   import { getQualityTier, fold, formatDuration,  type QualityTier } from '../../lib/utils';
   import type { Album, Track } from '../../lib/types';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, type ModeAnnee } from '../../lib/anneeAlbum';
+  import {
+    comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
+    type FiltresBibliotheque, type Outils,
+  } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
   import { currentZoneId } from '../../lib/stores/zones';
   import AlbumArt from '../AlbumArt.svelte';
@@ -109,22 +113,6 @@
   /** Formats et profondeurs REELLEMENT presents, avec leur compte. Proposer
    *  une liste figee ferait offrir des rubriques vides — et un filtre qui ne
    *  renvoie rien passe pour un bug. */
-  const formats = $derived.by(() => {
-    const m = new Map<string, number>();
-    for (const a of src) {
-      const f = a.format?.trim().toUpperCase();
-      if (f) m.set(f, (m.get(f) ?? 0) + 1);
-    }
-    return [...m.entries()].sort((x, z) => z[1] - x[1] || x[0].localeCompare(z[0]));
-  });
-  const depths = $derived.by(() => {
-    const m = new Map<number, number>();
-    for (const a of src) {
-      const d = a.bit_depth ?? 0;
-      if (d > 0) m.set(d, (m.get(d) ?? 0) + 1);
-    }
-    return [...m.entries()].sort((x, z) => x[0] - z[0]);
-  });
   // ── Menus de filtres ──────────────────────────────────────────────────────
   //
   // Ils s'ouvraient au SURVOL SEUL, et étaient donc inatteignables : le chip
@@ -253,6 +241,32 @@
   ];
 
   let fYear = $state<number | null>(null);
+
+  /**
+   * Les comptes de CHAQUE filtre tiennent compte des AUTRES (Bertrand,
+   * 04/09/2026 : « les filtres cumulatifs ne modifient pas les valeurs d'albums
+   * correspondants sur les filtres restants »).
+   *
+   * Ils se calculaient sur `src`, c'est-a-dire la bibliotheque entiere : filtrer
+   * sur Hi-Res laissait « FLAC 3 049 » alors que la combinaison n'en donne
+   * qu'une poignee. Et Qualite comme Frequence n'affichaient AUCUN compte : des
+   * listes en dur dont la plupart des valeurs ne correspondent a rien.
+   *
+   * Chaque facette se compte SANS elle-meme — sinon choisir FLAC mettrait tous
+   * les autres formats a zero et le menu deviendrait un cul-de-sac.
+   */
+  const filtresActifs = $derived<FiltresBibliotheque>({
+    qualite: fQuality, frequence: fRate, annee: fYear,
+    format: fFormat, profondeur: fDepth, recherche: q,
+  });
+  const outilsFacettes = $derived<Outils>({
+    qualiteDe: tierMatches, anneeDe: albumYear, plier: fold,
+  });
+
+  const formats = $derived(comptesFormat(src, filtresActifs, outilsFacettes));
+  const depths = $derived(comptesProfondeur(src, filtresActifs, outilsFacettes));
+  const nQualite = $derived(comptesQualite(src, filtresActifs, outilsFacettes, QUALITIES.map((x) => x.key)));
+  const nFrequence = $derived(comptesFrequence(src, filtresActifs, outilsFacettes, RATES.map((r) => r.v)));
 
   /** Annee SURVOLEE dans la frise. Le curseur suit la souris : c'est ce qui
    *  fait qu'il « parcourt les annees » au lieu d'attendre un clic. */
@@ -637,8 +651,13 @@
         <button class="chip" class:active={fQuality !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>Qualité{#if fQuality}&nbsp;· {QUALITIES.find(x => x.key === fQuality)?.label}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
+          <!-- Une valeur a ZERO reste VISIBLE mais inerte : la faire
+               disparaitre ferait sauter le menu sous le doigt a chaque filtre
+               pose. Le compte dit pourquoi elle ne repond pas. -->
           {#each QUALITIES as it (it.key)}
-            <button class:on={fQuality === it.key} onclick={() => { fQuality = fQuality === it.key ? null : (it.key as string); ddClose(); }}>{it.label}</button>
+            {@const n = nQualite.get(it.key) ?? 0}
+            <button class:on={fQuality === it.key} disabled={n === 0 && fQuality !== it.key}
+              onclick={() => { fQuality = fQuality === it.key ? null : (it.key as string); ddClose(); }}>{it.label} <em>{n}</em></button>
           {/each}
         </div>
       </div>
@@ -647,7 +666,9 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
           {#each RATES as r (r.v)}
-            <button class:on={fRate === r.v} onclick={() => { fRate = fRate === r.v ? null : r.v; ddClose(); }}>{r.l} kHz</button>
+            {@const n = nFrequence.get(r.v) ?? 0}
+            <button class:on={fRate === r.v} disabled={n === 0 && fRate !== r.v}
+              onclick={() => { fRate = fRate === r.v ? null : r.v; ddClose(); }}>{r.l} kHz <em>{n}</em></button>
           {/each}
         </div>
       </div>
@@ -1097,6 +1118,10 @@
   /* Contrôles de droite : tri et bascule d'affichage. */
   .drop.right{margin-left:0}
   .menu button em{font:9.5px var(--v2-mono); font-style:normal; color:var(--v2-txt3); margin-left:6px}
+  /* Une valeur que la combinaison courante ne rend pas : visible, pour que le
+     menu ne saute pas sous le doigt, mais inerte et sourde. */
+  .menu button:disabled{opacity:.38; cursor:default}
+  .menu button:disabled:hover{background:transparent}
   .chip.plain{gap:7px}
   .chip.plain svg:first-child{width:14px; height:14px}
   .viewtog{width:38px; height:38px; flex:0 0 auto; border-radius:10px; cursor:pointer;
