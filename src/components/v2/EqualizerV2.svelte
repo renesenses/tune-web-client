@@ -26,6 +26,9 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { t } from '../../lib/i18n';
+  import { NEUTRAL_PARAMETRIC_BAND } from '../../lib/eqReset';
+  import ParametricEq from '../ParametricEq.svelte';
+  import ProfilerV2 from './ProfilerV2.svelte';
   import { bandesGraphiques } from '../../lib/eqGraphicChannels';
   import '../../styles/tune-v2.css';
 
@@ -45,6 +48,27 @@
   // pas changer le rendu des réglages existants.
   const GRID_Q: Record<number, number> = { 10: 1.0, 15: 2.15, 31: 4.32 };
   const MIN_GAIN = -12, MAX_GAIN = 12;
+
+  /**
+   * Éditeur PARAMÉTRIQUE — le dernier manque face au client actuel
+   * (Bertrand, 04/09/2026 : « la der »).
+   *
+   * `ParametricEq.svelte` est REPRIS tel quel : 393 lignes qui dessinent la
+   * courbe de réponse réelle, calculée avec les mêmes biquads RBJ que
+   * `tune-core/src/audio/eq.rs`. Le réécrire en version v2 imposerait de
+   * maintenir deux fois une transposition de filtres — le genre de duplication
+   * qui finit par diverger sans que personne ne s'en aperçoive à l'oreille.
+   *
+   * Il ne s'habille qu'en variables `--tune-*`, que `tune-v2.css` ponte déjà —
+   * mêmes raisons que `TransportBar`, `RendererConfig` et `ZoneDeviceEditor`.
+   *
+   * DEUX MODES, UNE SEULE ROUTE. Graphique et paramétrique produisent tous
+   * deux un tableau de bandes pour `POST /zones/{id}/eq` : ce qui change est
+   * la façon de les composer, pas ce qu'on envoie. Le mode courant décide donc
+   * seulement quelle liste part.
+   */
+  let sousMode = $state<'graphique' | 'parametrique' | 'assistant'>('graphique');
+  let pBandes = $state<EqBand[]>([]);
 
   const PRESETS: { key: string; labelKey: string; gains: number[] }[] = [
     { key: 'flat',         labelKey: 'v2.eq.presetFlat',      gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
@@ -126,7 +150,9 @@
   async function save() {
     const zid = $currentZoneId;
     if (zid == null) return;
-    const bands: EqBand[] = bandesGraphiques(BANDS, gains, gainsRight, GRID_Q[bandCount] ?? 1.0);
+    const bands: EqBand[] = sousMode === 'parametrique'
+      ? $state.snapshot(pBandes)
+      : bandesGraphiques(BANDS, gains, gainsRight, GRID_Q[bandCount] ?? 1.0);
     try {
       const res: any = await api.setEq(zid, { bands, enabled });
       reportReach(res?.applied_live);
@@ -137,6 +163,34 @@
       // jamais. On le remonte.
       if (e?.message !== 'premium_required') error = $t('v2.eq.errRefused' as any);
     }
+  }
+
+  /**
+   * Toucher une bande ALLUME l'égaliseur.
+   *
+   * Sans cela la courbe partirait avec `enabled: false` : les points bougent à
+   * l'écran, la courbe se dessine, et le son ne change jamais. C'est la même
+   * garde que dans le client actuel.
+   */
+  function surChangementParametrique() {
+    if (!enabled) enabled = true;
+    queueSave();
+  }
+
+  /**
+   * Passer au paramétrique SÈME la courbe depuis le graphique.
+   *
+   * Arriver sur un éditeur vide effacerait le réglage en cours au premier
+   * enregistrement. On reprend donc les bandes non nulles ; s'il n'y en a
+   * aucune, une bande neutre pour avoir un point à saisir.
+   */
+  function versParametrique() {
+    if (!pBandes.length) {
+      const depart = bandesGraphiques(BANDS, gains, gainsRight, GRID_Q[bandCount] ?? 1.0)
+        .filter((b) => b.gain !== 0);
+      pBandes = depart.length ? depart : [{ ...NEUTRAL_PARAMETRIC_BAND }];
+    }
+    sousMode = 'parametrique';
   }
 
   function setGain(i: number, v: number) {
@@ -203,6 +257,38 @@
       </div>
 
       {#if showExpert}
+        <!--
+          Graphique ou paramétrique. Niveau Expert seulement : le paramétrique
+          demande de savoir ce qu'est un Q, et le proposer plus tôt encombrerait
+          l'écran de quelqu'un qui cherchait juste « plus de graves ».
+        -->
+        <div class="modes">
+          <button class:on={sousMode === 'graphique'} onclick={() => (sousMode = 'graphique')}>
+            {$t('v2.eq.modeGraphic' as any)}
+          </button>
+          <button class:on={sousMode === 'parametrique'} onclick={versParametrique}>
+            {$t('v2.eq.modeParametric' as any)}
+          </button>
+          <!--
+            L'ASSISTANT n'ecrit pas de bandes : il envoie un profil
+            (`eq_profile`) sur une AUTRE route, `PATCH /zones/{id}/dsp`, et le
+            serveur en deduit la correction. C'est pourquoi il remplace tout le
+            volet plutot que de s'y ajouter — melanger les deux enverrait deux
+            corrections concurrentes a la meme zone.
+          -->
+          <button class:on={sousMode === 'assistant'} onclick={() => (sousMode = 'assistant')}>
+            {$t('v2.eq.modeAssistant' as any)}
+          </button>
+        </div>
+      {/if}
+
+      {#if sousMode === 'assistant'}
+        <ProfilerV2 />
+      {:else if sousMode === 'parametrique'}
+        <ParametricEq bind:bands={pBandes} {enabled} onchange={surChangementParametrique} />
+      {:else}
+
+      {#if showExpert}
         <div class="ctrls">
           <span class="cl">{$t('v2.eq.resolution' as any)}</span>
           <div class="seg">
@@ -240,12 +326,7 @@
         {/each}
       </div>
 
-      {#if showExpert}
-        <p class="more">
-          {$t('v2.eq.moreA' as any)} <b>{$t('v2.eq.moreParametric' as any)}</b> {$t('v2.eq.moreB' as any)}
-          <b>Tune Master Profiler</b> {$t('v2.eq.moreC' as any)}
-          <button class="lnk sm" onclick={() => activeView.set('settings')}>{$t('v2.eq.openSettings' as any)}</button>
-        </p>
+
       {/if}
     {/if}
   </div>
@@ -262,6 +343,11 @@
     border-radius:var(--v2-r-pill); padding:8px 15px; font:600 12px var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .lnk.sm{padding:5px 12px; font-size:11.5px; margin-left:8px}
+  .modes{display:flex; gap:7px; margin:2px 0 18px}
+  .modes button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
+    cursor:pointer; border-radius:999px; padding:6px 15px; font:600 12px var(--v2-sans)}
+  .modes button:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .modes button.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
 
   .sw{position:relative; flex:0 0 auto; width:46px; height:26px; cursor:pointer; margin-bottom:3px}
   .sw input{position:absolute; opacity:0; width:0; height:0}

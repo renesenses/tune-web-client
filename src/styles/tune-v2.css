@@ -141,4 +141,11 @@
   --tune-border: var(--v2-line);
   --tune-accent: var(--v2-acc1);
   --tune-accent-hover: var(--v2-acc2);
+  /* `--tune-accent-2` et `--tune-text-dim` ne sont definies NULLE PART, pas
+     meme dans `tune-theme.css` : `ParametricEq.svelte` les utilise et elles
+     tombent donc dans le vide, dans le client actuel comme ici. On les ponte
+     plutot que de corriger le composant repris — ce serait le seul endroit ou
+     le v2 modifierait un fichier v1 pour son propre confort. */
+  --tune-accent-2: var(--v2-acc2);
+  --tune-text-dim: var(--v2-txt3);
 }
