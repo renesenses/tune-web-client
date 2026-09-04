@@ -590,7 +590,7 @@
       <!-- Declarer un dossier de musique est un reglage du serveur LOCAL :
            le proposer sur la bibliotheque d'une autre machine promettrait
            d'agir sur elle, ce qu'on ne fait pas. -->
-      <button class="btn" onclick={addContent} title="Ajouter des dossiers de musique">
+      <button class="btn" onclick={addContent} title={$tr('v2.lib.addFolders' as any)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Ajouter
       </button>
     {/if}
@@ -658,7 +658,7 @@
     {/if}
     <div class="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-      <input placeholder="Rechercher dans la bibliothèque" bind:value={q} />
+      <input placeholder={$tr('v2.lib.searchPlaceholder' as any)} bind:value={q} />
       {#if q}
         <button class="clr" onclick={() => (q = '')} aria-label="Effacer">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -694,7 +694,7 @@
   {#if showTimeline}
     <div class="navmode">
       <button class:on={navMode === 'alpha'} onclick={() => { navMode = 'alpha'; fYear = null; }}>A–Z</button>
-      <button class:on={navMode === 'years'} onclick={() => (navMode = 'years')}>Années</button>
+      <button class:on={navMode === 'years'} onclick={() => (navMode = 'years')}>{$tr('v2.lib.navYears' as any)}</button>
       {#if fYear != null}
         <button class="yearpill" onclick={() => (fYear = null)}>
           {fYear} · {yearCount} album{yearCount > 1 ? 's' : ''}
@@ -754,7 +754,7 @@
            albums ne sont pas encore arrivés a déjà ses artistes. -->
       <ArtistesV2 {q} />
     {:else if enCharge && sorted.length === 0}
-      <div class="state">Chargement de la bibliothèque…</div>
+      <div class="state">{$tr('v2.lib.loading' as any)}</div>
     {:else if sorted.length === 0}
       <!-- « Votre » serait faux sur la bibliotheque d'une autre machine : on
            nomme le serveur, sinon un catalogue distant vide se lirait comme
@@ -771,9 +771,9 @@
       {#if tab === 'tracks'}
         <div class="tracklist">
           {#if tracksLoading}
-            <div class="state">Chargement des titres…</div>
+            <div class="state">{$tr('v2.lib.loadingTracks' as any)}</div>
           {:else if !visibleTracks.length}
-            <div class="state">{tracks.length ? 'Aucun titre pour cette recherche.' : 'Aucun titre.'}</div>
+            <div class="state">{tracks.length ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
           {:else}
             {#each visibleTracks as t, i (t.id ?? i)}
               <button class="trk" onclick={() => playTrack(t)}>
@@ -840,7 +840,7 @@
               </div>
             </section>
           {:else}
-            <div class="state">Rien à regrouper avec ces filtres.</div>
+            <div class="state">{$tr('v2.lib.nothingToGroup' as any)}</div>
           {/each}
         </div>
 

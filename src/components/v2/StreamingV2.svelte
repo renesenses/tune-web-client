@@ -436,18 +436,17 @@
 
   <div class="scroll">
     {#if loading}
-      <div class="state">Chargement des services…</div>
+      <div class="state">{$t('v2.stream.loading' as any)}</div>
 
     {:else if !tabs.length}
       <!-- Aucun service utilisable : on le dit et on emmene la ou ca se regle,
            plutot que d'afficher des onglets qui ne montreront rien. -->
       <div class="notice">
-        <p>Aucun service de streaming connecté.</p>
+        <p>{$t('v2.stream.noService' as any)}</p>
         <p class="sub">
-          La connexion se fait dans <b>Réglages → Accès et jetons</b>. Les services
-          désactivés ou non connectés n'apparaissent pas ici.
+          {$t('v2.stream.noServiceA' as any)} <b>{$t('v2.stream.noServiceWhere' as any)}</b> {$t('v2.stream.noServiceB' as any)}
         </p>
-        <button class="lnk" onclick={() => activeView.set('settings')}>Ouvrir les réglages</button>
+        <button class="lnk" onclick={() => activeView.set('settings')}>{$t('v2.eq.openSettings' as any)}</button>
       </div>
 
     {:else if results || bcSearch}
@@ -463,7 +462,7 @@
           </section>
         {/if}
         {#if !bcSearch.albums?.length && !bcSearch.pistes?.length}
-          <div class="state">Aucun résultat sur Bandcamp.</div>
+          <div class="state">{$t('v2.stream.bcNoResult' as any)}</div>
         {/if}
       {:else if results}
         {#if results.albums?.length}
@@ -509,7 +508,7 @@
         {#if bcItems.length}
           <div class="grid">{#each bcItems as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
         {:else}
-          <div class="state">Rien à découvrir pour ce genre.</div>
+          <div class="state">{$t('v2.stream.nothingForGenre' as any)}</div>
         {/if}
       {:else if catalogue?.length}
         <!--
@@ -544,7 +543,7 @@
       <!-- Bandcamp : la collection EST ce qu'on y possede. -->
       {#if bcNeedsLink}
         <div class="notice">
-          <p>Aucun compte Bandcamp relié.</p>
+          <p>{$t('v2.stream.bcNoAccount' as any)}</p>
           <p class="sub">
             Indiquez votre <b>nom d'utilisateur Bandcamp</b> — celui de l'adresse
             <code>bandcamp.com/<b>votrenom</b></code>. C'est un identifiant public :
@@ -561,7 +560,7 @@
       {:else if bcCollection.length}
         <div class="grid">{#each bcCollection as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
       {:else}
-        <div class="state">Votre collection Bandcamp est vide.</div>
+        <div class="state">{$t('v2.stream.bcEmpty' as any)}</div>
       {/if}
 
     {:else if sub === 'genres'}

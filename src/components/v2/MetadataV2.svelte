@@ -20,6 +20,7 @@
   // dupliquer en style v2 aurait été quatre cents lignes de risque pour un
   // habillage. Il est habillé par le conteneur, voir `.gt-v2`.
   import GenreTreeView from '../GenreTreeView.svelte';
+  import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
   type Tab = 'proposals' | 'doubtful' | 'genres';
@@ -86,13 +87,13 @@
 <section class="v2-meta tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">Studio</div>
-      <h1>Métadonnées</h1>
+      <div class="eyebrow">{$t('v2.meta.eyebrow' as any)}</div>
+      <h1>{$t('v2.meta.title' as any)}</h1>
     </div>
     <nav class="tabs">
-      <button class:on={tab === 'proposals'} onclick={() => (tab = 'proposals')}>Propositions<span>{formatNumber(pending)}</span></button>
-      <button class:on={tab === 'doubtful'} onclick={() => (tab = 'doubtful')}>Albums douteux{#if dLoaded}<span>{formatNumber(doubtful.length)}</span>{/if}</button>
-      <button class:on={tab === 'genres'} onclick={() => (tab = 'genres')}>Arbre des genres</button>
+      <button class:on={tab === 'proposals'} onclick={() => (tab = 'proposals')}>{$t('v2.meta.tabProposals' as any)}<span>{formatNumber(pending)}</span></button>
+      <button class:on={tab === 'doubtful'} onclick={() => (tab = 'doubtful')}>{$t('v2.meta.tabDoubtful' as any)}{#if dLoaded}<span>{formatNumber(doubtful.length)}</span>{/if}</button>
+      <button class:on={tab === 'genres'} onclick={() => (tab = 'genres')}>{$t('v2.meta.tabGenres' as any)}</button>
     </nav>
   </header>
 
@@ -102,8 +103,8 @@
     {#if tab === 'proposals'}
       <div class="auto">
         <div class="al">
-          <span>Appliquer automatiquement</span>
-          <span class="hint">Les propositions largement partagées sont adoptées sans vous demander.</span>
+          <span>{$t('v2.meta.autoApply' as any)}</span>
+          <span class="hint">{$t('v2.meta.autoApplyHint' as any)}</span>
         </div>
         <label class="sw">
           <input type="checkbox" checked={autoApply} onchange={toggleAuto} />
@@ -112,12 +113,12 @@
       </div>
 
       {#if pLoading}
-        <div class="state">Chargement des propositions…</div>
+        <div class="state">{$t('v2.meta.loadingProposals' as any)}</div>
       {:else if !proposals.length}
-        <div class="state">Aucune proposition en attente.</div>
+        <div class="state">{$t('v2.meta.noProposal' as any)}</div>
       {:else}
         <p class="note">
-          Refuser n'efface rien : c'est une <b>voix pour la valeur que vous possédez déjà</b>.
+          {$t('v2.meta.refuseNoteA' as any)} <b>{$t('v2.meta.refuseNoteBold' as any)}</b>.
         </p>
         <div class="list">
           {#each proposals as p (p.id)}
@@ -133,8 +134,8 @@
                 <div class="src">{formatNumber(p.servers_count)} bibliothèque{p.servers_count > 1 ? 's' : ''} portent cette valeur</div>
               </div>
               <div class="pa">
-                <button class="go" disabled={busy === p.id} onclick={() => decide(p, true)}>Accepter</button>
-                <button class="lnk" disabled={busy === p.id} onclick={() => decide(p, false)}>Garder la mienne</button>
+                <button class="go" disabled={busy === p.id} onclick={() => decide(p, true)}>{$t('v2.meta.accept' as any)}</button>
+                <button class="lnk" disabled={busy === p.id} onclick={() => decide(p, false)}>{$t('v2.meta.keepMine' as any)}</button>
               </div>
             </article>
           {/each}
@@ -157,9 +158,9 @@
       </div>
 
     {:else if dLoading}
-      <div class="state">Chargement…</div>
+      <div class="state">{$t('v2.tool.loading' as any)}</div>
     {:else if !doubtful.length}
-      <div class="state">Aucun album signalé.</div>
+      <div class="state">{$t('v2.meta.noDoubtful' as any)}</div>
     {:else}
       <div class="dgrid">
         {#each doubtful as a (a.id)}

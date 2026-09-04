@@ -18,6 +18,7 @@
   import * as api from '../../lib/api';
   import type { SupportTicketSummary, SupportTicketReply } from '../../lib/api';
   import { licenseState } from '../../lib/stores/license';
+  import { t } from '../../lib/i18n';
   import { dateEtHeure } from '../../lib/dates';
   import '../../styles/tune-v2.css';
 
@@ -107,13 +108,13 @@
           enregistrée sur ce serveur, il n'y a donc aucun fil à afficher.
         </p>
         <p class="sub">
-          La licence se renseigne dans <b>Réglages → Système</b>.
+          {$t('v2.sup.licenceA' as any)} <b>{$t('v2.sup.licenceWhere' as any)}</b>.
         </p>
       </div>
     {:else if loading}
-      <div class="state">Chargement des tickets…</div>
+      <div class="state">{$t('v2.sup.loading' as any)}</div>
     {:else if !tickets.length}
-      <div class="state">Aucun ticket. Vous n'avez pas encore écrit au support.</div>
+      <div class="state">{$t('v2.sup.noTicket' as any)}</div>
     {:else}
       <div class="list">
         {#each tickets as t (t.id)}
@@ -149,9 +150,9 @@
 
       <div class="msgs">
         {#if repLoading}
-          <div class="state">Chargement…</div>
+          <div class="state">{$t('v2.tool.loading' as any)}</div>
         {:else if !replies.length}
-          <div class="state">Aucun message.</div>
+          <div class="state">{$t('v2.sup.noMessage' as any)}</div>
         {:else}
           {#each replies as r (r.id)}
             <div class="msg" class:team={r.author === 'team'}>
@@ -164,13 +165,13 @@
 
       {#if opened.status !== 'resolved'}
         <div class="reply">
-          <textarea bind:value={draft} placeholder="Votre réponse…" rows="3" disabled={sending}></textarea>
+          <textarea bind:value={draft} placeholder={$t('v2.sup.replyPlaceholder' as any)} rows="3" disabled={sending}></textarea>
           <button class="go" disabled={!draft.trim() || sending} onclick={send}>
-            {sending ? 'Envoi…' : 'Répondre'}
+            {sending ? $t('v2.sup.sending' as any) : $t('v2.sup.reply' as any)}
           </button>
         </div>
       {:else}
-        <div class="closed">Ce ticket est résolu.</div>
+        <div class="closed">{$t('v2.sup.resolved' as any)}</div>
       {/if}
     </div>
   {/if}

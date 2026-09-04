@@ -47,6 +47,7 @@
     MediaServerContainer,
     MediaServerItem,
   } from '../../lib/types';
+  import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
   /** Les rayons d'un serveur Tune, nommés pour cet écran. Les identifiants et
@@ -296,8 +297,8 @@
 <section class="v2-ms tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">Réseau</div>
-      <h1>Serveurs multimédia</h1>
+      <div class="eyebrow">{$t('v2.ms.eyebrow' as any)}</div>
+      <h1>{$t('v2.ms.title' as any)}</h1>
     </div>
     {#if open && !estTune}
       <!-- Un serveur Tune a le champ de recherche de la Bibliotheque, dans la
@@ -361,17 +362,14 @@
   <div class="scroll">
     {#if !open}
       {#if loadingServers}
-        <div class="state">Recherche des serveurs sur le réseau…</div>
+        <div class="state">{$t('v2.ms.searching' as any)}</div>
       {:else if !servers.length}
         <div class="notice">
-          <p>Aucun serveur multimédia détecté sur le réseau.</p>
-          <p class="sub">
-            La découverte se fait en UPnP/DLNA : le serveur distant doit être allumé,
-            sur le même réseau local, et sa diffusion UPnP activée.
-          </p>
+          <p>{$t('v2.ms.none' as any)}</p>
+          <p class="sub">{$t('v2.ms.noneHint' as any)}</p>
         </div>
       {:else}
-        <div class="state">Choisissez un serveur dans les onglets ci-dessus.</div>
+        <div class="state">{$t('v2.ms.pickServer' as any)}</div>
       {/if}
 
     {:else}
@@ -383,9 +381,9 @@
         </div>
       {:else if q.trim()}
         <div class="scope">
-          <button class:on={toutLeServeur} onclick={() => (toutLeServeur = true)}>Tout le serveur</button>
-          <button class:on={!toutLeServeur} onclick={() => (toutLeServeur = false)}>Ce dossier</button>
-          {#if trouve?.total_matches}<span class="cnt">{trouve.total_matches} résultat{trouve.total_matches > 1 ? 's' : ''}</span>{/if}
+          <button class:on={toutLeServeur} onclick={() => (toutLeServeur = true)}>{$t('v2.ms.wholeServer' as any)}</button>
+          <button class:on={!toutLeServeur} onclick={() => (toutLeServeur = false)}>{$t('v2.ms.thisFolder' as any)}</button>
+          {#if trouve?.total_matches}<span class="cnt">{(trouve.total_matches > 1 ? $t('v2.ms.resultsMany' as any) : $t('v2.ms.resultsOne' as any)).replace('{count}', String(trouve.total_matches))}</span>{/if}
         </div>
       {/if}
 
@@ -456,7 +454,7 @@
                 <span class="ti">{txt(it.title)}</span>
                 <span class="tar">{[it.artist, it.album].filter(Boolean).map(txt).join(' · ')}</span>
                 <span class="td">{it.duration_ms ? formatDuration(it.duration_ms) : ''}</span>
-                <button class="tq" onclick={() => enfiler(it)} aria-label="Ajouter à la file">
+                <button class="tq" onclick={() => enfiler(it)} aria-label={$t('v2.ms.addToQueue' as any)}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>
                 </button>
               </div>
