@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import SettingHint from './SettingHint.svelte';
+  import { dateSimple } from '../lib/dates';
   import { tip } from '../lib/tooltip';
   import { compteSupprimees, cleLibelleFinDeScan } from '../lib/bandeauFinDeScan';
   import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
@@ -24,6 +25,7 @@
     type AppareilIgnore,
   } from '../lib/appareilsIgnores';
   import { preferences, applyTheme, OXYGEN_FACETS_ALL, type ThemeMode, type VolumeDisplay, type StartupView, type OxygenViewMode } from '../lib/stores/preferences';
+  import { choisirInterface } from '../lib/interfaceChoisie';
   import { SETTING_LEVELS, SETTINGS_LEVELS, isSettingVisible, hiddenCountByTab, nextLevel, type SettingKey, type SettingsLevel } from '../lib/settingLevels';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry, BackupInfo } from '../lib/types';
@@ -5204,6 +5206,20 @@ function setSettingsLevel(level: SettingsLevel) {
     <section class="settings-section">
       <h3>{$t('settings.interface')}</h3>
       <div class="pref-grid">
+        <!--
+          L'ENTREE vers la future v1. Elle est ici, dans la section qui decide
+          deja de quoi Tune a l'air, et non mise en avant ailleurs : c'est une
+          previsualisation, pas une bascule que l'on pousse.
+
+          Le choix est retenu PAR APPAREIL et le retour vit dans le menu du
+          compte de la future v1, a un clic de n'importe quel ecran.
+        -->
+        <span class="pref-label">{$t('settings.uiChoice' as any)}</span>
+        <div class="pref-inline">
+          <button class="pref-btn" onclick={() => choisirInterface(true)}>{$t('settings.uiTryFuture' as any)}</button>
+          <span class="pref-note">{$t('settings.uiChoiceHint' as any)}</span>
+        </div>
+
         <label class="pref-label" for="pref-theme">{$t('settings.theme')}<SettingHint k="settings.themeHelp" labelKey="settings.theme" /></label>
         <select id="pref-theme" class="pref-select" value={$preferences.theme}
           onchange={(e) => {
@@ -6037,7 +6053,7 @@ function setSettingsLevel(level: SettingsLevel) {
           <span class="license-badge free">Free</span>
         {/if}
         {#if $licenseState.expiresAt}
-          <span class="license-expires">{$t('settings.expiresOn')} {new Date($licenseState.expiresAt).toLocaleDateString('fr-FR')}</span>
+          <span class="license-expires">{$t('settings.expiresOn')} {$dateSimple($licenseState.expiresAt)}</span>
         {/if}
       </div>
 
@@ -6914,6 +6930,34 @@ function setSettingsLevel(level: SettingsLevel) {
     grid-template-columns: 1fr 1fr;
     gap: var(--space-md) var(--space-lg);
     align-items: center;
+  }
+
+  /* Entree vers la future v1 — meme grille que les autres preferences. */
+  .pref-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .pref-btn {
+    background: transparent;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text);
+    border-radius: 999px;
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .pref-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+  .pref-note {
+    font-size: 0.8rem;
+    color: var(--tune-text-muted);
+    line-height: 1.5;
   }
 
   .pref-label {

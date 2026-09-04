@@ -12,8 +12,9 @@
     streamingFavKey,
     loadProfiles,
   } from '../lib/stores/profile';
-  import * as api from '../lib/api';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../lib/streamingFavorites';
+  import * as api from '../lib/api';
+  import { basculerFavoriLocal } from '../lib/favorisLocaux';
   import type { StreamingItemType } from '../lib/streamingFavorites';
 
   /** A streaming item (Qobuz/Tidal/…) to favorite, instead of a local id.
@@ -102,7 +103,6 @@
     }
     if (!pid) { toggling = false; return; }
 
-    const wasFav = isFavorite;
 
     // Streaming item: profile-scoped streaming favorites (keyed by service/id),
     // a separate store/API from the local numeric-id favorites below.
@@ -117,7 +117,13 @@
 
     // Favori de facette (label…) : sa propre table, sa propre route — la
     // valeur remplace l'identifiant.
+    //
+    // FUSION 04/09/2026 : cette branche vient de `main`, qui lisait un `wasFav`
+    // calcule plus haut, avant les deux chemins uniques. Ceux-ci n'en ont plus
+    // besoin — ils gerent l'etat eux-memes — on le lit donc ICI, au seul
+    // endroit qui s'en sert encore.
     if (facet && facetKey) {
+      const wasFav = isFavorite;
       const key = facetKey;
       const flipFacet = (add: boolean) =>
         favoriteFacetKeys.update((s) => { add ? s.add(key) : s.delete(key); return s; });
@@ -133,32 +139,16 @@
       return;
     }
 
-    // Optimistic update of the store so UI flips instantly.
-    const params: api.FavoriteRef = {};
-    if (trackId) params.track_id = trackId;
-    else if (albumId) params.album_id = albumId;
-    else if (artistId) params.artist_id = artistId;
-    else if (playlistId) params.playlist_id = playlistId;
-
-    const flip = (add: boolean) => {
-      if (trackId) favoriteTrackIds.update((s) => { add ? s.add(trackId!) : s.delete(trackId!); return s; });
-      else if (albumId) favoriteAlbumIds.update((s) => { add ? s.add(albumId!) : s.delete(albumId!); return s; });
-      else if (artistId) favoriteArtistIds.update((s) => { add ? s.add(artistId!) : s.delete(artistId!); return s; });
-      else if (playlistId) favoritePlaylistIds.update((s) => { add ? s.add(playlistId!) : s.delete(playlistId!); return s; });
-    };
-
-    flip(!wasFav);
-
-    try {
-      if (wasFav) {
-        await api.removeFavorite(pid, params);
-      } else {
-        await api.addFavorite(pid, params);
-      }
-    } catch (e) {
-      flip(wasFav);  // revert
-      console.error('Toggle favorite error:', e);
-    }
+    // Chemin unique, partagé avec les icônes de pochette du nouveau client
+    // (`lib/favorisLocaux`). Il vivait ICI en propre ; toute autre surface
+    // voulant un cœur devait le réécrire — c est ainsi qu était née la
+    // divergence #1478 côté streaming, deux boutons et deux vérités.
+    //
+    // FUSION 04/09/2026 : il remplace le bloc local de `main` parce qu il en
+    // est un SUR-ENSEMBLE — mêmes titres, albums et artistes, plus les
+    // playlists et les collections. La branche facette ci-dessus reste : une
+    // valeur n est pas un identifiant, le chemin unique ne la connaît pas.
+    await basculerFavoriLocal({ trackId, albumId, artistId, playlistId });
     toggling = false;
   }
 </script>

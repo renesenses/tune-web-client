@@ -237,3 +237,30 @@ export async function toggleStreamingFavorite(ref: StreamingRef): Promise<boolea
   }
   return !wasFav;
 }
+
+/**
+ * Le cœur d'un objet de service, prêt pour `favoriExterne` de `PochetteActions`.
+ *
+ * Les vignettes de service — Qobuz, Tidal, et tout ce qui suit — n'avaient ni
+ * cœur ni étiquettes : les deux s'adossaient à un identifiant de la
+ * bibliothèque, qu'un album distant n'a pas. C'était vrai des étiquettes, ça ne
+ * l'était PAS du favori, qui a sa propre table (`streaming_favorites`, clef
+ * `service` + `service_id` en TEXTE). Bertrand, 03/09/2026 : « il manque des
+ * boutons sur les covers Qobuz […] et de mise en favoris ! sur la homepage
+ * […] idem Tidal ».
+ *
+ * `null` quand l'objet n'est pas identifiable — pas de cœur plutôt qu'un cœur
+ * qui cocherait tous ses semblables, la garde déjà posée par `favKeyOf`.
+ */
+export function favoriExterneService(
+  keys: ReadonlySet<string>,
+  ref: StreamingRef | null | undefined,
+): { actif: boolean; basculer: () => Promise<void> } | null {
+  if (!ref || !favKeyOf(ref)) return null;
+  return {
+    actif: isStreamingFavorite(keys, ref),
+    basculer: async () => {
+      await toggleStreamingFavorite(ref);
+    },
+  };
+}

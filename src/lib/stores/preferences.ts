@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import type { Locale } from '../i18n';
 import { isSettingsLevel, legacyAdvancedToLevel, type SettingsLevel } from '../settingLevels';
+import { isV2Theme, V2_THEME_DEFAULT, type V2Theme } from '../v2Theme';
 
 export type ThemeMode = 'dark' | 'light' | 'oled' | 'midnight';
 export type VolumeDisplay = 'percent' | 'dB';
@@ -98,6 +99,18 @@ export interface Preferences {
    *  Défaut : débutant pour TOUS, installations existantes comprises
    *  (arbitrage Bertrand, 14/08) — l'ancien toggle « réglages avancés »
    *  migre vers expert au premier chargement (voir loadPrefs). */
+  /** Thème du NOUVEAU client (six palettes, voir lib/v2Theme). Distinct de
+   *  `theme` ci-dessus, qui reste celui de l'app historique : les deux
+   *  clients cohabitent derrière le drapeau `?v2`, chacun garde le sien. */
+  v2Theme: V2Theme;
+  /** Ligne technique (format · fréquence · profondeur) sous chaque pochette de
+   *  la Bibliothèque. Niveau Expert uniquement — en dessous, elle n'est pas
+   *  proposée et ne s'affiche pas.
+   *
+   *  Défaut OFF (Bertrand, 01/09/2026) : elle était liée au seul niveau
+   *  d'interface, donc imposée à tout utilisateur Expert. Or « Expert » dit
+   *  ce qu'on sait faire, pas ce qu'on veut voir sous chaque vignette. */
+  v2AlbumTechLine: boolean;
   settingsLevel: SettingsLevel;
 }
 
@@ -120,17 +133,31 @@ const defaults: Preferences = {
   albumSortOrder: 'asc',
   albumGridDensity: 'detail',
   tooltipsEnabled: true,
-  settingsLevel: 'beginner',
+  v2Theme: V2_THEME_DEFAULT,
+  v2AlbumTechLine: false,
+  // EXPERT par defaut (Bertrand, 27/08) — inverse la decision du 14/08.
+  // Ne s'applique qu'aux installations SANS niveau enregistre : un choix
+  // explicite fait toujours foi, et la migration `legacySettingsLevel()`
+  // ci-dessous continue de primer sur ce defaut.
+  settingsLevel: 'expert',
 };
 
 /** Migration one-shot du toggle « Afficher les réglages avancés » (#1617) :
  *  appliquée seulement quand les préférences stockées ne portent AUCUN niveau
- *  (elles prédatent le sélecteur) — un choix explicite fait toujours foi. */
-function legacySettingsLevel(): SettingsLevel {
+ *  (elles prédatent le sélecteur) — un choix explicite fait toujours foi.
+ *
+ *  Renvoie `null` quand l'ancien toggle N'EXISTE PAS, pour laisser le défaut
+ *  s'appliquer. Auparavant elle renvoyait 'beginner' dans ce cas, ce qui
+ *  écrasait silencieusement `defaults.settingsLevel` : changer le défaut
+ *  n'avait alors aucun effet, ni sur une installation neuve ni sur des
+ *  préférences sans niveau valide. */
+function legacySettingsLevel(): SettingsLevel | null {
   try {
-    return legacyAdvancedToLevel(localStorage.getItem('tune_settings_advanced'));
+    const flag = localStorage.getItem('tune_settings_advanced');
+    if (flag === null) return null;   // aucun ancien réglage : le défaut fait foi
+    return legacyAdvancedToLevel(flag);
   } catch {
-    return 'beginner';
+    return null;
   }
 }
 
@@ -185,14 +212,22 @@ function loadPrefs(): Preferences {
       // Niveau d'affichage (#1617) : valeur invalide ou absente → défaut
       // débutant, sauf si l'ancien toggle « avancé » était actif (⇒ expert).
       if (!isSettingsLevel((raw as { settingsLevel?: unknown })?.settingsLevel)) {
-        p.settingsLevel = legacySettingsLevel();
+        const legacy = legacySettingsLevel();
+        if (legacy) p.settingsLevel = legacy;
+      }
+      // Thème du client v2 : une valeur inconnue (préférence écrite par une
+      // version ultérieure, ou blob corrompu) retombe sur le défaut plutôt que
+      // de laisser l'interface à moitié peinte.
+      if (!isV2Theme((raw as { v2Theme?: unknown })?.v2Theme)) {
+        p.v2Theme = V2_THEME_DEFAULT;
       }
       return p;
     }
   } catch { /* ignore */ }
   const p = { ...defaults };
   adoptLegacyAlbumSort(p);
-  p.settingsLevel = legacySettingsLevel();
+  const legacy = legacySettingsLevel();
+  if (legacy) p.settingsLevel = legacy;
   return p;
 }
 

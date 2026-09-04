@@ -2646,7 +2646,14 @@ export interface StreamingFavorite {
   artist?: string | null;
   album?: string | null;
   cover_url?: string | null;
-  /** Date de la mise en favori — le serveur la rend déjà (#2001). */
+  /**
+   * Quand le cœur a été posé, en ISO — « 2026-09-03T21:59:50Z » (#2001).
+   *
+   * Le serveur le renvoyait déjà ; le type l'ignorait, donc le champ arrivait
+   * et se perdait à la conversion. C'est la SEULE date que porte un favori de
+   * service : sans elle, un tri par date n'aurait rien à lire de ce côté.
+   * Mesuré sur le .18 le 04/09/2026.
+   */
   created_at?: string | null;
 }
 
@@ -2877,11 +2884,36 @@ export function exportPlaylistFile(service: string, playlistId: string, format: 
   });
 }
 
-export async function importPlaylistFile(file: File, format: string) {
+/**
+ * Importe une playlist depuis un fichier M3U.
+ *
+ * 🔴 Cette fonction visait `POST /playlist-manager/import`, qui attend un
+ * corps **JSON** (`{ name, format, tracks: [{title, artist, album}] }`) et ne
+ * lit AUCUN fichier. Elle lui envoyait un `FormData` : le serveur ne pouvait
+ * répondre que 415, et l'import de playlist par fichier n'a donc jamais
+ * fonctionné. Même défaut que l'import Roon/Plex, à un second endroit.
+ *
+ * La bonne route existait depuis le début : `POST /playlists/import/m3u`
+ * prend le fichier en multipart, l'analyse avec `m3u_parser`, crée la playlist
+ * et rapproche chaque ligne de la bibliothèque.
+ *
+ * ⚠️ Le M3U est le SEUL format que cette route lit. `/playlist-manager/export`
+ * en produit trois — csv, xspf, json — mais aucun ne revient par ici.
+ */
+export async function importPlaylistFile(file: File, name?: string) {
   const form = new FormData();
   form.append('file', file);
-  const resp = await fetch(`${BASE}/playlist-manager/import?format=${format}`, { method: 'POST', headers: authHeaders(), body: form });
-  return resp.json();
+  if (name) form.append('name', name);
+  const resp = await fetch(`${BASE}/playlists/import/m3u`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: form,
+  });
+  if (!resp.ok) {
+    const detail = await resp.text().catch(() => '');
+    throw new Error(detail || `import: HTTP ${resp.status}`);
+  }
+  return resp.json() as Promise<{ playlist_id?: number; matched?: number; missing?: number }>;
 }
 
 export function getPlaylistLinks() {
@@ -3016,26 +3048,56 @@ export function deleteProfile(id: number) {
 // --- Favorites ---
 
 // Server favorites API is keyed by {item_type, item_id}; the web callers pass
-// {track_id|album_id|artist_id|playlist_id}. Normalise here so callers stay
-// ergonomic.
+// {track_id|album_id|artist_id|playlist_id|collection_id|smart_collection_id}.
+// Normalise here so callers stay ergonomic.
 //
 // `playlist_id` : une playlist LOCALE porte un id entier (`playlists.id`), elle
 // entre donc dans la même table que les titres, albums et artistes, sans
 // migration (#2442, FabienM fil 1557). Un LABEL, lui, n'a pas d'identifiant :
 // il passe par les favoris de facette, plus bas.
+//
+// `playlist` est un type de favori de plein droit côté serveur : il figure dans
+// `LOCAL_ITEM_TYPES`, donc son identité est figée à l'ajout comme celle d'un
+// album. Sans cet instantané, le cœur s'éteindrait au premier changement d'id —
+// import M3U rejoué, playlist recréée, bascule SQLite→PostgreSQL.
+//
+// NOTE DE FUSION (04/09/2026) : ce type s'appelait `FavItem` sur la ligne du
+// client v2 et `FavoriteRef` sur `main`. On garde le nom de `main`, plus
+// explicite, et on lui ajoute les deux champs de collection.
 export interface FavoriteRef {
   track_id?: number;
   album_id?: number;
   artist_id?: number;
   playlist_id?: number;
+  /**
+   * DEUX champs pour les collections : leurs espaces d'identifiants sont
+   * indépendants et se recouvrent (id 1 = « favorites » ET « Audiophile » sur
+   * le serveur de Bertrand). Le serveur les distingue par `item_type`.
+   */
+  collection_id?: number;
+  smart_collection_id?: number;
 }
+
+/** Les quatre types INTERROGEABLES par `getFavorites`. */
 export type LocalFavoriteType = 'track' | 'album' | 'artist' | 'playlist';
 
-function favItem(p: FavoriteRef): { item_type: LocalFavoriteType; item_id: number } | null {
+/**
+ * Ce que `favItem` sait produire.
+ *
+ * Les collections s'ajoutent aux quatre ci-dessus mais ne les rejoignent PAS
+ * dans `LocalFavoriteType` : ce dernier sert de paramètre de requête à
+ * `getFavorites`, et le serveur n'y accepte que ces quatre-là.
+ */
+type FavoriteItemType = LocalFavoriteType | 'collection' | 'smart_collection';
+
+function favItem(p: FavoriteRef): { item_type: FavoriteItemType; item_id: number } | null {
   if (p.track_id != null) return { item_type: 'track', item_id: p.track_id };
   if (p.album_id != null) return { item_type: 'album', item_id: p.album_id };
   if (p.artist_id != null) return { item_type: 'artist', item_id: p.artist_id };
   if (p.playlist_id != null) return { item_type: 'playlist', item_id: p.playlist_id };
+  if (p.collection_id != null) return { item_type: 'collection', item_id: p.collection_id };
+  if (p.smart_collection_id != null)
+    return { item_type: 'smart_collection', item_id: p.smart_collection_id };
   return null;
 }
 
@@ -3064,6 +3126,16 @@ export async function getFavorites(
   albums: import('./types').Album[];
   artists: import('./types').Artist[];
   playlists: import('./types').Playlist[];
+  /**
+   * Les collections sortent en IDENTIFIANTS, pas en objets développés.
+   *
+   * Les autres seaux vont chercher chaque objet un par un pour que l'écran
+   * Favoris puisse les afficher. Les collections n'ont pas d'écran de favoris,
+   * et l'unique usage est le cœur sur leur vignette : une requête par
+   * collection ne servirait à rien.
+   */
+  collectionIds: number[];
+  smartCollectionIds: number[];
 }> {
   const q = type ? `?item_type=${type}` : '';
   const rows = await fetchJSON<
@@ -3093,7 +3165,38 @@ export async function getFavorites(
     settle(lignes('artist'), getArtist),
     settle(lignes('playlist'), getPlaylist),
   ]);
-  return { tracks, albums, artists, playlists };
+  // Les collections n'ont besoin que de leur identifiant — on ne passe donc pas
+  // par `settle`, qui relit chaque objet un par un.
+  return {
+    tracks,
+    albums,
+    artists,
+    playlists,
+    collectionIds: lignes('collection').map((r) => r.item_id),
+    smartCollectionIds: lignes('smart_collection').map((r) => r.item_id),
+  };
+}
+
+/**
+ * Préférences d'interface d'un PROFIL.
+ *
+ * Elles vivent côté serveur, pas dans le navigateur : la disposition de
+ * l'accueil doit suivre d'un appareil à l'autre et survivre à un vidage de
+ * cache. Choix de Bertrand du 02/09/2026, qui les a voulues par profil plutôt
+ * que globales — chacun sa page d'accueil.
+ *
+ * L'écriture FUSIONNE : un écran qui n'envoie que sa clé n'efface pas celles
+ * des autres. Envoyer `null` pour une clé la supprime.
+ */
+export function getProfilePreferences(profileId: number) {
+  return fetchJSON<Record<string, any>>(`${BASE}/profiles/${profileId}/preferences`);
+}
+
+export function setProfilePreferences(profileId: number, patch: Record<string, any>) {
+  return fetchJSON<Record<string, any>>(`${BASE}/profiles/${profileId}/preferences`, {
+    method: 'PUT',
+    body: JSON.stringify(patch),
+  });
 }
 
 export function addFavorite(profileId: number, body: FavoriteRef) {
@@ -3526,7 +3629,24 @@ export function getSmartDuplicates(limit = 50) { return fetchJSON<any>(`${BASE}/
 export function getActivityFeed(limit = 30) { return fetchJSON<any[]>(`${BASE}/library/activity?limit=${limit}`); }
 
 // --- Share Playlist ---
-export function sharePlaylist(playlistId: number) { return fetchJSON<any>(`${BASE}/playlists/${playlistId}/share`); }
+/**
+ * Publie une playlist sous un jeton public et rend son URL.
+ *
+ * 🔴 Cette fonction faisait un **GET** sur une route déclarée en **POST**
+ * (`playlists.rs:86`) : elle ne pouvait répondre que 405. Troisième décalage
+ * client/serveur du même genre trouvé le 02/09/2026, après l'import de
+ * playlist et l'import Roon/Plex.
+ *
+ * ⚠️ Le jeton est PUBLIC. Il n'est pas devinable — UUID v4, 128 bits de
+ * hasard, après un correctif d'audit : l'ancien dérivait de l'horloge et de
+ * l'identifiant, donc se retrouvait par force brute. Mais quiconque a l'URL
+ * lit la playlist, sans compte ni mot de passe.
+ */
+export function sharePlaylist(playlistId: number) {
+  return fetchJSON<{ token: string; url: string }>(`${BASE}/playlists/${playlistId}/share`, {
+    method: 'POST',
+  });
+}
 
 // --- Now Listening ---
 export function getNowListening() { return fetchJSON<any[]>(`${BASE}/zones/now-listening`); }
@@ -3637,8 +3757,19 @@ export async function getTopPodcasts(genreId?: number | null, limit = 50, countr
   return data.items || data;
 }
 
-export async function getDiscoverPodcasts(): Promise<{ curated: any[]; top: any[]; genres: any[] }> {
-  const res = await fetch(`${BASE}/podcasts/discover`, { headers: authHeaders() });
+/**
+ * Sélection éditoriale et palmarès du PAYS demandé.
+ *
+ * 🔴 Le pays était absent de cet appel, et la route l'ignorait de toute façon :
+ * son palmarès était figé sur `"us"`. Changer de pays dans l'interface ne
+ * pouvait donc rien changer — « quand je sélectionne USA : rien » (Bertrand,
+ * 02/09/2026) — et un utilisateur français voyait « Crime Junkie » sous
+ * l'intitulé « Populaires » sans savoir qu'il regardait le classement
+ * américain. Corrigé des deux côtés le même jour.
+ */
+export async function getDiscoverPodcasts(country?: string): Promise<{ curated: any[]; top: any[]; genres: any[] }> {
+  const cc = country || podcastCountry();
+  const res = await fetch(`${BASE}/podcasts/discover?country=${encodeURIComponent(cc)}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`Discover podcasts failed: ${res.status} ${res.statusText}`);
   return res.json();
 }

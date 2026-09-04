@@ -33,6 +33,31 @@ export interface ShortcutTarget {
 
 export const currentShortcutTarget = writable<ShortcutTarget | null>(null);
 
+/**
+ * Critères de recherche courants — pour qu'un raccourci sur une recherche les
+ * RETIENNE.
+ *
+ * Demandé par Bertrand le 02/09/2026 : « un raccourci sur une recherche doit
+ * retenir les critères de recherche ». `captureCurrentView` figeait l'onglet de
+ * bibliothèque et le service de streaming, mais rien de la recherche : le
+ * raccourci ramenait sur un écran vide, et il fallait retaper.
+ *
+ * L'écran de recherche publie ici ce qu'il cherche ; le raccourci le fige, et
+ * `navigateToShortcut` le repose avant de changer de vue.
+ */
+export interface CritereRecherche {
+  /** Le texte cherché. */
+  q: string;
+  /** Portée ou onglet actif de l'écran, s'il en a un. */
+  scope?: string;
+}
+export const currentSearchCriteria = writable<CritereRecherche | null>(null);
+
+/** L'écran de recherche appelle ceci quand ce qu'il cherche change. */
+export function setSearchCriteria(c: CritereRecherche | null) {
+  currentSearchCriteria.set(c);
+}
+
 /** A detail view calls this when it opens an item (so a shortcut points at it). */
 export function setShortcutTarget(t: ShortcutTarget | null) {
   currentShortcutTarget.set(t);
@@ -74,6 +99,11 @@ export function captureCurrentView(): Partial<Shortcut> {
   // --- View-level configuration (not a discrete item) ---
   if (view === 'library') {
     state.tab = get(libraryTab);
+  }
+  // La RECHERCHE : sans ses critères, le raccourci ramène sur un écran vide.
+  if (view === 'search') {
+    const c = get(currentSearchCriteria);
+    if (c?.q) state.search = c;
     const stored = localStorage.getItem('tune_album_sort');
     const storedOrder = localStorage.getItem('tune_album_sort_order');
     if (stored) state.albumSort = stored;
@@ -216,6 +246,12 @@ export function navigateToShortcut(shortcut: Shortcut) {
   }
   if (shortcut.state?.streamingService && shortcut.view === 'streaming') {
     activeStreamingService.set(shortcut.state.streamingService);
+  }
+  // Reposé AVANT le changement de vue : l'écran de recherche lit le magasin à
+  // son montage, et le remplir après le laisserait vide une trame — assez pour
+  // qu'il lance une recherche à blanc.
+  if (shortcut.state?.search && shortcut.view === 'search') {
+    currentSearchCriteria.set(shortcut.state.search);
   }
   activeView.set(shortcut.view);
 

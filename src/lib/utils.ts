@@ -16,26 +16,6 @@ export function formatDuration(ms: number): string {
   return `${minutes}min`;
 }
 
-/** Format a number with locale separators */
-export function formatNumber(n: number): string {
-  return n.toLocaleString('fr-FR');
-}
-
-/** Format album year, showing original year when it differs from release year */
-export function formatAlbumYear(album: { year?: number | null; original_year?: number | null; release_date?: string | null; original_date?: string | null }): string {
-  const rd = album.release_date;
-  const od = album.original_date;
-  if (rd || od) {
-    const fmt = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-    if (od && rd && od !== rd) return `${fmt(od)} (rééd. ${fmt(rd)})`;
-    return fmt((od || rd)!);
-  }
-  const y = album.year;
-  const oy = album.original_year;
-  if (oy && y && oy !== y) return `${oy} (rééd. ${y})`;
-  return String(oy || y || '');
-}
-
 /** Format audio badge (e.g. "FLAC / 96 kHz / 24-bit") */
 export function formatAudioBadge(
   track: {
@@ -335,4 +315,36 @@ export function formatsSansCollision(formats: (string | null | undefined)[]): st
   return [...new Set(formats.filter(Boolean) as string[])]
     .filter((fmt) => !LIBELLES_QUALITE.includes(fmt.toUpperCase()))
     .sort();
+}
+
+/**
+ * Décode les entités XML restées dans un texte venu d'un serveur UPnP.
+ *
+ * Le DIDL-Lite d'une réponse `Browse` est du XML ÉCHAPPÉ à l'intérieur d'une
+ * enveloppe SOAP : un titre contenant `&` y voyage en `&amp;amp;`. Le serveur
+ * défait la première couche, la seconde arrive telle quelle jusqu'ici — d'où
+ * « King Gizzard &amp; The Lizard Wizard » affiché mot pour mot dans la grille
+ * (constaté sur un serveur Tune distant, 28/08).
+ *
+ * On décode les cinq entités du XML et les formes numériques, rien d'autre :
+ * pas de `innerHTML`, pas d'élément DOM jetable par titre — cette fonction est
+ * appelée des milliers de fois sur un rayon d'albums.
+ */
+const ENTITES_XML: Record<string, string> = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'",
+};
+export function decoderEntitesXml(v: string | null | undefined): string {
+  if (!v) return v ?? '';
+  if (!v.includes('&')) return v;
+  return v.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (tout, corps: string) => {
+    if (corps[0] === '#') {
+      const n = corps[1] === 'x' || corps[1] === 'X'
+        ? parseInt(corps.slice(2), 16)
+        : parseInt(corps.slice(1), 10);
+      // Un point de code hors plage rendrait `�` : on préfère laisser le
+      // texte d'origine, lisible, plutôt qu'un losange noir.
+      return Number.isFinite(n) && n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : tout;
+    }
+    return ENTITES_XML[corps.toLowerCase()] ?? tout;
+  });
 }

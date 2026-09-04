@@ -4,7 +4,16 @@ import type { StreamingItemType } from '../streamingFavorites';
 
 export interface Profile {
   id: number;
+  /**
+   * L'IDENTIFIANT de connexion, pas le nom affichable.
+   *
+   * Mesure sur le .18 le 03/09/2026 : le serveur rend
+   * `{"display_name":"Bertrand","name":"bertrand@mozaiklabs.fr"}`. `name` est
+   * l'adresse ; le prenom est dans `display_name`, que ce type ignorait.
+   */
   name: string;
+  /** Le nom tel qu'on l'ecrit. Absent des serveurs qui ne le servent pas. */
+  display_name?: string | null;
   avatar_color: string;
 }
 
@@ -55,9 +64,30 @@ export const profileReady = writable<boolean>(false);
 export const favoriteTrackIds = writable<Set<number>>(new Set());
 export const favoriteAlbumIds = writable<Set<number>>(new Set());
 export const favoriteArtistIds = writable<Set<number>>(new Set());
-// Playlists LOCALES mises en favori (#2442). Même mécanique : `playlists.id`
-// est un entier, le cœur répond en O(1) sans requête par ligne.
+/**
+ * Playlists en favori.
+ *
+ * NOTE DE FUSION (04/09/2026) : `main` déclarait aussi ce magasin, en une
+ * ligne, dans le même commit #2442 qui apporte les favoris de facette. Les
+ * deux versions sont identiques dans le code — on garde celle-ci pour sa
+ * documentation, et les facettes de `main` suivent juste en dessous.
+ *
+ * Le serveur sait déjà les stocker : `LOCAL_ITEM_TYPES` inclut `playlist`, et
+ * l'instantané d'identité est figé à l'ajout — sans quoi le cœur s'éteindrait
+ * dès que l'id change (import M3U rejoué, playlist recréée, bascule
+ * SQLite→PostgreSQL). Seul le client ne les lisait pas.
+ */
 export const favoritePlaylistIds = writable<Set<number>>(new Set());
+/**
+ * Collections en favori — DEUX ensembles, et non un seul.
+ *
+ * Les deux sortes ont des espaces d'identifiants indépendants qui se
+ * recouvrent : sur le serveur de Bertrand, l'id 1 est à la fois la collection
+ * normale « favorites » et l'intelligente « 💎 Audiophile » (02/09/2026). Un
+ * ensemble unique allumerait le cœur de l'une en mettant l'autre en favori.
+ */
+export const favoriteCollectionIds = writable<Set<number>>(new Set());
+export const favoriteSmartCollectionIds = writable<Set<number>>(new Set());
 
 // Favoris de FACETTE — le label d'abord (#2442). Des CHAÎNES, pas des ids : un
 // label n'a pas d'identifiant côté serveur, il est désigné par sa valeur telle
@@ -88,6 +118,8 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoriteAlbumIds.set(new Set());
     favoriteArtistIds.set(new Set());
     favoritePlaylistIds.set(new Set());
+    favoriteCollectionIds.set(new Set());
+    favoriteSmartCollectionIds.set(new Set());
     favoriteFacetKeys.set(new Set());
     favoriteStreamingKeys.set(new Set());
     return;
@@ -98,6 +130,8 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoriteAlbumIds.set(new Set((favs.albums ?? []).map((a: any) => a.id)));
     favoriteArtistIds.set(new Set((favs.artists ?? []).map((a: any) => a.id)));
     favoritePlaylistIds.set(new Set((favs.playlists ?? []).map((p: any) => p.id)));
+    favoriteCollectionIds.set(new Set(favs.collectionIds ?? []));
+    favoriteSmartCollectionIds.set(new Set(favs.smartCollectionIds ?? []));
   } catch (e) {
     console.error('Load favorite ids error:', e);
   }

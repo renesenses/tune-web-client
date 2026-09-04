@@ -750,8 +750,20 @@
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
+    /**
+     * La coquille pose-t-elle deja un bouton « mode TV » en haut a droite ?
+     *
+     * Le client v2 en peint un dans la grappe avatar + signet, exactement ou
+     * cet ecran pose le sien (`.np-tv-btn`, top 16 / right 16) : les deux se
+     * superposaient, le notre passant DERRIERE l'avatar. Bertrand, 02/09/2026 :
+     * « une icone en haut a droite en doublon [...] derriere l'avatar ».
+     *
+     * Un booleen plutot qu'un retrait pur et simple : en v1 il n'y a pas de
+     * grappe avatar, et c'est le seul acces au mode TV de cet ecran.
+     */
+    tvDansLaCoquille?: boolean;
   }
-  let { onAddToPlaylist }: Props = $props();
+  let { onAddToPlaylist, tvDansLaCoquille = false }: Props = $props();
 
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
@@ -1281,9 +1293,19 @@
   <!-- Seul bouton de l'écran rendu hors de la garde `displayTrack` : il passait
        en plein écran sur une vue TV qui n'avait rien à afficher quand rien ne
        jouait. Les autres modes (paroles, crédits, EQ) sont déjà à l'intérieur. -->
-  {#if displayTrack}
+  {#if displayTrack && !tvDansLaCoquille}
     <button class="np-tv-btn" onclick={enterTvMode} title={$t('nowplaying.tvMode')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+      <!--
+        Un ÉCRAN, pas quatre flèches.
+
+        L'icône était le pictogramme universel du « plein écran » : dans un coin
+        d'interface il se lit comme « agrandir la fenêtre », et rien n'indiquait
+        qu'on basculait vers un mode d'affichage distinct. Bertrand l'a demandée
+        remplacée le 02/09/2026, capture à l'appui.
+
+        Un téléviseur — cadre posé sur un pied — dit ce que le mode est.
+      -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
     </button>
   {/if}
   {#if resolvedCoverUrl}
@@ -2119,16 +2141,26 @@
   /* Owns the vertical scroll for the now-playing CONTENT (artwork + controls)
      on short viewports, so the root can stay overflow:hidden. The queue sheet
      is a sibling of this wrapper, so scrolling here never reveals it. */
+  /*
+    `align-items: center` sur un conteneur qui defile est un piege connu :
+    quand le contenu est plus haut que le cadre, il deborde des DEUX cotes et
+    le haut devient INATTEIGNABLE au defilement. On centre donc par `margin`
+    sur l'enfant — meme rendu quand il y a de la place, entierement defilable
+    quand il n'y en a pas.
+  */
   .np-scroll {
     flex: 1 1 auto;
     align-self: stretch;
     width: 100%;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     overflow-y: auto;
     position: relative;
     z-index: 1;
+  }
+  .np-scroll > .content-layout {
+    margin-block: auto;
   }
 
   .np-back-btn {
@@ -2207,33 +2239,47 @@
     }
   }
 
+  /*
+    La pochette etait dimensionnee UNIQUEMENT par sa largeur : `width: 100%`
+    plafonne par `max-width`, et `aspect-ratio: 1` en deduisait la hauteur.
+    Rien ne la bornait verticalement. Dans une fenetre plus basse que large, le
+    carre depassait donc l'espace disponible — la pochette perdait environ un
+    tiers de sa hauteur, et les badges qualite places juste en dessous etaient
+    pousses hors cadre et rognes a leur tour. Deux symptomes, une seule cause.
+    Signale par Gilles Olive le 19/08/2026.
+
+    Le remede : le cote du carre est desormais le PLUS PETIT des deux — la
+    largeur voulue, ou une part de la hauteur de fenetre. `aspect-ratio` fait
+    le reste, la pochette reste carree, et elle ne peut plus deborder.
+
+    `--np-art` porte la largeur voulue pour que les paliers ci-dessous n'aient
+    qu'elle a changer : redefinir `max-width` dans chaque media query aurait
+    fait sauter la borne de hauteur a chaque palier.
+  */
   .artwork-container {
+    --np-art: 400px;
     width: 100%;
-    max-width: 400px;
+    max-width: min(var(--np-art), 62vh);
     aspect-ratio: 1;
     flex-shrink: 0;
     position: relative;
   }
 
   .content-layout.wide .artwork-container {
-    max-width: 360px;
+    --np-art: 360px;
   }
 
   @media (min-width: 1400px) {
-    .artwork-container {
-      max-width: 520px;
-    }
+    .artwork-container,
     .content-layout.wide .artwork-container {
-      max-width: 520px;
+      --np-art: 520px;
     }
   }
 
   @media (min-width: 1800px) {
-    .artwork-container {
-      max-width: 640px;
-    }
+    .artwork-container,
     .content-layout.wide .artwork-container {
-      max-width: 640px;
+      --np-art: 640px;
     }
   }
 
@@ -2978,7 +3024,10 @@
     }
 
     .artwork-container {
-      max-width: 280px;
+      /* `--np-art` et non `max-width` : ecraser `max-width` ici ferait sauter
+         la borne de hauteur, et le defaut reviendrait sur telephone — ou les
+         fenetres sont justement les plus basses en paysage. */
+      --np-art: 280px;
       flex-shrink: 1;
       min-height: 120px;
     }

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
+  import { formatAnneeAlbum } from '../lib/formats';
   import { dialogs } from '../lib/stores/dialogs';
   import { trierAlbumsParAnnee } from '../lib/trierAlbums';
   import { doitMemoriserPositionListe } from '../lib/libraryNavScroll';
@@ -20,7 +21,7 @@
   import { bioDisplayText } from '../lib/library/bio';
   import { sectionHeads } from '../lib/library/grouping';
 import { observeHeight, observeWidth } from '../lib/actions/observeSize';
-import { formatTime, formatDuration, formatAlbumYear, fold } from '../lib/utils';
+import { formatTime, formatDuration,  fold } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
 import TrackContextMenu from './TrackContextMenu.svelte';
 import AlbumRating from './AlbumRating.svelte';
@@ -1494,8 +1495,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           id: t.album_id, title: t.album_title ?? '',
           artist_id: t.artist_id ?? null, artist_name: t.album_artist ?? t.artist_name ?? '',
           year: t.year ?? null, genre: t.genre ?? null, cover_path: t.cover_path ?? null,
-          track_count: 1, format: t.format ?? null, sample_rate: t.sample_rate ?? null, bit_depth: t.bit_depth ?? null,
-        } as Album);
+          track_count: 1, format: t.format ?? null, sample_rate: t.sample_rate ?? null, bit_depth: t.bit_depth ?? null } as Album);
       }
       albums.set([...map.values()].sort((a, b) => (a.title ?? '').localeCompare(b.title ?? '')));
       albumsLoaded = true;
@@ -2460,7 +2460,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           {/if}
           <div class="detail-meta">
             {#if $selectedAlbum.year || $selectedAlbum.original_year}
-              <span>{formatAlbumYear($selectedAlbum)}</span>
+              <span>{$formatAnneeAlbum($selectedAlbum)}</span>
             {/if}
             {#if $selectedAlbum.genre}
               <span>{$selectedAlbum.genre.split(/[;\/\\]/).map(g => g.trim()).filter(Boolean).join(', ')}</span>
@@ -3172,7 +3172,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               </div>
               <span class="album-card-title truncate" title={album.title}>{album.title}</span>
               {#if album.year || album.original_year}
-                <span class="album-card-year">{formatAlbumYear(album)}</span>
+                <span class="album-card-year">{$formatAnneeAlbum(album)}</span>
               {/if}
             </div>
           {/each}

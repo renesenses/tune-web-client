@@ -1,0 +1,151 @@
+/* Jeu de tokens du nouveau client (direction Levente).
+   Portée .tune-v2 pour cohabiter avec le thème historique sans le perturber.
+
+   SIX THÈMES. Le thème actif est posé par `applyV2Theme()` en attribut
+   `data-v2-theme` sur <html>. Le sélecteur `:root[data-v2-theme=…] .tune-v2`
+   l'emporte sur le bloc de base (3 niveaux de spécificité contre 1) et
+   s'applique donc à TOUTES les racines .tune-v2, y compris imbriquées — sans
+   quoi une vue interne redéclarerait les tokens de base et resterait sombre.
+
+   Règle : aucune couleur codée en dur dans les composants. Deux thèmes sont
+   clairs — un fond de survol sombre en dur y serait une tache noire. */
+
+/* ── 1. Noir / Vert — thème par défaut, la base de Levente ─────────────── */
+.tune-v2{
+  --v2-bg:#071418; --v2-bg2:#0A1A1F; --v2-surface:#161D2A; --v2-surface2:#0C111A;
+  --v2-line:#1C2634; --v2-line2:#243040;
+  --v2-txt:#FFFFFF; --v2-txt2:#8E9AA8; --v2-txt3:#4F5D6D;
+  --v2-acc1:#00D4AA; --v2-acc2:#50AD6F; --v2-acc-tint:#DFFFEF; --v2-on-acc:#04121A;
+  --v2-hover:#0E1A22; --v2-active1:#0F2029; --v2-active2:#0C1820;
+  --v2-player1:#0B141B; --v2-player2:#08121A; --v2-knob:#FFFFFF;
+  --v2-av1:#334155; --v2-av2:#556070;
+  --v2-danger:#FF8080; --v2-danger-bd:#FF6B6B;
+  --v2-sh-card:0 6px 16px rgba(0,0,0,.35); --v2-sh-lg:0 16px 40px rgba(0,0,0,.5); --v2-sh-menu:0 20px 50px rgba(0,0,0,.55);
+  --v2-glow:rgba(0,212,170,.22); --v2-glow-strong:rgba(0,212,170,.28); --v2-acc-soft:rgba(0,188,212,.10); --v2-focus:rgba(0,188,212,.14); --v2-scrim:rgba(7,20,24,.8); --v2-sh-sm:rgba(0,0,0,.4);
+  --v2-r-card:4px; --v2-r-pill:20px; --v2-r-md:12px;
+  --v2-mono:'Roboto Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --v2-sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+
+/* ── 2. Noir / Bleu ─────────────────────────────────────────────────── */
+:root[data-v2-theme="black-blue"] .tune-v2{
+  --v2-bg:#06111A; --v2-bg2:#0A1822; --v2-surface:#141C2A; --v2-surface2:#0B1019;
+  --v2-line:#1A2434; --v2-line2:#223044;
+  --v2-txt:#FFFFFF; --v2-txt2:#8C99AA; --v2-txt3:#4D5B70;
+  --v2-acc1:#00BCD4; --v2-acc2:#2E7DF6; --v2-acc-tint:#DFF4FF; --v2-on-acc:#04121A;
+  --v2-hover:#0D1A26; --v2-active1:#0E1F2E; --v2-active2:#0B1622;
+  --v2-player1:#0A131D; --v2-player2:#07111A; --v2-knob:#FFFFFF;
+  --v2-av1:#31405A; --v2-av2:#4E6180;
+  --v2-danger:#FF8080; --v2-danger-bd:#FF6B6B;
+  --v2-sh-card:0 6px 16px rgba(0,0,0,.35); --v2-sh-lg:0 16px 40px rgba(0,0,0,.5); --v2-sh-menu:0 20px 50px rgba(0,0,0,.55);
+  --v2-glow:rgba(0,188,212,.22); --v2-glow-strong:rgba(0,188,212,.28); --v2-acc-soft:rgba(46,125,246,.10); --v2-focus:rgba(46,125,246,.16); --v2-scrim:rgba(6,17,26,.8); --v2-sh-sm:rgba(0,0,0,.4);
+  --v2-glow:rgba(0,212,170,.22); --v2-glow-strong:rgba(0,212,170,.28); --v2-acc-soft:rgba(0,188,212,.10); --v2-focus:rgba(0,188,212,.14); --v2-scrim:rgba(7,20,24,.8); --v2-sh-sm:rgba(0,0,0,.4);
+}
+
+/* ── 3. Minuit / Orange ─────────────────────────────────────────────────── */
+:root[data-v2-theme="midnight-orange"] .tune-v2{
+  --v2-bg:#0B1020; --v2-bg2:#10162B; --v2-surface:#1A2138; --v2-surface2:#0E1428;
+  --v2-line:#212A44; --v2-line2:#2C3654;
+  --v2-txt:#F5F7FF; --v2-txt2:#9AA3C0; --v2-txt3:#5D6788;
+  --v2-acc1:#FF8A3D; --v2-acc2:#FFB347; --v2-acc-tint:#FFE3C7; --v2-on-acc:#1A0E02;
+  --v2-hover:#151D36; --v2-active1:#1A2340; --v2-active2:#121A32;
+  --v2-player1:#0E1428; --v2-player2:#0A0F20; --v2-knob:#FFFFFF;
+  --v2-av1:#3A4166; --v2-av2:#565F8C;
+  --v2-danger:#FF8080; --v2-danger-bd:#FF6B6B;
+  --v2-sh-card:0 6px 16px rgba(0,0,0,.4); --v2-sh-lg:0 16px 40px rgba(0,0,0,.55); --v2-sh-menu:0 20px 50px rgba(0,0,0,.6);
+  --v2-glow:rgba(255,138,61,.22); --v2-glow-strong:rgba(255,138,61,.30); --v2-acc-soft:rgba(255,179,71,.10); --v2-focus:rgba(255,179,71,.18); --v2-scrim:rgba(11,16,32,.8); --v2-sh-sm:rgba(0,0,0,.45);
+}
+
+/* ── 4. Brun ─────────────────────────────────────────────────── */
+:root[data-v2-theme="brown"] .tune-v2{
+  --v2-bg:#17110D; --v2-bg2:#1F1712; --v2-surface:#2A211A; --v2-surface2:#1C1510;
+  --v2-line:#2E2419; --v2-line2:#3D3024;
+  --v2-txt:#F7EFE6; --v2-txt2:#B49E88; --v2-txt3:#7A6753;
+  --v2-acc1:#D89A63; --v2-acc2:#B5744A; --v2-acc-tint:#FFE2C4; --v2-on-acc:#1A0F06;
+  --v2-hover:#241B14; --v2-active1:#2A2018; --v2-active2:#201812;
+  --v2-player1:#1E1611; --v2-player2:#17110D; --v2-knob:#F7EFE6;
+  --v2-av1:#4A3B2C; --v2-av2:#6B5540;
+  --v2-danger:#FF9B8A; --v2-danger-bd:#E8735C;
+  --v2-sh-card:0 6px 16px rgba(0,0,0,.4); --v2-sh-lg:0 16px 40px rgba(0,0,0,.55); --v2-sh-menu:0 20px 50px rgba(0,0,0,.6);
+  --v2-glow:rgba(216,154,99,.22); --v2-glow-strong:rgba(216,154,99,.30); --v2-acc-soft:rgba(181,116,74,.12); --v2-focus:rgba(216,154,99,.20); --v2-scrim:rgba(23,17,13,.8); --v2-sh-sm:rgba(0,0,0,.45);
+}
+
+/* ── 5. Clair / Blanc ─────────────────────────────────────────────────── */
+:root[data-v2-theme="clear-white"] .tune-v2{
+  --v2-bg:#FFFFFF; --v2-bg2:#F6F8FA; --v2-surface:#FFFFFF; --v2-surface2:#F1F4F7;
+  --v2-line:#E4E9EE; --v2-line2:#D2DAE2;
+  --v2-txt:#0C1620; --v2-txt2:#56646F; --v2-txt3:#8896A3;
+  --v2-acc1:#00A88A; --v2-acc2:#0093AE; --v2-acc-tint:#00695A; --v2-on-acc:#04201A;
+  --v2-hover:#EDF1F5; --v2-active1:#E6F5F1; --v2-active2:#DEEFEB;
+  --v2-player1:#FFFFFF; --v2-player2:#F3F6F9; --v2-knob:#0C1620;
+  --v2-av1:#C3CDD6; --v2-av2:#9AA8B4;
+  --v2-danger:#C0392B; --v2-danger-bd:#E05A4A;
+  --v2-sh-card:0 4px 12px rgba(16,32,48,.10); --v2-sh-lg:0 12px 32px rgba(16,32,48,.16); --v2-sh-menu:0 16px 40px rgba(16,32,48,.20);
+  --v2-glow:rgba(0,168,138,.20); --v2-glow-strong:rgba(0,168,138,.26); --v2-acc-soft:rgba(0,147,174,.09); --v2-focus:rgba(0,147,174,.22); --v2-scrim:rgba(255,255,255,.85); --v2-sh-sm:rgba(16,32,48,.14);
+}
+
+/* ── 6. Clair / Gris ─────────────────────────────────────────────────── */
+:root[data-v2-theme="clear-grey"] .tune-v2{
+  --v2-bg:#EDEFF2; --v2-bg2:#E6E9ED; --v2-surface:#FFFFFF; --v2-surface2:#E2E6EB;
+  --v2-line:#D6DBE1; --v2-line2:#C2C9D1;
+  --v2-txt:#141C24; --v2-txt2:#515C67; --v2-txt3:#7C8792;
+  --v2-acc1:#37718E; --v2-acc2:#4A8CA8; --v2-acc-tint:#1F4A5C; --v2-on-acc:#FFFFFF;
+  --v2-hover:#E4E8ED; --v2-active1:#DBE3EA; --v2-active2:#D3DCE4;
+  --v2-player1:#F4F6F8; --v2-player2:#E9ECF0; --v2-knob:#141C24;
+  --v2-av1:#B8C1CB; --v2-av2:#93A0AC;
+  --v2-danger:#B3382B; --v2-danger-bd:#D45444;
+  --v2-sh-card:0 4px 12px rgba(16,32,48,.10); --v2-sh-lg:0 12px 32px rgba(16,32,48,.16); --v2-sh-menu:0 16px 40px rgba(16,32,48,.20);
+  --v2-glow:rgba(55,113,142,.20); --v2-glow-strong:rgba(55,113,142,.26); --v2-acc-soft:rgba(74,140,168,.10); --v2-focus:rgba(74,140,168,.24); --v2-scrim:rgba(237,239,242,.85); --v2-sh-sm:rgba(16,32,48,.14);
+}
+
+
+/* ── Fond du document ───────────────────────────────────────────────────
+   Mesuré dans Chrome : <body> restait #181818 (thème historique) sous TOUS
+   les thèmes v2 — invisible tant que la coquille couvre 100vh, mais le
+   rebond de défilement macOS découvrait une bande sombre sur les deux
+   thèmes clairs. Les tokens étant portés par `.tune-v2`, body ne peut pas
+   les lire : on expose donc la couleur sur :root lui-même. */
+:root[data-v2-theme="black-green"]{ --v2-body-bg:#071418; }
+:root[data-v2-theme="black-blue"]{ --v2-body-bg:#06111A; }
+:root[data-v2-theme="midnight-orange"]{ --v2-body-bg:#0B1020; }
+:root[data-v2-theme="brown"]{ --v2-body-bg:#17110D; }
+:root[data-v2-theme="clear-white"]{ --v2-body-bg:#FFFFFF; }
+:root[data-v2-theme="clear-grey"]{ --v2-body-bg:#EDEFF2; }
+:root[data-v2-theme] body{ background:var(--v2-body-bg); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   PONT DE THÈME — composants du client actuel rendus DANS le shell v2.
+
+   La barre de transport (`TransportBar.svelte`, 2715 lignes) est reprise telle
+   quelle plutôt que dupliquée : un fork divergerait dès la première correction,
+   et il faudrait la corriger deux fois. Elle s'habille en `--tune-*`, définies
+   sur `:root` par `tune-theme.css` que `main.ts` charge toujours.
+
+   On redéfinit donc ces variables SOUS `.tune-v2`, où elles l'emportent par
+   spécificité. La barre prend alors les couleurs du thème v2 courant — et
+   change avec lui — sans qu'une seule de ses lignes soit touchée.
+
+   Ce qui n'est PAS ponté, délibérément : `--tune-warning`, `--tune-success` et
+   `--tune-danger` portent un SENS (avertissement, ok, erreur), pas une identité
+   visuelle. Les repeindre aux couleurs du thème effacerait l'information.
+   Elles gardent donc leur valeur de `tune-theme.css`.
+   ───────────────────────────────────────────────────────────────────────── */
+.tune-v2{
+  --tune-bg: var(--v2-bg);
+  --tune-surface: var(--v2-surface);
+  --tune-surface-hover: var(--v2-hover);
+  --tune-footer: var(--v2-surface2);
+  --tune-text: var(--v2-txt);
+  --tune-text-secondary: var(--v2-txt2);
+  --tune-text-muted: var(--v2-txt3);
+  --tune-border: var(--v2-line);
+  --tune-accent: var(--v2-acc1);
+  --tune-accent-hover: var(--v2-acc2);
+  /* `--tune-accent-2` et `--tune-text-dim` ne sont definies NULLE PART, pas
+     meme dans `tune-theme.css` : `ParametricEq.svelte` les utilise et elles
+     tombent donc dans le vide, dans le client actuel comme ici. On les ponte
+     plutot que de corriger le composant repris — ce serait le seul endroit ou
+     le v2 modifierait un fichier v1 pour son propre confort. */
+  --tune-accent-2: var(--v2-acc2);
+  --tune-text-dim: var(--v2-txt3);
+}

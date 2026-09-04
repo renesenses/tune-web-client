@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import * as api from '../lib/api';
+  import { dateCourte } from '../lib/dates';
   import { currentZoneId } from '../lib/stores/zones';
   import { get } from 'svelte/store';
   import { t } from '../lib/i18n';
@@ -420,7 +421,7 @@
     if (!dateStr) return '';
     try {
       const d = new Date(dateStr);
-      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+      return $dateCourte(d);
     } catch { return ''; }
   }
 

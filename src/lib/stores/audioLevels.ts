@@ -43,6 +43,17 @@ export const audioLevels = derived(
   ([$byZone, $zoneId]) => ($zoneId != null ? ($byZone[$zoneId] ?? defaultLevels) : defaultLevels)
 );
 
+/// Niveaux d'UNE zone nommée, quelle qu'elle soit.
+///
+/// `audioLevels` ne rend que ceux de la zone SÉLECTIONNÉE. La bande « Zones
+/// d'écoute actives » en montre plusieurs à la fois : sans ce sélecteur, le
+/// même analyseur serait dessiné sous chaque vignette, et il n'y aurait aucun
+/// moyen de le remarquer — trois zones qui jouent, une seule animation, la
+/// même partout.
+export function levelsForZone(zoneId: number) {
+  return derived(levelsByZone, ($byZone) => $byZone[zoneId] ?? defaultLevels);
+}
+
 export function handleAudioLevelsEvent(data: any) {
   const zoneId = data.zone_id ?? 0;
   const levels: AudioLevels = {
