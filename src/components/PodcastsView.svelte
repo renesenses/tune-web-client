@@ -5,6 +5,7 @@
   import { get } from 'svelte/store';
   import { t } from '../lib/i18n';
   import { PODCAST_GENRES } from '../lib/podcast-genres';
+  import { etatSourceRadioFrance } from '../lib/radioFranceSource';
   import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
 
   // --- State ---
@@ -226,8 +227,19 @@
     } finally {
       isLoadingRadioFrance = false;
     }
-    // Try GraphQL API (requires api key)
-    loadRfShows(rfSelectedStation);
+    // L'API GraphQL exige une clé. On la DEMANDE au serveur
+    // (`radiofrance_api_key_set`) au lieu de la déduire du refus de
+    // /podcasts/radiofrance/shows : ce 400 partait à chaque ouverture de
+    // l'écran sur toute machine sans clé (#1026).
+    let config: unknown = null;
+    try {
+      config = await api.getConfig();
+    } catch (e) {
+      console.error('Radio France key lookup error:', e);
+    }
+    const etat = etatSourceRadioFrance(config);
+    rfHasApiKey = etat.cleDeclaree;
+    if (etat.interrogerLesEmissions) loadRfShows(rfSelectedStation);
   }
 
   async function loadRfShows(station: string) {

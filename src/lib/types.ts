@@ -567,6 +567,12 @@ export interface SystemConfig {
   /** Paroles en ligne (LRCLIB, base communautaire) — désactivé par défaut. */
   lyrics_lrclib_enabled?: ConfigFlag;
   discogs_token_set: boolean;
+  /**
+   * Une clé d'API Radio France est-elle configurée ? Absent des serveurs
+   * antérieurs à #1026 — l'écran Podcasts retombe alors sur son ancienne
+   * détection. La clé elle-même ne sort jamais de /system/config.
+   */
+  radiofrance_api_key_set?: boolean;
   /** Sépare les dossiers de destination par qualité audio (réglage de scan). */
   quality_split?: ConfigFlag;
   // Appliance mode (Tune OS image): unlocks the host network settings UI
