@@ -3754,6 +3754,18 @@ export default {
   "settings.uiFuture": "未来 v1",
   "settings.uiTryFuture": "试用未来 v1",
   "settings.uiChoiceHint": "该选择保存在本设备上。返回请使用未来 v1 的账户菜单 — 若某个界面卡住，可在地址中加上「?v2=0」。",
+  "v2.sup.newTicket": "联系支持",
+  "v2.sup.subject": "主题",
+  "v2.sup.category": "类别",
+  "v2.sup.zone": "相关区域",
+  "v2.sup.zoneHint": "可选",
+  "v2.sup.body": "您的留言",
+  "v2.sup.attachDiag": "附上日志与系统信息",
+  "v2.sup.attachDiagHint": "它们描述您的安装环境和服务器最近的错误。没有它们，诊断往往需要多次往返。",
+  "v2.sup.files": "附件",
+  "v2.sup.send": "发送",
+  "v2.sup.errSend": "发送失败。",
+  "v2.sup.errRateLimited": "发送过于频繁：请在 {delay} 秒后重试。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

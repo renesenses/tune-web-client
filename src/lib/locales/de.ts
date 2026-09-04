@@ -3754,6 +3754,18 @@ export default {
   "settings.uiFuture": "Künftige v1",
   "settings.uiTryFuture": "Die künftige v1 ausprobieren",
   "settings.uiChoiceHint": "Die Wahl gilt für DIESES Gerät. Zurück geht es über das Kontomenü der künftigen v1 — oder „?v2=0“ in der Adresse, falls ein Bildschirm hängt.",
+  "v2.sup.newTicket": "An den Support schreiben",
+  "v2.sup.subject": "Betreff",
+  "v2.sup.category": "Kategorie",
+  "v2.sup.zone": "Betroffene Zone",
+  "v2.sup.zoneHint": "Optional",
+  "v2.sup.body": "Ihre Nachricht",
+  "v2.sup.attachDiag": "Protokolle und Systembericht anhängen",
+  "v2.sup.attachDiagHint": "Sie beschreiben Ihre Installation und die letzten Serverfehler. Ohne sie braucht eine Diagnose oft mehrere Rückfragen.",
+  "v2.sup.files": "Anhänge",
+  "v2.sup.send": "Senden",
+  "v2.sup.errSend": "Das Senden ist fehlgeschlagen.",
+  "v2.sup.errRateLimited": "Zu viele Nachrichten: versuchen Sie es in {delay} Sekunden erneut.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

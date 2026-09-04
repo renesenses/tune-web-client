@@ -3754,6 +3754,18 @@ export default {
   "settings.uiFuture": "Futura v1",
   "settings.uiTryFuture": "Probar la futura v1",
   "settings.uiChoiceHint": "La elección se guarda en ESTE dispositivo. Para volver, el menú de la cuenta de la futura v1 — o «?v2=0» en la dirección si una pantalla se bloquea.",
+  "v2.sup.newTicket": "Escribir al soporte",
+  "v2.sup.subject": "Asunto",
+  "v2.sup.category": "Categoría",
+  "v2.sup.zone": "Zona afectada",
+  "v2.sup.zoneHint": "Opcional",
+  "v2.sup.body": "Su mensaje",
+  "v2.sup.attachDiag": "Adjuntar los registros y la ficha del sistema",
+  "v2.sup.attachDiagHint": "Describen su instalación y los últimos errores del servidor. Sin ellos, un diagnóstico suele requerir varias idas y venidas.",
+  "v2.sup.files": "Archivos adjuntos",
+  "v2.sup.send": "Enviar",
+  "v2.sup.errSend": "El envío ha fallado.",
+  "v2.sup.errRateLimited": "Demasiados envíos: inténtelo de nuevo en {delay} segundos.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

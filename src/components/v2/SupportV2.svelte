@@ -18,6 +18,7 @@
   import * as api from '../../lib/api';
   import type { SupportTicketSummary, SupportTicketReply } from '../../lib/api';
   import { licenseState } from '../../lib/stores/license';
+  import { currentZone } from '../../lib/stores/zones';
   import { t } from '../../lib/i18n';
   import { dateEtHeure } from '../../lib/dates';
   import '../../styles/tune-v2.css';
@@ -34,6 +35,96 @@
   let repLoading = $state(false);
   let draft = $state('');
   let sending = $state(false);
+
+  /**
+   * OUVRIR un ticket — le geste manquait (Bertrand, 04/09/2026 : « la vue
+   * sidebar Support n'est pas implémentée en v2 », « complètement »).
+   *
+   * L'écran savait lire les fils et y répondre, mais pas en commencer un : il
+   * fallait retourner au client actuel pour écrire au support. Troisième cas du
+   * même motif après les collections et les radios —
+   * `createSupportTicketMultipart` existe et n'avait qu'un appelant,
+   * `SupportView.svelte`.
+   *
+   * MULTIPART, et non JSON : la route accepte des pièces jointes. C'est le
+   * piège qui a fait échouer l'import Roon/Plex — un client qui envoie du JSON
+   * à une route multipart reçoit un 415 sans rien comprendre.
+   */
+  let redaction = $state(false);
+  let sujet = $state('');
+  let corps = $state('');
+  let categorie = $state('other');
+  let zone = $state('');
+  let joindreDiag = $state(true);
+  let fichiers = $state<File[]>([]);
+  let envoi = $state(false);
+
+  /**
+   * Les SIX catégories réellement traduites.
+   *
+   * Le client actuel en propose cinq, dont deux — `support.category.library` et
+   * `support.category.hardware` — qui n'existent dans AUCUNE des onze langues :
+   * elles s'affichent en clé brute. `check-i18n` ne l'attrape pas, il vérifie
+   * le français en dur et la parité des locales, pas les clés citées sans
+   * exister. Défaut relevé le 04/09/2026 ; on ne le reproduit pas ici.
+   */
+  const CATEGORIES = [
+    { v: 'playback', k: 'support.category.playback' },
+    { v: 'scan', k: 'support.category.scan' },
+    { v: 'streaming', k: 'support.category.streaming' },
+    { v: 'audio', k: 'support.category.audio' },
+    { v: 'license', k: 'support.category.license' },
+    { v: 'other', k: 'support.category.other' },
+  ];
+
+  // La zone concernée est pré-remplie avec celle qu'on écoute : c'est presque
+  // toujours celle dont on vient se plaindre, et la retaper est une corvée.
+  let zonePreremplie = false;
+  $effect(() => {
+    const z = $currentZone;
+    if (!zonePreremplie && z?.name) { zone = z.name; zonePreremplie = true; }
+  });
+
+  const peutEnvoyer = $derived(sujet.trim().length > 0 && corps.trim().length > 0 && !envoi);
+
+  async function envoyer() {
+    if (!peutEnvoyer) return;
+    envoi = true;
+    try {
+      const form = new FormData();
+      form.append('subject', sujet.trim());
+      form.append('body', corps.trim());
+      form.append('category', categorie);
+      if (zone.trim()) form.append('zone', zone.trim());
+
+      // Journaux et fiche système : OPTIONNELS et retro-compatibles (#1073).
+      // Un serveur plus ancien ignore simplement ces champs — on n'échoue donc
+      // pas l'envoi si l'un des deux ne répond pas.
+      if (joindreDiag) {
+        try { form.append('logs', await api.getBugReportMarkdown()); } catch { /* sans les journaux */ }
+        try { form.append('system', JSON.stringify(await api.getSystemProfile())); } catch { /* sans la fiche */ }
+      }
+      for (const f of fichiers) form.append('attachments[]', f, f.name);
+
+      await api.createSupportTicketMultipart(form);
+      sujet = ''; corps = ''; categorie = 'other'; fichiers = []; redaction = false;
+      rechargerTickets();
+    } catch (e: any) {
+      // Le délai remonté par le serveur DOIT survivre jusqu'ici : sans lui,
+      // l'écran ne sait pas dire quand réessayer (#2178).
+      const attente = (e as any)?.retryAfter;
+      error = attente
+        ? $t('v2.sup.errRateLimited' as any).replace('{delay}', String(attente))
+        : (e?.message ?? $t('v2.sup.errSend' as any));
+    }
+    envoi = false;
+  }
+
+  function rechargerTickets() {
+    const key = licenseKey;
+    if (!key) return;
+    api.getSupportTickets(key).then((r) => { tickets = r?.tickets ?? []; }).catch(() => {});
+  }
 
   $effect(() => {
     const key = licenseKey;
@@ -96,6 +187,12 @@
       <h1>Support</h1>
     </div>
     {#if tier && tier !== 'free'}<span class="tier">{tier}</span>{/if}
+    {#if licenseKey && !redaction}
+      <button class="neuve" onclick={() => (redaction = true)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        {$t('v2.sup.newTicket' as any)}
+      </button>
+    {/if}
   </header>
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
@@ -111,6 +208,61 @@
           {$t('v2.sup.licenceA' as any)} <b>{$t('v2.sup.licenceWhere' as any)}</b>.
         </p>
       </div>
+    {:else if redaction}
+      <!--
+        Rédaction d'un ticket. Elle remplace la liste plutôt que de s'ouvrir
+        au-dessus : on écrit au support d'une traite, et la liste n'apporte
+        rien pendant ce temps.
+      -->
+      <form class="redac" onsubmit={(e) => { e.preventDefault(); void envoyer(); }}>
+        <label class="champ">
+          <span>{$t('v2.sup.subject' as any)}</span>
+          <input class="txt" bind:value={sujet} maxlength="160" required />
+        </label>
+
+        <div class="deux">
+          <label class="champ">
+            <span>{$t('v2.sup.category' as any)}</span>
+            <select class="sel" bind:value={categorie}>
+              {#each CATEGORIES as c (c.v)}<option value={c.v}>{$t(c.k as any)}</option>{/each}
+            </select>
+          </label>
+          <label class="champ">
+            <span>{$t('v2.sup.zone' as any)}</span>
+            <input class="txt" bind:value={zone} placeholder={$t('v2.sup.zoneHint' as any)} />
+          </label>
+        </div>
+
+        <label class="champ">
+          <span>{$t('v2.sup.body' as any)}</span>
+          <textarea class="txt zone" bind:value={corps} rows="8" required></textarea>
+        </label>
+
+        <label class="case">
+          <input type="checkbox" bind:checked={joindreDiag} />
+          <span>
+            {$t('v2.sup.attachDiag' as any)}
+            <em>{$t('v2.sup.attachDiagHint' as any)}</em>
+          </span>
+        </label>
+
+        <label class="champ">
+          <span>{$t('v2.sup.files' as any)}</span>
+          <input type="file" multiple
+            onchange={(e) => { fichiers = Array.from((e.currentTarget as HTMLInputElement).files ?? []); }} />
+          {#if fichiers.length}
+            <em class="fnoms">{fichiers.map((f) => f.name).join(', ')}</em>
+          {/if}
+        </label>
+
+        <div class="actions">
+          <button type="submit" class="go" disabled={!peutEnvoyer}>
+            {envoi ? $t('v2.sup.sending' as any) : $t('v2.sup.send' as any)}
+          </button>
+          <button type="button" class="lnk" onclick={() => (redaction = false)}>{$t('v2.zone.cancel' as any)}</button>
+        </div>
+      </form>
+
     {:else if loading}
       <div class="state">{$t('v2.sup.loading' as any)}</div>
     {:else if !tickets.length}
@@ -181,6 +333,31 @@
   .v2-sup{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg);
     color:var(--v2-txt); font-family:var(--v2-sans); overflow:hidden}
   .top{display:flex; align-items:flex-end; gap:16px; padding:24px 30px 14px; padding-right:96px}
+  .neuve{display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px; margin-left:auto;
+    border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:transparent;
+    color:var(--v2-txt2); cursor:pointer; font:600 12.5px var(--v2-sans); white-space:nowrap}
+  .neuve:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .neuve svg{width:16px; height:16px}
+
+  .redac{display:flex; flex-direction:column; gap:16px; max-width:760px; padding-top:6px}
+  .redac .deux{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  .champ{display:flex; flex-direction:column; gap:6px}
+  .champ > span{font:600 10.5px var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
+  .txt{height:38px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
+    color:var(--v2-txt); font:13.5px var(--v2-sans); padding:0 12px; outline:none; width:100%}
+  .txt.zone{height:auto; padding:11px 12px; line-height:1.6; resize:vertical; font-family:var(--v2-sans)}
+  .txt:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+  .sel{height:38px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
+    color:var(--v2-txt); font:13.5px var(--v2-sans); padding:0 10px; outline:none; cursor:pointer; width:100%}
+  .case{display:flex; align-items:flex-start; gap:10px; font-size:13px}
+  .case em{display:block; margin-top:3px; font-style:normal; font-size:12px; color:var(--v2-txt3); line-height:1.55}
+  .fnoms{font-style:normal; font-size:12px; color:var(--v2-txt3)}
+  .redac .actions{display:flex; align-items:center; gap:10px}
+  .redac .go{height:40px; padding:0 20px; border-radius:var(--v2-r-pill); border:0; cursor:pointer;
+    font:700 13px var(--v2-sans); background:var(--v2-acc1); color:var(--v2-on-acc)}
+  .redac .go:disabled{opacity:.5; cursor:default}
+  .redac .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    border-radius:999px; padding:7px 15px; font:600 11.5px var(--v2-sans)}
   .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
   .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   .tier{font:9.5px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-on-acc);

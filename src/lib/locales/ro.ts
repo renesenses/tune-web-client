@@ -3754,6 +3754,18 @@ export default {
   "settings.uiFuture": "Viitoarea v1",
   "settings.uiTryFuture": "Încercați viitoarea v1",
   "settings.uiChoiceHint": "Alegerea se păstrează pe ACEST dispozitiv. Pentru a reveni, meniul contului din viitoarea v1 — sau „?v2=0” în adresă dacă un ecran se blochează.",
+  "v2.sup.newTicket": "Scrieți asistenței",
+  "v2.sup.subject": "Subiect",
+  "v2.sup.category": "Categorie",
+  "v2.sup.zone": "Zona vizată",
+  "v2.sup.zoneHint": "Opțional",
+  "v2.sup.body": "Mesajul dumneavoastră",
+  "v2.sup.attachDiag": "Atașați jurnalele și fișa de sistem",
+  "v2.sup.attachDiagHint": "Ele descriu instalarea dumneavoastră și ultimele erori ale serverului. Fără ele, un diagnostic cere adesea mai multe schimburi.",
+  "v2.sup.files": "Atașamente",
+  "v2.sup.send": "Trimite",
+  "v2.sup.errSend": "Trimiterea a eșuat.",
+  "v2.sup.errRateLimited": "Prea multe trimiteri: reîncercați peste {delay} secunde.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
