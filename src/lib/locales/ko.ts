@@ -3754,6 +3754,18 @@ export default {
   "settings.uiFuture": "차기 v1",
   "settings.uiTryFuture": "차기 v1 사용해 보기",
   "settings.uiChoiceHint": "선택은 이 기기에 저장됩니다. 돌아가려면 차기 v1의 계정 메뉴에서 — 화면이 멈추면 주소에 「?v2=0」을 붙이세요.",
+  "v2.sup.newTicket": "지원팀에 문의",
+  "v2.sup.subject": "제목",
+  "v2.sup.category": "분류",
+  "v2.sup.zone": "해당 존",
+  "v2.sup.zoneHint": "선택 사항",
+  "v2.sup.body": "내용",
+  "v2.sup.attachDiag": "로그와 시스템 정보 첨부",
+  "v2.sup.attachDiagHint": "설치 환경과 서버의 최근 오류가 담깁니다. 없으면 진단에 여러 차례 오가는 일이 많습니다.",
+  "v2.sup.files": "첨부 파일",
+  "v2.sup.send": "보내기",
+  "v2.sup.errSend": "보내지 못했습니다.",
+  "v2.sup.errRateLimited": "요청이 너무 많습니다. {delay}초 후에 다시 시도하세요.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

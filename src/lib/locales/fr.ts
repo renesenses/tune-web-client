@@ -3776,6 +3776,18 @@ export default {
   "settings.uiFuture": "Future v1",
   "settings.uiTryFuture": "Essayer la future v1",
   "settings.uiChoiceHint": "Le choix est retenu sur CET appareil. Pour revenir, le menu du compte de la future v1 — ou « ?v2=0 » dans l'adresse si un écran se bloque.",
+  "v2.sup.newTicket": "Écrire au support",
+  "v2.sup.subject": "Sujet",
+  "v2.sup.category": "Catégorie",
+  "v2.sup.zone": "Zone concernée",
+  "v2.sup.zoneHint": "Facultatif",
+  "v2.sup.body": "Votre message",
+  "v2.sup.attachDiag": "Joindre les journaux et la fiche système",
+  "v2.sup.attachDiagHint": "Ils décrivent votre installation et les dernières erreurs du serveur. Sans eux, un diagnostic demande souvent plusieurs allers-retours.",
+  "v2.sup.files": "Pièces jointes",
+  "v2.sup.send": "Envoyer",
+  "v2.sup.errSend": "L'envoi a échoué.",
+  "v2.sup.errRateLimited": "Trop d'envois : réessayez dans {delay} secondes.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

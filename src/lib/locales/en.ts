@@ -3774,6 +3774,18 @@ export default {
   "settings.uiFuture": "Future v1",
   "settings.uiTryFuture": "Try the future v1",
   "settings.uiChoiceHint": "The choice is kept on THIS device. To come back, use the account menu of the future v1 — or “?v2=0” in the address if a screen gets stuck.",
+  "v2.sup.newTicket": "Write to support",
+  "v2.sup.subject": "Subject",
+  "v2.sup.category": "Category",
+  "v2.sup.zone": "Zone concerned",
+  "v2.sup.zoneHint": "Optional",
+  "v2.sup.body": "Your message",
+  "v2.sup.attachDiag": "Attach the logs and the system report",
+  "v2.sup.attachDiagHint": "They describe your setup and the server's latest errors. Without them, a diagnosis often takes several rounds.",
+  "v2.sup.files": "Attachments",
+  "v2.sup.send": "Send",
+  "v2.sup.errSend": "Sending failed.",
+  "v2.sup.errRateLimited": "Too many messages: try again in {delay} seconds.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

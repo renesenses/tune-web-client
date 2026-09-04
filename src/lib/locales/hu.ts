@@ -3712,6 +3712,18 @@ export default {
   "settings.uiFuture": "Jövőbeli v1",
   "settings.uiTryFuture": "A jövőbeli v1 kipróbálása",
   "settings.uiChoiceHint": "A választás EZEN az eszközön marad. A visszatérés a jövőbeli v1 fiókmenüjéből — vagy „?v2=0” a címsorban, ha egy képernyő megakad.",
+  "v2.sup.newTicket": "Írás az ügyfélszolgálatnak",
+  "v2.sup.subject": "Tárgy",
+  "v2.sup.category": "Kategória",
+  "v2.sup.zone": "Érintett zóna",
+  "v2.sup.zoneHint": "Nem kötelező",
+  "v2.sup.body": "Az Ön üzenete",
+  "v2.sup.attachDiag": "Naplók és rendszerlap csatolása",
+  "v2.sup.attachDiagHint": "Leírják a telepítését és a kiszolgáló legutóbbi hibáit. Nélkülük a diagnózis gyakran több fordulót igényel.",
+  "v2.sup.files": "Mellékletek",
+  "v2.sup.send": "Küldés",
+  "v2.sup.errSend": "A küldés nem sikerült.",
+  "v2.sup.errRateLimited": "Túl sok üzenet: próbálja újra {delay} másodperc múlva.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

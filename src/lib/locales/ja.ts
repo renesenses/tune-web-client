@@ -3754,6 +3754,18 @@ export default {
   "settings.uiFuture": "次期 v1",
   "settings.uiTryFuture": "次期 v1 を試す",
   "settings.uiChoiceHint": "選択はこの端末に保存されます。戻るには次期 v1 のアカウントメニューから — 画面が固まった場合はアドレスに「?v2=0」を付けてください。",
+  "v2.sup.newTicket": "サポートに連絡",
+  "v2.sup.subject": "件名",
+  "v2.sup.category": "カテゴリー",
+  "v2.sup.zone": "対象のゾーン",
+  "v2.sup.zoneHint": "任意",
+  "v2.sup.body": "本文",
+  "v2.sup.attachDiag": "ログとシステム情報を添付",
+  "v2.sup.attachDiagHint": "お使いの構成とサーバーの直近のエラーが含まれます。これがないと、診断に何度もやり取りが必要になりがちです。",
+  "v2.sup.files": "添付ファイル",
+  "v2.sup.send": "送信",
+  "v2.sup.errSend": "送信に失敗しました。",
+  "v2.sup.errRateLimited": "送信が多すぎます。{delay} 秒後に再試行してください。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
