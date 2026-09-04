@@ -3749,6 +3749,11 @@ export default {
   "outputModule.unknownTitle": "Il modulo {module} è inattivo.",
   "outputModule.unknownBody": "Il server rifiuta di attivare questo modulo per un motivo che questa versione dell'interfaccia non sa ancora nominare. Il rapporto di diagnostica ne dà il dettaglio.",
   "outputModule.genericName": "di uscita",
+  "settings.uiChoice": "Interfaccia",
+  "settings.uiCurrent": "Attuale",
+  "settings.uiFuture": "Futura v1",
+  "settings.uiTryFuture": "Prova la futura v1",
+  "settings.uiChoiceHint": "La scelta resta su QUESTO dispositivo. Per tornare, il menu account della futura v1 — oppure «?v2=0» nell'indirizzo se una schermata si blocca.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

@@ -3749,6 +3749,11 @@ export default {
   "outputModule.unknownTitle": "El módulo {module} está inactivo.",
   "outputModule.unknownBody": "El servidor se niega a activar este módulo por un motivo que esta versión de la interfaz aún no sabe nombrar. El informe de diagnóstico da los detalles.",
   "outputModule.genericName": "de salida",
+  "settings.uiChoice": "Interfaz",
+  "settings.uiCurrent": "Actual",
+  "settings.uiFuture": "Futura v1",
+  "settings.uiTryFuture": "Probar la futura v1",
+  "settings.uiChoiceHint": "La elección se guarda en ESTE dispositivo. Para volver, el menú de la cuenta de la futura v1 — o «?v2=0» en la dirección si una pantalla se bloquea.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

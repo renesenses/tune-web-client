@@ -3749,6 +3749,11 @@ export default {
   "outputModule.unknownTitle": "Das Modul {module} ist inaktiv.",
   "outputModule.unknownBody": "Der Server verweigert die Aktivierung dieses Moduls aus einem Grund, den diese Version der Oberfläche noch nicht benennen kann. Der Diagnosebericht enthält die Einzelheiten.",
   "outputModule.genericName": "für die Ausgabe",
+  "settings.uiChoice": "Oberfläche",
+  "settings.uiCurrent": "Aktuell",
+  "settings.uiFuture": "Künftige v1",
+  "settings.uiTryFuture": "Die künftige v1 ausprobieren",
+  "settings.uiChoiceHint": "Die Wahl gilt für DIESES Gerät. Zurück geht es über das Kontomenü der künftigen v1 — oder „?v2=0“ in der Adresse, falls ein Bildschirm hängt.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

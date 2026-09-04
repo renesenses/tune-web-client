@@ -3749,6 +3749,11 @@ export default {
   "outputModule.unknownTitle": "{module} モジュールは無効です。",
   "outputModule.unknownBody": "このバージョンのインターフェースがまだ表現できない理由で、サーバーがこのモジュールの有効化を拒否しています。詳細は診断レポートに記載されています。",
   "outputModule.genericName": "出力",
+  "settings.uiChoice": "インターフェース",
+  "settings.uiCurrent": "現行",
+  "settings.uiFuture": "次期 v1",
+  "settings.uiTryFuture": "次期 v1 を試す",
+  "settings.uiChoiceHint": "選択はこの端末に保存されます。戻るには次期 v1 のアカウントメニューから — 画面が固まった場合はアドレスに「?v2=0」を付けてください。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

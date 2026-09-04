@@ -3769,6 +3769,11 @@ export default {
   "outputModule.unknownTitle": "The {module} module is inactive.",
   "outputModule.unknownBody": "The server is refusing to activate this module for a reason this version of the interface cannot name yet. The diagnostics report has the details.",
   "outputModule.genericName": "output",
+  "settings.uiChoice": "Interface",
+  "settings.uiCurrent": "Current",
+  "settings.uiFuture": "Future v1",
+  "settings.uiTryFuture": "Try the future v1",
+  "settings.uiChoiceHint": "The choice is kept on THIS device. To come back, use the account menu of the future v1 — or “?v2=0” in the address if a screen gets stuck.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

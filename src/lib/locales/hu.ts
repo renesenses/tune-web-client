@@ -3707,6 +3707,11 @@ export default {
   "outputModule.unknownTitle": "A(z) {module} modul inaktív.",
   "outputModule.unknownBody": "A kiszolgáló olyan okból tagadja meg a modul aktiválását, amelyet a felület jelenlegi verziója még nem tud megnevezni. A diagnosztikai jelentés tartalmazza a részleteket.",
   "outputModule.genericName": "kimeneti",
+  "settings.uiChoice": "Felület",
+  "settings.uiCurrent": "Jelenlegi",
+  "settings.uiFuture": "Jövőbeli v1",
+  "settings.uiTryFuture": "A jövőbeli v1 kipróbálása",
+  "settings.uiChoiceHint": "A választás EZEN az eszközön marad. A visszatérés a jövőbeli v1 fiókmenüjéből — vagy „?v2=0” a címsorban, ha egy képernyő megakad.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

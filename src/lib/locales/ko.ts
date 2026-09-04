@@ -3749,6 +3749,11 @@ export default {
   "outputModule.unknownTitle": "{module} 모듈이 비활성 상태입니다.",
   "outputModule.unknownBody": "이 버전의 인터페이스가 아직 표현할 수 없는 이유로 서버가 이 모듈의 활성화를 거부하고 있습니다. 자세한 내용은 진단 보고서에 있습니다.",
   "outputModule.genericName": "출력",
+  "settings.uiChoice": "인터페이스",
+  "settings.uiCurrent": "현재",
+  "settings.uiFuture": "차기 v1",
+  "settings.uiTryFuture": "차기 v1 사용해 보기",
+  "settings.uiChoiceHint": "선택은 이 기기에 저장됩니다. 돌아가려면 차기 v1의 계정 메뉴에서 — 화면이 멈추면 주소에 「?v2=0」을 붙이세요.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

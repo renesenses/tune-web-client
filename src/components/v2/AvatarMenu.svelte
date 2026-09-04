@@ -14,6 +14,7 @@
   import { LEVEL_LABEL_KEYS, type SettingsLevel } from '../../lib/uiLevel';
   import { V2_THEMES, type V2Theme } from '../../lib/v2Theme';
   import { t } from '../../lib/i18n';
+  import { choisirInterface } from '../../lib/interfaceChoisie';
   import { get } from 'svelte/store';
   import { searchSettings, tabLabel, type V2SettingsHit } from '../../lib/v2Settings';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
@@ -204,6 +205,21 @@
         {/each}
       </div>
       <div class="hint">{$t('settings.levelScopeHint' as any)}</div>
+
+      <div class="sep"></div>
+
+      <!--
+        LE RETOUR vers l'interface actuelle. Il vit ici, et non dans les
+        Réglages, parce qu'il doit rester à un clic depuis N'IMPORTE QUEL
+        écran : c'est l'issue de sortie d'une prévisualisation. L'enfouir
+        derrière deux navigations reviendrait à demander de retaper l'adresse.
+      -->
+      <div class="sec">{$t('settings.uiChoice' as any)}</div>
+      <div class="seg">
+        <button onclick={() => choisirInterface(false)}>{$t('settings.uiCurrent' as any)}</button>
+        <button class="on">{$t('settings.uiFuture' as any)}</button>
+      </div>
+      <div class="hint">{$t('settings.uiChoiceHint' as any)}</div>
 
       <div class="sep"></div>
 

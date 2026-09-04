@@ -3749,6 +3749,11 @@ export default {
   "outputModule.unknownTitle": "{module} 模块未启用。",
   "outputModule.unknownBody": "服务器拒绝启用该模块，原因是当前版本的界面尚无法说明。详情请查看诊断报告。",
   "outputModule.genericName": "输出",
+  "settings.uiChoice": "界面",
+  "settings.uiCurrent": "当前",
+  "settings.uiFuture": "未来 v1",
+  "settings.uiTryFuture": "试用未来 v1",
+  "settings.uiChoiceHint": "该选择保存在本设备上。返回请使用未来 v1 的账户菜单 — 若某个界面卡住，可在地址中加上「?v2=0」。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

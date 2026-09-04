@@ -3748,4 +3748,9 @@ export default {
   "outputModule.unknownTitle": "Modulen {module} är inaktiv.",
   "outputModule.unknownBody": "Servern vägrar aktivera modulen av ett skäl som den här versionen av gränssnittet ännu inte kan namnge. Diagnostikrapporten innehåller detaljerna.",
   "outputModule.genericName": "för utgång",
+  "settings.uiChoice": "Gränssnitt",
+  "settings.uiCurrent": "Nuvarande",
+  "settings.uiFuture": "Kommande v1",
+  "settings.uiTryFuture": "Prova kommande v1",
+  "settings.uiChoiceHint": "Valet sparas på DEN HÄR enheten. För att gå tillbaka: kontomenyn i kommande v1 — eller ”?v2=0” i adressen om en skärm fastnar.",
 } as const;

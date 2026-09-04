@@ -3749,6 +3749,11 @@ export default {
   "outputModule.unknownTitle": "Modulul {module} este inactiv.",
   "outputModule.unknownBody": "Serverul refuză activarea acestui modul dintr-un motiv pe care această versiune a interfeței nu îl poate numi încă. Raportul de diagnosticare oferă detaliile.",
   "outputModule.genericName": "de ieșire",
+  "settings.uiChoice": "Interfață",
+  "settings.uiCurrent": "Actuală",
+  "settings.uiFuture": "Viitoarea v1",
+  "settings.uiTryFuture": "Încercați viitoarea v1",
+  "settings.uiChoiceHint": "Alegerea se păstrează pe ACEST dispozitiv. Pentru a reveni, meniul contului din viitoarea v1 — sau „?v2=0” în adresă dacă un ecran se blochează.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
