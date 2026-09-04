@@ -53,6 +53,11 @@
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
+  import {
+    startUpdatePolling, stopUpdatePolling,
+    updateAvailable, latestVersion, updateBannerDismissed, dismissUpdateBanner,
+  } from '../../lib/stores/updates';
+  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { bootstrapV2 } from '../../lib/v2Bootstrap';
   import { demarrerTransportV2 } from '../../lib/v2Live';
   import '../../styles/tune-v2.css';
@@ -80,6 +85,37 @@
   // de transport reste figée sur l'état du montage — elle n'est pas mal
   // branchée, personne ne l'alimente. Le retour arrête tout au démontage.
   $effect(() => demarrerTransportV2());
+
+  /**
+   * L'ANNONCE DE MISE A JOUR, que la coquille v2 ne portait pas.
+   *
+   * Le sondage, les stores et la bannière existaient depuis longtemps — dans
+   * `App.svelte`, que `?v2` ne monte jamais. Personne n'appelait donc
+   * `startUpdatePolling()` sur cette voie : `updateAvailable` restait `false`
+   * pour toujours, et la pastille de la barre latérale v2, elle aussi branchée
+   * sur ce store, ne s'allumait jamais. Écrit, mais pas branché.
+   *
+   * Le sondage s'arrête au démontage : sans le retour, une coquille remontée
+   * (bascule d'interface) en laisserait un second derrière elle.
+   */
+  $effect(() => {
+    startUpdatePolling();
+    return () => stopUpdatePolling();
+  });
+
+  /** La bannière n'occupe la place que si elle a quelque chose à dire. */
+  const annonceMaj = $derived($updateAvailable && !$updateBannerDismissed);
+
+  /**
+   * Le clic MENE quelque part : Réglages → Système, section « À propos », d'où
+   * la mise à jour s'installe. Une bannière qui annonce sans conduire oblige à
+   * chercher soi-même l'écran — et c'est le même geste que la version de la
+   * barre latérale, qui vise déjà cet onglet.
+   */
+  function ouvrirMaj() {
+    v2SettingsTarget.set({ tab: 'system', section: 'about' });
+    activeView.set('settings');
+  }
 
   /** Bascule vers le mode TV — plein écran puis vue dédiée, comme l'écran actuel. */
   function modeTv() {
@@ -110,7 +146,7 @@
   }
 </script>
 
-<div class="v2-shell tune-v2">
+<div class="v2-shell tune-v2" class:avec-maj={annonceMaj}>
   <!--
     Le raccourci se pose depuis N'IMPORTE QUEL écran.
 
@@ -159,6 +195,22 @@
           onkeydown={(e) => { if (e.key === 'Escape') poseRaccourci = false; }} />
         <button type="submit" disabled={pose || !nomRaccourci.trim()}>{$t('common.save' as any)}</button>
       </form>
+    </div>
+  {/if}
+
+  {#if annonceMaj}
+    <!--
+      Dans le FLUX, en premier enfant — pas en absolu par-dessus la coquille :
+      une bannière qui recouvre mange la première ligne de chaque écran, et la
+      grappe avatar/signet est déjà pincée en haut à droite. Ici elle décale
+      tout, y compris la grappe (`.avec-maj .av-tr`).
+    -->
+    <div class="maj">
+      <button class="maj-txt" onclick={ouvrirMaj}>
+        {$t('app.updateAvailable').replace('{version}', String($latestVersion ?? ''))}
+      </button>
+      <button class="maj-x" onclick={dismissUpdateBanner}
+        aria-label={$t('app.dismiss')} title={$t('app.dismiss')}>&times;</button>
     </div>
   {/if}
 
@@ -247,10 +299,28 @@
 </div>
 
 <style>
-  .v2-shell{position:relative; display:flex; flex-direction:column; height:100vh; background:var(--v2-bg); overflow:hidden}
+  .v2-shell{--maj-h:42px; position:relative; display:flex; flex-direction:column; height:100vh; background:var(--v2-bg); overflow:hidden}
   /* Avatar unique de l'application : pincé en haut à droite de l'écran, au-dessus
      de toutes les vues (y compris les overlays de fiche). */
   .av-tr{position:absolute; top:20px; right:30px; z-index:80; display:flex; align-items:center; gap:10px}
+  /* La grappe est en ABSOLU : la bannière du flux ne la pousse pas toute
+     seule, il faut le lui dire — sinon les trois ronds se posent dessus. */
+  .avec-maj .av-tr{top:calc(20px + var(--maj-h))}
+  /* Bannière de mise à jour. Les deux moitiés sont des BOUTONS : le texte mène
+     aux Réglages, la croix masque l'annonce pour cette version-là. */
+  .maj{flex:0 0 var(--maj-h); display:flex; align-items:center; gap:10px;
+    padding:0 30px; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2));
+    color:var(--v2-on-acc); font-family:var(--v2-sans)}
+  .maj-txt{flex:1; min-width:0; border:0; background:transparent; color:inherit; cursor:pointer;
+    text-align:left; font:600 13px var(--v2-sans);
+    /* La grappe avatar/signet vit au-dessus du bord droit : le texte s'arrête
+       avant, sinon la fin de la phrase passe sous les ronds. */
+    padding:0 150px 0 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .maj-txt:hover{text-decoration:underline}
+  .maj-x{flex:0 0 auto; width:26px; height:26px; border:0; border-radius:50%; cursor:pointer;
+    background:rgba(255,255,255,.18); color:inherit; font-size:18px; line-height:1;
+    display:grid; place-items:center}
+  .maj-x:hover{background:rgba(255,255,255,.32)}
   /* Le bouton d'origine de « Lecture en cours » est MASQUÉ ici : la grappe
      ci-dessus le porte, aligné avec le signet et l'avatar. L'écran actuel, lui,
      garde le sien — il n'a rien à cet endroit. */
