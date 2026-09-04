@@ -886,6 +886,9 @@ export default {
 
   // Signal Path
   'signal.title': 'Ruta de la señal',
+  'signal.outputDevice': 'Dispositivo de salida',
+  'signal.outputDeviceRequested': 'Solicitado',
+  'signal.outputDeviceMismatch': 'El sonido no sale por el dispositivo configurado para esta zona.',
   'signal.lossless': 'Sin pérdida',
   'signal.lossy': 'Con pérdida',
   'signal.bitPerfect': 'Bit-Perfect',

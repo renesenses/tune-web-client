@@ -1132,6 +1132,9 @@ export default {
 
   // Signal Path
   'signal.title': 'Chemin du signal',
+  'signal.outputDevice': 'Périphérique de sortie',
+  'signal.outputDeviceRequested': 'Demandé',
+  'signal.outputDeviceMismatch': 'Le son ne sort pas sur le périphérique configuré pour cette zone.',
   'signal.lossless': 'Sans perte',
   'signal.lossy': 'Avec perte',
   'signal.bitPerfect': 'Bit-Perfect',

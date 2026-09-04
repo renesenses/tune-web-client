@@ -1122,6 +1122,9 @@ export default {
 
   // Signal Path
   'signal.title': 'Signal Path',
+  'signal.outputDevice': 'Output device',
+  'signal.outputDeviceRequested': 'Requested',
+  'signal.outputDeviceMismatch': 'Audio is not playing through the device configured for this zone.',
   'signal.lossless': 'Lossless',
   'signal.lossy': 'Lossy',
   'signal.bitPerfect': 'Bit-Perfect',

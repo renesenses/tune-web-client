@@ -1083,6 +1083,9 @@ export default {
   "diagnostics.bugReportViewThread": "Téma megtekintése",
   // Jelút
   "signal.title": "Jelút",
+  "signal.outputDevice": "Kimeneti eszköz",
+  "signal.outputDeviceRequested": "Kért",
+  "signal.outputDeviceMismatch": "A hang nem a zónához beállított eszközön szólal meg.",
   "signal.lossless": "Veszteségmentes",
   "signal.lossy": "Veszteséges",
   "signal.bitPerfect": "Bit-perfect",
