@@ -55,19 +55,36 @@ export function futureInterface(recherche: string = typeof location !== 'undefin
 }
 
 /**
+ * L'adresse où aller après un choix, et s'il faut recharger explicitement.
+ *
+ * 🔴 LE PIÈGE, ET LE BOGUE QU'IL A PRODUIT (Bertrand, 04/09/2026 : « v0 → v1
+ * ne marche pas »). On retire `?v2` de l'adresse — sinon un forçage d'hier
+ * l'emporterait sur le choix d'aujourd'hui. Mais depuis l'interface ACTUELLE
+ * il n'y a rien à retirer : l'adresse calculée est identique à l'adresse
+ * courante, et affecter `location.href` à la MÊME adresse ne recharge pas.
+ *
+ * Le sens v1 → v0 marchait — l'adresse portait `?v2`, donc elle changeait — et
+ * le sens v0 → v1 ne faisait rien du tout. Une asymétrie invisible à la
+ * lecture, d'où cette fonction pure, éprouvable sans navigateur.
+ */
+export function cibleApresChoix(href: string): { url: string; memeAdresse: boolean } {
+  const url = new URL(href);
+  url.searchParams.delete('v2');
+  const cible = url.toString();
+  return { url: cible, memeAdresse: cible === href };
+}
+
+/**
  * Mémorise le choix et recharge.
  *
  * On RECHARGE parce que le choix se joue au montage : les deux interfaces sont
  * deux arbres de composants distincts, et Svelte ne remplace pas l'un par
  * l'autre à chaud. Un rechargement est honnête — l'utilisateur vient de
  * demander à changer d'interface.
- *
- * L'URL est nettoyée de son `?v2` au passage : le laisser ferait qu'un
- * forçage d'hier continuerait de l'emporter sur le choix d'aujourd'hui.
  */
 export function choisirInterface(future: boolean): void {
   try { localStorage.setItem(CLE, future ? 'future' : 'actuelle'); } catch { /* stockage refusé */ }
-  const url = new URL(location.href);
-  url.searchParams.delete('v2');
-  location.href = url.toString();
+  const { url, memeAdresse } = cibleApresChoix(location.href);
+  if (memeAdresse) location.reload();
+  else location.href = url;
 }

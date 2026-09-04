@@ -12,7 +12,7 @@
  *     personne, y compris quand le stockage est refusé.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { futureInterface, choixMemorise } from '../interfaceChoisie';
+import { futureInterface, choixMemorise, cibleApresChoix } from '../interfaceChoisie';
 
 const CLE = 'tune-interface';
 
@@ -58,5 +58,36 @@ describe('ce que l’appareil retient', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('refusé'); });
     expect(() => futureInterface('')).not.toThrow();
     expect(futureInterface('')).toBe(false);
+  });
+});
+
+describe('la bascule recharge DANS LES DEUX SENS', () => {
+  /*
+   * Bogue livré puis corrigé le 04/09/2026. On retire `?v2` de l'adresse pour
+   * qu'un forçage d'hier ne l'emporte pas sur le choix d'aujourd'hui — mais
+   * depuis l'interface actuelle il n'y a rien à retirer, l'adresse ne change
+   * pas, et affecter `location.href` à la même adresse ne recharge rien.
+   *
+   * Le sens v1 → v0 marchait, le sens v0 → v1 ne faisait rien. Bertrand :
+   * « ok pour V1 -> V0 mais v0 -> v1 ne marche pas ! »
+   */
+  it('depuis l’interface actuelle, l’adresse ne change pas : il FAUT recharger', () => {
+    const r = cibleApresChoix('http://tune.local:8888/');
+    expect(r.memeAdresse, 'sans ?v2 à retirer, l’adresse est identique').toBe(true);
+  });
+
+  it('depuis la future v1, le `?v2` disparaît et l’adresse change', () => {
+    const r = cibleApresChoix('http://tune.local:8888/?v2');
+    expect(r.memeAdresse).toBe(false);
+    expect(r.url).not.toContain('v2');
+  });
+
+  it('les autres paramètres survivent', () => {
+    // `?kiosk` et `?mini` sont des modes d'affichage : changer d'interface ne
+    // doit pas sortir d'un écran de cuisine ou du mini-lecteur.
+    const r = cibleApresChoix('http://tune.local:8888/?kiosk&v2&mini');
+    expect(r.url).toContain('kiosk');
+    expect(r.url).toContain('mini');
+    expect(r.url).not.toContain('v2');
   });
 });
