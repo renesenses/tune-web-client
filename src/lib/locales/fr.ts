@@ -3462,6 +3462,14 @@ export default {
   "v2.zone.pickZone": "Choisir une zone…",
   "v2.zone.leftChannel": "voie gauche",
   "v2.zone.rightChannel": "voie droite",
+  // v2 — Favoris : filtres par source et tris
+  "v2.fav.allSources": "Toutes",
+  "v2.fav.sourceLibrary": "Bibliothèque",
+  "v2.fav.sortBy": "Trier par",
+  "v2.fav.sortRecent": "Ajout récent",
+  "v2.fav.sortOldest": "Ajout ancien",
+  "v2.fav.sortAlpha": "A → Z",
+  "v2.fav.sortAlphaDesc": "Z → A",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

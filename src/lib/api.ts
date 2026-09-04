@@ -2390,6 +2390,15 @@ export interface StreamingFavorite {
   artist?: string | null;
   album?: string | null;
   cover_url?: string | null;
+  /**
+   * Quand le cœur a été posé, en ISO — « 2026-09-03T21:59:50Z ».
+   *
+   * Le serveur le renvoyait déjà ; le type l'ignorait, donc le champ arrivait
+   * et se perdait à la conversion. C'est la SEULE date que porte un favori de
+   * service : sans elle, un tri par date n'aurait rien à lire de ce côté.
+   * Mesuré sur le .18 le 04/09/2026.
+   */
+  created_at?: string | null;
 }
 
 export function getProfileStreamingFavorites(

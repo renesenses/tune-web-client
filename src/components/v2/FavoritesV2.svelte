@@ -16,6 +16,9 @@
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { currentProfileId, loadFavoriteIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { favoriExterneService } from '../../lib/streamingFavorites';
+  import {
+    trierEtFiltrer, sourcesPresentes, SOURCE_BIBLIOTHEQUE, type TriFavoris,
+  } from '../../lib/favorisTriFiltre';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { fold, formatDuration, getQualityTier } from '../../lib/utils';
@@ -80,17 +83,21 @@
    * `source_id` renseignés — c'est ce couple que la lecture et la fiche
    * savent déjà suivre, et la pastille du service se dessine toute seule.
    */
+  // `created_at` est REPORTE : c'est la seule date que porte un favori de
+   // service, et le tri par date n'aurait sinon rien a lire de ce cote.
   const versAlbum = (f: api.StreamingFavorite) => ({
     id: null, title: f.title ?? '', artist_name: f.artist ?? '',
     cover_path: f.cover_url ?? null, source: f.service, source_id: f.service_id,
+    created_at: f.created_at ?? null,
   }) as unknown as Album;
   const versPiste = (f: api.StreamingFavorite) => ({
     id: null, title: f.title ?? '', artist_name: f.artist ?? '', album_title: f.album ?? '',
     cover_path: f.cover_url ?? null, source: f.service, source_id: f.service_id, duration_ms: 0,
+    created_at: f.created_at ?? null,
   }) as unknown as Track;
   const versArtiste = (f: api.StreamingFavorite) => ({
     id: null, name: f.title ?? f.artist ?? '', image_path: f.cover_url ?? null,
-    source: f.service, source_id: f.service_id,
+    source: f.service, source_id: f.service_id, created_at: f.created_at ?? null,
   }) as unknown as Artist;
 
   /** Clé de liste : `id` est NUL sur tout objet de service, et deux `null` se
@@ -139,9 +146,41 @@
   function match(s: string | null | undefined): boolean {
     return !q || fold(s).includes(fold(q));
   }
-  const vAlbums = $derived(albums.filter((a) => match(a.title) || match(a.artist_name)));
-  const vTracks = $derived(tracks.filter((t) => match(t.title) || match(t.artist_name)));
-  const vArtists = $derived(artists.filter((a) => match(a.name)));
+  /**
+   * Filtre par SOURCE et tri — demandes par Bertrand le 04/09/2026.
+   *
+   * Le filtre porte sur l'onglet COURANT : les sources presentes ne sont pas
+   * les memes d'un onglet a l'autre (on peut n'avoir aucun artiste Bandcamp
+   * et beaucoup d'albums). Proposer une puce qui ne rendrait rien laisserait
+   * croire que les favoris ont disparu.
+   *
+   * Une source qui disparait de l'onglet courant retombe sur « toutes »,
+   * sinon la grille resterait vide sans qu'aucune puce ne paraisse active.
+   */
+  let sourceFiltre = $state<string | null>(null);
+  let tri = $state<TriFavoris>('recent');
+
+  const fAlbums = $derived(albums.filter((a) => match(a.title) || match(a.artist_name)));
+  const fTracks = $derived(tracks.filter((t) => match(t.title) || match(t.artist_name)));
+  const fArtists = $derived(artists.filter((a) => match(a.name)));
+
+  const sourcesOnglet = $derived(
+    sourcesPresentes(
+      tab === 'albums' ? fAlbums : tab === 'tracks' ? fTracks : tab === 'artists' ? fArtists : [],
+    ),
+  );
+  $effect(() => {
+    if (sourceFiltre && !sourcesOnglet.includes(sourceFiltre)) sourceFiltre = null;
+  });
+
+  const vAlbums = $derived(trierEtFiltrer(fAlbums, sourceFiltre, tri));
+  const vTracks = $derived(trierEtFiltrer(fTracks, sourceFiltre, tri));
+  const vArtists = $derived(trierEtFiltrer(fArtists, sourceFiltre, tri));
+
+  /** Nom lisible d'une source : la bibliotheque se traduit, un service porte son nom. */
+  function nomSource(s: string): string {
+    return s === SOURCE_BIBLIOTHEQUE ? $t('v2.fav.sourceLibrary' as any) : s;
+  }
 
   // ── Favoris RADIO : les titres captés à l'antenne ────────────────────────
   let radio = $state<any[]>([]);
@@ -310,9 +349,38 @@
     </nav>
     <div class="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input placeholder="Filtrer" bind:value={q} />
+      <input placeholder={$t('v2.tool.filter' as any)} bind:value={q} />
     </div>
   </header>
+
+  <!--
+    Filtres et tri. Absents de l'onglet Radio : ses titres captes ne viennent
+    pas de deux tables, et n'ont pas de source a departager.
+
+    Les puces de source n'apparaissent qu'a partir de DEUX sources : avec une
+    seule, le filtre ne peut rien retirer — c'est un bouton qui ne fait rien.
+  -->
+  {#if tab !== 'radio'}
+    <div class="barre">
+      {#if sourcesOnglet.length > 1}
+        <div class="puces">
+          <button class:on={sourceFiltre === null} onclick={() => (sourceFiltre = null)}>{$t('v2.fav.allSources' as any)}</button>
+          {#each sourcesOnglet as s (s)}
+            <button class:on={sourceFiltre === s} onclick={() => (sourceFiltre = s)}>{nomSource(s)}</button>
+          {/each}
+        </div>
+      {/if}
+      <label class="tris">
+        <span>{$t('v2.fav.sortBy' as any)}</span>
+        <select class="sel" bind:value={tri}>
+          <option value="recent">{$t('v2.fav.sortRecent' as any)}</option>
+          <option value="ancien">{$t('v2.fav.sortOldest' as any)}</option>
+          <option value="alpha">{$t('v2.fav.sortAlpha' as any)}</option>
+          <option value="alphaInverse">{$t('v2.fav.sortAlphaDesc' as any)}</option>
+        </select>
+      </label>
+    </div>
+  {/if}
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
 
@@ -526,6 +594,21 @@
 </section>
 
 <style>
+  .barre{display:flex; align-items:center; justify-content:space-between; gap:18px;
+    flex-wrap:wrap; padding:0 30px 12px}
+  .puces{display:flex; gap:7px; flex-wrap:wrap}
+  .puces button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
+    cursor:pointer; border-radius:999px; padding:5px 13px; font:600 11.5px var(--v2-sans);
+    text-transform:capitalize}
+  .puces button:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .puces button.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
+  .tris{display:flex; align-items:center; gap:9px; margin-left:auto}
+  .tris > span{font:600 10.5px var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3);
+    text-transform:uppercase}
+  .barre .sel{height:32px; border-radius:9px; border:1px solid var(--v2-line2);
+    background:var(--v2-surface2); color:var(--v2-txt); font:12.5px var(--v2-sans);
+    padding:0 10px; outline:none; cursor:pointer}
+  .barre .sel:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .rf-actions{display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:0 0 14px}
   .rf-cpt{font:11px var(--v2-mono); color:var(--v2-txt3); margin-right:4px}
   .rf-btn{display:inline-flex; align-items:center; gap:7px; text-decoration:none; cursor:pointer;
