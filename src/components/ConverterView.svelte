@@ -323,35 +323,40 @@
       startPolling();
     } catch (e: any) {
       conversionState = 'error';
-      conversionError = e?.message || get(t)('converter.startError');
+      conversionError = /no audio files/i.test(e?.message ?? '')
+        ? get(t)('converter.noAudioFiles')
+        : (e?.message || get(t)('converter.startError'));
       notifications.error(conversionError);
+    }
+  }
+
+  async function pollOnce() {
+    if (!jobId) return;
+    try {
+      const status = await api.getConversionStatus(jobId);
+      progress = status.progress ?? 0;
+      currentFile = status.current_file ?? '';
+      convertedCount = status.converted ?? 0;
+      totalCount = status.total ?? totalCount;
+
+      if (status.state === 'done') {
+        conversionState = 'done';
+        downloadSize = status.download_size ?? '';
+        stopPolling();
+      } else if (status.state === 'error') {
+        conversionState = 'error';
+        conversionError = status.error ?? get(t)('converter.conversionError');
+        stopPolling();
+      }
+    } catch (e: any) {
+      console.error('Poll error:', e);
     }
   }
 
   function startPolling() {
     if (pollTimer) clearInterval(pollTimer);
-    pollTimer = setInterval(async () => {
-      if (!jobId) return;
-      try {
-        const status = await api.getConversionStatus(jobId);
-        progress = status.progress ?? 0;
-        currentFile = status.current_file ?? '';
-        convertedCount = status.converted ?? 0;
-        totalCount = status.total ?? totalCount;
-
-        if (status.state === 'done') {
-          conversionState = 'done';
-          downloadSize = status.download_size ?? '';
-          stopPolling();
-        } else if (status.state === 'error') {
-          conversionState = 'error';
-          conversionError = status.error ?? get(t)('converter.conversionError');
-          stopPolling();
-        }
-      } catch (e: any) {
-        console.error('Poll error:', e);
-      }
-    }, 1500);
+    void pollOnce();
+    pollTimer = setInterval(() => { void pollOnce(); }, 500);
   }
 
   function stopPolling() {
@@ -404,14 +409,26 @@
   // Album search/filter
   let albumSearch = $state('');
   let filteredAlbums = $derived(
-    albumSearch.trim()
-      ? albums.filter(a => {
-          const q = albumSearch.toLowerCase();
-          return (a.title?.toLowerCase().includes(q)) ||
-                 (a.artist_name?.toLowerCase().includes(q));
-        })
-      : albums
+    (() => {
+      const withFiles = albums.filter((a) => a.track_count !== 0);
+      if (!albumSearch.trim()) return withFiles;
+      const q = albumSearch.toLowerCase();
+      return withFiles.filter(
+        (a) =>
+          (a.title?.toLowerCase().includes(q)) ||
+          (a.artist_name?.toLowerCase().includes(q)),
+      );
+    })()
   );
+
+  function fileBaseName(path: string): string {
+    const n = path.replace(/\\/g, '/');
+    const i = n.lastIndexOf('/');
+    return i >= 0 ? n.slice(i + 1) : path;
+  }
+
+  let displayFile = $derived(currentFile ? fileBaseName(currentFile) : '');
+  let barBusy = $derived(conversionState === 'converting' && progress < 100);
 </script>
 
 <div class="converter-view">
@@ -419,6 +436,24 @@
     <h2>{$t('converter.title')}</h2>
     <p class="converter-subtitle">{$t('converter.subtitle')}</p>
   </header>
+
+  {#if conversionState === 'converting'}
+    <div class="converter-busy-banner" role="status" aria-live="polite">
+      <div class="converter-busy-copy">
+        <span class="converter-busy-label">{$t('converter.encoding')}</span>
+        {#if displayFile}
+          <span class="converter-busy-file" title={currentFile}>{displayFile}</span>
+        {/if}
+        <span class="converter-busy-count">{$t('converter.tracksConverted').replace('{done}', String(convertedCount)).replace('{total}', String(totalCount))}</span>
+      </div>
+      <div class="progress-bar-container" class:is-busy={barBusy}>
+        <div class="progress-bar" style="width: {Math.max(progress, 0)}%"></div>
+        {#if barBusy}
+          <div class="progress-bar-slide" aria-hidden="true"></div>
+        {/if}
+      </div>
+    </div>
+  {/if}
 
   <!-- Source selection -->
   <section class="source-section">
@@ -503,6 +538,9 @@
               </div>
               <div class="album-title">{album.title}</div>
               <div class="album-artist">{album.artist_name ?? ''}</div>
+              {#if album.track_count != null}
+                <div class="album-tracks">{album.track_count} {$t('common.tracks')}</div>
+              {/if}
             </button>
           {/each}
         </div>
@@ -700,12 +738,15 @@
       </button>
     {:else if conversionState === 'converting'}
       <div class="progress-section">
-        <div class="progress-bar-container">
-          <div class="progress-bar" style="width: {progress}%"></div>
+        <div class="progress-bar-container" class:is-busy={barBusy}>
+          <div class="progress-bar" style="width: {Math.max(progress, 0)}%"></div>
+          {#if barBusy}
+            <div class="progress-bar-slide" aria-hidden="true"></div>
+          {/if}
         </div>
         <div class="progress-info">
           <span class="progress-pct">{Math.round(progress)}%</span>
-          <span class="progress-file" title={currentFile}>{currentFile}</span>
+          <span class="progress-file" title={currentFile}>{displayFile || $t('converter.encoding')}</span>
           <span class="progress-count">{$t('converter.tracksConverted').replace('{done}', String(convertedCount)).replace('{total}', String(totalCount))}</span>
         </div>
         <button class="cancel-btn" onclick={cancelConversion}>
@@ -981,6 +1022,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     padding: 0 4px 4px;
+  }
+  .album-tracks {
+    font-family: var(--font-body);
+    font-size: 10px;
+    color: var(--tune-text-tertiary, var(--tune-text-secondary));
+    padding: 0 4px 6px;
   }
 
   /* Directory list */
@@ -1265,18 +1312,90 @@
   }
 
   .progress-bar-container {
+    position: relative;
     width: 100%;
-    height: 6px;
+    height: 8px;
     background: var(--tune-grey2, rgba(255,255,255,0.08));
-    border-radius: 3px;
+    border-radius: 4px;
     overflow: hidden;
   }
 
   .progress-bar {
     height: 100%;
     background: var(--tune-accent);
-    border-radius: 3px;
+    border-radius: 4px;
     transition: width 0.3s ease;
+  }
+
+  .progress-bar-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 40%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+    animation: converter-slide 1.15s ease-in-out infinite;
+  }
+
+  .progress-bar-container.is-busy {
+    background: color-mix(in srgb, var(--tune-accent) 18%, var(--tune-grey2, rgba(255,255,255,0.08)));
+  }
+
+  @keyframes converter-slide {
+    0% { transform: translateX(-120%); }
+    100% { transform: translateX(320%); }
+  }
+
+  .converter-busy-label {
+    font-family: var(--font-label);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--tune-accent);
+    animation: converter-pulse 1.4s ease-in-out infinite;
+  }
+
+  @keyframes converter-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+
+  .converter-busy-banner {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: var(--space-md);
+    padding: 12px 16px;
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  }
+
+  .converter-busy-copy {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 14px;
+  }
+
+  .converter-busy-file {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: min(52vw, 420px);
+  }
+
+  .converter-busy-count {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
   }
 
   .progress-info {

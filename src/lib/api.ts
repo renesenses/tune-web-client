@@ -63,6 +63,10 @@ import type {
 } from './types';
 
 import { baseApi, entetesRelais } from './bridge';
+import {
+  normalizeConversionStatus,
+  type ConversionStatus,
+} from './api/converter-status';
 
 /**
  * Base des appels d'API.
@@ -247,9 +251,13 @@ async function apiError(response: Response): Promise<ApiError> {
   let code: string | undefined;
   try {
     const body = await response.json();
+    // `error` is AppError's field (Rust). Using only detail/message left the
+    // converter toast as a naked « 400 Bad Request » while the body said
+    // "no audio files found in sources" (.79, 29/08/2026). Same as `_client.ts`.
     if (body.detail) detail = body.detail;
+    else if (typeof body.error === 'string') detail = body.error;
     else if (body.message) detail = body.message;
-    code = body.error;
+    code = typeof body.error === 'string' ? body.error : body.code;
   } catch { /* ignore */ }
   const err = new Error(detail) as ApiError;
   err.code = code;
@@ -2919,6 +2927,9 @@ export * from './api/metadata';
 // Voir lib/api/ingest.ts.
 export * from './api/ingest';
 
+// --- Convertisseur (contrat status Rust ≠ UI) ---
+export * from './api/converter-status';
+
 // --- Radios ---
 
 export function getRadios(params?: { genre?: string; favorite?: boolean; limit?: number; offset?: number }) {
@@ -4849,16 +4860,10 @@ export function startConversion(
   });
 }
 
-export function getConversionStatus(jobId: string): Promise<{
-  state: 'converting' | 'done' | 'error';
-  progress: number;
-  current_file: string;
-  converted: number;
-  total: number;
-  download_size?: string;
-  error?: string;
-}> {
-  return fetchJSON(`${BASE}/converter/status/${encodeURIComponent(jobId)}`);
+export async function getConversionStatus(jobId: string): Promise<ConversionStatus> {
+  // Rust 0.9.121: { status, completed } — pas { state, converted, progress }.
+  const raw = await fetchJSON(`${BASE}/converter/status/${encodeURIComponent(jobId)}`);
+  return normalizeConversionStatus(raw);
 }
 
 export async function downloadConversion(jobId: string): Promise<string> {
