@@ -48,7 +48,7 @@
         if (cf) { enabled = !!cf.enabled; amount = cf.amount ?? 0.3; delay = cf.delay_ms ?? 0.5; }
         error = null;
       })
-      .catch(() => { error = 'Réglage indisponible sur ce serveur.'; })
+      .catch(() => { error = $t('v2.cf.errUnavailable' as any); })
       .finally(() => { loading = false; });
   });
 
@@ -84,7 +84,7 @@
       reportReach(res?.crossfeed_applied_live);
       error = null;
     } catch (e: any) {
-      if (e?.message !== 'premium_required') error = 'Enregistrement impossible.';
+      if (e?.message !== 'premium_required') error = $t('v2.cf.errSave' as any);
     }
   }
   function toggle() { enabled = !enabled; save(); }
@@ -98,37 +98,34 @@
 <section class="v2-cf tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">Casque</div>
+      <div class="eyebrow">{$t('v2.cf.eyebrow' as any)}</div>
       <h1>Crossfeed</h1>
     </div>
   </header>
 
   <div class="scroll">
     <p class="lead">
-      Verse dans chaque oreille une copie retardée et atténuée du canal opposé.
-      La scène stéréo se pose <b>devant vous</b> au lieu de rester dans votre tête —
-      ce que fait naturellement une paire d'enceintes.
+      {$t('v2.cf.leadA' as any)} <b>{$t('v2.cf.leadFront' as any)}</b> {$t('v2.cf.leadB' as any)}
     </p>
 
     {#if error}<div class="err">{error}</div>{/if}
 
     {#if loading}
-      <div class="state">Chargement…</div>
+      <div class="state">{$t('v2.tool.loading' as any)}</div>
     {:else if $currentZoneId == null}
-      <div class="state">Aucune zone active — sélectionnez une zone pour régler son crossfeed.</div>
+      <div class="state">{$t('v2.cf.noZone' as any)}</div>
     {:else}
       {#if !localOutput}
         <div class="warn">
-          La zone <b>{zoneName}</b> n'est pas une sortie locale. Le crossfeed s'applique au
-          rendu local ; sur une sortie réseau, le réglage peut rester sans effet audible.
+          {$t('v2.cf.notLocalA' as any)} <b>{zoneName}</b> {$t('v2.cf.notLocalB' as any)}
         </div>
       {/if}
 
       <div class="card">
         <div class="row">
           <div class="lbl">
-            <span>Activer le crossfeed</span>
-            {#if zoneName}<span class="hint">Réglage propre à la zone <b>{zoneName}</b>.</span>{/if}
+            <span>{$t('v2.cf.enable' as any)}</span>
+            {#if zoneName}<span class="hint">{$t('v2.cf.perZoneA' as any)} <b>{zoneName}</b>{$t('v2.cf.perZoneB' as any)}</span>{/if}
           </div>
           <label class="sw">
             <input type="checkbox" checked={enabled} onchange={toggle} />
@@ -146,24 +143,24 @@
 
         <div class="row" class:off={!enabled}>
           <div class="lbl">
-            <span>Intensité</span>
-            <span class="hint">Quelle proportion du canal opposé passe dans l'autre oreille.</span>
+            <span>{$t('v2.cf.amount' as any)}</span>
+            <span class="hint">{$t('v2.cf.amountHint' as any)}</span>
           </div>
           <div class="sl">
             <input type="range" min="0" max={CF_MAX_AMOUNT} step="0.01" bind:value={amount}
-              disabled={!enabled} oninput={queueSave} aria-label="Intensité du crossfeed" />
+              disabled={!enabled} oninput={queueSave} aria-label={$t('v2.cf.amountAria' as any)} />
             <span class="val">{Math.round(amount * 100)} %</span>
           </div>
         </div>
 
         <div class="row" class:off={!enabled}>
           <div class="lbl">
-            <span>Retard</span>
-            <span class="hint">Le temps que met le son à contourner la tête. C'est lui qui crée la distance.</span>
+            <span>{$t('v2.cf.delay' as any)}</span>
+            <span class="hint">{$t('v2.cf.delayHint' as any)}</span>
           </div>
           <div class="sl">
             <input type="range" min="0" max={CF_MAX_DELAY} step="0.1" bind:value={delay}
-              disabled={!enabled} oninput={queueSave} aria-label="Retard du crossfeed" />
+              disabled={!enabled} oninput={queueSave} aria-label={$t('v2.cf.delayAria' as any)} />
             <span class="val">{delay.toFixed(1)} ms</span>
           </div>
         </div>

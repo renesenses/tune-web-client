@@ -46,14 +46,14 @@
   const GRID_Q: Record<number, number> = { 10: 1.0, 15: 2.15, 31: 4.32 };
   const MIN_GAIN = -12, MAX_GAIN = 12;
 
-  const PRESETS: { key: string; label: string; gains: number[] }[] = [
-    { key: 'flat',         label: 'Plat',          gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-    { key: 'bass_boost',   label: 'Graves +',      gains: [8, 6, 4, 2, 0, 0, 0, 0, 0, 0] },
-    { key: 'treble_boost', label: 'Aigus +',       gains: [0, 0, 0, 0, 0, 1, 3, 5, 7, 8] },
-    { key: 'loudness',     label: 'Loudness',      gains: [6, 4, 0, -2, -1, 0, 2, 4, 5, 6] },
-    { key: 'rock',         label: 'Rock',          gains: [5, 3, 0, -2, -1, 2, 4, 5, 5, 4] },
-    { key: 'jazz',         label: 'Jazz',          gains: [3, 2, 0, 2, -1, -1, 0, 2, 4, 5] },
-    { key: 'classical',    label: 'Classique',     gains: [0, 0, 0, 0, 0, 0, -2, -3, -2, -1] },
+  const PRESETS: { key: string; labelKey: string; gains: number[] }[] = [
+    { key: 'flat',         labelKey: 'v2.eq.presetFlat',      gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+    { key: 'bass_boost',   labelKey: 'v2.eq.presetBass',      gains: [8, 6, 4, 2, 0, 0, 0, 0, 0, 0] },
+    { key: 'treble_boost', labelKey: 'v2.eq.presetTreble',    gains: [0, 0, 0, 0, 0, 1, 3, 5, 7, 8] },
+    { key: 'loudness',     labelKey: 'v2.eq.presetLoudness',  gains: [6, 4, 0, -2, -1, 0, 2, 4, 5, 6] },
+    { key: 'rock',         labelKey: 'v2.eq.presetRock',      gains: [5, 3, 0, -2, -1, 2, 4, 5, 5, 4] },
+    { key: 'jazz',         labelKey: 'v2.eq.presetJazz',      gains: [3, 2, 0, 2, -1, -1, 0, 2, 4, 5] },
+    { key: 'classical',    labelKey: 'v2.eq.presetClassical', gains: [0, 0, 0, 0, 0, 0, -2, -3, -2, -1] },
   ];
 
   let bandCount = $state(10);
@@ -100,7 +100,7 @@
         }
         error = null;
       })
-      .catch(() => { error = 'Égaliseur indisponible.'; })
+      .catch(() => { error = $t('v2.eq.errUnavailable' as any); })
       .finally(() => { loading = false; });
   });
 
@@ -135,7 +135,7 @@
       // Un refus silencieux, c'est un égaliseur qui « ne marche pas » : les
       // curseurs bougent, la courbe tient à l'écran, et le son ne change
       // jamais. On le remonte.
-      if (e?.message !== 'premium_required') error = 'Le serveur a refusé le réglage.';
+      if (e?.message !== 'premium_required') error = $t('v2.eq.errRefused' as any);
     }
   }
 
@@ -177,50 +177,50 @@
 <section class="v2-eq tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">Correction</div>
-      <h1>Égaliseur</h1>
+      <div class="eyebrow">{$t('v2.eq.eyebrow' as any)}</div>
+      <h1>{$t('v2.eq.title' as any)}</h1>
     </div>
     <label class="sw">
       <input type="checkbox" checked={enabled} onchange={toggle} />
       <span class="slider"></span>
     </label>
-    <span class="onoff">{enabled ? 'Actif' : 'Inactif'}</span>
-    <button class="lnk" onclick={reset}>Remettre à plat</button>
+    <span class="onoff">{enabled ? $t('v2.eq.on' as any) : $t('v2.eq.off' as any)}</span>
+    <button class="lnk" onclick={reset}>{$t('v2.eq.reset' as any)}</button>
   </header>
 
   {#if error}<div class="err">{error}</div>{/if}
 
   <div class="scroll">
     {#if loading}
-      <div class="state">Chargement…</div>
+      <div class="state">{$t('v2.tool.loading' as any)}</div>
     {:else if $currentZoneId == null}
-      <div class="state">Aucune zone active — sélectionnez une zone pour régler son égaliseur.</div>
+      <div class="state">{$t('v2.eq.noZone' as any)}</div>
     {:else}
       <div class="presets">
         {#each PRESETS as p (p.key)}
-          <button onclick={() => applyPreset(p)}>{p.label}</button>
+          <button onclick={() => applyPreset(p)}>{$t(p.labelKey as any)}</button>
         {/each}
       </div>
 
       {#if showExpert}
         <div class="ctrls">
-          <span class="cl">Résolution</span>
+          <span class="cl">{$t('v2.eq.resolution' as any)}</span>
           <div class="seg">
             {#each [10, 15, 31] as n (n)}
-              <button class:on={bandCount === n} onclick={() => setBands(n)}>{n} bandes</button>
+              <button class:on={bandCount === n} onclick={() => setBands(n)}>{$t('v2.eq.bands' as any).replace('{count}', String(n))}</button>
             {/each}
           </div>
-          <span class="cl sep">Canaux</span>
+          <span class="cl sep">{$t('v2.eq.channels' as any)}</span>
           {#if gainsRight === null}
-            <button class="lnk" onclick={unlink}>Délier G/D</button>
-            <span class="note">La droite partira de la gauche, à l'identique.</span>
+            <button class="lnk" onclick={unlink}>{$t('v2.eq.unlink' as any)}</button>
+            <span class="note">{$t('v2.eq.unlinkNote' as any)}</span>
           {:else}
             <div class="seg">
-              <button class:on={editing === 'left'} onclick={() => (editing = 'left')}>Gauche</button>
-              <button class:on={editing === 'right'} onclick={() => (editing = 'right')}>Droite</button>
+              <button class:on={editing === 'left'} onclick={() => (editing = 'left')}>{$t('v2.eq.left' as any)}</button>
+              <button class:on={editing === 'right'} onclick={() => (editing = 'right')}>{$t('v2.eq.right' as any)}</button>
             </div>
-            <button class="lnk" onclick={relink}>Relier</button>
-            <span class="note">En reliant, c'est la courbe de <b>gauche</b> qui survit.</span>
+            <button class="lnk" onclick={relink}>{$t('v2.eq.relink' as any)}</button>
+            <span class="note">{$t('v2.eq.relinkNoteA' as any)} <b>{$t('v2.eq.relinkNoteLeft' as any)}</b> {$t('v2.eq.relinkNoteB' as any)}</span>
           {/if}
         </div>
       {/if}
@@ -242,9 +242,9 @@
 
       {#if showExpert}
         <p class="more">
-          L'égaliseur <b>paramétrique</b> (bandes libres : fréquence, gain, Q, type) et
-          l'assistant <b>Tune Master Profiler</b> ne sont pas encore repris dans ce client.
-          <button class="lnk sm" onclick={() => activeView.set('settings')}>Ouvrir les réglages</button>
+          {$t('v2.eq.moreA' as any)} <b>{$t('v2.eq.moreParametric' as any)}</b> {$t('v2.eq.moreB' as any)}
+          <b>Tune Master Profiler</b> {$t('v2.eq.moreC' as any)}
+          <button class="lnk sm" onclick={() => activeView.set('settings')}>{$t('v2.eq.openSettings' as any)}</button>
         </p>
       {/if}
     {/if}

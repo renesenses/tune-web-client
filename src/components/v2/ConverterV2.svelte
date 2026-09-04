@@ -14,6 +14,7 @@
   import { albums } from '../../lib/stores/library';
   import { preferences } from '../../lib/stores/preferences';
   import { fold, formatNumber } from '../../lib/utils';
+  import { t } from '../../lib/i18n';
   import type { Album } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import '../../styles/tune-v2.css';
@@ -37,7 +38,7 @@
       .then(([c, p]) => {
         if (c.status === 'fulfilled') caps = c.value;
         if (p.status === 'fulfilled') { presets = p.value ?? []; presetId = presets[0]?.id ?? null; }
-        if (c.status === 'rejected' && p.status === 'rejected') error = 'Convertisseur indisponible.';
+        if (c.status === 'rejected' && p.status === 'rejected') error = $t('v2.conv.errUnavailable' as any);
       })
       .finally(() => { loading = false; });
   });
@@ -73,7 +74,7 @@
       jobId = res.job_id;
       job = null;
     } catch (e: any) {
-      error = e?.message ?? 'Lancement impossible.';
+      error = e?.message ?? $t('v2.tool.errStart' as any);
     }
     starting = false;
   }
@@ -98,7 +99,7 @@
   async function download() {
     if (!jobId) return;
     try { downloadUrl = await api.downloadConversion(jobId); }
-    catch { error = 'Récupération impossible.'; }
+    catch { error = $t('v2.tool.errDownload' as any); }
   }
   async function cancel() {
     if (!jobId) return;
@@ -110,27 +111,27 @@
 <section class="v2-conv tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">Outils</div>
-      <h1>Convertisseur</h1>
+      <div class="eyebrow">{$t('v2.tool.eyebrow' as any)}</div>
+      <h1>{$t('v2.conv.title' as any)}</h1>
     </div>
-    {#if picked.size}<span class="cnt">{picked.size} album{picked.size > 1 ? 's' : ''} choisi{picked.size > 1 ? 's' : ''}</span>{/if}
+    {#if picked.size}<span class="cnt">{(picked.size > 1 ? $t('v2.tool.pickedMany' as any) : $t('v2.tool.pickedOne' as any)).replace('{count}', String(picked.size))}</span>{/if}
   </header>
 
   {#if error}<div class="err">{error}</div>{/if}
 
   <div class="scroll">
     {#if loading}
-      <div class="state">Chargement…</div>
+      <div class="state">{$t('v2.tool.loading' as any)}</div>
     {:else}
       <div class="fmt">
-        <span class="cl">Format de sortie</span>
+        <span class="cl">{$t('v2.tool.outputFormat' as any)}</span>
         <div class="chips">
           {#each presets as p (p.id)}
             {@const ok = caps?.formats?.[p.format] !== false}
             <button class:on={presetId === p.id} class:ko={!ok} disabled={!ok}
-              title={ok ? `${p.format} · ${p.sample_rate} · ${p.bit_depth}` : `${p.format} : ce serveur ne peut pas le produire`}
+              title={ok ? `${p.format} · ${p.sample_rate} · ${p.bit_depth}` : $t('v2.conv.cannotProduce' as any).replace('{format}', p.format)}
               onclick={() => (presetId = p.id)}>
-              {p.label}{#if !ok}<span class="x">indisponible</span>{/if}
+              {p.label}{#if !ok}<span class="x">{$t('v2.conv.unavailable' as any)}</span>{/if}
             </button>
           {/each}
         </div>
@@ -141,53 +142,53 @@
           </div>
         {/if}
         {#if caps?.tools && (caps.tools.ffmpeg || caps.tools.lame)}
-          <div class="tools">Outils détectés : {[caps.tools.ffmpeg && 'ffmpeg', caps.tools.lame && 'lame'].filter(Boolean).join(', ')}</div>
+          <div class="tools">{$t('v2.conv.toolsFound' as any).replace('{list}', [caps.tools.ffmpeg && 'ffmpeg', caps.tools.lame && 'lame'].filter(Boolean).join(', '))}</div>
         {/if}
       </div>
 
       {#if jobId}
         <div class="job">
           <div class="jh">
-            <h2>Conversion en cours</h2>
-            <button class="lnk danger" onclick={cancel}>Annuler</button>
+            <h2>{$t('v2.conv.running' as any)}</h2>
+            <button class="lnk danger" onclick={cancel}>{$t('v2.tool.cancel' as any)}</button>
           </div>
           {#if job}
             <div class="bar"><span style="width:{Math.min(100, Math.round(job.progress ?? 0))}%"></span></div>
             <div class="jl">
-              {formatNumber(job.converted ?? 0)} sur {formatNumber(job.total ?? 0)}
+              {$t('v2.tool.count' as any).replace('{done}', formatNumber(job.converted ?? 0)).replace('{total}', formatNumber(job.total ?? 0))}
               {#if job.current_file}<em>{job.current_file}</em>{/if}
             </div>
             {#if job.state === 'done'}
               <div class="done">
-                Terminé{#if job.download_size} — {job.download_size}{/if}
+                {$t('v2.tool.done' as any)}{#if job.download_size} — {job.download_size}{/if}
                 {#if downloadUrl}
-                  <a class="lnk" href={downloadUrl} download>Enregistrer le fichier</a>
+                  <a class="lnk" href={downloadUrl} download>{$t('v2.tool.saveFile' as any)}</a>
                 {:else}
-                  <button class="lnk" onclick={download}>Préparer le téléchargement</button>
+                  <button class="lnk" onclick={download}>{$t('v2.tool.prepareDownload' as any)}</button>
                 {/if}
               </div>
             {:else if job.state === 'error'}
-              <div class="jerr">Échec{#if job.error} — {job.error}{/if}</div>
+              <div class="jerr">{$t('v2.tool.failed' as any)}{#if job.error} — {job.error}{/if}</div>
             {/if}
           {:else}
-            <div class="jl">Démarrage…</div>
+            <div class="jl">{$t('v2.tool.jobStarting' as any)}</div>
           {/if}
         </div>
       {/if}
 
       <div class="pick">
         <div class="ph">
-          <span class="cl">Albums à convertir</span>
+          <span class="cl">{$t('v2.conv.albumsToConvert' as any)}</span>
           <div class="search">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-            <input placeholder="Filtrer" bind:value={q} />
+            <input placeholder={$t('v2.tool.filter' as any)} bind:value={q} />
           </div>
           <button class="go" disabled={!picked.size || !preset || !supported || starting} onclick={start}>
-            {starting ? 'Lancement…' : 'Convertir'}
+            {starting ? $t('v2.tool.starting' as any) : $t('v2.conv.start' as any)}
           </button>
         </div>
         {#if !$albums.length}
-          <div class="state">Bibliothèque vide.</div>
+          <div class="state">{$t('v2.tool.libraryEmpty' as any)}</div>
         {:else}
           <div class="grid">
             {#each shown as a (a.id)}
@@ -202,7 +203,7 @@
             {/each}
           </div>
           {#if $albums.length > shown.length}
-            <div class="more">{shown.length} albums affichés sur {formatNumber($albums.length)} — affinez le filtre.</div>
+            <div class="more">{$t('v2.tool.shownOf' as any).replace('{shown}', String(shown.length)).replace('{total}', formatNumber($albums.length))}</div>
           {/if}
         {/if}
       </div>

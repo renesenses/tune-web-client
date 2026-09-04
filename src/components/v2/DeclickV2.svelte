@@ -14,6 +14,7 @@
   import type { DeclickOptions } from '../../lib/api';
   import { albums } from '../../lib/stores/library';
   import { fold, formatNumber } from '../../lib/utils';
+  import { t } from '../../lib/i18n';
   import AlbumArt from '../AlbumArt.svelte';
   import '../../styles/tune-v2.css';
 
@@ -57,7 +58,7 @@
       const res = await api.startDeclick([...picked].map((album_id) => ({ album_id })), options);
       jobId = res.job_id; job = null;
     } catch (e: any) {
-      error = e?.message === 'premium_required' ? 'Outil réservé aux licences Premium.' : (e?.message ?? 'Lancement impossible.');
+      error = e?.message === 'premium_required' ? $t('v2.declick.errPremium' as any) : (e?.message ?? $t('v2.tool.errStart' as any));
     }
     starting = false;
   }
@@ -83,7 +84,7 @@
   async function download() {
     if (!jobId) return;
     try { downloadUrl = await api.downloadDeclick(jobId); }
-    catch { error = 'Récupération impossible.'; }
+    catch { error = $t('v2.tool.errDownload' as any); }
   }
   async function cancel() {
     if (!jobId) return;
@@ -95,46 +96,44 @@
 <section class="v2-dec tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">Outils</div>
-      <h1>Dé-ploc</h1>
+      <div class="eyebrow">{$t('v2.tool.eyebrow' as any)}</div>
+      <h1>{$t('v2.declick.title' as any)}</h1>
     </div>
-    {#if picked.size}<span class="cnt">{picked.size} album{picked.size > 1 ? 's' : ''} choisi{picked.size > 1 ? 's' : ''}</span>{/if}
+    {#if picked.size}<span class="cnt">{(picked.size > 1 ? $t('v2.tool.pickedMany' as any) : $t('v2.tool.pickedOne' as any)).replace('{count}', String(picked.size))}</span>{/if}
   </header>
 
   {#if error}<div class="err">{error}</div>{/if}
 
   <div class="scroll">
     <p class="lead">
-      Retire les artefacts laissés par un encodage : retard d'encodeur, bourrage de fin,
-      clics aux jointures. Le résultat est ré-exporté <b>sans perte</b> — les fichiers
-      d'origine ne sont jamais modifiés.
+      {$t('v2.declick.leadA' as any)} <b>{$t('v2.declick.leadLossless' as any)}</b> {$t('v2.declick.leadB' as any)}
     </p>
 
     <div class="opts">
       <div class="opt">
-        <div class="ol"><span>Seuil de détection</span><span class="oh">Plus bas = plus sensible.</span></div>
+        <div class="ol"><span>{$t('v2.declick.threshold' as any)}</span><span class="oh">{$t('v2.declick.thresholdHint' as any)}</span></div>
         <div class="sl">
           <input type="range" min="-80" max="-10" step="1" bind:value={thresholdDb} />
           <span class="val">{thresholdDb} dB</span>
         </div>
       </div>
       <div class="opt">
-        <div class="ol"><span>Rogner le début</span></div>
+        <div class="ol"><span>{$t('v2.declick.trimLead' as any)}</span></div>
         <label class="sw"><input type="checkbox" bind:checked={trimLead} /><span class="slider"></span></label>
       </div>
       <div class="opt">
-        <div class="ol"><span>Rogner la fin</span></div>
+        <div class="ol"><span>{$t('v2.declick.trimTail' as any)}</span></div>
         <label class="sw"><input type="checkbox" bind:checked={trimTail} /><span class="slider"></span></label>
       </div>
       <div class="opt">
         <div class="ol">
-          <span>Couper au passage par zéro</span>
-          <span class="oh">Évite d'introduire un clic en voulant en retirer un.</span>
+          <span>{$t('v2.declick.zeroCross' as any)}</span>
+          <span class="oh">{$t('v2.declick.zeroCrossHint' as any)}</span>
         </div>
         <label class="sw"><input type="checkbox" bind:checked={zeroCross} /><span class="slider"></span></label>
       </div>
       <div class="opt">
-        <div class="ol"><span>Format de sortie</span></div>
+        <div class="ol"><span>{$t('v2.tool.outputFormat' as any)}</span></div>
         <div class="seg">
           <button class:on={outputFormat === 'flac'} onclick={() => (outputFormat = 'flac')}>FLAC</button>
           <button class:on={outputFormat === 'wav'} onclick={() => (outputFormat = 'wav')}>WAV</button>
@@ -145,46 +144,46 @@
     {#if jobId}
       <div class="job">
         <div class="jh">
-          <h2>Traitement en cours</h2>
-          <button class="lnk danger" onclick={cancel}>Annuler</button>
+          <h2>{$t('v2.declick.running' as any)}</h2>
+          <button class="lnk danger" onclick={cancel}>{$t('v2.tool.cancel' as any)}</button>
         </div>
         {#if job}
           <div class="bar"><span style="width:{pct}%"></span></div>
           <div class="jl">
-            {formatNumber(job.completed ?? 0)} sur {formatNumber(job.total ?? 0)}
+            {$t('v2.tool.count' as any).replace('{done}', formatNumber(job.completed ?? 0)).replace('{total}', formatNumber(job.total ?? 0))}
             {#if job.current_file}<em>{job.current_file}</em>{/if}
           </div>
           {#if job.status === 'completed'}
             <div class="done">
-              Terminé
+              {$t('v2.tool.done' as any)}
               {#if downloadUrl}
-                <a class="lnk" href={downloadUrl} download>Enregistrer le fichier</a>
+                <a class="lnk" href={downloadUrl} download>{$t('v2.tool.saveFile' as any)}</a>
               {:else}
-                <button class="lnk" onclick={download}>Préparer le téléchargement</button>
+                <button class="lnk" onclick={download}>{$t('v2.tool.prepareDownload' as any)}</button>
               {/if}
             </div>
           {:else if job.status === 'failed'}
-            <div class="jerr">Échec{#if job.errors?.length} — {job.errors[0]}{/if}</div>
+            <div class="jerr">{$t('v2.tool.failed' as any)}{#if job.errors?.length} — {job.errors[0]}{/if}</div>
           {:else if job.status === 'cancelled'}
-            <div class="jl">Annulé.</div>
+            <div class="jl">{$t('v2.declick.cancelled' as any)}</div>
           {/if}
         {:else}
-          <div class="jl">Démarrage…</div>
+          <div class="jl">{$t('v2.tool.jobStarting' as any)}</div>
         {/if}
       </div>
     {/if}
 
     <div class="ph">
-      <span class="cl">Albums à traiter</span>
+      <span class="cl">{$t('v2.declick.albumsToProcess' as any)}</span>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input placeholder="Filtrer" bind:value={q} />
+        <input placeholder={$t('v2.tool.filter' as any)} bind:value={q} />
       </div>
-      <button class="go" disabled={!picked.size || starting} onclick={start}>{starting ? 'Lancement…' : 'Traiter'}</button>
+      <button class="go" disabled={!picked.size || starting} onclick={start}>{starting ? $t('v2.tool.starting' as any) : $t('v2.declick.start' as any)}</button>
     </div>
 
     {#if !$albums.length}
-      <div class="state">Bibliothèque vide.</div>
+      <div class="state">{$t('v2.tool.libraryEmpty' as any)}</div>
     {:else}
       <div class="grid">
         {#each shown as a (a.id)}

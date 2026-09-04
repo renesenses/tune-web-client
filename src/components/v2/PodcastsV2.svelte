@@ -404,13 +404,13 @@
 <section class="v2-pod tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">À la demande</div>
+      <div class="eyebrow">{$t('v2.pod.eyebrow' as any)}</div>
       <h1>Podcasts</h1>
     </div>
     {#if showDiscover}
       <nav class="tabs">
-        <button class:on={tab === 'discover'} onclick={() => (tab = 'discover')}>Découvrir</button>
-        <button class:on={tab === 'subs'} onclick={() => (tab = 'subs')}>Mes abonnements</button>
+        <button class:on={tab === 'discover'} onclick={() => (tab = 'discover')}>{$t('v2.pod.tabDiscover' as any)}</button>
+        <button class:on={tab === 'subs'} onclick={() => (tab = 'subs')}>{$t('v2.pod.tabSubs' as any)}</button>
         <button class:on={tab === 'search'} onclick={() => (tab = 'search')}>{$t('v2.pod.search' as any)}</button>
       </nav>
     {/if}
@@ -445,11 +445,11 @@
   <div class="scroll">
     {#if tab === 'subs'}
       {#if subsLoading}
-        <div class="state">Chargement des abonnements…</div>
+        <div class="state">{$t('v2.pod.loadingSubs' as any)}</div>
       {:else if !subs.length}
-        <div class="state">Aucun abonnement.{showDiscover ? ' Passez par « Découvrir » pour en trouver.' : ''}</div>
+        <div class="state">{$t('v2.pod.noSubs' as any)}{showDiscover ? ' ' + $t('v2.pod.noSubsHint' as any) : ''}</div>
       {:else if !visibleSubs.length}
-        <div class="state">Aucun abonnement ne correspond.</div>
+        <div class="state">{$t('v2.pod.noSubsMatch' as any)}</div>
       {:else}
         <div class="grid">
           {#each visibleSubs as p (p.id ?? feedOf(p))}
@@ -470,7 +470,7 @@
              pays qui n'est pas celui qu'on croit se lit comme une panne. -->
         <div class="state">{$t('v2.pod.searchHint' as any)} {PAYS.find((c) => c.code === pays)?.nom ?? pays.toUpperCase()}.</div>
       {:else if !resultats.length}
-        <div class="state">Aucun résultat.</div>
+        <div class="state">{$t('v2.pod.noResult' as any)}</div>
       {:else}
         <div class="grid">{#each resultats as p, i (feedOf(p) ?? `q${i}`)}{@render tile(p, false)}{/each}</div>
       {/if}
@@ -499,7 +499,7 @@
 
       {#if section === 'selection'}
         {#if discoverLoading && !discover}
-          <div class="state">Chargement de la sélection…</div>
+          <div class="state">{$t('v2.pod.loadingSelection' as any)}</div>
         {:else if !discover?.curated.length}
           <div class="state">{$t('v2.pod.noSelection' as any)}</div>
         {:else}
@@ -581,7 +581,7 @@
       {/if}
 
       {#if !discoverLoading && !topLoading && !discover?.curated.length && !populaires.length && !top.length && !radioFrance.length}
-        <div class="state">Découverte indisponible sur ce serveur.</div>
+        <div class="state">{$t('v2.pod.discoverUnavailable' as any)}</div>
       {/if}
 
       <!--
@@ -625,9 +625,9 @@
       </div>
       <div class="eps">
         {#if epLoading}
-          <div class="state">Chargement des épisodes…</div>
+          <div class="state">{$t('v2.pod.loadingEpisodes' as any)}</div>
         {:else if !episodes.length}
-          <div class="state">Aucun épisode.</div>
+          <div class="state">{$t('v2.pod.noEpisode' as any)}</div>
         {:else}
           {#each episodes as ep, i (ep.audio_url ?? i)}
             <button class="ep" class:live={playingUrl === ep.audio_url} onclick={() => playEpisode(ep)}>
@@ -670,7 +670,7 @@
     <button class="sub" class:on={sub || isSubscribed(p)} disabled={!feedOf(p)}
       onclick={(e) => toggleSub(p, e)}
       title={!feedOf(p) ? $t('v2.pod.noFeed' as any) : undefined}
-      aria-label={isSubscribed(p) ? 'Se désabonner' : "S'abonner"}>
+      aria-label={isSubscribed(p) ? $t('v2.pod.unsubscribe' as any) : $t('v2.pod.subscribe' as any)}>
       {#if isSubscribed(p)}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
       {:else}
