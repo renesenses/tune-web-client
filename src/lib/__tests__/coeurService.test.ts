@@ -160,7 +160,12 @@ describe('L’écran Favoris montre AUSSI les favoris de service', () => {
   it('deux objets de service ne se disputent pas la clé « null »', () => {
     // `id` est nul sur TOUT objet de service. Deux entrées de clé `null`
     // arrêtent Svelte sur `each_key_duplicate` — l'écran entier disparaît.
-    const src = favoris();
+    // Les COMMENTAIRES sont retirés d'abord : une doc qui cite `{#each vTracks
+    // as t}` pour expliquer un piège de portée faisait compter quatre listes
+    // au lieu de trois, et rougir la garde sur du texte, pas sur du code.
+    const src = favoris()
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*(\/\/|\*).*$/gm, '');
     const cles = src.match(/\{#each v(?:Albums|Tracks|Artists) as [^}]*\}/g) ?? [];
     expect(cles.length, 'les trois listes n’ont plus leur clé').toBe(3);
     for (const c of cles) {

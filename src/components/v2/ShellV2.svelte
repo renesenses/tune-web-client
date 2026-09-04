@@ -225,9 +225,9 @@
         <NowPlaying tvDansLaCoquille />
       {:else}
         <div class="soon">
-          <div class="badge">À venir</div>
+          <div class="badge">{$t('v2.shell.soon' as any)}</div>
           <h2>{label}</h2>
-          <p>Cet écran sera redessiné dans la direction Levente. La navigation, la barre latérale à niveaux et le lecteur sont déjà en place autour de lui.</p>
+          <p>{$t('v2.shell.soonHint' as any)}</p>
         </div>
       {/if}
     </main>

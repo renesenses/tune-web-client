@@ -21,6 +21,7 @@
   import { activeView } from '../../lib/stores/navigation';
   import { } from '../../lib/utils';
   import { heureSeule } from '../../lib/dates';
+  import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
   type Card = {
@@ -182,7 +183,7 @@
 <section class="v2-health tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">État du serveur</div>
+      <div class="eyebrow">{$t('v2.health.eyebrow' as any)}</div>
       <h1>Processing</h1>
     </div>
     <div class="meta">
@@ -216,7 +217,7 @@
               <div class="bar"><span style="width:{p}%"></span></div>
               <div class="pct">{p} %</div>
             {:else if c.sansJauge}
-              <div class="nogauge">Pas d'avancement chiffré pour ce traitement.</div>
+              <div class="nogauge">{$t('v2.health.noProgress' as any)}</div>
             {/if}
 
             {#if c.detail}<div class="detail">{c.detail}</div>{/if}
@@ -226,7 +227,7 @@
 
       <p class="foot">
         Les traitements se lancent depuis les Réglages — Bibliothèque et Métadonnées.
-        <button class="lnk sm" onclick={() => activeView.set('settings')}>Ouvrir les réglages</button>
+        <button class="lnk sm" onclick={() => activeView.set('settings')}>{$t('v2.eq.openSettings' as any)}</button>
       </p>
     {/if}
   </div>

@@ -64,6 +64,13 @@
    * de service arrivent d'une autre table et n'ont pas d'identifiant numérique
    * à donner à `PUT /library/albums/{id}`.
    */
+  /**
+   * Calcule EN DEHORS de la boucle : `{#each vTracks as t}` masque le store
+   * `t`, et `$t(…)` dans le corps de la boucle ne s'abonne plus a rien.
+   * Svelte le refuse — « Cannot subscribe to stores that are not declared at
+   * the top level of the component ».
+   */
+  const labelRetirerFavori = $derived($t('v2.fav.remove' as any));
   let albumEnEdition = $state<Album | null>(null);
   let artisteEnEdition = $state<Artist | null>(null);
 
@@ -339,7 +346,7 @@
 <section class="v2-fav tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">Votre sélection</div>
+      <div class="eyebrow">{$t('v2.fav.eyebrow' as any)}</div>
       <h1>Favoris</h1>
     </div>
     <nav class="tabs">
@@ -386,9 +393,9 @@
 
   <div class="scroll">
     {#if $currentProfileId == null}
-      <div class="state">Aucun profil actif — les favoris sont attachés à un profil.</div>
+      <div class="state">{$t('v2.fav.noProfile' as any)}</div>
     {:else if loading}
-      <div class="state">Chargement des favoris…</div>
+      <div class="state">{$t('v2.fav.loading' as any)}</div>
     {:else if tab === 'albums'}
       {#if !vAlbums.length}
         <div class="state">{albums.length ? 'Aucun album ne correspond.' : 'Aucun album en favori.'}</div>
@@ -450,7 +457,7 @@
                 par le chemin unique de `toggleStreamingFavorite`. Le premier
                 sur la seconde ne retirerait rien, en silence.
               -->
-              <button class="hot flat" onclick={(e) => retirerPiste(t, e)} disabled={busy} aria-label="Retirer des favoris">
+              <button class="hot flat" onclick={(e) => retirerPiste(t, e)} disabled={busy} aria-label={labelRetirerFavori}>
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z"/></svg>
               </button>
             </div>

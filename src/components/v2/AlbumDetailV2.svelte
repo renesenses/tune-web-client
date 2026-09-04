@@ -5,6 +5,7 @@
    * technique (fréquence/profondeur) à l'Expert, comme partout ailleurs.
    */
   import * as api from '../../lib/api';
+  import { t as tr } from '../../lib/i18n';
   import { formatAnneeAlbum } from '../../lib/formats';
   import { currentZoneId } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
@@ -154,7 +155,7 @@
 
   <div class="tracks">
     {#if loading}
-      <div class="state">Chargement des pistes…</div>
+      <div class="state">{$tr('v2.common.loadingTracks' as any)}</div>
     {:else if error}
       <div class="state err">{error}</div>
     {:else}

@@ -356,9 +356,9 @@
       {#if creating}
         <div class="newp">
           <!-- svelte-ignore a11y_autofocus -->
-          <input bind:value={newName} placeholder="Nom de la playlist" autofocus
+          <input bind:value={newName} placeholder={$t('v2.pl.namePlaceholder' as any)} autofocus
             onkeydown={(e) => { if (e.key === 'Enter') create(); if (e.key === 'Escape') { creating = false; newName = ''; } }} />
-          <button class="mk" onclick={create}>Créer</button>
+          <button class="mk" onclick={create}>{$t('v2.zone.create' as any)}</button>
         </div>
       {:else}
         <div class="outils">
@@ -496,7 +496,7 @@
         </section>
       {/if}
     {:else if loading}
-      <div class="state">Chargement des playlists…</div>
+      <div class="state">{$t('v2.pl.loading' as any)}</div>
     {:else}
       <section class="grp">
         {#if local.length}

@@ -14,6 +14,7 @@
    * station reste silencieux.
    */
   import * as api from '../../lib/api';
+  import { t } from '../../lib/i18n';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { isBrowserZone, browserPlay } from '../../lib/stores/browserAudio';
   import { preferences } from '../../lib/stores/preferences';
@@ -106,7 +107,7 @@
     </div>
     <div class="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input placeholder="Rechercher une station" bind:value={q} />
+      <input placeholder={$t('v2.radio.searchPlaceholder' as any)} bind:value={q} />
       {#if q}
         <button class="clr" onclick={() => (q = '')} aria-label="Effacer">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -126,13 +127,13 @@
 
   <div class="scroll">
     {#if loading}
-      <div class="state">Chargement des stations…</div>
+      <div class="state">{$t('v2.radio.loading' as any)}</div>
     {:else if error}
       <div class="state err">{error}</div>
     {:else if !radios.length}
-      <div class="state">Aucune station. Ajoutez-en depuis l'écran Radio actuel.</div>
+      <div class="state">{$t('v2.radio.none' as any)}</div>
     {:else if !shown.length}
-      <div class="state">Aucune station ne correspond.</div>
+      <div class="state">{$t('v2.radio.noMatch' as any)}</div>
     {:else}
       {#if favorites.length}
         <section class="sec">
@@ -146,7 +147,7 @@
       {/if}
       {#if others.length}
         <section class="sec">
-          {#if favorites.length}<h2>Toutes les stations</h2>{/if}
+          {#if favorites.length}<h2>{$t('v2.radio.allStations' as any)}</h2>{/if}
           <div class="grid">
             {#each others as r (r.id)}
               {@render tile(r)}

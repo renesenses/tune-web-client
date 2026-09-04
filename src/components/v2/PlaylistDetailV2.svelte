@@ -8,6 +8,7 @@
    * Détail technique (fréquence/profondeur) réservé à l'Expert, comme ailleurs.
    */
   import * as api from '../../lib/api';
+  import { t as tr } from '../../lib/i18n';
   import { currentZoneId } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { preferences } from '../../lib/stores/preferences';
@@ -134,11 +135,11 @@
 
   <div class="tracks">
     {#if loading}
-      <div class="state">Chargement des pistes…</div>
+      <div class="state">{$tr('v2.common.loadingTracks' as any)}</div>
     {:else if error}
       <div class="state err">{error}</div>
     {:else if !tracks.length}
-      <div class="state">Cette playlist est vide.</div>
+      <div class="state">{$tr('v2.pl.empty' as any)}</div>
     {:else}
       {#each tracks as t, i (t.id ?? i)}
         <div class="trk" class:np={t.id != null && t.id === $currentTrackId}>

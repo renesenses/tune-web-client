@@ -17,6 +17,7 @@
    * clients, un état devine diverge en quelques secondes.
    */
   import * as api from '../../lib/api';
+  import { t as tr } from '../../lib/i18n';
   import { currentZoneId } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { queueTracks, queuePosition } from '../../lib/stores/queue';
@@ -87,7 +88,7 @@
         <span>{upNext.length} à suivre</span>
         {#if remainingMs}<span>{formatDuration(remainingMs)} restantes</span>{/if}
       </div>
-      <button class="lnk danger" onclick={clear} disabled={busy}>Vider la file</button>
+      <button class="lnk danger" onclick={clear} disabled={busy}>{$tr('v2.queue.clear' as any)}</button>
     {/if}
   </header>
 
@@ -95,11 +96,11 @@
 
   <div class="scroll">
     {#if loading}
-      <div class="state">Chargement de la file…</div>
+      <div class="state">{$tr('v2.queue.loading' as any)}</div>
     {:else if $currentZoneId == null}
-      <div class="state">Aucune zone active — sélectionnez une zone pour voir sa file.</div>
+      <div class="state">{$tr('v2.queue.noZone' as any)}</div>
     {:else if !tracks.length}
-      <div class="state">La file est vide.</div>
+      <div class="state">{$tr('v2.queue.empty' as any)}</div>
     {:else}
       {#if current}
         <section class="sec">
@@ -139,7 +140,7 @@
                   </button>
                 </span>
               {/if}
-              <button class="del" onclick={() => remove(idx)} disabled={busy} aria-label="Retirer de la file">
+              <button class="del" onclick={() => remove(idx)} disabled={busy} aria-label={$tr('v2.queue.remove' as any)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>

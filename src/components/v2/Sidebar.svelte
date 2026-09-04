@@ -147,8 +147,8 @@
       <div class="sub">MOZAIKLABS</div>
     </div>
     <button class="collapse" onclick={toggleCollapse}
-      aria-label={collapsed ? 'Déplier la barre latérale' : 'Replier la barre latérale'}
-      title={collapsed ? 'Déplier' : 'Replier'}>
+      aria-label={collapsed ? $t('v2.nav.expandAria' as any) : $t('v2.nav.collapseAria' as any)}
+      title={collapsed ? $t('v2.nav.expand' as any) : $t('v2.nav.collapse' as any)}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
     </button>
   </div>

@@ -156,7 +156,7 @@
       <!-- svelte-ignore a11y_autofocus -->
       <input
         type="search"
-        placeholder="Rechercher un album, un titre, un artiste…"
+        placeholder={$t('v2.sc.searchPlaceholder' as any)}
         bind:value={q}
         autofocus
         onkeydown={(e) => { if (e.key === 'Enter' && acousticOn) runAcoustic(); }}
@@ -179,7 +179,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         </div>
         <p>Tapez au moins deux caractères pour explorer votre bibliothèque{showAdvanced ? ' et les services' : ''}.</p>
-        {#if showExpert && acousticAvailable}<p class="sub">Astuce Expert : activez <b>Acoustique</b> pour chercher par ambiance — « jazz analogique chaleureux », « techno hypnotique ».</p>{/if}
+        {#if showExpert && acousticAvailable}<p class="sub">{$t('v2.sc.acousticHintA' as any)} <b>{$t('v2.sc.acousticHintBold' as any)}</b> {$t('v2.sc.acousticHintB' as any)}</p>{/if}
       </div>
     {:else if nothing}
       <div class="hint"><p>Aucun résultat pour « {q.trim()} ».</p></div>
@@ -273,7 +273,7 @@
 
       {#if showAdvanced && fedEntries.length}
         <section class="grp">
-          <h2>Sur les services</h2>
+          <h2>{$t('v2.sc.onServices' as any)}</h2>
           {#each fedEntries as [svc, r] (svc)}
             {#if r.albums?.length}
               <div class="svc"><span class="svcn">{svc}</span></div>

@@ -8,6 +8,7 @@
    * l'Expert, on montre la fréquence/profondeur exactes.
    */
   import { currentTrack, playbackState } from '../../lib/stores/nowPlaying';
+  import { t as tr } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, formatTime } from '../../lib/utils';
@@ -44,7 +45,7 @@
       </div>
       <div class="meta">
         <div class="ti idle">Rien en lecture</div>
-        <div class="ar">Choisissez un album ou une station</div>
+        <div class="ar">{$tr('v2.player.pickSomething' as any)}</div>
       </div>
     {:else}
       <div class="cv"><AlbumArt coverPath={(t as any)?.cover_path ?? null} albumId={(t as any)?.album_id ?? null} size={0} alt={t?.title ?? ''} source={(t as any)?.source ?? null} /></div>
